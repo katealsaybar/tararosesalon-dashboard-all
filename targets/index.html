@@ -124,6 +124,33 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 .rofac{background:var(--card);border-radius:var(--r-sm);padding:8px 12px;display:flex;justify-content:space-between;align-items:baseline}
 .rofac span{font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .rofac b{font-size:17px;font-weight:600}
+
+/* Kate, 23 Oct 2026: UI pass from the Tara Rose learning doctrine. Why before how (the wall at the top), safe to try (reset, and a plain
+   line about what is saved), one picture for the break-even number, and a phone that does not scroll past six full-width tiles. */
+:root{--ink-soft:#5F5F67}
+.why-wall{background:var(--card);border-radius:var(--r-md);padding:2px 18px;margin:0 0 20px;border-left:4px solid var(--accent-deep)}
+.why-wall summary{padding:12px 0;font-size:15px}
+.why-wall dl{display:grid;grid-template-columns:150px 1fr;gap:8px 16px;margin:0 0 12px}
+.why-wall dt{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding-top:4px}
+.why-wall dd{margin:0;font-size:15px}
+.why-wall .ww-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:0 0 14px;font-size:14px}
+.why-wall .ww-foot a{color:var(--text)}
+.tile.be{grid-column:1/-1}
+@media (min-width:701px) and (max-width:999px){.tiles{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:1000px){.tiles{grid-template-columns:repeat(5,1fr)}}
+.be-bar{position:relative;height:10px;border-radius:99px;background:var(--track);margin:16px 0 26px}
+.be-fill{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--accent-deep)}
+.be-fill.warn{background:#D9E36B}.be-fill.bad{background:var(--coral)}
+.be-mark{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--text);opacity:.6}
+.be-mark span{position:absolute;top:20px;font-size:12px;white-space:nowrap;color:var(--muted)}
+.be-mark.f span{right:5px}.be-mark.a span{left:5px}
+.edits{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--lime);color:var(--ink);border-radius:var(--r-md);padding:10px 16px;margin:0 0 18px;font-size:14.5px}
+.edits[hidden]{display:none}
+.edits button{color:var(--ink);border-color:rgba(45,46,55,.3)}
+@media (max-width:700px){
+  .why-wall dl{grid-template-columns:1fr;gap:2px}.why-wall dd{margin-bottom:10px}
+  .tiles{grid-template-columns:1fr 1fr;gap:10px}.tile.be{grid-column:1/-1}.tile{padding:14px}.tile .big{font-size:24px}
+}
 </style>
 </head>
 <body class="gating">
@@ -135,6 +162,16 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   <div class="eyebrow" style="text-align:center;margin-top:6px">Team space · Targets</div>
   <h1>Target calculator</h1>
   <p class="deck">One month, person by person. Each person's plan splits into service, treatment and retail, and the clients to match. Then it adds up to the branch and the group.</p>
+
+  <details class="why-wall" id="whyWall" open>
+    <summary>Read this first. Thirty seconds.</summary>
+    <dl>
+      <dt>Why this</dt><dd>A target is not a guess. It is her normal day, adjusted for the kind of month that is coming.</dd>
+      <dt>Why now</dt><dd>The November plans go out with the end of October emails. Mette checks them first, so this is the place to try things and adjust.</dd>
+      <dt>If we do nothing</dt><dd>Targets stay as guesses, and the business can be planned below break-even, which is AED 1.7 to 1.8 million a month.</dd>
+    </dl>
+    <p class="ww-foot"><span>Try it: change a person's days, or add a bottom-up %. Then tap <b>Why this?</b> on any row.</span><a href="/targets/how/">How a target is made</a><button class="copy" id="wwDone" type="button">Got it, hide this</button></p>
+  </details>
 
   <div class="bar">
     <div class="bar-row">
@@ -152,6 +189,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   </div>
 
   <div class="tiles" id="tiles"></div>
+  <div class="edits" id="edits" hidden role="status" aria-live="polite"></div>
 
   <details>
     <summary>Settings and the season calendar</summary>
@@ -165,7 +203,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
     </div>
     <p class="sub" style="margin:14px 0 4px">Season numbers. Fixed: measured from our own sales, 2022 to March 2026, and the same for everyone. They cannot be edited here.</p>
     <div class="cal" id="cal"></div>
-    <p class="sub" style="margin:12px 0 0">How a number is worked out, step by step: <a href="targets-explained-visual.html" style="color:var(--text)">open the explainer</a>.</p>
+    <p class="sub" style="margin:12px 0 0">How a number is worked out, step by step: <a href="/targets/how/" style="color:var(--text)">open the explainer</a>.</p>
   </details>
 
   <section class="card">
@@ -180,7 +218,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   <details>
     <summary>Where these numbers come from</summary>
     <p class="sub" style="margin-top:8px">Sales: Phorest staff daily (Supabase <b>phorest_staff_daily</b>), services plus courses ex VAT, days with sales, 1 Aug to 20 Oct 2026, pulled 21 Oct 2026. Treatment now: the ledger (<b>branch_staff_daily</b>), hair only. October as loaded: <b>staff_targets</b>, the 80% figure. Season factors: <b>financial_totals</b> and <b>phorest_staff_daily</b>, 2022 to March 2026, middle reading of each calendar month. Names are matched to Phorest by first name inside each branch and checked against the roster. Re-pull before the 25th run.</p>
-    <p class="sub">Not in the list on purpose: assistants, receptionists, coordinators, leavers (for example Molly Robinson, archived). Galina Spierling has no October target loaded, so Coach Emma should confirm her.</p>
+    <p class="sub">Not in the list on purpose: assistants, receptionists, coordinators and leavers who are archived. Where no October target was loaded, Coach Emma confirms the person first.</p>
   </details>
 </main>
 
@@ -336,10 +374,27 @@ function howExample(rows){
     <li><b>Step 5. Her plan.</b> ${fmt(r.adj)} &times; ${r.planned} = ${fmt(r.adj*r.planned)}, rounded to <b>AED ${fmt(r.plan)}</b>.</li>
     <li><b>Step 6. Split it.</b> Treatment ${S.treat}% = ${fmt(r.treat)}. Retail ${S.retail}% = ${fmt(r.retail)}. Clients: ${fmt(r.plan)} &divide; her average bill of ${fmt(r.avgBill)} = about ${fmt(r.clients)} clients.</li>
   </ol>
-  <p style="margin:6px 0 0">Because we divide by the days she <i>came in</i>, a person who took leave is not marked down for it. Tap "How" on anyone's row to see their own steps.</p>`;
+  <p style="margin:6px 0 0">Because we divide by the days she <i>came in</i>, a person who took leave is not marked down for it. Tap "Why this?" on anyone's row to see their own steps.</p>`;
 }
+function renderEdits(){
+  const n=Object.keys(days).length+Object.keys(bu).filter(k=>bu[k]).length,e=document.getElementById('edits');
+  if(!n){e.hidden=true;return;}
+  e.hidden=false;
+  e.innerHTML=`<span><b>You changed ${n} ${n===1?'thing':'things'}.</b> They stay on this page only and nothing is saved. Copy for Sheets keeps them.</span><button class="copy" id="btnReset" type="button">Reset my changes</button>`;
+}
+document.getElementById('edits').addEventListener('click',e=>{
+  if(e.target.id!=='btnReset')return;
+  Object.keys(days).forEach(k=>delete days[k]);Object.keys(bu).forEach(k=>delete bu[k]);render();
+});
+(function(){
+  const w=document.getElementById('whyWall');
+  try{if(localStorage.getItem('trs-targets-why')==='1')w.open=false;}catch(e){}
+  if(innerWidth<700)w.open=false; /* on a phone the numbers come first; the wall is one tap away */
+  document.getElementById('wwDone').addEventListener('click',()=>{w.open=false;try{localStorage.setItem('trs-targets-why','1');}catch(e){}});
+})();
 function render(){
   const rows=build();
+  renderEdits();
   const sel=rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team));
   howExample(rows);
   renderTiles(sel,rows);
@@ -356,7 +411,9 @@ function renderTiles(sel,all){
   const be=gTot>=BREAK_EVEN[1]?['good','at or above the aim']:gTot>=BREAK_EVEN[0]?['warn','above break-even, below the aim']:['bad','below break-even'];
   const m=MN[S.month-1];
   document.getElementById('tiles').innerHTML=
-   `<div class="tile"><div class="eyebrow">Total net take, all 4 branches</div><div class="big">${fmt(gTot)}</div><div class="line"><span class="chip ${be[0]}">${be[1]}</span></div><div class="line">Net take = plan plus retail. Break-even check. Without retail ${fmt(g.plan)}. Floor ${fmt(BREAK_EVEN[0])}, aim ${fmt(BREAK_EVEN[1])}.</div></div>`+
+   `<div class="tile be"><div class="eyebrow">Total net take, all 4 branches</div><div class="big">${fmt(gTot)}</div><div class="line"><span class="chip ${be[0]}">${be[1]}</span> Plan plus retail. Without retail ${fmt(g.plan)}.</div>`+
+   `<div class="be-bar" role="img" aria-label="Net take ${fmt(gTot)} against a floor of ${fmt(BREAK_EVEN[0])} and an aim of ${fmt(BREAK_EVEN[1])}"><div class="be-fill ${be[0]==='good'?'':be[0]}" style="width:${Math.min(100,gTot/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"></div>`+
+   `<div class="be-mark f" style="left:${(BREAK_EVEN[0]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Floor 1.7M</span></div><div class="be-mark a" style="left:${(BREAK_EVEN[1]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Aim 1.8M</span></div></div></div>`+
    `<div class="tile"><div class="eyebrow">${m} plan</div><div class="big">${fmt(t.plan)}</div><div class="line">Service plus treatment, ${t.n} people</div></div>`+
    `<div class="tile"><div class="eyebrow">Service</div><div class="big">${fmt(t.service)}</div><div class="line">${100-S.treat}% of the plan</div></div>`+
    `<div class="tile"><div class="eyebrow">Treatment</div><div class="big">${fmt(t.treat)}</div><div class="line">${S.treat}% of the plan</div></div>`+
@@ -379,7 +436,7 @@ function personRow(r){
    `<td data-l="Treatment">${has?fmt(r.treat):'n/a'}${has&&r.act&&r.act.tpct!=null?`<span class="rng">now ${r.act.tpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Retail">${has?fmt(r.retail):'n/a'}${has&&r.act&&r.act.rpct!=null?`<span class="rng">now ${r.act.rpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Clients">${has?fmt(r.clients):'n/a'}<span class="rng">${has?'bill '+fmt(r.avgBill)+(r.act&&r.act.bill?' (now '+fmt(r.act.bill)+')':''):''}</span></td>`+
-   `<td class="act"><button class="how" data-how="${r.i}" aria-expanded="${open}">${open?'Close':'How'}</button></td></tr>`;
+   `<td class="act"><button class="how" data-how="${r.i}" aria-expanded="${open}">${open?'Close':'Why this?'}</button></td></tr>`;
   if(open)h+=`<tr class="det"><td colspan="9">${detail(r)}</td></tr>`;
   return h;
 }
@@ -406,8 +463,8 @@ function detail(r){
 function renderPerson(sel){
   document.getElementById('secEyebrow').textContent='Person by person';
   document.getElementById('secTitle').textContent='The month, split up';
-  document.getElementById('secWhy').textContent='Change a person\'s planned days and everything for that person moves, including the branch view. Bottom-up % is the second check: add or take off a percentage for who is really on the floor (a new starter with a guest book, leave, a part-time rota). It starts at 0. Tap "How" for the steps. Italic means Coach Emma confirms first.';
-  let h=`<thead><tr><th>Person</th><th>Planned days</th><th>Bottom-up %</th><th>Plan</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th></th></tr></thead><tbody>`;
+  document.getElementById('secWhy').innerHTML='Change a person\'s <b>planned days</b>, or add a <b>bottom-up %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps. Italic means Coach Emma confirms first.';
+  let h=`<thead><tr><th>Person</th><th title="The days we plan she works. It starts as her average in full months.">Planned days</th><th title="Add or take off a percentage for who is really on the floor. It starts at 0.">Bottom-up %</th><th>Plan</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th></th></tr></thead><tbody>`;
   if(!sel.length)h+=`<tr><td colspan="9" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
   let last='';
   sel.forEach(r=>{
