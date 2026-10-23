@@ -94,6 +94,9 @@
     // Kate, 6 Oct 2026: named as in the dashboard sidebar (Marketing & Campaigns).
     { key: 'content-ads', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Google Ads', href: '/?view=googleads', rule: 'var(--accent-coral)',
       blurb: 'Spend, clicks and leads from Google Ads.' },
+    // Kate, 23 Oct 2026: Google and Meta spend by month and what it comes to per new client.
+    { key: 'content-spend', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Marketing Spend', href: '/?view=marketingspend', rule: 'var(--accent-coral)',
+      blurb: 'Google and Meta spend each month, and the cost of a new client.' },
     { key: 'content-web', via: 'dashboards', min: 3, ic: 'dashboards', dept: 'Content', title: 'Website & Search', href: '/?view=website', rule: 'var(--accent-coral)',
       blurb: 'Website visits and how people find us on Google.' },
     // Kate, 18 Oct 2026: the blasts and the voucher's results have their own group, Campaigns, in the sidebar and here.

@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=064c20af"></script>
+<script src="pages.js?v=86fcd0c9"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -457,6 +457,8 @@ body.lostclients-chrome .mast-rule,
 body.lostclients-chrome:not(.lastvisit-chrome):not(.complaints-chrome) .filters-wrap,
 body.googleads-chrome .mast-rule,
 body.googleads-chrome .filters-wrap,
+body.marketingspend-chrome .mast-rule,
+body.marketingspend-chrome .filters-wrap,
 body.website-chrome .mast-rule,
 body.website-chrome .filters-wrap,
 body.social-chrome .mast-rule,
@@ -3525,7 +3527,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['compare.js?v=b8350980'],
-      mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
+      mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'marketing-spend.js?v=1042db13', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
       wk:  ['team-performance.js?v=b9b2a0b2', 'staff-weeks.js?v=e0c1f939'],
       lv:  ['stylist-levels.js?v=cf577214'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
@@ -3721,6 +3723,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="nav-group" id="navMarketing">
     <div class="nav-title">Content</div>
     <div class="nav-sub" onclick="showView('googleads', this)">Google Ads</div>
+    <div class="nav-sub" onclick="showView('marketingspend', this)">Marketing Spend</div>
     <div class="nav-sub" onclick="showView('website', this)">Website &amp; Search</div>
     <div class="nav-sub" onclick="showView('social', this)">Social</div>
   </div>
@@ -4353,6 +4356,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="googleAdsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- MARKETING SPEND (Kate, 23 Oct 2026): Google and Meta spend by month beside the new clients, from
+       marketing_spend_report. marketing-spend.js draws it. -->
+  <div id="view-marketingspend" style="display:none">
+    <main id="marketingSpendContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- WEBSITE & SEARCH (Kate, 6 Oct 2026): GA4 visits, sources and pages, and Search
        Console searches, from website_report. website.js draws it. -->
   <div id="view-website" style="display:none">
@@ -4463,7 +4472,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=5835f919"></script>
+<script src="dashboard.js?v=8b298931"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4944,6 +4953,7 @@ function showView(view, el){
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
+  document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
@@ -4976,6 +4986,7 @@ function showView(view, el){
   if (view === 'wvblast') renderWvBlast();
   if (view === 'glowclub') renderGlowClub();
   if (view === 'googleads') renderGoogleAds();
+  if (view === 'marketingspend') renderMarketingSpend();
   if (view === 'website') renderWebsite();
   if (view === 'social') renderSocial();
   if (view === 'products') renderProducts();
