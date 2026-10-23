@@ -137,7 +137,7 @@ function webPaint(el) {
       ${d.days.length ? `
       <div class="w13-tiles">
         <div class="w13-tile"><div class="slv-eyebrow">Visits</div><div class="w13-val">${webNum(visits)}</div><div class="slv-note">${webNum(visits / d.days.length)} a day</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">People (added up day by day)</div><div class="w13-val">${webNum(people)}</div><div class="slv-note">${webPct(fresh, people)} first time on the site</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Visitors, counted each day</div><div class="w13-val">${webNum(people)}</div><div class="slv-note">A woman who visits on three different days counts three times. ${webPct(fresh, people)} were first time on the site.</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">Stayed to look</div><div class="w13-val">${webPct(engaged, visits)}</div><div class="slv-note">10 seconds or 2 pages or more</div></div>
         <div class="w13-tile"><div class="slv-eyebrow">From ads</div><div class="w13-val">${webPct(paid, visits)}</div><div class="slv-note">${webNum(paid)} visits from paid ads</div></div>
       </div>
