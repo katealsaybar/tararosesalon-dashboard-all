@@ -10,15 +10,14 @@ let wvLp = null, wvLpRows = null, wvLpPage = 1, wvLpSel = { seg: 'all', state: '
 try { Object.assign(wvLpSel, JSON.parse(localStorage.getItem('trs-wv-lastpush') || '{}')); } catch (e) {}
 const wvLpSave = () => { try { localStorage.setItem('trs-wv-lastpush', JSON.stringify(wvLpSel)); } catch (e) {} };
 const wvAed1 = n => 'AED ' + (Math.round((+n || 0) * 10) / 10).toLocaleString('en-GB', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const wvLpBalance = k => k === 'SA' ? 'Saadiyat (SA balance)' : 'KCA, AQ and MC (shared balance)';
 const wvLpSegName = k => k === 'warm' ? 'Warm: asked about it before' : 'Clean: not messaged before';
 const wvLpOut = r => !!(r.bought_before || r.stop);   // left out of the send: she bought after the list was built, or she is on a stop list now
 const wvLpSince = r => !r.bought_before && !!r.bought_on && String(r.bought_on) >= WV_LP_LAUNCH;
 const wvLpWhy = r => r.bought_before ? 'Bought a voucher before the launch' : r.stop ? 'On a stop list' + (r.stop_why ? ': ' + r.stop_why : '') : '';
 // Sortable headers (Kate, 23 Oct 2026, "like Google Sheets"): click a header to sort A to Z or low to high, again for the other way, a third time to go back
 // to the list's own order. Empty cells always sit last. Copy numbers and the files follow the sort, because they read wvLpFiltered.
-const WV_LP_COLS = [['Client', 'client', 't'], ['List', 'seg', 't'], ['WhatsApp balance', 'bal', 't'], ['2026 spend', 'spend', 'n'], ['Last visit', 'last_visit', 'd'], ['Last wrote to us', 'last_wrote', 'd'], ['Phone', 'phone', 't'], ['Status', 'status', 's']];
-const wvLpKey = (r, k) => k === 'bal' ? (r.branch === 'SAA' ? 'SA' : 'Shared') : k === 'status' ? (wvLpOut(r) ? 2 : wvLpSince(r) ? 1 : 0) : k === 'last_wrote' || k === 'last_visit' ? String(r[k] || '').slice(0, 10) : r[k];
+const WV_LP_COLS = [['Client', 'client', 't'], ['List', 'seg', 't'], ['2026 spend', 'spend', 'n'], ['Last visit', 'last_visit', 'd'], ['Last wrote to us', 'last_wrote', 'd'], ['Phone', 'phone', 't'], ['Status', 'status', 's']];
+const wvLpKey = (r, k) => k === 'status' ? (wvLpOut(r) ? 2 : wvLpSince(r) ? 1 : 0) : k === 'last_wrote' || k === 'last_visit' ? String(r[k] || '').slice(0, 10) : r[k];
 function wvLpSorted(rows) {
   const s = wvLpSel.sort, col = s && WV_LP_COLS.find(c => c[1] === s.k);
   if (!col) return rows;
@@ -121,7 +120,6 @@ function wvLpTableHtml() {
   const tr = shown.map(r => `<tr${wvLpSince(r) ? ' class="wv-bought"' : ''}>
       <td>${lcEsc(r.client)}<div class="slv-note">${lcEsc(WV_BR[r.branch] || r.branch)}</div></td>
       <td class="ll-nw"><span class="ll-tag">${r.seg === 'warm' ? 'Warm' : 'Clean'}</span></td>
-      <td class="ll-nw">${r.branch === 'SAA' ? 'SA' : 'Shared'}</td>
       <td class="ll-nw">${lcNum(Math.round(r.spend))}</td>
       <td class="ll-nw">${lcEsc(wvDay(r.last_visit))}</td>
       <td class="ll-nw">${r.last_wrote ? lcEsc(wvDay(r.last_wrote)) : '<span class="slv-muted">–</span>'}</td>
@@ -155,9 +153,9 @@ async function wvLpCopy() {
 function wvLpFile(kind) {
   if (typeof lgxBuild !== 'function') return;
   const rows = wvLpFiltered();
-  const head = ['Client', 'Branch', 'List', 'WhatsApp balance', '2026 spend (AED)', 'Last visit', 'Last wrote to us', 'Phone', 'Status', 'Bought on', 'Voucher', 'Paid (AED)', 'Paid via'];
+  const head = ['Client', 'Branch', 'List', '2026 spend (AED)', 'Last visit', 'Last wrote to us', 'Phone', 'Status', 'Bought on', 'Voucher', 'Paid (AED)', 'Paid via'];
   const num = new Set(['2026 spend (AED)', 'Paid (AED)']);
-  const lines = rows.map(r => [r.client, WV_BR[r.branch] || r.branch, r.seg === 'warm' ? 'Warm' : 'Clean', r.branch === 'SAA' ? 'SA' : 'Shared', Math.round(r.spend), r.last_visit || '', r.last_wrote ? String(r.last_wrote).slice(0, 10) : '',
+  const lines = rows.map(r => [r.client, WV_BR[r.branch] || r.branch, r.seg === 'warm' ? 'Warm' : 'Clean', Math.round(r.spend), r.last_visit || '', r.last_wrote ? String(r.last_wrote).slice(0, 10) : '',
     r.phone || '', wvLpOut(r) ? wvLpWhy(r) : wvLpSince(r) ? 'Bought since the launch' : 'To message', r.bought_on || '', r.bought_serial || '', r.bought_on ? Math.round(r.bought_aed) : '', r.bought_on ? wvPayName(r.bought_pay) : '']);
   const pi = head.indexOf('Phone');
   const out = kind === 'csv' ? lines.map(l => l.map((v, j) => j === pi && v ? `="${v}"` : v)) : lines;   // as lost-lists.js: Excel would show 9.72E+11
