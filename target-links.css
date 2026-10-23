@@ -6,9 +6,10 @@
 [data-theme="light"] .tl{border-left-color:var(--good,#0F6E56)}
 .tl-k{flex:none;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--muted2)}
 .tl-t{flex:1 1 220px;min-width:0;color:var(--muted)}
+.tl-b{flex:none;display:flex;flex-wrap:wrap;gap:8px}   /* the two buttons wrap together, never one on the text row and one below */
 .tl-a{flex:none;display:inline-flex;align-items:center;box-sizing:border-box;min-height:32px;padding:4px 12px;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:var(--text);text-decoration:none;font-size:13px;white-space:nowrap}
 .tl-a.tl-p{border-color:var(--text);font-weight:600}
 @media(hover:hover){.tl-a:hover{border-color:var(--accent)}}
 .tl-a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
-@media(max-width:760px){.tl{padding:10px 12px}.tl-a{min-height:44px;flex:1 1 auto;justify-content:center}}
+@media(max-width:760px){.tl{padding:10px 12px}.tl-b{flex:1 1 100%}.tl-a{min-height:44px;flex:1 1 auto;justify-content:center}}
 @media print{.tl{display:none}}
