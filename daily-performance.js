@@ -164,6 +164,13 @@ function dpCss() {
   .dpf .dp-tile .dp-eyebrow{margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text,var(--muted))}
   .dpf .dp-tile .dp-eyebrow + .big{margin-top:3px}
   .dpf .dp-tile .dp-per{margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)}
+  .dpf .dp-split{margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)}
+  .dpf .dp-split .dp-eyebrow{margin-top:0;margin-bottom:4px}
+  .dpf .dp-sr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-top:5px;font-size:13.5px}
+  .dpf .dp-sr .dp-sk{flex:0 0 58px;color:var(--muted)}
+  .dpf .dp-sr b{font-variant-numeric:tabular-nums}
+  .dpf .dp-sr .dp-sx{color:var(--muted2);font-variant-numeric:tabular-nums}
+  .dpf .dp-sr .dp-chip{margin:0 0 0 auto;padding:1px 8px;font-size:12px}
   .dpf .dp-sub{font-size:13px;color:var(--muted);line-height:1.4}
   .dpf .dp-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:10px;padding:1px 8px;margin-top:6px}
   .dpf .dp-chip.on{background:color-mix(in srgb,var(--dv-p2) 20%,transparent);color:var(--dv-p2)}
@@ -801,6 +808,7 @@ function dpLongTile(code, win, idxs, cidx, head) {
     <div class="dp-sub"><b style="color:var(--text)">${M.def && typeof ihTip === 'function' ? ihTip(dpEsc(M.label), M.def) : dpEsc(M.label)}</b> · ${vol ? 'total' : 'average'}, ${dpRangeLbl(win.from)} to ${dpRangeLbl(win.to)}</div>
     <div class="dp-sub">${t.n} open day${t.n === 1 ? '' : 's'}${vol ? ' · ' + M.fmt(t.v / t.n) + ' a day on average' : ''}</div>
     <div>${tchip}${gchip}</div>${gnote}
+    ${dpSplit(code, idxs)}
     <div style="margin-top:8px;max-width:260px">${dpSpark(code, cidx, mk)}</div></div>`;
 }
 // The whole window as one figure (a total for money and counts, an average for rates), read the same way dpPeriodLine reads it.
@@ -841,6 +849,20 @@ function dpLatestIdx(idxs) {
   return idxs.length - 1;
 }
 const dpPickLabel = idxs => dpPick != null && dpPick < idxs.length ? dpDayLabel(DPD.days[idxs[dpPick]]) : 'Latest open day, ' + dpDayLabel(DPD.days[idxs[dpLatestIdx(idxs)]]);
+// Kate, 23 Oct 2026: Total net take keeps its retail target at 12% of the plan, which is more than we sell today, so under it the two parts are
+// shown apart: services (hair with treatments and courses, and beauty) and retail, each against its own target. A short total then says which part is
+// short. The parts add up to the total, so nothing is counted twice.
+function dpSplit(code, ids) {
+  if (DP.measure !== 'sales' || !ids || !ids.length) return '';
+  const tot = dpPeriodFig('sales', code, ids), ret = dpPeriodFig('retail', code, ids);
+  if (!tot || !ret) return '';
+  const row = (name, v, t) => {
+    const p = t != null && t > 0 ? v / t * 100 : null, st = p != null ? dpStatus(p, 80) : null;
+    return `<div class="dp-sr"><span class="dp-sk">${name}</span><b>${dpMoney(v)}</b><span class="dp-sx">${t != null ? 'of ' + dpMoney(t) : 'no target'}</span>${st ? `<span class="dp-chip ${st[0]}">${Math.round(p)}%</span>` : ''}</div>`;
+  };
+  const svT = tot.t != null && ret.t != null ? tot.t - ret.t : null;
+  return `<div class="dp-split"><div class="dp-eyebrow">Made of</div>${row('Services', tot.v - ret.v, svT)}${row('Retail', ret.v, ret.t)}</div>`;
+}
 function dpTiles(win, idxs, cidx) {
   const mk = DP.measure, M = DP_M[mk];
   const pickI = idxs.length > 1 && dpUnit === 'day' && dpPick != null && dpPick >= 0 && dpPick < idxs.length ? dpPick : null;
@@ -880,6 +902,7 @@ function dpTiles(win, idxs, cidx) {
       <div class="dp-sub">${label} · ${pf.n} open day${pf.n === 1 ? '' : 's'}${M.kind === 'vol' ? ' · ' + M.fmt(pf.v / pf.n) + ' a day on average' : ' · average'}</div>
       <span class="dp-chip ${pcls}">${pic} ${pchip}</span>
       ${meter}
+      ${dpSplit(code, idxs)}
       ${asst}
       ${dayLine}
       ${spark}</div>`;
@@ -901,6 +924,7 @@ function dpTiles(win, idxs, cidx) {
       <div class="dp-sub">${label} · ${shut ? (dpCell(mk, code, lastIdx).state === 'closed' ? 'Closed ' + dpDayLabel(DPD.days[lastIdx]) + ' · last open ' : 'Latest figures ') : ''}${dayName}${c.t ? (M.kind === 'ratio' ? ' · target ' : ' · daily target ') + M.fmt(c.t) : ''}</div>
       <span class="dp-chip ${cls}">${ic} ${chip}</span>
       ${meter}
+      ${dpSplit(code, [li])}
       ${asst}
       ${metered && c.p != null ? '' : dpPeriodLine(mk, code, idxs)}
       ${spark}</div>`;
