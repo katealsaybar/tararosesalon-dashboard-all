@@ -5021,7 +5021,9 @@ async function renderDashboard() {
     // Kate, 2026-09-04.
     if (!Number.isFinite(d) || Math.abs(d) > 500) return noCompare;
     if (d >=  2) return { status:'good', txt:`Up ${d.toFixed(1)}% on ${prevPeriodLabel}`, verdict:'Growing' };
-    if (d <= -2) return { status:'bad',  txt:`Down ${Math.abs(d).toFixed(1)}% on ${prevPeriodLabel}`, verdict:'Falling' };
+    // Kate, 23 Oct 2026 (ALD2-02): a fall on the last period is a direction, not a miss of any aim, so it is
+    // grey with a down arrow. Red stays for "below the aim" (the Avg bill card), one red with one meaning.
+    if (d <= -2) return { status:'flat', txt:`Down ${Math.abs(d).toFixed(1)}% on ${prevPeriodLabel}`, verdict:`<span aria-hidden="true">↓</span> Down on ${prevPeriodLabel}` };
     return { status:'warn', txt:`Level with ${prevPeriodLabel}`, verdict:'Holding' };
   };
   const blendedAvgTarget = s.totalClients
@@ -5083,7 +5085,9 @@ async function renderDashboard() {
       v: num0(s.totalClients), status: clientTrend.status,
       pill: doorOn(s) ? 'Per staff' : null,
       sub: (doorOn(s) ? [['Per visit, through the door', num0(clientsOf(s))]] : []),
-      t: getClientTarget(sel.branch), verdict: clientTrend.verdict,
+      // ALD2-02: when no aim is uploaded the line says what the card is read against instead.
+      t: getClientTarget(sel.branch).replace(/^No client target uploaded for (?!any of|\d+ of)([A-Za-z0-9, ]+)$/,
+        (m, months) => `No client aim set for ${months}, so this is read against ${prevPeriodLabel} only.`), verdict: clientTrend.verdict,
       splits: splitsOf([
         { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} by staff`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
         { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} by staff`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
@@ -5363,7 +5367,7 @@ async function renderDashboard() {
     <div class="metric st-${m.status}">
       <div class="m-k">${m.k}${m.pill ? `<span class="m-pill">${m.pill}</span>` : ''}${m.tip ? ihTip('', m.tip) : ''}</div>
       <div class="m-def">${m.def}</div>
-      <div class="m-v tabular ${m.status === 'good' ? 'good' : m.status === 'warn' ? 'warn' : 'bad'}">${m.v}</div>
+      <div class="m-v tabular ${m.status === 'good' ? 'good' : m.status === 'warn' ? 'warn' : m.status === 'flat' ? '' : 'bad'}">${m.v}</div>
       <div class="m-t">${m.t}</div>
       ${(m.sub || []).map(([k, v]) => `<div class="m-sub"><span>${k}</span><span class="tabular">${v}</span></div>`).join('')}
       ${m.splits.length ? `<div class="m-split">${m.splits.map(splitBar).join('')}</div>` : ''}
