@@ -30,5 +30,5 @@ insert into agency_fees (month, agency, amount_aed, note) values
  ('2026-10-01','Leaders in Digital',0,'LID was taken off in October 2026 (Kate, 23 Oct). No October invoice; update if a final one comes.')
 on conflict (month, agency) do nothing;
 
--- marketing_spend_report() in marketing_spend.sql now reads this table (an 'agency' field on each month and
--- 'agency_last_month' at the top); run that file after this one. Both are applied live.
+-- marketing_spend_report() (in marketing_spend_cache.sql) reads this table: an 'agency' field on each month and
+-- 'agency_last_month' at the top. All three files are applied live.
