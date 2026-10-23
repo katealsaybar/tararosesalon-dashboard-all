@@ -133,7 +133,7 @@ async function renderWvBlast() {
   };
   if (!needList) {
     if (needPerf) {
-      const pf = await sb.rpc('wv_blast_performance', { p_rate: WV_RATE });
+      const pf = await sb.rpc('wv_blast_performance', { p_rate: WV_GHL_RATE });
       wvPerf = (!pf.error && pf.data && pf.data.totals) ? pf.data : null;
       const host = document.getElementById('wvHost');
       if (host) host.innerHTML = wvPerf ? wvPerfHtml() : '<p class="slv-muted">The numbers did not load. Refresh to try again.</p>';
@@ -142,7 +142,7 @@ async function renderWvBlast() {
     return;
   }
   try {
-    const [{ data, error }, pf] = await Promise.all([sb.rpc('wv_blast_get'), sb.rpc('wv_blast_performance', { p_rate: WV_RATE })]);
+    const [{ data, error }, pf] = await Promise.all([sb.rpc('wv_blast_get'), sb.rpc('wv_blast_performance', { p_rate: WV_GHL_RATE })]);
     if (error || !Array.isArray(data)) throw error || new Error('no list');
     wvRows = data; wvErr = '';
     wvPerf = (!pf.error && pf.data && pf.data.totals) ? pf.data : null;
@@ -156,7 +156,7 @@ async function renderWvBlast() {
 // blast, newest first, every block the same shape: what and why in one line, the result in a sentence of numbers, the cards, three plain facts, the breakdown and the notes folded away.
 // Blasts 1 and 2 went out of GoHighLevel. GHL's own stats screen only shows trigger attempts, so on 23 Oct 2026 the messages in the chats of the 3,168 tagged contacts were counted (wv_ghl_sends,
 // migrations/wv_blasts_history_ghl.sql). Their vouchers are Phorest sales in the 7 days after each send (wv_blasts_history). Blasts 3 and 4 use their own functions.
-const WV_RATE = 0.1753;   // AED a marketing message: USD 0.046 at the 3.81 the company card pays. One rate for every blast on this page, so the costs can be compared.
+const WV_RATE = 0.1753;   // AED a marketing message: USD 0.046 at the 3.81 the company card pays. Blast 4's rate (it goes through respond.io); Blasts 1 to 3 went out of GoHighLevel and use WV_GHL_RATE below.
 // Blasts 1 and 2 went out of GoHighLevel, so their cost uses GoHighLevel's rate card, not Meta's through respond.io (Kate, 23 Oct 2026): WhatsApp to the UAE, marketing, USD 0.0524 a delivered
 // message (HighLevel's WhatsApp pricing guide, the rate to 30 Sep 2026, so it covers the August sends), plus the 5% card fee on wallet top-ups, at the 3.81 the company card pays = AED 0.2096.
 // LC Email is USD 0.675 for 1,000 emails, the same 5%, same rate = AED 0.0027 an email. An estimate: the GoHighLevel wallet usage report has the exact figure.
@@ -248,7 +248,7 @@ function wvBlocks() {
     b2: { title: 'Blast 2: the reminder', tag: 'Sent 28 Aug', intro: ['A gentle WhatsApp reminder to the same contacts.', 'It shows whether a second nudge paid for itself.', 'Nothing to do here, it is finished. Compare it with Blast 1.'],
       line: wvLine(d2), stats: wvEarlyStats(d2), depth: typeof wvDepthHtml === 'function' ? wvDepthHtml('b2') : '', what: 'A gentle WhatsApp reminder.', who: 'The same contacts, minus anyone who had already replied or bought.', when: 'Fri 28 Aug.', more: wvEarlyMore('b2'), moreTitle: 'Break it down: by message', fold: wvEarlyFold(h, d2) },
     b3: d3 ? { title: 'Blast 3: the 600 top spenders', tag: 'Sent 15 and 16 Oct', intro: ['A WhatsApp message to our 600 top spenders, sent in five waves.', 'It is the one blast with a full record, so it is the one to learn from.', 'Nothing to send. Open Break it down to see which wave and message did best.'],
-      line: wvLine(d3), stats: [[lcNum(d3.tried), 'Messages sent'], [lcNum(d3.vouchers), 'Vouchers sold', wvN(d3.clients, 'client')], [wvAed(d3.aed), 'AED collected', d3.clients ? `${wvAed(d3.aed / d3.clients)} per buyer` : ''], [wvAed(d3.cost), 'Cost (estimate)', `${lcNum(d3.tried)} sent × AED ${WV_RATE}`], [wvBackTxt(d3.aed, d3.cost), 'Back for every AED 1']],
+      line: wvLine(d3), stats: [[lcNum(d3.tried), 'Messages sent'], [lcNum(d3.vouchers), 'Vouchers sold', wvN(d3.clients, 'client')], [wvAed(d3.aed), 'AED collected', d3.clients ? `${wvAed(d3.aed / d3.clients)} per buyer` : ''], [wvAed(d3.cost), 'Cost (estimate)', `${lcNum(d3.tried)} sent × AED ${WV_GHL_RATE}, GoHighLevel's rate`], [wvBackTxt(d3.aed, d3.cost), 'Back for every AED 1']],
       depth: typeof wvDepthHtml === 'function' ? wvDepthHtml('b3') : '',
       what: 'A WhatsApp message with Tell me more and Reserve mine buttons, sent in five waves by spend. Half got the short message (A), half the long one (B).', who: '600 clients who spent AED 4,000+ this year, visited in the last 90 days and can be messaged on WhatsApp.', when: 'Thu 15 and Fri 16 Oct.' } : null
   };
@@ -314,7 +314,7 @@ function wvAllHtml() {
       ['Back for every AED 1', 'AED collected divided by the cost estimate.'],
       ['Blasts 1 and 2', 'Sent from GoHighLevel. The sends are counted from the chats there. Vouchers are the log\'s sales in the 7 days after, so they do not prove the message sold them.'],
       ['Blasts 3 and 4', 'Vouchers bought by the clients on their own list, matched by name in Phorest. Blast 4\'s cost is the list × the rate until it has gone, then the messages really sent.'],
-      ['AED and cost', `AED is what the client paid, VAT included. Cost is always an estimate. Blasts 1 and 2 went out of GoHighLevel: AED ${WV_GHL_RATE} for each WhatsApp message that got through (and AED ${WV_GHL_EMAIL} for each Blast 1 email). Blasts 3 and 4: messages × AED ${WV_RATE} (USD 0.046 at 3.81). The invoices have the exact figures.`],
+      ['AED and cost', `AED is what the client paid, VAT included. Cost is always an estimate. Blasts 1, 2 and 3 went out of GoHighLevel: AED ${WV_GHL_RATE} for each WhatsApp message (Blasts 1 and 2: each one that got through; Blast 3: every one sent, because its delivery is not recorded) and AED ${WV_GHL_EMAIL} for each Blast 1 email. Blast 4 goes through respond.io: messages × AED ${WV_RATE} (USD 0.046 at 3.81). The invoices have the exact figures.`],
       ['Phorest and the log', 'Blasts 3 and 4 come from Phorest, so they can differ from the voucher log by a voucher or two.']])}</details></section>`;
 }
 function wvAllSet(v) {
@@ -405,9 +405,9 @@ function wvPerfHtml() {
     </div>
     ${tiers || pays ? `<p class="slv-note">Bought: ${tiers}${tiers && pays ? '. Paid by ' : ''}${pays}.</p>` : ''}</details>`;
   return `<section class="wv-perf" id="wvPerf">${brk}
-    <details class="wv-how"><summary>How to read these numbers</summary>${wvReadHtml(`${lcNum(t.sent)} messages × AED ${WV_RATE} = about ${wvAed(t.cost)}. That is the cost.`, [
+    <details class="wv-how"><summary>How to read these numbers</summary>${wvReadHtml(`${lcNum(t.sent)} messages × AED ${WV_GHL_RATE} = about ${wvAed(t.cost)}. That is the cost.`, [
       ['Messages', 'Sent through this page, one per client. A client may have bought without our message: the match to a sale is by name.'],
-      ['Cost', `Messages sent × AED ${WV_RATE} (USD 0.046 at 3.81). An estimate: Meta's invoice has the exact figure.`],
+      ['Cost', `Messages sent × AED ${WV_GHL_RATE}, GoHighLevel's rate (USD 0.0524 a marketing message to the UAE, plus its 5% card fee, at 3.81). Every message counts, because delivery for this blast is not recorded, so it may be a little high. The GoHighLevel wallet usage report has the exact figure.`],
       ['Replies and STOP', 'From respond.io\'s nightly check, so up to a day behind. They are in the full performance above.'],
       o.vouchers ? ['Other vouchers', `${lcNum(o.vouchers)} voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold since the blast started to clients not on the messaged list, for example a spelling that does not match. They are not counted above.`] : null,
       ['Voucher log', 'The Wellness Voucher Performance page counts from the voucher log, so its totals can differ by a voucher or two.']])}</details></section>`;
