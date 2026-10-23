@@ -21,10 +21,13 @@
 (function () {
   // What is OPEN, by id. Absent means closed. (Until 23 Oct 2026 the key was trsNavFolded and it held what was shut, with
   // everything open by default; that key is left alone and no longer read.)
-  const KEY = 'trsNavOpen';
+  // Kate, 23 Oct 2026 ("naka hide by default, para hindi makalat"): what you open is remembered for this tab only (sessionStorage), so every new visit starts closed. It used to be
+  // localStorage, and showView() opening the section of each page you visited saved those too, so the tree filled up until everything was open. The new key leaves the old one unread.
+  const KEY = 'trsNavOpen2';
   let opened = {};
-  try { opened = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { opened = {}; }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(opened)); } catch (e) {} };
+  try { opened = JSON.parse(sessionStorage.getItem(KEY) || '{}') || {}; } catch (e) { opened = {}; }
+  let revealing = false;   // opening the page you are on is not a choice: it is shown, never saved
+  const save = () => { if (revealing) return; try { sessionStorage.setItem(KEY, JSON.stringify(opened)); } catch (e) {} };
 
   const aside = document.querySelector('aside.sidebar');
   if (!aside) return;
@@ -162,6 +165,11 @@
   function revealActive() {
     const act = aside.querySelector('.nav-sub.active');
     if (!act) return;
+    const snap = JSON.stringify(opened);
+    revealing = true;
+    try { revealPath(act); } finally { revealing = false; try { opened = JSON.parse(snap); } catch (e) {} }
+  }
+  function revealPath(act) {
     const group = act.closest('.nav-group');
     const title = group && group.querySelector(':scope > .nav-title');
     if (group && group.classList.contains('folded') && title) title.click();
