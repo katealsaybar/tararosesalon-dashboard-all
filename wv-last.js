@@ -94,10 +94,12 @@ function wvLpListHtml() {
     <p class="slv-note wv-what"><b>Use it to</b> copy the numbers into respond.io, or save them as a file. Click a column heading to sort it.</p>
     <div class="ll-filters">
       <div class="ll-chips"><span class="slv-note">List</span>${chip('seg', 'all', 'Both')}${chip('seg', 'warm', 'Warm (' + lcNum(n(r => r.seg === 'warm')) + ')')}${chip('seg', 'clean', 'Clean (' + lcNum(n(r => r.seg === 'clean')) + ')')}</div>
-      <div class="ll-chips"><span class="slv-note">Show</span>${chip('state', 'tomsg', 'To message (' + lcNum(n(r => !wvLpOut(r))) + ')')}${chip('state', 'left', 'Left out (' + lcNum(n(wvLpOut)) + ')')}${chip('state', 'bought', 'Bought since launch (' + lcNum(n(wvLpSince)) + ')')}${chip('state', 'all', 'Everyone (' + lcNum(rows.length) + ')')}</div>
-      <button type="button" class="tglr lc-btn" onclick="wvLpCopy()" title="Copy the numbers shown, one per line">Copy numbers</button>
-      <button type="button" class="tglr lc-btn" onclick="wvLpFile('xlsx')">XLSX</button>
-      <button type="button" class="tglr lc-btn" onclick="wvLpFile('csv')">CSV</button>
+      <div class="ll-chips"><span class="slv-note">Show</span>${chip('state', 'tomsg', 'To message (' + lcNum(n(r => !wvLpOut(r))) + ')')}${chip('state', 'left', 'Left out (' + lcNum(n(wvLpOut)) + ')')}${chip('state', 'bought', 'Bought (' + lcNum(n(wvLpSince)) + ')')}${chip('state', 'all', 'Everyone (' + lcNum(rows.length) + ')')}</div>
+      <div class="wv-acts">
+        <button type="button" class="tglr lc-btn" onclick="wvLpCopy()" title="Copy the numbers shown, one per line">Copy numbers</button>
+        <button type="button" class="tglr lc-btn" onclick="wvLpFile('xlsx')">XLSX</button>
+        <button type="button" class="tglr lc-btn" onclick="wvLpFile('csv')">CSV</button>
+      </div>
       <span id="wvLpCount" class="slv-note" style="display:inline"></span>
       <span id="wvLpNote" class="slv-note" style="display:inline"></span>
     </div>

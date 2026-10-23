@@ -71,12 +71,30 @@ h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
 a{color:inherit}
 .top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
 .toplinks{display:flex;gap:8px;flex-wrap:wrap}
+/* Kate, 23 Oct 2026, from her phone: Refresh, Save as xlsx and Open the full log wrapped onto two rows. On a phone the three share one row and
+   shrink to the screen. */
+@media(max-width:560px){
+  .toplinks{flex:1 1 100%;flex-wrap:nowrap}
+  .toplinks .btn{flex:1 1 auto;min-width:0;padding:7px 6px;font-size:12.5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
 .btn{border:1px solid var(--line);background:var(--paper);color:var(--ink2);font:600 13px var(--sans);padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none}
 .btn:hover{color:var(--ink)}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:16px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 .grid2 .card{margin-bottom:0}
 @media (max-width:760px){.grid2{grid-template-columns:1fr}}
+/* Kate, 23 Oct 2026, from her phone: a table wider than its card was cut off at the right and could not be swiped, and the cards ran past the screen edge.
+   Every table now scrolls sideways inside its own box (the card stays put) and keeps its first column in view, in the card's own colour.
+   A grid card may shrink below its table's width (min-width:0), which is what let the table push the whole page wider. */
+.grid2>*,.card{min-width:0}
+/* The detail behind a section's one-line note (progressive disclosure): closed, it is one quiet line. */
+details.more{margin:6px 0 0}
+details.more>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:4px 0}
+details.more>p.sub{margin:4px 0 0}
+div:has(> table){overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+div:has(> table) > table tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--paper)}
+/* One narrow side margin on a phone, the same as the dashboard around it (10px a side). */
+@media (max-width:760px){.wrap{padding-left:10px;padding-right:10px}.card{padding-left:12px;padding-right:12px}}
 .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
 @media (max-width:760px){.hero{grid-template-columns:1fr}}
 .big{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
@@ -175,26 +193,29 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
   <!-- 3. Branches -->
   <section class="card" id="wv-branch">
     <h2>By branch</h2>
-    <p class="sub">Cash collected per salon. Redeemed is counted against the branch that sold the voucher, since vouchers redeem UAE-wide.</p>
+    <p class="sub">Which salon is selling the most: the cash collected at each one.</p>
+    <details class="more"><summary>How this is counted</summary><p class="sub">A redemption counts for the salon that sold the voucher, because a voucher can be used at any salon in the UAE.</p></details>
     <div class="chart" id="brChart"></div>
     <details><summary>Show as table</summary><div id="brTable"></div></details>
   </section>
 
   <section class="card" id="wv-sold">
     <h2>Who sold them</h2>
-    <p class="sub">Vouchers and cash by the person who issued the card at the till (the name typed in Your name on the till page). Same live vouchers as everything above. A Stripe sale is paid by the client on a link and only logged at the till, so those are split by how she came to us: nurtured by the person, from the 3rd blast or an earlier one, or paid direct. A sale at the till that came from the 3rd blast is marked too.</p>
+    <p class="sub">Who is selling: the vouchers and cash for each person who issued a card at the till. Use it to thank the people selling and to see who could use a hand.</p>
+    <p class="sub">For example, a card issued at the till under the name Belle counts for Belle.</p>
+    <details class="more"><summary>How this is counted</summary><p class="sub">The name is whatever was typed in Your name on the till page. A Stripe sale is paid by the client on a link and only logged at the till, so it is sorted by how she came to us: nurtured by the person, from the 4th blast, the 3rd blast or an earlier one, or paid direct. A till sale that came from the 3rd blast is marked too. These are the same live vouchers as everything above.</p></details>
     <div id="byWho"></div>
   </section>
 
   <div class="grid2" id="wv-tier">
     <section class="card">
       <h2>By tier</h2>
-      <p class="sub">Units sold against the unit target (45 by 31 Oct), and cash collected, per voucher type.</p>
+      <p class="sub">Which voucher types are ahead or behind: how many we have sold against the target of 45 by 31 Oct, and the cash for each.</p>
       <div id="tierTable"></div>
     </section>
     <section class="card">
       <h2>How they paid</h2>
-      <p class="sub">Share of cash collected by payment method.</p>
+      <p class="sub">How clients paid, as a share of the cash collected. For example, 37% on Stripe means 37 of every 100 dirhams came in through a Stripe link.</p>
       <div class="chart" id="payChart"></div>
       <div id="payLegend" class="legend"></div>
       <div id="payTable" style="margin-top:14px"></div>
@@ -204,35 +225,42 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
   <!-- How they were sold (Kate, 22 Oct 2026): by the source tagged on the voucher, and by purchase date around each blast. -->
   <section class="card" id="wv-source">
     <h2>How they were sold</h2>
-    <p class="sub">By the source tagged on each voucher in the log, and by the date it was bought around each blast. The 1st blast (21 Aug) and the reminder (28 Aug) went out from GHL, so there are no delivered or reply counts here: a sale is only counted by its date and its tag, not matched to a message.</p>
+    <p class="sub">What brought the sales in: the source tagged on each voucher, and the sales around each blast. Use it to see what came after each blast.</p>
+    <details class="more"><summary>How this is counted</summary><p class="sub">The 1st blast (21 Aug) and the reminder (28 Aug) went out from GHL, so there are no delivered or reply counts here. A sale is counted by the date it was bought and its tag, not matched to a message.</p></details>
     <div id="srcTable"></div>
     <h3 class="sub-h">Around each blast</h3>
     <div id="blastTable"></div>
     <h3 class="sub-h">Who was on the 1st and 2nd blast list</h3>
-    <p class="sub">Checked in GHL on 22 Oct 2026, a fixed snapshot, not live. Of the 29 vouchers with a named buyer at the till, <b>13 buyers (AED 27,500)</b> were on the 1st blast audience and had the blast or the reminder in their GHL conversation before they bought. The other 16 were not on that list. 11 of the 13 bought by 14 Oct, before the 3rd blast. 4 wrote back within a week of the 1st blast (21 to 28 Aug) and bought afterwards; 3 more wrote in before buying, content not read. This shows who was reached, not that the blast caused the sale.</p>
+    <p class="sub"><b>13 of the 29</b> vouchers with a named buyer went to people who had the 1st blast or the reminder first (<b>AED 27,500</b>). The other 16 were not on that list.</p>
+    <p class="sub">This shows who we reached, not that the blast caused the sale.</p>
+    <details class="more"><summary>The detail</summary><p class="sub">Checked in GHL on 22 Oct 2026, a fixed snapshot, not live. 11 of the 13 bought by 14 Oct, before the 3rd blast. 4 wrote back within a week of the 1st blast (21 to 28 Aug) and bought afterwards. 3 more wrote in before buying; we did not read what they wrote.</p></details>
   </section>
 
   <section class="card" id="wv-referrals">
     <h2>Referrals: new faces through the door</h2>
-    <p class="sub">Friends who came in on a voucher holder's Gift card, as logged on the voucher log. Three friends earn the holder AED 50 more credit.</p>
+    <p class="sub">New faces brought in by voucher holders: friends who came in on a holder's Gift card. Three friends earn the holder AED 50 more credit.</p>
     <div class="funnel" id="funnel"></div>
   </section>
 
   <div class="grid2" id="wv-redeem">
     <section class="card">
       <h2>Redemptions per week</h2>
-      <p class="sub">Credit spent in the salon, by week (Monday start).</p>
+      <p class="sub">Whether clients are coming in to use their credit: the credit spent in the salon each week (Monday start).</p>
       <div class="chart" id="redChart"></div>
       <details><summary>Show as table</summary><div id="redTable"></div></details>
     </section>
     <section class="card">
       <h2>Credit left to use, by expiry month</h2>
-      <p class="sub">Unspent credit on live vouchers, by the month the voucher runs out. A reminder list for reception.</p>
+      <p class="sub">Credit clients still have to spend, by the month it runs out. Reception: remind the earliest months first.</p>
       <div id="expTable"></div>
     </section>
   </div>
 
-  <p class="foot">Cash collected is what the client paid (1,000 / 2,500 / 4,500). Credit is what the voucher is worth (1,150 / 3,000 / 5,400, plus 50 once three friends come in). Voided and archived vouchers are left out of everything. Redemptions come from the twice-daily Phorest sync plus anything added by hand on the log.</p>
+  <details class="more"><summary>How these numbers are counted</summary>
+    <p class="sub">Cash collected is what the client paid (1,000 / 2,500 / 4,500).</p>
+    <p class="sub">Credit is what the voucher is worth (1,150 / 3,000 / 5,400, plus 50 once three friends come in).</p>
+    <p class="sub">Voided and archived vouchers are left out of everything.</p>
+    <p class="sub">Redemptions come from the twice-daily Phorest sync plus anything added by hand on the log.</p></details>
   </div>
 </div>
 <div class="tip" id="tip"></div>
@@ -412,7 +440,7 @@ function render(){
   /* who sold them: the till's "Your name", grouped ignoring case and spacing. Blank gets its own
      row so the total always matches the headline. */
   var whoMap = {}, whoSeen = false, viaSeen = live.some(function(r){ return r.sold_via !== undefined; });
-  var VIA = { nurtured:['Nurtured by her', 1], blast3:['3rd blast', 2], blast:['Earlier blast', 3], direct:['Direct on Stripe', 4], unsorted:['Not sorted yet', 5] };
+  var VIA = { nurtured:['Nurtured by her', 1], blast4:['4th blast', 1.5], blast3:['3rd blast', 2], blast:['Earlier blast', 3], direct:['Direct on Stripe', 4], unsorted:['Not sorted yet', 5] };
   live.forEach(function(r){
     if (r.issued_by !== undefined) whoSeen = true;
     var raw = String(r.issued_by || '').replace(/\s+/g, ' ').trim(), pk = raw.toLowerCase() || '\u0000';
@@ -447,8 +475,8 @@ function render(){
 
   /* how they were sold (Kate, 22 Oct 2026): the source tagged on each voucher (sold_via), with the ones nobody tagged on their own line so the
      total still matches the headline, then the sales by purchase date around each blast. Blast dates are from GHL (21 Aug, 28 Aug) and the site's
-     send queue (the 3rd blast from 15 Oct); the first sale was 21 Aug. */
-  var SRC = [['blast','1st and 2nd blasts'], ['blast3','3rd blast'], ['nurtured','Nurtured by her'], ['direct','Direct on Stripe']];
+     send queue (the 3rd blast from 15 Oct, the 4th and last push on Mon 26 Oct); the first sale was 21 Aug. */
+  var SRC = [['blast','1st and 2nd blasts'], ['blast3','3rd blast'], ['blast4','4th blast'], ['nurtured','Nurtured by her'], ['direct','Direct on Stripe']];
   function sum(l){ return l.reduce(function(a,r){ return a + num(r.paid_aed); }, 0); }
   var srcRows = SRC.map(function(x){ var l = live.filter(function(r){ return r.sold_via === x[0]; }); return { name:x[1], n:l.length, paid:sum(l) }; });
   var untagged = live.filter(function(r){ return !SRC.some(function(x){ return x[0] === r.sold_via; }); });
@@ -462,11 +490,12 @@ function render(){
   var BLASTS = [['1st blast: WhatsApp 21 Aug, email 22 Aug', 'the 7 days from 21 Aug', '2026-08-21', '2026-08-27'],
                 ['2nd blast: reminder 28 Aug', 'the 7 days from 28 Aug', '2026-08-28', '2026-09-03'],
                 ['Between the blasts', '4 Sep to 14 Oct', '2026-09-04', '2026-10-14'],
-                ['3rd blast: from 15 Oct', 'since 15 Oct', '2026-10-15', '9999-12-31']];
+                ['3rd blast: 15 to 25 Oct', '15 to 25 Oct', '2026-10-15', '2026-10-25'],
+                ['4th blast: the last push, from Mon 26 Oct', 'since 26 Oct', '2026-10-26', '9999-12-31']];   // Kate, 23 Oct 2026: in from the start, so it fills as the day arrives
   el('blastTable').innerHTML = '<table><thead><tr><th>Blast</th><th>Window</th><th class="n">Sold</th><th class="n">Collected</th><th class="n">Tagged to a blast</th></tr></thead><tbody>' +
     BLASTS.map(function(b){
       var l = live.filter(function(r){ return dayOf(r) >= b[2] && dayOf(r) <= b[3]; });
-      var tagged = l.filter(function(r){ return r.sold_via === 'blast' || r.sold_via === 'blast3'; }).length;
+      var tagged = l.filter(function(r){ return r.sold_via === 'blast' || r.sold_via === 'blast3' || r.sold_via === 'blast4'; }).length;
       return '<tr><td>' + esc(b[0]) + '</td><td>' + esc(b[1]) + '</td><td class="n">' + l.length + '</td><td class="n">' + aed(sum(l)) + '</td><td class="n">' + bc(tagged) + '</td></tr>';
     }).join('') + '</tbody></table>';
 

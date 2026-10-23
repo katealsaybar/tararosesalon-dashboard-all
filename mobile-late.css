@@ -219,3 +219,34 @@
 .se-stk tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--se-bg,var(--bg));max-width:46vw}
 .se-stk thead tr > :first-child{z-index:3}
 .se-sl .se-stk tr > :first-child:not([colspan]){box-shadow:8px 0 8px -8px rgba(0,0,0,.45)}
+
+/* One narrow side margin for the whole dashboard on a phone (Kate, 23 Oct 2026: "inconsistent margins, set a universal one, narrow, to maximise
+   space"). It was a stack: 18px on the page shell, then 15px or 28px of each page's own padding, then the card's, and the masthead sat on 16px, so
+   the left edge of the content was 18, 33 or 46px depending on the page and never lined up with the logo. Now the masthead, the shell and every page
+   sit on --gut (10px a side) and a page adds none of its own; cards keep their inner padding so the text still has room. The embedded voucher
+   report and Team Home use the same 10px. */
+@media(max-width:760px){
+  :root{--gut:10px}
+  .topbar-in{padding-left:var(--gut);padding-right:var(--gut)}
+  #wrap.wrap,.wrap{padding-left:var(--gut)!important;padding-right:var(--gut)!important}
+  [id$="Content"]{padding-left:0!important;padding-right:0!important}
+}
+
+/* Filter chips are toggles too: the same 32px as the segmented switches and the Refine button, with a 44px tap area (Kate, 23 Oct 2026). */
+@media(max-width:760px){
+  :root .ll-fchip{min-height:32px!important;padding-top:0;padding-bottom:0;position:relative}
+  :root .ll-fchip::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+}
+
+/* The page-size and Prev / Next bar under every long list on a phone (Kate, 23 Oct 2026, from the Blast 4 send list): Show 10 / 20 / 50 / 100 sat on a
+   line of its own with dead space beside it, and Prev and Next were a second, tall row. Now one thin row: Show and its four sizes on the left, Prev
+   and Next filling the rest, and "Page 1 of 32, 1 to 10 of 312" under them. */
+@media(max-width:760px){
+  :root .lc-pager{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:8px 6px;align-items:center}
+  :root .lc-pager .lc-pg-nav{display:contents}
+  :root .lc-pager .lc-pg-size{grid-column:1;grid-row:1;flex-wrap:nowrap}
+  :root .lc-pager .lc-pg-nav .tglr{grid-row:1;min-width:0;min-height:32px;padding:0 6px;white-space:nowrap;position:relative}
+  :root .lc-pager .lc-pg-nav .tglr::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+  :root .lc-pager .lc-pg-txt{grid-column:1/-1;grid-row:2;margin:0}
+  :root .lc-pager .sc-seg button{padding-left:9px;padding-right:9px}
+}
