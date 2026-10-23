@@ -118,7 +118,7 @@ function mspendPaint(el) {
     <section class="slv-card" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">Read this before quoting a number</div><h3>What is and is not in these numbers</h3></div></div>
       <ul class="slv-notes" style="margin:0;padding-left:18px;line-height:1.55">
-        <li><b>Agency.</b> Leaders in Digital’s monthly fee for the UAE salons, before VAT. Bahrain is left out. A month shows “not invoiced yet” until its invoice is in, and has no cost per client until then.</li>
+        <li><b>Agency.</b> Leaders in Digital’s monthly fee for the UAE salons, before VAT, until they were taken off in October 2026. Bahrain is left out. A month shows “not invoiced yet” until its invoice is in, and has no cost per client until then.</li>
         <li><b>New clients.</b> A client’s first sale at any salon, by name. A name spelt differently counts again, so the count runs a little high and the cost per client a little low. The till history starts in May 2021.</li>
         <li><b>Not here.</b> Content, influencer fees, commissions, staff time, WhatsApp and CRM tools, and a second Meta account that sent one small top-up receipt in Aug 2026. Add those before calling this the whole cost of winning a client.</li>
         <li><b>Meta before Oct 2025.</b> Not available, so the months before it show Google only and no cost per client.</li>
