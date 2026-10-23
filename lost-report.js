@@ -104,16 +104,16 @@ function lrTiles(t) {
   const m = lrMoney, perBooked = m && m.booked && m.booked.clients ? ` (${lrAed(m.cost.aed / m.booked.clients)} per client booked)` : '';
   return `<div class="ll-cards lr-cards">
     ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet')}
-    ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of the sent, wrote in after our message (a STOP is counted under STOP, not here)`)}
-    ${lrDep ? card(lrDep.total.booked, 'Clients booked', 'clients with an appointment from today on, each counted once')
+    ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of those sent wrote back. A STOP is counted under STOP, not here.`)}
+    ${lrDep ? card(lrDep.total.booked, 'Clients booked', 'Clients with an appointment from today on, each counted once.')
       : card(t.booked, 'Booked', `${lrPct(t.booked, t.sent)} have a booking from today on`)}
-    ${lrDep && lrDep.total.appts != null ? card(lrDep.total.appts, 'Appointments booked', 'appointments from today on. A client can book more than one, so this is higher than the clients')
+    ${lrDep && lrDep.total.appts != null ? card(lrDep.total.appts, 'Appointments booked', 'Appointments from today on. A client can book more than one, so this is higher than the number of clients.')
       : ''}
-    ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} opted out since (suggested limit 2%)`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '')}
-    ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of those tried (suggested limit 5%)`, t.failed ? 'lr-warn' : '')}
+    ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} asked us to stop. Aim to stay under 2%.`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '')}
+    ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of the messages we tried to send did not go through. Aim to stay under 5%.`, t.failed ? 'lr-warn' : '')}
     ${card(t.queued, 'Still queued', 'waiting for the next send window')}
-    ${m ? card(lrAed(m.cost.aed), 'Spent (estimate)', `${lcNum(m.cost.sent)} messages at AED ${(+m.rate).toFixed(2)} each${perBooked}. Meta's invoice has the exact figure`) : ''}
-  </div>${lrDep ? '<p class="slv-note">Clients booked and Appointments booked are clients we messaged who have an appointment from today on. A booking may have been made before our message or at the chair: Phorest does not record that.</p>' : ''}`;
+    ${m ? card(lrAed(m.cost.aed), 'Spent (estimate)', `${lcNum(m.cost.sent)} messages at AED ${(+m.rate).toFixed(2)} each${perBooked}. Meta's invoice has the exact figure.`) : ''}
+  </div>${lrDep ? '<p class="slv-note">These are clients we messaged who have an appointment from today on. She may have booked before our message or at the chair; Phorest does not record that.</p>' : ''}`;
 }
 // Booked, by deposit (Kate, 18 Oct 2026): of the clients who booked after our message, who has paid a deposit, who has not, and who
 // comes today (no deposit needed). Visual by default, Table beside it like Comparison. Colours are the page's own: paid = --good,
@@ -282,7 +282,13 @@ function lrMoneyInner() {
   return `<div class="lr-dhd"><h3>Money from the bookings</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrMoneySet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrMoneySet('table')">Table</button></div></div>
     ${tbl ? lrMoneyTable(m) : lrMoneyVisual(m)}
-    <p class="slv-note"><b>Projected</b> prices each service on the booked clients' appointments from today on at the median of what that service charged in the last 120 days, VAT included. ${unp ? `${lcNum(unp)} of the ${lcNum(b.svcs)} booked services have no price yet (a package or a free item) and count as 0, so it runs low. ` : ''}<b>Actual</b> is everything the clients we messaged have paid since their first message, VAT included, refunds taken off, without deposits, vouchers and courses sold. It also counts clients who came in and have no booking left. Sales arrive with the nightly upload, so today shows tomorrow. <b>Spent</b> is an estimate, messages sent at AED ${(+m.rate).toFixed(2)} each. A booking or a visit may not be because of our message: she may have booked before it, or been coming anyway.</p>`;
+    <p class="slv-note">What the bookings are worth, and what the messages cost.</p>
+    <p class="slv-note"><b>Projected</b> is what the booked appointments should bring in. <b>Actual</b> is what the clients we messaged have paid so far. <b>Spent</b> is what the messages cost, an estimate at AED ${(+m.rate).toFixed(2)} each.</p>
+    <p class="slv-note">A booking or a visit may not be because of our message: she may have booked before it, or been coming anyway.</p>
+    <details class="lr-fold"><summary>How these are worked out</summary>
+      <p class="slv-note"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that service charged in the last 120 days, VAT included. ${unp ? `${lcNum(unp)} of the ${lcNum(b.svcs)} booked services have no price yet (a package or a free item) and count as 0, so it runs low.` : ''}</p>
+      <p class="slv-note"><b>Actual</b> is everything the clients we messaged have paid since their first message, VAT included, refunds taken off, without deposits, vouchers and courses sold. It also counts clients who came in and have no booking left. Sales arrive with the nightly upload, so today shows tomorrow.</p>
+    </details>`;
 }
 function lrMoneySet(v) {
   lrMoneyView = v === 'table' ? 'table' : 'visual';
@@ -314,7 +320,7 @@ function lrDelVisual(d) {
         ${key}</div>
       <div class="lr-dcard"><h4>By day sent</h4>
         ${days.map(x => `<div class="lr-drow lr-drow2"><span>${lcEsc(lrDay(x.k))}</span>${lrDelBar(x, 100 * x.sent / maxD)}<b>${lcNum(x.sent)}</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
-        <p class="slv-note">Bar length is how many went out that day; the colours are what happened to them. A blank part of a bar has no delivery result to show.</p></div>
+        <p class="slv-note">Each bar is a day: its length is how many went out, the colours are what happened to them. A blank part has no delivery result yet.</p></div>
     </div>`;
 }
 function lrDelTable(d) {
@@ -331,8 +337,9 @@ function lrDelInner() {
   const tbl = lrDelView === 'table', unk = d.total.unknown || 0;
   return `<div class="lr-dhd"><h3>Did the message arrive?</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrDelSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrDelSet('table')">Table</button></div></div>
+    <p class="slv-note">Whether the messages reached the phones: seen, delivered, or not delivered yet.</p>
     ${d.total.sent ? (tbl ? lrDelTable(d) : lrDelVisual(d)) : '<p class="slv-muted">Nothing sent yet.</p>'}
-    <p class="slv-note">From respond.io's delivery report for each message, read each night, so a message sent today shows its result tomorrow. A client who replied still counts by what happened to the message.${unk ? ` ${lcNum(unk)} sent message${unk === 1 ? ' has' : 's have'} no report yet and ${unk === 1 ? 'is' : 'are'} left out of the bars.` : ''}</p>`;
+    <details class="lr-fold"><summary>How this is counted</summary><p class="slv-note">From respond.io's delivery report for each message, read each night, so a message sent today shows its result tomorrow. A client who replied still counts by what happened to the message.${unk ? ` ${lcNum(unk)} sent message${unk === 1 ? ' has' : 's have'} no report yet and ${unk === 1 ? 'is' : 'are'} left out of the bars.` : ''}</p></details>`;
 }
 function lrDelSet(v) {
   lrDelView = v === 'table' ? 'table' : 'visual';
@@ -408,10 +415,10 @@ function lrPaint() {
     </div>
     <section class="lr-sec" id="lr-type"><div class="lr-dhd"><h3>Which message</h3>
       <div class="tp-seg" role="group" aria-label="Message">${[['all', 'All']].concat(LR_TYPES.map(([k, l]) => [k, k === 'due' ? 'Due' : l])).map(([k, l]) => `<button type="button" class="${lrType === k ? 'on' : ''}" onclick="lrSetType('${k}')">${l}</button>`).join('')}</div></div>
-      ${lrType === 'all' ? `${lrTable('Message', typeRows)}<p class="slv-note">Pick one above to see every number on this page for that message alone. Smoothing is groups 1 and 2, Colour is group 3, Due is everyone else. A client who was sent two different messages is counted under each.</p>`
-        : `<p class="slv-note">Showing <b>${lcEsc(lrTypeName())}</b> only, everything below. Pick All messages to see the three together.</p>`}
+      ${lrType === 'all' ? `<p class="slv-note">How the three messages compare. Pick one to see every number on this page for that message alone.</p>${lrTable('Message', typeRows)}<details class="lr-fold"><summary>How the three are made</summary><p class="slv-note">Smoothing is groups 1 and 2, Colour is group 3, Due is everyone else. A client who was sent two different messages is counted under each.</p></details>`
+        : `<p class="slv-note">Showing <b>${lcEsc(lrTypeName())}</b> only, everything below. Pick All to see the three together.</p>`}
     </section>
-    <section class="lr-sec" id="lr-totals"><h3>The campaign so far${lrType === 'all' ? '' : `: ${lcEsc(lrTypeName())}`}</h3>${lrTiles(t)}</section>
+    <section class="lr-sec" id="lr-totals"><h3>The campaign so far${lrType === 'all' ? '' : `: ${lcEsc(lrTypeName())}`}</h3><p class="slv-note">How many we sent and what came back.</p>${lrTiles(t)}</section>
     ${lrDel ? `<section class="lr-sec" id="lr-delivery">${lrDelInner()}</section>` : ''}
     ${lrDep ? `<section class="lr-sec" id="lr-deposits">${lrDepInner()}</section>` : ''}
     ${lrMoney ? `<section class="lr-sec" id="lr-money">${lrMoneyInner()}</section>` : ''}
@@ -419,7 +426,7 @@ function lrPaint() {
     <section class="lr-sec" id="lr-messages"><h3>By message</h3>${lrTable('Message', msgRows)}</section>
     <section class="lr-sec" id="lr-branches"><h3>By branch</h3>${lrTable('Branch', brRows)}</section>
     <section class="lr-sec" id="lr-days"><h3>By day</h3>${lrTable('Day', dayRows)}</section>
-    <section class="lr-sec" id="lr-slots"><h3>Send times</h3><p class="slv-note">How many went out in each half hour (Dubai time). The pace is set in Pace on the To message tab.</p>${lrSlots(s.by_slot || [])}</section>
+    <section class="lr-sec" id="lr-slots"><h3>Send times</h3><p class="slv-note">When the messages went out, in half hours (Dubai time). To change the pace, use Pace on the To message tab.</p>${lrSlots(s.by_slot || [])}</section>
     <section class="lr-sec" id="lr-log"><h3>Send log</h3>
       <div class="lc-tools ll-tools">
         <select class="ll-sel" aria-label="Wave" onchange="lrSet('wave',this.value)">${[['all', 'All waves'], ['1', 'Wave 1'], ['2', 'Wave 2'], ['3', 'Wave 3'], ['4', 'Wave 4']].map(([v, l]) => `<option value="${v}"${lrSel.wave === v ? ' selected' : ''}>${l}</option>`).join('')}</select>

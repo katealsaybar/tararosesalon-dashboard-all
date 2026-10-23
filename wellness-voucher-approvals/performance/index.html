@@ -202,7 +202,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
   <section class="card" id="wv-sold">
     <h2>Who sold them</h2>
     <p class="sub">Who is selling: the vouchers and cash for each person who issued a card at the till. Use it to thank the people selling and to see who could use a hand.</p>
-    <p class="sub">For example, a card issued at the till under the name Belle counts for Belle.</p>
+    <p class="sub">For example, a card issued at the till under a stylist's name counts for that stylist.</p>
     <details class="more"><summary>How this is counted</summary><p class="sub">The name is whatever was typed in Your name on the till page. A Stripe sale is paid by the client on a link and only logged at the till, so it is sorted by how she came to us: nurtured by the person, from the 4th blast, the 3rd blast or an earlier one, or paid direct. A till sale that came from the 3rd blast is marked too. These are the same live vouchers as everything above.</p></details>
     <div id="byWho"></div>
   </section>
@@ -215,7 +215,7 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
     </section>
     <section class="card">
       <h2>How they paid</h2>
-      <p class="sub">How clients paid, as a share of the cash collected. For example, 37% on Stripe means 37 of every 100 dirhams came in through a Stripe link.</p>
+      <p class="sub">How clients paid, as a share of the cash collected. For example, if 40% is on Stripe, 40 of every 100 dirhams came in through a Stripe link.</p>
       <div class="chart" id="payChart"></div>
       <div id="payLegend" class="legend"></div>
       <div id="payTable" style="margin-top:14px"></div>
