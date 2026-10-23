@@ -2220,6 +2220,11 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 .w13-skey i.bar{display:inline-block;width:10px;height:13px;border-radius:3px}
 .w13-skey i.line{position:relative;display:inline-block;width:18px;height:2px;background:var(--c);border-radius:1px}
 .w13-skey i.line::after{content:'';position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#fff;border:2px solid var(--c)}
+/* Kate, 23 Oct 2026: the Q1 Q2 Q3 Q4 key on the Google Ads and Website charts ran together as Q1Q2Q3Q4 with no colours.
+   A gap between the quarters and each one's own shade swatch, the same shades as the bars. */
+.w13-qkey{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.w13-qkey span{display:inline-flex;align-items:center;gap:6px}
+.w13-qkey i{display:inline-block;width:10px;height:13px;border-radius:3px}
 @media(max-width:700px){.w13-skey{border-right:0;padding-right:0}}
 .w13-chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:18px 0 6px}
 .w13-hero{height:120px;width:auto;max-width:140px;object-fit:contain;object-position:bottom}
