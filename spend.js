@@ -164,8 +164,8 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
 `;
 
   let host = null, root = null, D = null;
-  let SUP = [], PR = [], FM = [], CAPS = { salon: {}, cat: {}, sup: {}, fam: {} }, INC = {}, EDIT = false;
-  const S = { phone: false, month: null, br: 'ALL', group: true, activeOnly: true, q: '', qraw: '', fSup: null, fCat: null, fPrio: null, sort: { k: 'val', d: -1 }, open: {}, menu: null, fOpen: true, msg: '' };
+  let SUP = [], PR = [], FM = [], UW = [], PS = {}, COVER = [], CAPS = { salon: {}, cat: {}, sup: {}, fam: {} }, INC = {}, EDIT = false;
+  const S = { phone: false, month: null, br: 'ALL', group: true, activeOnly: true, q: '', qraw: '', fSup: null, fCat: null, fPrio: null, fType: 'all', sort: { k: 'val', d: -1 }, open: {}, menu: null, fOpen: true, msg: '' };
   let loading = false;
   const isPhone = () => { const w = host ? host.getBoundingClientRect().width : 0; return w ? w < 600 : S.phone; };   // hidden (width 0) keeps what it was
 
@@ -174,6 +174,9 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   const f = n => Math.round(n).toLocaleString('en-US');
   const p1 = x => (x * 100).toFixed(1) + '%';
   const bi = b => B.indexOf(b);
+  // Priority: a tag someone saved wins; else the suggestion from spend (A = the first 80% of the last 4 months' spend in the branch, B = the next 15%).
+  const sugOf = p => { const r = PS[p.key]; return r ? (r[S.br === 'ALL' ? 4 : bi(S.br)] || '') : ''; };
+  const prEff = p => p.pr || sugOf(p);
   const scope = () => S.br === 'ALL' ? B : [S.br];
   const sumP = p => scope().reduce((a, b) => a + p.v[bi(b)], 0);
   const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
@@ -197,7 +200,10 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       const def = (r[3] === 'Beauty' ? 'Beauty' : 'Hair') + (r[2] === 'retail' ? ' Retail' : ' Professional'), key = r[0] + '\n' + r[1];
       return { i, brand: r[0], p: r[1], key, def, c: pc[key] || def, pr: pp[key] || '', s: bs[r[0]] || 'Unassigned', v: [r[4], r[5], r[6], r[7]].map(Number), q: Number(r[8]) };
     });
-    FM = (d.fam_months || []).map(r => ({ b: r[0], f: r[1], m: r[2], s: Number(r[3]), u: Number(r[4]) }));
+    FM = (d.fam_months || []).map(r => ({ b: r[0], f: r[1], t: r[2], m: r[3], s: Number(r[4]), u: Number(r[5]) }));
+    UW = (d.use_weeks || []).map(r => ({ b: r[0], f: r[1], t: r[2], w: r[3], s: Number(r[4]), u: Number(r[5]) }));
+    PS = {}; (d.prio_sug || []).forEach(r => { PS[r[0] + '\n' + r[1]] = [r[2], r[3], r[4], r[5], r[6]]; });
+    COVER = d.use_cover || [];
     CAPS = { salon: {}, cat: {}, sup: {}, fam: {} };
     d.caps.forEach(r => { if (CAPS[r[0]]) CAPS[r[0]][r[1]] = Number(r[2]); });
     INC = d.income || {};
@@ -288,7 +294,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     Object.keys(groups).forEach(k => {
       const g = groups[k]; if (S.fSup && !S.fSup[g.n]) return;
       const qs = q && g.n.toLowerCase().indexOf(q) >= 0;
-      const ps = g.prods.filter(p => sumP(p) > 0 && (!S.fCat || S.fCat[p.c]) && (!S.fPrio || (p.pr || '-') === S.fPrio) && (!q || qs || (p.p + ' ' + p.brand).toLowerCase().indexOf(q) >= 0));
+      const ps = g.prods.filter(p => sumP(p) > 0 && (!S.fCat || S.fCat[p.c]) && (!S.fPrio || (prEff(p) || '-') === S.fPrio) && (!q || qs || (p.p + ' ' + p.brand).toLowerCase().indexOf(q) >= 0));
       if (!ps.length) return;
       const bv = scope().map(b => ps.reduce((a, p) => a + p.v[bi(b)], 0)), tot = bv.reduce((a, v) => a + v, 0);
       const cs = {}; ps.forEach(p => { cs[p.c] = (cs[p.c] || 0) + sumP(p); });
@@ -300,18 +306,18 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   }
   const catSel = (val, attr) => '<select class="sel" ' + attr + ' aria-label="Category"' + dis() + '>' + ALLCATS.map(c => '<option' + (c === val ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>';
   const supSel = (val, attr) => '<select class="sel" ' + attr + ' aria-label="Supplier" title="Moves every product of this brand"' + dis() + '>' + SUP.map(s => s.n).concat(['Unassigned']).map(c => '<option' + (c === val ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>';
-  const prioSel = (val, attr) => '<select class="sel prio" ' + attr + ' aria-label="Priority"' + dis() + '><option value="">-</option><option' + (val === 'A' ? ' selected' : '') + '>A</option><option' + (val === 'B' ? ' selected' : '') + '>B</option></select>';
+  const prioSel = (val, attr, sg) => '<select class="sel prio" ' + attr + ' aria-label="Priority"' + (sg && !val ? ' title="Suggested ' + sg + ' from spend. Pick A or B to keep your own."' : '') + dis() + '><option value="">' + (sg ? sg + '?' : '-') + '</option><option' + (val === 'A' ? ' selected' : '') + '>A</option><option' + (val === 'B' ? ' selected' : '') + '>B</option></select>';
   const catChip = cs => {
     const ks = Object.keys(cs).sort((a, b) => cs[b] - cs[a]), t = ks.reduce((a, c) => a + cs[c], 0);
     return '<span class="catc" title="' + esc(ks.map(c => c + ' ' + Math.round(cs[c] / t * 100) + '%').join(', ')) + '">' + ks[0] + (ks.length > 1 ? ' +' + (ks.length - 1) : '') + '</span>';
   };
-  const prioCount = r => { const a = r.ps.filter(p => p.pr === 'A').length, b = r.ps.filter(p => p.pr === 'B').length; return (a ? 'A ' + a : '') + (a && b ? ' · ' : '') + (b ? 'B ' + b : ''); };
+  const prioCount = r => { const a = r.ps.filter(p => prEff(p) === 'A').length, b = r.ps.filter(p => prEff(p) === 'B').length; return (a ? 'A ' + a : '') + (a && b ? ' · ' : '') + (b ? 'B ' + b : ''); };
   const isOpenRow = (name, r, anyFilter) => !!S.open[name] || (anyFilter && r.ps.length > 0 && S.open[name] !== false);
 
   function sheetPhone() {
     const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q), grand = rows.reduce((a, r) => a + r.tot, 0);
     const prodCard = (p, withSup) => '<div class="pcard"><div class="pcn">' + esc(p.p) + '</div><div class="pcs">' + esc(p.brand) + ' · qty ' + f(p.q) + '</div><div class="pcr">' +
-      (withSup ? supSel(p.s, 'data-psup="' + p.i + '"') : '') + catSel(p.c, 'data-pcat="' + p.i + '"') + prioSel(p.pr, 'data-pprio="' + p.i + '"') + '<b>AED ' + f(sumP(p)) + '</b></div></div>';
+      (withSup ? supSel(p.s, 'data-psup="' + p.i + '"') : '') + catSel(p.c, 'data-pcat="' + p.i + '"') + prioSel(p.pr, 'data-pprio="' + p.i + '"', sugOf(p)) + '<b>AED ' + f(sumP(p)) + '</b></div></div>';
     const supCard = (r, isOpen) => '<div class="sc"><button type="button" class="sch" data-exp="' + esc(r.g.n) + '" aria-expanded="' + isOpen + '"><span class="scn">' + (isOpen ? '▾ ' : '▸ ') + esc(r.g.n) +
       (r.g.n === 'Unassigned' ? '<span class="tag">no supplier yet</span>' : '') + '</span><span class="scv">' + f(r.tot) + '</span></button>' +
       '<div class="scm">' + catChip(r.cs) + '<span>' + r.ps.length + ' product lines' + (isOpen ? '' : ', tap to open') + '</span></div>' +
@@ -332,9 +338,9 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     const rows = supRows(), bs = scope(), anyFilter = !!(S.fSup || S.fCat || S.q), arrow = S.sort.d > 0 ? '▲' : '▼', grand = rows.reduce((a, r) => a + r.tot, 0);
     const supTh = '<button type="button" class="so" data-sort="name">Supplier ' + (S.sort.k === 'name' ? arrow : '') + '</button>';
     const th = '<tr><th class="n">#</th>' + (S.group ? '<th class="l" colspan="2">' + supTh + ' <span style="font-weight:400">and its products</span></th>' : '<th class="l">' + supTh + '</th><th class="l">Product</th>') +
-      '<th class="l">Category</th><th class="l" title="A or B, set by hand">Prio</th>' + bs.map(b => '<th>' + b + '</th>').join('') + '<th><button type="button" class="so" data-sort="val">Received ' + (S.sort.k === 'val' ? arrow : '') + '</button></th></tr>';
+      '<th class="l">Category</th><th class="l" title="A or B. A tag you set wins; a letter with a ? is the suggestion: A = the products that make the first 80% of spend over the last 4 months in the branch, B = the next 15%.">Prio</th>' + bs.map(b => '<th>' + b + '</th>').join('') + '<th><button type="button" class="so" data-sort="val">Received ' + (S.sort.k === 'val' ? arrow : '') + '</button></th></tr>';
     const prodCells = (p, withSup) => (withSup ? '<td class="l">' + supSel(p.s, 'data-psup="' + p.i + '"') + '</td>' : '') +
-      '<td class="pc' + (withSup ? ' flat' : '') + '"' + (withSup ? '' : ' colspan="2"') + '><span title="' + esc(p.p) + '">' + esc(p.p) + '</span><small>' + esc(p.brand) + ' · qty ' + f(p.q) + '</small></td><td class="l">' + catSel(p.c, 'data-pcat="' + p.i + '"') + '</td><td class="l">' + prioSel(p.pr, 'data-pprio="' + p.i + '"') + '</td>' +
+      '<td class="pc' + (withSup ? ' flat' : '') + '"' + (withSup ? '' : ' colspan="2"') + '><span title="' + esc(p.p) + '">' + esc(p.p) + '</span><small>' + esc(p.brand) + ' · qty ' + f(p.q) + '</small></td><td class="l">' + catSel(p.c, 'data-pcat="' + p.i + '"') + '</td><td class="l">' + prioSel(p.pr, 'data-pprio="' + p.i + '"', sugOf(p)) + '</td>' +
       bs.map(b => '<td>' + (p.v[bi(b)] ? f(p.v[bi(b)]) : dsh()) + '</td>').join('') + '<td>' + f(sumP(p)) + '</td>';
     let n = 0, cnt = rows.length, body;
     const groupRow = r => {
@@ -356,46 +362,80 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     return '<div class="sw"><table class="sh"><thead>' + th + '</thead><tbody>' + body + '</tbody></table></div>' + st;
   }
 
-  /* ---------- Weekly spend by product family (professional stock received in Phorest, as a weekly rate) ---------- */
+  /* ---------- Weekly spend by product family: what was USED (Phorest Product Usage x the Stock List cost), received beside it ---------- */
+  // Family = Phorest's own Product Category. A week is Monday to Sunday and counts only once it is over (and inside the loaded usage).
+  // The band is the lowest to the highest complete week BEFORE the chosen month; "this month" is the average of the complete weeks that
+  // start inside it, so a family can sit above or below its usual band. Draft until Cristine settles the min/max method.
+  const ymd = d => d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+  const utc = s => { const a = s.slice(0, 10).split('-').map(Number); return new Date(Date.UTC(a[0], a[1] - 1, a[2])); };
+  const typeOk = t => S.fType === 'all' || t === S.fType;
   function famModel() {
-    const bs = scope(), m0 = new Date(S.month + 'T00:00:00'), months = [];
-    for (let i = 3; i >= 0; i--) { const d = new Date(m0.getFullYear(), m0.getMonth() - i, 1); months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'); }
-    const dim = k => { const a = k.split('-').map(Number); return new Date(a[0], a[1], 0).getDate(); };
-    const partialDays = D.partial && D.orders_through ? new Date(D.orders_through.slice(0, 10) + 'T00:00:00').getDate() : null;
-    const weeks = months.map(k => (k === S.month && partialDays != null ? partialDays : dim(k)) / 7);
+    const bs = scope(), m0 = utc(S.month), m1 = new Date(Date.UTC(m0.getUTCFullYear(), m0.getUTCMonth() + 1, 1));
+    const start = new Date(Date.UTC(m0.getUTCFullYear(), m0.getUTCMonth() - 3, 1));
+    const lastDay = D.use_through ? utc(D.use_through) : null, endCap = new Date(m1.getTime() - 86400000);
+    const through = lastDay && lastDay < endCap ? lastDay : endCap;
+    // Mondays whose whole week (to Sunday) is inside the window and inside the loaded usage
+    const weeks = [];
+    let w = new Date(start); w.setUTCDate(w.getUTCDate() + ((8 - (w.getUTCDay() || 7)) % 7));
+    for (; new Date(w.getTime() + 6 * 86400000) <= through; w = new Date(w.getTime() + 7 * 86400000)) weeks.push(ymd(w));
+    const useOn = !!(D.use_through && weeks.length >= 4);
+    const base = weeks.filter(k => k < S.month), cur = weeks.filter(k => k >= S.month);
     const by = {};
-    FM.forEach(r => { if (bs.indexOf(r.b) < 0) return; const i = months.indexOf(r.m); if (i < 0) return; (by[r.f] = by[r.f] || months.map(() => 0))[i] += r.s; });
-    const stat = (name, arr, capKey) => {
-      const rate = arr.map((v, i) => v / weeks[i]);
-      const done = months.map((k, i) => !(k === S.month && D.partial));
-      let sp = 0, wk = 0; arr.forEach((v, i) => { if (done[i]) { sp += v; wk += weeks[i]; } });
-      const used = rate.filter((r, i) => weeks[i] >= 1);
-      const cur = weeks[3] >= 1 ? rate[3] : null, lo = used.length ? Math.min.apply(null, used) : 0, hi = used.length ? Math.max.apply(null, used) : 0, usual = wk ? sp / wk : 0;
+    UW.forEach(r => { if (bs.indexOf(r.b) < 0 || !typeOk(r.t)) return; const o = (by[r.f] = by[r.f] || { w: {} }); o.w[r.w] = (o.w[r.w] || 0) + r.s; });
+    // received (monthly) as a weekly rate, the comparison column: the complete months in the window
+    const months = []; for (let i = 3; i >= 0; i--) months.push(ymd(new Date(Date.UTC(m0.getUTCFullYear(), m0.getUTCMonth() - i, 1))));
+    const dim = k => { const d = utc(k); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); };
+    const partialDays = D.partial && D.orders_through ? utc(D.orders_through).getUTCDate() : null;
+    const rec = {};
+    FM.forEach(r => { if (bs.indexOf(r.b) < 0 || !typeOk(r.t)) return; const i = months.indexOf(r.m); if (i < 0) return; (rec[r.f] = rec[r.f] || months.map(() => 0))[i] += r.s; });
+    const recWeeks = months.map(k => (k === S.month && partialDays != null ? partialDays : dim(k)) / 7);
+    const recStat = arr => { let sp = 0, wk = 0; arr.forEach((v, i) => { if (!(months[i] === S.month && D.partial)) { sp += v; wk += recWeeks[i]; } }); return wk ? sp / wk : 0; };
+    const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    const stat = (name, o, capKey, recArr) => {
+      let usual = 0, lo = 0, hi = 0, now = null, tot = 0;
+      if (useOn) {
+        const vb = base.map(k => o.w[k] || 0), vc = cur.map(k => o.w[k] || 0);
+        usual = avg(vb) || 0; lo = vb.length ? Math.min.apply(null, vb) : 0; hi = vb.length ? Math.max.apply(null, vb) : 0; now = avg(vc);
+        tot = weeks.reduce((a, k) => a + (o.w[k] || 0), 0);
+      } else if (recArr) {
+        const rate = recArr.map((v, i) => v / recWeeks[i]), ok = rate.filter((r, i) => recWeeks[i] >= 1);
+        usual = recStat(recArr); lo = ok.length ? Math.min.apply(null, ok) : 0; hi = ok.length ? Math.max.apply(null, ok) : 0;
+        now = recWeeks[3] >= 1 ? rate[3] : null; tot = recArr.reduce((a, v) => a + v, 0);
+      }
       const cap = capKey ? CAPS.fam[S.br + '|' + name] : null;
       let st = '';
-      if (cur != null) st = cap != null ? (cur > cap ? 'over' : 'ok') : (cur > hi * 1.0001 ? 'above' : cur < lo * 0.9999 ? 'below' : 'in');
-      return { name, usual, lo, hi, cur, cap, st, tot: arr.reduce((a, v) => a + v, 0), capKey };
+      if (now != null) st = cap != null ? (now > cap ? 'over' : 'ok') : (now > hi * 1.0001 ? 'above' : now < lo * 0.9999 ? 'below' : 'in');
+      return { name, usual, lo, hi, cur: now, cap, st, tot, capKey, rec: recArr ? recStat(recArr) : null };
     };
-    let rows = Object.keys(by).map(k => stat(k, by[k], true)).filter(r => r.tot > 0).sort((a, b) => b.usual - a.usual || b.tot - a.tot);
-    const top = rows.slice(0, 10), rest = rows.slice(10);
-    if (rest.length) { const arr = months.map((m, i) => rest.reduce((a, r) => a + (by[r.name][i] || 0), 0)); top.push(stat('Other families (' + rest.length + ')', arr, false)); }
-    const all = months.map((m, i) => Object.keys(by).reduce((a, k) => a + by[k][i], 0));
-    return { rows: top, total: stat('All families together', all, false), months, weeks };
+    const names = {}; Object.keys(by).forEach(k => { names[k] = 1; }); Object.keys(rec).forEach(k => { names[k] = 1; });
+    const rows = Object.keys(names).map(k => stat(k, by[k] || { w: {} }, true, rec[k] || months.map(() => 0))).filter(r => r.tot > 0 || r.rec > 0)
+      .sort((a, b) => b.usual - a.usual || b.rec - a.rec);
+    const top = rows.slice(0, 12), rest = rows.slice(12);
+    const merge = list => { const o = { w: {} }; list.forEach(r => { const f = by[r.name]; if (f) Object.keys(f.w).forEach(k => { o.w[k] = (o.w[k] || 0) + f.w[k]; }); }); return o; };
+    const sumRec = list => months.map((m, i) => list.reduce((a, r) => a + ((rec[r.name] || [])[i] || 0), 0));
+    if (rest.length) top.push(stat('Other families (' + rest.length + ')', merge(rest), false, sumRec(rest)));
+    return { rows: top, total: stat('All families together', merge(rows), false, sumRec(rows)), weeks, base, cur, useOn };
   }
   const famPill = r => r.st === 'over' ? '<span class="pill p-over">Over cap</span>' : r.st === 'ok' ? '<span class="pill p-ok">Within cap</span>' : r.st === 'above' ? '<span class="pill p-over">Above usual</span>' : r.st === 'below' ? '<span class="pill p-ok">Below usual</span>' : r.st === 'in' ? '<span class="pill p-ok">Usual</span>' : '<span class="muted">-</span>';
   function famSheet() {
     const M = famModel(), bs = scope();
-    if (!M.rows.length) return '<p class="msg">No professional stock received in these months.</p>';
-    const note = '<div class="stat"><span>Band = lowest to highest month, as AED a week; usual = the complete months together.</span><span>The band is worked out on each family\'s own total, not by adding product bands.</span></div>';
+    const seg = '<div class="stat" style="border-top:0;border-bottom:1px solid var(--border)"><span class="lab">Type</span><span class="seg">' + [['all', 'All'], ['professional', 'Professional'], ['retail', 'Retail']].map(x => '<button type="button" data-ftype="' + x[0] + '" aria-pressed="' + (S.fType === x[0]) + '">' + x[1] + '</button>').join('') + '</span></div>';
+    if (!M.rows.length) return seg + '<p class="msg">Nothing used or received in these months for this selection.</p>';
+    const cv = COVER.filter(c => bs.indexOf(c[0]) >= 0), usedA = cv.reduce((a, c) => a + Number(c[3]), 0), recA = cv.reduce((a, c) => a + Number(c[4]), 0);
+    const note = '<div class="stat"><span>' + (M.useOn
+      ? '<b>Used</b> is what staff took off the shelf in Phorest (Product Usage Details x the Stock List cost). Usual = the average complete week before ' + monthLabel(S.month, false) + ' (' + M.base.length + ' weeks), band = its lowest to highest week, this month = the average of ' + M.cur.length + ' complete weeks in it.'
+      : 'Usage is not loaded for these weeks, so this shows what Phorest <b>received</b>: band = lowest to highest month as AED a week.') + '</span>' +
+      '<span><b>Received</b> = stock booked in, as AED a week over the complete months. Over the 4 months: used AED ' + f(usedA) + ' against received AED ' + f(recA) + (D.use_through ? ', usage logged to ' + day(D.use_through) : '') + '. Phorest\'s usage report ends with Phorest.</span>' +
+      '<span>The band is worked out on each family\'s own total. Draft until Cristine confirms the min/max method.</span></div>';
     const capCell = r => r.capKey ? capIn('fam', S.br + '|' + r.name, r.cap, 'aed') : '';
     if (S.phone) {
-      const card = (r, tot) => '<div class="sc"><div class="sch" style="cursor:default"><span class="scn">' + esc(r.name) + '</span><span class="scv">' + f(r.usual) + ' / wk</span></div>' +
-        '<div class="scb"><span>Band <b>' + f(r.lo) + ' to ' + f(r.hi) + '</b></span><span>This month <b>' + (r.cur != null ? f(r.cur) : '-') + '</b></span></div><div class="scm">' + famPill(r) + (r.capKey ? '<span>cap ' + capCell(r) + ' a week</span>' : '') + '</div></div>';
-      return '<div class="cards">' + M.rows.map(r => card(r)).join('') + card(M.total, true) + '</div>' + note;
+      const card = r => '<div class="sc"><div class="sch" style="cursor:default"><span class="scn">' + esc(r.name) + '</span><span class="scv">' + f(r.usual) + ' / wk</span></div>' +
+        '<div class="scb"><span>Band <b>' + f(r.lo) + ' to ' + f(r.hi) + '</b></span><span>This month <b>' + (r.cur != null ? f(r.cur) : '-') + '</b></span><span>Received <b>' + (r.rec ? f(r.rec) : '-') + '</b></span></div><div class="scm">' + famPill(r) + (r.capKey ? '<span>cap ' + capCell(r) + ' a week</span>' : '') + '</div></div>';
+      return seg + '<div class="cards">' + M.rows.map(card).join('') + card(M.total) + '</div>' + note;
     }
-    const th = '<tr><th class="l">Product family</th><th>Usual a week</th><th>Band a week</th><th>This month a week</th><th class="l">Against</th><th>Cap a week</th></tr>';
-    const row = (r, tot) => '<tr class="' + (tot ? 'g' : '') + '"><td class="l">' + esc(r.name) + '</td><td>' + f(r.usual) + '</td><td>' + f(r.lo) + ' to ' + f(r.hi) + '</td><td>' + (r.cur != null ? '<b>' + f(r.cur) + '</b>' : dsh()) + '</td><td class="l">' + famPill(r) + '</td><td>' + (r.capKey ? capCell(r) : '') + '</td></tr>';
-    return '<div class="sw" style="max-height:none"><table class="sh"><thead>' + th + '</thead><tbody>' + M.rows.map(r => row(r, false)).join('') + row(M.total, true) + '</tbody></table></div>' + note;
+    const th = '<tr><th class="l">Product family</th><th>' + (M.useOn ? 'Used' : 'Received') + ' usual a week</th><th>Band a week</th><th>This month a week</th><th class="l">Against</th><th>Cap a week</th><th title="Stock booked in, AED a week over the complete months">Received a week</th></tr>';
+    const row = (r, tot) => '<tr class="' + (tot ? 'g' : '') + '"><td class="l">' + esc(r.name) + '</td><td>' + f(r.usual) + '</td><td>' + f(r.lo) + ' to ' + f(r.hi) + '</td><td>' + (r.cur != null ? '<b>' + f(r.cur) + '</b>' : dsh()) + '</td><td class="l">' + famPill(r) + '</td><td>' + (r.capKey ? capCell(r) : '') + '</td><td>' + (r.rec ? f(r.rec) : dsh()) + '</td></tr>';
+    return seg + '<div class="sw" style="max-height:none"><table class="sh"><thead>' + th + '</thead><tbody>' + M.rows.map(r => row(r, false)).join('') + row(M.total, true) + '</tbody></table></div>' + note;
   }
 
   /* ---------- Accounts: what was paid, per supplier (their monthly sheet; not part of the caps) ---------- */
@@ -486,11 +526,11 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
     if (D.orders_through) note.push('stock received to ' + day(D.orders_through));
     if (D.income_through) note.push('income to ' + day(D.income_through));
     const how = '<b>Spend here is what Phorest received on stock orders</b> in the month (booked in, at the Stock List cost), so every line has its product, category and branch. It does not include consumables or most beauty. The caps, panels and the first sheet use only this. <b>What Accounts paid</b> is its own section at the bottom: their monthly sheet follows payments, not invoice dates, so read it as cash out, not as spend. The filters above apply to both.' +
-      (D.partial ? ' <b>Month to date</b>: ' + esc(note.join(', ')) + '.' : ' ' + esc(note.join(', ')) + '.');
+      (D.partial ? ' <b>Month to date</b>: ' + esc(note.join(', ')) + '.' : ' ' + esc(note.join(', ').replace(/^./, c => c.toUpperCase())) + '.');
     $('pg').className = 'pg' + (S.phone ? ' ph' : '');
     $('pg').innerHTML = '<div class="fwrap" id="fwrap"><div id="fbar">' + barHtml() + '</div><div id="menu" role="dialog" aria-label="Filter"></div></div>' +
       (S.phone ? '<details class="how"><summary>How this is worked out</summary><p class="basisnote">' + how + '</p></details>' : '<p class="basisnote">' + how + '</p>') +
-      '<div class="grid3" id="dash"></div><h2 class="s">Weekly spend by product family <em>professional stock received in Phorest, as a rate a week' + (EDIT ? ', set a cap a week' : '') + '</em></h2><div class="sheet" id="fam"></div><h2 class="s">Every supplier and its products <em>Phorest, received in the month' + (EDIT ? ', change a Category cell to tag it' : ' (view only)') + '</em></h2><div class="sheet" id="sheet"></div>' +
+      '<div class="grid3" id="dash"></div><h2 class="s">Weekly spend by product family <em>what Phorest says was used, with what was received beside it, as AED a week' + (EDIT ? ', set a cap a week' : '') + '</em></h2><div class="sheet" id="fam"></div><h2 class="s">Every supplier and its products <em>Phorest, received in the month' + (EDIT ? ', change a Category cell to tag it' : ' (view only)') + '</em></h2><div class="sheet" id="sheet"></div>' +
       '<h2 class="s">What Accounts paid, per supplier <em>from their monthly sheet, not part of the caps</em></h2><div class="sheet" id="acct"></div>';
     S.menu = null;
     drawBody();
@@ -536,6 +576,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       if ((el = up('[data-tgl]'))) { if (el.getAttribute('data-tgl') === 'group') S.group = !S.group; else S.activeOnly = !S.activeOnly; drawBar(); drawBody(); return; }
       if (up('[data-clear]')) { S.fSup = null; S.fCat = null; S.fPrio = null; S.q = ''; S.qraw = ''; closeMenu(); drawBar(); drawBody(); return; }
       if ((el = up('[data-prio]'))) { S.fPrio = el.getAttribute('data-prio') || null; drawBar(); drawBody(); return; }
+      if ((el = up('[data-ftype]'))) { S.fType = el.getAttribute('data-ftype'); drawBody(); return; }
       if ((el = up('[data-grp]'))) { S.group = el.getAttribute('data-grp') === '1'; drawBar(); drawBody(); return; }
       if ((el = up('[data-psort]'))) { const k = el.getAttribute('data-psort'); S.sort = { k, d: k === 'name' ? 1 : -1 }; drawBar(); drawBody(); return; }
       if ((el = up('[data-exp]'))) { const n = el.getAttribute('data-exp'); S.open[n] = !(S.open[n] || ((S.fSup || S.fCat || S.q) && S.open[n] !== false)); drawBody(); return; }
