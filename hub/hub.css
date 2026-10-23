@@ -106,7 +106,10 @@ body.kb-wait .wrap{visibility:hidden}
   .kb-searchpage{font-size:12.5px;line-height:1.3;padding:5px 10px 5px 0}}
 
 /* Account menu */
-.kb-account{position:relative;flex-shrink:0}
+.kb-account{position:relative;flex-shrink:0;display:flex;align-items:center;gap:8px}
+.kb-themequick{flex:none;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer}
+.kb-themequick:hover{border-color:var(--text)}
+.kb-themequick:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 .kb-account-btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 6px;border-radius:999px;
   border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:14px;font-weight:500}
 .kb-account-btn:hover,.kb-account-btn[aria-expanded="true"]{border-color:var(--text)}
@@ -609,6 +612,7 @@ body.kb-wait .wrap{visibility:hidden}
   a.kb-check::after,.kb-searchpage::after,.kb-brand::after{content:"";position:absolute;left:-6px;right:-6px;top:50%;height:44px;transform:translateY(-50%)}
   .kb-searchpage,.kb-brand{position:relative}
   .fm-btn,.fm-switch button,.kb-dd-btn,.kb-account-btn{min-height:44px}
+  .kb-themequick{width:44px;height:44px}
   .rs-chg,.rs-rm,.rs-send,.rs-lv,.rs-addbtn{min-height:44px}
   .kb-foot a{display:inline-block;padding:14px 6px}
   /* Staff Card Links: five branches did not fit one row and pushed the page 46px wider than the screen. */

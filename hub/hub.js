@@ -346,12 +346,24 @@
     if (t) return t;
     return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
+  // Kate, 23 Oct 2026: the light/dark shortcut sits beside the account button, one tap, not two taps into the menu. It shows what a tap will switch to.
+  var THEME_ICON = {
+    dark: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    light: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'
+  };
+  function paintThemeQuick() {
+    var q = document.getElementById('kbThemeQuick'); if (!q) return;
+    var now = theme(), to = now === 'dark' ? 'light' : 'dark';
+    q.innerHTML = THEME_ICON[now];   // sun while it is dark (tap for light), moon while it is light (tap for dark)
+    q.setAttribute('aria-label', 'Switch to ' + to + ' mode'); q.title = 'Switch to ' + to + ' mode';
+  }
   KB.toggleTheme = function () {
     var next = theme() === 'dark' ? 'light' : 'dark';
     (window.trsThemeSwap || function (f) { f(); })(function () { document.documentElement.setAttribute('data-theme', next); });
     try { localStorage.setItem('trs-theme', next); } catch (e) {}
     var b = document.getElementById('kbThemeBtn');
     if (b) b.textContent = next === 'dark' ? 'Light mode' : 'Dark mode';
+    paintThemeQuick();
   };
 
   // ── Sign-in check. No session, or not on either list: the dashboard's sign-in
@@ -475,6 +487,7 @@
         '<input type="search" id="kbSearch" placeholder="Find a treatment, policy or how-to" autocomplete="off" aria-label="Find a treatment, policy or how-to"></div>' +
         '<div class="kb-results" id="kbResults" role="listbox"></div></div>' +
       '<div class="kb-account">' +
+        '<button type="button" class="kb-themequick" id="kbThemeQuick"></button>' +
         '<button class="kb-account-btn" id="kbAccountBtn" aria-haspopup="true" aria-expanded="false">' +
           '<span class="kb-avatar">' + esc(initials) + '</span><span class="kb-name">' + esc(first || 'Account') + '</span>' +
           '<svg class="kb-caret" width="10" height="7" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
@@ -534,7 +547,14 @@
       h.insertAdjacentElement('afterend', bar);
     }
     document.getElementById('kbThemeBtn').onclick = KB.toggleTheme;
+    document.getElementById('kbThemeQuick').onclick = KB.toggleTheme;
+    paintThemeQuick();
     document.getElementById('kbSignOut').onclick = KB.signOut;
+    // Kate, 23 Oct 2026: pages pin their own bars under this header (top: var(--kbh)). It was measured once, before the header was drawn, so a bar could sit a few pixels low and
+    // let the page show through. Now the exact height, kept current when the header changes size (fonts, a phone turning, the search opening).
+    var setKbh = function () { document.documentElement.style.setProperty('--kbh', h.getBoundingClientRect().height + 'px'); };
+    setKbh();
+    if (window.ResizeObserver) new ResizeObserver(setKbh).observe(h);
     wireSearch();
   }
 

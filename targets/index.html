@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=313841b2">
+<link rel="stylesheet" href="/hub/hub.css?v=aaef4c71">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 <style>
 /* page names -> the site's tokens (hub.css) */
@@ -48,7 +48,7 @@ h1 em{font-style:italic}
 h2{font-family:var(--fd);font-weight:600;font-size:clamp(22px,2.6vw,28px);line-height:1.15;letter-spacing:-.02em;margin:0}
 .deck{font-weight:300;font-size:17px;color:var(--muted);margin:0 auto 18px;max-width:70ch;text-align:center}
 .sub{font-size:13.5px;font-weight:300;color:var(--muted)}
-.bar{position:sticky;top:var(--kbh,76px);z-index:5;background:var(--bg);padding:10px 0;margin:0 0 22px;border-bottom:1px solid var(--rule)}
+.bar{position:sticky;top:calc(var(--kbh,76px) - 1px);z-index:5;background:var(--bg);padding:10px 0;margin:0 0 22px;border-bottom:1px solid var(--rule)}
 .bar-row{display:flex;gap:8px 20px;flex-wrap:wrap;align-items:center}
 .bar-row + .bar-row{margin-top:8px}
 .seg{display:inline-flex;border:1px solid var(--rule);border-radius:var(--r-pill);padding:3px;gap:2px}
@@ -77,7 +77,23 @@ summary{cursor:pointer;font-weight:500;font-size:14px}
 .tw{overflow-x:auto}
 table.t{border-collapse:collapse;width:100%;font-size:14.5px}
 table.t th{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px 7px;border-bottom:1px solid var(--rule);white-space:normal;vertical-align:bottom}
-table.t th:first-child,table.t td:first-child{text-align:left}
+table.t th:first-child,table.t td:first-child,table.t th.bd,table.t td.bd,table.t th.nm{text-align:left}
+/* Frozen header and first columns, the way Google Sheets freezes them (Kate, 23 Oct 2026). While the table fits the page the header row sticks under the filter bar and the window scrolls;
+   when it is wider than the page (a tablet) the table becomes its own frame that scrolls both ways, header on top, Branch, Dept and Person frozen on the left. targets/index.html stickFit(). */
+table.t thead th{position:sticky;z-index:3;background:var(--bg)}
+.tw.fit{overflow:visible}
+.tw.fit thead th{top:var(--thtop,0px)}
+.tw:not(.fit){max-height:calc(100vh - var(--thtop,0px) - 12px);overflow:auto}
+.tw:not(.fit) thead th{top:0}
+.tw:not(.fit) table.t[data-frz="3"] :is(th,td):nth-child(-n+3){position:sticky;background:var(--bg);z-index:2}
+.tw:not(.fit) table.t[data-frz="3"] :is(th,td):nth-child(1){left:0}
+.tw:not(.fit) table.t[data-frz="3"] :is(th,td):nth-child(2){left:var(--w1,0px)}
+.tw:not(.fit) table.t[data-frz="3"] :is(th,td):nth-child(3){left:calc(var(--w1,0px) + var(--w2,0px))}
+.tw:not(.fit) table.t[data-frz="3"] thead :is(th):nth-child(-n+3){z-index:4}
+.tw:not(.fit) table.t[data-frz="1"] :is(th,td):nth-child(1){position:sticky;left:0;background:var(--bg);z-index:2}
+.tw:not(.fit) table.t[data-frz="1"] thead th:nth-child(1){z-index:4}
+.tw:not(.fit) table.t tr.sum td:nth-child(1),.tw:not(.fit) table.t tr.tot td:nth-child(1){background:var(--card)}
+table.t td.bd{white-space:nowrap;font-size:13.5px;color:var(--muted)}
 table.t td{padding:11px 7px;border-bottom:1px solid var(--rule);text-align:right;vertical-align:middle;white-space:nowrap;font-variant-numeric:normal tabular-nums}
 table.t td.name{white-space:normal;min-width:210px;font-variant-numeric:normal}
 table.t td.name b{font-weight:600}
@@ -88,6 +104,7 @@ table.t td.name b{font-weight:600}
 .who .wtxt{min-width:0}
 table.t td[data-l="Clients"]{white-space:normal;min-width:120px;max-width:150px}
 table.t td[data-l="Clients"] .rng{white-space:normal}
+.phbd{display:none}
 .tg{font-size:12.5px;font-weight:300;color:var(--muted)}
 tr.grp td{padding:20px 10px 6px;border-bottom:1px solid var(--text);font-size:11px;font-weight:500;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);text-align:left}
 tr.sum td{font-weight:600;border-bottom:1px solid var(--text);background:var(--card)}
@@ -115,7 +132,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   .bar-row .seg button{flex:1;padding:8px 4px}
   .bar-row .eyebrow{margin-top:6px}
   .cal{grid-template-columns:repeat(3,1fr)}
-  .tw{overflow:visible}
+  .tw,.tw:not(.fit){overflow:visible;max-height:none}
   table.t,table.t tbody,table.t tr,table.t td{display:block;width:100%}
   table.t thead{display:none}
   table.t tr.p,table.t tr.sum,table.t tr.tot{border-top:1px solid var(--rule);padding:14px 0;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
@@ -123,6 +140,8 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   table.t td{border:0;padding:0;text-align:left!important;white-space:normal;background:transparent}
   table.t td.name{grid-column:1/-1;min-width:0}
   .who .ph{height:64px}
+  table.t td.bd{display:none}
+  .phbd{display:inline}
   table.t td[data-l]::before{content:attr(data-l);display:block;font-size:10.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-family:var(--fb)}
   table.t td.act{align-self:end}
   table.t tr.det{padding:0}
@@ -249,7 +268,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=400902d9"></script>
+<script src="/hub/hub.js?v=4d7e9a59"></script>
 <!-- Staff photos: the same card portraits the Podium Race and the Staff Cards use (name-aliases.js first, then staff-profiles.js). -->
 <script src="/upload/name-aliases.js?v=b21544d8"></script>
 <script src="/staff-profiles.js?v=a67ddd4e"></script>
@@ -482,6 +501,21 @@ document.getElementById('edits').addEventListener('click',e=>{
   if(innerWidth<700)w.open=false; /* on a phone the numbers come first; the wall is one tap away */
   document.getElementById('wwDone').addEventListener('click',()=>{w.open=false;try{localStorage.setItem('trs-targets-why','1');}catch(e){}});
 })();
+/* Frozen header (Kate, 23 Oct 2026). Fits the page: the header row sticks under the filter bar and the window scrolls. Wider than the page: the table is its own frame, scrolling both ways
+   with the header and the first columns frozen. The widths of Branch and Dept place the Person column next to them. On a phone the rows are cards and there is no header. */
+function stickFit(){
+  const tw=document.querySelector('.tw'),t=document.getElementById('tbl'),bar=document.querySelector('.bar');
+  if(!tw||!t)return;
+  const root=document.documentElement,kbh=parseFloat(getComputedStyle(root).getPropertyValue('--kbh'))||76;
+  const barH=bar&&getComputedStyle(bar).position==='sticky'?bar.offsetHeight:0;
+  root.style.setProperty('--thtop',(kbh+barH-2)+'px');
+  tw.classList.remove('fit');
+  const fit=matchMedia('(max-width:700px)').matches||tw.scrollWidth<=tw.clientWidth+1;
+  tw.classList.toggle('fit',fit);
+  const th=t.querySelectorAll('thead th');
+  if(th.length>2){t.style.setProperty('--w1',th[0].offsetWidth+'px');t.style.setProperty('--w2',th[1].offsetWidth+'px');}
+}
+window.addEventListener('resize',stickFit);
 function render(){
   const rows=build();
   renderEdits();
@@ -489,6 +523,7 @@ function render(){
   howExample(rows);
   renderTiles(sel,rows);
   if(st.view==='PERSON')renderPerson(sel);else renderBranch(rows);
+  stickFit();
   document.getElementById('rowFilters').style.display=st.view==='PERSON'?'':'none';
 }
 
@@ -526,7 +561,7 @@ function nameCell(r){
   const b=r.leave?['On leave this month','warn']:r.grp?['Two branches','on']:badge[r.status];
   const src=photoOf(r.p[1]);
   const face=src?`<img class="ph" src="${src}" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='<span class=&quot;ph-ph&quot;>${initialsOf(r.p[1])}</span>'">`:`<span class="ph-ph" title="Portrait to come">${initialsOf(r.p[1])}</span>`;
-  return `<td class="name"><div class="who">${face}<div class="wtxt"><b>${r.p[1]}</b><div class="tg">${BN[r.p[0]]} · ${r.p[3]}</div><div style="margin-top:5px"><span class="chip ${b[1]}">${b[0]}</span></div></div></div></td>`;
+  return `<td class="bd" data-l="Branch">${BN[r.p[0]]}</td><td class="bd" data-l="Dept">${r.p[2]==='HAIR'?'Hair':'Beauty'}</td><td class="name"><div class="who">${face}<div class="wtxt"><b>${r.p[1]}</b><div class="tg"><span class="phbd">${BN[r.p[0]]} · ${r.p[2]==='HAIR'?'Hair':'Beauty'} · </span>${r.p[3]}</div><div style="margin-top:5px"><span class="chip ${b[1]}">${b[0]}</span></div></div></div></td>`;
 }
 function personRow(r){
   const has=r.med!=null&&!r.cover, open=st.open.has(r.i);
@@ -542,7 +577,7 @@ function personRow(r){
    `<td data-l="Retail">${has?fmt(r.retail):'n/a'}${has&&r.act&&r.act.rpct!=null?`<span class="rng">now ${r.act.rpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Clients">${has?fmt(r.clients):'n/a'}<span class="rng">${has?(r.clCapped?'hours cap, bill '+fmt(r.billNeed)+' needed':'bill '+fmt(r.avgBill))+(r.act&&r.act.bill?' (now '+fmt(r.act.bill)+')':''):''}</span></td>`+
    `<td class="act"><button class="how" data-how="${r.i}" aria-expanded="${open}">${open?'Close':'Why this?'}</button></td></tr>`;
-  if(open)h+=`<tr class="det"><td colspan="11">${detail(r)}</td></tr>`;
+  if(open)h+=`<tr class="det"><td colspan="13">${detail(r)}</td></tr>`;
   return h;
 }
 function mos(r){
@@ -573,14 +608,10 @@ function renderPerson(sel){
   document.getElementById('secEyebrow').textContent='Person by person';
   document.getElementById('secTitle').textContent='The month, split up';
   document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>High</b> is nobody on leave. <b>Target</b> is the middle. Change a person\'s <b>planned days</b> (the low), or add a <b>bottom-up %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
-  let h=`<thead><tr><th>Person</th><th title="The days we plan she works for the low plan. It starts as her usual days, and as the days she came in if she is on leave.">Planned days</th><th title="Add or take off a percentage for who is really on the floor. It starts at 0.">Bottom-up %</th><th title="Her usual days, leave included.">Low</th><th title="The middle of low and high. This is the goal.">Target</th><th title="Nobody on leave: her best month's days.">High</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th></th></tr></thead><tbody>`;
-  if(!sel.length)h+=`<tr><td colspan="11" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
-  let last='';
-  sel.forEach(r=>{
-    const g=BN[r.p[0]]+' · '+(r.p[2]==='HAIR'?'Hair':'Beauty');
-    if(g!==last){h+=`<tr class="grp"><td colspan="11">${g}</td></tr>`;last=g;}
-    h+=personRow(r);
-  });
+  let h=`<thead><tr><th class="bd">Branch</th><th class="bd">Dept</th><th class="nm">Person</th><th title="The days we plan she works for the low plan. It starts as her usual days, and as the days she came in if she is on leave.">Planned days</th><th title="Add or take off a percentage for who is really on the floor. It starts at 0.">Bottom-up %</th><th title="Her usual days, leave included.">Low</th><th title="The middle of low and high. This is the goal.">Target</th><th title="Nobody on leave: her best month's days.">High</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th></th></tr></thead><tbody>`;
+  if(!sel.length)h+=`<tr><td colspan="13" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
+  sel.forEach(r=>{h+=personRow(r);});   // Branch and Dept are their own columns now, so no group heading rows
+  document.getElementById('tbl').setAttribute('data-frz','3');
   document.getElementById('tbl').innerHTML=h+'</tbody>';
 }
 function branchRow(label,t,cls,sub){
@@ -604,6 +635,7 @@ function renderBranch(rows){
     h+=branchRow(BN[b]+' total',sumRows(br),'sum','');
   });
   h+=branchRow('Group total',sumRows(rows),'tot','Four UAE branches');
+  document.getElementById('tbl').setAttribute('data-frz','1');
   document.getElementById('tbl').innerHTML=h+'</tbody>';
 }
 

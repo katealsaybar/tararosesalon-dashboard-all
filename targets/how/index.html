@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=313841b2">
+<link rel="stylesheet" href="/hub/hub.css?v=aaef4c71">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 <style>
 /* page names -> the site's tokens (hub.css) */
@@ -57,7 +57,7 @@ h2{font-size:clamp(21px,3.6vw,28px)}
 .op{align-self:center;font:500 28px var(--fd);color:var(--ink-soft)}
 
 /* controls */
-.bar{position:sticky;top:var(--kbh,76px);z-index:5;background:var(--paper);padding:10px 0 8px;margin-top:18px;border-bottom:1px solid var(--ln)}
+.bar{position:sticky;top:calc(var(--kbh,76px) - 1px);z-index:5;background:var(--paper);padding:10px 0 8px;margin-top:18px;border-bottom:1px solid var(--ln)}
 .bar .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .prog{display:flex;gap:4px;margin-top:10px}
 .prog button{flex:1;height:10px;border:0;border-radius:6px;background:var(--stone);cursor:pointer;padding:0}
@@ -488,7 +488,7 @@ details p{margin:0 0 12px;font-size:15.5px}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=400902d9"></script>
+<script src="/hub/hub.js?v=4d7e9a59"></script>
 <script>
 (async function(){
 /* Kate, 22 Oct 2026: the numbers on this page (each stylist's sales and days, the branch history) are not in this file.
@@ -1032,7 +1032,7 @@ function renderStep(){
   nx.textContent=idx===cards.length-2?'Last step':'Next step';
   document.getElementById('nav').classList.toggle('hide',mode!=='one');
   document.getElementById('intro').classList.toggle('hide',mode==='one'&&idx>0);
-  fitStep(true);
+  fitStep();
 }
 
 function writeHash(){
@@ -1048,13 +1048,12 @@ function readHash(){
   const mm=parseInt(q.get('m'),10);if(mm>=1&&mm<=12)target=mm;
   if(q.get('all')==='1'){mode='all';document.getElementById('mAll').setAttribute('aria-pressed',true);document.getElementById('mOne').setAttribute('aria-pressed',false)}
 }
-function fitStep(toTop){
+function fitStep(){
   writeHash();
   if(mode!=='one'||idx===0)return;
   const c=cards[idx],svgs=[...c.querySelectorAll('svg')];
   svgs.forEach(v=>v.style.maxHeight='');c.style.zoom='';
-  /* only jump to the top when the step changes, never when a toggle is clicked */
-  if(toTop)window.scrollTo({top:0,behavior:'instant'});
+  /* Kate, 23 Oct 2026: no scroll of its own when the step changes (Next, Back, the dots). The page stays where she is and the step bar stays pinned. */
   const avail=innerHeight-document.getElementById('nav').offsetHeight-14;
   let over=c.getBoundingClientRect().bottom+window.scrollY-avail;
   if(over>0&&svgs.length){
@@ -1069,7 +1068,7 @@ function fitStep(toTop){
   }
 }
 window.addEventListener('resize',fitStep);
-function go(i,scroll){idx=Math.max(0,Math.min(cards.length-1,i));if(mode==='all'){renderStep();cards[idx].scrollIntoView({behavior:'smooth',block:'start'});return}renderStep();if(scroll!==false)document.getElementById('bar').scrollIntoView({behavior:'smooth',block:'start'})}
+function go(i,scroll){idx=Math.max(0,Math.min(cards.length-1,i));if(mode==='all'){renderStep();cards[idx].scrollIntoView({behavior:'smooth',block:'start'});return}renderStep()}
 function buildProg(){
   document.getElementById('prog').innerHTML=cards.map((c,i)=>'<button role="tab" title="'+(i+1)+'. '+c.dataset.title+'" aria-label="Step '+(i+1)+': '+c.dataset.title+'"></button>').join('');
   document.getElementById('prog').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;go([...b.parentNode.children].indexOf(b))});
