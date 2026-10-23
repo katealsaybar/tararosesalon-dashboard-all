@@ -75,6 +75,10 @@ begin
     from mbest group by 1
   ), ag as (
     select month mo, sum(amount_aed) agency from agency_fees group by 1
+  ), ot as (
+    select month mo, sum(amount_aed) filter (where category = 'meta') meta_extra,
+           sum(amount_aed) filter (where category <> 'meta') other
+    from other_marketing_costs group by 1
   ), nc as (
     select e.key::date mo, e.value::int n
     from marketing_spend_cache c, jsonb_each_text(c.value) e where c.key = 'new_clients'
@@ -83,11 +87,13 @@ begin
            round(coalesce(gs.billed_aed, g.api, 0)::numeric, 2) google,
            round(coalesce(g.api, 0)::numeric, 2) google_api,
            gs.billed_aed is not null google_is_statement,
-           round(coalesce(mt.spend, 0)::numeric, 2) meta,
+           round((coalesce(mt.spend, 0) + coalesce(ot.meta_extra, 0))::numeric, 2) meta,
            coalesce(mt.inv_days, 0) meta_invoice_days, coalesce(mt.mc_days, 0) meta_metricool_days,
            ag.agency,
+           ot.other,
            coalesce(nc.n, 0) new_clients
-    from months left join g using (mo) left join gs using (mo) left join mt using (mo) left join ag using (mo) left join nc using (mo)
+    from months left join g using (mo) left join gs using (mo) left join mt using (mo) left join ag using (mo)
+         left join ot using (mo) left join nc using (mo)
   )
   select jsonb_build_object(
     'months', (select coalesce(jsonb_agg(to_jsonb(r) order by r.mo), '[]') from rows r),

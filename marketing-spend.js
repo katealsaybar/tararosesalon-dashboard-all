@@ -45,10 +45,11 @@ function mspendRows() {
     const google = Number(m.google) || 0, meta = Number(m.meta) || 0, nc = Number(m.new_clients) || 0;
     const agency = m.agency === null || m.agency === undefined ? null : Number(m.agency);
     const metaFull = m.mo >= MSPEND_META_FULL_FROM;
-    const total = google + meta + (agency || 0);
+    const other = m.other === null || m.other === undefined ? 0 : Number(m.other);
+    const total = google + meta + (agency || 0) + other;
     const now = new Date(), cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     // A cost per new client needs all three: Meta running through the month, the agency's invoice in, and the clients counted.
-    return { ...m, google, meta, agency, nc, total, metaFull, partial: m.mo === cur,
+    return { ...m, google, meta, agency, other, nc, total, metaFull, partial: m.mo === cur,
       cac: metaFull && agency !== null && nc ? total / nc : null };
   });
   // Months before any ad spend was recorded add nothing to look at.
@@ -69,11 +70,13 @@ function mspendPaint(el) {
   const stale = !s || !s.last_ok_at || (Date.now() - new Date(s.last_ok_at).getTime()) > 36 * 3600e3;
   const synced = s && s.last_ok_at ? new Date(s.last_ok_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
 
+  const hasOther = rows.some(r => r.other > 0);
   const body = rows.slice().reverse().map(r => `<tr>
       <td>${mspendEsc(mspendMonth(r.mo))}${r.partial ? '<div class="slv-note">so far</div>' : ''}</td>
       <td>${r.google ? mspendNum(r.google) : '–'}</td>
       <td>${r.meta ? mspendNum(r.meta) : '–'}</td>
       <td>${r.agency !== null ? mspendNum(r.agency) : '–'}${r.agency === null && r.metaFull ? '<div class="slv-note">not invoiced yet</div>' : ''}</td>
+      ${hasOther ? `<td>${r.other ? mspendNum(r.other) : '–'}</td>` : ''}
       <td><b>${mspendNum(r.total)}</b></td>
       <td>${mspendNum(r.nc)}</td>
       <td>${r.cac !== null ? mspendAed(r.cac) : '–'}</td></tr>`).join('');
@@ -112,15 +115,15 @@ function mspendPaint(el) {
       </div>
       <div style="position:relative;height:300px"><canvas id="mspendCanvas"></canvas></div>
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table">
-        <thead><tr><th>Month</th><th>Google (AED)</th><th>Meta (AED)</th><th>Agency (AED)</th><th>Total (AED)</th><th>New clients</th><th>Per new client</th></tr></thead>
+        <thead><tr><th>Month</th><th>Google (AED)</th><th>Meta (AED)</th><th>Agency (AED)</th>${hasOther ? '<th>Other (AED)</th>' : ''}<th>Total (AED)</th><th>New clients</th><th>Per new client</th></tr></thead>
         <tbody>${body}</tbody></table></div>` : '<p class="slv-muted">No ad spend recorded yet.</p>'}
     </section>
     <section class="slv-card" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">Read this before quoting a number</div><h3>What is and is not in these numbers</h3></div></div>
       <ul class="slv-notes" style="margin:0;padding-left:18px;line-height:1.55">
-        <li><b>Agency.</b> Leaders in Digital’s monthly fee for the UAE salons, before VAT, until they were taken off in October 2026. Bahrain is left out. A month shows “not invoiced yet” until its invoice is in, and has no cost per client until then.</li>
+        <li><b>Agency.</b> Leaders in Digital’s monthly fee for the UAE salons and Bahrain, before VAT, until they were taken off in October 2026. Bahrain’s website build (AED 20,000) has not been billed, so it is not in. A month shows “not invoiced yet” until its invoice is in, and has no cost per client until then.</li>
         <li><b>New clients.</b> A client’s first sale at any salon, by name. A name spelt differently counts again, so the count runs a little high and the cost per client a little low. The till history starts in May 2021.</li>
-        <li><b>Not here.</b> Content, influencer fees, commissions, staff time, WhatsApp and CRM tools, and a second Meta account that sent one small top-up receipt in Aug 2026. Add those before calling this the whole cost of winning a client.</li>
+        <li><b>Not here.</b> Content, influencer fees, commissions and staff time, which have no figures kept, and WhatsApp, CRM and Phorest costs, which will show in an Other column once their totals are in. Add those before calling this the whole cost of winning a client.</li>
         <li><b>Meta before Oct 2025.</b> Not available, so the months before it show Google only and no cost per client.</li>
         <li><b>Year one.</b> Net sales from a client in the 12 months after their first visit, for clients who first came Jan to Sep 2025. Voucher and deposit lines are left out. It is sales, not profit.</li>
       </ul>
