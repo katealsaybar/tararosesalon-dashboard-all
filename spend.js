@@ -365,7 +365,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   /* ---------- Weekly spend by product family: what was USED (Phorest Product Usage x the Stock List cost), received beside it ---------- */
   // Family = Phorest's own Product Category. A week is Monday to Sunday and counts only once it is over (and inside the loaded usage).
   // The band is the lowest to the highest complete week BEFORE the chosen month; "this month" is the average of the complete weeks that
-  // start inside it, so a family can sit above or below its usual band. Draft until Cristine settles the min/max method.
+  // start inside it, so a family can sit above or below its usual band. A reference only: Mette decides the real min and max.
   const ymd = d => d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
   const utc = s => { const a = s.slice(0, 10).split('-').map(Number); return new Date(Date.UTC(a[0], a[1] - 1, a[2])); };
   const typeOk = t => S.fType === 'all' || t === S.fType;
@@ -426,7 +426,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       ? '<b>Used</b> is what staff took off the shelf in Phorest (Product Usage Details x the Stock List cost). Usual = the average complete week before ' + monthLabel(S.month, false) + ' (' + M.base.length + ' weeks), band = its lowest to highest week, this month = the average of ' + M.cur.length + ' complete weeks in it.'
       : 'Usage is not loaded for these weeks, so this shows what Phorest <b>received</b>: band = lowest to highest month as AED a week.') + '</span>' +
       '<span><b>Received</b> = stock booked in, as AED a week over the complete months. Over the 4 months: used AED ' + f(usedA) + ' against received AED ' + f(recA) + (D.use_through ? ', usage logged to ' + day(D.use_through) : '') + '. Phorest\'s usage report ends with Phorest.</span>' +
-      '<span>The band is worked out on each family\'s own total. Draft until Cristine confirms the min/max method.</span></div>';
+      '<span>The band is a reference from each family\'s own total, not the min and max. Usage dips when a product is out of stock, so Mette decides the real min and max and types it in Cap a week.</span></div>';
     const capCell = r => r.capKey ? capIn('fam', S.br + '|' + r.name, r.cap, 'aed') : '';
     if (S.phone) {
       const card = r => '<div class="sc"><div class="sch" style="cursor:default"><span class="scn">' + esc(r.name) + '</span><span class="scv">' + f(r.usual) + ' / wk</span></div>' +
