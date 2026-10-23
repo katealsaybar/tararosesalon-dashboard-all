@@ -996,7 +996,20 @@ function lgSheetSection(series, code, ctx) {
   const sp = lgSplit(series);
   const cols = [{ label: 'Category / Metric' }, { label: `Last month (${w.prev.label})`, align: 'r' }, { label: 'Target', align: 'r' }]
     .concat(sp.windows.map((x, i) => ({ label: sp.head(x, i), align: 'r' })))
-    .concat([{ label: 'MTD', align: 'r' }, { label: 'Variance', align: 'r' }]);
+    .concat([{ label: 'MTD', align: 'r' }, { label: 'Still to make', align: 'r' }]);
+
+  // Kate, 23 Oct 2026 (ALD5-01): Variance was measured against the whole month, so early in the month every line read
+  // as a red miss (Hair revenue 80% done with 71% of the month gone showed a red AED 261,937). The column is now what
+  // is still to make, and a small word says whether the line is ahead of or behind where it should be today. Red only
+  // when it is behind. `frac` is the share of the month gone, null once the month is over, when behind is just behind.
+  const frac = lgPaceFrac(series);
+  const stillToMake = (p, fmt) => {
+    if (p.variance >= 0) return '<span class="lg-up">✓ on target</span>';
+    if (frac == null) return `<span class="lg-down">${fmt(p.remaining)}</span>`;
+    const ahead = p.pctDone >= frac * 100;
+    const tip = `${Math.round(p.pctDone)}% done with ${Math.round(frac * 100)}% of the month gone: ${ahead ? 'ahead of pace' : 'behind pace'}.`;
+    return `<span class="${ahead ? 'lg-flat' : 'lg-down'}">${fmt(p.remaining)}</span> <small class="lg-pace ${ahead ? 'ahead' : 'behind'}" title="${tip}">${ahead ? 'ahead of pace' : 'behind pace'}</small>`;
+  };
 
   const rows = [];
   LG_SHEET_ROWS.forEach(r => {
@@ -1017,7 +1030,7 @@ function lgSheetSection(series, code, ctx) {
         f(tgt)]
         .concat(lgSplitCells(series, bucket, r.pick, f))
         .concat([act != null ? f(act) : '—',
-                 act == null ? '—' : (act >= tgt ? '<span class="lg-up">✓ on target</span>' : lgDelta(act - tgt, r.money ? f : lgPts))]));
+                 act == null ? '—' : (act >= tgt ? '<span class="lg-up">✓ on target</span>' : `<span class="lg-down">${(r.money ? f : lgPts)(tgt - act)}</span>`)]));
       return;
     }
 
@@ -1042,7 +1055,7 @@ function lgSheetSection(series, code, ctx) {
       bucket.prev ? (r.pick(bucket.prev) == null ? '—' : fmt(r.pick(bucket.prev))) : '—',
       target != null ? fmt(target) : noTarget]
       .concat(lgSplitCells(series, bucket, s => r.pick(s), fmt))
-      .concat([mtdRaw == null ? '—' : fmt(mtd), p ? lgDelta(p.variance, fmt) : '—']);
+      .concat([mtdRaw == null ? '—' : fmt(mtd), p ? stillToMake(p, fmt) : '—']);
     // `tot` is the total-revenue line, set in bold on its own rule so it reads as
     // the sum of the block rather than as another line in it.
     rows.push(r.tot ? { total: cells } : cells);
@@ -2051,6 +2064,9 @@ async function renderLedgerActuals() {
     lgMonthRow() +
     lgGrainRow() +
     (typeof lgxPageBar === 'function' ? lgxPageBar() : '') +
+    (ctx.applies && lgPaceFrac(series)
+      ? '<p class="lg-pace-note">Every line is measured against the whole month. Early in the month a gap is normal, so the small word beside it tells you if you are ahead of where you should be today or behind it.</p>'
+      : '') +
     lgShell(rail,
     lgSection('laAll', 'var(--hair)', 'Group total — all salons',
       escapeHtml(series.windows.month.label), lgSheetSection(series, null, ctx)) +
