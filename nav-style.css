@@ -84,10 +84,3 @@ aside.sidebar .nav-phone .nt-light{display:none}
   aside.sidebar .nav-group .nav-subhead.nav-sh{min-height:44px}
 }
 
-/* Kate, 23 Oct 2026: "dapat may collapsible/hideable button". A quiet Hide pill in the sidebar's top corner (desktop and tablet;
-   phones have the x). The panel's edge arrow still works too. */
-aside.sidebar .nav-hide{align-self:flex-end;display:inline-flex;align-items:center;gap:5px;margin:-14px -4px 6px 0;padding:5px 10px 5px 8px;
-  border:1px solid var(--border);border-radius:999px;background:none;color:var(--muted);font:inherit;font-size:12.5px;letter-spacing:.02em;cursor:pointer}
-@media(hover:hover){aside.sidebar .nav-hide:hover{color:var(--text);border-color:var(--text)}}
-aside.sidebar .nav-hide:focus-visible{outline:2px solid var(--text);outline-offset:2px}
-@media(max-width:760px),(hover:none) and (max-height:480px){aside.sidebar .nav-hide{display:none}}
