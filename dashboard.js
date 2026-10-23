@@ -4936,18 +4936,16 @@ async function renderDashboard() {
     if (s.beautyTotalClients) {
       parts.push(`Beauty is ${beautyClientShare}% of the clients counted by staff and ${beautyShare}% of the money.`);
     }
+    // Kate, 23 Oct 2026 (ALD2-01): "isn't in the same conversation as the rest" read as an
+    // idiom to a second-language reader, and the headline named one number while this
+    // sentence named another. It now says where to start, then the widest gap. Percent
+    // figures read as whole numbers here; money keeps its own format.
+    const plainFig = (r, v) => { const t = r.fmt(v); return /^-?[\d.]+%$/.test(t) ? Math.round(parseFloat(t)) + '%' : t; };
     if (worst) {
-      // "isn't in the same conversation as the rest" is a claim about being the
-      // mathematical outlier — only true when worst still IS lowRows[0]. When
-      // Treatment/Retail priority bumped something else into that slot instead,
-      // this reads as "the one to fix first" and the real outlier (alsoWorst)
-      // gets its own line below rather than a false comparative claim.
-      parts.push(alsoWorst
-        ? `${worst.name.replace(/\s*%$/, '')} at ${worst.fmt(worst.combined)} against a ${tidyTarget(worst.fmt(worst.target))} target is the one to fix first.`
-        : `${worst.name.replace(/\s*%$/, '')} at ${worst.fmt(worst.combined)} against a ${tidyTarget(worst.fmt(worst.target))} target is the number that isn't in the same conversation as the rest.`);
+      parts.push(`Start with ${worst.name.replace(/\s*%$/, '')}: ${plainFig(worst, worst.combined)} against a ${tidyTarget(plainFig(worst, worst.target))} aim.`);
     }
     if (alsoWorst) {
-      parts.push(`${alsoWorst.name.replace(/\s*%$/, '')} at ${alsoWorst.fmt(alsoWorst.combined)} against a ${tidyTarget(alsoWorst.fmt(alsoWorst.target))} target isn't in the same conversation as the rest.`);
+      parts.push(`${alsoWorst.name.replace(/\s*%$/, '')} is the widest gap, ${plainFig(alsoWorst, alsoWorst.combined)} against ${tidyTarget(plainFig(alsoWorst, alsoWorst.target))}, and comes next.`);
     }
     standfirstEl.textContent = parts.join(' ');
   }
