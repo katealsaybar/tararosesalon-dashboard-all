@@ -269,7 +269,6 @@ function dpCss() {
   .dpf .dp-bar .dp-lab{min-width:0}
   .dpf .lg-shell .lg-side{top:calc(var(--topbar-cond-h,104px) + var(--dp-bar-h,56px) + 14px)}
   @media(max-width:1099.98px){.dpf .lg-shell .lg-side{position:static;margin:0 0 8px;padding:0;border:0;background:none}}
-  @media(max-width:760px){.dpf .lg-side{display:none}}
   .dpf .dp-jt{scroll-margin-top:calc(var(--topbar-cond-h,104px) + var(--dp-bar-h) + 8px)}
   .dpf .dp-showing{white-space:nowrap}
   .dpf .dp-hm{display:flex;align-items:flex-start}

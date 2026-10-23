@@ -1,0 +1,17 @@
+/* The shared jump list (jump-nav.js, ALD-X-01, Kate 23 Oct 2026): one line of chips under the page title on every page that has more than one
+   section and no rail of its own. On the dashboard it is the same .side-nav markup, so spy() lights the chip in view; a page drawn in a shadow
+   root (Supplier Spend) uses .jn-nav, which spy() does not touch. One line at every width: it scrolls sideways with an edge fade and pins under
+   the masthead as the reader scrolls past it (jn-pin); a page that pins a bar of its own leaves jn-pin off. */
+.jn-rail{margin:0 0 14px;background:var(--bg);border-bottom:1px solid var(--border2)}
+.jn-rail.jn-pin{position:sticky;top:var(--jn-top,var(--topbar-cond-h,104px));z-index:40}
+.jn-rail .side-nav,.jn-rail .jn-nav{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;padding:8px 28px 8px 0;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent);
+  mask-image:linear-gradient(to right,#000 calc(100% - 32px),transparent)}
+.jn-rail .side-nav::-webkit-scrollbar,.jn-rail .jn-nav::-webkit-scrollbar{display:none}
+.jn-rail .side-k{flex:none;padding:0 4px 0 0;border:0;white-space:nowrap}
+.jn-rail .side-nav a,.jn-rail .jn-nav a{flex:none;display:flex;align-items:center;box-sizing:border-box;min-height:32px;padding:4px 12px;border:1px solid var(--border);
+  border-left:1px solid var(--border);border-radius:999px;white-space:nowrap;text-decoration:none;color:inherit;font-size:13px}
+@media(hover:hover){.jn-rail .side-nav a:hover,.jn-rail .jn-nav a:hover{border-color:var(--accent)}}
+.jn-rail .side-nav a.on,.jn-rail .jn-nav a.on{border-color:var(--text)}
+@media(max-width:760px){.jn-rail .side-nav,.jn-rail .jn-nav{padding:0 28px 0 0}.jn-rail .side-nav a,.jn-rail .jn-nav a{min-height:44px}}
+@media print{.jn-rail{display:none}}

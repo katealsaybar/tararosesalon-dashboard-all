@@ -78,6 +78,7 @@ NOT_PAGES = {
     'marketing-chart.js': 'chart drawing shared by Google Ads and Website',
     'fix-blank-rows.js': 'one-off Node repair script, not a page',
     'loading-facts.js': 'the lines on the loading screen',
+    'jump-nav.js': 'the shared On this page list: lgRail, lgJump and the automatic row of chips',
     'scroll-edges.js': 'edge fade and swipe hint on sideways tables (phone)',
     'count-up.js': 'headline numbers count up when a section opens',
     'pages.js': 'the list of dashboard pages: names, levels, slugs; read by the check below',

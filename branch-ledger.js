@@ -528,62 +528,7 @@ function lgEmpty(msg) {
   return `<div class="empty">${msg}</div>`;
 }
 
-// The "on this page" rail — Organisation Pulse's own side rail, not a lookalike.
-// Same .side-nav markup and the same classes, so it inherits the Pulse's type,
-// spacing and lit-state, and spy() in index.html lights the section you are in.
-//
-// Kate, 14 Aug 2026: it used to be a row of chips, on the reasoning that these
-// pages have no side gutter. They have one now above 1400px — see .lg-shell — and
-// below that the same links lie back down into the chip row. One markup, because
-// two would drift.
-//
-// Pass [[id, label, jump?], …]. `id` is either a collapsible section's own id
-// (lgSection renders it as sec-<id>) or an id already in the document, which is how
-// the stylist table's branch rows are reached — lgAnchor() resolves both, and so
-// does spy(). `jump` overrides the click handler for a page that already knows how
-// to scroll itself: Stylist Cards has a sticky density bar to clear as well as the
-// masthead, and jumpToStylistBranch() is where that arithmetic lives.
-//
-// Not ledger-only despite the lg- prefix: Stylist Cards uses this too. If a third
-// page outside the ledger wants one, this pair is worth moving to dashboard.js.
-function lgRail(items) {
-  if (!items || !items.length) return '';
-  return `<aside class="lg-side">
-    <nav class="side-nav" aria-label="On this page">
-      <div class="side-k">On this page</div>
-      ${items.map(([id, label, jump]) =>
-        `<a href="#${id}" onclick="${jump || `lgJump(event,'${id}')`}">${escapeHtml(label)}</a>`).join('')}
-    </nav>
-  </aside>`;
-}
-
-// Rail in the gutter, page beside it. The header, the note and the Split chips
-// stay full width above this — they describe the whole page, so indenting them
-// into the document column would leave the rail floating beside nothing.
-function lgShell(railItems, bodyHtml, extraCls) {
-  return `<div class="lg-shell${extraCls ? ' ' + extraCls : ''}">${lgRail(railItems)}<div class="lg-doc">${bodyHtml}</div></div>`;
-}
-
-// What a rail entry points at: a collapsible section if there is one, otherwise an
-// id that is already in the document. spy() resolves the same two ways.
-function lgAnchor(id) {
-  return document.getElementById('sec-' + id) || document.getElementById(id);
-}
-
-// Scroll to a section, opening it first if it is collapsed — a rail link that
-// lands you on a closed heading looks like it did nothing. sectionState is the
-// shared open/closed map the whole dashboard uses, so this asks it rather than
-// reading the DOM. The masthead is fixed, hence the offset.
-function lgJump(e, id) {
-  if (e) e.preventDefault();
-  const el = lgAnchor(id);
-  if (!el) return;
-  if (document.getElementById('sec-' + id) && typeof sectionState !== 'undefined'
-      && !sectionState[id] && typeof toggleSection === 'function') toggleSection(id);
-  const bar = parseInt(getComputedStyle(document.documentElement)
-    .getPropertyValue('--topbar-cond-h'), 10) || 104;
-  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - bar - 8, behavior: 'smooth' });
-}
+// The "On this page" rail (lgRail, lgShell, lgAnchor, lgJump) moved to jump-nav.js on 23 Oct 2026, so every page can use it, not only the Ledgers.
 
 /* ══════════════════════════════════════════════════════════════
    THE SHEET'S COLUMN MODEL
