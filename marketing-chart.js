@@ -20,7 +20,16 @@ const mkEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<'
 // but simpler"), in the masthead filters' look: text chips, Custom opening two date
 // boxes beside them. p is the page's prefix (gads, web, soc); it calls <p>SetDays(n)
 // and <p>SetCustom('from'|'to', date). days 0 = Custom; custom = { from, to }.
-function mkPeriodRow(p, days, custom) {
+// Kate, 23 Oct 2026 (ALD6-01): a page that opens on a range it remembered, not on Last 30 days, said nothing, so
+// Google Ads read as this month while it was showing 1 Jan to 5 Oct. `restored` is the window ({ from, to }) when
+// the page opened on a remembered range and null once the person has picked one; the line says so and offers the
+// way back. Same year drops the first year: "1 Jan to 5 Oct 2026".
+function mkRangeText(from, to) {
+  const a = mkD(from), b = mkD(to);
+  const f = (d, y) => d.toLocaleDateString('en-GB', y ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' });
+  return a.getFullYear() === b.getFullYear() ? `${f(a)} to ${f(b, true)}` : `${f(a, true)} to ${f(b, true)}`;
+}
+function mkPeriodRow(p, days, custom, restored) {
   // "Last" drops on a phone (.mk-lg), so the five fit one line.
   const PER = [[7, '<span class="mk-lg">Last </span>7 days'], [30, '<span class="mk-lg">Last </span>30 days'], [90, '<span class="mk-lg">Last </span>90 days'], [365, 'This year'], [0, 'Custom']];
   return `<div class="filters mk-period">
@@ -34,6 +43,7 @@ function mkPeriodRow(p, days, custom) {
           <input type="date" aria-label="To" value="${mkEsc(custom.to)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="${p}SetCustom('to', this.value)">
         </div>` : ''}
       </div>
+      ${restored ? `<p class="mk-restored">You are looking at ${mkRangeText(restored.from, restored.to)}, the dates you chose last time. <button type="button" class="mk-restored-btn" onclick="${p}SetDays(30)">Show the last 30 days</button></p>` : ''}
     </div>`;
 }
 

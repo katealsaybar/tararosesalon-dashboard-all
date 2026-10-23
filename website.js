@@ -18,6 +18,8 @@ let webData = null, webChart = null, webSChart = null;
 let webOpen = null, webOpenChart = null, webOpenData = null;
 let webDays = 30;
 try { const v = localStorage.getItem('trs-web-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) webDays = Number(v); } catch (e) {}
+// ALD6-01: true while the page is still on a range it remembered (not Last 30 days) and nobody has picked one this visit.
+let webRestored = webDays !== 30;
 // Custom dates (Kate, 6 Oct 2026): webDays 0 reads webCustom, kept per browser like the rest.
 let webCustom = { from: '', to: '' };
 try { Object.assign(webCustom, JSON.parse(localStorage.getItem('trs-web-custom') || '{}')); } catch (e) {}
@@ -66,14 +68,14 @@ function webSetDays(n) {
     const w = webWindow(); webCustom = { from: w.from, to: w.to };
     try { localStorage.setItem('trs-web-custom', JSON.stringify(webCustom)); } catch (e) {}
   }
-  webDays = n;
+  webDays = n; webRestored = false;
   try { localStorage.setItem('trs-web-days', String(n)); } catch (e) {}
   renderWebsite();
 }
 
 function webSetCustom(k, v) {
   if (!v) return;
-  webCustom[k] = v;
+  webCustom[k] = v; webRestored = false;
   try { localStorage.setItem('trs-web-custom', JSON.stringify(webCustom)); } catch (e) {}
   renderWebsite();
 }
@@ -121,7 +123,7 @@ function webPaint(el) {
   const sTo = d.search_last_day && d.search_last_day < w.to ? d.search_last_day : w.to;
 
   el.innerHTML = `
-    ${mkPeriodRow('web', webDays, webCustom)}
+    ${mkPeriodRow('web', webDays, webCustom, webRestored ? w : null)}
     <section class="slv-intro">
       <h2>Website &amp; Search</h2>
       <p>Who comes to tararosesalon.com, where they come from and what they look at, and what people type into Google to find us. Up to yesterday.</p>

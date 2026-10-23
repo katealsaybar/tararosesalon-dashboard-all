@@ -26,6 +26,8 @@ let socDays = 30, socNet = 'all', socAll = false, socTab = 'overview';
 const socFold = {};                          // section id: true open / false closed; unset = its default
 const socSort = {};                          // per table: { key, dir }
 try { const v = localStorage.getItem('trs-soc-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) socDays = Number(v); } catch (e) {}
+// ALD6-01: true while the page is still on a range it remembered (not Last 30 days) and nobody has picked one this visit.
+let socRestored = socDays !== 30;
 try { const v = localStorage.getItem('trs-soc-tab'); if (v) socTab = v; } catch (e) {}
 let socCustom = { from: '', to: '' };
 try { Object.assign(socCustom, JSON.parse(localStorage.getItem('trs-soc-custom') || '{}')); } catch (e) {}
@@ -76,13 +78,13 @@ function socSetDays(n) {
     const w = socWindow(); socCustom = { from: w.from, to: w.to };
     try { localStorage.setItem('trs-soc-custom', JSON.stringify(socCustom)); } catch (e) {}
   }
-  socDays = n;
+  socDays = n; socRestored = false;
   try { localStorage.setItem('trs-soc-days', String(n)); } catch (e) {}
   renderSocial();
 }
 function socSetCustom(k, v) {
   if (!v) return;
-  socCustom[k] = v;
+  socCustom[k] = v; socRestored = false;
   try { localStorage.setItem('trs-soc-custom', JSON.stringify(socCustom)); } catch (e) {}
   renderSocial();
 }
@@ -152,7 +154,7 @@ function socPaint(el) {
   const synced = s && s.last_ok_at ? new Date(s.last_ok_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
   const T = socTotals(d);
   el.innerHTML = `
-    ${mkPeriodRow('soc', socDays, socCustom)}
+    ${mkPeriodRow('soc', socDays, socCustom, socRestored ? w : null)}
     <section class="slv-intro">
       <h2>Social</h2>
       <p>Instagram, TikTok, the Facebook page and YouTube in one place. Overview for the quick look; each platform's tab has its full report, as in Metricool. The apps report a day or two late.</p>

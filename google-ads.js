@@ -16,6 +16,8 @@ let gadsData = null, gadsChart = null;
 let gadsOpenId = null, gadsOpenChart = null, gadsOpenData = null;
 let gadsDays = 30;
 try { const v = localStorage.getItem('trs-gads-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) gadsDays = Number(v); } catch (e) {}
+// ALD6-01: true while the page is still on a range it remembered (not Last 30 days) and nobody has picked one this visit.
+let gadsRestored = gadsDays !== 30;
 // Custom dates (Kate, 6 Oct 2026): gadsDays 0 reads gadsCustom, kept per browser like the rest.
 let gadsCustom = { from: '', to: '' };
 try { Object.assign(gadsCustom, JSON.parse(localStorage.getItem('trs-gads-custom') || '{}')); } catch (e) {}
@@ -50,14 +52,14 @@ function gadsSetDays(n) {
     const w = gadsWindow(); gadsCustom = { from: w.from, to: w.to };
     try { localStorage.setItem('trs-gads-custom', JSON.stringify(gadsCustom)); } catch (e) {}
   }
-  gadsDays = n;
+  gadsDays = n; gadsRestored = false;
   try { localStorage.setItem('trs-gads-days', String(n)); } catch (e) {}
   renderGoogleAds();
 }
 
 function gadsSetCustom(k, v) {
   if (!v) return;
-  gadsCustom[k] = v;
+  gadsCustom[k] = v; gadsRestored = false;
   try { localStorage.setItem('trs-gads-custom', JSON.stringify(gadsCustom)); } catch (e) {}
   renderGoogleAds();
 }
@@ -123,7 +125,7 @@ function gadsPaint(el) {
   const synced = s && s.last_ok_at ? new Date(s.last_ok_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
 
   el.innerHTML = `
-    ${mkPeriodRow('gads', gadsDays, gadsCustom)}
+    ${mkPeriodRow('gads', gadsDays, gadsCustom, gadsRestored ? w : null)}
     <section class="slv-intro">
       <h2>Google Ads</h2>
       <p>What we spend on Google search ads, the clicks it brings, and where the money goes by salon. Up to yesterday; today is still filling in.</p>
