@@ -60,6 +60,15 @@ function lgDelta(value, fmt, invert) {
   return `<span class="${good ? 'lg-up' : 'lg-down'}">${sign}${(fmt || lgNum)(Math.abs(v))}</span>`;
 }
 
+// Kate, 23 Oct 2026 (ALD5-01 follow-up): the Daily Target Sheet keeps its Variance and Remaining columns, but Variance no longer
+// reads as a red miss while the line is ahead of where the month should be today. Red only when behind pace; same share of
+// the month gone as Actuals vs Targets uses. `frac` is null once the month is over, when behind is just behind.
+function lgDeltaPace(value, pctDone, frac, fmt) {
+  const v = Number(value) || 0;
+  if (v >= 0 || !frac || pctDone == null || pctDone < frac * 100) return lgDelta(v, fmt);
+  return `<span class="lg-flat" title="${Math.round(pctDone)}% done with ${Math.round(frac * 100)}% of the month gone: ahead of pace.">−${(fmt || lgNum)(Math.abs(v))}</span>`;
+}
+
 // % done, as a bar with the number in it. A bare percentage in a column of
 // percentages is hard to scan; the fill is what makes the laggards jump out.
 function lgDoneBar(pct) {
@@ -1914,7 +1923,7 @@ async function renderLedgerTargets() {
           .concat(['—', '<span class="lg-na">n/a</span>', '—'], frac ? ['—'] : [], ['—']);
       }
       return [escapeHtml(info.name), lgAed(p.target)].concat(split)
-        .concat([lgAed(p.actual), lgDelta(p.variance, lgAed), lgDoneBar(p.pctDone)], paceCell(p), [lgAed(p.remaining)]);
+        .concat([lgAed(p.actual), lgDeltaPace(p.variance, p.pctDone, frac, lgAed), lgDoneBar(p.pctDone)], paceCell(p), [lgAed(p.remaining)]);
     });
     const g = ledgerPace(aA, tA);
     const gSplit = sp.key
@@ -1928,7 +1937,7 @@ async function renderLedgerTargets() {
       .concat(gSplit)
       .concat([lgAed(g.actual)])
       .concat(showTargets
-        ? [lgDelta(g.variance, lgAed), lgDoneBar(g.pctDone)].concat(paceCell(g), [lgAed(g.remaining)])
+        ? [lgDeltaPace(g.variance, g.pctDone, frac, lgAed), lgDoneBar(g.pctDone)].concat(paceCell(g), [lgAed(g.remaining)])
         : []) });
     return `<div class="lg-block"><div class="lg-block-k">${b.title}</div>${lgTable(paceCols, rows, {compact:true})}</div>`;
   }).join('');
