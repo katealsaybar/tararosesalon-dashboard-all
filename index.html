@@ -2899,6 +2899,9 @@ table.lg td:first-child,table.lg th:first-child{position:sticky;left:0;backgroun
    without this the later cells (and their text) paint over the pinned one. Also
    holds when the floated thead pins it via transform instead of sticky. */
 table.lg th:first-child{background:var(--surface2);z-index:2}
+/* Body cells too (Kate, 23 Oct 2026, phone): the % done / On pace bar track is position:relative, so it
+   painted over the pinned label while the table scrolled sideways. */
+table.lg td:first-child{z-index:1}
 @media(hover:hover){table.lg tbody tr:hover td:first-child{background:var(--surface2)}}
 /* Once you have scrolled off it, the frozen column says so: a hard edge and a
    shadow the figures pass under. Only then — unscrolled, a shadow in the middle of
