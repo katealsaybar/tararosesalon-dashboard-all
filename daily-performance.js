@@ -25,13 +25,14 @@
 // the only control on the page is the Measure menu. Colours follow the branch, as everywhere on the dashboard (BRANCH_INFO).
 
 const DP_STORE = 'trs-daily-perf';
-const DP = { measure: 'sales', dept: 'all', radar: null, lead: 'period' };   // lead: which figure a tile opens with, Whole period or Latest day (Kate, 18 Oct 2026)
+const DP = { measure: 'sales', dept: 'all', radar: null, lead: 'period', detail: false };   // detail: the pace and latest-day rows and the services and retail split under the month (Kate, 23 Oct 2026: hidden unless asked for)   // lead: which figure a tile opens with, Whole period or Latest day (Kate, 18 Oct 2026)
 let dpRadarOpen = false;
 try {
   const s = JSON.parse(localStorage.getItem(DP_STORE) || '{}');
   if (typeof s.measure === 'string') DP.measure = s.measure;
   if (s.dept === 'hair' || s.dept === 'beauty') DP.dept = s.dept;
   if (s.lead === 'day') DP.lead = 'day';
+  if (s.detail === true) DP.detail = true;
   if (Array.isArray(s.radar)) DP.radar = s.radar.filter(x => typeof x === 'string');
 } catch (e) { /* private mode: the defaults are fine */ }
 function dpSave() {
@@ -853,9 +854,14 @@ function dpMeter(pf, c, dayName, M, dayWord, mon) {
   const mrow = (cls, name, p, v, t, tword, ex) => `<div class="dp-mrow${ex ? ' ' + ex : ''}"><i class="${cls}"></i><div><div class="dp-mh"><b>${name}</b><span>${Math.round(p)}%</span></div><div class="dp-ms">${M && M.fmt ? M.fmt(v) : ''} against ${tword} of ${M && M.fmt ? M.fmt(t) : ''}</div></div></div>`;
   const X = p => Math.min(Math.max(p, 0), 150) / 150 * 100;
   const dayP = c && c.p != null ? c.p : null, col = pf.p >= 100 ? 'good' : pf.p >= 80 ? 'warn' : 'bad';
+  // Kate, 23 Oct 2026: once the month's whole target leads, the pace to date, the latest day and the dashed-line key are hidden until More detail is on.
+  const hasMon = !!(mon && pf.t != null && Math.abs(mon.t - pf.t) > 1);
+  const monRow = hasMon ? mrow('km', 'Whole month, ' + mon.label, pf.v / mon.t * 100, pf.v, mon.t, "the month's target") : '';
+  const paceRow = mrow('kb', hasMon ? 'Pace to date' : 'Whole period so far', pf.p, pf.v, pf.t, hasMon ? 'the target to date' : 'its target', hasMon ? 'dp-sec' : '');
+  const dayRow = dayP != null ? mrow('kn', (dayWord ? dayWord + ' \u00b7 ' : '') + (dayName || 'the day'), dayP, c.v, c.t, "that day's target") + (dayP > 150 ? '<div class="dp-meter-k">The white line is off the end of the meter.</div>' : '') : '';
+  const hideRows = hasMon && !DP.detail;
   return `<div class="dp-meter" role="img" aria-label="Whole period ${Math.round(pf.p)}% of target${dayP != null ? ', day ' + Math.round(dayP) + '%' : ''}"><span class="mz bad" style="width:${80 / 150 * 100}%"></span><span class="mz warn" style="width:${20 / 150 * 100}%"></span><span class="mz good"></span><i class="mf ${col}" style="width:${X(pf.p)}%"></i><b class="mt" style="left:${X(100)}%"></b>${dayP != null ? `<b class="mn" style="left:${X(dayP)}%"></b>` : ''}</div>
-    ${mon && pf.t != null && Math.abs(mon.t - pf.t) > 1 ? mrow('km', 'Whole month, ' + mon.label, pf.v / mon.t * 100, pf.v, mon.t, "the month's target") : ''}${mrow('kb', mon && pf.t != null && Math.abs(mon.t - pf.t) > 1 ? 'Pace to date' : 'Whole period so far', pf.p, pf.v, pf.t, mon && pf.t != null && Math.abs(mon.t - pf.t) > 1 ? 'the target to date' : 'its target', mon && pf.t != null && Math.abs(mon.t - pf.t) > 1 ? 'dp-sec' : '')}${dayP != null ? mrow('kn', (dayWord ? dayWord + ' · ' : '') + (dayName || 'the day'), dayP, c.v, c.t, "that day's target") + (dayP > 150 ? '<div class="dp-meter-k">The white line is off the end of the meter.</div>' : '') : ''}
-    <div class="dp-meter-k dp-mkt"><i class="kt"></i><span>Dashed line: the target (100%)</span></div>`;
+    ${monRow}${hideRows ? '' : paceRow + dayRow + '<div class="dp-meter-k dp-mkt"><i class="kt"></i><span>Dashed line: the target (100%)</span></div>'}`;
 }
 // The day the needle has been moved to (an index into the window's days), or null for the latest open day. Reset when the window changes.
 let dpPick = null, dpPickKey = '', dpCtx = null;
@@ -870,7 +876,7 @@ const dpPickLabel = idxs => dpPick != null && dpPick < idxs.length ? dpDayLabel(
 // shown apart: services (hair with treatments and courses, and beauty) and retail, each against its own target. A short total then says which part is
 // short. The parts add up to the total, so nothing is counted twice.
 function dpSplit(code, ids) {
-  if (DP.measure !== 'sales' || !ids || !ids.length) return '';
+  if (DP.measure !== 'sales' || !DP.detail || !ids || !ids.length) return '';   // Kate, 23 Oct 2026: hidden until More detail is on, like the pace rows
   const tot = dpPeriodFig('sales', code, ids), ret = dpPeriodFig('retail', code, ids);
   if (!tot || !ret) return '';
   // The figure is read against the month's whole target when the window is inside one month; the percentage stays the pace to date, which is what the colour means.
@@ -1353,7 +1359,7 @@ function dpDraw(host, win) {
     <p class="dp-deck">How each branch did, day by day, against its daily target. Unsure of a term? <button type="button" class="dp-linkbtn" data-jump="dpHow">How to read this page</button>.</p>
     ${dpControls(win)}
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpUnit === 'day' ? '' : ' · ' + dpEsc('the Trend, Bars and Day by day cards draw one point per ' + U[1] + ', each the total of its open days against the total of their targets (a rate or a bill: the average)')}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>
-    ${idxs.length > 1 && dpUnit === 'day' ? `<div class="dp-lead" id="dpLead" role="group" aria-label="Which figure each tile opens with"><span class="dp-lab">Show</span><span class="dp-pills">${[['period', 'Whole period'], ['day', 'One day']].map(([k, l]) => `<button type="button" class="dp-pill" data-lead="${k}" aria-pressed="${DP.lead === k}">${l}</button>`).join('')}</span><span class="dp-scrub"><input type="range" id="dpDayR" min="0" max="${idxs.length - 1}" step="1" value="${dpPick != null ? dpPick : dpLatestIdx(idxs)}" aria-label="Day the needle shows"><output id="dpDayOut" for="dpDayR">${dpPickLabel(idxs)}</output></span></div>` : ''}
+    ${idxs.length > 1 && dpUnit === 'day' ? `<div class="dp-lead" id="dpLead" role="group" aria-label="Which figure each tile opens with"><span class="dp-lab">Show</span><span class="dp-pills">${[['period', 'Whole period'], ['day', 'One day']].map(([k, l]) => `<button type="button" class="dp-pill" data-lead="${k}" aria-pressed="${DP.lead === k}">${l}</button>`).join('')}</span><button type="button" class="dp-pill" id="dpDetail" aria-pressed="${DP.detail}" title="Show the pace to date, the latest day and what Total net take is made of (services and retail) under each tile's month figure">More detail</button><span class="dp-scrub"><input type="range" id="dpDayR" min="0" max="${idxs.length - 1}" step="1" value="${dpPick != null ? dpPick : dpLatestIdx(idxs)}" aria-label="Day the needle shows"><output id="dpDayOut" for="dpDayR">${dpPickLabel(idxs)}</output></span></div>` : ''}
     <section class="dp-tiles dp-jt" id="dpTiles" aria-label="${dpEsc(M.label)}: latest open day per branch, with the period total">${dpTiles(win, idxs, cidx)}</section>
     <div class="lg-shell lg-shell-wide">${dpRail()}<div class="lg-doc">
     <div class="dp-card dp-jt" id="dpCardW"><h2>Weakest day per branch: ${dpEsc(M.label)}</h2><p class="dp-why">${rawAll ? `The day in this period with the lowest ${dpEsc(M.noun)}. ${noT}, so nothing is graded.` : `The day in this period when ${dpEsc(M.noun)} fell furthest below its target, for each branch. Closed days and days with no figures are skipped.`}</p><div id="dpW"></div></div>
@@ -1458,6 +1464,8 @@ function dpWire(host) {
     if (DP.lead === b.dataset.lead) return;
     dpRedraw(host, b, '#dpLead [data-lead="' + b.dataset.lead + '"]', () => { DP.lead = b.dataset.lead; dpSave(); });
   });
+  const dd = root.querySelector('#dpDetail');
+  if (dd) dd.onclick = () => dpRedraw(host, dd, '#dpDetail', () => { DP.detail = !DP.detail; dpSave(); });
   const dr = root.querySelector('#dpDayR'), dout = root.querySelector('#dpDayOut');
   if (dr) dr.oninput = () => {
     if (!dpCtx) return;
