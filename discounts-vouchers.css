@@ -1,0 +1,91 @@
+/* Discounts and Vouchers (Kate, 23 Oct 2026). Active Deals Performance's look (itself the Wellness Voucher Performance page's), scoped to
+   #discountsVouchersContent and mapped onto the dashboard's tokens so it follows the light and dark theme. Phone: the page keeps the dashboard's own
+   side margin, tiles go two a row, and every table scrolls inside its card with its first column pinned. */
+#discountsVouchersContent{--paper:var(--surface);--ink:var(--text);--ink2:var(--text);--line:var(--border);--grid:var(--border2);--sand:var(--surface2);
+  --series:#0F8A72;--c1:#0F8A72;--c2:#7C5CD4;--c3:#B87A1E;--serif:'Playfair Display',Georgia,serif;
+  --good-bg:#E4F1EA;--warn-bg:#FBF3E2;--warn-fg:#B4823A;
+  position:relative;font-size:14px;line-height:1.5;padding:10px 0 48px}
+:root[data-theme="dark"] #discountsVouchersContent{--series:#99F6E4;--c1:#2FA58B;--c2:#8C74DE;--c3:#BD852D;--good-bg:rgba(153,246,228,.12);--warn-bg:rgba(238,243,199,.12);--warn-fg:#EEF3C7}
+#discountsVouchersContent *{box-sizing:border-box}
+#discountsVouchersContent h1.dv-t{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+#discountsVouchersContent h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
+#discountsVouchersContent .dv-sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+#discountsVouchersContent .dv-subh{margin:20px 0 6px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#discountsVouchersContent [id^="dv-"]{scroll-margin-top:150px}
+#discountsVouchersContent .dv-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+#discountsVouchersContent .dv-toplinks{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){
+  #discountsVouchersContent .dv-toplinks{flex:1 1 100%;flex-wrap:nowrap}
+  #discountsVouchersContent .dv-toplinks .dv-btn{flex:1 1 auto;min-width:0;padding:7px 6px;font-size:12.5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+#discountsVouchersContent .dv-btn{border:1px solid var(--line);background:var(--paper);color:var(--muted);font:600 13px 'Inter',system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block;min-height:34px}
+#discountsVouchersContent .dv-btn:hover{color:var(--ink)}
+#discountsVouchersContent .dv-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:16px;min-width:0}
+#discountsVouchersContent .dv-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+#discountsVouchersContent .dv-grid2 .dv-card{margin-bottom:0}
+#discountsVouchersContent .dv-grid2>*{min-width:0}
+@media(max-width:760px){#discountsVouchersContent .dv-grid2{grid-template-columns:1fr}#discountsVouchersContent .dv-card{padding-left:12px;padding-right:12px}}
+#discountsVouchersContent details.more{margin:6px 0 0}
+#discountsVouchersContent details.more>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:4px 0}
+#discountsVouchersContent details.more>p.dv-sub{margin:4px 0 0}
+#discountsVouchersContent details{margin-top:10px}
+#discountsVouchersContent summary{cursor:pointer;color:var(--muted);font-size:12px}
+#discountsVouchersContent div:has(> table){overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#discountsVouchersContent div:has(> table) > table tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--paper)}
+#discountsVouchersContent .dv-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
+@media(max-width:760px){#discountsVouchersContent .dv-hero{grid-template-columns:1fr}}
+#discountsVouchersContent .dv-big{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+#discountsVouchersContent .dv-big small{font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+#discountsVouchersContent .dv-track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
+#discountsVouchersContent .dv-fill{height:100%;background:var(--series);border-radius:999px}
+#discountsVouchersContent .dv-cap{color:var(--muted);font-size:13px}
+#discountsVouchersContent .dv-zero{color:var(--muted);opacity:.4}
+#discountsVouchersContent .dv-pace{border-left:1px solid var(--line);padding-left:24px}
+@media(max-width:760px){#discountsVouchersContent .dv-pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+#discountsVouchersContent .dv-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
+#discountsVouchersContent .dv-row b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+#discountsVouchersContent .dv-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;margin-bottom:6px}
+#discountsVouchersContent .dv-status.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#discountsVouchersContent .dv-status.good{background:var(--good-bg);color:var(--good)}
+#discountsVouchersContent .dv-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:560px){#discountsVouchersContent .dv-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#discountsVouchersContent .dv-tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+#discountsVouchersContent .dv-tile .l{color:var(--muted);font-size:12px;font-weight:500}
+#discountsVouchersContent .dv-tile .v{font-family:var(--serif);font-size:clamp(17px,2.3vw,24px);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#discountsVouchersContent .dv-tile .v.txt{font-size:clamp(15px,1.7vw,18px);line-height:1.25;padding:3px 0}
+#discountsVouchersContent .dv-tile .h{color:var(--muted);font-size:12px}
+@media(max-width:900px) and (min-width:561px){#discountsVouchersContent .dv-tile .l,#discountsVouchersContent .dv-tile .h{font-size:11.5px}}
+#discountsVouchersContent .dv-chart{position:relative;margin-top:10px}
+#discountsVouchersContent .dv-chart svg{display:block;width:100%;height:auto;overflow:visible}
+#discountsVouchersContent .ax{fill:var(--muted);font-size:11px;font-family:'Inter',system-ui,sans-serif}
+#discountsVouchersContent .gl{stroke:var(--grid);stroke-width:1}
+#discountsVouchersContent .dv-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px}
+#discountsVouchersContent .dv-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#discountsVouchersContent .dv-tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;border-radius:8px;padding:7px 10px;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:5}
+#discountsVouchersContent table{width:100%;border-collapse:collapse;font-size:13px}
+#discountsVouchersContent th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+#discountsVouchersContent td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;vertical-align:top}
+#discountsVouchersContent td.n,#discountsVouchersContent th.n{text-align:right}
+#discountsVouchersContent tr.tot td{font-weight:600;border-bottom:0}
+#discountsVouchersContent td small{display:block;color:var(--muted);font-size:11.5px}
+#discountsVouchersContent .dv-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+#discountsVouchersContent .dv-mini{display:inline-block;width:60px;height:6px;background:var(--sand);border-radius:999px;overflow:hidden;vertical-align:middle;margin-right:8px}
+#discountsVouchersContent .dv-mini i{display:block;height:100%;background:var(--series);border-radius:999px}
+#discountsVouchersContent .dv-tag{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap;background:var(--sand);color:var(--muted)}
+#discountsVouchersContent .dv-tag.ok{background:var(--good-bg);color:var(--good)}
+#discountsVouchersContent .dv-tag.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#discountsVouchersContent .dv-list{margin:8px 0 0;padding:0;list-style:none}
+#discountsVouchersContent .dv-list li{padding:9px 0;border-top:1px solid var(--grid);font-size:13px;color:var(--ink2)}
+#discountsVouchersContent .dv-list li:first-child{border-top:0}
+#discountsVouchersContent .dv-list li b{color:var(--ink);display:block;font-weight:600}
+#discountsVouchersContent .dv-ask{margin:6px 0 0 18px;padding:0;font-size:13px;color:var(--ink2)}
+#discountsVouchersContent .dv-ask li{margin:6px 0}
+#discountsVouchersContent .dv-state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
+#discountsVouchersContent .dv-empty{color:var(--muted);font-size:13px;padding:8px 0}
+#discountsVouchersContent .dv-seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--paper);overflow:hidden;margin:10px 0 6px}
+#discountsVouchersContent .dv-seg button{border:0;background:none;padding:6px 13px;font-size:13px;cursor:pointer;color:var(--muted);min-height:34px}
+#discountsVouchersContent .dv-seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+#discountsVouchersContent .dv-find{width:100%;max-width:340px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;margin:10px 0 6px 10px;min-height:34px}
+@media(max-width:760px){#discountsVouchersContent .dv-find{margin-left:0;max-width:none}}
+#discountsVouchersContent .dv-scroll{max-height:460px;overflow:auto}
+#discountsVouchersContent .dv-foot{color:var(--muted);font-size:12px;margin:6px 0 0}

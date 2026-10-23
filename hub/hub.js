@@ -113,6 +113,8 @@
       blurb: 'The monthly membership: sign-ups, renewals, AED collected and the perks used.' },
     { key: 'campaigns-dealsperf', via: 'dashboards', min: 2, ic: 'campaigns', dept: 'Campaigns', title: 'Active Deals Performance', href: '/?view=dealsperf', rule: 'var(--accent-coral)',
       blurb: 'The deals on the active deals brochure: how many were bought at the till, by branch and offer.' },
+    { key: 'campaigns-discountsvouchers', via: 'dashboards', min: 2, ic: 'campaigns', dept: 'Campaigns', title: 'Discounts and Vouchers', href: '/?view=discountsvouchers', rule: 'var(--accent-coral)',
+      blurb: 'Every discount and voucher in Phorest, archived too: what is live, what has expired and the balance still on the books.' },
 
     { key: 'people-orgchart', via: 'dashboards', min: 1, ic: 'people', dept: 'People', title: 'Org Chart', href: '/?view=orgchart', rule: 'var(--accent-mint)',
       blurb: 'Who is who, and who reports to whom.' },

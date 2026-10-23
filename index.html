@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=23065f54"></script>
+<script src="pages.js?v=ae7efdbf"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3515,6 +3515,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="target-links.css?v=20377623">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
 <link rel="stylesheet" href="active-deals.css?v=f6158902">
+<link rel="stylesheet" href="discounts-vouchers.css?v=bd3eced4">
 <link rel="stylesheet" href="tool-spend.css?v=c483f63c">
 <link rel="stylesheet" href="marketing-spend.css?v=aa9f4f2f">
 <link rel="stylesheet" href="mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
@@ -3574,6 +3575,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       gc:  ['glow-club.js?v=1726ff51'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'active-deals.js?v=442ed4c5'],
+      // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
+      dv:  [LGX, 'discounts-vouchers.js?v=23835a37'],
       o2:  ['one2ones.js?v=05296c93'],
       at:  ['attrition.js?v=ab90cc3b'],
       cb:  ['client-book.js?v=9bb069ee'],
@@ -3766,6 +3769,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub lvl2" data-wvb="b2" onclick="wvGoBlast('b2', this)">Blast 2</div>
     <div class="nav-sub lvl2" data-wvb="b1" onclick="wvGoBlast('b1', this)">Blast 1</div>
     <div class="nav-sub" onclick="showView('dealsperf', this)">Active Deals Performance</div>
+    <div class="nav-sub" onclick="showView('discountsvouchers', this)">Discounts and Vouchers</div>
   </div>
 
   <!-- Google Ads, Website & Search and Social: Level 3 and above. -->
@@ -4381,6 +4385,16 @@ table.tp-cmp td.bad{color:var(--bad)}
     </div>
   </div>
 
+  <!-- DISCOUNTS AND VOUCHERS (Kate, 23 Oct 2026): Phorest's Discounts list and Client Vouchers list, archived included, in the Wellness Voucher
+       Performance format. No filters of its own: it reads the masthead's Branch and Period (pages.js filtered + nopulse, dashboard.js NOPULSE_REDRAW).
+       Level 2 and above, no client names. discounts_vouchers_report() (migrations/discounts_vouchers.sql); discounts-vouchers.js draws it. -->
+  <div id="view-discountsvouchers" style="display:none">
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="dvShell">
+      <aside class="lg-side" id="dvSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="dvDoc"><main id="discountsVouchersContent"></main></div>
+    </div>
+  </div>
+
   <div id="view-complaints" style="display:none">
     <main id="complaintsContent" style="max-width:1340px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
@@ -4546,7 +4560,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="jump-nav.js?v=22f739e2"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="target-links.js?v=72e70df1"></script>
-<script src="dashboard.js?v=9e2a7d42"></script>
+<script src="dashboard.js?v=b13835f8"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -5071,6 +5085,7 @@ function showView(view, el){
   if (view === 'wvblast') renderWvBlast();
   if (view === 'glowclub') renderGlowClub();
   if (view === 'dealsperf') renderDealsPerf();
+  if (view === 'discountsvouchers') renderDiscountsVouchers();
   if (view === 'googleads') renderGoogleAds();
   if (view === 'marketingspend') renderMarketingSpend();
   if (view === 'toolspend') renderToolSpend();
