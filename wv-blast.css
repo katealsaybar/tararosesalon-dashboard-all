@@ -122,3 +122,16 @@
 .wv-lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .wv-ll{display:grid;grid-template-columns:70px minmax(0,1fr);gap:8px;padding:5px 0;border-top:1px solid var(--border2);line-height:1.4}
 .wv-lb{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+/* What each blast brought in, 23 Oct 2026: one answer line, then a card per blast (L1); the picture or table is L2, the sentences are folded (L3). */
+.wv-www{max-width:820px;margin:0 0 12px}
+.wv-sb{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin:0 0 6px}
+.wv-sbc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;min-width:0}
+.wv-sbh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.wv-sbn{font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.wv-sbl{font-size:13px;color:var(--muted);margin:2px 0 10px}
+.wv-sbd{margin:0;display:grid;gap:6px}.wv-sbd div{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding-top:6px;border-top:1px solid var(--border2,var(--border))}
+.wv-sbd dt{font-size:13px;color:var(--muted)}.wv-sbd dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.wv-sbf{margin:8px 0 0}
+.wv-read{max-width:820px;margin:8px 0 0}
+.wv-eg{margin:0 0 10px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent-mint,#99F6E4);border-radius:10px;line-height:1.5}
+.wv-read .wv-facts{margin:0}

@@ -74,12 +74,11 @@ function wvLastHtml() {
       ${wvLpTable('By branch', p.by_branch || [], k => WV_BR[k] || k, rate)}
     </div>
     ${tiers || pays ? `<p class="slv-note">Bought: ${tiers}${tiers && pays ? '. Paid by ' : ''}${pays}.</p>` : ''}`,
-    fold: `<ul>
-        <li><b>To message</b> is the list minus anyone who has bought since it was made, or is on a stop list. Check it on the morning of the send.${left ? ` ${lcNum(left)} are left out now: ${lcNum(t.bought_before)} bought a voucher since the list was made, ${lcNum(t.stopped)} on a stop list.` : ''}</li>
-        <li><b>Cost</b> is an estimate: messages times AED ${rate.toFixed(4)} (USD 0.046 at 3.81). Before it goes out it is the clients to message; once it is sent from this page it is the messages really sent. Meta's invoice has the exact figure.</li>
-        <li><b>WhatsApp balance:</b> every message goes from Call Center 2, so all of it comes off the shared balance (the one KCA, MC and AQ use), not Saadiyat's own.</li>
-        <li><b>Bought</b> is a Phorest voucher sale from ${lcEsc(wvDay(WV_LP_LAUNCH))} on, matched by name. The sales feed runs a day behind.${o.vouchers ? ` ${lcNum(o.vouchers)} other voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold since the launch to clients who are not on this list are not counted.` : ''}</li>
-      </ul>`
+    fold: wvReadHtml(`${lcNum(t.to_message)} clients to message × AED ${rate.toFixed(4)} = about ${wvAed(cost)}. That is the cost.`, [
+      ['To message', `The list minus clients who already bought or are on a stop list. Check it on the morning of the send.${left ? ` ${lcNum(left)} are left out now: ${lcNum(t.bought_before)} bought since the list was made, ${lcNum(t.stopped)} on a stop list.` : ''}`],
+      ['Cost', `Clients to message × AED ${rate.toFixed(4)} (USD 0.046 at 3.81) before it goes out. Once it is sent from this page, the messages really sent. An estimate: Meta's invoice has the exact figure.`],
+      ['WhatsApp balance', 'Every message goes from Call Center 2, so all of it comes off the shared balance (the one KCA, MC and AQ use), not Saadiyat\'s own.'],
+      ['Bought', `A Phorest voucher sale from ${lcEsc(wvDay(WV_LP_LAUNCH))} on, matched by name. The sales feed runs a day behind.${o.vouchers ? ` ${lcNum(o.vouchers)} other voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold to clients not on this list are not counted.` : ''}`]])
   });
   return `<div id="wvLast">${block}
     ${typeof wvOk5 === 'function' && wvOk5() ? '<div id="wvLsBox"></div>' : ''}
