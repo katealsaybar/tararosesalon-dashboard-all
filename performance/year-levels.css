@@ -97,8 +97,10 @@
 #perfMore .ladder .you .tag{color:var(--text);font-weight:700}
 
 /* Podium Race tab (Kate, 19 Oct 2026). */
-#perfMore .pod-seg{display:flex;gap:4px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface2);margin-top:14px;max-width:320px}
-#perfMore .pod-seg button{flex:1;font:inherit;font-size:13.5px;font-weight:600;border:0;border-radius:999px;padding:8px 12px;min-height:44px;background:transparent;color:var(--muted);cursor:pointer}
+/* One thickness for every toggle (Kate, 23 Oct 2026): 32px to look at, a 44px tap area through ::after, the width of the column on a phone. */
+#perfMore .pod-seg{display:flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface2);margin-top:12px;max-width:420px}
+#perfMore .pod-seg button{flex:1;font:inherit;font-size:13px;font-weight:600;border:0;border-radius:999px;padding:0 10px;min-height:26px;background:transparent;color:var(--muted);cursor:pointer;position:relative}
+#perfMore .pod-seg button::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
 #perfMore .pod-seg button.on{background:var(--btn);color:var(--btn-fg)}
 #perfMore .tbl.pod td{padding:9px 6px}
 #perfMore .tbl.pod .pl{width:44px}
@@ -131,3 +133,38 @@
 #perfMore .pod-chips::-webkit-scrollbar{display:none}
 #perfMore .pod-chips button{flex:none;font:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:0 14px;min-height:44px;background:var(--surface2);color:var(--muted);cursor:pointer;white-space:nowrap}
 #perfMore .pod-chips button.on{background:var(--btn);color:var(--btn-fg);border-color:var(--btn)}
+
+/* Podium Race, 23 Oct 2026: her win, her closest chance, her places as one list, then the whole team on the page. */
+#perfMore .pr-win{margin:14px 0 10px;padding:14px;border-radius:14px;background:var(--surface2)}
+#perfMore .pr-win b{font-size:15px}
+#perfMore .pr-win p{margin:4px 0 0;color:var(--muted)}
+#perfMore .pr-chance{margin:0 0 6px;padding:14px;border:1px solid var(--border);border-radius:14px}
+#perfMore .pr-chance .eyebrow{color:var(--text)}
+#perfMore .pr-chance p{margin:4px 0 0}
+#perfMore .pr-list{border:1px solid var(--border);border-radius:14px;overflow:hidden}
+#perfMore .pr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;width:100%;text-align:left;font:inherit;color:inherit;background:transparent;border:0;border-top:1px solid var(--border);padding:10px 12px;cursor:pointer}
+#perfMore .pr:first-child{border-top:0}
+#perfMore .pr.sel{background:var(--surface2)}
+#perfMore .pr .pr-n{font-weight:600}
+#perfMore .pr .pr-v{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+#perfMore .pr .pr-p{grid-column:2;grid-row:1/3;align-self:center;text-align:right}
+#perfMore .pr .pr-p b{display:block;font-size:22px;font-weight:700;line-height:1;letter-spacing:-.01em}
+#perfMore .pr .pr-p small{color:var(--muted);font-size:11px}
+#perfMore .pr.top .pr-p b{color:var(--text);text-decoration:underline;text-decoration-color:var(--bar);text-decoration-thickness:3px;text-underline-offset:4px}
+#perfMore .pr.none .pr-p b{font-size:15px;font-weight:600;color:var(--muted)}
+#perfMore .pr .pr-track{grid-column:1;height:4px;border-radius:4px;background:var(--surface2);position:relative;margin-top:6px}
+#perfMore .pr.sel .pr-track{background:var(--border)}
+#perfMore .pr .pr-track i{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--muted);transform:translateX(-50%)}
+#perfMore .pr.top .pr-track i{background:var(--bar)}
+#perfMore .pr:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+#perfMore .tbl.pod tr.gap td{text-align:center;color:var(--muted);padding:2px 6px}
+#perfMore .pr-more{display:block;width:100%;margin-top:6px;border:0;border-top:1px solid var(--border);background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;min-height:44px;cursor:pointer}
+/* the chips are toggles too: 32px with a 44px tap area */
+#perfMore .pod-chips button{min-height:32px;position:relative}
+#perfMore .pod-chips button::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+
+/* One narrow side margin on a phone, the same 10px as the dashboard (Kate, 23 Oct 2026). Embedded in the dashboard it already has none. */
+@media (max-width:760px){
+  body:not(.embed) main,body:not(.embed) .ptabs-wrap,body:not(.embed) .foot,.top{padding-left:10px;padding-right:10px}
+}
+

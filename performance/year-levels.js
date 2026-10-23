@@ -39,7 +39,7 @@ const GROUPS = [
 // The four a stylist reads first; the rest fold away (progressive disclosure).
 const HEADLINE = ['total_revenue', 'treatments', 'retail', 'rebooking_pct'];
 
-const S = { podStat: null, tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
+const S = { podAll: false, podStat: null, tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
 const levelOf = name => S.levels.find(l => l.level === name) || null;
 const nextOf = name => { const l = levelOf(name); return l ? S.levels.find(x => x.order === l.order + 1) || null : null; };
 
@@ -371,80 +371,101 @@ async function podMonth(last) {
   if (r) { S.pod = r; S.podLast = !!last; }
   paint();
 }
-// Open one board, or (no key) come back to all her places. Kept in the address so a refresh or a shared bookmark lands on it.
+// Pick the stat the team board shows. Kept in the address so a refresh or a shared bookmark lands on it. Kate, 23 Oct 2026: the whole team
+// is on the page now, not a second screen, so this moves the board and brings it into view rather than opening a new page.
 function podStat(key) {
-  S.podStat = key || null;
+  S.podStat = key || null; S.podAll = false;
   const u = new URL(location.href);
   if (S.podStat) u.searchParams.set('stat', S.podStat); else u.searchParams.delete('stat');
   history.replaceState(null, '', u);
   paint();
-  window.scrollTo(0, 0);
+  const b = document.getElementById('podBoard');
+  if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+// All the rows of the board, or the top eight and her.
+function podAllToggle() { S.podAll = !S.podAll; paint(); }
 function podSeg() {
   return `<div class="pod-seg" role="group" aria-label="Month">
         <button type="button" class="${S.podLast ? '' : 'on'}" onclick="PerfTabs.podium(false)" aria-pressed="${!S.podLast}">This month</button>
         <button type="button" class="${S.podLast ? 'on' : ''}" onclick="PerfTabs.podium(true)" aria-pressed="${S.podLast}">Last month</button>
       </div>`;
 }
+// Kate, 23 Oct 2026 (mock-up approved in docs/mockups/podium-race-staff-link.html): one page, top to bottom. Her win first, the place she is
+// closest to winning, her place on every stat as one list, then the whole team in order for the stat she picked, with the rest of the stats a chip away.
+const POD_TOP = 8;   // rows of the board shown before "Show all"
+const podGap = (x, g) => x.f === 'aed' ? 'AED ' + Math.round(g).toLocaleString('en-GB') : x.f === 'pct' ? Number(g).toFixed(1).replace(/\.0$/, '') + ' points' : Math.round(g).toLocaleString('en-GB');
 function podiumTab() {
   const p = S.pod, team = p.dept === 'Beauty' ? 'Beauty team' : 'Hair team';
-  const mn = monthName(p.month), through = p.to ? dShort(p.to) : '';
+  const mn = monthName(p.month), through = p.to ? dShort(p.to) : '', live = !S.podLast, was = live ? 'are' : 'were';
   const shown = PALL.filter(x => pvisible(p, x));
-  const cur = S.podStat && shown.find(x => x.k === S.podStat);
-  if (cur) return podBoard(p, cur, shown, team, mn);
+  const cur = shown.find(x => x.k === S.podStat) || shown[0];
+  const mine = x => p.stats[x.k].me;
 
-  // 1. Where you stand
-  const tile = x => {
+  // 1. her win
+  const firsts = shown.filter(x => mine(x) && mine(x).rank === 1).map(x => x.name);
+  const words = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+  const list = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+  const win = firsts.length
+    ? `<b>You ${was} 1st on ${words[firsts.length] || firsts.length} of them.</b><p>${esc(list(firsts))}. That is the part to be proud of.</p>`
+    : `<b>Here is where you stand.</b><p>A race is a moment, not a verdict. ${live ? 'Your place can change by tomorrow.' : 'A new month starts fresh for all of us.'}</p>`;
+
+  // 2. her closest chance: the stat she is best placed on without being first, and how far the place above is
+  let chance = '';
+  if (live) {
+    const t = shown.filter(x => mine(x) && mine(x).rank > 1).sort((a, b) => mine(a).rank - mine(b).rank)[0];
+    if (t) {
+      const s = p.stats[t.k], up = s.board.filter(r => r.rank < mine(t).rank).pop(), gap = up ? up.value - mine(t).value : 0;
+      chance = `<section class="pr-chance"><div class="eyebrow">Your closest chance</div>
+        <p><b>${esc(t.name)}: you are ${ord(mine(t).rank)} of ${s.ranked}.</b>${gap > 0 ? ` The place above you is ${esc(podGap(t, gap))} ahead.` : ''}${t.k === 'rebooking' ? ' Ask for the next visit before she leaves the chair.' : ''}</p></section>`;
+    }
+  }
+
+  // 3. her places, one list
+  const row = x => {
     const s = p.stats[x.k], me = s.me, top = me && me.rank <= 3;
+    const pos = me && s.ranked > 1 ? (me.rank - 1) / (s.ranked - 1) * 100 : 0;
     const body = me
-      ? `<span class="pt-r">${ord(me.rank)}</span><span class="pt-of">of ${s.ranked}</span><span class="pt-v">${esc(pvalFull(x, me.value))}</span>`
-      : `<span class="pt-r">Not yet</span><span class="pt-of">${esc(x.none)}</span>`;
-    return `<button type="button" class="pt${top ? ' podtop' : ''}${me ? '' : ' none'}" onclick="PerfTabs.stat('${x.k}')"
-      aria-label="${esc(x.name)}: ${me ? `you are ${ord(me.rank)} of ${s.ranked}` : 'not ranked yet'}. Open the whole board."><span class="pt-n">${esc(x.name)}</span>${body}</button>`;
+      ? `<span class="pr-p"><b>${ord(me.rank)}</b><small>of ${s.ranked}</small></span><span class="pr-v">${esc(pvalFull(x, me.value))}</span><span class="pr-track"><i style="left:${pos}%"></i></span>`
+      : `<span class="pr-p none"><b>Not yet</b></span><span class="pr-v">${esc(x.none)}</span>`;
+    return `<button type="button" class="pr${top ? ' top' : ''}${me ? '' : ' none'}${x.k === cur.k ? ' sel' : ''}" onclick="PerfTabs.stat('${x.k}')"
+      aria-label="${esc(x.name)}: ${me ? `you are ${ord(me.rank)} of ${s.ranked}` : 'not ranked yet'}. Show the whole team for it.">
+      <span class="pr-n">${esc(x.name)}</span>${body}</button>`;
   };
   const groups = PSTATS.map(([g, xs]) => {
-    const t = xs.filter(x => pvisible(p, x)).map(tile).join('');
-    return t ? `<h3 class="pt-grp">${g}</h3><div class="pt-grid">${t}</div>` : '';
+    const t = xs.filter(x => pvisible(p, x)).map(row).join('');
+    return t ? `<h3 class="pt-grp">${g}</h3><div class="pr-list">${t}</div>` : '';
   }).join('');
-  const sales = p.stats.sales.me;
-  const note = !sales ? '' : sales.rank === 1
-    ? `<div class="step"><span class="k">Where you are</span>${S.podLast ? 'You were' : 'You are'} first on the ${team} for total sales. Lovely work.${S.podLast ? '' : ' The race moves every day, so simply enjoy it.'}</div>`
-    : `<div class="step"><span class="k">Where you are</span>A race is a moment, not a verdict. Everyone has quiet days and busy ones, and ${S.podLast ? 'a new month starts fresh for all of us' : 'your place can change by tomorrow'}.</div>`;
-  return `
-    <section class="card">
-      <div class="eyebrow">Podium Race${through && !S.podLast ? ', to ' + through : ', ' + mn}</div>
-      <h2>Where you stand on the ${team}</h2>
-      <p class="sub">Your place on each one for ${mn}${S.podLast ? '' : ' so far'}. <b>Tap any card</b> to see the whole board for it.</p>
-      ${podSeg()}
-      ${groups}
-      ${note}
-    </section>`;
-}
 
-// 2. One board
-function podBoard(p, x, shown, team, mn) {
-  const s = p.stats[x.k], me = s.me, n = s.ranked, through = p.to ? dShort(p.to) : '';
-  const chips = shown.map(c => `<button type="button" class="${c.k === x.k ? 'on' : ''}" onclick="PerfTabs.stat('${c.k}')" aria-pressed="${c.k === x.k}">${esc(c.name)}</button>`).join('');
-  const hero = me
-    ? `<div class="hero-n">${ord(me.rank)}</div><div class="hero-s">of ${n} on the ${team} for ${mn}${S.podLast ? '' : ' so far'}, with <b>${esc(pvalFull(x, me.value))}</b></div>`
-    : `<div class="hero-n">Not yet</div><div class="hero-s">${esc(x.none)}</div>`;
-  const rows = s.board.map(r => `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' podtop' : ''}">${r.rank}</span></td>
+  // 4. the whole team, for the stat she picked
+  const s = p.stats[cur.k], me = s.me, n = s.ranked;
+  const chips = shown.map(c => `<button type="button" class="${c.k === cur.k ? 'on' : ''}" onclick="PerfTabs.stat('${c.k}')" aria-pressed="${c.k === cur.k}">${esc(c.name)}</button>`).join('');
+  const rows = S.podAll ? s.board : s.board.filter(r => r.rank <= POD_TOP || r.me);
+  let prev = 0;
+  const body = rows.map(r => {
+    const gap = !S.podAll && prev && r.rank - prev > 1 ? '<tr class="gap"><td colspan="3">…</td></tr>' : '';
+    prev = r.rank;
+    return gap + `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' podtop' : ''}">${r.rank}</span></td>
       <td>${esc(r.name)}${r.me ? ' <span class="you-tag">You</span>' : ''}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}</span></td>
-      <td class="r">${esc(pval(x, r.value))}</td></tr>`).join('');
+      <td class="r">${esc(pval(cur, r.value))}</td></tr>`;
+  }).join('');
+  const more = s.board.length > POD_TOP + 1 ? `<button type="button" class="pr-more" onclick="PerfTabs.all()">${S.podAll ? 'Show the top ' + POD_TOP + ' and me' : 'Show all ' + n}</button>` : '';
   return `
     <section class="card">
-      <button type="button" class="pod-back" onclick="PerfTabs.stat(null)"><span aria-hidden="true">‹</span> All my places</button>
-      <div class="pod-chips" role="group" aria-label="Choose a stat">${chips}</div>
-      <div class="eyebrow" style="margin-top:14px">${esc(x.name)}${through && !S.podLast ? ', to ' + through : ', ' + mn}</div>
-      ${hero}
-      <p class="sub">${esc(x.what)}</p>
+      <div class="eyebrow">Podium Race${through && live ? ', to ' + through : ', ' + mn}</div>
+      <h2>Where you stand on the ${team}</h2>
+      <p class="sub">Your place on each one for ${mn}${live ? ' so far' : ''}. Everyone on the ${team} is below.</p>
       ${podSeg()}
+      <div class="pr-win">${win}</div>
+      ${chance}
+      ${groups}
     </section>
-    <section class="card">
-      <h2>The ${team}</h2>
-      <p class="sub">${n === 1 ? 'Just you, so far' : n + ' people'}, in order.</p>
-      <div class="tbl-wrap"><table class="tbl pod"><thead><tr><th class="pl">Place</th><th>Name</th><th class="r">${esc(x.unit)}</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="sub wk-foot">${x.k === 'sales' ? 'Sales are services plus retail before VAT, the same figures as This month. ' : ''}Anyone with nothing yet in the month is not listed.${x.foot ? ' ' + esc(x.foot) : ''}</p>
+    <section class="card" id="podBoard">
+      <h2>The ${team}: ${esc(cur.name)}</h2>
+      <p class="sub">${n === 1 ? 'Just you, so far.' : n + ' people, in order.'}${me ? ' You ' + was + ' ' + ord(me.rank) + '.' : ''} ${esc(cur.what)}</p>
+      <div class="pod-chips" role="group" aria-label="Choose a stat">${chips}</div>
+      <div class="tbl-wrap"><table class="tbl pod"><thead><tr><th class="pl">Place</th><th>Name</th><th class="r">${esc(cur.unit)}</th></tr></thead><tbody>${body}</tbody></table></div>
+      ${more}
+      <p class="sub wk-foot">${cur.k === 'sales' ? 'Sales are services plus retail before VAT, the same figures as This month. ' : ''}Anyone with nothing yet in the month is not listed.${cur.foot ? ' ' + esc(cur.foot) : ''} A race is a moment, not a verdict: it moves every day, and a place only tells you where you are today.</p>
     </section>`;
 }
 
@@ -491,5 +512,5 @@ function levelsTab() {
 }
 function pickLevel(l) { S.pick = l; paint(); }
 
-window.PerfTabs = { mount, go, pickLevel, podium: podMonth, stat: podStat };
+window.PerfTabs = { mount, go, pickLevel, podium: podMonth, stat: podStat, all: podAllToggle };
 })();
