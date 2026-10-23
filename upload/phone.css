@@ -1,0 +1,87 @@
+/* Upload Portal on a phone (Kate, 23 Oct 2026: "phone optimise upload portal pls, lots of flaws in the UI").
+   Desktop is untouched: everything is inside the one phone band, the same 700px the tab picker already uses.
+   Flaws fixed, from a 375px pass over every tab:
+   - the logo was clipped to "TARA ROS" behind Team Home / Log out
+   - the Backfill Progress buttons wrapped to four lines each and the third ran past the card edge
+   - the Progress / Browse / Clients / Upload row scrolled sideways, so Upload was cut off
+   - an empty rounded bar sat under the tab picker on Ledgers and Utilisation
+   - card text started 40px in from each edge (20px page + 20px card), which left 295px of 375
+   - the tab picker cells broke the label, the qualifier and the dot onto separate lines
+   - Payslips: the filters were three rows of pills before the first name, each person was 170px tall
+     (file name, then four buttons wrapping to two rows), and the drop zone talked about dragging a file */
+@media(max-width:700px){
+  /* Header: the lockup shrinks with the room instead of being cropped by it. */
+  header .logo{flex:1 1 auto;min-width:56px}
+  header .logo-lockup{width:auto;flex:0 1 80px;min-width:0}
+
+  /* More room for the content: the page gutter and the card padding were both 20px. */
+  .page{padding:14px 10px 48px}
+  .upload-card{padding:16px 14px;margin-bottom:12px}
+  .card-title{font-size:21px}
+  .card-sub{font-size:13.5px;margin-bottom:12px}
+  .today-strip{padding:12px 14px;gap:10px;margin-bottom:12px}
+  .today-strip:empty{display:none}
+  /* Today strip: heading, the branch pills, then the note and the paste button, stacked. The two sticky wrappers around it are
+     static on a phone but still painted the page colour, which cut the bottom edge off the strip. */
+  .tab-sticky,.seg-wrap{background:transparent}
+  .today-strip{flex-direction:column;align-items:stretch}
+  .today-pills{flex:none;min-width:0}
+
+  /* Tab picker: the name on top, its qualifier under it, the status dot at the right. */
+  .tab-bar.open .tab-btn{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:6px;row-gap:0;align-items:center}
+  .tab-bar.open .tab-btn .tab-qual{grid-column:1;font-size:11.5px;margin:0}
+  .tab-bar.open .tab-btn .tab-pip{grid-column:2;grid-row:1;margin:0}
+  .tab-bar:not(.open) .tab-btn.active{flex-wrap:nowrap}
+
+  /* Segments (Progress / Browse / Clients / Upload): one row that fills the width, never a sideways scroll. */
+  .seg-bar{display:flex;width:100%;overflow:visible}
+  .seg-btn{flex:1 1 0;min-width:0;justify-content:center;padding:8px 2px;font-size:13px;gap:4px}
+
+  /* Backfill Progress header: the title on its own line, three equal buttons under it that fit the card. */
+  .bf-hd{display:block!important}
+  .bf-hd .card-title{margin-bottom:10px!important}
+  .bf-btns{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px!important;margin-bottom:10px}
+  .bf-btns .btn-outline{padding:6px 4px!important;font-size:11.5px;letter-spacing:.02em;text-transform:none;white-space:normal;line-height:1.2;
+    display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px}
+}
+
+/* Payslips. #payslipHost prefix because index.html's own phone block for it is id-specific and sits earlier. */
+@media(max-width:700px){
+  /* Upload / Email / Revised: three equal cells, not three full-width pills. */
+  #payslipHost .ps-views{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  #payslipHost .ps-views .ps-bpill{border-radius:12px;padding:6px 4px;font-size:12px;line-height:1.25;text-align:center;min-height:52px}
+  /* Branch pills: one row that swipes, with a soft edge so it reads as scrollable. */
+  #payslipHost .ps-search-wrap{display:block}
+  #payslipHost .ps-search-wrap>*{margin-bottom:10px}
+  #payslipHost .ps-search{max-width:none}
+  #payslipHost .ps-branches:not(.ps-up):not(.ps-views){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+    margin-left:-14px;margin-right:-14px;padding:0 14px;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+  #payslipHost .ps-branches:not(.ps-up):not(.ps-views)::-webkit-scrollbar{display:none}
+  #payslipHost .ps-branches:not(.ps-up):not(.ps-views) .ps-bpill{flex:none;white-space:nowrap}
+  /* Everyone / Uploaded / Not yet: three equal cells. */
+  #payslipHost .ps-up{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  #payslipHost .ps-up .ps-bpill{padding:6px 4px;font-size:12px;text-align:center;white-space:nowrap}
+  #payslipHost .ps-pos{width:100%;display:block}
+
+  /* Signed in as ...: a real tap target. */
+  #payslipHost .ps-key{display:block;padding:8px 0}
+
+  /* Drop zone: nobody drags a file on a phone, so it is one clear button. */
+  #payslipHost .ps-dd{display:none}
+  #payslipHost .ps-drop{padding:14px}
+  #payslipHost .ps-drop .ps-link{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;
+    background:var(--btn);color:var(--btn-fg);text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.04em}
+  #payslipHost .ps-drop .ps-meta{margin-top:10px;font-size:12px}
+  #payslipHost .ps-tap{display:inline}
+
+  /* A person is a name, one grey line and one row of buttons. The saved file name stays in the record, not on the phone. */
+  #payslipHost .ps-fn{display:none}
+  #payslipHost .ps-row{gap:6px;padding:10px 2px}
+  #payslipHost .ps-name{font-size:15px}
+  #payslipHost .ps-actions{flex-wrap:nowrap;gap:6px}
+  #payslipHost .ps-actions>*{flex:1 1 auto;padding:0 6px;font-size:12px;letter-spacing:.01em;text-transform:none;min-height:40px;white-space:nowrap}
+  #payslipHost .ps-actions .ps-pick{flex:1.2 1 auto}
+}
+#payslipHost .ps-tap{display:none}
+@media(max-width:700px){#payslipHost .ps-tap{display:inline}}

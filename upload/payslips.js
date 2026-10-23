@@ -273,7 +273,7 @@ function psRender() {
   const row = s => {
     const p = s.payslip;
     return `<div class="ps-row${p ? ' done' : ''}" data-name="${psEsc(psNorm(s.name))}" data-pos="${psEsc(s.level || s.dept || '')}">
-      <div><div class="ps-name">${psEsc(s.name)}<span class="ps-badge"></span></div><div class="ps-meta">${psEsc(s.level || s.dept)}${s.site ? ` · ${psEsc(PS_BRANCH[s.site])}` : ''}${p ? ` · ${psEsc(p.file_name || 'payslip.pdf')} · by ${psEsc(p.uploaded_by)}, ${new Date(p.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</div></div>
+      <div><div class="ps-name">${psEsc(s.name)}<span class="ps-badge"></span></div><div class="ps-meta">${psEsc(s.level || s.dept)}${s.site ? ` · ${psEsc(PS_BRANCH[s.site])}` : ''}${p ? `<span class="ps-fn"> · ${psEsc(p.file_name || 'payslip.pdf')}</span> · by ${psEsc(p.uploaded_by)}, ${new Date(p.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}</div></div>
       <div class="ps-actions">
         ${p ? `<button class="btn-dl" onclick="psView('${s.id}')">View</button>` : ''}
         <label class="btn-outline ps-pick">${p ? 'Replace' : 'Upload PDF'}<input type="file" accept="application/pdf,.pdf" hidden onchange="psUploadOne('${s.id}', this.files[0]); this.value=''"></label>
@@ -292,7 +292,7 @@ function psRender() {
     <div class="ps-view" data-view="tpl" hidden><div class="ps-send ps-tpl" id="psTplPanel"></div></div>
     <div class="ps-view" data-view="upload" hidden>
     <div class="ps-drop" id="psDrop">
-      <b>Drop payslip PDFs here</b>, or <label class="ps-link">choose files<input type="file" accept="application/pdf,.pdf" multiple hidden onchange="psAddFiles(this.files); this.value=''"></label>.
+      <b class="ps-dd">Drop payslip PDFs here</b><span class="ps-dd">, or </span><label class="ps-link"><span class="ps-dd">choose files</span><span class="ps-tap">Choose payslip PDFs</span><input type="file" accept="application/pdf,.pdf" multiple hidden onchange="psAddFiles(this.files); this.value=''"></label><span class="ps-dd">.</span>
       <div class="ps-meta">One PDF with everyone in it? Drop it here: each page is matched by the name printed on it. Or one file per person, named like “Holly Branchett.pdf”. PDF only, up to 10 MB each.</div>
     </div>
     <div id="psPending"></div>
