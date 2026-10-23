@@ -44,3 +44,8 @@
 .wv-sort:hover{color:var(--text)}
 .wv-sort:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:4px}
 .wv-sortic{font-size:10px;opacity:.4}.wv-sort.on .wv-sortic{opacity:1}
+/* One page for every blast (23 Oct 2026): the all-blasts table, and a heading for each blast's section */
+.wv-blastsec{margin-top:26px}.wv-blastsec>h3{margin:0 0 10px}
+.wv-alltbl th,.wv-alltbl td{text-align:left;vertical-align:top}
+.wv-alltbl th:nth-child(n+5),.wv-alltbl td:nth-child(n+5){text-align:right;white-space:nowrap;padding-left:10px}
+.wv-alltbl td:nth-child(2){min-width:120px}.wv-alltbl td:nth-child(3){min-width:170px;max-width:230px}

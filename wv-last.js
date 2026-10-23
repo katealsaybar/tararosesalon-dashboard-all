@@ -60,7 +60,7 @@ function wvLastHtml() {
   const tiers = (p.by_tier || []).map(x => `${lcEsc(({ D: 'Dip Your Toes', S: 'Season of You', V: 'All-In VIP Year' })[x.k] || x.k)} ${lcNum(x.vouchers)} (${wvAed(x.aed)})`).join(' · ');
   const pays = (p.by_pay || []).map(x => `${lcEsc(wvPayName(x.k) || x.k)} ${lcNum(x.vouchers)}`).join(' · ');
   const left = t.bought_before + t.stopped;
-  return `<section class="wv-perf" id="wvLast"><h3>The last push, Mon 26 Oct</h3>
+  return `<section class="wv-perf" id="wvLast"><h3>Blast 4: the last push, Mon 26 Oct</h3>
     <p class="slv-note">The final WhatsApp push before the voucher closes on 31 Oct, sent by hand from respond.io: <b>${lcNum(warm.listed)}</b> warm (tapped Tell me more or Reserve mine on the 15 and 16 Oct blast and have not bought) and <b>${lcNum(clean.listed)}</b> clean (top spenders we have not messaged before, 2026 spend AED 2,000+, no lightening service in the last 12 months because Blonde is now January).</p>
     <div class="ll-cards wv-pcards">
       ${card(lcNum(t.listed), 'On the list', `${lcNum(warm.listed)} warm · ${lcNum(clean.listed)} clean, listed ${lcEsc(wvDay('2026-10-23'))}`)}
@@ -158,14 +158,9 @@ function wvLpFile(kind) {
   wvLpSay(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);
 }
 
-// The page (a page of its own since 23 Oct 2026, Kate: the last push is the 4th blast and must not sit on top of the 3rd). Level 3 and above sees the money
-// and the list; Level 4 sees the money only, like the 3rd blast's page.
-async function renderWvLast() {
-  const el = document.getElementById('wvLastContent');
-  if (!el || !wvOk()) return;
-  el.innerHTML = `<section class="slv-intro"><h2>Wellness Voucher Blast, 4th blast</h2>
-    <p>The last push before the voucher closes on 31 Oct. The 3rd blast, waves 1 to 5, stays on its own page.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p></section><div id="wvLastHost"><p class="slv-muted">Loading…</p></div>`;
-  const host = () => document.getElementById('wvLastHost');
+// Blast 4 on the blasts page (wv-blast.js renderWvBlast): wvLastLoad() fetches the money and, for Level 3 and 5, the list; wvLastMount() draws them into #wvB4.
+// It was a page of its own for an hour on 23 Oct 2026 and Kate folded it into one page with the other blasts. Level 4 gets the money only.
+async function wvLastLoad() {
   try {
     const [lp, lr] = await Promise.all([sb.rpc('wv_lastpush_performance', { p_rate: WV_LP_RATE }), wvPerfOnly() ? Promise.resolve({ data: null, error: null }) : sb.rpc('wv_lastpush_get')]);
     wvLp = (!lp.error && lp.data && lp.data.totals) ? lp.data : null;
@@ -173,5 +168,5 @@ async function renderWvLast() {
     if (lp.error) console.warn('wv_lastpush_performance', lp.error);
     if (lr.error) console.warn('wv_lastpush_get', lr.error);
   } catch (e) { console.error(e); wvLp = null; wvLpRows = null; }
-  if (host()) host().innerHTML = wvLp ? wvLastHtml() : '<p class="slv-muted">The numbers did not load. Refresh to try again.</p>';
 }
+function wvLastMount() { const b = document.getElementById('wvB4'); if (b) b.innerHTML = wvLp ? wvLastHtml() : ''; }

@@ -41,7 +41,7 @@ VIEWS = ['dashboard', 'dashboard-open', 'dailyperf', 'compare', 'team', 'staffpe
          # added 15 Oct 2026: every view built since the 25 Sep audit
          'clientmix', 'dailyperf', 'googleads', 'lostclients', 'lostlists', 'overyears',
          'products', 'social', 'stafflevels', 'staffweeks', 'teamquad', 'website',
-         'wvblast', 'wvlast', 'wvperf']
+         'wvblast', 'wvperf']
 SIZES = [(320, 640), (375, 667), (390, 844), (430, 932), (844, 390), (1440, 900)]
 if os.environ.get('AUDIT_SIZES'):
     SIZES = [tuple(map(int, x.split('x'))) for x in os.environ['AUDIT_SIZES'].split(',')]

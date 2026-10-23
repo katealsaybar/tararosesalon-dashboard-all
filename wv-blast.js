@@ -40,13 +40,25 @@ const wvWaveName = w => w === 'all' ? 'Everyone on the list' : w === 'new' ? 'Ne
 async function renderWvBlast() {
   const el = document.getElementById('wvBlastContent');
   if (!el || !wvOk()) return;
-  el.innerHTML = `<section class="slv-intro"><h2>Wellness Voucher Blast</h2>
-    <p>The 3rd blast: top spenders who can be messaged on WhatsApp about the Wellness Voucher, by wave.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p></section><div id="wvHost"><p class="slv-muted">Loading the list…</p></div>`;
+  el.innerHTML = `<section class="slv-intro"><h2>Wellness Voucher Message and Email Blasts</h2>
+    <p>Every voucher blast and how each one did. The 3rd (waves 1 to 5) has its send list below; the 4th is the last push on Mon 26 Oct.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p></section>
+    <div id="wvAll"><p class="slv-muted">Loading…</p></div>
+    <div id="wvB4"></div>
+    <section class="wv-blastsec" id="wvB3"><h3>Blast 3: top spenders, waves 1 to 5 (15 and 16 Oct)</h3><div id="wvHost"><p class="slv-muted">Loading the list…</p></div></section>`;
+  const hp = sb.rpc('wv_blasts_history').then(r => r, e => ({ error: e })), lp = typeof wvLastLoad === 'function' ? wvLastLoad() : Promise.resolve();
+  const after = async () => {
+    const h = await hp; await lp;
+    wvHist = (!h.error && h.data) ? h.data : null;
+    if (h.error) console.warn('wv_blasts_history', h.error);
+    wvAllPaint();
+    if (typeof wvLastMount === 'function') wvLastMount();
+  };
   if (wvPerfOnly()) {
     const pf = await sb.rpc('wv_blast_performance');
     wvPerf = (!pf.error && pf.data && pf.data.totals) ? pf.data : null;
     const host = document.getElementById('wvHost');
     if (host) host.innerHTML = wvPerf ? wvPerfHtml() : '<p class="slv-muted">The numbers did not load. Refresh to try again.</p>';
+    await after();
     return;
   }
   try {
@@ -57,7 +69,28 @@ async function renderWvBlast() {
     if (pf.error) console.warn('wv_blast_performance', pf.error);
   } catch (e) { console.error(e); wvErr = 'The list did not load. Refresh to try again.'; }
   wvPaint();
+  await after();
 }
+
+// ---- All four blasts in one table (Kate, 23 Oct 2026: one page, "performance per blast (4)"). Blasts 1 and 2 went out of GHL and left no per-client record
+// here, so they show the vouchers Phorest has sold in the 7 days from each send (wv_blasts_history); blasts 3 and 4 show what their own functions count.
+let wvHist = null;
+function wvAllHtml() {
+  const t3 = wvPerf && wvPerf.totals, lp = typeof wvLp !== 'undefined' && wvLp, t4 = lp && lp.totals;
+  const h = wvHist || {}, rate4 = lp ? (+lp.rate || 0) : 0;
+  const row = (name, when, who, msgs, vouchers, aed, cost, jump) => `<tr><td><b>${name}</b>${jump ? `<div><a href="#" class="slv-note" onclick="event.preventDefault();document.getElementById('${jump}').scrollIntoView({behavior:'smooth',block:'start'})">Open below ↓</a></div>` : ''}</td><td>${when}</td><td>${who}</td><td>${msgs}</td><td>${vouchers}</td><td>${aed}</td><td>${cost}</td></tr>`;
+  const w1 = h.b1, w2 = h.b2;
+  const rows = [
+    row('Blast 1', '21 Aug WhatsApp<br>22 Aug email', '3,168 contacts tagged in GHL', '<span class="slv-muted">not counted here</span>', w1 ? lcNum(w1.vouchers) : '–', w1 ? wvAed(w1.aed) : '–', '<span class="slv-muted">not tracked here</span>'),
+    row('Blast 2, the reminder', '28 Aug WhatsApp', 'Same audience, minus anyone who had engaged or bought', '<span class="slv-muted">not counted here</span>', w2 ? lcNum(w2.vouchers) : '–', w2 ? wvAed(w2.aed) : '–', '<span class="slv-muted">not tracked here</span>'),
+    row('Blast 3, waves 1 to 5', '15 and 16 Oct WhatsApp', '600 top spenders (2026 spend AED 4,000+)', t3 ? lcNum(t3.sent) + ' sent' : '–', t3 ? lcNum(t3.vouchers) : '–', t3 ? wvAed(t3.aed) : '–', t3 ? wvAed(t3.cost) + ' est.' : '–', 'wvB3'),
+    row('Blast 4, the last push', 'Mon 26 Oct WhatsApp, sent by hand', '312: 20 who asked before, 292 not messaged before', t4 ? lcNum(t4.to_message) + ' to send' : '–', t4 ? lcNum(t4.vouchers) : '–', t4 ? wvAed(t4.aed) : '–', t4 ? wvAed1(t4.to_message * rate4) + ' est.' : '–', 'wvB4')];
+  const gap = h.gap ? ` Between blast 2 and blast 3 (4 Sep to 14 Oct) Phorest shows ${lcNum(h.gap.vouchers)} vouchers sold, ${wvAed(h.gap.aed)}.` : '';
+  return `<section class="wv-perf" id="wvAllBlasts"><h3>How each blast did</h3>
+    <div class="wv-pbox"><div class="wv-pscroll"><table class="slv-table wv-ptbl wv-alltbl"><thead><tr><th>Blast</th><th>When</th><th>Who</th><th>Messages</th><th>Vouchers sold</th><th>AED collected</th><th>Cost</th></tr></thead><tbody>${rows.join('')}</tbody></table></div></div>
+    <p class="slv-note">Blasts 1 and 2 went out of GoHighLevel and left no per-client record, so their vouchers are every Phorest voucher sale in the 7 days from the send (21 to 27 Aug, 28 Aug to 3 Sep), which does not prove the message sold them.${lcEsc(gap)} Blasts 3 and 4 count the vouchers the clients on their list bought, matched by name. AED is what was paid, VAT included. Costs are estimates; Meta's invoice has the exact figure. The Wellness Voucher Performance page counts from the voucher log, so its totals can differ by a voucher or two.</p></section>`;
+}
+function wvAllPaint() { const b = document.getElementById('wvAll'); if (b) b.innerHTML = wvAllHtml(); }
 
 const wvCan = () => (wvRows || []).filter(r => r.can_message);
 const wvOut = () => (wvRows || []).filter(r => !r.can_message);
