@@ -76,11 +76,18 @@ details{margin:12px 0 18px}
 summary{cursor:pointer;font-weight:500;font-size:14px}
 .tw{overflow-x:auto}
 table.t{border-collapse:collapse;width:100%;font-size:14.5px}
-table.t th{font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px 10px;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.t th{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px 7px;border-bottom:1px solid var(--rule);white-space:normal;vertical-align:bottom}
 table.t th:first-child,table.t td:first-child{text-align:left}
-table.t td{padding:11px 10px;border-bottom:1px solid var(--rule);text-align:right;vertical-align:middle;white-space:nowrap;font-variant-numeric:normal tabular-nums}
-table.t td.name{white-space:normal;min-width:190px;font-variant-numeric:normal}
+table.t td{padding:11px 7px;border-bottom:1px solid var(--rule);text-align:right;vertical-align:middle;white-space:nowrap;font-variant-numeric:normal tabular-nums}
+table.t td.name{white-space:normal;min-width:210px;font-variant-numeric:normal}
 table.t td.name b{font-weight:600}
+/* Kate, 23 Oct 2026: a face beside every name. The portrait is the cutout at its own shape (no circle, no crop), the same rule as the Staff Benchmarks. */
+.who{display:flex;align-items:center;gap:12px}
+.who .ph{flex:none;height:64px;width:auto;max-width:56px;object-fit:contain;object-position:center bottom}
+.who .ph-ph{flex:none;width:44px;height:64px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-sizing:border-box;border-radius:10px;background:var(--card);color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.06em}
+.who .wtxt{min-width:0}
+table.t td[data-l="Clients"]{white-space:normal;min-width:120px;max-width:150px}
+table.t td[data-l="Clients"] .rng{white-space:normal}
 .tg{font-size:12.5px;font-weight:300;color:var(--muted)}
 tr.grp td{padding:20px 10px 6px;border-bottom:1px solid var(--text);font-size:11px;font-weight:500;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);text-align:left}
 tr.sum td{font-weight:600;border-bottom:1px solid var(--text);background:var(--card)}
@@ -88,7 +95,7 @@ tr.tot td{font-family:var(--fd);font-size:18px;font-weight:600;border-bottom:0;b
 td.plan{font-family:var(--fd);font-weight:600;font-size:18px}
 td.guess{color:var(--muted);font-style:italic}
 .rng{display:block;font-family:var(--fb);font-size:12px;font-weight:300;color:var(--muted);font-style:normal}
-input.days{width:58px;font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--field);color:var(--text);text-align:right}
+input.days{width:50px;font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--field);color:var(--text);text-align:right}
 input.days.changed{border-color:var(--mint-deep);background:var(--lime);color:var(--ink)}
 button.how,button.copy{font:inherit;font-size:12.5px;font-weight:500;border:1px solid var(--rule);background:transparent;color:var(--text);border-radius:var(--r-pill);padding:5px 15px;cursor:pointer}
 button.how:hover,button.copy:hover{background:var(--mint);color:var(--ink)}
@@ -115,6 +122,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   table.t tr.sum,table.t tr.tot{padding:14px 12px}
   table.t td{border:0;padding:0;text-align:left!important;white-space:normal;background:transparent}
   table.t td.name{grid-column:1/-1;min-width:0}
+  .who .ph{height:64px}
   table.t td[data-l]::before{content:attr(data-l);display:block;font-size:10.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-family:var(--fb)}
   table.t td.act{align-self:end}
   table.t tr.det{padding:0}
@@ -242,6 +250,9 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
 <script src="/hub/hub.js?v=400902d9"></script>
+<!-- Staff photos: the same card portraits the Podium Race and the Staff Cards use (name-aliases.js first, then staff-profiles.js). -->
+<script src="/upload/name-aliases.js?v=b21544d8"></script>
+<script src="/staff-profiles.js?v=a67ddd4e"></script>
 <script>
 (async function(){
 /* Kate, 22 Oct 2026: the numbers on this page (each stylist's sales and days, the branch history) are not in this file.
@@ -500,9 +511,22 @@ function renderTiles(sel,all){
    `<div class="tile"><div class="eyebrow">Clients</div><div class="big">${fmt(t.clients)}</div><div class="line">Target divided by the average bill, held to what her hours can fit</div></div>`;
 }
 
+function photoOf(name){
+  /* The cards are filed under the name the team uses (APRIL, HAZEL MAE, MJ, KIM), not the full Phorest name, so try the ways a name can be cut. */
+  const w=name.split(' '),alias={Kimberly:'Kim'};
+  const tries=[name,w.slice(0,2).join(' '),w[0],alias[w[0]],w[1]].filter(Boolean);
+  try{
+    if(typeof staffProfile!=='function')return null;
+    for(const t of tries){const pr=staffProfile(t);if(pr&&pr.photo)return '/assets/staff/'+encodeURIComponent(pr.photo);}
+  }catch(e){}
+  return null;
+}
+function initialsOf(name){return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');}
 function nameCell(r){
   const b=r.leave?['On leave this month','warn']:r.grp?['Two branches','on']:badge[r.status];
-  return `<td class="name"><b>${r.p[1]}</b><div class="tg">${BN[r.p[0]]} · ${r.p[3]}</div><div style="margin-top:5px"><span class="chip ${b[1]}">${b[0]}</span></div></td>`;
+  const src=photoOf(r.p[1]);
+  const face=src?`<img class="ph" src="${src}" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='<span class=&quot;ph-ph&quot;>${initialsOf(r.p[1])}</span>'">`:`<span class="ph-ph" title="Portrait to come">${initialsOf(r.p[1])}</span>`;
+  return `<td class="name"><div class="who">${face}<div class="wtxt"><b>${r.p[1]}</b><div class="tg">${BN[r.p[0]]} · ${r.p[3]}</div><div style="margin-top:5px"><span class="chip ${b[1]}">${b[0]}</span></div></div></div></td>`;
 }
 function personRow(r){
   const has=r.med!=null&&!r.cover, open=st.open.has(r.i);
