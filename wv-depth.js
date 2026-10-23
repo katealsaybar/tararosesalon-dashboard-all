@@ -106,7 +106,7 @@ function wvEconHtml(k) {
   if (!v) return `<div class="wv-pbox"><h4>Cost against what came in</h4><p>${wvAed(d.cost)} (estimate) for ${lcNum(d.tried)} messages, and nothing has sold from them yet.</p></div>`;
   const rows = [[wvAed(d.cost / v), 'Cost for each voucher sold'], [wvAed(d.cost / Math.max(1, c)), 'Cost for each client who bought'], ['1 in ' + lcNum(Math.round(d.tried / v)), 'Messages for each voucher'], [wvAed(d.aed / v), 'Average voucher']];
   return `<div class="wv-pbox"><h4>Cost against what came in</h4><div class="wv-stats wv-stats2">${rows.map(r => `<div class="wv-stat"><div class="wv-sn">${r[0]}</div><div class="wv-sl">${r[1]}</div></div>`).join('')}</div>
-    <p class="slv-note">Cost is the estimate on this page (messages × AED ${WV_RATE}); the vouchers are the ones counted above.</p></div>`;
+    <p class="slv-note">${early ? `Cost is the estimate at GoHighLevel's rate (AED ${WV_GHL_RATE} for each WhatsApp message that got through${k === 'b1' ? `, AED ${WV_GHL_EMAIL} for each email` : ''}).` : `Cost is the estimate on this page (messages × AED ${WV_RATE}).`} The vouchers are the ones counted above.</p></div>`;
 }
 
 function wvDepthHtml(k) {

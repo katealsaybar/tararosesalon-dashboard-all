@@ -95,6 +95,10 @@ async function renderWvBlast() {
 // Blasts 1 and 2 went out of GoHighLevel. GHL's own stats screen only shows trigger attempts, so on 23 Oct 2026 the messages in the chats of the 3,168 tagged contacts were counted (wv_ghl_sends,
 // migrations/wv_blasts_history_ghl.sql). Their vouchers are Phorest sales in the 7 days after each send (wv_blasts_history). Blasts 3 and 4 use their own functions.
 const WV_RATE = 0.1753;   // AED a marketing message: USD 0.046 at the 3.81 the company card pays. One rate for every blast on this page, so the costs can be compared.
+// Blasts 1 and 2 went out of GoHighLevel, so their cost uses GoHighLevel's rate card, not Meta's through respond.io (Kate, 23 Oct 2026): WhatsApp to the UAE, marketing, USD 0.0524 a delivered
+// message (HighLevel's WhatsApp pricing guide, the rate to 30 Sep 2026, so it covers the August sends), plus the 5% card fee on wallet top-ups, at the 3.81 the company card pays = AED 0.2096.
+// LC Email is USD 0.675 for 1,000 emails, the same 5%, same rate = AED 0.0027 an email. An estimate: the GoHighLevel wallet usage report has the exact figure.
+const WV_GHL_RATE = 0.2096, WV_GHL_EMAIL = 0.0027;
 const WV_LAUNCH4 = '2026-10-26';
 let wvHist = null, wvAllView = 'visual';
 try { if (localStorage.getItem('wv-all-view') === 'table') wvAllView = 'table'; } catch (e) {}
@@ -114,7 +118,7 @@ function wvBlastData() {
   if (t4) out.push({ key: 'b4', name: 'Blast 4', when: 'Mon 26 Oct', jump: 'wvB4', planned: !s4, tried: s4 || t4.to_message, through: null, vouchers: t4.vouchers, clients: t4.bought, aed: t4.aed, cost: (s4 || t4.to_message) * rate4 });
   if (t3) out.push({ key: 'b3', name: 'Blast 3', when: '15 and 16 Oct', jump: 'wvB3', tried: t3.sent, through: null, vouchers: t3.vouchers, clients: t3.bought, aed: t3.aed, cost: t3.cost });
   const early = (key, name, when, jump, w, g) => ({ key, name, when, jump, tried: g ? g.tried : null, through: g ? g.tried - g.failed : null, failed: g ? g.failed : null, read: g ? g.read : null,
-    vouchers: w ? w.vouchers : null, clients: w ? w.clients : null, aed: w ? w.aed : null, cost: g ? (g.tried - g.failed) * WV_RATE : null });
+    vouchers: w ? w.vouchers : null, clients: w ? w.clients : null, aed: w ? w.aed : null, cost: g ? (g.tried - g.failed) * WV_GHL_RATE + (key === 'b1' && wvGhl('b1', 'email') ? wvGhl('b1', 'email').tried * WV_GHL_EMAIL : 0) : null });
   out.push(early('b2', 'Blast 2', '28 Aug', 'wvB2', h.b2, wvGhl('b2', 'whatsapp')));
   out.push(early('b1', 'Blast 1', '21 and 22 Aug', 'wvB1', h.b1, wvGhl('b1', 'whatsapp')));
   return out;
@@ -134,7 +138,7 @@ function wvLine(d) {
 function wvEarlyStats(d) {
   if (d.tried == null) return [];
   return [[lcNum(d.tried), 'WhatsApp sent', `${lcNum(d.failed)} failed`], [lcNum(d.through), 'Got through', `${lcNum(d.read)} read`], [lcNum(d.vouchers || 0), 'Vouchers sold', 'in the 7 days after, from the voucher log'],
-    [wvAed(d.aed), 'AED collected'], [wvAed(d.cost), 'Cost (estimate)', `${lcNum(d.through)} got through × AED ${WV_RATE}`], [wvBackTxt(d.aed, d.cost), 'Back for every AED 1']];
+    [wvAed(d.aed), 'AED collected'], [wvAed(d.cost), 'Cost (estimate)', `${lcNum(d.through)} got through × AED ${WV_GHL_RATE}${d.key === 'b1' && wvGhl('b1', 'email') ? ` + ${lcNum(wvGhl('b1', 'email').tried)} emails × AED ${WV_GHL_EMAIL}` : ''}, GoHighLevel's rate`], [wvBackTxt(d.aed, d.cost), 'Back for every AED 1']];
 }
 function wvEarlyMore(blast) {
   const rows = ['whatsapp', 'email'].map(c => wvGhl(blast, c)).filter(Boolean);
@@ -148,7 +152,7 @@ function wvEarlyMore(blast) {
 }
 const wvEarlyFold = h => `<ul>
   <li><b>Sends</b> were counted from the chats in GoHighLevel on 23 Oct: every message the blast made, by the status GoHighLevel holds for it. GoHighLevel's own stats screen only shows trigger attempts, so it cannot be used. Only contacts that still carry the tag are counted.</li>
-  <li><b>Failed</b> means WhatsApp refused it (no WhatsApp on that number, for example). Meta does not bill those, so the cost is the messages that got through times AED ${WV_RATE} (USD 0.046 at 3.81). It is an estimate; Meta's invoice has the exact figure.</li>
+  <li><b>Failed</b> means WhatsApp refused it (no WhatsApp on that number, for example). GoHighLevel charges for delivered messages, so the cost is the ones that got through times AED ${WV_GHL_RATE} (GoHighLevel's rate card for a marketing message to the UAE, USD 0.0524, plus its 5% card fee, at 3.81), and for Blast 1's emails AED ${WV_GHL_EMAIL} each (USD 0.675 for 1,000). It is an estimate; the wallet usage report in GoHighLevel has the exact figure.</li>
   <li><b>Vouchers</b> are the voucher log's sales in the 7 days after the send (the log is the source of truth, the same count the Wellness Voucher Performance page uses). That does not prove the message sold them. <b>AED</b> is what the client paid, VAT included.</li>
   ${h && h.gap ? `<li>Between Blast 2 and Blast 3 (4 Sep to 14 Oct) Phorest shows ${wvN(h.gap.vouchers, 'voucher')} sold, ${wvAed(h.gap.aed)}.</li>` : ''}</ul>`;
 
@@ -217,7 +221,7 @@ function wvAllHtml() {
       <ul>
         <li><b>Blasts 1 and 2</b> went out of GoHighLevel. The sends are counted from the chats there, and the vouchers are the voucher log's sales in the 7 days after each send, so they do not prove the message sold them.</li>
         <li><b>Blasts 3 and 4</b> count the vouchers bought by the clients on their own list, matched by name in Phorest. Blast 4's cost is the list times the rate until it has gone, then the messages really sent.</li>
-        <li><b>AED</b> is what the client paid, VAT included. <b>Cost</b> is always an estimate: messages times AED ${WV_RATE} (USD 0.046 at 3.81). Meta's invoice has the exact figure.</li>
+        <li><b>AED</b> is what the client paid, VAT included. <b>Cost</b> is always an estimate. Blasts 1 and 2 went out of GoHighLevel, so they use its rate card: AED ${WV_GHL_RATE} for each WhatsApp message that got through (and AED ${WV_GHL_EMAIL} for each Blast 1 email). Blasts 3 and 4 use messages times AED ${WV_RATE} (USD 0.046 at 3.81). The invoices have the exact figures.</li>
         <li>Blast 3 and 4 come from Phorest, so they can differ from the voucher log by a voucher or two.</li>
       </ul></details></section>`;
 }
