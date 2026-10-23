@@ -17,6 +17,7 @@
 let mspendData = null, mspendChart = null;
 let mspendDef = 'all';      // what counts as cost: 'ads', 'agency' or 'all'
 let mspendCounted = false;  // the numbers count up once, the first time they are drawn
+let mspendFiles = [];       // the invoice PDFs (marketing_invoice_files), kept in the private bucket marketing-invoices
 
 const MSPEND_META_FULL_FROM = '2025-10-01';   // the first month with Meta spend all the way through (Drive starts 25 Sep 2025)
 const MSPEND_DEFS = [
@@ -67,9 +68,10 @@ async function renderMarketingSpend() {
   // The Period is only known once the dashboard has worked out its window (a direct link can open this page first).
   try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) {}
   try {
-    const { data, error } = await sb.rpc('marketing_spend_report');
-    if (error || !data) throw error || new Error('no data');
-    mspendData = data;
+    const [rep, files] = await Promise.all([sb.rpc('marketing_spend_report'), sb.rpc('marketing_invoice_files')]);
+    if (rep.error || !rep.data) throw rep.error || new Error('no data');
+    mspendData = rep.data;
+    mspendFiles = (files && !files.error && Array.isArray(files.data) ? files.data : []).map((f, i) => ({ ...f, i }));   // the page works without the list
   } catch (e) {
     console.error(e);
     el.innerHTML = '<p class="slv-muted">Marketing Spend didn’t load. Refresh to try again.</p>';
@@ -260,9 +262,83 @@ function mspendPaint(el) {
       <p>What Google ads, Meta ads, the agency and the WhatsApp and CRM tools cost, what that comes to for every new client the salons got, and what a new client is worth. Shows every month that falls in the Period at the top.</p>
     </section>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Meta spend from Metricool is paused${s && s.last_error ? ': ' + mspendEsc(s.last_error) : ''}. Last good update: ${synced ? mspendEsc(synced) : 'never'}.</p>` : ''}
-    ${why}${answerCard}${tryCard}${stepsCard}${stand}${tableCard}${fine}`;
+    ${why}${answerCard}${tryCard}${stepsCard}${stand}${tableCard}${mspendFilesCard(rows)}${fine}`;
   mspendDraw(rows, pick.k, hasOther);
   mspendCountUp(el);
+}
+
+// ── The invoices behind the numbers: a download for each, and a zip for the month. They sit in the private bucket marketing-invoices, which
+// only Level 3 and above can read (a storage policy), so a download is a short-lived signed link made here.
+const MSPEND_KINDS = [['google', 'Google Ads statement'], ['meta', 'Meta ads invoices'], ['agency', 'Agency invoices (Leaders in Digital)']];
+const mspendKb = b => (b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB');
+const mspendFileName = f => f.path.split('/').pop();
+function mspendFilesCard(rows) {
+  const months = rows.map(r => r.mo.slice(0, 7)), by = {};
+  mspendFiles.forEach(f => { const m = f.month.slice(0, 7); if (months.includes(m)) (by[m] = by[m] || []).push(f); });
+  const list = months.slice().reverse().filter(m => by[m]);
+  if (!list.length) return '';
+  const block = m => {
+    const fs = by[m];
+    const groups = MSPEND_KINDS.map(([k, label]) => {
+      const g = fs.filter(f => f.kind === k);
+      if (!g.length) return '';
+      return `<div class="ms-inv-g"><div class="ms-inv-gt">${mspendEsc(label)}${k === 'meta' ? ' <span>(listed in the month they were paid)</span>' : ''}</div>${g.map(f => `<div class="ms-inv-r">
+          <span class="ms-inv-n">${mspendEsc(f.title)}${f.amount !== null && f.amount !== undefined ? `<span class="ms-inv-a">${mspendAed(f.amount)}${f.kind === 'agency' ? ' before VAT' : ''}</span>` : ''}</span>
+          <button type="button" class="ms-inv-b" onclick="mspendDl(${f.i}, this)" aria-label="Download ${mspendEsc(f.title)}">Download <small>${mspendKb(f.bytes)}</small></button></div>`).join('')}</div>`;
+    }).join('');
+    return `<details class="ms-inv"><summary><b>${mspendEsc(mspendMonth(m + '-01'))}</b><span>${fs.length} file${fs.length === 1 ? '' : 's'}</span>
+        <button type="button" class="ms-inv-zip" onclick="event.preventDefault();event.stopPropagation();mspendZip('${m}', this)">Download all (zip)</button></summary>
+        <div class="ms-inv-body">${groups}</div></details>`;
+  };
+  return `<section class="slv-card ms-sec">
+      <div class="ms-eyebrow">The paperwork</div>
+      <h3 class="ms-h">Invoices to download</h3>
+      <p class="ms-sub">The Google statements, the Meta invoices and Leaders in Digital’s invoices behind the numbers above, month by month. Only the months in the Period at the top are listed. The Meta files are the paid ones; failed and pending payments are not here.</p>
+      <div class="ms-invs">${list.map(block).join('')}</div>
+      <p class="slv-muted" id="mspendDlMsg" role="status"></p>
+    </section>`;
+}
+function mspendDlMsg(t) { const n = document.getElementById('mspendDlMsg'); if (n) n.textContent = t || ''; }
+function mspendSave(url, name) {
+  const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+async function mspendDl(i, btn) {
+  const f = mspendFiles[i]; if (!f) return;
+  if (btn) btn.disabled = true;
+  try {
+    const { data, error } = await sb.storage.from('marketing-invoices').createSignedUrl(f.path, 120, { download: mspendFileName(f) });
+    if (error || !data) throw error || new Error('no link');
+    mspendSave(data.signedUrl, mspendFileName(f)); mspendDlMsg('');
+  } catch (e) { console.error(e); mspendDlMsg('That invoice would not download. Refresh and try again.'); }
+  if (btn) btn.disabled = false;
+}
+let mspendZipLib = null;
+function mspendLoadZip() {
+  if (window.JSZip) return Promise.resolve();
+  if (mspendZipLib) return mspendZipLib;
+  mspendZipLib = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload = res; s.onerror = () => { mspendZipLib = null; rej(new Error('zip tool did not load')); }; document.head.appendChild(s);
+  });
+  return mspendZipLib;
+}
+async function mspendZip(m, btn) {
+  const fs = mspendFiles.filter(f => f.month.slice(0, 7) === m); if (!fs.length) return;
+  const label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparing…'; }
+  try {
+    await mspendLoadZip();
+    const { data, error } = await sb.storage.from('marketing-invoices').createSignedUrls(fs.map(f => f.path), 300);
+    if (error || !data) throw error || new Error('no links');
+    const zip = new window.JSZip();
+    for (const d of data) {
+      if (d.error || !d.signedUrl) throw new Error(d.error || 'missing link');
+      const f = fs.find(x => x.path === d.path), blob = await (await fetch(d.signedUrl)).blob();
+      zip.file(`${f.kind}/${mspendFileName(f)}`, blob);
+    }
+    const out = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(out); mspendSave(url, `Marketing invoices ${m}.zip`); setTimeout(() => URL.revokeObjectURL(url), 5000); mspendDlMsg('');
+  } catch (e) { console.error(e); mspendDlMsg('The zip would not build. Download the files one by one, or refresh and try again.'); }
+  if (btn) { btn.disabled = false; btn.textContent = label; }
 }
 
 // The four numbers count up once, the first time they are drawn (not for people who ask for less motion).

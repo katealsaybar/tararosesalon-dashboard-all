@@ -112,7 +112,7 @@ PAGE_ANCHORS = {
     'wvblast': ['Everyone on the list'],
     'products': ['Retail stock bought against retail sold'],
     'googleads': ['Every campaign that ran'],
-    'marketingspend': ['What is and is not in these numbers'],
+    'marketingspend': ['What is and is not in these numbers', 'Invoices to download'],
     'website': ['Where visits came from'],
     'social': ['From social to the website'],
     'orgchart': ['Tara Rose Group'],
