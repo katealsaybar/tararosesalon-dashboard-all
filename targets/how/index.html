@@ -77,7 +77,7 @@ h2{font-size:clamp(21px,3.6vw,28px)}
 .three p{margin:0;font-size:15.5px;position:relative;padding-left:152px}
 .three b{position:absolute;left:0;top:.3em;width:140px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--hydra);font-weight:600}
 @media(max-width:600px){.three p{padding-left:0}.three b{position:static;display:block;width:auto;margin-bottom:2px}}
-svg{display:block;width:100%;height:auto;margin:10px auto 0;overflow:visible}
+svg:not(.kb-head svg){display:block;width:100%;height:auto;margin:10px auto 0;overflow:visible}
 svg text{font-family:var(--fb);fill:var(--ink)}
 .sum{margin-top:10px;padding:10px 14px;background:var(--paper);border-radius:var(--r-md);font-size:15px;line-height:1.6;text-align:center}
 .eq{font-family:var(--fd);font-size:22px}
@@ -167,7 +167,7 @@ details p{margin:0 0 12px;font-size:15.5px}
   details{margin-top:6px}summary{padding:6px 0;font-size:14px}
   .tile{padding:6px 8px}.tile .f{font-size:19px}.pick{padding:4px 12px}.cal{margin-top:6px}
   .key{margin-top:4px}
-  svg{margin-top:6px}
+  svg:not(.kb-head svg){margin-top:6px}
   .nav{padding-top:6px;padding-bottom:6px}.nav button{padding:8px 20px}
 }
 .calbtn{display:inline-block;margin:0 0 10px;background:var(--accent);color:var(--accent-fg);text-decoration:none;font:600 15px var(--fb);padding:11px 24px;border-radius:var(--r-pill)}
@@ -514,11 +514,12 @@ const r100=n=>Math.round(n/100)*100;
 const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const FAC=[0.92,1.01,1.01,1.02,0.97,1.10,0.87,0.84,0.92,0.98,0.98,1.36];
 const rv=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const C={ink:rv('--ink'),soft:rv('--ink-soft'),hair:rv('--ln'),stone:rv('--stone'),sand:rv('--sand'),accent:rv('--mint'),coral:rv('--coral'),lav:rv('--lavender'),hydra:rv('--hydra'),bar:rv('--bar'),card:rv('--surface2')};
+const C={deep:rv('--ink-deep'),ink:rv('--ink'),soft:rv('--ink-soft'),hair:rv('--ln'),stone:rv('--stone'),sand:rv('--sand'),accent:rv('--mint'),coral:rv('--coral'),lav:rv('--lavender'),hydra:rv('--hydra'),bar:rv('--bar'),card:rv('--surface2')};
 
 function el(tag,attrs,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;return e}
 function clear(id){const s=document.getElementById(id);while(s.firstChild)s.removeChild(s.firstChild);return s}
-function label(svg,x,y,t,o={}){const e=el('text',{x,y,'text-anchor':o.anchor||'middle','font-size':Math.round((o.size||13)*1.22*10)/10,'font-weight':o.weight||400,fill:o.fill||C.ink},t);if(o.halo)e.setAttribute('style','paint-order:stroke;stroke:'+C.card+';stroke-width:5px;stroke-linejoin:round');svg.appendChild(e)}
+function label(svg,x,y,t,o={}){const e=el('text',{x,y,'text-anchor':o.anchor||'middle','font-size':Math.round((o.size||13)*1.22*10)/10,'font-weight':o.weight||400,fill:o.fill||C.ink},t);if(o.on)e.style.fill=C.deep;   // text on a mint box stays dark in dark mode (svg text{fill} would make it the light page ink)
+  if(o.halo)e.setAttribute('style','paint-order:stroke;stroke:'+C.card+';stroke-width:5px;stroke-linejoin:round');svg.appendChild(e)}
 function leq(items){return '<div class="leq">'+items.map(it=>it[0]==='o'?'<div class="o">'+it[1]+'</div>':'<div class="t'+(it[3]?' hi':'')+'"><div class="v">'+it[1]+'</div><div class="c">'+it[2]+'</div></div>').join('')+'</div>'}
 const fmt1=n=>Number.isInteger(n)?fmt(n):n.toLocaleString('en-GB',{minimumFractionDigits:1,maximumFractionDigits:1});
 function fbox(n,l,out){return '<div class="fbox'+(out?' out':'')+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'}
@@ -535,7 +536,7 @@ function buildStory(){
   });
   s.appendChild(el('line',{x1:60,x2:700,y1:base-100*k,y2:base-100*k,stroke:C.ink,'stroke-width':2,'stroke-dasharray':'7 5'}));
   s.appendChild(el('rect',{x:520,y:base-100*k-34,width:190,height:26,rx:13,fill:C.accent}));
-  label(s,615,base-100*k-16,'Plan made from winter',{size:13,weight:600});
+  label(s,615,base-100*k-16,'Plan made from winter',{size:13,weight:600,on:1});
   label(s,60,18,'Cones sold on a normal day',{anchor:'start',size:12,fill:C.soft});
 }
 
@@ -610,7 +611,7 @@ function buildEx(){
   label(s,275,105,'÷',{size:34,fill:C.soft});
   label(s,480,105,'=',{size:34,fill:C.soft});
   s.appendChild(el('rect',{x:520,y:62,width:200,height:76,rx:16,fill:C.accent}));
-  label(s,620,100+Math.round(38*1.22*0.35),d.ratio.toFixed(3),{size:38,weight:600});
+  label(s,620,100+Math.round(38*1.22*0.35),d.ratio.toFixed(3),{size:38,weight:600,on:1});
   const pc=Math.round((d.ratio-1)*100);
   document.getElementById('a3sum').innerHTML=leq([['t',fmt(d.x),mName+', AED a day (step 2)'],['o','÷'],['t',fmt(d.trend),'the normal level, AED a day (step 3)'],['o','='],['t',d.ratio.toFixed(3),mName+'\u2019s number: how many times bigger than normal',1]])+'<p style="margin:12px 0 0">'+ymFull(EX.ym)+(EX.b==='ALL'?' for ':' at ')+bName(EX.b)+' was <b>'+Math.abs(pc)+'% '+(pc>=0?'busier':'slower')+'</b> than a normal day that year.</p>';
 
@@ -898,7 +899,7 @@ function buildB(){
     label(s,95,base+22,fn+'’s normal day',{size:13,fill:C.soft});
     label(s,205,base-30,'×',{size:32,fill:C.soft});
     s.appendChild(el('rect',{x:240,y:base-86,width:130,height:76,rx:16,fill:C.accent}));
-    label(s,305,base-48+Math.round(34*1.22*0.35),ratio.toFixed(3),{size:34,weight:600});
+    label(s,305,base-48+Math.round(34*1.22*0.35),ratio.toFixed(3),{size:34,weight:600,on:1});
     label(s,305,base+22,'Busy-or-quiet adjustment',{size:13,fill:C.soft});
     label(s,415,base-30,'=',{size:32,fill:C.soft});
     s.appendChild(el('rect',{x:450,y:base-adj*k,width:130,height:adj*k,rx:6,fill:C.accent}));
@@ -949,7 +950,7 @@ function buildB(){
     s.appendChild(el('rect',{x:x0+wSvc,y:34,width:wTr,height:44,fill:C.accent}));
     s.appendChild(el('rect',{x:x0+planW+gap,y:34,width:wRet,height:44,fill:C.lav,rx:6}));
     label(s,x0+wSvc/2,61,'Service AED '+fmt(svc),{size:14,weight:600});
-    label(s,x0+wSvc+wTr/2,61,'AED '+fmt(r.treat),{size:14,weight:600});
+    label(s,x0+wSvc+wTr/2,61,'AED '+fmt(r.treat),{size:14,weight:600,on:1});
     label(s,x0+wSvc+wTr/2,98,'Treatment '+B.treat+'%',{size:12,fill:C.soft});
     s.appendChild(el('line',{x1:x0,x2:x0+planW,y1:112,y2:112,stroke:C.ink,'stroke-width':1.5}));
     label(s,x0+planW/2,132,'The target: AED '+fmt(plan),{size:13,weight:600});
