@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=643116b0"></script>
+<script src="pages.js?v=95f31e70"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3550,7 +3550,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
       oty: ['over-the-years.js?v=32aafa82'],
-      dp:  ['daily-performance.js?v=c0ec06b8', 'daily-addons.js?v=1e57830b'],
+      dp:  ['daily-performance.js?v=46bcc423', 'daily-addons.js?v=1e57830b'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
@@ -4536,7 +4536,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). So do compare.js, the Marketing pages (marketing-chart, google-ads, website, social), staff-weeks.js and stylist-levels.js. -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
-<script src="staff-links.js?v=9919df7f"></script>
+<script src="staff-links.js?v=affdd565"></script>
 <!-- pulse-narrative.js (the model-written Pulse read) was never wired in: fetchPulseNarrative has no caller. Add the tag back if it is. -->
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <!-- branch-narrative.js belonged to the retired Branch Performance page; bnRender is only called behind a typeof check. -->

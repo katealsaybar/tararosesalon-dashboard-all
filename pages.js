@@ -35,7 +35,7 @@
 window.TRS_PAGES = /*PAGES*/[
   {"id": "dashboard", "label": "Organisation Pulse", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "words": "home overview kpi sales revenue takings pulse summary", "lv": []},
   {"id": "compare", "lazy": "cmp", "label": "Comparison", "group": "Numbers", "sub": "Business", "words": "compare comparison versus vs side by side", "lv": []},
-  {"id": "dailyperf", "label": "Daily Performance", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "dp", "words": "daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales clients utilisation rebooking target", "lv": []},
+  {"id": "dailyperf", "label": "Daily Performance", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "dp", "words": "daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales net take total net take clients utilisation rebooking target", "lv": []},
   {"id": "overyears", "label": "Over the Years", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "oty", "words": "years history annual year by year seasons month by month growth", "lv": []},
   {"id": "ledgerFinancials", "nopulse": 1, "label": "Financial Totals", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "ledger": 1, "lazy": "lgx", "words": "financial totals ledger cash card payments", "lv": [4]},
   {"id": "team", "lazy": "tp", "nopulse": 1, "label": "Podium Race", "group": "Numbers", "sub": "Team Performance", "scope": 1, "filtered": 1, "ic": "access", "words": "podium race ranking leaderboard top performer", "lv": [2]},
