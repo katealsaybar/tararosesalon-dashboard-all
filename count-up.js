@@ -4,8 +4,8 @@
 //
 // No page needs to know about it: a number counts when it is a leaf element whose whole text is one figure (AED 1,463 / 17.8 to 1 / 62% /
 // 3,421 / +4.2%) and it is set in a large size. Dates, names, times, years and anything inside a table, button, link or the sidebar are left
-// alone. It looks for numbers for a few seconds after a section opens (the data arrives late), then stops, so a filter change does not
-// replay it. A number counts when it comes into view, so one that is hidden at first (or further down the page) counts when it appears.
+// alone. It waits for the numbers to arrive after a section opens, and stops a few seconds after the first have counted, so a filter
+// change later does not replay it. A number counts when it comes into view, so one that is hidden at first (or further down the page) counts when it appears.
 // Not for people who ask for less motion.
 (function () {
   'use strict';
@@ -14,8 +14,8 @@
   if (reduce) return;
 
   const DURATION = 650;      // ms for one number
-  const OPEN_WINDOW = 6000;  // ms after a section opens in which numbers that arrive are counted
-  const AFTER_FIRST = 1800;  // ms the window stays open once the first number has counted (the rest of a page loads together)
+  const OPEN_WINDOW = 90000; // ms after a section opens in which numbers that arrive are counted (a slow page can take a while to draw)
+  const AFTER_FIRST = 4000;  // ms the window stays open once the first number has counted (the rest of a page loads together)
   const MIN_PX = 20;         // smaller than this is body text or a table figure, not a headline number
 
   // [prefix] [sign] number [suffix], and nothing else.
