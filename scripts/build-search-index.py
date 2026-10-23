@@ -79,6 +79,7 @@ NOT_PAGES = {
     'fix-blank-rows.js': 'one-off Node repair script, not a page',
     'loading-facts.js': 'the lines on the loading screen',
     'jump-nav.js': 'the shared On this page list: lgRail, lgJump and the automatic row of chips',
+    'why-wall.js': 'the shared Why wall block (whyWall, whyFoot); the sentences sit in each page file',
     'target-links.js': 'the line that opens How a Target Is Made and the Target Calculator beside every target (Level 3 and 5)',
     'scroll-edges.js': 'edge fade and swipe hint on sideways tables (phone)',
     'count-up.js': 'headline numbers count up when a section opens',

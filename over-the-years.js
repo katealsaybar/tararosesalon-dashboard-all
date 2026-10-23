@@ -576,6 +576,7 @@ function otyDraw() {
   host.innerHTML = `<div class="oty">
     <div class="oty-eb"><i style="background:var(--accent)"></i>Numbers · Business · Over the years</div>
     <h1>${otyD.years.length} years, <em>season by season.</em></h1>
+    <p class="why-oneline">How the business has grown and what an ordinary month looks like. Judge this year against the same days last year, not against last month.</p>
     <p class="oty-deck">Where the business has grown, which branch carried it, and how this year's seasons sit against the years before.</p>
     ${otyControls()}
     ${otyTiles(rows)}

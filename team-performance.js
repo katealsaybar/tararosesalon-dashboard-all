@@ -580,6 +580,19 @@ function tpPart() {
   const q = document.getElementById('view-teamquad');
   return (q && q.style.display !== 'none') ? 'quad' : 'race';
 }
+// Kate, 23 Oct 2026 (ALD3-02): the Why wall opens both pages, and the access sentence that used to open them moves to the foot.
+const TP_WHY = {
+  race: whyWall([
+    ['Why this page', 'The race shows who is leading this month and where each person stands against her aims.'],
+    ['Why now', 'A quiet fortnight is still easy to turn around before month end.'],
+    ['If we do nothing', 'Someone who is slipping stays unseen, and her clients quietly book somewhere else.']],
+    'Pick one name in the chasing group. Ask her what is working at the chair right now. Write her name and the day you will ask.'),
+  quad: whyWall([
+    ['Why this page', 'Two numbers side by side show who needs what kind of help, not only who is busiest.'],
+    ['Why now', 'The chart moves every week, so a conversation this week lands while the habit is still forming.'],
+    ['If we do nothing', 'The same person gets the same general advice, and her clients feel no difference.']],
+    'Choose one box. Ask the question under its name to one person in it.')
+};
 async function renderTeam() {
   const part = tpPart();
   if (typeof trSyncUrl === 'function') trSyncUrl(null);   // the league, chart and basis ride in the address (tpUrlParts)
@@ -650,6 +663,7 @@ async function renderTeam() {
   if (rebookBar.includes('aria-label="Rebooking from"')) sumBits.push(tpRebookSrc === 'phorest' ? 'Phorest' : 'Ledger');
   if (part === 'race') sumBits.push(TP_LEAGUES[tpLeagueKey()].label);
   host.innerHTML = `
+    ${TP_WHY[part]}
     <div class="tp-bar${tpCtlOpen ? ' open' : ''}">
       <button type="button" class="tp-sum" aria-expanded="${tpCtlOpen}" aria-controls="tpCtl" onclick="tpToggleCtl(this)"><span>${sumBits.join(' · ')}</span><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="tp-ctl" id="tpCtl">
@@ -670,7 +684,7 @@ async function renderTeam() {
       ${typeof ihTip === 'function' ? ihTip('', 'Two counts of clients, side by side. Clients per staff is the ledgers’ count: a client seen by two staff counts for each, and rebooking, NCR and the aims are written on it. Phorest is the Staff Daily report per employee: visits, requests (RQ), new clients and her services; her Phorest avg bill is her services over her Phorest visits. Phorest figures need a daily window, so a full-week window shows none.') : ''}
       </div>
     </div>
-    <div class="tp-hint tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}. Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</div>
+    <div class="tp-hint tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}.</div>
 
     ${!roster.length ? '<div class="empty">Nobody on this bench in the selected period.</div>'
       : part === 'quad' ? (tpQuadrant(roster) || '<div class="empty">The chart needs at least four people on this bench.</div>') : `
@@ -688,6 +702,8 @@ async function renderTeam() {
           <span class="tp-sec-n">${rest.length} ${rest.length === 1 ? 'person' : 'people'}</span></div>
         <div class="tp-race">${rest.map((st, i) => tpRaceRow(st, i + 11, lead)).join('')}</div>` : ''}
     `}
+
+    ${whyFoot()}
 
     <!-- Fixed to the bottom of the window, but rendered inside the view so it
          disappears with it: a fixed child of a display:none parent is hidden. -->

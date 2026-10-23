@@ -423,6 +423,7 @@ function cmpControlsHtml() {
   return `
     <div class="lg-head">
       <h1>Two windows, side by side</h1>
+      <p class="why-oneline">Two stretches of time side by side, so you can see what changed and where to look first.</p>
       <p class="lg-stand">Pick a branch and dates for each side. Same branch across two periods, two branches over one period, or any mix. B is read against A, so the change column is B minus A.</p>
     </div>
     <div class="cmp-presets">${chips}</div>

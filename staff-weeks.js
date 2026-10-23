@@ -357,7 +357,6 @@ async function renderStaffWeeks() {
     <section class="slv-intro">
       <h2>Staff&rsquo;s 13 Week</h2>
       <p>Weeks 1 to 52, Monday to Sunday from the first week of January, one row a week, with the year's total under the last week. The columns run sales, clients, rebooking and column fill. Only complete weeks count in the total; the week still being traded shows on the end as "so far". Service sales are before VAT, retail not included.</p>
-    <p class="slv-note">Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</p>
     </section>
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
       <button type="button" class="sc-btn" onclick="w13Set(null)">← ${w13Dept === 'Hair' ? 'Hair team' : w13Dept === 'Beauty' ? 'Beauty team' : 'All staff'}</button>
@@ -393,7 +392,8 @@ async function renderStaffWeeks() {
         <tbody>${rows}${totRow}${curRow}</tbody>
       </table></div>
       <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. The totals are the complete weeks only; the week still being traded joins them once Sunday closes. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
-    </section>`;
+    </section>
+    ${whyFoot()}`;
   if (typeof spfDD === 'function') spfDD(document.getElementById('w13Year'));
   // The latest weeks are the ones read first: open at the bottom, with the headings and the Week column pinned.
   const wrap = document.getElementById('w13Wrap');
@@ -431,8 +431,12 @@ async function w13RenderTeam(el) {
     <section class="slv-intro">
       <h2>Staff&rsquo;s 13 Week</h2>
       <p>Everyone's ${t.year} so far, week by week from the first week of January: ${w13Esc(w13Day(t.from))} to ${w13Esc(w13Day(t.to))}. The small bars are her sales, one a week${t.current_week_no ? `, with Week ${t.current_week_no} so far as the paler one on the end` : ''}. Tap anyone for her full year, week by week.</p>
-    <p class="slv-note">Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</p>
     </section>
+    ${whyWall([
+      ['Why this page', 'One person’s weeks side by side show a run, not one bad day.'],
+      ['Why now', 'Three quiet weeks are easier to turn around at week three than at week ten.'],
+      ['If we do nothing', 'A slow stretch becomes her normal, and the column stays empty.']],
+      'Open one person with a grey stub in the last four weeks. Ask what was happening.')}
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
         ${[['all', 'All'], ['Hair', 'Hair'], ['Beauty', 'Beauty']].map(([k, l]) =>
@@ -446,7 +450,8 @@ async function w13RenderTeam(el) {
       <button type="button" class="sc-btn" title="Reverse the order" onclick="w13SetSort(null, true)">${['branch', 'name'].includes(w13Sort) ? (w13Rev ? 'Z–A' : 'A–Z') : (w13Rev ? 'Lowest first' : 'Highest first')} ⇅</button>
     </div>
     ${list.length ? w13Body(list, flip, byTakings, grid, head) : '<p class="slv-muted" style="margin-top:22px">No one on this team at this branch.</p>'}
-    <p class="slv-muted">Sales are services before VAT, retail not included. A solid grey stub is a week she took nothing (leave or days off); an outlined one is a week her branch has not uploaded yet. The dotted line is her level's weekly take aim (Stylist’s Benchmarks monthly aim × 12 ÷ 52; beauty has no level aims yet).</p>`;
+    <p class="slv-muted">Sales are services before VAT, retail not included. A solid grey stub is a week she took nothing (leave or days off); an outlined one is a week her branch has not uploaded yet. The dotted line is her level's weekly take aim (Stylist’s Benchmarks monthly aim × 12 ÷ 52; beauty has no level aims yet).</p>
+    ${whyFoot()}`;
   if (typeof spfDD === 'function') { spfDD(document.getElementById('w13Sort')); spfDD(document.getElementById('w13Year')); spfDD(document.getElementById('w13Branch')); }
 }
 // Branch and Position keep headed groups (busiest first inside each); the rest are

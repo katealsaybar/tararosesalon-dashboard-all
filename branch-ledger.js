@@ -512,15 +512,21 @@ function lgSection(id, dotColor, title, subtitle, bodyHtml) {
 
 // Every page opens with the same standing line: what you are looking at, over
 // what window, and whether targets are in play.
-function lgHeader(title, standfirst, ctx) {
+function lgHeader(title, standfirst, ctx, why) {
   // ctx.rangeLabel is the Ledgers pages saying "this is my window, not the filter's".
   // Everything else falls back to the filter, which is what it is reading.
+  // why (ALD5-02, Kate 23 Oct 2026): the page opens on the Why wall instead of a standfirst and a long note. The note
+  // folds into "How to read this page" when targets apply; when they do not, it is the warning that columns are hidden and stays in view.
+  const lead = why ? why.wall : `<p class="lg-stand">${standfirst}</p>`;
+  const noteHtml = `<p class="lg-note ${ctx.applies ? '' : 'off'}">${ctx.applies ? '✦ ' : '⚠ '}${ctx.note}</p>`;
+  const tail = !why ? noteHtml
+    : (ctx.applies ? '' : noteHtml) + `<details class="lg-how"><summary>How to read this page</summary><p>${why.how}</p></details>`;
   return `
     <div class="lg-head">
       <div class="lg-head-k">${escapeHtml(lgBranchLabel())} · ${escapeHtml(ctx.rangeLabel || lgRangeLabel())}</div>
       <h1>${title}</h1>
-      <p class="lg-stand">${standfirst}</p>
-      <p class="lg-note ${ctx.applies ? '' : 'off'}">${ctx.applies ? '✦ ' : '⚠ '}${ctx.note}</p>
+      ${lead}
+      ${tail}
     </div>`;
 }
 
@@ -1963,9 +1969,13 @@ async function renderLedgerTargets() {
   if (typeof lgxRegisterTargets === 'function') lgxRegisterTargets(series, ctx);
 
   host.innerHTML =
-    lgHeader('Ledgers · Daily Target Sheet',
-      `The block she opens the sheet to read: where every branch stands against the month, on live numbers.`,
-      ctx) +
+    lgHeader('Ledgers · Daily Target Sheet', '', ctx, {
+      wall: whyWall([
+        ['Why this page', 'Where each salon stands against this month’s target, today. It tells you early enough to change the month, not after it has closed.'],
+        ['If we do nothing', 'A salon that is behind pace today is still behind on the 31st.']],
+        'Read On pace for first. Under 100% means pick one thing today: a rebooking, a treatment or a retail add-on.'),
+      how: '% done is how much of the whole month’s target is made so far. On pace for is where the month lands if the rest goes at the same speed. Month picks the month. Split cuts the columns by week or by day. The Period chips do not change this page.'
+    }) +
     lgMonthRow() +
     lgGrainRow() +
     (typeof lgxPageBar === 'function' ? lgxPageBar() : '') +
@@ -2561,7 +2571,7 @@ async function renderLedgerFinancials() {
 
   host.innerHTML =
     lgHeader('Financial Totals',
-      `Phorest's Financial Totals Sales block, every branch at once, for ${escapeHtml(w.month.label)}. `
+      `Phorest's own month-end totals next to ours. Check they tie before anyone quotes a figure. `
       + `The figure to check a branch's report against is <b>Total (Ex VAT)</b>.`,
       { applies: true, label: w.month.label, rangeLabel: `${shortD(w.month.from)} – ${shortD(w.month.to)}`,
         note: `${escapeHtml(w.month.label)}, ${lgMonthBasis(w)}, against ${escapeHtml(w.prev.label)}. `

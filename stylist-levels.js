@@ -187,12 +187,12 @@ async function renderStylistLevels() {
     <section class="slv-intro">
       <h2>How you move up.</h2>
       <p>Every level has a minimum that holds it and an aim to work towards. To move on to the next level, reach that level's aims. Pick a level to see the numbers.</p>
-    <p class="slv-note">Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</p>
     </section>
     <div class="slv-ladder" role="tablist" aria-label="Level">
       ${levels.map((l, j) => `<button type="button" role="tab" aria-selected="${j === i}" class="${j === i ? 'on' : ''}" onclick="slvSet('${slvEsc(l.level)}')"><span class="slv-step">${j + 1}</span>${slvEsc(l.level)}</button>`).join('')}
     </div>
     </div>
+    ${whyWall([], 'Pick one person who is close to the next level. Show her the last column and ask which number she wants to start with.')}
     <section class="slv-card">
       <div class="slv-head">
         <div><div class="slv-eyebrow">Level ${i + 1} of ${levels.length}</div><h3>${slvEsc(cur.level)}</h3></div>
@@ -204,7 +204,8 @@ async function renderStylistLevels() {
       </table></div>
       <p class="slv-muted">Monthly numbers<span class="slv-cur-note">, amounts in AED</span>. A dash means it isn't set for that level. Beauty levels are still being set with Tara.</p>
     </section>
-    <section class="slv-card slv-at" id="slvAt">${slvAtLevel(cur, next)}</section>`;
+    <section class="slv-card slv-at" id="slvAt">${slvAtLevel(cur, next)}</section>
+    ${whyFoot()}`;
   // On a phone the pills are one swipeable row: keep the chosen level in view.
   const on = el.querySelector('.slv-ladder .on');
   if (on && on.parentNode.scrollWidth > on.parentNode.clientWidth) on.parentNode.scrollLeft = on.offsetLeft - 16;

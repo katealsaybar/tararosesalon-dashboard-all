@@ -1,0 +1,25 @@
+/* The shared Why wall (why-wall.js, Kate 23 Oct 2026). Three across on a laptop, one under another on a phone; the This week line sits under them
+   with a bar on its left. Same look as Marketing Spend's own three lines. */
+.why-wall{margin:0 0 16px}
+.why-wall-g{display:grid;grid-template-columns:repeat(var(--wn,3),minmax(0,1fr));gap:10px}
+.why-wall-i{border-top:2px solid var(--accent);padding:10px 2px 0;min-width:0}
+.why-wall-n{font-family:'Playfair Display',Georgia,serif;font-size:15px;color:var(--muted)}
+.why-wall-t{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px}
+.why-wall-b{font-size:14px;line-height:1.5;color:var(--text)}
+.why-week{margin:12px 0 0;padding:8px 0 8px 12px;border-left:3px solid var(--accent);font-size:14px;line-height:1.5;color:var(--text)}
+.why-week b{font-weight:600}
+.why-foot{margin:18px 0 0;font-size:12px;line-height:1.5;color:var(--muted)}
+.why-oneline{margin:2px 0 14px;font-size:14px;line-height:1.5;color:var(--muted);max-width:68ch}
+@media(max-width:760px){
+  .why-wall{margin-bottom:12px}
+  .why-wall-g{grid-template-columns:1fr;gap:4px}
+  .why-wall-i{display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:6px;padding:7px 0 6px}
+  .why-wall-n{grid-row:1/3;font-size:14px;line-height:1.3}
+  .why-wall-t{margin:0 0 1px;line-height:1.3}
+  .why-wall-b{font-size:14px;line-height:1.4}
+  .why-week{margin-top:8px;padding:4px 0 4px 10px;line-height:1.4}
+}
+@media print{.why-wall{break-inside:avoid}}
+.lg-how{margin-top:10px;font-size:13.5px;line-height:1.5;color:var(--muted);max-width:78ch}
+.lg-how summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+.lg-how p{margin:4px 0 0}
