@@ -1,0 +1,91 @@
+/* Marketing Spend (Kate, 23 Oct 2026). Laid out with the Tara Rose learning doctrine (Downloads, "How Adults Learn"): the why before the how,
+   the answer first, a place to try it (what counts as cost), the sums one step at a time, then the detail. Tokens are the dashboard's own. */
+#marketingSpendContent{--ms-teal:#3AA892;--ms-teal-deep:#0F6E56;--ms-coral:#E07A5F;--ms-slate:#94A3B8;--ms-violet:#A78BFA}
+[data-theme="dark"] #marketingSpendContent{--ms-teal:#5FB3A8;--ms-teal-deep:#7FD1C4}
+#marketingSpendContent .ms-eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#marketingSpendContent .ms-sec{margin-top:14px}
+#marketingSpendContent .ms-h{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:22px;margin:2px 0 4px;color:var(--text)}
+#marketingSpendContent .ms-sub{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.5;max-width:70ch}
+
+/* 1. The why wall */
+#marketingSpendContent .ms-why{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+#marketingSpendContent .ms-why-i{border-top:2px solid var(--ms-teal);padding:10px 2px 0}
+#marketingSpendContent .ms-why-n{font-family:'Playfair Display',Georgia,serif;font-size:15px;color:var(--ms-teal-deep)}
+#marketingSpendContent .ms-why-t{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px}
+#marketingSpendContent .ms-why-b{font-size:14px;line-height:1.5;color:var(--text)}
+
+/* 2. The answer */
+#marketingSpendContent .ms-answer{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(20px,2.6vw,27px);line-height:1.35;margin:4px 0 14px;color:var(--text);max-width:34em}
+#marketingSpendContent .ms-answer b{font-weight:600;color:var(--ms-teal-deep);white-space:nowrap}
+#marketingSpendContent .ms-answer .ms-bad{color:var(--ms-coral)}
+#marketingSpendContent .ms-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#marketingSpendContent .ms-stat{border-top:2px solid var(--ms-teal);padding:10px 2px 2px}
+#marketingSpendContent .ms-stat-l{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#marketingSpendContent .ms-stat-v{font-family:'Playfair Display',Georgia,serif;font-size:clamp(26px,3vw,36px);line-height:1.1;margin:4px 0 2px;color:var(--text);font-variant-numeric:tabular-nums}
+#marketingSpendContent .ms-stat-n{font-size:12.5px;line-height:1.4;color:var(--muted)}
+
+/* The picture: what it costs to win a client against what they spend */
+#marketingSpendContent .ms-pic{margin:18px 0 4px}
+#marketingSpendContent .ms-pic-t{font-size:13px;color:var(--muted);margin-bottom:8px}
+#marketingSpendContent .ms-track{position:relative;height:18px;border-radius:9px;background:color-mix(in srgb,var(--ms-teal) 24%,transparent)}
+#marketingSpendContent .ms-cost{position:absolute;left:0;top:0;bottom:0;border-radius:9px;background:var(--ms-coral);min-width:6px}
+#marketingSpendContent .ms-ceil{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--text)}
+#marketingSpendContent .ms-ceil span{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);font-size:11.5px;color:var(--muted);white-space:nowrap}
+#marketingSpendContent .ms-pic-k{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:30px;font-size:12.5px;color:var(--muted)}
+#marketingSpendContent .ms-pic-k i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* 3. Try it: what counts as cost */
+#marketingSpendContent .ms-ladder{display:grid;gap:8px}
+#marketingSpendContent .ms-rung{display:grid;grid-template-columns:minmax(150px,230px) 1fr auto;gap:8px 14px;align-items:center;text-align:left;font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;cursor:pointer;transition:border-color .2s,background .2s}
+#marketingSpendContent .ms-rung:hover{border-color:var(--muted2)}
+#marketingSpendContent .ms-rung[aria-checked="true"]{border-color:var(--ms-teal);background:color-mix(in srgb,var(--ms-teal) 10%,var(--surface))}
+#marketingSpendContent .ms-rung:focus-visible{outline:2px solid var(--ms-teal);outline-offset:2px}
+#marketingSpendContent .ms-rung-l{font-size:14px;font-weight:600}
+#marketingSpendContent .ms-rung-s{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px}
+#marketingSpendContent .ms-rung-bar{height:10px;border-radius:5px;background:var(--border2);overflow:hidden}
+#marketingSpendContent .ms-rung-bar i{display:block;height:100%;border-radius:5px;background:var(--ms-coral);transition:width .5s cubic-bezier(.16,1,.3,1)}
+#marketingSpendContent .ms-rung-v{font-family:'Playfair Display',Georgia,serif;font-size:19px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+#marketingSpendContent .ms-rung-v small{display:block;font-family:inherit;font-size:12px;color:var(--muted);font-family:'Inter',system-ui,sans-serif}
+#marketingSpendContent .ms-notice{margin:10px 0 0;font-size:14px;line-height:1.5;color:var(--text)}
+
+/* 4. The sums, one step at a time */
+#marketingSpendContent .ms-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+#marketingSpendContent .ms-step{position:relative;border:1px solid var(--border);border-radius:12px;padding:12px 12px 10px;background:var(--surface)}
+#marketingSpendContent .ms-step-n{font-family:'Playfair Display',Georgia,serif;font-size:13px;color:var(--ms-teal-deep)}
+#marketingSpendContent .ms-step-t{font-size:13.5px;font-weight:600;margin:2px 0 4px}
+#marketingSpendContent .ms-step-v{font-family:'Playfair Display',Georgia,serif;font-size:21px;line-height:1.15;font-variant-numeric:tabular-nums}
+#marketingSpendContent .ms-step-d{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:4px}
+
+/* 5. What stands out, and the questions */
+#marketingSpendContent .ms-two{display:grid;grid-template-columns:3fr 2fr;gap:14px}
+#marketingSpendContent .ms-list{margin:0;padding-left:18px;font-size:14px;line-height:1.6}
+#marketingSpendContent .ms-list li{margin:0 0 6px}
+#marketingSpendContent .ms-ask{border:1px dashed var(--muted2);border-radius:12px;padding:12px 14px}
+#marketingSpendContent .ms-ask h4{margin:0 0 6px;font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:17px}
+
+/* 6. The detail */
+#marketingSpendContent details.ms-more{border:1px solid var(--border);border-radius:12px;background:var(--surface);margin-top:14px}
+#marketingSpendContent details.ms-more>summary{cursor:pointer;list-style:none;padding:14px 18px;font-family:'Playfair Display',Georgia,serif;font-size:19px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#marketingSpendContent details.ms-more>summary::-webkit-details-marker{display:none}
+#marketingSpendContent details.ms-more>summary::after{content:'+';font-family:'Inter',system-ui,sans-serif;font-size:20px;color:var(--muted)}
+#marketingSpendContent details.ms-more[open]>summary::after{content:'\2212'}
+#marketingSpendContent details.ms-more>summary:focus-visible{outline:2px solid var(--ms-teal);outline-offset:2px;border-radius:12px}
+#marketingSpendContent details.ms-more .ms-more-b{padding:0 18px 16px}
+#marketingSpendContent .ms-best{font-weight:700}
+
+@media (max-width:900px){
+  #marketingSpendContent .ms-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #marketingSpendContent .ms-two{grid-template-columns:1fr}
+}
+@media (max-width:720px){
+  #marketingSpendContent .ms-why{grid-template-columns:1fr;gap:6px}
+  #marketingSpendContent .ms-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #marketingSpendContent .ms-rung{grid-template-columns:1fr auto}
+  #marketingSpendContent .ms-rung-bar{grid-column:1 / -1;order:3}
+}
+@media (max-width:420px){
+  #marketingSpendContent .ms-steps{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  #marketingSpendContent .ms-rung,#marketingSpendContent .ms-rung-bar i{transition:none}
+}
