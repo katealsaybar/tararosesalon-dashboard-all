@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=120110ea"></script>
+<script src="pages.js?v=ddb4c2f3"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3510,7 +3510,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="tool-spend.css?v=c483f63c">
 <link rel="stylesheet" href="marketing-spend.css?v=aa9f4f2f">
 <link rel="stylesheet" href="mobile-late.css?v=140f0090">   <!-- phone rules for the pages whose sheets load after mobile.css -->
-<link rel="stylesheet" href="nav-style.css?v=5092890f">
+<link rel="stylesheet" href="nav-style.css?v=fafc50dc">
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=7bd2fc3a"></script>
@@ -3688,6 +3688,10 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- Drag this to resize the panel; double-click to go back to the default. -->
   <div class="nav-resize" id="navResize" title="Drag to resize, or double-click to reset"></div>
 
+  <!-- Kate, 23 Oct 2026: a plain way to put the sidebar away on a desktop (the arrow on the window's edge did the same, but nobody saw it).
+       Phones have the x above instead. -->
+  <button type="button" class="nav-hide" onclick="toggleNav(false)" aria-label="Hide the sidebar" title="Hide the sidebar"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>Hide</button>
+
   <div class="nav-brand">
     <div class="mark"><img src="assets/5.png" alt="Tara Rose Salons"></div>
     <div class="nav-word">Salons</div>
@@ -3697,8 +3701,9 @@ table.tp-cmp td.bad{color:var(--bad)}
   <a class="nav-home nav-search" href="/search/"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search page</a>
 
   <!-- Kate, 6 Oct 2026: the sidebar uses Team Home's own groups, so the two read the
-       same: Numbers, Targets (was Today), Campaigns (18 Oct 2026), Content, People. Numbers is long, so it carries small
-       subheads (Business, Team Performance, Clients, Sales & Stock) on the same rule;
+       same: Numbers, Campaigns (18 Oct 2026), Content, People. Numbers is long, so it carries small
+       subheads (Business, Team Performance, Clients, Sales & Stock, Targets) on the same rule; Kate, 23 Oct 2026: Targets moved in
+       under Numbers, and every group and subhead starts closed (nav-collapse.js);
        a subhead is a label, not a link. Who sees which page is set per page in
        enterDashboard() and applyScope(); tidyNav() then hides any subhead or group left
        with nothing open. Upload Data left the sidebar: it is Team Home's Upload Portal.
@@ -3731,10 +3736,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
     <div class="nav-sub" onclick="showView('products', this)">Products</div>
     <div class="nav-sub" onclick="showView('supplierspend', this)">Stock &amp; Supplier Spend</div>
-  </div>
-
-  <div class="nav-group">
-    <div class="nav-title">Targets</div>
+    <div class="nav-subhead">Targets</div>
     <div class="nav-sub" onclick="showView('ledgerTargets', this)">Daily Target Sheet</div>
     <div class="nav-sub" onclick="showView('ledgerStylist', this)">Daily Stylist Target</div>
     <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
@@ -5605,7 +5607,7 @@ addEventListener('load', sizeTopbar);
 
 </script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
-<script src="nav-collapse.js?v=d0cd986f"></script>
+<script src="nav-collapse.js?v=9f5d52e0"></script>
 <script src="nav-stars.js?v=c575eba8"></script>
 <script src="scroll-edges.js?v=07b016fd"></script>
 <script src="count-up.js?v=3b609e9b"></script>

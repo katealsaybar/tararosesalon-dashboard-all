@@ -12,19 +12,19 @@
                       over Branch Performance and Comparison) gets its own small
                       arrow. The arrow folds; the label still navigates.
 
-   Everything starts open. What you fold is remembered per browser. The page
+   Everything starts CLOSED (Kate, 23 Oct 2026: "default closed lahat ng main sections", the whole tree open at once was overwhelming).
+   What you open is remembered per browser (a new key, so every browser starts closed once). The page
    you are on is never hidden: showView() is wrapped so that landing on a page
    inside a folded section (a deep link, the Pulse's "Open Branch Performance"
    link) opens that section again.
    ══════════════════════════════════════════════════════════════ */
 (function () {
-  const KEY = 'trsNavFolded';
-  let folded = {};
-  try { folded = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { folded = {}; }
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(folded)); } catch (e) {} };
-  // Kate, 18 Oct 2026: "Campaigns" is a new group (Lost Clients and the two Wellness Voucher pages). The name was an older group's, and a browser
-  // that folded that one would open this one shut. Once, per browser, it opens; after that it remembers like the rest.
-  if (!folded['once:campaigns-18oct']) { delete folded['g:Campaigns']; folded['once:campaigns-18oct'] = 1; save(); }
+  // What is OPEN, by id. Absent means closed. (Until 23 Oct 2026 the key was trsNavFolded and it held what was shut, with
+  // everything open by default; that key is left alone and no longer read.)
+  const KEY = 'trsNavOpen';
+  let opened = {};
+  try { opened = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { opened = {}; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(opened)); } catch (e) {} };
 
   const aside = document.querySelector('aside.sidebar');
   if (!aside) return;
@@ -74,11 +74,11 @@
       group.classList.toggle('folded', !open);
       title.setAttribute('aria-expanded', String(open));
     };
-    set(!folded[id]);
+    set(!!opened[id]);
     const toggle = () => {
       if (group._gliding) return;
       const open = group.classList.contains('folded') && !group.classList.contains('folding');
-      if (open) delete folded[id]; else folded[id] = 1;
+      if (open) opened[id] = 1; else delete opened[id];
       save();
       title.setAttribute('aria-expanded', String(open));
       // 'folding' turns the chevron at once; 'folded' (display:none on the rows) lands when the glide has finished
@@ -91,12 +91,12 @@
 
   // ── Subheads inside a section (Numbers: Business, Team Performance, Clients, Sales & Stock) ──
   // Kate, 9 Oct 2026: "diff color pls, should also be collapsible". Each subhead folds the pages up to the next
-  // subhead, remembered with the rest, and takes a tone (0 to 3, in the order they appear) that nav-style.css
+  // subhead, remembered with the rest, and takes a tone (0 to 4, in the order they appear) that nav-style.css
   // colours: the label, the rule beside it and the rule beside its pages, so the groups read apart at a glance.
   aside.querySelectorAll('.nav-subhead').forEach((head, hi) => {
     const kids = [];
     for (let n = head.nextElementSibling; n && !n.classList.contains('nav-subhead'); n = n.nextElementSibling) kids.push(n);
-    const tone = String(hi % 4);
+    const tone = String(hi % 5);
     head.dataset.tone = tone;
     kids.forEach(k => { k.dataset.tone = tone; });
     const id = 'h:' + head.textContent.trim();
@@ -108,11 +108,11 @@
       head.classList.toggle('sh-folded', !open);
       head.setAttribute('aria-expanded', String(open));
     };
-    set(!folded[id]);
+    set(!!opened[id]);
     const toggle = () => {
       const open = head.classList.contains('sh-folded');
       if (head._gliding) return;
-      if (open) delete folded[id]; else folded[id] = 1;
+      if (open) opened[id] = 1; else delete opened[id];
       save();
       head.classList.toggle('sh-folded', !open);           // the chevron turns at once
       head.setAttribute('aria-expanded', String(open));
@@ -120,7 +120,7 @@
     };
     head.addEventListener('click', e => { e.stopPropagation(); toggle(); });
     head.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
-    head._navSubSet = open => { set(open); if (open) { delete folded[id]; save(); } };
+    head._navSubSet = open => { set(open); if (open) { opened[id] = 1; save(); } };
     kids.forEach(k => { k._navSubhead = head; });
   });
 
@@ -141,20 +141,20 @@
       btn.setAttribute('aria-expanded', String(open));
       btn.setAttribute('aria-label', (open ? 'Hide ' : 'Show ') + kids.map(k => k.textContent.trim()).join(' and '));
     };
-    set(!folded[id]);
+    set(!!opened[id]);
     btn.addEventListener('click', e => {
       // The arrow folds, it does not navigate, and on a narrow screen it must
       // not close the panel either (the aside's own click handler would).
       e.stopPropagation();
       const open = parent.classList.contains('kids-folded');
       if (parent._gliding) return;
-      if (open) delete folded[id]; else folded[id] = 1;
+      if (open) opened[id] = 1; else delete opened[id];
       save();
       parent.classList.toggle('kids-folded', !open);       // the arrow turns at once
       btn.setAttribute('aria-expanded', String(open));
       glide(parent, () => kids, o => kids.forEach(k => k.classList.toggle('nav-kid-hidden', !o)), open);
     });
-    parent._navKidsSet = open => { set(open); if (open) { delete folded[id]; save(); } };
+    parent._navKidsSet = open => { set(open); if (open) { opened[id] = 1; save(); } };
     kids.forEach(k => { k._navParent = parent; });
   });
 
