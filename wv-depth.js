@@ -97,6 +97,25 @@ function wvWhatHtml(k) {
   return `<div class="wv-pbox"><h4>What they bought</h4>${t(tier)}<p class="slv-note">Average voucher ${wvAed(dp.bought.avg_ticket)}.</p></div><div class="wv-pbox"><h4>How they paid</h4>${t(pay)}</div>`;
 }
 
+// Blast 1's email (Kate, 23 Oct 2026: "asan yung email performance"). The email went the day after the WhatsApp from the same GoHighLevel list. What GoHighLevel keeps for an email is only whether it was
+// sent or failed: no open or click report comes back into the chats, so those two steps say there is no record. The vouchers cannot be split between the WhatsApp and the email.
+function wvEmailHtml(k) {
+  const g = k === 'b1' ? wvGhl('b1', 'email') : null;
+  if (!g) return '';
+  const ok = g.tried - g.failed, cost = g.tried * WV_GHL_EMAIL;
+  const row = (label, n, note, share) => n == null
+    ? `<div class="wv-fun"><div class="wv-fun-h"><span>${label}</span><b class="slv-muted">no record</b></div>${note ? `<div class="slv-note">${note}</div>` : ''}</div>`
+    : `<div class="wv-fun"><div class="wv-fun-h"><span>${label}</span><b>${lcNum(n)}${share ? ` <span class="slv-note">${wvPct(n, g.tried)}</span>` : ''}</b></div>
+      <div class="wv-vtrack">${n ? `<span class="wv-bar" style="width:${Math.max(1.5, 100 * n / g.tried)}%"><i data-tip="${lcEsc(label + ': ' + lcNum(n))}" tabindex="0" role="button" aria-label="${lcEsc(label + ': ' + lcNum(n))}"></i></span>` : ''}</div>${note ? `<div class="slv-note">${note}</div>` : ''}</div>`;
+  return `<div class="wv-pbox"><h4>Blast 1's email</h4>
+    ${row('Emails made', g.tried, `${lcEsc(g.sent_on)}, after the WhatsApp`, false)}
+    ${row('Sent', ok, 'accepted by GoHighLevel', true)}
+    ${row('Failed', g.failed, 'GoHighLevel could not send them, for example a bad or blocked address', true)}
+    ${row('Opened', null, 'GoHighLevel keeps no open report in the client chats')}
+    ${row('Clicked', null, 'no click report either')}
+    <p class="slv-note">Cost about ${wvAed(cost)} (AED ${WV_GHL_EMAIL} an email, GoHighLevel's rate), so the email is a small part of Blast 1's spend. The vouchers cannot be split between the WhatsApp and the email: they are the sales in the 7 days after the send. GoHighLevel's own email report, if it has one for this send, would have the opens and clicks.</p></div>`;
+}
+
 // What it cost against what came in.
 function wvEconHtml(k) {
   const d = (typeof wvBlastData === 'function' ? wvBlastData() : []).find(x => x.key === k), dp = wvDp(k);
@@ -111,7 +130,7 @@ function wvEconHtml(k) {
 
 function wvDepthHtml(k) {
   if (!wvDp(k)) return '';
-  const parts = [wvFunnelHtml(k), wvEconHtml(k), wvWhenHtml(k), wvWhatHtml(k), wvCutsHtml(k)].join('');
+  const parts = [wvFunnelHtml(k), wvEmailHtml(k), wvEconHtml(k), wvWhenHtml(k), wvWhatHtml(k), wvCutsHtml(k)].join('');
   return `<details class="wv-how wv-more wv-depth" open><summary>Full performance of this blast</summary>
     <div class="wv-pgrid">${parts}</div>${wvBuyersHtml(k)}</details>`;
 }
