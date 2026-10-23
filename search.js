@@ -208,9 +208,9 @@
     }));
 
     // Team Home's own sections, so "where is the induction" has an answer.
-    ftKb.forEach(([t, blurb, dept, href]) => items.push({
+    ftKb.forEach(([t, blurb, dept, href, kw]) => items.push({
       kind: 'kb', id: 'kbs:' + href, t, g: 'Team Home · ' + dept, s: blurb, href, sec: (href.match(/[?&]s=([^&]+)/) || [])[1] || '',
-      words: dept + ' team home', go: () => { location.href = href; },
+      words: dept + ' team home ' + (kw || ''), go: () => { location.href = href; },
     }));
 
     if (typeof periodPresets === 'function') {

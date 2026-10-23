@@ -59,8 +59,10 @@
       blurb: 'The month so far, against target.' },
     // Kate, 22 Oct 2026: the target method, for Level 3 and Level 5 only. The numbers behind both pages are served by target_calc_data() (migrations/target_calc.sql), not by the page code.
     { key: 'targets-calc', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Targets', title: 'Target Calculator', href: '/targets/', rule: 'var(--accent-coral)',
+      words: 'targets target calculator plan planner monthly month november stylist person number season seasonal normal day days bottom-up adjust break-even net take floor aim service treatment retail clients average bill joiner',
       blurb: 'Each stylist’s plan for the month, worked out from her own sales and the season.' },
     { key: 'targets-how', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Targets', title: 'How a Target Is Made', href: '/targets/how/', rule: 'var(--accent-coral)',
+      words: 'targets target training explain explainer why my number season number seasonal normal day busy quiet months multiplier steps quiz teach back stylist coordinators method how calculated',
       blurb: 'Step by step, so you can show any stylist why her number is her number.' },
 
     { key: 'dashboards', dept: 'Numbers', title: 'Business', href: '/?view=dashboard', live: true, rule: 'var(--accent-lavender)',

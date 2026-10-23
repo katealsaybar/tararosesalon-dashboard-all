@@ -233,7 +233,7 @@
 <script src="/pages.js?v=8957f9e2"></script>
 <!-- Team Home's own script: the sign-in check, the icons and the stars. It draws no header here (no #kbHead). -->
 <script src="/voice-mic.js?v=62fac83a"></script>
-<script src="/hub/hub.js?v=6e046f75"></script>
+<script src="/hub/hub.js?v=1c6888f6"></script>
 <script>
 (async function () {
   // Signed in and on a list, as Team Home checks it; anyone else is sent to the sign-in card
@@ -476,14 +476,14 @@
   var local = [], localSeen = {};
   KB.SECTIONS.filter(KB.opens).forEach(function (s) {
     var h = secHref(s);
-    if (!localSeen[h]) { localSeen[h] = 1; local.push({ t: s.title, h: h, g: s.dept, b: s.blurb || '' }); }
+    if (!localSeen[h]) { localSeen[h] = 1; local.push({ t: s.title, h: h, g: s.dept, b: s.blurb || '', kw: s.words || '' }); }
   });
   if (dash) Object.keys(DASH).forEach(function (v) {
     var h = '/?view=' + v;
     if (localSeen[h] || !trsPageOpen(v, KB.level, KB.extra)) return;
     localSeen[h] = 1; local.push({ t: DASH[v], h: h, g: 'Dashboard', b: '' });
   });
-  local.forEach(function (x) { x.tw = words(x.t); x.bw = words(x.b); });
+  local.forEach(function (x) { x.tw = words(x.t); x.bw = words(x.b + ' ' + (x.kw || '')); });
   function words(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').match(/[a-z0-9%]+/g) || []; }
   // Typos, by the dashboard search's own rules (search.js tokMatch): a word of four letters or
   // fewer has to be exact; from five, a slip of one letter (two from nine) still lands, a swap of

@@ -602,7 +602,7 @@ def main():
             href = '/hub/kb.html?s=' + key.group(1)
         if href.startswith('http'):
             continue
-        kb.append([clean(title.replace("\\'", "'")), clean(blurb.replace("\\'", "'")), dept, href])
+        kb.append([clean(title.replace("\\'", "'")), clean(blurb.replace("\\'", "'")), dept, href, clean(g('words'))])
 
     # Branch Performance is part of Daily Performance (16 Oct 2026): nothing is indexed under the page that is gone.
     ix.items = [it for it in ix.items if it[0] != 'branchperf']
