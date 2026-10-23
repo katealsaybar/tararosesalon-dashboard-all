@@ -4,7 +4,7 @@
    month is performance.js, untouched; these draw into #perfMore and read only:
      perf_year_weeks_me(p_token)  her own weeks, leave and aim per week
      perf_levels(p_token)         the ladder (Stylist Levels' numbers)
-     perf_podium_me(p_token)      the Podium Race for her own team only (19 Oct 2026)
+     perf_podium_stats_me(p_token) the Podium Race, every stat, for her own team only (19 and 23 Oct 2026)
    Nothing else about anyone else. Not shown in the dashboard frame (embed=1) or on a
    leader's view (?admin=). Wrapped in one function: performance.js keeps esc, fmt,
    rpc and friends at the top level, so nothing here may share a global name.
@@ -39,26 +39,29 @@ const GROUPS = [
 // The four a stylist reads first; the rest fold away (progressive disclosure).
 const HEADLINE = ['total_revenue', 'treatments', 'retail', 'rebooking_pct'];
 
-const S = { tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
+const S = { podStat: null, tab: 'month', levels: [], me: null, year: null, pick: null, o2o: null, token: null, pod: null, podLast: false, podCur: null };
 const levelOf = name => S.levels.find(l => l.level === name) || null;
 const nextOf = name => { const l = levelOf(name); return l ? S.levels.find(x => x.order === l.order + 1) || null : null; };
 
 // ── THE TABS ────────────────────────────────────────────────
 // This month is #app (performance.js); the other two draw into #perfMore. The month
 // picker in the header only means something on This month, so it hides elsewhere.
-function paint() {
+function tabBar() {
   const hasLevel = !!levelOf(S.me && S.me.level);
+  const b = (k, l, short, extra = '') => `<button type="button" role="tab" aria-selected="${S.tab === k}" aria-label="${l}" class="${S.tab === k ? 'on' : ''}" onclick="PerfTabs.go('${k}')"${extra}><span class="tl">${l}</span><span class="ts" aria-hidden="true">${short}</span></button>`;
+  return b('month', 'This month', 'Month') + b('year', 'My year', 'Year') + (S.pod ? b('podium', 'Podium Race', 'Podium') : '')
+    + (hasLevel ? b('levels', 'How you move up', 'Move up') : '') + (S.o2o ? b('one', 'My 1-to-1', '1-to-1') : '');
+}
+function paint() {
   const tabs = document.getElementById('perfTabs'), more = document.getElementById('perfMore');
   // Kate, 19 Oct 2026: on a phone the bar is underline tabs with the short name (Month, Year, Podium, Move up, 1-to-1);
   // the full name stays for screen readers and for the wider pill bar.
-  const b = (k, l, short, extra = '') => `<button type="button" role="tab" aria-selected="${S.tab === k}" aria-label="${l}" class="${S.tab === k ? 'on' : ''}" onclick="PerfTabs.go('${k}')"${extra}><span class="tl">${l}</span><span class="ts" aria-hidden="true">${short}</span></button>`;
   // No levels for her team (beauty, so far): no "How you move up" tab at all, rather
   // than a greyed-out one (Kate, 2 Oct 2026). It comes back by itself once
   // perf_benchmarks carries levels for that team.
   // My 1-to-1 (Kate, 7 Oct 2026): only for a stylist the trial is switched on for
   // (perf_one2one_me answers null for everyone else), drawn by one2one.js.
-  tabs.innerHTML = b('month', 'This month', 'Month') + b('year', 'My year', 'Year') + (S.pod ? b('podium', 'Podium Race', 'Podium') : '')
-    + (hasLevel ? b('levels', 'How you move up', 'Move up') : '') + (S.o2o ? b('one', 'My 1-to-1', '1-to-1') : '');
+  tabs.innerHTML = tabBar();
   tabs.parentElement.hidden = false;
   const onMonth = S.tab === 'month';
   document.getElementById('app').hidden = !onMonth;
@@ -75,6 +78,7 @@ function paint() {
   }
   more.innerHTML = S.tab === 'year' ? yearTab() : S.tab === 'podium' ? podiumTab() : levelsTab();
   if (S.tab === 'year') wireChart();
+  if (S.tab === 'podium') { const c = more.querySelector('.pod-chips'), on = c && c.querySelector('.on'); if (on) c.scrollLeft = on.offsetLeft - (c.clientWidth - on.offsetWidth) / 2; }
 }
 // The 1-to-1 line under the win and tip on This month. performance.js redraws #app now and then
 // (the Ledger | Phorest switch), so it is put back whenever the page changes under it.
@@ -117,9 +121,11 @@ function go(t) {
   if (t === 'one' && !S.o2o) return;
   if (t === 'podium' && !S.pod) return;
   S.tab = t;
+  if (t === 'podium') S.podStat = null;      // the tab opens on all her places; a board is one tap in
   // Kept in the address, so a refresh or a shared bookmark lands on the same tab.
   const u = new URL(location.href);
   if (t === 'month') u.searchParams.delete('tab'); else u.searchParams.set('tab', t);
+  u.searchParams.delete('stat');
   history.replaceState(null, '', u);
   paint();
   window.scrollTo(0, 0);
@@ -131,15 +137,22 @@ async function mount(token) {
   if (!token || !document.getElementById('perfTabs')) return;
   try {
     // The Podium is read apart: if it is slow or fails, the other tabs still open and this one is simply not there.
-    const [levels, year, o2o, pod] = await Promise.all([call('perf_levels', { p_token: token }), call('perf_year_weeks_me', { p_token: token, p_year: +new URLSearchParams(location.search).get('y') || null }),
-      window.PerfO2O ? call('perf_one2one_me', { p_token: token }).catch(() => null) : null,
-      call('perf_podium_me', { p_token: token }).catch(() => null)]);
+    // Kate, 23 Oct 2026: it now carries every board, so the tab bar no longer waits for it; the Podium tab simply appears when it lands.
+    const podP = loadPod(token, null);
+    const [levels, year, o2o] = await Promise.all([call('perf_levels', { p_token: token }), call('perf_year_weeks_me', { p_token: token, p_year: +new URLSearchParams(location.search).get('y') || null }),
+      window.PerfO2O ? call('perf_one2one_me', { p_token: token }).catch(() => null) : null]);
     if (!year) return;                     // link not active: This month already says so
-    S.levels = levels || []; S.year = year; S.me = year.staff; S.pick = S.me.level; S.token = token; S.o2o = o2o && o2o.enabled ? o2o : null; S.pod = pod && pod.board ? pod : null; S.podCur = S.pod ? S.pod.month : null;
+    S.levels = levels || []; S.year = year; S.me = year.staff; S.pick = S.me.level; S.token = token; S.o2o = o2o && o2o.enabled ? o2o : null;
     const want = new URLSearchParams(location.search).get('tab');
+    const takePod = pod => {
+      S.pod = pod; S.podCur = pod ? pod.month : null;
+      const st = new URLSearchParams(location.search).get('stat'); S.podStat = pod && st && pstat(st) && pod.stats[st] ? st : null;
+    };
+    if (want === 'podium') takePod(await podP);       // a bookmark to the tab waits for it
     buildYearPick();
     S.tab = want === 'year' || (want === 'podium' && S.pod) || (want === 'levels' && levelOf(S.me.level)) || (want === 'one' && S.o2o) ? want : 'month';
     paint();
+    if (want !== 'podium') podP.then(pod => { takePod(pod); const t = document.getElementById('perfTabs'); if (t) t.innerHTML = tabBar(); });
     if (S.o2o) new MutationObserver(placeNudge).observe(document.getElementById('app'), { childList: true });
   } catch (e) { console.warn('My year / levels unavailable', e); }
 }
@@ -308,51 +321,130 @@ function wireChart() {
 }
 
 // ── PODIUM RACE ─────────────────────────────────────────────
-// Kate, 19 Oct 2026: where she stands on the Podium Race, on her own link. perf_podium_me(p_token) answers for her
-// own team only (hair with hair, beauty with beauty): people on the active list, sales plus retail before VAT for one
-// month. Kate chose the whole board here, so every row is a name, a branch and a figure; nothing else about anyone.
+// Kate, 19 Oct 2026: where she stands on the Podium Race, on her own link, for her own team only (hair with hair, beauty with
+// beauty). Kate, 23 Oct 2026: "show the podium race's other stats", and make it easy for anyone. perf_podium_stats_me(p_token)
+// answers every board in one call, so there are two levels and no waiting between them:
+//   1. Where you stand: one card per stat with her place ("7th of 35") and her figure; the top three are marked.
+//   2. One board: tap a card and read the whole team in order, with a row of chips to hop to the next stat and a way back.
+// Every row is a name, a branch and one figure; nothing else about anyone. If the new call is not there, the old single
+// board (perf_podium_me, total sales) is drawn instead, so the tab never goes blank.
 const ord = n => { const v = n % 100, t = ['th', 'st', 'nd', 'rd']; return n + (t[(v - 20) % 10] || t[v] || t[0]); };
 const monthName = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long' });
+
+// Plain words, grouped the way This month groups them. f: aed | pct | num. unit is the column heading on a board.
+const PSTATS = [
+  ['Sales', [
+    { k: 'sales', name: 'Total sales', f: 'aed', unit: 'AED', what: 'Services and retail together, before VAT.', none: 'Your place appears as soon as your first sale is in.' },
+    { k: 'services', name: 'Services', f: 'aed', unit: 'AED', what: 'What you took on services, before VAT. It is your Total revenue on This month.', none: 'No services in your numbers yet.' },
+    { k: 'retail', name: 'Retail', f: 'aed', unit: 'AED', what: 'Products you sold, before VAT.', none: 'No retail yet this month.' },
+    { k: 'treatments', name: 'Treatments', f: 'aed', unit: 'AED', what: 'Treatment sales, from the branch ledger.', none: 'No treatments yet this month.' }]],
+  ['Clients', [
+    { k: 'rebooking', name: 'Rebooking', f: 'pct', unit: '%', what: 'The share of your clients who booked their next visit before leaving, from Phorest.', foot: 'It counts once someone has 20 visits in the month, so one lucky day cannot top the board. Anyone under that is not listed yet.', none: 'It starts counting once you have 20 visits in the month.' },
+    { k: 'ncr', name: 'New client requests', f: 'num', unit: 'Requests', what: 'New clients who asked for you by name.', none: 'No new client requests yet this month.' },
+    { k: 'clients', name: 'Clients', f: 'num', unit: 'Visits', what: 'Visits you looked after, from Phorest.', none: 'No visits in your numbers yet.' }]],
+  ['Reputation', [
+    { k: 'reviews', name: 'Google reviews', f: 'num', unit: 'Reviews', what: 'Google reviews that name you.', none: 'No Google reviews naming you yet this month.' },
+    { k: 'posts', name: 'Instagram posts', f: 'num', unit: 'Posts', what: 'Posts and Reels that tag the salon and you.', foot: 'Only people with their Instagram handle on file are listed.', none: 'No tagged posts yet this month.' }]],
+];
+const PALL = PSTATS.flatMap(g => g[1]);
+const pstat = k => PALL.find(x => x.k === k) || null;
+// Worth a board: more than just her, except Total sales, which has always shown "just you, so far".
+const pvisible = (p, x) => { const s = p.stats[x.k]; return !!s && (x.k === 'sales' ? s.ranked >= 1 : s.ranked >= 2); };
+const pval = (x, v) => x.f === 'aed' ? Math.round(v).toLocaleString('en-GB') : x.f === 'pct' ? Number(v).toFixed(1).replace(/\.0$/, '') + '%' : Math.round(v).toLocaleString('en-GB');
+const pvalFull = (x, v) => x.f === 'aed' ? 'AED ' + pval(x, v) : pval(x, v) + (x.f === 'num' ? ' ' + (Math.round(v) === 1 ? x.unit.toLowerCase().replace(/s$/, '') : x.unit.toLowerCase()) : '');
+
+async function loadPod(token, iso) {
+  try {
+    const r = await call('perf_podium_stats_me', { p_token: token, p_month: iso });
+    if (r && r.stats && r.stats.sales) return r;
+  } catch (e) { console.warn('Podium stats unavailable, drawing the one board', e); }
+  const o = await call('perf_podium_me', { p_token: token, p_month: iso }).catch(() => null);
+  if (!o || !o.board) return null;
+  return { month: o.month, to: o.to, dept: o.dept, stats: { sales: { ranked: o.ranked, me: o.me ? { rank: o.me.rank, value: o.me.amount } : null,
+    board: o.board.map(r => ({ rank: r.rank, name: r.name, branch: r.branch, value: r.amount, me: r.me })) } } };
+}
 async function podMonth(last) {
   const d = new Date(S.podCur + 'T00:00:00');           // first of the month the data runs to
   const m = last ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : d;
   const iso = `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-01`;
-  try {
-    const r = await call('perf_podium_me', { p_token: S.token, p_month: iso });
-    if (r && r.board) { S.pod = r; S.podLast = !!last; }
-  } catch (e) { console.warn('Podium unavailable', e); }
+  const r = await loadPod(S.token, iso);
+  if (r) { S.pod = r; S.podLast = !!last; }
   paint();
+}
+// Open one board, or (no key) come back to all her places. Kept in the address so a refresh or a shared bookmark lands on it.
+function podStat(key) {
+  S.podStat = key || null;
+  const u = new URL(location.href);
+  if (S.podStat) u.searchParams.set('stat', S.podStat); else u.searchParams.delete('stat');
+  history.replaceState(null, '', u);
+  paint();
+  window.scrollTo(0, 0);
+}
+function podSeg() {
+  return `<div class="pod-seg" role="group" aria-label="Month">
+        <button type="button" class="${S.podLast ? '' : 'on'}" onclick="PerfTabs.podium(false)" aria-pressed="${!S.podLast}">This month</button>
+        <button type="button" class="${S.podLast ? 'on' : ''}" onclick="PerfTabs.podium(true)" aria-pressed="${S.podLast}">Last month</button>
+      </div>`;
 }
 function podiumTab() {
   const p = S.pod, team = p.dept === 'Beauty' ? 'Beauty team' : 'Hair team';
-  const mn = monthName(p.month), n = p.ranked, me = p.me;
-  const through = p.to ? dShort(p.to) : '';
-  const hero = me
-    ? `<div class="hero-n">${ord(me.rank)}</div><div class="hero-s">of ${n} on the ${team} for ${mn}${S.podLast ? '' : ' so far'}</div>`
-    : `<div class="hero-n">Not yet</div><div class="hero-s">${S.podLast ? `There is nothing in your ${mn} numbers, so you are not on that board.` : `There is nothing in your ${mn} numbers yet, so your place is waiting. It appears as soon as your first sale is in.`}</div>`;
-  const tied = me && me.rank === 1 && p.board.filter(r => r.rank === 1).length > 1;
-  const lead = tied ? `joint first on the ${team}` : `${S.podLast ? 'first on' : 'leading'} the ${team}`;
-  const note = !me ? '' : me.rank === 1
-    ? `<div class="step"><span class="k">Where you are</span>${S.podLast ? `You were ${lead} in ${mn}.` : `You are ${lead}.`} Lovely work.${S.podLast ? '' : ' The race moves every day, so simply enjoy it.'}</div>`
+  const mn = monthName(p.month), through = p.to ? dShort(p.to) : '';
+  const shown = PALL.filter(x => pvisible(p, x));
+  const cur = S.podStat && shown.find(x => x.k === S.podStat);
+  if (cur) return podBoard(p, cur, shown, team, mn);
+
+  // 1. Where you stand
+  const tile = x => {
+    const s = p.stats[x.k], me = s.me, top = me && me.rank <= 3;
+    const body = me
+      ? `<span class="pt-r">${ord(me.rank)}</span><span class="pt-of">of ${s.ranked}</span><span class="pt-v">${esc(pvalFull(x, me.value))}</span>`
+      : `<span class="pt-r">Not yet</span><span class="pt-of">${esc(x.none)}</span>`;
+    return `<button type="button" class="pt${top ? ' podtop' : ''}${me ? '' : ' none'}" onclick="PerfTabs.stat('${x.k}')"
+      aria-label="${esc(x.name)}: ${me ? `you are ${ord(me.rank)} of ${s.ranked}` : 'not ranked yet'}. Open the whole board."><span class="pt-n">${esc(x.name)}</span>${body}</button>`;
+  };
+  const groups = PSTATS.map(([g, xs]) => {
+    const t = xs.filter(x => pvisible(p, x)).map(tile).join('');
+    return t ? `<h3 class="pt-grp">${g}</h3><div class="pt-grid">${t}</div>` : '';
+  }).join('');
+  const sales = p.stats.sales.me;
+  const note = !sales ? '' : sales.rank === 1
+    ? `<div class="step"><span class="k">Where you are</span>${S.podLast ? 'You were' : 'You are'} first on the ${team} for total sales. Lovely work.${S.podLast ? '' : ' The race moves every day, so simply enjoy it.'}</div>`
     : `<div class="step"><span class="k">Where you are</span>A race is a moment, not a verdict. Everyone has quiet days and busy ones, and ${S.podLast ? 'a new month starts fresh for all of us' : 'your place can change by tomorrow'}.</div>`;
-  const rows = p.board.map(r => `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' podtop' : ''}">${r.rank}</span></td>
-      <td>${esc(r.name)}${r.me ? ' <span class="you-tag">You</span>' : ''}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}</span></td>
-      <td class="r">${Math.round(r.amount || 0).toLocaleString('en-GB')}</td></tr>`).join('');
   return `
     <section class="card">
-      <div class="eyebrow">Podium Race${through && !S.podLast ? ', to ' + through : ''}</div>
-      ${hero}
+      <div class="eyebrow">Podium Race${through && !S.podLast ? ', to ' + through : ', ' + mn}</div>
+      <h2>Where you stand on the ${team}</h2>
+      <p class="sub">Your place on each one for ${mn}${S.podLast ? '' : ' so far'}. <b>Tap any card</b> to see the whole board for it.</p>
+      ${podSeg()}
+      ${groups}
       ${note}
-      <div class="pod-seg" role="group" aria-label="Month">
-        <button type="button" class="${S.podLast ? '' : 'on'}" onclick="PerfTabs.podium(false)" aria-pressed="${!S.podLast}">This month</button>
-        <button type="button" class="${S.podLast ? 'on' : ''}" onclick="PerfTabs.podium(true)" aria-pressed="${S.podLast}">Last month</button>
-      </div>
+    </section>`;
+}
+
+// 2. One board
+function podBoard(p, x, shown, team, mn) {
+  const s = p.stats[x.k], me = s.me, n = s.ranked, through = p.to ? dShort(p.to) : '';
+  const chips = shown.map(c => `<button type="button" class="${c.k === x.k ? 'on' : ''}" onclick="PerfTabs.stat('${c.k}')" aria-pressed="${c.k === x.k}">${esc(c.name)}</button>`).join('');
+  const hero = me
+    ? `<div class="hero-n">${ord(me.rank)}</div><div class="hero-s">of ${n} on the ${team} for ${mn}${S.podLast ? '' : ' so far'}, with <b>${esc(pvalFull(x, me.value))}</b></div>`
+    : `<div class="hero-n">Not yet</div><div class="hero-s">${esc(x.none)}</div>`;
+  const rows = s.board.map(r => `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' podtop' : ''}">${r.rank}</span></td>
+      <td>${esc(r.name)}${r.me ? ' <span class="you-tag">You</span>' : ''}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}</span></td>
+      <td class="r">${esc(pval(x, r.value))}</td></tr>`).join('');
+  return `
+    <section class="card">
+      <button type="button" class="pod-back" onclick="PerfTabs.stat(null)"><span aria-hidden="true">‹</span> All my places</button>
+      <div class="pod-chips" role="group" aria-label="Choose a stat">${chips}</div>
+      <div class="eyebrow" style="margin-top:14px">${esc(x.name)}${through && !S.podLast ? ', to ' + through : ', ' + mn}</div>
+      ${hero}
+      <p class="sub">${esc(x.what)}</p>
+      ${podSeg()}
     </section>
     <section class="card">
       <h2>The ${team}</h2>
-      <p class="sub">${n === 1 ? 'Just you, so far' : n + ' people'}, in order. Sales in AED.</p>
-      <div class="tbl-wrap"><table class="tbl pod"><thead><tr><th class="pl">Place</th><th>Name</th><th class="r">Sales</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="sub wk-foot">Sales are services plus retail before VAT, the same figures as This month. Anyone with no sales yet in the month is not listed.</p>
+      <p class="sub">${n === 1 ? 'Just you, so far' : n + ' people'}, in order.</p>
+      <div class="tbl-wrap"><table class="tbl pod"><thead><tr><th class="pl">Place</th><th>Name</th><th class="r">${esc(x.unit)}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="sub wk-foot">${x.k === 'sales' ? 'Sales are services plus retail before VAT, the same figures as This month. ' : ''}Anyone with nothing yet in the month is not listed.${x.foot ? ' ' + esc(x.foot) : ''}</p>
     </section>`;
 }
 
@@ -399,5 +491,5 @@ function levelsTab() {
 }
 function pickLevel(l) { S.pick = l; paint(); }
 
-window.PerfTabs = { mount, go, pickLevel, podium: podMonth };
+window.PerfTabs = { mount, go, pickLevel, podium: podMonth, stat: podStat };
 })();

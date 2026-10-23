@@ -109,3 +109,25 @@
 #perfMore .tbl.pod tr.me td{background:var(--surface2);font-weight:600}
 #perfMore .tbl.pod tr.me td:first-child{box-shadow:inset 3px 0 0 var(--bar)}
 #perfMore .you-tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-left:4px}
+
+/* Podium Race: every stat (Kate, 23 Oct 2026). Level 1 is a grid of cards, one per stat, each a big tap target; level 2 is one board
+   with a back button and a row of chips to hop to another stat. */
+#perfMore .pt-grp{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;font-weight:600}
+#perfMore .pt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:620px){#perfMore .pt-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+#perfMore .pt{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;font:inherit;border:1px solid var(--border);border-radius:12px;padding:12px 26px 12px 12px;min-height:104px;background:var(--surface2);color:var(--text);cursor:pointer}
+#perfMore .pt::after{content:"›";position:absolute;right:10px;top:8px;font-size:20px;line-height:1;color:var(--muted)}
+#perfMore .pt:hover{border-color:var(--text)}
+#perfMore .pt:focus-visible,#perfMore .pod-back:focus-visible,#perfMore .pod-chips button:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+#perfMore .pt .pt-n{font-size:12.5px;font-weight:600;color:var(--muted)}
+#perfMore .pt .pt-r{font-size:26px;font-weight:700;letter-spacing:-.01em;line-height:1.15}
+#perfMore .pt .pt-of{font-size:12.5px;color:var(--muted)}
+#perfMore .pt .pt-v{font-size:13px;font-weight:600;margin-top:auto;padding-top:6px;font-variant-numeric:tabular-nums}
+#perfMore .pt.podtop{border-color:var(--bar);box-shadow:inset 3px 0 0 var(--bar)}
+#perfMore .pt.none .pt-r{font-size:17px;font-weight:600;color:var(--muted)}
+#perfMore .pod-back{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:14px;font-weight:600;border:0;background:transparent;color:var(--text);padding:0 12px 0 0;min-height:44px;cursor:pointer}
+#perfMore .pod-back span{font-size:22px;line-height:1}
+#perfMore .pod-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0 4px;margin-top:2px}
+#perfMore .pod-chips::-webkit-scrollbar{display:none}
+#perfMore .pod-chips button{flex:none;font:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:0 14px;min-height:44px;background:var(--surface2);color:var(--muted);cursor:pointer;white-space:nowrap}
+#perfMore .pod-chips button.on{background:var(--btn);color:var(--btn-fg);border-color:var(--btn)}
