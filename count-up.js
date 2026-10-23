@@ -3,8 +3,8 @@
 // tiles, cards, side summaries and the figures in tables) run from 0 to their value in about half a second, each as it comes on screen.
 //
 // No page needs to know about it: a number counts when it is a leaf element whose whole text is one figure (AED 1,463 / 17.8 to 1 / 62% /
-// 3,421 / +4.2%). Dates, names, times, years, ranks, calendar days, a bare figure under 10 and anything in an input, button, link, the
-// sidebar or the masthead are left alone (put data-no-countup on anything else that should stand still). It waits for the numbers to
+// 3,421 / +4.2%). Dates, names, times, years, ranks, calendar days, a bare figure under 10 or on a button or link (a pager, a 30 / 90 days chip) and anything in an input, the
+// sidebar menu or the masthead are left alone (put data-no-countup on anything else that should stand still). It waits for the numbers to
 // arrive after a section opens, and stops a few seconds after the last have counted, so a filter change later does not replay it.
 // It also reaches the pages drawn inside a shadow root (Supplier Spend) and inside a frame of this site (Staff Performance, Google
 // Reviews, Wellness Voucher Performance). Not for people who ask for less motion.
@@ -23,7 +23,7 @@
 
   // [prefix] [sign] number [suffix], and nothing else.
   const FIG = /^(AED\s?|[$£€])?([+\-−])?(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?(%|k|K|M|x|×|\s?to\s?1|\s?pts)?$/;
-  const SKIP = 'button,a,input,select,textarea,option,nav,aside,header,footer,script,style,svg,canvas,[contenteditable],[data-no-countup]';
+  const SKIP = 'input,select,textarea,option,nav,aside.sidebar,header,footer,script,style,svg,canvas,[contenteditable],[data-no-countup]';
   // Class names that mean a rank or a calendar day, whatever size they are set in.
   const RANKISH = /(?:^|[\s_-])(?:rk|rank|cal-d|dow)(?:$|[\s_-])/i;
 
@@ -88,6 +88,8 @@
     const p = parse(text);
     if (!p) return false;
     if (RANKISH.test(el.getAttribute('class') || '')) return false;
+    // A tile can be a button or a link, but a bare number on one (a pager, a 30 / 90 days chip) is a label, not a figure.
+    if (!p.pre && !p.suf && !p.decimals && !p.comma && el.closest('button,a')) return false;
     // A bare whole number in a large size is a calendar day or a rank, not a figure.
     if (!p.pre && !p.suf && !p.decimals && !p.comma && parseFloat(getComputedStyle(el).fontSize) >= 20 && p.value < 100) return false;
     el.__cu = gen;
