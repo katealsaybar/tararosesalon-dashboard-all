@@ -150,12 +150,12 @@
 #perfMore .pr .pr-p{grid-column:2;grid-row:1/3;align-self:center;text-align:right}
 #perfMore .pr .pr-p b{display:block;font-size:22px;font-weight:700;line-height:1;letter-spacing:-.01em}
 #perfMore .pr .pr-p small{color:var(--muted);font-size:11px}
-#perfMore .pr.top .pr-p b{color:var(--text);text-decoration:underline;text-decoration-color:var(--bar);text-decoration-thickness:3px;text-underline-offset:4px}
+#perfMore .pr.podtop .pr-p b{color:var(--text);text-decoration:underline;text-decoration-color:var(--bar);text-decoration-thickness:3px;text-underline-offset:4px}
 #perfMore .pr.none .pr-p b{font-size:15px;font-weight:600;color:var(--muted)}
 #perfMore .pr .pr-track{grid-column:1;height:4px;border-radius:4px;background:var(--surface2);position:relative;margin-top:6px}
 #perfMore .pr.sel .pr-track{background:var(--border)}
 #perfMore .pr .pr-track i{position:absolute;top:-3px;width:10px;height:10px;border-radius:50%;background:var(--muted);transform:translateX(-50%)}
-#perfMore .pr.top .pr-track i{background:var(--bar)}
+#perfMore .pr.podtop .pr-track i{background:var(--bar)}
 #perfMore .pr:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 #perfMore .tbl.pod tr.gap td{text-align:center;color:var(--muted);padding:2px 6px}
 #perfMore .pr-more{display:block;width:100%;margin-top:6px;border:0;border-top:1px solid var(--border);background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;min-height:44px;cursor:pointer}
@@ -181,3 +181,9 @@
 #perfMore .pod-filt-b::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
 #perfMore .pod-filt-now{color:var(--muted);font-size:13px}
 #perfMore #podFilterBody .pod-seg{margin-top:8px}
+
+/* Photos beside the names on the board: a small round crop of the staff cut-out, her initials when there is none. */
+#perfMore .pod-who{display:flex;align-items:center;gap:10px}
+#perfMore .pod-nm{min-width:0}
+#perfMore .pod-av{flex:none;width:38px;height:38px;border-radius:50%;object-fit:cover;object-position:50% 12%;background:var(--surface2);display:block}
+#perfMore .pod-ini{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em}

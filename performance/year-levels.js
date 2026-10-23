@@ -454,6 +454,36 @@ function podSeg() {
 
 // Kate, 23 Oct 2026 (mock-up approved in docs/mockups/podium-race-staff-link.html): one page, top to bottom. Her win first, the place she is
 // closest to winning, her place on every stat as one list, then the whole team in order for the stat she picked, with the rest of the stats a chip away.
+// Staff photos on the board (Kate, 23 Oct 2026: "no staff pics"). The same cut-outs Staff Cards and the management Podium use, found by the
+// person's name through staff-profiles.js and name-aliases.js (the page loads both); no photo, or one that does not load, shows her initials.
+const POD_PHOTO_FIX = { 'TARA': 'assets/org-chart/tara-rose-kidd.png', 'DAISY': 'assets/org-chart/daisy-charlotte-cropper.png',
+  'SUNITHA': 'stylist/photos/AQ/sunitha-dhakshinamurthy.png' };
+// The board carries full names ("Holly Branchett") and the profiles are keyed by first name, so a profile counts only when its salon matches the
+// row's and, where the profile has a surname, the surname is in the name: a first name shared by two colleagues never borrows the other's face.
+function podProfile(name, branch) {
+  const full = String(name || '').trim().toUpperCase().replace(/\s+/g, ' '), parts = full.split(' ');
+  for (const k of [full, parts.slice(0, 2).join(' '), parts[0]]) {
+    const key = typeof canonicalStaffName === 'function' ? String(canonicalStaffName(k)).trim().toUpperCase() : k;
+    const p = (typeof STAFF_PROFILES !== 'undefined') && (STAFF_PROFILES[key] || STAFF_PROFILES[k]);
+    if (!p) continue;
+    if (p.branch && branch && p.branch !== branch) continue;
+    if (p.last && parts.length > 1 && !full.toLowerCase().includes(String(p.last).toLowerCase().split(' ')[0])) continue;
+    return p;
+  }
+  return null;
+}
+function podPhoto(name, branch) {
+  const key = String(name || '').trim().toUpperCase(), fixed = POD_PHOTO_FIX[key] || POD_PHOTO_FIX[key.split(' ')[0]];
+  if (fixed) return '../' + fixed;
+  const prof = podProfile(name, branch);
+  if (prof && prof.photo) return '../assets/staff/' + encodeURIComponent(prof.photo);
+  return prof && prof.photoFull ? '../' + encodeURI(prof.photoFull) : null;
+}
+const podInit = name => String(name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+function podAv(name, branch) {
+  const src = podPhoto(name, branch), ini = esc(podInit(name));
+  return src ? `<img class="pod-av" src="${src}" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='<span class=&quot;pod-av pod-ini&quot;>${ini}</span>'">` : `<span class="pod-av pod-ini">${ini}</span>`;
+}
 const POD_TOP = 8;   // rows of the board shown before "Show all"
 const podGap = (x, g) => x.f === 'aed' ? 'AED ' + Math.round(g).toLocaleString('en-GB') : x.f === 'pct' ? Number(g).toFixed(1).replace(/\.0$/, '') + ' points' : Math.round(g).toLocaleString('en-GB');
 function podiumTab() {
@@ -494,7 +524,7 @@ function podiumTab() {
     const body = me
       ? `<span class="pr-p"><b>${ord(me.rank)}</b><small>of ${s.ranked}</small></span><span class="pr-v">${esc(pvalFull(x, me.value))}</span><span class="pr-track"><i style="left:${pos}%"></i></span>`
       : `<span class="pr-p none"><b>Not yet</b></span><span class="pr-v">${esc(noneOf(x))}</span>`;
-    return `<button type="button" class="pr${top ? ' top' : ''}${me ? '' : ' none'}${x.k === cur.k ? ' sel' : ''}" onclick="PerfTabs.stat('${x.k}')"
+    return `<button type="button" class="pr${top ? ' podtop' : ''}${me ? '' : ' none'}${x.k === cur.k ? ' sel' : ''}" onclick="PerfTabs.stat('${x.k}')"
       aria-label="${esc(x.name)}: ${me ? `you are ${ord(me.rank)} of ${s.ranked}` : 'not ranked yet'}. Show the whole team for it.">
       <span class="pr-n">${esc(x.name)}</span>${body}</button>`;
   };
@@ -512,7 +542,7 @@ function podiumTab() {
     const gap = !S.podAll && prev && r.rank - prev > 1 ? '<tr class="gap"><td colspan="3">…</td></tr>' : '';
     prev = r.rank;
     return gap + `<tr class="${r.me ? 'me' : ''}"><td class="pl"><span class="rk${r.rank <= 3 ? ' podtop' : ''}">${r.rank}</span></td>
-      <td>${esc(r.name)}${r.me ? ' <span class="you-tag">You</span>' : ''}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}</span></td>
+      <td><div class="pod-who">${podAv(r.name, r.branch)}<div class="pod-nm">${esc(r.name)}${r.me ? ' <span class="you-tag">You</span>' : ''}<span class="br">${esc(BRANCH[r.branch] || r.branch || '')}</span></div></div></td>
       <td class="r">${esc(pval(cur, r.value))}</td></tr>`;
   }).join('');
   const more = s.board.length > POD_TOP + 1 ? `<button type="button" class="pr-more" onclick="PerfTabs.all()">${S.podAll ? 'Show the top ' + POD_TOP + ' and me' : 'Show all ' + n}</button>` : '';

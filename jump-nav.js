@@ -223,6 +223,8 @@ function jnGoIn(e, key, id) {
 function jnLight() {
   document.querySelectorAll('.jn-rail').forEach(r => {
     if (!r.getClientRects().length) return;
+    // A hairline under the row only while it is pinned; at rest it is just chips on the page.
+    if (r.classList.contains('jn-pin')) r.classList.toggle('jn-stuck', r.getBoundingClientRect().top <= (parseFloat(getComputedStyle(r).top) || 0) + 1 && scrollY > 4);
     const key = r.getAttribute('data-jn-key'), cfg = JN_PAGES[key], { scope } = jnBox(key);
     if (!scope || (typeof spy === 'function' && !cfg.shadow)) return;
     const line = jnOffset(r) + 16;
