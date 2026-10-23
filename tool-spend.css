@@ -1,0 +1,132 @@
+/* Tool Spend (Kate, 23 Oct 2026), the Marketing Spend look. Laid out with the Tara Rose learning doctrine (Downloads, "How Adults Learn"): the why before the how,
+   the answer first, a place to try it (what counts as cost), the sums one step at a time, then the detail. Tokens are the dashboard's own. */
+#toolSpendContent{--ts-teal:#3AA892;--ts-teal-deep:#0F6E56;--ts-coral:#E07A5F;--ts-slate:#94A3B8;--ts-violet:#A78BFA}
+[data-theme="dark"] #toolSpendContent{--ts-teal:#5FB3A8;--ts-teal-deep:#7FD1C4}
+#toolSpendContent .ts-eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#toolSpendContent .ts-sec{margin-top:14px}
+#toolSpendContent .ts-h{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:22px;margin:2px 0 4px;color:var(--text)}
+#toolSpendContent .ts-sub{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.5;max-width:70ch}
+
+/* 1. The why wall */
+#toolSpendContent .ts-why{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+#toolSpendContent .ts-why-i{border-top:2px solid var(--ts-teal);padding:10px 2px 0}
+#toolSpendContent .ts-why-n{font-family:'Playfair Display',Georgia,serif;font-size:15px;color:var(--ts-teal-deep)}
+#toolSpendContent .ts-why-t{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px}
+#toolSpendContent .ts-why-b{font-size:14px;line-height:1.5;color:var(--text)}
+
+/* 2. The answer */
+#toolSpendContent .ts-answer{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(20px,2.6vw,27px);line-height:1.35;margin:4px 0 14px;color:var(--text);max-width:34em}
+#toolSpendContent .ts-answer b{font-weight:600;color:var(--ts-teal-deep);white-space:nowrap}
+#toolSpendContent .ts-answer .ts-bad{color:var(--ts-coral)}
+#toolSpendContent .ts-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#toolSpendContent .ts-stat{border-top:2px solid var(--ts-teal);padding:10px 2px 2px}
+#toolSpendContent .ts-stat-l{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#toolSpendContent .ts-stat-v{font-family:'Playfair Display',Georgia,serif;font-size:clamp(26px,3vw,36px);line-height:1.1;margin:4px 0 2px;color:var(--text);font-variant-numeric:tabular-nums}
+#toolSpendContent .ts-stat-n{font-size:12.5px;line-height:1.4;color:var(--muted)}
+
+/* The picture: what it costs to win a client against what they spend */
+#toolSpendContent .ts-pic{margin:18px 0 4px}
+#toolSpendContent .ts-pic-t{font-size:13px;color:var(--muted);margin-bottom:8px}
+#toolSpendContent .ts-track{position:relative;height:18px;border-radius:9px;background:color-mix(in srgb,var(--ts-teal) 24%,transparent)}
+#toolSpendContent .ts-cost{position:absolute;left:0;top:0;bottom:0;border-radius:9px;background:var(--ts-coral);min-width:6px}
+#toolSpendContent .ts-ceil{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--text)}
+#toolSpendContent .ts-ceil span{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);font-size:11.5px;color:var(--muted);white-space:nowrap}
+#toolSpendContent .ts-pic-k{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:30px;font-size:12.5px;color:var(--muted)}
+#toolSpendContent .ts-pic-k i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* 3. Try it: what counts as cost */
+#toolSpendContent .ts-ladder{display:grid;gap:8px}
+#toolSpendContent .ts-rung{display:grid;grid-template-columns:minmax(150px,230px) 1fr auto;gap:8px 14px;align-items:center;text-align:left;font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;cursor:pointer;transition:border-color .2s,background .2s}
+#toolSpendContent .ts-rung:hover{border-color:var(--muted2)}
+#toolSpendContent .ts-rung[aria-checked="true"]{border-color:var(--ts-teal);background:color-mix(in srgb,var(--ts-teal) 10%,var(--surface))}
+#toolSpendContent .ts-rung:focus-visible{outline:2px solid var(--ts-teal);outline-offset:2px}
+#toolSpendContent .ts-rung-l{font-size:14px;font-weight:600}
+#toolSpendContent .ts-rung-s{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px}
+#toolSpendContent .ts-rung-bar{height:10px;border-radius:5px;background:var(--border2);overflow:hidden}
+#toolSpendContent .ts-rung-bar i{display:block;height:100%;border-radius:5px;background:var(--ts-coral);transition:width .5s cubic-bezier(.16,1,.3,1)}
+#toolSpendContent .ts-rung-v{font-family:'Playfair Display',Georgia,serif;font-size:19px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+#toolSpendContent .ts-rung-v small{display:block;font-family:inherit;font-size:12px;color:var(--muted);font-family:'Inter',system-ui,sans-serif}
+#toolSpendContent .ts-notice{margin:10px 0 0;font-size:14px;line-height:1.5;color:var(--text)}
+
+/* 4. The sums, one step at a time */
+#toolSpendContent .ts-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+#toolSpendContent .ts-step{position:relative;border:1px solid var(--border);border-radius:12px;padding:12px 12px 10px;background:var(--surface)}
+#toolSpendContent .ts-step-n{font-family:'Playfair Display',Georgia,serif;font-size:13px;color:var(--ts-teal-deep)}
+#toolSpendContent .ts-step-t{font-size:13.5px;font-weight:600;margin:2px 0 4px}
+#toolSpendContent .ts-step-v{font-family:'Playfair Display',Georgia,serif;font-size:21px;line-height:1.15;font-variant-numeric:tabular-nums}
+#toolSpendContent .ts-step-d{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:4px}
+
+/* 5. What stands out, and the questions */
+#toolSpendContent .ts-two{display:grid;grid-template-columns:3fr 2fr;gap:14px}
+#toolSpendContent .ts-list{margin:0;padding-left:18px;font-size:14px;line-height:1.6}
+#toolSpendContent .ts-list li{margin:0 0 6px}
+#toolSpendContent .ts-ask{border:1px dashed var(--muted2);border-radius:12px;padding:12px 14px}
+#toolSpendContent .ts-ask h4{margin:0 0 6px;font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:17px}
+
+/* 6. The detail */
+#toolSpendContent details.ts-more{border:1px solid var(--border);border-radius:12px;background:var(--surface);margin-top:14px}
+#toolSpendContent details.ts-more>summary{cursor:pointer;list-style:none;padding:14px 18px;font-family:'Playfair Display',Georgia,serif;font-size:19px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#toolSpendContent details.ts-more>summary::-webkit-details-marker{display:none}
+#toolSpendContent details.ts-more>summary::after{content:'+';font-family:'Inter',system-ui,sans-serif;font-size:20px;color:var(--muted)}
+#toolSpendContent details.ts-more[open]>summary::after{content:'\2212'}
+#toolSpendContent details.ts-more>summary:focus-visible{outline:2px solid var(--ts-teal);outline-offset:2px;border-radius:12px}
+#toolSpendContent details.ts-more .ts-more-b{padding:0 18px 16px}
+#toolSpendContent .ts-best{font-weight:700}
+
+@media (max-width:900px){
+  #toolSpendContent .ts-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #toolSpendContent .ts-two{grid-template-columns:1fr}
+}
+@media (max-width:720px){
+  #toolSpendContent .ts-why{grid-template-columns:1fr;gap:6px}
+  #toolSpendContent .ts-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #toolSpendContent .ts-rung{grid-template-columns:1fr auto}
+  #toolSpendContent .ts-rung-bar{grid-column:1 / -1;order:3}
+}
+@media (max-width:420px){
+  #toolSpendContent .ts-steps{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  #toolSpendContent .ts-rung,#toolSpendContent .ts-rung-bar i{transition:none}
+}
+
+/* The three reports, switched at the top */
+#toolSpendContent .ts-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}
+#toolSpendContent .ts-tab{display:flex;flex-direction:column;gap:2px;text-align:left;font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;cursor:pointer;transition:border-color .2s,background .2s;min-width:0}
+#toolSpendContent .ts-tab:hover{border-color:var(--muted2)}
+#toolSpendContent .ts-tab[aria-selected="true"]{border-color:var(--ts-teal);background:color-mix(in srgb,var(--ts-teal) 10%,var(--surface))}
+#toolSpendContent .ts-tab:focus-visible{outline:2px solid var(--ts-teal);outline-offset:2px}
+#toolSpendContent .ts-tab-n{font-size:14px;font-weight:600}
+#toolSpendContent .ts-tab-s{font-size:12px;color:var(--muted)}
+#toolSpendContent .ts-tab-v{font-family:'Playfair Display',Georgia,serif;font-size:20px;margin-top:4px;font-variant-numeric:tabular-nums}
+
+/* A month in plain numbers */
+#toolSpendContent .ts-eqn{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:2px 0 10px}
+#toolSpendContent .ts-chip{background:color-mix(in srgb,var(--ts-teal) 14%,var(--surface));border-radius:999px;padding:6px 14px;font-size:14px;font-variant-numeric:tabular-nums}
+#toolSpendContent .ts-chip b{font-weight:600}
+#toolSpendContent .ts-op{color:var(--muted);font-size:16px}
+#toolSpendContent .ts-sec .ts-sub b{color:var(--text)}
+
+/* Notes: risk, watch, fine */
+#toolSpendContent .ts-notes{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+#toolSpendContent .ts-notes li{display:flex;gap:10px;align-items:baseline;font-size:14px;line-height:1.55;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+#toolSpendContent .ts-notes li>span:last-child{min-width:0}
+#toolSpendContent .ts-pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 9px;border-radius:999px;white-space:nowrap}
+#toolSpendContent .ts-pill.risk{background:color-mix(in srgb,var(--ts-coral) 22%,var(--surface));color:var(--bad,#b42318)}
+#toolSpendContent .ts-pill.watch{background:color-mix(in srgb,var(--ts-gold,#D9A441) 26%,var(--surface));color:var(--text)}
+#toolSpendContent .ts-pill.ok{background:color-mix(in srgb,var(--ts-teal) 18%,var(--surface));color:var(--ts-teal-deep)}
+#toolSpendContent td .ts-pill{margin-top:3px}
+
+/* The one next step */
+#toolSpendContent .ts-action{margin-top:14px;border:2px solid var(--ts-teal);border-radius:14px;padding:16px 20px;background:var(--surface)}
+#toolSpendContent .ts-do{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(18px,2.2vw,22px);line-height:1.35;margin:4px 0 10px;max-width:40em}
+#toolSpendContent .ts-who{display:flex;flex-wrap:wrap;gap:6px 26px;font-size:14px}
+#toolSpendContent .ts-who b{color:var(--ts-teal-deep);margin-right:4px}
+
+@media (max-width:720px){
+  #toolSpendContent .ts-tabs{grid-template-columns:1fr}
+  #toolSpendContent .ts-tab{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+  #toolSpendContent .ts-tab-s{flex:1 1 100%;order:3}
+  #toolSpendContent .ts-tab-v{margin:0 0 0 auto}
+}
+@media (prefers-reduced-motion:reduce){#toolSpendContent .ts-tab{transition:none}}

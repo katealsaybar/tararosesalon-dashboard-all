@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=8957f9e2"></script>
+<script src="pages.js?v=120110ea"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -466,7 +466,9 @@ body.social-chrome .filters-wrap{display:none}
 body.lastvisit-chrome #periodRow{display:none}
 /* Marketing Spend (Kate, 23 Oct 2026): follows the masthead Period; ads are not bought per salon, so no Branch row or branch words. */
 body.marketingspend-chrome #branchRow,
-body.marketingspend-chrome #mastBranch{display:none}
+body.marketingspend-chrome #mastBranch,
+body.toolspend-chrome #branchRow,
+body.toolspend-chrome #mastBranch{display:none}
 /* "Dikit dikit na masyado" (Kate, 22 Oct 2026): with Email, Opt-out and First visit the fixed-width table was too tight. It is the Lost Clients
    blast list's table now (lost-lists.css .ll-wrap: a scroll box, columns size themselves, headings stay at the top), and Client and Visits are
    frozen at the left while the rest scrolls. Wide screens also get a wider page (the masthead follows, so they stay in line). */
@@ -3478,6 +3480,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="wv-blast.css?v=8f6693ef">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
+<link rel="stylesheet" href="tool-spend.css?v=c483f63c">
 <link rel="stylesheet" href="marketing-spend.css?v=aa9f4f2f">
 <link rel="stylesheet" href="mobile-late.css?v=140f0090">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="nav-style.css?v=5092890f">
@@ -3529,7 +3532,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['compare.js?v=b8350980'],
-      mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'marketing-spend.js?v=8a8cba0b', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
+      mk:  ['marketing-chart.js?v=7aaefb35', 'google-ads.js?v=e67ce0e7', 'tool-spend.js?v=bebed87b', 'marketing-spend.js?v=8a8cba0b', 'website.js?v=55a9e0a5', 'social.js?v=4c3d3645'],
       wk:  ['team-performance.js?v=b9b2a0b2', 'staff-weeks.js?v=e0c1f939'],
       lv:  ['stylist-levels.js?v=cf577214'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
@@ -3726,6 +3729,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">Content</div>
     <div class="nav-sub" onclick="showView('googleads', this)">Google Ads</div>
     <div class="nav-sub" onclick="showView('marketingspend', this)">Marketing Spend</div>
+    <div class="nav-sub" onclick="showView('toolspend', this)">Tool Spend</div>
     <div class="nav-sub" onclick="showView('website', this)">Website &amp; Search</div>
     <div class="nav-sub" onclick="showView('social', this)">Social</div>
   </div>
@@ -4364,6 +4368,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="marketingSpendContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- TOOL SPEND (Kate, 23 Oct 2026): what GoHighLevel, respond.io and Phorest cost, one report each, from
+       tool_spend_report. tool-spend.js draws it. -->
+  <div id="view-toolspend" style="display:none">
+    <main id="toolSpendContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- WEBSITE & SEARCH (Kate, 6 Oct 2026): GA4 visits, sources and pages, and Search
        Console searches, from website_report. website.js draws it. -->
   <div id="view-website" style="display:none">
@@ -4474,7 +4484,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=ae504ade"></script>
+<script src="dashboard.js?v=7558e23b"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4956,6 +4966,7 @@ function showView(view, el){
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
+  document.body.classList.toggle('toolspend-chrome', view === 'toolspend');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
@@ -4989,6 +5000,7 @@ function showView(view, el){
   if (view === 'glowclub') renderGlowClub();
   if (view === 'googleads') renderGoogleAds();
   if (view === 'marketingspend') renderMarketingSpend();
+  if (view === 'toolspend') renderToolSpend();
   if (view === 'website') renderWebsite();
   if (view === 'social') renderSocial();
   if (view === 'products') renderProducts();
