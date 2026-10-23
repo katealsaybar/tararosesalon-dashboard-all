@@ -457,7 +457,7 @@ function render(){
     ? '<div class="empty">Not showing yet: the report database does not send the source tag.</div>'
     : '<table><thead><tr><th>Source</th><th class="n">Sold</th><th class="n">Collected</th><th>Share</th></tr></thead><tbody>' +
       srcRows.map(function(x){ return '<tr><td>' + esc(x.name) + '</td><td class="n">' + x.n + '</td><td class="n">' + aed(x.paid) + '</td><td>' + mini(x.paid, collected) + '</td></tr>'; }).join('') +
-      '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td class="n">100%</td></tr></tbody></table>';
+      '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
   var dayOf = function(r){ return String(r.purchase_date || '').slice(0, 10); };
   var BLASTS = [['1st blast: WhatsApp 21 Aug, email 22 Aug', 'the 7 days from 21 Aug', '2026-08-21', '2026-08-27'],
                 ['2nd blast: reminder 28 Aug', 'the 7 days from 28 Aug', '2026-08-28', '2026-09-03'],
