@@ -130,3 +130,6 @@
   #toolSpendContent .ts-tab-v{margin:0 0 0 auto}
 }
 @media (prefers-reduced-motion:reduce){#toolSpendContent .ts-tab{transition:none}}
+
+#toolSpendContent .ts-grand{margin-bottom:14px}
+#toolSpendContent .ts-total td{border-top:2px solid var(--border)}

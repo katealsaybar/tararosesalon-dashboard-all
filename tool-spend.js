@@ -168,10 +168,24 @@ function tsPaint(el) {
         <span class="ts-tab-n">${tsEsc(TS_TOOLS[k].name)}</span><span class="ts-tab-s">${tsEsc(TS_TOOLS[k].sub)}</span>
         <span class="ts-tab-v">${tsAed(a)}</span></button>`;
   }).join('');
+  // The three tools added together for the same months (dirhams only: dollars and euros do not add).
+  const parts = Object.keys(TS_TOOLS).map(k => ({ k, aed: tsMonths(k, w).reduce((s, r) => s + r.aed, 0) }));
+  const grand = parts.reduce((a, x) => a + x.aed, 0);
+  const pctOf = v => (grand ? Math.round(100 * v / grand) : 0);
+  const grandCard = grand > 0 ? `<section class="slv-card ts-grand">
+      <div class="ts-eyebrow">All three together</div>
+      <div class="ts-answer">We have spent <b>${tsAed(grand)}</b> on GoHighLevel, respond.io and Phorest in these dates.</div>
+      <div class="ts-stats">
+        <div class="ts-stat"><div class="ts-stat-l">Grand total</div><div class="ts-stat-v">${tsAed(grand)}</div><div class="ts-stat-n">All three tools</div></div>
+        ${parts.map(x => `<div class="ts-stat"><div class="ts-stat-l">${tsEsc(TS_TOOLS[x.k].name)}</div><div class="ts-stat-v">${tsAed(x.aed)}</div><div class="ts-stat-n">${pctOf(x.aed)}% of the total</div></div>`).join('')}
+      </div>
+      <p class="ts-sub" style="margin:10px 0 0">GoHighLevel and respond.io are what was paid. Phorest is what it invoiced, so that part is a floor: Motor City and the months with no invoice are not in it. The three tabs below show each one.</p>
+    </section>` : '';
   const head = `<section class="slv-intro">
       <h2>Tool Spend</h2>
       <p>What GoHighLevel, respond.io and Phorest cost us, one report each. Shows every month that falls in the Period at the top, in dirhams first.</p>
     </section>
+    ${grandCard}
     <div class="ts-tabs" role="tablist" aria-label="Choose a report">${tabs}</div>`;
 
   // ── 1. The why, in three lines.
@@ -269,6 +283,8 @@ function tsPaint(el) {
       ${cols.map(([k]) => `<td>${(r.s[k] || {}).u ? tsNum(r.s[k].u) : '–'}</td>`).join('')}
       <td><b>${tsNum(r.u)}</b></td><td><b>${tsNum(r.aed)}</b></td></tr>`).join('');
   const unitHead = T.cur === 'USD' ? 'USD' : 'EUR';
+  const colSum = k => rows.reduce((a, r) => a + ((r.s[k] || {}).u || 0), 0);
+  const totalRow = `<tr class="ts-total"><td><b>Total</b></td>${cols.map(([k]) => `<td><b>${colSum(k) ? tsNum(colSum(k)) : '–'}</b></td>`).join('')}<td><b>${tsNum(spendU)}</b></td><td><b>${tsNum(spendAed)}</b></td></tr>`;
   const chartCard = `<section class="slv-card ts-sec">
       <div class="ts-eyebrow">Month by month</div>
       <h3 class="ts-h">What we paid, by month</h3>
@@ -282,7 +298,7 @@ function tsPaint(el) {
       <summary>Every month in a table (${plural(nMonths, 'month')})</summary>
       <div class="ts-more-b"><div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Month</th>${cols.map(([, n]) => `<th>${tsEsc(n)} (${unitHead})</th>`).join('')}<th>Total (${unitHead})</th><th>Total (AED)</th></tr></thead>
-        <tbody>${body}</tbody></table></div></div>
+        <tbody>${body}${totalRow}</tbody></table></div></div>
     </details>`;
 
   // ── What stands out (the notes are rows in the table) and the questions to ask.
@@ -315,6 +331,7 @@ function tsPaint(el) {
   const yr = {};
   rows.forEach(r => { const k = r.mo.slice(0, 4); yr[k] = yr[k] || { u: 0, aed: 0, s: {} }; yr[k].u += r.u; yr[k].aed += r.aed; cols.forEach(([c]) => { yr[k].s[c] = (yr[k].s[c] || 0) + ((r.s[c] || {}).u || 0); }); });
   const yrBody = Object.keys(yr).map(k => `<tr><td>${k}</td>${cols.map(([c]) => `<td>${yr[k].s[c] ? tsNum(yr[k].s[c]) : '–'}</td>`).join('')}<td><b>${tsNum(yr[k].u)}</b></td><td><b>${tsNum(yr[k].aed)}</b></td></tr>`).join('');
+  const yrTotal = `<tr class="ts-total"><td><b>Total</b></td>${cols.map(([c]) => `<td><b>${colSum(c) ? tsNum(colSum(c)) : '–'}</b></td>`).join('')}<td><b>${tsNum(spendU)}</b></td><td><b>${tsNum(spendAed)}</b></td></tr>`;
   let unknownNote = '';
   const unk = all.filter(l => l.k === 'unknown');
   if (tsTool === 'phorest' && unk.length) {
@@ -330,7 +347,7 @@ function tsPaint(el) {
       <div class="ts-more-b">
         <div class="slv-wrap"><table class="slv-table">
           <thead><tr><th>Year</th>${cols.map(([, n]) => `<th>${tsEsc(n)} (${unitHead})</th>`).join('')}<th>Total (${unitHead})</th><th>Total (AED)</th></tr></thead>
-          <tbody>${yrBody}</tbody></table></div>
+          <tbody>${yrBody}${yrTotal}</tbody></table></div>
         <ul class="slv-notes" style="margin:12px 0 0;padding-left:18px;line-height:1.55">${T.left.map(x => `<li>${x}</li>`).join('')}${usedNote}${unknownNote}</ul>
       </div>
     </details>`;

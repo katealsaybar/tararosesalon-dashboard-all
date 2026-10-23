@@ -223,6 +223,15 @@ function mspendPaint(el) {
       <td>${mspendNum(r.nc)}</td>
       <td>${c !== null ? mspendAed(c) : '–'}</td></tr>`;
   }).join('');
+  const sumOf = f => rows.reduce((a, r) => a + (f(r) || 0), 0);
+  const totalRow = `<tr class="ms-total"><td><b>Total</b></td>
+      <td><b>${mspendNum(sumOf(r => r.google))}</b></td>
+      <td><b>${mspendNum(sumOf(r => r.meta))}</b></td>
+      <td><b>${mspendNum(sumOf(r => r.agency))}</b></td>
+      ${hasOther ? `<td><b>${mspendNum(sumOf(r => r.other))}</b></td>` : ''}
+      <td><b>${mspendNum(sumOf(r => r.by[pick.k]))}</b></td>
+      <td><b>${mspendNum(sumOf(r => r.nc))}</b></td>
+      <td>–</td></tr>`;
   const tableCard = `<section class="slv-card ms-sec">
       <div class="ms-eyebrow">Month by month</div>
       <h3 class="ms-h">Spend and CAC</h3>
@@ -239,8 +248,8 @@ function mspendPaint(el) {
       <div style="position:relative;height:300px"><canvas id="mspendCanvas"></canvas></div>
       <div class="slv-wrap" style="margin-top:14px"><table class="slv-table">
         <thead><tr><th>Month</th><th>Google (AED)</th><th>Meta (AED)</th><th>Agency (AED)</th>${hasOther ? '<th>Tools (AED)</th>' : ''}<th>Total (AED)</th><th>New clients</th><th>CAC (AED)</th></tr></thead>
-        <tbody>${body}</tbody></table></div>
-      <p class="ms-sub" style="margin:8px 0 0">The Total and CAC columns follow what you picked above (${mspendEsc(pick.label.toLowerCase())}).</p>
+        <tbody>${body}${totalRow}</tbody></table></div>
+      <p class="ms-sub" style="margin:8px 0 0">The Total and CAC columns follow what you picked above (${mspendEsc(pick.label.toLowerCase())}). The CAC for the whole Period is the one in the answer at the top.</p>
     </section>`;
   const fine = `<details class="ms-more">
       <summary>What is and is not in these numbers</summary>
