@@ -129,10 +129,14 @@ function lqbCards() {
 // Kate, 23 Oct 2026 (ALD4-03): the Why wall opens To message. Why now follows the wave: the offer has no end date (13 Oct), so it says
 // whether a wave is open today, not a date.
 function lqbWhy(cur) {
-  const open = typeof lqwStatus === 'function' && lqwStatus(cur) === 'open';
+  const st = n => typeof lqwStatus === 'function' ? lqwStatus(n) : '';
+  const allDone = [1, 2, 3, 4].every(n => st(n) === 'done');
+  const now = st(cur) === 'open' ? `Wave ${cur} is open now, so its clients can be messaged today.`
+    : allDone ? 'All four waves have gone out, so nothing is waiting to send.'
+    : 'No wave is open right now. The next one goes out when a Level 4 person opens it.';
   return whyWall([
     ['Why this page', 'A client who has gone quiet already knows us, so she is the easiest booking we can still win.'],
-    ['Why now', open ? `Wave ${cur} is open now, so its clients can be messaged today.` : 'No wave is open right now. The next one goes out when a Level 4 person opens it.'],
+    ['Why now', now],
     ['If we do nothing', 'She books somewhere else and we never hear why.']]);
 }
 function lqbPaint(host) {
