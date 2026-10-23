@@ -17,6 +17,7 @@
 <script src="upload.js?v=9bdf802a"></script>
 <!-- Signed-in people on the dashboard list only (auth.js, 25 Sep 2026); anyone else goes to the dashboard's sign-in and comes back. -->
 <script src="../auth.js?v=3823f956"></script>
+<script src="../why-wall.js?v=4805dd60"></script>
 <!-- Kate, 30 Sep 2026: Google sign-in is the only way in (the old shared password card is gone).
      Owner (Kate) can do everything. Payroll (Accounts and Admin) sees every tab but can only
      change Payslips: the Upload segments, delete/edit buttons and roster switches are hidden,
@@ -24,6 +25,7 @@
      own edge function, not sb.from). The rest of the list goes back to the dashboard. -->
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 <link rel="stylesheet" href="/target-links.css?v=20377623">
+<link rel="stylesheet" href="/why-wall.css?v=9868138c">
 <style>
 .role-payroll .seg-btn[data-seg="upload"],.role-payroll .seg-pane[id$="-upload"],
 .role-payroll .tab-btn[data-tab="products"],.role-payroll .tab-btn[data-tab="service"],
@@ -944,6 +946,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <div class="view-only-note" id="viewOnlyNote">View only. You can upload and change payslips here; the other tabs are for reading.</div>
 
     <div class="tab-content" id="tab-ops">
+  <div class="why-host" data-why="ops"></div>
 
   <div class="tab-sticky">
   <div id="utilTodayStrip" class="today-strip"></div>
@@ -1087,6 +1090,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <!-- ══ FINANCIAL TOTALS TAB ══ -->
 <div class="tab-content" id="tab-fin">
+  <div class="why-host" data-why="fin"></div>
 
   <div class="tab-sticky">
   <div id="finTodayStrip" class="today-strip"></div>
@@ -1118,12 +1122,12 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       </div>
     </div>
     <div id="finPdfResults" style="margin-top:10px"></div>
-    <div class="card-sub" style="margin-top:14px;margin-bottom:0">
+    <details class="card-sub" style="margin-top:14px;margin-bottom:0"><summary style="cursor:pointer;min-height:32px">What gets refused</summary>
       Two files get refused rather than guessed at: a <strong>date range</strong> (this table stores one day per row,
       so a whole month would otherwise be filed against its first day) and the <strong>wrong branch</strong>
       (the salon header is checked against the filename). Every file is also checked against the report's own
       four internal sums before anything is written.
-    </div>
+    </details>
   </div>
   </div><!-- /seg-fin-upload -->
 
@@ -1161,6 +1165,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
      insert like Staff Daily rather than upsert, since a re-parse can add or drop
      staff between runs (Kate, 2026-09-10). -->
 <div class="tab-content" id="tab-salestx">
+  <div class="why-host" data-why="salestx"></div>
 
   <div class="tab-sticky">
   <div id="stxTodayStrip" class="today-strip"></div>
@@ -1347,6 +1352,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
      picker. See targets.js for the parser and why the table, not the
      coordinator's yellow footer box, is the branch total (Kate, 2026-09-04). -->
 <div class="tab-content" id="tab-targets">
+  <div class="why-host" data-why="targets"></div>
 
   <div class="tab-sticky">
   <div id="tgMonthStrip" class="today-strip"></div>
@@ -1457,6 +1463,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <!-- ══ PRODUCT USAGE TAB ══ -->
 <div class="tab-content" id="tab-products">
+  <div class="why-host" data-why="products"></div>
   <div class="upload-card">
     <div class="card-title">Product Usage Upload</div>
     <div class="card-sub">Upload product usage data</div>
@@ -1483,6 +1490,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <!-- ══ SERVICE DATA TAB ══ -->
 <div class="tab-content" id="tab-service">
+  <div class="why-host" data-why="service"></div>
   <div class="upload-card">
     <div class="card-title">Service Performance Upload</div>
     <div class="card-sub">Two Phorest exports, auto-detected: the 4-sheet transaction file, or Top Services reports (one per branch). Re-uploading a year replaces that year for the branches in the file.</div>
@@ -1544,6 +1552,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 <!-- ══ PAYSLIPS TAB ══ Accounts / admin upload one PDF per person per month.
      Private bucket behind the payslips edge function; see upload/payslips.js. -->
 <div class="tab-content" id="tab-payslips">
+  <div class="why-host" data-why="payslips"></div>
   <div class="upload-card">
     <div class="card-title">Payslips</div>
     <div class="card-sub">One PDF per person for the month. Each stylist sees only her own, on her performance page and attached to her monthly email.</div>
@@ -1552,6 +1561,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <div class="tab-content" id="tab-roster">
+  <div class="why-host" data-why="roster"></div>
   <div class="upload-card">
     <div class="card-title">Team Roster</div>
     <div class="card-sub">Employed / Resigned, per person. Flips the same status that fades a card on Staff Cards — no code edit needed.</div>
@@ -1561,6 +1571,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <!-- ══ STAFF PERFORMANCE (PHOREST) TAB ══ -->
 <div class="tab-content" id="tab-staffperf">
+  <div class="why-host" data-why="staffperf"></div>
 
   <div class="tab-sticky">
   <div id="spTodayStrip" class="today-strip"></div>
@@ -1706,6 +1717,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 
 <!-- ══ SHEETS SYNC TAB ══ -->
 <div class="tab-content active" id="tab-sheetsync">
+  <div class="why-host" data-why="sheetsync"></div>
 
   <div class="tab-sticky">
   <div id="ssTodayStrip" class="today-strip"></div>
@@ -1801,3 +1813,27 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
   </div><!-- /seg-sheetsync-browse -->
 
 </div>
+
+<script>
+// Kate, 23 Oct 2026 (ALD7b-08): each tab opens on what it is, why it matters and what to do. The "why it matters" names only the pages that read the
+// tab's data (checked in the code on 23 Oct). Products has none until Kate says what reads it.
+(function () {
+  const W = {
+    sheetsync: ['The daily sheet each branch types in, read by the site.', 'Its clients, rebooking and treatment counts feed the Pulse, the Ledgers, Over the Years and Podium Race.', 'Nothing to upload here: each branch’s Sheet is pushed on its own. Look at Progress for a missing day.'],
+    staffperf: ['Phorest’s Staff Performance Overview, pasted in, one branch for one day.', 'It gives each person’s visits, rebooking and new clients to Podium Race, Comparison, the Pulse and the Ledgers.', 'Paste one report per branch per day. Progress shows which days are still missing.'],
+    ops: ['Phorest’s Staff Utilisation report, one PDF per branch per day.', 'It gives the utilisation on Daily Performance, the Pulse and each person’s card.', 'Drop one PDF per branch per day. Progress shows which days are still missing.'],
+    fin: ['One branch’s banking and sales for one day, from Phorest.', 'It feeds Financial Totals, where each month is checked against Phorest’s own report, and the Pulse.', 'One PDF per branch per day. If one fails, nothing is saved and you will see why.'],
+    salestx: ['Phorest’s Sales Transactions report, one PDF per branch per day.', 'Its client lines feed Top Clients, Service Rankings, Client Mix and the Lost Clients lists.', 'One PDF per branch per day. If one fails, nothing is saved and you will see why.'],
+    targets: ['The monthly targets, entered by the coordinator.', 'Daily Target Sheet and Actuals vs Targets measure the month against them.', 'Paste the month’s table, fix any red cell, then save. Saving replaces that month.'],
+    payslips: ['One PDF per person for the month.', 'It is attached to each person’s monthly email.', 'Add the month’s PDFs, check one first, then send.'],
+    products: ['Product usage data, uploaded as a CSV.', '', 'Choose the CSV and upload it.'],
+    service: ['Phorest’s service reports: the transaction file, or Top Services reports.', 'Top Services reports feed Service Rankings.', 'Pick the year, then drop the files. Re-uploading a year replaces it for the branches in the file.'],
+    roster: ['Who is employed and who has resigned, per person.', 'It sets who is on Staff Cards and who counts as the current team.', 'Flip the switch for the person who has joined or left.']
+  };
+  const L = ['What this is', 'Why it matters', 'Do this'];
+  document.querySelectorAll('.why-host').forEach(el => {
+    const w = W[el.dataset.why]; if (!w || typeof whyWall !== 'function') return;
+    el.innerHTML = whyWall(w.map((t, i) => [L[i], t]));
+  });
+})();
+</script>

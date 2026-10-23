@@ -128,6 +128,10 @@ function webPaint(el) {
       <h2>Website &amp; Search</h2>
       <p>Who comes to tararosesalon.com, where they come from and what they look at, and what people type into Google to find us. Up to yesterday.</p>
     </section>
+    ${whyWall([
+      ['Why this page', 'This is who visits our website and where they come from, the quickest way to see whether what we post and pay for is sending women to us.'],
+      ['What to watch', 'If visits fall while the Google Ads spend stays the same, the money is buying less than it did.'],
+      ['What to do', 'Tell Kate which week it started, and she checks it with Tara.']])}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Website numbers are paused${s && s.last_error ? ': ' + webEsc(s.last_error) : ''}. Last good update: ${synced ? webEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
       <div class="slv-head">

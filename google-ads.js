@@ -130,6 +130,10 @@ function gadsPaint(el) {
       <h2>Google Ads</h2>
       <p>What we spend on Google search ads, the clicks it brings, and where the money goes by salon. Up to yesterday; today is still filling in.</p>
     </section>
+    ${whyWall([
+      ['Why this page', 'This is the money we put into Google, and the quickest place to see whether it is bringing women to the door.'],
+      ['What to watch', 'If cost per click goes up while clicks stay flat, we are paying more for the same visitors.'],
+      ['What to do', 'Tell Kate which salon, and she checks the budget with Tara.']])}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Google Ads numbers are paused${s && s.last_error ? ': ' + gadsEsc(s.last_error) : ''}. Last good update: ${synced ? gadsEsc(synced) : 'never'}.</p>` : ''}
     <section class="slv-card">
       <div class="slv-head">

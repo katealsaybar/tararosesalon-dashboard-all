@@ -126,6 +126,15 @@ function lqbCards() {
   }).join('')}</div>`;
 }
 
+// Kate, 23 Oct 2026 (ALD4-03): the Why wall opens To message. Why now follows the wave: the offer has no end date (13 Oct), so it says
+// whether a wave is open today, not a date.
+function lqbWhy(cur) {
+  const open = typeof lqwStatus === 'function' && lqwStatus(cur) === 'open';
+  return whyWall([
+    ['Why this page', 'A client who has gone quiet already knows us, so she is the easiest booking we can still win.'],
+    ['Why now', open ? `Wave ${cur} is open now, so its clients can be messaged today.` : 'No wave is open right now. The next one goes out when a Level 4 person opens it.'],
+    ['If we do nothing', 'She books somewhere else and we never hear why.']]);
+}
 function lqbPaint(host) {
   const areaRows = lqRows.filter(r => r._ch === 'whatsapp');
   const nView = v => lqFiltered(v).length;   // what the list below would show for that view, with the filters on screen
@@ -137,6 +146,7 @@ function lqbPaint(host) {
   const left = held + recentN + taken + (sk.nonum || 0) + (sk.blocked || 0) + (sk.optout || 0) + (sk.unchecked || 0);
   const views = [['send', 'To send'], ['out', 'Sending'], ['sent', 'Sent'], ['reply', 'Replied']];
   host.innerHTML = `
+    ${lqbWhy(cur)}
     <div class="ll-fresh">
       <span class="ll-chip">Sent is read from <b>respond.io</b> every night</span>
       <span class="ll-chip">Campaign started <b>${lcEsc(llDay(LL_CAMPAIGN_STARTED))}</b></span>
