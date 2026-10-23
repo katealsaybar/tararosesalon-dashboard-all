@@ -40,11 +40,25 @@ const wvWaveName = w => w === 'all' ? 'Everyone on the list' : w === 'new' ? 'Ne
 async function renderWvBlast() {
   const el = document.getElementById('wvBlastContent');
   if (!el || !wvOk()) return;
+  // The mini side nav (Kate, 23 Oct 2026: every page gets one; ALD-X-01): the rail in the gutter from 1400px, a row of chips below. Level 4 has the money only.
+  const rail = [['wvAllBlasts', 'How each blast did'], ['wvB4', 'Blast 4: the last push']]
+    .concat(wvPerfOnly() ? [] : [['wvLpPanel', 'Blast 4: the send list']])
+    .concat([['wvB3', 'Blast 3: the 600 top spenders']])
+    .concat(wvOk5() ? [['wvSendBox', 'Blast 3: send a wave']] : [])
+    .concat(wvPerfOnly() ? [] : [['wvList', 'Blast 3: the send list']])
+    .concat([['wvB2', 'Blast 2: the reminder'], ['wvB1', 'Blast 1: the first message']]);
+  // Newest first: what happens on Monday is on top. Every blast has the same block: what it was, who got it, when, then five numbers.
+  const body = `<div id="wvAll"><p class="slv-muted">Loading…</p></div>
+    <section class="wv-blast" id="wvB4"></section>
+    <section class="wv-blast" id="wvB3"><div id="wvB3Head"></div><div id="wvHost"><p class="slv-muted">Loading the list…</p></div></section>
+    <section class="wv-blast" id="wvB2"></section>
+    <section class="wv-blast" id="wvB1"></section>`;
   el.innerHTML = `<section class="slv-intro"><h2>Wellness Voucher Message and Email Blasts</h2>
-    <p>Every voucher blast and how each one did. The 3rd (waves 1 to 5) has its send list below; the 4th is the last push on Mon 26 Oct.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p></section>
-    <div id="wvAll"><p class="slv-muted">Loading…</p></div>
-    <div id="wvB4"></div>
-    <section class="wv-blastsec" id="wvB3"><h3>Blast 3: top spenders, waves 1 to 5 (15 and 16 Oct)</h3><div id="wvHost"><p class="slv-muted">Loading the list…</p></div></section>`;
+    <div class="wv-why">
+      <p><b>What is this?</b> Every voucher message and email we have sent, and the last one planned for Mon 26 Oct.</p>
+      <p><b>Why does it matter?</b> The voucher closes on 31 Oct. This shows what each blast cost and what it brought in, so the last one goes to the right people.</p>
+      <p><b>Next step:</b> Mon 26 Oct, send Blast 4 from respond.io, once Meta has approved both templates.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p>
+    </div></section>${typeof lgShell === 'function' ? lgShell(rail, body, 'lg-shell-wide') : body}`;
   const hp = sb.rpc('wv_blasts_history').then(r => r, e => ({ error: e })), lp = typeof wvLastLoad === 'function' ? wvLastLoad() : Promise.resolve();
   const after = async () => {
     const h = await hp; await lp;
@@ -72,25 +86,63 @@ async function renderWvBlast() {
   await after();
 }
 
-// ---- All four blasts in one table (Kate, 23 Oct 2026: one page, "performance per blast (4)"). Blasts 1 and 2 went out of GHL and left no per-client record
+// ---- All four blasts: a table at the top, then one block each, newest first (Kate, 23 Oct 2026). Blasts 1 and 2 went out of GHL and left no per-client record
 // here, so they show the vouchers Phorest has sold in the 7 days from each send (wv_blasts_history); blasts 3 and 4 show what their own functions count.
 let wvHist = null;
+const wvNone = why => `<span class="slv-muted" title="${lcEsc(why)}">no record</span>`;
+const WV_B12_NOTE = 'There is no list of who got this one: it went out of GoHighLevel. So the vouchers shown are every Phorest voucher sale in the 7 days after the send. That does not prove the message sold them.';
+// One block per blast: a title and when it went, three plain facts, five numbers, one note. b = { title, tag, next, what, who, when, stats: [[value, label, detail]], note }
+function wvBlockHtml(b) {
+  const f = (k, v) => v ? `<div><dt>${k}</dt><dd>${v}</dd></div>` : '';
+  const stat = x => `<div class="wv-stat"><div class="wv-sn">${x[0]}</div><div class="wv-sl">${x[1]}</div>${x[2] ? `<div class="wv-sd">${x[2]}</div>` : ''}</div>`;
+  return `<div class="wv-bhead"><h3>${b.title}</h3><span class="wv-btag${b.next ? ' next' : ''}">${b.tag}</span></div>
+    <dl class="wv-facts">${f('What it was', b.what)}${f('Who got it', b.who)}${f('When', b.when)}</dl>
+    <div class="wv-stats">${b.stats.map(stat).join('')}</div>
+    ${b.note ? `<p class="slv-note wv-bnote">${b.note}</p>` : ''}`;
+}
+const wvBack = (aed, cost) => cost && aed ? 'AED ' + lcNum(Math.round(aed / cost)) : '–';
+function wvBlocks() {
+  const h = wvHist || {}, t3 = wvPerf && wvPerf.totals;
+  const early = (w, range) => [[wvNone('No list of who got it: it went out of GoHighLevel'), 'Messages'], [w ? lcNum(w.vouchers) : '–', 'Vouchers sold', range], [w ? wvAed(w.aed) : '–', 'AED collected'], [wvNone('The WhatsApp cost was not tracked here'), 'Cost'], ['–', 'Back for every AED 1']];
+  return {
+    b1: { title: 'Blast 1: the first message', tag: 'Sent 21 and 22 Aug', what: 'The first voucher announcement: a WhatsApp message, then an email the next day.', who: '3,168 contacts tagged for the voucher in GoHighLevel.', when: 'WhatsApp on Fri 21 Aug, email on Sat 22 Aug.', stats: early(h.b1, '21 to 27 Aug'), note: WV_B12_NOTE },
+    b2: { title: 'Blast 2: the reminder', tag: 'Sent 28 Aug', what: 'A gentle WhatsApp reminder.', who: 'The same contacts, minus anyone who had already replied or bought.', when: 'Fri 28 Aug.', stats: early(h.b2, '28 Aug to 3 Sep'), note: WV_B12_NOTE + (h.gap ? ` Between this blast and Blast 3 (4 Sep to 14 Oct) Phorest shows ${lcNum(h.gap.vouchers)} vouchers sold, ${wvAed(h.gap.aed)}.` : '') },
+    b3: { title: 'Blast 3: the 600 top spenders', tag: 'Sent 15 and 16 Oct', what: 'A WhatsApp message with Tell me more and Reserve mine buttons, sent in five waves by spend. Half got the short message (A), half the long one (B).', who: '600 clients who spent AED 4,000+ this year, visited in the last 90 days and can be messaged on WhatsApp.', when: 'Thu 15 and Fri 16 Oct.',
+      stats: t3 ? [[lcNum(t3.sent), 'Messages sent'], [lcNum(t3.vouchers), 'Vouchers sold', `${lcNum(t3.bought)} client${t3.bought === 1 ? '' : 's'}`], [wvAed(t3.aed), 'AED collected', t3.bought ? `${wvAed(t3.aed / t3.bought)} per buyer` : ''], [wvAed(t3.cost), 'Cost (estimate)'], [wvBack(t3.aed, t3.cost), 'Back for every AED 1']] : [],
+      note: 'A client counts as bought when her name matches a voucher sale. Replies and STOP are not shown here.' }
+  };
+}
 function wvAllHtml() {
   const t3 = wvPerf && wvPerf.totals, lp = typeof wvLp !== 'undefined' && wvLp, t4 = lp && lp.totals;
   const h = wvHist || {}, rate4 = lp ? (+lp.rate || 0) : 0;
-  const row = (name, when, who, msgs, vouchers, aed, cost, jump) => `<tr><td><b>${name}</b>${jump ? `<div><a href="#" class="slv-note" onclick="event.preventDefault();document.getElementById('${jump}').scrollIntoView({behavior:'smooth',block:'start'})">Open below ↓</a></div>` : ''}</td><td>${when}</td><td>${who}</td><td>${msgs}</td><td>${vouchers}</td><td>${aed}</td><td>${cost}</td></tr>`;
-  const w1 = h.b1, w2 = h.b2;
+  const row = (name, when, who, msgs, vouchers, aed, cost, jump) => `<tr><td><b>${name}</b><div><a href="#" class="slv-note" onclick="event.preventDefault();document.getElementById('${jump}').scrollIntoView({behavior:'smooth',block:'start'})">Details ↓</a></div></td><td>${when}</td><td>${who}</td><td>${msgs}</td><td>${vouchers}</td><td>${aed}</td><td>${cost}</td></tr>`;
+  const w1 = h.b1, w2 = h.b2, none = wvNone('No record here: it went out of GoHighLevel');
   const rows = [
-    row('Blast 1', '21 Aug WhatsApp<br>22 Aug email', '3,168 contacts tagged in GHL', '<span class="slv-muted">not counted here</span>', w1 ? lcNum(w1.vouchers) : '–', w1 ? wvAed(w1.aed) : '–', '<span class="slv-muted">not tracked here</span>'),
-    row('Blast 2, the reminder', '28 Aug WhatsApp', 'Same audience, minus anyone who had engaged or bought', '<span class="slv-muted">not counted here</span>', w2 ? lcNum(w2.vouchers) : '–', w2 ? wvAed(w2.aed) : '–', '<span class="slv-muted">not tracked here</span>'),
+    row('Blast 4, the last push', 'Mon 26 Oct WhatsApp, sent by hand', '312: 20 who asked before, 292 not messaged before', t4 ? lcNum(t4.to_message) + ' to send' : '–', t4 ? lcNum(t4.vouchers) : '–', t4 ? wvAed(t4.aed) : '–', t4 ? wvAed1(t4.to_message * rate4) + ' est.' : '–', 'wvB4'),
     row('Blast 3, waves 1 to 5', '15 and 16 Oct WhatsApp', '600 top spenders (2026 spend AED 4,000+)', t3 ? lcNum(t3.sent) + ' sent' : '–', t3 ? lcNum(t3.vouchers) : '–', t3 ? wvAed(t3.aed) : '–', t3 ? wvAed(t3.cost) + ' est.' : '–', 'wvB3'),
-    row('Blast 4, the last push', 'Mon 26 Oct WhatsApp, sent by hand', '312: 20 who asked before, 292 not messaged before', t4 ? lcNum(t4.to_message) + ' to send' : '–', t4 ? lcNum(t4.vouchers) : '–', t4 ? wvAed(t4.aed) : '–', t4 ? wvAed1(t4.to_message * rate4) + ' est.' : '–', 'wvB4')];
-  const gap = h.gap ? ` Between blast 2 and blast 3 (4 Sep to 14 Oct) Phorest shows ${lcNum(h.gap.vouchers)} vouchers sold, ${wvAed(h.gap.aed)}.` : '';
+    row('Blast 2, the reminder', '28 Aug WhatsApp', 'Same audience, minus anyone who had engaged or bought', none, w2 ? lcNum(w2.vouchers) : '–', w2 ? wvAed(w2.aed) : '–', none, 'wvB2'),
+    row('Blast 1', '21 Aug WhatsApp<br>22 Aug email', '3,168 contacts tagged in GHL', none, w1 ? lcNum(w1.vouchers) : '–', w1 ? wvAed(w1.aed) : '–', none, 'wvB1')];
+  const short = t3 ? `<b>In short:</b> Blast 3 sent ${lcNum(t3.sent)} messages for about ${wvAed(t3.cost)}. ${lcNum(t3.bought)} client${t3.bought === 1 ? '' : 's'} bought and ${wvAed(t3.aed)} came in${t3.cost && t3.aed ? `, about AED ${Math.round(t3.aed / t3.cost)} back for every AED 1` : ''}.${t4 ? ` Blast 4 is planned for ${lcNum(t4.to_message)} clients at about ${wvAed1(t4.to_message * rate4)}.` : ''}` : '';
   return `<section class="wv-perf" id="wvAllBlasts"><h3>How each blast did</h3>
+    <p class="slv-note wv-what"><b>What is this?</b> One line for each blast, newest first: when it went, who got it, and the money. <b>Why it matters:</b> it tells you which blast paid for itself. Each blast has its own block below.</p>
+    ${short ? `<p class="wv-short">${short}</p>` : ''}
     <div class="wv-pbox"><div class="wv-pscroll"><table class="slv-table wv-ptbl wv-alltbl"><thead><tr><th>Blast</th><th>When</th><th>Who</th><th>Messages</th><th>Vouchers sold</th><th>AED collected</th><th>Cost</th></tr></thead><tbody>${rows.join('')}</tbody></table></div></div>
-    <p class="slv-note">Blasts 1 and 2 went out of GoHighLevel and left no per-client record, so their vouchers are every Phorest voucher sale in the 7 days from the send (21 to 27 Aug, 28 Aug to 3 Sep), which does not prove the message sold them.${lcEsc(gap)} Blasts 3 and 4 count the vouchers the clients on their list bought, matched by name. AED is what was paid, VAT included. Costs are estimates; Meta's invoice has the exact figure. The Wellness Voucher Performance page counts from the voucher log, so its totals can differ by a voucher or two.</p></section>`;
+    <details class="wv-how"><summary>How to read these numbers</summary>
+      <ul>
+        <li><b>Blasts 1 and 2</b> went out of GoHighLevel and left no list of who got them, so they show the vouchers Phorest has sold in the 7 days after the send.</li>
+        <li><b>Blasts 3 and 4</b> count the vouchers bought by the clients on their own list, matched by name.</li>
+        <li><b>AED</b> is what the client paid, VAT included. <b>Cost</b> is an estimate; Meta's invoice has the exact figure.</li>
+        <li>The Wellness Voucher Performance page counts from the voucher log, so its totals can differ by a voucher or two.</li>
+      </ul></details></section>`;
 }
-function wvAllPaint() { const b = document.getElementById('wvAll'); if (b) b.innerHTML = wvAllHtml(); }
+function wvAllPaint() {
+  const set = (id, html) => { const b = document.getElementById(id); if (b) b.innerHTML = html; };
+  set('wvAll', wvAllHtml());
+  const k = wvBlocks();
+  set('wvB3Head', k.b3.stats.length ? wvBlockHtml(k.b3) : '');
+  set('wvB2', wvBlockHtml(k.b2));
+  set('wvB1', wvBlockHtml(k.b1));
+}
 
 const wvCan = () => (wvRows || []).filter(r => r.can_message);
 const wvOut = () => (wvRows || []).filter(r => !r.can_message);
@@ -151,14 +203,7 @@ function wvPerfHtml() {
   const when = iso => { try { return new Date(iso).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
   const tierName = k => ({ D: 'Dip Your Toes', S: 'Season of You', V: 'All-In VIP Year' })[k] || k;
   const tiers = (p.by_tier || []).map(x => `${lcEsc(tierName(x.k))} ${lcNum(x.vouchers)} (${wvAed(x.aed)})`).join(' · '), pays = (p.by_pay || []).map(x => `${lcEsc(wvPayName(x.k) || x.k)} ${lcNum(x.vouchers)}`).join(' · ');
-  return `<section class="wv-perf" id="wvPerf"><h3>How the blast is doing</h3>
-    <div class="ll-cards wv-pcards">
-      ${card(lcNum(t.sent), 'Messaged', t.first ? `sent ${lcEsc(when(t.first))} to ${lcEsc(when(t.last))}${t.failed ? `, ${lcNum(t.failed)} failed` : ''}${t.queued ? `, ${lcNum(t.queued)} still queued` : ''}` : 'nothing sent yet')}
-      ${card(lcNum(t.bought), 'Bought', `${wvPct(t.bought, t.sent)} of the messaged, ${lcNum(t.vouchers)} voucher${t.vouchers === 1 ? '' : 's'}`)}
-      ${card(wvAed(t.aed), 'AED collected', t.bought ? `${wvAed(per)} per buyer, VAT included` : 'no buyer yet')}
-      ${card(wvAed(t.cost), 'Spent (estimate)', `${lcNum(t.sent)} messages at AED ${(+p.rate).toFixed(2)} each. Meta's invoice has the exact figure`)}
-      ${card(t.cost ? wvAed(t.aed / t.cost) : '–', 'Back for every AED 1 spent', 'AED collected divided by the estimated spend')}
-    </div>
+  return `<section class="wv-perf" id="wvPerf"><h4 class="wv-h4">Blast 3: by wave, message and branch</h4>
     ${tiers || pays ? `<p class="slv-note">Bought: ${tiers}${tiers && pays ? '. Paid by ' : ''}${pays}.</p>` : ''}
     ${o.vouchers ? `<p class="slv-note"><b>${lcNum(o.vouchers)}</b> other voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold since the blast started to clients who are not on the messaged list: a spelling that does not match, or someone who bought without our message. They are not counted above.</p>` : ''}
     <div class="wv-pgrid">
@@ -187,7 +232,7 @@ function wvPaint() {
   const chip = (txt, warn) => `<span class="ll-chip${warn ? ' warn' : ''}">${txt}</span>`;
   const cards = [1, 2, 3, 4, 5].map(n => wvCard(String(n), 'Wave ' + n, WV_BANDS[n] + ' spenders, tags wv-blast-wave-' + n + 'a / ' + n + 'b'))
     .concat([wvCard('new', 'New since 8 Oct', 'Added 15 Oct, already inside their wave'), wvCard('out', 'Removed', 'Were on the 8 Oct list, no longer qualify')]).join('');
-  host.innerHTML = `${wvOk5() ? '<div id="wvSendBox"></div>' : ''}${wvPerfHtml()}<div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvRows.some(wvBought) ? chip('<b>' + lcNum(wvRows.filter(wvBought).length) + '</b> have bought since the blast') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
+  host.innerHTML = `${wvOk5() ? '<div id="wvSendBox"></div>' : ''}${wvPerfHtml()}<h3 class="wv-h3" id="wvList">Blast 3: the send list</h3><p class="slv-note wv-what"><b>What is this?</b> The 600 clients we messaged, by wave. <b>Use it to</b> see who bought, and to copy the numbers for a file.</p><div class="ll-fresh">${chip('List refreshed <b>' + lcEsc(wvDayY(when)) + '</b>')}${chip('First built <b>8 Oct 2026</b>')}${newN ? chip('<b>' + lcNum(newN) + '</b> added since 8 Oct') : ''}${wvRows.some(wvBought) ? chip('<b>' + lcNum(wvRows.filter(wvBought).length) + '</b> have bought since the blast') : ''}${wvCan().some(r => wvArm(r)) ? chip('Message test: <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'A').length) + '</b> short (A) · <b>' + lcNum(wvCan().filter(r => wvArm(r) === 'B').length) + '</b> long (B)') : ''}</div>
     <div class="ll-cards wv-cards">${wvCard('all', 'Everyone on the list', 'Can be messaged on WhatsApp now')}${cards}</div>
     <div class="ll-panel">
       <div class="ll-def"><b>${lcEsc(wvWaveName(wvSel.wave))}:</b> ${wvSel.wave === 'out' ? 'Clients on the 8 Oct list who no longer qualify, with the reason. Nobody here is in the list above.'

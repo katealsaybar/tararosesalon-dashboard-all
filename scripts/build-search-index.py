@@ -111,7 +111,7 @@ PAGE_ANCHORS = {
     'lostclients': ['Regulars (3+ visits)', 'Days away'],
     'lostlists': ['The WhatsApp waves', 'Still to contact'],
     'services': ['Sizes and names behind this row'],
-    'wvblast': ['Everyone on the list', 'Blast 4: the last push, Mon 26 Oct'],
+    'wvblast': ['Everyone on the list', 'Blast 4: the last push'],
     'products': ['Retail stock bought against retail sold'],
     'googleads': ['Every campaign that ran'],
     'marketingspend': ['What is and is not in these numbers', 'Invoices to download'],

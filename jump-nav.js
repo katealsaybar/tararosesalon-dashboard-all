@@ -87,7 +87,6 @@ const JN_PAGES = {
   clients:        { sel: 'h3' },
   clientmix:      { sel: '#cmCards, .cm-two, #cmListTitle', labels: ['The mix', 'By item', 'The clients'] },
   lostclients:    { sel: '#lcBody > section.slv-card', labels: ['The totals', 'The client list'] },
-  wvblast:        { sel: '#wvSendBox, #wvPerf, #wvHost > details.pf, #wvHost > .ll-panel', label: el => el.id === 'wvSendBox' ? 'Send a wave' : el.id === 'wvPerf' ? 'How it is doing' : el.matches('details') ? 'Waves' : 'How clients are chosen' },
   services:       { sel: '#srBody .w13-tiles, #srBody h3', labels: ['The numbers', 'Top services'] },
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },
   supplierspend:  { sel: 'h2.s', shadow: '#spendContent', full: true, labels: ['Weekly spend by family', 'Every supplier', 'What Accounts paid'] },

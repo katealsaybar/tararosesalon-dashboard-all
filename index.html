@@ -3506,7 +3506,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="lost-queue.css?v=3628ae30">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="jump-nav.css?v=770286b5">
-<link rel="stylesheet" href="wv-blast.css?v=e10189c1">
+<link rel="stylesheet" href="wv-blast.css?v=d25d63e4">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
 <link rel="stylesheet" href="tool-spend.css?v=c483f63c">
 <link rel="stylesheet" href="marketing-spend.css?v=aa9f4f2f">
@@ -3555,7 +3555,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
       cl:  [LGX, 'lost-clients.js?v=25d90f74', 'lost-lists.js?v=601836f9', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=032c13a7', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=035195d9',
-            'lost-report.js?v=12247e66', 'wv-blast.js?v=5bd0396e', 'wv-last.js?v=49a5ecad', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
+            'lost-report.js?v=12247e66', 'wv-blast.js?v=174d54fe', 'wv-last.js?v=9d243383', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
@@ -4383,7 +4383,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        (migrations/wv_blast.sql). Level 3 and above, names and numbers. wv-blast.js draws it. -->
   <div id="view-wvblast" style="display:none">
     <div class="wv-tabs" id="wvTabsBlast" style="display:none"></div>
-    <main id="wvBlastContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+    <main id="wvBlastContent" style="max-width:1340px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
 
@@ -4516,7 +4516,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
 <!-- Before dashboard.js: the shared jump list, lgRail and lgShell and lgJump (moved out of branch-ledger.js) and the automatic list on pages that name their sections. -->
-<script src="jump-nav.js?v=747f2fb0"></script>
+<script src="jump-nav.js?v=032e25d7"></script>
 <script src="dashboard.js?v=3dcb6627"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
