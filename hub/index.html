@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=2dc7b9bb">
+<link rel="stylesheet" href="/hub/hub.css?v=a64c3b27">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
 <body class="kb-wait">
@@ -133,8 +133,8 @@ KB.ready.then(async function () {
   // Kate, 22 Oct 2026: "yung favorites gawin mo na ring boxes": a favourite is a square like the section squares, same size and same lift on hover,
   // with the section it belongs to underneath its name.
   function pill(s) {
-    return '<a class="kb-gtile kb-fvbox" href="' + esc(s.href || '/hub/kb.html?s=' + s.key) + '"' + (s.blurb ? ' title="' + esc(s.blurb) + '"' : '') + '>' +
-      icon(s) + '<span class="kb-gt-tx"><b>' + esc(s.title) + '</b>' + (function (sub) { return sub ? '<span>' + esc(sub) + '</span>' : ''; })(s.dept || (s.key.indexOf('p:') === 0 ? s.blurb : '') || (/^\/\?view=/.test(s.href || '') ? 'Dashboard' : '')) + '</span></a>';
+    return '<div class="kb-fvwrap"><a class="kb-gtile kb-fvbox" href="' + esc(s.href || '/hub/kb.html?s=' + s.key) + '"' + (s.blurb ? ' title="' + esc(s.blurb) + '"' : '') + '>' +
+      icon(s) + '<span class="kb-gt-tx"><b>' + esc(s.title) + '</b>' + (function (sub) { return sub ? '<span>' + esc(sub) + '</span>' : ''; })(s.dept || (s.key.indexOf('p:') === 0 ? s.blurb : '') || (/^\/\?view=/.test(s.href || '') ? 'Dashboard' : '')) + '</span></a>' + KB.starBtn(s.key, s.title) + '</div>';
   }
   function paint() {
     var starred = shown.filter(function (s) { return favs[s.key] && isLive(s) && !s.sample; })

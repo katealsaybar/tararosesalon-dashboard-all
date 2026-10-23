@@ -164,6 +164,13 @@ body.kb-wait .wrap{visibility:hidden}
   box-shadow:var(--shadow);transition:box-shadow .18s var(--ease),transform .18s var(--ease),border-color .18s var(--ease)}
 .kb-gtile:hover{box-shadow:var(--shadow-hover);transform:translateY(-5px);border-color:var(--muted2)}
 .kb-gtile{text-decoration:none}
+/* Kate, 23 Oct 2026: a star on each favourite box, top right, to take it out of the favourites. The wrapper takes the lift so the star moves with the box. */
+.kb-fvwrap{position:relative;aspect-ratio:1/1;min-height:140px;transition:transform .18s var(--ease)}
+.kb-fvwrap:hover{transform:translateY(-5px)}
+.kb-fvwrap .kb-gtile{width:100%;height:100%;aspect-ratio:auto;box-sizing:border-box;padding-right:56px}
+.kb-fvwrap .kb-gtile:hover{transform:none;box-shadow:var(--shadow-hover);border-color:var(--muted2)}
+.kb-fvwrap .kb-star{z-index:1}
+@media (prefers-reduced-motion:reduce){.kb-fvwrap{transition:none}.kb-fvwrap:hover{transform:none}}
 .kb-gtile:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 .kb-gtile.on{border-color:var(--text);box-shadow:0 0 0 1px var(--text) inset}
 .kb-gtile .kb-ic{width:44px;height:44px}
@@ -333,6 +340,9 @@ body.kb-wait .wrap{visibility:hidden}
   .kb-depts{columns:1}
   .kb-gtiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:20px}
   .kb-gtile{min-height:120px;padding:14px;gap:10px;border-radius:14px}
+  .kb-fvwrap{min-height:120px}
+  .kb-fvwrap .kb-gtile{padding-right:14px}
+  .kb-fvwrap .kb-star{top:8px;right:8px;width:36px;height:36px}
   .kb-gt-tx b{font-size:15px}
   .kb-dept{margin-bottom:16px;border-radius:14px}
   .kb-dept-h{padding:14px 16px 8px}
