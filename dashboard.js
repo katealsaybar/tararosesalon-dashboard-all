@@ -327,12 +327,14 @@ function drawReviewsRail(items, o) {
   // Kate, 22 Oct 2026: Wellness Voucher (3rd blast) is the last entry of Wellness Voucher Performance's rail (Level 3 and up); it opens that page
   // rather than scrolling, and spy() leaves it out (a.side-go).
   const goBlast = o.side === 'wvSide' && typeof trsPageOpen === 'function' && trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
-  const nav = side.querySelector('.side-nav'), sig = items.map(i => i.id + '|' + i.label).join(';') + (goBlast ? '|blast' : '');
+  const goLast = o.side === 'wvSide' && typeof trsPageOpen === 'function' && trsPageOpen('wvlast', TRS_LEVEL, TRS_EXTRA);   // 23 Oct 2026: the 4th blast (the last push) is its own page
+  const nav = side.querySelector('.side-nav'), sig = items.map(i => i.id + '|' + i.label).join(';') + (goBlast ? '|blast' : '') + (goLast ? '|last' : '');
   if (nav && nav.dataset.sig !== sig) {
     nav.dataset.sig = sig;
     nav.innerHTML = '<div class="side-k">On this page</div>' + items.map(i =>
       `<a href="#${i.id}" onclick="lgJump(event,'${i.id}')">${escapeHtml(i.label)}</a>`).join('') +
-      (goBlast ? `<a class="side-go" href="/?view=wvblast" onclick="event.preventDefault();showView('wvblast', null)">Wellness Voucher (3rd blast)</a>` : '');
+      (goBlast ? `<a class="side-go" href="/?view=wvblast" onclick="event.preventDefault();showView('wvblast', null)">Wellness Voucher (3rd blast)</a>` : '') +
+      (goLast ? `<a class="side-go" href="/?view=wvlast" onclick="event.preventDefault();showView('wvlast', null)">Wellness Voucher (4th blast)</a>` : '');
   }
   doc.querySelectorAll('.rv-anchor').forEach(a => { if (!items.some(i => i.id === a.id)) a.remove(); });
   items.forEach(i => {

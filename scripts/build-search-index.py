@@ -60,7 +60,7 @@ FILE_VIEWS = {
     'lost-clients.js': 'lostclients', 'lost-lists.js': 'lostlists', 'lost-queue.js': 'lostlists', 'pulse-narrative.js': 'dashboard',
     'branch-narrative.js': 'branchperf', 'ledger-targets.js': 'ledgerTargets',
     # Added 16 Oct 2026 by the guard: these four drew page text that was not indexed at all.
-    'wv-blast.js': 'wvblast', 'glow-club.js': 'glowclub', 'lost-blast.js': 'lostlists', 'lost-report.js': 'lostlists',
+    'wv-blast.js': 'wvblast', 'wv-last.js': 'wvlast', 'glow-club.js': 'glowclub', 'lost-blast.js': 'lostlists', 'lost-report.js': 'lostlists',
     'send-schedule.js': 'lostlists',   # shared by Lost Clients and Wellness Voucher Blast; the page that sends most
 }
 # Scripts that draw one page from several functions, handled in main().
@@ -111,6 +111,7 @@ PAGE_ANCHORS = {
     'lostlists': ['The WhatsApp waves', 'Still to contact'],
     'services': ['Sizes and names behind this row'],
     'wvblast': ['Everyone on the list'],
+    'wvlast': ['The last push, Mon 26 Oct'],
     'products': ['Retail stock bought against retail sold'],
     'googleads': ['Every campaign that ran'],
     'marketingspend': ['What is and is not in these numbers', 'Invoices to download'],

@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=ddb4c2f3"></script>
+<script src="pages.js?v=815d82f6"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3505,7 +3505,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="lost-queue.css?v=3628ae30">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
-<link rel="stylesheet" href="wv-blast.css?v=8f6693ef">
+<link rel="stylesheet" href="wv-blast.css?v=6b273475">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
 <link rel="stylesheet" href="tool-spend.css?v=c483f63c">
 <link rel="stylesheet" href="marketing-spend.css?v=aa9f4f2f">
@@ -3554,7 +3554,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
       cl:  [LGX, 'lost-clients.js?v=25d90f74', 'lost-lists.js?v=601836f9', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=032c13a7', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=035195d9',
-            'lost-report.js?v=12247e66', 'wv-blast.js?v=912ebeff', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
+            'lost-report.js?v=12247e66', 'wv-blast.js?v=8d9dfade', 'wv-last.js?v=c1b89c4b', 'top-clients.js?v=d73e7f2e', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
@@ -4385,6 +4385,13 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="wvBlastContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- WELLNESS VOUCHER, 4TH BLAST (Kate, 23 Oct 2026): the last push, 312 clients in two lists, sent by hand from respond.io on Mon 26 Oct. A page of its own so it does not
+       sit on top of the 3rd blast. wv_lastpush_performance / wv_lastpush_get (migrations/wv_lastpush.sql). Level 3 and above; Level 4 sees the money only. wv-last.js draws it. -->
+  <div id="view-wvlast" style="display:none">
+    <div class="wv-tabs" id="wvTabsLast" style="display:none"></div>
+    <main id="wvLastContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- GOOGLE ADS (Kate, 6 Oct 2026): spend, clicks and Google's conversions by salon
        and campaign, from google_ads_report over google_ads_daily. google-ads.js draws it. -->
   <div id="view-googleads" style="display:none">
@@ -4513,7 +4520,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
-<script src="dashboard.js?v=a5984e99"></script>
+<script src="dashboard.js?v=690a9eb9"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4875,12 +4882,15 @@ sb.auth.onAuthStateChange((event) => {
 // Wellness Voucher (3rd blast) lives inside Wellness Voucher Performance (Kate, 22 Oct 2026): from Performance's "On this page" rail (dashboard.js
 // drawReviewsRail) and the indented sidebar entry; on the blast page itself this is the way back.
 function wvTabs(view){
-  const box = document.getElementById('wvTabsBlast');
-  if (!box) return;
-  const ok = view === 'wvblast' && trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
-  box.style.display = ok ? '' : 'none';
-  box.innerHTML = ok ? '<button type="button" data-v="wvperf">← Wellness Voucher Performance</button>' : '';
-  box.onclick = e => { if (e.target.closest('button[data-v]')) showView('wvperf', document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`)); };
+  // the 3rd blast and the 4th (the last push, 23 Oct 2026) each have a way back to Wellness Voucher Performance
+  [['wvblast', 'wvTabsBlast'], ['wvlast', 'wvTabsLast']].forEach(([v, id]) => {
+    const box = document.getElementById(id);
+    if (!box) return;
+    const ok = view === v && trsPageOpen(v, TRS_LEVEL, TRS_EXTRA);
+    box.style.display = ok ? '' : 'none';
+    box.innerHTML = ok ? '<button type="button" data-v="wvperf">← Wellness Voucher Performance</button>' : '';
+    box.onclick = e => { if (e.target.closest('button[data-v]')) showView('wvperf', document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`)); };
+  });
 }
 function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
@@ -4989,10 +4999,10 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'clients' || view === 'clientmix' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'wvlast' || view === 'glowclub' || view === 'clients' || view === 'clientmix' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
-  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub');
+  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'wvlast' || view === 'glowclub');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
   document.body.classList.toggle('toolspend-chrome', view === 'toolspend');
@@ -5026,6 +5036,7 @@ function showView(view, el){
   if (view === 'lostclients') renderLostClients();
   if (view === 'lostlists') renderLostListsPage();
   if (view === 'wvblast') renderWvBlast();
+  if (view === 'wvlast') renderWvLast();
   if (view === 'glowclub') renderGlowClub();
   if (view === 'googleads') renderGoogleAds();
   if (view === 'marketingspend') renderMarketingSpend();
@@ -5054,7 +5065,7 @@ function showView(view, el){
   if (typeof spy === 'function') spy();
 
   // Kate, 22 Oct 2026: the 3rd blast has no sidebar entry; it is inside Wellness Voucher Performance, so that entry stays lit for both.
-  if (view === 'wvblast') el = document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`) || el;
+  if (view === 'wvblast' || view === 'wvlast') el = document.querySelector(`#sidebar .nav-sub[onclick*="showView('wvperf'"]`) || el;
   wvTabs(view);
   // active button state
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));

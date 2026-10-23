@@ -39,3 +39,8 @@
 .wv-bar i:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 /* The value label over a bar (wvTipOn in wv-blast.js): the page's text and background swapped, so it reads on both themes. */
 .wv-tip{position:fixed;z-index:80;max-width:min(320px,calc(100vw - 16px));padding:6px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums;box-shadow:0 6px 18px rgba(0,0,0,.28);pointer-events:none}
+/* Sortable headers on the 4th blast's list (23 Oct 2026): the header text is a button; the arrow shows the order, a faint double arrow when the column is not sorted */
+.wv-sort{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;cursor:pointer;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;white-space:nowrap}
+.wv-sort:hover{color:var(--text)}
+.wv-sort:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:4px}
+.wv-sortic{font-size:10px;opacity:.4}.wv-sort.on .wv-sortic{opacity:1}

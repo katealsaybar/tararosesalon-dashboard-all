@@ -53,6 +53,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "lostclients", "label": "Client’s Last Visit", "group": "Numbers", "sub": "Clients", "min": 2, "slug": "last-visit", "filtered": 1, "nopulse": 1, "lazy": "cl", "ic": "lost-clients", "words": "last visit lapsed clients not back come back haven't been back win back", "lv": [2]},
   {"id": "lostlists", "label": "Lost Client Blasts, October 2026", "group": "Campaigns", "min": 2, "slug": "lost-clients", "lazy": "cl", "ic": "lost-clients", "words": "lost clients outreach lists whatsapp groups waves campaign templates to message", "lv": [2, 4]},
   {"id": "wvblast", "label": "Wellness Voucher (3rd blast)", "group": "Campaigns", "inside": "wvperf", "min": 3, "lazy": "cl", "words": "voucher blast whatsapp wave send message vouchers clients", "lv": [4]},
+  {"id": "wvlast", "label": "Wellness Voucher (4th blast)", "group": "Campaigns", "inside": "wvperf", "min": 3, "lazy": "cl", "words": "voucher last push final blast 4th fourth whatsapp 26 october warm clean clients cost balance", "lv": [4]},
   {"id": "reviews", "label": "Google Reviews", "group": "Numbers", "sub": "Clients", "filtered": 1, "words": "google reviews ratings stars", "lv": [2]},
   {"id": "services", "label": "Service Rankings", "group": "Numbers", "sub": "Sales & Stock", "lazy": "cl", "words": "service rankings treatments top services", "lv": []},
   {"id": "products", "lazy": "pr", "label": "Products", "group": "Numbers", "sub": "Sales & Stock", "filtered": 1, "words": "products stock orders retail professional spend", "lv": [4]},
