@@ -89,3 +89,29 @@
 @media (prefers-reduced-motion:reduce){
   #marketingSpendContent .ms-rung,#marketingSpendContent .ms-rung-bar i{transition:none}
 }
+
+/* The invoices to download */
+#marketingSpendContent .ms-invs{display:grid;gap:8px}
+#marketingSpendContent details.ms-inv{border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+#marketingSpendContent details.ms-inv>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:12px;padding:10px 14px}
+#marketingSpendContent details.ms-inv>summary::-webkit-details-marker{display:none}
+#marketingSpendContent details.ms-inv>summary b{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:17px}
+#marketingSpendContent details.ms-inv>summary span{font-size:12.5px;color:var(--muted);flex:1}
+#marketingSpendContent details.ms-inv>summary:focus-visible{outline:2px solid var(--ms-teal);outline-offset:2px;border-radius:12px}
+#marketingSpendContent .ms-inv-zip,#marketingSpendContent .ms-inv-b{font:inherit;font-size:12.5px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:5px 12px;cursor:pointer;white-space:nowrap}
+#marketingSpendContent .ms-inv-zip:hover,#marketingSpendContent .ms-inv-b:hover{border-color:var(--ms-teal)}
+#marketingSpendContent .ms-inv-zip:disabled,#marketingSpendContent .ms-inv-b:disabled{opacity:.55;cursor:default}
+#marketingSpendContent .ms-inv-zip:focus-visible,#marketingSpendContent .ms-inv-b:focus-visible{outline:2px solid var(--ms-teal);outline-offset:2px}
+#marketingSpendContent .ms-inv-b small{color:var(--muted);margin-left:4px}
+#marketingSpendContent .ms-inv-body{padding:2px 14px 12px;border-top:1px solid var(--border2)}
+#marketingSpendContent .ms-inv-g{margin-top:10px}
+#marketingSpendContent .ms-inv-gt{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+#marketingSpendContent .ms-inv-gt span{text-transform:none;letter-spacing:0}
+#marketingSpendContent .ms-inv-r{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--border2);font-size:13.5px}
+#marketingSpendContent .ms-inv-r:last-child{border-bottom:0}
+#marketingSpendContent .ms-inv-n{display:flex;flex-direction:column;min-width:0}
+#marketingSpendContent .ms-inv-a{font-size:12px;color:var(--muted)}
+@media (max-width:720px){
+  #marketingSpendContent details.ms-inv>summary{flex-wrap:wrap}
+  #marketingSpendContent .ms-inv-r{flex-wrap:wrap}
+}
