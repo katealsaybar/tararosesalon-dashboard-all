@@ -255,6 +255,14 @@ async function psReadPayName(file) {
   } catch (e) { return ''; }
 }
 
+// Kate, 23 Oct 2026 (ALD7b-01): the employed assistants joined this list on 19 Oct and reception on 21 Oct, so a month before
+// that has no payslip for them. September read "48 of 76 uploaded" and "Waiting for payslip 28" as if 28 were missed.
+// Months from the first of these dates on count everyone, as before.
+const PS_JOINED = { ASST: '2026-10-19', REC: '2026-10-21' };
+const psJoinedGroup = s => s.branch === 'ASST' || s.branch === 'REC';
+const psFirstMonth = Object.values(PS_JOINED).map(d => d.slice(0, 7)).sort()[0];
+const psMonthEarly = ym => ym < psFirstMonth;
+
 function psMonthOptions() {
   const out = [], now = new Date();
   for (let i = 0; i < 13; i++) {
@@ -268,6 +276,18 @@ function psMonthOptions() {
 function psRender() {
   const host = document.getElementById('payslipHost');
   const done = PS_STATE.staff.filter(s => s.payslip).length, all = PS_STATE.staff.length;
+  // A month before the assistants and reception joined the list counts the hair and beauty team on its own and says why.
+  const early = psMonthEarly(PS_STATE.month);
+  const core = early ? PS_STATE.staff.filter(s => !psJoinedGroup(s)) : PS_STATE.staff;
+  const nAsst = PS_STATE.staff.filter(s => s.branch === 'ASST').length, nRec = PS_STATE.staff.filter(s => s.branch === 'REC').length;
+  const joinedNote = (() => {
+    const mon = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long' });
+    const bits = [nAsst ? `Assistants (${nAsst})` : '', nRec ? `reception (${nRec})` : ''].filter(Boolean);
+    return bits.length ? ` ${bits.join(' and ')} joined this list on 19 and 21 October, so ${psEsc(mon)} has none for them.` : '';
+  })();
+  const countHtml = early
+    ? `<b>${core.filter(s => s.payslip).length}</b> of ${core.length} hair and beauty team uploaded.${joinedNote}`
+    : `<b>${done}</b> of ${all} uploaded`;
   const groups = {};
   PS_STATE.staff.forEach(s => (groups[s.branch] ||= []).push(s));
   const row = s => {
@@ -284,7 +304,7 @@ function psRender() {
   host.innerHTML = `
     <div class="ps-top">
       <label class="ps-month">Month <select onchange="PS_STATE.month=this.value; initPayslipsTab()">${psMonthOptions()}</select></label>
-      <div class="ps-count"><b>${done}</b> of ${all} uploaded</div>
+      <div class="ps-count">${countHtml}</div>
       <a href="#" class="ps-key" onclick="psForgetKey();return false">Signed in as ${psEsc(PS_STATE.admin)}. Change key</a>
     </div>
     <div class="ps-branches ps-views" id="psViews"></div>
@@ -699,7 +719,12 @@ function psRenderSend() {
     return;
   }
   const n = st => S.people.filter(p => p.state === st).length;
-  const ready = n('ready'), sent = n('sent'), waiting = n('waiting'), noEmail = n('no_email'), check = n('check');
+  const ready = n('ready'), sent = n('sent'), noEmail = n('no_email'), check = n('check');
+  // ALD7b-01: someone added to the list after this month's send date is not waiting for a payslip, there is none to wait for.
+  const staffOf = new Map(PS_STATE.staff.map(s => [String(s.id), s]));
+  const notOnList = psMonthEarly(PS_STATE.month)
+    ? S.people.filter(p => p.state === 'waiting' && psJoinedGroup(staffOf.get(String(p.id)) || {})).length : 0;
+  const waiting = n('waiting') - notOnList;
   const sch = S.schedule, pending = sch && !sch.done_at;
   let line;
   if (pending) line = `<b>Goes out ${psEsc(psWhen(sch.send_at))}</b> (Dubai time). Set by ${psEsc(sch.set_by)}. ${ready} ${ready === 1 ? 'is' : 'are'} ready now; anyone uploaded before then goes too.`;
@@ -718,6 +743,7 @@ function psRenderSend() {
       <span class="ps-chip st-sent">Emailed ${sent}</span>
       <span class="ps-chip">Ready ${ready}</span>
       <span class="ps-chip">Waiting for payslip ${waiting}</span>
+      ${notOnList ? `<span class="ps-chip">Not on this month’s list ${notOnList}</span>` : ''}
       ${noEmail ? `<span class="ps-chip">No email ${noEmail}</span>` : ''}
       ${check ? `<span class="ps-chip st-check">Check Sent folder ${check}</span>` : ''}
     </div>
