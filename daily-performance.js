@@ -169,7 +169,7 @@ function dpCss() {
   .dpf .dp-sr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-top:5px;font-size:13.5px}
   .dpf .dp-sr .dp-sk{flex:0 0 58px;color:var(--muted)}
   .dpf .dp-sr b{font-variant-numeric:tabular-nums}
-  .dpf .dp-sr .dp-sx{color:var(--muted2);font-variant-numeric:tabular-nums}
+  .dpf .dp-sr .dp-sx{flex:1 0 100%;color:var(--muted2);font-variant-numeric:tabular-nums}
   .dpf .dp-sr .dp-chip{margin:0 0 0 auto;padding:1px 8px;font-size:12px}
   .dpf .dp-sub{font-size:13px;color:var(--muted);line-height:1.4}
   .dpf .dp-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;border-radius:10px;padding:1px 8px;margin-top:6px}
@@ -231,6 +231,9 @@ function dpCss() {
   .dpf .dp-meter .mf.good{background:var(--good)}.dpf .dp-meter .mf.warn{background:var(--warn)}.dpf .dp-meter .mf.bad{background:var(--bad)}
   .dpf .dp-meter .mt{position:absolute;top:-4px;height:18px;border-left:1.5px dashed var(--muted)}
   .dpf .dp-meter .mn{position:absolute;top:-6px;width:3px;height:22px;margin-left:-1.5px;background:var(--text);border-radius:1px}
+  .dpf .dp-mrow.dp-sec .dp-mh b,.dpf .dp-mrow.dp-sec .dp-mh span{font-weight:500;color:var(--muted)}
+  .dpf .dp-mrow.dp-sec .dp-ms{color:var(--muted2)}
+  .dpf .dp-mrow>i.km{width:14px;height:6px;border-radius:3px;border:1.5px solid var(--muted);background:transparent;box-sizing:border-box}
   .dpf .dp-meter-k{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);line-height:1.5}
   .dpf .dp-meter-k .kb{flex:none;width:14px;height:6px;border-radius:3px;background:var(--muted)}
   .dpf .dp-meter-k .kn{flex:none;width:3px;height:12px;margin:0 5.5px;border-radius:1px;background:var(--text)}
@@ -829,15 +832,29 @@ function dpPeriodFig(mk, code, idxs) {
 // The meter under a tile (Kate, 18 Oct 2026: "a bar meter with a moveable needle to show daily performance"): 0 to 150% of target,
 // red under 80, amber to 100, green beyond. The bar is the whole period against its target, the needle is the latest day against its
 // own daily target, the dashed line is 100%. Money and counts that have a target; a rate keeps its chip.
-function dpMeter(pf, c, dayName, M, dayWord) {
+// Kate, 23 Oct 2026: "dapat pre-computed na ang target ng buong 1 to 31, nakakalito". The target on a tile was only the part of the month gone by (22 days of 31), so
+// 1,367,778 sat next to a month that is worth 1,958,800. The month's whole target now leads, and the target to date stays under it as the pace to read progress by.
+// Only a window inside one calendar month has one month to read it against.
+const DP_MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function dpMonthInfo(mk, code, idxs) {
+  const M = DP_M[mk];
+  if (!M || M.kind !== 'vol' || M.notarget || M.util || !idxs || !idxs.length) return null;
+  const a = dpYmd(DPD.days[idxs[0]]), b = dpYmd(DPD.days[idxs[idxs.length - 1]]);
+  if (a.slice(0, 7) !== b.slice(0, 7)) return null;
+  const month = a.slice(0, 7), mt = M.tgtFn ? M.tgtFn(code, month) : dpMonthTarget(month, code, M.monthly());
+  if (!(mt > 0)) return null;
+  const y = +month.slice(0, 4), m = +month.slice(5, 7), dim = new Date(y, m, 0).getDate();
+  return { t: mt, label: '1 to ' + dim + ' ' + DP_MON3[m - 1] };
+}
+function dpMeter(pf, c, dayName, M, dayWord, mon) {
   if (!pf || pf.p == null) return '';
   // Kate, 22 Oct 2026: the day's target read as an afterthought when the day slider moved. The bar and the white line now each get a
   // row of the same weight: what it is, its % of target, then its figure against its own target in plain words.
-  const mrow = (cls, name, p, v, t, tword) => `<div class="dp-mrow"><i class="${cls}"></i><div><div class="dp-mh"><b>${name}</b><span>${Math.round(p)}%</span></div><div class="dp-ms">${M && M.fmt ? M.fmt(v) : ''} against ${tword} of ${M && M.fmt ? M.fmt(t) : ''}</div></div></div>`;
+  const mrow = (cls, name, p, v, t, tword, ex) => `<div class="dp-mrow${ex ? ' ' + ex : ''}"><i class="${cls}"></i><div><div class="dp-mh"><b>${name}</b><span>${Math.round(p)}%</span></div><div class="dp-ms">${M && M.fmt ? M.fmt(v) : ''} against ${tword} of ${M && M.fmt ? M.fmt(t) : ''}</div></div></div>`;
   const X = p => Math.min(Math.max(p, 0), 150) / 150 * 100;
   const dayP = c && c.p != null ? c.p : null, col = pf.p >= 100 ? 'good' : pf.p >= 80 ? 'warn' : 'bad';
   return `<div class="dp-meter" role="img" aria-label="Whole period ${Math.round(pf.p)}% of target${dayP != null ? ', day ' + Math.round(dayP) + '%' : ''}"><span class="mz bad" style="width:${80 / 150 * 100}%"></span><span class="mz warn" style="width:${20 / 150 * 100}%"></span><span class="mz good"></span><i class="mf ${col}" style="width:${X(pf.p)}%"></i><b class="mt" style="left:${X(100)}%"></b>${dayP != null ? `<b class="mn" style="left:${X(dayP)}%"></b>` : ''}</div>
-    ${mrow('kb', 'Whole period so far', pf.p, pf.v, pf.t, 'its target')}${dayP != null ? mrow('kn', (dayWord ? dayWord + ' · ' : '') + (dayName || 'the day'), dayP, c.v, c.t, "that day's target") + (dayP > 150 ? '<div class="dp-meter-k">The white line is off the end of the meter.</div>' : '') : ''}
+    ${mon && pf.t != null && Math.abs(mon.t - pf.t) > 1 ? mrow('km', 'Whole month, ' + mon.label, pf.v / mon.t * 100, pf.v, mon.t, "the month's target") : ''}${mrow('kb', mon && pf.t != null && Math.abs(mon.t - pf.t) > 1 ? 'Pace to date' : 'Whole period so far', pf.p, pf.v, pf.t, mon && pf.t != null && Math.abs(mon.t - pf.t) > 1 ? 'the target to date' : 'its target', mon && pf.t != null && Math.abs(mon.t - pf.t) > 1 ? 'dp-sec' : '')}${dayP != null ? mrow('kn', (dayWord ? dayWord + ' · ' : '') + (dayName || 'the day'), dayP, c.v, c.t, "that day's target") + (dayP > 150 ? '<div class="dp-meter-k">The white line is off the end of the meter.</div>' : '') : ''}
     <div class="dp-meter-k dp-mkt"><i class="kt"></i><span>Dashed line: the target (100%)</span></div>`;
 }
 // The day the needle has been moved to (an index into the window's days), or null for the latest open day. Reset when the window changes.
@@ -856,12 +873,15 @@ function dpSplit(code, ids) {
   if (DP.measure !== 'sales' || !ids || !ids.length) return '';
   const tot = dpPeriodFig('sales', code, ids), ret = dpPeriodFig('retail', code, ids);
   if (!tot || !ret) return '';
-  const row = (name, v, t) => {
-    const p = t != null && t > 0 ? v / t * 100 : null, st = p != null ? dpStatus(p, 80) : null;
-    return `<div class="dp-sr"><span class="dp-sk">${name}</span><b>${dpMoney(v)}</b><span class="dp-sx">${t != null ? 'of ' + dpMoney(t) : 'no target'}</span>${st ? `<span class="dp-chip ${st[0]}">${Math.round(p)}%</span>` : ''}</div>`;
+  // The figure is read against the month's whole target when the window is inside one month; the percentage stays the pace to date, which is what the colour means.
+  const row = (name, v, t, mt) => {
+    const p = t != null && t > 0 ? v / t * 100 : null, st = p != null ? dpStatus(p, 80) : null, shown = mt != null ? mt : t;
+    return `<div class="dp-sr"><span class="dp-sk">${name}</span><b>${dpMoney(v)}</b>${st ? `<span class="dp-chip ${st[0]}" title="Against the target to date, ${dpMoney(t)}">${Math.round(p)}%</span>` : ''}<span class="dp-sx">${shown != null ? 'of ' + dpMoney(shown) + (mt != null ? ' this month' : '') : 'no target'}</span></div>`;
   };
   const svT = tot.t != null && ret.t != null ? tot.t - ret.t : null;
-  return `<div class="dp-split"><div class="dp-eyebrow">Made of</div>${row('Services', tot.v - ret.v, svT)}${row('Retail', ret.v, ret.t)}</div>`;
+  const mTot = dpMonthInfo('sales', code, ids), mRet = dpMonthInfo('retail', code, ids);
+  const mSv = mTot && mRet ? mTot.t - mRet.t : null;
+  return `<div class="dp-split"><div class="dp-eyebrow">Made of${mTot ? ' · ' + mTot.label : ''}</div>${row('Services', tot.v - ret.v, svT, mSv)}${row('Retail', ret.v, ret.t, mRet ? mRet.t : null)}</div>`;
 }
 function dpTiles(win, idxs, cidx) {
   const mk = DP.measure, M = DP_M[mk];
@@ -884,7 +904,7 @@ function dpTiles(win, idxs, cidx) {
     const why = raw.state === 'closed' ? 'Closed' : 'No figures';
     const pf = idxs.length > 1 ? dpPeriodFig(mk, code, idxs) : null;
     const label = `<b style="color:var(--text)">${M.def && typeof ihTip === 'function' ? ihTip(dpEsc(M.label), M.def) : dpEsc(M.label)}</b>`;
-    const meter = M.kind === 'vol' && !M.notarget ? dpMeter(pf, c, dayName, M, dayWord) : '';
+    const meter = M.kind === 'vol' && !M.notarget ? dpMeter(pf, c, dayName, M, dayWord, dpMonthInfo(mk, code, idxs)) : '';
     // The meter's own rows already give the period and the day, each against its target, so the lines that said the same are left out.
     const metered = !!meter;
     const spark = `<div style="margin-top:8px;max-width:260px">${dpSpark(code, idxs, mk)}</div>`;
