@@ -240,7 +240,8 @@ const bu={};
 function build(){
   const fT=S.fac[S.month-1];
   const rows=P.map((p,i)=>{
-    const months=[8,9,10].map((m,k)=>({m,d:p[4+k][0],r:p[4+k][1]}));
+    /* Only months before the one we plan: planning Oct must not use October itself (Kate, 23 Oct 2026: Oct and Nov showed the same plan). */
+    const months=[8,9,10].filter(m=>m<S.month).map(m=>({m,d:p[4+m-8][0],r:p[4+m-8][1]}));
     const part=/part-time/i.test(p[3]);
     const need=m=>part?1:(m===10?OCT_MIN:FULL_MIN);
     const qual=months.filter(x=>x.d>=need(x.m));
@@ -248,7 +249,7 @@ function build(){
     let status,used;
     if(!any.length){status='none';used=[];}
     else if(part){status='part';used=any;}
-    else if(qual.length===3){status='regular';used=qual;}
+    else if(qual.length===months.length){status='regular';used=qual;}
     else if(months[0].d===0&&qual.length>=1&&qual.length===any.length){status='joiner';used=qual;}
     else if(qual.length>=2){status='left';used=qual;}
     else{status='look';used=qual.length?qual:any;}
@@ -470,7 +471,7 @@ document.getElementById('btnCopy').addEventListener('click',async()=>{
 
 /* ---------- controls ---------- */
 (function(){
-  document.getElementById('selMonth').innerHTML=MN.map((m,i)=>`<option value="${i+1}"${i+1===S.month?' selected':''}>${m} 2026${i+1>=11?'':''}</option>`).join('');
+  document.getElementById('selMonth').innerHTML=MN.map((m,i)=>`<option value="${i+1}"${i+1===S.month?' selected':''}${i+1<10?' disabled':''}>${m} 2026${i+1===10?' (Aug and Sep only)':i+1<10?' (no history yet)':''}</option>`).join('');
   buildCal();
 })();
 function buildCal(){
