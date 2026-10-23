@@ -115,3 +115,5 @@
   #marketingSpendContent details.ms-inv>summary{flex-wrap:wrap}
   #marketingSpendContent .ms-inv-r{flex-wrap:wrap}
 }
+
+#marketingSpendContent .ms-total td{border-top:2px solid var(--border)}
