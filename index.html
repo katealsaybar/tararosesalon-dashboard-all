@@ -623,6 +623,20 @@ body.scoped #gsTrig, body.scoped #trs-ask{display:none!important}
 .mast-fresh{display:flex;flex-wrap:wrap;gap:0 14px;justify-content:flex-end}
 .mast-fresh b{font-weight:700;color:var(--text)}
 .mast-fresh .stale,.mast-fresh .stale b{color:var(--warn)}
+/* Kate, 23 Oct 2026 (ALD1-02): the line opens a panel saying what the two dates are and who is late (dashboard.js,
+   freshnessPanelHtml). Tap on a phone, hover on a desktop. The "i" is the cue; the whole line is the target, and the
+   hit area is padded without making the row taller. */
+.mast-fresh{cursor:pointer;position:relative}
+.mast-fresh::after{content:'';position:absolute;inset:-10px -4px}
+.mast-fresh:focus-visible{outline:2px solid var(--accent-lavender);outline-offset:3px;border-radius:4px}
+.mast-fresh .mf-i{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;
+  border:1px solid currentColor;font:italic 600 10px/1 'Playfair Display',serif;color:var(--muted2);align-self:center}
+.mf-panel{position:fixed;z-index:400;box-sizing:border-box;padding:12px 14px;border-radius:var(--radius-card);
+  background:var(--surface);color:var(--text);border:1px solid var(--border);font-size:13px;line-height:1.5;letter-spacing:0;
+  box-shadow:0 12px 30px -12px rgba(0,0,0,.45)}
+.mf-panel[hidden]{display:none}
+.mf-panel p{margin:0 0 8px}.mf-panel p:last-child{margin-bottom:0}
+.mf-panel .mf-late{color:var(--warn)}.mf-panel .mf-ok{color:var(--good)}.mf-panel .mf-tz{color:var(--muted2);font-size:12px}
 
 /* ── NEWER-DATA NOTICE ────────────────────────────────────
    Kate, 4 Sep 2026: the page used to refetch and redraw itself every 60s, so

@@ -1368,8 +1368,7 @@
     const mast = document.getElementById('mastFresh');
     const bits = feeds.map(f => {
       if (f === 'ledger' || f === 'phorest') {
-        const label = f === 'ledger' ? 'Ledger' : 'Phorest';
-        const span = mast && [...mast.children].find(c => c.textContent.trim().startsWith(label));
+        const span = mast && [...mast.children].find(c => c.dataset && c.dataset.feed === f);
         return span ? span.outerHTML : '';
       }
       const when = syncDates[f];
@@ -1411,7 +1410,7 @@
   // searched are only as fresh as those), with the date the page text was indexed.
   function freshHtml() {
     const mast = document.getElementById('mastFresh');
-    const bits = mast ? [...mast.children].filter(c => /Ledger|Phorest/.test(c.textContent)).map(c => c.outerHTML) : [];
+    const bits = mast ? [...mast.children].filter(c => c.dataset && c.dataset.feed).map(c => c.outerHTML) : [];
     const D = window.TRS_SEARCH_INDEX;
     if (D && D.built) {
       const d = new Date(D.built + 'T00:00:00');

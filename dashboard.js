@@ -5705,8 +5705,12 @@ async function getLatestCompleteDate(table) {
 // How old each feed is, on the masthead's meta rule. Only the date is stated; the
 // age is derived from it, so "1 day ago" does not become a lie overnight. Two days
 // or older goes amber — that is the whole point of putting it up there.
-function freshnessLine(label, info) {
-  if (!info || !info.date) return `<span class="stale">${label} <b>no syncs yet</b></span>`;
+// Kate, 23 Oct 2026 (ALD1-01, ALD1-02): "Ledger" and "Phorest" meant nothing to a stylist and "GST +04:00" read as the
+// tax. The chip now says what each feed is (Branch sheets, Phorest sales) and the dates are "up to" dates; the meaning,
+// who is late and the time zone sit in the panel that opens on a tap (or a hover on a desktop). `feed` is what
+// search.js looks for, so it does not depend on the words.
+function freshnessLine(label, info, feed) {
+  if (!info || !info.date) return `<span class="fl stale" data-feed="${feed}">${label}: <b>no syncs yet</b></span>`;
   const synced = new Date(info.date + 'T00:00:00');
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diffDays = Math.round((today - synced) / 86400000);
@@ -5725,16 +5729,94 @@ function freshnessLine(label, info) {
         return `${gStr}: ${g.missing.map(b => BRANCH_INFO[b]?.name || b).join(', ')}`;
       }).join('\n')
     : '';
-  const titleAttr = gapTitle ? ` title="${escapeHtml(gapTitle)}"` : '';
-  return `<span class="${diffDays >= 2 || !info.complete ? 'stale' : ''}"${titleAttr}>${label} <b>${dateStr}</b>, ${age}${flag}</span>`;
+  // The hover title is gone: the panel says the same in words a phone can reach.
+  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}">${label}: up to <b>${dateStr}</b> (${age})${flag}</span>`;
 }
+
+// "19 and 20 Oct", "30 Sep and 1 Oct": the missing days for one branch, same month folded together.
+function freshnessDays(dates) {
+  const byMon = [];
+  dates.forEach(d => {
+    const dt = new Date(d + 'T00:00:00'), m = MON_SHORT[dt.getMonth()];
+    const last = byMon[byMon.length - 1];
+    if (last && last.m === m) last.days.push(dt.getDate()); else byMon.push({ m, days: [dt.getDate()] });
+  });
+  const say = days => days.length > 1 ? days.slice(0, -1).join(', ') + ' and ' + days[days.length - 1] : String(days[0]);
+  return byMon.map(g => `${say(g.days)} ${g.m}`).join(' and ');
+}
+
+// The panel under the freshness line. Built from the same gap list the old hover read, so the late branches are the
+// same ones; the words for the two feeds are the approved ones (ALD1-01, ALD1-02). Late is only the branch sheets:
+// those are typed in by a coordinator, so there is someone to ask.
+function freshnessPanelHtml(ledgerInfo) {
+  const byBranch = new Map();
+  ((ledgerInfo && ledgerInfo.gaps) || []).forEach(g => g.missing.forEach(b => {
+    if (!byBranch.has(b)) byBranch.set(b, []);
+    byBranch.get(b).push(g.date);
+  }));
+  const late = [...byBranch].map(([b, dates]) =>
+    `<p class="mf-late"><b>Late:</b> ${escapeHtml(BRANCH_INFO[b]?.name || b)} has not sent ${freshnessDays(dates)}. Ask the branch coordinator to send it.</p>`);
+  return `<p><b>Branch sheets</b> are the daily sheets each branch types in. Client counts and rebooking come from them.</p>`
+    + `<p><b>Phorest sales</b> come straight from the till. Takings come from here.</p>`
+    + (late.length ? late.join('') : '<p class="mf-ok">Everything is up to date.</p>')
+    + '<p class="mf-tz">All times are UAE time.</p>';
+}
+
+// One panel for the page, opened under the line. It is a child of body and fixed, because the masthead rule clips
+// anything that hangs out of it. Tap or Enter opens it, a tap elsewhere or Escape closes it; on a desktop a hover does too.
+(function () {
+  let panel = null, hideTimer = 0;
+  const line = () => document.getElementById('mastFresh');
+  const isOpen = () => !!panel && !panel.hidden;
+  const close = () => { if (panel) panel.hidden = true; const l = line(); if (l) l.setAttribute('aria-expanded', 'false'); };
+  const open = () => {
+    const l = line(); if (!l || !l.dataset.panel) return;
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'mf-panel'; panel.id = 'mfPanel'; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'What these dates mean');
+      panel.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+      panel.addEventListener('mouseleave', () => { hideTimer = setTimeout(close, 200); });
+      document.body.appendChild(panel);
+    }
+    panel.innerHTML = l.dataset.panel;
+    panel.hidden = false;
+    const r = l.getBoundingClientRect(), w = Math.min(340, window.innerWidth - 24);
+    panel.style.width = w + 'px';
+    panel.style.top = (r.bottom + 6) + 'px';
+    panel.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, window.innerWidth < 760 ? r.left : r.right - w)) + 'px';
+    l.setAttribute('aria-expanded', 'true');
+  };
+  document.addEventListener('click', e => {
+    const l = line();
+    if (l && l.contains(e.target)) { isOpen() ? close() : open(); return; }
+    if (isOpen() && !panel.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') close();
+    else if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.id === 'mastFresh') { e.preventDefault(); isOpen() ? close() : open(); }
+  });
+  document.addEventListener('mouseover', e => {
+    if (!window.matchMedia('(hover:hover)').matches) return;
+    const l = line();
+    if (l && l.contains(e.target)) { clearTimeout(hideTimer); open(); }
+  });
+  document.addEventListener('mouseout', e => {
+    if (!window.matchMedia('(hover:hover)').matches) return;
+    const l = line();
+    if (l && l.contains(e.target) && !(e.relatedTarget && (l.contains(e.relatedTarget) || (panel && panel.contains(e.relatedTarget))))) hideTimer = setTimeout(close, 200);
+  });
+  window.addEventListener('scroll', close, { passive: true });
+})();
 
 function renderFreshnessBadge(ledgerInfo, phorestInfo) {
   const el = document.getElementById('mastFresh');
   if (!el) return;
-  el.innerHTML = freshnessLine('Ledger', ledgerInfo)
-    + freshnessLine('Phorest', phorestInfo)
-    + '<span>GST +04:00</span>';
+  el.innerHTML = freshnessLine('Branch sheets', ledgerInfo, 'ledger')
+    + freshnessLine('Phorest sales', phorestInfo, 'phorest')
+    + '<span class="mf-i" aria-hidden="true">i</span>';
+  el.dataset.panel = freshnessPanelHtml(ledgerInfo);
+  el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); el.setAttribute('aria-haspopup', 'dialog');
+  el.setAttribute('aria-label', 'Data dates. What these mean and who is late');
   if (typeof sizeTopbar === 'function') sizeTopbar();
 }
 
