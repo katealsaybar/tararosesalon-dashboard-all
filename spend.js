@@ -112,16 +112,17 @@ table.sh tr.g:hover td{background:color-mix(in srgb,var(--hl) 55%,var(--surface2
 .stat b{color:var(--text)}
 
 @container (max-width:900px){.grid3{grid-template-columns:1fr}.grid3>.card:not(.fit){contain:none;height:380px}}
-@container (max-width:600px){.pg{padding-left:14px;padding-right:14px}.fwrap{margin:0 -14px 14px;padding-left:14px;padding-right:14px}#q{min-width:0;width:100%}}
+@container (max-width:600px){.pg{padding-left:10px;padding-right:10px}.fwrap{margin:0 -10px 14px;padding-left:10px;padding-right:10px}#q{min-width:0;width:100%}}
 
 /* phone: the page is under 600px wide. No boxes round the panels, a card per supplier instead of a table, the filters as one row
    that drops a panel down (Kate's phone rulings, 16 Oct 2026). */
-.ph.pg{padding-left:14px;padding-right:14px}
-.ph .fwrap{position:relative;top:auto;margin:0 -14px 10px;padding:6px 14px}  /* a second sticky bar would hang mid-list under the phone header: it scrolls (Kate, 23 Oct 2026) */
+.ph.pg{padding-left:10px;padding-right:10px}
+.ph .fwrap{position:relative;top:auto;margin:0 -10px 10px;padding:6px 10px}  /* a second sticky bar would hang mid-list under the phone header: it scrolls (Kate, 23 Oct 2026) */
+.fhint{margin:0;font-size:12.5px;line-height:1.4;color:var(--muted);flex:1 1 100%}
 .ph .fhead{flex-wrap:nowrap}
 .ph .fhead .fsum{font-size:12.5px}
 .ph .fbtn,.ph .seg button,.ph .chips button{min-height:36px}
-.ph .fbar2.ov{position:absolute;left:0;right:0;top:100%;margin:0;background:var(--bg);border-bottom:1px solid var(--border);box-shadow:0 18px 30px -18px rgba(0,0,0,.5);padding:12px 14px 14px;display:flex;flex-direction:column;align-items:stretch;gap:12px;max-height:calc(100vh - var(--topbar-cond-h,92px) - 70px);overflow:auto}
+.ph .fbar2.ov{position:absolute;left:0;right:0;top:100%;margin:0;background:var(--bg);border-bottom:1px solid var(--border);box-shadow:0 18px 30px -18px rgba(0,0,0,.5);padding:12px 10px 14px;display:flex;flex-direction:column;align-items:stretch;gap:12px;max-height:calc(100vh - var(--topbar-cond-h,92px) - 70px);overflow:auto}
 .ph .seg{display:flex;width:100%}
 .ph .seg button{flex:1;padding:6px 4px}
 .ph .fg2{display:flex;gap:8px}
@@ -166,7 +167,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   let host = null, root = null, D = null;
   let SUP = [], PR = [], FM = [], UW = [], PS = {}, COVER = [], CAPS = { salon: {}, cat: {}, sup: {}, fam: {} }, INC = {}, EDIT = false;
   const S = { phone: false, month: null, br: 'ALL', group: true, activeOnly: true, q: '', qraw: '', fSup: null, fCat: null, fPrio: null, fType: 'all', sort: { k: 'val', d: -1 }, open: {}, menu: null, fOpen: true, msg: '' };
-  let loading = false;
+  let loading = false, loadedAt = 0;
   const isPhone = () => { const w = host ? host.getBoundingClientRect().width : 0; return w ? w < 600 : S.phone; };   // hidden (width 0) keeps what it was
 
   const $ = id => root.getElementById(id);
@@ -185,11 +186,25 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   const day = d => d ? new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
   const monthLabel = (m, partial) => new Date(m + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) + (partial ? ' so far' : '');
   const thisMonth = () => { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-01'; };
+  // Kate, 23 Oct 2026: no month or branch filter of the page's own. The masthead's Period and Branch drive it. The report works one
+  // calendar month at a time, so a Period that spans several reads the month it ends in; one branch picked is that branch, anything
+  // else (All, or two or three picked) is All four.
+  const wantMonth = () => {
+    try {
+      if (typeof activePeriodKey === 'function' && activePeriodKey() === 'All time') return null;
+      if (typeof dateTo !== 'undefined' && dateTo) return dateTo.getFullYear() + '-' + String(dateTo.getMonth() + 1).padStart(2, '0') + '-01';
+    } catch (e) { /* the window is not known yet: the report picks its own month */ }
+    return null;
+  };
+  const wantBranch = () => {
+    try { const b = sel.branch; if (Array.isArray(b) && b.length === 1 && B.indexOf(b[0]) >= 0) return b[0]; } catch (e) { /* All */ }
+    return 'ALL';
+  };
   const incomeFor = bs => { let t = 0; for (const b of bs) { if (!INC[b]) return null; t += Number(INC[b]); } return t; };
 
   /* ---------- data in ---------- */
   function ingest(d) {
-    D = d; S.month = d.month; EDIT = !!(d.access && d.access.edit);
+    D = d; S.month = d.month; loadedAt = Date.now(); EDIT = !!(d.access && d.access.edit);
     const byName = {};
     SUP = d.suppliers.map(s => (byName[s.n] = { n: s.n, cat: s.cat, inv: {} }));
     d.invoiced.forEach(r => { const s = byName[r.s]; if (s) s.inv[r.b] = Number(r.v); });
@@ -471,15 +486,14 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   }
 
   /* ---------- the one filter bar ---------- */
-  const SHORT = { ALL: 'All', SAA: 'SAA', KCA: 'KCA', MC: 'MC', AQ: 'AQ' };
+  const HINT = 'Month and branch follow the Period and Branch at the top of the page. This page works one month at a time: with a longer Period it reads the month the Period ends in.';
   function barPhone() {
     const nF = (S.fSup ? 1 : 0) + (S.fCat ? 1 : 0) + (S.fPrio ? 1 : 0) + (S.q ? 1 : 0), open = S.fOpen, cnt = o => o ? ' · ' + Object.keys(o).length : '';
     let h = '<div class="fhead"><button type="button" class="fbtn' + (nF ? ' on' : '') + '" data-ftoggle="1" aria-expanded="' + open + '">Filters' + (nF ? ' · ' + nF : '') + ' ' + (open ? '▴' : '▾') + '</button>' +
       '<span class="fsum">' + monthLabel(S.month, D.partial) + ' · ' + (S.br === 'ALL' ? 'All' : S.br) + '</span>' +
       (S.msg ? '<span class="fmsg" role="status">' + esc(S.msg) + '</span>' : '') + (nF ? '<button type="button" class="fbtn" data-clear="1">Clear</button>' : '') + '</div>';
     if (open) {
-      h += '<div class="fbar2 ov"><div class="seg">' + (D.months || []).slice(0, 6).reverse().map(m => '<button type="button" data-m="' + m + '" aria-pressed="' + (m === S.month) + '">' + monthLabel(m, m === thisMonth()) + '</button>').join('') + '</div>' +
-        '<div class="seg">' + ['ALL'].concat(B).map(b => '<button type="button" data-br="' + b + '" aria-pressed="' + (S.br === b) + '" title="' + (b === 'ALL' ? 'All branches' : BN[b]) + '">' + SHORT[b] + '</button>').join('') + '</div>' +
+      h += '<div class="fbar2 ov"><p class="fhint">' + HINT + '</p>' +
         '<div class="fg2"><button type="button" class="fbtn' + (S.fSup ? ' on' : '') + '" data-fmenu="sup">Supplier' + cnt(S.fSup) + ' ▾</button><button type="button" class="fbtn' + (S.fCat ? ' on' : '') + '" data-fmenu="cat">Category' + cnt(S.fCat) + ' ▾</button></div>' +
         '<input type="search" id="q" placeholder="Search supplier, product or brand" value="' + esc(S.qraw) + '" aria-label="Search the sheet">' +
         '<div class="seg">' + [['', 'Any priority'], ['A', 'A'], ['B', 'B'], ['-', 'None']].map(x => '<button type="button" data-prio="' + x[0] + '" aria-pressed="' + ((S.fPrio || '') === x[0]) + '">' + x[1] + '</button>').join('') + '</div>' +
@@ -498,9 +512,7 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       '<span class="fsum">' + monthLabel(S.month, D.partial) + ' · ' + (S.br === 'ALL' ? 'All branches' : BN[S.br]) + (S.fSup ? ' · ' + plural(Object.keys(S.fSup).length, 'supplier', 'suppliers') : '') + (S.fCat ? ' · ' + plural(Object.keys(S.fCat).length, 'category', 'categories') : '') + (S.q ? ' · "' + esc(S.q) + '"' : '') + '</span>' +
       (S.msg ? '<span class="fmsg" role="status">' + esc(S.msg) + '</span>' : '') + (nF ? '<button type="button" class="fbtn" data-clear="1">Clear</button>' : '') + '</div>';
     if (open) {
-      h += '<div class="fbar2"><span class="fg"><span class="lab">Month</span><span class="seg">' +
-        (D.months || []).slice(0, 6).reverse().map(m => '<button type="button" data-m="' + m + '" aria-pressed="' + (m === S.month) + '">' + monthLabel(m, m === thisMonth()) + '</button>').join('') + '</span></span>' +
-        '<span class="fg chips"><span class="lab">Branch</span>' + ['ALL'].concat(B).map(b => '<button type="button" data-br="' + b + '" aria-pressed="' + (S.br === b) + '">' + (b === 'ALL' ? 'All' : BN[b]) + '</button>').join('') + '</span>' +
+      h += '<div class="fbar2"><p class="fhint">' + HINT + '</p>' +
         '<span class="fg"><span class="lab">Show</span><button type="button" class="fbtn' + (S.fSup ? ' on' : '') + '" data-fmenu="sup">Supplier' + cnt(S.fSup) + ' ▾</button><button type="button" class="fbtn' + (S.fCat ? ' on' : '') + '" data-fmenu="cat">Category' + cnt(S.fCat) + ' ▾</button>' +
         '<input type="search" id="q" placeholder="Search supplier, product or brand" value="' + esc(S.qraw) + '" aria-label="Search the sheet"></span>' +
         '<span class="fg chips"><span class="lab">Priority</span>' + [['', 'Any'], ['A', 'A'], ['B', 'B'], ['-', 'None']].map(x => '<button type="button" data-prio="' + x[0] + '" aria-pressed="' + ((S.fPrio || '') === x[0]) + '">' + x[1] + '</button>').join('') + '</span>' +
@@ -559,20 +571,12 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
   const setFilter = (k, v) => { if (k === 'sup') S.fSup = v; else S.fCat = v; };
 
   /* ---------- events ---------- */
-  async function switchMonth(m) {
-    if (loading) return; loading = true;
-    try { ingest(await load(m)); S.open = {}; draw(); }
-    catch (e) { console.error(e); S.msg = 'That month did not load.'; drawBar(); }
-    loading = false;
-  }
   function wire() {
     root.addEventListener('click', e => {
       const t = e.target, up = sel => t.closest(sel);
       let el;
       if (!up('#menu') && !up('[data-fmenu]')) closeMenu();
       if (up('[data-ftoggle]')) { S.fOpen = !S.fOpen; closeMenu(); drawBar(); return; }
-      if ((el = up('[data-m]'))) { switchMonth(el.getAttribute('data-m')); return; }
-      if ((el = up('[data-br]'))) { S.br = el.getAttribute('data-br'); drawBar(); drawBody(); return; }
       if ((el = up('[data-tgl]'))) { if (el.getAttribute('data-tgl') === 'group') S.group = !S.group; else S.activeOnly = !S.activeOnly; drawBar(); drawBody(); return; }
       if (up('[data-clear]')) { S.fSup = null; S.fCat = null; S.fPrio = null; S.q = ''; S.qraw = ''; closeMenu(); drawBar(); drawBody(); return; }
       if ((el = up('[data-prio]'))) { S.fPrio = el.getAttribute('data-prio') || null; drawBar(); drawBody(); return; }
@@ -624,9 +628,14 @@ details.how summary{cursor:pointer;color:var(--text);font-weight:600;padding:6px
       new ResizeObserver(() => requestAnimationFrame(() => { const p = isPhone(); if (p !== S.phone && D) { S.phone = p; S.fOpen = !p; draw(); } })).observe(host);
     }
     S.phone = isPhone();
+    try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) { /* load it with the report's own month */ }
+    const wm = wantMonth();
+    S.br = wantBranch();
+    // A Branch change, or the Period moving inside the same month, redraws what is loaded (the redraw after a filter change calls this too).
+    if (D && S.month && (!wm || wm === S.month) && Date.now() - loadedAt < 60000) { draw(); return; }
     $('pg').innerHTML = '<p class="msg">Loading supplier spend…</p>';
     try {
-      const d = await load(S.month);
+      const d = await load(wm);
       if (d && d.denied) { $('pg').innerHTML = '<p class="msg">This page is for Accounts and Admin. Ask Kate if you need it.</p>'; return; }
       ingest(d);
     } catch (e) {
