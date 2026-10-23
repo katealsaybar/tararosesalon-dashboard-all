@@ -60,7 +60,7 @@ FILE_VIEWS = {
     'lost-clients.js': 'lostclients', 'lost-lists.js': 'lostlists', 'lost-queue.js': 'lostlists', 'pulse-narrative.js': 'dashboard',
     'branch-narrative.js': 'branchperf', 'ledger-targets.js': 'ledgerTargets',
     # Added 16 Oct 2026 by the guard: these four drew page text that was not indexed at all.
-    'wv-blast.js': 'wvblast', 'wv-last.js': 'wvblast', 'glow-club.js': 'glowclub', 'lost-blast.js': 'lostlists', 'lost-report.js': 'lostlists',
+    'wv-blast.js': 'wvblast', 'wv-last.js': 'wvblast', 'wv-depth.js': 'wvblast', 'wv-lastsend.js': 'wvblast', 'glow-club.js': 'glowclub', 'lost-blast.js': 'lostlists', 'lost-report.js': 'lostlists',
     'send-schedule.js': 'lostlists',   # shared by Lost Clients and Wellness Voucher Blast; the page that sends most
 }
 # Scripts that draw one page from several functions, handled in main().

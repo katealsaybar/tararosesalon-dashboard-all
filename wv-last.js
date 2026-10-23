@@ -1,8 +1,8 @@
 // Wellness Voucher Blast, 4th blast: the last push (Kate, 23 Oct 2026), a page of its own. It was first drawn at the top of the 3rd blast's page (wv-blast.js) and
 // covered it, so it moved here. Loads after wv-blast.js in the same lazy group and borrows its helpers (wvOk, wvPerfOnly, wvAed, wvPct, wvDay, wvBoughtLine,
 // wvPayName, WV_BR, WV_PER) and Lost Clients' (lcEsc, lcNum, lgx*).
-// ---- The last push (Kate, 23 Oct 2026): the final WhatsApp push before the voucher closes on 31 Oct, 312 clients in two lists, launched by hand from
-// respond.io on Mon 26 Oct (not through the site queue, so what was really sent is not visible here). wv_lastpush_performance (the money, Level 3 and above) and
+// ---- The last push (Kate, 23 Oct 2026): the final WhatsApp push before the voucher closes on 31 Oct, 312 clients in two lists, sent from the Blast 4 send panel on this page
+// (wv-lastsend.js) through respond.io on Mon 26 Oct; until then the numbers are the list. wv_lastpush_performance (the money, Level 3 and above) and
 // wv_lastpush_get (the list, Level 3 and 5), migrations/wv_lastpush.sql. Null until the functions are live: the section stays out and the page draws as before.
 const WV_LP_LAUNCH = '2026-10-26';
 const WV_LP_RATE = 0.1753;   // AED a marketing message: USD 0.046 at the 3.81 the company card pays (0.17526), the rate passed to the function
@@ -62,27 +62,28 @@ function wvLastHtml() {
   const d4 = (typeof wvBlastData === 'function' ? wvBlastData() : []).find(d => d.key === 'b4');
   const block = wvBlockHtml({
     title: 'Blast 4: the last push', tag: 'Next: Mon 26 Oct', next: true,
-    intro: ['The last WhatsApp message before the voucher closes on 31 Oct, sent by hand from respond.io.', 'It is the last chance to reach clients who have not bought.', 'Mon 26 Oct, Kate sends Blast 4 from respond.io, once Meta has approved both templates.'],
+    intro: ['The last WhatsApp message before the voucher closes on 31 Oct, sent from this page through respond.io.', 'It is the last chance to reach clients who have not bought.', d4 && !d4.planned ? 'Watch the full performance below as it fills in.' : 'Mon 26 Oct: press Send in the Blast 4 send panel below (Meta has approved both messages), or schedule it.'],
     line: d4 ? wvLine(d4) : '',
     what: 'A WhatsApp message to two lists: clients who asked about the voucher on Blast 3, and top spenders we have not messaged before.',
     who: `<b>${lcNum(warm.listed)} warm</b>: asked about the voucher on Blast 3 and have not bought.<br><b>${lcNum(clean.listed)} clean</b>: top spenders (2026 spend AED 2,000+) we have not messaged before. Anyone with a lightening service in the last 12 months is left out, because Blonde now starts in January.`,
     when: 'Mon 26 Oct.',
     stats: [[lcNum(t.to_message), 'To message', left ? `${lcNum(left)} left out of ${lcNum(t.listed)}` : `all ${lcNum(t.listed)} on the list`], [lcNum(t.vouchers), 'Vouchers sold', t.bought ? `${lcNum(t.bought)} client${t.bought === 1 ? '' : 's'}` : 'none yet, it has not gone out'], [wvAed(t.aed), 'AED collected'], [wvAed(cost), 'Cost (estimate)', `${lcNum(t.to_message)} to message × AED ${rate.toFixed(4)}`], [cost && t.aed ? wvBackTxt(t.aed, cost) : 'not sent yet', 'Back for every AED 1']],
-    moreTitle: 'Break it down: by list, balance and branch',
+    depth: typeof wvDepthHtml === 'function' ? wvDepthHtml('b4') : '',
+    moreTitle: 'Break it down: the list before it goes out',
     more: `<div class="wv-pgrid">
       ${wvLpTable('By list', p.by_seg || [], k => wvLpSegName(k), rate)}
-      ${wvLpTable('By WhatsApp balance', p.by_waba || [], k => wvLpBalance(k), rate)}
       ${wvLpTable('By branch', p.by_branch || [], k => WV_BR[k] || k, rate)}
     </div>
     ${tiers || pays ? `<p class="slv-note">Bought: ${tiers}${tiers && pays ? '. Paid by ' : ''}${pays}.</p>` : ''}`,
     fold: `<ul>
         <li><b>To message</b> is the list minus anyone who has bought since it was made, or is on a stop list. Check it on the morning of the send.${left ? ` ${lcNum(left)} are left out now: ${lcNum(t.bought_before)} bought a voucher since the list was made, ${lcNum(t.stopped)} on a stop list.` : ''}</li>
-        <li><b>Cost</b> is an estimate: clients to message times AED ${rate.toFixed(4)} (USD 0.046 at 3.81). Meta's invoice has the exact figure. We send by hand, so this page cannot see what was actually sent.</li>
-        <li><b>WhatsApp balance</b> follows the client's branch: Saadiyat has its own, KCA, MC and AQ share one. It moves if the call centre number sends from another balance.</li>
+        <li><b>Cost</b> is an estimate: messages times AED ${rate.toFixed(4)} (USD 0.046 at 3.81). Before it goes out it is the clients to message; once it is sent from this page it is the messages really sent. Meta's invoice has the exact figure.</li>
+        <li><b>WhatsApp balance:</b> every message goes from Call Center 2, so all of it comes off the shared balance (the one KCA, MC and AQ use), not Saadiyat's own.</li>
         <li><b>Bought</b> is a Phorest voucher sale from ${lcEsc(wvDay(WV_LP_LAUNCH))} on, matched by name. The sales feed runs a day behind.${o.vouchers ? ` ${lcNum(o.vouchers)} other voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold since the launch to clients who are not on this list are not counted.` : ''}</li>
       </ul>`
   });
   return `<div id="wvLast">${block}
+    ${typeof wvOk5 === 'function' && wvOk5() ? '<div id="wvLsBox"></div>' : ''}
     ${wvLpRows ? wvLpListHtml() : ''}</div>`;
 }
 function wvLpListHtml() {
@@ -178,4 +179,7 @@ async function wvLastLoad() {
     if (lr.error) console.warn('wv_lastpush_get', lr.error);
   } catch (e) { console.error(e); wvLp = null; wvLpRows = null; }
 }
-function wvLastMount() { const b = document.getElementById('wvB4'); if (b) b.innerHTML = wvLp ? wvLastHtml() : ''; }
+function wvLastMount() {
+  const b = document.getElementById('wvB4'); if (b) b.innerHTML = wvLp ? wvLastHtml() : '';
+  if (wvLp && typeof wvOk5 === 'function' && wvOk5() && typeof wvLsLoad === 'function') wvLsLoad();   // the send panel (wv-lastsend.js, Level 5)
+}

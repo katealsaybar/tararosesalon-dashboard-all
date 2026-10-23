@@ -105,3 +105,20 @@
 .wv-more{max-width:none}.wv-more .wv-pgrid{margin-top:12px}
 .wv-send .wv-how{margin-top:8px}
 @media(max-width:560px){.wv-why{padding:9px 12px}.wv-why p{margin:0 0 4px;font-size:14px;line-height:1.4}.wv-why p:empty{display:none}}
+
+/* Full performance of each blast (23 Oct 2026, wv-depth.js): a funnel of bars, small tables, the buyers across the full width. Stats are two across inside a box. */
+.wv-depth{margin-top:14px}
+.wv-fun{margin:0 0 12px}.wv-fun:last-of-type{margin-bottom:4px}
+.wv-fun-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px}
+.wv-fun-h b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.wv-fun .wv-vtrack{margin:3px 0 2px}.wv-fun .slv-note{margin:0;line-height:1.35}
+.wv-stats.wv-stats2{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 8px}
+.wv-pbox.wv-pwide{margin-top:14px}
+/* Blast 4 send panel (wv-lastsend.js): the message preview */
+.wv-msg{margin:8px 0}.wv-pre{white-space:pre-wrap;word-break:break-word;margin:4px 0 0;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font:inherit;line-height:1.5;max-width:520px}
+/* Blast 4 send panel: one card per list, so Send is never behind a sideways swipe on a phone */
+.wv-lcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin:10px 0}
+.wv-lcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;min-width:0}
+.wv-lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.wv-ll{display:grid;grid-template-columns:70px minmax(0,1fr);gap:8px;padding:5px 0;border-top:1px solid var(--border2);line-height:1.4}
+.wv-lb{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
