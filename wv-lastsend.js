@@ -44,7 +44,7 @@ function wvLsPaint() {
     } else if (ready > 0) {
       act = `<button type="button" class="tglr lc-btn wv-go" onclick="wvLsGo('${s.seg}')"${wvLsBusy ? ' disabled' : ''}>${sent ? 'Send the rest' : 'Send the ' + (s.seg === 'warm' ? 'warm' : 'clean') + ' list'}</button>`;
       at = `<button type="button" class="tglr lc-btn lq-pri" onclick="wvLsSchedOpen('${s.seg}','new')"${wvLsBusy ? ' disabled' : ''}>Schedule…</button>`;
-    } else if (sent) act = '<span class="slv-muted">Done</span>';
+    } else if (sent) { act = '<span class="slv-muted">Done</span>'; if (s.first_sent_at) at = dt(s.first_sent_at); }   // a list that has gone: Send at = when its first message went (wv_last_info first_sent_at, 26 Oct 2026)
     else act = '<span class="slv-muted">No one left to send</span>';
     const byBr = ready > 0 && wvLsBr(s).length > 1 ? `<div class="slv-note" style="margin:2px 0 6px">Ready by branch: ${wvLsBr(s).map(b => `${lcEsc(WV_BR[b] || b)} <b>${lcNum(Number(s.by_branch[b]))}</b>`).join(' · ')}</div>` : '';
     return `<div class="wv-lcard"><div class="wv-lh"><b>${wvLsList(s.seg)}</b><span class="slv-note">${lcNum(ready)} ready, of ${lcNum(s.listed)} on the list</span></div>${byBr}
