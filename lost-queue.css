@@ -216,7 +216,7 @@
 #lostListsContent .lr-dbar i[data-tip]:hover{filter:brightness(1.12)}
 #lostListsContent .lr-dbar i[data-tip]:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 /* The value label over a bar segment (lrSegI in lost-report.js): the page's own text and background swapped, so it reads on both themes. */
-.lr-tip{position:fixed;z-index:80;max-width:min(300px,calc(100vw - 16px));padding:6px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums;box-shadow:0 6px 18px rgba(0,0,0,.28);pointer-events:none}
+.lr-tip{position:fixed;z-index:700;max-width:min(300px,calc(100vw - 16px));padding:6px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums;box-shadow:0 6px 18px rgba(0,0,0,.28);pointer-events:none}
 #lostListsContent .d-paid{background:var(--good)}
 #lostListsContent .d-today{background:var(--muted2)}
 #lostListsContent .d-unpaid{background:var(--accent)}
@@ -278,7 +278,7 @@
 @media(hover:hover){#lostListsContent .lr-num:hover{border-bottom-style:solid;color:var(--accent)}}
 #lostListsContent .lr-num:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:3px}
 body.lr-modal-open{overflow:hidden}
-.lr-modal{position:fixed;inset:0;z-index:90;background:rgba(20,16,14,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.lr-modal{position:fixed;inset:0;z-index:500;background:rgba(20,16,14,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 .lr-modal-box{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.35);width:min(980px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column}
 .lr-modal-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px 10px;border-bottom:1px solid var(--border)}
 .lr-modal-hd h3{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;margin:0 0 2px}
@@ -303,3 +303,7 @@ body.lr-modal-open{overflow:hidden}
 .lr-copy:focus-visible{outline:2px solid var(--text);outline-offset:1px}
 .lr-logt td .lr-copy.slv-note{display:inline-block;white-space:nowrap}
 #lostListsContent .ll-tag.lr-late{background:rgba(220,60,60,.14);font-weight:600}
+/* the pop-up lists use the log's columns: Branch stays put on a sideways scroll */
+.lr-modal .lr-logt th:first-child,.lr-modal .lr-logt td:first-child{position:sticky;left:0;z-index:2;background:var(--bg);box-shadow:1px 0 0 var(--border);min-width:96px}
+.lr-modal .lr-logt td:nth-child(2){min-width:190px}
+.lr-modal .lr-logt td:last-child{min-width:150px}

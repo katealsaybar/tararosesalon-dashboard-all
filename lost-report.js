@@ -563,6 +563,14 @@ function lrStatus(r) {
   if (r.status === 'queued' || r.status === 'sending') return '<span class="ll-tag">Queued</span>';
   return `<span class="ll-tag lr-bad" title="${lcEsc(r.error || '')}">${r.status === 'failed' ? 'Failed' : 'Skipped'}</span>`;
 }
+// The eight columns of the send log, shared with the pop-ups so a list opened from a number reads like the log under it (Kate, 26 Oct 2026):
+// Branch (sticky), Client, Status, Outcome, After 31 Oct, Wave, Message, Sent.
+function lrLogCells(r) {
+  const m = lrMsg(r.tkey), when = r.d ? `${lcEsc(lrDay(r.d))} <span class="lr-t">${lcEsc(r.t)}</span>` : `<span class="slv-note">${r.qd ? 'queued ' + lcEsc(r.qd) : 'not sent yet'}</span>`;
+  return `<td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td><td>${lrWho(r)}${lrChat(r.cid)}</td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td>
+      <td>${lrLateCell(r)}</td><td>${r.wave || '–'}</td><td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${when}</td>`;
+}
+const LR_LOG_HEAD = '<th>Branch</th><th>Client</th><th>Status</th><th>Outcome</th><th>After 31 Oct</th><th>Wave</th><th>Message</th><th>Sent</th>';
 function lrPaintLog() {
   const el = document.getElementById('lrLog');
   if (!el) return;
@@ -570,8 +578,7 @@ function lrPaintLog() {
   const rows = lrRowsPage.map(r => {
     const m = lrMsg(r.tkey), open = !!lrOpen[r.id], when = r.d ? `${lcEsc(lrDay(r.d))} <span class="lr-t">${lcEsc(r.t)}</span>` : `<span class="slv-note">queued ${lcEsc(r.qd || '')}</span>`;
     const flags = [r.replied ? 'Replied' : '', r.blocked ? 'Blocked' : ''].filter(Boolean).join(', ');
-    return `<tr class="lr-row${open ? ' open' : ''}" onclick="lrToggle(${r.id})"><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td><td>${lrWho(r)}${lrChat(r.cid)}</td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td>
-      <td>${lrLateCell(r)}</td><td>${r.wave || '–'}</td><td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${when}</td></tr>
+    return `<tr class="lr-row${open ? ' open' : ''}" onclick="lrToggle(${r.id})">${lrLogCells(r)}</tr>
       ${open ? `<tr class="lr-text"><td colspan="8"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}${flags ? ' · ' + flags : ''}</div></td></tr>` : ''}`;
   }).join('');
   // Prev and Next only when there is more than one page; the rows-a-page choice whenever the log is longer than the shortest page.
@@ -581,7 +588,7 @@ function lrPaintLog() {
   lrOutDraw();
   const byClient = lrSel.outcomes.length > 0;
   el.innerHTML = `<p class="slv-note">${byClient ? `${lcNum(lrTotal)} client${lrTotal === 1 ? '' : 's'}, one row each (the latest message she was sent)` : `${lcNum(lrTotal)} message${lrTotal === 1 ? '' : 's'}`}${lrTotal ? `, newest first. Click a row to read what she was sent.` : ''}</p>
-    ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Branch</th><th>Client</th><th>Status</th><th>Outcome</th><th>After 31 Oct</th><th>Wave</th><th>Message</th><th>Sent</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
+    ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr>${LR_LOG_HEAD}</tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
 }
 
 // The whole log for the current filters, 500 at a time, with the text of each message.
@@ -635,17 +642,9 @@ function lrDrillTitle(d) {
   return bits.join(' · ');
 }
 function lrDrillBody(res) {
-  const rows = res.rows || [], per = res.per_client;
+  const rows = res.rows || [];
   if (!rows.length) return '<p class="slv-muted">Nobody to show.</p>';
-  const depTxt = r => r.st === 'paid' ? `Paid (AED ${lcNum(Math.round(r.deposit))})` : r.st === 'need' ? 'Likely needed, not paid' : r.st === 'none' ? 'None needed, short service' : r.st === 'today' ? 'Today, none needed' : '–';
-  const out = r => { const o = LR_OUT[r.outcome]; return o ? `<span class="ll-tag ${o[1]}">${o[0]}</span>` : '<span class="slv-muted">–</span>'; };
-  const who = r => `${lrWho(r)}${lrChat(r.cid)}`;
-  const head = per ? '<th>Client</th><th>Branch</th><th>Next appointment</th><th>Service booked</th><th>Deposit</th><th>Outcome</th>'
-    : '<th>Client</th><th>Branch</th><th>Message</th><th>Sent</th><th>Outcome</th>';
-  const body = rows.map(r => per
-    ? `<tr><td>${who(r)}</td><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td><td>${r.next ? lcEsc(lrDay(r.next)) + (r.appts > 1 ? ` <span class="slv-note">+${r.appts - 1} more</span>` : '') : '–'}</td><td class="lr-dsvc">${lcEsc(r.svc || '')}</td><td>${r.next ? depTxt(r) : '–'}</td><td>${out(r)}</td></tr>`
-    : `<tr><td>${who(r)}</td><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td><td>${lcEsc(lrMsg(r.tkey).nm)}</td><td>${r.d ? lcEsc(lrDay(r.d)) + ' <span class="lr-t">' + lcEsc(r.t) + '</span>' : '<span class="slv-note">not sent yet</span>'}${r.status === 'failed' && r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}</td><td>${out(r)}</td></tr>`).join('');
-  return `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  return `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr>${LR_LOG_HEAD}</tr></thead><tbody>${rows.map(r => `<tr>${lrLogCells(r)}</tr>`).join('')}</tbody></table></div>`;
 }
 async function lrDrillOpen(el) {
   const d = el.dataset;
