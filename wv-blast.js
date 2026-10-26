@@ -110,10 +110,10 @@ async function renderWvBlast() {
   const intro = mode === 'all' ? `<section class="slv-intro"><h2>Wellness Voucher Message and Email Blasts</h2>
     <div class="wv-why">
       <p><b>Why this?</b> The voucher closes on 31 Oct. This page shows what each blast cost and brought in.</p>
-      <p><b>Why now?</b> Blast 4, the last push, goes out on Mon 26 Oct, from the send panel on its page.</p>
-      <p><b>If we do nothing?</b> The clients on the last-push list will not hear from us before it closes.</p>
+      <p id="wvWhyNow"><b>Why now?</b> Blast 4, the last push, goes out on Mon 26 Oct, from the send panel on its page.</p>
+      <p id="wvWhyNo"><b>If we do nothing?</b> The clients on the last-push list will not hear from us before it closes.</p>
       <p id="wvSoFar"></p>
-      <p class="wv-act"><b>Next step:</b> Mon 26 Oct, Kate sends Blast 4 with the Send button on the Blast 4 page, or schedules it from there.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p>
+      <p class="wv-act" id="wvNext"><b>Next step:</b> Mon 26 Oct, Kate sends Blast 4 with the Send button on the Blast 4 page, or schedules it from there.${wvPerfOnly() ? ' This page shows the money only.' : ''}</p>
     </div></section>` : `<section class="slv-intro"><h2>Wellness Voucher Message and Email Blasts</h2>
     <p class="slv-note"><a href="#" onclick="event.preventDefault();wvGoBlast('all')">← Overall Blast performances</a>${wvPerfOnly() ? ' · This page shows the money only.' : ''}</p></section>`;
   el.innerHTML = `${intro}${typeof lgShell === 'function' ? lgShell(rails[mode], body, 'lg-shell-wide') : body}`;
@@ -333,6 +333,13 @@ function wvAllPaint() {
   set('wvAll', wvAllHtml());
   const sf = wvBlastData().filter(d => wvBack(d.aed, d.cost));
   set('wvSoFar', sf.length ? `<b>So far:</b> ${sf.map((d, i) => i ? `${d.name} about AED ${lcNum(wvBack(d.aed, d.cost))}` : `${d.name} brought back about AED ${lcNum(wvBack(d.aed, d.cost))} for every AED 1`).join(', ')}.` : '');
+  // Once Blast 4 has gone out (the send panel's sent count, wvBlastData planned = false) the why wall speaks in the past tense (Kate, 26 Oct 2026).
+  const b4 = wvBlastData().find(d => d.key === 'b4');
+  if (b4 && !b4.planned) {
+    set('wvWhyNow', '<b>Why now?</b> Blast 4, the last push, went out on Mon 26 Oct: the warm list first, then the clean list.');
+    set('wvWhyNo', `<b>What happened?</b> Blast 4 went to ${wvN(b4.tried, 'client')} on the last-push list, before the voucher closes.`);
+    set('wvNext', `<b>Next step:</b> Watch Blast 4's full performance on its page until the voucher closes on 31 Oct.${wvPerfOnly() ? ' This page shows the money only.' : ''}`);
+  }
   const k = wvBlocks();
   set('wvB3Head', k.b3 ? wvBlockHtml(k.b3) : '');
   set('wvB2', wvBlockHtml(k.b2));

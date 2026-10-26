@@ -60,15 +60,15 @@ function wvLastHtml() {
   const left = t.bought_before + t.stopped;
   const d4 = (typeof wvBlastData === 'function' ? wvBlastData() : []).find(d => d.key === 'b4');
   const block = wvBlockHtml({
-    title: 'Blast 4: the last push', tag: 'Next: Mon 26 Oct', next: true,
-    intro: ['The last WhatsApp message before the voucher closes on 31 Oct, sent from this page through respond.io.', 'It is the last chance to reach clients who have not bought.', d4 && !d4.planned ? 'Watch the full performance below as it fills in.' : 'Mon 26 Oct: press Send in the Blast 4 send panel below (Meta has approved both messages), or schedule it.'],
+    title: 'Blast 4: the last push', tag: d4 && !d4.planned ? 'Sent Mon 26 Oct' : 'Next: Mon 26 Oct', next: !(d4 && !d4.planned),
+    intro: ['The last WhatsApp message before the voucher closes on 31 Oct, sent from this page through respond.io.', d4 && !d4.planned ? 'It was the last chance to reach clients who had not bought.' : 'It is the last chance to reach clients who have not bought.', d4 && !d4.planned ? 'Watch the full performance below as it fills in.' : 'Mon 26 Oct: press Send in the Blast 4 send panel below (Meta has approved both messages), or schedule it.'],
     line: d4 ? wvLine(d4) : '',
     what: 'A WhatsApp message to two lists: clients who asked about the voucher on Blast 3, and top spenders we have not messaged before.',
     who: `<b>${lcNum(warm.listed)} warm</b>: asked about the voucher on Blast 3 and have not bought.<br><b>${lcNum(clean.listed)} clean</b>: top spenders (2026 spend AED 2,000+) we have not messaged before. Anyone with a lightening service in the last 12 months is left out, because Blonde now starts in January.`,
     when: 'Mon 26 Oct.',
-    stats: [[lcNum(t.to_message), 'To message', left ? `${lcNum(left)} left out of ${lcNum(t.listed)}` : `all ${lcNum(t.listed)} on the list`], [lcNum(t.vouchers), 'Vouchers sold', t.bought ? `${lcNum(t.bought)} client${t.bought === 1 ? '' : 's'}` : 'none yet, it has not gone out'], [wvAed(t.aed), 'AED collected'], [wvAed(cost), 'Cost (estimate)', `${lcNum(t.to_message)} to message × AED ${rate.toFixed(4)}`], [cost && t.aed ? wvBackTxt(t.aed, cost) : 'not sent yet', 'Back for every AED 1']],
+    stats: [[lcNum(t.to_message), 'To message', left ? `${lcNum(left)} left out of ${lcNum(t.listed)}` : `all ${lcNum(t.listed)} on the list`], [lcNum(t.vouchers), 'Vouchers sold', t.bought ? `${lcNum(t.bought)} client${t.bought === 1 ? '' : 's'}` : (d4 && !d4.planned ? 'none yet' : 'none yet, it has not gone out')], [wvAed(t.aed), 'AED collected'], [wvAed(cost), 'Cost (estimate)', `${lcNum(t.to_message)} to message × AED ${rate.toFixed(4)}`], [cost && t.aed ? wvBackTxt(t.aed, cost) : (d4 && !d4.planned ? 'nothing back yet' : 'not sent yet'), 'Back for every AED 1']],
     depth: typeof wvDepthHtml === 'function' ? wvDepthHtml('b4') : '',
-    moreTitle: 'Break it down: the list before it goes out',
+    moreTitle: d4 && !d4.planned ? 'Break it down: the list that went out' : 'Break it down: the list before it goes out',
     more: `<div class="wv-pgrid">
       ${wvLpTable('By list', p.by_seg || [], k => wvLpSegName(k), rate)}
       ${wvLpTable('By branch', p.by_branch || [], k => WV_BR[k] || k, rate)}
