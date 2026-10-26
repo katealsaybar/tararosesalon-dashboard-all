@@ -23,10 +23,33 @@ try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; 
 // The money, by the same rule: null until lost_campaign_money is live (or for Level 2), the Spent card and the section stay out.
 let lrMoney = null, lrMoneyView = 'visual';
 try { if (localStorage.getItem('lr-money-view') === 'table') lrMoneyView = 'table'; } catch (e) {}
-let lrSel = { wave: 'all', branch: 'all', status: 'all', outcome: 'all', q: '', page: 1, per: 10 };   // Kate, 23 Oct 2026: ten rows to start, then 20, 50, 100
+let lrSel = { wave: 'all', branch: 'all', status: 'all', outcomes: [], q: '', page: 1, per: 10 };   // Kate, 23 Oct 2026: ten rows to start, then 20, 50, 100
 // What came of each client (Kate, 26 Oct 2026, from Belle's review): the log's Outcome column and filter, and the names behind every number
 // (lost_client_facts, lost_drill: migrations/lost_drill_outcomes.sql). Counts per outcome come back with every log page.
 let lrOutcomes = {};
+// The client's chat in respond.io (Kate, 26 Oct 2026): the contact id comes with each row (lost_wa_status). Space 250275.
+const LR_RESP = 'https://app.respond.io/space/250275/inbox/';
+// Name and number copy on click (Kate, 26 Oct 2026): the full number is shown, and clicking either one puts it on the clipboard.
+const lrPhone = r => r.phone || ('…' + r.last4);
+const lrWho = r => `<span class="lr-copy" role="button" tabindex="0" data-copy="${lcEsc(r.client)}" title="Click to copy the name" onclick="lrCopy(event,this)" onkeydown="lrCopyKey(event,this)">${lcEsc(r.client)}</span> <span class="lr-copy slv-note" role="button" tabindex="0" data-copy="${lcEsc(r.phone || '')}" title="Click to copy the number" onclick="lrCopy(event,this)" onkeydown="lrCopyKey(event,this)">${lcEsc(lrPhone(r))}</span>`;
+async function lrCopy(e, el) {
+  if (e) { e.stopPropagation(); e.preventDefault(); }
+  const txt = el.dataset.copy || '';
+  if (!txt) return;
+  let ok = false;
+  // the old copy command first (it runs inside the click), then the clipboard API, which can wait on a permission and never answer
+  try { const ta = document.createElement('textarea'); ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (y) {}
+  if (!ok) { try { await Promise.race([navigator.clipboard.writeText(txt), new Promise((_, no) => setTimeout(no, 800))]); ok = true; } catch (x) {} }
+  const tip = document.createElement('div');
+  tip.className = 'lr-tip'; tip.setAttribute('role', 'status'); tip.textContent = ok ? 'Copied: ' + txt : 'Could not copy';
+  document.body.appendChild(tip);
+  const r = el.getBoundingClientRect();
+  tip.style.left = Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, r.left)) + 'px';
+  tip.style.top = Math.max(8, r.top - tip.offsetHeight - 6) + 'px';
+  setTimeout(() => tip.remove(), 1300);
+}
+function lrCopyKey(e, el) { if (e.key === 'Enter' || e.key === ' ') lrCopy(e, el); }
+const lrChat = cid => cid ? ` <a class="lr-chat" href="${LR_RESP}${+cid}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open her chat in respond.io">Chat ↗</a>` : '';
 const LR_OUT = { booked_nodep: ['Booked, no deposit needed', 'sent'], booked_dep: ['Booked, deposit needed', 'sent'], done: ['Done appointment', 'sent'],
   rescheduled: ['Rescheduled', ''], cancelled: ['Cancelled', 'lr-bad'], stop: ['STOP / opt out', 'lr-bad'] };
 // The section in the address (Belle, 26 Oct 2026): the Performance report's sub-entries write #lr-money and so on, and a link that carries one opens there.
@@ -85,7 +108,7 @@ function lrFetchPage(offset, limit) {
   return sb.rpc('lost_send_log_get', {
     p_wave: lrSel.wave === 'all' ? null : +lrSel.wave, p_branch: lrSel.branch, p_status: lrSel.status, p_q: lrSel.q.trim(),
     p_offset: offset != null ? offset : (lrSel.page - 1) * lrSel.per, p_limit: limit || lrSel.per, ...(lrType === 'all' ? {} : { p_type: lrType }),
-    ...(lrSel.outcome === 'all' ? {} : { p_outcome: lrSel.outcome }) });
+    ...(lrSel.outcomes.length ? { p_outcome: lrSel.outcomes.join(',') } : {}) });
 }
 async function lrRefreshLog() {
   const { data, error } = await lrFetchPage();
@@ -481,7 +504,7 @@ function lrPaint() {
         <select class="ll-sel" aria-label="Wave" onchange="lrSet('wave',this.value)">${[['all', 'All waves'], ['1', 'Wave 1'], ['2', 'Wave 2'], ['3', 'Wave 3'], ['4', 'Wave 4']].map(([v, l]) => `<option value="${v}"${lrSel.wave === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <select class="ll-sel" aria-label="Branch" onchange="lrSet('branch',this.value)"><option value="all">All branches</option>${LR_BR.map(b => `<option value="${b}"${lrSel.branch === b ? ' selected' : ''}>${lcEsc(LC_BRANCH[b] || b)}</option>`).join('')}</select>
         <select class="ll-sel" aria-label="Status" onchange="lrSet('status',this.value)">${[['all', 'Every status'], ['sent', 'Sent'], ['queued', 'Queued'], ['failed', 'Failed'], ['skipped', 'Skipped']].map(([v, l]) => `<option value="${v}"${lrSel.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
-        <select class="ll-sel" id="lrOutSel" aria-label="Outcome" onchange="lrSet('outcome',this.value)">${lrOutOptions()}</select>
+        <span class="lr-multi" id="lrOutWrap">${lrOutMulti()}</span>
         <input type="search" class="ll-search" placeholder="Search name or last 4 digits" value="${lcEsc(lrSel.q)}" oninput="lrSearch(this.value)">
         <span style="flex:1"></span>
         <span class="lq-btns">
@@ -498,9 +521,27 @@ function lrPaint() {
 
 // The Outcome filter, with how many clients are in each (counted for the other filters in force). Redrawn with every page of the log.
 const LR_OUT_ORDER = ['booked_nodep', 'booked_dep', 'done', 'rescheduled', 'cancelled', 'stop'];
-function lrOutOptions() {
-  return `<option value="all">Every outcome</option>${LR_OUT_ORDER.map(k => `<option value="${k}"${lrSel.outcome === k ? ' selected' : ''}>${LR_OUT[k][0]}${lrOutcomes[k] != null ? ` (${lcNum(lrOutcomes[k])})` : ''}</option>`).join('')}`;
+// Pick one outcome or several (Kate, 26 Oct 2026), "–" (no outcome yet) among them so it can be left out of a select-all. Nothing ticked = every outcome.
+// The server takes the picks as a comma list; 'none' is the clients with no outcome yet.
+let lrOutOpen = false;
+const LR_OUT_ALL = LR_OUT_ORDER.concat(['none']);
+const lrOutName = k => k === 'none' ? '– No outcome yet' : LR_OUT[k][0];
+function lrOutMulti() {
+  const pk = lrSel.outcomes, lab = !pk.length ? 'Every outcome' : pk.length === 1 ? lrOutName(pk[0]).replace(/^– /, '') : `${pk.length} outcomes`;
+  const cnt = k => lrOutcomes[k] != null ? ` <span class="slv-note">${lcNum(lrOutcomes[k])}</span>` : '';
+  return `<button type="button" class="ll-sel lr-multi-btn" aria-haspopup="true" aria-expanded="${lrOutOpen}" onclick="lrOutToggle(event)">${lcEsc(lab)}</button>
+    ${lrOutOpen ? `<div class="lr-multi-pop" role="group" aria-label="Outcome">
+      ${LR_OUT_ALL.map(k => `<label><input type="checkbox" ${pk.includes(k) ? 'checked' : ''} onchange="lrOutPick('${k}',this.checked)"> <span>${lcEsc(lrOutName(k))}</span>${cnt(k)}</label>`).join('')}
+      <div class="lr-multi-ft"><button type="button" class="tglr lc-btn" onclick="lrOutAll()">Tick all</button><button type="button" class="tglr lc-btn" onclick="lrOutClear()">Clear</button></div></div>` : ''}`;
 }
+function lrOutDraw() { const w = document.getElementById('lrOutWrap'); if (w) w.innerHTML = lrOutMulti(); }
+function lrOutToggle(e) { if (e) e.stopPropagation(); lrOutOpen = !lrOutOpen; lrOutDraw(); }
+function lrOutChanged() { lrSel.page = 1; lrOpen = {}; lrOutDraw(); lrRefreshLog(); }
+function lrOutPick(k, on) { lrSel.outcomes = LR_OUT_ALL.filter(x => x === k ? on : lrSel.outcomes.includes(x)); lrOutChanged(); }
+function lrOutAll() { lrSel.outcomes = LR_OUT_ALL.slice(); lrOutChanged(); }
+function lrOutClear() { lrSel.outcomes = []; lrOutChanged(); }
+document.addEventListener('click', e => { if (lrOutOpen && !(e.target.closest && e.target.closest('#lrOutWrap'))) { lrOutOpen = false; lrOutDraw(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && lrOutOpen) { lrOutOpen = false; lrOutDraw(); } });
 function lrOutcomeCell(r) {
   const o = LR_OUT[r.outcome];
   if (!o) return '<span class="slv-muted">–</span>';
@@ -520,16 +561,15 @@ function lrPaintLog() {
     const m = lrMsg(r.tkey), open = !!lrOpen[r.id], when = r.d ? `${lcEsc(lrDay(r.d))} <span class="lr-t">${lcEsc(r.t)}</span>` : `<span class="slv-note">queued ${lcEsc(r.qd || '')}</span>`;
     const flags = [r.replied ? 'Replied' : '', r.blocked ? 'Blocked' : ''].filter(Boolean).join(', ');
     return `<tr class="lr-row${open ? ' open' : ''}" onclick="lrToggle(${r.id})"><td>${when}</td><td>${r.wave || '–'}</td><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td>
-      <td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${lcEsc(r.client)} <span class="slv-note">…${lcEsc(r.last4)}</span></td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td></tr>
+      <td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${lrWho(r)}${lrChat(r.cid)}</td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td></tr>
       ${open ? `<tr class="lr-text"><td colspan="7"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}${flags ? ' · ' + flags : ''}</div></td></tr>` : ''}`;
   }).join('');
   // Prev and Next only when there is more than one page; the rows-a-page choice whenever the log is longer than the shortest page.
   const perSel = lrTotal > 10 ? `<select class="ll-sel" aria-label="Rows a page" onchange="lrPer(this.value)">${[10, 20, 50, 100].map(n => `<option value="${n}"${lrSel.per === n ? ' selected' : ''}>${n} rows</option>`).join('')}</select>` : '';
   const pager = lrTotal > 10 ? `<div class="lr-pager">${pages > 1 ? `<button type="button" class="tglr lc-btn" ${p <= 1 ? 'disabled' : ''} onclick="lrGo(${p - 1})">‹ Prev</button>
     <span class="slv-note">Page ${lcNum(p)} of ${lcNum(pages)}</span><button type="button" class="tglr lc-btn" ${p >= pages ? 'disabled' : ''} onclick="lrGo(${p + 1})">Next ›</button>` : ''}${perSel}</div>` : '';
-  const oSel = document.getElementById('lrOutSel');
-  if (oSel) oSel.innerHTML = lrOutOptions();
-  const byClient = lrSel.outcome !== 'all';
+  lrOutDraw();
+  const byClient = lrSel.outcomes.length > 0;
   el.innerHTML = `<p class="slv-note">${byClient ? `${lcNum(lrTotal)} client${lrTotal === 1 ? '' : 's'}, one row each (the latest message she was sent)` : `${lcNum(lrTotal)} message${lrTotal === 1 ? '' : 's'}`}${lrTotal ? `, newest first. Click a row to read what she was sent.` : ''}</p>
     ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Sent</th><th>Wave</th><th>Branch</th><th>Message</th><th>Client</th><th>Status</th><th>Outcome</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
 }
@@ -546,14 +586,14 @@ async function lrSaveLog(kind) {
     lrNote(`Getting the log… ${lcNum(out.length)} of ${lcNum(data.total)}`);
     if (!data.rows || data.rows.length < 500 || out.length >= data.total) break;
   }
-  const head = ['Date sent', 'Time sent (Dubai)', 'Wave', 'Branch', 'Message', 'Version', 'Template', 'Client', 'Phone (last 4)', 'Status', 'Error', 'Outcome', 'Next appointment', 'Replied', 'Booked', 'STOP', 'Blocked', 'Message sent', 'Queued at', 'Queued by', 'respond.io message'];
+  const head = ['Date sent', 'Time sent (Dubai)', 'Wave', 'Branch', 'Message', 'Version', 'Template', 'Client', 'Phone', 'Status', 'Error', 'Outcome', 'Next appointment', 'Replied', 'Booked', 'STOP', 'Blocked', 'Message sent', 'Queued at', 'Queued by', 'respond.io message', 'respond.io chat'];
   const yn = v => v ? 'Yes' : 'No';
   const lines = out.map(r => { const m = lrMsg(r.tkey);
-    return [r.d || '', r.t || '', r.wave || '', LC_BRANCH[r.branch] || r.branch, m.nm, m.arm, r.tkey, r.client, r.last4, r.status, r.error || '', (LR_OUT[r.outcome] || [''])[0], r.next || '', yn(r.replied), yn(r.booked), yn(r.stop), yn(r.blocked), r.text || '', r.qd || '', r.by || '', r.message_id || '']; });
+    return [r.d || '', r.t || '', r.wave || '', LC_BRANCH[r.branch] || r.branch, m.nm, m.arm, r.tkey, r.client, r.phone || r.last4, r.status, r.error || '', (LR_OUT[r.outcome] || [''])[0], r.next || '', yn(r.replied), yn(r.booked), yn(r.stop), yn(r.blocked), r.text || '', r.qd || '', r.by || '', r.message_id || '', r.cid ? LR_RESP + r.cid : '']; });
   const built = lgxBuild({ sheets: [{ name: 'Send log', blocks: [{ cols: head.map(h => ({ label: h, fmt: 'text' })), rows: lines.map(l => ({ cells: l })) }] }] });
   const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const name = ['lost-clients-send-log', lrSel.wave !== 'all' ? 'wave-' + lrSel.wave : '', lrSel.branch !== 'all' ? slug(LC_BRANCH[lrSel.branch] || lrSel.branch) : '',
-    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.outcome !== 'all' ? lrSel.outcome.replace(/_/g, '-') : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.outcomes.length ? lrSel.outcomes.join('-').replace(/_/g, '-') : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   lrNote(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);
@@ -589,7 +629,7 @@ function lrDrillBody(res) {
   if (!rows.length) return '<p class="slv-muted">Nobody to show.</p>';
   const depTxt = r => r.st === 'paid' ? `Paid (AED ${lcNum(Math.round(r.deposit))})` : r.st === 'need' ? 'Likely needed, not paid' : r.st === 'none' ? 'None needed, short service' : r.st === 'today' ? 'Today, none needed' : '–';
   const out = r => { const o = LR_OUT[r.outcome]; return o ? `<span class="ll-tag ${o[1]}">${o[0]}</span>` : '<span class="slv-muted">–</span>'; };
-  const who = r => `${lcEsc(r.client)} <span class="slv-note">…${lcEsc(r.last4)}</span>`;
+  const who = r => `${lrWho(r)}${lrChat(r.cid)}`;
   const head = per ? '<th>Client</th><th>Branch</th><th>Next appointment</th><th>Service booked</th><th>Deposit</th><th>Outcome</th>'
     : '<th>Client</th><th>Branch</th><th>Message</th><th>Sent</th><th>Outcome</th>';
   const body = rows.map(r => per

@@ -10,7 +10,7 @@
 --   lost_client_facts       one row per messaged client: booked ahead, deposit state, came in, STOP, and the one outcome the log shows:
 --                             stop > rescheduled > booked_dep (deposit needed by the policy) > booked_nodep > cancelled > done
 --   lost_drill(metric, wave, branch, tkey, day, type)   the clients behind a number on the page, same filters as the table cell.
---   lost_send_log_get(..., p_outcome)                   the log cut to one outcome (one row per client), with the count of each outcome.
+--   lost_send_log_get(..., p_outcome)                   the log cut to one or more outcomes (p_outcome is one outcome or a comma list, 'none' = no outcome yet; one row per client), with the count of each outcome.
 -- Level 2 and above, like the rest of the report.
 
 create table if not exists public.lost_booking_track (
@@ -104,7 +104,8 @@ begin
   if public.dashboard_scope() is not null then raise exception 'Not available for this login'; end if;
   if lost_send_level() < 2 then raise exception 'Level 3 and above'; end if;
   with f as (
-    select fl.*, c.outcome, c.nxt, c.svc as next_svc from public.lost_send_flags fl left join public.lost_client_facts c on c.client_key = fl.client_key
+    select fl.*, c.outcome, c.nxt, c.svc as next_svc, ws.contact_id as cid
+    from public.lost_send_flags fl left join public.lost_client_facts c on c.client_key = fl.client_key left join public.lost_wa_status ws on ws.phone = fl.phone
     where (p_wave is null or coalesce(fl.wave, 0) = p_wave)
       and (coalesce(p_branch, 'all') = 'all' or fl.branch = p_branch)
       and (coalesce(p_status, 'all') = 'all' or (p_status = 'queued' and fl.status in ('queued', 'sending')) or fl.status = p_status)
@@ -113,19 +114,19 @@ begin
   ), g as (
     select * from f where coalesce(p_outcome, 'all') = 'all'
     union all
-    select * from (select distinct on (client_key) * from f where coalesce(p_outcome, 'all') <> 'all' and outcome = p_outcome
+    select * from (select distinct on (client_key) * from f where coalesce(p_outcome, 'all') <> 'all' and coalesce(outcome, 'none') = any (string_to_array(p_outcome, ','))
                    order by client_key, sent_at desc nulls last, id desc) d
   ), page as (
     select * from g order by sent_at desc nulls last, id desc offset greatest(coalesce(p_offset, 0), 0) limit lim
   )
   select (select count(*) from g),
-         coalesce((select jsonb_agg(jsonb_build_object('id', id, 'client', initcap(client_key), 'last4', right(phone, 4), 'branch', branch, 'qtype', qtype,
+         coalesce((select jsonb_agg(jsonb_build_object('id', id, 'client', initcap(client_key), 'last4', right(phone, 4), 'phone', phone, 'branch', branch, 'qtype', qtype,
            'tkey', tkey, 'arm', arm, 'wave', coalesce(wave, 0), 'status', status, 'error', error, 'text', body_text, 'message_id', message_id,
            'd', to_char(sent_at at time zone 'Asia/Dubai', 'YYYY-MM-DD'), 't', to_char(sent_at at time zone 'Asia/Dubai', 'HH24:MI:SS'),
            'qd', to_char(requested_at at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI'), 'by', requested_by,
-           'replied', replied, 'booked', booked, 'stop', stop, 'blocked', blocked, 'outcome', outcome, 'next', nxt, 'svc', next_svc)
+           'replied', replied, 'booked', booked, 'stop', stop, 'blocked', blocked, 'outcome', outcome, 'next', nxt, 'svc', next_svc, 'cid', cid)
            order by sent_at desc nulls last, id desc) from page), '[]'::jsonb),
-         coalesce((select jsonb_object_agg(outcome, n) from (select outcome, count(distinct client_key) n from f where outcome is not null group by 1) o), '{}'::jsonb)
+         coalesce((select jsonb_object_agg(o, n) from (select coalesce(outcome, 'none') as o, count(distinct client_key) n from f group by 1) x), '{}'::jsonb)
   into total, rows_, oc;
   return jsonb_build_object('total', total, 'rows', rows_, 'outcomes', oc);
 end $$;
@@ -145,13 +146,13 @@ begin
   if public.dashboard_scope() is not null then raise exception 'Not available for this login'; end if;
   if lost_send_level() < 2 then raise exception 'Level 3 and above'; end if;
   with f as (
-    select fl.*, c.outcome, c.ahead, c.done, c.st, c.nxt, c.svc as next_svc, c.n_appts, c.bal,
+    select fl.*, c.outcome, c.ahead, c.done, c.st, c.nxt, c.svc as next_svc, c.n_appts, c.bal, ws.contact_id as cid,
       case when p_metric in ('seen', 'delivered', 'sent_only') and fl.status = 'sent' then
         (select case m->>'s' when 'read' then 'seen' when 'delivered' then 'delivered' when 'failed' then 'failed' when 'sent' then 'sent' else 'unknown' end
          from public.lost_wa_status w, jsonb_array_elements(coalesce(w.out_msgs, '[]'::jsonb)) m
          where w.phone = fl.phone and abs((m->>'t')::double precision - extract(epoch from fl.sent_at)) < 900
          order by abs((m->>'t')::double precision - extract(epoch from fl.sent_at)) limit 1) end as dst
-    from public.lost_send_flags fl left join public.lost_client_facts c on c.client_key = fl.client_key
+    from public.lost_send_flags fl left join public.lost_client_facts c on c.client_key = fl.client_key left join public.lost_wa_status ws on ws.phone = fl.phone
     where (p_wave is null or coalesce(fl.wave, 0) = p_wave)
       and (coalesce(p_branch, 'all') = 'all' or fl.branch = p_branch)
       and (p_tkey is null or fl.tkey = p_tkey)
@@ -176,10 +177,10 @@ begin
     select * from (select distinct on (client_key) * from m where per_client order by client_key, sent_at desc nulls last, id desc) d
   )
   select (select count(*) from g),
-         coalesce((select jsonb_agg(r) from (select jsonb_build_object('id', id, 'client', initcap(client_key), 'last4', right(phone, 4), 'branch', branch, 'tkey', tkey,
+         coalesce((select jsonb_agg(r) from (select jsonb_build_object('id', id, 'client', initcap(client_key), 'last4', right(phone, 4), 'phone', phone, 'branch', branch, 'tkey', tkey,
            'wave', coalesce(wave, 0), 'status', status, 'error', error, 'd', to_char(sent_at at time zone 'Asia/Dubai', 'YYYY-MM-DD'),
            't', to_char(sent_at at time zone 'Asia/Dubai', 'HH24:MI'), 'outcome', outcome, 'next', nxt, 'svc', next_svc, 'appts', n_appts, 'st', st,
-           'deposit', bal, 'dst', dst) as r
+           'deposit', bal, 'dst', dst, 'cid', cid) as r
            from g order by case when per_client then null else sent_at end desc nulls last, client_key limit 1000) z), '[]'::jsonb)
   into total, rows_;
   return jsonb_build_object('total', total, 'rows', rows_, 'per_client', per_client);
