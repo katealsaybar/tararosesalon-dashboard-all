@@ -187,3 +187,11 @@ begin
 end $$;
 revoke all on function public.lost_drill(text, int, text, text, text, text) from public, anon;
 grant execute on function public.lost_drill(text, int, text, text, text, text) to authenticated;
+
+-- 26 Oct 2026, later: the welcome-back terms (section 6) need the appointment AND the booking on or before 31 Oct 2026, so the send log can be cut to the clients whose
+-- next appointment is after 31 Oct, and to those of them whose message carried an offer ("% off"). lost_send_log_get gains p_after (date) and p_offer (boolean) and each
+-- row gains offer. Applied live by rewriting the live function (replace in its text, drop the 8-argument signature, create the 10-argument one):
+--   and (p_after is null or c.nxt > p_after)
+--   and (not coalesce(p_offer, false) or exists (select 1 from public.lost_send_jobs j2 where j2.client_key = fl.client_key and j2.status = 'sent' and not j2.is_test and j2.body_text ~* '% off'))
+--   'offer', coalesce(body_text ~* '% off', false)
+-- Same grants as before: execute for authenticated only.

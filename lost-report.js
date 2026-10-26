@@ -23,10 +23,12 @@ try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; 
 // The money, by the same rule: null until lost_campaign_money is live (or for Level 2), the Spent card and the section stay out.
 let lrMoney = null, lrMoneyView = 'visual';
 try { if (localStorage.getItem('lr-money-view') === 'table') lrMoneyView = 'table'; } catch (e) {}
-let lrSel = { wave: 'all', branch: 'all', status: 'all', outcomes: [], q: '', page: 1, per: 10 };   // Kate, 23 Oct 2026: ten rows to start, then 20, 50, 100
+let lrSel = { wave: 'all', branch: 'all', status: 'all', outcomes: [], after: 'all', q: '', page: 1, per: 10 };   // Kate, 23 Oct 2026: ten rows to start, then 20, 50, 100
 // What came of each client (Kate, 26 Oct 2026, from Belle's review): the log's Outcome column and filter, and the names behind every number
 // (lost_client_facts, lost_drill: migrations/lost_drill_outcomes.sql). Counts per outcome come back with every log page.
 let lrOutcomes = {};
+// The welcome-back terms (section 6): the appointment and the booking must both be on or before 31 Oct 2026. A client whose next appointment is later needs the exemption.
+const LR_DEADLINE = '2026-10-31';
 // The client's chat in respond.io (Kate, 26 Oct 2026): the contact id comes with each row (lost_wa_status). Space 250275.
 const LR_RESP = 'https://app.respond.io/space/250275/inbox/';
 // Name and number copy on click (Kate, 26 Oct 2026): the full number is shown, and clicking either one puts it on the clipboard.
@@ -108,7 +110,8 @@ function lrFetchPage(offset, limit) {
   return sb.rpc('lost_send_log_get', {
     p_wave: lrSel.wave === 'all' ? null : +lrSel.wave, p_branch: lrSel.branch, p_status: lrSel.status, p_q: lrSel.q.trim(),
     p_offset: offset != null ? offset : (lrSel.page - 1) * lrSel.per, p_limit: limit || lrSel.per, ...(lrType === 'all' ? {} : { p_type: lrType }),
-    ...(lrSel.outcomes.length ? { p_outcome: lrSel.outcomes.join(',') } : {}) });
+    ...(lrSel.outcomes.length ? { p_outcome: lrSel.outcomes.join(',') } : {}),
+    ...(lrSel.after === 'all' ? {} : { p_after: LR_DEADLINE, ...(lrSel.after === 'offer' ? { p_offer: true } : {}) }) });
 }
 async function lrRefreshLog() {
   const { data, error } = await lrFetchPage();
@@ -505,6 +508,7 @@ function lrPaint() {
         <select class="ll-sel" aria-label="Branch" onchange="lrSet('branch',this.value)"><option value="all">All branches</option>${LR_BR.map(b => `<option value="${b}"${lrSel.branch === b ? ' selected' : ''}>${lcEsc(LC_BRANCH[b] || b)}</option>`).join('')}</select>
         <select class="ll-sel" aria-label="Status" onchange="lrSet('status',this.value)">${[['all', 'Every status'], ['sent', 'Sent'], ['queued', 'Queued'], ['failed', 'Failed'], ['skipped', 'Skipped']].map(([v, l]) => `<option value="${v}"${lrSel.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <span class="lr-multi" id="lrOutWrap">${lrOutMulti()}</span>
+        <select class="ll-sel" aria-label="Next appointment" onchange="lrSet('after',this.value)">${[['all', 'Any next appointment'], ['after', 'Next appointment after 31 Oct'], ['offer', 'After 31 Oct, got the offer']].map(([v, l]) => `<option value="${v}"${lrSel.after === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <input type="search" class="ll-search" placeholder="Search name or last 4 digits" value="${lcEsc(lrSel.q)}" oninput="lrSearch(this.value)">
         <span style="flex:1"></span>
         <span class="lq-btns">
@@ -546,7 +550,8 @@ function lrOutcomeCell(r) {
   const o = LR_OUT[r.outcome];
   if (!o) return '<span class="slv-muted">–</span>';
   const when = r.next && (r.outcome === 'booked_nodep' || r.outcome === 'booked_dep' || r.outcome === 'rescheduled') ? ` <span class="slv-note">${r.outcome === 'rescheduled' ? 'now ' : ''}${lcEsc(lrDay(r.next))}</span>` : '';
-  return `<span class="ll-tag ${o[1]}">${o[0]}</span>${when}`;
+  const late = r.next && r.next > LR_DEADLINE ? ` <span class="ll-tag${r.offer ? ' lr-bad' : ''}" title="Her next appointment is after 31 Oct, when the welcome-back rate ends">After 31 Oct${r.offer ? ', had the offer' : ''}</span>` : '';
+  return `<span class="ll-tag ${o[1]}">${o[0]}</span>${when}${late}`;
 }
 function lrStatus(r) {
   if (r.status === 'sent') return '<span class="ll-tag sent">Sent</span>';
@@ -586,14 +591,14 @@ async function lrSaveLog(kind) {
     lrNote(`Getting the log… ${lcNum(out.length)} of ${lcNum(data.total)}`);
     if (!data.rows || data.rows.length < 500 || out.length >= data.total) break;
   }
-  const head = ['Date sent', 'Time sent (Dubai)', 'Wave', 'Branch', 'Message', 'Version', 'Template', 'Client', 'Phone', 'Status', 'Error', 'Outcome', 'Next appointment', 'Replied', 'Booked', 'STOP', 'Blocked', 'Message sent', 'Queued at', 'Queued by', 'respond.io message', 'respond.io chat'];
+  const head = ['Date sent', 'Time sent (Dubai)', 'Wave', 'Branch', 'Message', 'Version', 'Template', 'Client', 'Phone', 'Status', 'Error', 'Outcome', 'Next appointment', 'Got the offer', 'Replied', 'Booked', 'STOP', 'Blocked', 'Message sent', 'Queued at', 'Queued by', 'respond.io message', 'respond.io chat'];
   const yn = v => v ? 'Yes' : 'No';
   const lines = out.map(r => { const m = lrMsg(r.tkey);
-    return [r.d || '', r.t || '', r.wave || '', LC_BRANCH[r.branch] || r.branch, m.nm, m.arm, r.tkey, r.client, r.phone || r.last4, r.status, r.error || '', (LR_OUT[r.outcome] || [''])[0], r.next || '', yn(r.replied), yn(r.booked), yn(r.stop), yn(r.blocked), r.text || '', r.qd || '', r.by || '', r.message_id || '', r.cid ? LR_RESP + r.cid : '']; });
+    return [r.d || '', r.t || '', r.wave || '', LC_BRANCH[r.branch] || r.branch, m.nm, m.arm, r.tkey, r.client, r.phone || r.last4, r.status, r.error || '', (LR_OUT[r.outcome] || [''])[0], r.next || '', yn(r.offer), yn(r.replied), yn(r.booked), yn(r.stop), yn(r.blocked), r.text || '', r.qd || '', r.by || '', r.message_id || '', r.cid ? LR_RESP + r.cid : '']; });
   const built = lgxBuild({ sheets: [{ name: 'Send log', blocks: [{ cols: head.map(h => ({ label: h, fmt: 'text' })), rows: lines.map(l => ({ cells: l })) }] }] });
   const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const name = ['lost-clients-send-log', lrSel.wave !== 'all' ? 'wave-' + lrSel.wave : '', lrSel.branch !== 'all' ? slug(LC_BRANCH[lrSel.branch] || lrSel.branch) : '',
-    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.outcomes.length ? lrSel.outcomes.join('-').replace(/_/g, '-') : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.outcomes.length ? lrSel.outcomes.join('-').replace(/_/g, '-') : '', lrSel.after !== 'all' ? 'after-31-oct' + (lrSel.after === 'offer' ? '-offer' : '') : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   lrNote(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);
