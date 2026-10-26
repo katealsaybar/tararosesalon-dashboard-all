@@ -546,11 +546,11 @@ function lrOutAll() { lrSel.outcomes = LR_OUT_ALL.slice(); lrOutChanged(); }
 function lrOutClear() { lrSel.outcomes = []; lrOutChanged(); }
 document.addEventListener('click', e => { if (lrOutOpen && !(e.target.closest && e.target.closest('#lrOutWrap'))) { lrOutOpen = false; lrOutDraw(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && lrOutOpen) { lrOutOpen = false; lrOutDraw(); } });
-// Its own column (Kate, 26 Oct 2026): a red pill for each client whose next appointment is after 31 Oct and who had the offer, so she needs the exemption.
-// A client after 31 Oct whose message had no offer gets a plain pill, so the two read apart.
+// Its own column (Kate, 26 Oct 2026): a red pill for every client whose next appointment is after 31 Oct, the date the welcome-back rate ends (terms, section 6:
+// booked and scheduled on or before 31 Oct). The tooltip says whether her message carried the offer.
 function lrLateCell(r) {
   if (!r.next || r.next <= LR_DEADLINE) return '<span class="slv-muted">–</span>';
-  return `<span class="ll-tag${r.offer ? ' lr-bad lr-late' : ''}" title="${r.offer ? 'Her message had the offer and her next appointment is after 31 Oct, when the rate ends' : 'Her next appointment is after 31 Oct, but her message had no offer'}">After 31 Oct</span>`;
+  return `<span class="ll-tag lr-bad lr-late" title="Her next appointment is after 31 Oct, when the welcome-back rate ends${r.offer ? '' : '. Her messages had no offer'}">After 31 Oct</span>`;
 }
 function lrOutcomeCell(r) {
   const o = LR_OUT[r.outcome];
