@@ -197,3 +197,11 @@ grant execute on function public.lost_drill(text, int, text, text, text, text) t
 -- Same grants as before: execute for authenticated only.
 -- Later the same day: the row's 'offer' is per client (any message she was sent carried "% off"), not per message:
 --   'offer', exists (select 1 from public.lost_send_jobs j3 where j3.client_key = page.client_key and j3.status = 'sent' and not j3.is_test and j3.body_text ~* '% off')
+
+-- 26 Oct 2026, evening: the report would not load for Kate. The page asks for six functions at once and lost_client_facts (a live view over every sent job,
+-- the sales lines and lost_wa_status, about one second a call, twice per log page) pushed the total over the limit when the database was busy.
+-- Fixed (applied live): the view's old definition is kept as lost_client_facts_live; lost_client_facts is now a plain view over the table
+-- lost_client_facts_cache, filled by lost_facts_refresh() (cron lost-facts-refresh, every 10 minutes, delete and insert in one transaction so a reader never sees
+-- it empty). The cache also carries cid, the respond.io contact id, so the log and the pop-ups no longer join lost_wa_status a second time.
+-- Whole report now loads in about 1.4 s and a pop-up in 0.2 s. The numbers can run up to ten minutes behind (the underlying data is nightly or daily anyway).
+-- To refresh by hand: select public.lost_facts_refresh();
