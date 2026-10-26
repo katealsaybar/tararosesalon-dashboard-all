@@ -52,12 +52,32 @@
     return p.pre + s + p.suf;
   }
 
+  // Kate, 26 Oct 2026: the rows jumped up and down while she scrolled Wellness Voucher Performance. A figure that wraps at its final
+  // width ("AED / 11,224") fits on one line while it is still counting, so its row went 54px, 34px, 54px, and the frame, which is
+  // as tall as its page, moved with it. The box the figure has at its final value is held for the half second it counts: height
+  // always, and width on a table cell (its column would otherwise shrink and grow with it). Restored when the count ends.
+  function holdBox(el) {
+    const cs = getComputedStyle(el);
+    if (cs.display === 'inline' || cs.display === 'none') return null;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    const cell = cs.display === 'table-cell';
+    const border = cs.boxSizing === 'border-box';
+    const padH = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    const padW = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+    const h = border ? r.height : r.height - padH, w = border ? r.width : r.width - padW;
+    const was = { minHeight: el.style.minHeight, height: el.style.height, minWidth: el.style.minWidth, width: el.style.width };
+    if (cell) { el.style.height = h + 'px'; el.style.width = w + 'px'; } else { el.style.minHeight = h + 'px'; }
+    return () => { el.style.minHeight = was.minHeight; el.style.height = was.height; el.style.minWidth = was.minWidth; el.style.width = was.width; };
+  }
+
   function animate(el, p, final) {
     const t0 = performance.now();
+    const release = holdBox(el);
     let last = null;
     const tick = now => {
       // Someone else wrote to the number (a fresh draw, a filter): leave theirs alone.
-      if (last !== null && el.textContent !== last) return;
+      if (last !== null && el.textContent !== last) { if (release) release(); return; }
       const t = Math.min(1, (now - t0) / DURATION), e = 1 - Math.pow(1 - t, 3);
       if (t < 1) {
         last = format(p, p.value * e);
@@ -65,6 +85,7 @@
         requestAnimationFrame(tick);
       } else {
         el.textContent = final;
+        if (release) release();
       }
     };
     requestAnimationFrame(tick);
