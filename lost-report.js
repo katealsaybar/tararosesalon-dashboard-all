@@ -23,7 +23,16 @@ try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; 
 // The money, by the same rule: null until lost_campaign_money is live (or for Level 2), the Spent card and the section stay out.
 let lrMoney = null, lrMoneyView = 'visual';
 try { if (localStorage.getItem('lr-money-view') === 'table') lrMoneyView = 'table'; } catch (e) {}
-let lrSel = { wave: 'all', branch: 'all', status: 'all', q: '', page: 1, per: 10 };   // Kate, 23 Oct 2026: ten rows to start, then 20, 50, 100
+let lrSel = { wave: 'all', branch: 'all', status: 'all', outcome: 'all', q: '', page: 1, per: 10 };   // Kate, 23 Oct 2026: ten rows to start, then 20, 50, 100
+// What came of each client (Kate, 26 Oct 2026, from Belle's review): the log's Outcome column and filter, and the names behind every number
+// (lost_client_facts, lost_drill: migrations/lost_drill_outcomes.sql). Counts per outcome come back with every log page.
+let lrOutcomes = {};
+const LR_OUT = { booked_nodep: ['Booked, no deposit needed', 'sent'], booked_dep: ['Booked, deposit needed', 'sent'], done: ['Done appointment', 'sent'],
+  rescheduled: ['Rescheduled', ''], cancelled: ['Cancelled', 'lr-bad'], stop: ['STOP / opt out', 'lr-bad'] };
+// The section in the address (Belle, 26 Oct 2026): the Performance report's sub-entries write #lr-money and so on, and a link that carries one opens there.
+let lrCurSection = '';
+const LR_HASH0 = (() => { try { return location.hash.replace(/^#/, ''); } catch (e) { return ''; } })();
+let lrHashDone = false;
 // One message at a time (Kate, 19 Oct 2026): the whole report, the Booked and deposit and delivery sections and the log can be cut to Smoothing,
 // Colour or Due (migrations/lost_report_by_type.sql). 'all' sends no argument, so the page still works before that migration is live.
 let lrType = 'all';
@@ -68,19 +77,20 @@ async function lrLoad() {
     lrMoney = (!mo.error && mo.data && mo.data.cost) ? mo.data : null;   // optional too
     if (mo.error && !/Level 3/.test(mo.error.message || '')) console.warn('lost_campaign_money', mo.error);
     if (l.error || !l.data) throw l.error || new Error('no log');
-    lrRowsPage = l.data.rows || []; lrTotal = l.data.total || 0;
+    lrRowsPage = l.data.rows || []; lrTotal = l.data.total || 0; lrOutcomes = l.data.outcomes || {};
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
   lrBusy = false;
 }
 function lrFetchPage(offset, limit) {
   return sb.rpc('lost_send_log_get', {
     p_wave: lrSel.wave === 'all' ? null : +lrSel.wave, p_branch: lrSel.branch, p_status: lrSel.status, p_q: lrSel.q.trim(),
-    p_offset: offset != null ? offset : (lrSel.page - 1) * lrSel.per, p_limit: limit || lrSel.per, ...(lrType === 'all' ? {} : { p_type: lrType }) });
+    p_offset: offset != null ? offset : (lrSel.page - 1) * lrSel.per, p_limit: limit || lrSel.per, ...(lrType === 'all' ? {} : { p_type: lrType }),
+    ...(lrSel.outcome === 'all' ? {} : { p_outcome: lrSel.outcome }) });
 }
 async function lrRefreshLog() {
   const { data, error } = await lrFetchPage();
   if (error || !data) { console.error(error); lrNote('The log did not load. Try again.'); return; }
-  lrRowsPage = data.rows || []; lrTotal = data.total || 0;
+  lrRowsPage = data.rows || []; lrTotal = data.total || 0; lrOutcomes = data.outcomes || {};
   lrPaintLog();
 }
 function lrSetType(v) {
@@ -96,27 +106,36 @@ function lrToggle(id) { lrOpen[id] = !lrOpen[id]; lrPaintLog(); }
 function lrNote(t) { const n = document.getElementById('lrNote'); if (n) n.textContent = t; }
 
 const LR_COLS = [['sent', 'Sent'], ['replied', 'Replied'], ['rate', 'Reply rate'], ['booked', 'Booked'], ['stop', 'STOP'], ['failed', 'Failed'], ['queued', 'Queued'], ['first', 'First sent'], ['last', 'Last sent']];
-function lrRow(label, m) {
-  return `<tr><td>${label}</td><td>${lcNum(m.sent)}</td><td>${lcNum(m.replied)}</td><td>${lrPct(m.replied, m.sent)}</td><td>${lcNum(m.booked)}</td>
-    <td>${lcNum(m.stop)}</td><td>${m.failed ? `<b class="lr-bad">${lcNum(m.failed)}</b>` : '0'}</td><td>${lcNum(m.queued)}</td><td class="lr-when">${lrTime(m.first)}</td><td class="lr-when">${lrTime(m.last)}</td></tr>`;
+// A number that opens the names behind it (Kate, 26 Oct 2026: "dapat pag ni click yung number mag ppop up yung details kung sinu sino sila"). The span carries what the
+// number is (data-dm) and the row it sits in (wave, branch, message, day, type); lrDrillOpen asks lost_drill for the clients. Zero is plain text.
+// ctx keys: w wave, b branch, t message (template key), d day, y message type.
+function lrNum(n, metric, ctx, fmt) {
+  const v = (fmt || lcNum)(n);
+  if (!metric || !(+n > 0)) return v;
+  const c = ctx || {};
+  return `<span class="lr-num" role="button" tabindex="0" data-dm="${metric}"${['w', 'b', 't', 'd', 'y'].map(k => c[k] != null ? ` data-d${k}="${lcEsc(String(c[k]))}"` : '').join('')} title="See who">${v}</span>`;
+}
+function lrRow(label, m, ctx) {
+  return `<tr><td>${label}</td><td>${lrNum(m.sent, 'sent', ctx)}</td><td>${lrNum(m.replied, 'replied', ctx)}</td><td>${lrPct(m.replied, m.sent)}</td><td>${lrNum(m.booked, 'booked', ctx)}</td>
+    <td>${lrNum(m.stop, 'stop', ctx)}</td><td>${m.failed ? `<b class="lr-bad">${lrNum(m.failed, 'failed', ctx)}</b>` : '0'}</td><td>${lrNum(m.queued, 'queued', ctx)}</td><td class="lr-when">${lrTime(m.first)}</td><td class="lr-when">${lrTime(m.last)}</td></tr>`;
 }
 function lrTable(first, rows) {
   if (!rows.length) return '<p class="slv-muted">Nothing sent yet.</p>';
   return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>${first}</th>${LR_COLS.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 }
 function lrTiles(t) {
-  const card = (n, ti, d, cls) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${typeof n === 'string' ? n : lcNum(n)}</div><div class="ll-d">${d}</div></div>`;
+  const card = (n, ti, d, cls, met) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${typeof n === 'string' ? n : lrNum(n, met)}</div><div class="ll-d">${d}</div></div>`;
   const m = lrMoney, perBooked = m && m.booked && m.booked.clients ? ` (${lrAed(m.cost.aed / m.booked.clients)} per client booked)` : '';
   return `<div class="ll-cards lr-cards">
-    ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet')}
-    ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of those sent wrote back. A STOP is counted under STOP, not here.`)}
-    ${lrDep ? card(lrDep.total.booked, 'Clients booked', 'Clients with an appointment from today on, each counted once.')
-      : card(t.booked, 'Booked', `${lrPct(t.booked, t.sent)} have a booking from today on`)}
-    ${lrDep && lrDep.total.appts != null ? card(lrDep.total.appts, 'Appointments booked', 'Appointments from today on. A client can book more than one, so this is higher than the number of clients.')
+    ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet', '', 'sent')}
+    ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of those sent wrote back. A STOP is counted under STOP, not here.`, '', 'replied')}
+    ${lrDep ? card(lrDep.total.booked, 'Clients booked', 'Clients with an appointment from today on, each counted once.', '', 'booked')
+      : card(t.booked, 'Booked', `${lrPct(t.booked, t.sent)} have a booking from today on`, '', 'booked')}
+    ${lrDep && lrDep.total.appts != null ? card(lrDep.total.appts, 'Appointments booked', 'Appointments from today on. A client can book more than one, so this is higher than the number of clients.', '', 'appts')
       : ''}
-    ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} asked us to stop. Aim to stay under 2%.`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '')}
-    ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of the messages we tried to send did not go through. Aim to stay under 5%.`, t.failed ? 'lr-warn' : '')}
-    ${card(t.queued, 'Still queued', 'waiting for the next send window')}
+    ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} asked us to stop. Aim to stay under 2%.`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '', 'stop')}
+    ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of the messages we tried to send did not go through. Aim to stay under 5%.`, t.failed ? 'lr-warn' : '', 'failed')}
+    ${card(t.queued, 'Still queued', 'waiting for the next send window', '', 'queued')}
     ${m ? card(lrAed(m.cost.aed), 'Spent (estimate)', `${lcNum(m.cost.sent)} messages at AED ${(+m.rate).toFixed(2)} each${perBooked}. Meta's invoice has the exact figure.`) : ''}
   </div>${lrDep ? '<p class="slv-note">These are clients we messaged who have an appointment from today on. She may have booked before our message or at the chair; Phorest does not record that.</p>' : ''}`;
 }
@@ -180,25 +199,25 @@ function lrDepBar(m, scale) {
 }
 function lrDepVisual(d) {
   const t = d.total, by = d.by_branch || [], pol = lrDepPol(d), soon = (pol ? d.soon_need : d.soon) || [], maxB = Math.max(1, ...by.map(b => b.booked)), maxS = Math.max(1, ...soon.map(s => s.n));
-  const card = (n, ti, ds, cls) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${ds}</div></div>`;
+  const card = (n, ti, ds, cls, met) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${lrNum(n, met)}</div><div class="ll-d">${ds}</div></div>`;
   const key = pol
     ? '<div class="lr-dkey"><span><i class="d-paid"></i>Deposit paid</span><span><i class="d-today"></i>Today, none needed</span><span><i class="d-none"></i>Short service, none needed</span><span><i class="d-need"></i>Likely needed, not paid</span></div>'
     : '<div class="lr-dkey"><span><i class="d-paid"></i>Deposit paid</span><span><i class="d-today"></i>Today, none needed</span><span><i class="d-unpaid"></i>Not paid yet</span></div>';
   const cards = pol
-    ? `${card(t.booked, 'Clients booked', t.appts != null ? `${lcNum(t.appts)} appointments from today on` : 'clients with a booking from today on')}
-      ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked')}
-      ${card(t.need, 'Deposit likely needed', 'not paid yet: balayage, foils, all over colour or a restyle', 'lr-need')}
-      ${card(t.none + t.today, 'No deposit needed', `by policy: ${lcNum(t.none)} short service, ${lcNum(t.today)} come today`)}`
-    : `${card(t.booked, 'Clients booked', t.appts != null ? `${lcNum(t.appts)} appointments from today on` : 'clients with a booking from today on')}
-      ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked')}
-      ${card(t.unpaid, 'Not paid yet', 'no deposit in Phorest yet')}
-      ${card(t.today, 'Today', 'booked for today, no deposit needed')}`;
+    ? `${card(t.booked, 'Clients booked', t.appts != null ? `${lcNum(t.appts)} appointments from today on` : 'clients with a booking from today on', '', 'booked')}
+      ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked', '', 'paid')}
+      ${card(t.need, 'Deposit likely needed', 'not paid yet: balayage, foils, all over colour or a restyle', 'lr-need', 'need')}
+      ${card(t.none + t.today, 'No deposit needed', `by policy: ${lcNum(t.none)} short service, ${lcNum(t.today)} come today`, '', 'nodep')}`
+    : `${card(t.booked, 'Clients booked', t.appts != null ? `${lcNum(t.appts)} appointments from today on` : 'clients with a booking from today on', '', 'booked')}
+      ${card(t.paid, 'Deposit paid', lrPct(t.paid, t.booked) + ' of the booked', '', 'paid')}
+      ${card(t.unpaid, 'Not paid yet', 'no deposit in Phorest yet', '', 'unpaid')}
+      ${card(t.today, 'Today', 'booked for today, no deposit needed', '', 'today')}`;
   return `<div class="ll-cards lr-cards">
       ${cards}
     </div>
     <div class="lr-dgrid">
       <div class="lr-dcard"><h4>By branch</h4>
-        ${by.map(b => `<div class="lr-drow"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDepBar(b, 100 * b.booked / maxB)}<b>${lcNum(b.booked)}</b></div>`).join('') || '<p class="slv-muted">Nobody yet.</p>'}
+        ${by.map(b => `<div class="lr-drow"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDepBar(b, 100 * b.booked / maxB)}<b>${lrNum(b.booked, 'booked', { b: b.k })}</b></div>`).join('') || '<p class="slv-muted">Nobody yet.</p>'}
         ${key}</div>
       <div class="lr-dcard"><h4>${pol ? 'Likely needed, not paid' : 'Not paid yet'}: how soon they come</h4>
         ${soon.map(s => `<div class="lr-drow"><span>${LR_SOON[s.k] || s.k}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * s.n / maxS)}%">${lrSegI(pol ? 'd-need' : 'd-unpaid', pol ? 'Likely needed, not paid' : 'Not paid yet', s.n, 0, 100)}</span><b>${lcNum(s.n)}</b></div>`).join('') || `<p class="slv-muted">${pol ? 'Nobody is waiting on a deposit.' : 'Everyone has paid, or comes today.'}</p>`}
@@ -207,16 +226,16 @@ function lrDepVisual(d) {
 }
 function lrDepTable(d) {
   const t = d.total, by = d.by_branch || [], who = d.who || [], pol = lrDepPol(d), ap = t.appts != null;
-  const apH = ap ? '<th>Appointments</th>' : '', apC = m => ap ? `<td>${lcNum(m.appts)}</td>` : '';
+  const apH = ap ? '<th>Appointments</th>' : '', apC = (m, c) => ap ? `<td>${lrNum(m.appts, 'appts', c)}</td>` : '';
   const tag = (c, x) => `<span class="lr-dtag${c ? ' ' + c : ''}">${x}</span>`;
   const stTxt = w => w.status === 'paid' ? tag('paid', `Paid (AED ${lcNum(Math.round(w.deposit))})`) : w.status === 'today' ? tag('', 'Today, none needed')
     : !pol ? 'Not paid yet' : w.st === 'need' ? tag('need', 'Likely needed, not paid') : tag('', 'None needed, short service');
   const head = pol ? '<th>Branch</th><th>Clients booked</th>' + apH + '<th>Deposit paid</th><th>Likely needed, not paid</th><th>None needed, short service</th><th>Today, none needed</th>'
     : '<th>Branch</th><th>Clients booked</th>' + apH + '<th>Deposit paid</th><th>Today, none needed</th><th>Not paid yet</th>';
-  const cells = m => pol ? `<td>${lcNum(m.booked)}</td>${apC(m)}<td>${lcNum(m.paid)}</td><td>${lcNum(m.need)}</td><td>${lcNum(m.none)}</td><td>${lcNum(m.today)}</td>`
-    : `<td>${lcNum(m.booked)}</td>${apC(m)}<td>${lcNum(m.paid)}</td><td>${lcNum(m.today)}</td><td>${lcNum(m.unpaid)}</td>`;
+  const cells = (m, c) => pol ? `<td>${lrNum(m.booked, 'booked', c)}</td>${apC(m, c)}<td>${lrNum(m.paid, 'paid', c)}</td><td>${lrNum(m.need, 'need', c)}</td><td>${lrNum(m.none, 'none', c)}</td><td>${lrNum(m.today, 'today', c)}</td>`
+    : `<td>${lrNum(m.booked, 'booked', c)}</td>${apC(m, c)}<td>${lrNum(m.paid, 'paid', c)}</td><td>${lrNum(m.today, 'today', c)}</td><td>${lrNum(m.unpaid, 'unpaid', c)}</td>`;
   return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr>${head}</tr></thead><tbody>
-      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td>${cells(b)}</tr>`).join('')}
+      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td>${cells(b, { b: b.k })}</tr>`).join('')}
       <tr><td><b>All</b></td>${cells(t).replace(/<td>(.*?)<\/td>/g, '<td><b>$1</b></td>')}</tr></tbody></table></div>
     <h4 class="lr-dh">Who</h4>
     <div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Client</th><th>Branch</th><th>Next appointment</th>${ap ? '<th>Appointments</th>' : ''}${pol ? '<th>Service booked</th>' : ''}<th>Deposit</th>${pol ? '<th>Why</th>' : ''}</tr></thead><tbody>
@@ -226,14 +245,14 @@ function lrDepTable(d) {
 // This keeps her: booked ahead plus already came in (a sales line on or after our first message, deposits left out).
 function lrSinceTiles(sc, tbl) {
   const t = sc.total, by = sc.by_branch || [];
-  const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${ds}</div></div>`;
+  const card = (n, ti, ds, met) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${lrNum(n, met)}</div><div class="ll-d">${ds}</div></div>`;
   return `<div class="ll-cards lr-cards">
-      ${card(t.since, 'Booked since the message', `${lrPct(t.since, t.sent)} of the ${lcNum(t.sent)} clients we messaged. Does not drop when they come in`)}
-      ${card(t.ahead, 'Booked ahead', 'still has a booking from today on')}
-      ${card(t.done, 'Already came in', 'visited since our message, nothing booked ahead')}
+      ${card(t.since, 'Booked since the message', `${lrPct(t.since, t.sent)} of the ${lcNum(t.sent)} clients we messaged. Does not drop when they come in`, 'since')}
+      ${card(t.ahead, 'Booked ahead', 'still has a booking from today on', 'ahead')}
+      ${card(t.done, 'Already came in', 'visited since our message, nothing booked ahead', 'done')}
     </div>
     ${tbl ? `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Branch</th><th>Messaged</th><th>Booked since the message</th><th>Booked ahead</th><th>Already came in</th></tr></thead><tbody>
-      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td><td>${lcNum(b.sent)}</td><td>${lcNum(b.since)}</td><td>${lcNum(b.ahead)}</td><td>${lcNum(b.done)}</td></tr>`).join('')}
+      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td><td>${lcNum(b.sent)}</td><td>${lrNum(b.since, 'since', { b: b.k })}</td><td>${lrNum(b.ahead, 'ahead', { b: b.k })}</td><td>${lrNum(b.done, 'done', { b: b.k })}</td></tr>`).join('')}
       <tr><td><b>All</b></td><td><b>${lcNum(t.sent)}</b></td><td><b>${lcNum(t.since)}</b></td><td><b>${lcNum(t.ahead)}</b></td><td><b>${lcNum(t.done)}</b></td></tr></tbody></table></div>` : ''}
     <p class="slv-note">Counted per client from the first message sent to her (${lcEsc(lrDay(sc.first_send))} on). Came in means any sale line since then except a deposit, so it can include a walk-in who never booked ahead. Sales arrive with the nightly upload.</p>`;
 }
@@ -328,29 +347,29 @@ function lrDelBar(m, scale) {
 }
 function lrDelVisual(d) {
   const t = d.total, by = d.by_branch || [], days = d.by_day || [], maxD = Math.max(1, ...days.map(x => x.sent));
-  const card = (n, ti, ds, cls) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${ds}</div></div>`;
+  const card = (n, ti, ds, cls, met) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${lrNum(n, met)}</div><div class="ll-d">${ds}</div></div>`;
   const key = `<div class="lr-dkey">${LR_DKEYS.map(([, l, c]) => `<span><i class="${c}"></i>${l}</span>`).join('')}</div>`;
   return `<div class="ll-cards lr-cards">
-      ${card(t.seen, 'Seen', lrPct(t.seen, t.sent) + ' of the sent were read')}
-      ${card(t.delivered, 'Delivered only', lrPct(t.delivered, t.sent) + ', arrived but not read yet')}
-      ${card(t.sent_only, 'Not delivered yet', 'accepted, no delivery report yet')}
+      ${card(t.seen, 'Seen', lrPct(t.seen, t.sent) + ' of the sent were read', '', 'seen')}
+      ${card(t.delivered, 'Delivered only', lrPct(t.delivered, t.sent) + ', arrived but not read yet', '', 'delivered')}
+      ${card(t.sent_only, 'Not delivered yet', 'accepted, no delivery report yet', '', 'sent_only')}
     </div>
     <div class="lr-dgrid">
       <div class="lr-dcard"><h4>By branch</h4>
-        ${by.map(b => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDelBar(b, 100)}<b>${lcNum(b.sent)} sent</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
+        ${by.map(b => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[b.k] || b.k)}</span>${lrDelBar(b, 100)}<b>${lrNum(b.sent, 'sent', { b: b.k })} sent</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
         ${key}</div>
       <div class="lr-dcard"><h4>By day sent</h4>
-        ${days.map(x => `<div class="lr-drow lr-drow2"><span>${lcEsc(lrDay(x.k))}</span>${lrDelBar(x, 100 * x.sent / maxD)}<b>${lcNum(x.sent)}</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
+        ${days.map(x => `<div class="lr-drow lr-drow2"><span>${lcEsc(lrDay(x.k))}</span>${lrDelBar(x, 100 * x.sent / maxD)}<b>${lrNum(x.sent, 'sent', { d: x.k })}</b></div>`).join('') || '<p class="slv-muted">Nothing sent yet.</p>'}
         <p class="slv-note">Each bar is a day: its length is how many went out, the colours are what happened to them. A blank part has no delivery result yet.</p></div>
     </div>`;
 }
 function lrDelTable(d) {
   const t = d.total, by = d.by_branch || [], days = d.by_day || [];
-  const row = (label, m, bold) => { const b = v => bold ? `<b>${v}</b>` : v; return `<tr><td>${b(label)}</td><td>${b(lcNum(m.sent))}</td><td>${b(lcNum(m.seen))}</td><td>${b(lcNum(m.delivered))}</td><td>${b(lcNum(m.sent_only))}</td></tr>`; };
+  const row = (label, m, bold, c) => { const b = v => bold ? `<b>${v}</b>` : v; return `<tr><td>${b(label)}</td><td>${b(lrNum(m.sent, 'sent', c))}</td><td>${b(lrNum(m.seen, 'seen', c))}</td><td>${b(lrNum(m.delivered, 'delivered', c))}</td><td>${b(lrNum(m.sent_only, 'sent_only', c))}</td></tr>`; };
   const head = first => `<thead><tr><th>${first}</th><th>Sent</th><th>Seen</th><th>Delivered only</th><th>Not delivered yet</th></tr></thead>`;
-  return `<div class="lr-scroll"><table class="slv-table lr-tbl">${head('Branch')}<tbody>${by.map(b => row(lcEsc(LC_BRANCH[b.k] || b.k), b)).join('')}${row('All', t, true)}</tbody></table></div>
+  return `<div class="lr-scroll"><table class="slv-table lr-tbl">${head('Branch')}<tbody>${by.map(b => row(lcEsc(LC_BRANCH[b.k] || b.k), b, false, { b: b.k })).join('')}${row('All', t, true)}</tbody></table></div>
     <h4 class="lr-dh">By day sent</h4>
-    <div class="lr-scroll"><table class="slv-table lr-tbl">${head('Day')}<tbody>${days.map(x => row(lcEsc(lrDay(x.k)), x)).join('')}</tbody></table></div>`;
+    <div class="lr-scroll"><table class="slv-table lr-tbl">${head('Day')}<tbody>${days.map(x => row(lcEsc(lrDay(x.k)), x, false, { d: x.k })).join('')}</tbody></table></div>`;
 }
 function lrDelInner() {
   const d = lrDel;
@@ -390,6 +409,7 @@ let lrSpy = null;
 function lrRailClear() {
   document.querySelectorAll('#lostListsContent .side-sub').forEach(n => n.remove());
   if (lrSpy) { window.removeEventListener('scroll', lrSpy); lrSpy = null; }
+  lrCurSection = '';
 }
 function lrGoSection(id) {
   const el = document.getElementById(id);
@@ -410,9 +430,17 @@ function lrRailSubs() {
     subs.forEach(([id]) => { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top <= 150) cur = id; });
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = subs[subs.length - 1][0];   // the end of the page lights the last one
     nav.querySelectorAll('a').forEach(x => x.classList.toggle('on', x.dataset.s === cur));
+    // the address names the section she is reading (#lr-money), and is bare again at the very top
+    const sec = window.scrollY < 120 ? '' : cur;
+    if (sec !== lrCurSection) { lrCurSection = sec; if (typeof trSyncUrl === 'function') trSyncUrl(sec || null); }
   };
   lrSpy = spy;   // ten getBoundingClientRect reads per scroll event, cheap enough without a throttle
   window.addEventListener('scroll', lrSpy, { passive: true });
+  // A link that names a section (#lr-money) opens there, once, after the first paint (the hash is read when this file loads: the boot rewrites the address)
+  if (!lrHashDone) {
+    lrHashDone = true;
+    if (LR_HASH0 && subs.some(([id]) => id === LR_HASH0)) setTimeout(() => { lrGoSection(LR_HASH0); }, 150);
+  }
   spy();
 }
 function lrPaint() {
@@ -421,12 +449,12 @@ function lrPaint() {
   lrRailClear();
   if (lrErr || !lrSum) { host.innerHTML = `<p class="slv-muted">${lcEsc(lrErr || 'No report yet.')}</p>`; return; }
   const s = lrSum, t = s.totals || {}, byB = s.by_branch || [];
-  const typeRows = LR_TYPES.map(([k, l]) => { const m = (s.by_type || []).find(x => x.k === k); return m ? lrRow(`<b>${lcEsc(l)}</b>`, m) : null; }).filter(Boolean);
-  const waveRows = (s.by_wave || []).map(w => lrRow(`<b>Wave ${w.k || '?'}</b>`, w));
-  const msgRows = (s.by_message || []).map(m => { const x = lrMsg(m.k); return lrRow(`${lcEsc(x.nm)} <span class="ll-tag">${lcEsc(x.arm)}</span>`, m); });
-  const brRows = LR_BR.map(b => byB.find(x => x.k === b)).filter(Boolean).map(m => lrRow(lcEsc(LC_BRANCH[m.k] || m.k), m))
-    .concat(byB.filter(x => !LR_BR.includes(x.k)).map(m => lrRow(lcEsc(m.k), m)));
-  const dayRows = (s.by_day || []).map(d => lrRow(lcEsc(lrDay(d.k)), d));
+  const typeRows = LR_TYPES.map(([k, l]) => { const m = (s.by_type || []).find(x => x.k === k); return m ? lrRow(`<b>${lcEsc(l)}</b>`, m, { y: k }) : null; }).filter(Boolean);
+  const waveRows = (s.by_wave || []).map(w => lrRow(`<b>Wave ${w.k || '?'}</b>`, w, { w: w.k || 0 }));
+  const msgRows = (s.by_message || []).map(m => { const x = lrMsg(m.k); return lrRow(`${lcEsc(x.nm)} <span class="ll-tag">${lcEsc(x.arm)}</span>`, m, { t: m.k }); });
+  const brRows = LR_BR.map(b => byB.find(x => x.k === b)).filter(Boolean).map(m => lrRow(lcEsc(LC_BRANCH[m.k] || m.k), m, { b: m.k }))
+    .concat(byB.filter(x => !LR_BR.includes(x.k)).map(m => lrRow(lcEsc(m.k), m, { b: m.k })));
+  const dayRows = (s.by_day || []).map(d => lrRow(lcEsc(lrDay(d.k)), d, { d: d.k }));
   host.innerHTML = `
     <div class="ll-fresh">
       <span class="ll-chip">Real sends only, test messages are left out</span>
@@ -453,6 +481,7 @@ function lrPaint() {
         <select class="ll-sel" aria-label="Wave" onchange="lrSet('wave',this.value)">${[['all', 'All waves'], ['1', 'Wave 1'], ['2', 'Wave 2'], ['3', 'Wave 3'], ['4', 'Wave 4']].map(([v, l]) => `<option value="${v}"${lrSel.wave === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <select class="ll-sel" aria-label="Branch" onchange="lrSet('branch',this.value)"><option value="all">All branches</option>${LR_BR.map(b => `<option value="${b}"${lrSel.branch === b ? ' selected' : ''}>${lcEsc(LC_BRANCH[b] || b)}</option>`).join('')}</select>
         <select class="ll-sel" aria-label="Status" onchange="lrSet('status',this.value)">${[['all', 'Every status'], ['sent', 'Sent'], ['queued', 'Queued'], ['failed', 'Failed'], ['skipped', 'Skipped']].map(([v, l]) => `<option value="${v}"${lrSel.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+        <select class="ll-sel" id="lrOutSel" aria-label="Outcome" onchange="lrSet('outcome',this.value)">${lrOutOptions()}</select>
         <input type="search" class="ll-search" placeholder="Search name or last 4 digits" value="${lcEsc(lrSel.q)}" oninput="lrSearch(this.value)">
         <span style="flex:1"></span>
         <span class="lq-btns">
@@ -467,6 +496,17 @@ function lrPaint() {
   lrRailSubs();
 }
 
+// The Outcome filter, with how many clients are in each (counted for the other filters in force). Redrawn with every page of the log.
+const LR_OUT_ORDER = ['booked_nodep', 'booked_dep', 'done', 'rescheduled', 'cancelled', 'stop'];
+function lrOutOptions() {
+  return `<option value="all">Every outcome</option>${LR_OUT_ORDER.map(k => `<option value="${k}"${lrSel.outcome === k ? ' selected' : ''}>${LR_OUT[k][0]}${lrOutcomes[k] != null ? ` (${lcNum(lrOutcomes[k])})` : ''}</option>`).join('')}`;
+}
+function lrOutcomeCell(r) {
+  const o = LR_OUT[r.outcome];
+  if (!o) return '<span class="slv-muted">–</span>';
+  const when = r.next && (r.outcome === 'booked_nodep' || r.outcome === 'booked_dep' || r.outcome === 'rescheduled') ? ` <span class="slv-note">${r.outcome === 'rescheduled' ? 'now ' : ''}${lcEsc(lrDay(r.next))}</span>` : '';
+  return `<span class="ll-tag ${o[1]}">${o[0]}</span>${when}`;
+}
 function lrStatus(r) {
   if (r.status === 'sent') return '<span class="ll-tag sent">Sent</span>';
   if (r.status === 'queued' || r.status === 'sending') return '<span class="ll-tag">Queued</span>';
@@ -478,17 +518,20 @@ function lrPaintLog() {
   const per = lrSel.per, pages = Math.max(1, Math.ceil(lrTotal / per)), p = Math.min(lrSel.page, pages);
   const rows = lrRowsPage.map(r => {
     const m = lrMsg(r.tkey), open = !!lrOpen[r.id], when = r.d ? `${lcEsc(lrDay(r.d))} <span class="lr-t">${lcEsc(r.t)}</span>` : `<span class="slv-note">queued ${lcEsc(r.qd || '')}</span>`;
-    const flags = [r.replied ? '<span class="ll-tag sent">Replied</span>' : '', r.booked ? '<span class="ll-tag sent">Booked</span>' : '', r.stop ? '<span class="ll-tag lr-bad">STOP</span>' : '', r.blocked ? '<span class="ll-tag lr-bad">Blocked</span>' : ''].join('');
+    const flags = [r.replied ? 'Replied' : '', r.blocked ? 'Blocked' : ''].filter(Boolean).join(', ');
     return `<tr class="lr-row${open ? ' open' : ''}" onclick="lrToggle(${r.id})"><td>${when}</td><td>${r.wave || '–'}</td><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td>
-      <td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${lcEsc(r.client)} <span class="slv-note">…${lcEsc(r.last4)}</span></td><td>${lrStatus(r)}</td><td>${flags || '<span class="slv-muted">–</span>'}</td></tr>
-      ${open ? `<tr class="lr-text"><td colspan="7"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}</div></td></tr>` : ''}`;
+      <td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${lcEsc(r.client)} <span class="slv-note">…${lcEsc(r.last4)}</span></td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td></tr>
+      ${open ? `<tr class="lr-text"><td colspan="7"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}${flags ? ' · ' + flags : ''}</div></td></tr>` : ''}`;
   }).join('');
   // Prev and Next only when there is more than one page; the rows-a-page choice whenever the log is longer than the shortest page.
   const perSel = lrTotal > 10 ? `<select class="ll-sel" aria-label="Rows a page" onchange="lrPer(this.value)">${[10, 20, 50, 100].map(n => `<option value="${n}"${lrSel.per === n ? ' selected' : ''}>${n} rows</option>`).join('')}</select>` : '';
   const pager = lrTotal > 10 ? `<div class="lr-pager">${pages > 1 ? `<button type="button" class="tglr lc-btn" ${p <= 1 ? 'disabled' : ''} onclick="lrGo(${p - 1})">‹ Prev</button>
     <span class="slv-note">Page ${lcNum(p)} of ${lcNum(pages)}</span><button type="button" class="tglr lc-btn" ${p >= pages ? 'disabled' : ''} onclick="lrGo(${p + 1})">Next ›</button>` : ''}${perSel}</div>` : '';
-  el.innerHTML = `<p class="slv-note">${lcNum(lrTotal)} message${lrTotal === 1 ? '' : 's'}${lrTotal ? `, newest first. Click a row to read what she was sent.` : ''}</p>
-    ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Sent</th><th>Wave</th><th>Branch</th><th>Message</th><th>Client</th><th>Status</th><th>Since</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
+  const oSel = document.getElementById('lrOutSel');
+  if (oSel) oSel.innerHTML = lrOutOptions();
+  const byClient = lrSel.outcome !== 'all';
+  el.innerHTML = `<p class="slv-note">${byClient ? `${lcNum(lrTotal)} client${lrTotal === 1 ? '' : 's'}, one row each (the latest message she was sent)` : `${lcNum(lrTotal)} message${lrTotal === 1 ? '' : 's'}`}${lrTotal ? `, newest first. Click a row to read what she was sent.` : ''}</p>
+    ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Sent</th><th>Wave</th><th>Branch</th><th>Message</th><th>Client</th><th>Status</th><th>Outcome</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
 }
 
 // The whole log for the current filters, 500 at a time, with the text of each message.
@@ -503,15 +546,81 @@ async function lrSaveLog(kind) {
     lrNote(`Getting the log… ${lcNum(out.length)} of ${lcNum(data.total)}`);
     if (!data.rows || data.rows.length < 500 || out.length >= data.total) break;
   }
-  const head = ['Date sent', 'Time sent (Dubai)', 'Wave', 'Branch', 'Message', 'Version', 'Template', 'Client', 'Phone (last 4)', 'Status', 'Error', 'Replied', 'Booked', 'STOP', 'Blocked', 'Message sent', 'Queued at', 'Queued by', 'respond.io message'];
+  const head = ['Date sent', 'Time sent (Dubai)', 'Wave', 'Branch', 'Message', 'Version', 'Template', 'Client', 'Phone (last 4)', 'Status', 'Error', 'Outcome', 'Next appointment', 'Replied', 'Booked', 'STOP', 'Blocked', 'Message sent', 'Queued at', 'Queued by', 'respond.io message'];
   const yn = v => v ? 'Yes' : 'No';
   const lines = out.map(r => { const m = lrMsg(r.tkey);
-    return [r.d || '', r.t || '', r.wave || '', LC_BRANCH[r.branch] || r.branch, m.nm, m.arm, r.tkey, r.client, r.last4, r.status, r.error || '', yn(r.replied), yn(r.booked), yn(r.stop), yn(r.blocked), r.text || '', r.qd || '', r.by || '', r.message_id || '']; });
+    return [r.d || '', r.t || '', r.wave || '', LC_BRANCH[r.branch] || r.branch, m.nm, m.arm, r.tkey, r.client, r.last4, r.status, r.error || '', (LR_OUT[r.outcome] || [''])[0], r.next || '', yn(r.replied), yn(r.booked), yn(r.stop), yn(r.blocked), r.text || '', r.qd || '', r.by || '', r.message_id || '']; });
   const built = lgxBuild({ sheets: [{ name: 'Send log', blocks: [{ cols: head.map(h => ({ label: h, fmt: 'text' })), rows: lines.map(l => ({ cells: l })) }] }] });
   const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const name = ['lost-clients-send-log', lrSel.wave !== 'all' ? 'wave-' + lrSel.wave : '', lrSel.branch !== 'all' ? slug(LC_BRANCH[lrSel.branch] || lrSel.branch) : '',
-    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.outcome !== 'all' ? lrSel.outcome.replace(/_/g, '-') : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   lrNote(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);
 }
+
+// ── The names behind a number (Kate, 26 Oct 2026) ────────────────────────────────────────────────────────────────────────────────
+// Any figure drawn by lrNum opens a list of the clients in it: lost_drill(metric, wave, branch, message, day, type) answers with the same
+// filters as the row the figure sits in, and the page's own message pick (Which message) narrows it too. One row per message for the message
+// counts (sent, replied, STOP, failed, seen ...), one row per client for the client counts (booked, deposit, came in, the outcomes).
+const LR_DRILL = { sent: 'Sent', replied: 'Replied', booked: 'Clients booked', appts: 'Clients with an appointment booked', stop: 'STOP', failed: 'Failed', queued: 'Still queued',
+  skipped: 'Skipped', blocked: 'Blocked', seen: 'Seen', delivered: 'Delivered, not read yet', sent_only: 'Not delivered yet', paid: 'Deposit paid',
+  need: 'Deposit likely needed, not paid', none: 'No deposit needed, short service', today: 'Booked for today', nodep: 'No deposit needed', unpaid: 'Not paid yet',
+  since: 'Booked since the message', ahead: 'Booked ahead', done: 'Already came in' };
+let lrDrillEl = null, lrDrillFrom = null;
+function lrDrillClose() {
+  if (lrDrillEl) lrDrillEl.remove();
+  lrDrillEl = null; document.body.classList.remove('lr-modal-open');
+  if (lrDrillFrom && document.contains(lrDrillFrom)) lrDrillFrom.focus();
+  lrDrillFrom = null;
+}
+function lrDrillTitle(d) {
+  const bits = [LR_DRILL[d.dm] || d.dm];
+  if (d.dw != null) bits.push(+d.dw ? 'Wave ' + d.dw : 'No wave');
+  if (d.db) bits.push(LC_BRANCH[d.db] || d.db);
+  if (d.dt) { const x = lrMsg(d.dt); bits.push(x.nm + ', ' + x.arm); }
+  if (d.dd) bits.push(lrDay(d.dd));
+  const ty = d.dy || (lrType !== 'all' ? lrType : ''), tn = (LR_TYPES.find(t => t[0] === ty) || [, ''])[1];
+  if (tn) bits.push(tn);
+  return bits.join(' · ');
+}
+function lrDrillBody(res) {
+  const rows = res.rows || [], per = res.per_client;
+  if (!rows.length) return '<p class="slv-muted">Nobody to show.</p>';
+  const depTxt = r => r.st === 'paid' ? `Paid (AED ${lcNum(Math.round(r.deposit))})` : r.st === 'need' ? 'Likely needed, not paid' : r.st === 'none' ? 'None needed, short service' : r.st === 'today' ? 'Today, none needed' : '–';
+  const out = r => { const o = LR_OUT[r.outcome]; return o ? `<span class="ll-tag ${o[1]}">${o[0]}</span>` : '<span class="slv-muted">–</span>'; };
+  const who = r => `${lcEsc(r.client)} <span class="slv-note">…${lcEsc(r.last4)}</span>`;
+  const head = per ? '<th>Client</th><th>Branch</th><th>Next appointment</th><th>Service booked</th><th>Deposit</th><th>Outcome</th>'
+    : '<th>Client</th><th>Branch</th><th>Message</th><th>Sent</th><th>Outcome</th>';
+  const body = rows.map(r => per
+    ? `<tr><td>${who(r)}</td><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td><td>${r.next ? lcEsc(lrDay(r.next)) + (r.appts > 1 ? ` <span class="slv-note">+${r.appts - 1} more</span>` : '') : '–'}</td><td class="lr-dsvc">${lcEsc(r.svc || '')}</td><td>${r.next ? depTxt(r) : '–'}</td><td>${out(r)}</td></tr>`
+    : `<tr><td>${who(r)}</td><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td><td>${lcEsc(lrMsg(r.tkey).nm)}</td><td>${r.d ? lcEsc(lrDay(r.d)) + ' <span class="lr-t">' + lcEsc(r.t) + '</span>' : '<span class="slv-note">not sent yet</span>'}${r.status === 'failed' && r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}</td><td>${out(r)}</td></tr>`).join('');
+  return `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+async function lrDrillOpen(el) {
+  const d = el.dataset;
+  lrDrillClose();
+  lrDrillFrom = el;
+  const box = document.createElement('div');
+  box.className = 'lr-modal'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', lrDrillTitle(d));
+  box.innerHTML = `<div class="lr-modal-box"><div class="lr-modal-hd"><div><h3>${lcEsc(lrDrillTitle(d))}</h3><p class="slv-note" id="lrDrillSub">Loading…</p></div>
+    <button type="button" class="tglr lc-btn" data-lr-close>Close</button></div><div class="lr-modal-body" id="lrDrillBody"></div></div>`;
+  box.addEventListener('click', e => { if (e.target === box || e.target.closest('[data-lr-close]')) lrDrillClose(); });
+  document.body.appendChild(box); document.body.classList.add('lr-modal-open');
+  lrDrillEl = box;
+  const closeBtn = box.querySelector('[data-lr-close]'); if (closeBtn) closeBtn.focus();
+  const ty = d.dy || (lrType !== 'all' ? lrType : null);
+  const { data, error } = await sb.rpc('lost_drill', { p_metric: d.dm, p_wave: d.dw != null ? +d.dw : null, p_branch: d.db || 'all', p_tkey: d.dt || null, p_day: d.dd || null, p_type: ty });
+  if (lrDrillEl !== box) return;   // closed, or another one opened, while it loaded
+  const sub = box.querySelector('#lrDrillSub'), bd = box.querySelector('#lrDrillBody');
+  if (error || !data) { console.error(error); sub.textContent = 'The list did not load. Close this and try again.'; return; }
+  const n = data.total || 0, rows = (data.rows || []).length;
+  sub.textContent = `${lcNum(n)} ${data.per_client ? 'client' : 'message'}${n === 1 ? '' : 's'}${n > rows ? `, the first ${lcNum(rows)} shown` : ''}${data.per_client ? '. A client who was sent more than one message is listed once.' : ''}`;
+  bd.innerHTML = lrDrillBody(data);
+}
+document.addEventListener('click', e => { const n = e.target.closest && e.target.closest('.lr-num'); if (n) { e.stopPropagation(); lrDrillOpen(n); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && lrDrillEl) { lrDrillClose(); return; }
+  const n = e.target.closest && e.target.closest('.lr-num');
+  if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); lrDrillOpen(n); }
+});
