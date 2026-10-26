@@ -22,6 +22,8 @@ let lrDel = null, lrDelView = 'visual';
 try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; } catch (e) {}
 // The money, by the same rule: null until lost_campaign_money is live (or for Level 2), the Spent card and the section stay out.
 let lrMoney = null, lrMoneyView = 'visual';
+// What it took to get a booking, day by day (Kate, 26 Oct 2026; lost_blast_record_get, migrations/lost_blast_record.sql, Level 3 and above). Null until the function is live.
+let lrRec = null;
 try { if (localStorage.getItem('lr-money-view') === 'table') lrMoneyView = 'table'; } catch (e) {}
 let lrSel = { wave: 'all', branch: 'all', status: 'all', outcomes: [], after: 'all', q: '', page: 1, per: 10 };   // Kate, 23 Oct 2026: ten rows to start, then 20, 50, 100
 // What came of each client (Kate, 26 Oct 2026, from Belle's review): the log's Outcome column and filter, and the names behind every number
@@ -90,7 +92,7 @@ async function lrLoad() {
   if (lrBusy) return;
   lrBusy = true; lrErr = '';
   try {
-    const [s, l, dp, dl, mo, bs] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_campaign_money', lrArgs()), sb.rpc('lost_booked_since', lrArgs())]);
+    const [s, l, dp, dl, mo, bs, rc] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_campaign_money', lrArgs()), sb.rpc('lost_booked_since', lrArgs()), sb.rpc('lost_blast_record_get')]);
     if (s.error || !s.data) throw s.error || new Error('no report');
     lrSum = s.data;
     lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
@@ -101,6 +103,8 @@ async function lrLoad() {
     if (dl.error) console.warn('lost_delivery_report', dl.error);
     lrMoney = (!mo.error && mo.data && mo.data.cost) ? mo.data : null;   // optional too
     if (mo.error && !/Level 3/.test(mo.error.message || '')) console.warn('lost_campaign_money', mo.error);
+    lrRec = (!rc.error && rc.data && (rc.data.rows || []).length) ? rc.data : null;   // optional too
+    if (rc.error && !/Level 3/.test(rc.error.message || '')) console.warn('lost_blast_record_get', rc.error);
     if (l.error || !l.data) throw l.error || new Error('no log');
     lrRowsPage = l.data.rows || []; lrTotal = l.data.total || 0; lrOutcomes = l.data.outcomes || {};
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
@@ -348,6 +352,7 @@ function lrMoneyInner() {
   return `<div class="lr-dhd"><h3>Money from the bookings</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrMoneySet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrMoneySet('table')">Table</button></div></div>
     ${tbl ? lrMoneyTable(m) : lrMoneyVisual(m)}
+    ${lrRecInner()}
     <p class="slv-note">What the bookings are worth, and what the messages cost.</p>
     <p class="slv-note"><b>Projected</b> is what the booked appointments should bring in. <b>Actual</b> is what the clients we messaged have paid so far. <b>Spent</b> is what the messages cost, an estimate at AED ${(+m.rate).toFixed(2)} each.</p>
     <p class="slv-note">A booking or a visit may not be because of our message: she may have booked before it, or been coming anyway.</p>
@@ -355,6 +360,22 @@ function lrMoneyInner() {
       <p class="slv-note"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that service charged in the last 120 days, VAT included. ${unp ? `${lcNum(unp)} of the ${lcNum(b.svcs)} booked services have no price yet (a package or a free item) and count as 0, so it runs low.` : ''}</p>
       <p class="slv-note"><b>Actual</b> is everything the clients we messaged have paid since their first message, VAT included, refunds taken off, without deposits, vouchers and courses sold. It also counts clients who came in and have no booking left. Sales arrive with the nightly upload, so today shows tomorrow.</p>
     </details>`;
+}
+// What it took to get a booking: the day's totals saved each night, so the cost of a yes can be looked back on. "Booked since" counts a client once, her messages all count.
+function lrRecInner() {
+  const rows = lrRec && lrRec.rows || [];
+  if (!rows.length) return '';
+  const r = rows[0], f1 = v => v == null ? '–' : (+v).toFixed(1), aed2 = v => v == null ? '–' : 'AED ' + (+v).toFixed(2);
+  const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${n}</div><div class="ll-d">${ds}</div></div>`;
+  return `<h4 class="lr-dh">What it took to get a booking</h4>
+    <div class="ll-cards lr-cards">
+      ${card(f1(r.messages_per_booking), 'Messages per booking', `${lcNum(r.sent)} messages sent for ${lcNum(r.booked_since)} clients who booked or came in since our message`)}
+      ${card(aed2(r.cost_per_booking), 'Cost per booking', `${lrAed(r.cost_aed)} spent (estimate) over ${lcNum(r.booked_since)} clients`)}
+      ${card(aed2(r.cost_per_ahead), 'Cost per booking ahead', `the same spend over the ${lcNum(r.booked_ahead)} clients with a booking from today on`)}
+    </div>
+    <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Day</th><th>Messages sent</th><th>Spent (estimate)</th><th>Replied</th><th>STOP</th><th>Booked ahead</th><th>Booked since</th><th>Messages per booking</th><th>Cost per booking</th></tr></thead><tbody>
+      ${rows.map(x => `<tr><td>${lcEsc(lrDay(x.day))}</td><td>${lcNum(x.sent)}</td><td>${lrAed(x.cost_aed)}</td><td>${lcNum(x.replied)}</td><td>${lcNum(x.stop)}</td><td>${lcNum(x.booked_ahead)}</td><td>${lcNum(x.booked_since)}</td><td>${f1(x.messages_per_booking)}</td><td>${aed2(x.cost_per_booking)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="slv-note">Saved every night at midnight (Dubai), so you can see the cost of a booking come down as more clients say yes. Booked since is the clients with a booking from today on plus the ones who already came in after our message, each counted once. Spent is the estimate at AED ${(+r.rate).toFixed(2)} a message, and every message counts, including the second one some clients were sent.</p>`;
 }
 function lrMoneySet(v) {
   lrMoneyView = v === 'table' ? 'table' : 'visual';
