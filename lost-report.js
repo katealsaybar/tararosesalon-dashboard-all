@@ -546,12 +546,17 @@ function lrOutAll() { lrSel.outcomes = LR_OUT_ALL.slice(); lrOutChanged(); }
 function lrOutClear() { lrSel.outcomes = []; lrOutChanged(); }
 document.addEventListener('click', e => { if (lrOutOpen && !(e.target.closest && e.target.closest('#lrOutWrap'))) { lrOutOpen = false; lrOutDraw(); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && lrOutOpen) { lrOutOpen = false; lrOutDraw(); } });
+// Its own column (Kate, 26 Oct 2026): a red pill for each client whose next appointment is after 31 Oct and who had the offer, so she needs the exemption.
+// A client after 31 Oct whose message had no offer gets a plain pill, so the two read apart.
+function lrLateCell(r) {
+  if (!r.next || r.next <= LR_DEADLINE) return '<span class="slv-muted">–</span>';
+  return `<span class="ll-tag${r.offer ? ' lr-bad lr-late' : ''}" title="${r.offer ? 'Her message had the offer and her next appointment is after 31 Oct, when the rate ends' : 'Her next appointment is after 31 Oct, but her message had no offer'}">After 31 Oct</span>`;
+}
 function lrOutcomeCell(r) {
   const o = LR_OUT[r.outcome];
   if (!o) return '<span class="slv-muted">–</span>';
   const when = r.next && (r.outcome === 'booked_nodep' || r.outcome === 'booked_dep' || r.outcome === 'rescheduled') ? ` <span class="slv-note">${r.outcome === 'rescheduled' ? 'now ' : ''}${lcEsc(lrDay(r.next))}</span>` : '';
-  const late = r.next && r.next > LR_DEADLINE ? ` <span class="ll-tag${r.offer ? ' lr-bad' : ''}" title="Her next appointment is after 31 Oct, when the welcome-back rate ends">After 31 Oct${r.offer ? ', had the offer' : ''}</span>` : '';
-  return `<span class="ll-tag ${o[1]}">${o[0]}</span>${when}${late}`;
+  return `<span class="ll-tag ${o[1]}">${o[0]}</span>${when}`;
 }
 function lrStatus(r) {
   if (r.status === 'sent') return '<span class="ll-tag sent">Sent</span>';
@@ -566,8 +571,8 @@ function lrPaintLog() {
     const m = lrMsg(r.tkey), open = !!lrOpen[r.id], when = r.d ? `${lcEsc(lrDay(r.d))} <span class="lr-t">${lcEsc(r.t)}</span>` : `<span class="slv-note">queued ${lcEsc(r.qd || '')}</span>`;
     const flags = [r.replied ? 'Replied' : '', r.blocked ? 'Blocked' : ''].filter(Boolean).join(', ');
     return `<tr class="lr-row${open ? ' open' : ''}" onclick="lrToggle(${r.id})"><td>${when}</td><td>${r.wave || '–'}</td><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td>
-      <td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${lrWho(r)}${lrChat(r.cid)}</td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td></tr>
-      ${open ? `<tr class="lr-text"><td colspan="7"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}${flags ? ' · ' + flags : ''}</div></td></tr>` : ''}`;
+      <td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${lrWho(r)}${lrChat(r.cid)}</td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td><td>${lrLateCell(r)}</td></tr>
+      ${open ? `<tr class="lr-text"><td colspan="8"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}${flags ? ' · ' + flags : ''}</div></td></tr>` : ''}`;
   }).join('');
   // Prev and Next only when there is more than one page; the rows-a-page choice whenever the log is longer than the shortest page.
   const perSel = lrTotal > 10 ? `<select class="ll-sel" aria-label="Rows a page" onchange="lrPer(this.value)">${[10, 20, 50, 100].map(n => `<option value="${n}"${lrSel.per === n ? ' selected' : ''}>${n} rows</option>`).join('')}</select>` : '';
@@ -576,7 +581,7 @@ function lrPaintLog() {
   lrOutDraw();
   const byClient = lrSel.outcomes.length > 0;
   el.innerHTML = `<p class="slv-note">${byClient ? `${lcNum(lrTotal)} client${lrTotal === 1 ? '' : 's'}, one row each (the latest message she was sent)` : `${lcNum(lrTotal)} message${lrTotal === 1 ? '' : 's'}`}${lrTotal ? `, newest first. Click a row to read what she was sent.` : ''}</p>
-    ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Sent</th><th>Wave</th><th>Branch</th><th>Message</th><th>Client</th><th>Status</th><th>Outcome</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
+    ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Sent</th><th>Wave</th><th>Branch</th><th>Message</th><th>Client</th><th>Status</th><th>Outcome</th><th>After 31 Oct</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
 }
 
 // The whole log for the current filters, 500 at a time, with the text of each message.

@@ -295,3 +295,4 @@ body.lr-modal-open{overflow:hidden}
 @media(hover:hover){.lr-copy:hover{background:var(--surface2);text-decoration:underline dotted;text-underline-offset:3px}}
 .lr-copy:focus-visible{outline:2px solid var(--text);outline-offset:1px}
 .lr-logt td .lr-copy.slv-note{display:inline-block;white-space:nowrap}
+#lostListsContent .ll-tag.lr-late{background:rgba(220,60,60,.14);font-weight:600}

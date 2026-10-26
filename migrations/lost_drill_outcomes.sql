@@ -195,3 +195,5 @@ grant execute on function public.lost_drill(text, int, text, text, text, text) t
 --   and (not coalesce(p_offer, false) or exists (select 1 from public.lost_send_jobs j2 where j2.client_key = fl.client_key and j2.status = 'sent' and not j2.is_test and j2.body_text ~* '% off'))
 --   'offer', coalesce(body_text ~* '% off', false)
 -- Same grants as before: execute for authenticated only.
+-- Later the same day: the row's 'offer' is per client (any message she was sent carried "% off"), not per message:
+--   'offer', exists (select 1 from public.lost_send_jobs j3 where j3.client_key = page.client_key and j3.status = 'sent' and not j3.is_test and j3.body_text ~* '% off')
