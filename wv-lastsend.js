@@ -10,6 +10,8 @@ const wvLsIsSched = s => Number(s.waiting) > 0 && !!s.next_run_at && Date.parse(
 const wvLsIsDue = s => Number(s.waiting) > 0 && !wvLsIsSched(s);
 const wvLsList = k => k === 'warm' ? 'Warm list' : 'Clean list';
 const wvLsTpl = k => (wvLs && (wvLs.templates || []).find(t => t.key === (k === 'warm' ? 'warm' : 'new'))) || null;
+// Branches that still have someone ready in a list (wv_last_info segs[].by_branch), so a list can go one branch at a time (26 Oct 2026, migrations/wv_last_branch.sql).
+const wvLsBr = s => ['SAA', 'KCA', 'MC', 'AQ'].filter(b => Number(((s || {}).by_branch || {})[b]) > 0);
 async function wvLsLoad() {
   try {
     const { data, error } = await sb.rpc('wv_last_info');
@@ -37,14 +39,15 @@ function wvLsPaint() {
     const extra = [bad ? `<span class="ll-pill ll-num" title="Failed: sorted under Failed sends below">${lcNum(bad)} failed</span>` : '', skip ? `<span class="ll-pill ll-num" title="Skipped by a safety check, see the log">${lcNum(skip)} skipped</span>` : '', canc ? `<span class="ll-pill ll-num">${lcNum(canc)} stopped</span>` : ''].filter(Boolean).join(' ');
     let act = '', at = '<span class="slv-muted">–</span>';
     if (wait) {
-      act = `${sched ? `<button type="button" class="tglr lc-btn" onclick="wvLsBring('${s.seg}')"${wvLsBusy ? ' disabled' : ''}>Send now</button>` : `<button type="button" class="tglr lc-btn" onclick="wvLsRun()"${wvLsBusy ? ' disabled' : ''}>Run now</button>`} <button type="button" class="tglr lc-btn" onclick="wvLsStop('${s.seg}')">Stop</button>`;
+      act = `${sched ? `<button type="button" class="tglr lc-btn" onclick="wvLsBring('${s.seg}')"${wvLsBusy ? ' disabled' : ''}>Send now</button>` : `<button type="button" class="tglr lc-btn" onclick="wvLsRun()"${wvLsBusy ? ' disabled' : ''}>Run now</button>`} <button type="button" class="tglr lc-btn" onclick="wvLsStop('${s.seg}')">Stop</button>${ready > 0 ? ` <button type="button" class="tglr lc-btn lq-pri" onclick="wvLsSchedOpen('${s.seg}','new')"${wvLsBusy ? ' disabled' : ''} title="The rest of this list, ${lcNum(ready)} not queued yet, for another branch or another time">Schedule the other ${lcNum(ready)}…</button>` : ''}`;
       at = `<div class="ss-cell">${s.next_run_at ? `<span>${sched ? 'Next' : 'Due'} <b>${lcEsc(ssFmt(s.next_run_at))}</b></span>` : ''}<button type="button" class="tglr lc-btn" onclick="wvLsSchedOpen('${s.seg}','move')">Change time</button></div>`;
     } else if (ready > 0) {
       act = `<button type="button" class="tglr lc-btn wv-go" onclick="wvLsGo('${s.seg}')"${wvLsBusy ? ' disabled' : ''}>${sent ? 'Send the rest' : 'Send the ' + (s.seg === 'warm' ? 'warm' : 'clean') + ' list'}</button>`;
       at = `<button type="button" class="tglr lc-btn lq-pri" onclick="wvLsSchedOpen('${s.seg}','new')"${wvLsBusy ? ' disabled' : ''}>Schedule…</button>`;
     } else if (sent) act = '<span class="slv-muted">Done</span>';
     else act = '<span class="slv-muted">No one left to send</span>';
-    return `<div class="wv-lcard"><div class="wv-lh"><b>${wvLsList(s.seg)}</b><span class="slv-note">${lcNum(ready)} ready, of ${lcNum(s.listed)} on the list</span></div>
+    const byBr = ready > 0 && wvLsBr(s).length > 1 ? `<div class="slv-note" style="margin:2px 0 6px">Ready by branch: ${wvLsBr(s).map(b => `${lcEsc(WV_BR[b] || b)} <b>${lcNum(Number(s.by_branch[b]))}</b>`).join(' · ')}</div>` : '';
+    return `<div class="wv-lcard"><div class="wv-lh"><b>${wvLsList(s.seg)}</b><span class="slv-note">${lcNum(ready)} ready, of ${lcNum(s.listed)} on the list</span></div>${byBr}
       <div class="wv-ll"><span class="slv-note">Status</span><span>${st} ${extra}</span></div>
       <div class="wv-ll"><span class="slv-note">Send at</span><span>${at}</span></div>
       <div class="wv-ll"><span class="slv-note">Last sent</span><span>${wait ? '<span class="slv-muted">in progress</span>' : dt(s.last_run_at)}</span></div>
@@ -167,10 +170,14 @@ function wvLsSchedOpen(seg, mode) {
   if (!s || !wvLs) return;
   const move = mode === 'move', wait = Number(s.waiting) || 0, ready = Number(s.ready) || 0, max = move ? wait : ready;
   if (max < 1) { wvLsSay('Nobody left in this list.'); return; }
-  wvLsCtx = { seg, move };
+  const br = move ? [] : wvLsBr(s), split = br.length > 1;
+  wvLsCtx = { seg, move, br };
   ssModalOpen(`<h3>${move ? 'Change the time of the' : 'Schedule the'} ${seg === 'warm' ? 'warm' : 'clean'} list</h3>
     <p class="slv-note">${move ? `All ${lcNum(wait)} still waiting are moved to the new time and pace.` : `Up to ${lcNum(ready)} clients can go, biggest spenders first. Each gets her message on WhatsApp from Call Center 2.`}</p>
-    ${wvLsSchedForm(max)}
+    ${split ? `<label class="ss-opt"><input type="checkbox" id="wvlSplit" onchange="wvLsSplit()"> <b>Set each branch separately</b> <span class="slv-note">its own day, time and pace</span></label>` : ''}
+    <div id="wvlAll">${wvLsSchedForm(max)}</div>
+    ${split ? `<div id="wvlEach" hidden>${br.map(b => { const n = Number(s.by_branch[b]); return `<div class="lqm-br"><label class="ss-opt"><input type="checkbox" id="wvlcb_${b}" checked onchange="wvLsSplitSum()"> <b>${lcEsc(WV_BR[b] || b)}</b> <span class="slv-note">${lcNum(n)} client${n === 1 ? '' : 's'}</span></label>
+      ${ssWhenHtml('wvlb_' + b, { max: n, maxNow: n, from: wvLs.hour_from, to: wvLs.hour_to, nowOk: true, onChange: wvLsSplitSum })}</div>`; }).join('')}</div>` : ''}
     <ul class="lqm-list"><li>It sends itself at that time, even with this page closed. Times outside ${wvLs.hour_from}:00 to ${wvLs.hour_to}:00 Dubai wait for the window to open.</li>
       <li>Stop cancels the ones that have not gone. A message that has gone cannot be called back.</li></ul>
     <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="ssModalClose()">Cancel</button>
@@ -178,7 +185,44 @@ function wvLsSchedOpen(seg, mode) {
   if (move) { const n = document.getElementById('wvlN'); if (n) n.disabled = true; const at = document.querySelector('input[name=wvlMode][value=at]'); if (at) at.checked = true; }
   ssUpdate('wvl');
 }
+// "Set each branch separately": the one form is swapped for a block per branch (the Lost Clients pattern), each queued with its own wv_last_enqueue(p_branch).
+const wvLsSplitOn = () => { const c = document.getElementById('wvlSplit'); return !!(c && c.checked); };
+function wvLsSplit() {
+  const on = wvLsSplitOn(), all = document.getElementById('wvlAll'), each = document.getElementById('wvlEach');
+  if (all) all.hidden = on;
+  if (each) each.hidden = !on;
+  if (on) ((wvLsCtx || {}).br || []).forEach(b => ssUpdate('wvlb_' + b));
+  else { const go = document.getElementById('wvlGo'); if (go) go.textContent = 'Schedule'; ssUpdate('wvl'); }
+  wvLsSplitSum();
+}
+const wvLsSplitPicks = () => ((wvLsCtx || {}).br || []).filter(b => { const c = document.getElementById('wvlcb_' + b); return c && c.checked; }).map(b => ({ b, r: ssWhenRead('wvlb_' + b) }));
+function wvLsSplitSum() {
+  if (!wvLsSplitOn()) return;
+  const go = document.getElementById('wvlGo'), picks = wvLsSplitPicks(), bad = picks.some(x => x.r.error), n = picks.reduce((a, x) => a + (x.r.error ? 0 : x.r.count), 0);
+  if (go) { go.disabled = bad || !picks.length; go.textContent = `${picks.some(x => x.r.at || x.r.every) ? 'Schedule' : 'Queue'} ${lcNum(n)}`; }
+}
+async function wvLsSchedGoSplit() {
+  const picks = wvLsSplitPicks();
+  if (!picks.length || picks.some(x => x.r.error)) { wvLsSplitSum(); return; }
+  const go = document.getElementById('wvlGo');
+  if (go) { go.disabled = true; go.textContent = 'Queueing…'; }
+  const out = [];
+  let failed = null;
+  for (const p of picks) {
+    const { data, error } = await sb.rpc('wv_last_enqueue', { p_seg: 'clean', p_branch: p.b, p_at: p.r.at, p_limit: p.r.limit, p_batch: p.r.batch, p_every: p.r.every });
+    if (error) { console.error(error); failed = { p, error }; break; }
+    out.push({ p, data });
+  }
+  ssModalClose();
+  await wvLsLoad();
+  const when = ({ p, data }) => (p.r.at || p.r.every) && data.first_at ? `first ${ssFmt(data.first_at)}${data.last_at && data.last_at !== data.first_at ? `, last ${ssFmt(data.last_at)}` : ''}` : 'now';
+  let msg = out.length ? `Clean list: ${out.map(o => `${WV_BR[o.p.b] || o.p.b} ${lcNum(o.data.queued)} (${when(o)})`).join('. ')}. ${wvLs?.enabled ? 'It sends itself, you can close this page.' : 'Sending is OFF, so nothing goes until you turn it ON.'}` : '';
+  if (failed) msg += `${msg ? ' ' : ''}${WV_BR[failed.p.b] || failed.p.b} did not queue: ${failed.error.message || 'try again'}.${out.length ? ' The branches before it did queue.' : ''}`;
+  wvLsSay(msg);
+  if (out.some(o => !o.p.r.at) && wvLs?.enabled && wvLsWin(wvLs)) wvLsRun();
+}
 async function wvLsSchedGo() {
+  if (wvLsSplitOn() && wvLsCtx && !wvLsCtx.move && !wvLsCtx.retry) { await wvLsSchedGoSplit(); return; }
   const c = wvLsCtx, r = ssWhenRead('wvl');
   if (!c || r.error) { ssUpdate('wvl'); return; }
   const b = document.getElementById('wvlGo');
