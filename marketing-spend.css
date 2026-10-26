@@ -117,3 +117,19 @@
 }
 
 #marketingSpendContent .ms-total td{border-top:2px solid var(--border)}
+
+/* The costs behind the gross profit, and the upload for Accounts' file */
+#marketingSpendContent table.ms-costs td,#marketingSpendContent table.ms-costs th{white-space:nowrap}
+#marketingSpendContent table.ms-costs td:first-child{white-space:normal;min-width:190px}
+#marketingSpendContent table.ms-costs td:not(:first-child){text-align:center}
+#marketingSpendContent table.ms-costs td.ms-cost-v{text-align:left;font-variant-numeric:tabular-nums}
+#marketingSpendContent .ms-ok{color:var(--ms-teal-deep);font-weight:600}
+#marketingSpendContent .ms-wait{color:var(--muted)}
+#marketingSpendContent .ms-up{margin-top:16px;padding-top:14px;border-top:1px solid var(--border2)}
+#marketingSpendContent .ms-up h4{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:18px;margin:0 0 4px}
+#marketingSpendContent .ms-up-b{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#marketingSpendContent .ms-pick{display:inline-block}
+#marketingSpendContent .ms-pick:focus-within{outline:2px solid var(--ms-teal);outline-offset:2px}
+#marketingSpendContent .ms-go{background:var(--ms-teal-deep);border-color:var(--ms-teal-deep);color:#fff}
+#marketingSpendContent #mspendUpOut{margin-top:10px}
+#marketingSpendContent .ms-ups{margin-top:12px}
