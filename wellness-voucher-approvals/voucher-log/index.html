@@ -725,6 +725,7 @@ function detailHtml(r){
     (isAdm ? '<button class="btn ghost sm" data-rename="' + r.id + '">Fix the name</button>' : '') +
     (isAdm ? '<button class="btn ghost sm" data-editpay="' + r.id + '">Fix how she paid</button>' : '') +
     (isAdm && !r.is_archived ? '<button class="btn ghost sm" data-arch="' + r.id + '">Archive this row</button>' : '') +
+    (isAdm && r.is_archived ? '<button class="btn ghost sm" data-unarch="' + r.id + '">Unarchive this row</button>' : '') +
     (isAdm && !r.is_voided ? '<button class="btn danger sm" data-void="' + r.id + '">Void this card</button>' : '') +
   '</div>';
 
@@ -1002,6 +1003,24 @@ el('body').addEventListener('click', function (e){
 
   if (t.hasAttribute('data-arch')){
     addEvent(t.getAttribute('data-arch'), 'archived', null).then(load);
+    return;
+  }
+
+  if (t.hasAttribute('data-unarch')){
+    var uid = t.getAttribute('data-unarch');
+    // The archive is a row in voucher_events and that table only ever gets added to, so
+    // putting a voucher back means deleting that one row (admin only, see
+    // sql/voucher_unarchive.sql) and leaving a note so the record still shows it happened.
+    // select() on the delete matters: a missing policy deletes nothing and raises no error.
+    db().from('voucher_events').delete().eq('issue_id', uid).eq('kind', 'archived').select()
+      .then(function (res){
+        if (res.error){ alert('Not unarchived: ' + res.error.message); return null; }
+        if (!res.data || !res.data.length){
+          alert('Nothing was unarchived. If this row does show Archived, the unarchive permission has not been added to the database yet (sql/voucher_unarchive.sql).');
+          return null;
+        }
+        return addEvent(uid, 'note', 'Unarchived').then(load);
+      });
     return;
   }
 
