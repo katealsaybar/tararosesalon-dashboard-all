@@ -170,7 +170,7 @@
 #lostListsContent .lr-logt thead th:first-child{z-index:3}
 #lostListsContent .lr-logt td:nth-child(7){min-width:130px}
 #lostListsContent .lr-logt td:nth-child(2){min-width:190px}
-#lostListsContent .lr-logt td:last-child{min-width:150px}
+#lostListsContent .lr-logt td:nth-child(8){min-width:150px}
 @media(hover:hover){#lostListsContent .lr-row:hover td:first-child{background:var(--surface2)}}
 #lostListsContent .lr-row.open td:first-child{background:var(--surface2)}
 #lostListsContent .lr-row{cursor:pointer}
@@ -306,4 +306,4 @@ body.lr-modal-open{overflow:hidden}
 /* the pop-up lists use the log's columns: Branch stays put on a sideways scroll */
 .lr-modal .lr-logt th:first-child,.lr-modal .lr-logt td:first-child{position:sticky;left:0;z-index:2;background:var(--bg);box-shadow:1px 0 0 var(--border);min-width:96px}
 .lr-modal .lr-logt td:nth-child(2){min-width:190px}
-.lr-modal .lr-logt td:last-child{min-width:150px}
+.lr-modal .lr-logt td:nth-child(8){min-width:150px}

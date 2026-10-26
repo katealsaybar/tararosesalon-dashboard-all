@@ -362,6 +362,17 @@ function lrMoneyInner() {
     </details>`;
 }
 // What it took to get a booking: the day's totals saved each night, so the cost of a yes can be looked back on. "Booked since" counts a client once, her messages all count.
+// How many messages each client was sent before she booked (or came in): the clients who booked since our message, split by how many messages she was sent.
+function lrRecMsgs() {
+  const m = (lrRec && lrRec.msgs || []).filter(x => x.n);
+  const tot = m.reduce((a, x) => a + x.booked_since, 0);
+  if (!tot) return '';
+  const avg = m.reduce((a, x) => a + x.n * x.booked_since, 0) / tot;
+  return `<h4 class="lr-dh">Messages before a yes</h4>
+    <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Messages she was sent</th><th>Clients</th><th>Booked or came in</th><th>Share who said yes</th></tr></thead><tbody>
+      ${m.map(x => `<tr><td>${lcNum(x.n)} message${x.n === 1 ? '' : 's'}</td><td>${lcNum(x.clients)}</td><td>${lcNum(x.booked_since)}</td><td>${lrPct(x.booked_since, x.clients)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="slv-note">${lcNum(tot)} clients booked or came in since our message: on average ${avg.toFixed(2)} messages each. A client sent two messages is counted once, in the row for two. Her messages are the blast messages only, not what the team wrote to her afterwards.</p>`;
+}
 function lrRecInner() {
   const rows = lrRec && lrRec.rows || [];
   if (!rows.length) return '';
@@ -373,6 +384,7 @@ function lrRecInner() {
       ${card(aed2(r.cost_per_booking), 'Cost per booking', `${lrAed(r.cost_aed)} spent (estimate) over ${lcNum(r.booked_since)} clients`)}
       ${card(aed2(r.cost_per_ahead), 'Cost per booking ahead', `the same spend over the ${lcNum(r.booked_ahead)} clients with a booking from today on`)}
     </div>
+    ${lrRecMsgs()}
     <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Day</th><th>Messages sent</th><th>Spent (estimate)</th><th>Replied</th><th>STOP</th><th>Booked ahead</th><th>Booked since</th><th>Messages per booking</th><th>Cost per booking</th></tr></thead><tbody>
       ${rows.map(x => `<tr><td>${lcEsc(lrDay(x.day))}</td><td>${lcNum(x.sent)}</td><td>${lrAed(x.cost_aed)}</td><td>${lcNum(x.replied)}</td><td>${lcNum(x.stop)}</td><td>${lcNum(x.booked_ahead)}</td><td>${lcNum(x.booked_since)}</td><td>${f1(x.messages_per_booking)}</td><td>${aed2(x.cost_per_booking)}</td></tr>`).join('')}</tbody></table></div>
     <p class="slv-note">Saved every night at midnight (Dubai), so you can see the cost of a booking come down as more clients say yes. Booked since is the clients with a booking from today on plus the ones who already came in after our message, each counted once. Spent is the estimate at AED ${(+r.rate).toFixed(2)} a message, and every message counts, including the second one some clients were sent.</p>`;
@@ -585,13 +597,13 @@ function lrStatus(r) {
   return `<span class="ll-tag lr-bad" title="${lcEsc(r.error || '')}">${r.status === 'failed' ? 'Failed' : 'Skipped'}</span>`;
 }
 // The eight columns of the send log, shared with the pop-ups so a list opened from a number reads like the log under it (Kate, 26 Oct 2026):
-// Branch (sticky), Client, Status, Outcome, After 31 Oct, Wave, Message, Sent.
+// Branch (sticky), Client, Status, Outcome, After 31 Oct, Wave, Message, Sent, Messages to her (how many blast messages she was sent, 1 or 2).
 function lrLogCells(r) {
   const m = lrMsg(r.tkey), when = r.d ? `${lcEsc(lrDay(r.d))} <span class="lr-t">${lcEsc(r.t)}</span>` : `<span class="slv-note">${r.qd ? 'queued ' + lcEsc(r.qd) : 'not sent yet'}</span>`;
   return `<td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td><td>${lrWho(r)}${lrChat(r.cid)}</td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td>
-      <td>${lrLateCell(r)}</td><td>${r.wave || '–'}</td><td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${when}</td>`;
+      <td>${lrLateCell(r)}</td><td>${r.wave || '–'}</td><td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${when}</td><td>${r.msgs || '–'}</td>`;
 }
-const LR_LOG_HEAD = '<th>Branch</th><th>Client</th><th>Status</th><th>Outcome</th><th>After 31 Oct</th><th>Wave</th><th>Message</th><th>Sent</th>';
+const LR_LOG_HEAD = '<th>Branch</th><th>Client</th><th>Status</th><th>Outcome</th><th>After 31 Oct</th><th>Wave</th><th>Message</th><th>Sent</th><th title="How many messages we sent her">Messages to her</th>';
 function lrPaintLog() {
   const el = document.getElementById('lrLog');
   if (!el) return;
@@ -600,7 +612,7 @@ function lrPaintLog() {
     const m = lrMsg(r.tkey), open = !!lrOpen[r.id], when = r.d ? `${lcEsc(lrDay(r.d))} <span class="lr-t">${lcEsc(r.t)}</span>` : `<span class="slv-note">queued ${lcEsc(r.qd || '')}</span>`;
     const flags = [r.replied ? 'Replied' : '', r.blocked ? 'Blocked' : ''].filter(Boolean).join(', ');
     return `<tr class="lr-row${open ? ' open' : ''}" onclick="lrToggle(${r.id})">${lrLogCells(r)}</tr>
-      ${open ? `<tr class="lr-text"><td colspan="8"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}${flags ? ' · ' + flags : ''}</div></td></tr>` : ''}`;
+      ${open ? `<tr class="lr-text"><td colspan="9"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}${flags ? ' · ' + flags : ''}</div></td></tr>` : ''}`;
   }).join('');
   // Prev and Next only when there is more than one page; the rows-a-page choice whenever the log is longer than the shortest page.
   const perSel = lrTotal > 10 ? `<select class="ll-sel" aria-label="Rows a page" onchange="lrPer(this.value)">${[10, 20, 50, 100].map(n => `<option value="${n}"${lrSel.per === n ? ' selected' : ''}>${n} rows</option>`).join('')}</select>` : '';

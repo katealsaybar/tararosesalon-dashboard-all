@@ -57,3 +57,8 @@ grant execute on function public.lost_blast_record_get() to authenticated;
 
 select cron.schedule('lost-blast-record', '5 20 * * *', 'select public.lost_blast_record_run()');
 select public.lost_blast_record_run();
+
+-- Messages before a yes (Kate, 26 Oct 2026, "yes pls"): lost_client_facts_cache gets n_msgs (blast messages sent to her, from lost_send_jobs; lost_facts_refresh fills it),
+-- the log and the pop-ups return msgs per row (the Messages to her column), and lost_blast_record_get also returns msgs: for one message and for two,
+-- the clients, how many of them booked or came in since our message, and how many have a booking ahead. 26 Oct: 56 of 4,171 clients sent one message said yes (1.3%),
+-- 8 of 1,056 sent two (0.8%), so 1.1 messages each on average.
