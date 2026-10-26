@@ -13,6 +13,9 @@
 let lrSum = null, lrRowsPage = [], lrTotal = 0, lrErr = '', lrBusy = false, lrOpen = {}, lrQTimer = null;
 // The Booked card split by deposit (lost_booked_deposits, migrations/lost_booked_deposits.sql). Null until the function is live: the section stays out.
 let lrDep = null, lrDepView = 'visual';
+// Booked since the message (lost_booked_since, migrations/lost_booked_since.sql): clients with a booking ahead plus the ones who already came in, so the
+// count does not slide down as booked clients are seen. Null until the function is live: the tiles stay out.
+let lrSince = null;
 try { if (localStorage.getItem('lr-dep-view') === 'table') lrDepView = 'table'; } catch (e) {}
 // Did our message arrive? (lost_delivery_report, migrations/lost_delivery_report.sql). Same: null until the function is live, the section stays out.
 let lrDel = null, lrDelView = 'visual';
@@ -53,11 +56,13 @@ async function lrLoad() {
   if (lrBusy) return;
   lrBusy = true; lrErr = '';
   try {
-    const [s, l, dp, dl, mo] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_campaign_money', lrArgs())]);
+    const [s, l, dp, dl, mo, bs] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_campaign_money', lrArgs()), sb.rpc('lost_booked_since', lrArgs())]);
     if (s.error || !s.data) throw s.error || new Error('no report');
     lrSum = s.data;
     lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
     if (dp.error) console.warn('lost_booked_deposits', dp.error);
+    lrSince = (!bs.error && bs.data && bs.data.total) ? bs.data : null;   // optional too
+    if (bs.error) console.warn('lost_booked_since', bs.error);
     lrDel = (!dl.error && dl.data && dl.data.total) ? dl.data : null;   // optional too
     if (dl.error) console.warn('lost_delivery_report', dl.error);
     lrMoney = (!mo.error && mo.data && mo.data.cost) ? mo.data : null;   // optional too
@@ -217,12 +222,28 @@ function lrDepTable(d) {
     <div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Client</th><th>Branch</th><th>Next appointment</th>${ap ? '<th>Appointments</th>' : ''}${pol ? '<th>Service booked</th>' : ''}<th>Deposit</th>${pol ? '<th>Why</th>' : ''}</tr></thead><tbody>
       ${who.map(w => `<tr><td>${lcEsc(w.name || '')}</td><td>${lcEsc(LC_BRANCH[w.branch] || w.branch)}</td><td>${lcEsc(lrDay(w.next))}</td>${ap ? `<td>${lcNum(w.n)}</td>` : ''}${pol ? `<td class="lr-dsvc">${lcEsc(w.svc || '')}</td>` : ''}<td>${stTxt(w)}</td>${pol ? `<td>${w.st === 'need' ? lcEsc(lrDepWhy(w.svc || '')) : ''}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
 }
+// Booked since the message (Kate, 26 Oct 2026): the Booked tiles below count a booking from today on, so a client leaves them once she has been in.
+// This keeps her: booked ahead plus already came in (a sales line on or after our first message, deposits left out).
+function lrSinceTiles(sc, tbl) {
+  const t = sc.total, by = sc.by_branch || [];
+  const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${lcNum(n)}</div><div class="ll-d">${ds}</div></div>`;
+  return `<div class="ll-cards lr-cards">
+      ${card(t.since, 'Booked since the message', `${lrPct(t.since, t.sent)} of the ${lcNum(t.sent)} clients we messaged. Does not drop when they come in`)}
+      ${card(t.ahead, 'Booked ahead', 'still has a booking from today on')}
+      ${card(t.done, 'Already came in', 'visited since our message, nothing booked ahead')}
+    </div>
+    ${tbl ? `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Branch</th><th>Messaged</th><th>Booked since the message</th><th>Booked ahead</th><th>Already came in</th></tr></thead><tbody>
+      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td><td>${lcNum(b.sent)}</td><td>${lcNum(b.since)}</td><td>${lcNum(b.ahead)}</td><td>${lcNum(b.done)}</td></tr>`).join('')}
+      <tr><td><b>All</b></td><td><b>${lcNum(t.sent)}</b></td><td><b>${lcNum(t.since)}</b></td><td><b>${lcNum(t.ahead)}</b></td><td><b>${lcNum(t.done)}</b></td></tr></tbody></table></div>` : ''}
+    <p class="slv-note">Counted per client from the first message sent to her (${lcEsc(lrDay(sc.first_send))} on). Came in means any sale line since then except a deposit, so it can include a walk-in who never booked ahead. Sales arrive with the nightly upload.</p>`;
+}
 function lrDepInner() {
   const d = lrDep;
   if (!d) return '';
   const tbl = lrDepView === 'table';
   return `<div class="lr-dhd"><h3>Booked: who has paid a deposit</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrDepSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrDepSet('table')">Table</button></div></div>
+    ${lrSince ? lrSinceTiles(lrSince, tbl) + '<h4 class="lr-dh">Booked ahead: who has paid a deposit</h4>' : ''}
     <p class="slv-note">Clients we messaged who now have a visit booked, and whether her deposit is in.</p>
     ${d.total.booked ? (tbl ? lrDepTable(d) : lrDepVisual(d)) : '<p class="slv-muted">Nobody has booked from today on yet.</p>'}
     <p class="slv-note">For example: a client has balayage booked for Thursday and no deposit shows in Phorest. She reads Likely needed, so reception messages her before then.</p>
