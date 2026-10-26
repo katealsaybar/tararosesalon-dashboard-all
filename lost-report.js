@@ -70,7 +70,8 @@ const lrTypeName = () => (LR_TYPES.find(t => t[0] === lrType) || [, ''])[1];
 const LR_BR = ['SAA', 'KCA', 'MC', 'AQ'];
 const lrPct = (a, b) => b ? (100 * a / b).toFixed(1) + '%' : '–';
 const lrAed = n => 'AED ' + lcNum(Math.round(+n || 0));
-const lrDay = d => { try { return new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return d; } };
+// The year is added when the date is not in this year (a visit booked for 6 Mar 2027 read as 6 Mar 2026 without it).
+const lrDay = d => { try { const dt = new Date(d + 'T12:00:00'); return dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', ...(dt.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }); } catch (e) { return d; } };
 const lrTime = iso => { if (!iso) return '–'; try { return new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return '–'; } };
 // "colour_story" -> Colour, story (1b);  "due_v2" -> Due, standard;  "colour_v2_stop" -> Colour, standard + STOP line
 function lrMsg(tkey) {
@@ -115,7 +116,7 @@ function lrFetchPage(offset, limit) {
     p_wave: lrSel.wave === 'all' ? null : +lrSel.wave, p_branch: lrSel.branch, p_status: lrSel.status, p_q: lrSel.q.trim(),
     p_offset: offset != null ? offset : (lrSel.page - 1) * lrSel.per, p_limit: limit || lrSel.per, ...(lrType === 'all' ? {} : { p_type: lrType }),
     ...(lrSel.outcomes.length ? { p_outcome: lrSel.outcomes.join(',') } : {}),
-    ...(lrSel.after === 'all' ? {} : { p_after: LR_DEADLINE, ...(lrSel.after === 'offer' ? { p_offer: true } : {}) }) });
+    ...(lrSel.after === 'all' ? {} : { p_after: LR_DEADLINE, ...(lrSel.after === 'offer' || lrSel.after === 'pending' ? { p_offer: true } : {}), ...(lrSel.after === 'pending' ? { p_pending: true } : {}) }) });
 }
 async function lrRefreshLog() {
   const { data, error } = await lrFetchPage();
@@ -541,7 +542,7 @@ function lrPaint() {
         <select class="ll-sel" aria-label="Branch" onchange="lrSet('branch',this.value)"><option value="all">All branches</option>${LR_BR.map(b => `<option value="${b}"${lrSel.branch === b ? ' selected' : ''}>${lcEsc(LC_BRANCH[b] || b)}</option>`).join('')}</select>
         <select class="ll-sel" aria-label="Status" onchange="lrSet('status',this.value)">${[['all', 'Every status'], ['sent', 'Sent'], ['queued', 'Queued'], ['failed', 'Failed'], ['skipped', 'Skipped']].map(([v, l]) => `<option value="${v}"${lrSel.status === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <span class="lr-multi" id="lrOutWrap">${lrOutMulti()}</span>
-        <select class="ll-sel" aria-label="Next appointment" onchange="lrSet('after',this.value)">${[['all', 'Any next appointment'], ['after', 'Next appointment after 31 Oct'], ['offer', 'After 31 Oct, got the offer']].map(([v, l]) => `<option value="${v}"${lrSel.after === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+        <select class="ll-sel" aria-label="Next appointment" onchange="lrSet('after',this.value)">${[['all', 'Any next appointment'], ['after', 'Next appointment after 31 Oct'], ['offer', 'After 31 Oct, got the offer'], ['pending', 'After 31 Oct, got the offer, not in yet']].map(([v, l]) => `<option value="${v}"${lrSel.after === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <input type="search" class="ll-search" placeholder="Search name or last 4 digits" value="${lcEsc(lrSel.q)}" oninput="lrSearch(this.value)">
         <span style="flex:1"></span>
         <span class="lq-btns">
@@ -583,7 +584,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && lrOutOpen)
 // booked and scheduled on or before 31 Oct). The tooltip says whether her message carried the offer.
 function lrLateCell(r) {
   if (!r.next || r.next <= LR_DEADLINE) return '<span class="slv-muted">–</span>';
-  return `<span class="ll-tag lr-bad lr-late" title="Her next appointment is after 31 Oct, when the welcome-back rate ends${r.offer ? '' : '. Her messages had no offer'}">After 31 Oct</span>`;
+  // she already came in after our message (the rate could be used on that visit), so this later booking is her next visit, not a booking that missed the deadline
+  if (r.came) return `<span class="ll-tag" title="She came in on ${lcEsc(lrDay(r.came))}, within the offer. This is her next visit.">Came in ${lcEsc(lrDay(r.came).replace(/^\w+ /, ''))}</span>`;
+  return `<span class="ll-tag lr-bad lr-late" title="Her next appointment is after 31 Oct, when the welcome-back rate ends, and she has not come in since our message${r.offer ? '' : '. Her messages had no offer'}">After 31 Oct</span>`;
 }
 function lrOutcomeCell(r) {
   const o = LR_OUT[r.outcome];
@@ -636,14 +639,14 @@ async function lrSaveLog(kind) {
     lrNote(`Getting the log… ${lcNum(out.length)} of ${lcNum(data.total)}`);
     if (!data.rows || data.rows.length < 500 || out.length >= data.total) break;
   }
-  const head = ['Date sent', 'Time sent (Dubai)', 'Wave', 'Branch', 'Message', 'Version', 'Template', 'Client', 'Phone', 'Status', 'Error', 'Outcome', 'Next appointment', 'Got the offer', 'Replied', 'Booked', 'STOP', 'Blocked', 'Message sent', 'Queued at', 'Queued by', 'respond.io message', 'respond.io chat'];
+  const head = ['Date sent', 'Time sent (Dubai)', 'Wave', 'Branch', 'Message', 'Version', 'Template', 'Client', 'Phone', 'Status', 'Error', 'Outcome', 'Next appointment', 'Came in since the message', 'Got the offer', 'Replied', 'Booked', 'STOP', 'Blocked', 'Message sent', 'Queued at', 'Queued by', 'respond.io message', 'respond.io chat'];
   const yn = v => v ? 'Yes' : 'No';
   const lines = out.map(r => { const m = lrMsg(r.tkey);
-    return [r.d || '', r.t || '', r.wave || '', LC_BRANCH[r.branch] || r.branch, m.nm, m.arm, r.tkey, r.client, r.phone || r.last4, r.status, r.error || '', (LR_OUT[r.outcome] || [''])[0], r.next || '', yn(r.offer), yn(r.replied), yn(r.booked), yn(r.stop), yn(r.blocked), r.text || '', r.qd || '', r.by || '', r.message_id || '', r.cid ? LR_RESP + r.cid : '']; });
+    return [r.d || '', r.t || '', r.wave || '', LC_BRANCH[r.branch] || r.branch, m.nm, m.arm, r.tkey, r.client, r.phone || r.last4, r.status, r.error || '', (LR_OUT[r.outcome] || [''])[0], r.next || '', r.came || '', yn(r.offer), yn(r.replied), yn(r.booked), yn(r.stop), yn(r.blocked), r.text || '', r.qd || '', r.by || '', r.message_id || '', r.cid ? LR_RESP + r.cid : '']; });
   const built = lgxBuild({ sheets: [{ name: 'Send log', blocks: [{ cols: head.map(h => ({ label: h, fmt: 'text' })), rows: lines.map(l => ({ cells: l })) }] }] });
   const slug = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const name = ['lost-clients-send-log', lrSel.wave !== 'all' ? 'wave-' + lrSel.wave : '', lrSel.branch !== 'all' ? slug(LC_BRANCH[lrSel.branch] || lrSel.branch) : '',
-    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.outcomes.length ? lrSel.outcomes.join('-').replace(/_/g, '-') : '', lrSel.after !== 'all' ? 'after-31-oct' + (lrSel.after === 'offer' ? '-offer' : '') : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+    lrType !== 'all' ? lrType : '', lrSel.status !== 'all' ? lrSel.status : '', lrSel.outcomes.length ? lrSel.outcomes.join('-').replace(/_/g, '-') : '', lrSel.after !== 'all' ? 'after-31-oct' + (lrSel.after === 'offer' ? '-offer' : lrSel.after === 'pending' ? '-offer-not-in-yet' : '') : '', lrSel.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
   if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
   else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
   lrNote(`Saved ${lcNum(lines.length)} rows as ${kind.toUpperCase()}`);

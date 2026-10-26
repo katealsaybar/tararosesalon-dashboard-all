@@ -205,3 +205,9 @@ grant execute on function public.lost_drill(text, int, text, text, text, text) t
 -- it empty). The cache also carries cid, the respond.io contact id, so the log and the pop-ups no longer join lost_wa_status a second time.
 -- Whole report now loads in about 1.4 s and a pop-up in 0.2 s. The numbers can run up to ten minutes behind (the underlying data is nightly or daily anyway).
 -- To refresh by hand: select public.lost_facts_refresh();
+
+-- 26 Oct 2026, later: came_on. A client with a booking after 31 Oct who already came in between our message and now (Sarah Adib: in on 23 Oct, AED 1,676, and
+-- booked her next visit for 6 Mar 2027 at the chair) is not a booking that missed the deadline: her rate could be used on the visit she had. lost_client_facts_live
+-- gains came_on (the first day she came in on or after her first message, also when she has a booking ahead); lost_client_facts_cache gains it too and
+-- lost_facts_refresh() fills it; lost_send_log_get gains p_pending (only clients who have not come in yet, with p_after) and returns came per row, and lost_drill
+-- returns came. Applied live. 8 of the 18 clients booked after 31 Oct had already come in; 10 had the offer and have not.
