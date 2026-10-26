@@ -169,7 +169,24 @@ function cqCss() {
     .cq-dup[hidden]{display:none}
     .cq-dup.hard{border-color:#d9534f}
     .cq-dup ul{margin:4px 0 0 18px;padding:0}
-    @media (max-width:760px){.cq-t .hm{display:none}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}
+    .cq-form[hidden]{display:none}
+    .cq-flag{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600;white-space:nowrap}
+    .cq-flag i{width:8px;height:8px;border-radius:50%;background:currentColor}
+    .cq-flag.over{background:rgba(217,83,79,.15);color:#d9534f}
+    .cq-flag.pend{background:var(--warn-bg);color:var(--warn)}
+    .cq-tile.btn{cursor:pointer;text-align:left;font:inherit;color:inherit}
+    .cq-tile.btn:hover,.cq-tile.btn:focus-visible{background:var(--surface2)}
+    .cq-tile.btn[aria-pressed="true"]{border-color:var(--accent)}
+    .cq-tile.over b{color:#d9534f}.cq-tile.pend b{color:var(--warn)}
+    .cq-sub2{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+    .cq-t .sm{display:none}
+    .cq-sub2.late{color:#d9534f}
+    .cq-files{margin:4px 0 6px;padding:0;list-style:none}
+    .cq-files li{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;margin:0 0 4px}
+    .cq-link{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-align:left}
+    .cq-chk-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .cq-kv a{color:var(--accent)}
+    @media (max-width:760px){.cq-t .hm{display:none}.cq-t .sm{display:block}.cq-t.cq-lg th,.cq-t.cq-lg td{padding-left:5px;padding-right:5px}.cq-t.cq-lg td.cq-det{padding-left:12px;padding-right:12px}.cq-t.cq-lg{font-size:12px}.cq-t.cq-lg .cq-sub2{font-size:11px}.cq-t.cq-lg .cq-flag{padding:2px 7px;font-size:10.5px}.cq-t.cq-lg td.cq-det{font-size:13px}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}
       .cq-bars.yrs{grid-template-columns:40px 1fr auto}
       .cq-card{padding:12px 12px}
       .cq .cq-filt{display:grid;grid-template-columns:1fr auto;gap:8px}
@@ -261,6 +278,7 @@ function cqWire() {
     body.dataset.w = '1';
     body.addEventListener('click', cqClick);
     body.addEventListener('change', e => {
+      if (e.target && e.target.id === 'cqu-res') cqRevisitShow();
       if (e.target && e.target.id === 'cqN') { CQ.size = Number(e.target.value) || 10; CQ.page = 0; cqOpen = 0; cqSave(); cqLoadList(); }
     });
     body.addEventListener('keydown', e => {
@@ -297,11 +315,17 @@ function cqClick(e) {
   if (up) { cqUpdate(Number(up.dataset.id), up.dataset.up); return; }
   const del = t.closest && t.closest('[data-del]');
   if (del) { cqRemove(Number(del.dataset.del)); return; }
+  const fo = t.closest && t.closest('[data-file]');
+  if (fo) { cqOpenFile(fo.dataset.file); return; }
+  const fd = t.closest && t.closest('[data-delfile]');
+  if (fd) { cqRemoveFile(Number(fd.dataset.delfile), Number(fd.dataset.cid)); return; }
+  const fu = t.closest && t.closest('[data-upfiles]');
+  if (fu) { cqAddFiles(Number(fu.dataset.upfiles)); return; }
   const th = t.closest && t.closest('th[data-s]');
   if (th) {
     const k = th.dataset.s;
     if (CQ.sort === k) CQ.dir = CQ.dir === 'asc' ? 'desc' : 'asc';
-    else { CQ.sort = k; CQ.dir = k === 'date' ? 'desc' : 'asc'; }
+    else { CQ.sort = k; CQ.dir = ['date', 'cdate', 'resolved'].includes(k) ? 'desc' : 'asc'; }
     CQ.page = 0; cqOpen = 0; cqLoadList(); return;
   }
   const pg = t.closest && t.closest('[data-pg]');
@@ -337,40 +361,145 @@ function cqGoogle(r) {
   return `<span class="cq-pill${low ? ' warn' : ''}">${body}</span>`;
 }
 
+// ── Follow-through (Kate, 26 Oct 2026, from Belle's review of the page) ──
+// Reply to the client within 2 days of the complaint and close it within 7; the database says which are overdue (cq_flag) and the list shows it.
+// A colour complaint is closed by the revisit, not by the promise of one. Screenshots and photos go in the private bucket complaint-files.
+const CQ_NEEDS_REVISIT = ['free_redo', 'adjusted_same_visit', 'free_service_or_product', 'apology_or_explanation', 'discount_or_credit', 'escalated_followup'];
+// Who checks one (Kate, 26 Oct 2026): Mette and Coach Emma see every complaint; the technical ones go to the educators. Hair: Emma W and Ashleigh.
+// Beauty: not decided yet, so it says so rather than guessing.
+const CQ_TECH = { colour_result: 'hair', cut_result: 'hair', treatment_result: 'both', nail_service: 'beauty', skin_reaction_or_injury: 'beauty' };
+function cqChecker(type) {
+  const k = CQ_TECH[type];
+  if (k === 'hair') return 'Emma W and Ashleigh. Mette and Coach Emma see it too.';
+  if (k === 'beauty') return 'The beauty educator (not named yet). Mette and Coach Emma see it too.';
+  if (k === 'both') return 'Emma W and Ashleigh if it is hair, the beauty educator (not named yet) if it is beauty. Mette and Coach Emma see it too.';
+  return 'Mette and Coach Emma.';
+}
+const cqDubai = ts => ts ? new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }) : '';
+const cqFlagPill = r => r.flag === 'overdue'
+  ? '<span class="cq-flag over" title="Past the target time: no reply by the end of day 2, or not closed by the end of day 7."><i></i>Overdue</span>'
+  : (r.flag === 'pending' ? '<span class="cq-flag pend" title="Still waiting for an update or a decision. Reply by day 2, close by day 7."><i></i>Pending action</span>' : '');
+const cqDaysText = r => r.days_open == null ? '' : (r.status === 'open'
+  ? (r.days_open === 0 ? 'Opened today' : `Day ${r.days_open} open`)
+  : `Closed in ${r.days_open} day${r.days_open === 1 ? '' : 's'}`);
+const CQ_HAPPY = { yes: 'She was happy', no: 'She was not happy', unsure: 'Not sure she was happy' };
+const cqKB = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+
+const CQ_FILE_OK = /^(image\/(jpeg|png|webp|gif|heic)|application\/pdf|text\/plain)$/;
+// Uploads each file to the bucket, then registers it on the complaint. Returns how many went and why the rest did not.
+async function cqUpload(id, files) {
+  const fails = []; let ok = 0, n = 0;
+  for (const f of Array.from(files || [])) {
+    const type = f.type || (/\.heic$/i.test(f.name) ? 'image/heic' : '');
+    if (!CQ_FILE_OK.test(type)) { fails.push(`${f.name}: only photos, PDF or text`); continue; }
+    if (f.size > 10 * 1024 * 1024) { fails.push(`${f.name}: over 10 MB`); continue; }
+    const safe = f.name.replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80) || 'file';
+    const path = `${id}/${Date.now()}-${n++}-${safe}`;
+    try {
+      const up = await sb.storage.from('complaint-files').upload(path, f, { contentType: type, upsert: false });
+      if (up.error) throw up.error;
+      const { error } = await sb.rpc('client_complaint_add_file', { p_id: id, p_path: path, p_name: f.name, p_size: f.size, p_mime: type });
+      if (error) throw error;
+      ok++;
+    } catch (e) { console.error(e); fails.push(`${f.name}: ${(e && e.message) || 'did not upload'}`); }
+  }
+  return { ok, fails };
+}
+// Opens a file in a new tab through a 5 minute link. The tab is opened on the click so the browser does not block it.
+async function cqOpenFile(path) {
+  const w = window.open('', '_blank'), msg = document.getElementById('cqu-msg');
+  try {
+    const { data, error } = await sb.storage.from('complaint-files').createSignedUrl(path, 300);
+    if (error || !data) throw error || new Error('no link');
+    if (w) w.location.href = data.signedUrl;
+  } catch (e) { console.error(e); if (w) w.close(); if (msg) msg.textContent = 'The file did not open. Try again.'; }
+}
+async function cqReopenRow(id) {
+  cqOpen = 0;
+  await Promise.all([cqLoadList(), (typeof cqLoadFlags === 'function' ? cqLoadFlags() : null)]);
+  const row = document.querySelector(`#cqBody tr.cq-row[data-i="${id}"]`);
+  if (row) cqToggle(row);
+}
+async function cqAddFiles(id) {
+  const inp = document.getElementById('cqu-files'), msg = document.getElementById('cqu-msg');
+  if (!inp || !inp.files || !inp.files.length) { if (msg) msg.textContent = 'Choose the photos or screenshots first.'; return; }
+  if (msg) msg.textContent = 'Uploading…';
+  const r = await cqUpload(id, inp.files);
+  await cqReopenRow(id);
+  const m2 = document.getElementById('cqu-msg');
+  if (m2) m2.textContent = r.fails.length ? `Added ${r.ok}. Not added: ${r.fails.join('; ')}` : `Added ${r.ok} file${r.ok === 1 ? '' : 's'}.`;
+}
+async function cqRemoveFile(fileId, cid) {
+  if (!window.confirm('Remove this file from the complaint?')) return;
+  try {
+    const { data, error } = await sb.rpc('client_complaint_remove_file', { p_file_id: fileId });
+    if (error) throw error;
+    if (!data) { const m = document.getElementById('cqu-msg'); if (m) m.textContent = 'Only the person who added a file can remove it.'; return; }
+    try { await sb.storage.from('complaint-files').remove([data]); } catch (e) { /* the row is gone; a stray file in the bucket is harmless */ }
+    await cqReopenRow(cid);
+  } catch (e) { console.error(e); const m = document.getElementById('cqu-msg'); if (m) m.textContent = (e && e.message) || 'It did not remove. Try again.'; }
+}
+function cqRevisitShow() {
+  const box = document.getElementById('cqu-rv'), sel = document.getElementById('cqu-res');
+  if (box && sel) box.hidden = !(box.dataset.type === 'colour_result' && CQ_NEEDS_REVISIT.includes(sel.value));
+}
+
 function cqFollow(r) {
   const ups = (r.updates || []).map(u => {
-    const tag = u.status === 'resolved' ? ` <span class="cq-pill">Resolved: ${cqEsc(CQ_RES[u.res] || u.res || '')}</span>` : (u.status === 'open' ? ' <span class="cq-pill warn">Reopened</span>' : '');
+    const tag = u.status === 'resolved' ? ` <span class="cq-pill">Resolved: ${cqEsc(CQ_RES[u.res] || u.res || '')}</span>`
+      : (u.status === 'open' ? ' <span class="cq-pill warn">Reopened</span>' : (u.status === 'responded' ? ' <span class="cq-pill">Client contacted</span>' : ''));
     return `<p class="cq-kv"><span>${cqEsc(cqDay(u.at))}, ${cqEsc(u.by || '')}</span>${tag} ${cqText(u.note || '')}</p>`;
   }).join('');
   const ropts = ['<option value="">How it ended (needed to mark it resolved)</option>'].concat(Object.keys(CQ_RES).filter(k => k !== 'unclear' && k !== 'open')
     .map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
   const isOpen = r.status === 'open';
+  const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const files = (r.files || []).map(f => `<li><button type="button" class="cq-link" data-file="${cqEsc(f.path)}">${cqEsc(f.name)}</button> <span class="cq-muted">${cqEsc(cqKB(Number(f.size) || 0))}, ${cqEsc(f.by || '')}, ${cqEsc(cqDubai(f.at))}</span>`
+    + ` <button type="button" class="cq-btn" data-delfile="${f.id}" data-cid="${r.id}">Remove</button></li>`).join('');
   return `<div style="grid-column:1/-1">
-    <div class="cq-eye">Follow-up ${isOpen ? '<span class="cq-pill warn">Open</span>' : '<span class="cq-pill">Resolved</span>'}</div>
+    <div class="cq-eye">Follow-up ${isOpen ? '<span class="cq-pill warn">Open</span>' : '<span class="cq-pill">Resolved</span>'} ${isOpen ? cqFlagPill(r) : ''}</div>
     ${ups || '<p class="cq-kv cq-muted">No follow-up written yet.</p>'}
+    <div class="cq-eye" style="margin-top:10px">Screenshots and photos</div>
+    ${files ? `<ul class="cq-files">${files}</ul>` : '<p class="cq-kv cq-muted">None added yet.</p>'}
+    <div class="cq-chk-row"><input type="file" id="cqu-files" multiple accept="image/*,application/pdf,.txt" aria-label="Choose photos or screenshots"><button type="button" class="cq-btn" data-upfiles="${r.id}">Add files</button></div>
     <div class="cq-form" style="margin-top:8px">
       <label class="wide">Add an update<textarea id="cqu-note" rows="2" maxlength="1000" placeholder="Who you spoke to, what was agreed, what was done"></textarea></label>
+      <label>Responsible for closing it<input id="cqu-resp" class="cq-in" maxlength="80" list="cqRespList" autocomplete="off" value="${cqEsc(r.responsible || '')}"></label>
+      <label>Why it is still pending${isOpen ? '' : ' (cleared when resolved)'}<input id="cqu-why" class="cq-in" maxlength="300" autocomplete="off" value="${cqEsc(r.pending_reason || '')}"${isOpen ? '' : ' disabled'}></label>
       <label>${isOpen ? 'Mark it resolved with' : 'Reopen it, or add a note'}<select id="cqu-res" class="cq-sel"${isOpen ? '' : ' disabled'}>${ropts}</select></label>
     </div>
+    ${r.type === 'colour_result' && isOpen ? `<div class="cq-form" id="cqu-rv" data-type="colour_result" hidden>
+      <label class="wide cq-muted">A colour complaint is closed by the revisit, not by the promise of one: once she has come back and agreed.</label>
+      <label>Date she came back<input id="cqu-rd" class="cq-in" type="date" min="${cqEsc(String(r.date || '').slice(0, 10))}" max="${today}"></label>
+      <label>Was she happy?<select id="cqu-rh" class="cq-sel"><option value="">Pick one</option><option value="yes">Yes</option><option value="no">No</option><option value="unsure">Not sure</option></select></label>
+      <label class="wide">What the stylist did at the revisit<input id="cqu-rn" class="cq-in" maxlength="400" autocomplete="off"></label>
+    </div>` : ''}
     <div class="cq-bar"><button type="button" class="cq-btn" data-up="note" data-id="${r.id}">Add update</button>
+      ${isOpen && !r.first_response_at ? `<button type="button" class="cq-btn" data-up="responded" data-id="${r.id}" title="Starts the 2 day reply clock off: the client was contacted, or a solution was offered">Client contacted, solution offered</button>` : ''}
       ${isOpen ? `<button type="button" class="cq-btn pri" data-up="resolved" data-id="${r.id}">Mark resolved</button>` : `<button type="button" class="cq-btn" data-up="open" data-id="${r.id}">Reopen</button>`}
       <span id="cqu-msg" class="cq-msg err" aria-live="polite"></span></div>
   </div>`;
 }
 
 async function cqUpdate(id, kind) {
-  const note = (document.getElementById('cqu-note') || {}).value || '';
-  const res = (document.getElementById('cqu-res') || {}).value || '';
+  const val = i => ((document.getElementById(i) || {}).value || '').trim();
   const msg = document.getElementById('cqu-msg');
   const say = t => { if (msg) msg.textContent = t; };
+  const note = val('cqu-note'), res = val('cqu-res');
+  const r = ((cqList && cqList.rows) || []).find(x => x.id === id) || {};
   if (kind === 'resolved' && !res) return say('Pick how it ended, then mark it resolved.');
-  if (kind !== 'resolved' && note.trim().length < 2) return say('Write the update first.');
+  if (kind !== 'resolved' && note.length < 2) return say('Write the update first.');
+  const needRv = kind === 'resolved' && r.type === 'colour_result' && CQ_NEEDS_REVISIT.includes(res);
+  if (needRv && (!val('cqu-rd') || !val('cqu-rh') || val('cqu-rn').length < 3))
+    return say('A colour complaint is closed by the revisit: the date she came back, whether she was happy and what the stylist did.');
   say('Saving…');
   try {
-    const { error } = await sb.rpc('client_complaint_update', { p_id: id, p_note: note.trim(), p_resolution: kind === 'resolved' ? res : '', p_status: kind });
+    const args = { p_id: id, p_note: note, p_resolution: kind === 'resolved' ? res : '', p_status: kind, p_responsible: val('cqu-resp'), p_pending_reason: kind === 'resolved' ? '' : val('cqu-why') };
+    if (needRv) Object.assign(args, { p_revisit_date: val('cqu-rd'), p_revisit_happy: val('cqu-rh'), p_revisit_note: val('cqu-rn') });
+    const { error } = await sb.rpc('client_complaint_update', args);
     if (error) throw error;
     cqOpen = 0;
-    await Promise.all([cqLoadSummary(), cqLoadList()]);
+    await Promise.all([cqLoadSummary(), cqLoadList(), (typeof cqLoadFlags === 'function' ? cqLoadFlags() : null)]);
     const row = document.querySelector(`#cqBody tr.cq-row[data-i="${id}"]`);
     if (row) cqToggle(row);
   } catch (e) { console.error(e); say((e && e.message) || 'It did not save. Try again.'); }
@@ -378,17 +507,32 @@ async function cqUpdate(id, kind) {
 
 function cqCard(r) {
   const conf = r.confidence === 'low' ? '<span class="cq-pill warn">Unsure</span>' : '';
+  const logged = !!r.by, open = r.status === 'open';
+  const dates = logged ? `
+      <p class="cq-kv"><span>Date of the appointment</span> ${cqEsc(cqDay(r.date))}</p>
+      <p class="cq-kv"><span>Date of the complaint</span> ${cqEsc(cqDay(r.complaint_date))}</p>
+      ${open ? `<p class="cq-kv"><span>Reply</span> ${r.first_response_at ? 'Done on ' + cqEsc(cqDubai(r.first_response_at)) : 'Due by ' + cqEsc(cqDay(r.reply_due)) + ' (2 days)'}</p>
+      <p class="cq-kv"><span>Close by</span> ${cqEsc(cqDay(r.close_due))} (7 days) ${cqFlagPill(r)}</p>` : ''}
+      ${r.resolved_at ? `<p class="cq-kv"><span>Date resolved</span> ${cqEsc(cqDubai(r.resolved_at))}${r.days_open != null ? ' (' + cqEsc(cqDaysText(r)) + ')' : ''}</p>` : ''}`
+    : `<p class="cq-kv"><span>Date</span> ${cqEsc(cqDay(r.date))}</p>`;
+  const people = logged ? `
+      ${r.phone ? `<p class="cq-kv"><span>Mobile</span> <a href="tel:${cqEsc(String(r.phone).replace(/[^0-9+]/g, ''))}" onclick="event.stopPropagation()">${cqEsc(r.phone)}</a></p>` : ''}
+      <p class="cq-kv"><span>Checks it</span> ${cqEsc(cqChecker(r.type))}</p>
+      <p class="cq-kv"><span>Responsible</span> ${r.responsible ? cqEsc(r.responsible) : '<span class="cq-muted">Nobody named yet</span>'}</p>
+      ${open ? `<p class="cq-kv"><span>Why pending</span> ${r.pending_reason ? cqEsc(r.pending_reason) : '<span class="cq-muted">Not written yet</span>'}</p>` : ''}` : '';
+  const revisit = (logged && r.revisit_date) ? `<p class="cq-kv"><span>Revisit</span> ${cqEsc(cqDay(r.revisit_date))}. ${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}${r.revisit_note ? '. ' + cqEsc(r.revisit_note) : ''}</p>` : '';
   return `<div class="cq-grid">
     <div>
       <div class="cq-eye">Where and who</div>
       <p class="cq-kv"><span>Branch</span> ${cqEsc(cqBr(r.branch))}${r.src === 'client' ? ' <span class="cq-muted">(the branch the client sits under)</span>' : ''}</p>
-      <p class="cq-kv"><span>Date</span> ${cqEsc(cqDay(r.date))}</p>
+      ${dates}
+      ${people}
       ${r.stylists ? `<p class="cq-kv"><span>Stylist</span> ${cqEsc(r.stylists)}</p>` : ''}
       ${r.services ? `<p class="cq-kv"><span>Services that day</span> ${cqEsc(r.services)}</p>` : ''}
       ${r.fee != null && r.src === 'visit' ? `<p class="cq-kv"><span>Charged that visit</span> AED ${cqNum(r.fee)}</p>` : ''}
       ${r.handled_by ? `<p class="cq-kv"><span>Handled by</span> ${cqEsc(r.handled_by)}</p>` : ''}
       <p class="cq-kv"><span>Google review</span> ${(r.g_date || r.g_manual) ? cqGoogle(r) : 'None found under this name'}</p>
-      ${r.by ? `<p class="cq-kv"><span>Logged by</span> ${cqEsc(r.by)}${r.by_at ? ' on ' + cqEsc(cqDay(r.by_at)) : ''} <button type="button" class="cq-btn" data-del="${r.id}" style="margin-left:8px">Remove</button></p>` : `<p class="cq-kv"><span>Phorest ID</span> ${cqEsc(r.phorest_id)}</p>`}
+      ${r.by ? `<p class="cq-kv"><span>Logged by</span> ${cqEsc(r.by)}${r.by_at ? ' on ' + cqEsc(cqDubai(r.by_at)) : ''} <button type="button" class="cq-btn" data-del="${r.id}" style="margin-left:8px">Remove</button></p>` : `<p class="cq-kv"><span>Phorest ID</span> ${cqEsc(r.phorest_id)}</p>`}
     </div>
     <div>
       <div class="cq-eye">What was written ${conf}</div>
@@ -396,7 +540,8 @@ function cqCard(r) {
       <div class="cq-eye">How it was read</div>
       <p class="cq-kv"><span>Kind</span> ${cqEsc(CQ_TYPE[r.type] || r.type || 'Unclear')}</p>
       <p class="cq-kv"><span>Problem</span> ${cqEsc(r.detail || 'Not stated')}</p>
-      <p class="cq-kv"><span>Outcome</span> ${r.status === 'open' ? 'Still open' : cqEsc(CQ_RES[r.resolution] || r.resolution || 'Unclear')}${r.resolution_detail ? ': ' + cqEsc(r.resolution_detail) : ''}</p>
+      <p class="cq-kv"><span>Resolution</span> ${open ? 'Still open' : cqEsc(CQ_RES[r.resolution] || r.resolution || 'Unclear')}${r.resolution_detail ? ': ' + cqEsc(r.resolution_detail) : ''}</p>
+      ${revisit}
     </div>
     ${r.by ? cqFollow(r) : ''}
   </div>`;
@@ -469,7 +614,21 @@ function cqPaintList() {
   const from = total ? CQ.page * CQ.size + 1 : 0, to = CQ.page * CQ.size + rows.length;
   if (meta) meta.textContent = total ? `${cqNum(from)} to ${cqNum(to)} of ${cqNum(total)} complaint${total === 1 ? '' : 's'}` : '';
   if (!rows.length) { body.innerHTML = '<p class="cq-meta" style="padding:10px 4px">No complaint matches that.</p>'; return; }
-  const tr = rows.map(r => `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
+  const log = cqMode === 'log';
+  // Log a Complaint (Belle, 26 Oct 2026): the dates in their own columns (appointment, complaint, resolved), the resolution beside them, and what is
+  // overdue or pending first. Client Complaints keeps the columns it had.
+  const tr = rows.map(r => log ? `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
+      <td class="hm" style="white-space:nowrap">${cqEsc(cqDay(r.date))}</td>
+      <td class="hm" style="white-space:nowrap">${cqEsc(cqDay(r.complaint_date))}</td>
+      <td><b>${cqEsc(r.client || 'No name')}</b><div class="cq-sub2">${cqEsc(cqBr(r.branch))}${r.phone ? ' · ' + cqEsc(r.phone) : ''}</div>
+        <div class="cq-sub2 sm">Appointment ${cqEsc(cqDay(r.date))}<br>Complaint ${cqEsc(cqDay(r.complaint_date))}</div></td>
+      <td>${cqEsc(r.detail || 'Not stated')}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
+      <td>${r.status === 'open' ? cqFlagPill(r) : '<span class="cq-pill">Resolved</span>'}
+        <div class="cq-sub2${r.flag === 'overdue' ? ' late' : ''}">${cqEsc(cqDaysText(r))}${r.status === 'open' && !r.first_response_at ? ' · no reply yet' : ''}</div>
+        ${r.status === 'open' ? `<div class="cq-sub2">${r.responsible ? 'Responsible: ' + cqEsc(r.responsible) : 'Nobody responsible yet'}${r.pending_reason ? ' · ' + cqEsc(r.pending_reason) : (r.flag ? ' · no reason written' : '')}</div>` : ''}</td>
+      <td class="hm" style="white-space:nowrap">${r.resolved_at ? cqEsc(cqDubai(r.resolved_at)) : '<span class="cq-muted">Open</span>'}</td>
+      <td class="hm">${r.status === 'open' ? '<span class="cq-muted">Not yet</span>' : cqEsc(CQ_RES[r.resolution] || '')}${r.revisit_date ? `<div class="cq-sub2">${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}</div>` : ''}</td>
+    </tr>` : `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
       <td style="white-space:nowrap">${cqEsc(cqDay(r.date))}</td>
       <td class="hm">${cqEsc(cqBr(r.branch))}</td>
       <td><b>${cqEsc(r.client || 'No name')}</b></td>
@@ -482,7 +641,10 @@ function cqPaintList() {
     return `<th class="cq-sort${cls ? ' ' + cls : ''}" tabindex="0" role="columnheader button" data-s="${k}"${on ? ` aria-sort="${CQ.dir === 'asc' ? 'ascending' : 'descending'}"` : ''} title="Sort by ${label.toLowerCase()}">${label}<span class="ar" aria-hidden="true">${on ? (CQ.dir === 'asc' ? '▲' : '▼') : '↕'}</span></th>`;
   };
   const sizes = CQ_SIZES.map(n => `<option value="${n}"${CQ.size === n ? ' selected' : ''}>${n}</option>`).join('');
-  body.innerHTML = `<table class="cq-t"><tr>${th('date', 'Date')}${th('branch', 'Branch', 'hm')}${th('client', 'Client')}${th('detail', 'What happened')}${th('resolution', 'Outcome')}<th class="hm" title="Is there a Google review by someone with the same name, left on or after the complaint date">Google</th></tr>${tr}</table>
+  const head = log
+    ? `${th('date', 'Appointment', 'hm')}${th('cdate', 'Complaint', 'hm')}${th('client', 'Client')}${th('detail', 'What happened')}${th('priority', 'Status')}${th('resolved', 'Date resolved', 'hm')}${th('resolution', 'Resolution', 'hm')}`
+    : `${th('date', 'Date')}${th('branch', 'Branch', 'hm')}${th('client', 'Client')}${th('detail', 'What happened')}${th('resolution', 'Outcome')}<th class="hm" title="Is there a Google review by someone with the same name, left on or after the complaint date">Google</th>`;
+  body.innerHTML = `<table class="cq-t${log ? ' cq-lg' : ''}"><tr>${head}</tr>${tr}</table>
     <div class="cq-pager"><label class="cq-size">Show <select id="cqN" class="cq-sel" aria-label="Complaints per page">${sizes}</select> per page</label><button type="button" class="cq-btn" data-pg="-1"${CQ.page === 0 ? ' disabled' : ''}>Previous</button>
     <button type="button" class="cq-btn" data-pg="1"${to >= total ? ' disabled' : ''}>Next</button></div>`;
 }
@@ -510,7 +672,7 @@ async function cqLoadSummary() {
 
 const cqListArgs = (limit, offset) => ({
   p_branch: cqBranch(), p_src: cqSrc(), p_type: CQ.type, p_resolution: CQ.res, p_q: CQ.q.trim(), p_low: CQ.low,
-  p_limit: limit, p_offset: offset, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, p_status: CQ.status, ...cqWin()
+  p_limit: limit, p_offset: offset, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, p_status: ['overdue', 'pending'].includes(CQ.status) ? 'open' : CQ.status, p_flag: ['overdue', 'pending'].includes(CQ.status) ? CQ.status : 'all', ...cqWin()
 });
 
 // Open in Google Sheets (Kate, 22 Oct 2026: "this table may be opened on Google Sheets"). A Google Sheet cannot be made from the page without a
@@ -535,12 +697,14 @@ async function cqSheetsExport() {
     }
     const cell = v => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ').replace(/"/g, "'").trim();
     const head = ['Date', 'Branch', 'Client', 'Kind', 'What happened', 'Outcome', 'How it ended', 'Stylist', 'Service', 'Charged (AED)', 'Handled by',
-      'Status', 'Logged by', 'Google review', 'Original note'];
+      'Status', 'Logged by', 'Google review', 'Mobile', 'Date of the complaint', 'Date resolved', 'Days open', 'Flag', 'Responsible', 'Why pending', 'Original note'];
     const lines = [head].concat(rows.map(r => [
       r.date ? String(r.date).slice(0, 10) : 'Client card', cqBr(r.branch), r.client, CQ_TYPE[r.type] || r.type,
       r.detail, r.status === 'open' ? 'Still open' : (CQ_RES[r.resolution] || r.resolution), r.resolution_detail, r.stylists, r.services,
       r.fee, r.handled_by, r.status === 'open' ? 'Open' : (r.status === 'resolved' ? 'Resolved' : ''), r.by,
-      r.g_date ? `${'★'.repeat(Math.max(0, Math.min(5, Number(r.g_stars) || 0)))} ${String(r.g_date).slice(0, 10)}` : (r.g_manual ? 'Posted (logged)' : ''), r.note
+      r.g_date ? `${'★'.repeat(Math.max(0, Math.min(5, Number(r.g_stars) || 0)))} ${String(r.g_date).slice(0, 10)}` : (r.g_manual ? 'Posted (logged)' : ''),
+      r.phone, r.complaint_date ? String(r.complaint_date).slice(0, 10) : '', r.resolved_at ? String(r.resolved_at).slice(0, 10) : '', r.days_open,
+      r.flag === 'overdue' ? 'Overdue' : (r.flag === 'pending' ? 'Pending action' : ''), r.responsible, r.pending_reason, r.note
     ]));
     await navigator.clipboard.writeText(lines.map(l => l.map(cell).join('\t')).join('\n'));
     if (w) w.location.href = 'https://sheets.new';
@@ -583,6 +747,7 @@ function renderComplaints() {
   if (!el) return;
   const other = document.getElementById('complaintlogContent'); if (other) other.innerHTML = '';   // one page's ids at a time
   cqMode = 'main';
+  CQ.sort = 'date'; CQ.dir = 'desc'; if (['overdue', 'pending'].includes(CQ.status)) CQ.status = 'all';
   if (!cqLevelOk()) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Client Complaints is for Levels 2 and up.</p></div>'; return; }
   el.innerHTML = cqShell();
   cqWire();
