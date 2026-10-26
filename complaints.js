@@ -371,8 +371,8 @@ const CQ_TECH = { colour_result: 'hair', cut_result: 'hair', treatment_result: '
 function cqChecker(type) {
   const k = CQ_TECH[type];
   if (k === 'hair') return 'Emma W and Ashleigh. Mette and Coach Emma see it too.';
-  if (k === 'beauty') return 'The beauty educator (not named yet). Mette and Coach Emma see it too.';
-  if (k === 'both') return 'Emma W and Ashleigh if it is hair, the beauty educator (not named yet) if it is beauty. Mette and Coach Emma see it too.';
+  if (k === 'beauty') return 'Mona Soba (to be confirmed). Mette and Coach Emma see it too.';
+  if (k === 'both') return 'Emma W and Ashleigh if it is hair, Mona Soba (to be confirmed) if it is beauty. Mette and Coach Emma see it too.';
   return 'Mette and Coach Emma.';
 }
 const cqDubai = ts => ts ? new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }) : '';

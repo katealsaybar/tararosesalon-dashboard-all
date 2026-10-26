@@ -2,7 +2,7 @@
 -- client_complaints_tracking.sql. Additive: new columns, a files table and a private storage bucket, and the submit, update and list functions
 -- replaced by versions that take the same arguments plus new ones with defaults, so the page that is live today keeps working until the new one ships.
 --
---   Mobile number         client_phone, searchable from the page's search box (digits only, 4 or more).
+--   Mobile number         client_phone, required (7 to 15 digits, Kate 26 Oct 2026), searchable from the page's search box (digits only, 4 or more).
 --   Dates, separately     event_date stays "date of the appointment"; complaint_date is the day the client complained (what reception wrote in Phorest);
 --                         resolved_at is the date resolved; resolution is the outcome.
 --   Reply in 2 days, close in 7 (Belle): measured from the date of the complaint, in Dubai time. An open complaint with no reply by the end of day 2
@@ -105,7 +105,7 @@ begin
     raise exception 'Logging a complaint is for Levels 2 and up';
   end if;
   if length(nm) < 3 then raise exception 'Write the client''s full name'; end if;
-  if ph is not null and length(regexp_replace(ph, '\D', '', 'g')) not between 7 and 15 then raise exception 'Check the mobile number (7 to 15 digits)'; end if;
+  if ph is null or length(regexp_replace(ph, '\D', '', 'g')) not between 7 and 15 then raise exception 'Write the client''s mobile number (7 to 15 digits)'; end if;
   if p_branch not in ('SAA', 'KCA', 'MC', 'AQ', 'BAH') then raise exception 'Pick the branch'; end if;
   if p_date is null or p_date > public.cq_today() or p_date < date '2016-01-01' then raise exception 'Pick the date of the appointment'; end if;
   if cd > public.cq_today() or cd < p_date then raise exception 'The date of the complaint cannot be before the appointment or in the future'; end if;

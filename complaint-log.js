@@ -53,10 +53,10 @@ function cqForm() {
   // Minimisable (Kate, 22 Oct 2026): open the first time, then it stays as it was left in this browser.
   let closed = false; try { closed = localStorage.getItem('trs-cq-form') === 'closed'; } catch (e) {}
   return `<details class="cq-card" id="cq-new"${closed ? '' : ' open'} ontoggle="try{localStorage.setItem('trs-cq-form',this.open?'open':'closed')}catch(e){}"><summary>Log a complaint ${cqInfo()}</summary>
-    <p class="cq-note" style="margin-top:6px">For a complaint a client made that is not in the Phorest notes yet. It is counted with the rest and marked as logged by staff, under your name. The client, branch, the date of the appointment, the date she complained (as reception wrote it in Phorest), the kind and what happened are needed; the rest helps. A mobile number finds her again fast. Reply to her within 2 days of the complaint and close it within 7: the list shows what is overdue. A colour complaint stays open until she has come back.</p>
+    <p class="cq-note" style="margin-top:6px">For a complaint a client made that is not in the Phorest notes yet. It is counted with the rest and marked as logged by staff, under your name. The client, her mobile number, branch, the date of the appointment, the date she complained (as reception wrote it in Phorest), the kind and what happened are needed; the rest helps. The mobile number finds her again fast. Reply to her within 2 days of the complaint and close it within 7: the list shows what is overdue. A colour complaint stays open until she has come back.</p>
     <div class="cq-form">
       <label>Client's full name<input id="cqfClient" class="cq-in" maxlength="80" autocomplete="off"></label>
-      <label>Mobile number (optional)<input id="cqfPhone" class="cq-in" type="tel" inputmode="tel" maxlength="24" autocomplete="off" placeholder="05x xxx xxxx or +971 …"></label>
+      <label>Mobile number<input id="cqfPhone" class="cq-in" type="tel" inputmode="tel" maxlength="24" autocomplete="off" placeholder="05x xxx xxxx or +971 …"></label>
       <label>Branch<select id="cqfBranch" class="cq-sel">${bopts}</select></label>
       <label>Date of the appointment<input id="cqfDate" class="cq-in" type="date" max="${today}"></label>
       <label>Date she complained<input id="cqfCDate" class="cq-in" type="date" max="${today}" value="${today}"></label>
@@ -88,7 +88,7 @@ async function cqSubmit() {
   const files = Array.from((document.getElementById('cqfFiles') || {}).files || []);
   const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
   if (p.p_client.length < 3) return say('Write the client\'s full name.', true);
-  if (p.p_phone && !(p.p_phone.replace(/\D/g, '').length >= 7 && p.p_phone.replace(/\D/g, '').length <= 15)) return say('Check the mobile number (7 to 15 digits).', true);
+  if (!(p.p_phone.replace(/\D/g, '').length >= 7 && p.p_phone.replace(/\D/g, '').length <= 15)) return say('Write the client\'s mobile number (7 to 15 digits).', true);
   if (!p.p_branch) return say('Pick the branch.', true);
   if (!p.p_date) return say('Pick the date of the appointment.', true);
   if (!p.p_complaint_date) return say('Pick the date she complained.', true);
@@ -144,7 +144,7 @@ function cqLogShell() {
     <h1>Log a Client Complaint</h1>
     <p class="cq-sub">When a client complains, log it here so it is written down once, followed up and closed, and not left in WhatsApp. Leave How it was resolved empty and it stays open until you mark it resolved. Reply to the client within 2 days of the complaint and close it within 7; what is overdue shows first. Levels 2 and up. Everything logged here also counts in Client Complaints.</p>
     ${cqRailShell(`<div class="cq-tiles" id="cqFlags" aria-live="polite"></div>
-    <datalist id="cqRespList"><option value="Emma W"><option value="Ashleigh"><option value="Mette"><option value="Coach Emma"><option value="Kate"></datalist>
+    <datalist id="cqRespList"><option value="Emma W"><option value="Ashleigh"><option value="Mette"><option value="Coach Emma"><option value="Mona"><option value="Kate"></datalist>
     ${cqForm()}
     <div class="cq-card cq-wait" id="cq-list">
       <h2>Logged complaints</h2>
