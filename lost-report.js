@@ -570,8 +570,8 @@ function lrPaintLog() {
   const rows = lrRowsPage.map(r => {
     const m = lrMsg(r.tkey), open = !!lrOpen[r.id], when = r.d ? `${lcEsc(lrDay(r.d))} <span class="lr-t">${lcEsc(r.t)}</span>` : `<span class="slv-note">queued ${lcEsc(r.qd || '')}</span>`;
     const flags = [r.replied ? 'Replied' : '', r.blocked ? 'Blocked' : ''].filter(Boolean).join(', ');
-    return `<tr class="lr-row${open ? ' open' : ''}" onclick="lrToggle(${r.id})"><td>${when}</td><td>${r.wave || '–'}</td><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td>
-      <td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${lrWho(r)}${lrChat(r.cid)}</td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td><td>${lrLateCell(r)}</td></tr>
+    return `<tr class="lr-row${open ? ' open' : ''}" onclick="lrToggle(${r.id})"><td>${lcEsc(LC_BRANCH[r.branch] || r.branch)}</td><td>${lrWho(r)}${lrChat(r.cid)}</td><td>${lrStatus(r)}</td><td>${lrOutcomeCell(r)}</td>
+      <td>${lrLateCell(r)}</td><td>${r.wave || '–'}</td><td>${lcEsc(m.nm)} <span class="ll-tag">${lcEsc(m.arm)}</span></td><td>${when}</td></tr>
       ${open ? `<tr class="lr-text"><td colspan="8"><div class="lq-bubble">${lcEsc(r.text || '')}</div>${r.error ? `<div class="slv-note lr-bad">${lcEsc(r.error)}</div>` : ''}<div class="slv-note">Template ${lcEsc(r.tkey)} · queued ${lcEsc(r.qd || '')}${r.by ? ' by ' + lcEsc(r.by) : ''}${r.message_id ? ' · respond.io message ' + lcEsc(r.message_id) : ''}${flags ? ' · ' + flags : ''}</div></td></tr>` : ''}`;
   }).join('');
   // Prev and Next only when there is more than one page; the rows-a-page choice whenever the log is longer than the shortest page.
@@ -581,7 +581,7 @@ function lrPaintLog() {
   lrOutDraw();
   const byClient = lrSel.outcomes.length > 0;
   el.innerHTML = `<p class="slv-note">${byClient ? `${lcNum(lrTotal)} client${lrTotal === 1 ? '' : 's'}, one row each (the latest message she was sent)` : `${lcNum(lrTotal)} message${lrTotal === 1 ? '' : 's'}`}${lrTotal ? `, newest first. Click a row to read what she was sent.` : ''}</p>
-    ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Sent</th><th>Wave</th><th>Branch</th><th>Message</th><th>Client</th><th>Status</th><th>Outcome</th><th>After 31 Oct</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
+    ${lrTotal ? `<div class="lr-scroll"><table class="slv-table lr-tbl lr-logt"><thead><tr><th>Branch</th><th>Client</th><th>Status</th><th>Outcome</th><th>After 31 Oct</th><th>Wave</th><th>Message</th><th>Sent</th></tr></thead><tbody>${rows}</tbody></table></div>${pager}` : '<p class="slv-muted">Nothing matches these filters.</p>'}`;
 }
 
 // The whole log for the current filters, 500 at a time, with the text of each message.

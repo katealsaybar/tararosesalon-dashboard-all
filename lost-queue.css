@@ -165,7 +165,14 @@
 #lostListsContent .lr-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 #lostListsContent .lr-tbl td.lr-when{font-size:12.5px;color:var(--muted)}
 #lostListsContent .lr-logt th,#lostListsContent .lr-logt td{text-align:left;white-space:normal}
-#lostListsContent .lr-logt td:first-child{min-width:130px}
+/* Branch is the first column and the one that stays put when the log scrolls sideways (Kate, 26 Oct 2026); then Client, Status, Outcome, After 31 Oct, Wave, Message, Sent */
+#lostListsContent .lr-logt th:first-child,#lostListsContent .lr-logt td:first-child:not([colspan]){position:sticky;left:0;z-index:2;background:var(--surface);min-width:96px;box-shadow:1px 0 0 var(--border)}
+#lostListsContent .lr-logt thead th:first-child{z-index:3}
+#lostListsContent .lr-logt td:nth-child(7){min-width:130px}
+#lostListsContent .lr-logt td:nth-child(2){min-width:190px}
+#lostListsContent .lr-logt td:last-child{min-width:150px}
+@media(hover:hover){#lostListsContent .lr-row:hover td:first-child{background:var(--surface2)}}
+#lostListsContent .lr-row.open td:first-child{background:var(--surface2)}
 #lostListsContent .lr-row{cursor:pointer}
 @media(hover:hover){#lostListsContent .lr-row:hover td{background:var(--surface2)}}
 #lostListsContent .lr-row.open td{background:var(--surface2)}
