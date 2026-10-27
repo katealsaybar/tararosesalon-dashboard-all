@@ -650,46 +650,35 @@ function renderTiles(sel,all){
   const be=gTot>=BREAK_EVEN[1]?['good','at or above the aim']:gTot>=BREAK_EVEN[0]?['warn','above break-even, below the aim']:['bad','below break-even'];
   const m=MN[S.month-1];
   const A=ACTM[S.month]||null,tilesEl=document.getElementById('tiles');
-  const oldNet=`<div class="line"><span class="chip ${be[0]}">${be[1]}</span> Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`+
-   `<div class="be-bar" role="img" aria-label="Net take ${fmt(gTot)} against a floor of ${fmt(BREAK_EVEN[0])} and an aim of ${fmt(BREAK_EVEN[1])}"><div class="be-fill ${be[0]==='good'?'':be[0]}" style="width:${Math.min(100,gTot/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"></div>`+
-   `<div class="be-mark f" style="left:${(BREAK_EVEN[0]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Floor 1.7M</span></div><div class="be-mark a" style="left:${(BREAK_EVEN[1]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Aim 1.8M</span></div></div>`;
-  if(A){
-    const brs=A.branches,all=Object.keys(brs),selB=st.branch==='ALL'?all:all.filter(b=>b===st.branch),teamAll=st.team==='ALL';
-    const sum=(list,k)=>list.reduce((a,b)=>a+(brs[b]?brs[b][k]:0),0);
-    const el=A.elapsed/A.days,upto=(+A.upto.slice(8))+' '+MN[+A.upto.slice(5,7)-1];
-    const row=(label,act,tgt,hero,note)=>{
-      const has=act!=null,pct=has&&tgt?act/tgt*100:null;
-      const cls=pct==null?'':pct>=el*100-10?'':pct>=el*100-25?'warn':'bad';
-      return `<div class="abg abr${hero?' hero':''}"><span class="abl">${label}</span><span class="aba${has?'':' na'}">${has?fmt(act):'n/a'}</span><span class="abv"></span><span class="abt">${fmt(tgt)}</span>`+
-        `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
-        `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
-    };
-    const netAct=sum(all,'net'),pace=netAct/el;
-    const svcAct=teamAll?sum(selB,'svc'):null,retAct=teamAll?sum(selB,'ret'):null,visAct=teamAll?sum(selB,'visits'):null;
-    const trAct=(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
-    const netNote=`<div class="abn">Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). ${be[1].charAt(0).toUpperCase()+be[1].slice(1)}, floor 1.7M, aim 1.8M.</div>`+
-      `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`;
-    tilesEl.classList.add('ab-on');
-    tilesEl.innerHTML=`<div class="abc"><div class="abtop">${m} 2026, actual to ${upto} (${A.elapsed} of ${A.days} days). The tick on each line is where the month is.</div>`+
-      `<div class="abg abh"><span class="abl"></span><span class="a">Actual</span><span></span><span>Target</span><span>Progress</span><span></span></div>`+
-      row('Total net take',netAct,gTot,true,netNote)+
-      row('Services and treatment',svcAct,t.plan)+
-      row('Retail',retAct,t.retail)+
-      row('Treatment (hair)',trAct,trTgt)+
-      row('Clients',visAct,t.clients)+
-      (teamAll?'':`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`)+`</div>`;
-    return;
-  }
-  tilesEl.classList.remove('ab-on');
-  tilesEl.innerHTML=
-   `<div class="tile be"><div class="eyebrow">Total net take, all 4 branches</div><div class="big">${fmt(gTot)}</div><div class="line"><span class="chip ${be[0]}">${be[1]}</span> Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`+
-   `<div class="be-bar" role="img" aria-label="Net take ${fmt(gTot)} against a floor of ${fmt(BREAK_EVEN[0])} and an aim of ${fmt(BREAK_EVEN[1])}"><div class="be-fill ${be[0]==='good'?'':be[0]}" style="width:${Math.min(100,gTot/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"></div>`+
-   `<div class="be-mark f" style="left:${(BREAK_EVEN[0]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Floor 1.7M</span></div><div class="be-mark a" style="left:${(BREAK_EVEN[1]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Aim 1.8M</span></div></div></div>`+
-   `<div class="tile"><div class="eyebrow">${m} target</div><div class="big">${fmt(t.plan)}</div><div class="line">${t.plan!==t.top?`Top-down ${fmt(t.top)}, the middle of low and high. Bottom-up ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Target ${fmt(t.plan)}. Low ${fmt(t.low)}, high ${fmt(t.high)}. `:`The middle of low ${fmt(t.low)} and high ${fmt(t.high)}. `}${t.n} people</div></div>`+
-   `<div class="tile"><div class="eyebrow">Service</div><div class="big">${fmt(t.service)}</div><div class="line">${100-S.treat}% of the target</div></div>`+
-   `<div class="tile"><div class="eyebrow">Treatment</div><div class="big">${fmt(t.treat)}</div><div class="line">${S.treat}% of the target</div></div>`+
-   `<div class="tile"><div class="eyebrow">Retail</div><div class="big">${fmt(t.retail)}</div><div class="line">${S.retail}% of the target</div></div>`+
-   `<div class="tile"><div class="eyebrow">Clients</div><div class="big">${fmt(t.clients)}</div><div class="line">Target divided by the average bill, held to what her hours can fit</div></div>`;
+  const brs=A?A.branches:{},allB=Object.keys(brs),selB=st.branch==='ALL'?allB:allB.filter(b=>b===st.branch),teamAll=st.team==='ALL';
+  const sum=(list,k)=>list.reduce((a,b)=>a+(brs[b]?brs[b][k]:0),0);
+  const el=A?A.elapsed/A.days:0,upto=A?(+A.upto.slice(8))+' '+MN[+A.upto.slice(5,7)-1]:'';
+  /* Kate, 27 Oct 2026: the same card for every month. A month with no actuals yet shows the Target column in full and "not yet" under Actual. */
+  const row=(label,act,tgt,hero,note)=>{
+    const has=act!=null,pct=has&&tgt?act/tgt*100:null;
+    const cls=pct==null?'':pct>=el*100-10?'':pct>=el*100-25?'warn':'bad';
+    return `<div class="abg abr${hero?' hero':''}"><span class="abl">${label}</span><span class="aba${has?'':' na'}">${has?fmt(act):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt">${fmt(tgt)}</span>`+
+      `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
+      `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
+  };
+  const netAct=A?sum(allB,'net'):null,pace=A?netAct/el:null;
+  const svcAct=A&&teamAll?sum(selB,'svc'):null,retAct=A&&teamAll?sum(selB,'ret'):null,visAct=A&&teamAll?sum(selB,'visits'):null;
+  const trAct=A&&(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
+  const verdict=be[1].charAt(0).toUpperCase()+be[1].slice(1)+', floor 1.7M, aim 1.8M.';
+  const netNote=`<div class="abn">${A?`Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). `:''}${verdict}</div>`+
+    `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`;
+  const planNote=t.plan!==t.top?
+    `<div class="abn s">Top-down ${fmt(t.top)}, the middle of low and high. Bottom-up ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Low ${fmt(t.low)}, high ${fmt(t.high)}.</div>`:
+    `<div class="abn s">The middle of low ${fmt(t.low)} and high ${fmt(t.high)}.</div>`;
+  tilesEl.classList.add('ab-on');
+  tilesEl.innerHTML=`<div class="abc"><div class="abtop">${A?`${m} 2026, actual to ${upto} (${A.elapsed} of ${A.days} days). The tick on each line is where the month is.`:`${m} 2026. No actuals yet, they start with the month.`}</div>`+
+    `<div class="abg abh"><span class="abl"></span><span class="a">Actual</span><span></span><span>Target</span><span>${A?'Progress':''}</span><span></span></div>`+
+    row('Total net take',netAct,gTot,true,netNote)+
+    row('Services and treatment',svcAct,t.plan,false,planNote)+
+    row('Retail',retAct,t.retail)+
+    row('Treatment (hair)',trAct,trTgt)+
+    row('Clients',visAct,t.clients)+
+    (A&&!teamAll?`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`:'')+`</div>`;
 }
 
 function photoOf(name){
