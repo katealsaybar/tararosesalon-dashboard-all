@@ -124,7 +124,8 @@ table.t td.name{white-space:normal;min-width:196px;text-align:left;font-variant-
 table.t td.name b{font-weight:600}
 /* Kate, 27 Oct 2026: By branch has no photos, so the first column is only as wide as the branch name and the spare width goes to the numbers (it had a 196px floor meant for the person rows) */
 @media (min-width:701px){table.t[data-frz="1"] td.name{min-width:0;width:1%;white-space:nowrap}}
-@media (min-width:701px){table.t[data-frz="1"] td:not(.name),table.t[data-frz="1"] th:not(:first-child){padding-left:11px;padding-right:11px}}
+/* the whole table has to fit the page or it turns into its own scroll frame and the header stops sticking to the page; checked against the real November numbers at a 1536px screen (it was 1145px in a 1090px box at 11px, 7px and a free Clients column bring it under) */
+@media (min-width:701px){table.t[data-frz="1"] td:not(.name),table.t[data-frz="1"] th:not(:first-child){padding-left:7px;padding-right:7px}table.t[data-frz="1"] td[data-l="Clients"]{min-width:0;max-width:none}}
 /* Kate, 23 Oct 2026: a face beside every name. The portrait is the cutout at its own shape (no circle, no crop), the same rule as the Staff Benchmarks. */
 .who{display:flex;align-items:center;gap:10px}
 .who .ph{flex:none;height:64px;width:56px;object-fit:contain;object-position:center bottom}
