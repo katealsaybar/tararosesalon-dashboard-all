@@ -302,7 +302,7 @@ function lgRollup(list) {
 
 // One row's worth of split cells. `pick` reads a summary; nulls are days the
 // branch was shut or has not reached yet, and print as a dash rather than 0.
-function lgSplitCells(series, bucket, pick, fmt) {
+function lgSplitCells(series, bucket, pick, fmt, wrap) {
   const sp = lgSplit(series);
   if (!sp.key) return [];
   const cells = bucket && bucket[sp.key] ? bucket[sp.key] : [];
@@ -310,8 +310,14 @@ function lgSplitCells(series, bucket, pick, fmt) {
     const s = cells[i];
     if (!s) return '—';
     const v = pick(s);
-    return v == null ? '—' : fmt(v);
+    return v == null ? '—' : (wrap ? wrap(fmt(v), x) : fmt(v));
   });
+}
+// Kate, 27 Oct 2026: a figure opens the staff behind it (drill.js, pulse-drill.js ledgerSpec). xk is the row's export key, codes the branches, win the
+// window (a ledger month, a week or a day) and who the words for the title. Zero and missing figures stay plain.
+function lgDn(html, xk, codes, win, who) {
+  if (typeof TRSD === 'undefined' || typeof PD === 'undefined' || !xk || !win || !win.from || !win.to) return html;
+  return TRSD.num(html, PD.ledgerSpec(xk, codes, lgYmd(win.from), lgYmd(win.to), `${who}, ${win.label || ''}`));
 }
 
 // Do the ledger's monthly targets apply to the window on screen?
@@ -871,13 +877,13 @@ async function lgSeries() {
 const LG_PACE_BLOCKS = [
   // Kate, 23 Oct 2026: a net take line, as Daily Performance has. Its target is the services target (hair with
   // treatments and courses, plus beauty) and the retail target added together, the same two parts that page adds.
-  { title:'Salon net take (all services + retail)', key:['servicesTotal','retailTotal'], pick: d => d.netTake },
-  { title:'Salon total services (hair excl. treatments and courses + beauty)', key:LG_SERVICES_TARGET, pick: lgServicesTotal },
-  { title:'Salon total retail (hair + beauty)', key:'retailTotal', pick: d => d.retailTotal },
-  { title:'Hair treatment',       key:'hairTreatment',    pick: d => d.treatmentSales },
-  { title:'Hair revenue (incl. treatments and courses)', key:'hairRevenue', pick: d => d.hairServicesIncl },
-  { title:'Hair retail',          key:'hairRetail',       pick: d => d.hairRetailOnly },
-  { title:'Beauty services',      key:'beautyServices',   pick: d => d.beautyServicesTotal },
+  { xk:'totalRevenue', title:'Salon net take (all services + retail)', key:['servicesTotal','retailTotal'], pick: d => d.netTake },
+  { xk:'servicesTotal', title:'Salon total services (hair excl. treatments and courses + beauty)', key:LG_SERVICES_TARGET, pick: lgServicesTotal },
+  { xk:'retailTotal', title:'Salon total retail (hair + beauty)', key:'retailTotal', pick: d => d.retailTotal },
+  { xk:'hairTreatments', title:'Hair treatment',       key:'hairTreatment',    pick: d => d.treatmentSales },
+  { xk:'hairRevenue', title:'Hair revenue (incl. treatments and courses)', key:'hairRevenue', pick: d => d.hairServicesIncl },
+  { xk:'hairRetail', title:'Hair retail',          key:'hairRetail',       pick: d => d.hairRetailOnly },
+  { xk:'beautyServices', title:'Beauty services',      key:'beautyServices',   pick: d => d.beautyServicesTotal },
 ];
 
 // ── THE ROWS ─────────────────────────────────────────────────
@@ -984,15 +990,17 @@ function lgSheetSection(series, code, ctx) {
     // Benchmarks are ratios: they have a standing target at any window length,
     // and no variance against a monthly total. Same treatment as everywhere else
     // in these pages, so a percentage never reads as money left to find.
+    const dcodes = code ? [code] : ACTIVE_BRANCHES.slice(), dwho = code ? ((BRANCH_INFO[code] || {}).name || code) : 'All branches';
+    const dwrap = win => (html => lgDn(html, r.xk, dcodes, win, dwho));
     if (r.ratio) {
       const f = r.money ? lgAed : lgPct;
       const act = bucket.mtd ? r.pick(bucket.mtd) : null;
       const tgt = bm[r.bm];
       rows.push([r.label,
-        bucket.prev ? lgDash(r.pick(bucket.prev) != null ? f(r.pick(bucket.prev)) : null) : '—',
+        bucket.prev ? lgDash(r.pick(bucket.prev) != null ? dwrap(w.prev)(f(r.pick(bucket.prev))) : null) : '—',
         f(tgt)]
-        .concat(lgSplitCells(series, bucket, r.pick, f))
-        .concat([act != null ? f(act) : '—',
+        .concat(lgSplitCells(series, bucket, r.pick, f, (html, x) => dwrap(x)(html)))
+        .concat([act != null ? dwrap(w.month)(f(act)) : '—',
                  act == null ? '—' : (act >= tgt ? '<span class="lg-up">✓ on target</span>' : `<span class="lg-down">${(r.money ? f : lgPts)(tgt - act)}</span>`)]));
       return;
     }
@@ -1015,10 +1023,10 @@ function lgSheetSection(series, code, ctx) {
       : `<span class="lg-na">no ${escapeHtml(w.month.label)} sheet</span>`;
 
     const cells = [r.label + (r.ledger ? ' <span class="lg-tag">LEDGER</span>' : ''),
-      bucket.prev ? (r.pick(bucket.prev) == null ? '—' : fmt(r.pick(bucket.prev))) : '—',
+      bucket.prev ? (r.pick(bucket.prev) == null ? '—' : dwrap(w.prev)(fmt(r.pick(bucket.prev)))) : '—',
       target != null ? fmt(target) : noTarget]
-      .concat(lgSplitCells(series, bucket, s => r.pick(s), fmt))
-      .concat([mtdRaw == null ? '—' : fmt(mtd), p ? stillToMake(p, fmt) : '—']);
+      .concat(lgSplitCells(series, bucket, s => r.pick(s), fmt, (html, x) => dwrap(x)(html)))
+      .concat([mtdRaw == null ? '—' : dwrap(w.month)(fmt(mtd)), p ? stillToMake(p, fmt) : '—']);
     // `tot` is the total-revenue line, set in bold on its own rule so it reads as
     // the sum of the block rather than as another line in it.
     rows.push(r.tot ? { total: cells } : cells);
@@ -1867,9 +1875,10 @@ async function renderLedgerTargets() {
       const target = showTargets ? ledgerBranchTarget(b.key, [code]) : 0;
       tA += target; aA += actual;
       const p = ledgerPace(actual, target);
-      const split = lgSplitCells(series, bucket, s => b.pick(s) || 0, lgAed);
+      const pwho = info.name, pw = win => (html => lgDn(html, b.xk, [code], win, pwho));
+      const split = lgSplitCells(series, bucket, s => b.pick(s) || 0, lgAed, (html, x) => pw(x)(html));
       if (!showTargets) {
-        return [escapeHtml(info.name)].concat(split).concat([lgAed(actual)]);
+        return [escapeHtml(info.name)].concat(split).concat([pw(series.windows.month)(lgAed(actual))]);
       }
       // Motor City has no beauty team, so a beauty row for it is a real zero and
       // not a gap to chase. Say so instead of showing −AED 0 at 0%.
@@ -1878,19 +1887,20 @@ async function renderLedgerTargets() {
           .concat(['—', '<span class="lg-na">n/a</span>', '—'], frac ? ['—'] : [], ['—']);
       }
       return [escapeHtml(info.name), lgAed(p.target)].concat(split)
-        .concat([lgAed(p.actual), lgDeltaPace(p.variance, p.pctDone, frac, lgAed), lgDoneBar(p.pctDone)], paceCell(p), [lgAed(p.remaining)]);
+        .concat([pw(series.windows.month)(lgAed(p.actual)), lgDeltaPace(p.variance, p.pctDone, frac, lgAed), lgDoneBar(p.pctDone)], paceCell(p), [lgAed(p.remaining)]);
     });
     const g = ledgerPace(aA, tA);
+    const gwho = codes.length === 1 ? ((BRANCH_INFO[codes[0]] || {}).name || codes[0]) : 'Grand total';
     const gSplit = sp.key
-      ? sp.windows.map((x, i) => lgAed(codes.reduce((sum, code) => {
+      ? sp.windows.map((x, i) => lgDn(lgAed(codes.reduce((sum, code) => {
           const s = series[code] && series[code][sp.key] && series[code][sp.key][i];
           return sum + (s ? (b.pick(s) || 0) : 0);
-        }, 0)))
+        }, 0)), b.xk, codes, x, gwho))
       : [];
     rows.push({ total: ['Grand total']
       .concat(showTargets ? [lgAed(g.target)] : [])
       .concat(gSplit)
-      .concat([lgAed(g.actual)])
+      .concat([lgDn(lgAed(g.actual), b.xk, codes, series.windows.month, gwho)])
       .concat(showTargets
         ? [lgDeltaPace(g.variance, g.pctDone, frac, lgAed), lgDoneBar(g.pctDone)].concat(paceCell(g), [lgAed(g.remaining)])
         : []) });
@@ -1935,12 +1945,14 @@ async function renderLedgerTargets() {
     const retPct  = hairNet ? (d.hairRetailOnly || 0) / hairNet * 100 : null;
     const count   = v => (v == null ? '—' : lgNum(v));
     const rb = d.rebookPct != null ? d.rebookPct : d.hairRebookPct;
+    // Kate, 27 Oct 2026: each figure opens the staff behind it, for this branch and this ledger month.
+    const dd = (html, xk, v) => v == null ? html : lgDn(html, xk, [code], series.windows.month, info.name);
     return [escapeHtml(info.name),
-      scoreR(rb, pbm.rebookPct, lgPct(rb)), scoreR(txPct, pbm.treatmentPct, lgPct(txPct)), scoreR(retPct, pbm.retailPct, lgPct(retPct)),
-      d.hairAvgBill ? scoreR(d.hairAvgBill, pbm.hairAvgBill, lgAed(d.hairAvgBill)) : '—',
-      d.beautyAvgBill ? scoreR(d.beautyAvgBill, pbm.beautyAvgBill, lgAed(d.beautyAvgBill)) : '—',
-      count(d.totalClients) + ofT(code, 'totalClients'), count(d.newClientsTotal) + ofT(code, 'newClients'),
-      count(d.ncrTotal) + ofT(code, 'ncr'), count(d.totalRebooked) + ofT(code, 'rebooked')];
+      scoreR(rb, pbm.rebookPct, dd(lgPct(rb), 'rebookPct', rb)), scoreR(txPct, pbm.treatmentPct, dd(lgPct(txPct), 'treatmentPct', txPct)), scoreR(retPct, pbm.retailPct, dd(lgPct(retPct), 'retailPct', retPct)),
+      d.hairAvgBill ? scoreR(d.hairAvgBill, pbm.hairAvgBill, dd(lgAed(d.hairAvgBill), 'hairAvgBill', d.hairAvgBill)) : '—',
+      d.beautyAvgBill ? scoreR(d.beautyAvgBill, pbm.beautyAvgBill, dd(lgAed(d.beautyAvgBill), 'beautyAvgBill', d.beautyAvgBill)) : '—',
+      dd(count(d.totalClients), 'totalClients', d.totalClients) + ofT(code, 'totalClients'), dd(count(d.newClientsTotal), 'newClients', d.newClientsTotal) + ofT(code, 'newClients'),
+      dd(count(d.ncrTotal), 'ncr', d.ncrTotal) + ofT(code, 'ncr'), dd(count(d.totalRebooked), 'rebooked', d.totalRebooked) + ofT(code, 'rebooked')];
   });
   pivRows.unshift(['<span class="lg-na">Target</span>',
     lgPct(pbm.rebookPct), lgPct(pbm.treatmentPct), lgPct(pbm.retailPct),
@@ -2311,12 +2323,14 @@ async function renderLedgerFinancials() {
     { label: 'Total (Inc VAT)', align: 'r' },
     { label: 'vs ' + escapeHtml(w.prev.label), align: 'r' }];
 
-  const rowFor = (label, s, prev) => {
+  // Kate, 27 Oct 2026: Services, Courses, Products and Total (Ex VAT) open the staff behind them, for this branch (or all salons) and this month.
+  const rowFor = (label, s, prev, codes, who) => {
     const f = lgFinancials(s);
     if (!f) return [label, '—', '—', '—', '—', '—', '—', '—'];
     const p = lgFinancials(prev);
-    return [label, lgAed(f.services), lgAed(f.courses), lgAed(f.products),
-      lgAed(f.net), lgAed(f.vat), lgAed(f.gross),
+    const dd = (html, xk, v) => v ? lgDn(html, xk, codes, w.month, who) : html;
+    return [label, dd(lgAed(f.services), 'finServices', f.services), dd(lgAed(f.courses), 'courses', f.courses), dd(lgAed(f.products), 'retailTotal', f.products),
+      dd(lgAed(f.net), 'totalRevenue', f.net), lgAed(f.vat), lgAed(f.gross),
       p ? lgDelta(f.net - p.net, lgAed) : '—'];
   };
 
@@ -2324,10 +2338,10 @@ async function renderLedgerFinancials() {
     .map(code => {
       const b = series[code];
       const info = BRANCH_INFO[code] || { name: code };
-      return b && b.mtd ? rowFor(escapeHtml(info.name), b.mtd, b.prev) : null;
+      return b && b.mtd ? rowFor(escapeHtml(info.name), b.mtd, b.prev, [code], info.name) : null;
     })
     .filter(Boolean);
-  rows.push({ total: rowFor('All salons', series.group && series.group.mtd, series.group && series.group.prev) });
+  rows.push({ total: rowFor('All salons', series.group && series.group.mtd, series.group && series.group.prev, ACTIVE_BRANCHES.slice(), 'All salons') });
 
   const g = lgFinancials(series.group && series.group.mtd);
 
@@ -2368,12 +2382,12 @@ async function renderLedgerFinancials() {
             ? '<span class="lg-na">closed</span>'
             : `<span class="lg-down">${lgAed(v)}</span>`;
         }
-        return v == null ? '—' : lgAed(v);
+        return v == null ? '—' : lgDn(lgAed(v), 'totalRevenue', code ? [code] : ACTIVE_BRANCHES.slice(), x, code ? ((BRANCH_INFO[code] || {}).name || code) : 'All salons');
       });
     };
     const splitRow = (label, bucket, code) => [label]
       .concat(splitCells(bucket, code))
-      .concat([bucket && bucket.mtd ? lgAed(netOf(bucket.mtd)) : '—']);
+      .concat([bucket && bucket.mtd ? lgDn(lgAed(netOf(bucket.mtd)), 'totalRevenue', code ? [code] : ACTIVE_BRANCHES.slice(), w.month, code ? ((BRANCH_INFO[code] || {}).name || code) : 'All salons') : '—']);
     const splitRows = SHEET_ORDER
       .map(code => {
         const b = series[code];

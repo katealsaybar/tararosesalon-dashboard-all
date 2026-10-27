@@ -808,7 +808,7 @@ function dpLongTile(code, win, idxs, cidx, head) {
   const g = dpGrowth(mk, code, win, idxs);
   const gnote = !g ? '' : g.none ? `<div class="dp-sub" style="margin-top:6px">${dpEsc(g.none)}</div>` : `<div class="dp-sub">${dpEsc(g.label)}</div>`;
   const gchip = g && !g.none ? `<span class="dp-chip ${g.cls}" style="margin-left:6px">${g.ic} ${dpEsc(g.text)}</span>` : '';
-  return `<div class="dp-tile">${head}<div class="big">${M.fmt(t.v)}</div>
+  return `<div class="dp-tile">${head}<div class="big">${dpDn(M.fmt(t.v), mk, code, idxs)}</div>
     <div class="dp-sub"><b style="color:var(--text)">${M.def && typeof ihTip === 'function' ? ihTip(dpEsc(M.label), M.def) : dpEsc(M.label)}</b> · ${vol ? 'total' : 'average'}, ${dpRangeLbl(win.from)} to ${dpRangeLbl(win.to)}</div>
     <div class="dp-sub">${t.n} open day${t.n === 1 ? '' : 's'}${vol ? ' · ' + M.fmt(t.v / t.n) + ' a day on average' : ''}</div>
     <div>${tchip}${gchip}</div>${gnote}
@@ -889,6 +889,73 @@ function dpSplit(code, ids) {
   const mSv = mTot && mRet ? mTot.t - mRet.t : null;
   return `<div class="dp-split"><div class="dp-eyebrow">Made of${mTot ? ' · ' + mTot.label : ''}</div>${row('Services', tot.v - ret.v, svT, mSv)}${row('Retail', ret.v, ret.t, mRet ? mRet.t : null)}</div>`;
 }
+// ── THE LISTS BEHIND A FIGURE (Kate, 27 Oct 2026: "every line that has figures should be clickable") ──────────────────────────
+// A tile's figure, a heatmap square and a cell of its table open the same two lists for one branch and the days it covers:
+//   By day    the days themselves, as the figure was made of them (dpCell for each: the value, its target, its % of target), ending on the
+//             figure. For money and counts that is a sum of the days, for a rate it is their average, so it adds up by construction.
+//   By staff  the staff behind it, from the same loaded rows cut to the branch and the days, through the same aggDailyData and the same lists as
+//             the Pulse (pulse-drill.js). Only for the measures that are a sum of staff rows; a rate here is the average of its days, which is
+//             not one pooled ratio, so a staff list for it would not add up to the figure and is not offered.
+const DP_PD = { sales: ['net', {}], hair: ['field', { key: 'hairSvc' }], beauty: ['field', { key: 'beautySvc' }], retail: ['field', { key: 'retail' }],
+  hairretail: ['field', { key: 'hairRetail' }], beautyretail: ['field', { key: 'beautyRetail' }], treat: ['field', { key: 'treatments' }],
+  clients: ['clients', {}], hairclients: ['clients', { dept: 'hair' }], beautyclients: ['clients', { dept: 'beauty' }], newc: ['field', { key: 'newc' }],
+  ncr: ['bench', { name: 'NCR' }], rebookn: ['field', { key: 'rebooked' }] };
+const dpColType = M => /^AED/.test(M.fmt(1234)) ? 'aed' : /%$/.test(M.fmt(50)) ? 'pct' : 'num';
+const dpDaysOf = i => i >= DP_BK ? DPD.bk[i - DP_BK].members : [i];
+function dpSpecFor(mk, code, idxs) {
+  const M = DP_M[mk], ds = idxs.slice().sort((a, b) => a - b), t = dpColType(M), vol = M.kind === 'vol';
+  const first = DPD.days[ds[0]], last = DPD.days[ds[ds.length - 1]];
+  const range = ds.length === 1 ? dpDayLabel(first) : `${dpDayLabel(first)} to ${dpDayLabel(last)}`;
+  const label = `${dpName(code)}, ${range}`;
+  const views = [{ id: 'days', label: 'By day', load: async () => {
+    const rows = ds.map(i => {
+      const c = dpCell(mk, code, i), ok = c.state === 'ok';
+      return { w: dpDayLabel(DPD.days[i]), v: ok ? c.v : null, t: ok && c.t != null ? c.t : null, p: ok && c.p != null ? c.p : null, why: ok ? '' : dpWhy(c.state), _cls: ok ? '' : 'dr-muted' };
+    });
+    const pf = dpPeriodFig(mk, code, ds);
+    return { cols: [{ k: 'w', l: 'Day' }, { k: 'v', l: M.label, t }, { k: 't', l: vol ? 'Day target' : 'Target', t }, { k: 'p', l: '% of target', t: 'pct' }, { k: 'why', l: '' }], rows,
+      foot: pf ? { w: vol ? 'Total' : 'Average of the open days', v: pf.v, t: pf.t, p: pf.p, why: '' } : null,
+      sub: `${TRSD.esc(label)}. ${TRSD.esc(M.label)}, day by day. ${vol ? 'The figure is the total of the open days' : 'The figure is the average of the open days'}; a day the branch was shut, or with no figures, is greyed and left out.`,
+      note: M.util ? 'Utilisation is read against a band, not a floor: 85 to 100 is on target, under 60 or over 100 is red.' : '' };
+  } }];
+  const pd = DP_PD[mk];
+  if (pd && typeof PD !== 'undefined') views.push({ id: 'staff', label: 'By staff', load: async () => {
+    // Only the days that count towards the figure (open, with figures): a day the branch was shut is left out of it, so it is left out here. The
+    // figure it must add up to is the total of those days' own summaries, which is what the tile adds; the one thing that can still differ is how
+    // the retail nobody was credited with is shared between hair and beauty (day by day there, across the window here), and that shows as a grey line.
+    const a = dpYmd(first), b = dpYmd(last), okIdx = ds.filter(i => dpCell(mk, code, i).state === 'ok'), okDates = new Set(okIdx.map(i => dpYmd(DPD.days[i])));
+    const inWin = r => r.branch === code && okDates.has(String(r.date).slice(0, 10));
+    const L = (DPD.rowsB || []).filter(inWin), P = (DPD.rowsP || []).filter(inWin), d = okIdx.length ? aggDailyData([], L, P) : null;
+    if (!d) return { cols: [], rows: [], empty: 'No staff rows for this selection.' };
+    const s2 = Object.assign({}, d.summary);
+    ['netTake', 'hairServicesIncl', 'hairServicesExcl', 'beautyServicesTotal', 'retailTotal', 'hairRetailOnly', 'beautyRetailOnly', 'treatmentSales', 'hairCourses', 'beautyCourses',
+      'hairTreatmentUnits', 'hairRetailUnits', 'beautyRetailUnits', 'totalClients', 'hairTotalClients', 'beautyTotalClients', 'newClientsTotal', 'ncrTotal', 'hairNCR', 'beautyNCR',
+      'totalRebooked', 'requestClientTotal', 'salonClientTotal'].forEach(f => { s2[f] = okIdx.reduce((x, i) => { const y = DPD.byCode[code].sum[i]; return x + (y ? (Number(y[f]) || 0) : 0); }, 0); });
+    const ctx = PD.snapSide(s2, { rows: { ledger: L, phorest: P }, from: a, to: b, days: ds.length, label, codes: [code], cur: 'AED' });
+    const sp = PD.spec(pd[0], ctx, pd[1]);
+    if (!sp) return { cols: [], rows: [], empty: 'No staff rows for this selection.' };
+    return sp.views[0].load();
+  } });
+  return { title: `${M.label} · ${dpName(code)}`, cur: 'AED', views };
+}
+// The figure as a clickable span, or as it was when the page has nothing behind it (no days, or drill.js not here).
+const dpDn = (html, mk, code, idxs) => (typeof TRSD !== 'undefined' && idxs && idxs.length) ? TRSD.num(html, dpSpecFor(mk, code, idxs)) : html;
+// A heatmap square or table cell carries data-dpk ("measure|branch|index"); one handler opens it, so a long window's hundreds of squares register nothing.
+document.addEventListener('click', e => {
+  const n = e.target.closest && e.target.closest('[data-dpk]');
+  if (!n || typeof TRSD === 'undefined' || !DPD) return;
+  const [mk, code, i] = n.dataset.dpk.split('|');
+  e.stopPropagation(); e.preventDefault();
+  TRSD.open(dpSpecFor(mk, code, dpDaysOf(+i)), n);
+}, true);
+document.addEventListener('keydown', e => {
+  const n = e.target.closest && e.target.closest('[data-dpk]');
+  if (!n || (e.key !== 'Enter' && e.key !== ' ') || typeof TRSD === 'undefined' || !DPD) return;
+  e.preventDefault();
+  const [mk, code, i] = n.dataset.dpk.split('|');
+  TRSD.open(dpSpecFor(mk, code, dpDaysOf(+i)), n);
+});
+
 function dpTiles(win, idxs, cidx) {
   const mk = DP.measure, M = DP_M[mk];
   const pickI = idxs.length > 1 && dpUnit === 'day' && dpPick != null && dpPick >= 0 && dpPick < idxs.length ? dpPick : null;
@@ -924,7 +991,7 @@ function dpTiles(win, idxs, cidx) {
         : c
         ? `<div class="dp-sub dp-per"><b>${dayWord} · ${dayName}</b>: ${M.fmt(c.v)}${c.p != null && !M.util ? ' · ' + Math.round(c.p) + '% of target' : ''}${c.t && M.kind !== 'ratio' ? ' (daily target ' + M.fmt(c.t) + ')' : ''}</div>`
         : `<div class="dp-sub dp-per"><b>${dayWord} · ${dayName}</b>: ${why}</div>`;
-      return `<div class="dp-tile">${head}<div class="dp-eyebrow">${dpEsc(dpPeriodName(idxs))}</div><div class="big">${M.fmt(pf.v)}</div>
+      return `<div class="dp-tile">${head}<div class="dp-eyebrow">${dpEsc(dpPeriodName(idxs))}</div><div class="big">${dpDn(M.fmt(pf.v), mk, code, idxs)}</div>
       <div class="dp-sub">${label} · ${pf.n} open day${pf.n === 1 ? '' : 's'}${M.kind === 'vol' ? ' · ' + M.fmt(pf.v / pf.n) + ' a day on average' : ' · average'}</div>
       <span class="dp-chip ${pcls}">${pic} ${pchip}</span>
       ${meter}
@@ -946,7 +1013,7 @@ function dpTiles(win, idxs, cidx) {
     const ratio = M.kind === 'ratio' && !M.notarget && c.t != null;
     const chip = M.util ? txt : ratio ? (Math.abs(c.v - c.t) < 1e-9 ? 'On target' : `${dpDiff(M, c)} ${c.v >= c.t ? 'above' : 'below'} target${cls === 'warn' && c.t > (M.milestone || Infinity) ? ' · past the ' + M.fmt(M.milestone) + ' first goal' : ''}`)
       : `${c.p != null ? Math.round(c.p) + '% · ' : ''}${txt}`;
-    return `<div class="dp-tile">${head}${eyebrow}<div class="big">${M.fmt(c.v)}</div>
+    return `<div class="dp-tile">${head}${eyebrow}<div class="big">${dpDn(M.fmt(c.v), mk, code, [li])}</div>
       <div class="dp-sub">${label} · ${shut ? (dpCell(mk, code, lastIdx).state === 'closed' ? 'Closed ' + dpDayLabel(DPD.days[lastIdx]) + ' · last open ' : 'Latest figures ') : ''}${dayName}${c.t ? (M.kind === 'ratio' ? ' · target ' : ' · daily target ') + M.fmt(c.t) : ''}</div>
       <span class="dp-chip ${cls}">${ic} ${chip}</span>
       ${meter}
@@ -1180,7 +1247,7 @@ function dpHeat(host, idxs) {
         else if (c.p != null) { const b = M.util ? dpUtilBin(c.v) : dpBin(c.p, dpLoP(mk, c.t)); fill = dpBinBg(b); ink = dpBinInk(b); label = M.kind === 'ratio' ? dpPlain(M, c.v) : String(Math.round(c.p)); }
         else { ink = 'var(--text)'; label = bare(c.v); }
       }
-      g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="6" style="fill:${fill}" data-tip="${dpEsc(tip)}"/>`;
+      g += `<rect x="${x + 1}" y="${yy + 1}" width="${cw - 2}" height="${ch - 2}" rx="6" style="fill:${fill}" data-tip="${dpEsc(tip)}"${c.state === 'ok' ? ` data-dpk="${mk}|${code}|${i}" class="dn-cell" tabindex="0" role="button"` : ''}/>`;
       if (nums && label) g += `<text x="${x + cw / 2}" y="${yy + ch / 2 + 4}" text-anchor="middle" style="fill:${ink};font-size:11.5px;font-weight:600;pointer-events:none">${label}</text>`;
       if (c.state === 'closed' || c.state === 'na') g += `<path d="M${x + 5} ${yy + ch - 6} L${x + cw - 5} ${yy + 6}" stroke="var(--muted2)" stroke-width="1" pointer-events="none"/>`;
     });
@@ -1192,7 +1259,7 @@ function dpHeat(host, idxs) {
     g += `<text class="tv" x="${cx}" y="${yb}" text-anchor="middle">${h1}</text><text x="${cx}" y="${yb + 14}" text-anchor="middle" style="font-size:10.5px">${h2}</text>`;
   });
   const cellTxt = c => (c.state !== 'ok' ? dpWhy(c.state) : (raw ? M.fmt(c.v) : (c.p != null ? Math.round(c.p) + '%' : '\u2014')));
-  const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>${dpUnit === 'day' ? 'Day' : dpUnit === 'week' ? 'Week' : 'Month'}</th>${codes.map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(dpDate(i))}</td>${codes.map(code => `<td>${cellTxt(dpCell(mk, code, i))}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  const table = `<div class="dp-scroll"><table class="dp-tbl"><tr><th>${dpUnit === 'day' ? 'Day' : dpUnit === 'week' ? 'Week' : 'Month'}</th>${codes.map(c => `<th>${c}</th>`).join('')}</tr>${idxs.map(i => `<tr><td>${dpDayLabel(dpDate(i))}</td>${codes.map(code => { const c = dpCell(mk, code, i); return c.state === 'ok' ? `<td><span class="dn" role="button" tabindex="0" data-dpk="${mk}|${code}|${i}" title="See who">${cellTxt(c)}</span></td>` : `<td>${cellTxt(c)}</td>`; }).join('')}</tr>`).join('')}</table></div>`;
   return `<div class="dp-hm"><div class="dp-hml" style="width:${LBL}px">${codes.map(c => `<div style="height:${ch}px">${c}</div>`).join('')}</div><div class="dp-scroll"><svg class="dp-svg" style="min-width:${SW}px" viewBox="0 0 ${SW} ${H}" role="img" aria-label="Branch by day">${g}</svg></div></div><div class="dp-key">${dpBinKey(raw, mk, dpRepT(mk, codes, idxs))}</div><details><summary>View as table</summary>${table}</details>`;
 }
 

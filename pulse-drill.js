@@ -64,7 +64,7 @@ const PD = (() => {
     });
     return out;
   }
-  const DIFF_NOTE = 'The last grey line is the difference between the card, which works the whole window out in one go, and the rows above, which work it out one branch at a time. It brings the list to the card\'s figure.';
+  const DIFF_NOTE = 'The last grey line is the gap between the figure and the rows above. The two are worked out in a slightly different order (for example the retail nobody was credited with is shared between hair and beauty over the whole window in one, and branch by branch or day by day in the other). It brings the list to the figure.';
   function diffRow(label, have, want, extra) {
     if (!(Math.abs(have - want) >= 0.5)) return null;
     return Object.assign({ b: '', n: label, _cls: 'dr-muted' }, extra);
@@ -447,6 +447,121 @@ const PD = (() => {
       door: { codes: [code], count: bs.doorClients } });
   }
 
+
+  // ── One money or count column per staff (Comparison rows, and the same lists wherever a page prints that figure) ──
+  const FIELDS = {
+    hairSvc:      { title: 'Hair revenue', dept: 'hair', get: r => r.st.hairSalesNet, want: c => c.s.hairServicesIncl, t: 'aed', l: 'Services incl. treatments and courses', why: 'Hair services, treatments and courses, from Phorest matched to the ledger by staff and day.' },
+    treatments:   { title: 'Hair treatments', dept: 'hair', get: r => r.st.treatments, want: c => c.s.treatmentSales, t: 'aed', l: 'Treatments', why: 'Treatment takings, a ledger column (hair only).' },
+    beautySvc:    { title: 'Beauty services', dept: 'beauty', get: r => r.st.beautySales, want: c => c.s.beautyServicesTotal, t: 'aed', l: 'Services', why: 'Beauty services, treatments and courses, from Phorest matched to the ledger by staff and day.' },
+    retail:       { title: 'Retail', dept: null, get: r => r.st.retail, want: c => c.s.retailTotal, t: 'aed', l: 'Retail', house: null, why: 'Retail each stylist was credited with, plus the retail rung with no stylist.' },
+    hairRetail:   { title: 'Hair retail', dept: 'hair', get: r => r.st.retail, want: c => c.s.hairRetailOnly, t: 'aed', l: 'Retail', house: 'hair', why: 'Retail credited to hair stylists, plus hair\'s share of the retail rung with no stylist.' },
+    beautyRetail: { title: 'Beauty retail', dept: 'beauty', get: r => r.st.retail, want: c => c.s.beautyRetailOnly, t: 'aed', l: 'Retail', house: 'beauty', why: 'Retail credited to beauty staff, plus beauty\'s share of the retail rung with no stylist.' },
+    courses:      { title: 'Courses', dept: null, get: r => r.st.courses, want: c => (c.s.hairCourses || 0) + (c.s.beautyCourses || 0), t: 'aed', l: 'Courses performed', why: 'Courses performed (redeemed sessions), from Phorest.' },
+    treatUnits:   { title: 'Treatment units', dept: 'hair', get: r => r.st.treatmentUnits, want: c => c.s.hairTreatmentUnits, t: 'num', l: 'Treatments', why: 'Treatments sold, a ledger column (hair only).' },
+    retailUnits:  { title: 'Retail units', dept: null, get: r => r.st.retailUnits, want: c => (c.s.hairRetailUnits || 0) + (c.s.beautyRetailUnits || 0), t: 'num', l: 'Retail items', why: 'Retail items sold, a ledger column.' },
+    salon:        { title: 'Salon clients', dept: null, get: r => r.st.salon, want: c => c.s.salonClientTotal, t: 'num', l: 'Salon clients', why: 'Returning clients with no preference, so the salon booked them. Per staff, from the ledgers: no client names.' },
+    newc:         { title: 'New clients', dept: null, get: r => r.st.newC, want: c => c.s.newClientsTotal, t: 'num', l: 'New clients', why: 'First-visit clients, per staff, from the ledgers: no client names.' },
+    rebooked:     { title: 'Rebooked', dept: null, get: r => r.st.rebooked, want: c => c.s.totalRebooked, t: 'num', l: 'Rebooked', why: 'Clients who booked their next visit before leaving, per staff, from the ledgers: no client names.' },
+    finServices:  { title: 'Services', dept: null, get: r => (r.dp === 'Hair' ? (r.st.hairSalesNet || 0) : (r.st.beautySales || 0)) - (r.st.courses || 0), want: c => (c.s.hairServicesIncl || 0) + (c.s.beautyServicesTotal || 0) - ((c.s.hairCourses || 0) + (c.s.beautyCourses || 0)), t: 'aed', l: 'Services', why: 'Services with courses taken out, hair and beauty, as the Sales block of Financial Totals reads them.' },
+    servicesTotal: { title: 'Services total', dept: null, get: r => r.dp === 'Hair' ? (r.st.hairSalesNet || 0) - (r.st.treatments || 0) - (r.st.courses || 0) : (r.st.beautySales || 0), want: c => (c.s.hairServicesExcl == null) ? null : c.s.hairServicesExcl + (c.s.beautyServicesTotal || 0), t: 'aed', l: 'Services', why: 'Hair services with treatments and courses taken out, plus beauty services, no retail.' },
+    hairSvcEx:    { title: 'Hair services (excl. treatments and courses)', dept: 'hair', get: r => (r.st.hairSalesNet || 0) - (r.st.treatments || 0) - (r.st.courses || 0), want: c => c.s.hairServicesExcl, t: 'aed', l: 'Services', why: 'Hair services with treatments and courses taken out.' },
+    hairCourses:  { title: 'Hair courses (performed)', dept: 'hair', get: r => r.st.courses, want: c => c.s.hairCourses, t: 'aed', l: 'Courses performed', why: 'Courses performed (redeemed sessions) by hair staff, from Phorest.' },
+    hairRetailUnitsH:   { title: 'Hair retail items sold', dept: 'hair', get: r => r.st.retailUnits, want: c => c.s.hairRetailUnits, t: 'num', l: 'Retail items', why: 'Retail items sold by hair staff, a ledger column.' },
+    beautyRetailUnitsB: { title: 'Beauty retail items sold', dept: 'beauty', get: r => r.st.retailUnits, want: c => c.s.beautyRetailUnits, t: 'num', l: 'Retail items', why: 'Retail items sold by beauty staff, a ledger column.' },
+    beautyRebooked:     { title: 'Beauty rebooked', dept: 'beauty', get: r => r.st.rebooked, want: c => c.s.beautyRebookedCount, t: 'num', l: 'Rebooked', why: 'Beauty clients who booked their next visit before leaving, per staff, from the ledgers: no client names.' },
+    request:      { title: 'Request clients', dept: null, get: r => r.st.req, want: c => c.s.requestClientTotal, t: 'num', l: 'Request clients', why: 'Returning clients who asked for their stylist by name, per staff, from the ledgers: no client names.' },
+  };
+  function fieldList(ctx, key) {
+    const F = FIELDS[key], dept = F.dept;
+    const rows = staffRows(ctx, dept).map(r => ({ b: r.b, n: r.n, dp: r.dp, v: +F.get(r) || 0 })).filter(r => r.v).sort((a, b) => b.v - a.v);
+    if (F.house !== undefined) houseRetail(ctx, F.house).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, v: h.net, _cls: 'dr-muted' }));
+    const want = F.want(ctx), sum = rows.reduce((a, r) => a + r.v, 0);
+    const d = (want != null && Math.abs(sum - want) >= 0.5) ? { b: '', n: 'Not matched to a branch row', dp: '', v: want - sum, _cls: 'dr-muted' } : null;
+    if (d) rows.push(d);
+    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, ...deptCols(dept), { k: 'v', l: F.l, t: F.t }], rows, foot: { b: 'Total', n: '', dp: '', v: want != null ? want : sum },
+      sub: `${esc(ctx.label)}. ${F.why}`, note: d ? DIFF_NOTE : '' };
+  }
+  // Phorest's own counts for one column, both sides together (Comparison's "New clients, Phorest" and "Requests (RQ)")
+  function phAll(ctx, row) {
+    const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {}, ledgerDept = {};
+    ((ctx.rows && ctx.rows.ledger) || []).forEach(r => { const dp = String(r.dept || '').trim().toLowerCase(); if (dp) ledgerDept[staffMapKey(r.staff_name)] = dp === 'beauty' ? 'beauty' : 'hair'; });
+    const g = new Map(), pick = row === 'req' ? 'rqs' : 'new_clients';
+    ((ctx.rows && ctx.rows.phorest) || []).forEach(r => {
+      if (r.is_total) return;
+      const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who) return;
+      const k = r.branch + '|' + who.side + '|' + who.key;
+      const x = g.get(k) || { b: bname(r.branch), n: nm(who.key), dp: who.side === 'hair' ? 'Hair' : 'Beauty', v: 0, t: 0 };
+      x.v += Number(r[pick]) || 0; x.t += Number(r.visits) || 0; g.set(k, x);
+    });
+    const rows = [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v);
+    const want = ctx.s.ph ? ctx.s.ph.hair[row] + ctx.s.ph.beauty[row] : null, sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
+    const d = (want != null && Math.abs(sum - want) >= 0.5) ? { b: '', n: 'Not matched to a branch row', dp: '', v: want - sum, t: null, _cls: 'dr-muted' } : null;
+    if (d) rows.push(d);
+    const lbl = row === 'req' ? 'Requests (RQ)' : 'New clients';
+    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, { k: 'dp', l: 'Department' }, { k: 'v', l: lbl, t: 'num' }, { k: 't', l: 'Her Phorest visits', t: 'num' }], rows, foot: { b: 'Total', n: '', dp: '', v: want != null ? want : sum, t: tot },
+      sub: `${esc(ctx.label)}. ${lbl} from Phorest's own staff reports, per staff member. Phorest counts these differently from the ledger, so they will not match it. Phorest keeps counts here, not client names.`, note: d ? DIFF_NOTE : '' };
+  }
+
+  // A page that has its own summary and rows (Comparison's two sides, the Daily Performance branch tiles): the same context the Pulse uses.
+  function snapSide(s, o) {
+    const hairNet = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0), beautyNet = (s.beautyServicesTotal || 0) + (s.beautyRetailOnly || 0);
+    const ctx = { s, card: { net: s.netTake, hairNet, beautyNet, hairSvc: s.hairServicesIncl, beautySvc: s.beautyServicesTotal }, label: o.label, range: o.range || '', cur: o.cur || CUR(),
+      rows: o.rows || null, weekly: null, from: o.from, to: o.to, days: o.days || 0, door: { codes: o.codes, count: s.doorClients } };
+    if (s.opx && s.opx.raw) { ctx.extra = s.opx.raw.data; ctx.extraCodes = s.opx.raw.codes; }
+    return ctx;
+  }
+  // The Ledgers pages (Daily Target Sheet, Actuals vs Targets): a figure for one branch (or the branches picked) over one window of the ledger month.
+  // The rows of that window are read the way lgSeries read them, and the list is the staff behind it, through the same lists as everywhere else.
+  const LEDGER = {
+    totalRevenue: ['net', {}], finServices: ['field', { key: 'finServices' }], courses: ['field', { key: 'courses' }], servicesTotal: ['field', { key: 'servicesTotal' }], retailTotal: ['field', { key: 'retail' }], hairRevenue: ['field', { key: 'hairSvc' }],
+    hairServicesExcl: ['field', { key: 'hairSvcEx' }], hairTreatments: ['field', { key: 'treatments' }], hairTreatmentUnits: ['field', { key: 'treatUnits' }],
+    hairCourses: ['field', { key: 'hairCourses' }], hairRetail: ['field', { key: 'hairRetail' }], hairRetailUnits: ['field', { key: 'hairRetailUnitsH' }],
+    beautyServices: ['field', { key: 'beautySvc' }], beautyRetail: ['field', { key: 'beautyRetail' }], beautyRetailUnits: ['field', { key: 'beautyRetailUnitsB' }],
+    beautyRebooked: ['field', { key: 'beautyRebooked' }], rebooked: ['field', { key: 'rebooked' }], totalClients: ['clients', {}], newClients: ['field', { key: 'newc' }], ncr: ['bench', { name: 'NCR' }],
+    rebookPct: ['bench', { name: 'Rebooking %' }], treatmentPct: ['bench', { name: 'Treatment %', dept: 'hair' }], retailPct: ['bench', { name: 'Retail %', dept: 'hair' }],
+    hairAvgBill: ['avg', { dept: 'hair' }], beautyAvgBill: ['avg', { dept: 'beauty' }],
+  };
+  const isoDate = v => new Date(+v.slice(0, 4), +v.slice(5, 7) - 1, +v.slice(8, 10));
+  function ledgerSpec(xk, codes, from, to, label) {
+    const m = LEDGER[xk];
+    if (!m || !from || !to) return null;
+    return { title: `${(m[0] === 'field' ? FIELDS[m[1].key].title : m[0] === 'net' ? 'Total revenue' : m[0] === 'bench' ? m[1].name : m[0] === 'clients' ? 'Total clients' : 'Avg bill' + deptTitle(m[1].dept))} · ${label}`, cur: 'AED',
+      views: [{ id: 'staff', label: 'By staff', load: async () => {
+        const f = isoDate(from), t = isoDate(to);
+        const [B, P] = await Promise.all([loadBranchStaffDailyRange(f, t), loadPhorestStaffDailyRange(f, t)]);
+        const L = B.filter(r => codes.includes(r.branch)), Ph = P.filter(r => codes.includes(r.branch)), d = aggDailyData([], L, Ph);
+        if (!d) return { cols: [], rows: [], empty: 'No staff rows for this window.' };
+        const ctx = snapSide(d.summary, { rows: { ledger: L, phorest: Ph }, from, to, days: Math.round((t - f) / 864e5) + 1, label, codes, cur: 'AED' });
+        const sp = spec(m[0], ctx, m[1]);
+        if (!sp) return { cols: [], rows: [], empty: 'No staff rows for this window.' };
+        return sp.views[0].load();
+      } }] };
+  }
+
+  // What each Comparison row opens. door: whether the page is on the through-the-door basis.
+  const METRIC = {
+    'Net take': ['net'], 'Hair revenue': ['field', 'hairSvc'], 'Hair treatments': ['field', 'treatments'], 'Beauty services': ['field', 'beautySvc'], 'Retail': ['field', 'retail'],
+    'Hair retail': ['field', 'hairRetail'], 'Beauty retail': ['field', 'beautyRetail'], 'Courses': ['field', 'courses'], 'Treatment units': ['field', 'treatUnits'], 'Retail units': ['field', 'retailUnits'],
+    'Handled by staff': ['clients'], 'Hair clients': ['clients', 'hair'], 'Beauty clients': ['clients', 'beauty'], 'Request clients': ['field', 'request'], 'Salon clients': ['field', 'salon'],
+    'New clients': ['field', 'newc'], 'Rebooked': ['field', 'rebooked'], 'New clients, Phorest': ['phall', 'nw'], 'Requests (RQ)': ['phall', 'req'],
+    'Avg bill, per staff count': ['avg'], 'Hair avg bill': ['avg', 'hair'], 'Beauty avg bill': ['avg', 'beauty'],
+    'NCR': ['bench', 'NCR'], 'Rebooking %': ['bench', 'Rebooking %'], 'Request rate': ['ask'], 'Treatment %': ['bench', 'Treatment %', 'hair'], 'Retail %': ['bench', 'Retail %'],
+    'Hair utilisation %': ['bench', 'Utilisation %', 'hair'], 'Beauty utilisation %': ['bench', 'Utilisation %', 'beauty'],
+    'Colour %': ['more', 'Colour', 'hair'], 'Reputation': ['more', 'Reputation'], 'Google reviews': ['more', 'Google reviews'], 'Social posts': ['more', 'Social posts'], 'Social workdays': ['more', 'Social workdays'],
+  };
+  function metric(name, ctx, o) {
+    o = o || {};
+    if (name === 'Clients') return o.door ? spec('door', ctx, {}) : spec('clients', ctx, {});
+    if (name === 'Avg bill') return o.door ? spec('door', ctx, { perVisit: true }) : spec('avg', ctx, {});
+    const m = METRIC[name]; if (!m) return null;
+    const kind = m[0];
+    if (kind === 'field') return spec('field', ctx, { key: m[1] });
+    if (kind === 'phall') return spec('phall', ctx, { row: m[1] });
+    if (kind === 'bench') return spec('bench', ctx, { name: m[1], dept: m[2] || null });
+    if (kind === 'more') return spec('more', ctx, { name: m[1], dept: m[2] || null });
+    return spec(kind, ctx, { dept: m[1] || null });
+  }
+
   // What the page asks for. null = this window has nothing behind the figure, so it stays plain.
   function spec(kind, ctx, o) {
     o = o || {};
@@ -484,6 +599,14 @@ const PD = (() => {
       if (!o.led && !['t', 'req', 'nw', 'reb'].includes(o.row)) return null;
       return { title: `${FN_NAME[o.row]} · ${o.side === 'hair' ? 'Hair' : 'Beauty'}, ${o.led ? 'ledger' : 'Phorest'}`, cur, views: [{ id: 'fn', label: 'By staff', load: async () => { const r = fnList(ctx, o); if (!r) throw new Error('No list'); return r; } }] };
     }
+    if (kind === 'field') {
+      if (!staffOK || !FIELDS[o.key]) return null;
+      return { title: FIELDS[o.key].title, cur, views: [{ id: 'field', label: 'By staff', load: async () => fieldList(ctx, o.key) }] };
+    }
+    if (kind === 'phall') {
+      if (!staffOK) return null;
+      return { title: o.row === 'req' ? 'Requests (RQ), Phorest' : 'New clients, Phorest', cur, views: [{ id: 'ph', label: 'By staff', load: async () => phAll(ctx, o.row) }] };
+    }
     const byStaff = { net: netStaff, clients: clientsStaff, avg: avgStaff, req: reqStaff }[kind];
     const title = { net: t('Net take'), clients: t('Clients by staff'), avg: t(dept ? 'Avg bill per staff' : 'Avg bill, per staff'), req: t('Requested by name') }[kind];
     if (!byStaff) return null;
@@ -496,5 +619,5 @@ const PD = (() => {
     return null;
   }
 
-  return { snap, spec, branchCtx };
+  return { snap, spec, branchCtx, snapSide, metric, ledgerSpec };
 })();

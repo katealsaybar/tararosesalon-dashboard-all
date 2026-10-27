@@ -39,10 +39,13 @@
   function num(html, sp) {
     if (!sp) return html;
     const id = 'd' + (++seq);
-    if (REG.size > 600) REG.clear();
+    if (REG.size > 8000) REG.clear();
     REG.set(id, sp);
     return `<span class="dn" role="button" tabindex="0" data-dn="${id}" title="See who">${html}</span>`;
   }
+
+  // For an element that is not a span (an SVG square): just the id, to put on it as data-dn with class dn-cell.
+  function reg(sp) { const id = 'd' + (++seq); if (REG.size > 8000) REG.clear(); REG.set(id, sp); return id; }
 
   function close() {
     if (box) box.remove();
@@ -133,7 +136,7 @@
   }
 
   document.addEventListener('click', e => {
-    const n = e.target.closest && e.target.closest('.dn');
+    const n = e.target.closest && e.target.closest('[data-dn]');
     if (!n) return;
     e.stopPropagation(); e.preventDefault();
     const sp = REG.get(n.dataset.dn);
@@ -141,9 +144,9 @@
   }, true);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && box) { close(); return; }
-    const n = e.target.closest && e.target.closest('.dn');
+    const n = e.target.closest && e.target.closest('[data-dn]');
     if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const sp = REG.get(n.dataset.dn); if (sp) open(sp, n); }
   });
 
-  window.TRSD = { num, open, close, esc, fmt: { n0, day } };
+  window.TRSD = { num, reg, open, close, esc, fmt: { n0, day } };
 })();

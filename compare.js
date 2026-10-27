@@ -206,6 +206,7 @@ async function cmpExtra(from, to, codes) {
     const n90 = rev.reduce((a, r) => a + (r.n90 || 0), 0), st90 = rev.reduce((a, r) => a + (r.stars90 || 0), 0);
     const hv = sum('Hair', 'visits');
     return {
+      raw: { data, codes: want },   // for the lists behind these rows (pulse-drill.js)
       colour: hv > 0 ? sum('Hair', 'colour') / hv * 100 : null,
       reviews: rev.reduce((a, r) => a + (r.n_window || 0), 0),
       posts: sum(null, 'social_feed'), workdays: sum(null, 'social_workdays'),
@@ -237,7 +238,9 @@ async function cmpSummary(side) {
   // failed fetch leaves the rows blank rather than the page broken.
   try {
     const rows = await loadUtilisationForFilter(from, to, codes || ACTIVE_BRANCHES);
-    const u = aggregateUtilisation(rows, await loadUtilDeptMap(branchStaffRows, to));
+    const utilPer = new Map();
+    const u = aggregateUtilisation(rows, await loadUtilDeptMap(branchStaffRows, to), utilPer);
+    s._utilPer = utilPer;   // each person's hours, for the list behind the utilisation rows
     s.hairUtilPct   = u.hairAvail   ? u.hairHours   / u.hairAvail   * 100 : null;
     s.beautyUtilPct = u.beautyAvail ? u.beautyHours / u.beautyAvail * 100 : null;
     const h = u.hairHours + u.beautyHours, a = u.hairAvail + u.beautyAvail;
@@ -547,6 +550,17 @@ function cmpResultsHtml(sa, sb2) {
   const per = cmpState.per && daysA !== daysB;
   const scale = (kind, v, days) => (v == null) ? null : (per && (kind === 'aed' || kind === 'n') ? v / days : v);
 
+  // Kate, 27 Oct 2026: each figure opens the rows behind it (drill.js, pulse-drill.js). The context is built once per side from the rows the
+  // side was worked out from. Under Per day a total or a count is divided by the days, so it is not the sum of any list: those stay plain.
+  const pdSide = (s, side) => s ? (s._pd || (s._pd = (typeof PD !== 'undefined' && typeof TRSD !== 'undefined') ? PD.snapSide(s, {
+    rows: s._rows ? { ledger: s._rows.branchStaffRows, phorest: s._rows.phorestStaffRows } : null,
+    from: cmpIso(side.from), to: cmpIso(side.to), days: daysBetween(side.from, side.to), label: cmpSideLabel(side), range: cmpRangeText(side.from, side.to),
+    codes: cmpCodes(side.branch) || scopeCodes(), cur: 'AED' }) : null)) : null;
+  const dnc = (html, m, s, side, v) => {
+    if (v == null || !s || (per && (m.kind === 'aed' || m.kind === 'n'))) return html;
+    const c = pdSide(s, side);
+    return c ? TRSD.num(html, PD.metric(m.name, c, { door: CMP_DOOR })) : html;
+  };
   const rows = [];
   const movers = [];
   cmpMetrics().forEach(m => {
@@ -587,8 +601,8 @@ function cmpResultsHtml(sa, sb2) {
     }
     rows.push(`<tr class="${m.lead ? 'lg-tot' : ''}${m.muted ? ' cmp-muted' : ''}">
       <td>${escapeHtml(m.name)}${m.sub ? ` <small class="cmp-sub">${escapeHtml(m.sub)}</small>` : ''}</td>
-      <td class="r${hit(va, tA)}">${cmpFmt(m.kind, va, per)}${tgtNote(tA, va)}</td>
-      <td class="r${hit(vb, tB)}">${cmpFmt(m.kind, vb, per)}${tgtNote(tB, vb)}</td>
+      <td class="r${hit(va, tA)}">${dnc(cmpFmt(m.kind, va, per), m, sa, A, va)}${tgtNote(tA, va)}</td>
+      <td class="r${hit(vb, tB)}">${dnc(cmpFmt(m.kind, vb, per), m, sb2, B, vb)}${tgtNote(tB, vb)}</td>
       <td class="r cmp-d ${cls}">${dAbs}</td>
       <td class="r cmp-d ${cls}"><span class="cmp-rel">${dRel}</span>${bar}</td>
     </tr>`);

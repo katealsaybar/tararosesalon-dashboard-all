@@ -769,10 +769,41 @@ function otyTapChart(ev, n, L, R, W) {
   const r = ev.currentTarget.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W, bw = (W - L - R) / n;
   otyPick(Math.max(0, Math.min(n - 1, Math.floor((px - L) / bw))));
 }
+// Kate, 27 Oct 2026: a year's figures open the branches (and, for net take, the months) they are made of (drill.js). This page holds only the cached
+// totals per year and branch, so those are the lists: the branches add up to the year by construction. Net take by month comes from the month feed,
+// which is a separate cache, and says so in bold if its months do not add to the year. Years before the sales lines have no day or client rows to go deeper.
+function otySpec(kind, r) {
+  const { D } = otyD, set = otyCodes(), same = otySame(), w = same ? 'ytd' : 'full', i = r.i, c = otyCutLabel();
+  const when = (same || r.partial) ? `${r.y}, 1 Jan to ${c}` : `${r.y}, full year`, who = otySetLabel(set);
+  const T = { net: 'Net take', vis: 'Clients per visit', stf: 'Clients per staff', avgV: 'Avg bill per visit', avg: 'Avg bill per staff' }[kind];
+  const per = set.map(b => ({ b: OTY_NAME[b] || b, net: +D[b].net[w][i] || 0, vis: +D[b].vis[w][i] || 0, stf: +D[b].stf[w][i] || 0 })).filter(x => x.net || x.vis || x.stf);
+  const wantOf = { net: r.net, vis: r.vis, stf: r.stf };
+  const views = [{ id: 'br', label: 'By branch', load: async () => {
+    if (kind === 'avgV' || kind === 'avg') {
+      const den = kind === 'avgV' ? 'vis' : 'stf', rows = per.filter(x => x.net && x[den]).map(x => ({ b: x.b, net: x.net, d: x[den], a: x.net / x[den] }));
+      const net = rows.reduce((a, x) => a + x.net, 0), d = rows.reduce((a, x) => a + x.d, 0);
+      return { cols: [{ k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'd', l: kind === 'avgV' ? 'Clients per visit' : 'Clients per staff', t: 'num' }, { k: 'a', l: 'Avg bill', t: 'aed' }], rows,
+        foot: { b: 'Total', net, d, a: d ? net / d : null }, sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Net take over ${kind === 'avgV' ? 'clients through the door (each client once a day)' : 'clients counted per staff (a client seen by two staff counts twice)'}.` };
+    }
+    const rows = per.filter(x => x[kind]).map(x => ({ b: x.b, v: x[kind] })).sort((a, b) => b.v - a.v), sum = rows.reduce((a, x) => a + x.v, 0), want = wantOf[kind];
+    if (Math.abs(sum - want) >= 0.5) rows.push({ b: 'Not matched to a branch', v: want - sum, _cls: 'dr-muted' });
+    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'v', l: T, t: kind === 'net' ? 'aed' : 'num' }], rows, foot: { b: 'Total', v: want },
+      sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. ${kind === 'net' ? 'Everything the salon billed, ex VAT.' : kind === 'vis' ? 'Each client once a day, through the door.' : 'Counted once for each staff member who served her.'} Held as a total per year and branch, so this is as far down as it goes.` };
+  } }];
+  if (kind === 'net' && !same && !r.partial && otyMoRaw) views.push({ id: 'mo', label: 'By month', load: async () => {
+    const M = otyMoModel(), MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const rows = MON.map((m, k) => ({ m: m + ' ' + r.y, v: set.reduce((a, b) => { const x = M.MO[b] && M.MO[b][r.y] && M.MO[b][r.y][k]; return a + (x && +x.net > 0 ? +x.net : 0); }, 0) })).filter(x => x.v);
+    const sum = rows.reduce((a, x) => a + x.v, 0), off = Math.abs(sum - r.net) >= 1;
+    return { cols: [{ k: 'm', l: 'Month' }, { k: 'v', l: 'Net take', t: 'aed' }], rows, foot: { m: 'Total of the months', v: sum },
+      sub: `${TRSD.esc(who)}, ${r.y}. The month by month feed.${off ? ` <b>These months add to ${Math.round(sum).toLocaleString('en-GB')}, the year shows ${Math.round(r.net).toLocaleString('en-GB')}: the two are cached separately and do not agree to the dirham.</b>` : ''}` };
+  } });
+  return { title: `${T} · ${r.y}`, cur: 'AED', views };
+}
+const otyDn = (html, kind, r) => (typeof TRSD !== 'undefined' && otyD) ? TRSD.num(html, otySpec(kind, r)) : html;
 function otyTable(rows) {
   let h = '<tr class="oty-th"><th>Year</th><th>Net take</th><th>Clients per visit</th><th>Clients per staff</th><th>Avg bill per visit</th><th>Avg bill per staff</th><th>Growth</th></tr>';
   rows.slice().reverse().forEach(r => {
-    h += `<tr><td class="yr">${r.y}${r.partial ? '*' : ''}</td><td class="nt" data-l="Net take">${otyM(r.net)}</td><td class="m" data-l="Clients per visit">${r.vis ? otyNum(r.vis) : '·'}</td><td class="m" data-l="Clients per staff">${otyNum(r.stf)}</td><td class="m" data-l="Avg bill per visit">${r.avgV ? Math.round(r.avgV) : '·'}</td><td class="m" data-l="Avg bill per staff">${r.avg ? Math.round(r.avg) : '·'}</td><td data-l="Growth" class="${r.growth == null ? 'm' : r.growth > 0 ? 'oty-up' : 'oty-dn'}">${r.growth == null ? (r.big ? 'new' : '·') : (r.growth > 0 ? '+' : '') + r.growth.toFixed(1) + '%'}</td></tr>`;
+    h += `<tr><td class="yr">${r.y}${r.partial ? '*' : ''}</td><td class="nt" data-l="Net take">${otyDn(otyM(r.net), 'net', r)}</td><td class="m" data-l="Clients per visit">${r.vis ? otyDn(otyNum(r.vis), 'vis', r) : '·'}</td><td class="m" data-l="Clients per staff">${r.stf ? otyDn(otyNum(r.stf), 'stf', r) : otyNum(r.stf)}</td><td class="m" data-l="Avg bill per visit">${r.avgV ? otyDn(Math.round(r.avgV), 'avgV', r) : '·'}</td><td class="m" data-l="Avg bill per staff">${r.avg ? otyDn(Math.round(r.avg), 'avg', r) : '·'}</td><td data-l="Growth" class="${r.growth == null ? 'm' : r.growth > 0 ? 'oty-up' : 'oty-dn'}">${r.growth == null ? (r.big ? 'new' : '·') : (r.growth > 0 ? '+' : '') + r.growth.toFixed(1) + '%'}</td></tr>`;
   });
   return `<div class="oty-eb"><i style="background:var(--warn)"></i>${otyWhy('The years, side by side')}</div>
     <div class="oty-card"><table class="oty-yt">${h}</table></div>`;
