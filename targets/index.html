@@ -218,7 +218,7 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
 .sfb{flex:none;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--rule);border-radius:6px;background:transparent;color:var(--muted);font-size:9px;line-height:1;padding:0;margin:0;cursor:pointer}
 .sfb:hover{background:var(--track);color:var(--text)}
 .sfb.on,.sfb.so{background:var(--mint);color:var(--ink);border-color:transparent}
-@media (min-width:701px){table.t td[data-l]:not(.bd):not(.name){padding-right:31px}}
+@media (min-width:701px){table.t[data-frz="3"] td[data-l]:not(.bd):not(.name){padding-right:31px}}
 .sfpop{position:absolute;z-index:60;width:272px;max-height:min(520px,80vh);overflow:auto;background:var(--card);border:1px solid var(--rule);border-radius:var(--r-md);box-shadow:0 8px 28px rgba(0,0,0,.28);padding:10px 12px;font-size:13.5px;color:var(--text);text-align:left;text-transform:none;letter-spacing:0;font-weight:400}
 .sfpop select,.sfpop .sfin{width:100%;box-sizing:border-box;font:inherit;font-size:13.5px;padding:6px 8px;margin:4px 0;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--field);color:var(--text)}
 .sfh{margin-bottom:6px}
@@ -899,6 +899,12 @@ function renderPerson(sel){
   document.getElementById('tbl').setAttribute('data-frz','3');
   document.getElementById('tbl').innerHTML=h+'</tbody>';
   updateTools(sel.length,list.length);
+}
+function branchRow(label,t,cls,sub){
+  const d1=pct(t.plan,t.sep);
+  return `<tr class="${cls}"><td class="name"><b>${label}</b>${sub?`<div class="tg">${sub}</div>`:''}</td>`+
+   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="High">${fmt(t.high)}</td><td data-l="Service">${fmt(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}</td><td data-l="Retail">${fmt(t.retail)}</td><td data-l="Clients">${fmt(t.clients)}</td>`+
+   `<td data-l="Target against Sep delivered"><span class="chip ${band(d1)}">${sgn(d1)}</span><span class="rng">${fmt(t.sep)}</span></td></tr>`;
 }
 function renderBranch(rows){
   document.getElementById('secEyebrow').textContent='Branch by branch';
