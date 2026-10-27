@@ -4165,12 +4165,27 @@ const CLIENT_VIEWS = new Set(['dashboard', 'branchperf', 'compare']);
 const CLIENT_BASIS = 'door';
 function setClientBasis() {}
 // { SAA: n, KCA: n, ... } for one window, fetched once per window.
+// Kate, 27 Oct 2026: the browser role stops a statement at 8 seconds and door_clients over All time takes
+// about 20, so the Pulse, Branch Performance and Comparison got a 500 and fell back to the handled count.
+// A client-day never crosses a calendar year, so a long window is asked for one year at a time and the
+// years are added up: the same number, each call well inside the limit.
+function doorYearChunks(fromIso, toIso) {
+  const out = [];
+  for (let y = Number(fromIso.slice(0, 4)); y <= Number(toIso.slice(0, 4)); y++) {
+    const a = y + '-01-01', b = y + '-12-31';
+    out.push([a < fromIso ? fromIso : a, b > toIso ? toIso : b]);
+  }
+  return out;
+}
 function doorClientsByBranch(from, to) {
   return cachedRange(`door|${dateToIso(from)}|${dateToIso(to)}`, async () => {
-    const { data, error } = await sb.rpc('door_clients', { p_from: dateToIso(from), p_to: dateToIso(to) });
-    if (error) throw error;
+    const parts = await Promise.all(doorYearChunks(dateToIso(from), dateToIso(to)).map(([f, t]) =>
+      sb.rpc('door_clients', { p_from: f, p_to: t })));
     const m = {};
-    (data || []).forEach(r => { m[r.branch] = Number(r.clients) || 0; });
+    parts.forEach(({ data, error }) => {
+      if (error) throw error;
+      (data || []).forEach(r => { m[r.branch] = (m[r.branch] || 0) + (Number(r.clients) || 0); });
+    });
     return m;
   });
 }
