@@ -379,6 +379,7 @@ const A=DATA.actuals;
 
 const BN={SAA:'Saadiyat',KCA:'Khalifa City',MC:'Motor City',AQ:'Al Quoz'};
 const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const BASE_NOTE={10:'July to September',11:'August to October',12:'September and October, roster for 5-day weeks'};
 const FAC=[0.92,1.01,1.01,1.02,0.97,1.10,0.87,0.84,0.92,0.98,0.98,1.36];
 /* same method, but revenue per person working day instead of per branch working day, so staff on leave do not count twice */
 const FAC_PD=[0.93,0.99,1.02,0.96,0.98,1.07,0.97,0.93,0.91,0.97,0.96,1.19];
@@ -671,7 +672,7 @@ function renderTiles(sel,all){
     `<div class="abn s">Top-down ${fmt(t.top)}, the middle of low and high. Bottom-up ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Low ${fmt(t.low)}, high ${fmt(t.high)}.</div>`:
     `<div class="abn s">The middle of low ${fmt(t.low)} and high ${fmt(t.high)}.</div>`;
   tilesEl.classList.add('ab-on');
-  tilesEl.innerHTML=`<div class="abc"><div class="abtop">${A?`${m} 2026, actual to ${upto} (${A.elapsed} of ${A.days} days). The tick on each line is where the month is.`:`${m} 2026. No actuals yet, they start with the month.`}</div>`+
+  tilesEl.innerHTML=`<div class="abc"><div class="abtop">${A?`${m} 2026, actual to ${upto} (${A.elapsed} of ${A.days} days). The tick on each line is where the month is. Built from ${BASE_NOTE[S.month]}.`:`${m} 2026. No actuals yet, they start with the month. Built from ${BASE_NOTE[S.month]}.`}</div>`+
     `<div class="abg abh"><span class="abl"></span><span class="a">Actual</span><span></span><span>Target</span><span>${A?'Progress':''}</span><span></span></div>`+
     row('Total net take',netAct,gTot,true,netNote)+
     row('Services and treatment',svcAct,t.plan,false,planNote)+
@@ -943,7 +944,7 @@ document.getElementById('btnCopy').addEventListener('click',async()=>{
 
 /* ---------- controls ---------- */
 (function(){
-  document.getElementById('selMonth').innerHTML=MN.map((m,i)=>`<option value="${i+1}"${i+1===S.month?' selected':''}${i+1<10?' disabled':''}>${m} 2026${i+1===10?' (July to September)':i+1===11?' (August to October)':i+1===12?' (September, October; roster for 5-day weeks)':i+1<10?' (no history yet)':''}</option>`).join('');
+  document.getElementById('selMonth').innerHTML=MN.map((m,i)=>i+1<10?'':`<option value="${i+1}"${i+1===S.month?' selected':''}>${m} 2026</option>`).join('');
   buildCal();
 })();
 function buildCal(){
