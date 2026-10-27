@@ -122,6 +122,9 @@ table.t td.bd:first-child{white-space:normal;min-width:64px}
 table.t td{padding:11px 5px;border-bottom:1px solid var(--rule);text-align:right;vertical-align:middle;white-space:nowrap;font-variant-numeric:normal tabular-nums}
 table.t td.name{white-space:normal;min-width:196px;text-align:left;font-variant-numeric:normal}
 table.t td.name b{font-weight:600}
+/* Kate, 27 Oct 2026: By branch has no photos, so the first column is only as wide as the branch name and the spare width goes to the numbers (it had a 196px floor meant for the person rows) */
+@media (min-width:701px){table.t[data-frz="1"] td.name{min-width:0;width:1%;white-space:nowrap}}
+@media (min-width:701px){table.t[data-frz="1"] td:not(.name),table.t[data-frz="1"] th:not(:first-child){padding-left:11px;padding-right:11px}}
 /* Kate, 23 Oct 2026: a face beside every name. The portrait is the cutout at its own shape (no circle, no crop), the same rule as the Staff Benchmarks. */
 .who{display:flex;align-items:center;gap:10px}
 .who .ph{flex:none;height:64px;width:56px;object-fit:contain;object-position:center bottom}
