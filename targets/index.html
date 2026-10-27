@@ -330,6 +330,15 @@ const days={};
 /* bottom-up check (Mette, 22 Oct): % added to or taken off a person's plan for staffing the history cannot see, e.g. a new starter with a guest book. Default 0. */
 const bu={};
 const keyOf=p=>p[0]+'|'+p[1];
+/* Kate, 27 Oct 2026: bottom-up % is saved per month and person (rules.bu in target_calc_snapshot, written by target_calc_set_bu, Level 3 and 5 only), so it is still there next time. */
+const BU_SAVED=RULES.bu||{};let buErr='';
+function loadBu(){Object.keys(bu).forEach(k=>delete bu[k]);const m=BU_SAVED[S.month]||{};P.forEach((p,i)=>{const v=m[keyOf(p)];if(v)bu[i]=v;});}
+async function saveBu(i,v){
+  const k=keyOf(P[i]),m=(BU_SAVED[S.month]=BU_SAVED[S.month]||{});m[k]=v;
+  try{const r=await KB.client.rpc('target_calc_set_bu',{p_month:S.month,p_key:k,p_pct:v});if(r.error)throw r.error;buErr='';}
+  catch(err){buErr='The bottom-up % for '+P[i][1]+' was not saved ('+(err&&err.message||err)+'). It shows here until you reload.';}
+  renderEdits();
+}
 function mData(p,m){
   if(m===7){const j=JUL[keyOf(p)];return j?{d:j[0],r:j[1]}:{d:0,r:0};}
   const a=p[4+m-8];return {d:a[0],r:a[1]};
@@ -455,16 +464,17 @@ const badge={regular:['Regular','good'],joiner:['Joiner','on'],left:['Short mont
 const flagged=r=>['none','left','part'].includes(r.status);
 
 function sumRows(list){
-  const t={n:0,low:0,plan:0,high:0,service:0,treat:0,retail:0,clients:0,sep:0,loaded:0};
+  const t={n:0,low:0,plan:0,high:0,service:0,treat:0,retail:0,clients:0,sep:0,loaded:0,top:0};
   list.forEach(r=>{
     if(r.med==null)return;
-    t.n++;t.low+=r.low;t.plan+=r.med;t.high+=r.high;t.service+=r.service;t.treat+=r.treat;t.retail+=r.retail;t.clients+=r.clients;
+    t.n++;t.low+=r.low;t.plan+=r.med;t.top+=(r.topDown!=null?r.topDown:r.med);t.high+=r.high;t.service+=r.service;t.treat+=r.treat;t.retail+=r.retail;t.clients+=r.clients;
     t.sep+=r.p[5][1];t.loaded+=r.loaded;
   });
   return t;
 }
 const pct=(a,b)=>b?((a/b-1)*100):null;
 const sgn=v=>v==null?'n/a':(v>=0?'+':'')+v.toFixed(1)+'%';
+const sgnA=v=>(v>=0?'+':'')+fmt(v);
 const band=v=>v==null?'na':Math.abs(v)<=5?'good':Math.abs(v)<=15?'warn':'bad';
 
 
@@ -486,14 +496,14 @@ function howExample(rows){
   <p style="margin:6px 0 0">Because we divide by the days she <i>came in</i>, a person who took leave is not marked down for it. Tap "Why this?" on anyone's row to see their own steps.</p>`;
 }
 function renderEdits(){
-  const n=Object.keys(days).length+Object.keys(bu).filter(k=>bu[k]).length,e=document.getElementById('edits');
-  if(!n){e.hidden=true;return;}
+  const n=Object.keys(days).length,e=document.getElementById('edits');
+  if(!n&&!buErr){e.hidden=true;return;}
   e.hidden=false;
-  e.innerHTML=`<span><b>You changed ${n} ${n===1?'thing':'things'}.</b> They stay on this page only and nothing is saved. Copy for Sheets keeps them.</span><button class="copy" id="btnReset" type="button">Reset my changes</button>`;
+  e.innerHTML=(n?`<span><b>You changed ${n} planned ${n===1?'day count':'day counts'}.</b> They stay on this page only and nothing is saved. Copy for Sheets keeps them.</span><button class="copy" id="btnReset" type="button">Reset my changes</button>`:'')+(buErr?`<span>${buErr}</span>`:'');
 }
 document.getElementById('edits').addEventListener('click',e=>{
   if(e.target.id!=='btnReset')return;
-  Object.keys(days).forEach(k=>delete days[k]);Object.keys(bu).forEach(k=>delete bu[k]);render();
+  Object.keys(days).forEach(k=>delete days[k]);render();
 });
 (function(){
   const w=document.getElementById('whyWall');
@@ -537,10 +547,10 @@ function renderTiles(sel,all){
   const be=gTot>=BREAK_EVEN[1]?['good','at or above the aim']:gTot>=BREAK_EVEN[0]?['warn','above break-even, below the aim']:['bad','below break-even'];
   const m=MN[S.month-1];
   document.getElementById('tiles').innerHTML=
-   `<div class="tile be"><div class="eyebrow">Total net take, all 4 branches</div><div class="big">${fmt(gTot)}</div><div class="line"><span class="chip ${be[0]}">${be[1]}</span> Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.</div>`+
+   `<div class="tile be"><div class="eyebrow">Total net take, all 4 branches</div><div class="big">${fmt(gTot)}</div><div class="line"><span class="chip ${be[0]}">${be[1]}</span> Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`+
    `<div class="be-bar" role="img" aria-label="Net take ${fmt(gTot)} against a floor of ${fmt(BREAK_EVEN[0])} and an aim of ${fmt(BREAK_EVEN[1])}"><div class="be-fill ${be[0]==='good'?'':be[0]}" style="width:${Math.min(100,gTot/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"></div>`+
    `<div class="be-mark f" style="left:${(BREAK_EVEN[0]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Floor 1.7M</span></div><div class="be-mark a" style="left:${(BREAK_EVEN[1]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Aim 1.8M</span></div></div></div>`+
-   `<div class="tile"><div class="eyebrow">${m} target</div><div class="big">${fmt(t.plan)}</div><div class="line">The middle of low ${fmt(t.low)} and high ${fmt(t.high)}. ${t.n} people</div></div>`+
+   `<div class="tile"><div class="eyebrow">${m} target</div><div class="big">${fmt(t.plan)}</div><div class="line">${t.plan!==t.top?`Top-down ${fmt(t.top)}, the middle of low and high. Bottom-up ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Target ${fmt(t.plan)}. Low ${fmt(t.low)}, high ${fmt(t.high)}. `:`The middle of low ${fmt(t.low)} and high ${fmt(t.high)}. `}${t.n} people</div></div>`+
    `<div class="tile"><div class="eyebrow">Service</div><div class="big">${fmt(t.service)}</div><div class="line">${100-S.treat}% of the target</div></div>`+
    `<div class="tile"><div class="eyebrow">Treatment</div><div class="big">${fmt(t.treat)}</div><div class="line">${S.treat}% of the target</div></div>`+
    `<div class="tile"><div class="eyebrow">Retail</div><div class="big">${fmt(t.retail)}</div><div class="line">${S.retail}% of the target</div></div>`+
@@ -693,7 +703,7 @@ function seg(id,key){
   });
 }
 seg('segView','view');seg('segBranch','branch');seg('segTeam','team');
-document.getElementById('selMonth').addEventListener('change',e=>{S.month=+e.target.value;render();});
+document.getElementById('selMonth').addEventListener('change',e=>{S.month=+e.target.value;loadBu();render();});
 document.getElementById('pTreat').addEventListener('input',e=>{S.treat=Math.max(0,Math.min(60,+e.target.value||0));render();});
 document.getElementById('pRetail').addEventListener('input',e=>{S.retail=Math.max(0,Math.min(40,+e.target.value||0));render();});
 document.getElementById('pJoin').addEventListener('input',e=>{S.join=Math.max(30,Math.min(100,+e.target.value||70));render();});
@@ -709,10 +719,11 @@ document.getElementById('tbl').addEventListener('click',e=>{
 });
 document.getElementById('tbl').addEventListener('change',e=>{
   const b=e.target.closest('input.bu');
-  if(b){bu[+b.dataset.i]=Math.max(-50,Math.min(100,parseFloat(b.value)||0));render();return;}
+  if(b){const v=Math.max(-50,Math.min(100,parseFloat(b.value)||0));bu[+b.dataset.i]=v;saveBu(+b.dataset.i,v);render();return;}
   const inp=e.target.closest('input.days');if(!inp)return;
   days[+inp.dataset.i]=Math.max(0,Math.min(26,parseInt(inp.value,10)||0));render();
 });
+loadBu();
 render();
 })();
 </script>
