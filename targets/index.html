@@ -930,16 +930,16 @@ function renderPerson(sel){
   updateTools(sel.length,list.length);
 }
 function branchRow(label,t,cls,sub){
-  const d1=pct(t.plan,t.sep);
+  const d1=pct(t.plan,t.sep),bu=pct(t.plan,t.top);
   return `<tr class="${cls}"><td class="name"><b>${label}</b>${sub?`<div class="tg">${sub}</div>`:''}</td>`+
-   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="High">${fmt(t.high)}</td><td data-l="Service">${fmt(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}</td><td data-l="Retail">${fmt(t.retail)}</td><td data-l="Clients">${fmt(t.clients)}</td>`+
+   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Bottom-up">${sgn(bu)}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="High">${fmt(t.high)}</td><td data-l="Service">${fmt(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}</td><td data-l="Retail">${fmt(t.retail)}</td><td data-l="Clients">${fmt(t.clients)}</td>`+
    `<td data-l="Target against Sep delivered"><span class="chip ${band(d1)}">${sgn(d1)}</span><span class="rng">${fmt(t.sep)}</span></td></tr>`;
 }
 function renderBranch(rows){
   document.getElementById('secEyebrow').textContent='Branch by branch';
   document.getElementById('secTitle').textContent='Adding it up';
   document.getElementById('secWhy').textContent='Each branch is the sum of its people. The gap between low and high is what leave and missing staff cost us in a month. The target against what the same people delivered in September is for a first look: further out, find out why before anything changes.';
-  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th>High</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th>Bottom-up</th><th>High</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
   ['SAA','KCA','MC','AQ'].forEach(b=>{
     const br=rows.filter(r=>r.p[0]===b);
     ['HAIR','BEAUTY'].forEach(tm=>{
@@ -964,8 +964,8 @@ function tsv(){
       lines.push([BN[r.p[0]],r.p[1],r.p[3],(r.leave?'On leave this month':badge[r.status][0]),r.dLow??r.planned??'',r.bu||0,r.low??'',r.med??'',r.high??'',r.service??'',r.treat??'',r.retail??'',r.clients??'',r.clientsRaw??'',r.billNeed??'',r.med!=null?r.avgBill:'',r.act&&r.act.tpct!=null?r.act.tpct.toFixed(1):'',r.act&&r.act.rpct!=null?r.act.rpct.toFixed(1):'',r.act&&r.act.bill?Math.round(r.act.bill):''].join('\t'));
     });
   }else{
-    lines.push(['Branch','Team','People','Low','Target','High','Service','Treatment','Retail','Clients','Sep delivered'].join('\t'));
-    const row=(b,tm,t)=>lines.push([b,tm,t.n,t.low,t.plan,t.high,t.service,t.treat,t.retail,t.clients,t.sep].join('\t'));
+    lines.push(['Branch','Team','People','Low','Target','Top-down','Bottom-up %','High','Service','Treatment','Retail','Clients','Sep delivered'].join('\t'));
+    const row=(b,tm,t)=>lines.push([b,tm,t.n,t.low,t.plan,t.top,t.top?((t.plan/t.top-1)*100).toFixed(1):'',t.high,t.service,t.treat,t.retail,t.clients,t.sep].join('\t'));
     ['SAA','KCA','MC','AQ'].forEach(b=>{
       const br=rows.filter(r=>r.p[0]===b);
       ['HAIR','BEAUTY'].forEach(tm=>{const t=sumRows(br.filter(r=>r.p[2]===tm));if(t.n)row(BN[b],tm==='HAIR'?'Hair':'Beauty',t);});
