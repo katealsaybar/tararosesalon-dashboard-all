@@ -586,17 +586,18 @@ function renderTiles(sel,all){
     const box=(cls,title,act,tgt,note,tl)=>`<div class="tile ab${cls}"><div class="eyebrow">${title}</div><div class="two">`+
       `<div><span class="lb la">Actual</span><div class="nn ${act==null?'na':'a'}">${act==null?'n/a':fmt(act)}</div></div><div class="dv"></div>`+
       `<div><span class="lb">${tl||'Target'}</span><div class="nn t">${fmt(tgt)}</div></div></div>${note}</div>`;
-    const prog=(act,tgt)=>{if(act==null)return `<div class="note" style="margin-top:20px">The ledger has no hair and beauty split.</div>`;
+    const prog=(act,tgt,msg)=>{if(act==null)return `<div class="note" style="margin-top:20px">${msg||'The ledger has no hair and beauty split.'}</div>`;
       const pct=tgt?act/tgt*100:0,pace=act/el;
       return bar(pct)+`<div class="note">${Math.round(pct)}% of target. At this pace about ${fmt(pace)} (${tgt?Math.round(pace/tgt*100):0}%).</div>`;};
     const netAct=sum(all,'net');
+    const trAct=(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
     const retAct=teamAll?sum(selB,'ret'):null,svcAct=teamAll?sum(selB,'svc'):null,visAct=teamAll?sum(selB,'visits'):null;
     tilesEl.classList.add('ab-on');
     tilesEl.innerHTML=`<div class="ab-head">${m} 2026. Actual is to ${upto} (${A.elapsed} of ${A.days} days). The tick on each bar is where the month is.</div>`+
      `<div class="tile be ab"><div class="eyebrow">Total net take, all 4 branches</div><div class="two"><div><span class="lb la">Actual</span><div class="nn a">${fmt(netAct)}</div></div><div class="dv"></div><div><span class="lb">Target</span><div class="nn t">${fmt(gTot)}</div></div></div>${prog(netAct,gTot)}${oldNet}</div>`+
      box('',`${m} target, services and treatment`,svcAct,t.plan,prog(svcAct,t.plan))+
      box('',`Retail`,retAct,t.retail,prog(retAct,t.retail),`Target (${S.retail}%)`)+
-     `<div class="tile ab"><div class="eyebrow">Treatment</div><div class="two"><div><span class="lb la">Actual</span><div class="nn na">to add</div></div><div class="dv"></div><div><span class="lb">Target (${S.treat}%)</span><div class="nn t">${fmt(t.treat)}</div></div></div><div class="note" style="margin-top:20px">Needs the ledger, hair only. Not pulled yet.</div></div>`+
+     box('',`Treatment, hair`,trAct,trTgt,prog(trAct,trTgt,'Treatment is in the ledger for hair only.'),`Target (${S.treat}%)`)+
      box('',`Clients`,visAct,t.clients,prog(visAct,t.clients),'Target')+``;
     return;
   }
