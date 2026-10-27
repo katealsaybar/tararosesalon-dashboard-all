@@ -705,6 +705,15 @@ body.upd-quiet .upd{display:none!important}
 .f-lbl{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
   color:var(--muted2);flex-shrink:0}
 .chipset{display:flex;flex-wrap:wrap;align-items:baseline;min-width:0}
+/* Period: the chips keep their full width. With Custom picked, the date inputs and
+   their echo line were squeezing the chipset, so Custom dropped to a line of its
+   own under the others. Now the row wraps instead: the dates sit beside the chips
+   when they fit and drop below as one block when they do not. The echo line is
+   sized to the inputs (width:0 + min-width:100%) so its text does not inflate the
+   block and force that drop early (Kate, 27 Oct 2026). */
+#periodRow{flex-wrap:wrap}
+#periodRow .chipset{flex-shrink:0}
+#periodRow .f-echo{flex-basis:auto;width:0;min-width:100%}
 .chip{border:0;background:none;padding:6px 0;font:inherit;font-size:14px;color:var(--muted2);
   cursor:pointer;white-space:nowrap;border-bottom:1px solid transparent;line-height:1.3;
   transition:color 160ms var(--card-ease),border-color 160ms var(--card-ease)}
