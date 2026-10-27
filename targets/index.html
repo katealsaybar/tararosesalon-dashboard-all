@@ -60,11 +60,13 @@ h2{font-family:var(--fd);font-weight:600;font-size:clamp(22px,2.6vw,28px);line-h
 .bar.closed .bar-top{margin:0}
 .bar.closed #barRows{display:none}
 /* Kate, 27 Oct 2026: the filter bar looks like the dashboard's (index.html .filters): small caps label, text chips with a dot between, the chosen one bold with an underline, View as the dark two-way switch like UAE Branches | All. */
-.bar-row{align-items:baseline;gap:4px 32px}
-.f-row{display:flex;align-items:baseline;gap:12px;min-width:0}
-@media (min-width:1000px){.bar-row>.f-row:first-child{min-width:540px}}
+.bar-row{align-items:center;gap:4px 32px}
+.f-row{display:flex;align-items:center;gap:12px;min-width:0}
+@media (min-width:1001px){.bar-row{display:grid;grid-template-columns:minmax(0,520px) auto;justify-content:start}}
+/* the Hide filters button rides on the first line instead of taking a line of its own; closed, it sits beside the summary */
+@media (min-width:701px){.bar:not(.closed) .bar-top{position:absolute;top:8px;right:0;margin:0}.bar:not(.closed) .bar-row:first-child{padding-right:160px}.bar{padding:8px 0 10px}}
 .f-lbl{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);opacity:.75;flex-shrink:0}
-.fchipset{display:flex;flex-wrap:wrap;align-items:baseline;min-width:0}
+.chipset{display:flex;flex-wrap:wrap;align-items:center;min-width:0}
 .fchip{border:0;background:none;padding:6px 0;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:1px solid transparent;line-height:1.3;transition:color 160ms,border-color 160ms}
 @media(hover:hover){.fchip:hover{color:var(--text)}}
 .fchip[aria-pressed=true]{color:var(--text);font-weight:600;border-bottom-color:var(--text)}
@@ -290,20 +292,6 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
   <div class="tg-nav"><a class="tg-btn" href="/hub/">&larr; Back to Team Home</a><a class="tg-btn" href="/targets/how/">How a target is made</a></div>
   <main id="tgCol" class="tg-load">
   <p class="kb-msg" id="tgMsg">Loading…</p>
-  <p class="tg-note"><b>Draft</b>Real numbers, Jul to 20 Oct 2026. For Level 3 only. This page changes nothing: the targets in use are in the ledgers.</p>
-  <p class="deck">One month, person by person. Each person has three plans: <b>low</b> (the leave we have now), <b>high</b> (nobody on leave) and the <b>target</b>, the middle of the two. The target splits into service, treatment and retail, and the clients to match, held to what her hours can fit. Then it adds up to the branch and the group.</p>
-
-  <details class="why-wall" id="whyWall" open>
-    <summary>Read this first. Thirty seconds.</summary>
-    <dl>
-      <dt>Why this</dt><dd>A target is not a guess. It is her normal day, adjusted for the kind of month that is coming.</dd>
-      <dt>Why now</dt><dd>The November plans go out with the end of October emails. Mette checks them first, so this is the place to try things and adjust.</dd>
-      <dt>Three numbers</dt><dd>High is what we could sell if nobody took leave. Low is what we sell with the leave we have. The target sits in the middle, so it is a goal that still looks real. The gap between low and high is what missing staff cost.</dd>
-      <dt>If we do nothing</dt><dd>Targets stay as guesses, and the business can be planned below break-even, which is AED 1.7 to 1.8 million a month.</dd>
-    </dl>
-    <p class="ww-foot"><span>Try it: change a person's days, or add a bottom-up %. Then tap <b>Why this?</b> on any row.</span><a href="/targets/how/">How a target is made</a><button class="copy" id="wwDone" type="button">Got it, hide this</button></p>
-  </details>
-
   <div class="bar" id="bar">
     <div class="bar-top"><span class="barsum" id="barSum" hidden></span><button class="tglr" id="barBtn" type="button" aria-expanded="true" aria-controls="barRows">Hide filters</button></div>
     <div id="barRows">
@@ -317,6 +305,20 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
     </div>
     </div>
   </div>
+
+  <p class="tg-note"><b>Draft</b>Real numbers, Jul to 20 Oct 2026. For Level 3 only. This page changes nothing: the targets in use are in the ledgers.</p>
+  <p class="deck">One month, person by person. Each person has three plans: <b>low</b> (the leave we have now), <b>high</b> (nobody on leave) and the <b>target</b>, the middle of the two. The target splits into service, treatment and retail, and the clients to match, held to what her hours can fit. Then it adds up to the branch and the group.</p>
+
+  <details class="why-wall" id="whyWall" open>
+    <summary>Read this first. Thirty seconds.</summary>
+    <dl>
+      <dt>Why this</dt><dd>A target is not a guess. It is her normal day, adjusted for the kind of month that is coming.</dd>
+      <dt>Why now</dt><dd>The November plans go out with the end of October emails. Mette checks them first, so this is the place to try things and adjust.</dd>
+      <dt>Three numbers</dt><dd>High is what we could sell if nobody took leave. Low is what we sell with the leave we have. The target sits in the middle, so it is a goal that still looks real. The gap between low and high is what missing staff cost.</dd>
+      <dt>If we do nothing</dt><dd>Targets stay as guesses, and the business can be planned below break-even, which is AED 1.7 to 1.8 million a month.</dd>
+    </dl>
+    <p class="ww-foot"><span>Try it: change a person's days, or add a bottom-up %. Then tap <b>Why this?</b> on any row.</span><a href="/targets/how/">How a target is made</a><button class="copy" id="wwDone" type="button">Got it, hide this</button></p>
+  </details>
 
   <div class="tiles" id="tiles"></div>
   <div class="edits" id="edits" hidden role="status" aria-live="polite"></div>
