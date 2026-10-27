@@ -17,6 +17,10 @@
   if (window.TRSD) return;
   const REG = new Map();
   let seq = 0, box = null, from = null, spec = null, cache = null, cur = 0;
+  // Each open list has its own address (Kate, 27 Oct 2026: "specific url slug per reports"): ?r=clients-by-staff, or a list opened from inside another one,
+  // ?r=net-take.clients-handled-april-miraflor. Back goes up one list and then closes; a link or a reload reopens it once the page has drawn its figures.
+  let chain = [], pushed = 0, origin = null;
+  const rUrl = list => { const u = new URL(location.href); if (list && list.length) u.searchParams.set('r', list.map(x => slug(x.title)).join('.')); else u.searchParams.delete('r'); return u.pathname + u.search + u.hash; };
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -49,12 +53,19 @@
   // For an element that is not a span (an SVG square): just the id, to put on it as data-dn with class dn-cell.
   function reg(sp) { const id = 'd' + (++seq); if (REG.size > 8000) REG.clear(); REG.set(id, sp); return id; }
 
-  function close() {
+  function hide() {
     if (box) box.remove();
     box = null; spec = null; cache = null;
     document.body.classList.remove('dr-open');
-    if (from && document.contains(from)) from.focus();
-    from = null;
+  }
+  function close() {
+    const n = pushed, f = origin || from;
+    hide(); chain = []; pushed = 0; origin = null; from = null;
+    if (f && document.contains(f)) f.focus();
+    try {
+      if (n > 0) history.go(-n);   // back to the address the page had before the list opened
+      else if (new URL(location.href).searchParams.has('r')) history.replaceState(history.state, '', rUrl([]));
+    } catch (e) {}
   }
 
   function paint(res, view) {
@@ -119,9 +130,17 @@
     if (cur === i) paint(res, v);
   }
 
-  function open(sp, el) {
-    close();
-    from = el || document.activeElement;
+  function open(sp, el, replay) {
+    const nested = !!box;
+    if (nested) hide(); else { chain = []; pushed = 0; origin = el || document.activeElement; }
+    chain.push(sp);
+    try {
+      if (replay && !nested) history.replaceState(history.state, '', rUrl(chain));   // the address already carries it
+      else { history.pushState({ dr: chain.length }, '', rUrl(chain)); pushed++; }
+    } catch (e) {}
+    show(sp);
+  }
+  function show(sp) {
     spec = sp; cache = []; cur = 0;
     box = document.createElement('div');
     box.className = 'dr-modal'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', sp.title);
@@ -137,6 +156,26 @@
     const b = box.querySelector('[data-dx]'); if (b) b.focus();
     pick(0);
   }
+  window.addEventListener('popstate', () => {
+    if (!box) return;
+    if (pushed > 0) pushed--;
+    if (chain.length > 1) { chain.pop(); hide(); show(chain[chain.length - 1]); }
+    else { hide(); chain = []; pushed = 0; if (origin && document.contains(origin)) origin.focus(); origin = null; }
+  });
+  // A link with ?r=... : open that list as soon as the page has drawn the figure that holds it (and, for a list inside a list, the one inside).
+  (function restore() {
+    let want; try { want = (new URL(location.href).searchParams.get('r') || '').split('.').filter(Boolean); } catch (e) { return; }
+    if (!want.length) return;
+    let i = 0, tries = 0;
+    const timer = setInterval(() => {
+      if (++tries > 70 || (box && chain.length !== i)) { clearInterval(timer); return; }   // gave up, or the person opened something else
+      let hit = null; REG.forEach(sp => { if (!hit && slug(sp.title) === want[i]) hit = sp; });
+      if (!hit) return;
+      if (i === 0) { try { history.replaceState(history.state, '', rUrl([])); } catch (e) {} }   // the page's own address first, so Back closes the list instead of leaving the page
+      open(hit, null); i++;
+      if (i >= want.length) clearInterval(timer);
+    }, 700);
+  })();
 
   document.addEventListener('click', e => {
     const n = e.target.closest && e.target.closest('[data-dn]');

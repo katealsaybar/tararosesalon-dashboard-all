@@ -148,6 +148,26 @@ const PD = (() => {
     if (error) throw error;
     return data;
   }
+  // ── What a client spent (Kate, 27 Oct 2026: "clickable din yung AED amounts, to show ano yung ginastos nung client") ──
+  // The Spent figure on a client row opens the lines behind it, as a receipt: date, branch, who rang it, what it was, what it came to.
+  async function clientLinesLoad(o) {
+    const { data, error } = await sb.rpc('drill_client_lines', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_client: o.client, p_employees: o.employees });
+    if (error) throw error;
+    return data;
+  }
+  function clientLinesSpec(ctx, o) {
+    if (!canNames() || !o.from || !o.client) return null;
+    const one = o.from === o.to;
+    return { title: `Spent · ${o.client}`, cur: ctx.cur, views: [
+      { id: 'lines', label: 'Lines', load: async () => {
+        const data = await clientLinesLoad(o), rows = data.rows || [];
+        let t = `${esc(ctx.label)}. ${esc(o.client)}${o.who ? ', seen by ' + esc(o.who) : ''}${one ? ', ' + TRSD.fmt.day(o.from) : ''}: AED ${cnt(Math.round(data.total))} over ${cnt(data.lines)} line${data.lines === 1 ? '' : 's'}, from Phorest's sales lines (a deposit, a balance payment or a voucher bought on its own is left out, refunds come off).`;
+        if (data.lines > rows.length) t += ` The newest ${cnt(rows.length)} are shown.`;
+        return { sub: t, cols: [...(one ? [] : [{ k: 'd', l: 'Date', t: 'date' }]), { k: 'b', l: 'Branch' }, { k: 'e', l: 'Staff' }, { k: 'i', l: 'Item' }, { k: 'n', l: 'Net', t: 'aed' }],
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: nm(r.e), i: r.r ? r.i + ' (refund)' : r.i, n: r.n })), foot: data.lines <= rows.length ? { d: '', b: '', e: '', i: cnt(data.lines) + ' lines', n: data.total } : null };
+      } },
+    ] };
+  }
   function staffClientsSpec(ctx, o) {
     if (!canNames() || !o.from) return null;
     const lead = o.who ? `${esc(o.who)}, ${esc(o.when)}` : esc(o.when);
@@ -162,7 +182,7 @@ const PD = (() => {
       { id: 'each', label: 'Each client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }],
-          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: r.e, c: r.c, s: r.s })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: r.e, c: r.c, s: r.s, _dn: { s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, who: nm(r.e) }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
       } },
       { id: 'by', label: 'By client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
@@ -171,7 +191,7 @@ const PD = (() => {
         rows.forEach(r => { const k = String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, v: 0, s: 0, e: new Set() }; x.v++; x.s += +r.s || 0; x.e.add(r.e); m.set(k, x); });
         const list = [...m.values()].sort((a, b) => b.v - a.v || b.s - a.s || a.c.localeCompare(b.c));
         return { sub: sub(data) + ` ${cnt(list.length)} different client names.`, cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: o.who ? 'Days' : 'Times handled', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }])],
-          rows: list.map(x => ({ c: x.c, v: x.v, s: x.s, e: [...x.e].map(nm).join(', ') })), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
+          rows: list.map(x => ({ c: x.c, v: x.v, s: x.s, e: [...x.e].map(nm).join(', '), _dn: { s: clientLinesSpec(ctx, { from: o.from, to: o.to, branches: o.branches, employees: o.employees, client: x.c, who: o.who || '' }) } })), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
       } },
     ] };
   }
@@ -382,7 +402,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit),
           cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
-          rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, s: r.s, st: r.st })),
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, s: r.s, st: r.st, _dn: { s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
           foot: data.total <= rows.length ? { d: '', b: '', c: cnt(data.total) + ' visits', s: data.spend, st: '' } : null,
         };
       } },
@@ -398,7 +418,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit) + ` ${cnt(list.length)} different client names; one who came on two days is two visits.`,
           cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: 'Visits', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'b', l: 'Branches' }],
-          rows: list.map(x => ({ c: x.c, v: x.v, s: x.s, b: [...x.b].join(', ') })),
+          rows: list.map(x => ({ c: x.c, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }) } })),
           foot: { c: 'Total', v: data.total, s: data.spend, b: '' },
         };
       } },
