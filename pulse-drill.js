@@ -521,6 +521,10 @@ const PD = (() => {
     const shown = (data.rows || []).length;
     let t = `${esc(ctx.label)}. ${cnt(data.total)} client${data.total === 1 ? '' : 's'} through the door, each client once a day however many sales or staff she had. A deposit, a balance payment or a voucher bought on its own is not a visit; staff bookings and the BUSINESS TRS house account are left out.`;
     if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
+    // Kate, 27 Oct 2026: Phorest counts a visit when the sale has an entry in Payment Type, so a client who paid a
+    // deposit for a plan and has an AED 0 service on the sale is counted. They stay in the count; the AED 0 spend tab lists them.
+    const zero = (data.rows || []).filter(r => !(+r.s > 0)).length;
+    if (zero) t += ` ${cnt(zero)} of these ${zero === 1 ? 'visit is' : 'visits are'} AED 0 spend (a plan or deposit paid, nothing rung through): see the AED 0 spend tab.`;
     if (ctx.door.count != null && data.total !== ctx.door.count) t += ` <b>The card shows ${cnt(ctx.door.count)}: this list does not match it.</b>`;
     if (perVisit) t += ` Net take on the card ${money(ctx.card.net, ctx.cur)} ÷ ${cnt(ctx.door.count)} = ${money(ctx.door.count ? ctx.card.net / ctx.door.count : 0, ctx.cur)} a visit. "Spent" below is Phorest's own lines for these clients, so it will not match Net take to the dirham.`;
     return t;
@@ -550,6 +554,16 @@ const PD = (() => {
           cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: 'Visits', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'b', l: 'Branches' }],
           client: { k: 'c' }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }); return { c: x.c, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c }) } }; }),
           foot: { c: 'Total', v: data.total, s: data.spend, b: '' },
+        };
+      } },
+      { id: 'zero', label: 'AED 0 spend', load: async () => {
+        const data = await doorLoad(ctx), rows = (data.rows || []).filter(r => !(+r.s > 0));
+        return {
+          sub: doorSub(ctx, data, perVisit) + ' This tab shows only the visits where the client’s lines add up to AED 0.',
+          cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, s: r.s, st: r.st, _dn: { s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
+          empty: 'No visit in this window adds up to AED 0.',
+          foot: rows.length ? { d: '', b: '', c: cnt(rows.length) + ' visits', s: 0, st: '' } : null,
         };
       } },
     ];

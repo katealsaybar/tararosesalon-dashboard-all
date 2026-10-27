@@ -4243,6 +4243,7 @@ function doorClientsByBranch(from, to) {
       (data || []).forEach(r => {
         m[r.branch] = (m[r.branch] || 0) + (Number(r.clients) || 0);
         m['new:' + r.branch] = (m['new:' + r.branch] || 0) + (Number(r.new_clients) || 0);   // Kate, 27 Oct 2026: first visit ever, migrations/door_new_clients.sql
+        m['req:' + r.branch] = (m['req:' + r.branch] || 0) + (Number(r.request_clients) || 0);   // asked for her stylist, migrations/door_request_clients.sql
       });
     });
     return m;
@@ -4270,6 +4271,18 @@ async function doorClientsFor(from, to, codes) {
     const m = await doorClientsByBranch(from, to);
     if (!list.some(c => c in m)) return null;
     return list.reduce((a, c) => a + (m[c] || 0), 0);
+  } catch (e) { return null; }
+}
+// Request clients through the door: counted door clients who asked for their stylist on that visit (Phorest
+// appointments, staffRequested). Same window and branches as doorNewFor. Null when the door count is null.
+async function doorRequestFor(from, to, codes) {
+  if (!from || !to) return null;
+  const list = (codes && codes.length) ? codes : scopeCodes();
+  if (list.some(c => !DOOR_BRANCHES.includes(c))) return null;
+  try {
+    const m = await doorClientsByBranch(from, to);
+    if (!list.some(c => c in m)) return null;
+    return list.reduce((a, c) => a + (m['req:' + c] || 0), 0);
   } catch (e) { return null; }
 }
 const doorOn    = s => CLIENT_BASIS === 'door' && !!s && s.doorClients != null;
@@ -4663,7 +4676,8 @@ async function renderDashboard() {
     const codes = sel.branch.includes('all') ? null : sel.branch;
     s.doorClients = await doorClientsFor(dateFrom, dateTo, codes);
     s.doorNew = await doorNewFor(dateFrom, dateTo, codes);
-    if (prevS && prevWin) { prevS.doorClients = await doorClientsFor(prevWin.from, prevWin.to, codes); prevS.doorNew = await doorNewFor(prevWin.from, prevWin.to, codes); }
+    s.doorRequest = await doorRequestFor(dateFrom, dateTo, codes);
+    if (prevS && prevWin) { prevS.doorClients = await doorClientsFor(prevWin.from, prevWin.to, codes); prevS.doorNew = await doorNewFor(prevWin.from, prevWin.to, codes); prevS.doorRequest = await doorRequestFor(prevWin.from, prevWin.to, codes); }
   }
 
   destroyCharts();
