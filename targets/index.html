@@ -51,6 +51,14 @@ h2{font-family:var(--fd);font-weight:600;font-size:clamp(22px,2.6vw,28px);line-h
 .bar{position:sticky;top:calc(var(--kbh,76px) - 1px);z-index:5;background:var(--bg);padding:10px 0;margin:0 0 22px;border-bottom:1px solid var(--rule)}
 .bar-row{display:flex;gap:8px 20px;flex-wrap:wrap;align-items:center}
 .bar-row + .bar-row{margin-top:8px}
+/* Kate, 27 Oct 2026: the filter bar hides, like the dashboard's Hide filters (same words, same saved choice, trs-filters). Closed, it keeps one slim line. */
+.bar-top{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:0 0 4px}
+.bar-top .tglr{font:inherit;font-size:12.5px;font-weight:500;border:1px solid var(--rule);background:transparent;color:var(--text);border-radius:var(--r-pill);padding:4px 14px;cursor:pointer}
+.bar-top .tglr:hover{background:var(--mint);color:var(--ink)}
+.barsum{margin-right:auto;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.bar.closed{padding:6px 0}
+.bar.closed .bar-top{margin:0}
+.bar.closed #barRows{display:none}
 .seg{display:inline-flex;border:1px solid var(--rule);border-radius:var(--r-pill);padding:3px;gap:2px}
 .seg button{font:inherit;font-size:13px;font-weight:500;border:0;background:transparent;color:var(--text);padding:6px 15px;border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
 .seg button:hover{background:var(--rule)}
@@ -67,8 +75,11 @@ input.f{width:84px;text-align:right;border-radius:var(--r-sm);padding:6px 10px}
 section.card{padding:26px 0 6px;border-top:1px solid var(--rule);margin-top:10px}
 .head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
 .why{font-size:14.5px;font-weight:300;color:var(--muted);margin:6px 0 16px;max-width:78ch}
-.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 22px;margin:12px 0 4px}
-.set label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:300;color:var(--muted)}
+.set{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px 28px;margin:14px 0 6px}
+.set label{display:flex;flex-direction:column;justify-content:space-between;gap:7px;font-size:13.5px;font-weight:400;color:var(--text)}
+.set label small{display:block;font-size:12px;font-weight:300;color:var(--muted);margin-top:2px}
+.set select,.set input.f{box-sizing:border-box;width:100%;min-height:38px;padding:7px 12px;border-radius:var(--r-sm);text-align:left}
+.set input.f{max-width:130px}
 .cal{display:grid;grid-template-columns:repeat(6,1fr);gap:10px 12px;margin-top:10px}
 .cal label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .cal input.f{width:100%}
@@ -76,7 +87,7 @@ details{margin:12px 0 18px}
 summary{cursor:pointer;font-weight:500;font-size:14px}
 .tw{overflow-x:auto}
 table.t{border-collapse:collapse;width:100%;font-size:14.5px}
-table.t th{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px 7px;border-bottom:1px solid var(--rule);white-space:normal;vertical-align:bottom}
+table.t th{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:right;padding:8px 5px;border-bottom:1px solid var(--rule);white-space:normal;vertical-align:bottom}
 table.t th:first-child,table.t td:first-child,table.t th.bd,table.t td.bd,table.t th.nm{text-align:left}
 /* Frozen header and first columns, the way Google Sheets freezes them (Kate, 23 Oct 2026). While the table fits the page the header row sticks under the filter bar and the window scrolls;
    when it is wider than the page (a tablet) the table becomes its own frame that scrolls both ways, header on top, Branch, Dept and Person frozen on the left. targets/index.html stickFit(). */
@@ -94,15 +105,16 @@ table.t thead th{position:sticky;z-index:3;background:var(--bg)}
 .tw:not(.fit) table.t[data-frz="1"] thead th:nth-child(1){z-index:4}
 .tw:not(.fit) table.t tr.sum td:nth-child(1),.tw:not(.fit) table.t tr.tot td:nth-child(1){background:var(--card)}
 table.t td.bd{white-space:nowrap;font-size:13.5px;color:var(--muted)}
-table.t td{padding:11px 7px;border-bottom:1px solid var(--rule);text-align:right;vertical-align:middle;white-space:nowrap;font-variant-numeric:normal tabular-nums}
-table.t td.name{white-space:normal;min-width:210px;font-variant-numeric:normal}
+table.t td.bd:first-child{white-space:normal;min-width:64px}
+table.t td{padding:11px 5px;border-bottom:1px solid var(--rule);text-align:right;vertical-align:middle;white-space:nowrap;font-variant-numeric:normal tabular-nums}
+table.t td.name{white-space:normal;min-width:196px;font-variant-numeric:normal}
 table.t td.name b{font-weight:600}
 /* Kate, 23 Oct 2026: a face beside every name. The portrait is the cutout at its own shape (no circle, no crop), the same rule as the Staff Benchmarks. */
-.who{display:flex;align-items:center;gap:12px}
+.who{display:flex;align-items:center;gap:10px}
 .who .ph{flex:none;height:64px;width:auto;max-width:56px;object-fit:contain;object-position:center bottom}
 .who .ph-ph{flex:none;width:44px;height:64px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;box-sizing:border-box;border-radius:10px;background:var(--card);color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.06em}
 .who .wtxt{min-width:0}
-table.t td[data-l="Clients"]{white-space:normal;min-width:120px;max-width:150px}
+table.t td[data-l="Clients"]{white-space:normal;min-width:108px;max-width:130px}
 table.t td[data-l="Clients"] .rng{white-space:normal}
 .phbd{display:none}
 .tg{font-size:12.5px;font-weight:300;color:var(--muted)}
@@ -114,7 +126,7 @@ td.guess{color:var(--muted);font-style:italic}
 .rng{display:block;font-family:var(--fb);font-size:12px;font-weight:300;color:var(--muted);font-style:normal}
 input.days{width:50px;font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--field);color:var(--text);text-align:right}
 input.days.changed{border-color:var(--mint-deep);background:var(--lime);color:var(--ink)}
-button.how,button.copy{font:inherit;font-size:12.5px;font-weight:500;border:1px solid var(--rule);background:transparent;color:var(--text);border-radius:var(--r-pill);padding:5px 15px;cursor:pointer}
+button.how,button.copy{font:inherit;font-size:12.5px;font-weight:500;border:1px solid var(--rule);background:transparent;color:var(--text);border-radius:var(--r-pill);padding:5px 12px;cursor:pointer}
 button.how:hover,button.copy:hover{background:var(--mint);color:var(--ink)}
 tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px 20px;border-bottom:1px solid var(--rule)}
 .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 28px}
@@ -196,9 +208,11 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 .abf{font-size:12px;font-weight:300;color:var(--muted);margin-top:10px}
 .sft{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:0 0 12px;font-size:13.5px;color:var(--muted)}
 .sft[hidden]{display:none}
+#sfNote:empty{display:none}
 .sft input.days{width:64px}
 .sfopen{display:none}
-.sfb{border:0;background:transparent;color:var(--muted);font-size:10px;line-height:1;padding:3px 4px;margin-left:3px;border-radius:4px;cursor:pointer}
+.sfb{border:0;background:transparent;color:var(--muted);font-size:10px;line-height:1;padding:3px 3px;margin:0 2px;border-radius:4px;cursor:pointer;vertical-align:baseline}
+.nw{white-space:nowrap}
 .sfb:hover{background:var(--track)}
 .sfb.on,.sfb.so{background:var(--mint);color:var(--ink)}
 .sfpop{position:absolute;z-index:60;width:272px;max-height:min(520px,80vh);overflow:auto;background:var(--card);border:1px solid var(--rule);border-radius:var(--r-md);box-shadow:0 8px 28px rgba(0,0,0,.28);padding:10px 12px;font-size:13.5px;color:var(--text);text-align:left;text-transform:none;letter-spacing:0;font-weight:400}
@@ -215,6 +229,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 .sfv i{margin-left:auto;font-style:normal;color:var(--muted);font-size:12px}
 .sfa{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
 .sfa .go{background:var(--mint);color:var(--ink)}
+@media (max-width:760px){.wrap{padding-left:10px;padding-right:10px}}  /* Kate, 23 Oct 2026: one narrow side margin on every phone view */
 @media (max-width:700px){
   .sft .sfopen{display:inline-flex}.sfbulk{flex:1 1 100%}
   .sfpop{position:fixed;left:10px!important;right:10px;top:70px!important;width:auto;max-height:calc(100vh - 90px)}
@@ -273,7 +288,9 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
     <p class="ww-foot"><span>Try it: change a person's days, or add a bottom-up %. Then tap <b>Why this?</b> on any row.</span><a href="/targets/how/">How a target is made</a><button class="copy" id="wwDone" type="button">Got it, hide this</button></p>
   </details>
 
-  <div class="bar">
+  <div class="bar" id="bar">
+    <div class="bar-top"><span class="barsum" id="barSum" hidden></span><button class="tglr" id="barBtn" type="button" aria-expanded="true" aria-controls="barRows">Hide filters</button></div>
+    <div id="barRows">
     <div class="bar-row">
       <span class="eyebrow">Target month</span>
       <select id="selMonth" aria-label="Target month"></select>
@@ -286,6 +303,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
       <span class="eyebrow">Team</span>
       <span class="seg" id="segTeam"><button data-v="ALL" aria-pressed="true">All</button><button data-v="HAIR" aria-pressed="false">Hair</button><button data-v="BEAUTY" aria-pressed="false">Beauty</button></span>
     </div>
+    </div>
   </div>
 
   <div class="tiles" id="tiles"></div>
@@ -294,15 +312,14 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   <details id="settings">
     <summary>Settings and the season calendar</summary>
     <div class="set">
-      <label>Treatment, % of the plan<input class="f" id="pTreat" type="number" min="0" max="60" step="1" value="20"></label>
-      <label>Retail, % of the plan<input class="f" id="pRetail" type="number" min="0" max="40" step="1" value="12"></label>
-      <label>Joiner, % of the regulars' median<input class="f" id="pJoin" type="number" min="30" max="100" step="5" value="70"></label>
-      <label>Average bill for clients<select id="pBill"><option value="1">Level aim</option><option value="0">Level minimum</option></select></label>
-      
-      <label>Joiner cap<select id="pCap"><option value="1">Lower of the 70% and her own pace</option><option value="0">The 70% only</option></select></label>
-      <label>Utilisation for the clients cap, %<input class="f" id="pUtil" type="number" min="50" max="100" step="1" value="85"></label>
-      <label>Clients held to her hours<select id="pClCap"><option value="1">Yes, at the utilisation above (80 to 90 is fine)</option><option value="0">No, target divided by the average bill</option></select></label>
-      <label>Retail we sell today, % (for the net take check)<input class="f" id="pRetailNow" type="number" min="0" max="40" step="1" value="5"></label>
+      <label><span>Treatment<small>% of the plan</small></span><input class="f" id="pTreat" type="number" min="0" max="60" step="1" value="20"></label>
+      <label><span>Retail<small>% of the plan</small></span><input class="f" id="pRetail" type="number" min="0" max="40" step="1" value="12"></label>
+      <label><span>Joiner<small>% of the regulars' median</small></span><input class="f" id="pJoin" type="number" min="30" max="100" step="5" value="70"></label>
+      <label><span>Average bill for clients<small>from the level</small></span><select id="pBill"><option value="1">Level aim</option><option value="0">Level minimum</option></select></label>
+      <label><span>Joiner cap<small>how a joiner's plan is capped</small></span><select id="pCap"><option value="1">Lower of 70% and own pace</option><option value="0">70% only</option></select></label>
+      <label><span>Utilisation for the clients cap<small>% of her hours, 80 to 90 is fine</small></span><input class="f" id="pUtil" type="number" min="50" max="100" step="1" value="85"></label>
+      <label><span>Clients held to her hours<small>or plan divided by the average bill</small></span><select id="pClCap"><option value="1">Yes, at that utilisation</option><option value="0">No</option></select></label>
+      <label><span>Retail we sell today<small>% for the net take check</small></span><input class="f" id="pRetailNow" type="number" min="0" max="40" step="1" value="5"></label>
     </div>
     <p class="sub" style="margin:14px 0 4px">Season numbers. Fixed: measured from our own sales, 2022 to March 2026, and the same for everyone. They cannot be edited here.</p>
     <div class="cal" id="cal"></div>
@@ -583,6 +600,20 @@ document.getElementById('edits').addEventListener('click',e=>{
 })();
 /* Frozen header (Kate, 23 Oct 2026). Fits the page: the header row sticks under the filter bar and the window scrolls. Wider than the page: the table is its own frame, scrolling both ways
    with the header and the first columns frozen. The widths of Branch and Dept place the Person column next to them. On a phone the rows are cards and there is no header. */
+const barBtn=document.getElementById('barBtn'),barEl=document.getElementById('bar');
+function barSum(){
+  const m=document.getElementById('selMonth'),mo=m&&m.options[m.selectedIndex]?m.options[m.selectedIndex].text.replace(/ \(.*$/,''):'';
+  const b=st.branch==='ALL'?'All branches':BN[st.branch],t=st.team==='ALL'?'All teams':st.team==='HAIR'?'Hair':'Beauty';
+  return [mo,st.view==='PERSON'?'By person':'By branch',st.view==='PERSON'?b:'',st.view==='PERSON'?t:''].filter(Boolean).join(' \u00b7 ');
+}
+function setBar(open,save){
+  barEl.classList.toggle('closed',!open);
+  barBtn.textContent=open?'Hide filters':'Show filters';barBtn.setAttribute('aria-expanded',String(open));
+  const sm=document.getElementById('barSum');sm.hidden=open;if(!open)sm.textContent=barSum();
+  if(save){try{localStorage.setItem('trs-filters',open?'open':'closed');}catch(e){}}
+  stickFit();
+}
+barBtn.addEventListener('click',()=>setBar(barEl.classList.contains('closed'),true));
 function stickFit(){
   const tw=document.querySelector('.tw'),t=document.getElementById('tbl'),bar=document.querySelector('.bar');
   if(!tw||!t)return;
@@ -606,6 +637,7 @@ function render(){
   /* the branch and team row must be shown or hidden before stickFit() measures the bar, or the header sticks one row too low (Kate, 27 Oct 2026) */
   document.getElementById('rowFilters').style.display=st.view==='PERSON'?'':'none';
   document.getElementById('sfTools').hidden=st.view!=='PERSON';
+  if(barEl.classList.contains('closed'))document.getElementById('barSum').textContent=barSum();
   stickFit();
 }
 
@@ -774,7 +806,10 @@ function sortRows(list){
 const visible=list=>sortRows(list.filter(r=>passesAll(r)));
 function thCell([k,cls,tt]){
   const c=colOf(k),on=!!sf.f[k],so=sf.sort&&sf.sort.k===k;
-  return `<th${cls?` class="${cls}"`:''}${tt?` title="${tt}"`:''}>${c.t}<button type="button" class="sfb${on?' on':''}${so?' so':''}" data-sf="${k}" aria-haspopup="dialog" aria-label="Sort and filter ${c.t}">${so?(sf.sort.dir>0?'&#9650;':'&#9660;'):'&#9662;'}</button></th>`;
+  const btn=`<button type="button" class="sfb${on?' on':''}${so?' so':''}" data-sf="${k}" aria-haspopup="dialog" aria-label="Sort and filter ${c.t}">${so?(sf.sort.dir>0?'&#9650;':'&#9660;'):'&#9662;'}</button>`;
+  const words=c.t.split(' '),first=words.shift(),rest=words.join(' ');
+  const inner=c.x==='n'?`<span class="nw">${btn}${first}</span>${rest?' '+rest:''}`:`<span class="nw">${c.t}${btn}</span>`;
+  return `<th${cls?` class="${cls}"`:''}${tt?` title="${tt}"`:''}>${inner}</th>`;
 }
 function closePop(){if(pop){pop.remove();pop=null;}}
 const OPS_T=[['','None'],['contains','Text contains'],['notcontains','Text does not contain'],['is','Text is exactly'],['empty','Is empty'],['notempty','Is not empty']];
@@ -963,6 +998,11 @@ document.getElementById('tbl').addEventListener('change',e=>{
   const inp=e.target.closest('input.days');if(!inp)return;
   days[+inp.dataset.i]=Math.max(0,Math.min(26,parseInt(inp.value,10)||0));render();
 });
+try{
+  if(localStorage.getItem('trs-filters')==='closed'&&matchMedia('(min-width:761px)').matches)setBar(false,false);
+  const gb=(localStorage.getItem('trs-branch')||'').toUpperCase().split(',');
+  if(gb.length===1&&BN[gb[0]]){st.branch=gb[0];document.querySelectorAll('#segBranch button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===gb[0]));}
+}catch(e){}
 if(location.hash==='#by-branch'){st.view='BRANCH';document.querySelectorAll('#segView button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==='BRANCH'));}
 loadBu();
 render();
