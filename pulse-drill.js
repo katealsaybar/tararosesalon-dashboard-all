@@ -176,11 +176,13 @@ const PD = (() => {
     const sub = data => {
       const shown = (data.rows || []).length;
       let t = `${esc(ctx.label)}. ${lead}: ${cnt(data.total)} client${data.total === 1 ? '' : 's'} handled, from Phorest's sales lines (every client each staff member handled that day, so a client seen by two staff is in the list twice; a deposit, a balance payment or a voucher bought on its own, staff bookings and the BUSINESS TRS house account are left out).`;
-      if (o.ledger != null) t += ` The branch ledger, typed by reception, shows ${cnt(o.ledger)}${o.ledger === data.total ? ', the same.' : ': they are two separate counts, so they can differ.'}`;
+      if (o.kind === 'req') t += ` ${cnt(o.ledger)} of them asked for ${o.who ? esc(o.who) : 'a stylist'} by name, but neither the ledger nor Phorest keeps which clients those were, only the count, so this is every client handled and not only the requests.`;
+      else if (o.ledger != null) t += ` The branch ledger, typed by reception, shows ${cnt(o.ledger)}${o.ledger === data.total ? ', the same.' : ': they are two separate counts, so they can differ.'}`;
       if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
       return t;
     };
-    return { title: o.who ? `Clients handled · ${o.who}` : `Clients handled · ${o.when}`, cur: ctx.cur, views: [
+    const head = o.kind === 'req' ? 'Requests' : 'Clients handled';
+    return { title: o.who ? `${head} · ${o.who}` : `${head} · ${o.when}`, cur: ctx.cur, views: [
       { id: 'each', label: 'Each client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }],
@@ -237,6 +239,44 @@ const PD = (() => {
     if (emps.length && ledgerValue) row._dn = Object.assign(row._dn || {}, { [key]: staffServicesSpec(ctx, { from: ctx.from, to: ctx.to, branches: [r.code], employees: emps, who: r.n, when: `${bname(r.code)}, ${ctx.range || ctx.label}`, ledger: ledgerValue, kind }) });
     return row;
   }
+  // ── The new clients behind a New clients figure (Kate, 27 Oct 2026) ──
+  // New clients are a client's first paid visit, worked out the way new clients through the door are (drill_staff_new_clients, from door_first_visits), so the
+  // names come from the sales lines. The count in the list above is typed in (ledger) or Phorest's own, so the window says both.
+  function newClientsSpec(ctx, o) {
+    if (!canNames() || !o.from) return null;
+    return { title: o.who ? `New clients \u00b7 ${o.who}` : `New clients \u00b7 ${o.when}`, cur: ctx.cur, views: [{ id: 'each', label: 'Each client', load: async () => {
+      const { data, error } = await sb.rpc('drill_staff_new_clients', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees });
+      if (error) throw error;
+      const rows = data.rows || [];
+      let t = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(data.total)} new client${data.total === 1 ? '' : 's'}, each on her first paid visit, from Phorest's sales lines with her Phorest profile date settling whether she is really new (the same rule as new clients through the door; a client seen by two staff on that day is under each).`;
+      if (o.ledger != null) t += ` The figure you clicked, ${cnt(o.ledger)}, is a separate count (typed by reception or from Phorest's staff report), so they can differ.`;
+      if (data.total > rows.length) t += ` The newest ${cnt(rows.length)} are shown.`;
+      return { sub: t, cols: [{ k: 'd', l: 'First visit', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }],
+        rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: nm(r.e), c: r.c })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' new clients' } : null };
+    } }] };
+  }
+  // A staff row's Phorest or ledger counts (her total, her new clients, her requests) opening the list behind each: x = { code, raw (her name), b, n, v, t }.
+  function personListDn(ctx, x, row, rowKind) {
+    const emps = canNames() ? phoneNames(ctx, x.code, x.raw) : [];
+    if (!emps.length) return row;
+    const base = { from: ctx.from, to: ctx.to, branches: [x.code], employees: emps, who: x.n, when: `${x.b}, ${ctx.range || ctx.label}` };
+    row._dn = row._dn || {};
+    if (x.t) row._dn.t = staffClientsSpec(ctx, Object.assign({}, base, { ledger: x.t }));
+    if (x.v) {
+      if (rowKind === 'nw') row._dn.v = newClientsSpec(ctx, Object.assign({}, base, { ledger: x.v }));
+      else if (rowKind === 'req') row._dn.v = staffClientsSpec(ctx, Object.assign({}, base, { ledger: x.v, kind: 'req' }));
+      else if (rowKind === 't' && row._dn.t) row._dn.v = row._dn.t;
+    }
+    return row;
+  }
+  function withListDn(ctx, r, row, key, kind, ledgerValue) {   // a staff row built from staffRows (r.code, r.st.name)
+    const emps = canNames() ? phoneNames(ctx, r.code, r.st.name) : [];
+    if (emps.length && ledgerValue) {
+      const o = { from: ctx.from, to: ctx.to, branches: [r.code], employees: emps, who: r.n, when: `${bname(r.code)}, ${ctx.range || ctx.label}`, ledger: ledgerValue, kind };
+      row._dn = Object.assign(row._dn || {}, { [key]: kind === 'new' ? newClientsSpec(ctx, o) : staffClientsSpec(ctx, o) });
+    }
+    return row;
+  }
   // The Clients figure on a staff row, wherever a list has one (Clients, Net take, Avg bill, Requested): it opens that person's clients.
   function withClientsDn(ctx, r, row) {
     const emps = canNames() ? phoneNames(ctx, r.code, r.st.name) : [];
@@ -283,7 +323,7 @@ const PD = (() => {
 
   // ── Requests per staff ──
   function reqStaff(ctx, dept) {
-    const rows = staffRows(ctx, dept).map(r => withClientsDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, rq: r.st.req || 0, cl: r.st.total, pc: r.st.total ? (r.st.req || 0) / r.st.total * 100 : null })).filter(r => r.cl).sort((a, b) => b.rq - a.rq);
+    const rows = staffRows(ctx, dept).map(r => withListDn(ctx, r, withClientsDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, rq: r.st.req || 0, cl: r.st.total, pc: r.st.total ? (r.st.req || 0) / r.st.total * 100 : null }), 'rq', 'req', r.st.req || 0)).filter(r => r.cl).sort((a, b) => b.rq - a.rq);
     const bd = dept === 'beauty' ? ctx.s.beautyBreakdown : ctx.s.hairBreakdown;
     const wantR = dept ? ((bd && bd.req) || 0) : (((ctx.s.hairBreakdown && ctx.s.hairBreakdown.req) || 0) + ((ctx.s.beautyBreakdown && ctx.s.beautyBreakdown.req) || 0));
     const wantC = dept === 'hair' ? ctx.s.hairTotalClients : dept === 'beauty' ? ctx.s.beautyTotalClients : ctx.s.totalClients;
@@ -377,6 +417,8 @@ const PD = (() => {
         row._dn = {};
         if (st.total) row._dn.cl = staffClientsSpec(ctx, Object.assign({}, win, { ledger: st.total }));
         if (st.netSalonTake) row._dn.net = staffServicesSpec(ctx, Object.assign({}, win, { ledger: st.netSalonTake, kind: 'net' }));
+        if (st.req) row._dn.rq = staffClientsSpec(ctx, Object.assign({}, win, { ledger: st.req, kind: 'req' }));
+        if (st.newC) row._dn.nw = newClientsSpec(ctx, Object.assign({}, win, { ledger: st.newC }));
       }
       rows.push(row);
     });
@@ -584,12 +626,7 @@ const PD = (() => {
         const x = g.get(k) || { b: bname(r.branch), n: nm(staffMapKey(r.staff_name)), v: 0, t: 0, code: r.branch, raw: r.staff_name };
         x.v += Number(r[f]) || 0; x.t += Number(r.total) || 0; g.set(k, x);
       });
-      [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).forEach(x => {
-        const row = { b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) };
-        const emps = canNames() ? phoneNames(ctx, x.code, x.raw) : [];
-        if (emps.length && x.t) { const sp = staffClientsSpec(ctx, { from: ctx.from, to: ctx.to, branches: [x.code], employees: emps, who: x.n, when: `${x.b}, ${ctx.range || ctx.label}`, ledger: x.t }); row._dn = { t: sp }; if (o.row === 't') row._dn.v = sp; }   // the typed counts of requests, new and salon clients keep no names; her total does
-        rows.push(row);
-      });
+      [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).forEach(x => rows.push(personListDn(ctx, x, { b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }, o.row)));   // her total, her new clients and her requests open the list behind them
       const want = F.ledger[side][o.row], sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
       const d = Math.abs(sum - want) >= 0.5 ? { b: '', n: 'Not matched to a branch row', v: want - sum, t: null, pc: null, _cls: 'dr-muted' } : null;
       if (d) rows.push(d);
@@ -600,14 +637,14 @@ const PD = (() => {
     const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {}, ledgerDept = {};
     ((ctx.rows && ctx.rows.ledger) || []).forEach(r => { const dp = String(r.dept || '').trim().toLowerCase(); if (dp) ledgerDept[staffMapKey(r.staff_name)] = dp === 'beauty' ? 'beauty' : 'hair'; });
     const g = new Map();
-    const at = (r, who) => { const k = r.branch + '|' + who.key; if (!g.has(k)) g.set(k, { b: bname(r.branch), n: nm(who.key), v: 0, t: 0 }); return g.get(k); };
+    const at = (r, who) => { const k = r.branch + '|' + who.key; if (!g.has(k)) g.set(k, { b: bname(r.branch), n: nm(who.key), v: 0, t: 0, code: r.branch, raw: who.key }); return g.get(k); };
     const pick = o.row === 'req' ? 'rqs' : o.row === 'nw' ? 'new_clients' : 'visits';
     if (o.row === 'reb') {
       (F.rebook || []).forEach(r => { const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who || who.side !== side) return; const x = at(r, who); x.v += Number(r.rebooked) || 0; x.t += Number(r.visits) || 0; });
     } else {
       ((ctx.rows && ctx.rows.phorest) || []).forEach(r => { if (r.is_total) return; const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who || who.side !== side) return; const x = at(r, who); x.v += Number(r[pick]) || 0; x.t += Number(r.visits) || 0; });
     }
-    [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).forEach(x => rows.push({ b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }));
+    [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).forEach(x => rows.push(personListDn(ctx, x, { b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }, o.row)));
     const want = F.phorest[side][o.row], sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
     const d = (want != null && Math.abs(sum - want) >= 0.5) ? { b: '', n: 'Not matched to a branch row', v: want - sum, t: null, pc: null, _cls: 'dr-muted' } : null;
     if (d) rows.push(d);
@@ -655,7 +692,8 @@ const PD = (() => {
     const F = FIELDS[key], dept = F.dept;
     // each figure opens the lines behind it: the retail lists the products, the service lists the services
     const lineKind = { retail: 'retail', hairRetail: 'retail', beautyRetail: 'retail', retailUnits: 'retail', hairRetailUnitsH: 'retail', beautyRetailUnitsB: 'retail', hairSvc: 'service', beautySvc: 'service', finServices: 'service', servicesTotal: 'service', hairSvcEx: 'service' }[key];
-    const rows = staffRows(ctx, dept).map(r => { const row = { b: r.b, n: r.n, dp: r.dp, v: +F.get(r) || 0 }; return lineKind ? withServicesDn(ctx, r, row, 'v', row.v, lineKind) : row; }).filter(r => r.v).sort((a, b) => b.v - a.v);
+    const listKind = { newc: 'new', request: 'req' }[key];
+    const rows = staffRows(ctx, dept).map(r => { const row = { b: r.b, n: r.n, dp: r.dp, v: +F.get(r) || 0 }; return lineKind ? withServicesDn(ctx, r, row, 'v', row.v, lineKind) : listKind ? withListDn(ctx, r, row, 'v', listKind, row.v) : row; }).filter(r => r.v).sort((a, b) => b.v - a.v);
     if (F.house !== undefined) houseRetail(ctx, F.house).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, v: h.net, _cls: 'dr-muted' }));
     const want = F.want(ctx), sum = rows.reduce((a, r) => a + r.v, 0);
     const d = (want != null && Math.abs(sum - want) >= 0.5) ? { b: '', n: 'Not matched to a branch row', dp: '', v: want - sum, _cls: 'dr-muted' } : null;
@@ -672,10 +710,10 @@ const PD = (() => {
       if (r.is_total) return;
       const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who) return;
       const k = r.branch + '|' + who.side + '|' + who.key;
-      const x = g.get(k) || { b: bname(r.branch), n: nm(who.key), dp: who.side === 'hair' ? 'Hair' : 'Beauty', v: 0, t: 0 };
+      const x = g.get(k) || { b: bname(r.branch), n: nm(who.key), dp: who.side === 'hair' ? 'Hair' : 'Beauty', v: 0, t: 0, code: r.branch, raw: who.key };
       x.v += Number(r[pick]) || 0; x.t += Number(r.visits) || 0; g.set(k, x);
     });
-    const rows = [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v);
+    const rows = [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).map(x => personListDn(ctx, x, x, row));
     const want = ctx.s.ph ? ctx.s.ph.hair[row] + ctx.s.ph.beauty[row] : null, sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
     const d = (want != null && Math.abs(sum - want) >= 0.5) ? { b: '', n: 'Not matched to a branch row', dp: '', v: want - sum, t: null, _cls: 'dr-muted' } : null;
     if (d) rows.push(d);

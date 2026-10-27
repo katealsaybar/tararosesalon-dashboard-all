@@ -15,7 +15,8 @@
 (function () {
   'use strict';
   if (window.TRSD) return;
-  const REG = new Map();
+  const REG = new Map(), MREG = new Map();   // REG: figures on the page; MREG: figures inside the list that is open, forgotten when it closes
+  const lookup = id => REG.get(id) || MREG.get(id);
   let seq = 0, box = null, from = null, spec = null, cache = null, cur = 0;
   // Each open list has its own address (Kate, 27 Oct 2026: "specific url slug per reports"): ?r=clients-by-staff, or a list opened from inside another one,
   // ?r=net-take.clients-handled-april-miraflor. Back goes up one list and then closes; a link or a reload reopens it once the page has drawn its figures.
@@ -36,7 +37,7 @@
     const v = row[col.k];
     if (col.t === 'html') return v == null ? '' : v;
     const f = FMT[col.t];
-    const txt = f ? f(v, spec && spec.cur) : esc(v);
+    const txt = f ? f(v, spec && spec.cur) : esc(v).replace(/ ([A-Za-z])(?=,|$)/g, '&nbsp;$1');
     // A row can make one of its figures clickable too: row._dn = { column key: the spec it opens } (the Clients count on a staff row).
     return (row._dn && row._dn[col.k] && v != null && v !== '') ? num(txt, row._dn[col.k]) : txt;
   }
@@ -45,17 +46,18 @@
   function num(html, sp) {
     if (!sp) return html;
     const id = 'd' + (++seq);
-    if (REG.size > 8000) REG.clear();
-    REG.set(id, sp);
+    const m = box ? MREG : REG;
+    if (m.size > 60000) m.clear();
+    m.set(id, sp);
     return `<span class="dn" role="button" tabindex="0" data-dn="${id}" title="See who">${html}</span>`;
   }
 
   // For an element that is not a span (an SVG square): just the id, to put on it as data-dn with class dn-cell.
-  function reg(sp) { const id = 'd' + (++seq); if (REG.size > 8000) REG.clear(); REG.set(id, sp); return id; }
+  function reg(sp) { const id = 'd' + (++seq), m = box ? MREG : REG; if (m.size > 60000) m.clear(); m.set(id, sp); return id; }
 
   function hide() {
     if (box) box.remove();
-    box = null; spec = null; cache = null;
+    box = null; spec = null; cache = null; MREG.clear();
     document.body.classList.remove('dr-open');
   }
   function close() {
@@ -126,7 +128,7 @@
   function drawTable(res) {
     const body = box.querySelector('.dr-body'), st = fst[cur] || (fst[cur] = { f: {}, sort: null }), cols = res.cols, vw = viewOf(res);
     const top = body.scrollTop, left = body.scrollLeft;
-    const cls = c => NUMT(c) ? 'r' : c.t === 'date' ? 'nw' : '';
+    const cls = c => NUMT(c) ? 'r' : c.t === 'date' ? 'nw' : /^branch$/i.test(c.l) ? 'br' : '';
     const head = cols.map(c => {
       const sorted = st.sort && st.sort.k === c.k, on = sorted || !!st.f[c.k];
       return `<th class="${cls(c)}"><span class="dr-th"><span class="dr-tl">${esc(c.l)}${sorted ? (st.sort.dir > 0 ? ' ↑' : ' ↓') : ''}</span><button type="button" class="dr-fb${on ? ' on' : ''}" data-fc="${esc(c.k)}" aria-label="Filter ${esc(c.l)}" aria-haspopup="true"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button></span></th>`;
@@ -297,7 +299,7 @@
     let i = 0, tries = 0;
     const timer = setInterval(() => {
       if (++tries > 70 || (box && chain.length !== i)) { clearInterval(timer); return; }   // gave up, or the person opened something else
-      let hit = null; REG.forEach(sp => { if (!hit && slug(sp.title) === want[i]) hit = sp; });
+      let hit = null; [REG, MREG].forEach(m => m.forEach(sp => { if (!hit && slug(sp.title) === want[i]) hit = sp; }));
       if (!hit) return;
       if (i === 0) { try { history.replaceState(history.state, '', rUrl([])); } catch (e) {} }   // the page's own address first, so Back closes the list instead of leaving the page
       open(hit, null); i++;
@@ -309,13 +311,13 @@
     const n = e.target.closest && e.target.closest('[data-dn]');
     if (!n) return;
     e.stopPropagation(); e.preventDefault();
-    const sp = REG.get(n.dataset.dn);
+    const sp = lookup(n.dataset.dn);
     if (sp) open(sp, n);
   }, true);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && box) { if (pop) { closePop(); return; } close(); return; }
     const n = e.target.closest && e.target.closest('[data-dn]');
-    if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const sp = REG.get(n.dataset.dn); if (sp) open(sp, n); }
+    if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const sp = lookup(n.dataset.dn); if (sp) open(sp, n); }
   });
 
   window.TRSD = { num, reg, open, close, esc, fmt: { n0, day } };
