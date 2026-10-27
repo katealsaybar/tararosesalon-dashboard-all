@@ -4090,14 +4090,17 @@ function fnBuildBody(F, src) {
     </div>`;
   }).join('');
   const sum = (o, ks) => ks.reduce((a, k) => a + (o[k] || 0), 0);
-  const ratio = (label, hn, hd, bn, bd) =>
-    `<span>${label}</span><span class="rv l">${fnPct(hn, hd)}</span><span class="rv r">${fnPct(bn, bd)}</span>`;
+  // Kate, 27 Oct 2026: a ratio opens the staff it is made of (pulse-drill.js), the same way a funnel count does; a zero stays plain.
+  // Ledger source: the ledger's own counts per staff (fnr). Phorest source: the funnel's own Phorest list for that row.
+  const rd = (n, d, side, spec) => (F.pd && d && n > 0 && spec) ? TRSD.num(fnPct(n, d), PD.spec(spec[0], F.pd, Object.assign({ side, F }, spec[1]))) : fnPct(n, d);
+  const ratio = (label, hn, hd, bn, bd, spec) =>
+    `<span>${label}</span><span class="rv l">${rd(hn, hd, 'hair', spec)}</span><span class="rv r">${rd(bn, bd, 'beauty', spec)}</span>`;
   let ratios, foot;
   if (led) {
     ratios = [
-      ratio('Request rate (request + NCR)', H.req + H.ncr, H.t, B.req + B.ncr, B.t),
-      ratio('Returning who asked by name', H.req, H.salon + H.req, B.req, B.salon + B.req),
-      ratio('New who asked by name', H.ncr, H.nw + H.ncr, B.ncr, B.nw + B.ncr)];
+      ratio('Request rate (request + NCR)', H.req + H.ncr, H.t, B.req + B.ncr, B.t, ['fnr', { key: 'ask' }]),
+      ratio('Returning who asked by name', H.req, H.salon + H.req, B.req, B.salon + B.req, ['fnr', { key: 'ret' }]),
+      ratio('New who asked by name', H.ncr, H.nw + H.ncr, B.ncr, B.nw + B.ncr, ['fnr', { key: 'new' }])];
     const ret = (o, t) => fnPct(o.salon + o.req, t), nw = (o, t) => fnPct(o.nw + o.ncr, t);
     foot = `Percent is of ${hasBeauty ? `each side's own ledger total: ${fnNum(H.t)} hair, ${fnNum(B.t)} beauty` : `the ${fnNum(H.t)} hair ledger total`}. `
       + (hasBeauty
@@ -4106,9 +4109,9 @@ function fnBuildBody(F, src) {
       + ' Hover a code for its full name.';
   } else {
     ratios = [
-      ratio('Request rate (requests / visits)', H.req, H.t, B.req, B.t),
-      ratio('Rebooking rate (rebooked / visits)', H.reb, H.t, B.reb, B.t),
-      ratio('New clients / visits', H.nw, H.t, B.nw, B.t)];
+      ratio('Request rate (requests / visits)', H.req, H.t, B.req, B.t, ['fn', { row: 'req', led: false }]),
+      ratio('Rebooking rate (rebooked / visits)', H.reb, H.t, B.reb, B.t, ['fn', { row: 'reb', led: false }]),
+      ratio('New clients / visits', H.nw, H.t, B.nw, B.t, ['fn', { row: 'nw', led: false }])];
     foot = `Percent is of ${hasBeauty ? `each side's Phorest visits: ${fnNum(H.t)} hair, ${fnNum(B.t)} beauty` : `the ${fnNum(H.t)} hair visits`}. `
       + 'Salon and NCR are ledger-only, so they read n/a here. Phorest counts new clients differently from the ledger, so New will not match it.'
       + (H.reb == null ? ' Rebooked is not available for this selection.' : '') + ' Hover a code for its full name.';

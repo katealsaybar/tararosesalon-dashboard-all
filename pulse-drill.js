@@ -608,6 +608,86 @@ const PD = (() => {
     };
   }
 
+  // ── Treatment takings over time (Kate, 27 Oct 2026: the Treatments AED and its Total were plain text) ──
+  // Treatments are a ledger column typed by reception, so no client rows sit behind them. A staff row opens that person's days (or months, for a long window) with the ledger's
+  // treatment takings beside the services; the Total opens the days of the window, and each day opens the staff behind it. Every list is built from the rows the
+  // Pulse already loaded, so it adds up to the figure it was opened from.
+  function bucketWin(ctx, bk, x) {
+    const last = new Date(+x.k.slice(0, 4), +x.k.slice(5, 7), 0).getDate(), a = bk.byDay ? x.k : x.k + '-01', b = bk.byDay ? x.k : x.k + '-' + String(last).padStart(2, '0');
+    return { from: a < ctx.from ? ctx.from : a, to: b > ctx.to ? ctx.to : b };
+  }
+  const TX_NOTE = 'The last grey line is the gap between the figure and the rows above: the figure works the whole window out in one go, the rows one day or month at a time. It brings the list to the figure.';
+  function treatPersonSpec(ctx, r, t) {
+    if (!ctx.rows || !ctx.from) return null;
+    const bk = buckets(ctx);
+    return { title: `Treatments · ${r.n}`, cur: ctx.cur, views: [{ id: 'days', label: bk.byDay ? 'By day' : 'By month', load: async () => {
+      const key = staffMapKey(r.st.name), hair = r.dp === 'Hair', rows = [];
+      const emps = canNames() ? phoneNames(ctx, r.code, r.st.name) : [];
+      bk.list.forEach(x => {
+        const d = aggDailyData([], x.L.filter(q => q.branch === r.code), x.P.filter(q => q.branch === r.code));
+        if (!d) return;
+        const st = ((hair ? d.hairStaff : d.beautyStaff) || []).find(p => staffMapKey(p.name) === key);
+        if (!st) return;
+        const tx = hair ? (st.treatments || 0) : 0, svc = hair ? (st.hairSalesNet || 0) : (st.beautySales || 0);
+        if (!tx && !svc) return;
+        const w = whenLabel(x.k, bk.byDay), row = { k: x.k, w, tx, svc, pc: pctOf(tx, svc) };
+        if (emps.length && svc) { const win = bucketWin(ctx, bk, x); row._dn = { svc: staffServicesSpec(ctx, { from: win.from, to: win.to, branches: [r.code], employees: emps, who: r.n, when: `${bname(r.code)}, ${w}`, ledger: svc }) }; }
+        rows.push(row);
+      });
+      rows.sort((a, b) => b.k.localeCompare(a.k));
+      const sTx = rows.reduce((a, x) => a + x.tx, 0), sSvc = rows.reduce((a, x) => a + x.svc, 0);
+      const d = (Math.abs(sTx - t.tx) >= 0.5 || Math.abs(sSvc - t.svc) >= 0.5) ? { w: 'Not matched to a day', tx: t.tx - sTx, svc: t.svc - sSvc, pc: null, _cls: 'dr-muted' } : null;
+      if (d) rows.push(d);
+      return { cols: [{ k: 'w', l: bk.byDay ? 'Day' : 'Month' }, { k: 'tx', l: 'Treatments', t: 'aed' }, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'pc', l: 'Treatment', t: 'pct' }],
+        rows, foot: { w: 'Total', tx: t.tx, svc: t.svc, pc: pctOf(t.tx, t.svc) },
+        sub: `${esc(ctx.label)}. ${esc(r.n)} at ${esc(r.b)}, ${bk.byDay ? 'day by day' : 'month by month'}. The treatment takings are typed into the branch ledger by reception, so there are no client rows behind them. The services are the ledger's hair services (treatments and courses included), and a ${bk.byDay ? 'day' : 'month'}'s services open Phorest's lines for it, a separate count that can differ.`,
+        note: d ? TX_NOTE : '' };
+    } }] };
+  }
+  // The same staff list for one day (or month): the window's context cut to that day's rows, the way branchCtx does for a branch.
+  function dayCtx(ctx, bk, x, s) {
+    const win = bucketWin(ctx, bk, x), hairNet = (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0), beautyNet = (s.beautyServicesTotal || 0) + (s.beautyRetailOnly || 0);
+    return Object.assign({}, ctx, { s, label: `${whenLabel(x.k, bk.byDay)}, ${ctx.label}`, range: whenLabel(x.k, bk.byDay), weekly: null, _bb: null, _bk: null, _hs: undefined, from: win.from, to: win.to,
+      days: Math.round((new Date(win.to) - new Date(win.from)) / 86400000) + 1, rows: { ledger: x.L, phorest: x.P },
+      card: { net: s.netTake, hairNet, beautyNet, hairSvc: s.hairServicesIncl, beautySvc: s.beautyServicesTotal } });
+  }
+  function treatTimeSpec(ctx, sd, want) {
+    if (!ctx.rows || !ctx.from) return null;
+    const bk = buckets(ctx);
+    return { title: `Treatments${deptTitle(sd)} · ${bk.byDay ? 'by day' : 'by month'}`, cur: ctx.cur, views: [{ id: 'time', label: bk.byDay ? 'By day' : 'By month', load: async () => {
+      const rows = [];
+      bk.list.forEach(x => {
+        const d = aggDailyData([], x.L, x.P);
+        if (!d) return;
+        const s = d.summary, tx = sd === 'beauty' ? 0 : (s.treatmentSales || 0), svc = sd === 'hair' ? (s.hairServicesIncl || 0) : sd === 'beauty' ? (s.beautyServicesTotal || 0) : (s.hairServicesIncl || 0) + (s.beautyServicesTotal || 0);
+        if (!tx && !svc) return;
+        const row = { k: x.k, w: whenLabel(x.k, bk.byDay), tx, svc, pc: pctOf(tx, svc) };
+        const dc = dayCtx(ctx, bk, x, s), sp = { title: `Treatment %${deptTitle(sd)} · ${row.w}`, cur: ctx.cur, views: [{ id: 'bench', label: 'By staff', load: async () => benchList(dc, 'Treatment %', sd) }] };
+        row._dn = Object.assign({}, tx ? { tx: sp, pc: sp } : {}, svc ? { svc: sp } : {});
+        rows.push(row);
+      });
+      rows.sort((a, b) => b.k.localeCompare(a.k));
+      const sTx = rows.reduce((a, x) => a + x.tx, 0), sSvc = rows.reduce((a, x) => a + x.svc, 0);
+      const d = (Math.abs(sTx - want.tx) >= 0.5 || Math.abs(sSvc - want.svc) >= 0.5) ? { w: 'Not matched to a day', tx: want.tx - sTx, svc: want.svc - sSvc, pc: null, _cls: 'dr-muted' } : null;
+      if (d) rows.push(d);
+      return { cols: [{ k: 'w', l: bk.byDay ? 'Day' : 'Month' }, { k: 'tx', l: 'Treatments', t: 'aed' }, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'pc', l: 'Treatment', t: 'pct' }],
+        rows, foot: { w: 'Total', tx: want.tx, svc: want.svc, pc: pctOf(want.tx, want.svc) },
+        sub: `${esc(ctx.label)}. Every ${bk.byDay ? 'day' : 'month'} of the window${sd ? ', ' + (sd === 'hair' ? 'hair' : 'beauty') + ' only' : ''}. Treatment takings are typed into the branch ledger by reception, so there are no client rows behind them: a figure here opens the staff behind that ${bk.byDay ? 'day' : 'month'}, with the ledger's numbers.`,
+        note: d ? TX_NOTE : '' };
+    } }] };
+  }
+  // A zero stays plain, as everywhere.
+  function treatDn(ctx, r, row) {
+    const sp = row.tx ? treatPersonSpec(ctx, r, { tx: row.tx, svc: row.svc }) : null;
+    if (sp) row._dn = Object.assign(row._dn || {}, { tx: sp, pc: sp });
+    return row;
+  }
+  function treatFootDn(ctx, sd, foot) {
+    const sp = (foot.tx || foot.svc) ? treatTimeSpec(ctx, sd, { tx: foot.tx, svc: foot.svc }) : null;
+    if (sp) foot._dn = Object.assign({}, foot.tx ? { tx: sp, pc: sp } : {}, foot.svc ? { svc: sp } : {});
+    return foot;
+  }
+
   // ── The benchmarks (Below target, Working): the two numbers each ratio is made of, per staff ──
   const pctOf = (n, d) => d ? n / d * 100 : null;
   const fix2 = v => (Math.round(v * 100) / 100).toFixed(2) + '%';
@@ -639,11 +719,11 @@ const PD = (() => {
         'Clients who booked their next visit before leaving, out of the clients the ledger typed for each staff member. Counted per staff, so no client names.');
     }
     if (name === 'Treatment %') {
-      const rows = staffRows(ctx, sd).map(r => { const tx = r.dp === 'Hair' ? (r.st.treatments || 0) : 0; return withServicesDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, tx, svc: svcOf(r), pc: pctOf(tx, svcOf(r)) }, 'svc', svcOf(r)); }).filter(r => r.svc || r.tx).sort((a, b) => b.svc - a.svc);
+      const rows = staffRows(ctx, sd).map(r => { const tx = r.dp === 'Hair' ? (r.st.treatments || 0) : 0; return treatDn(ctx, r, withServicesDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, tx, svc: svcOf(r), pc: pctOf(tx, svcOf(r)) }, 'svc', svcOf(r))); }).filter(r => r.svc || r.tx).sort((a, b) => b.svc - a.svc);
       const tx = rows.reduce((a, r) => a + r.tx, 0), svc = rows.reduce((a, r) => a + r.svc, 0);
       const want = sd === 'hair' ? (s.hairServicesIncl ? (s.treatmentSales || 0) / s.hairServicesIncl * 100 : 0) : (ctx.card.hairSvc + ctx.card.beautySvc ? (s.treatmentSales || 0) / (ctx.card.hairSvc + ctx.card.beautySvc) * 100 : 0);
-      return wrap([...head, { k: 'tx', l: 'Treatments', t: 'aed' }, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'pc', l: 'Treatment', t: 'pct' }], rows, { b: 'Total', n: '', dp: '', tx, svc, pc: pctOf(tx, svc) }, want,
-        `Treatment takings (a ledger column, hair only) over ${sd === 'hair' ? 'hair' : 'hair and beauty'} services, including courses.`);
+      return wrap([...head, { k: 'tx', l: 'Treatments', t: 'aed' }, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'pc', l: 'Treatment', t: 'pct' }], rows, treatFootDn(ctx, sd, { b: 'Total', n: '', dp: '', tx, svc, pc: pctOf(tx, svc) }), want,
+        `Treatment takings (a ledger column, hair only) over ${sd === 'hair' ? 'hair' : 'hair and beauty'} services, including courses. Treatments are typed into the ledger by reception, so there are no client rows behind them: a figure here opens that person's days with the ledger's numbers, and the Total opens the days of the window.`);
     }
     if (name === 'Retail %') {
       const rows = staffRows(ctx, sd).map(r => withServicesDn(ctx, r, withServicesDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, svc: svcOf(r), rt: r.st.retail || 0 }, 'svc', svcOf(r)), 'rt', r.st.retail || 0, 'retail')).filter(r => r.svc || r.rt);
@@ -759,11 +839,11 @@ const PD = (() => {
         const x = g.get(k) || { b: bname(r.branch), n: nm(staffMapKey(r.staff_name)), v: 0, t: 0, code: r.branch, raw: r.staff_name };
         x.v += Number(r[f]) || 0; x.t += Number(r.total) || 0; g.set(k, x);
       });
-      [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).forEach(x => rows.push(personListDn(ctx, x, { b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }, o.row)));   // her total, her new clients and her requests open the list behind them
-      const want = F.ledger[side][o.row], sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
-      const d = Math.abs(sum - want) >= 0.5 ? { b: '', n: 'Not matched to a branch row', v: want - sum, t: null, pc: null, _cls: 'dr-muted' } : null;
+      [...g.values()].filter(x => x.v || x.t).sort((a, b) => b.v - a.v || b.t - a.t).forEach(x => rows.push(personListDn(ctx, x, { b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }, o.row)));   // her total, her new clients and her requests open the list behind them
+      const want = F.ledger[side][o.row], wantT = F.ledger[side].t, sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
+      const d = (Math.abs(sum - want) >= 0.5 || Math.abs(tot - wantT) >= 0.5) ? { b: '', n: 'Not matched to a branch row', v: want - sum, t: wantT - tot, pc: null, _cls: 'dr-muted' } : null;
       if (d) rows.push(d);
-      return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, { k: 'v', l: FN_NAME[o.row], t: 'num' }, { k: 't', l: 'Her ledger total', t: 'num' }, { k: 'pc', l: 'Share', t: 'pct' }], rows, foot: { b: 'Total', n: '', v: want, t: tot, pc: pctOf(want, tot) },
+      return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, { k: 'v', l: FN_NAME[o.row], t: 'num' }, { k: 't', l: 'Her ledger total', t: 'num' }, { k: 'pc', l: 'Share', t: 'pct' }], rows, foot: { b: 'Total', n: '', v: want, t: wantT, pc: pctOf(want, wantT) },
         sub: `${esc(ctx.label)}. ${sideWord}, ${FN_NAME[o.row].toLowerCase()} from the branch ledger, per staff member. Reception types these in, so there are no client names.`, note: d ? DIFF_NOTE : '' };
     }
     // Phorest's own counts per staff
@@ -772,18 +852,65 @@ const PD = (() => {
     const g = new Map();
     const at = (r, who) => { const k = r.branch + '|' + who.key; if (!g.has(k)) g.set(k, { b: bname(r.branch), n: nm(who.key), v: 0, t: 0, code: r.branch, raw: who.key }); return g.get(k); };
     const pick = o.row === 'req' ? 'rqs' : o.row === 'nw' ? 'new_clients' : 'visits';
-    if (o.row === 'reb') {
-      (F.rebook || []).forEach(r => { const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who || who.side !== side) return; const x = at(r, who); x.v += Number(r.rebooked) || 0; x.t += Number(r.visits) || 0; });
-    } else {
-      ((ctx.rows && ctx.rows.phorest) || []).forEach(r => { if (r.is_total) return; const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who || who.side !== side) return; const x = at(r, who); x.v += Number(r[pick]) || 0; x.t += Number(r.visits) || 0; });
-    }
-    [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).forEach(x => rows.push(personListDn(ctx, x, { b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }, o.row)));
-    const want = F.phorest[side][o.row], sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
-    const d = (want != null && Math.abs(sum - want) >= 0.5) ? { b: '', n: 'Not matched to a branch row', v: want - sum, t: null, pc: null, _cls: 'dr-muted' } : null;
+    // Her visits are every Phorest staff row of hers, whatever the count asked for, so the share's base is the funnel's own visits (and a staff member with none of
+    // the thing still shows, with 0) (Kate, 27 Oct 2026: the Ratio table's percentages open these lists, so the base has to add up to the card's).
+    ((ctx.rows && ctx.rows.phorest) || []).forEach(r => { if (r.is_total) return; const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who || who.side !== side) return; const x = at(r, who); x.t += Number(r.visits) || 0; if (o.row !== 'reb') x.v += Number(r[pick]) || 0; });
+    if (o.row === 'reb') (F.rebook || []).forEach(r => { const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who || who.side !== side) return; at(r, who).v += Number(r.rebooked) || 0; });
+    [...g.values()].filter(x => x.v || x.t).sort((a, b) => b.v - a.v || b.t - a.t).forEach(x => rows.push(personListDn(ctx, x, { b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }, o.row)));
+    const want = F.phorest[side][o.row], wantT = F.phorest[side].t, sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
+    const d = ((want != null && Math.abs(sum - want) >= 0.5) || Math.abs(tot - wantT) >= 0.5) ? { b: '', n: 'Not matched to a branch row', v: want != null ? want - sum : null, t: wantT - tot, pc: null, _cls: 'dr-muted' } : null;
     if (d) rows.push(d);
     const lbl = { t: 'Staff visits', req: 'Requests (RQ)', nw: 'New clients', reb: 'Rebooked' }[o.row] || FN_NAME[o.row];
-    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, { k: 'v', l: lbl, t: 'num' }, { k: 't', l: 'Her Phorest visits', t: 'num' }, { k: 'pc', l: 'Share', t: 'pct' }], rows, foot: { b: 'Total', n: '', v: want, t: tot, pc: pctOf(want, tot) },
+    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, { k: 'v', l: lbl, t: 'num' }, { k: 't', l: 'Her Phorest visits', t: 'num' }, { k: 'pc', l: 'Share', t: 'pct' }], rows, foot: { b: 'Total', n: '', v: want, t: wantT, pc: pctOf(want, wantT) },
       sub: `${esc(ctx.label)}. ${sideWord}, ${lbl.toLowerCase()} from Phorest's own staff reports, per staff member. A client seen by two staff is two visits. Phorest keeps counts here, not client names.`, note: d ? DIFF_NOTE : '' };
+  }
+
+  // ── The Ratio table under the Client Funnel (Kate, 27 Oct 2026): each percentage opens the staff behind it ──
+  // Ledger source: the three ratios are made of ledger counts typed by reception, so there are no client rows behind them. The list is per staff with those counts;
+  // the request, new request and total figures in it open the Phorest clients (a separate count, and the window says so). Phorest source: the same lists as the funnel's
+  // own rows (fnList), which already carry her count, her visits and the share.
+  const FNR = {
+    ask: { t: 'Request rate', a: [['req', 'Request clients'], ['ncr', 'New client requests']], c: ['t', 'Ledger total'], num: x => x.req + x.ncr, den: x => x.t, n: L => [L.req, L.ncr], dn: L => L.t,
+      why: 'Clients who asked for their stylist by name (returning request clients plus new client requests) out of the ledger total.' },
+    ret: { t: 'Returning who asked by name', a: [['req', 'Request clients']], c: ['ret', 'Returning clients'], num: x => x.req, den: x => x.salon + x.req, n: L => [L.req], dn: L => L.salon + L.req,
+      why: 'Request clients out of the returning clients (salon clients plus request clients).' },
+    new: { t: 'New who asked by name', a: [['ncr', 'New client requests']], c: ['newc', 'New clients'], num: x => x.ncr, den: x => x.nw + x.ncr, n: L => [L.ncr], dn: L => L.nw + L.ncr,
+      why: 'New client requests out of the new clients (new clients plus new client requests).' },
+  };
+  function fnRatioList(ctx, o) {
+    const K = FNR[o.key], side = o.side, L = o.F.ledger[side], sideWord = side === 'hair' ? 'Hair' : 'Beauty', g = new Map();
+    ((ctx.rows && ctx.rows.ledger) || []).forEach(r => {
+      const up = String(r.staff_name || '').trim().toUpperCase();
+      if (LEDGER_NON_PERSON_NAMES.has(up) || isLedgerAssistantName(up)) return;
+      if ((String(r.dept || '').trim().toLowerCase() === 'beauty' ? 'beauty' : 'hair') !== side) return;
+      const k = r.branch + '|' + staffMapKey(r.staff_name);
+      const x = g.get(k) || { b: bname(r.branch), n: nm(staffMapKey(r.staff_name)), code: r.branch, raw: r.staff_name, t: 0, salon: 0, req: 0, nw: 0, ncr: 0 };
+      x.t += Number(r.total) || 0; x.salon += Number(r.salon) || 0; x.req += Number(r.req) || 0; x.nw += Number(r.new_client) || 0; x.ncr += Number(r.ncr) || 0; g.set(k, x);
+    });
+    const rows = [...g.values()].map(x => {
+      const row = { b: x.b, n: x.n, req: x.req, ncr: x.ncr, t: x.t, ret: x.salon + x.req, newc: x.nw + x.ncr, an: K.num(x), cd: K.den(x) };
+      row.pc = pctOf(row.an, row.cd);
+      const emps = canNames() ? phoneNames(ctx, x.code, x.raw) : [];
+      if (emps.length) {
+        const base = { from: ctx.from, to: ctx.to, branches: [x.code], employees: emps, who: x.n, when: `${x.b}, ${ctx.range || ctx.label}` };
+        row._dn = {};
+        if (x.req) row._dn.req = staffClientsSpec(ctx, Object.assign({}, base, { ledger: x.req, kind: 'req' }));
+        if (x.ncr) row._dn.ncr = newClientsSpec(ctx, Object.assign({}, base, { ledger: x.ncr, kind: 'ncr' }));
+        if (x.t) row._dn.t = staffClientsSpec(ctx, Object.assign({}, base, { ledger: x.t }));
+      }
+      return row;
+    }).filter(r => r.an || r.cd).sort((a, b) => b.an - a.an || (b.pc || 0) - (a.pc || 0));
+    const wantN = K.n(L), wantD = K.dn(L);
+    const sumN = rows.reduce((a, r) => a + r.an, 0), sumD = rows.reduce((a, r) => a + r.cd, 0);
+    const mis = {}; K.a.forEach((a, i) => { mis[a[0]] = wantN[i] - rows.reduce((s, r) => s + r[a[0]], 0); });
+    const d = (Math.abs(sumN - wantN.reduce((a, v) => a + v, 0)) >= 0.5 || Math.abs(sumD - wantD) >= 0.5) ? Object.assign({ b: '', n: 'Not matched to a branch row', pc: null, _cls: 'dr-muted' }, mis, { [K.c[0]]: wantD - rows.reduce((s, r) => s + r[K.c[0]], 0) }) : null;
+    if (d) rows.push(d);
+    const foot = { b: 'Total', n: '', pc: pctOf(wantN.reduce((a, v) => a + v, 0), wantD) };
+    K.a.forEach((a, i) => { foot[a[0]] = wantN[i]; }); foot[K.c[0]] = wantD;
+    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, ...K.a.map(a => ({ k: a[0], l: a[1], t: 'num' })), { k: K.c[0], l: K.c[1], t: 'num' }, { k: 'pc', l: 'Rate', t: 'pct' }],
+      rows, foot,
+      sub: `${esc(ctx.label)}. ${sideWord}, ${K.t.toLowerCase()}: ${K.why} All of these are typed into the branch ledger by reception, so there are no client names behind the counts. ${{ ask: 'The request, new request and total figures', ret: 'The request figure', new: 'The new request figure' }[o.key]} open${o.key === 'ask' ? '' : 's'} the clients Phorest recorded for that staff member, a separate count that can differ.`,
+      note: d ? DIFF_NOTE : '' };
   }
 
   // A branch column on the Branch Performance chart: that branch's own rows and summary, as the chart drew them (not cut by the Branch filter).
@@ -957,6 +1084,10 @@ const PD = (() => {
       if (!staffOK || o.uns || !FN_FIELD[o.row]) return null;
       if (!o.led && !['t', 'req', 'nw', 'reb'].includes(o.row)) return null;
       return { title: `${FN_NAME[o.row]} · ${o.side === 'hair' ? 'Hair' : 'Beauty'}, ${o.led ? 'ledger' : 'Phorest'}`, cur, views: [{ id: 'fn', label: 'By staff', load: async () => { const r = fnList(ctx, o); if (!r) throw new Error('No list'); return r; } }] };
+    }
+    if (kind === 'fnr') {
+      if (!staffOK || !FNR[o.key]) return null;
+      return { title: `${FNR[o.key].t} · ${o.side === 'hair' ? 'Hair' : 'Beauty'}, ledger`, cur, views: [{ id: 'fnr', label: 'By staff', load: async () => fnRatioList(ctx, o) }] };
     }
     if (kind === 'field') {
       if (!staffOK || !FIELDS[o.key]) return null;
