@@ -25,7 +25,7 @@
   const FMT = {
     num: v => v == null || v === '' ? '' : (Math.round(+v * 100) / 100).toLocaleString('en-GB'),
     aed: (v, c) => v == null || v === '' ? '' : (c || 'AED') + ' ' + n0(v),
-    date: v => day(v),
+    date: v => { const f = day(v), m = /^(\d+ \w+) \d{4}$/.exec(f); return m ? `<span class="dt-l">${f}</span><span class="dt-s">${m[1]}</span>` : f; },   // the year is left off on a phone, where the window says it
     pct: v => v == null || v === '' || !isFinite(v) ? '–' : (Math.round(+v * 10) / 10) + '%',
   };
   function cell(col, row, foot) {
@@ -129,6 +129,7 @@
     box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div><h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><button type="button" class="dr-x" data-dx>Close</button></div><div class="dr-bar">${tabs}<div class="dr-save"><span class="dr-saved" role="status"></span><button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div><div class="dr-body"></div></div>`;
     box.addEventListener('click', e => {
       if (e.target === box || e.target.closest('[data-dx]')) { close(); return; }
+      const sb = e.target.closest('.dr-sub'); if (sb) { sb.classList.toggle('open'); return; }   // phone: the note is two lines until tapped
       const t = e.target.closest('[data-dv]'); if (t) { pick(+t.dataset.dv); return; }
       const d = e.target.closest('[data-ds]'); if (d && !d.disabled) save(d.dataset.ds);
     });
