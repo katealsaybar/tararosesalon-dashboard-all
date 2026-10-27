@@ -61,7 +61,7 @@ function wvRmPaint() {
         <div class="wv-ll"><span class="slv-note">Status</span><span>${st} ${pills}</span></div>
         <div class="wv-ll"><span class="slv-note">Send at</span><span>${at}</span></div>
         <div class="wv-ll"><span class="slv-note">Last sent</span><span>${wait ? '<span class="slv-muted">in progress</span>' : dt(j.last_sent_at)}</span></div>
-        <div class="wv-ll"><span class="slv-note">Left out</span><span>${out ? `<b>${lcNum(out)}</b> now: ${outList}` : 'No one now. Checked again when you press Send, and once more before each client is tagged.'}</span></div>
+        <div class="wv-ll"><span class="slv-note">Left out</span><span>${out ? `<b>${lcNum(out)}</b> now: ${outList}` : '<span class="slv-muted">No one now. Checked again when you press Send, and once more before each client is tagged.</span>'}</span></div>
         ${atSend ? `<div class="wv-ll"><span class="slv-note">Dropped</span><span>${atSend}</span></div>` : ''}
         <div class="wv-lb">${act}</div></div></div>
     <div class="wv-acts" style="margin-top:8px"><button type="button" class="tglr lc-btn" onclick="wvRmTest()"${wvRmBusy || !i.test_ready ? ' disabled' : ''} title="Tags your own number only. If the workflow is Published, one WhatsApp reaches your phone">Send a test to my phone</button></div>

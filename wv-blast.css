@@ -159,5 +159,5 @@
 .wv-bbtn{padding:5px 14px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600}
 .wv-mfacts dd{font-size:14px}
 /* Blast 4 reminder panel (wv-remind.js, 27 Oct 2026): the publish-first warning sits between the intro and the card */
-.wv-rm-warn{margin:10px 0 0;line-height:1.5;padding:10px 12px;border:1px solid var(--bad);border-radius:10px}
+.wv-rm-warn{margin:10px 0 0;line-height:1.5;font-size:14px;padding:10px 12px;border:1px solid var(--bad);border-radius:10px}
 #wvRmBox{margin-top:14px}
