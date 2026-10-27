@@ -20,6 +20,7 @@
   let seq = 0, box = null, from = null, spec = null, cache = null, cur = 0;
   // Each open list has its own address (Kate, 27 Oct 2026: "specific url slug per reports"): ?r=clients-by-staff, or a list opened from inside another one,
   // ?r=net-take.clients-handled-april-miraflor. Back goes up one list and then closes; a link or a reload reopens it once the page has drawn its figures.
+  let under = [];   // windows underneath a client window: it opens on top of the list instead of replacing it (Kate, 27 Oct 2026), so the list keeps its place and filters
   let chain = [], pushed = 0, origin = null, ignorePop = 0;   // ignorePop: the one popstate our own Close causes, which must not close whatever opens next
   const rUrl = list => { const u = new URL(location.href); if (list && list.length) u.searchParams.set('r', list.map(x => slug(x.title)).join('.')); else u.searchParams.delete('r'); return u.pathname + u.search + u.hash; };
 
@@ -49,7 +50,7 @@
     const m = box ? MREG : REG;
     if (m.size > 60000) m.clear();
     m.set(id, sp);
-    return `<span class="dn" role="button" tabindex="0" data-dn="${id}" title="See who">${html}</span>`;
+    return `<span class="dn" role="button" tabindex="0" data-dn="${id}" title="${esc(sp.tip || 'See who')}">${html}</span>`;
   }
 
   // For an element that is not a span (an SVG square): just the id, to put on it as data-dn with class dn-cell.
@@ -57,12 +58,13 @@
 
   function hide() {
     if (box) box.remove();
-    box = null; spec = null; cache = null; MREG.clear();
+    box = null; spec = null; cache = null;
     document.body.classList.remove('dr-open');
   }
   function close() {
     const n = pushed, f = origin || from;
-    hide(); chain = []; pushed = 0; origin = null; from = null;
+    under.forEach(w => { if (w.box) w.box.remove(); }); under = [];
+    hide(); MREG.clear(); chain = []; pushed = 0; origin = null; from = null;
     if (f && document.contains(f)) f.focus();
     try {
       if (n > 0) { const tok = ignorePop = Date.now(); history.go(-n); setTimeout(() => { if (ignorePop === tok) ignorePop = 0; }, 800); }   // back to the address the page had before the list opened
@@ -139,6 +141,30 @@
     body.scrollTop = top; body.scrollLeft = left;
     const fb = box.querySelector('.dr-fbar');
     if (fb) { fb.hidden = !vw.active; fb.querySelector('.dr-fcount').textContent = vw.filtered ? 'Showing ' + vw.rows.length.toLocaleString('en-GB') + ' of ' + vw.total.toLocaleString('en-GB') + ' rows' : 'Sorted'; }
+  }
+  // ── Phone and email beside a client's name (Kate, 27 Oct 2026): "client contact deets should be here, as separate columns". A list says which column holds the
+  // client (res.client = { k: column key, b: key of the branch code on the row, optional }); at Level 5 (the Client Book rule: phones and emails never reach a lower
+  // level) the contacts are fetched once, two columns are added after the name and the table is drawn again. Lower levels see no extra columns and no request is made.
+  const mailHtml = e => String(e || '').split(' / ').filter(Boolean).map(x => `<a href="mailto:${esc(x)}" class="dr-em" style="color:inherit">${esc(x)}</a>`).join('<br>');
+  const telHtml = m => String(m || '').split(' / ').filter(Boolean).map(x => `<a href="tel:${esc(x)}" style="color:inherit;white-space:nowrap">${esc(x)}</a>`).join('<br>');
+  async function withContacts(res, i) {
+    if (res._ct || !res.client || !res.rows || !res.rows.length) return;
+    if (typeof TRS_LEVEL === 'undefined' || TRS_LEVEL < 5 || typeof sb === 'undefined') return;
+    res._ct = 1;
+    const ck = res.client.k, bk = res.client.b;
+    const keyOf = r => String(r[ck] == null ? '' : r[ck]).toLowerCase().replace(/\s+/g, ' ').trim() + '|' + (bk ? (r[bk] || '') : '');
+    const idx = new Map(), items = [];
+    res.rows.forEach(r => { const k = keyOf(r); if (k.charAt(0) !== '|' && !idx.has(k)) { idx.set(k, items.length); items.push([String(r[ck]), bk ? (r[bk] || '') : '']); } });
+    if (!items.length) return;
+    try {
+      const { data, error } = await sb.rpc('drill_client_contacts', { p_items: items });
+      if (error) throw error;
+      const m = new Map(); (data || []).forEach(x => m.set(x.i, x));
+      res.rows.forEach(r => { const x = m.get(idx.get(keyOf(r))); if (x) { r.ph = telHtml(x.m); r.em = mailHtml(x.e); } });
+      const at = res.cols.findIndex(c => c.k === ck) + 1;
+      res.cols.splice(at, 0, { k: 'ph', l: 'Phone', t: 'html' }, { k: 'em', l: 'Email', t: 'html' });
+      if (box && cache && cache[i] === res && cur === i) drawTable(res);
+    } catch (e) { console.warn('contacts', e && e.message); }   // not Level 5, or not available: the list stays as it was
   }
   function closePop() { if (pop) { pop.remove(); pop = null; } }
   function openPop(btn, key) {
@@ -247,11 +273,14 @@
     if (!box || spec !== sp) return;   // closed, or another one opened, while it loaded
     cache[i] = res;
     if (cur === i) paint(res, v);
+    withContacts(res, i);
   }
 
   function open(sp, el, replay) {
     const nested = !!box;
-    if (nested) hide(); else { chain = []; pushed = 0; origin = el || document.activeElement; }
+    if (nested && sp.panel) { closePop(); under.push({ box, spec, cache, cur, fst }); box = null; }   // a window on top: the list underneath stays as it is
+    else if (nested) hide();
+    else { chain = []; pushed = 0; under = []; origin = el || document.activeElement; }
     chain.push(sp);
     try {
       if (replay && !nested) history.replaceState(history.state, '', rUrl(chain));   // the address already carries it
@@ -262,15 +291,15 @@
   function show(sp) {
     spec = sp; cache = []; cur = 0; fst = []; pop = null;
     box = document.createElement('div');
-    box.className = 'dr-modal'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', sp.title);
+    box.className = 'dr-modal' + (sp.panel ? ' dr-win' : ''); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', sp.title);
     const tabs = sp.views.length > 1 ? `<div class="dr-tabs" role="group" aria-label="View">${sp.views.map((v, i) => `<button type="button" data-dv="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`).join('')}</div>` : '<div></div>';
-    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><button type="button" class="dr-x" data-dx>Close</button></div><div class="dr-bar">${tabs}<div class="dr-fbar" hidden><span class="dr-fcount"></span><button type="button" class="dr-fclear" data-fclear>Clear filters</button></div><div class="dr-save"><span class="dr-saved" role="status"></span><button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div><div class="dr-body"></div></div>`;
+    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><div class="dr-hx">${sp.panel ? `<a class="dr-nt" href="${esc(location.origin + rUrl(chain))}" target="_blank" rel="noopener" title="Open this window on its own page">Open in new tab</a>` : ''}<button type="button" class="dr-x" data-dx>Close</button></div></div><div class="dr-bar">${tabs}<div class="dr-fbar" hidden><span class="dr-fcount"></span><button type="button" class="dr-fclear" data-fclear>Clear filters</button></div><div class="dr-save"><span class="dr-saved" role="status"></span><button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div><div class="dr-body"></div></div>`;
     box.addEventListener('scroll', e => { if (pop && !pop.contains(e.target)) closePop(); }, true);
     box.addEventListener('click', e => {
       const fbn = e.target.closest('[data-fc]'); if (fbn) { openPop(fbn, fbn.dataset.fc); return; }
       if (pop && !e.target.closest('.dr-pop')) closePop();
       if (e.target.closest('[data-fclear]')) { fst[cur] = { f: {}, sort: null }; if (cache && cache[cur]) drawTable(cache[cur]); return; }
-      if (e.target === box || e.target.closest('[data-dx]')) { close(); return; }
+      if (e.target === box || e.target.closest('[data-dx]')) { if (spec && spec.panel && under.length) { goBack(); return; } close(); return; }   // a window closes itself, back to the list under it
       if (e.target.closest('[data-db]')) { goBack(); return; }   // Kate, 27 Oct 2026: a way back up when a list was opened from another list
       const sb = e.target.closest('.dr-sub'); if (sb) { sb.classList.toggle('open'); return; }   // phone: the note is two lines until tapped
       const t = e.target.closest('[data-dv]'); if (t) { pick(+t.dataset.dv); return; }
@@ -280,17 +309,25 @@
     const b = box.querySelector('[data-dx]'); if (b) b.focus();
     pick(0);
   }
+  function stepUp() {
+    const gone = chain.pop();
+    if (gone && gone.panel && under.length) {   // a window on top of a list: take it away and the list is as it was
+      if (box) box.remove();
+      const w = under.pop(); box = w.box; spec = w.spec; cache = w.cache; cur = w.cur; fst = w.fst; pop = null;
+      document.body.classList.add('dr-open');
+    } else { hide(); show(chain[chain.length - 1]); }
+  }
   function goBack() {
     if (chain.length < 2) return;
     if (pushed > 0) { history.back(); return; }   // the popstate handler below does the rest
-    chain.pop(); hide(); show(chain[chain.length - 1]);
+    stepUp();
   }
   window.addEventListener('popstate', () => {
     if (ignorePop) { ignorePop = 0; return; }
     if (!box) return;
     if (pushed > 0) pushed--;
-    if (chain.length > 1) { chain.pop(); hide(); show(chain[chain.length - 1]); }
-    else { hide(); chain = []; pushed = 0; if (origin && document.contains(origin)) origin.focus(); origin = null; }
+    if (chain.length > 1) stepUp();
+    else { under.forEach(w => { if (w.box) w.box.remove(); }); under = []; hide(); chain = []; pushed = 0; if (origin && document.contains(origin)) origin.focus(); origin = null; }
   });
   // A link with ?r=... : open that list as soon as the page has drawn the figure that holds it (and, for a list inside a list, the one inside).
   (function restore() {
@@ -315,7 +352,7 @@
     if (sp) open(sp, n);
   }, true);
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && box) { if (pop) { closePop(); return; } close(); return; }
+    if (e.key === 'Escape' && box) { if (pop) { closePop(); return; } if (spec && spec.panel && under.length) { goBack(); return; } close(); return; }
     const n = e.target.closest && e.target.closest('[data-dn]');
     if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const sp = lookup(n.dataset.dn); if (sp) open(sp, n); }
   });

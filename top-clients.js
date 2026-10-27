@@ -185,6 +185,8 @@ async function renderTopClients() {
     const d = await listP;
     if (seq !== tcSeq) return;
     if (!d || !Array.isArray(d.rows)) throw new Error('no data');
+    await tcContacts(d.rows);
+    if (seq !== tcSeq) return;
     tcData = d;
   } catch (e) {
     console.error(e);
@@ -193,6 +195,18 @@ async function renderTopClients() {
   }
   tcPaint();
 }
+
+// Phone and email for the rows on screen, at Level 5 only (drill_client_contacts refuses anyone lower, as Client Book does). The phone the list already carries wins; one is
+// filled in from Phorest's client list when the list has none. Nothing is asked below Level 5.
+async function tcContacts(rows) {
+  if (typeof TRS_LEVEL === 'undefined' || TRS_LEVEL < 5 || !rows.length) return;
+  try {
+    const { data, error } = await sb.rpc('drill_client_contacts', { p_items: rows.map(r => [r.client_name, TC.branch === 'all' ? '' : TC.branch]) });
+    if (error) throw error;
+    (data || []).forEach(x => { const r = rows[x.i]; if (r) { r._em = x.e || ''; if (!r.mobile && !r.landline && x.m) r.mobile = x.m; } });
+  } catch (e) { console.warn('contacts', e && e.message); }
+}
+const tcMail = e => String(e || '').split(' / ').filter(Boolean).map(x => `<a href="mailto:${lcEsc(x)}" class="lc-mail" title="${lcEsc(x)}">${lcEsc(x)}</a>`).join('<br>') || '<span class="slv-muted">\u2013</span>';
 
 function tcPaint() {
   const body = document.getElementById('tcBody');
@@ -301,7 +315,7 @@ function tcPaintTable() {
       return ((x < y ? -1 : x > y ? 1 : 0) * TC.sortdir) || (a._rank - b._rank);
     });
   lcShown = shown;
-  const open = tcCanOpen(), phones = tcData.rows.some(r => r.mobile || r.landline);
+  const open = tcCanOpen(), phones = tcData.rows.some(r => r.mobile || r.landline), emails = tcData.rows.some(r => r._em);
   const cls = open ? 'lc-row' : 'tc-flat';
   const click = i => open ? ` onclick="lcToggleDetail(event,${i})"` : '';
   const rank = r => `<span class="top3-rank ${_rankCls(r._rank)}">${r._rank + 1}</span>`;
@@ -309,9 +323,9 @@ function tcPaintTable() {
   const cols = [
     ['rank', '#', null], ['client', 'Client', 'name'], ['rev', 'Revenue', 'rev'], ['visits', 'Visits', 'n'], ['avg', 'Avg / visit', 'avg'],
     ['last', 'Last seen', 'away'], ['stylist', 'Usual stylist', null], ['beauty', 'Usual beautician', null],
-  ].concat(phones ? [['phone', 'Phone', null]] : []);
+  ].concat(phones ? [['phone', 'Phone', null]] : []).concat(emails ? [['email', 'Email', null]] : []);
   const head = ([c, label, k]) => {
-    const left = ['rank', 'client', 'stylist', 'beauty', 'phone'].includes(c) ? ' lc-l' : '';
+    const left = ['rank', 'client', 'stylist', 'beauty', 'phone', 'email'].includes(c) ? ' lc-l' : '';
     if (!k) return `<th class="lc-th tc-c-${c}${left}">${label}</th>`;
     const sorted = TC.sortk === k ? `<svg class="lc-sort${TC.sortdir > 0 ? ' up' : ''}" viewBox="0 0 12 12" aria-label="${TC.sortdir > 0 ? 'sorted up' : 'sorted down'}"><path d="M6 2v8M2.5 6.5 6 10l3.5-3.5"/></svg>` : '<svg class="lc-fn" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>';
     return `<th class="lc-th tc-c-${c}${left}${TC.sortk === k ? ' on' : ''}"><button type="button" class="lc-thb" onclick="tcSort('${k}')">${label}${sorted}</button></th>`;
@@ -326,6 +340,7 @@ function tcPaintTable() {
       <td class="lc-stc">${lcTeamCell(lcTeam(r).hair)}</td>
       <td class="lc-stc">${lcTeamCell(lcTeam(r).beauty)}</td>
       ${phones ? `<td>${lcPhone(r)}</td>` : ''}
+      ${emails ? `<td class="lc-l">${tcMail(r._em)}</td>` : ''}
     </tr>`).join('');
   const cards = shown.map((r, i) => `<li class="prd-card ${cls}"${click(i)}>
       <div class="prd-body">
@@ -334,6 +349,7 @@ function tcPaintTable() {
         ${r.fav ? `<div class="prd-meta">${lcEsc(r.fav)}</div>` : ''}
         ${['hair', 'beauty'].map(t => { const l = lcTeam(r)[t]; return l.length ? `<div class="prd-meta lc-also-line">${t === 'hair' ? 'Stylist' : 'Beautician'} ${lcStylist(l[0])}${l.length > 1 ? ' · also ' + l.slice(1, 3).map(lcStylist).join(', ') + (l.length > 3 ? ' +' + (l.length - 3) : '') : ''}</div>` : ''; }).join('')}
         ${phones && (r.mobile || r.landline) ? `<div class="prd-meta" style="margin-top:4px">${lcPhone(r)}</div>` : ''}
+        ${emails && r._em ? `<div class="prd-meta lc-em">${tcMail(r._em)}</div>` : ''}
         ${open ? '<div class="lc-hint-m">Tap for her visits ›</div>' : ''}
       </div>
     </li>`).join('');

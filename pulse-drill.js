@@ -88,13 +88,13 @@ const PD = (() => {
         if (tot > 0.005) {
           [['Hair', hs.hair], ['Beauty', hs.beauty], ['Unsorted', hs.unsorted]].forEach(([dp, v]) => {
             const x = v / tot * ua;
-            if (Math.abs(x) >= 0.005) out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp, svc: 0, rt: x, net: x, cl: null, _cls: 'dr-muted' });
+            if (Math.abs(x) >= 0.005) { const sp = houseRetailSpec(ctx, { code: b.code, dept: dp.toLowerCase() }); out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp, svc: 0, rt: x, net: x, cl: null, _cls: 'dr-muted', _sp: sp, _dn: { rt: sp, net: sp } }); }
           });
           return;
         }
       }
       const sh = ctx.s.retailHairShare == null ? 1 : ctx.s.retailHairShare;   // the card's share for the whole window, so the hair and beauty lists add up to the card
-      const row = (v, dp) => { if (Math.abs(v) >= 0.005) out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp, svc: 0, rt: v, net: v, cl: null, _cls: 'dr-muted' }); };
+      const row = (v, dp) => { if (Math.abs(v) >= 0.005) { const sp = houseRetailSpec(ctx, { code: b.code, dept: dp ? dp.toLowerCase() : (dept || null) }); out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp, svc: 0, rt: v, net: v, cl: null, _cls: 'dr-muted', _sp: sp, _dn: { rt: sp, net: sp } }); } };
       if (dept === 'hair') row(ua * sh, '');
       else if (dept === 'beauty') row(ua * (1 - sh), '');
       else { row(ua * sh, 'Hair'); row(ua * (1 - sh), 'Beauty'); }   // both departments listed: one line each, so the department column is never blank and the two still add to the card
@@ -170,6 +170,77 @@ const PD = (() => {
       } },
     ] };
   }
+  // ── One client in her own window (Kate, 27 Oct 2026: "client name clickable, to show appointment history", "pop up in new window") ──
+  // Her visits come from the sales lines (a visit is a client-day with a paid sale, the rule of clients through the door) and her upcoming bookings from the Phorest
+  // bookings pulled into client_bookings (drill_client_history, Level 3 and above). Phone and email are in the summary at Level 5 only, as in Client Book. Phorest visit and
+  // client notes are deliberately not here: they are complaint-scan material.
+  function clientHistorySpec(ctx, o) {
+    if (!canNames() || !o.client) return null;
+    let P = null;
+    const load = () => P || (P = (async () => { const { data, error } = await sb.rpc('drill_client_history', { p_client: o.client, p_branches: o.branches || null }); if (error) throw error; return data; })().catch(e => { P = null; throw e; }));
+    const people = t => (t || []).map(x => `${esc(nm(x.e))} (${cnt(x.d)})`).join(', ');
+    const sub = d => {
+      let t = `${esc(o.client)}: ${cnt(d.visits)} visit${d.visits === 1 ? '' : 's'}`;
+      if (d.visits) t += `, first ${TRSD.fmt.day(d.first)}, last ${TRSD.fmt.day(d.last)}, AED ${cnt(Math.round(d.spent))} spent`;
+      t += ' (from Phorest sales lines: a visit is a day with a paid sale; deposits, balance payments and vouchers are not visits).';
+      if (d.team && d.team.length) t += ` Most often seen by ${people(d.team)}.`;
+      if (d.since) t += ` Phorest profile created ${TRSD.fmt.day(d.since)}.`;
+      if (d.contact && (d.contact.m || d.contact.e)) t += ` ${d.contact.m ? 'Phone ' + esc(d.contact.m) + '. ' : ''}${d.contact.e ? 'Email ' + esc(d.contact.e) + '.' : ''}${d.contact.n > 1 ? ' (' + cnt(d.contact.n) + ' Phorest profiles carry this name.)' : ''}`;
+      return t;
+    };
+    return { title: `Client · ${o.client}`, panel: true, tip: 'See her visits', cur: ctx.cur, views: [
+      { id: 'visits', label: 'Visits', load: async () => {
+        const d = await load(), rows = d.rows || [];
+        return { sub: sub(d), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'e', l: 'Staff' }, { k: 's', l: 'Services' }, { k: 'p', l: 'Retail' }, { k: 'n', l: 'Spent', t: 'aed' }],
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: String(r.e || '').split(', ').filter(Boolean).map(nm).join(', '), s: r.s || '', p: r.p || '', n: r.n,
+            _dn: { n: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: o.client }) } })),
+          foot: d.visits <= rows.length ? { d: '', b: '', e: '', s: cnt(d.visits) + ' visits', p: '', n: d.spent } : null,
+          empty: 'No paid visits found for this name.' };
+      } },
+      { id: 'upcoming', label: 'Upcoming', load: async () => {
+        const d = await load(), rows = d.upcoming || [];
+        return { sub: `${esc(o.client)}: ${cnt(rows.length)} upcoming booking${rows.length === 1 ? '' : 's'}, from the Phorest bookings pulled on ${d.pulled ? TRSD.fmt.day(d.pulled) : 'an earlier day'}. A booking made or changed since then is not here.`,
+          cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'e', l: 'Staff' }, { k: 's', l: 'Services' }],
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: String(r.e || '').split(', ').filter(Boolean).map(nm).join(', '), s: r.s || '' })), empty: 'No upcoming bookings found.' };
+      } },
+    ] };
+  }
+  // ── The lines behind "Retail rung with no stylist" (Kate, 27 Oct 2026: "business trs values not clickable") ──
+  // What the front desk rings against the BUSINESS TRS house account: the products, with the Hair, Beauty or Unsorted word read from the product name, as the split on the
+  // Hair and Beauty cards does it. The figure on the row is scaled to the ledger's own retail, so the lines can differ a little from it, and the window says so.
+  function houseRetailSpec(ctx, o) {
+    if (!canNames() || !o.code) return null;
+    const dword = { hair: 'Hair', beauty: 'Beauty', unsorted: 'Unsorted' }[o.dept] || '';
+    return { title: `Retail with no stylist · ${bname(o.code)}${dword ? ', ' + dword : ''}`, cur: ctx.cur, tip: 'See the lines', views: [
+      { id: 'lines', label: 'By product', load: async () => {
+        const d = await houseLinesLoad(ctx, o), rows = d.rows || [];
+        if (d.lines > rows.length) return { sub: houseSub(ctx, o, d, dword), rows: [], empty: 'Too many lines to group by product. Pick a shorter window.' };
+        const m = new Map();
+        rows.forEach(r => { const k = String(r.i).toLowerCase().trim(), x = m.get(k) || { i: r.i, k: r.k, v: 0, n: 0 }; x.v += r.r ? -1 : 1; x.n += +r.n || 0; m.set(k, x); });
+        const list = [...m.values()].sort((a, b) => b.n - a.n || a.i.localeCompare(b.i));
+        return { sub: houseSub(ctx, o, d, dword), cols: [{ k: 'i', l: 'Product' }, { k: 'k', l: 'Department' }, { k: 'v', l: 'Sold', t: 'num' }, { k: 'n', l: 'Net', t: 'aed' }],
+          rows: list.map(x => ({ i: x.i, k: { hair: 'Hair', beauty: 'Beauty', unsorted: 'Unsorted' }[x.k] || x.k, v: x.v, n: x.n })), foot: { i: 'Total', k: '', v: list.reduce((a, x) => a + x.v, 0), n: d.total } };
+      } },
+      { id: 'each', label: 'Each line', load: async () => {
+        const d = await houseLinesLoad(ctx, o), rows = d.rows || [];
+        return { sub: houseSub(ctx, o, d, dword), client: { k: 'c', b: 'bc' }, cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'c', l: 'Client' }, { k: 'i', l: 'Product' }, { k: 'k', l: 'Department' }, { k: 'n', l: 'Net', t: 'aed' }],
+          rows: rows.map(r => ({ d: r.d, bc: r.b, c: r.c, i: r.r ? r.i + ' (refund)' : r.i, k: { hair: 'Hair', beauty: 'Beauty', unsorted: 'Unsorted' }[r.k] || r.k, n: r.n, _dn: { c: r.c === 'No name' ? null : clientHistorySpec(ctx, { client: r.c }) } })),
+          foot: d.lines <= rows.length ? { d: '', c: cnt(d.lines) + ' lines', i: '', k: '', n: d.total } : null };
+      } },
+    ] };
+  }
+  async function houseLinesLoad(ctx, o) {
+    const { data, error } = await sb.rpc('drill_house_retail_lines', { p_from: ctx.from, p_to: ctx.to, p_branches: [o.code], p_dept: o.dept || null });
+    if (error) throw error;
+    return data;
+  }
+  function houseSub(ctx, o, d, dword) {
+    let t = `${esc(ctx.label)}. ${esc(bname(o.code))}${dword ? ', ' + dword : ''}: ${cnt(d.lines)} line${d.lines === 1 ? '' : 's'}, AED ${cnt(Math.round(d.total))}, products rung to the BUSINESS TRS house account (retail with no stylist), from Phorest's sales lines (on a paid sale; blow-dry packages and sessions are left out, refunds come off).`;
+    if (dword) t += ` Hair, Beauty and Unsorted are read from the product names, the way the Hair and Beauty cards split it.`;
+    t += ` The figure you clicked is scaled to the ledger's own retail for the branch, so it can differ a little from these lines.`;
+    if (d.lines > (d.rows || []).length) t += ` The newest ${cnt((d.rows || []).length)} are shown.`;
+    return t;
+  }
   function staffClientsSpec(ctx, o) {
     if (!canNames() || !o.from) return null;
     const lead = o.who ? `${esc(o.who)}, ${esc(o.when)}` : esc(o.when);
@@ -186,7 +257,7 @@ const PD = (() => {
       { id: 'each', label: 'Each client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }],
-          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: r.e, c: r.c, s: r.s, _dn: { s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, who: nm(r.e) }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
+          client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, s: r.s, _dn: { c: clientHistorySpec(ctx, { client: r.c }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, who: nm(r.e) }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
       } },
       { id: 'by', label: 'By client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
@@ -195,7 +266,7 @@ const PD = (() => {
         rows.forEach(r => { const k = String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, v: 0, s: 0, e: new Set() }; x.v++; x.s += +r.s || 0; x.e.add(r.e); m.set(k, x); });
         const list = [...m.values()].sort((a, b) => b.v - a.v || b.s - a.s || a.c.localeCompare(b.c));
         return { sub: sub(data) + ` ${cnt(list.length)} different client names.`, cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: o.who ? 'Days' : 'Times handled', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }])],
-          rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: o.from, to: o.to, branches: o.branches, employees: o.employees, client: x.c, who: o.who || '' }); return { c: x.c, v: x.v, s: x.s, e: [...x.e].map(nm).join(', '), _dn: { s: sp, v: sp } }; }), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
+          client: { k: 'c' }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: o.from, to: o.to, branches: o.branches, employees: o.employees, client: x.c, who: o.who || '' }); return { c: x.c, v: x.v, s: x.s, e: [...x.e].map(nm).join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c }) } }; }), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
       } },
     ] };
   }
@@ -230,7 +301,7 @@ const PD = (() => {
       { id: 'each', label: 'Each line', load: async () => {
         const data = await staffServicesLoad(ctx, o), rows = data.rows || [];
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 'i', l: lab }, { k: 'n', l: 'Net', t: 'aed' }],
-          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: nm(r.e), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' lines', i: '', n: data.net } : null };
+          client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n, _dn: { c: r.c === 'No name' ? null : clientHistorySpec(ctx, { client: r.c }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' lines', i: '', n: data.net } : null };
       } },
     ] };
   }
@@ -253,7 +324,7 @@ const PD = (() => {
       else if (o.ledger != null) t += ` The figure you clicked, ${cnt(o.ledger)}, is a separate count (typed by reception or from Phorest's staff report), so they can differ.`;
       if (data.total > rows.length) t += ` The newest ${cnt(rows.length)} are shown.`;
       return { sub: t, cols: [{ k: 'd', l: 'First visit', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }],
-        rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: nm(r.e), c: r.c })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' new clients' } : null };
+        client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, _dn: { c: clientHistorySpec(ctx, { client: r.c }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' new clients' } : null };
     } }] };
   }
   // A staff row's Phorest or ledger counts (her total, her new clients, her requests) opening the list behind each: x = { code, raw (her name), b, n, v, t }.
@@ -309,7 +380,7 @@ const PD = (() => {
       if (row._dn && row._dn.cl) row._dn.avg = row._dn.cl;   // the average is net take over these clients: it opens them
       return withServicesDn(ctx, r, row, 'm', m, dept ? undefined : 'net');
     }).filter(r => r.m || r.cl).sort((a, b) => (b.avg || 0) - (a.avg || 0));
-    if (!dept) houseRetail(ctx, null).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, m: h.net, cl: null, avg: null, _cls: 'dr-muted' }));
+    if (!dept) houseRetail(ctx, null).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, m: h.net, cl: null, avg: null, _cls: 'dr-muted', _dn: { m: h._sp } }));
     const wantM = dept === 'hair' ? ctx.card.hairSvc : dept === 'beauty' ? ctx.card.beautySvc : ctx.card.net;
     const wantC = dept === 'hair' ? ctx.s.hairTotalClients : dept === 'beauty' ? ctx.s.beautyTotalClients : ctx.s.totalClients;
     const sumM = rows.reduce((a, r) => a + (r.m || 0), 0), sumC = rows.reduce((a, r) => a + (r.cl || 0), 0);
@@ -461,7 +532,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit),
           cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
-          rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, s: r.s, st: r.st, _dn: { s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
+          client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, c: r.c, s: r.s, st: r.st, _dn: { c: clientHistorySpec(ctx, { client: r.c }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
           foot: data.total <= rows.length ? { d: '', b: '', c: cnt(data.total) + ' visits', s: data.spend, st: '' } : null,
         };
       } },
@@ -477,7 +548,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit) + ` ${cnt(list.length)} different client names; one who came on two days is two visits.`,
           cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: 'Visits', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'b', l: 'Branches' }],
-          rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }); return { c: x.c, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp } }; }),
+          client: { k: 'c' }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }); return { c: x.c, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c }) } }; }),
           foot: { c: 'Total', v: data.total, s: data.spend, b: '' },
         };
       } },
@@ -544,7 +615,7 @@ const PD = (() => {
     }
     if (name === 'Retail %') {
       const rows = staffRows(ctx, sd).map(r => withServicesDn(ctx, r, withServicesDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, svc: svcOf(r), rt: r.st.retail || 0 }, 'svc', svcOf(r)), 'rt', r.st.retail || 0, 'retail')).filter(r => r.svc || r.rt);
-      houseRetail(ctx, sd).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, svc: 0, rt: h.net, _cls: 'dr-muted' }));
+      houseRetail(ctx, sd).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, svc: 0, rt: h.net, _cls: 'dr-muted', _dn: { rt: h._sp } }));
       rows.forEach(r => { r.pc = pctOf(r.rt, sd ? r.svc + r.rt : r.svc); });
       rows.sort((a, b) => b.rt - a.rt);
       const svc = rows.reduce((a, r) => a + r.svc, 0), rt = rows.reduce((a, r) => a + r.rt, 0);
@@ -702,7 +773,7 @@ const PD = (() => {
     const lineKind = { retail: 'retail', hairRetail: 'retail', beautyRetail: 'retail', retailUnits: 'retail', hairRetailUnitsH: 'retail', beautyRetailUnitsB: 'retail', hairSvc: 'service', beautySvc: 'service', finServices: 'service', servicesTotal: 'service', hairSvcEx: 'service' }[key];
     const listKind = { newc: 'new', request: 'req' }[key];
     const rows = staffRows(ctx, dept).map(r => { const row = { b: r.b, n: r.n, dp: r.dp, v: +F.get(r) || 0 }; return lineKind ? withServicesDn(ctx, r, row, 'v', row.v, lineKind) : listKind ? withListDn(ctx, r, row, 'v', listKind, row.v) : row; }).filter(r => r.v).sort((a, b) => b.v - a.v);
-    if (F.house !== undefined) houseRetail(ctx, F.house).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, v: h.net, _cls: 'dr-muted' }));
+    if (F.house !== undefined) houseRetail(ctx, F.house).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, v: h.net, _cls: 'dr-muted', _dn: { v: h._sp } }));
     const want = F.want(ctx), sum = rows.reduce((a, r) => a + r.v, 0);
     const d = (want != null && Math.abs(sum - want) >= 0.5) ? { b: '', n: 'Not matched to a branch row', dp: '', v: want - sum, _cls: 'dr-muted' } : null;
     if (d) rows.push(d);
