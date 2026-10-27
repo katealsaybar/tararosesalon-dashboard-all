@@ -163,7 +163,27 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 .why-wall dd{margin:0;font-size:15px}
 .why-wall .ww-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin:0 0 14px;font-size:14px}
 .why-wall .ww-foot a{color:var(--text)}
+#whyWall,#tiles,#settings,#plan,#sources{scroll-margin-top:calc(var(--thtop,76px) + 6px)}
 .tile.be{grid-column:1/-1}
+/* Kate, 27 Oct 2026: actual beside target. Centred boxes, Actual on the left, Target on the right, a thin line between. */
+.tiles.ab-on{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tiles.ab-on .ab-head{grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted)}
+.tile.ab{text-align:center}
+.ab .two{display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);align-items:center;margin-top:12px}
+.ab .dv{width:1px;height:54px;background:var(--rule)}
+.ab .lb{display:inline-block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;color:var(--muted)}
+.ab .lb.la{background:var(--mint);color:var(--ink);font-weight:500;border-radius:var(--r-pill);padding:1px 10px}
+.ab .nn{font-family:var(--fd);font-size:26px;line-height:1.15;font-variant-numeric:normal}
+.ab .nn.a{font-weight:600}
+.ab .nn.t{font-weight:400;color:var(--muted)}
+.ab .nn.na{font-size:18px;font-weight:400;color:var(--muted)}
+.ab-bar{position:relative;height:8px;border-radius:99px;background:var(--track);margin:16px 0 8px}
+.ab-bar .f{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--mint-deep)}
+.ab-bar .f.warn{background:#D9E36B}.ab-bar .f.bad{background:var(--coral)}
+.ab-bar .k{position:absolute;top:-3px;width:2px;height:14px;background:var(--text)}
+.ab .note{font-size:12.5px;font-weight:300;color:var(--muted)}
+.ab .be-bar{margin-top:30px}
+@media (max-width:700px){.tiles.ab-on{grid-template-columns:1fr}.ab .nn{font-size:24px}}
 @media (min-width:701px) and (max-width:999px){.tiles{grid-template-columns:repeat(3,1fr)}}
 @media (min-width:1000px){.tiles{grid-template-columns:repeat(5,1fr)}}
 .be-bar{position:relative;height:10px;border-radius:99px;background:var(--track);margin:16px 0 26px}
@@ -230,7 +250,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   <div class="tiles" id="tiles"></div>
   <div class="edits" id="edits" hidden role="status" aria-live="polite"></div>
 
-  <details>
+  <details id="settings">
     <summary>Settings and the season calendar</summary>
     <div class="set">
       <label>Treatment, % of the plan<input class="f" id="pTreat" type="number" min="0" max="60" step="1" value="20"></label>
@@ -248,7 +268,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
     <p class="sub" style="margin:12px 0 0">How a number is worked out, step by step: <a href="/targets/how/" style="color:var(--text)">open the explainer</a>.</p>
   </details>
 
-  <section class="card">
+  <section class="card" id="plan">
     <div class="head"><div><div class="eyebrow" id="secEyebrow">Person by person</div><h2 style="margin-top:6px" id="secTitle">The month, split up</h2></div>
       <span><button class="copy" id="btnCopy">Copy for Sheets</button><span class="copied" id="copied" hidden>Copied</span></span></div>
     <p class="why" id="secWhy"></p>
@@ -257,7 +277,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 
   
 
-  <details>
+  <details id="sources">
     <summary>Where these numbers come from</summary>
     <p class="sub" style="margin-top:8px">Sales: Phorest staff daily (Supabase <b>phorest_staff_daily</b>), services plus courses ex VAT (treatments are inside services, retail is out), days with sales, 1 Jul to 20 Oct 2026. Hours: the utilisation roster (<b>staff_utilisation</b>), Aug and Sep: hours a day, and booked hours divided by visits for the hours a client takes. Treatment now: the ledger (<b>branch_staff_daily</b>), hair only. October as it was loaded on 6 Oct: <b>staff_targets</b>, the 80% figure (kept in a backup). Season factors: <b>financial_totals</b> and <b>phorest_staff_daily</b>, 2022 to March 2026, middle reading of each calendar month. Names are matched to Phorest by first name inside each branch and checked against the roster. Re-pull before the 25th run.</p>
     <p class="sub">Not in the list on purpose: assistants, receptionists, coordinators and leavers who are archived. Where no October target was loaded, Coach Emma confirms the person first.</p>
@@ -332,6 +352,14 @@ const bu={};
 const keyOf=p=>p[0]+'|'+p[1];
 /* Kate, 27 Oct 2026: bottom-up % is saved per month and person (rules.bu in target_calc_snapshot, written by target_calc_set_bu, Level 3 and 5 only), so it is still there next time. */
 const BU_SAVED=RULES.bu||{};let buErr='';
+/* actual so far this month (financial_totals and phorest_staff_daily, through target_calc_actuals, Level 3 and 5): cached per month, the tiles fall back to the plain ones when there is none */
+const ACTM={};
+async function loadAct(){
+  const m=S.month;if(ACTM[m]!==undefined)return;
+  ACTM[m]=null;
+  try{const r=await KB.client.rpc('target_calc_actuals',{p_month:m});ACTM[m]=(!r.error&&r.data&&!r.data.denied&&!r.data.none&&r.data.branches)?r.data:null;}catch(e){ACTM[m]=null;}
+  if(m===S.month)render();
+}
 function loadBu(){Object.keys(bu).forEach(k=>delete bu[k]);const m=BU_SAVED[S.month]||{};P.forEach((p,i)=>{const v=m[keyOf(p)];if(v)bu[i]=v;});}
 async function saveBu(i,v){
   const k=keyOf(P[i]),m=(BU_SAVED[S.month]=BU_SAVED[S.month]||{});m[k]=v;
@@ -546,7 +574,34 @@ function renderTiles(sel,all){
   const now=Math.round(g.plan*S.retailNow/100), gTot=g.plan+now, gTar=g.plan+g.retail;
   const be=gTot>=BREAK_EVEN[1]?['good','at or above the aim']:gTot>=BREAK_EVEN[0]?['warn','above break-even, below the aim']:['bad','below break-even'];
   const m=MN[S.month-1];
-  document.getElementById('tiles').innerHTML=
+  const A=ACTM[S.month]||null,tilesEl=document.getElementById('tiles');
+  const oldNet=`<div class="line"><span class="chip ${be[0]}">${be[1]}</span> Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`+
+   `<div class="be-bar" role="img" aria-label="Net take ${fmt(gTot)} against a floor of ${fmt(BREAK_EVEN[0])} and an aim of ${fmt(BREAK_EVEN[1])}"><div class="be-fill ${be[0]==='good'?'':be[0]}" style="width:${Math.min(100,gTot/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"></div>`+
+   `<div class="be-mark f" style="left:${(BREAK_EVEN[0]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Floor 1.7M</span></div><div class="be-mark a" style="left:${(BREAK_EVEN[1]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Aim 1.8M</span></div></div>`;
+  if(A){
+    const brs=A.branches,all=Object.keys(brs),selB=st.branch==='ALL'?all:all.filter(b=>b===st.branch),teamAll=st.team==='ALL';
+    const sum=(list,k)=>list.reduce((a,b)=>a+(brs[b]?brs[b][k]:0),0);
+    const el=A.elapsed/A.days,upto=(+A.upto.slice(8))+' '+MN[+A.upto.slice(5,7)-1];
+    const bar=(pct)=>`<div class="ab-bar"><div class="f ${pct>=el*100-10?'':pct>=el*100-25?'warn':'bad'}" style="width:${Math.min(100,pct).toFixed(1)}%"></div><div class="k" style="left:${(el*100).toFixed(1)}%"></div></div>`;
+    const box=(cls,title,act,tgt,note,tl)=>`<div class="tile ab${cls}"><div class="eyebrow">${title}</div><div class="two">`+
+      `<div><span class="lb la">Actual</span><div class="nn ${act==null?'na':'a'}">${act==null?'n/a':fmt(act)}</div></div><div class="dv"></div>`+
+      `<div><span class="lb">${tl||'Target'}</span><div class="nn t">${fmt(tgt)}</div></div></div>${note}</div>`;
+    const prog=(act,tgt)=>{if(act==null)return `<div class="note" style="margin-top:20px">The ledger has no hair and beauty split.</div>`;
+      const pct=tgt?act/tgt*100:0,pace=act/el;
+      return bar(pct)+`<div class="note">${Math.round(pct)}% of target. At this pace about ${fmt(pace)} (${tgt?Math.round(pace/tgt*100):0}%).</div>`;};
+    const netAct=sum(all,'net');
+    const retAct=teamAll?sum(selB,'ret'):null,svcAct=teamAll?sum(selB,'svc'):null,visAct=teamAll?sum(selB,'visits'):null;
+    tilesEl.classList.add('ab-on');
+    tilesEl.innerHTML=`<div class="ab-head">${m} 2026. Actual is to ${upto} (${A.elapsed} of ${A.days} days). The tick on each bar is where the month is.</div>`+
+     `<div class="tile be ab"><div class="eyebrow">Total net take, all 4 branches</div><div class="two"><div><span class="lb la">Actual</span><div class="nn a">${fmt(netAct)}</div></div><div class="dv"></div><div><span class="lb">Target</span><div class="nn t">${fmt(gTot)}</div></div></div>${prog(netAct,gTot)}${oldNet}</div>`+
+     box('',`${m} target, services and treatment`,svcAct,t.plan,prog(svcAct,t.plan))+
+     box('',`Retail`,retAct,t.retail,prog(retAct,t.retail),`Target (${S.retail}%)`)+
+     `<div class="tile ab"><div class="eyebrow">Treatment</div><div class="two"><div><span class="lb la">Actual</span><div class="nn na">to add</div></div><div class="dv"></div><div><span class="lb">Target (${S.treat}%)</span><div class="nn t">${fmt(t.treat)}</div></div></div><div class="note" style="margin-top:20px">Needs the ledger, hair only. Not pulled yet.</div></div>`+
+     box('',`Clients`,visAct,t.clients,prog(visAct,t.clients),'Target')+``;
+    return;
+  }
+  tilesEl.classList.remove('ab-on');
+  tilesEl.innerHTML=
    `<div class="tile be"><div class="eyebrow">Total net take, all 4 branches</div><div class="big">${fmt(gTot)}</div><div class="line"><span class="chip ${be[0]}">${be[1]}</span> Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`+
    `<div class="be-bar" role="img" aria-label="Net take ${fmt(gTot)} against a floor of ${fmt(BREAK_EVEN[0])} and an aim of ${fmt(BREAK_EVEN[1])}"><div class="be-fill ${be[0]==='good'?'':be[0]}" style="width:${Math.min(100,gTot/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"></div>`+
    `<div class="be-mark f" style="left:${(BREAK_EVEN[0]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Floor 1.7M</span></div><div class="be-mark a" style="left:${(BREAK_EVEN[1]/(BREAK_EVEN[1]*1.3)*100).toFixed(1)}%"><span>Aim 1.8M</span></div></div></div>`+
@@ -703,7 +758,7 @@ function seg(id,key){
   });
 }
 seg('segView','view');seg('segBranch','branch');seg('segTeam','team');
-document.getElementById('selMonth').addEventListener('change',e=>{S.month=+e.target.value;loadBu();render();});
+document.getElementById('selMonth').addEventListener('change',e=>{S.month=+e.target.value;loadBu();render();loadAct();});
 document.getElementById('pTreat').addEventListener('input',e=>{S.treat=Math.max(0,Math.min(60,+e.target.value||0));render();});
 document.getElementById('pRetail').addEventListener('input',e=>{S.retail=Math.max(0,Math.min(40,+e.target.value||0));render();});
 document.getElementById('pJoin').addEventListener('input',e=>{S.join=Math.max(30,Math.min(100,+e.target.value||70));render();});
@@ -723,8 +778,33 @@ document.getElementById('tbl').addEventListener('change',e=>{
   const inp=e.target.closest('input.days');if(!inp)return;
   days[+inp.dataset.i]=Math.max(0,Math.min(26,parseInt(inp.value,10)||0));render();
 });
+if(location.hash==='#by-branch'){st.view='BRANCH';document.querySelectorAll('#segView button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==='BRANCH'));}
 loadBu();
 render();
+loadAct();
+/* Kate, 27 Oct 2026: the address follows the section on screen while she scrolls (#why, #tiles, #settings, #by-person or #by-branch, #sources).
+   replaceState, not pushState, so Back does not replay every section she scrolled past. A link with one of these opens at that section. */
+(function(){
+  const SPY=[['whyWall','why'],['tiles','tiles'],['settings','settings'],['plan',null],['sources','sources']];
+  const IDS={why:'whyWall',tiles:'tiles',settings:'settings','by-person':'plan','by-branch':'plan',sources:'sources'};
+  const slug=(id,v)=>v||(id==='plan'?(st.view==='PERSON'?'by-person':'by-branch'):id);
+  let last,tick=false;
+  function spy(){
+    const lead=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--thtop'))||76)+Math.round(innerHeight*0.3);
+    let cur=null;
+    SPY.forEach(([id,v])=>{const el=document.getElementById(id);if(el&&el.getBoundingClientRect().top<=lead)cur=slug(id,v);});
+    if(scrollY<40)cur=null;
+    if(innerHeight+scrollY>=document.documentElement.scrollHeight-4){const b=SPY[SPY.length-1];cur=slug(b[0],b[1]);}
+    if(cur===last)return;
+    last=cur;
+    try{history.replaceState(null,'',cur?'#'+cur:location.pathname+location.search);}catch(e){}
+  }
+  addEventListener('scroll',()=>{if(tick)return;tick=true;requestAnimationFrame(()=>{tick=false;spy();});},{passive:true});
+  document.getElementById('segView').addEventListener('click',()=>setTimeout(()=>{last=undefined;spy();},0));
+  const to=IDS[location.hash.slice(1)],el=to&&document.getElementById(to);
+  if(el&&el.tagName==='DETAILS')el.open=true;
+  requestAnimationFrame(()=>{if(el)el.scrollIntoView();spy();});
+})();
 })();
 </script>
 </body>
