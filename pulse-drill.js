@@ -85,7 +85,7 @@ const PD = (() => {
   function netStaff(ctx, dept) {
     const rows = staffRows(ctx, dept).map(r => {
       const svc = r.dp === 'Hair' ? r.st.hairSalesNet : r.st.beautySales;
-      return { b: r.b, n: r.n, dp: r.dp, svc, rt: r.st.retail, net: r.st.netSalonTake, cl: r.st.total };
+      return withServicesDn(ctx, r, withClientsDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, svc, rt: r.st.retail, net: r.st.netSalonTake, cl: r.st.total }), 'svc', svc);
     }).filter(r => r.net || r.cl).sort((a, b) => b.net - a.net);
     const house = houseRetail(ctx, dept);
     const all = rows.concat(house);
@@ -148,13 +148,52 @@ const PD = (() => {
       } },
     ] };
   }
+  // ── The services behind a staff member's Services figure (Kate, 27 Oct 2026) ──
+  // The ledger's services figure is typed in, so the lines come from Phorest's sales lines (services only, on a paid sale). Two counts, and the window says both.
+  async function staffServicesLoad(ctx, o) {
+    const { data, error } = await sb.rpc('drill_staff_services', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees });
+    if (error) throw error;
+    return data;
+  }
+  function staffServicesSpec(ctx, o) {
+    if (!canNames() || !o.from) return null;
+    const sub = data => {
+      const shown = (data.rows || []).length;
+      let t = `${esc(ctx.label)}. ${esc(o.who)}, ${esc(o.when)}: ${cnt(data.total)} service line${data.total === 1 ? '' : 's'}, AED ${cnt(Math.round(data.net))}, from Phorest's sales lines (services only, on a paid sale; products, courses, memberships, deposits, balance payments and vouchers are left out, refunds come off).`;
+      if (o.ledger != null) t += ` The branch ledger, typed by reception, shows AED ${cnt(Math.round(o.ledger))}: they are two separate counts, so they can differ.`;
+      if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
+      return t;
+    };
+    return { title: `Services · ${o.who}`, cur: ctx.cur, views: [
+      { id: 'by', label: 'By service', load: async () => {
+        const data = await staffServicesLoad(ctx, o), rows = data.rows || [];
+        if (data.total > rows.length) return { sub: sub(data), rows: [], empty: 'Too many lines to group by service. Pick a shorter window.' };
+        const m = new Map();
+        rows.forEach(r => { const k = String(r.i).toLowerCase().trim(), x = m.get(k) || { i: r.i, v: 0, n: 0 }; x.v += r.r ? -1 : 1; x.n += +r.n || 0; m.set(k, x); });
+        const list = [...m.values()].sort((a, b) => b.n - a.n || a.i.localeCompare(b.i));
+        return { sub: sub(data) + ` ${cnt(list.length)} different services.`, cols: [{ k: 'i', l: 'Service' }, { k: 'v', l: 'Times', t: 'num' }, { k: 'n', l: 'Net', t: 'aed' }],
+          rows: list, foot: { i: 'Total', v: list.reduce((a, x) => a + x.v, 0), n: data.net } };
+      } },
+      { id: 'each', label: 'Each line', load: async () => {
+        const data = await staffServicesLoad(ctx, o), rows = data.rows || [];
+        return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 'i', l: 'Service' }, { k: 'n', l: 'Net', t: 'aed' }],
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n })), foot: data.total <= rows.length ? { d: '', b: '', c: cnt(data.total) + ' lines', i: '', n: data.net } : null };
+      } },
+    ] };
+  }
+  function withServicesDn(ctx, r, row, key, ledgerValue) {
+    const emps = canNames() ? phoneNames(ctx, r.code, r.st.name) : [];
+    if (emps.length && ledgerValue) row._dn = Object.assign(row._dn || {}, { [key]: staffServicesSpec(ctx, { from: ctx.from, to: ctx.to, branches: [r.code], employees: emps, who: r.n, when: `${bname(r.code)}, ${ctx.range || ctx.label}`, ledger: ledgerValue }) });
+    return row;
+  }
+  // The Clients figure on a staff row, wherever a list has one (Clients, Net take, Avg bill, Requested): it opens that person's clients.
+  function withClientsDn(ctx, r, row) {
+    const emps = canNames() ? phoneNames(ctx, r.code, r.st.name) : [];
+    if (emps.length && row.cl) row._dn = Object.assign(row._dn || {}, { cl: staffClientsSpec(ctx, { from: ctx.from, to: ctx.to, branches: [r.code], employees: emps, who: r.n, when: `${bname(r.code)}, ${ctx.range || ctx.label}`, ledger: row.cl }) });
+    return row;
+  }
   function clientsStaff(ctx, dept) {
-    const rows = staffRows(ctx, dept).map(r => {
-      const emps = canNames() ? phoneNames(ctx, r.code, r.st.name) : [];
-      const row = { b: r.b, n: r.n, dp: r.dp, cl: r.st.total };
-      if (emps.length && row.cl) row._dn = { cl: staffClientsSpec(ctx, { from: ctx.from, to: ctx.to, branches: [r.code], employees: emps, who: r.n, when: `${bname(r.code)}, ${ctx.range || ctx.label}`, ledger: row.cl }) };
-      return row;
-    }).filter(r => r.cl).sort((a, b) => b.cl - a.cl);
+    const rows = staffRows(ctx, dept).map(r => withClientsDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, cl: r.st.total })).filter(r => r.cl).sort((a, b) => b.cl - a.cl);
     const want = dept === 'hair' ? ctx.s.hairTotalClients : dept === 'beauty' ? ctx.s.beautyTotalClients : ctx.s.totalClients;
     const sum = rows.reduce((a, r) => a + r.cl, 0);
     const d = diffRow('Not matched to a branch row', sum, want, { cl: want - sum });
@@ -173,7 +212,8 @@ const PD = (() => {
     const rows = staffRows(ctx, dept).map(r => {
       const svc = r.dp === 'Hair' ? r.st.hairSalesNet : r.st.beautySales;
       const m = dept ? svc : r.st.netSalonTake;
-      return { b: r.b, n: r.n, dp: r.dp, m, cl: r.st.total, avg: r.st.total ? m / r.st.total : null };
+      const row = withClientsDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, m, cl: r.st.total, avg: r.st.total ? m / r.st.total : null });
+      return dept ? withServicesDn(ctx, r, row, 'm', m) : row;
     }).filter(r => r.m || r.cl).sort((a, b) => (b.avg || 0) - (a.avg || 0));
     if (!dept) houseRetail(ctx, null).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, m: h.net, cl: null, avg: null, _cls: 'dr-muted' }));
     const wantM = dept === 'hair' ? ctx.card.hairSvc : dept === 'beauty' ? ctx.card.beautySvc : ctx.card.net;
@@ -191,7 +231,7 @@ const PD = (() => {
 
   // ── Requests per staff ──
   function reqStaff(ctx, dept) {
-    const rows = staffRows(ctx, dept).map(r => ({ b: r.b, n: r.n, dp: r.dp, rq: r.st.req || 0, cl: r.st.total, pc: r.st.total ? (r.st.req || 0) / r.st.total * 100 : null })).filter(r => r.cl).sort((a, b) => b.rq - a.rq);
+    const rows = staffRows(ctx, dept).map(r => withClientsDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, rq: r.st.req || 0, cl: r.st.total, pc: r.st.total ? (r.st.req || 0) / r.st.total * 100 : null })).filter(r => r.cl).sort((a, b) => b.rq - a.rq);
     const bd = dept === 'beauty' ? ctx.s.beautyBreakdown : ctx.s.hairBreakdown;
     const wantR = dept ? ((bd && bd.req) || 0) : (((ctx.s.hairBreakdown && ctx.s.hairBreakdown.req) || 0) + ((ctx.s.beautyBreakdown && ctx.s.beautyBreakdown.req) || 0));
     const wantC = dept === 'hair' ? ctx.s.hairTotalClients : dept === 'beauty' ? ctx.s.beautyTotalClients : ctx.s.totalClients;
