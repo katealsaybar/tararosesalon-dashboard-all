@@ -464,12 +464,14 @@ function build(){
   const mm=baseMonths();
   const lv=(RULES.leave&&RULES.leave[S.month])||{};
   const cover=new Set(RULES.cover||[]);
+  /* Kate, 27 Oct 2026: people who have left are left out from the month they go (rules.exclude, {"11": ["BRANCH|Name"]}), so October keeps its history */
+  const ex=new Set(((RULES.exclude||{})[S.month])||[]);
   const rows=P.map((p,i)=>{
     const months=mm.map(m=>Object.assign({m},mData(p,m)));
     const part=/part-time/i.test(p[3]);
     const c=calcBase(months,part);
     return Object.assign({i,p,key:keyOf(p),months,part,loaded:p[7],low:null,med:null,high:null,joiner:c.status==='joiner'},c);
-  });
+  }).filter(r=>!ex.has(r.key));
   /* cover only: a few days in a branch that is not hers. No target there, and those sales stay out of her plan. */
   rows.forEach(r=>{if(cover.has(r.key)){r.cover=true;r.status='cover';r.low=r.med=r.high=0;}});
   /* one person in two branches: one plan from her combined days, shared out by days */
