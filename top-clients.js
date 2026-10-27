@@ -203,7 +203,7 @@ async function tcContacts(rows) {
   try {
     const { data, error } = await sb.rpc('drill_client_contacts', { p_items: rows.map(r => [r.client_name, TC.branch === 'all' ? '' : TC.branch]) });
     if (error) throw error;
-    (data || []).forEach(x => { const r = rows[x.i]; if (r) { r._em = x.e || ''; if (!r.mobile && !r.landline && x.m) r.mobile = x.m; } });
+    (data || []).forEach(x => { const r = rows[x.i]; if (r && !x.a) { r._em = x.e || ''; if (!r.mobile && !r.landline && x.m) r.mobile = x.m; } });
   } catch (e) { console.warn('contacts', e && e.message); }
 }
 const tcMail = e => String(e || '').split(' / ').filter(Boolean).map(x => `<a href="mailto:${lcEsc(x)}" class="lc-mail" title="${lcEsc(x)}">${lcEsc(x)}</a>`).join('<br>') || '<span class="slv-muted">\u2013</span>';

@@ -160,7 +160,8 @@
       const { data, error } = await sb.rpc('drill_client_contacts', { p_items: items });
       if (error) throw error;
       const m = new Map(); (data || []).forEach(x => m.set(x.i, x));
-      res.rows.forEach(r => { const x = m.get(idx.get(keyOf(r))); if (x) { r.ph = telHtml(x.m); r.em = mailHtml(x.e); } });
+      // A name that several Phorest clients carry, with nothing to say which is hers, shows how many instead of guessing (a common name used to list every number).
+      res.rows.forEach(r => { const x = m.get(idx.get(keyOf(r))); if (!x) return; if (x.a) { r.ph = `<span class="dr-shared" title="Several Phorest clients carry this name and nothing says which is hers, so no number is shown">${esc(x.n)} clients share this name</span>`; r.em = ''; } else { r.ph = telHtml(x.m); r.em = mailHtml(x.e); } });
       const at = res.cols.findIndex(c => c.k === ck) + 1;
       res.cols.splice(at, 0, { k: 'ph', l: 'Phone', t: 'html' }, { k: 'em', l: 'Email', t: 'html' });
       if (box && cache && cache[i] === res && cur === i) drawTable(res);

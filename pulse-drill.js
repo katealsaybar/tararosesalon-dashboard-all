@@ -185,7 +185,8 @@ const PD = (() => {
       t += ' (from Phorest sales lines: a visit is a day with a paid sale; deposits, balance payments and vouchers are not visits).';
       if (d.team && d.team.length) t += ` Most often seen by ${people(d.team)}.`;
       if (d.since) t += ` Phorest profile created ${TRSD.fmt.day(d.since)}.`;
-      if (d.contact && (d.contact.m || d.contact.e)) t += ` ${d.contact.m ? 'Phone ' + esc(d.contact.m) + '. ' : ''}${d.contact.e ? 'Email ' + esc(d.contact.e) + '.' : ''}${d.contact.n > 1 ? ' (' + cnt(d.contact.n) + ' Phorest profiles carry this name.)' : ''}`;
+      if (d.contact && d.contact.a) t += ` Phone and email are not shown: ${cnt(d.contact.n)} Phorest clients carry this name and nothing says which is hers.`;
+      else if (d.contact && (d.contact.m || d.contact.e)) t += ` ${d.contact.m ? 'Phone ' + esc(d.contact.m) + '. ' : ''}${d.contact.e ? 'Email ' + esc(d.contact.e) + '.' : ''}${d.contact.n > 1 ? ' (' + cnt(d.contact.n) + ' Phorest profiles carry this name.)' : ''}`;
       return t;
     };
     return { title: `Client · ${o.client}`, panel: true, tip: 'See her visits', cur: ctx.cur, views: [

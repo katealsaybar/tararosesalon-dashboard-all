@@ -83,4 +83,5 @@ body.dr-open{overflow:hidden}
 .dr-win{z-index:540;background:rgba(20,16,14,.5)}
 .dr-win .dr-box{width:min(860px,100%);border:1px solid var(--text);box-shadow:0 26px 90px rgba(0,0,0,.6)}
 .dr-em{overflow-wrap:anywhere;word-break:break-all}
+.dr-shared{color:var(--muted);font-style:italic;font-size:12.5px}
 @media(max-width:760px){.dr-nt{padding:5px 10px;font-size:12px}.dr-hx{flex-wrap:wrap;justify-content:flex-end}}
