@@ -128,14 +128,16 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   .deck{font-size:16px}
   .bar{position:static}
   .bar-row{flex-direction:column;align-items:stretch;gap:5px}
-  .bar-row .seg{display:flex}
-  .bar-row .seg button{flex:1;padding:8px 4px}
+  .bar-row .seg{display:flex;flex-wrap:wrap}
+  .bar-row .seg button{flex:1 1 auto;min-width:0;padding:8px 6px}
+  html,body{overflow-x:clip}
+  main#tgCol{min-width:0}
   .bar-row .eyebrow{margin-top:6px}
   .cal{grid-template-columns:repeat(3,1fr)}
   .tw,.tw:not(.fit){overflow:visible;max-height:none}
   table.t,table.t tbody,table.t tr,table.t td{display:block;width:100%}
   table.t thead{display:none}
-  table.t tr.p,table.t tr.sum,table.t tr.tot{border-top:1px solid var(--rule);padding:14px 0;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+  table.t tr.p,table.t tr.sum,table.t tr.tot{border-top:1px solid var(--rule);padding:14px 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 14px}
   table.t tr.sum,table.t tr.tot{padding:14px 12px}
   table.t td{border:0;padding:0;text-align:left!important;white-space:normal;background:transparent}
   table.t td.name{grid-column:1/-1;min-width:0}
@@ -165,25 +167,64 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 .why-wall .ww-foot a{color:var(--text)}
 #whyWall,#tiles,#settings,#plan,#sources{scroll-margin-top:calc(var(--thtop,76px) + 6px)}
 .tile.be{grid-column:1/-1}
-/* Kate, 27 Oct 2026: actual beside target. Centred boxes, Actual on the left, Target on the right, a thin line between. */
-.tiles.ab-on{grid-template-columns:repeat(2,minmax(0,1fr))}
-.tiles.ab-on .ab-head{grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted)}
-.tile.ab{text-align:center}
-.ab .two{display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);align-items:center;margin-top:12px}
-.ab .dv{width:1px;height:54px;background:var(--rule)}
-.ab .lb{display:inline-block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;color:var(--muted)}
-.ab .lb.la{background:var(--mint);color:var(--ink);font-weight:500;border-radius:var(--r-pill);padding:1px 10px}
-.ab .nn{font-family:var(--fd);font-size:26px;line-height:1.15;font-variant-numeric:normal}
-.ab .nn.a{font-weight:600}
-.ab .nn.t{font-weight:400;color:var(--muted)}
-.ab .nn.na{font-size:18px;font-weight:400;color:var(--muted)}
-.ab-bar{position:relative;height:8px;border-radius:99px;background:var(--track);margin:16px 0 8px}
-.ab-bar .f{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--mint-deep)}
-.ab-bar .f.warn{background:#D9E36B}.ab-bar .f.bad{background:var(--coral)}
-.ab-bar .k{position:absolute;top:-3px;width:2px;height:14px;background:var(--text)}
-.ab .note{font-size:12.5px;font-weight:300;color:var(--muted)}
-.ab .be-bar{margin-top:30px}
-@media (max-width:700px){.tiles.ab-on{grid-template-columns:1fr}.ab .nn{font-size:24px}}
+/* Kate, 27 Oct 2026: actual beside target as one light card. One Actual and Target header, then aligned rows with a slim progress line each. */
+.tiles.ab-on{display:block}
+.abc{background:var(--card);border-radius:var(--r-md);padding:16px 22px 14px}
+.abc .abtop{font-size:13px;color:var(--muted);margin-bottom:12px}
+.abg{display:grid;grid-template-columns:150px minmax(0,1fr) 1px minmax(0,1fr) 130px 44px;align-items:center;column-gap:12px}
+.abh{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center;padding-bottom:6px}
+.abh .a{color:var(--text);font-weight:500}
+.abr{padding:11px 0;border-top:1px solid var(--rule)}
+.abl{font-size:13.5px;color:var(--muted)}
+.aba,.abt{text-align:center;font-family:var(--fd);font-size:19px;line-height:1.2;font-variant-numeric:normal}
+.aba{font-weight:600;color:var(--text)}
+.abt{font-weight:400;color:var(--muted)}
+.aba.na{font-family:inherit;font-size:14px;font-weight:400;color:var(--muted)}
+.abv{width:1px;height:22px;background:var(--rule)}
+.abb{position:relative;height:4px;border-radius:99px;background:var(--track)}
+.abb.none{background:none}
+.abb .f{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--mint-deep)}
+.abb .f.warn{background:#D9E36B}.abb .f.bad{background:var(--coral)}
+.abb .k{position:absolute;top:-3px;width:2px;height:10px;background:var(--text);opacity:.55}
+.abp{font-size:12.5px;color:var(--muted);text-align:right}
+.abr.hero{border-top:none;padding-top:2px}
+.abr.hero .abl{font-size:14px;font-weight:500;color:var(--text)}
+.abr.hero .aba,.abr.hero .abt{font-size:28px}
+.abr.hero .abv{height:32px}
+.abn{font-size:12.5px;font-weight:300;color:var(--muted);text-align:center;margin:0 0 4px}
+.abn.s{margin-bottom:12px;opacity:.85}
+.abf{font-size:12px;font-weight:300;color:var(--muted);margin-top:10px}
+.sft{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+.sft[hidden]{display:none}
+.sft input.days{width:64px}
+.sfopen{display:none}
+.sfb{border:0;background:transparent;color:var(--muted);font-size:10px;line-height:1;padding:3px 4px;margin-left:3px;border-radius:4px;cursor:pointer}
+.sfb:hover{background:var(--track)}
+.sfb.on,.sfb.so{background:var(--mint);color:var(--ink)}
+.sfpop{position:absolute;z-index:60;width:272px;max-height:min(520px,80vh);overflow:auto;background:var(--card);border:1px solid var(--rule);border-radius:var(--r-md);box-shadow:0 8px 28px rgba(0,0,0,.28);padding:10px 12px;font-size:13.5px;color:var(--text);text-align:left;text-transform:none;letter-spacing:0;font-weight:400}
+.sfpop select,.sfpop .sfin{width:100%;box-sizing:border-box;font:inherit;font-size:13.5px;padding:6px 8px;margin:4px 0;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--field);color:var(--text)}
+.sfh{margin-bottom:6px}
+.sfi{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--text);font:inherit;font-size:13.5px;padding:7px 8px;border-radius:var(--r-sm);cursor:pointer}
+.sfi:hover,.sfi:focus-visible{background:var(--track)}
+.sfl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:12px 0 2px}
+.sfx{display:flex;gap:12px;align-items:center;font-size:12.5px;margin:2px 0}
+.sfx a{color:var(--text)}.sfx span{margin-left:auto;color:var(--muted)}
+.sfv{max-height:170px;overflow:auto;margin-top:4px}
+.sfv label{display:flex;gap:8px;align-items:center;padding:3px 2px;font-size:13.5px;cursor:pointer}
+.sfv label[hidden]{display:none}
+.sfv i{margin-left:auto;font-style:normal;color:var(--muted);font-size:12px}
+.sfa{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.sfa .go{background:var(--mint);color:var(--ink)}
+@media (max-width:700px){
+  .sft .sfopen{display:inline-flex}.sfbulk{flex:1 1 100%}
+  .sfpop{position:fixed;left:10px!important;right:10px;top:70px!important;width:auto;max-height:calc(100vh - 90px)}
+}
+@media (max-width:700px){
+  .abg{grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr) 40px;row-gap:6px}
+  .abl{grid-column:1/-1}.abb{grid-column:1/4}
+  .abh .abl,.abh span:nth-child(5),.abh span:nth-child(6){display:none}
+  .abr.hero .aba,.abr.hero .abt{font-size:23px}.aba,.abt{font-size:17px}
+}
 @media (min-width:701px) and (max-width:999px){.tiles{grid-template-columns:repeat(3,1fr)}}
 @media (min-width:1000px){.tiles{grid-template-columns:repeat(5,1fr)}}
 .be-bar{position:relative;height:10px;border-radius:99px;background:var(--track);margin:16px 0 26px}
@@ -272,6 +313,7 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
     <div class="head"><div><div class="eyebrow" id="secEyebrow">Person by person</div><h2 style="margin-top:6px" id="secTitle">The month, split up</h2></div>
       <span><button class="copy" id="btnCopy">Copy for Sheets</button><span class="copied" id="copied" hidden>Copied</span></span></div>
     <p class="why" id="secWhy"></p>
+    <div class="sft" id="sfTools"><span id="sfNote"></span><span class="sfbulk">Bottom-up % for the <b id="sfN">0</b> shown: <input class="days" id="buAll" type="number" min="-50" max="100" step="1" placeholder="%" aria-label="Bottom-up percent for every person shown"> <button class="copy" id="buApply" type="button">Apply</button> <button class="copy" id="buZero" type="button">Set to 0</button> <span id="buDone" role="status"></span></span><button class="copy sfopen" id="sfOpen" type="button">Sort and filter</button></div>
     <div class="tw"><table class="t" id="tbl"></table></div>
   </section>
 
@@ -563,6 +605,7 @@ function render(){
   if(st.view==='PERSON')renderPerson(sel);else renderBranch(rows);
   /* the branch and team row must be shown or hidden before stickFit() measures the bar, or the header sticks one row too low (Kate, 27 Oct 2026) */
   document.getElementById('rowFilters').style.display=st.view==='PERSON'?'':'none';
+  document.getElementById('sfTools').hidden=st.view!=='PERSON';
   stickFit();
 }
 
@@ -582,23 +625,27 @@ function renderTiles(sel,all){
     const brs=A.branches,all=Object.keys(brs),selB=st.branch==='ALL'?all:all.filter(b=>b===st.branch),teamAll=st.team==='ALL';
     const sum=(list,k)=>list.reduce((a,b)=>a+(brs[b]?brs[b][k]:0),0);
     const el=A.elapsed/A.days,upto=(+A.upto.slice(8))+' '+MN[+A.upto.slice(5,7)-1];
-    const bar=(pct)=>`<div class="ab-bar"><div class="f ${pct>=el*100-10?'':pct>=el*100-25?'warn':'bad'}" style="width:${Math.min(100,pct).toFixed(1)}%"></div><div class="k" style="left:${(el*100).toFixed(1)}%"></div></div>`;
-    const box=(cls,title,act,tgt,note,tl)=>`<div class="tile ab${cls}"><div class="eyebrow">${title}</div><div class="two">`+
-      `<div><span class="lb la">Actual</span><div class="nn ${act==null?'na':'a'}">${act==null?'n/a':fmt(act)}</div></div><div class="dv"></div>`+
-      `<div><span class="lb">${tl||'Target'}</span><div class="nn t">${fmt(tgt)}</div></div></div>${note}</div>`;
-    const prog=(act,tgt,msg)=>{if(act==null)return `<div class="note" style="margin-top:20px">${msg||'The ledger has no hair and beauty split.'}</div>`;
-      const pct=tgt?act/tgt*100:0,pace=act/el;
-      return bar(pct)+`<div class="note">${Math.round(pct)}% of target. At this pace about ${fmt(pace)} (${tgt?Math.round(pace/tgt*100):0}%).</div>`;};
-    const netAct=sum(all,'net');
+    const row=(label,act,tgt,hero,note)=>{
+      const has=act!=null,pct=has&&tgt?act/tgt*100:null;
+      const cls=pct==null?'':pct>=el*100-10?'':pct>=el*100-25?'warn':'bad';
+      return `<div class="abg abr${hero?' hero':''}"><span class="abl">${label}</span><span class="aba${has?'':' na'}">${has?fmt(act):'n/a'}</span><span class="abv"></span><span class="abt">${fmt(tgt)}</span>`+
+        `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
+        `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
+    };
+    const netAct=sum(all,'net'),pace=netAct/el;
+    const svcAct=teamAll?sum(selB,'svc'):null,retAct=teamAll?sum(selB,'ret'):null,visAct=teamAll?sum(selB,'visits'):null;
     const trAct=(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
-    const retAct=teamAll?sum(selB,'ret'):null,svcAct=teamAll?sum(selB,'svc'):null,visAct=teamAll?sum(selB,'visits'):null;
+    const netNote=`<div class="abn">Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). ${be[1].charAt(0).toUpperCase()+be[1].slice(1)}, floor 1.7M, aim 1.8M.</div>`+
+      `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`;
     tilesEl.classList.add('ab-on');
-    tilesEl.innerHTML=`<div class="ab-head">${m} 2026. Actual is to ${upto} (${A.elapsed} of ${A.days} days). The tick on each bar is where the month is.</div>`+
-     `<div class="tile be ab"><div class="eyebrow">Total net take, all 4 branches</div><div class="two"><div><span class="lb la">Actual</span><div class="nn a">${fmt(netAct)}</div></div><div class="dv"></div><div><span class="lb">Target</span><div class="nn t">${fmt(gTot)}</div></div></div>${prog(netAct,gTot)}${oldNet}</div>`+
-     box('',`${m} target, services and treatment`,svcAct,t.plan,prog(svcAct,t.plan))+
-     box('',`Retail`,retAct,t.retail,prog(retAct,t.retail),`Target (${S.retail}%)`)+
-     box('',`Treatment, hair`,trAct,trTgt,prog(trAct,trTgt,'Treatment is in the ledger for hair only.'),`Target (${S.treat}%)`)+
-     box('',`Clients`,visAct,t.clients,prog(visAct,t.clients),'Target')+``;
+    tilesEl.innerHTML=`<div class="abc"><div class="abtop">${m} 2026, actual to ${upto} (${A.elapsed} of ${A.days} days). The tick on each line is where the month is.</div>`+
+      `<div class="abg abh"><span class="abl"></span><span class="a">Actual</span><span></span><span>Target</span><span>Progress</span><span></span></div>`+
+      row('Total net take',netAct,gTot,true,netNote)+
+      row('Services and treatment',svcAct,t.plan)+
+      row('Retail',retAct,t.retail)+
+      row('Treatment (hair)',trAct,trTgt)+
+      row('Clients',visAct,t.clients)+
+      (teamAll?'':`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`)+`</div>`;
     return;
   }
   tilesEl.classList.remove('ab-on');
@@ -671,21 +718,158 @@ function detail(r){
   return `<div class="steps">${first}`+
    `<div><b class="h">4. Split and clients</b>Treatment ${S.treat}% = ${fmt(r.treat)}. Service is the rest, ${fmt(r.service)}. Retail ${S.retail}% = ${fmt(r.retail)}. Clients: ${fmt(r.plan)} divided by an average bill of ${fmt(r.avgBill)} is ${fmt(r.clientsRaw)}.${cap}</div>${act}</div>`;
 }
+/* Kate, 27 Oct 2026: sort and filter on the person table, the way Google Sheets does it. Each column header has a menu: Sort A to Z, Sort Z to A,
+   Filter by condition and Filter by values (search, select all, clear, OK). Blanks sort last. The branch and team buttons above still apply first;
+   these filters only change which rows show, not the tiles. Copy for Sheets copies what shows. Nothing here is saved. */
+const COLS=[
+ {k:'br',t:'Branch',x:'t',get:r=>BN[r.p[0]]},
+ {k:'dp',t:'Dept',x:'t',get:r=>r.p[2]==='HAIR'?'Hair':'Beauty'},
+ {k:'who',t:'Person',x:'t',get:r=>r.p[1]},
+ {k:'days',t:'Planned days',x:'n',get:r=>r.med==null||r.cover?null:(r.dLow!=null?r.dLow:r.planned)},
+ {k:'bu',t:'Bottom-up %',x:'n',get:r=>r.med==null||r.cover?null:(r.bu||0)},
+ {k:'low',t:'Low',x:'n',get:r=>r.low},
+ {k:'tgt',t:'Target',x:'n',get:r=>r.med},
+ {k:'high',t:'High',x:'n',get:r=>r.high},
+ {k:'svc',t:'Service',x:'n',get:r=>r.service},
+ {k:'trt',t:'Treatment',x:'n',get:r=>r.treat},
+ {k:'ret',t:'Retail',x:'n',get:r=>r.retail},
+ {k:'cl',t:'Clients',x:'n',get:r=>r.clients}
+];
+const TH=[['br','bd',''],['dp','bd',''],['who','nm',''],['days','',"The days we plan she works for the low plan. It starts as her usual days, and as the days she came in if she is on leave."],['bu','',"Add or take off a percentage for who is really on the floor. It starts at 0."],['low','',"Her usual days, leave included."],['tgt','',"The middle of low and high. This is the goal."],['high','',"Nobody on leave: her best month's days."],['svc','',''],['trt','',''],['ret','',''],['cl','','']];
+const sf={sort:null,f:{}};
+let lastSel=[],shown=[],pop=null;
+const isBlank=v=>v==null||v==='';
+const colOf=k=>COLS.find(c=>c.k===k);
+const cellText=(c,r)=>{const v=c.get(r);return isBlank(v)?'(Blanks)':c.x==='n'?fmt(v):String(v);};
+function passes(c,f,r){
+  const v=c.get(r),blank=isBlank(v);
+  if(f.vals&&!f.vals.has(cellText(c,r)))return false;
+  if(!f.op)return true;
+  if(f.op==='empty')return blank;
+  if(f.op==='notempty')return !blank;
+  if(c.x==='t'){
+    const s=blank?'':String(v).toLowerCase(),a=String(f.a||'').toLowerCase();
+    if(f.op==='contains')return s.includes(a);
+    if(f.op==='notcontains')return !s.includes(a);
+    return s===a;
+  }
+  const a=parseFloat(f.a),b=parseFloat(f.b),two=f.op==='btw'||f.op==='nbtw';
+  if(isNaN(a)||(two&&isNaN(b)))return true;
+  if(blank)return false;
+  const n=+v,inside=n>=Math.min(a,b)&&n<=Math.max(a,b);
+  switch(f.op){case 'gt':return n>a;case 'gte':return n>=a;case 'lt':return n<a;case 'lte':return n<=a;case 'eq':return n===a;case 'neq':return n!==a;case 'btw':return inside;case 'nbtw':return !inside;}
+  return true;
+}
+const passesAll=(r,skip)=>Object.keys(sf.f).every(k=>k===skip||passes(colOf(k),sf.f[k],r));
+function sortRows(list){
+  if(!sf.sort)return list;
+  const c=colOf(sf.sort.k),d=sf.sort.dir;
+  return list.map((r,i)=>[r,i]).sort((A,B)=>{
+    const a=c.get(A[0]),b=c.get(B[0]),ab=isBlank(a),bb=isBlank(b);
+    if(ab||bb)return ab&&bb?A[1]-B[1]:ab?1:-1;
+    const o=c.x==='n'?a-b:String(a).localeCompare(String(b),undefined,{sensitivity:'base'});
+    return o?o*d:A[1]-B[1];
+  }).map(x=>x[0]);
+}
+const visible=list=>sortRows(list.filter(r=>passesAll(r)));
+function thCell([k,cls,tt]){
+  const c=colOf(k),on=!!sf.f[k],so=sf.sort&&sf.sort.k===k;
+  return `<th${cls?` class="${cls}"`:''}${tt?` title="${tt}"`:''}>${c.t}<button type="button" class="sfb${on?' on':''}${so?' so':''}" data-sf="${k}" aria-haspopup="dialog" aria-label="Sort and filter ${c.t}">${so?(sf.sort.dir>0?'&#9650;':'&#9660;'):'&#9662;'}</button></th>`;
+}
+function closePop(){if(pop){pop.remove();pop=null;}}
+const OPS_T=[['','None'],['contains','Text contains'],['notcontains','Text does not contain'],['is','Text is exactly'],['empty','Is empty'],['notempty','Is not empty']];
+const OPS_N=[['','None'],['gt','Greater than'],['gte','Greater than or equal to'],['lt','Less than'],['lte','Less than or equal to'],['eq','Is equal to'],['neq','Is not equal to'],['btw','Is between'],['nbtw','Is not between'],['empty','Is empty'],['notempty','Is not empty']];
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+function openPop(k,anchor,picker){
+  closePop();
+  const c=colOf(k),f=sf.f[k]||{},base=lastSel.filter(r=>passesAll(r,k)),counts=new Map();
+  base.forEach(r=>{const t=cellText(c,r);counts.set(t,(counts.get(t)||0)+1);});
+  const vals=[...counts.keys()].sort((a,b)=>{if(a==='(Blanks)')return 1;if(b==='(Blanks)')return -1;return c.x==='n'?parseFloat(a.replace(/,/g,''))-parseFloat(b.replace(/,/g,'')):a.localeCompare(b);});
+  const chosen=f.vals?f.vals:new Set(vals),ops=c.x==='n'?OPS_N:OPS_T;
+  const sd=sf.sort&&sf.sort.k===k?sf.sort.dir:0;
+  pop=document.createElement('div');pop.className='sfpop';pop.dataset.k=k;pop.setAttribute('role','dialog');pop.setAttribute('aria-label','Sort and filter '+c.t);
+  pop.innerHTML=
+   `<div class="sfh">${picker?`<select id="sfPick" aria-label="Column">${COLS.map(x=>`<option value="${x.k}"${x.k===k?' selected':''}>${x.t}</option>`).join('')}</select>`:`<b>${c.t}</b>`}</div>`+
+   `<button type="button" class="sfi" data-s="1">Sort A to Z${sd===1?' (on)':''}</button><button type="button" class="sfi" data-s="-1">Sort Z to A${sd===-1?' (on)':''}</button>${sf.sort?`<button type="button" class="sfi" data-s="0">Clear sort</button>`:''}`+
+   `<div class="sfl">Filter by condition</div><select id="sfOp" aria-label="Condition">${ops.map(([v,t])=>`<option value="${v}"${(f.op||'')===v?' selected':''}>${t}</option>`).join('')}</select>`+
+   `<input id="sfA" class="sfin" placeholder="Value" value="${esc(f.a||'')}"><input id="sfB" class="sfin" placeholder="and" value="${esc(f.b||'')}">`+
+   `<div class="sfl">Filter by values</div><div class="sfx"><a href="#" data-all>Select all</a><a href="#" data-none>Clear</a><span id="sfCnt"></span></div>`+
+   `<input id="sfQ" class="sfin" placeholder="Search" aria-label="Search values"><div class="sfv">${vals.map(v=>`<label><input type="checkbox" value="${esc(v)}"${chosen.has(v)?' checked':''}> <span>${esc(v)}</span> <i>${counts.get(v)}</i></label>`).join('')}</div>`+
+   `<div class="sfa"><button type="button" class="copy" data-cancel>Cancel</button><button type="button" class="copy go" data-ok>OK</button></div>`;
+  document.body.appendChild(pop);
+  const q=s=>pop.querySelector(s),boxes=()=>[...pop.querySelectorAll('.sfv input')];
+  const showB=()=>{const o=q('#sfOp').value,two=o==='btw'||o==='nbtw',none=!o||o==='empty'||o==='notempty';q('#sfA').style.display=none?'none':'';q('#sfB').style.display=two?'':'none';};
+  const count=()=>{q('#sfCnt').textContent=boxes().filter(b=>b.checked).length+' of '+vals.length;};
+  showB();count();
+  q('#sfOp').addEventListener('change',showB);
+  pop.addEventListener('change',e=>{if(e.target.closest('.sfv'))count();});
+  q('#sfQ').addEventListener('input',e=>{const t=e.target.value.toLowerCase();pop.querySelectorAll('.sfv label').forEach(l=>{l.hidden=!!t&&!l.textContent.toLowerCase().includes(t);});});
+  pop.addEventListener('click',e=>{
+    const t=e.target;
+    if(t.closest('[data-all],[data-none]')){e.preventDefault();const on=!!t.closest('[data-all]');pop.querySelectorAll('.sfv label').forEach(l=>{if(!l.hidden)l.querySelector('input').checked=on;});count();return;}
+    const s=t.closest('[data-s]');
+    if(s){const d=+s.dataset.s;sf.sort=d?{k,dir:d}:null;closePop();render();return;}
+    if(t.closest('[data-cancel]')){closePop();return;}
+    if(t.closest('[data-ok]')){
+      const op=q('#sfOp').value,a=q('#sfA').value,b=q('#sfB').value,on=boxes().filter(x=>x.checked).map(x=>x.value);
+      const vs=on.length===vals.length?null:new Set(on);
+      if(!op&&!vs)delete sf.f[k];else sf.f[k]={vals:vs,op,a,b};
+      closePop();render();
+    }
+  });
+  if(q('#sfPick'))q('#sfPick').addEventListener('change',e=>openPop(e.target.value,anchor,true));
+  if(!matchMedia('(max-width:700px)').matches){
+    const r=anchor.getBoundingClientRect(),w=pop.offsetWidth;
+    pop.style.left=Math.max(8,Math.min(r.left+scrollX,scrollX+innerWidth-w-8))+'px';
+    const h=pop.offsetHeight;pop.style.top=(Math.max(8,Math.min(r.bottom+4,innerHeight-h-8))+scrollY)+'px';
+  }
+  const first=q('.sfi');if(first)first.focus();
+}
+document.addEventListener('mousedown',e=>{if(pop&&!pop.contains(e.target)&&!e.target.closest('[data-sf],#sfOpen'))closePop();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePop();});
+document.getElementById('tbl').addEventListener('click',e=>{
+  const b=e.target.closest('[data-sf]');if(!b)return;
+  e.preventDefault();
+  if(pop&&pop.dataset.k===b.dataset.sf){closePop();return;}
+  openPop(b.dataset.sf,b,false);
+});
+document.getElementById('sfOpen').addEventListener('click',e=>{if(pop){closePop();return;}openPop(sf.sort?sf.sort.k:'who',e.currentTarget,true);});
+function updateTools(total,n){
+  const any=Object.keys(sf.f).length||sf.sort;
+  document.getElementById('sfNote').innerHTML=any?`Showing ${n} of ${total}. <button class="copy" id="sfClear" type="button">Clear filters and sort</button>`:'';
+  document.getElementById('sfN').textContent=shown.filter(r=>r.med!=null&&!r.cover).length;
+}
+document.getElementById('sfTools').addEventListener('click',e=>{
+  if(e.target.id==='sfClear'){sf.sort=null;sf.f={};closePop();render();return;}
+  if(e.target.id==='buApply'||e.target.id==='buZero'){
+    const v=e.target.id==='buZero'?0:parseFloat(document.getElementById('buAll').value);
+    if(isNaN(v))return;
+    bulkBu(Math.max(-50,Math.min(100,v)));
+  }
+});
+async function bulkBu(v){
+  const rows=shown.filter(r=>r.med!=null&&!r.cover);
+  if(!rows.length)return;
+  const vals={},m=(BU_SAVED[S.month]=BU_SAVED[S.month]||{});
+  rows.forEach(r=>{bu[r.i]=v;vals[r.key]=v;m[r.key]=v;});
+  render();
+  const done=document.getElementById('buDone');
+  try{const res=await KB.client.rpc('target_calc_set_bu_many',{p_month:S.month,p_vals:vals});if(res.error)throw res.error;buErr='';done.textContent='Saved for '+rows.length+' '+(rows.length===1?'person':'people')+'.';}
+  catch(err){buErr='The bottom-up % was not saved ('+(err&&err.message||err)+'). It shows here until you reload.';done.textContent='';}
+  renderEdits();
+  setTimeout(()=>{done.textContent='';},3000);
+}
 function renderPerson(sel){
+  lastSel=sel;const list=visible(sel);shown=list;
   document.getElementById('secEyebrow').textContent='Person by person';
   document.getElementById('secTitle').textContent='The month, split up';
   document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>High</b> is nobody on leave. <b>Target</b> is the middle. Change a person\'s <b>planned days</b> (the low), or add a <b>bottom-up %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
-  let h=`<thead><tr><th class="bd">Branch</th><th class="bd">Dept</th><th class="nm">Person</th><th title="The days we plan she works for the low plan. It starts as her usual days, and as the days she came in if she is on leave.">Planned days</th><th title="Add or take off a percentage for who is really on the floor. It starts at 0.">Bottom-up %</th><th title="Her usual days, leave included.">Low</th><th title="The middle of low and high. This is the goal.">Target</th><th title="Nobody on leave: her best month's days.">High</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th></th></tr></thead><tbody>`;
-  if(!sel.length)h+=`<tr><td colspan="13" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
-  sel.forEach(r=>{h+=personRow(r);});   // Branch and Dept are their own columns now, so no group heading rows
+  let h=`<thead><tr>${TH.map(thCell).join('')}<th></th></tr></thead><tbody>`;
+  if(!list.length)h+=`<tr><td colspan="13" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
+  list.forEach(r=>{h+=personRow(r);});   // Branch and Dept are their own columns now, so no group heading rows
   document.getElementById('tbl').setAttribute('data-frz','3');
   document.getElementById('tbl').innerHTML=h+'</tbody>';
-}
-function branchRow(label,t,cls,sub){
-  const d1=pct(t.plan,t.sep);
-  return `<tr class="${cls}"><td class="name"><b>${label}</b>${sub?`<div class="tg">${sub}</div>`:''}</td>`+
-   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="High">${fmt(t.high)}</td><td data-l="Service">${fmt(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}</td><td data-l="Retail">${fmt(t.retail)}</td><td data-l="Clients">${fmt(t.clients)}</td>`+
-   `<td data-l="Target against Sep delivered"><span class="chip ${band(d1)}">${sgn(d1)}</span><span class="rng">${fmt(t.sep)}</span></td></tr>`;
+  updateTools(sel.length,list.length);
 }
 function renderBranch(rows){
   document.getElementById('secEyebrow').textContent='Branch by branch';
@@ -712,7 +896,7 @@ function tsv(){
   const lines=[];
   if(st.view==='PERSON'){
     lines.push(['Branch','Person','Designation','Status','Planned days','Bottom-up %','Low','Target','High','Service','Treatment','Retail','Clients','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
-    rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team)).forEach(r=>{
+    visible(rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team))).forEach(r=>{
       lines.push([BN[r.p[0]],r.p[1],r.p[3],(r.leave?'On leave this month':badge[r.status][0]),r.dLow??r.planned??'',r.bu||0,r.low??'',r.med??'',r.high??'',r.service??'',r.treat??'',r.retail??'',r.clients??'',r.clientsRaw??'',r.billNeed??'',r.med!=null?r.avgBill:'',r.act&&r.act.tpct!=null?r.act.tpct.toFixed(1):'',r.act&&r.act.rpct!=null?r.act.rpct.toFixed(1):'',r.act&&r.act.bill?Math.round(r.act.bill):''].join('\t'));
     });
   }else{
