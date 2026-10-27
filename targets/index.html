@@ -53,16 +53,27 @@ h2{font-family:var(--fd);font-weight:600;font-size:clamp(22px,2.6vw,28px);line-h
 .bar-row + .bar-row{margin-top:8px}
 /* Kate, 27 Oct 2026: the filter bar hides, like the dashboard's Hide filters (same words, same saved choice, trs-filters). Closed, it keeps one slim line. */
 .bar-top{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin:0 0 4px}
-.bar-top .tglr{font:inherit;font-size:12.5px;font-weight:500;border:1px solid var(--rule);background:transparent;color:var(--text);border-radius:var(--r-pill);padding:4px 14px;cursor:pointer}
+.bar-top .tglr{font:inherit;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--rule);background:transparent;color:var(--text);border-radius:var(--r-pill);padding:7px 16px;cursor:pointer}
 .bar-top .tglr:hover{background:var(--mint);color:var(--ink)}
 .barsum{margin-right:auto;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .bar.closed{padding:6px 0}
 .bar.closed .bar-top{margin:0}
 .bar.closed #barRows{display:none}
-.seg{display:inline-flex;border:1px solid var(--rule);border-radius:var(--r-pill);padding:3px;gap:2px}
-.seg button{font:inherit;font-size:13px;font-weight:500;border:0;background:transparent;color:var(--text);padding:6px 15px;border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
-.seg button:hover{background:var(--rule)}
-.seg button[aria-pressed=true]{background:var(--mint);color:var(--on-accent)}
+/* Kate, 27 Oct 2026: the filter bar looks like the dashboard's (index.html .filters): small caps label, text chips with a dot between, the chosen one bold with an underline, View as the dark two-way switch like UAE Branches | All. */
+.bar-row{align-items:baseline;gap:4px 32px}
+.f-row{display:flex;align-items:baseline;gap:12px;min-width:0}
+@media (min-width:1000px){.bar-row>.f-row:first-child{min-width:540px}}
+.f-lbl{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);opacity:.75;flex-shrink:0}
+.fchipset{display:flex;flex-wrap:wrap;align-items:baseline;min-width:0}
+.fchip{border:0;background:none;padding:6px 0;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:1px solid transparent;line-height:1.3;transition:color 160ms,border-color 160ms}
+@media(hover:hover){.fchip:hover{color:var(--text)}}
+.fchip[aria-pressed=true]{color:var(--text);font-weight:600;border-bottom-color:var(--text)}
+.fchip:focus-visible,.seg button:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+.fsep{color:var(--muted);opacity:.4;font-size:14px;padding:0 8px;user-select:none}
+.seg{display:inline-flex;align-self:center;border:1px solid var(--rule);border-radius:var(--r-pill);padding:2px;gap:2px}
+.seg button{font:inherit;font-size:13px;font-weight:500;border:0;background:transparent;color:var(--muted);padding:3px 12px;border-radius:var(--r-pill);cursor:pointer;white-space:nowrap}
+@media(hover:hover){.seg button:hover{color:var(--text)}}
+.seg button[aria-pressed=true]{background:var(--text);color:var(--bg);font-weight:600}
 select,input.f{font:inherit;font-size:14px;padding:7px 14px;border-radius:var(--r-pill);border:1px solid var(--rule);background:var(--field);color:var(--text);max-width:100%}
 input.f{width:84px;text-align:right;border-radius:var(--r-sm);padding:6px 10px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:28px}
@@ -139,12 +150,13 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 @media (max-width:700px){
   .deck{font-size:16px}
   .bar{position:static}
-  .bar-row{flex-direction:column;align-items:stretch;gap:5px}
-  .bar-row .seg{display:flex;flex-wrap:wrap}
-  .bar-row .seg button{flex:1 1 auto;min-width:0;padding:8px 6px}
+  .bar-row{flex-direction:column;align-items:stretch;gap:0}
+  .f-row{flex-direction:column;align-items:flex-start;gap:0;padding:4px 0}
+  .fchip{padding:9px 0}
+  .seg{align-self:flex-start;margin:4px 0}
+  .seg button{padding:7px 14px}
   html,body{overflow-x:clip}
   main#tgCol{min-width:0}
-  .bar-row .eyebrow{margin-top:6px}
   .cal{grid-template-columns:repeat(3,1fr)}
   .tw,.tw:not(.fit){overflow:visible;max-height:none}
   table.t,table.t tbody,table.t tr,table.t td{display:block;width:100%}
@@ -296,16 +308,12 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
     <div class="bar-top"><span class="barsum" id="barSum" hidden></span><button class="tglr" id="barBtn" type="button" aria-expanded="true" aria-controls="barRows">Hide filters</button></div>
     <div id="barRows">
     <div class="bar-row">
-      <span class="eyebrow">Target month</span>
-      <select id="selMonth" aria-label="Target month"></select>
-      <span class="eyebrow">View</span>
-      <span class="seg" id="segView"><button data-v="PERSON" aria-pressed="true">By person</button><button data-v="BRANCH" aria-pressed="false">By branch</button></span>
+      <div class="f-row"><span class="f-lbl" id="lblMonth">Target month</span><div class="chipset" role="group" aria-labelledby="lblMonth" id="chipMonth"></div><select id="selMonth" aria-label="Target month" hidden></select></div>
+      <div class="f-row"><span class="f-lbl" id="lblView">View</span><span class="seg" id="segView" role="group" aria-labelledby="lblView"><button data-v="PERSON" aria-pressed="true">By person</button><button data-v="BRANCH" aria-pressed="false">By branch</button></span></div>
     </div>
     <div class="bar-row" id="rowFilters">
-      <span class="eyebrow">Branch</span>
-      <span class="seg" id="segBranch"><button data-v="ALL" aria-pressed="true">All</button><button data-v="SAA" aria-pressed="false">Saadiyat</button><button data-v="KCA" aria-pressed="false">Khalifa City</button><button data-v="MC" aria-pressed="false">Motor City</button><button data-v="AQ" aria-pressed="false">Al Quoz</button></span>
-      <span class="eyebrow">Team</span>
-      <span class="seg" id="segTeam"><button data-v="ALL" aria-pressed="true">All</button><button data-v="HAIR" aria-pressed="false">Hair</button><button data-v="BEAUTY" aria-pressed="false">Beauty</button></span>
+      <div class="f-row"><span class="f-lbl" id="lblBranch">Branch</span><div class="chipset" role="group" aria-labelledby="lblBranch" id="segBranch"><button class="fchip" data-v="ALL" aria-pressed="true">All</button><span class="fsep">·</span><button class="fchip" data-v="SAA" aria-pressed="false">Saadiyat</button><span class="fsep">·</span><button class="fchip" data-v="KCA" aria-pressed="false">Khalifa City</button><span class="fsep">·</span><button class="fchip" data-v="MC" aria-pressed="false">Motor City</button><span class="fsep">·</span><button class="fchip" data-v="AQ" aria-pressed="false">Al Quoz</button></div></div>
+      <div class="f-row"><span class="f-lbl" id="lblTeam">Team</span><div class="chipset" role="group" aria-labelledby="lblTeam" id="segTeam"><button class="fchip" data-v="ALL" aria-pressed="true">All</button><span class="fsep">·</span><button class="fchip" data-v="HAIR" aria-pressed="false">Hair</button><span class="fsep">·</span><button class="fchip" data-v="BEAUTY" aria-pressed="false">Beauty</button></div></div>
     </div>
     </div>
   </div>
@@ -957,6 +965,9 @@ document.getElementById('btnCopy').addEventListener('click',async()=>{
 /* ---------- controls ---------- */
 (function(){
   document.getElementById('selMonth').innerHTML=MN.map((m,i)=>i+1<10?'':`<option value="${i+1}"${i+1===S.month?' selected':''}>${m} 2026</option>`).join('');
+  const cm=document.getElementById('chipMonth'),sm=document.getElementById('selMonth');
+  cm.innerHTML=[...sm.options].map(o=>`<button class="fchip" data-v="${o.value}" aria-pressed="${+o.value===S.month}">${o.text}</button>`).join('<span class="fsep">\u00b7</span>');
+  cm.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;sm.value=b.dataset.v;cm.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));sm.dispatchEvent(new Event('change'));});
   buildCal();
 })();
 function buildCal(){
