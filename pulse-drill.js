@@ -61,12 +61,38 @@ const PD = (() => {
     });
     return out;
   }
-  // The retail nobody was credited with, shared between hair and beauty the way the card shares it, one line per branch.
+  // The retail nobody was credited with. In the all-department lists it is split by what was sold (the product names on the BUSINESS TRS lines of the
+  // sales lines: Hair, Beauty, Unsorted), scaled to the ledger's own figure so the lines still add to the card. In the Hair and Beauty lists it is shared the
+  // way the card shares it, so those still add to their card. One line per branch.
+  async function ensureHouseSplit(ctx) {
+    if (ctx._hs !== undefined) return;
+    ctx._hs = null;
+    const codes = branches(ctx).filter(b => Math.abs(+b.d.summary.retailUnattributed || 0) >= 0.005).map(b => b.code);
+    if (!codes.length || !ctx.from || !ctx.to) return;
+    try {
+      const { data, error } = await sb.rpc('drill_house_retail', { p_from: ctx.from, p_to: ctx.to, p_branches: codes });
+      if (error) throw error;
+      const m = {};
+      (data || []).forEach(r => { (m[r.b] = m[r.b] || { hair: 0, beauty: 0, unsorted: 0 })[r.d] += +r.v || 0; });
+      ctx._hs = m;
+    } catch (e) { ctx._hs = null; }   // the split is a bonus: without it the lists fall back to the card's own share
+  }
   function houseRetail(ctx, dept) {
     const out = [];
     branches(ctx).forEach(b => {
       const s = b.d.summary, ua = +s.retailUnattributed || 0;
       if (Math.abs(ua) < 0.005) return;
+      const hs = !dept && ctx._hs && ctx._hs[b.code];
+      if (hs) {
+        const tot = hs.hair + hs.beauty + hs.unsorted;
+        if (tot > 0.005) {
+          [['Hair', hs.hair], ['Beauty', hs.beauty], ['Unsorted', hs.unsorted]].forEach(([dp, v]) => {
+            const x = v / tot * ua;
+            if (Math.abs(x) >= 0.005) out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp, svc: 0, rt: x, net: x, cl: null, _cls: 'dr-muted' });
+          });
+          return;
+        }
+      }
       const sh = ctx.s.retailHairShare == null ? 1 : ctx.s.retailHairShare;   // the card's share for the whole window, so the hair and beauty lists add up to the card
       const row = (v, dp) => { if (Math.abs(v) >= 0.005) out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp, svc: 0, rt: v, net: v, cl: null, _cls: 'dr-muted' }); };
       if (dept === 'hair') row(ua * sh, '');
@@ -75,6 +101,7 @@ const PD = (() => {
     });
     return out;
   }
+  const HOUSE_NOTE = 'The retail rung with no stylist is the BUSINESS TRS house account, and the ledger does not say whether it was hair or beauty. Its Hair, Beauty and Unsorted lines go by the product names on those sales lines (Unsorted is what the name does not settle), scaled to the ledger figure so the lines add to the card. The Hair and Beauty net take lists share it the way the card does, by credited retail, so their house line can differ from the one here.';
   const DIFF_NOTE = 'The last grey line is the gap between the figure and the rows above. The two are worked out in a slightly different order (for example the retail nobody was credited with is shared between hair and beauty over the whole window in one, and branch by branch or day by day in the other). It brings the list to the figure.';
   function diffRow(label, have, want, extra) {
     if (!(Math.abs(have - want) >= 0.5)) return null;
@@ -97,8 +124,8 @@ const PD = (() => {
       cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, ...deptCols(dept), { k: 'svc', l: 'Services', t: 'aed' }, { k: 'rt', l: 'Retail', t: 'aed' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'cl', l: 'Clients', t: 'num' }],
       rows: all,
       foot: { b: 'Total', n: '', dp: '', svc: all.reduce((a, r) => a + (+r.svc || 0), 0), rt: all.reduce((a, r) => a + (+r.rt || 0), 0), net: want, cl: all.reduce((a, r) => a + (+r.cl || 0), 0) },
-      sub: `${esc(ctx.label)}. Services and retail each stylist was credited with, from the branch ledgers matched to Phorest by staff and day. Retail rung with no stylist is shown on its own line per branch, split between Hair and Beauty by the card's share.`,
-      note: d ? DIFF_NOTE : '',
+      sub: `${esc(ctx.label)}. Services and retail each stylist was credited with, from the branch ledgers matched to Phorest by staff and day. Retail rung with no stylist is shown on its own line per branch, split ${!dept && ctx._hs ? 'by what was sold: Hair, Beauty and Unsorted' : "between Hair and Beauty by the card's share"}.`,
+      note: (d ? DIFF_NOTE + ' ' : '') + (!dept && ctx._hs ? HOUSE_NOTE : ''),
     };
   }
 
@@ -676,7 +703,13 @@ const PD = (() => {
   }
 
   // What the page asks for. null = this window has nothing behind the figure, so it stays plain.
+  // The all-department lists read the product split of the retail rung with no stylist first (ensureHouseSplit), so every view waits for it.
   function spec(kind, ctx, o) {
+    const sp = specInner(kind, ctx, o);
+    if (sp && sp.views && !(o && o.dept)) sp.views.forEach(v => { const l = v.load; v.load = async function () { await ensureHouseSplit(ctx); return l.apply(this, arguments); }; });
+    return sp;
+  }
+  function specInner(kind, ctx, o) {
     o = o || {};
     const dept = o.dept || null;
     const t = what => `${what}${deptTitle(dept)}`;
