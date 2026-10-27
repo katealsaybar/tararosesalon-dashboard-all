@@ -705,15 +705,15 @@ const PD = (() => {
   const REV_BRANCH = { 'Al Quoz': 'AQ', 'Khalifa': 'KCA', 'Motor': 'MC', 'Saadiyat': 'SAA' };
   const revCode = b => { const k = Object.keys(REV_BRANCH).find(p => String(b || '').indexOf(p) === 0); return k ? REV_BRANCH[k] : null; };
   // Each review's own public Google link, the one the Google Reviews and Performance pages use (Kate, 27 Oct 2026: "a ↗ beside the stars, to see the replies on Google"): the
-  // Maps review id plus the branch's Maps CID. Older rows keep a hash id, whose Maps id comes from review-links.js, loaded only when a list holds one. A review with no id (added by
-  // hand) opens the branch's Google listing; a branch with no Maps CID (Marasy, Fratelli) has no link.
+  // Maps review id plus the branch's Maps CID. Older rows keep a hash id, whose Maps id comes from review-links.js, loaded only when a list holds one. A review with no id has no link
+  // (Kate, 27 Oct 2026: a link that only opened the salon's Google page was wrong), and the window says how many; a branch with no Maps CID (Marasy, Fratelli) has none either.
   const MAPS_CID = { 'Khalifa City A, Abu Dhabi': '0x22d8bf3bc3c4e957', 'Saadiyat, Abu Dhabi': '0xe3bea74269b98995', 'Al Quoz, Dubai': '0x662e693c3678cb39', 'Motor City, Dubai': '0x66221db8f29e9130', 'District 2, Bahrain': '0xf7a43c8e59e763dd' };
   function reviewUrl(r) {
     const cid = MAPS_CID[r.branch];
     if (!cid) return '';
     let id = String(r.review_id || '').replace(/^seed:/, '');
     if (!/^C[hi]/.test(id)) id = (window.REVIEW_MAPS_IDS || {})[id] || (String(r.url || '').match(/\/reviews\/(C[hi][\w-]+)/) || [])[1] || '';
-    if (!id) return 'https://www.google.com/maps?cid=' + BigInt(cid).toString() + '&hl=en';
+    if (!id) return '';   // no review id on file: no link at all (the branch's Google page is not "this review", Kate 27 Oct 2026)
     let inner = '';
     try { const b = atob(id.replace(/-/g, '+').replace(/_/g, '/')); if (b.charCodeAt(0) === 10) inner = b.substr(2, b.charCodeAt(1)); } catch (e) {}
     return 'https://www.google.com/maps/reviews/data=' + (inner
@@ -738,7 +738,7 @@ const PD = (() => {
     const stars = rows.reduce((a, r) => a + (+r.st || 0), 0);
     return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'st', l: 'Stars', t: 'num', al: 'l' }, { k: 'rv', l: 'Reviewer' }, { k: 'cm', l: 'What she wrote' }], rows,
       foot: { d: '', b: rows.length + ' review' + (rows.length === 1 ? '' : 's'), st: rows.length ? stars / rows.length : null, rv: '', cm: rows.length ? 'average stars' : '' },
-      sub: `${esc(ctx.label)}. ${which === '90' ? 'Google reviews in the last 90 days up to ' + TRSD.fmt.day(to) + ', which is what the star rating is worked from (shown once there are at least 3).' : 'Google reviews posted in the period, for the branches on screen.'}`, empty: 'No reviews in this window.' };
+      sub: `${esc(ctx.label)}. ${which === '90' ? 'Google reviews in the last 90 days up to ' + TRSD.fmt.day(to) + ', which is what the star rating is worked from (shown once there are at least 3).' : 'Google reviews posted in the period, for the branches on screen.'}${rows.some(r => !r._ext) ? ' ' + rows.filter(r => !r._ext).length + ' of them ' + (rows.filter(r => !r._ext).length === 1 ? 'has' : 'have') + ' no link to its own Google page yet, so its stars are not a link (the Google Reviews page lists which).' : ''}`, empty: 'No reviews in this window.' };
   }
 
   // ── The client funnel: one row's number, per staff ──

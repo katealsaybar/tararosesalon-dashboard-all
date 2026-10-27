@@ -23,15 +23,15 @@ const BROCHURE = Object.fromEntries(['employed', 'flex-abudhabi', 'flex-dubai', 
 // which never landed on the review). Same rule as add ons/google-reviews/app.js: the
 // Maps review id plus the branch's Maps CID. Older rows keep a hash id, so their Maps
 // ids come from review-links.js, loaded only when a page lists one. A review with no
-// id (added by hand) opens the branch's Google listing instead.
+// id on file shows no link at all.
 const MAPS_CID = {'Khalifa City A, Abu Dhabi': '0x22d8bf3bc3c4e957', 'Saadiyat, Abu Dhabi': '0xe3bea74269b98995', 'Al Quoz, Dubai': '0x662e693c3678cb39', 'Motor City, Dubai': '0x66221db8f29e9130', 'District 2, Bahrain': '0xf7a43c8e59e763dd'};
 const mapsFor = branch => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Tara Rose Salon ' + branch);
 function reviewUrl(r) {
   const cid = MAPS_CID[r.branch];
-  if (!cid) return mapsFor(r.branch || '');
+  if (!cid) return '';
   let id = String(r.id || '').replace(/^seed:/, '');
   if (!/^C[hi]/.test(id)) id = (window.REVIEW_MAPS_IDS || {})[id] || (String(r.url || '').match(/\/reviews\/(C[hi][\w-]+)/) || [])[1] || '';
-  if (!id) return 'https://www.google.com/maps?cid=' + BigInt(cid).toString() + '&hl=en';
+  if (!id) return '';   // no review id on file: no link (the salon's Google page is not this review, Kate 27 Oct 2026)
   let inner = '';
   try { const b = atob(id.replace(/-/g, '+').replace(/_/g, '/')); if (b.charCodeAt(0) === 10) inner = b.substr(2, b.charCodeAt(1)); } catch (e) {}
   return 'https://www.google.com/maps/reviews/data=' + (inner
@@ -47,11 +47,17 @@ function rvInit(list) {
     rvInit.loading = true;
     const sc = document.createElement('script');
     sc.src = '../add%20ons/google-reviews/review-links.js?v=ee3ed966';
-    sc.onload = () => document.querySelectorAll('a[data-ri]').forEach(a => { const r = RV_LIST[+a.dataset.ri]; if (r) a.href = reviewUrl(r); });
+    sc.onload = () => document.querySelectorAll('a[data-ri]').forEach(a => { const r = RV_LIST[+a.dataset.ri], u = r ? reviewUrl(r) : ''; if (u) { a.href = u; a.hidden = false; } else a.remove(); });
     document.head.appendChild(sc);
   }
   return '';
 }
+// "Read on Google" only when the review's own page is known. A hash-keyed row waits for review-links.js (hidden until it arrives, removed if it has no id either).
+const rvLink = (r, i) => {
+  if (!r.branch) return '';
+  const u = reviewUrl(r), later = !window.REVIEW_MAPS_IDS && /^[0-9a-f]{24}$/.test(String(r.id || '').replace(/^seed:/, ''));
+  return u || later ? ` · <a class="rv-link" data-ri="${i}" href="${esc(u)}"${u ? '' : ' hidden'} target="_blank" rel="noopener">Read on Google ↗</a>` : '';
+};
 const reviewPhotos = r => (r.photos || []).length
   ? `<div class="rphotos">${r.photos.map((u, k) => `<a class="rph" href="${esc(u)}=w1600" target="_blank" rel="noopener" aria-label="Photo ${k + 1} of ${r.photos.length} from ${esc(r.reviewer || 'the client')}"><img src="${esc(u)}=w240-h240-p" alt="" loading="lazy"></a>`).join('')}</div>` : '';
 const PUBLIC_PAGE = 'https://trk-salon-os.com/performance/';
@@ -754,7 +760,7 @@ async function renderStylist() {
     <section class="card">
       <div class="eyebrow">Your Google reviews</div>
       ${(n.review_list || []).length ? `<p class="sub">${n.google_reviews} this month${n.review_stars ? ` · average ${n.review_stars} stars` : ''}.</p>
-        ${rvInit(n.review_list)}${n.review_list.map((r, i) => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> <b class="rv-name">${esc(r.reviewer || 'Anonymous')}</b><div>${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}</div>${reviewPhotos(r)}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}${r.branch ? ` · <a class="rv-link" data-ri="${i}" href="${reviewUrl(r)}" target="_blank" rel="noopener">Read on Google ↗</a>` : ''}</div></div>`).join('')}`
+        ${rvInit(n.review_list)}${n.review_list.map((r, i) => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> <b class="rv-name">${esc(r.reviewer || 'Anonymous')}</b><div>${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}</div>${reviewPhotos(r)}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}${rvLink(r, i)}</div></div>`).join('')}`
         : `<p class="muted">No Google reviews for you yet this month. Ask happy clients to mention you by name.</p>`}
     </section>
 

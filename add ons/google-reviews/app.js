@@ -478,7 +478,7 @@ function renderList(F){
       ${r.comment?`<div class="rtext${long?" clamp":""}" id="t${i}">${markNames(r)}</div>${long?`<button class="more" onclick="document.getElementById('t${i}').classList.toggle('clamp');this.textContent=this.textContent==='Show more'?'Show less':'Show more'">Show more</button>`:""}`:`<div class="rtext none">Rating only, no written comment</div>`}
       ${r.photos.length?`<div class="rphotos">${r.photos.map((u,k)=>`<button type="button" class="rph" data-u="${esc(u)}" aria-label="Photo ${k+1} of ${r.photos.length} from ${esc(r.reviewer||"the client")}"><img src="${esc(u)}=w240-h240-p" alt="" loading="lazy"></button>`).join("")}</div>`:""}
       ${r.replied?`<details class="reply"><summary><b>Our reply</b></summary><div style="white-space:pre-wrap;margin-top:6px">${esc(r.reply)}</div></details>`:""}
-      ${(()=>{const g=googleReviewUrl(r)||branchMapsUrl(r),u=r.url||branchGbpUrl(r);return g||u?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${u?`<a class="gbp" href="${u}" target="_blank" rel="noopener">Reply in Business Profile →</a>`:""}</div>`:"";})()}
+      ${(()=>{const g=googleReviewUrl(r),u=r.url||branchGbpUrl(r),miss=!g&&MAPS_CID[r.branch];return g||u||miss?`<div class="links">${g?`<a class="gbp" href="${g}" target="_blank" rel="noopener">View on Google ↗</a>`:""}${miss?`<span class="nolink" title="This review has no Google review id on file yet, so there is no link to it. The branch page is not this review.">⚠ No link to this review yet</span>`:""}${u?`<a class="gbp" href="${u}" target="_blank" rel="noopener">${r.url?"Reply in Business Profile →":"Open this branch's reviews in Business Profile →"}</a>`:""}</div>`:"";})()}
       ${CAN_EDIT&&r.id?`<div class="medit"><button type="button" class="chip mbtn" data-id="${esc(r.id)}" aria-expanded="false">Match staff</button><div class="mpanel" hidden></div></div>`:""}
     </div>`;}).join("") + (pages>1?`<nav class="pager" aria-label="Review pages">
       <div class="pg-info">Showing ${PAGE*PAGE_SIZE+1}–${Math.min((PAGE+1)*PAGE_SIZE,L.length)} of ${L.length}</div>
@@ -585,7 +585,16 @@ function renderNote(){
   el.innerHTML = !live.length
     ? `<b>✓ All ${n} Google reviews</b> across the 5 branches (plus closed Fratelli Barbershop), from the 24 Sep 2026 pull. Older reviews use Google Maps' approximate dates ("a year ago").`
     : `<b>✓ All ${n} Google reviews</b> across the 5 branches (plus closed Fratelli Barbershop). New reviews and replies come in nightly through Metricool, last ${when}.${off.length?` ${off.join(", ")} ${off.length>1?"are":"is"} still as of the 24 Sep 2026 pull, until connected in Metricool.`:""} Older reviews use Google Maps' approximate dates ("a year ago").`;
-  el.innerHTML += mryNote();
+  el.innerHTML += mryNote() + noLinkNote();
+}
+// Reviews that cannot link to their own Google page (Kate, 27 Oct 2026: "some links only led to the salon's Google page"). A review needs its Google review id: API and
+// Metricool rows arrive without one, and rows added by hand have none until it is read off Business Profile (the id is in the page's data-review-id) and stored in url.
+// Until then the card says so and the Reputation list shows no link for it; this lists them so none is missed.
+function noLinkNote(){
+  const L=R.filter(r=>MAPS_CID[r.branch]&&!googleReviewUrl(r)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  if(!L.length) return "";
+  const nm=r=>`${esc(r.reviewer||"Anonymous")} (${SHORT[r.branch]||esc(r.branch)}, ${fmtDate(r.date)})`;
+  return ` <b>⚠ ${L.length} review${L.length>1?"s have":" has"} no link to ${L.length>1?"their":"its"} own Google page yet:</b> ${L.slice(0,8).map(nm).join("; ")}${L.length>8?`; and ${L.length-8} more`:""}. The "View on Google" link and the star link in the Reputation list stay off for ${L.length>1?"them":"it"} (the branch page is not the review). Send these names to Claude to add the missing Google review id.`;
 }
 async function loadLive(){
   // photos: what the client attached on Google, read off Business Profile (google_review_photos, Kate, 5 Oct 2026).
