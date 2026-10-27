@@ -201,7 +201,12 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 .abh{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center;padding-bottom:6px}
 .abh .a{color:var(--text);font-weight:500}
 .abr{padding:11px 0;border-top:1px solid var(--rule)}
-.abl{font-size:13.5px;color:var(--muted)}
+.abl{font-size:13.5px;color:var(--muted);position:relative;display:flex;align-items:center;gap:7px;min-width:0}
+.ib{flex:none;width:17px;height:17px;border-radius:50%;border:1px solid var(--muted);background:transparent;color:var(--muted);font:italic 600 11px/1 var(--fd);padding:0;cursor:help;display:inline-flex;align-items:center;justify-content:center;opacity:.8}
+.ib:hover,.ib:focus-visible,.ib[aria-expanded=true]{background:var(--text);color:var(--bg);border-color:var(--text);opacity:1}
+.tip{display:none;position:absolute;left:0;top:calc(100% + 8px);z-index:30;width:min(340px,calc(100vw - 40px));background:var(--field);color:var(--text);border:1px solid var(--rule);border-radius:var(--r-sm);padding:12px 14px;font-family:inherit;font-size:12.5px;font-weight:400;line-height:1.55;letter-spacing:0;text-transform:none;text-align:left;white-space:normal;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.tip b{font-weight:600}
+.ib:hover+.tip,.ib:focus-visible+.tip,.ib[aria-expanded=true]+.tip{display:block}
 .aba,.abt{text-align:center;font-family:var(--fd);font-size:19px;line-height:1.2;font-variant-numeric:normal}
 .aba{font-weight:600;color:var(--text)}
 .abt{font-weight:400;color:var(--muted)}
@@ -671,10 +676,10 @@ function renderTiles(sel,all){
   const sum=(list,k)=>list.reduce((a,b)=>a+(brs[b]?brs[b][k]:0),0);
   const el=A?A.elapsed/A.days:0,upto=A?(+A.upto.slice(8))+' '+MN[+A.upto.slice(5,7)-1]:'';
   /* Kate, 27 Oct 2026: the same card for every month. A month with no actuals yet shows the Target column in full and "not yet" under Actual. */
-  const row=(label,act,tgt,hero,note)=>{
+  const row=(label,act,tgt,hero,note,tip)=>{
     const has=act!=null,pct=has&&tgt?act/tgt*100:null;
     const cls=pct==null?'':pct>=el*100-10?'':pct>=el*100-25?'warn':'bad';
-    return `<div class="abg abr${hero?' hero':''}"><span class="abl">${label}</span><span class="aba${has?'':' na'}">${has?fmt(act):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt">${fmt(tgt)}</span>`+
+    return `<div class="abg abr${hero?' hero':''}"><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?fmt(act):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt">${fmt(tgt)}</span>`+
       `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
       `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
   };
@@ -687,17 +692,29 @@ function renderTiles(sel,all){
   const planNote=t.plan!==t.top?
     `<div class="abn s">Top-down ${fmt(t.top)}, the middle of low and high. Bottom-up ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Low ${fmt(t.low)}, high ${fmt(t.high)}.</div>`:
     `<div class="abn s">The middle of low ${fmt(t.low)} and high ${fmt(t.high)}.</div>`;
+  /* Kate, 27 Oct 2026: the i beside each line shows, on hover, how that line is worked out, with the numbers on the screen. */
+  const upto2=A?`1 to ${upto}`:'the month so far';
+  const tipNet=`<b>Actual</b> is the net take in the ledgers, ${upto2}: services, courses and retail, all branches.<br><b>Target</b> is the services and treatment target ${fmt(g.plan)} plus the retail we sell today (${S.retailNow}% of it, ${fmt(now)}) = <b>${fmt(gTot)}</b>.${A?`<br>The tick on the bar is how far the month has gone: ${A.elapsed} of ${A.days} days.`:''}`;
+  const tipSvc=`<b>Target</b> is every person's target added up = <b>${fmt(t.plan)}</b>.<br>One person: her average day (sales of the last 3 months divided by the days she worked) x the season (${MN[S.month-1]} against the months used) x her days. Low uses the days she is in, high uses nobody on leave, the target is the middle of the two${t.plan!==t.top?`, then the bottom-up % on top (${sgnA(t.plan-t.top)}).`:'.'}<br><b>Actual</b> is services and courses in the ledgers.`;
+  const tipRet=`<b>Target</b> is ${S.retail}% of the services and treatment target: ${fmt(t.plan)} x ${S.retail}% = <b>${fmt(t.retail)}</b>.<br><b>Actual</b> is retail sales in the ledgers.`;
+  const tipTr=`<b>Target</b> is ${S.treat}% of each hair stylist's plan, added up = <b>${fmt(trTgt)}</b>. Beauty has no treatment line.<br><b>Actual</b> is hair treatment sales in the ledgers.`;
+  const tipCl=`<b>Target</b>: each person's plan divided by the average bill of her level, held to the clients her hours can fit at ${S.util}% utilisation. Added up = <b>${fmt(t.clients)}</b>.<br><b>Actual</b> is visits from the staff daily reports.`;
   tilesEl.classList.add('ab-on');
   tilesEl.innerHTML=`<div class="abc"><div class="abtop">${A?`${m} 2026, actual to ${upto} (${A.elapsed} of ${A.days} days). The tick on each line is where the month is. Built from ${BASE_NOTE[S.month]}.`:`${m} 2026. No actuals yet, they start with the month. Built from ${BASE_NOTE[S.month]}.`}</div>`+
     `<div class="abg abh"><span class="abl"></span><span class="a">Actual</span><span></span><span>Target</span><span>${A?'Progress':''}</span><span></span></div>`+
-    row('Total net take',netAct,gTot,true,netNote)+
-    row('Services and treatment',svcAct,t.plan,false,planNote)+
-    row('Retail',retAct,t.retail)+
-    row('Treatment (hair)',trAct,trTgt)+
-    row('Clients',visAct,t.clients)+
+    row('Total net take',netAct,gTot,true,netNote,tipNet)+
+    row('Services and treatment',svcAct,t.plan,false,planNote,tipSvc)+
+    row('Retail',retAct,t.retail,false,'',tipRet)+
+    row('Treatment (hair)',trAct,trTgt,false,'',tipTr)+
+    row('Clients',visAct,t.clients,false,'',tipCl)+
     (A&&!teamAll?`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`:'')+`</div>`;
 }
 
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.ib');
+  document.querySelectorAll('.ib[aria-expanded=true]').forEach(x=>{if(x!==b)x.setAttribute('aria-expanded','false');});
+  if(b)b.setAttribute('aria-expanded',String(b.getAttribute('aria-expanded')!=='true'));
+});
 function photoOf(name){
   /* The cards are filed under the name the team uses (APRIL, HAZEL MAE, MJ, KIM), not the full Phorest name, so try the ways a name can be cut. */
   const w=name.split(' '),alias={Kimberly:'Kim'};
