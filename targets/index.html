@@ -672,7 +672,6 @@ function renderTiles(sel,all){
   /* Kate, 27 Oct 2026: Total net take follows the branch and team picked above. The floor and aim are for the whole business, so the verdict shows only with every branch and team in. */
   const scoped=st.branch!=='ALL'||st.team!=='ALL',nb=scoped?t:g;
   const now=Math.round(nb.plan*S.retailNow/100), gTot=nb.plan+now, gTar=nb.plan+nb.retail;
-  const be=gTot>=BREAK_EVEN[1]?['good','at or above the aim']:gTot>=BREAK_EVEN[0]?['warn','above break-even, below the aim']:['bad','below break-even'];
   const m=MN[S.month-1];
   const A=ACTM[S.month]||null,tilesEl=document.getElementById('tiles');
   const brs=A?A.branches:{},allB=Object.keys(brs),selB=st.branch==='ALL'?allB:allB.filter(b=>b===st.branch),teamAll=st.team==='ALL';
@@ -689,7 +688,7 @@ function renderTiles(sel,all){
   const netAct=A&&teamAll?sum(selB,'net'):null,pace=netAct!=null?netAct/el:null;
   const svcAct=A&&teamAll?sum(selB,'svc'):null,retAct=A&&teamAll?sum(selB,'ret'):null,visAct=A&&teamAll?sum(selB,'visits'):null;
   const trAct=A&&(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
-  const verdict=scoped?'The 1.7M floor and 1.8M aim are for all four branches together, so there is no verdict for this selection.':be[1].charAt(0).toUpperCase()+be[1].slice(1)+', floor 1.7M, aim 1.8M.';
+  const verdict=scoped?'The 1.7M floor and 1.8M aim are for all four branches together, so there is no verdict for this selection.':`Target ${fmt(gTot)}. Break-even floor 1.7M: ${gTot>=BREAK_EVEN[0]?'above by '+fmt(gTot-BREAK_EVEN[0]):'below by '+fmt(BREAK_EVEN[0]-gTot)}. Aim 1.8M: ${gTot>=BREAK_EVEN[1]?'above by '+fmt(gTot-BREAK_EVEN[1]):'below by '+fmt(BREAK_EVEN[1]-gTot)}.`;
   const netNote=`<div class="abn">${pace!=null?`Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). `:''}${verdict}</div>`+
     `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(nb.plan)}.${nb.plan!==nb.top?` Includes the bottom-up ${sgnA(nb.plan-nb.top)}.`:''}</div>`;
   const planNote=t.plan!==t.top?
