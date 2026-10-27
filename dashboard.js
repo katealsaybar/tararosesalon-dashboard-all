@@ -3420,7 +3420,9 @@ async function loadUtilisationForFilter(from, to, branches) {
 // they are left out of the top as well. Assistants are counted apart (assistantShifts, assistantHours) and never
 // reach the percentage: Phorest books a whole shift against them, so they read ~100% whatever the day was.
 // deptMap is { roster, ledger } from loadUtilDeptMap; a bare ledger map (the old shape) still works.
-function aggregateUtilisation(rows, deptMap) {
+// perStaff (optional Map): filled with each person's own booked and rota hours, for the list behind the Utilisation figure (27 Oct 2026). It
+// changes nothing in the answer.
+function aggregateUtilisation(rows, deptMap, perStaff) {
   let hairHours = 0, hairAvail = 0, beautyHours = 0, beautyAvail = 0;
   let assistantShifts = 0, assistantHours = 0;
   const unmatched = new Set();
@@ -3453,6 +3455,10 @@ function aggregateUtilisation(rows, deptMap) {
     if (dept === 'hair')        { hairHours += used; hairAvail += avail; }
     else if (dept === 'beauty') { beautyHours += used; beautyAvail += avail; }
     else if (dept === 'assistant') { assistantShifts++; assistantHours += avail; }
+    if (perStaff && (dept === 'hair' || dept === 'beauty')) {
+      const x = perStaff.get(key) || (perStaff.set(key, { branch: r.branch, name: r.staff_name, dept, hours: 0, avail: 0 }), perStaff.get(key));
+      x.hours += used; x.avail += avail;
+    }
   });
   return { hairHours, hairAvail, beautyHours, beautyAvail, assistantShifts, assistantHours, unmatched };
 }
@@ -4012,6 +4018,8 @@ function fnBuildBody(F, src) {
     const uH = Math.max(0, H.t - types(H)), uB = Math.max(0, B.t - types(B));
     if (uH || uB) { rows.push({ k: 'UNS', name: 'Unsplit', uns: true, tip: 'Counted in the total, but not given one of the four types (salon, request, new, new request).' }); H.uns = uH; B.uns = uB; }
   }
+  // Kate, 27 Oct 2026: a funnel number opens the staff behind it (pulse-drill.js); zero stays plain.
+  const fnDn = (v, r, side) => (F.pd && v > 0 && !r.uns) ? TRSD.num(fnNum(v), PD.spec('fn', F.pd, { row: r.f, side, led, F })) : fnNum(v);
   const cell = (o, r) => r.uns ? o.uns : (r.na ? null : o[r.f]);
   // Kate, 18 Oct 2026: on All time the counts are six digits (140,555) and ran past a 30px column and out of the card on a
   // phone. The count columns take the width of the longest number in the card (--fnw), the same on every row.
@@ -4024,13 +4032,13 @@ function fnBuildBody(F, src) {
     const bar = (v, t, side, col) => `<div class="fn-lane ${side}"><span class="fn-bar" style="width:${fnBarW(v, t)}%;min-width:${v ? 2 : 0}px;background:var(${col});opacity:${r.tot ? .45 : 1}"></span></div>`;
     return `
     <div class="fn-grid fn-row${r.uns ? ' uns' : ''}${r.na ? ' na' : ''}" style="--fnw:${fnw}px">
-      <span class="fn-n l tabular">${hv == null ? '\u2013' : fnNum(hv)}</span>
+      <span class="fn-n l tabular">${hv == null ? '\u2013' : fnDn(hv, r, 'hair')}</span>
       ${bar(hv, H.t, 'l', '--hair')}
       ${pc(hv, H.t, 'l')}
       <span class="fn-c" tabindex="0" aria-label="${escapeHtml(r.name)}"><span>${r.k}</span><span class="fn-tip" role="tooltip"><b>${escapeHtml(r.name)}</b>${escapeHtml(r.tip)}</span></span>
       ${pc(bv, B.t, 'r')}
       ${bar(bv, B.t, 'r', '--beauty')}
-      <span class="fn-n r tabular">${bv == null ? '\u2013' : fnNum(bv)}</span>
+      <span class="fn-n r tabular">${bv == null ? '\u2013' : fnDn(bv, r, 'beauty')}</span>
     </div>`;
   }).join('');
   const sum = (o, ks) => ks.reduce((a, k) => a + (o[k] || 0), 0);
@@ -4328,18 +4336,23 @@ async function renderOrgPulseMore(s) {
   const staff = (x.staff || []).filter(r => codes.includes(r.branch));
   const sum = (dept, k) => staff.filter(r => !dept || r.dept === dept).reduce((a, r) => a + (Number(r[k]) || 0), 0);
   const rate = (n, d) => d > 0 ? n / d * 100 : NaN;
+  // Kate, 27 Oct 2026: each figure opens the stylists (or the reviews) behind it (pulse-drill.js). Only while the Pulse on screen is the one this
+  // belongs to; the payload and the branches it was cut by go with the context, so the lists add up to the tiles.
+  const pc = (window._pdCtx && window._pdCtx.s === s) ? window._pdCtx : null;
+  if (pc) { pc.extra = x; pc.extraCodes = codes; }
+  const mdn = (html, name, dept) => pc ? TRSD.num(html, PD.spec(name === 'Request rate' ? 'ask' : 'more', pc, { name, dept })) : html;
 
   // Kate, 8 Oct 2026 (option A): eight tiles, the figure for everyone large, hair and beauty
   // beneath in their own colours. The two social counts also carry a stacked bar.
   const tile = (name, comb, f, hair, beauty, o) => {
     o = o || {};
     const c = o.cnt || {};
-    const part = (lbl, v, cls, none, cn) => Number.isFinite(v) ? `<span class="${cls}">${lbl} ${f(v)}${cn ? `<small>${cn}</small>` : ''}</span>` : (none ? `<span class="opm-na">${lbl} ${none}</span>` : '');
+    const part = (lbl, v, cls, none, cn) => Number.isFinite(v) ? `<span class="${cls}">${lbl} ${mdn(f(v), name, lbl.toLowerCase())}${cn ? `<small>${cn}</small>` : ''}</span>` : (none ? `<span class="opm-na">${lbl} ${none}</span>` : '');
     const split = (o.stack && Number.isFinite(hair) && Number.isFinite(beauty) && hair + beauty > 0)
       ? `<div class="opm-stack" title="Hair ${f(hair)}, Beauty ${f(beauty)}"><span style="width:${(hair / (hair + beauty) * 100).toFixed(1)}%;background:var(--hair)"></span><span style="width:${(beauty / (hair + beauty) * 100).toFixed(1)}%;background:var(--beauty)"></span></div>` : '';
     return `<div class="opm-tile${o.cnt ? ' opm-wide' : ''}">
       <div class="opm-k">${OPM_TIPS[name] ? ihTip(name, OPM_TIPS[name]) : name}</div>
-      <div class="opm-big tabular">${Number.isFinite(comb) ? f(comb) : '<span class="opm-na">–</span>'}</div>
+      <div class="opm-big tabular">${Number.isFinite(comb) ? mdn(f(comb), name, null) : '<span class="opm-na">–</span>'}</div>
       ${c.comb ? `<div class="opm-cnt tabular">${c.comb}</div>` : ''}
       ${o.note ? `<div class="opm-sub">${o.note}</div>` : `<div class="opm-sp">${part('Hair', hair, 'opm-h', o.hairNone, c.hair)}${part('Beauty', beauty, 'opm-b', o.beautyNone, c.beauty)}</div>`}
       ${o.ph ? `<div class="opm-ph">${o.ph}</div>` : ''}
@@ -4501,7 +4514,9 @@ async function renderDashboard() {
     // the backfill start, opened to 2025 (Kate, 3 Sep 2026); asked for at the top (utilAsk)
     const utilTo   = dateTo   || new Date();
     const utilRows = await utilAsk;
-    const utilAgg  = aggregateUtilisation(utilRows, await loadUtilDeptMap(window._cachedDailyJoin && window._cachedDailyJoin.branchStaffRows, utilTo));
+    const utilPer  = new Map();
+    const utilAgg  = aggregateUtilisation(utilRows, await loadUtilDeptMap(window._cachedDailyJoin && window._cachedDailyJoin.branchStaffRows, utilTo), utilPer);
+    s._utilPer = utilPer;   // each person's hours, for the list behind Utilisation
     s.hairUtilHours      = utilAgg.hairHours;
     s.hairUtilAvailHours = utilAgg.hairAvail;
     s.hairUtilPct        = utilAgg.hairAvail   ? (utilAgg.hairHours   / utilAgg.hairAvail   * 100) : null;
@@ -4812,7 +4827,7 @@ async function renderDashboard() {
           <span class="bar-fill" style="width:${Math.min(100, Math.max(1.5, val / max * 100)).toFixed(1)}%;background:${color}"></span>
           ${Number.isFinite(tgt) ? `<span class="bar-tick" style="left:${Math.min(98, tgt / max * 100).toFixed(1)}%"><b>${tickLbl}</b></span>` : ''}
         </span>
-        <span class="bar-val tabular">${r.fmt(val)}</span>
+        <span class="bar-val tabular">${dn(r.fmt(val), 'bench', { name: r.name, dept: lbl === 'Hair' ? 'hair' : 'beauty' })}</span>
       </div>`;
     const note = txt => `<div class="bar-line"><span class="bar-lbl"></span><span class="bar-note">${txt}</span></div>`;
     const both = Number.isFinite(r.beautyTarget);
@@ -4824,7 +4839,7 @@ async function renderDashboard() {
             <span class="att-name">${r.name}<small>${r.sub}</small></span>
           </div>
           <div class="att-side">
-            <div class="att-big tabular ${st}">${r.fmt(r.combined)}</div>
+            <div class="att-big tabular ${st}">${dn(r.fmt(r.combined), 'bench', { name: r.name })}</div>
             <div class="att-chip chip-${st}">${r.isUtil
               ? `${utilBandNote(r.combined)}${part ? ` · ${r.short.map(x => `${x.dept} ${x.v > UTIL_BAND.high ? 'over' : 'off'}`).join(' and ')}` : ''}`
               : `${Math.round(r.att * 100)}% of target${part ? ` · ${r.short.map(x => x.dept).join(' and ')} short` : ''}`}</div>
@@ -5092,8 +5107,9 @@ async function renderDashboard() {
   // Kate, 27 Oct 2026: every figure opens the rows behind it (drill.js, pulse-drill.js). dn() is the figure as a clickable span, or the plain
   // text when this window has nothing behind it (the Pulse is on the weekly totals, or the piece has no rows).
   const pdCtx = (typeof PD !== 'undefined' && typeof TRSD !== 'undefined')
-    ? PD.snap(s, { net: s.netTake, hairNet: hairNetSalonTake, beautyNet: beautyNetTakeDept, hairSvc: s.hairServicesIncl, beautySvc: s.beautyServicesTotal }, `${branchLabel}, ${rangeLabel}`) : null;
-  const dn = (html, kind, o) => (pdCtx && kind) ? TRSD.num(html, PD.spec(kind, pdCtx, o)) : html;
+    ? PD.snap(s, { net: s.netTake, hairNet: hairNetSalonTake, beautyNet: beautyNetTakeDept, hairSvc: s.hairServicesIncl, beautySvc: s.beautyServicesTotal }, `${branchLabel}, ${rangeLabel}`, rangeLabel) : null;
+  window._pdCtx = pdCtx;   // the More measures tiles are drawn later, by renderOrgPulseMore, and read it
+  const dn =(html, kind, o) => (pdCtx && kind) ? TRSD.num(html, PD.spec(kind, pdCtx, o)) : html;
   const THREE = [
     { k:'Net take', def:'Services + treatments + retail, hair and beauty, before staff cost.',
       // Audit 18 Oct 2026 (P2-12): the Pulse adds up credited staff rows; Financial Totals reads Phorest's own Sales block.
@@ -5299,6 +5315,7 @@ async function renderDashboard() {
     if (F.phorest && !(F.ledger.hair.t + F.ledger.beauty.t)) F.src = 'phorest';
     if (!F.phorest) F.src = 'ledger';
   }
+  window._fn.pd = pdCtx;   // the lists behind the funnel's numbers read the Pulse's rows through it (pulse-drill.js)
   const fnParts = fnBuildBody(window._fn, window._fn.src);
   const fnSwitchHtml = window._fn.phorest ? fnSwitch(window._fn.src) : '';
   if (window._fn.src === 'phorest' && window._fn.phorest) setTimeout(() => fnLoadRebook(window._fn).then(fnPaint), 0);
@@ -5324,17 +5341,19 @@ async function renderDashboard() {
   const brAvg   = brCols.length ? brTotal / brCols.length : 0;
   const brMax   = brCols.length ? Math.max(...brCols.map(b => b.rev)) * 1.16 : 1;
   const brDim   = b => !sel.branch.includes('all') && !sel.branch.includes(b.code);
+  // Kate, 27 Oct 2026: a branch's figures open that branch's own staff list, or its door clients (pulse-drill.js branchCtx), whatever the Branch filter says.
+  const dnb = (html, b, kind, o) => { const c = pdCtx ? PD.branchCtx(pdCtx, b.code, b.bs) : null; return c ? TRSD.num(html, PD.spec(kind, c, o)) : html; };
   const colsPlot = brCols.length ? `
     <div class="avgline" style="bottom:${(brAvg / brMax * 100).toFixed(1)}%"><b>Group avg ${aed0(brAvg)}</b></div>
     ${brCols.map(b => `
       <div class="col${brDim(b) ? ' dim' : ''}">
-        <span class="cv tabular">${num0(b.rev / 1000)}k</span>
+        <span class="cv tabular">${dnb(num0(b.rev / 1000) + 'k', b, 'net')}</span>
         <span class="cbar" style="height:${(b.rev / brMax * 100).toFixed(1)}%;background:${b.color}"></span>
       </div>`).join('')}` : '';
   const colsX = brCols.map(b => `
     <div class="${brDim(b) ? 'dim' : ''}">
       <div class="cx-k">${escapeHtml(b.code)}</div>
-      <div class="cx-s">${num0(b.visits)} ${brDoor ? 'door visits' : 'visits'}<br>${b.visits ? aed0(b.rev / b.visits) : '—'} avg</div>
+      <div class="cx-s">${dnb(num0(b.visits), b, brDoor ? 'door' : 'clients')} ${brDoor ? 'door visits' : 'visits'}<br>${b.visits ? dnb(aed0(b.rev / b.visits), b, brDoor ? 'door' : 'avg', brDoor ? { perVisit: true } : undefined) : '—'} avg</div>
     </div>`).join('');
   // This card deliberately keeps ALL four branches even when one is picked — the
   // point of it is where that branch sits against the others. So the footnote is
@@ -5367,19 +5386,21 @@ async function renderDashboard() {
     ? `<ul class="act-list"><li class="act-item act-past"><span class="act-dot" aria-hidden="true">•</span><span><b>${text}</b><small>Owner Kate</small></span></li></ul>`
     : `<ul class="act-list"><li><label class="act-item"><input type="checkbox" data-k="${escapeHtml(key)}" onchange="actToggle(this)"${actDone(key) ? ' checked' : ''}><span><b>${text}</b><small>Kate · by Monday ${nextMonday}</small></span></label></li></ul>`;
   const worstName = worst ? escapeHtml(worst.name.replace(/\s*%$/, '')) : '';
+  // Kate, 27 Oct 2026: the figures in the action line open the same staff list as the benchmark they are about.
+  const wd = (v, dept) => worst ? dn(worst.fmt(v), 'bench', { name: worst.name, dept }) : '';
   const actionHtml = worst ? `
     <div class="action">
       <div class="tag">✦ ${periodOver ? 'Should have been fixed first' : 'Fix first'}</div>
-      <h2>${worstName} at ${worst.fmt(worst.combined)}. ${
+      <h2>${worstName} at ${wd(worst.combined)}. ${
         alsoWorst
           ? `${escapeHtml(alsoWorst.name.replace(/\s*%$/, ''))} is the wider gap, but Treatment and Retail are the standing priority.`
           : lowRows.length > 1 ? 'Every other gap is small next to this one.' : 'It is the only gap left.'
       }</h2>
       <p class="why">Target ${tidyTarget(worst.fmt(worst.target))}${worst.isUtil ? ', and over 100% turns clients away' : ''}. ${worst.isUtil
-        ? `${worst.fmt(worst.combined)}: ${utilBandNote(worst.combined).toLowerCase()}`
+        ? `${wd(worst.combined)}: ${utilBandNote(worst.combined).toLowerCase()}`
         : worst.att >= 1 && worst.short.length
-        ? `${worst.fmt(worst.combined)} clears it combined, but ${worst.short.map(x => `${x.dept.toLowerCase()} is ${worst.fmt(x.v)} against ${worst.fmt(x.t)}`).join(' and ')}`
-        : `${worst.fmt(worst.combined)} is ${Math.round(worst.att * 100)}% of the way there`}${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? `; hair ${worst.fmt(worst.hair)}, beauty ${worst.fmt(worst.beauty)}` : ''}.</p>
+        ? `${wd(worst.combined)} clears it combined, but ${worst.short.map(x => `${x.dept.toLowerCase()} is ${wd(x.v, x.dept.toLowerCase())} against ${worst.fmt(x.t)}`).join(' and ')}`
+        : `${wd(worst.combined)} is ${Math.round(worst.att * 100)}% of the way there`}${Number.isFinite(worst.hair) && Number.isFinite(worst.beauty) ? `; hair ${wd(worst.hair, 'hair')}, beauty ${wd(worst.beauty, 'beauty')}` : ''}.</p>
       ${actItem(periodOver ? `Audit how ${worstName} was captured and coached at reception` : `Audit how ${worstName} is captured and coached at reception`, 'fix-' + worstName.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + nextMonday.replace(/\s+/g, ''))}
     </div>` : `
     <div class="action">

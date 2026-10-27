@@ -18,13 +18,13 @@ const PD = (() => {
   const DAY_VIEW_MAX = 92;   // up to this many days the day-by-day list is by day, longer windows go by month
 
   // The window as the Pulse drew it. Called from renderDashboard with the card's own figures, so the lists can say what they must add up to.
-  function snap(s, card, label) {
+  function snap(s, card, label, range) {
     const codes = sel.branch.includes('all') ? null : sel.branch;
     const list = (codes && codes.length) ? codes : scopeCodes();
     const weekly = (!window._fnRows && Array.isArray(window._cachedWeeklyTotals) && window._cachedWeeklyTotals.length)
       ? window._cachedWeeklyTotals.filter(r => sel.branch.includes('all') || sel.branch.includes(r.branch)) : null;
     return {
-      s, card, label, cur: CUR(), rows: window._fnRows || null, weekly,
+      s, card, label, range, cur: CUR(), rows: window._fnRows || null, weekly,
       from: dateFrom ? dateToIso(dateFrom) : null, to: dateTo ? dateToIso(dateTo) : null,
       days: (dateFrom && dateTo) ? Math.round((dateTo - dateFrom) / 86400000) + 1 : 0,
       door: { codes: list, count: s.doorClients },
@@ -58,7 +58,7 @@ const PD = (() => {
     branches(ctx).forEach(b => {
       const s = b.d.summary, ua = +s.retailUnattributed || 0;
       if (Math.abs(ua) < 0.005) return;
-      const sh = s.retailHairShare == null ? 1 : s.retailHairShare;
+      const sh = ctx.s.retailHairShare == null ? 1 : ctx.s.retailHairShare;   // the card's share for the whole window, so the hair and beauty lists add up to the card
       const v = dept === 'hair' ? ua * sh : dept === 'beauty' ? ua * (1 - sh) : ua;
       if (Math.abs(v) >= 0.005) out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp: dept ? '' : 'Both', svc: 0, rt: v, net: v, cl: null, _cls: 'dr-muted' });
     });
@@ -265,6 +265,188 @@ const PD = (() => {
     ];
   }
 
+
+  // ── Request rate (the More measures tile): asked by name over all clients, per staff ──
+  function askStaff(ctx, dept) {
+    const rows = staffRows(ctx, dept).map(r => {
+      const st = r.st, ask = (st.req || 0) + (st.newClientReq || 0), all = (st.req || 0) + (st.salon || 0) + (st.newC || 0) + (st.newClientReq || 0);
+      return { b: r.b, n: r.n, dp: r.dp, ask, all, pc: all ? ask / all * 100 : null };
+    }).filter(r => r.all).sort((a, b) => b.ask - a.ask);
+    const bd = o => o ? { ask: (o.req || 0) + (o.ncr || 0), all: (o.req || 0) + (o.salon || 0) + (o.new || 0) + (o.ncr || 0) } : { ask: 0, all: 0 };
+    const h = bd(ctx.s.hairBreakdown), b = bd(ctx.s.beautyBreakdown);
+    const wantA = dept === 'hair' ? h.ask : dept === 'beauty' ? b.ask : h.ask + b.ask, wantC = dept === 'hair' ? h.all : dept === 'beauty' ? b.all : h.all + b.all;
+    const sumA = rows.reduce((a, r) => a + r.ask, 0), sumC = rows.reduce((a, r) => a + r.all, 0);
+    const d = (Math.abs(sumA - wantA) >= 0.5 || Math.abs(sumC - wantC) >= 0.5) ? { b: '', n: 'Not matched to a branch row', ask: wantA - sumA, all: wantC - sumC, pc: null, _cls: 'dr-muted' } : null;
+    if (d) rows.push(d);
+    return {
+      cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, ...deptCols(dept), { k: 'ask', l: 'Asked by name', t: 'num' }, { k: 'all', l: 'Clients', t: 'num' }, { k: 'pc', l: 'Rate', t: 'pct' }],
+      rows, foot: { b: 'Total', n: '', dp: '', ask: wantA, all: wantC, pc: wantC ? wantA / wantC * 100 : null },
+      sub: `${esc(ctx.label)}. Clients who asked for their stylist by name (requests plus new clients who asked) out of the clients the ledger types: request, salon, new and new request. Per staff, from the ledgers, so there are no client names.`,
+      note: d ? DIFF_NOTE : '',
+    };
+  }
+
+  // ── The benchmarks (Below target, Working): the two numbers each ratio is made of, per staff ──
+  const pctOf = (n, d) => d ? n / d * 100 : null;
+  const fix2 = v => (Math.round(v * 100) / 100).toFixed(2) + '%';
+  function benchList(ctx, name, dept) {
+    const s = ctx.s;
+    const sd = dept === 'hair' ? 'hair' : dept === 'beauty' ? 'beauty' : null;
+    const svcOf = r => r.dp === 'Hair' ? (r.st.hairSalesNet || 0) : (r.st.beautySales || 0);
+    // The foot is worked out from the rows. When it is not the card's figure the line says so, in bold, and does not paper over it.
+    const wrap = (cols, rows, foot, want, sub) => {
+      const got = foot.pc;
+      const off = want != null && got != null && Math.abs(got - want) > 0.05;
+      return { cols, rows, foot, sub: `${esc(ctx.label)}. ${sub}${off ? ` <b>This list works out to ${fix2(got)}, the card shows ${fix2(want)}.</b>` : ''}` };
+    };
+    const head = [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, ...deptCols(sd)];
+    if (name === 'NCR') {
+      const rows = staffRows(ctx, sd).map(r => ({ b: r.b, n: r.n, dp: r.dp, v: r.st.newClientReq || 0 })).filter(r => r.v).sort((a, b) => b.v - a.v);
+      const want = sd === 'hair' ? ctx.s.hairNCR : sd === 'beauty' ? ctx.s.beautyNCR : (ctx.s.hairNCR || 0) + (ctx.s.beautyNCR || 0);
+      const sum = rows.reduce((a, r) => a + r.v, 0);
+      const d = Math.abs(sum - want) >= 0.5 ? { b: '', n: 'Not matched to a branch row', v: want - sum, _cls: 'dr-muted' } : null;
+      if (d) rows.push(d);
+      return { cols: [...head, { k: 'v', l: 'New client requests', t: 'num' }], rows, foot: { b: 'Total', n: '', dp: '', v: want },
+        sub: `${esc(ctx.label)}. New clients who asked for their stylist by name on their first visit, counted per staff from the ledger. No client names are kept.`, note: d ? DIFF_NOTE : '' };
+    }
+    if (name === 'Rebooking %') {
+      const rows = staffRows(ctx, sd).map(r => { const base = r.st.ledgerClients != null ? r.st.ledgerClients : r.st.total; return { b: r.b, n: r.n, dp: r.dp, rb: r.st.rebooked || 0, base, pc: pctOf(r.st.rebooked || 0, base) }; }).filter(r => r.base).sort((a, b) => (b.pc || 0) - (a.pc || 0));
+      const rb = rows.reduce((a, r) => a + r.rb, 0), base = rows.reduce((a, r) => a + r.base, 0);
+      const want = sd === 'hair' ? s.hairRebookPct : sd === 'beauty' ? s.beautyRebookPct : s.rebookPct;
+      return wrap([...head, { k: 'rb', l: 'Rebooked', t: 'num' }, { k: 'base', l: 'Clients', t: 'num' }, { k: 'pc', l: 'Rebooking', t: 'pct' }], rows, { b: 'Total', n: '', dp: '', rb, base, pc: pctOf(rb, base) }, want,
+        'Clients who booked their next visit before leaving, out of the clients the ledger typed for each staff member. Counted per staff, so no client names.');
+    }
+    if (name === 'Treatment %') {
+      const rows = staffRows(ctx, sd).map(r => { const tx = r.dp === 'Hair' ? (r.st.treatments || 0) : 0; return { b: r.b, n: r.n, dp: r.dp, tx, svc: svcOf(r), pc: pctOf(tx, svcOf(r)) }; }).filter(r => r.svc || r.tx).sort((a, b) => b.svc - a.svc);
+      const tx = rows.reduce((a, r) => a + r.tx, 0), svc = rows.reduce((a, r) => a + r.svc, 0);
+      const want = sd === 'hair' ? (s.hairServicesIncl ? (s.treatmentSales || 0) / s.hairServicesIncl * 100 : 0) : (ctx.card.hairSvc + ctx.card.beautySvc ? (s.treatmentSales || 0) / (ctx.card.hairSvc + ctx.card.beautySvc) * 100 : 0);
+      return wrap([...head, { k: 'tx', l: 'Treatments', t: 'aed' }, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'pc', l: 'Treatment', t: 'pct' }], rows, { b: 'Total', n: '', dp: '', tx, svc, pc: pctOf(tx, svc) }, want,
+        `Treatment takings (a ledger column, hair only) over ${sd === 'hair' ? 'hair' : 'hair and beauty'} services, including courses.`);
+    }
+    if (name === 'Retail %') {
+      const rows = staffRows(ctx, sd).map(r => ({ b: r.b, n: r.n, dp: r.dp, svc: svcOf(r), rt: r.st.retail || 0 })).filter(r => r.svc || r.rt);
+      houseRetail(ctx, sd).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, svc: 0, rt: h.net, _cls: 'dr-muted' }));
+      rows.forEach(r => { r.pc = pctOf(r.rt, sd ? r.svc + r.rt : r.svc); });
+      rows.sort((a, b) => b.rt - a.rt);
+      const svc = rows.reduce((a, r) => a + r.svc, 0), rt = rows.reduce((a, r) => a + r.rt, 0);
+      const want = sd === 'hair' ? (ctx.card.hairNet ? (s.hairRetailOnly || 0) / ctx.card.hairNet * 100 : 0) : sd === 'beauty' ? (ctx.card.beautyNet ? (s.beautyRetailOnly || 0) / ctx.card.beautyNet * 100 : 0) : (ctx.card.hairSvc + ctx.card.beautySvc ? (s.hairRetail || 0) / (ctx.card.hairSvc + ctx.card.beautySvc) * 100 : 0);
+      return wrap([...head, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'rt', l: 'Retail', t: 'aed' }, { k: 'pc', l: sd ? 'Retail of net take' : 'Retail of services', t: 'pct' }], rows, { b: 'Total', n: '', dp: '', svc, rt, pc: pctOf(rt, sd ? svc + rt : svc) }, want,
+        sd ? 'Retail over that department\'s net take (services plus retail). Retail rung with no stylist is shared between hair and beauty and shown on its own line.' : 'All retail, including what was rung with no stylist, over hair and beauty services.');
+    }
+    if (name === 'Hair Avg Bill' || name === 'Beauty Avg Bill') return avgStaff(ctx, name === 'Hair Avg Bill' ? 'hair' : 'beauty');
+    if (name === 'Utilisation %') {
+      const per = s._utilPer;
+      if (!per || !per.size) return { cols: [], rows: [], empty: 'No rota hours for this window.' };
+      const rows = [...per.values()].filter(x => (!sd || x.dept === sd) && (x.dept === 'hair' || x.dept === 'beauty')).map(x => ({ b: bname(x.branch), n: nm(x.name), dp: x.dept === 'hair' ? 'Hair' : 'Beauty', h: x.hours, a: x.avail, pc: pctOf(x.hours, x.avail) })).filter(x => x.a).sort((a, b) => (b.pc || 0) - (a.pc || 0));
+      const h = rows.reduce((a, r) => a + r.h, 0), a = rows.reduce((x, r) => x + r.a, 0);
+      const want = sd === 'hair' ? s.hairUtilPct : sd === 'beauty' ? s.beautyUtilPct : s.utilPct;
+      return wrap([...head, { k: 'h', l: 'Booked hours', t: 'num' }, { k: 'a', l: 'Rota hours', t: 'num' }, { k: 'pc', l: 'Utilisation', t: 'pct' }], rows, { b: 'Total', n: '', dp: '', h, a, pc: pctOf(h, a) }, want,
+        'Booked hours over the hours each person was on the rota (Phorest), added up across people, not an average of their percentages. Assistants are left out. A leaver\'s empty rota days and booked time on a day with no rota hours are not counted.');
+    }
+    return null;
+  }
+
+  // ── More measures: per stylist, from org_pulse_extra ──
+  const MORE = {
+    'Retention': { n: 'ret_n', b: 'ret_back', bl: 'Came back', nl: 'Seen 3 to 6 months ago', rl: 'Retention', why: 'Clients a stylist saw 3 to 6 months ago who came back to her in the last 3 months, counted per stylist. Looks back 180 days, so it does not move with the period on screen. The counts are kept per stylist, not the clients themselves.' },
+    'Conversion': { n: 'conv_n', b: 'conv_back', bl: 'Came back', nl: 'New clients', rl: 'Conversion', why: 'New clients whose first visit was with a stylist and who came back, to anyone, within 12 weeks. Looks back 180 days. The counts are kept per stylist, not the clients themselves.' },
+    'Colour': { n: 'visits', b: 'colour', bl: 'Visits with colour', nl: 'Hair visits', rl: 'Colour', hairOnly: true, why: 'Hair visits that included a colour service, out of all hair visits, per stylist, from the sales lines. A visit is one client on one day.' },
+  };
+  function moreList(ctx, name, dept) {
+    const x = ctx.extra;
+    if (!x || !x.staff || !x.staff.some(r => r.name)) return null;
+    const codes = ctx.extraCodes || [];
+    const D = dept === 'hair' ? 'Hair' : dept === 'beauty' ? 'Beauty' : null;
+    const st = x.staff.filter(r => codes.includes(r.branch) && (!D || r.dept === D));
+    const base = [{ k: 'n', l: 'Stylist' }, { k: 'b', l: 'Branch' }, { k: 'dp', l: 'Department' }];
+    const who = r => ({ n: nm(r.name), b: bname(r.branch), dp: r.dept });
+    const m = MORE[name];
+    if (m) {
+      const list = st.filter(r => !m.hairOnly || r.dept === 'Hair');
+      const rows = list.map(r => Object.assign(who(r), { v: +r[m.b] || 0, d: +r[m.n] || 0, pc: pctOf(+r[m.b] || 0, +r[m.n] || 0) })).filter(r => r.d || r.v).sort((a, b) => (b.pc || 0) - (a.pc || 0));
+      const v = rows.reduce((a, r) => a + r.v, 0), d = rows.reduce((a, r) => a + r.d, 0);
+      return { cols: [...base, { k: 'v', l: m.bl, t: 'num' }, { k: 'd', l: m.nl, t: 'num' }, { k: 'pc', l: m.rl, t: 'pct' }], rows, foot: { n: 'Total', b: '', dp: '', v, d, pc: pctOf(v, d) },
+        sub: `${esc(ctx.label)}. ${m.why}`, note: m.n === 'visits' ? '' : (x.cache_asof ? `Counted from the client history as of ${esc(String(x.cache_asof).slice(0, 10))}.` : '') };
+    }
+    const key = name === 'Social posts' ? 'social_feed' : name === 'Social workdays' ? 'social_workdays' : null;
+    if (!key) return null;
+    const rows = st.map(r => Object.assign(who(r), { v: +r[key] || 0 })).filter(r => r.v).sort((a, b) => b.v - a.v);
+    return { cols: [...base, { k: 'v', l: name === 'Social posts' ? 'Posts' : 'Days', t: 'num' }], rows, foot: { n: 'Total', b: '', dp: '', v: rows.reduce((a, r) => a + r.v, 0) },
+      sub: `${esc(ctx.label)}. ${name === 'Social posts' ? 'Posts and collabs on Instagram that tag the salon, per stylist.' : 'Days a stylist worked and posted or shared a story, per stylist.'}` };
+  }
+  const REV_BRANCH = { 'Al Quoz': 'AQ', 'Khalifa': 'KCA', 'Motor': 'MC', 'Saadiyat': 'SAA' };
+  const revCode = b => { const k = Object.keys(REV_BRANCH).find(p => String(b || '').indexOf(p) === 0); return k ? REV_BRANCH[k] : null; };
+  async function reviewsList(ctx, which) {
+    const today = new Date().toISOString().slice(0, 10);
+    const to90 = ctx.to < today ? ctx.to : today;
+    const d90 = new Date(to90 + 'T00:00:00Z'); d90.setUTCDate(d90.getUTCDate() - 89);
+    const from = which === '90' ? d90.toISOString().slice(0, 10) : ctx.from, to = which === '90' ? to90 : ctx.to;
+    const { data, error } = await sb.from('google_reviews').select('review_id,branch,stars,reviewer,comment,review_date').gte('review_date', from).lte('review_date', to).order('review_date', { ascending: false }).limit(3000);
+    if (error) throw error;
+    const codes = ctx.extraCodes || [];
+    const rows = (data || []).filter(r => codes.includes(revCode(r.branch))).map(r => ({ d: r.review_date, b: bname(revCode(r.branch)), st: r.stars, rv: r.reviewer || '', cm: String(r.comment || '').replace(/\s+/g, ' ').slice(0, 160) }));
+    const stars = rows.reduce((a, r) => a + (+r.st || 0), 0);
+    return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'st', l: 'Stars', t: 'num' }, { k: 'rv', l: 'Reviewer' }, { k: 'cm', l: 'What she wrote' }], rows,
+      foot: { d: '', b: rows.length + ' review' + (rows.length === 1 ? '' : 's'), st: rows.length ? stars / rows.length : null, rv: '', cm: rows.length ? 'average stars' : '' },
+      sub: `${esc(ctx.label)}. ${which === '90' ? 'Google reviews in the last 90 days up to ' + TRSD.fmt.day(to) + ', which is what the star rating is worked from (shown once there are at least 3).' : 'Google reviews posted in the period, for the branches on screen.'}`, empty: 'No reviews in this window.' };
+  }
+
+  // ── The client funnel: one row's number, per staff ──
+  const FN_FIELD = { t: 'total', salon: 'salon', req: 'req', reb: 'rebooked', nw: 'new_client', ncr: 'ncr' };
+  const FN_NAME = { t: 'Total clients', salon: 'Salon clients', req: 'Request clients', reb: 'Rebooked', nw: 'New clients', ncr: 'New client requests' };
+  function fnList(ctx, o) {
+    const F = o.F, side = o.side, rows = [];
+    const sideWord = side === 'hair' ? 'Hair' : 'Beauty';
+    if (o.led) {
+      const f = FN_FIELD[o.row];
+      if (!f) return null;
+      const g = new Map();
+      ((ctx.rows && ctx.rows.ledger) || []).forEach(r => {
+        const up = String(r.staff_name || '').trim().toUpperCase();
+        if (LEDGER_NON_PERSON_NAMES.has(up) || isLedgerAssistantName(up)) return;
+        if ((String(r.dept || '').trim().toLowerCase() === 'beauty' ? 'beauty' : 'hair') !== side) return;
+        const k = r.branch + '|' + staffMapKey(r.staff_name);
+        const x = g.get(k) || { b: bname(r.branch), n: nm(staffMapKey(r.staff_name)), v: 0, t: 0 };
+        x.v += Number(r[f]) || 0; x.t += Number(r.total) || 0; g.set(k, x);
+      });
+      [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).forEach(x => rows.push({ b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }));
+      const want = F.ledger[side][o.row], sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
+      const d = Math.abs(sum - want) >= 0.5 ? { b: '', n: 'Not matched to a branch row', v: want - sum, t: null, pc: null, _cls: 'dr-muted' } : null;
+      if (d) rows.push(d);
+      return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, { k: 'v', l: FN_NAME[o.row], t: 'num' }, { k: 't', l: 'Her ledger total', t: 'num' }, { k: 'pc', l: 'Share', t: 'pct' }], rows, foot: { b: 'Total', n: '', v: want, t: tot, pc: pctOf(want, tot) },
+        sub: `${esc(ctx.label)}. ${sideWord}, ${FN_NAME[o.row].toLowerCase()} from the branch ledger, per staff member. Reception types these in, so there are no client names.`, note: d ? DIFF_NOTE : '' };
+    }
+    // Phorest's own counts per staff
+    const deptMap = (typeof buildStaffDeptMap === 'function') ? buildStaffDeptMap() : {}, ledgerDept = {};
+    ((ctx.rows && ctx.rows.ledger) || []).forEach(r => { const dp = String(r.dept || '').trim().toLowerCase(); if (dp) ledgerDept[staffMapKey(r.staff_name)] = dp === 'beauty' ? 'beauty' : 'hair'; });
+    const g = new Map();
+    const at = (r, who) => { const k = r.branch + '|' + who.key; if (!g.has(k)) g.set(k, { b: bname(r.branch), n: nm(who.key), v: 0, t: 0 }); return g.get(k); };
+    const pick = o.row === 'req' ? 'rqs' : o.row === 'nw' ? 'new_clients' : 'visits';
+    if (o.row === 'reb') {
+      (F.rebook || []).forEach(r => { const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who || who.side !== side) return; const x = at(r, who); x.v += Number(r.rebooked) || 0; x.t += Number(r.visits) || 0; });
+    } else {
+      ((ctx.rows && ctx.rows.phorest) || []).forEach(r => { if (r.is_total) return; const who = fnPhorestPerson(r.employee_name, r.branch, ledgerDept, deptMap); if (!who || who.side !== side) return; const x = at(r, who); x.v += Number(r[pick]) || 0; x.t += Number(r.visits) || 0; });
+    }
+    [...g.values()].filter(x => x.v).sort((a, b) => b.v - a.v).forEach(x => rows.push({ b: x.b, n: x.n, v: x.v, t: x.t, pc: pctOf(x.v, x.t) }));
+    const want = F.phorest[side][o.row], sum = rows.reduce((a, r) => a + r.v, 0), tot = rows.reduce((a, r) => a + r.t, 0);
+    const d = (want != null && Math.abs(sum - want) >= 0.5) ? { b: '', n: 'Not matched to a branch row', v: want - sum, t: null, pc: null, _cls: 'dr-muted' } : null;
+    if (d) rows.push(d);
+    const lbl = { t: 'Staff visits', req: 'Requests (RQ)', nw: 'New clients', reb: 'Rebooked' }[o.row] || FN_NAME[o.row];
+    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, { k: 'v', l: lbl, t: 'num' }, { k: 't', l: 'Her Phorest visits', t: 'num' }, { k: 'pc', l: 'Share', t: 'pct' }], rows, foot: { b: 'Total', n: '', v: want, t: tot, pc: pctOf(want, tot) },
+      sub: `${esc(ctx.label)}. ${sideWord}, ${lbl.toLowerCase()} from Phorest's own staff reports, per staff member. A client seen by two staff is two visits. Phorest keeps counts here, not client names.`, note: d ? DIFF_NOTE : '' };
+  }
+
+  // A branch column on the Branch Performance chart: that branch's own rows and summary, as the chart drew them (not cut by the Branch filter).
+  function branchCtx(ctx, code, bs) {
+    const j = window._cachedDailyJoin;
+    if (!bs || !j || !j.branchStaffRows) return null;
+    const hairNet = (bs.hairServicesIncl || 0) + (bs.hairRetailOnly || 0), beautyNet = (bs.beautyServicesTotal || 0) + (bs.beautyRetailOnly || 0);
+    return Object.assign({}, ctx, { s: bs, label: `${bname(code)}, ${ctx.range || ''}`, weekly: null, _bb: null, _bk: null,
+      rows: { ledger: j.branchStaffRows.filter(r => r.branch === code), phorest: j.phorestStaffRows.filter(r => r.branch === code) },
+      card: { net: bs.netTake, hairNet, beautyNet, hairSvc: bs.hairServicesIncl, beautySvc: bs.beautyServicesTotal },
+      door: { codes: [code], count: bs.doorClients } });
+  }
+
   // What the page asks for. null = this window has nothing behind the figure, so it stays plain.
   function spec(kind, ctx, o) {
     o = o || {};
@@ -280,6 +462,28 @@ const PD = (() => {
       if (!staffOK) return null;
       return { title: `${nm(o.name)} · ${o.what}`, cur, views: [{ id: 'days', label: 'Her days', load: async () => personDays(ctx, o) }] };
     }
+    if (kind === 'bench') {
+      if (!staffOK && !(o.name === 'Utilisation %' && ctx.s._utilPer)) return null;
+      return { title: `${o.name}${deptTitle(dept)}`, cur, views: [{ id: 'bench', label: 'By staff', load: async () => { const r = benchList(ctx, o.name, dept); if (!r) throw new Error('No list for ' + o.name); return r; } }] };
+    }
+    if (kind === 'ask') {
+      if (!staffOK) return null;
+      return { title: t('Request rate'), cur, views: [{ id: 'ask', label: 'By staff', load: async () => askStaff(ctx, dept) }] };
+    }
+    if (kind === 'more') {
+      if (o.name === 'Google reviews' || o.name === 'Reputation') {
+        if (!ctx.from || !ctx.extraCodes) return null;
+        const which = o.name === 'Reputation' ? '90' : 'window';
+        return { title: o.name === 'Reputation' ? 'Reputation, last 90 days' : 'Google reviews in the period', cur, views: [{ id: 'rv', label: 'Reviews', load: async () => reviewsList(ctx, which) }] };
+      }
+      if (!ctx.extra) return null;
+      return { title: t(o.name), cur, views: [{ id: 'more', label: 'By stylist', load: async () => { const r = moreList(ctx, o.name, dept); if (!r) throw new Error('No list for ' + o.name); return r; } }] };
+    }
+    if (kind === 'fn') {
+      if (!staffOK || o.uns || !FN_FIELD[o.row]) return null;
+      if (!o.led && !['t', 'req', 'nw', 'reb'].includes(o.row)) return null;
+      return { title: `${FN_NAME[o.row]} · ${o.side === 'hair' ? 'Hair' : 'Beauty'}, ${o.led ? 'ledger' : 'Phorest'}`, cur, views: [{ id: 'fn', label: 'By staff', load: async () => { const r = fnList(ctx, o); if (!r) throw new Error('No list'); return r; } }] };
+    }
     const byStaff = { net: netStaff, clients: clientsStaff, avg: avgStaff, req: reqStaff }[kind];
     const title = { net: t('Net take'), clients: t('Clients by staff'), avg: t(dept ? 'Avg bill per staff' : 'Avg bill, per staff'), req: t('Requested by name') }[kind];
     if (!byStaff) return null;
@@ -292,5 +496,5 @@ const PD = (() => {
     return null;
   }
 
-  return { snap, spec };
+  return { snap, spec, branchCtx };
 })();
