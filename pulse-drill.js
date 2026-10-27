@@ -159,12 +159,12 @@ const PD = (() => {
     if (!canNames() || !o.from) return null;
     const sub = data => {
       const shown = (data.rows || []).length;
-      let t = `${esc(ctx.label)}. ${esc(o.who)}, ${esc(o.when)}: ${cnt(data.total)} service line${data.total === 1 ? '' : 's'}, AED ${cnt(Math.round(data.net))}, from Phorest's sales lines (services only, on a paid sale; products, courses, memberships, deposits, balance payments and vouchers are left out, refunds come off).`;
+      let t = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(data.total)} service line${data.total === 1 ? '' : 's'}, AED ${cnt(Math.round(data.net))}, from Phorest's sales lines (services only, on a paid sale; products, courses, memberships, deposits, balance payments and vouchers are left out, refunds come off).`;
       if (o.ledger != null) t += ` The branch ledger, typed by reception, shows AED ${cnt(Math.round(o.ledger))}: they are two separate counts, so they can differ.`;
       if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
       return t;
     };
-    return { title: `Services · ${o.who}`, cur: ctx.cur, views: [
+    return { title: o.who ? `Services · ${o.who}` : `Services · ${o.when}`, cur: ctx.cur, views: [
       { id: 'by', label: 'By service', load: async () => {
         const data = await staffServicesLoad(ctx, o), rows = data.rows || [];
         if (data.total > rows.length) return { sub: sub(data), rows: [], empty: 'Too many lines to group by service. Pick a shorter window.' };
@@ -176,8 +176,8 @@ const PD = (() => {
       } },
       { id: 'each', label: 'Each line', load: async () => {
         const data = await staffServicesLoad(ctx, o), rows = data.rows || [];
-        return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 'i', l: 'Service' }, { k: 'n', l: 'Net', t: 'aed' }],
-          rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n })), foot: data.total <= rows.length ? { d: '', b: '', c: cnt(data.total) + ' lines', i: '', n: data.net } : null };
+        return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 'i', l: 'Service' }, { k: 'n', l: 'Net', t: 'aed' }],
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: nm(r.e), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' lines', i: '', n: data.net } : null };
       } },
     ] };
   }
@@ -270,10 +270,15 @@ const PD = (() => {
       const cl = dept === 'hair' ? s.hairTotalClients : dept === 'beauty' ? s.beautyTotalClients : s.totalClients;
       const row = { k: x.k, w: whenLabel(x.k, bk.byDay), net, cl };
       // the clients through that day (or month): every client each staff member handled
-      if (what === 'clients' && !dept && canNames() && cl) {
+      const svcL = dept === 'hair' ? (s.hairServicesIncl || 0) : dept === 'beauty' ? (s.beautyServicesTotal || 0) : (s.hairServicesIncl || 0) + (s.beautyServicesTotal || 0);
+      if (what === 'net') row.svc = svcL;
+      if (!dept && canNames()) {
         const last = new Date(+x.k.slice(0, 4), +x.k.slice(5, 7), 0).getDate();
         const a = bk.byDay ? x.k : x.k + '-01', b = bk.byDay ? x.k : x.k + '-' + String(last).padStart(2, '0');
-        row._dn = { cl: staffClientsSpec(ctx, { from: a < ctx.from ? ctx.from : a, to: b > ctx.to ? ctx.to : b, branches: ctx.door.codes, employees: null, who: '', when: whenLabel(x.k, bk.byDay), ledger: cl }) };
+        const win = { from: a < ctx.from ? ctx.from : a, to: b > ctx.to ? ctx.to : b, branches: ctx.door.codes, employees: null, who: '', when: whenLabel(x.k, bk.byDay) };
+        row._dn = {};
+        if (cl) row._dn.cl = staffClientsSpec(ctx, Object.assign({}, win, { ledger: cl }));
+        if (what === 'net' && svcL) row._dn.svc = staffServicesSpec(ctx, Object.assign({}, win, { ledger: svcL }));
       }
       rows.push(row);
     });
@@ -284,8 +289,8 @@ const PD = (() => {
     const d = (Math.abs(sumN - wantN) >= 0.5 || Math.abs(sumC - wantC) >= 0.5) ? { w: 'Not matched to a day', net: wantN - sumN, cl: wantC - sumC, _cls: 'dr-muted' } : null;
     if (d) rows.push(d);
     return {
-      cols: [{ k: 'w', l: bk.byDay ? 'Day' : 'Month' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'cl', l: 'Clients by staff', t: 'num' }],
-      rows, foot: { w: 'Total', net: wantN, cl: wantC },
+      cols: [{ k: 'w', l: bk.byDay ? 'Day' : 'Month' }, ...(what === 'net' ? [{ k: 'svc', l: 'Services', t: 'aed' }] : []), { k: 'net', l: 'Net take', t: 'aed' }, { k: 'cl', l: 'Clients by staff', t: 'num' }],
+      rows, foot: { w: 'Total', ...(what === 'net' ? { svc: rows.reduce((a, r) => a + (r.svc || 0), 0) } : {}), net: wantN, cl: wantC },
       sub: `${esc(ctx.label)}. Every ${bk.byDay ? 'day' : 'month'} of the window, worked out the way the card is.${bk.byDay ? '' : ' A window this long is listed by month.'}`,
       note: d ? 'The last grey line is the difference between the card, which works the whole window out in one go, and the rows above, which work it out one ' + (bk.byDay ? 'day' : 'month') + ' at a time.' : '',
     };
