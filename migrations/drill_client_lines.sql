@@ -9,9 +9,13 @@
 --       Each line: d date, b branch, e staff, i item (refund marker removed), r is a refund, k kind (service, product, prepaid), n net.
 --       total = the sum of the net of the lines shown. Newest first, at most 500 lines.
 --
+--       p_all (Kate, 27 Oct 2026, for Top Clients' Revenue): true counts every line that is not a deposit, balance payment or voucher sale, whoever rang it and
+--       whether or not the sale has a Payment Type entry, which is how top_clients adds Revenue up, so the lines add to that figure.
+--
 -- Client names, so: signed in, Level 3 or above, not a scoped login. Additive, read only.
 
-create or replace function public.drill_client_lines(p_from date, p_to date, p_branches text[] default null, p_client text default null, p_employees text[] default null)
+drop function if exists public.drill_client_lines(date, date, text[], text, text[]);
+create or replace function public.drill_client_lines(p_from date, p_to date, p_branches text[] default null, p_client text default null, p_employees text[] default null, p_all boolean default false)
 returns jsonb
 language plpgsql stable security definer
 set search_path = public
@@ -28,19 +32,19 @@ begin
     from (select distinct coalesce(item, '') as ik from sales_transaction_lines where date between p_from and p_to) d
   ), ln as (
     select l.branch, l.date, trim(l.employee_name) as emp, l.item, l.net, k.kind,
-           (k.kind not in ('non_sale', 'voucher') and coalesce(l.employee_name, '') !~* '^\s*business\M') as is_real,
+           (k.kind not in ('non_sale', 'voucher') and (p_all or coalesce(l.employee_name, '') !~* '^\s*business\M')) as is_real,
            bool_or(nullif(trim(l.payment_raw), '') is not null) over (partition by l.branch, l.date, l.sale_id) as sale_paid
     from sales_transaction_lines l
     join k on k.ik = coalesce(l.item, '')
     where l.date between p_from and p_to
       and (p_branches is null or l.branch = any(p_branches))
-      and lower(trim(l.client_name)) = lower(trim(p_client))
+      and lower(regexp_replace(trim(l.client_name), '\s+', ' ', 'g')) = lower(regexp_replace(trim(p_client), '\s+', ' ', 'g'))
       and (p_employees is null or trim(l.employee_name) = any(p_employees))
   ), cd as (
     select *,
            case when p_employees is null
-                then bool_or(is_real and sale_paid) over (partition by branch, date)
-                else bool_or(is_real and sale_paid) over (partition by branch, date, emp) end as counts
+                then bool_or(is_real and (sale_paid or p_all)) over (partition by branch, date)
+                else bool_or(is_real and (sale_paid or p_all)) over (partition by branch, date, emp) end as counts
     from ln
   ), hit as (
     select * from cd where counts and is_real
@@ -54,5 +58,5 @@ begin
   ) into out;
   return out;
 end $$;
-revoke all on function public.drill_client_lines(date, date, text[], text, text[]) from public, anon;
-grant execute on function public.drill_client_lines(date, date, text[], text, text[]) to authenticated;
+revoke all on function public.drill_client_lines(date, date, text[], text, text[], boolean) from public, anon;
+grant execute on function public.drill_client_lines(date, date, text[], text, text[], boolean) to authenticated;

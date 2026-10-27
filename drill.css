@@ -24,10 +24,10 @@ body.dr-open{overflow:hidden}
 .dr-save button:disabled{opacity:.4;cursor:default}
 .dr-tabs button{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:20px;padding:5px 13px;font:inherit;font-size:13px;cursor:pointer}
 .dr-tabs button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
-.dr-body{overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 18px 16px}
-.dr-scroll{overflow-x:auto}
+.dr-body{overflow:auto;-webkit-overflow-scrolling:touch;padding:0 18px 16px}
+.dr-scroll{overflow:visible}
 .dr-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
-.dr-tbl th{position:sticky;top:0;background:var(--bg);text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 10px 7px;border-bottom:1px solid var(--border);white-space:nowrap}
+.dr-tbl th{position:sticky;top:0;z-index:2;box-shadow:0 1px 0 var(--border);background:var(--bg);text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 10px 7px;border-bottom:1px solid var(--border);white-space:nowrap}
 .dr-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
 .dr-tbl .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .dr-tbl .nw{white-space:nowrap}
@@ -42,3 +42,35 @@ body.dr-open{overflow:hidden}
 .dr-bar{gap:6px 8px}.dr-save{margin-left:0}.dr-save button,.dr-tabs button{padding:5px 11px;font-size:12.5px}
 .dr-body{overscroll-behavior:contain}.dr-scroll{overflow-x:visible}.dr-tbl{table-layout:auto}.dr-tbl td,.dr-tbl th{overflow-wrap:anywhere}.dr-tbl .nw,.dr-tbl .r{overflow-wrap:normal}
 .dt-l{display:none}.dt-s{display:inline}}
+
+/* Filters on every column, the way Google Sheets does it (Kate, 27 Oct 2026) */
+.dr-th{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.dr-tbl th.r .dr-th{justify-content:flex-end}
+.dr-fb{border:0;background:transparent;color:var(--muted);opacity:.55;padding:3px;margin:-3px 0;border-radius:4px;line-height:0;cursor:pointer}
+.dr-fb:hover,.dr-fb.on{opacity:1;color:var(--text)}
+.dr-fb.on{background:var(--surface2,rgba(127,127,127,.18))}
+.dr-fbar{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.dr-fbar[hidden]{display:none}
+.dr-fclear{border:0;background:none;color:var(--text);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
+.dr-pop{position:fixed;z-index:560;overflow:auto;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.4);padding:10px;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400;text-align:left}
+.dr-pop button,.dr-pop select,.dr-pop input{font:inherit;color:var(--text)}
+.dr-pop-sort{display:grid;gap:2px;margin-bottom:8px}
+.dr-pop-sort button{border:0;background:none;text-align:left;padding:6px 6px;border-radius:6px;cursor:pointer}
+.dr-pop-sort button:hover,.dr-pop-sel button:hover{background:var(--surface2,rgba(127,127,127,.18))}
+.dr-pop-l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px;font-weight:600}
+.dr-pop select,.dr-pop input[type=text],.dr-pop input[type=date],.dr-pop input[type=search]{width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 8px}
+.dr-pop-in{display:grid;gap:6px;margin-top:6px}
+.dr-pop-in input[hidden]{display:none}
+.dr-pop-sel{display:flex;align-items:center;gap:6px;margin:6px 0 2px;color:var(--muted)}
+.dr-pop-sel button{border:0;background:none;color:var(--text);text-decoration:underline;cursor:pointer;padding:2px 4px;border-radius:4px}
+.dr-pop-list{max-height:190px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:2px 0}
+.dr-pop-v{display:flex;align-items:center;gap:8px;padding:4px 8px;cursor:pointer}
+.dr-pop-v:hover{background:var(--surface2,rgba(127,127,127,.12))}
+.dr-pop-v span{flex:1;min-width:0;overflow-wrap:anywhere}
+.dr-pop-v em{font-style:normal;color:var(--muted);font-size:11.5px}
+.dr-pop-more{margin:6px 8px;color:var(--muted);font-size:12px}
+.dr-pop-act{display:flex;align-items:center;gap:8px;margin-top:10px}
+.dr-pop-act span{flex:1}
+.dr-pop-act button{border:1px solid var(--border);background:transparent;border-radius:16px;padding:5px 13px;cursor:pointer}
+.dr-pop-act button.ok{background:var(--text);color:var(--bg);border-color:var(--text)}
+.dr-pop-act button[data-pr]{border:0;text-decoration:underline;padding-left:2px}

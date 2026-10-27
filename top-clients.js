@@ -113,6 +113,24 @@ function tcClear() {
   tcSave(); renderTopClients();
 }
 function tcSetMode(m) { TC.mode = m; try { localStorage.setItem('trs-tc-board', m); } catch (e) {} tcPaintBoard(); }
+// The Revenue figure opens the lines it is made of (Kate, 27 Oct 2026: "clickable din yung AED amounts"): the client's lines in the page's period and branch,
+// counted the way top_clients adds Revenue up (everything that is not a deposit, balance payment or voucher sale), so they add to the figure on the row.
+const TC_BRANCH_NAME = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
+function tcRevFig(r) {
+  const plain = lcNum(r.rev);
+  if (typeof TRSD === 'undefined' || typeof TRS_LEVEL === 'undefined' || TRS_LEVEL < 3 || !r.client_name) return plain;
+  const [a, b] = tcRange(), branches = TC.branch === 'all' ? ['SAA', 'KCA', 'MC', 'AQ'] : [TC.branch], name = r.client_name;
+  const spec = { title: `Revenue · ${name}`, cur: 'AED', views: [{ id: 'lines', label: 'Lines', load: async () => {
+    const { data, error } = await sb.rpc('drill_client_lines', { p_from: a, p_to: b, p_branches: branches, p_client: name, p_employees: null, p_all: true });
+    if (error) throw error;
+    const rows = data.rows || [];
+    let t = `${TRSD.esc(name)}, ${TRSD.fmt.day(a)} to ${TRSD.fmt.day(b)}, ${TC.branch === 'all' ? 'all four branches' : TRSD.esc(TC_BRANCH_NAME[TC.branch] || TC.branch)}: AED ${TRSD.fmt.n0(data.total)} over ${TRSD.fmt.n0(data.lines)} line${data.lines === 1 ? '' : 's'}, from Phorest's sales lines (a deposit, a balance payment or a voucher bought on its own is left out, refunds come off).`;
+    if (data.lines > rows.length) t += ` The newest ${TRSD.fmt.n0(rows.length)} are shown.`;
+    return { sub: t, cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'e', l: 'Staff' }, { k: 'i', l: 'Item' }, { k: 'n', l: 'Net', t: 'aed' }],
+      rows: rows.map(x => ({ d: x.d, b: TC_BRANCH_NAME[x.b] || x.b, e: x.e, i: x.r ? x.i + ' (refund)' : x.i, n: x.n })), foot: data.lines <= rows.length ? { d: '', b: '', e: '', i: TRSD.fmt.n0(data.lines) + ' lines', n: data.total } : null };
+  } }] };
+  return TRSD.num(plain, spec);
+}
 function tcOpenCell(b, l) {
   TC.branch = b; TC.last = l; tcSave(); renderTopClients();
   const h = document.getElementById('tcListHead'); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -301,7 +319,7 @@ function tcPaintTable() {
   const tr = shown.map((r, i) => `<tr class="${cls}"${open ? ' title="Click to see what she comes in for and who looks after her"' : ''}${click(i)}>
       <td class="lc-stc">${rank(r)}</td>
       <td class="lc-stc"><span class="tc-name">${lcEsc(r.client_name)}</span>${open ? '<span class="lc-hint" aria-hidden="true">See her visits ›</span>' : ''}${r.fav ? `<div class="slv-note">${lcEsc(r.fav)}</div>` : ''}</td>
-      <td class="tc-rev">${lcNum(r.rev)}</td>
+      <td class="tc-rev">${tcRevFig(r)}</td>
       <td>${lcNum(r.visits)}</td>
       <td>${lcNum(tcAvg(r))}</td>
       <td>${lcEsc(lcDayY(r.last_visit))}<div class="slv-note">${lcNum(r.days_since)} days ago</div>${bucket(Number(r.days_since))}</td>
