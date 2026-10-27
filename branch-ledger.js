@@ -1057,7 +1057,7 @@ function lgIdentityNote(s) {
   let split = '';
   if ((s.retailUnattributed || 0) >= 1) {
     const share = (s.retailHairShare == null) ? null : Math.round(s.retailHairShare * 100);
-    split = `. ${lgAed(s.retailUnattributed)} of retail was rung with no stylist against it and is shared between the two departments in proportion to the retail that was credited` +
+    split = `. ${lgAed(s.retailUnattributed)} of retail was rung with no stylist against it and is shared between the two departments ${s.retailHouseBasis === 'product' ? 'by what was sold (the product names on the front desk lines, Unsorted by the credited retail)' : 'in proportion to the retail that was credited'}` +
       (share == null ? '.' : ` (${share}% hair, ${100 - share}% beauty here).`);
   }
   return `<div class="foot">` +

@@ -101,7 +101,7 @@ const PD = (() => {
     });
     return out;
   }
-  const HOUSE_NOTE = 'The retail rung with no stylist is the BUSINESS TRS house account, and the ledger does not say whether it was hair or beauty. Its Hair, Beauty and Unsorted lines go by the product names on those sales lines (Unsorted is what the name does not settle), scaled to the ledger figure so the lines add to the card. The Hair and Beauty net take lists share it the way the card does, by credited retail, so their house line can differ from the one here.';
+  const HOUSE_NOTE = 'The retail rung with no stylist is the BUSINESS TRS house account, and the ledger does not say whether it was hair or beauty. Its Hair, Beauty and Unsorted lines go by the product names on those sales lines (Unsorted is what the name does not settle), scaled to the ledger figure so the lines add to the card. The Hair and Beauty net take lists add the Unsorted line to Hair and Beauty by credited retail, the way the cards do, so their house line is the Hair or Beauty line here plus its share of Unsorted.';
   const DIFF_NOTE = 'The last grey line is the gap between the figure and the rows above. The two are worked out in a slightly different order (for example the retail nobody was credited with is shared between hair and beauty over the whole window in one, and branch by branch or day by day in the other). It brings the list to the figure.';
   function diffRow(label, have, want, extra) {
     if (!(Math.abs(have - want) >= 0.5)) return null;

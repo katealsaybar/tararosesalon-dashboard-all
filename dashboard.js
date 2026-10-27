@@ -2635,8 +2635,23 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   const hairShare = attributedRetail
     ? (hairRetailStaff / attributedRetail)
     : (servicesTotal ? (hairServicesIncl / servicesTotal) : 1);
-  const hairRetailOnly   = hairRetailStaff   + retailUnattributed * hairShare;
-  const beautyRetailOnly = beautyRetailStaff + retailUnattributed * (1 - hairShare);
+  // Kate, 27 Oct 2026: by what was sold when the days' sales lines are loaded (HOUSE_DAYS above), Unsorted by the same ratio; otherwise the ratio alone.
+  let houseShare = hairShare, houseBasis = 'ratio';
+  if (retailUnattributed > 0.005 && HOUSE_DAYS.size) {
+    let h = 0, b = 0, u = 0;
+    const seenDay = new Set();
+    (branchStaffRows || []).concat(phorestStaffRows || []).forEach(r => {
+      const k = r.branch + '|' + r.date;
+      if (seenDay.has(k)) return;
+      seenDay.add(k);
+      const x = HOUSE_DAYS.get(k);
+      if (x) { h += x.hair; b += x.beauty; u += x.unsorted; }
+    });
+    const tot = h + b + u;
+    if (tot > 0.005 && h >= 0 && b >= 0 && u >= 0) { houseShare = (h + u * hairShare) / tot; houseBasis = 'product'; }
+  }
+  const hairRetailOnly   = hairRetailStaff   + retailUnattributed * houseShare;
+  const beautyRetailOnly = beautyRetailStaff + retailUnattributed * (1 - houseShare);
 
   const netTake       = servicesTotal + retailTotal;
 
@@ -2715,7 +2730,8 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   s.hairTreatmentUnits   = hairTreatmentUnits;
   s.hairRetailUnits      = hairRetailUnits;
   s.beautyRetailUnits    = beautyRetailUnits;
-  s.retailHairShare      = hairShare;
+  s.retailHairShare      = houseShare;
+  s.retailHouseBasis     = houseBasis;
   s.beautyServicesTotal  = beautyServices;
   s.hairRetailOnly       = hairRetailOnly;
   s.beautyRetailOnly     = beautyRetailOnly;
@@ -3289,7 +3305,39 @@ async function loadPhorestStaffDailyRange(from, to) {
   const pad = n => String(n).padStart(2, '0');
   const fromStr = `${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
   const toStr   = `${to.getFullYear()}-${pad(to.getMonth()+1)}-${pad(to.getDate())}`;
-  return keepUae(await loadAllRows('phorest_staff_daily', fromStr, toStr));
+  // Every page reads its Phorest rows through here, so this is where the product split of the retail rung with no stylist is brought in too.
+  const [rows] = await Promise.all([loadAllRows('phorest_staff_daily', fromStr, toStr), loadHouseRetailDays(fromStr, toStr)]);
+  return keepUae(rows);
+}
+
+// ── THE RETAIL RUNG WITH NO STYLIST, BY WHAT WAS SOLD (Kate, 27 Oct 2026) ──
+// aggDailyData() used to share that retail between Hair and Beauty in proportion to the retail the stylists were credited with. It is the BUSINESS TRS
+// house account, and its product names say which side it was (stl_house_dept: Hair, Beauty, or Unsorted when the name does not settle it), so the
+// split now reads those, per branch and day, from drill_house_retail_days. Unsorted follows the old ratio. A window whose days are not loaded (or a
+// failed read) keeps the old ratio, so a figure is never missing, only less exact.
+const HOUSE_DAYS = new Map();    // 'BR|YYYY-MM-DD' -> { hair, beauty, unsorted } (AED, ex VAT)
+const HOUSE_ASKED = new Map();   // 'YYYY-MM' -> when it was read; this month is read again after 5 minutes, earlier months stay
+async function loadHouseRetailDays(fromStr, toStr) {
+  try {
+    const now = Date.now(), thisMonth = new Date().toISOString().slice(0, 7);
+    const months = [];
+    for (let y = +fromStr.slice(0, 4), m = +fromStr.slice(5, 7); y * 12 + m <= +toStr.slice(0, 4) * 12 + +toStr.slice(5, 7); m++) {
+      if (m > 12) { m = 1; y++; }
+      months.push(`${y}-${String(m).padStart(2, '0')}`);
+    }
+    const need = months.filter(k => !HOUSE_ASKED.has(k) || (k >= thisMonth && now - HOUSE_ASKED.get(k) > 3e5));
+    if (!need.length) return;
+    const a = need[0] + '-01', last = need[need.length - 1];
+    const b = last + '-' + String(new Date(+last.slice(0, 4), +last.slice(5, 7), 0).getDate()).padStart(2, '0');
+    const { data, error } = await sb.rpc('drill_house_retail_days', { p_from: a, p_to: b });
+    if (error) throw error;
+    need.forEach(k => HOUSE_ASKED.set(k, now));
+    for (const k of [...HOUSE_DAYS.keys()]) if (need.includes(k.slice(-10, -3))) HOUSE_DAYS.delete(k);
+    (data || []).forEach(r => {
+      const k = r.b + '|' + r.d, x = HOUSE_DAYS.get(k) || { hair: 0, beauty: 0, unsorted: 0 };
+      x[r.k] += +r.v || 0; HOUSE_DAYS.set(k, x);
+    });
+  } catch (e) { /* the old ratio stands in */ }
 }
 
 // ── UTILISATION (staff_utilisation, from upload/utilisation-pdf.js) ──

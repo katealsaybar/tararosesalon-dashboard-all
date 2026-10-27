@@ -56,3 +56,34 @@ begin
 end $$;
 revoke all on function public.drill_house_retail(date, date, text[]) from public, anon;
 grant execute on function public.drill_house_retail(date, date, text[]) to authenticated;
+
+-- Per branch, day and department, for the cards (Kate, 27 Oct 2026): aggDailyData shares the retail rung with no stylist between Hair and Beauty from these
+-- amounts when the days are loaded, and by credited retail otherwise. Amounts only, no client names, so a scoped login gets its own branch.
+create or replace function public.drill_house_retail_days(p_from date, p_to date)
+returns jsonb
+language plpgsql stable security definer
+set search_path = public
+as $$
+declare out jsonb;
+begin
+  if auth.uid() is null then raise exception 'Sign in to see this list'; end if;
+  with ln as (
+    select l.branch, l.date, public.stl_house_dept(l.item) as dept, l.net,
+           bool_or(nullif(trim(l.payment_raw), '') is not null) over (partition by l.branch, l.date, l.sale_id) as sale_paid,
+           public.stl_item_kind(l.item) as kind, coalesce(l.item, '') as item
+    from sales_transaction_lines l
+    where l.date between p_from and p_to
+      and (public.dashboard_scope() is null or l.branch = public.dashboard_scope())
+      and coalesce(l.employee_name, '') ~* '^\s*business\M'
+  ), g as (
+    select branch, date, dept, round(sum(net), 2) as v
+    from ln
+    where sale_paid and kind in ('product', 'service')
+      and item !~* '(\d\s*\+\s*\d|blow\s?-?dry|session|package)'
+    group by branch, date, dept
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('b', branch, 'd', date, 'k', dept, 'v', v) order by date, branch, dept), '[]'::jsonb) into out from g;
+  return out;
+end $$;
+revoke all on function public.drill_house_retail_days(date, date) from public, anon;
+grant execute on function public.drill_house_retail_days(date, date) to authenticated;
