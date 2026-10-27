@@ -687,17 +687,39 @@ const PD = (() => {
   }
   const REV_BRANCH = { 'Al Quoz': 'AQ', 'Khalifa': 'KCA', 'Motor': 'MC', 'Saadiyat': 'SAA' };
   const revCode = b => { const k = Object.keys(REV_BRANCH).find(p => String(b || '').indexOf(p) === 0); return k ? REV_BRANCH[k] : null; };
+  // Each review's own public Google link, the one the Google Reviews and Performance pages use (Kate, 27 Oct 2026: "a ↗ beside the stars, to see the replies on Google"): the
+  // Maps review id plus the branch's Maps CID. Older rows keep a hash id, whose Maps id comes from review-links.js, loaded only when a list holds one. A review with no id (added by
+  // hand) opens the branch's Google listing; a branch with no Maps CID (Marasy, Fratelli) has no link.
+  const MAPS_CID = { 'Khalifa City A, Abu Dhabi': '0x22d8bf3bc3c4e957', 'Saadiyat, Abu Dhabi': '0xe3bea74269b98995', 'Al Quoz, Dubai': '0x662e693c3678cb39', 'Motor City, Dubai': '0x66221db8f29e9130', 'District 2, Bahrain': '0xf7a43c8e59e763dd' };
+  function reviewUrl(r) {
+    const cid = MAPS_CID[r.branch];
+    if (!cid) return '';
+    let id = String(r.review_id || '').replace(/^seed:/, '');
+    if (!/^C[hi]/.test(id)) id = (window.REVIEW_MAPS_IDS || {})[id] || (String(r.url || '').match(/\/reviews\/(C[hi][\w-]+)/) || [])[1] || '';
+    if (!id) return 'https://www.google.com/maps?cid=' + BigInt(cid).toString() + '&hl=en';
+    let inner = '';
+    try { const b = atob(id.replace(/-/g, '+').replace(/_/g, '/')); if (b.charCodeAt(0) === 10) inner = b.substr(2, b.charCodeAt(1)); } catch (e) {}
+    return 'https://www.google.com/maps/reviews/data=' + (inner
+      ? `!4m8!14m7!1m6!2m5!1s${id}!2m1!1s0x0:${cid}!3m1!1s2@1:${inner}%7C%7C`
+      : `!4m6!14m5!1m4!2m3!1s${id}!2m1!1s0x0:${cid}`) + '?hl=en';
+  }
+  let rvLinks = null;
+  const loadReviewLinks = () => window.REVIEW_MAPS_IDS ? Promise.resolve() : (rvLinks || (rvLinks = new Promise(res => {
+    const sc = document.createElement('script'); sc.src = 'add%20ons/google-reviews/review-links.js?v=ee3ed966'; sc.onload = sc.onerror = () => res(); document.head.appendChild(sc);
+  })));
   async function reviewsList(ctx, which) {
     const today = new Date().toISOString().slice(0, 10);
     const to90 = ctx.to < today ? ctx.to : today;
     const d90 = new Date(to90 + 'T00:00:00Z'); d90.setUTCDate(d90.getUTCDate() - 89);
     const from = which === '90' ? d90.toISOString().slice(0, 10) : ctx.from, to = which === '90' ? to90 : ctx.to;
-    const { data, error } = await sb.from('google_reviews').select('review_id,branch,stars,reviewer,comment,review_date').gte('review_date', from).lte('review_date', to).order('review_date', { ascending: false }).limit(3000);
+    const { data, error } = await sb.from('google_reviews').select('review_id,branch,stars,reviewer,comment,review_date,url').gte('review_date', from).lte('review_date', to).order('review_date', { ascending: false }).limit(3000);
     if (error) throw error;
     const codes = ctx.extraCodes || [];
-    const rows = (data || []).filter(r => codes.includes(revCode(r.branch))).map(r => ({ d: r.review_date, b: bname(revCode(r.branch)), st: r.stars, rv: r.reviewer || '', cm: String(r.comment || '').replace(/\s+/g, ' ').slice(0, 160) }));
+    const kept = (data || []).filter(r => codes.includes(revCode(r.branch)));
+    if (kept.some(r => /^[0-9a-f]{24}$/.test(String(r.review_id || '').replace(/^seed:/, '')))) await loadReviewLinks();
+    const rows = kept.map(r => { const u = reviewUrl(r); return { d: r.review_date, b: bname(revCode(r.branch)), st: r.stars, rv: r.reviewer || '', cm: String(r.comment || '').replace(/\s+/g, ' ').slice(0, 160), _ext: u ? { st: u } : null }; });
     const stars = rows.reduce((a, r) => a + (+r.st || 0), 0);
-    return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'st', l: 'Stars', t: 'num' }, { k: 'rv', l: 'Reviewer' }, { k: 'cm', l: 'What she wrote' }], rows,
+    return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'st', l: 'Stars', t: 'num', al: 'l' }, { k: 'rv', l: 'Reviewer' }, { k: 'cm', l: 'What she wrote' }], rows,
       foot: { d: '', b: rows.length + ' review' + (rows.length === 1 ? '' : 's'), st: rows.length ? stars / rows.length : null, rv: '', cm: rows.length ? 'average stars' : '' },
       sub: `${esc(ctx.label)}. ${which === '90' ? 'Google reviews in the last 90 days up to ' + TRSD.fmt.day(to) + ', which is what the star rating is worked from (shown once there are at least 3).' : 'Google reviews posted in the period, for the branches on screen.'}`, empty: 'No reviews in this window.' };
   }

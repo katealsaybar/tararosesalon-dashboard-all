@@ -39,6 +39,9 @@
     if (col.t === 'html') return v == null ? '' : v;
     const f = FMT[col.t];
     const txt = f ? f(v, spec && spec.cur) : esc(v).replace(/ ([A-Za-z])(?=,|$)/g, '&nbsp;$1');
+    // A row can send one of its figures to another website: row._ext = { column key: url } (the stars on a Reputation row open that review on Google, to read the replies). The ↗ says it is a link.
+    const ext = row._ext && row._ext[col.k];
+    if (ext && v != null && v !== '' && !foot) return `<a class="dr-ext" href="${esc(ext)}" target="_blank" rel="noopener" title="Open this review on Google">${txt}<span class="dr-ar" aria-hidden="true">&#8599;</span></a>`;
     // A row can make one of its figures clickable too: row._dn = { column key: the spec it opens } (the Clients count on a staff row).
     return (row._dn && row._dn[col.k] && v != null && v !== '') ? num(txt, row._dn[col.k]) : txt;
   }
@@ -130,7 +133,7 @@
   function drawTable(res) {
     const body = box.querySelector('.dr-body'), st = fst[cur] || (fst[cur] = { f: {}, sort: null }), cols = res.cols, vw = viewOf(res);
     const top = body.scrollTop, left = body.scrollLeft;
-    const cls = c => NUMT(c) ? 'r' : c.t === 'date' ? 'nw' : /^branch$/i.test(c.l) ? 'br' : '';
+    const cls = c => c.al === 'l' ? 'nw' : NUMT(c) ? 'r' : c.t === 'date' ? 'nw' : /^branch$/i.test(c.l) ? 'br' : '';   // al: 'l' keeps a number column on the left (Reputation stars)
     const head = cols.map(c => {
       const sorted = st.sort && st.sort.k === c.k, on = sorted || !!st.f[c.k];
       return `<th class="${cls(c)}"><span class="dr-th"><span class="dr-tl">${esc(c.l)}${sorted ? (st.sort.dir > 0 ? ' ↑' : ' ↓') : ''}</span><button type="button" class="dr-fb${on ? ' on' : ''}" data-fc="${esc(c.k)}" aria-label="Filter ${esc(c.l)}" aria-haspopup="true"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button></span></th>`;
