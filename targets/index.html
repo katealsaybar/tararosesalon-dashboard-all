@@ -668,7 +668,9 @@ const BREAK_EVEN=[1700000,1800000];
 function renderTiles(sel,all){
   const t=sumRows(sel);
   const g=sumRows(all);
-  const now=Math.round(g.plan*S.retailNow/100), gTot=g.plan+now, gTar=g.plan+g.retail;
+  /* Kate, 27 Oct 2026: Total net take follows the branch and team picked above. The floor and aim are for the whole business, so the verdict shows only with every branch and team in. */
+  const scoped=st.branch!=='ALL'||st.team!=='ALL',nb=scoped?t:g;
+  const now=Math.round(nb.plan*S.retailNow/100), gTot=nb.plan+now, gTar=nb.plan+nb.retail;
   const be=gTot>=BREAK_EVEN[1]?['good','at or above the aim']:gTot>=BREAK_EVEN[0]?['warn','above break-even, below the aim']:['bad','below break-even'];
   const m=MN[S.month-1];
   const A=ACTM[S.month]||null,tilesEl=document.getElementById('tiles');
@@ -683,18 +685,18 @@ function renderTiles(sel,all){
       `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
       `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
   };
-  const netAct=A?sum(allB,'net'):null,pace=A?netAct/el:null;
+  const netAct=A&&teamAll?sum(selB,'net'):null,pace=netAct!=null?netAct/el:null;
   const svcAct=A&&teamAll?sum(selB,'svc'):null,retAct=A&&teamAll?sum(selB,'ret'):null,visAct=A&&teamAll?sum(selB,'visits'):null;
   const trAct=A&&(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
-  const verdict=be[1].charAt(0).toUpperCase()+be[1].slice(1)+', floor 1.7M, aim 1.8M.';
-  const netNote=`<div class="abn">${A?`Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). `:''}${verdict}</div>`+
-    `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(g.plan)}.${g.plan!==g.top?` Includes the bottom-up ${sgnA(g.plan-g.top)}.`:''}</div>`;
+  const verdict=scoped?'The 1.7M floor and 1.8M aim are for all four branches together, so there is no verdict for this selection.':be[1].charAt(0).toUpperCase()+be[1].slice(1)+', floor 1.7M, aim 1.8M.';
+  const netNote=`<div class="abn">${pace!=null?`Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). `:''}${verdict}</div>`+
+    `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar)}. Without retail ${fmt(nb.plan)}.${nb.plan!==nb.top?` Includes the bottom-up ${sgnA(nb.plan-nb.top)}.`:''}</div>`;
   const planNote=t.plan!==t.top?
     `<div class="abn s">Top-down ${fmt(t.top)}, the middle of low and high. Bottom-up ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Low ${fmt(t.low)}, high ${fmt(t.high)}.</div>`:
     `<div class="abn s">The middle of low ${fmt(t.low)} and high ${fmt(t.high)}.</div>`;
   /* Kate, 27 Oct 2026: the i beside each line shows, on hover, how that line is worked out, with the numbers on the screen. */
   const upto2=A?`1 to ${upto}`:'the month so far';
-  const tipNet=`<b>Actual</b> is the net take in the ledgers, ${upto2}: services, courses and retail, all branches.<br><b>Target</b> is the services and treatment target ${fmt(g.plan)} plus the retail we sell today (${S.retailNow}% of it, ${fmt(now)}) = <b>${fmt(gTot)}</b>.${A?`<br>The tick on the bar is how far the month has gone: ${A.elapsed} of ${A.days} days.`:''}`;
+  const tipNet=`<b>Actual</b> is the net take in the ledgers, ${upto2}: services, courses and retail, ${scoped?'for the branch shown':'all branches'}.<br><b>Target</b> is the services and treatment target ${fmt(nb.plan)} plus the retail we sell today (${S.retailNow}% of it, ${fmt(now)}) = <b>${fmt(gTot)}</b>.${A?`<br>The tick on the bar is how far the month has gone: ${A.elapsed} of ${A.days} days.`:''}`;
   const tipSvc=`<b>Target</b> is every person's target added up = <b>${fmt(t.plan)}</b>.<br>One person: her average day (sales of the last 3 months divided by the days she worked) x the season (${MN[S.month-1]} against the months used) x her days. Low uses the days she is in, high uses nobody on leave, the target is the middle of the two${t.plan!==t.top?`, then the bottom-up % on top (${sgnA(t.plan-t.top)}).`:'.'}<br><b>Actual</b> is services and courses in the ledgers.`;
   const tipRet=`<b>Target</b> is ${S.retail}% of the services and treatment target: ${fmt(t.plan)} x ${S.retail}% = <b>${fmt(t.retail)}</b>.<br><b>Actual</b> is retail sales in the ledgers.`;
   const tipTr=`<b>Target</b> is ${S.treat}% of each hair stylist's plan, added up = <b>${fmt(trTgt)}</b>. Beauty has no treatment line.<br><b>Actual</b> is hair treatment sales in the ledgers.`;
