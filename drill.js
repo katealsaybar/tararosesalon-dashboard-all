@@ -145,9 +145,10 @@
     box = document.createElement('div');
     box.className = 'dr-modal'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', sp.title);
     const tabs = sp.views.length > 1 ? `<div class="dr-tabs" role="group" aria-label="View">${sp.views.map((v, i) => `<button type="button" data-dv="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`).join('')}</div>` : '<div></div>';
-    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div><h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><button type="button" class="dr-x" data-dx>Close</button></div><div class="dr-bar">${tabs}<div class="dr-save"><span class="dr-saved" role="status"></span><button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div><div class="dr-body"></div></div>`;
+    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><button type="button" class="dr-x" data-dx>Close</button></div><div class="dr-bar">${tabs}<div class="dr-save"><span class="dr-saved" role="status"></span><button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div><div class="dr-body"></div></div>`;
     box.addEventListener('click', e => {
       if (e.target === box || e.target.closest('[data-dx]')) { close(); return; }
+      if (e.target.closest('[data-db]')) { goBack(); return; }   // Kate, 27 Oct 2026: a way back up when a list was opened from another list
       const sb = e.target.closest('.dr-sub'); if (sb) { sb.classList.toggle('open'); return; }   // phone: the note is two lines until tapped
       const t = e.target.closest('[data-dv]'); if (t) { pick(+t.dataset.dv); return; }
       const d = e.target.closest('[data-ds]'); if (d && !d.disabled) save(d.dataset.ds);
@@ -155,6 +156,11 @@
     document.body.appendChild(box); document.body.classList.add('dr-open');
     const b = box.querySelector('[data-dx]'); if (b) b.focus();
     pick(0);
+  }
+  function goBack() {
+    if (chain.length < 2) return;
+    if (pushed > 0) { history.back(); return; }   // the popstate handler below does the rest
+    chain.pop(); hide(); show(chain[chain.length - 1]);
   }
   window.addEventListener('popstate', () => {
     if (!box) return;
