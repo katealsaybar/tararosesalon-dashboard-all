@@ -211,8 +211,8 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 #sfNote:empty{display:none}
 .sft input.days{width:64px}
 .sfopen{display:none}
-.sfb{border:0;background:transparent;color:var(--muted);font-size:10px;line-height:1;padding:3px 3px;margin:0 2px;border-radius:4px;cursor:pointer;vertical-align:baseline}
-.nw{white-space:nowrap}
+/* the menu button sits in the top-left corner of its header cell, out of the flow, so it never widens a column or pushes a label off the numbers' edge */
+.sfb{position:absolute;top:4px;left:3px;margin:0;border:0;background:transparent;color:var(--muted);font-size:10px;line-height:1;padding:3px;border-radius:4px;cursor:pointer}
 .sfb:hover{background:var(--track)}
 .sfb.on,.sfb.so{background:var(--mint);color:var(--ink)}
 .sfpop{position:absolute;z-index:60;width:272px;max-height:min(520px,80vh);overflow:auto;background:var(--card);border:1px solid var(--rule);border-radius:var(--r-md);box-shadow:0 8px 28px rgba(0,0,0,.28);padding:10px 12px;font-size:13.5px;color:var(--text);text-align:left;text-transform:none;letter-spacing:0;font-weight:400}
@@ -807,9 +807,7 @@ const visible=list=>sortRows(list.filter(r=>passesAll(r)));
 function thCell([k,cls,tt]){
   const c=colOf(k),on=!!sf.f[k],so=sf.sort&&sf.sort.k===k;
   const btn=`<button type="button" class="sfb${on?' on':''}${so?' so':''}" data-sf="${k}" aria-haspopup="dialog" aria-label="Sort and filter ${c.t}">${so?(sf.sort.dir>0?'&#9650;':'&#9660;'):'&#9662;'}</button>`;
-  const words=c.t.split(' '),first=words.shift(),rest=words.join(' ');
-  const inner=c.x==='n'?`<span class="nw">${btn}${first}</span>${rest?' '+rest:''}`:`<span class="nw">${c.t}${btn}</span>`;
-  return `<th${cls?` class="${cls}"`:''}${tt?` title="${tt}"`:''}>${inner}</th>`;
+  return `<th${cls?` class="${cls}"`:''}${tt?` title="${tt}"`:''}>${btn}${c.t}</th>`;
 }
 function closePop(){if(pop){pop.remove();pop=null;}}
 const OPS_T=[['','None'],['contains','Text contains'],['notcontains','Text does not contain'],['is','Text is exactly'],['empty','Is empty'],['notempty','Is not empty']];
