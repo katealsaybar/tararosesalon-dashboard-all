@@ -2340,7 +2340,11 @@ function aggDailyData(dailyRows, branchStaffRows, phorestStaffRows, rebookRows) 
   // present; daily_data is the older manual-XLSX-upload table (Kate confirmed it lags —
   // last touched 31 May while the auto-synced tables run through today) and is now only
   // a fallback for date ranges that predate the auto sync.
-  const s = (hasLedgerData || hasPhorest) ? computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) : computeGroupSummaryFromDailyData(dailyRows);
+  // The branch-days this window covers, so the summary can read the product split of the retail rung with no stylist for exactly those days.
+  const dayKeys = new Set();
+  (branchStaffRows || []).forEach(r => dayKeys.add(r.branch + '|' + r.date));
+  (phorestStaffRows || []).forEach(r => dayKeys.add(r.branch + '|' + r.date));
+  const s = (hasLedgerData || hasPhorest) ? computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals, dayKeys) : computeGroupSummaryFromDailyData(dailyRows);
 
   let ledgerTooThin = false;
   if (ledgerPart) {
@@ -2559,7 +2563,7 @@ function computeGroupSummaryFromDailyData(dailyRows) {
 //
 // `branchTotals` is Phorest's own per-branch TOTAL line for the same window, and the
 // RETAIL note below is why it has to be here.
-function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
+function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals, dayKeys) {
   const sum = (map, field) => Object.values(map).reduce((a, st) => a + (Number(st[field]) || 0), 0);
 
   const hairTotalClients = sum(hairMap, 'total');
@@ -2639,11 +2643,7 @@ function computeGroupSummaryFromMaps(hairMap, beautyMap, branchTotals) {
   let houseShare = hairShare, houseBasis = 'ratio';
   if (retailUnattributed > 0.005 && HOUSE_DAYS.size) {
     let h = 0, b = 0, u = 0;
-    const seenDay = new Set();
-    (branchStaffRows || []).concat(phorestStaffRows || []).forEach(r => {
-      const k = r.branch + '|' + r.date;
-      if (seenDay.has(k)) return;
-      seenDay.add(k);
+    (dayKeys || []).forEach(k => {
       const x = HOUSE_DAYS.get(k);
       if (x) { h += x.hair; b += x.beauty; u += x.unsorted; }
     });
