@@ -216,7 +216,7 @@ table.t th.rel{white-space:nowrap}
 .aba,.abt{text-align:center;font-family:var(--fd);font-size:19px;line-height:1.2;font-variant-numeric:normal}
 .aba{font-weight:600;color:var(--text)}
 .abt{font-weight:400;color:var(--muted)}
-.aba.na{font-family:inherit;font-size:14px;font-weight:400;color:var(--muted)}
+.aba.na,.abt.na{font-family:inherit;font-size:14px;font-weight:400;color:var(--muted)}
 .abv{width:1px;height:22px;background:var(--rule)}
 .abb{position:relative;height:4px;border-radius:99px;background:var(--track)}
 .abb.none{background:none}
@@ -692,7 +692,7 @@ function renderTiles(sel,all){
   const row=(label,act,tgt,hero,note,tip)=>{
     const has=act!=null,pct=has&&tgt?act/tgt*100:null;
     const cls=pct==null?'':pct>=el*100-10?'':pct>=el*100-25?'warn':'bad';
-    return `<div class="abg abr${hero?' hero':''}"><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?fmt(act):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt">${fmt(tgt)}</span>`+
+    return `<div class="abg abr${hero?' hero':''}"><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?fmt(act):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt${tgt==null?' na':''}">${tgt==null?'n/a':fmt(tgt)}</span>`+
       `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
       `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
   };
@@ -718,7 +718,7 @@ function renderTiles(sel,all){
     row('Total net take',netAct,gTot,true,netNote,tipNet)+
     row('Services and treatment',svcAct,t.plan,false,planNote,tipSvc)+
     row('Retail',retAct,t.retail,false,'',tipRet)+
-    row('Treatment (hair)',trAct,trTgt,false,'',tipTr)+
+    row('Treatment (hair)',trAct,st.team==='BEAUTY'?null:trTgt,false,'',tipTr)+
     row('Clients',visAct,t.clients,false,'',tipCl)+
     (A&&!teamAll?`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`:'')+`</div>`;
 }
