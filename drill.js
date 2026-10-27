@@ -22,7 +22,7 @@
   // ?r=net-take.clients-handled-april-miraflor. Back goes up one list and then closes; a link or a reload reopens it once the page has drawn its figures.
   let under = [];   // windows underneath a client window: it opens on top of the list instead of replacing it (Kate, 27 Oct 2026), so the list keeps its place and filters
   let chain = [], pushed = 0, origin = null, ignorePop = 0;   // ignorePop: the one popstate our own Close causes, which must not close whatever opens next
-  const rUrl = list => { const u = new URL(location.href); if (list && list.length) u.searchParams.set('r', list.map(x => slug(x.title)).join('.')); else u.searchParams.delete('r'); return u.pathname + u.search + u.hash; };
+  const rUrl = list => { const u = new URL(location.href); if (list && list.length) u.searchParams.set('r', list.map(x => slug(x.sk || x.title)).join('.')); else u.searchParams.delete('r'); return u.pathname + u.search + u.hash; };
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -154,10 +154,13 @@
     if (res._ct || !res.client || !res.rows || !res.rows.length) return;
     if (typeof TRS_LEVEL === 'undefined' || TRS_LEVEL < 5 || typeof sb === 'undefined') return;
     res._ct = 1;
-    const ck = res.client.k, bk = res.client.b;
-    const keyOf = r => String(r[ck] == null ? '' : r[ck]).toLowerCase().replace(/\s+/g, ' ').trim() + '|' + (bk ? (r[bk] || '') : '');
+    // Which Phorest client is she? A visit row says the day (res.client.d = the date column), a list of clients says the period (res.client.from / .to): the server picks
+    // her own Phorest id from the sales on that day or in that period (phorest_visit_clients), so a name that several women share still gets the right number.
+    const ck = res.client.k, bk = res.client.b, dk = res.client.d, cf = res.client.from || '', ct = res.client.to || '';
+    const dOf = r => dk ? String(r[dk] == null ? '' : r[dk]).slice(0, 10) : cf;
+    const keyOf = r => String(r[ck] == null ? '' : r[ck]).toLowerCase().replace(/\s+/g, ' ').trim() + '|' + (bk ? (r[bk] || '') : '') + '|' + dOf(r);
     const idx = new Map(), items = [];
-    res.rows.forEach(r => { const k = keyOf(r); if (k.charAt(0) !== '|' && !idx.has(k)) { idx.set(k, items.length); items.push([String(r[ck]), bk ? (r[bk] || '') : '']); } });
+    res.rows.forEach(r => { const k = keyOf(r); if (k.charAt(0) !== '|' && !idx.has(k)) { idx.set(k, items.length); items.push([String(r[ck]), bk ? (r[bk] || '') : '', dOf(r), dk ? dOf(r) : ct]); } });
     if (!items.length) return;
     try {
       const { data, error } = await sb.rpc('drill_client_contacts', { p_items: items });
@@ -340,7 +343,7 @@
     let i = 0, tries = 0;
     const timer = setInterval(() => {
       if (++tries > 70 || (box && chain.length !== i)) { clearInterval(timer); return; }   // gave up, or the person opened something else
-      let hit = null; [REG, MREG].forEach(m => m.forEach(sp => { if (!hit && slug(sp.title) === want[i]) hit = sp; }));
+      let hit = null; [REG, MREG].forEach(m => m.forEach(sp => { if (!hit && slug(sp.sk || sp.title) === want[i]) hit = sp; }));
       if (!hit) return;
       if (i === 0) { try { history.replaceState(history.state, '', rUrl([])); } catch (e) {} }   // the page's own address first, so Back closes the list instead of leaving the page
       open(hit, null); i++;

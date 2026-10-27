@@ -177,19 +177,20 @@ const PD = (() => {
   function clientHistorySpec(ctx, o) {
     if (!canNames() || !o.client) return null;
     let P = null;
-    const load = () => P || (P = (async () => { const { data, error } = await sb.rpc('drill_client_history', { p_client: o.client, p_branches: o.branches || null }); if (error) throw error; return data; })().catch(e => { P = null; throw e; }));
+    const load = () => P || (P = (async () => { const { data, error } = await sb.rpc('drill_client_history', { p_client: o.client, p_branches: o.branches || null, p_from: o.on || o.from || null, p_to: o.on || o.to || null }); if (error) throw error; return data; })().catch(e => { P = null; throw e; }));
     const people = t => (t || []).map(x => `${esc(nm(x.e))} (${cnt(x.d)})`).join(', ');
     const sub = d => {
       let t = `${esc(o.client)}: ${cnt(d.visits)} visit${d.visits === 1 ? '' : 's'}`;
       if (d.visits) t += `, first ${TRSD.fmt.day(d.first)}, last ${TRSD.fmt.day(d.last)}, AED ${cnt(Math.round(d.spent))} spent`;
       t += ' (from Phorest sales lines: a visit is a day with a paid sale; deposits, balance payments and vouchers are not visits).';
       if (d.team && d.team.length) t += ` Most often seen by ${people(d.team)}.`;
+      if (d.ambig) t += ` ${cnt(d.ambig)} clients with this name visited in that period and nothing says which is hers, so these visits are all of theirs together.`;
       if (d.since) t += ` Phorest profile created ${TRSD.fmt.day(d.since)}.`;
       if (d.contact && d.contact.a) t += ` Phone and email are not shown: ${cnt(d.contact.n)} Phorest clients carry this name and nothing says which is hers.`;
       else if (d.contact && (d.contact.m || d.contact.e)) t += ` ${d.contact.m ? 'Phone ' + esc(d.contact.m) + '. ' : ''}${d.contact.e ? 'Email ' + esc(d.contact.e) + '.' : ''}${d.contact.n > 1 ? ' (' + cnt(d.contact.n) + ' Phorest profiles carry this name.)' : ''}`;
       return t;
     };
-    return { title: `Client · ${o.client}`, panel: true, tip: 'See her visits', cur: ctx.cur, views: [
+    return { title: `Client · ${o.client}`, sk: o.on ? `Client · ${o.client} ${o.on}` : null, panel: true, tip: 'See her visits', cur: ctx.cur, views: [
       { id: 'visits', label: 'Visits', load: async () => {
         const d = await load(), rows = d.rows || [];
         return { sub: sub(d), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'e', l: 'Staff' }, { k: 's', l: 'Services' }, { k: 'p', l: 'Retail' }, { k: 'n', l: 'Spent', t: 'aed' }],
@@ -224,8 +225,8 @@ const PD = (() => {
       } },
       { id: 'each', label: 'Each line', load: async () => {
         const d = await houseLinesLoad(ctx, o), rows = d.rows || [];
-        return { sub: houseSub(ctx, o, d, dword), client: { k: 'c', b: 'bc' }, cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'c', l: 'Client' }, { k: 'i', l: 'Product' }, { k: 'k', l: 'Department' }, { k: 'n', l: 'Net', t: 'aed' }],
-          rows: rows.map(r => ({ d: r.d, bc: r.b, c: r.c, i: r.r ? r.i + ' (refund)' : r.i, k: { hair: 'Hair', beauty: 'Beauty', unsorted: 'Unsorted' }[r.k] || r.k, n: r.n, _dn: { c: r.c === 'No name' ? null : clientHistorySpec(ctx, { client: r.c }) } })),
+        return { sub: houseSub(ctx, o, d, dword), client: { k: 'c', b: 'bc', d: 'd' }, cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'c', l: 'Client' }, { k: 'i', l: 'Product' }, { k: 'k', l: 'Department' }, { k: 'n', l: 'Net', t: 'aed' }],
+          rows: rows.map(r => ({ d: r.d, bc: r.b, c: r.c, i: r.r ? r.i + ' (refund)' : r.i, k: { hair: 'Hair', beauty: 'Beauty', unsorted: 'Unsorted' }[r.k] || r.k, n: r.n, _dn: { c: r.c === 'No name' ? null : clientHistorySpec(ctx, { client: r.c, on: r.d }) } })),
           foot: d.lines <= rows.length ? { d: '', c: cnt(d.lines) + ' lines', i: '', k: '', n: d.total } : null };
       } },
     ] };
@@ -258,7 +259,7 @@ const PD = (() => {
       { id: 'each', label: 'Each client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }],
-          client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, s: r.s, _dn: { c: clientHistorySpec(ctx, { client: r.c }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, who: nm(r.e) }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
+          client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, s: r.s, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, who: nm(r.e) }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
       } },
       { id: 'by', label: 'By client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
@@ -267,7 +268,7 @@ const PD = (() => {
         rows.forEach(r => { const k = String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, v: 0, s: 0, e: new Set() }; x.v++; x.s += +r.s || 0; x.e.add(r.e); m.set(k, x); });
         const list = [...m.values()].sort((a, b) => b.v - a.v || b.s - a.s || a.c.localeCompare(b.c));
         return { sub: sub(data) + ` ${cnt(list.length)} different client names.`, cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: o.who ? 'Days' : 'Times handled', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }])],
-          client: { k: 'c' }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: o.from, to: o.to, branches: o.branches, employees: o.employees, client: x.c, who: o.who || '' }); return { c: x.c, v: x.v, s: x.s, e: [...x.e].map(nm).join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c }) } }; }), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
+          client: { k: 'c', from: o.from, to: o.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: o.from, to: o.to, branches: o.branches, employees: o.employees, client: x.c, who: o.who || '' }); return { c: x.c, v: x.v, s: x.s, e: [...x.e].map(nm).join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: o.from, to: o.to }) } }; }), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
       } },
     ] };
   }
@@ -302,7 +303,7 @@ const PD = (() => {
       { id: 'each', label: 'Each line', load: async () => {
         const data = await staffServicesLoad(ctx, o), rows = data.rows || [];
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 'i', l: lab }, { k: 'n', l: 'Net', t: 'aed' }],
-          client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n, _dn: { c: r.c === 'No name' ? null : clientHistorySpec(ctx, { client: r.c }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' lines', i: '', n: data.net } : null };
+          client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n, _dn: { c: r.c === 'No name' ? null : clientHistorySpec(ctx, { client: r.c, on: r.d }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' lines', i: '', n: data.net } : null };
       } },
     ] };
   }
@@ -341,7 +342,7 @@ const PD = (() => {
       else if (o.ledger != null) t += ` The figure you clicked, ${cnt(o.ledger)}, is a separate count (typed by reception or from Phorest's staff report), so they can differ.`;
       if (data.total > rows.length) t += ` The newest ${cnt(rows.length)} are shown.`;
       return { sub: t, cols: [{ k: 'd', l: 'First visit', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }],
-        client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, _dn: { c: clientHistorySpec(ctx, { client: r.c }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + (o.kind === 'ncr' ? ' asked' : ' new clients') } : null };
+        client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + (o.kind === 'ncr' ? ' asked' : ' new clients') } : null };
     } }] };
   }
   // A staff row's Phorest or ledger counts (her total, her new clients, her requests) opening the list behind each: x = { code, raw (her name), b, n, v, t }.
@@ -553,7 +554,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit),
           cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
-          client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, c: r.c, s: r.s, st: r.st, _dn: { c: clientHistorySpec(ctx, { client: r.c }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
+          client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, c: r.c, s: r.s, st: r.st, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
           foot: data.total <= rows.length ? { d: '', b: '', c: cnt(data.total) + ' visits', s: data.spend, st: '' } : null,
         };
       } },
@@ -569,7 +570,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit) + ` ${cnt(list.length)} different client names; one who came on two days is two visits.`,
           cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: 'Visits', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'b', l: 'Branches' }],
-          client: { k: 'c' }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }); return { c: x.c, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c }) } }; }),
+          client: { k: 'c', from: ctx.from, to: ctx.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }); return { c: x.c, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: ctx.from, to: ctx.to }) } }; }),
           foot: { c: 'Total', v: data.total, s: data.spend, b: '' },
         };
       } },

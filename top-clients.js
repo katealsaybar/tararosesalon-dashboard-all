@@ -201,7 +201,7 @@ async function renderTopClients() {
 async function tcContacts(rows) {
   if (typeof TRS_LEVEL === 'undefined' || TRS_LEVEL < 5 || !rows.length) return;
   try {
-    const { data, error } = await sb.rpc('drill_client_contacts', { p_items: rows.map(r => [r.client_name, TC.branch === 'all' ? '' : TC.branch]) });
+    const { data, error } = await sb.rpc('drill_client_contacts', { p_items: rows.map(r => [r.client_name, TC.branch === 'all' ? '' : TC.branch, tcRange()[0], tcRange()[1]]) });
     if (error) throw error;
     (data || []).forEach(x => { const r = rows[x.i]; if (r && !x.a) { r._em = x.e || ''; if (!r.mobile && !r.landline && x.m) r.mobile = x.m; } });
   } catch (e) { console.warn('contacts', e && e.message); }
