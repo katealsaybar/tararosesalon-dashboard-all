@@ -206,6 +206,9 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
 .ib:hover,.ib:focus-visible,.ib[aria-expanded=true]{background:var(--text);color:var(--bg);border-color:var(--text);opacity:1}
 .tip{display:none;position:absolute;left:0;top:calc(100% + 8px);z-index:30;width:min(340px,calc(100vw - 40px));background:var(--field);color:var(--text);border:1px solid var(--rule);border-radius:var(--r-sm);padding:12px 14px;font-family:inherit;font-size:12.5px;font-weight:400;line-height:1.55;letter-spacing:0;text-transform:none;text-align:left;white-space:normal;box-shadow:0 10px 28px rgba(0,0,0,.35)}
 .tip b{font-weight:600}
+.ibw{display:inline-flex;vertical-align:middle;margin:0 0 0 4px}
+.sfbulk{position:relative}
+table.t th.rel{white-space:nowrap}
 .ib:hover+.tip,.ib:focus-visible+.tip,.ib[aria-expanded=true]+.tip{display:block}
 .aba,.abt{text-align:center;font-family:var(--fd);font-size:19px;line-height:1.2;font-variant-numeric:normal}
 .aba{font-weight:600;color:var(--text)}
@@ -349,7 +352,7 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
     <div class="head"><div><div class="eyebrow" id="secEyebrow">Person by person</div><h2 style="margin-top:6px" id="secTitle">The month, split up</h2></div>
       <span><button class="copy" id="btnCopy">Copy for Sheets</button><span class="copied" id="copied" hidden>Copied</span></span></div>
     <p class="why" id="secWhy"></p>
-    <div class="sft" id="sfTools"><span id="sfNote"></span><span class="sfbulk">Bottom-up % for the <b id="sfN">0</b> shown: <input class="days" id="buAll" type="number" min="-50" max="100" step="1" placeholder="%" aria-label="Bottom-up percent for every person shown"> <button class="copy" id="buApply" type="button">Apply</button> <button class="copy" id="buZero" type="button">Set to 0</button> <span id="buDone" role="status"></span></span><button class="copy sfopen" id="sfOpen" type="button">Sort and filter</button></div>
+    <div class="sft" id="sfTools"><span id="sfNote"></span><span class="sfbulk">Bottom-up % <span id="buTipP"></span> for the <b id="sfN">0</b> shown: <input class="days" id="buAll" type="number" min="-50" max="100" step="1" placeholder="%" aria-label="Bottom-up percent for every person shown"> <button class="copy" id="buApply" type="button">Apply</button> <button class="copy" id="buZero" type="button">Set to 0</button> <span id="buDone" role="status"></span></span><button class="copy sfopen" id="sfOpen" type="button">Sort and filter</button></div>
     <div class="tw"><table class="t" id="tbl"></table></div>
   </section>
 
@@ -666,6 +669,11 @@ function render(){
 
 /* Break-even floor and aim for the whole business per month, AED (Coach Emma, 22 Oct: "over 1.7 to 1.8, otherwise we are targeting for less than break-even") */
 const BREAK_EVEN=[1700000,1800000];
+/* Kate, 27 Oct 2026: what the bottom-up % is, on hover, beside the bulk box and the By branch column */
+const TIP_BU_P=`<b>Bottom-up %</b> is the change you put on top of the top-down target for who is really on the floor.<br>The top-down target is the middle of low and high, built from the usual roster. Bottom-up adds a percentage to it (plus if more people are in than the roster shows, minus if fewer): <b>target = top-down x (1 + bottom-up %)</b>.<br>It is saved for the month, so it stays when you come back. This box sets the same % for everyone shown below; Set to 0 takes it off.`;
+const TIP_BU_B=`<b>Bottom-up</b> is the % and the AED each person's bottom-up adds on top of the top-down target (the middle of low and high), added up for the row.<br>Target = top-down + bottom-up. A row with no bottom-up reads +0.0%. You set it per person, or for everyone shown, in By person.`;
+const ibw=h=>`<span class="ibw"><button class="ib" type="button" aria-expanded="false" aria-label="What bottom-up % is">i</button><span class="tip" role="tooltip">${h}</span></span>`;
+document.getElementById('buTipP').innerHTML=ibw(TIP_BU_P);
 function renderTiles(sel,all){
   const t=sumRows(sel);
   const g=sumRows(all);
@@ -939,7 +947,7 @@ function renderBranch(rows){
   document.getElementById('secEyebrow').textContent='Branch by branch';
   document.getElementById('secTitle').textContent='Adding it up';
   document.getElementById('secWhy').textContent='Each branch is the sum of its people. The gap between low and high is what leave and missing staff cost us in a month. The target against what the same people delivered in September is for a first look: further out, find out why before anything changes.';
-  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th>Bottom-up</th><th>High</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Bottom-up ${ibw(TIP_BU_B)}</th><th>High</th><th>Service</th><th>Treatment</th><th>Retail</th><th>Clients</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
   ['SAA','KCA','MC','AQ'].forEach(b=>{
     const br=rows.filter(r=>r.p[0]===b);
     ['HAIR','BEAUTY'].forEach(tm=>{
