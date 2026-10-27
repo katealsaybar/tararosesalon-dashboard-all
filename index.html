@@ -3577,7 +3577,7 @@ table.tp-cmp td.bad{color:var(--bad)}
             'service-rankings.js?v=c1364c02'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
-      cmp: ['compare.js?v=36d4e784'],
+      cmp: ['compare.js?v=70eb89e2'],
       mk:  ['marketing-chart.js?v=8d66329c', 'google-ads.js?v=ed3bd9e2', 'tool-spend.js?v=233599c6', 'marketing-spend.js?v=a554db32', 'website.js?v=c47da80a', 'social.js?v=e8db8274'],
       wk:  ['team-performance.js?v=6fb02a88', 'staff-weeks.js?v=94c43754'],
       lv:  ['stylist-levels.js?v=f8d576a4'],
@@ -4572,11 +4572,11 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=7a1abe85"></script>
 <script src="pulse-drill.js?v=85b2a9e3"></script>
-<script src="dashboard.js?v=1a199a43"></script>
+<script src="dashboard.js?v=22b20946"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=a6cc3854"></script>
+<script src="branch-ledger.js?v=ba818112"></script>
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). So do compare.js, the Marketing pages (marketing-chart, google-ads, website, social), staff-weeks.js and stylist-levels.js. -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->

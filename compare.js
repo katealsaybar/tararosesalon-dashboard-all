@@ -233,6 +233,7 @@ async function cmpSummary(side) {
   const s = d.summary;
   // For the Clients switch in the filter bar (Kate, 1 Oct 2026).
   s.doorClients = await doorClientsFor(from, to, codes || scopeCodes());   // 'All' reads every branch whose rows are in (closed ones too), the same as the rows above
+  s.doorNew = await doorNewFor(from, to, codes || scopeCodes());
 
   // Utilisation, the same hours-weighted read as the Pulse. A nice-to-have: a
   // failed fetch leaves the rows blank rather than the page broken.
@@ -292,7 +293,8 @@ function cmpMetrics() {
     { name: 'Retail units',             sub: 'hair + beauty', kind: 'n', up: true, get: s => (s.hairRetailUnits == null && s.beautyRetailUnits == null) ? null : nz((s.hairRetailUnits || 0) + (s.beautyRetailUnits || 0)) },
     { group: 'Clients' },
     { name: 'Clients',                  sub: CMP_DOOR ? 'through the door (Phorest)' : 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(clientsOf(s)) },
-    ...(CMP_DOOR ? [{ name: 'Handled by staff', sub: 'ledgers', muted: true, kind: 'n', up: true, get: s => nz(s.totalClients) }] : []),
+    ...(CMP_DOOR ? [{ name: 'Handled by staff', sub: 'ledgers', muted: true, kind: 'n', up: true, get: s => nz(s.totalClients) },
+                    { name: 'New through the door', sub: 'first visit ever (Phorest)', kind: 'n', up: true, get: s => s.doorNew != null ? nz(s.doorNew) : null }] : []),
     { name: 'Hair clients',             sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.hairTotalClients) },
     { name: 'Beauty clients',           sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.beautyTotalClients) },
     { name: 'Request clients',          sub: 'per staff (ledgers)', kind: 'n', up: true, get: s => nz(s.requestClientTotal) },
@@ -1013,7 +1015,7 @@ function cmpVisualHtml(sa, sb2) {
       ${cmpMirrorHtml('Money', 'Where the takings came from, in AED ex VAT.' + perTxt,
         ['Net take', 'Hair revenue', 'Hair treatments', 'Beauty services', 'Retail'], sa, sb2)}
       ${cmpMirrorHtml('Clients', (CMP_DOOR ? 'Clients is through the door (Phorest); the rows under it are per staff (ledgers).' : 'Per staff, from the ledgers: a client seen by two staff counts twice.') + perTxt,
-        ['Clients', 'Handled by staff', 'Hair clients', 'Beauty clients', 'Request clients', 'Salon clients', 'New clients', 'Rebooked'], sa, sb2)}
+        ['Clients', 'Handled by staff', 'New through the door', 'Hair clients', 'Beauty clients', 'Request clients', 'Salon clients', 'New clients', 'Rebooked'], sa, sb2)}
     </div>
     <div class="cmp-two">
       ${CMP_DOOR

@@ -1176,8 +1176,8 @@ async function bpGrowth() {
   // Clients switch in the filter bar can flip the cards without another fetch.
   await Promise.all(['group'].concat(ACTIVE_BRANCHES).map(async code => {
     const o = out[code], codes = code === 'group' ? ACTIVE_BRANCHES : [code];
-    if (o.cur)  o.cur.doorClients  = await doorClientsFor(dateFrom, effTo, codes);
-    if (o.prev) o.prev.doorClients = await doorClientsFor(prevFrom, prevTo, codes);
+    if (o.cur)  { o.cur.doorClients  = await doorClientsFor(dateFrom, effTo, codes); o.cur.doorNew = await doorNewFor(dateFrom, effTo, codes); }
+    if (o.prev) { o.prev.doorClients = await doorClientsFor(prevFrom, prevTo, codes); o.prev.doorNew = await doorNewFor(prevFrom, prevTo, codes); }
   }));
   window._bpGrowth = out;
   return out;
@@ -1358,6 +1358,7 @@ async function renderBranchPerformance() {
     // Phorest's once-a-day count, beside the ledger's, when the Clients switch is on
     // Through the door. No target: the targets are written in ledger counts.
     ...(doorOn(s) ? [['Clients through the door (Phorest)', null, s.doorClients]] : []),
+    ...(doorOn(s) && s.doorNew != null ? [['New through the door (Phorest)', null, s.doorNew]] : []),
     ['New Clients',   'newClients',   s.newClientsTotal],
     ['NCR',           'ncr',          s.ncrTotal],
     ...(s.ph ? [['New clients (Phorest)', null, s.ph.hair.nw + s.ph.beauty.nw], ['Requests, RQ (Phorest)', null, s.ph.hair.req + s.ph.beauty.req]] : []),
