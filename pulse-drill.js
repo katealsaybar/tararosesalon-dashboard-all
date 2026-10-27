@@ -249,7 +249,8 @@ const PD = (() => {
       if (error) throw error;
       const rows = data.rows || [];
       let t = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(data.total)} new client${data.total === 1 ? '' : 's'}, each on her first paid visit, from Phorest's sales lines with her Phorest profile date settling whether she is really new (the same rule as new clients through the door; a client seen by two staff on that day is under each).`;
-      if (o.ledger != null) t += ` The figure you clicked, ${cnt(o.ledger)}, is a separate count (typed by reception or from Phorest's staff report), so they can differ.`;
+      if (o.kind === 'ncr') t += ` ${cnt(o.ledger)} of them asked for ${o.who ? esc(o.who) : 'a stylist'} by name on that first visit, but only the count is kept, not which clients, so this lists every new client.`;
+      else if (o.ledger != null) t += ` The figure you clicked, ${cnt(o.ledger)}, is a separate count (typed by reception or from Phorest's staff report), so they can differ.`;
       if (data.total > rows.length) t += ` The newest ${cnt(rows.length)} are shown.`;
       return { sub: t, cols: [{ k: 'd', l: 'First visit', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }],
         rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: nm(r.e), c: r.c })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' new clients' } : null };
@@ -265,6 +266,7 @@ const PD = (() => {
     if (x.v) {
       if (rowKind === 'nw') row._dn.v = newClientsSpec(ctx, Object.assign({}, base, { ledger: x.v }));
       else if (rowKind === 'req') row._dn.v = staffClientsSpec(ctx, Object.assign({}, base, { ledger: x.v, kind: 'req' }));
+      else if (rowKind === 'ncr') row._dn.v = newClientsSpec(ctx, Object.assign({}, base, { ledger: x.v, kind: 'ncr' }));
       else if (rowKind === 't' && row._dn.t) row._dn.v = row._dn.t;
     }
     return row;
@@ -273,7 +275,7 @@ const PD = (() => {
     const emps = canNames() ? phoneNames(ctx, r.code, r.st.name) : [];
     if (emps.length && ledgerValue) {
       const o = { from: ctx.from, to: ctx.to, branches: [r.code], employees: emps, who: r.n, when: `${bname(r.code)}, ${ctx.range || ctx.label}`, ledger: ledgerValue, kind };
-      row._dn = Object.assign(row._dn || {}, { [key]: kind === 'new' ? newClientsSpec(ctx, o) : staffClientsSpec(ctx, o) });
+      row._dn = Object.assign(row._dn || {}, { [key]: (kind === 'new' || kind === 'ncr') ? newClientsSpec(ctx, o) : staffClientsSpec(ctx, o) });
     }
     return row;
   }
@@ -487,7 +489,7 @@ const PD = (() => {
   function askStaff(ctx, dept) {
     const rows = staffRows(ctx, dept).map(r => {
       const st = r.st, ask = (st.req || 0) + (st.newClientReq || 0), all = (st.req || 0) + (st.salon || 0) + (st.newC || 0) + (st.newClientReq || 0);
-      return { b: r.b, n: r.n, dp: r.dp, ask, all, pc: all ? ask / all * 100 : null };
+      return withListDn(ctx, r, withListDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, ask, all, pc: all ? ask / all * 100 : null }, 'ask', 'req', ask), 'all', undefined, all);
     }).filter(r => r.all).sort((a, b) => b.ask - a.ask);
     const bd = o => o ? { ask: (o.req || 0) + (o.ncr || 0), all: (o.req || 0) + (o.salon || 0) + (o.new || 0) + (o.ncr || 0) } : { ask: 0, all: 0 };
     const h = bd(ctx.s.hairBreakdown), b = bd(ctx.s.beautyBreakdown);
@@ -518,7 +520,7 @@ const PD = (() => {
     };
     const head = [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, ...deptCols(sd)];
     if (name === 'NCR') {
-      const rows = staffRows(ctx, sd).map(r => ({ b: r.b, n: r.n, dp: r.dp, v: r.st.newClientReq || 0 })).filter(r => r.v).sort((a, b) => b.v - a.v);
+      const rows = staffRows(ctx, sd).map(r => withListDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, v: r.st.newClientReq || 0 }, 'v', 'ncr', r.st.newClientReq || 0)).filter(r => r.v).sort((a, b) => b.v - a.v);
       const want = sd === 'hair' ? ctx.s.hairNCR : sd === 'beauty' ? ctx.s.beautyNCR : (ctx.s.hairNCR || 0) + (ctx.s.beautyNCR || 0);
       const sum = rows.reduce((a, r) => a + r.v, 0);
       const d = Math.abs(sum - want) >= 0.5 ? { b: '', n: 'Not matched to a branch row', v: want - sum, _cls: 'dr-muted' } : null;
@@ -527,21 +529,21 @@ const PD = (() => {
         sub: `${esc(ctx.label)}. New clients who asked for their stylist by name on their first visit, counted per staff from the ledger. No client names are kept.`, note: d ? DIFF_NOTE : '' };
     }
     if (name === 'Rebooking %') {
-      const rows = staffRows(ctx, sd).map(r => { const base = r.st.ledgerClients != null ? r.st.ledgerClients : r.st.total; return { b: r.b, n: r.n, dp: r.dp, rb: r.st.rebooked || 0, base, pc: pctOf(r.st.rebooked || 0, base) }; }).filter(r => r.base).sort((a, b) => (b.pc || 0) - (a.pc || 0));
+      const rows = staffRows(ctx, sd).map(r => { const base = r.st.ledgerClients != null ? r.st.ledgerClients : r.st.total; return withListDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, rb: r.st.rebooked || 0, base, pc: pctOf(r.st.rebooked || 0, base) }, 'base', undefined, base); }).filter(r => r.base).sort((a, b) => (b.pc || 0) - (a.pc || 0));
       const rb = rows.reduce((a, r) => a + r.rb, 0), base = rows.reduce((a, r) => a + r.base, 0);
       const want = sd === 'hair' ? s.hairRebookPct : sd === 'beauty' ? s.beautyRebookPct : s.rebookPct;
       return wrap([...head, { k: 'rb', l: 'Rebooked', t: 'num' }, { k: 'base', l: 'Clients', t: 'num' }, { k: 'pc', l: 'Rebooking', t: 'pct' }], rows, { b: 'Total', n: '', dp: '', rb, base, pc: pctOf(rb, base) }, want,
         'Clients who booked their next visit before leaving, out of the clients the ledger typed for each staff member. Counted per staff, so no client names.');
     }
     if (name === 'Treatment %') {
-      const rows = staffRows(ctx, sd).map(r => { const tx = r.dp === 'Hair' ? (r.st.treatments || 0) : 0; return { b: r.b, n: r.n, dp: r.dp, tx, svc: svcOf(r), pc: pctOf(tx, svcOf(r)) }; }).filter(r => r.svc || r.tx).sort((a, b) => b.svc - a.svc);
+      const rows = staffRows(ctx, sd).map(r => { const tx = r.dp === 'Hair' ? (r.st.treatments || 0) : 0; return withServicesDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, tx, svc: svcOf(r), pc: pctOf(tx, svcOf(r)) }, 'svc', svcOf(r)); }).filter(r => r.svc || r.tx).sort((a, b) => b.svc - a.svc);
       const tx = rows.reduce((a, r) => a + r.tx, 0), svc = rows.reduce((a, r) => a + r.svc, 0);
       const want = sd === 'hair' ? (s.hairServicesIncl ? (s.treatmentSales || 0) / s.hairServicesIncl * 100 : 0) : (ctx.card.hairSvc + ctx.card.beautySvc ? (s.treatmentSales || 0) / (ctx.card.hairSvc + ctx.card.beautySvc) * 100 : 0);
       return wrap([...head, { k: 'tx', l: 'Treatments', t: 'aed' }, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'pc', l: 'Treatment', t: 'pct' }], rows, { b: 'Total', n: '', dp: '', tx, svc, pc: pctOf(tx, svc) }, want,
         `Treatment takings (a ledger column, hair only) over ${sd === 'hair' ? 'hair' : 'hair and beauty'} services, including courses.`);
     }
     if (name === 'Retail %') {
-      const rows = staffRows(ctx, sd).map(r => ({ b: r.b, n: r.n, dp: r.dp, svc: svcOf(r), rt: r.st.retail || 0 })).filter(r => r.svc || r.rt);
+      const rows = staffRows(ctx, sd).map(r => withServicesDn(ctx, r, withServicesDn(ctx, r, { b: r.b, n: r.n, dp: r.dp, svc: svcOf(r), rt: r.st.retail || 0 }, 'svc', svcOf(r)), 'rt', r.st.retail || 0, 'retail')).filter(r => r.svc || r.rt);
       houseRetail(ctx, sd).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, svc: 0, rt: h.net, _cls: 'dr-muted' }));
       rows.forEach(r => { r.pc = pctOf(r.rt, sd ? r.svc + r.rt : r.svc); });
       rows.sort((a, b) => b.rt - a.rt);
@@ -580,7 +582,13 @@ const PD = (() => {
     const m = MORE[name];
     if (m) {
       const list = st.filter(r => !m.hairOnly || r.dept === 'Hair');
-      const rows = list.map(r => Object.assign(who(r), { v: +r[m.b] || 0, d: +r[m.n] || 0, pc: pctOf(+r[m.b] || 0, +r[m.n] || 0) })).filter(r => r.d || r.v).sort((a, b) => (b.pc || 0) - (a.pc || 0));
+      const rows = list.map(r => {
+        const row = Object.assign(who(r), { v: +r[m.b] || 0, d: +r[m.n] || 0, pc: pctOf(+r[m.b] || 0, +r[m.n] || 0) });
+        const ref = { code: r.branch, st: { name: r.name }, n: row.n };
+        if (m.n === 'visits') withListDn(ctx, ref, row, 'd', undefined, row.d);
+        else if (m.n === 'conv_n') withListDn(ctx, ref, row, 'd', 'new', row.d);
+        return row;
+      }).filter(r => r.d || r.v).sort((a, b) => (b.pc || 0) - (a.pc || 0));
       const v = rows.reduce((a, r) => a + r.v, 0), d = rows.reduce((a, r) => a + r.d, 0);
       return { cols: [...base, { k: 'v', l: m.bl, t: 'num' }, { k: 'd', l: m.nl, t: 'num' }, { k: 'pc', l: m.rl, t: 'pct' }], rows, foot: { n: 'Total', b: '', dp: '', v, d, pc: pctOf(v, d) },
         sub: `${esc(ctx.label)}. ${m.why}`, note: m.n === 'visits' ? '' : (x.cache_asof ? `Counted from the client history as of ${esc(String(x.cache_asof).slice(0, 10))}.` : '') };

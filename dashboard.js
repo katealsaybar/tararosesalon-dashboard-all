@@ -4965,7 +4965,7 @@ async function renderDashboard() {
     // One builder, two sizes: the cover carries the names under each segment, the
     // rail is 240px wide and carries the segments alone. Same rows, same order,
     // so the two can never show a different score.
-    const segHtml = withLabels => { const tap = withLabels ? ' role="button" tabindex="0"' : ''; return `
+    const segHtml = withLabels => { const tap = ' role="button" tabindex="0"'; return `
       <div class="ht-k">${hitRows.length} of ${benchRows.length} targets reached${(() => {
         const n = lowRows.filter(r => r.att >= 1).length;
         return n ? ` · ${n} missed on a department` : '';
@@ -4985,27 +4985,35 @@ async function renderDashboard() {
             ${withLabels ? `<span class="ht-lbl">${escapeHtml(r.name.replace(/\s*%$/, '').replace(/ Avg Bill$/, ' bill'))}</span>` : ''}
           </span>`;
         }).join('')}
-      </div>${withLabels ? '<div class="ht-read" aria-live="polite">Tap a bar to see which target it is.</div>' : ''}`; };
+      </div><div class="ht-read" aria-live="polite">Select a bar to see which target it is.</div>`; };
 
     // Kate, 2 Oct 2026: under 560px the names go and the figures were only in the
     // title tooltip, which a tap never shows. Each cover segment is a button now:
     // tap, hover or focus one and the line under the strip says which target it is.
     // The readout is hidden above 560px, where the names are on the page already.
     stripEl.innerHTML = !strip.length ? '' : segHtml(true);
-    const pick = cell => {
-      const read = stripEl.querySelector('.ht-read');
-      if (!cell || !read) return;
-      stripEl.querySelectorAll('.ht-cell.sel').forEach(c => c.classList.remove('sel'));
-      cell.classList.add('sel');
-      read.textContent = cell.getAttribute('title');
+    // The line under a strip says which target the bar is and how far it got; where a list stands behind the target, it links to it (the same list as the
+    // figure in Below target). Both strips, the cover and the rail, do this on every screen size.
+    const linkFor = i => { const r = strip[i]; return (r && !r.why && typeof dn === 'function') ? dn('See the list \u203a', 'bench', { name: r.name }) : ''; };   // looked up when a bar is picked: dn is declared further down this function
+    const wire = host => {
+      const pick = cell => {
+        const read = host.querySelector('.ht-read');
+        if (!cell || !read) return;
+        host.querySelectorAll('.ht-cell.sel').forEach(c => c.classList.remove('sel'));
+        cell.classList.add('sel');
+        const i = [...host.querySelectorAll('.ht-cell')].indexOf(cell);
+        const lk = linkFor(i);
+        read.innerHTML = escapeHtml(cell.getAttribute('title')) + (lk ? ' <span class="ht-open">' + lk + '</span>' : '');
+      };
+      host.onclick = e => { if (e.target.closest('.ht-read')) return; pick(e.target.closest('.ht-cell')); };
+      host.onmouseover = e => { if (e.target.closest('.ht-read')) return; pick(e.target.closest('.ht-cell')); };
+      host.onfocusin = e => pick(e.target.closest('.ht-cell'));
+      host.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { const c = e.target.closest('.ht-cell'); if (c) { e.preventDefault(); pick(c); } } };
     };
-    stripEl.onclick = e => pick(e.target.closest('.ht-cell'));
-    stripEl.onmouseover = e => pick(e.target.closest('.ht-cell'));
-    stripEl.onfocusin = e => pick(e.target.closest('.ht-cell'));
-    stripEl.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e.target.closest('.ht-cell')); } };
+    wire(stripEl);
 
     const sideEl = document.getElementById('sideTargets');
-    if (sideEl) sideEl.innerHTML = !strip.length ? '' : segHtml(false);
+    if (sideEl) { sideEl.innerHTML = !strip.length ? '' : segHtml(false); if (strip.length) wire(sideEl); }
   }
 
   if (standfirstEl && noSales) {

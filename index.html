@@ -1077,7 +1077,13 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
 .ht-cell.na .ht-bar{background:repeating-linear-gradient(135deg,var(--surface2) 0 4px,transparent 4px 8px);opacity:.8}
 .ht-cell.na .ht-lbl{font-style:italic}
 .ht-lbl small{display:block;font-size:10px;letter-spacing:.02em;opacity:.8}
-.ht-read{display:none}
+.ht-read{display:block;margin-top:10px;font-size:12.5px;line-height:1.4;color:var(--muted);min-height:1.4em}
+.ht-open{margin-left:6px;white-space:nowrap}
+.ht-cell[role=button]{cursor:pointer}
+.ht-cell[role=button]:focus{outline:none}
+.ht-cell.sel .ht-bar{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.ht-cell[role=button]:hover .ht-bar{border-color:var(--text)}
+.side-targets .ht-read{font-size:11.5px;margin-top:8px}
 @media(max-width:560px){
   /* The labels stop fitting long before the bars do, so they go and the segments
      stay — the count is the point, and the names are a tap away below. */
@@ -1086,10 +1092,7 @@ main{max-width:100%;margin:0 auto;padding:18px 0 56px}
   /* Kate, 2 Oct 2026: so each segment is a tap target (the padding makes it ~26px
      tall without moving the bar), and the readout line says which one it is. */
   .hero-targets .ht-seg{margin:-8px 0}
-  .hero-targets .ht-cell{padding:8px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .hero-targets .ht-cell:focus{outline:none}
-  .hero-targets .ht-cell.sel .ht-bar{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
-  .ht-read{display:block;margin-top:10px;font-size:12.5px;line-height:1.4;color:var(--muted)}
+  .hero-targets .ht-cell{padding:8px 0;-webkit-tap-highlight-color:transparent}
 }
 
 /* The rail's copy of it. Smaller, no labels, and it sits above "On this page"
@@ -4571,8 +4574,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=2324460c"></script>
-<script src="pulse-drill.js?v=4f0e6a02"></script>
-<script src="dashboard.js?v=22b20946"></script>
+<script src="pulse-drill.js?v=e01f1f92"></script>
+<script src="dashboard.js?v=667f7595"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
