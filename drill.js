@@ -32,7 +32,9 @@
     const v = row[col.k];
     if (col.t === 'html') return v == null ? '' : v;
     const f = FMT[col.t];
-    return f ? f(v, spec && spec.cur) : esc(v);
+    const txt = f ? f(v, spec && spec.cur) : esc(v);
+    // A row can make one of its figures clickable too: row._dn = { column key: the spec it opens } (the Clients count on a staff row).
+    return (row._dn && row._dn[col.k] && v != null && v !== '') ? num(txt, row._dn[col.k]) : txt;
   }
 
   // The figure. Zero and empty stay plain, as on Lost Client Blasts.

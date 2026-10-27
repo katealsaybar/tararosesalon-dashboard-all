@@ -11,7 +11,16 @@
 const PD = (() => {
   const esc = s => TRSD.esc(s);
   const bname = c => (BRANCH_INFO[c] && BRANCH_INFO[c].name) || c;
-  const nm = s => titleCaseName(s);
+  // A person's first and last name (Kate, 27 Oct 2026). The ledgers write first names only, so the surname is read from the roster (staff-profiles.js),
+  // then from Phorest's own name for her; a name that already has a space (Phorest's, or the stylist pages') is left as it is.
+  const nm = s => {
+    const t = titleCaseName(s);
+    if (/\s/.test(String(s).trim())) return t;
+    const last = (typeof staffSurname === 'function') ? staffSurname(s) : null;
+    if (last) return t + ' ' + titleCaseName(last);
+    const ph = (typeof PHOREST_FULL_NAMES !== 'undefined') ? PHOREST_FULL_NAMES[staffMapKey(s)] : null;
+    return ph && ph.indexOf(' ') > 0 ? t + ' ' + titleCaseName(ph.slice(ph.indexOf(' ') + 1)) : t;
+  };
   const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const money = (v, cur) => (cur || 'AED') + ' ' + Math.round(+v || 0).toLocaleString('en-GB');
   const cnt = v => Math.round(+v || 0).toLocaleString('en-GB');
@@ -92,8 +101,58 @@ const PD = (() => {
   }
 
   // ── Clients per staff (the ledgers) ──
+  // ── The clients behind a staff member's Clients figure (Kate, 27 Oct 2026) ──
+  // The ledger count is typed in, so the names come from Phorest's sales lines: every client each staff member handled that day, the rule Kate gave for
+  // "clients handled per staff". It is a different count from the ledger's and the window says both. Level 3 and above (the names are Phorest's).
+  const canNames = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
+  function phoneNames(ctx, code, staffName) {
+    const key = ledgerNameKey(staffName), out = new Set();
+    ((ctx.rows && ctx.rows.phorest) || []).forEach(r => {
+      if (r.is_total || r.branch !== code) return;
+      const k = cleanPhorestName(r.employee_name);
+      if (k === key || k.indexOf(key + ' ') === 0) out.add(r.employee_name);
+    });
+    return [...out];
+  }
+  async function staffClientsLoad(ctx, o) {
+    const { data, error } = await sb.rpc('drill_staff_clients', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees });
+    if (error) throw error;
+    return data;
+  }
+  function staffClientsSpec(ctx, o) {
+    if (!canNames() || !o.from) return null;
+    const lead = o.who ? `${esc(o.who)}, ${esc(o.when)}` : esc(o.when);
+    const sub = data => {
+      const shown = (data.rows || []).length;
+      let t = `${esc(ctx.label)}. ${lead}: ${cnt(data.total)} client${data.total === 1 ? '' : 's'} handled, from Phorest's sales lines (every client each staff member handled that day, so a client seen by two staff is in the list twice; a deposit, a balance payment or a voucher bought on its own, staff bookings and the BUSINESS TRS house account are left out).`;
+      if (o.ledger != null) t += ` The branch ledger, typed by reception, shows ${cnt(o.ledger)}${o.ledger === data.total ? ', the same.' : ': they are two separate counts, so they can differ.'}`;
+      if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
+      return t;
+    };
+    return { title: o.who ? `Clients handled · ${o.who}` : `Clients handled · ${o.when}`, cur: ctx.cur, views: [
+      { id: 'each', label: 'Each client', load: async () => {
+        const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
+        return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }],
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: r.e, c: r.c, s: r.s })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
+      } },
+      { id: 'by', label: 'By client', load: async () => {
+        const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
+        if (data.total > rows.length) return { sub: sub(data), rows: [], empty: 'Too many to group by client. Pick a shorter window.' };
+        const m = new Map();
+        rows.forEach(r => { const k = String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, v: 0, s: 0, e: new Set() }; x.v++; x.s += +r.s || 0; x.e.add(r.e); m.set(k, x); });
+        const list = [...m.values()].sort((a, b) => b.v - a.v || b.s - a.s || a.c.localeCompare(b.c));
+        return { sub: sub(data) + ` ${cnt(list.length)} different client names.`, cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: o.who ? 'Days' : 'Times handled', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }])],
+          rows: list.map(x => ({ c: x.c, v: x.v, s: x.s, e: [...x.e].map(nm).join(', ') })), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
+      } },
+    ] };
+  }
   function clientsStaff(ctx, dept) {
-    const rows = staffRows(ctx, dept).map(r => ({ b: r.b, n: r.n, dp: r.dp, cl: r.st.total })).filter(r => r.cl).sort((a, b) => b.cl - a.cl);
+    const rows = staffRows(ctx, dept).map(r => {
+      const emps = canNames() ? phoneNames(ctx, r.code, r.st.name) : [];
+      const row = { b: r.b, n: r.n, dp: r.dp, cl: r.st.total };
+      if (emps.length && row.cl) row._dn = { cl: staffClientsSpec(ctx, { from: ctx.from, to: ctx.to, branches: [r.code], employees: emps, who: r.n, when: `${bname(r.code)}, ${ctx.range || ctx.label}`, ledger: row.cl }) };
+      return row;
+    }).filter(r => r.cl).sort((a, b) => b.cl - a.cl);
     const want = dept === 'hair' ? ctx.s.hairTotalClients : dept === 'beauty' ? ctx.s.beautyTotalClients : ctx.s.totalClients;
     const sum = rows.reduce((a, r) => a + r.cl, 0);
     const d = diffRow('Not matched to a branch row', sum, want, { cl: want - sum });
@@ -167,7 +226,14 @@ const PD = (() => {
       const s = d.summary;
       const net = dept === 'hair' ? (s.hairServicesIncl || 0) + (s.hairRetailOnly || 0) : dept === 'beauty' ? (s.beautyServicesTotal || 0) + (s.beautyRetailOnly || 0) : s.netTake;
       const cl = dept === 'hair' ? s.hairTotalClients : dept === 'beauty' ? s.beautyTotalClients : s.totalClients;
-      rows.push({ k: x.k, w: whenLabel(x.k, bk.byDay), net, cl });
+      const row = { k: x.k, w: whenLabel(x.k, bk.byDay), net, cl };
+      // the clients through that day (or month): every client each staff member handled
+      if (what === 'clients' && !dept && canNames() && cl) {
+        const last = new Date(+x.k.slice(0, 4), +x.k.slice(5, 7), 0).getDate();
+        const a = bk.byDay ? x.k : x.k + '-01', b = bk.byDay ? x.k : x.k + '-' + String(last).padStart(2, '0');
+        row._dn = { cl: staffClientsSpec(ctx, { from: a < ctx.from ? ctx.from : a, to: b > ctx.to ? ctx.to : b, branches: ctx.door.codes, employees: null, who: '', when: whenLabel(x.k, bk.byDay), ledger: cl }) };
+      }
+      rows.push(row);
     });
     rows.sort((a, b) => b.k.localeCompare(a.k));
     const wantN = dept === 'hair' ? ctx.card.hairNet : dept === 'beauty' ? ctx.card.beautyNet : ctx.card.net;
