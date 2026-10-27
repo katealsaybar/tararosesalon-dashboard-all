@@ -316,7 +316,23 @@ const PD = (() => {
   // names come from the sales lines. The count in the list above is typed in (ledger) or Phorest's own, so the window says both.
   function newClientsSpec(ctx, o) {
     if (!canNames() || !o.from) return null;
-    return { title: o.who ? `New clients \u00b7 ${o.who}` : `New clients \u00b7 ${o.when}`, cur: ctx.cur, views: [{ id: 'each', label: 'Each client', load: async () => {
+    return { title: o.kind === 'ncr' ? (o.who ? `New client requests \u00b7 ${o.who}` : `New client requests \u00b7 ${o.when}`) : o.who ? `New clients \u00b7 ${o.who}` : `New clients \u00b7 ${o.when}`, cur: ctx.cur, views: [{ id: 'each', label: 'Each client', load: async () => {
+      // The NCR figure is the ledger's count, and the ledger names those clients (first name only, Type NCR under the stylist): ledger_ncr_clients. They come first;
+      // where the ledger names for this window are not loaded yet, the Phorest request flag on new clients below stands in (Kate, 27 Oct 2026).
+      if (o.kind === 'ncr') {
+        const lg = await sb.rpc('drill_ledger_ncr', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees });
+        if (!lg.error && lg.data && lg.data.total > 0) {
+          const L = lg.data, lr = L.rows || [], full = lr.filter(r => r.m).length;
+          let lt = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(L.total)} new client request${L.total === 1 ? '' : 's'}, as the branch ledger lists them (Type NCR under the stylist; reception types the first name only).`;
+          lt += ` ${cnt(full)} of them are matched to the client who had a paid line with that stylist that day, so her full name shows; the rest stay as typed.`;
+          lt += ` A request client does not have to be new to the salon: the last column says whether she was new that day.`;
+          if (o.ledger != null && o.ledger !== L.total) lt += ` The figure you clicked is ${cnt(o.ledger)}, so ${cnt(Math.abs(o.ledger - L.total))} ${o.ledger > L.total ? 'of its clients are not named in the ledger files read so far' : 'more are named than the figure counts'}.`;
+          if (L.total > lr.length) lt += ` The newest ${cnt(lr.length)} are shown.`;
+          return { sub: lt, cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 'nw', l: 'New to the salon' }],
+            client: { k: 'c', b: 'bc' }, rows: lr.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, nw: r.nw ? 'New that day' : r.m ? 'Existing' : '', _dn: { c: r.m ? clientHistorySpec(ctx, { client: r.c }) : null } })),
+            foot: L.total <= lr.length ? { d: '', b: '', e: '', c: cnt(L.total) + ' requests', nw: '' } : null };
+        }
+      }
       const { data, error } = await sb.rpc('drill_staff_new_clients', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees, p_requested: o.kind === 'ncr' });
       if (error) throw error;
       const rows = data.rows || [];
