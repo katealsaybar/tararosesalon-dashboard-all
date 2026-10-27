@@ -9,6 +9,8 @@
 // spec = { title, sub?, cur?, views: [{ id, label, load: async () => result }] }
 //   result = { cols: [{ k, l, t }], rows: [{ ...cells, _cls? }], foot?: { ...cells }, sub?, note? }
 //   col type t: 'text' (default), 'num', 'aed' (spec.cur prefix), 'date' (ISO to 17 Oct 2026), 'pct', 'html' (already safe html)
+// Every window has Save as xlsx and Save as csv (Kate, 27 Oct 2026: "sa lahat"): the view on screen, its total row last, built with the same spreadsheet writer as the Lost
+// Client Blasts log (ledger-export.js, loaded the first time a button is pressed).
 // The window shows one view at a time (tabs when there are two or more), loads it when first picked and keeps it.
 (function () {
   'use strict';
@@ -52,6 +54,8 @@
 
   function paint(res, view) {
     const sub = box.querySelector('.dr-sub'), body = box.querySelector('.dr-body');
+    box.querySelectorAll('[data-ds]').forEach(b => { b.disabled = !(res.rows && res.rows.length); });
+    note('');
     sub.innerHTML = res.sub != null ? res.sub : (spec.sub || '');
     if (!res.rows || !res.rows.length) { body.innerHTML = `<p class="dr-empty">${esc(res.empty || 'Nothing to show.')}</p>${res.note ? `<p class="dr-note">${res.note}</p>` : ''}`; return; }
     const cols = res.cols;
@@ -59,6 +63,31 @@
     const head = cols.map(c => `<th class="${cls(c)}">${esc(c.l)}</th>`).join('');
     const line = (r, tag) => `<tr class="${r._cls || ''}">${cols.map(c => `<${tag} class="${cls(c)}">${cell(c, r)}</${tag}>`).join('')}</tr>`;
     body.innerHTML = `<div class="dr-scroll"><table class="dr-tbl"><thead><tr>${head}</tr></thead><tbody>${res.rows.map(r => line(r, 'td')).join('')}</tbody>${res.foot ? `<tfoot>${line(res.foot, 'td')}</tfoot>` : ''}</table></div>${res.note ? `<p class="dr-note">${res.note}</p>` : ''}`;
+  }
+
+
+  const slug = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const FILEFMT = { aed: 'aed', num: 'num', pct: 'pct' };
+  function plain(h) { return String(h == null ? '' : h).replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim(); }
+  function note(t) { const el = box && box.querySelector('.dr-saved'); if (el) el.textContent = t; }
+  async function save(kind) {
+    const res = cache && cache[cur], sp = spec;
+    if (!res || !res.rows || !res.rows.length) return;
+    note('Getting the file ready…');
+    try {
+      if (typeof lgxBuild !== 'function') await window.trsLazy('lgx');
+    } catch (e) { console.error(e); note('The file could not be made. Try again.'); return; }
+    if (typeof lgxBuild !== 'function') { note('The file could not be made. Try again.'); return; }
+    const cols = res.cols;
+    const val = (c, r) => { const v = r[c.k]; if (c.t === 'date') return v ? day(v) : ''; if (c.t === 'html') return plain(v); if (FILEFMT[c.t]) return v === '' || v == null || !isFinite(v) ? null : +v; return v == null ? '' : String(v); };
+    const rows = res.rows.map(r => ({ cells: cols.map(c => val(c, r)) }));
+    if (res.foot) rows.push({ total: true, cells: cols.map(c => val(c, res.foot)) });
+    const view = sp.views[cur];
+    const built = lgxBuild({ sheets: [{ name: view.label || 'List', title: sp.title, subtitle: plain(res.sub != null ? res.sub : sp.sub), blocks: [{ note: plain(res.note), cols: cols.map(c => ({ label: c.l, fmt: FILEFMT[c.t] || 'text' })), rows }] }] });
+    const name = [slug(sp.title), sp.views.length > 1 ? slug(view.label) : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+    if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
+    else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
+    note(`Saved ${res.rows.length.toLocaleString('en-GB')} rows as ${kind.toUpperCase()}`);
   }
 
   async function pick(i) {
@@ -69,6 +98,7 @@
     const sub = box.querySelector('.dr-sub'), body = box.querySelector('.dr-body');
     if (cache[i]) { paint(cache[i], v); return; }
     sub.textContent = 'Loading…'; body.innerHTML = '';
+    box.querySelectorAll('[data-ds]').forEach(b => { b.disabled = true; }); note('');
     let res;
     try {
       // one frame first, so "Loading…" is on screen before a long sum runs
@@ -90,11 +120,12 @@
     spec = sp; cache = []; cur = 0;
     box = document.createElement('div');
     box.className = 'dr-modal'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', sp.title);
-    const tabs = sp.views.length > 1 ? `<div class="dr-tabs" role="group" aria-label="View">${sp.views.map((v, i) => `<button type="button" data-dv="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`).join('')}</div>` : '';
-    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div><h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><button type="button" class="dr-x" data-dx>Close</button></div>${tabs}<div class="dr-body"></div></div>`;
+    const tabs = sp.views.length > 1 ? `<div class="dr-tabs" role="group" aria-label="View">${sp.views.map((v, i) => `<button type="button" data-dv="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`).join('')}</div>` : '<div></div>';
+    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div><h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><button type="button" class="dr-x" data-dx>Close</button></div><div class="dr-bar">${tabs}<div class="dr-save"><span class="dr-saved" role="status"></span><button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div><div class="dr-body"></div></div>`;
     box.addEventListener('click', e => {
       if (e.target === box || e.target.closest('[data-dx]')) { close(); return; }
-      const t = e.target.closest('[data-dv]'); if (t) pick(+t.dataset.dv);
+      const t = e.target.closest('[data-dv]'); if (t) { pick(+t.dataset.dv); return; }
+      const d = e.target.closest('[data-ds]'); if (d && !d.disabled) save(d.dataset.ds);
     });
     document.body.appendChild(box); document.body.classList.add('dr-open');
     const b = box.querySelector('[data-dx]'); if (b) b.focus();

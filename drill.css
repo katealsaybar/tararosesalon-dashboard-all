@@ -10,7 +10,13 @@ body.dr-open{overflow:hidden}
 .dr-sub{margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
 .dr-x{flex:none;border:1px solid var(--border);background:var(--surface2,transparent);color:var(--text);border-radius:20px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
 .dr-x:hover{border-color:var(--text)}
-.dr-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 18px 0}
+.dr-bar{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;padding:10px 18px 0}
+.dr-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.dr-save{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
+.dr-saved{font-size:12.5px;color:var(--muted)}
+.dr-save button{border:1px solid var(--border);background:transparent;color:var(--text);border-radius:20px;padding:5px 13px;font:inherit;font-size:13px;cursor:pointer}
+.dr-save button:hover:not(:disabled){border-color:var(--text)}
+.dr-save button:disabled{opacity:.4;cursor:default}
 .dr-tabs button{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:20px;padding:5px 13px;font:inherit;font-size:13px;cursor:pointer}
 .dr-tabs button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
 .dr-body{overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 18px 16px}
@@ -24,4 +30,4 @@ body.dr-open{overflow:hidden}
 .dr-tbl tr.dr-muted td{color:var(--muted);font-style:italic}
 .dr-empty{color:var(--muted);margin:14px 0}
 .dr-note{font-size:12.5px;line-height:1.5;color:var(--muted);margin:10px 0 0}
-@media(max-width:760px){.dr-modal{padding:0;align-items:flex-end}.dr-box{border-radius:14px 14px 0 0;max-height:92vh;width:100%}.dr-hd{padding:14px 14px 8px}.dr-tabs{padding:8px 14px 0}.dr-body{padding:4px 12px 14px}.dr-tbl{font-size:13px}.dr-tbl td,.dr-tbl th{padding-left:7px;padding-right:7px}}
+@media(max-width:760px){.dr-modal{padding:0;align-items:flex-end}.dr-box{border-radius:14px 14px 0 0;max-height:92vh;width:100%}.dr-hd{padding:14px 14px 8px}.dr-bar{padding:8px 14px 0}.dr-body{padding:4px 12px 14px}.dr-tbl{font-size:13px}.dr-tbl td,.dr-tbl th{padding-left:7px;padding-right:7px}}
