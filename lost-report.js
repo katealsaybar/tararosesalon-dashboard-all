@@ -16,6 +16,8 @@ let lrDep = null, lrDepView = 'visual';
 // Booked since the message (lost_booked_since, migrations/lost_booked_since.sql): clients with a booking ahead plus the ones who already came in, so the
 // count does not slide down as booked clients are seen. Null until the function is live: the tiles stay out.
 let lrSince = null;
+// After the deadline (lost_after_deadline, migrations/lost_after_deadline.sql, Kate 27 Oct 2026): two lines under Which message, the clients whose next appointment is after 31 Oct and who have not come in. Null until live.
+let lrLate = null;
 try { if (localStorage.getItem('lr-dep-view') === 'table') lrDepView = 'table'; } catch (e) {}
 // Did our message arrive? (lost_delivery_report, migrations/lost_delivery_report.sql). Same: null until the function is live, the section stays out.
 let lrDel = null, lrDelView = 'visual';
@@ -93,13 +95,15 @@ async function lrLoad() {
   if (lrBusy) return;
   lrBusy = true; lrErr = '';
   try {
-    const [s, l, dp, dl, mo, bs, rc] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_campaign_money', lrArgs()), sb.rpc('lost_booked_since', lrArgs()), sb.rpc('lost_blast_record_get')]);
+    const [s, l, dp, dl, mo, bs, rc, ad] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_campaign_money', lrArgs()), sb.rpc('lost_booked_since', lrArgs()), sb.rpc('lost_blast_record_get'), sb.rpc('lost_after_deadline')]);
     if (s.error || !s.data) throw s.error || new Error('no report');
     lrSum = s.data;
     lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
     if (dp.error) console.warn('lost_booked_deposits', dp.error);
     lrSince = (!bs.error && bs.data && bs.data.total) ? bs.data : null;   // optional too
     if (bs.error) console.warn('lost_booked_since', bs.error);
+    lrLate = (!ad.error && ad.data && ad.data.offer) ? ad.data : null;   // optional too
+    if (ad.error && !/Level 3/.test(ad.error.message || '')) console.warn('lost_after_deadline', ad.error);
     lrDel = (!dl.error && dl.data && dl.data.total) ? dl.data : null;   // optional too
     if (dl.error) console.warn('lost_delivery_report', dl.error);
     lrMoney = (!mo.error && mo.data && mo.data.cost) ? mo.data : null;   // optional too
@@ -510,6 +514,17 @@ function lrPaint() {
   if (lrErr || !lrSum) { host.innerHTML = `<p class="slv-muted">${lcEsc(lrErr || 'No report yet.')}</p>`; return; }
   const s = lrSum, t = s.totals || {}, byB = s.by_branch || [];
   const typeRows = LR_TYPES.map(([k, l]) => { const m = (s.by_type || []).find(x => x.k === k); return m ? lrRow(`<b>${lcEsc(l)}</b>`, m, { y: k }) : null; }).filter(Boolean);
+  // Two extra lines under the three messages (Kate, 27 Oct 2026): next appointment after the 31 Oct deadline and not in yet. The number sits under Booked;
+  // the rest of the row says how many clients that is out of, and how many more already came in (a visit since the message may have used the rate).
+  const lateRow = (label, g, met) => {
+    const n = g.late || 0, came = g.late_came || 0;
+    return `<tr class="lr-late"><td>${label}</td><td colspan="3" class="slv-muted">Next appointment after 31 Oct, not in yet</td><td>${lrNum(n, met)}</td>
+      <td colspan="5" class="slv-muted">${lrPct(n, g.clients)} of the ${lcNum(g.clients)} clients messaged${came ? `. ${lcNum(came)} more booked past 31 Oct but had already come in` : ''}</td></tr>`;
+  };
+  if (lrLate && typeRows.length) {
+    typeRows.push(lateRow('<b>Booked after 31 Oct</b> without the offer <span class="ll-tag">Colour, Smoothing</span>', lrLate.offer, 'late_offer'));
+    typeRows.push(lateRow('<b>Booked after 31 Oct</b> <span class="ll-tag">Due only</span>', lrLate.due, 'late_due'));
+  }
   const waveRows = (s.by_wave || []).map(w => lrRow(`<b>Wave ${w.k || '?'}</b>`, w, { w: w.k || 0 }));
   const msgRows = (s.by_message || []).map(m => { const x = lrMsg(m.k); return lrRow(`${lcEsc(x.nm)} <span class="ll-tag">${lcEsc(x.arm)}</span>`, m, { t: m.k }); });
   const brRows = LR_BR.map(b => byB.find(x => x.k === b)).filter(Boolean).map(m => lrRow(lcEsc(LC_BRANCH[m.k] || m.k), m, { b: m.k }))
@@ -659,7 +674,8 @@ async function lrSaveLog(kind) {
 const LR_DRILL = { sent: 'Sent', replied: 'Replied', booked: 'Clients booked', appts: 'Clients with an appointment booked', stop: 'STOP', failed: 'Failed', queued: 'Still queued',
   skipped: 'Skipped', blocked: 'Blocked', seen: 'Seen', delivered: 'Delivered, not read yet', sent_only: 'Not delivered yet', paid: 'Deposit paid',
   need: 'Deposit likely needed, not paid', none: 'No deposit needed, short service', today: 'Booked for today', nodep: 'No deposit needed', unpaid: 'Not paid yet',
-  since: 'Booked since the message', ahead: 'Booked ahead', done: 'Already came in' };
+  since: 'Booked since the message', ahead: 'Booked ahead', done: 'Already came in',
+  late_offer: 'Booked after 31 Oct, offer not used (Colour / Smoothing)', late_due: 'Booked after 31 Oct (Due only)' };
 let lrDrillEl = null, lrDrillFrom = null;
 function lrDrillClose() {
   if (lrDrillEl) lrDrillEl.remove();
