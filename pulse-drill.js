@@ -177,7 +177,7 @@ const PD = (() => {
   function clientHistorySpec(ctx, o) {
     if (!canNames() || !o.client) return null;
     let P = null;
-    const load = () => P || (P = (async () => { const { data, error } = await sb.rpc('drill_client_history', { p_client: o.client, p_branches: o.branches || null, p_from: o.on || o.from || null, p_to: o.on || o.to || null }); if (error) throw error; return data; })().catch(e => { P = null; throw e; }));
+    const load = () => P || (P = (async () => { const { data, error } = await sb.rpc('drill_client_history', { p_client: o.client, p_branches: o.branches || null, p_from: o.on || o.from || null, p_to: o.on || o.to || null, p_cid: o.cid || null }); if (error) throw error; return data; })().catch(e => { P = null; throw e; }));
     const people = t => (t || []).map(x => `${esc(nm(x.e))} (${cnt(x.d)})`).join(', ');
     const sub = d => {
       let t = `${esc(o.client)}: ${cnt(d.visits)} visit${d.visits === 1 ? '' : 's'}`;
@@ -554,7 +554,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit),
           cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
-          client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, c: r.c, s: r.s, st: r.st, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
+          client: { k: 'c', b: 'bc', d: 'd', i: 'k' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, c: r.c, k: r.k, s: r.s, st: r.st, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d, cid: r.k }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
           foot: data.total <= rows.length ? { d: '', b: '', c: cnt(data.total) + ' visits', s: data.spend, st: '' } : null,
         };
       } },
@@ -563,14 +563,14 @@ const PD = (() => {
         if (data.total > rows.length) return { sub: doorSub(ctx, data, perVisit), rows: [], empty: 'This window has too many visits to group by client. Pick a shorter window.' };
         const m = new Map();
         rows.forEach(r => {
-          const k = String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, v: 0, s: 0, b: new Set() };
+          const k = r.k || String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, k: r.k, v: 0, s: 0, b: new Set() };
           x.v++; x.s += +r.s || 0; x.b.add(bname(r.b)); m.set(k, x);
         });
         const list = [...m.values()].sort((a, b) => b.v - a.v || b.s - a.s || a.c.localeCompare(b.c));
         return {
-          sub: doorSub(ctx, data, perVisit) + ` ${cnt(list.length)} different client names; one who came on two days is two visits.`,
+          sub: doorSub(ctx, data, perVisit) + ` ${cnt(list.length)} different clients (by her Phorest client id, so one client under two spellings is one, and two women with one name are two); one who came on two days is two visits.`,
           cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: 'Visits', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'b', l: 'Branches' }],
-          client: { k: 'c', from: ctx.from, to: ctx.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }); return { c: x.c, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: ctx.from, to: ctx.to }) } }; }),
+          client: { k: 'c', i: 'k', from: ctx.from, to: ctx.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }); return { c: x.c, k: x.k, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: ctx.from, to: ctx.to, cid: x.k }) } }; }),
           foot: { c: 'Total', v: data.total, s: data.spend, b: '' },
         };
       } },

@@ -156,11 +156,11 @@
     res._ct = 1;
     // Which Phorest client is she? A visit row says the day (res.client.d = the date column), a list of clients says the period (res.client.from / .to): the server picks
     // her own Phorest id from the sales on that day or in that period (phorest_visit_clients), so a name that several women share still gets the right number.
-    const ck = res.client.k, bk = res.client.b, dk = res.client.d, cf = res.client.from || '', ct = res.client.to || '';
+    const ck = res.client.k, bk = res.client.b, dk = res.client.d, ik = res.client.i, cf = res.client.from || '', ct = res.client.to || '';
     const dOf = r => dk ? String(r[dk] == null ? '' : r[dk]).slice(0, 10) : cf;
-    const keyOf = r => String(r[ck] == null ? '' : r[ck]).toLowerCase().replace(/\s+/g, ' ').trim() + '|' + (bk ? (r[bk] || '') : '') + '|' + dOf(r);
+    const keyOf = r => String(r[ck] == null ? '' : r[ck]).toLowerCase().replace(/\s+/g, ' ').trim() + '|' + (bk ? (r[bk] || '') : '') + '|' + dOf(r) + '|' + (ik ? (r[ik] || '') : '');
     const idx = new Map(), items = [];
-    res.rows.forEach(r => { const k = keyOf(r); if (k.charAt(0) !== '|' && !idx.has(k)) { idx.set(k, items.length); items.push([String(r[ck]), bk ? (r[bk] || '') : '', dOf(r), dk ? dOf(r) : ct]); } });
+    res.rows.forEach(r => { const k = keyOf(r); if (k.charAt(0) !== '|' && !idx.has(k)) { idx.set(k, items.length); items.push([String(r[ck]), bk ? (r[bk] || '') : '', dOf(r), dk ? dOf(r) : ct, ik ? (r[ik] || '') : '']); } });
     if (!items.length) return;
     try {
       const { data, error } = await sb.rpc('drill_client_contacts', { p_items: items });
