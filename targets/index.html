@@ -674,8 +674,8 @@ function render(){
 /* Break-even floor and aim for the whole business per month, AED (Coach Emma, 22 Oct: "over 1.7 to 1.8, otherwise we are targeting for less than break-even") */
 const BREAK_EVEN=[1700000,1800000];
 /* Kate, 27 Oct 2026: what the bottom-up % is, on hover, beside the bulk box and the By branch column */
-const TIP_BU_P=`<b>Bottom-up %</b> is the change you put on top of the top-down target for who is really on the floor.<br>The top-down target is the middle of low and high, built from the usual roster. Bottom-up adds a percentage to it (plus if more people are in than the roster shows, minus if fewer): <b>target = top-down x (1 + bottom-up %)</b>.<br>It is saved for the month, so it stays when you come back. This box sets the same % for everyone shown below; Set to 0 takes it off.`;
-const TIP_BU_B=`<b>Bottom-up</b> is the % and the AED each person's bottom-up adds on top of the top-down target (the middle of low and high), added up for the row.<br>Target = top-down + bottom-up. A row with no bottom-up reads +0.0%. You set it per person, or for everyone shown, in By person.`;
+const TIP_BU_P=`<b>Bottom-up %</b> is your own adjustment to the target.<br>Target 100,000 and more people in than usual? Type 10 and it becomes 110,000. Fewer people? Type -10 for 90,000.`;
+const TIP_BU_B=`<b>Bottom-up</b> is what your own adjustments add to or take off the target, shown as a % and in AED.<br>No adjustment reads +0.0%. Set it in By person.`;
 const ibw=h=>`<span class="ibw"><button class="ib" type="button" aria-expanded="false" aria-label="What bottom-up % is">i</button><span class="tip" role="tooltip">${h}</span></span>`;
 document.getElementById('buTipP').innerHTML=ibw(TIP_BU_P);
 function renderTiles(sel,all){
