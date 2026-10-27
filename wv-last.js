@@ -81,7 +81,7 @@ function wvLastHtml() {
       ['Bought', `A Phorest voucher sale from ${lcEsc(wvDay(WV_LP_LAUNCH))} on, matched by name. The sales feed runs a day behind.${o.vouchers ? ` ${lcNum(o.vouchers)} other voucher${o.vouchers === 1 ? '' : 's'} (${wvAed(o.aed)}) sold to clients not on this list are not counted.` : ''}`]])
   });
   return `<div id="wvLast">${block}
-    ${typeof wvOk5 === 'function' && wvOk5() ? '<div id="wvLsBox"></div>' : ''}
+    ${typeof wvOk5 === 'function' && wvOk5() ? '<div id="wvLsBox"></div><div id="wvRmBox"></div>' : ''}
     ${wvLpRows ? wvLpListHtml() : ''}</div>`;
 }
 function wvLpListHtml() {
@@ -179,4 +179,5 @@ async function wvLastLoad() {
 function wvLastMount() {
   const b = document.getElementById('wvB4'); if (b) b.innerHTML = wvLp ? wvLastHtml() : '';
   if (wvLp && typeof wvOk5 === 'function' && wvOk5() && typeof wvLsLoad === 'function') wvLsLoad();   // the send panel (wv-lastsend.js, Level 5)
+  if (wvLp && typeof wvOk5 === 'function' && wvOk5() && typeof wvRmLoad === 'function') wvRmLoad();   // the reminder panel (wv-remind.js, Level 5)
 }

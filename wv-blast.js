@@ -95,7 +95,7 @@ async function renderWvBlast() {
   const blastRail = (n, extra) => [['wvB' + n, 'Blast ' + n + ': what it was and what it brought'], ['wvFull' + n, 'Full performance']].concat(wvPerfOnly() ? [] : [['wvMsg' + n, 'The messages']]).concat([['wvRead' + n, 'How to read these numbers']]).concat(extra || []);
   const rails = {
     all: [['wvAllBlasts', 'The answer, blast by blast'], ['wvAllCmp', 'Compare the blasts'], ['wvAllWords', 'Each blast in words'], ['wvAllHow', 'How to read these numbers']],
-    b4: blastRail(4, (wvOk5() ? [['wvLsBox', 'Send Blast 4']] : []).concat(wvPerfOnly() ? [] : [['wvLpPanel', 'The send list']])),
+    b4: blastRail(4, (wvOk5() ? [['wvLsBox', 'Send Blast 4'], ['wvRmBox', 'Send the reminder']] : []).concat(wvPerfOnly() ? [] : [['wvLpPanel', 'The send list']])),
     b3: blastRail(3, (wvOk5() ? [['wvSendBox', 'Send a wave']] : []).concat(wvPerfOnly() ? [] : [['wvList', 'The send list']])),
     b2: blastRail(2), b1: blastRail(1)
   };
