@@ -519,13 +519,13 @@ const PD = (() => {
     return ctx._door;
   }
   const doorSub = (ctx, data, perVisit) => {
-    const shown = (data.rows || []).length;
+    const shown = (data.rows || []).filter(r => !r.z).length;
     let t = `${esc(ctx.label)}. ${cnt(data.total)} client${data.total === 1 ? '' : 's'} through the door, each client once a day however many sales or staff she had. A deposit, a balance payment or a voucher bought on its own is not a visit; staff bookings and the BUSINESS TRS house account are left out.`;
     if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
-    // Kate, 27 Oct 2026: Phorest counts a visit when the sale has an entry in Payment Type, so a client who paid a
-    // deposit for a plan and has an AED 0 service on the sale is counted. They stay in the count; the AED 0 spend tab lists them.
-    const zero = (data.rows || []).filter(r => !(+r.s > 0)).length;
-    if (zero) t += ` ${cnt(zero)} of these ${zero === 1 ? 'visit is' : 'visits are'} AED 0 spend (a plan or deposit paid, nothing rung through): see the AED 0 spend tab.`;
+    // Kate, 27 Oct 2026: a visit needs real spend. A day of redo (AED 0), an AED 0 consultation or an AED 0 plan with a
+    // deposit on the sale is not counted; the list still shows them, on the AED 0 spend tab, marked not counted.
+    const zero = +data.zero || 0;
+    if (zero) t += ` ${cnt(zero)} ${zero === 1 ? 'visit is' : 'visits are'} AED 0 spend (redo, an AED 0 consultation or plan) and not counted: see the AED 0 spend tab.`;
     if (ctx.door.count != null && data.total !== ctx.door.count) t += ` <b>The card shows ${cnt(ctx.door.count)}: this list does not match it.</b>`;
     if (perVisit) t += ` Net take on the card ${money(ctx.card.net, ctx.cur)} ÷ ${cnt(ctx.door.count)} = ${money(ctx.door.count ? ctx.card.net / ctx.door.count : 0, ctx.cur)} a visit. "Spent" below is Phorest's own lines for these clients, so it will not match Net take to the dirham.`;
     return t;
@@ -533,7 +533,7 @@ const PD = (() => {
   function doorViews(ctx, perVisit) {
     return [
       { id: 'visits', label: 'Each visit', load: async () => {
-        const data = await doorLoad(ctx), rows = data.rows || [];
+        const data = await doorLoad(ctx), rows = (data.rows || []).filter(r => !r.z);
         return {
           sub: doorSub(ctx, data, perVisit),
           cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
@@ -542,7 +542,7 @@ const PD = (() => {
         };
       } },
       { id: 'clients', label: 'By client', load: async () => {
-        const data = await doorLoad(ctx), rows = data.rows || [];
+        const data = await doorLoad(ctx), rows = (data.rows || []).filter(r => !r.z);
         if (data.total > rows.length) return { sub: doorSub(ctx, data, perVisit), rows: [], empty: 'This window has too many visits to group by client. Pick a shorter window.' };
         const m = new Map();
         rows.forEach(r => {
@@ -558,9 +558,9 @@ const PD = (() => {
         };
       } },
       { id: 'zero', label: 'AED 0 spend', load: async () => {
-        const data = await doorLoad(ctx), rows = (data.rows || []).filter(r => !(+r.s > 0));
+        const data = await doorLoad(ctx), rows = (data.rows || []).filter(r => r.z);
         return {
-          sub: doorSub(ctx, data, perVisit) + ' This tab shows only the visits where the client’s lines add up to AED 0.',
+          sub: doorSub(ctx, data, perVisit) + ' This tab lists the visits where the client’s lines add up to AED 0 or less. They are shown here but not counted.',
           cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
           rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, s: r.s, st: r.st, _dn: { s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
           empty: 'No visit in this window adds up to AED 0.',
