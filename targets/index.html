@@ -181,6 +181,23 @@ tr.det td{background:var(--card);text-align:left;white-space:normal;padding:16px
   .steps{grid-template-columns:1fr}
   input.days{width:68px;min-height:38px}
   button.how,button.copy{min-height:38px;padding:4px 18px}
+  /* Kate, 27 Oct 2026: By branch on a phone is a real table again, like Google Sheets: the column headers stay on top and the Branch column stays on the left while you swipe across. The person rows stay cards. */
+  .tw.sheet,.tw.sheet.fit,.tw.sheet:not(.fit){overflow:auto;max-height:calc(100vh - 150px);-webkit-overflow-scrolling:touch}
+  .tw.sheet table.t{display:table;width:max-content;min-width:100%}
+  .tw.sheet table.t thead{display:table-header-group}
+  .tw.sheet table.t tbody{display:table-row-group}
+  .tw.sheet table.t tr,.tw.sheet table.t tr.p,.tw.sheet table.t tr.sum,.tw.sheet table.t tr.tot{display:table-row;padding:0;border-top:0}
+  .tw.sheet table.t td{display:table-cell;width:auto;padding:10px 9px;border-bottom:1px solid var(--rule);text-align:right!important;white-space:nowrap}
+  .tw.sheet table.t td.name{width:104px;min-width:104px;max-width:104px;white-space:normal;text-align:left!important;font-size:13.5px}
+  .tw.sheet table.t th:first-child{width:104px;min-width:104px;max-width:104px}
+  .tw.sheet table.t td[data-l]::before{display:none}
+  .tw.sheet table.t th{padding:8px 9px;white-space:nowrap}
+  .tw.sheet th .tip{position:fixed;left:10px;right:10px;bottom:16px;top:auto;width:auto;z-index:60}
+  .tw.sheet.fit thead th,.tw.sheet thead th{top:0}
+  .tw.sheet table.t[data-frz="1"] :is(th,td):nth-child(1){position:sticky;left:0;background:var(--bg);z-index:2;text-align:left!important}
+  .tw.sheet table.t[data-frz="1"] thead th:nth-child(1){z-index:4}
+  .tw.sheet table.t tr.sum td:nth-child(1),.tw.sheet table.t tr.tot td:nth-child(1){background:var(--card)}
+  .tw.sheet table.t td[data-l="Clients"],.tw.sheet table.t td[data-l="Target against Sep delivered"]{min-width:0;max-width:none}
 }
 .rofac{background:var(--card);border-radius:var(--r-sm);padding:8px 12px;display:flex;justify-content:space-between;align-items:baseline}
 .rofac span{font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
@@ -667,6 +684,7 @@ function render(){
   /* Kate, 27 Oct 2026: the Branch and Team chips stay in By branch too, the tiles above follow them (the branch table itself always lists every branch) */
   document.getElementById('rowFilters').style.display='';
   document.getElementById('sfTools').hidden=st.view!=='PERSON';
+  document.querySelector('.tw').classList.toggle('sheet',st.view==='BRANCH');
   if(barEl.classList.contains('closed'))document.getElementById('barSum').textContent=barSum();
   stickFit();
 }
