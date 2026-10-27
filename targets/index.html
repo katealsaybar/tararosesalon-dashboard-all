@@ -523,8 +523,9 @@ function render(){
   howExample(rows);
   renderTiles(sel,rows);
   if(st.view==='PERSON')renderPerson(sel);else renderBranch(rows);
-  stickFit();
+  /* the branch and team row must be shown or hidden before stickFit() measures the bar, or the header sticks one row too low (Kate, 27 Oct 2026) */
   document.getElementById('rowFilters').style.display=st.view==='PERSON'?'':'none';
+  stickFit();
 }
 
 /* Break-even floor and aim for the whole business per month, AED (Coach Emma, 22 Oct: "over 1.7 to 1.8, otherwise we are targeting for less than break-even") */
