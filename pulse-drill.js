@@ -68,8 +68,10 @@ const PD = (() => {
       const s = b.d.summary, ua = +s.retailUnattributed || 0;
       if (Math.abs(ua) < 0.005) return;
       const sh = ctx.s.retailHairShare == null ? 1 : ctx.s.retailHairShare;   // the card's share for the whole window, so the hair and beauty lists add up to the card
-      const v = dept === 'hair' ? ua * sh : dept === 'beauty' ? ua * (1 - sh) : ua;
-      if (Math.abs(v) >= 0.005) out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp: dept ? '' : 'Both', svc: 0, rt: v, net: v, cl: null, _cls: 'dr-muted' });
+      const row = (v, dp) => { if (Math.abs(v) >= 0.005) out.push({ b: bname(b.code), n: 'Retail rung with no stylist', dp, svc: 0, rt: v, net: v, cl: null, _cls: 'dr-muted' }); };
+      if (dept === 'hair') row(ua * sh, '');
+      else if (dept === 'beauty') row(ua * (1 - sh), '');
+      else { row(ua * sh, 'Hair'); row(ua * (1 - sh), 'Beauty'); }   // both departments listed: one line each, so the department column is never blank and the two still add to the card
     });
     return out;
   }
@@ -95,7 +97,7 @@ const PD = (() => {
       cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Staff' }, ...deptCols(dept), { k: 'svc', l: 'Services', t: 'aed' }, { k: 'rt', l: 'Retail', t: 'aed' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'cl', l: 'Clients', t: 'num' }],
       rows: all,
       foot: { b: 'Total', n: '', dp: '', svc: all.reduce((a, r) => a + (+r.svc || 0), 0), rt: all.reduce((a, r) => a + (+r.rt || 0), 0), net: want, cl: all.reduce((a, r) => a + (+r.cl || 0), 0) },
-      sub: `${esc(ctx.label)}. Services and retail each stylist was credited with, from the branch ledgers matched to Phorest by staff and day. Retail rung with no stylist is shown on its own line.`,
+      sub: `${esc(ctx.label)}. Services and retail each stylist was credited with, from the branch ledgers matched to Phorest by staff and day. Retail rung with no stylist is shown on its own line per branch, split between Hair and Beauty by the card's share.`,
       note: d ? DIFF_NOTE : '',
     };
   }
@@ -173,7 +175,7 @@ const PD = (() => {
       const m = dept ? svc : r.st.netSalonTake;
       return { b: r.b, n: r.n, dp: r.dp, m, cl: r.st.total, avg: r.st.total ? m / r.st.total : null };
     }).filter(r => r.m || r.cl).sort((a, b) => (b.avg || 0) - (a.avg || 0));
-    if (!dept) houseRetail(ctx, null).forEach(h => rows.push({ b: h.b, n: h.n, dp: '', m: h.net, cl: null, avg: null, _cls: 'dr-muted' }));
+    if (!dept) houseRetail(ctx, null).forEach(h => rows.push({ b: h.b, n: h.n, dp: h.dp, m: h.net, cl: null, avg: null, _cls: 'dr-muted' }));
     const wantM = dept === 'hair' ? ctx.card.hairSvc : dept === 'beauty' ? ctx.card.beautySvc : ctx.card.net;
     const wantC = dept === 'hair' ? ctx.s.hairTotalClients : dept === 'beauty' ? ctx.s.beautyTotalClients : ctx.s.totalClients;
     const sumM = rows.reduce((a, r) => a + (r.m || 0), 0), sumC = rows.reduce((a, r) => a + (r.cl || 0), 0);
