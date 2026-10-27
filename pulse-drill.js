@@ -317,15 +317,15 @@ const PD = (() => {
   function newClientsSpec(ctx, o) {
     if (!canNames() || !o.from) return null;
     return { title: o.who ? `New clients \u00b7 ${o.who}` : `New clients \u00b7 ${o.when}`, cur: ctx.cur, views: [{ id: 'each', label: 'Each client', load: async () => {
-      const { data, error } = await sb.rpc('drill_staff_new_clients', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees });
+      const { data, error } = await sb.rpc('drill_staff_new_clients', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees, p_requested: o.kind === 'ncr' });
       if (error) throw error;
       const rows = data.rows || [];
-      let t = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(data.total)} new client${data.total === 1 ? '' : 's'}, each on her first paid visit, from Phorest's sales lines with her Phorest profile date settling whether she is really new (the same rule as new clients through the door; a client seen by two staff on that day is under each).`;
-      if (o.kind === 'ncr') t += ` ${cnt(o.ledger)} of them asked for ${o.who ? esc(o.who) : 'a stylist'} by name on that first visit, but only the count is kept, not which clients, so this lists every new client.`;
+      let t = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(data.total)} new client${data.total === 1 ? '' : 's'}${o.kind === 'ncr' ? ' who asked for ' + (o.who ? esc(o.who) : 'a stylist') + ' by name' : ''}, each on her first paid visit, from Phorest's sales lines with her Phorest profile date settling whether she is really new (the same rule as new clients through the door; a client seen by two staff on that day is under each).`;
+      if (o.kind === 'ncr') t += ` Who asked comes from Phorest's appointment (the request flag on her first day); the figure you clicked, ${cnt(o.ledger)}, is typed by reception, a separate count, so they can differ. A client seen by two staff on that day is under each.`;
       else if (o.ledger != null) t += ` The figure you clicked, ${cnt(o.ledger)}, is a separate count (typed by reception or from Phorest's staff report), so they can differ.`;
       if (data.total > rows.length) t += ` The newest ${cnt(rows.length)} are shown.`;
       return { sub: t, cols: [{ k: 'd', l: 'First visit', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }],
-        client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, _dn: { c: clientHistorySpec(ctx, { client: r.c }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' new clients' } : null };
+        client: { k: 'c', b: 'bc' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, _dn: { c: clientHistorySpec(ctx, { client: r.c }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + (o.kind === 'ncr' ? ' asked' : ' new clients') } : null };
     } }] };
   }
   // A staff row's Phorest or ledger counts (her total, her new clients, her requests) opening the list behind each: x = { code, raw (her name), b, n, v, t }.
