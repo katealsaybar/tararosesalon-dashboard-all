@@ -5089,14 +5089,19 @@ async function renderDashboard() {
   // drops the split block entirely.
   const splitsOf = arr => hasBeauty ? arr : [];
 
+  // Kate, 27 Oct 2026: every figure opens the rows behind it (drill.js, pulse-drill.js). dn() is the figure as a clickable span, or the plain
+  // text when this window has nothing behind it (the Pulse is on the weekly totals, or the piece has no rows).
+  const pdCtx = (typeof PD !== 'undefined' && typeof TRSD !== 'undefined')
+    ? PD.snap(s, { net: s.netTake, hairNet: hairNetSalonTake, beautyNet: beautyNetTakeDept, hairSvc: s.hairServicesIncl, beautySvc: s.beautyServicesTotal }, `${branchLabel}, ${rangeLabel}`) : null;
+  const dn = (html, kind, o) => (pdCtx && kind) ? TRSD.num(html, PD.spec(kind, pdCtx, o)) : html;
   const THREE = [
     { k:'Net take', def:'Services + treatments + retail, hair and beauty, before staff cost.',
       // Audit 18 Oct 2026 (P2-12): the Pulse adds up credited staff rows; Financial Totals reads Phorest's own Sales block.
       tip: 'Added up from the staff rows in the ledgers, so it leaves out any service Phorest took that no staff row was credited with, and it counts a course when it is performed. Financial Totals reads Phorest’s own Sales block, which counts a course when it is sold, so the two can differ by a small amount.',
-      v: aed0(s.netTake), status: netTrend.status, t: netTrend.txt, verdict: netTrend.verdict,
+      v: dn(aed0(s.netTake), 'net'), status: netTrend.status, t: netTrend.txt, verdict: netTrend.verdict,
       splits: splitsOf([
-        { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:aed0(hairNetSalonTake),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
-        { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:aed0(beautyNetTakeDept), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
+        { k:'Hair',   val:hairNetSalonTake,  of:s.netTake, txt:dn(aed0(hairNetSalonTake), 'net', { dept:'hair' }),  extra:`${shareOf(hairNetSalonTake, s.netTake)}%`,  color:'var(--hair)' },
+        { k:'Beauty', val:beautyNetTakeDept, of:s.netTake, txt:dn(aed0(beautyNetTakeDept), 'net', { dept:'beauty' }), extra:`${shareOf(beautyNetTakeDept, s.netTake)}%`, color:'var(--beauty)' },
       ]) },
     { k:'Clients', def: doorOn(s) ? 'Clients counted by staff (ledgers). Each client once a day, through the door, is below.' : 'Per staff, from the ledgers.',
       tip: doorOn(s)
@@ -5104,34 +5109,34 @@ async function renderDashboard() {
         : CLIENT_BASIS === 'door'
           ? 'Handled, not through the door: Phorest’s Sales Transactions have no count for this selection (Bahrain is not in them), so this is each staff member’s clients from the ledgers.'
           : 'Handled: each staff member counts the clients she served (ledgers), hair and beauty.',
-      v: num0(s.totalClients), status: clientTrend.status,
+      v: dn(num0(s.totalClients), 'clients'), status: clientTrend.status,
       pill: doorOn(s) ? 'Per staff' : null,
-      sub: (doorOn(s) ? [['Per visit, through the door', num0(clientsOf(s))]] : []),
+      sub: (doorOn(s) ? [['Per visit, through the door', dn(num0(clientsOf(s)), 'door')]] : []),
       // ALD2-02: when no aim is uploaded the line says what the card is read against instead.
       t: getClientTarget(sel.branch).replace(/^No client target uploaded for (?!any of|\d+ of)([A-Za-z0-9, ]+)$/,
         (m, months) => `No client aim set for ${months}, so this is read against ${prevPeriodLabel} only.`), verdict: clientTrend.verdict,
       splits: splitsOf([
-        { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:`${num0(s.hairTotalClients)} by staff`,   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
-        { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:`${num0(s.beautyTotalClients)} by staff`, extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
+        { k:'Hair',   val:s.hairTotalClients,   of:s.totalClients, txt:dn(`${num0(s.hairTotalClients)} by staff`, 'clients', { dept:'hair' }),   extra:`${shareOf(s.hairTotalClients, s.totalClients)}%`,   color:'var(--hair)' },
+        { k:'Beauty', val:s.beautyTotalClients, of:s.totalClients, txt:dn(`${num0(s.beautyTotalClients)} by staff`, 'clients', { dept:'beauty' }), extra:`${shareOf(s.beautyTotalClients, s.totalClients)}%`, color:'var(--beauty)' },
       ]) },
     { k:'Avg bill', def: doorOn(s) ? 'Net take per client counted by staff (ledgers). Per visit, through the door, is below.' : 'Net take per client.',
       tip: doorOn(s) ? 'Net take divided by the clients staff counted in the ledgers, which is what the targets are set against. The per visit line divides by clients through the door instead: what one visit is worth. Hair and Beauty are that side’s services over that side’s clients, per staff.' : 'Net take divided by clients: what one visit is worth.',
       // Kate, 9 Oct 2026: per staff leads ("baliktad ka"), because the targets are per staff;
       // per visit, through the door, is the snippet underneath.
-      v: aed0(s.avgBill), status: avgBillStatus,
+      v: dn(aed0(s.avgBill), 'avg'), status: avgBillStatus,
       pill: doorOn(s) ? 'Per staff' : null,
-      sub: (doorOn(s) ? [[`Per visit, through the door (${num0(s.doorClients)})`, aed0(avgBillOf(s))]] : []),
+      sub: (doorOn(s) ? [[`Per visit, through the door (${num0(s.doorClients)})`, dn(aed0(avgBillOf(s)), 'door', { perVisit:true })]] : []),
       t: TARGETS.hairAvgBill == null ? 'No avg-bill target set for this branch yet'
         : `Hair target ${TARGETS.hairAvgBill} · Beauty target ${TARGETS.beautyAvgBill}`, verdict: avgBillVerdict,
       splits: splitsOf([
         { k:'Hair', val:s.hairAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill || 0),
-          txt:aed0(s.hairAvgBill),
+          txt:dn(aed0(s.hairAvgBill), 'avg', { dept:'hair' }),
           extra: TARGETS.hairAvgBill == null ? '' : `${(s.hairAvgBill || 0) >= TARGETS.hairAvgBill ? '+' : '−'}${Math.abs(Math.round(((s.hairAvgBill || 0) / TARGETS.hairAvgBill - 1) * 100))}%`,
           cls: TARGETS.hairAvgBill == null ? '' : hairAvgOk ? 'good' : 'bad', color:'var(--hair)' },
         s.beautyAvgBill == null
           ? { k:'Beauty', val:0, of:1, txt:'—', extra:'no data', color:'var(--beauty)' }
           : { k:'Beauty', val:s.beautyAvgBill, of:Math.max(s.hairAvgBill || 0, s.beautyAvgBill || 0, TARGETS.hairAvgBill || 0),
-              txt:aed0(s.beautyAvgBill),
+              txt:dn(aed0(s.beautyAvgBill), 'avg', { dept:'beauty' }),
               extra: TARGETS.beautyAvgBill == null ? '' : `${beautyAvgOk ? '+' : '−'}${Math.abs(Math.round((s.beautyAvgBill / TARGETS.beautyAvgBill - 1) * 100))}%`,
               cls: TARGETS.beautyAvgBill == null ? '' : beautyAvgOk ? 'good' : 'bad', color:'var(--beauty)' },
       ]) },
@@ -5181,7 +5186,7 @@ async function renderDashboard() {
   const statChip = (v, label) => `<span class="stat"><b>${v}</b> ${label}</span>`;
 
   // ── WINS ─────────────────────────────────────────────────────────
-  const winnersFor = (staff, revKey) => {
+  const winnersFor = (staff, revKey, dept) => {
     const pool = (staff || []).filter(st => st.name && st.name !== 'ASSISTANTS' && (st.total || 0) > 0);
     if (!pool.length) return [];
     // A one-visit stylist can post a huge average bill and take the card off a
@@ -5193,13 +5198,15 @@ async function renderDashboard() {
       return (eligible.length ? eligible : pool).reduce((a, b) => ((b[key] || 0) > (a[key] || 0) ? b : a));
     };
     const tBill = best(revKey), tAvg = best('avgBill', 10), tReq = best('req'), tNew = best('newC');
+    // Kate, 27 Oct 2026: each figure on a card opens that person's days (her net take, clients, requests and new clients day by day).
+    const pw = (html, p, what) => dept ? dn(html, 'person', { name: p.name, dept, what, card: { net: p.netSalonTake, total: p.total, req: p.req, newC: p.newC } }) : html;
     return [
-      { k:'Top biller',       p:tBill, n:tBill[revKey] || 0,  v:`<b>${aed0(tBill[revKey] || 0)}</b> net take · ${num0(tBill.total)} clients` },
-      { k:'Highest avg bill', p:tAvg,  n:tAvg.avgBill  || 0,  v:`<b>${aed0(tAvg.avgBill || 0)}</b> avg · ${num0(tAvg.total)} clients` },
+      { k:'Top biller',       p:tBill, n:tBill[revKey] || 0,  v:`<b>${pw(aed0(tBill[revKey] || 0), tBill, 'Top biller')}</b> net take · ${pw(num0(tBill.total) + ' clients', tBill, 'Top biller')}` },
+      { k:'Highest avg bill', p:tAvg,  n:tAvg.avgBill  || 0,  v:`<b>${pw(aed0(tAvg.avgBill || 0), tAvg, 'Highest avg bill')}</b> avg · ${pw(num0(tAvg.total) + ' clients', tAvg, 'Highest avg bill')}` },
       // Kate, 1 Oct 2026: `req` is returning clients who asked for her by name, not
       // the tables' NCR column (new clients who did), so the card says which it is.
-      { k:'Requested by regulars', p:tReq, n:tReq.req || 0, v:`<b>${num0(tReq.req || 0)} requests</b> of ${num0(tReq.total)} clients` },
-      { k:'Most new clients', p:tNew,  n:tNew.newC     || 0,  v:`<b>${num0(tNew.newC || 0)} new</b> of ${num0(tNew.total)} clients` },
+      { k:'Requested by regulars', p:tReq, n:tReq.req || 0, v:`<b>${pw(num0(tReq.req || 0) + ' requests', tReq, 'Requested by regulars')}</b> of ${pw(num0(tReq.total) + ' clients', tReq, 'Requested by regulars')}` },
+      { k:'Most new clients', p:tNew,  n:tNew.newC     || 0,  v:`<b>${pw(num0(tNew.newC || 0) + ' new', tNew, 'Most new clients')}</b> of ${pw(num0(tNew.total) + ' clients', tNew, 'Most new clients')}` },
     ].filter(w => w.n > 0);   // no data, no card
   };
 
@@ -5250,8 +5257,8 @@ async function renderDashboard() {
   // beautySales) while every staff table ranks and prints Net take, retail in, so
   // the card's figure never matched the table row beside it (Kate Siryk, Sept:
   // 92,199 on the card, 95,226 in the table). Both read Net take now.
-  const winsHair   = winnersFor(d.hairStaff,   'netSalonTake').map(winCard).join('');
-  const winsBeauty = winnersFor(d.beautyStaff, 'netSalonTake').map(winCard).join('');
+  const winsHair   = winnersFor(d.hairStaff,   'netSalonTake', 'hair').map(winCard).join('');
+  const winsBeauty = winnersFor(d.beautyStaff, 'netSalonTake', 'beauty').map(winCard).join('');
   // Shoutouts for the Loading lines (loading-facts.js), from the Wins above and the top three of the Podium for the same window, by name and
   // no numbers (Kate, 18 Oct 2026: "just base it on their stats... may wins tayo sa org pulse, meron din tayong rankings sa podium race").
   // Built here, in the signed-in page, and kept in memory: nothing with a name is in a file that is served to anyone. Only for the windows
@@ -5407,10 +5414,10 @@ ${staffGapHtml(sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch)}
     <div class="read-h">${hairHeading}</div>
     <div class="read-p">${glance.hair}</div>
     <div class="read-stats">
-      ${statChip(hairShareOfTake + '%', 'of net take')}
-      ${statChip(num0(s.hairTotalClients), 'clients by staff')}
-      ${statChip(aed0(s.hairAvgBill), 'avg bill per staff')}
-      ${statChip(shareOf((s.hairBreakdown && s.hairBreakdown.req) || 0, s.hairTotalClients) + '%', 'requested')}
+      ${statChip(dn(hairShareOfTake + '%', 'net', { dept:'hair' }), 'of net take')}
+      ${statChip(dn(num0(s.hairTotalClients), 'clients', { dept:'hair' }), 'clients by staff')}
+      ${statChip(dn(aed0(s.hairAvgBill), 'avg', { dept:'hair' }), 'avg bill per staff')}
+      ${statChip(dn(shareOf((s.hairBreakdown && s.hairBreakdown.req) || 0, s.hairTotalClients) + '%', 'req', { dept:'hair' }), 'requested')}
     </div>
   </div>
   <div class="read-col b">
@@ -5419,10 +5426,10 @@ ${staffGapHtml(sel.branch.includes('all') ? ACTIVE_BRANCHES : sel.branch)}
     <div class="read-p">${beautyBody}</div>
     ${hasBeauty ? `
     <div class="read-stats">
-      ${statChip(shareOf(beautyNetTakeDept, s.netTake) + '%', 'of net take')}
-      ${statChip(num0(s.beautyTotalClients), 'clients by staff')}
-      ${statChip(s.beautyAvgBill != null ? aed0(s.beautyAvgBill) : '—', 'avg bill per staff')}
-      ${statChip(shareOf((s.beautyBreakdown && s.beautyBreakdown.req) || 0, s.beautyTotalClients) + '%', 'requested')}
+      ${statChip(dn(shareOf(beautyNetTakeDept, s.netTake) + '%', 'net', { dept:'beauty' }), 'of net take')}
+      ${statChip(dn(num0(s.beautyTotalClients), 'clients', { dept:'beauty' }), 'clients by staff')}
+      ${statChip(s.beautyAvgBill != null ? dn(aed0(s.beautyAvgBill), 'avg', { dept:'beauty' }) : '—', 'avg bill per staff')}
+      ${statChip(dn(shareOf((s.beautyBreakdown && s.beautyBreakdown.req) || 0, s.beautyTotalClients) + '%', 'req', { dept:'beauty' }), 'requested')}
     </div>` : ''}
   </div>
 </div>

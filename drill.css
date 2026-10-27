@@ -1,0 +1,27 @@
+/* A figure that opens the list behind it (drill.js, Kate, 27 Oct 2026). Same dotted underline and window as the Lost Client Blasts report. */
+.dn{cursor:pointer;border-bottom:1.5px dotted var(--muted2,var(--muted));padding-bottom:1px}
+@media(hover:hover){.dn:hover{border-bottom-style:solid;color:var(--accent)}}
+.dn:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:3px}
+body.dr-open{overflow:hidden}
+.dr-modal{position:fixed;inset:0;z-index:520;background:rgba(20,16,14,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.dr-box{text-align:left;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.35);width:min(920px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column}
+.dr-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px 10px;border-bottom:1px solid var(--border)}
+.dr-hd h3{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;margin:0 0 2px}
+.dr-sub{margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
+.dr-x{flex:none;border:1px solid var(--border);background:var(--surface2,transparent);color:var(--text);border-radius:20px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+.dr-x:hover{border-color:var(--text)}
+.dr-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 18px 0}
+.dr-tabs button{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:20px;padding:5px 13px;font:inherit;font-size:13px;cursor:pointer}
+.dr-tabs button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.dr-body{overflow:auto;-webkit-overflow-scrolling:touch;padding:6px 18px 16px}
+.dr-scroll{overflow-x:auto}
+.dr-tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.dr-tbl th{position:sticky;top:0;background:var(--bg);text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 10px 7px;border-bottom:1px solid var(--border);white-space:nowrap}
+.dr-tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.dr-tbl .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dr-tbl .nw{white-space:nowrap}
+.dr-tbl tfoot td{font-weight:700;border-top:2px solid var(--text);border-bottom:0;position:sticky;bottom:0;background:var(--bg)}
+.dr-tbl tr.dr-muted td{color:var(--muted);font-style:italic}
+.dr-empty{color:var(--muted);margin:14px 0}
+.dr-note{font-size:12.5px;line-height:1.5;color:var(--muted);margin:10px 0 0}
+@media(max-width:760px){.dr-modal{padding:0;align-items:flex-end}.dr-box{border-radius:14px 14px 0 0;max-height:92vh;width:100%}.dr-hd{padding:14px 14px 8px}.dr-tabs{padding:8px 14px 0}.dr-body{padding:4px 12px 14px}.dr-tbl{font-size:13px}.dr-tbl td,.dr-tbl th{padding-left:7px;padding-right:7px}}

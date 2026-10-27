@@ -83,6 +83,7 @@ NOT_PAGES = {
     'target-links.js': 'the line that opens How a Target Is Made and the Target Calculator beside every target (Level 3 and 5)',
     'scroll-edges.js': 'edge fade and swipe hint on sideways tables (phone)',
     'count-up.js': 'headline numbers count up when a section opens',
+    'drill.js': 'the window that opens the list behind a figure, on every page', 'pulse-drill.js': 'what each Pulse figure opens (staff, day and branch lists, the clients through the door)',
     'pages.js': 'the list of dashboard pages: names, levels, slugs; read by the check below',
 }
 # A page in the sidebar that may have no text in the index, and why.
