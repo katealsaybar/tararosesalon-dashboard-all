@@ -113,7 +113,9 @@ window.TRS_PAGES = /*PAGES*/[
     if (!level) return (p.min || 1) <= 1;
     if (level >= 5) return true;
     if ((level === 2 || level === 4) && extras && extras.indexOf(p.id) >= 0) return true;
-    var ov = window.TRS_ACCESS && window.TRS_ACCESS[p.id];
+    // Kate, 28 Oct 2026: staff are one level inside (1) but the Page Access page keeps separate ticks for Reception & Call Centre (shown as Level 2),
+    // saved under 'fd:<page>'; TRS_STAFF_FD says this person is one of them (set at sign-in by hub.js and index.html).
+    var ov = window.TRS_ACCESS && window.TRS_ACCESS[(level === 1 && window.TRS_STAFF_FD ? 'fd:' : '') + p.id];
     if (ov && ov[level] !== undefined && ov[level] !== null) return !!ov[level];
     return window.trsPageDefault(p.id, level);
   };

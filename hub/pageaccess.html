@@ -60,7 +60,7 @@
   .pa-tbl th,.pa-tbl td{padding:10px 2px}
   .pa-tbl th:first-child,.pa-tbl td:first-child{padding-left:12px;padding-right:6px}
   .pa-tbl td:first-child{position:static}
-  .pa-tbl td.pa-c,.pa-tbl thead th:not(:first-child){width:54px}
+  .pa-tbl td.pa-c,.pa-tbl thead th:not(:first-child){width:48px}
   .pa-tbl th small{display:none}
   .pa-full{display:none}.pa-short{display:inline}
   .pa-tbl input[type=checkbox]{width:26px;height:26px}
@@ -85,11 +85,14 @@
 <script>
 (function () {
   var main = document.getElementById('kbMain');
-  var LV = [1, 2, 3, 4];
+  var LV = [1, 11, 2, 3, 4];   // 11 is Level 2 Reception & Call Centre: saved under page 'fd:<id>' at internal level 1
   // Kate, 28 Oct 2026: the numbers shown are the new ones (1 Stylists & Beauticians, 2 Reception & Call Centre, 3 Leadership, 4 Executives & Marketing,
   // 5 Accounts & Admin, 6 Kate); the grid's columns are still the old internal levels 1 to 4, so internal 1 (all staff) is one column "Level 1 and 2".
-  var NAMES = { 1: 'Stylists, Beauticians, Reception, Call Centre', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
-  var DISP = { 1: '1 and 2', 2: '3', 3: '4', 4: '5' }, SHORT = { 1: 'L1+2', 2: 'L3', 3: 'L4', 4: 'L5' };
+  var NAMES = { 1: 'Stylists & Beauticians', 11: 'Reception & Call Centre', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
+  var DISP = { 1: '1', 11: '2', 2: '3', 3: '4', 4: '5' }, SHORT = { 1: 'L1', 11: 'L2', 2: 'L3', 3: 'L4', 4: 'L5' };
+  // The staff are one level inside (1), so Reception & Call Centre keep their own ticks under 'fd:<page>' (pages.js reads them when TRS_STAFF_FD is set).
+  function pid(id, l) { return l === 11 ? 'fd:' + id : id; }
+  function lvl(l) { return l === 11 ? 1 : l; }
   var q = '', statusTimer = null, shut = {}, DOCS = [];
   try { shut = JSON.parse(localStorage.getItem('trs-pa-shut') || '{}') || {}; } catch (e) { shut = {}; }
   function keepShut() { try { localStorage.setItem('trs-pa-shut', JSON.stringify(shut)); } catch (e) {} }
@@ -103,11 +106,11 @@
     if (!err) statusTimer = setTimeout(function () { el.textContent = ''; }, 4000);
   }
   // A saved tick, if there is one, else the built-in default (the box that is checked from the start).
-  function saved(id, l) { var o = window.TRS_ACCESS && window.TRS_ACCESS[id]; return (o && o[l] !== undefined && o[l] !== null) ? !!o[l] : null; }
+  function saved(id, l) { var o = window.TRS_ACCESS && window.TRS_ACCESS[pid(id, l)], k = lvl(l); return (o && o[k] !== undefined && o[k] !== null) ? !!o[k] : null; }
   // Documents are the Team Home sections (SOPs, induction, front desk, HR forms ...): id 'kb:<section key>', Levels 2 to 4 only (Level 1 staff
   // are opened team by team, not from here). Their starting ticks come from kb_sections (kb_section_defaults), a saved tick wins over them.
   function dflt(id, l) {
-    if (String(id).indexOf('kb:') !== 0) return trsPageDefault(id, l);
+    if (String(id).indexOf('kb:') !== 0) return trsPageDefault(id, lvl(l));
     var d = DOCS.filter(function (x) { return 'kb:' + x.key === id; })[0];
     return !!d && d.min <= l && (d.skip || []).indexOf(l) < 0;
   }
@@ -120,7 +123,7 @@
     return TRS_PAGES.filter(function (p) { return !p.retired; }).concat(docs);
   }
   function lvOf(p) { return p.doc ? [2, 3, 4] : LV; }
-  function nameOf(id) { var p = pages().filter(function (x) { return x.id === id; })[0]; return p ? p.label : trsPageLabel(id); }
+  function nameOf(id) { id = String(id).replace(/^fd:/, ''); var p = pages().filter(function (x) { return x.id === id; })[0]; return p ? p.label : trsPageLabel(id); }
   function table() {
     var list = pages(), groups = [], by = {};
     var needle = q.trim().toLowerCase();
@@ -142,7 +145,7 @@
           (p.sub && g === 'Numbers' ? '<span class="pa-note">' + esc(p.sub) + '</span>' : '') +
           (p.inside ? '<span class="pa-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</td>' +
           LV.map(function (l) {
-            if (p.doc && l === 1) return '<td class="pa-c"><span class="pa-five">by team</span></td>';
+            if (p.doc && (l === 1 || l === 11)) return '<td class="pa-c"><span class="pa-five">by team</span></td>';
             var chg = saved(p.id, l) !== null && saved(p.id, l) !== dflt(p.id, l);
             return '<td class="pa-c' + (chg ? ' pa-chg' : '') + '"><input type="checkbox" data-l="' + l + '"' + (eff(p.id, l) ? ' checked' : '') +
               ' aria-label="' + esc(p.label) + ', Level ' + DISP[l] + ' ' + esc(NAMES[l]) + '"></td>';
@@ -176,18 +179,18 @@
     var def = dflt(id, l);
     var send = (val === def) ? null : val;   // back on the starting tick: remove the saved change instead of storing a copy of the default
     box.disabled = true;
-    var r = await KB.client.rpc('page_access_set', { p_page: id, p_level: l, p_allowed: send });
+    var r = await KB.client.rpc('page_access_set', { p_page: pid(id, l), p_level: lvl(l), p_allowed: send });
     box.disabled = false;
     if (r.error) { box.checked = !val; say('Not saved: ' + (r.error.message || 'try again') + '.', true); return; }
-    var o = window.TRS_ACCESS[id] || (window.TRS_ACCESS[id] = {});
-    if (send === null) delete o[l]; else o[l] = send;
+    var o = window.TRS_ACCESS[pid(id, l)] || (window.TRS_ACCESS[pid(id, l)] = {});
+    if (send === null) delete o[lvl(l)]; else o[lvl(l)] = send;
     var td = box.closest('td'); if (td) td.classList.toggle('pa-chg', send !== null);
     say('Saved: ' + nameOf(id) + ', Level ' + DISP[l] + ' ' + NAMES[l] + ', ' + (val ? 'can open it' : 'cannot open it') + '.');
     paintCount();
   }
   async function resetAll() {
     var jobs = [];
-    pages().forEach(function (p) { lvOf(p).forEach(function (l) { var s = saved(p.id, l); if (s !== null) jobs.push([p.id, l]); }); });
+    pages().forEach(function (p) { lvOf(p).forEach(function (l) { var s = saved(p.id, l); if (s !== null) jobs.push([pid(p.id, l), lvl(l)]); }); });
     if (!jobs.length) return;
     if (!confirm('Put every box back to how it started? ' + jobs.length + ' saved change' + (jobs.length > 1 ? 's' : '') + ' will be removed.')) return;
     var b = document.getElementById('paReset'); b.disabled = true;
@@ -214,7 +217,7 @@
         '<input type="search" id="paFilter" placeholder="Search pages" autocomplete="off" aria-label="Search pages"></div>' +
         '<button type="button" class="pa-btn" id="paFold"></button><button type="button" class="pa-btn" id="paReset"></button></div>' +
       '<div class="pa-status" id="paStatus" role="status" aria-live="polite"></div>' +
-      '<p class="pa-legend"><b>L1+2</b> Stylists, Beauticians, Reception, Call Centre · <b>L3</b> Leadership · <b>L4</b> Executives &amp; Marketing · <b>L5</b> Accounts &amp; Admin. You (Level 6) always open everything.</p>' +
+      '<p class="pa-legend"><b>L1</b> Stylists &amp; Beauticians · <b>L2</b> Reception &amp; Call Centre · <b>L3</b> Leadership · <b>L4</b> Executives &amp; Marketing · <b>L5</b> Accounts &amp; Admin. You (Level 6) always open everything.</p>' +
       '<div class="pa-wrap"><table class="pa-tbl"><thead><tr><th>Page <small>Level 6 (you) always opens every page</small></th>' +
         LV.map(function (l) { return '<th><span class="pa-full">Level ' + DISP[l] + '</span><span class="pa-short">' + SHORT[l] + '</span><small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
       '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level that is below what its data asks for will open and then say it needs a higher level, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents (the sections under “Documents”) are guarded by the database itself, so a tick there really opens or closes the text for that level; Level 1 and 2 staff are opened team by team, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</p>' + '</div>';

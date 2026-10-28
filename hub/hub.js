@@ -437,6 +437,8 @@
       var dm = await c.rpc('dashboard_me');
       KB.extra = (!dm.error && dm.data && dm.data[0] && dm.data[0].extra_pages) || [];
     }
+    // Kate, 28 Oct 2026: Reception & Call Centre (shown as Level 2) have their own ticks on the Page Access page (pages.js trsPageOpen).
+    window.TRS_STAFF_FD = KB.level === 1 && !!KB.access && (KB.access.dept === 'Front Desk' || KB.access.dept === 'Call Centre');
     // Kate, 28 Oct 2026: the ticks saved on the Page Access page, so every row below follows them (pages.js trsAccessLoad).
     if (typeof trsAccessLoad === 'function') await trsAccessLoad(c);
     // Kate, 5 Oct 2026: a Level 1 preview also hides the leadership-only pages inside an

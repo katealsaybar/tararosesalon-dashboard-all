@@ -4819,6 +4819,8 @@ async function enterDashboard(role, meAsk){
   // Campaigns. The menu entry goes and the page itself refuses (showView).
   TRS_LEVEL = viewAs ? viewAs.level : ((me && me.level) || null);
   TRS_EXTRA = (viewAs ? viewAs.extra : (me && me.extra_pages)) || [];
+  // Kate, 28 Oct 2026: Reception & Call Centre (shown as Level 2) have their own ticks on the Page Access page (pages.js trsPageOpen); a real Level 1 login here is Front Desk.
+  window.TRS_STAFF_FD = TRS_LEVEL === 1 && (!viewAs || viewAs.dept === 'Front Desk' || viewAs.dept === 'Call Centre');
   // Kate, 28 Oct 2026: the ticks saved on the Page Access page (pages.js trsAccessLoad); before any page is drawn or opened, or the defaults would flash.
   if (typeof trsAccessLoad === 'function') await trsAccessLoad(sb);
   // Kate, 6 Oct 2026: Campaigns now shares a group with Marketing, so the page row
