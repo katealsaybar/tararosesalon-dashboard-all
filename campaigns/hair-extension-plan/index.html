@@ -1046,7 +1046,11 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     <fieldset class="bk-f" id="bkMethF">
       <legend class="bk-l">Which method do you wear, or want?</legend>
       <div class="bk-opts"><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="tape"><img class="bk-r__img" src="assets/img/method-tape-in.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Tape-In</b><small>Move-up every 6 to 8 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="sewn"><img class="bk-r__img" src="assets/img/method-sewn-weft.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Sewn Weft</b><small>Move-up every 6 to 8 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="beaded"><img class="bk-r__img" src="assets/img/method-beaded-weft.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Beaded Weft</b><small>Move-up every 8 to 10 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="nano"><img class="bk-r__img" src="assets/img/method-nano-rings.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Nano Rings</b><small>Move-up every 8 to 10 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="keratin"><img class="bk-r__img" src="assets/img/method-keratin-fusion.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Keratin and Fusion</b><small>Move-up every 10 to 12 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label></div>
-      <label class="bk-r bk-r--plain"><input type="radio" name="bkMeth" value="unsure"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>I am not sure. Match me at my Confidence Mapping.</b></span></label>
+      <label class="bk-r bk-r--plain"><input type="radio" name="bkMeth" value="unsure"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>I am not sure. Match me at my Confidence Mapping.</b></span></label>
+    </fieldset>
+    <fieldset class="bk-f" id="bkPackF" hidden>
+      <legend class="bk-l" id="bkPackL">How many?</legend>
+      <div class="bk-opts"><label class="bk-r"><input type="radio" name="bkPack" value="1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b id="bkPackN1"></b></span><em class="bk-r__p" id="bkPackP1"></em></label><label class="bk-r"><input type="radio" name="bkPack" value="3"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b id="bkPackN3"></b></span><em class="bk-r__p" id="bkPackP3"></em></label></div>
     </fieldset>
 
     <div class="bk-f" id="bkSalonF">
@@ -1182,6 +1186,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
   var MN={tape:'Tape-In',sewn:'Sewn Weft',beaded:'Beaded Weft',nano:'Nano Rings',keratin:'Keratin and Fusion',unsure:'not sure, please match me at my Confidence Mapping'};
   var MU={tape:'AED 450 a pack',sewn:'AED 450 a row',beaded:'AED 450 a row',nano:'AED 500 an hour',keratin:'AED 500 an hour'};
   var MUX={tape:'Or 4 packs for AED 1,050.',sewn:'Or 3 rows for AED 850.',beaded:'Or 3 rows for AED 850.',nano:'Your stylist sets the hours at your Confidence Mapping.',keratin:'Your stylist sets the hours at your Confidence Mapping.'};
+  var PK={tape:{l:'How many packs?',n:['1 pack','4 packs'],p:['AED 450','AED 1,050']},sewn:{l:'How many rows?',n:['1 row','3 rows'],p:['AED 450','AED 850']},beaded:{l:'How many rows?',n:['1 row','3 rows'],p:['AED 450','AED 850']}};
   var BU={tape:'AED 3,300',sewn:'AED 3,300',beaded:'AED 3,300',nano:'AED 3,300',keratin:'At your Mapping'};
   var SV=[
     {k:'essentials',n:'Maintain Essentials',o:'Maintain Essentials, AED 1,500',d:'For extensions you already wear. AED 1,800 to spend, valid 6 months after purchase.'},
@@ -1193,7 +1198,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
   var $=function(id){ return document.getElementById(id); };
   var svcSel=$('bkSvc'), salSel=$('bkSalon'), desc=$('bkSvcDesc'), methF=$('bkMethF'), priceEl=$('bkPrice'), priceLbl=$('bkPriceLbl'), note=$('bkPriceNote'), go=$('bkGo'), miss=$('bkMiss');
   SV.forEach(function(o,i){ var op=document.createElement('option'); op.value=i; op.textContent=o.o; svcSel.appendChild(op); });
-  var meth=null, root=document.documentElement, last=null;
+  var meth=null, pk='1', root=document.documentElement, last=null;
   var cur=function(){ return SV[Number(svcSel.value)||0]; };
   var radios=[].slice.call(sheet.querySelectorAll('input[name="bkMeth"]'));
   var mark=function(){ sheet.querySelectorAll('.bk-r').forEach(function(l){ l.classList.toggle('is-on',l.querySelector('input').checked); }); };
@@ -1202,23 +1207,26 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     if(o.k==='essentials') return ['You pay','AED 1,500','AED 1,800 to spend.'];
     if(o.k==='plus') return ['You pay','AED 3,000','AED 3,600 to spend. Or 4 payments of AED 750 with Tabby.'];
     if(o.k==='bundle') return m?['You pay',BU[m],m==='keratin'?'Your stylist quotes Keratin and Fusion at your Confidence Mapping.':'AED 4,250 to spend. Or 4 payments with Tabby.']:['You pay','AED 3,300',meth==='unsure'?'AED 4,250 to spend. Your stylist confirms your method at your Confidence Mapping.':''];
-    if(o.k==='moveup') return m?['Move-up',MU[m],MUX[m]]:['Move-up','From AED 450',''];
+    if(o.k==='moveup') return m?(PK[m]?['Move-up',PK[m].p[pk==='3'?1:0],'']:['Move-up',MU[m],MUX[m]]):['Move-up','From AED 450',''];
     return ['Plans','From AED 1,500',''];
   };
   var render=function(){
     var o=cur(); desc.textContent=o.d;
-    sheet.querySelectorAll('.bk-opts .bk-r').forEach(function(l){
+    sheet.querySelectorAll('#bkMethF .bk-opts .bk-r').forEach(function(l){
       var k=l.querySelector('input').value;
       l.querySelector('.bk-r__p').textContent=o.k==='bundle'?BU[k]:(o.k==='moveup'?MU[k].replace(/ a | an /,' / '):'');
     });
-    var p=priceFor(); priceLbl.textContent=p[0]; priceEl.textContent=p[1]; note.textContent=p[2]; note.hidden=!p[2];
+    var pf=$('bkPackF'), pm=meth&&PK[meth]&&o.k==='moveup'?PK[meth]:null;
+    pf.hidden=!pm;
+    if(pm){ $('bkPackL').textContent=pm.l; [0,1].forEach(function(i){ var v=i?'3':'1'; $('bkPackN'+v).textContent=pm.n[i]; $('bkPackP'+v).textContent=pm.p[i]; sheet.querySelector('input[name="bkPack"][value="'+v+'"]').checked=(pk===v); }); }
+    var p=priceFor(); priceLbl.textContent=p[0]+(pm?' ('+pm.n[pk==='3'?1:0]+')':''); priceEl.textContent=p[1]; note.textContent=p[2]; note.hidden=!p[2];
     update();
   };
   var missing=function(){ var m=[]; if(!meth) m.push(['your method',methF]); if(!salSel.value) m.push(['your salon',$('bkSalonF')]); return m; };
   var message=function(){
     var o=cur(), p=priceFor(), salon=salSel.options[salSel.selectedIndex].text.replace(/\s·.*/,'');
     var lines=['Method: '+MN[meth]];
-    if(o.k!=='unsure'&&meth!=='unsure') lines.push((o.k==='moveup'?'Move-up price: ':'Price: ')+p[1]);
+    if(o.k!=='unsure'&&meth!=='unsure') lines.push((o.k==='moveup'?'Move-up price: ':'Price: ')+p[1]+(o.k==='moveup'&&PK[meth]?' for '+PK[meth].n[pk==='3'?1:0]:''));
     var verb=o.k==='moveup'?'book':'reserve';
     return 'Hi Tara Rose, I would like to '+verb+' '+o.n+' from The Hair Extension Plan at '+salon+'.\n'+lines.join('\n')+'\n(ref '+ref+')';
   };
@@ -1238,10 +1246,11 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     }
     setTimeout(close,200);
   });
-  radios.forEach(function(r){ r.addEventListener('change',function(){ meth=r.value; mark(); render(); }); });
+  radios.forEach(function(r){ r.addEventListener('change',function(){ meth=r.value; pk='1'; mark(); render(); }); });
+  [].slice.call(sheet.querySelectorAll('input[name="bkPack"]')).forEach(function(r){ r.addEventListener('change',function(){ pk=r.value; mark(); render(); }); });
   svcSel.addEventListener('change',render); salSel.addEventListener('change',update);
   var open=function(btn){
-    last=btn;
+    last=btn; pk='1';
     var want=btn.getAttribute('data-svc')||'', idx=0;
     SV.forEach(function(o,i){ if(o.k===want) idx=i; });
     svcSel.value=String(idx);
