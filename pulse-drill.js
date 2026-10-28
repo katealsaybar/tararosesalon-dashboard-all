@@ -243,13 +243,21 @@ const PD = (() => {
     if (d.lines > (d.rows || []).length) t += ` The newest ${cnt((d.rows || []).length)} are shown.`;
     return t;
   }
+  // The window behind a staff row's client count. It lists Phorest's sales lines, so a ledger figure (typed by reception) can never equal it: addPhClients (below)
+  // gives every such row a Phorest column whose figure IS this list, and keeps the ledger figure plain (Kate, 28 Oct 2026: "says 109 but when you open it says 121").
   function staffClientsSpec(ctx, o) {
+    const sp = staffClientsSpecRaw(ctx, o);
+    if (sp) sp._sc = o;
+    return sp;
+  }
+  function staffClientsSpecRaw(ctx, o) {
     if (!canNames() || !o.from) return null;
     const lead = o.who ? `${esc(o.who)}, ${esc(o.when)}` : esc(o.when);
     const sub = data => {
       const shown = (data.rows || []).length;
       let t = `${esc(ctx.label)}. ${lead}: ${cnt(data.total)} client${data.total === 1 ? '' : 's'} handled, from Phorest's sales lines (every client each staff member handled that day, so a client seen by two staff is in the list twice; a deposit, a balance payment or a voucher bought on its own, staff bookings and the BUSINESS TRS house account are left out).`;
       if (o.kind === 'req') t += ` ${cnt(o.ledger)} of them asked for ${o.who ? esc(o.who) : 'a stylist'} by name, but neither the ledger nor Phorest keeps which clients those were, only the count, so this is every client handled and not only the requests.`;
+      else if (o.phCol) t += ` The ledger column beside it, typed by reception, shows ${cnt(o.ledger)}${o.ledger === data.total ? ', the same' : ': a separate count with no names behind it, so it can differ'}; this list is the Phorest column.`;
       else if (o.ledger != null) t += ` The branch ledger, typed by reception, shows ${cnt(o.ledger)}${o.ledger === data.total ? ', the same.' : ': they are two separate counts, so they can differ.'}`;
       if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
       return t;
@@ -1044,9 +1052,51 @@ const PD = (() => {
 
   // What the page asks for. null = this window has nothing behind the figure, so it stays plain.
   // The all-department lists read the product split of the retail rung with no stylist first (ensureHouseSplit), so every view waits for it.
+  // Every staff list whose client figure is the ledger's (typed by reception) gets a Phorest column next to it: the number of clients Phorest's sales lines show for the same
+  // person and window, by the rules of the list it opens (staff_clients_counts is drill_staff_clients, counted). That column is the clickable one and always equals its list;
+  // the ledger figure stays as the card and the targets have it, but has no list behind it, so it is plain. A ledger request figure had no list of its own (the window showed
+  // every client handled), so it is plain too.
+  async function addPhClients(ctx, res) {
+    if (!res || !res.rows || !res.cols) return res;
+    const keys = [];
+    res.rows.forEach(r => { if (r._dn) Object.keys(r._dn).forEach(k => { const x = r._dn[k]; if (x && x._sc && !keys.includes(k)) keys.push(k); }); });
+    if (!keys.length) return res;
+    const live = [];
+    res.rows.forEach(r => keys.forEach(k => { const x = r._dn && r._dn[k]; if (x && x._sc) { if (x._sc.kind === 'req') delete r._dn[k]; else live.push(x._sc); } }));
+    if (!live.length) return res;
+    const same = live.every(o => o.from === ctx.from && o.to === ctx.to), oneDay = live.every(o => o.from === o.to);
+    const grain = same ? 'none' : oneDay ? 'day' : 'month';
+    const from = live.reduce((a, o) => o.from < a ? o.from : a, live[0].from), to = live.reduce((a, o) => o.to > a ? o.to : a, live[0].to);
+    const codes = live.some(o => !o.branches) ? null : [...new Set(live.flatMap(o => o.branches))];
+    const { data, error } = await sb.rpc('staff_clients_counts', { p_from: from, p_to: to, p_branches: codes, p_grain: grain });
+    if (error) throw error;
+    const need = o => grain === 'none' ? null : grain === 'day' ? o.from : o.from.slice(0, 7) + '-01';
+    const count = o => { const w = need(o); let n = 0; (data || []).forEach(x => { if ((!o.branches || o.branches.includes(x.ob)) && (!o.employees || o.employees.includes(x.oe)) && (w === null || x.od === w)) n += +x.n || 0; }); return n; };
+    let added = false;
+    keys.forEach(k => {
+      const ci = res.cols.findIndex(c => c.k === k);
+      if (ci < 0) return;
+      let sum = 0, any = false;
+      res.rows.forEach(r => {
+        const x = r._dn && r._dn[k];
+        if (x && x._sc && x._sc.phCol) delete r._dn[k];
+        else if (x && x._sc && x._sc.kind !== 'req') { const n = count(x._sc); r[k + '_ph'] = n; sum += n; any = true; x._sc.phCol = true; r._dn[k + '_ph'] = x; delete r._dn[k]; }
+        else r[k + '_ph'] = '';
+      });
+      if (!any) return;
+      const c = res.cols[ci];
+      res.cols.splice(ci + 1, 0, { k: k + '_ph', l: 'Phorest clients', t: c.t || 'num' });
+      if (!/ledger/i.test(c.l)) c.l = c.l + ' (ledger)';
+      if (res.foot) res.foot[k + '_ph'] = sum;
+      added = true;
+    });
+    if (added && res.sub) res.sub += ' Phorest clients is the count from Phorest’s sales lines and opens its list; the ledger figure is typed by reception, so it has no names behind it.';
+    return res;
+  }
   function spec(kind, ctx, o) {
     const sp = specInner(kind, ctx, o);
     if (sp && sp.views && !(o && o.dept)) sp.views.forEach(v => { const l = v.load; v.load = async function () { await ensureHouseSplit(ctx); return l.apply(this, arguments); }; });
+    if (sp && sp.views) sp.views.forEach(v => { const l = v.load; v.load = async function () { const r = await l.apply(this, arguments); try { return await addPhClients(ctx, r); } catch (e) { return r; } }; });
     return sp;
   }
   function specInner(kind, ctx, o) {
