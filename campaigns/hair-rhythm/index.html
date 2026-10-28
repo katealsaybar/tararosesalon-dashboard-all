@@ -1093,6 +1093,8 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
   [].slice.call(sheet.querySelectorAll('input[name="bkCat"]')).forEach(function(r){ r.addEventListener('change',function(){ setGrp(r.value); }); });
   svcSel.addEventListener('change',function(){ buildMore(); render(); });
   salSel.addEventListener('change',update);
+  /* Fill the guide once on load, so it is never an empty bar however it is shown; a card button then sets its own group and choice. */
+  fillSvc('svc'); svcSel.value='smooth:0'; buildMore(); render();
   var open=function(btn){
     last=btn; pick=btn.getAttribute('data-svc')||'';
     key=pick==='toner'?'colour':(SV[pick]?pick:'smooth');
