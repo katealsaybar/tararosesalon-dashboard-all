@@ -26,16 +26,32 @@
 .pa-btn:disabled{opacity:.5;cursor:default}
 .pa-status{min-height:22px;font-size:13px;color:var(--muted);margin:2px 0 10px}
 .pa-status.err{color:#B3402A;font-weight:600}
-.pa-wrap{border:1px solid var(--border);border-radius:14px;background:var(--surface);max-width:880px}
+.pa-wrap{border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.pa-col{max-width:880px;margin:0 auto}
+.pa-short,.pa-legend{display:none}
 .pa-tbl{width:100%;border-collapse:separate;border-spacing:0;min-width:560px}
 .pa-tbl th,.pa-tbl td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-size:14px}
 .pa-tbl th:first-child,.pa-tbl td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
 .pa-tbl thead th{position:sticky;top:calc(var(--pa-top,100px) - 1px);background:var(--surface);z-index:2;font-size:12.5px;font-weight:700;vertical-align:bottom;line-height:1.25}
 .pa-tbl thead th:first-child{z-index:3;border-top-left-radius:13px}
 .pa-tbl thead th:last-child{border-top-right-radius:13px}
-/* Wide screens: the heading row sticks under the site header while the page scrolls (--pa-top is that header's height, set below).
-   Phones: the table scrolls sideways inside its own box, so the box gets a height and the heading row sticks to the top of it. */
-@media(max-width:700px){.pa-wrap{overflow:auto;max-height:calc(100vh - 150px)}.pa-tbl thead th{top:0}}
+/* The heading row sticks under the site header while the page scrolls (--pa-top is that header's height, set below).
+   Phones: no sideways scroll; the Level columns shrink to L1 to L4 (spelled out in the line above the table) and the page name wraps. */
+@media(max-width:700px){
+  .pa-tbl{min-width:0}
+  .pa-tbl th,.pa-tbl td{padding:10px 2px}
+  .pa-tbl th:first-child,.pa-tbl td:first-child{padding-left:12px;padding-right:6px}
+  .pa-tbl td:first-child{position:static}
+  .pa-tbl td.pa-c,.pa-tbl thead th:not(:first-child){width:54px}
+  .pa-tbl th small{display:none}
+  .pa-full{display:none}.pa-short{display:inline}
+  .pa-tbl input[type=checkbox]{width:26px;height:26px}
+  .pa-tbl tr.pa-grp td{padding-left:12px}
+  .pa-five{font-size:10.5px;line-height:1.2}
+  .pa-bar .kb-search{flex:1 1 100%;max-width:none}
+  .pa-btn{flex:1 1 auto;padding:8px 12px}
+  .pa-legend{display:block;font-size:12.5px;color:var(--muted);margin:0 0 10px}
+}
 .pa-tbl th small{display:block;font-weight:500;color:var(--muted);margin-top:2px}
 .pa-tbl tr.pa-grp td{background:var(--bg);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding-top:14px;cursor:pointer;user-select:none}
 .pa-tbl tr.pa-grp:hover td{color:var(--text)}
@@ -191,13 +207,14 @@
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('access', 'Page Access') +
       '<p class="kb-meta">Tick the reports each level can open. The ticks you see now are where each page starts; a change is saved as soon as you click it and takes effect the next time that person opens or refreshes the dashboard.</p>' +
-      '<div class="pa-bar"><div class="kb-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
+      '<div class="pa-col"><div class="pa-bar"><div class="kb-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
         '<input type="search" id="paFilter" placeholder="Search pages" autocomplete="off" aria-label="Search pages"></div>' +
         '<button type="button" class="pa-btn" id="paFold"></button><button type="button" class="pa-btn" id="paReset"></button></div>' +
       '<div class="pa-status" id="paStatus" role="status" aria-live="polite"></div>' +
+      '<p class="pa-legend"><b>L1</b> Team · <b>L2</b> Leadership · <b>L3</b> Executives &amp; Marketing · <b>L4</b> Accounts &amp; Admin. You (Level 5) always open everything.</p>' +
       '<div class="pa-wrap"><table class="pa-tbl"><thead><tr><th>Page <small>Level 5 (you) always opens every page</small></th>' +
-        LV.map(function (l) { return '<th>Level ' + l + '<small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
-      '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level whose data asks for Level 3 will open and then say “Level 3 and above”, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents (the sections under “Documents”) are guarded by the database itself, so a tick there really opens or closes the text for that level; Level 1 staff are opened team by team, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</p>';
+        LV.map(function (l) { return '<th><span class="pa-full">Level ' + l + '</span><span class="pa-short">L' + l + '</span><small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
+      '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level whose data asks for Level 3 will open and then say “Level 3 and above”, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents (the sections under “Documents”) are guarded by the database itself, so a tick there really opens or closes the text for that level; Level 1 staff are opened team by team, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</p>' + '</div>';
     setTop();
     draw();
     document.getElementById('paFilter').addEventListener('input', function (e) { q = e.target.value; draw(); });
