@@ -541,6 +541,12 @@ html.wa-open{overflow:hidden}
 .bk-sel select{width:100%;min-height:56px;padding:0 48px 0 18px;-webkit-appearance:none;appearance:none;background:#fff;border:1px solid var(--hair);border-radius:14px;font-family:var(--fb);font-size:16px;font-weight:400;color:var(--ink);cursor:pointer;box-sizing:border-box}
 .bk-sel select:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
 .bk-sel__chev{position:absolute;right:16px;top:50%;width:20px;height:20px;margin-top:-10px;color:var(--ink-soft);pointer-events:none}
+.bk-cat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#waSheet .bk-c{position:relative;display:flex;align-items:center;justify-content:center;min-height:52px;padding:0 12px;background:#fff;border:1px solid var(--hair);border-radius:14px;cursor:pointer;font-family:var(--fb);font-size:15px;font-weight:500;color:var(--ink);text-align:center;transition:border-color .15s ease,background .15s ease,color .15s ease}
+#waSheet .bk-c input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+#waSheet .bk-c:hover{border-color:rgba(28,117,99,.5)}
+#waSheet .bk-c.is-on{background:var(--ink);border-color:var(--ink);color:#fff}
+#waSheet .bk-c:has(input:focus-visible){outline:2px solid var(--accent-text);outline-offset:2px}
 .bk-lenwrap{margin-top:2px}
 .bk-opts{display:grid;gap:8px;align-content:center}
 #waSheet .bk-r{position:relative;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);transition:border-color .15s ease,background .15s ease}
@@ -1037,8 +1043,16 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     <h3 id="waTitle" tabindex="-1">Reserve your plan</h3>
     <p class="bk-lede">Answer three quick questions and your WhatsApp message is written for you.</p>
 
+    <div class="bk-f" id="bkCatF">
+      <span class="bk-l" id="bkCatL">What would you like?</span>
+      <div class="bk-cat" role="radiogroup" aria-labelledby="bkCatL">
+        <label class="bk-c"><input type="radio" name="bkCat" value="plans" checked><span>Extension plans</span></label>
+        <label class="bk-c"><input type="radio" name="bkCat" value="moveups"><span>Move-ups</span></label>
+      </div>
+    </div>
+
     <div class="bk-f" id="bkSvcF">
-      <label class="bk-l" for="bkSvc">What would you like?</label>
+      <label class="bk-l" for="bkSvc" id="bkSvcL">Which plan?</label>
       <div class="bk-sel"><select id="bkSvc"></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <p class="bk-help" id="bkSvcDesc"></p>
     </div>
@@ -1197,9 +1211,17 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
   ];
   var $=function(id){ return document.getElementById(id); };
   var svcSel=$('bkSvc'), salSel=$('bkSalon'), desc=$('bkSvcDesc'), methF=$('bkMethF'), priceEl=$('bkPrice'), priceLbl=$('bkPriceLbl'), note=$('bkPriceNote'), go=$('bkGo'), miss=$('bkMiss');
-  SV.forEach(function(o,i){ var op=document.createElement('option'); op.value=i; op.textContent=o.o; svcSel.appendChild(op); });
+  var cat='plans';
+  var MOPT=[['tape','Tape-In, every 6 to 8 weeks'],['sewn','Sewn Weft, every 6 to 8 weeks'],['beaded','Beaded Weft, every 8 to 10 weeks'],['nano','Nano Rings, every 8 to 10 weeks'],['keratin','Keratin and Fusion, every 10 to 12 weeks']];
+  var fillSvc=function(){
+    svcSel.innerHTML='';
+    var add=function(v,t){ var op=document.createElement('option'); op.value=v; op.textContent=t; svcSel.appendChild(op); };
+    if(cat==='moveups'){ add('','Choose your method'); MOPT.forEach(function(x){ add(x[0],x[1]); }); }
+    else { [0,1,2,4].forEach(function(i){ add(String(i),SV[i].o); }); }
+  };
+  fillSvc();
   var meth=null, pk='1', root=document.documentElement, last=null;
-  var cur=function(){ return SV[Number(svcSel.value)||0]; };
+  var cur=function(){ return cat==='moveups'?SV[3]:SV[Number(svcSel.value)||0]; };
   var radios=[].slice.call(sheet.querySelectorAll('input[name="bkMeth"]'));
   var mark=function(){ sheet.querySelectorAll('.bk-r').forEach(function(l){ l.classList.toggle('is-on',l.querySelector('input').checked); }); };
   var priceFor=function(){
@@ -1212,6 +1234,12 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
   };
   var render=function(){
     var o=cur(); desc.textContent=o.d;
+    sheet.querySelectorAll('input[name="bkCat"]').forEach(function(r){ r.checked=(r.value===cat); });
+    sheet.querySelectorAll('.bk-c').forEach(function(l){ l.classList.toggle('is-on',l.querySelector('input').checked); });
+    $('bkSvcL').textContent=cat==='moveups'?'Which method?':'Which plan?';
+    methF.hidden=(cat==='moveups');
+    radios.forEach(function(r){ r.checked=(r.value===meth); }); mark();
+    $('waTitle').textContent=cat==='moveups'?'Book your move-up':'Reserve your plan';
     sheet.querySelectorAll('#bkMethF .bk-opts .bk-r').forEach(function(l){
       var k=l.querySelector('input').value;
       l.querySelector('.bk-r__p').textContent=o.k==='bundle'?BU[k]:(o.k==='moveup'?MU[k].replace(/ a | an /,' / '):'');
@@ -1222,7 +1250,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     var p=priceFor(); priceLbl.textContent=p[0]+(pm?' ('+pm.n[pk==='3'?1:0]+')':''); priceEl.textContent=p[1]; note.textContent=p[2]; note.hidden=!p[2];
     update();
   };
-  var missing=function(){ var m=[]; if(!meth) m.push(['your method',methF]); if(!salSel.value) m.push(['your salon',$('bkSalonF')]); return m; };
+  var missing=function(){ var m=[]; if(!meth) m.push(['your method',cat==='moveups'?$('bkSvcF'):methF]); if(!salSel.value) m.push(['your salon',$('bkSalonF')]); return m; };
   var message=function(){
     var o=cur(), p=priceFor(), salon=salSel.options[salSel.selectedIndex].text.replace(/\s·.*/,'');
     var lines=['Method: '+MN[meth]];
@@ -1248,12 +1276,18 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
   });
   radios.forEach(function(r){ r.addEventListener('change',function(){ meth=r.value; pk='1'; mark(); render(); }); });
   [].slice.call(sheet.querySelectorAll('input[name="bkPack"]')).forEach(function(r){ r.addEventListener('change',function(){ pk=r.value; mark(); render(); }); });
-  svcSel.addEventListener('change',render); salSel.addEventListener('change',update);
+  var onSvc=function(){ if(cat==='moveups'){ meth=svcSel.value||null; pk='1'; } render(); };
+  svcSel.addEventListener('change',onSvc);
+  var setCat=function(c){ cat=c; if(c==='moveups'){ if(meth==='unsure') meth=null; pk='1'; } fillSvc(); svcSel.value=c==='moveups'?(meth&&MU[meth]?meth:''):'1'; render(); };
+  [].slice.call(sheet.querySelectorAll('input[name="bkCat"]')).forEach(function(r){ r.addEventListener('change',function(){ setCat(r.value); }); }); salSel.addEventListener('change',update);
   var open=function(btn){
     last=btn; pk='1';
     var want=btn.getAttribute('data-svc')||'', idx=0;
     SV.forEach(function(o,i){ if(o.k===want) idx=i; });
-    svcSel.value=String(idx);
+    var bm0=btn.getAttribute('data-method');
+    cat=want==='moveup'?'moveups':'plans';
+    if(cat==='moveups'){ if(bm0) meth=bm0; if(meth==='unsure') meth=null; }
+    fillSvc(); svcSel.value=cat==='moveups'?(meth&&MU[meth]?meth:''):String(idx);
     var bm=btn.getAttribute('data-method'); if(bm){ meth=bm; radios.forEach(function(r){ r.checked=r.value===bm; }); }
     $('waTitle').textContent=want==='moveup'?'Book your move-up':'Reserve your plan';
     mark(); miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
