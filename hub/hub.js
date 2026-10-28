@@ -80,8 +80,9 @@
     // The pages hold the prices and live in kb_pages, not in this public repo.
     { key: 'price-list', dept: 'Clients', title: 'Price List', rule: 'var(--accent-butter)',
       blurb: 'Hair prices by stylist level and hair length, treatments, extensions and every beauty service.' },
-    { key: 'client-matching', dept: 'Clients', title: 'Client to Staff Matching', rule: 'var(--accent-lavender)',
-      blurb: 'Which stylist suits which client, by service, personality and appointment vibe.' },
+    { key: 'client-matching', dept: 'Clients', title: 'Client to Staff Matching', href: '/hub/find-stylist', live: true, rule: 'var(--accent-lavender)',
+      words: 'stylist matching match client staff find who does balayage blonde colour cut extensions keratin treatment quiet chatty personality style vibe checklist tick grid belle book booking recommend',
+      blurb: 'Three questions and it gives you the names to offer her. The full checklist of who does what is inside.' },
     // Kate, 28 Oct 2026: Belle's Client Marketing Opt-Out List, one page that links to it (kb_sections 'marketing-optout', migrations/kb_marketing_optout.sql).
     // Front Desk and Call Centre ('Reception') Level 1, Levels 2, 3 and 5; Level 4 skips it. The sheet link lives in kb_pages, not here: this repo is public.
     { key: 'marketing-optout', dept: 'Clients', title: 'Marketing Opt-Out List', rule: 'var(--accent-lavender)',
