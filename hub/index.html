@@ -121,7 +121,7 @@ KB.ready.then(async function () {
     var k = KB.level >= 2 ? checks[s.key] || 0 : 0;   // Level 1 reads the notes on the pages, without the counts
     return '<div class="kb-row">' + icon(s) + text +
       (k ? '<a class="kb-check" href="' + esc(s.href ? s.href + '?check=1' : '/hub/kb.html?s=' + s.key + '&check=1') + '" title="Pages with something still being confirmed">' + k + ' to check</a>' : '') +
-      (n && !s.href ? '<span class="kb-row-n">' + n + ' pages</span>' : '') +
+      (n && !s.href ? '<span class="kb-row-n">' + n + (n === 1 ? ' page' : ' pages') + '</span>' : '') +
       KB.starBtn(s.key, s.title) + '<span class="kb-go" aria-hidden="true">›</span></div>';
   }
   function group(title, list) {

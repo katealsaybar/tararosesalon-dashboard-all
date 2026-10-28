@@ -122,7 +122,7 @@
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon(sec.key, esc(sec.title)) +
-      '<p class="kb-meta">' + r.data.length + ' pages</p>' +
+      '<p class="kb-meta">' + r.data.length + (r.data.length === 1 ? ' page' : ' pages') + '</p>' +
       '<div class="kb-tools">' + pdfBtn('Download all as one PDF') + '</div>' +
       (nCheck ? '<p class="kb-legend"><span class="kb-flag" style="margin:0">To check</span>' + nCheck + (nCheck > 1 ? ' pages have' : ' page has') +
         ' something still being confirmed.<button type="button" id="kbOnlyCheck" aria-pressed="' + only + '">' + (only ? 'Show all pages' : 'Show only these') + '</button></p>'
