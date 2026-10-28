@@ -153,7 +153,7 @@ const PD = (() => {
   // ── What a client spent (Kate, 27 Oct 2026: "clickable din yung AED amounts, to show ano yung ginastos nung client") ──
   // The Spent figure on a client row opens the lines behind it, as a receipt: date, branch, who rang it, what it was, what it came to.
   async function clientLinesLoad(o) {
-    const { data, error } = await sb.rpc('drill_client_lines', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_client: o.client, p_employees: o.employees });
+    const { data, error } = await sb.rpc('drill_client_lines', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_client: o.client, p_employees: o.employees, p_ckey: o.cid || null });
     if (error) throw error;
     return data;
   }
@@ -195,7 +195,7 @@ const PD = (() => {
         const d = await load(), rows = d.rows || [];
         return { sub: sub(d), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'e', l: 'Staff' }, { k: 's', l: 'Services' }, { k: 'p', l: 'Retail' }, { k: 'n', l: 'Spent', t: 'aed' }],
           rows: rows.map(r => ({ d: r.d, b: bname(r.b), e: String(r.e || '').split(', ').filter(Boolean).map(nm).join(', '), s: r.s || '', p: r.p || '', n: r.n,
-            _dn: { n: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: o.client }) } })),
+            _dn: { n: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: o.client, cid: o.cid }) } })),
           foot: d.visits <= rows.length ? { d: '', b: '', e: '', s: cnt(d.visits) + ' visits', p: '', n: d.spent } : null,
           empty: 'No paid visits found for this name.' };
       } },
@@ -259,16 +259,16 @@ const PD = (() => {
       { id: 'each', label: 'Each client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }],
-          client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, s: r.s, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, who: nm(r.e) }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
+          client: { k: 'c', b: 'bc', d: 'd', i: 'k' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, k: r.k, s: r.s, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d, cid: r.k }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, cid: r.k, who: nm(r.e) }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
       } },
       { id: 'by', label: 'By client', load: async () => {
         const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
         if (data.total > rows.length) return { sub: sub(data), rows: [], empty: 'Too many to group by client. Pick a shorter window.' };
         const m = new Map();
-        rows.forEach(r => { const k = String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, v: 0, s: 0, e: new Set() }; x.v++; x.s += +r.s || 0; x.e.add(r.e); m.set(k, x); });
+        rows.forEach(r => { const k = r.k || String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, k: r.k, v: 0, s: 0, e: new Set() }; x.v++; x.s += +r.s || 0; x.e.add(r.e); m.set(k, x); });
         const list = [...m.values()].sort((a, b) => b.v - a.v || b.s - a.s || a.c.localeCompare(b.c));
-        return { sub: sub(data) + ` ${cnt(list.length)} different client names.`, cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: o.who ? 'Days' : 'Times handled', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }])],
-          client: { k: 'c', from: o.from, to: o.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: o.from, to: o.to, branches: o.branches, employees: o.employees, client: x.c, who: o.who || '' }); return { c: x.c, v: x.v, s: x.s, e: [...x.e].map(nm).join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: o.from, to: o.to }) } }; }), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
+        return { sub: sub(data) + ` ${cnt(list.length)} different clients (by her Phorest client id, so one client under two spellings is one, and two women with one name are two).`, cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: o.who ? 'Days' : 'Times handled', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }])],
+          client: { k: 'c', i: 'k', from: o.from, to: o.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: o.from, to: o.to, branches: o.branches, employees: o.employees, client: x.c, cid: x.k, who: o.who || '' }); return { c: x.c, k: x.k, v: x.v, s: x.s, e: [...x.e].map(nm).join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: o.from, to: o.to, cid: x.k }) } }; }), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
       } },
     ] };
   }
@@ -330,7 +330,7 @@ const PD = (() => {
           if (o.ledger != null && o.ledger !== L.total) lt += ` The figure you clicked is ${cnt(o.ledger)}, so ${cnt(Math.abs(o.ledger - L.total))} ${o.ledger > L.total ? 'of its clients are not named in the ledger files read so far' : 'more are named than the figure counts'}.`;
           if (L.total > lr.length) lt += ` The newest ${cnt(lr.length)} are shown.`;
           return { sub: lt, cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 'nw', l: 'New to the salon' }],
-            client: { k: 'c', b: 'bc' }, rows: lr.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, nw: r.nw ? 'New that day' : r.m ? 'Existing' : '', _dn: { c: r.m ? clientHistorySpec(ctx, { client: r.c }) : null } })),
+            client: { k: 'c', b: 'bc', i: 'k' }, rows: lr.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, k: r.k, nw: r.nw ? 'New that day' : r.m ? 'Existing' : '', _dn: { c: r.m ? clientHistorySpec(ctx, { client: r.c, cid: r.k }) : null } })),
             foot: L.total <= lr.length ? { d: '', b: '', e: '', c: cnt(L.total) + ' requests', nw: '' } : null };
         }
       }
@@ -342,7 +342,7 @@ const PD = (() => {
       else if (o.ledger != null) t += ` The figure you clicked, ${cnt(o.ledger)}, is a separate count (typed by reception or from Phorest's staff report), so they can differ.`;
       if (data.total > rows.length) t += ` The newest ${cnt(rows.length)} are shown.`;
       return { sub: t, cols: [{ k: 'd', l: 'First visit', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }],
-        client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + (o.kind === 'ncr' ? ' asked' : ' new clients') } : null };
+        client: { k: 'c', b: 'bc', d: 'd', i: 'k' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, k: r.k, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d, cid: r.k }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + (o.kind === 'ncr' ? ' asked' : ' new clients') } : null };
     } }] };
   }
   // A staff row's Phorest or ledger counts (her total, her new clients, her requests) opening the list behind each: x = { code, raw (her name), b, n, v, t }.
@@ -554,7 +554,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit),
           cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
-          client: { k: 'c', b: 'bc', d: 'd', i: 'k' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, c: r.c, k: r.k, s: r.s, st: r.st, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d, cid: r.k }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
+          client: { k: 'c', b: 'bc', d: 'd', i: 'k' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, c: r.c, k: r.k, s: r.s, st: r.st, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d, cid: r.k }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c, cid: r.k }) } })),
           foot: data.total <= rows.length ? { d: '', b: '', c: cnt(data.total) + ' visits', s: data.spend, st: '' } : null,
         };
       } },
@@ -570,7 +570,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit) + ` ${cnt(list.length)} different clients (by her Phorest client id, so one client under two spellings is one, and two women with one name are two); one who came on two days is two visits.`,
           cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: 'Visits', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'b', l: 'Branches' }],
-          client: { k: 'c', i: 'k', from: ctx.from, to: ctx.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c }); return { c: x.c, k: x.k, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: ctx.from, to: ctx.to, cid: x.k }) } }; }),
+          client: { k: 'c', i: 'k', from: ctx.from, to: ctx.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: ctx.from, to: ctx.to, branches: ctx.door.codes, employees: null, client: x.c, cid: x.k }); return { c: x.c, k: x.k, v: x.v, s: x.s, b: [...x.b].join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: ctx.from, to: ctx.to, cid: x.k }) } }; }),
           foot: { c: 'Total', v: data.total, s: data.spend, b: '' },
         };
       } },
@@ -579,7 +579,7 @@ const PD = (() => {
         return {
           sub: doorSub(ctx, data, perVisit) + ' This tab lists the visits where the client’s lines add up to AED 0 or less. They are shown here but not counted.',
           cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }, { k: 'st', l: 'Seen by' }],
-          rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, s: r.s, st: r.st, _dn: { s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c }) } })),
+          rows: rows.map(r => ({ d: r.d, b: bname(r.b), c: r.c, k: r.k, s: r.s, st: r.st, _dn: { s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: null, client: r.c, cid: r.k }) } })),
           empty: 'No visit in this window adds up to AED 0.',
           foot: rows.length ? { d: '', b: '', c: cnt(rows.length) + ' visits', s: 0, st: '' } : null,
         };
