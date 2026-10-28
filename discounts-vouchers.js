@@ -5,12 +5,16 @@
 // Kate's rulings of 23 Oct 2026: no filter bar of its own (sel.branch and dateFrom/dateTo are the masthead's), phone first. The discount list is the list
 // as it stands today, so Branch and Period cut the vouchers only. Self-contained: it needs sb, TRS_LEVEL, sel, dateFrom, dateTo, dateToIso() and, for
 // Save as xlsx, the lgx group (ledger-export.js).
+// Offered per salon (Kate, 28 Oct 2026, Belle asked): a block at the top with what each salon gives, active and inactive, from the SALON DISCOUNTS Google Sheet
+// via salon_offers_report() (migrations/salon_offers.sql). The masthead Branch cuts it (Fratelli, closed, only on all of the UAE); Period does not.
 const DV_BR = [['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz']];
 const DV_CLOSED = [['MRY', 'Marasy (closed)'], ['FRA', 'Fratelli (closed)']];   // counted only when the masthead is all of the UAE
 const DV_MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 // vouchers row: [branch, issue month, issued, value issued, balance left, expired balance, expired with balance, live balance, expiring in 30 days, live with balance]
 // discounts row: [name, kind, P or A, value, act or arc, ends, names a closed branch]
 let dvData = null, dvErr = '', dvBusy = false, dvM = null, dvResize = null, dvFilter = 'act', dvQuery = '';
+// offers row: [branch, offer, who, stylist, rule, state act / cf / off, phorest ok / no / arc / cf / empty]
+let dvOff = null, dvOffAt = '', dvOffFilter = 'act';
 
 const dvEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const dvMoney = n => Math.round(Number(n) || 0).toLocaleString('en-US');
@@ -64,6 +68,7 @@ async function renderDiscountsVouchers(force) {
     const { data, error } = await sb.rpc('discounts_vouchers_report');
     if (error || !data || !Array.isArray(data.vouchers) || !Array.isArray(data.discounts)) throw error || new Error('no report');
     dvData = data;
+    await dvLoadOffers();
   } catch (e) { console.error(e); dvErr = 'The report did not load. Press Refresh to try again.'; }
   dvBusy = false;
   dvPaint();
@@ -89,6 +94,53 @@ function dvSetFilter(f, btn) {
 }
 function dvFind(v) { dvQuery = v; document.getElementById('dvTable').innerHTML = dvDiscTable(); }
 
+// ── OFFERED PER SALON ───────────────────────────────────────────────────────
+const DV_OFF_CODES = ['SAA', 'KCA', 'MC', 'AQ', 'FRA'];
+const dvBrName = c => (DV_BR.concat(DV_CLOSED).find(b => b[0] === c) || [0, c])[1];
+async function dvLoadOffers() {
+  try {
+    const { data, error } = await sb.rpc('salon_offers_report');
+    if (error || !data || !Array.isArray(data.offers)) throw error || new Error('no offers');
+    dvOff = data.offers; dvOffAt = data.at || '';
+  } catch (e) { console.error(e); dvOff = null; }
+}
+const dvOffRows = () => (dvOff || []).filter(r => dvOn(r[0]));
+function dvOffShown(rows) {
+  return rows.filter(r => dvOffFilter === 'all' ? true : dvOffFilter === 'off' ? r[5] === 'off' : dvOffFilter === 'gap' ? r[5] !== 'off' && r[6] !== 'ok' : r[5] !== 'off');
+}
+function dvOffPhorest(r) {
+  if (r[5] === 'off') return r[6] === 'ok' ? '<span class="dv-tag warn">Still active on Phorest</span>' : r[6] === 'arc' ? '<span class="dv-tag">Archived on Phorest</span>' : '<span class="dv-zero">–</span>';
+  return r[6] === 'ok' ? '<span class="dv-tag ok">On Phorest</span>' : r[6] === 'no' ? '<span class="dv-tag warn">Not on Phorest</span>' : r[6] === 'arc' ? '<span class="dv-tag">Archived on Phorest</span>' : '<span class="dv-tag">To confirm</span>';
+}
+function dvOffBody() {
+  const rows = dvOffShown(dvOffRows());
+  const parts = DV_OFF_CODES.map(c => {
+    const l = rows.filter(r => r[0] === c);
+    if (!l.length) return '';
+    return `<h3 class="dv-subh">${dvEsc(dvBrName(c))} · ${l.length} offer${l.length === 1 ? '' : 's'}</h3><div><table class="dv-stack"><thead><tr><th>Offer</th><th>Who</th><th>Stylist</th><th>Rule</th><th>Status</th><th>Phorest</th></tr></thead><tbody>${
+      l.map(r => `<tr><td class="dv-off">${r[1] ? dvEsc(r[1]) : '<span class="dv-zero">–</span>'}</td><td>${dvEsc(r[2])}</td><td>${r[3] ? dvEsc(r[3]) : '<span class="dv-zero">all</span>'}</td><td>${dvEsc(r[4])}</td><td><span class="dv-tag ${r[5] === 'act' ? 'ok' : r[5] === 'cf' ? 'warn' : ''}">${r[5] === 'act' ? 'Active' : r[5] === 'cf' ? 'To confirm' : 'Inactive'}</span></td><td>${dvOffPhorest(r)}</td></tr>`).join('')
+    }</tbody></table></div>`;
+  }).join('');
+  return parts || '<div class="dv-empty">Nothing matches.</div>';
+}
+function dvSetOff(f, btn) {
+  dvOffFilter = f;
+  btn.parentNode.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === btn));
+  document.getElementById('dvOffBody').innerHTML = dvOffBody();
+}
+function dvOfferedSection() {
+  if (!dvOff) return '<section class="dv-card" id="dv-offered"><h2>Offered per salon</h2><p class="dv-sub">The offers list did not load. Press Refresh to try again.</p></section>';
+  const all = dvOffRows(), live = all.filter(r => r[5] !== 'off'), off = all.filter(r => r[5] === 'off');
+  const on = live.filter(r => r[6] === 'ok').length, no = live.filter(r => r[6] === 'no').length;
+  const tiles = [['Active offers', live.length, dvEsc(dvBranchLabel())], ['On Phorest', on, 'set up as a discount'], ['Not on Phorest', no, 'cannot be rung up as one'],
+    ['To confirm or archived', live.length - on - no, 'needs a word'], ['Inactive', off.length, 'ended or off the 2026 list']];
+  const seg = [['act', 'Active'], ['gap', 'Not on Phorest'], ['off', 'Inactive'], ['all', 'Both']];
+  return `<section class="dv-card" id="dv-offered"><h2>Offered per salon</h2><p class="dv-sub">What each salon gives, from the SALON DISCOUNTS sheet${dvOffAt ? ', copied ' + dvEsc(dvDay(dvOffAt)) : ''}. The header Branch picks the salon; Period does not cut it. Inactive offers are kept and labelled.</p>
+    <div class="dv-tiles" style="margin-top:12px">${tiles.map(t => `<div class="dv-tile"><div class="l">${t[0]}</div><div class="v">${t[1]}</div><div class="h">${t[2]}</div></div>`).join('')}</div>
+    <div class="dv-seg" role="group" aria-label="Which offers">${seg.map(x => `<button type="button" onclick="dvSetOff('${x[0]}', this)" aria-pressed="${dvOffFilter === x[0]}">${x[1]}</button>`).join('')}</div>
+    <div id="dvOffBody">${dvOffBody()}</div></section>`;
+}
+
 // ── PAINT ───────────────────────────────────────────────────────────────────
 function dvPaint() {
   const el = document.getElementById('discountsVouchersContent');
@@ -103,7 +155,7 @@ function dvPaint() {
   const expRem = dvSum(rs, r => r[5]), expN = dvSum(rs, r => r[6]), liveRem = dvSum(rs, r => r[7]), liveN = dvSum(rs, r => r[9]), soon = dvSum(rs, r => r[8]);
   const used = orig ? 1 - rem / orig : 0;
   const disc = dvData.discounts, act = dvCount(disc, 'act'), arc = dvCount(disc, 'arc');
-  let h = head;
+  let h = head + dvOfferedSection();
   if (!issued) {
     const key = typeof activePeriodKey === 'function' ? activePeriodKey() : '';
     const named = key && key !== 'Custom' && key !== 'Month' && key !== 'Year';
@@ -181,11 +233,13 @@ function dvPaint() {
   h += `<section class="dv-card" id="dv-ask"><h2>Waiting on a word</h2><p class="dv-sub">These need an answer before the numbers can be quoted outside the team.</p><ol class="dv-ask">
       <li><b>Emma:</b> Phorest names the branches differently. We read Turquoise 7 as Saadiyat and the plain Tara Rose Hair and Beauty Salon as Khalifa City A. Is that right?</li>
       <li><b>Kate:</b> the discount list does not say how often each discount was used. Do we also pull Phorest’s discount usage report, so this page can show uses and AED given away per discount?</li>
-      <li><b>Kate:</b> Bahrain’s discounts page asks for a PIN, so only its 20 vouchers (BHD 4,390 left) are held, and they are not on this page. Add them under a Bahrain chip?</li></ol></section>
+      <li><b>Kate:</b> Bahrain’s discounts page asks for a PIN, so only its 20 vouchers (BHD 4,390 left) are held, and they are not on this page. Add them under a Bahrain chip?</li>
+      <li><b>Kate:</b> Offered per salon is a copy of the sheet taken on the date shown at the top of that block. Should it read the sheet again every day, or stay a copy that is refreshed when the sheet changes?</li></ol></section>
     <details class="more"><summary>How these numbers are counted</summary>
       <p class="dv-sub">Source: Phorest Discounts and Client Vouchers, both pulled with archived included. Value and balance are in AED, VAT included, as Phorest holds them. Spent is the share of the face value issued that has been redeemed.</p>
       <p class="dv-sub">Expired means past the expiry date with a balance left. Live means not expired with a balance left. No client names are held or shown.</p>
-      <p class="dv-sub">Phorest keeps no history of these lists, so the page shows the copy taken at the time shown at the top. Bahrain is a separate Phorest business in BHD and is not in the UAE totals.</p></details>`;
+      <p class="dv-sub">Phorest keeps no history of these lists, so the page shows the copy taken at the time shown at the top. Bahrain is a separate Phorest business in BHD and is not in the UAE totals.</p>
+      <p class="dv-sub">Offered per salon is a copy of the SALON DISCOUNTS Google Sheet (2026 tabs, the Affiliate program tab and the INACTIVE tabs); it does not update by itself. On Phorest is matched by name against the Phorest Discounts list. Inactive means the offer is not on the 2026 list any more or its validity has ended. Fratelli (closed) shows only when the header is all of the UAE.</p></details>`;
 
   el.innerHTML = h;
   dvCharts();
@@ -250,7 +304,7 @@ window.addEventListener('resize', () => {
 });
 
 // ── ON THIS PAGE rail (the same shell as Wellness Voucher Performance's) ────
-const DV_RAIL = [['dv-headline', 'Headline'], ['dv-issued', 'Issued'], ['dv-branch', 'By branch'], ['dv-disc', 'Discounts'], ['dv-look', 'Worth a look'], ['dv-ask', 'Waiting on a word']];
+const DV_RAIL = [['dv-offered', 'Offered per salon'], ['dv-headline', 'Headline'], ['dv-issued', 'Issued'], ['dv-branch', 'By branch'], ['dv-disc', 'Discounts'], ['dv-look', 'Worth a look'], ['dv-ask', 'Waiting on a word']];
 function dvRail(on) {
   const shell = document.getElementById('dvShell'), side = document.getElementById('dvSide');
   if (!shell || !side) return;
@@ -280,7 +334,9 @@ function dvSave() {
     { name: 'By branch', blocks: [{ cols: [{ label: 'Branch', fmt: 'text' }, { label: 'Issued', fmt: 'num' }, { label: 'Value issued', fmt: 'aed' }, { label: 'Balance left', fmt: 'aed' }, { label: 'Expired balance', fmt: 'aed' }],
       rows: brs.map(x => ({ cells: [x.b[1], dvSum(x.l, r => r[2]), dvSum(x.l, r => r[3]), dvSum(x.l, r => r[4]), dvSum(x.l, r => r[5])] })) }] },
     { name: 'Discounts', blocks: [{ cols: [{ label: 'Discount', fmt: 'text' }, { label: 'Kind', fmt: 'text' }, { label: 'Type', fmt: 'text' }, { label: 'Off', fmt: 'num' }, { label: 'Ends', fmt: 'text' }, { label: 'Status', fmt: 'text' }],
-      rows: dvData.discounts.map(d => ({ cells: [d[0], d[1], d[2] === 'P' ? 'Percent' : 'AED', Number(d[3]), d[5] || 'no end date', d[4] === 'act' ? 'Active' : 'Archived'] })) }] }
+      rows: dvData.discounts.map(d => ({ cells: [d[0], d[1], d[2] === 'P' ? 'Percent' : 'AED', Number(d[3]), d[5] || 'no end date', d[4] === 'act' ? 'Active' : 'Archived'] })) }] },
+    { name: 'Offered per salon', blocks: [{ cols: [{ label: 'Branch', fmt: 'text' }, { label: 'Offer', fmt: 'text' }, { label: 'Who', fmt: 'text' }, { label: 'Stylist', fmt: 'text' }, { label: 'Rule', fmt: 'text' }, { label: 'Status', fmt: 'text' }, { label: 'On Phorest', fmt: 'text' }],
+      rows: dvOffRows().map(r => ({ cells: [dvBrName(r[0]), r[1], r[2], r[3] || 'all', r[4], r[5] === 'act' ? 'Active' : r[5] === 'cf' ? 'To confirm' : 'Inactive', { ok: 'On Phorest', no: 'Not on Phorest', arc: 'Archived on Phorest', cf: 'To confirm' }[r[6]] || ''] })) }] }
   ] });
   lgxSave(lgxXlsxBlob(built), 'discounts-and-vouchers-' + dateToIso(new Date()) + '.xlsx');
 }

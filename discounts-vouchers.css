@@ -89,3 +89,14 @@
 @media(max-width:760px){#discountsVouchersContent .dv-find{margin-left:0;max-width:none}}
 #discountsVouchersContent .dv-scroll{max-height:460px;overflow:auto}
 #discountsVouchersContent .dv-foot{color:var(--muted);font-size:12px;margin:6px 0 0}
+/* Offered per salon (Kate, 28 Oct 2026): one table per salon; on a phone each offer stacks as a row so nothing scrolls sideways. */
+#discountsVouchersContent td.dv-off{white-space:nowrap;font-weight:600}
+@media(max-width:560px){
+  #discountsVouchersContent .dv-seg button{padding:6px 9px;font-size:12.5px}
+  #discountsVouchersContent table.dv-stack thead{display:none}
+  #discountsVouchersContent table.dv-stack tr{display:block;padding:9px 0;border-bottom:1px solid var(--grid)}
+  #discountsVouchersContent table.dv-stack td{display:block;border:0;padding:1px 0}
+  #discountsVouchersContent table.dv-stack td:empty{display:none}
+  #discountsVouchersContent table.dv-stack td.dv-off{font-size:15px;white-space:normal}
+  #discountsVouchersContent div:has(> table.dv-stack) > table tr > :first-child:not([colspan]){position:static}
+}
