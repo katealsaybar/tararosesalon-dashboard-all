@@ -516,6 +516,19 @@ body.kb-wait .wrap{visibility:hidden}
 .kd-body tr:last-child > *{border-bottom:0}
 .kd-body th{background:var(--kd-cream);font-weight:600}
 .kd-body tbody th{width:34%}
+/* Kate, 28 Oct 2026: a tick grid (Stylist & Client Matching): stylists down, services across, upright headings, the name column stays put when the grid scrolls. */
+.kd-body table.mx{width:auto;min-width:100%;font-size:12.5px}
+.kd-body table.mx th,.kd-body table.mx td{padding:5px 0;text-align:center;width:auto}
+.kd-body table.mx tbody th{width:auto}
+.kd-body table.mx th.g{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:8px 4px}
+.kd-body table.mx th.v{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;height:150px;min-width:16px;padding:8px 0;font-size:11.5px;font-weight:500;line-height:16px}
+.kd-body table.mx td{min-width:16px;color:var(--kd-tq-text);font-weight:700;font-size:13px}
+.kd-body table.mx th.s,.kd-body table.mx td.s{border-left:1px solid var(--kd-hair)}
+.kd-body table.mx tr > :first-child{position:sticky;left:0;z-index:1;text-align:left;padding:5px 12px;white-space:nowrap;background:var(--kd-paper);color:var(--kd-ink);font-weight:500}
+.kd-body table.mx tr:first-child > :first-child,.kd-body table.mx tr:nth-child(2) > :first-child{background:var(--kd-cream)}
+.kd-body table.mx tr > :nth-child(2){text-align:left;padding:5px 10px 5px 0;color:var(--kd-soft);font-size:11px;font-weight:500}
+.kd-body table.mx tr:nth-child(2) > :nth-child(2){writing-mode:horizontal-tb;transform:none;height:auto;vertical-align:bottom}
+.kd-body table.mx tr:nth-child(2) > :first-child{vertical-align:bottom}
 .kd-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 24px;max-width:560px}
 .kd-photos img,.kd-fig img{display:block;width:100%;height:auto;border-radius:14px;border:0;margin:0;max-width:none}
 .kd-fig{max-width:420px;margin:8px 0 24px}

@@ -281,7 +281,18 @@
         out.push({ text: '', margin: [0, 0, 0, 4] });
       } else if (e.classList.contains('kd-table') || t === 'TABLE') {
         var tb = t === 'TABLE' ? e : e.querySelector('table');
-        var rows = [].slice.call(tb.querySelectorAll('tr')).map(function (tr) {
+        var mx = tb.classList.contains('mx'), rows;
+        if (mx) {   // a tick grid (Stylist & Client Matching): on paper, each stylist's ticks as a list
+          var trs = [].slice.call(tb.querySelectorAll('tr')), hd = [].slice.call(trs[1].querySelectorAll('th.v')).map(txt);
+          var head = function (t) { return { text: t, bold: true, fillColor: C.cream, fontSize: 9.5, colSpan: 1 }; };
+          rows = [[head('Stylist'), head('Level'), head('Ticked in the sheet')]];
+          trs.slice(2).forEach(function (tr) {
+            var td = [].slice.call(tr.children);
+            var on = td.slice(2).map(function (c, i) { return txt(c) === '✓' ? hd[i] : null; }).filter(Boolean);
+            rows.push([{ text: txt(td[0]), bold: true, fontSize: 9.5, colSpan: 1 }, { text: txt(td[1]), fontSize: 9.5, colSpan: 1 },
+              { text: on.join(', ') || 'Nothing ticked yet', fontSize: 9.5, colSpan: 1 }]);
+          });
+        } else rows = [].slice.call(tb.querySelectorAll('tr')).map(function (tr) {
           return [].slice.call(tr.children).map(function (c) {
             var th = c.tagName === 'TH';
             return { text: runs(c), bold: th, fillColor: th ? C.cream : null, fontSize: 9.5, colSpan: +(c.getAttribute('colspan') || 1) };
@@ -298,7 +309,7 @@
         var rowHead = rows.every(function (r) { return r[0].bold; }) && cols === 2;
         out.push({
           table: { headerRows: !rowHead && rows[0].every(function (c) { return c.bold || !c.text; }) ? 1 : 0,
-            widths: rowHead ? [130, '*'] : rows[0].map(function () { return '*'; }), body: rows, dontBreakRows: true },
+            widths: mx ? [60, 34, '*'] : rowHead ? [130, '*'] : rows[0].map(function () { return '*'; }), body: rows, dontBreakRows: true },
           layout: { hLineWidth: function () { return 0.6; }, vLineWidth: function () { return 0.6; },
             hLineColor: function () { return C.hair; }, vLineColor: function () { return C.hair; },
             paddingLeft: function () { return 7; }, paddingRight: function () { return 7; },
