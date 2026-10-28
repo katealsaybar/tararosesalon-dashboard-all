@@ -16,9 +16,9 @@ let wvRows = null, wvErr = '', wvPage = 1, wvQuery = '', wvShown = [];
 // the section stays out and the page draws as before.
 let wvPerf = null;
 const wvSave = () => { try { localStorage.setItem('trs-wv-blast', JSON.stringify(wvSel)); } catch (e) {} };
-const wvOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
+const wvOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2;   // Kate, 28 Oct 2026: Level 2 sees the performance, as Level 4 does (wvPerfOnly)
 // Kate, 22 Oct 2026: Level 4 (Accounts and Admin) sees how the blast is doing in AED and nothing else: the list, the phone numbers and the sends stay Level 3 and 5.
-const wvPerfOnly = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 4;
+const wvPerfOnly = () => typeof TRS_LEVEL !== 'undefined' && (TRS_LEVEL === 4 || TRS_LEVEL === 2);
 const wvOk5 = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // sending waves from this page is Level 5 (Kate) only
 const wvIsNew = r => !!(r.listed_on && String(r.listed_on) > '2026-10-08');   // added at a refresh after the first build
 const wvWave = r => wvIsNew(r) ? 'new' : String(r.wave);

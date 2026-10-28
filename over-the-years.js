@@ -808,7 +808,7 @@ function otySpec(kind, r) {
   } });
   return { title: `${T} · ${r.y}`, cur: 'AED', views };
 }
-const otyDn = (html, kind, r) => (typeof TRSD !== 'undefined' && otyD) ? TRSD.num(html, otySpec(kind, r)) : html;
+const otyDn = (html, kind, r) => (typeof TRSD !== 'undefined' && otyD && !(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 2)) ? TRSD.num(html, otySpec(kind, r)) : html;
 function otyTable(rows) {
   let h = '<tr class="oty-th"><th>Year</th><th>Net take</th><th>Clients per visit</th><th>Clients per staff</th><th>Avg bill per visit</th><th>Avg bill per staff</th><th>Growth</th></tr>';
   rows.slice().reverse().forEach(r => {

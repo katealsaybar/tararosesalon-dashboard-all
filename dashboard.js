@@ -5195,7 +5195,7 @@ async function renderDashboard() {
 
   // Kate, 27 Oct 2026: every figure opens the rows behind it (drill.js, pulse-drill.js). dn() is the figure as a clickable span, or the plain
   // text when this window has nothing behind it (the Pulse is on the weekly totals, or the piece has no rows).
-  const pdCtx = (typeof PD !== 'undefined' && typeof TRSD !== 'undefined')
+  const pdCtx = (typeof PD !== 'undefined' && typeof TRSD !== 'undefined' && !(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 2))   // Kate, 28 Oct 2026: Level 2 sees the Pulse's figures plain; the lists behind them hold client rows (Level 3 and above)
     ? PD.snap(s, { net: s.netTake, hairNet: hairNetSalonTake, beautyNet: beautyNetTakeDept, hairSvc: s.hairServicesIncl, beautySvc: s.beautyServicesTotal }, `${branchLabel}, ${rangeLabel}`, rangeLabel) : null;
   window._pdCtx = pdCtx;   // the More measures tiles are drawn later, by renderOrgPulseMore, and read it
   const dn =(html, kind, o) => (pdCtx && kind) ? TRSD.num(html, PD.spec(kind, pdCtx, o)) : html;

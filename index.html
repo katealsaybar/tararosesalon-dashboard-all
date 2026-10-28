@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=6612182a"></script>
+<script src="pages.js?v=6f8fe3ef"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3569,14 +3569,14 @@ table.tp-cmp td.bad{color:var(--bad)}
   (function(){
     var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
-      oty: ['over-the-years.js?v=27a9cb29'],
-      dp:  ['daily-performance.js?v=42d6603b', 'daily-addons.js?v=1e57830b'],
+      oty: ['over-the-years.js?v=1fc5b2c7'],
+      dp:  ['daily-performance.js?v=d34664d8', 'daily-addons.js?v=1e57830b'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
       cl:  [LGX, 'lost-clients.js?v=25d90f74', 'lost-lists.js?v=601836f9', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=032c13a7', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=79a4a6ba',
-            'lost-report.js?v=34417f27', 'wv-blast.js?v=265b766a', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=0dd8e569', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=6c5a3d25', 'client-mix.js?v=7ec12be4',
+            'lost-report.js?v=34417f27', 'wv-blast.js?v=dc4c6d0f', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=0dd8e569', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=6c5a3d25', 'client-mix.js?v=7ec12be4',
             'service-rankings.js?v=c1364c02'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
@@ -3585,7 +3585,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       wk:  ['team-performance.js?v=6fb02a88', 'staff-weeks.js?v=94c43754'],
       lv:  ['stylist-levels.js?v=f8d576a4'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
-      gc:  ['glow-club.js?v=1726ff51'],
+      gc:  ['glow-club.js?v=84f11759'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'active-deals.js?v=442ed4c5'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -4575,7 +4575,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=d06a7092"></script>
 <script src="pulse-drill.js?v=4fb4afba"></script>
-<script src="dashboard.js?v=349c65f6"></script>
+<script src="dashboard.js?v=f8fb7392"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -4819,6 +4819,8 @@ async function enterDashboard(role, meAsk){
   // Campaigns. The menu entry goes and the page itself refuses (showView).
   TRS_LEVEL = viewAs ? viewAs.level : ((me && me.level) || null);
   TRS_EXTRA = (viewAs ? viewAs.extra : (me && me.extra_pages)) || [];
+  // Kate, 28 Oct 2026: the ticks saved on the Page Access page (pages.js trsAccessLoad); before any page is drawn or opened, or the defaults would flash.
+  if (typeof trsAccessLoad === 'function') await trsAccessLoad(sb);
   // Kate, 6 Oct 2026: Campaigns now shares a group with Marketing, so the page row
   // goes, not the group; a group with nothing left open hides below.
   const hideNav = v => { const n = document.querySelector(`#sidebar .nav-sub[onclick*="showView('${v}'"]`); if (n) n.style.display = 'none'; };

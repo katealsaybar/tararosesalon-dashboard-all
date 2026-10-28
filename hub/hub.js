@@ -109,7 +109,7 @@
       blurb: 'The WhatsApp blast to clients who have not been in for 6 months: lists, sending, replies and results.' },
     { key: 'campaigns', dept: 'Campaigns', title: 'Wellness Voucher Performance', href: '/?view=wvperf', live: true, rule: 'var(--accent-coral)',
       blurb: 'Redemptions, credit collected and the campaign target.' },
-    { key: 'campaigns-glowclub', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Campaigns', title: 'Glow Club Performance', href: '/?view=glowclub', rule: 'var(--accent-coral)',
+    { key: 'campaigns-glowclub', via: 'dashboards', min: 2, ic: 'campaigns', dept: 'Campaigns', title: 'Glow Club Performance', href: '/?view=glowclub', rule: 'var(--accent-coral)',
       blurb: 'The monthly membership: sign-ups, renewals, AED collected and the perks used.' },
     { key: 'campaigns-dealsperf', via: 'dashboards', min: 2, ic: 'campaigns', dept: 'Campaigns', title: 'Active Deals Performance', href: '/?view=dealsperf', rule: 'var(--accent-coral)',
       blurb: 'The deals on the active deals brochure: how many were bought at the till, by branch and offer.' },
@@ -127,6 +127,9 @@
     // Kate, 3 Oct 2026: who can sign in, for Level 3 and up (kb_sections.min_level 3), view only.
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
+    // Kate, 28 Oct 2026: which dashboard pages each level opens, as tick boxes (Level 5 only; saved in public.page_access, defaults from pages.js).
+    { key: 'page-access', via: 'dashboards', only: [5], dept: 'People', title: 'Page Access', href: '/hub/pageaccess', live: true, rule: 'var(--accent-mint)',
+      blurb: 'Tick the reports each level can open: Team, Leadership, Executives and Accounts.' },
 
     { key: 'uploads', dept: 'Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
       blurb: 'Payslips, and the uploads that feed the dashboard.' }
@@ -409,6 +412,8 @@
       var dm = await c.rpc('dashboard_me');
       KB.extra = (!dm.error && dm.data && dm.data[0] && dm.data[0].extra_pages) || [];
     }
+    // Kate, 28 Oct 2026: the ticks saved on the Page Access page, so every row below follows them (pages.js trsAccessLoad).
+    if (typeof trsAccessLoad === 'function') await trsAccessLoad(c);
     // Kate, 5 Oct 2026: a Level 1 preview also hides the leadership-only pages inside an
     // open section (audience 'manager', like the trade test). The database already hides
     // them from real staff, but Kate is Level 5, so without this the preview showed them.

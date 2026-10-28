@@ -939,18 +939,19 @@ function dpSpecFor(mk, code, idxs) {
   return { title: `${M.label} · ${dpName(code)}`, cur: 'AED', views };
 }
 // The figure as a clickable span, or as it was when the page has nothing behind it (no days, or drill.js not here).
-const dpDn = (html, mk, code, idxs) => (typeof TRSD !== 'undefined' && idxs && idxs.length) ? TRSD.num(html, dpSpecFor(mk, code, idxs)) : html;
+const dpL2 = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 2;   // Kate, 28 Oct 2026: Level 2 opens the page but not the lists behind its figures (client rows, Level 3 and above)
+const dpDn = (html, mk, code, idxs) => (typeof TRSD !== 'undefined' && !dpL2() && idxs && idxs.length) ? TRSD.num(html, dpSpecFor(mk, code, idxs)) : html;
 // A heatmap square or table cell carries data-dpk ("measure|branch|index"); one handler opens it, so a long window's hundreds of squares register nothing.
 document.addEventListener('click', e => {
   const n = e.target.closest && e.target.closest('[data-dpk]');
-  if (!n || typeof TRSD === 'undefined' || !DPD) return;
+  if (!n || typeof TRSD === 'undefined' || !DPD || dpL2()) return;
   const [mk, code, i] = n.dataset.dpk.split('|');
   e.stopPropagation(); e.preventDefault();
   TRSD.open(dpSpecFor(mk, code, dpDaysOf(+i)), n);
 }, true);
 document.addEventListener('keydown', e => {
   const n = e.target.closest && e.target.closest('[data-dpk]');
-  if (!n || (e.key !== 'Enter' && e.key !== ' ') || typeof TRSD === 'undefined' || !DPD) return;
+  if (!n || (e.key !== 'Enter' && e.key !== ' ') || typeof TRSD === 'undefined' || !DPD || dpL2()) return;
   e.preventDefault();
   const [mk, code, i] = n.dataset.dpk.split('|');
   TRSD.open(dpSpecFor(mk, code, dpDaysOf(+i)), n);

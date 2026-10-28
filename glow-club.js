@@ -12,7 +12,7 @@ const gcPct = (a, b) => b ? Math.round(100 * a / b) + '%' : '–';
 const gcMonth = k => { try { return new Date(k + '-01T12:00:00').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }); } catch (e) { return k; } };
 const gcDay = d => { try { return new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return d || '–'; } };
 const gcWhen = iso => { try { return new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return ''; } };
-const gcOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
+const gcOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2;   // Kate, 28 Oct 2026: Level 2 opens the campaign performance reports (migrations/level2_campaign_performance.sql)
 
 async function renderGlowClub(force) {
   const el = document.getElementById('glowClubContent');

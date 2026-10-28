@@ -33,10 +33,10 @@
      retired   the page it was folded into; its old links and stars still land there
    Keep the list between the markers strict JSON: the check reads it. */
 window.TRS_PAGES = /*PAGES*/[
-  {"id": "dashboard", "label": "Organisation Pulse", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "words": "home overview kpi sales revenue takings pulse summary", "lv": []},
+  {"id": "dashboard", "label": "Organisation Pulse", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "words": "home overview kpi sales revenue takings pulse summary", "lv": [2]},
   {"id": "compare", "lazy": "cmp", "label": "Comparison", "group": "Numbers", "sub": "Business", "words": "compare comparison versus vs side by side", "lv": []},
-  {"id": "dailyperf", "label": "Daily Performance", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "dp", "words": "daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales net take total net take clients utilisation rebooking target", "lv": []},
-  {"id": "overyears", "label": "Over the Years", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "oty", "words": "years history annual year by year seasons month by month growth", "lv": []},
+  {"id": "dailyperf", "label": "Daily Performance", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "dp", "words": "daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales net take total net take clients utilisation rebooking target", "lv": [2]},
+  {"id": "overyears", "label": "Over the Years", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "oty", "words": "years history annual year by year seasons month by month growth", "lv": [2]},
   {"id": "ledgerFinancials", "nopulse": 1, "label": "Financial Totals", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "ledger": 1, "lazy": "lgx", "words": "financial totals ledger cash card payments", "lv": [4]},
   {"id": "team", "lazy": "tp", "nopulse": 1, "label": "Podium Race", "group": "Numbers", "sub": "Team Performance", "scope": 1, "filtered": 1, "ic": "access", "words": "podium race ranking leaderboard top performer", "lv": [2]},
   {"id": "teamquad", "lazy": "tp", "nopulse": 1, "label": "Staff Quadrant", "group": "Numbers", "sub": "Team Performance", "filtered": 1, "ic": "access", "words": "staff quadrant treatment retail rebook rebooking takings", "lv": []},
@@ -52,7 +52,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "complaintlog", "label": "Log a Client Complaint", "group": "Numbers", "sub": "Clients", "lazy": "cp", "nopulse": 1, "filtered": 1, "min": 2, "words": "log a complaint complaint submission submit report new complaint follow up resolve resolved open track tracking unhappy client whatsapp", "lv": [2]},
   {"id": "lostclients", "label": "Client’s Last Visit", "group": "Numbers", "sub": "Clients", "min": 2, "slug": "last-visit", "filtered": 1, "nopulse": 1, "lazy": "cl", "ic": "lost-clients", "words": "last visit lapsed clients not back come back haven't been back win back", "lv": [2]},
   {"id": "lostlists", "label": "Lost Client Blasts, October 2026", "group": "Campaigns", "sub": "2026", "min": 2, "slug": "lost-clients", "lazy": "cl", "ic": "lost-clients", "words": "lost clients outreach lists whatsapp groups waves campaign templates to message", "lv": [2, 4]},
-  {"id": "wvblast", "label": "Wellness Voucher Message and Email Blasts", "group": "Campaigns", "inside": "wvperf", "min": 3, "lazy": "cl", "words": "voucher blast blasts whatsapp email wave send message vouchers clients 3rd 4th last push performance per blast", "lv": [4]},
+  {"id": "wvblast", "label": "Wellness Voucher Message and Email Blasts", "group": "Campaigns", "inside": "wvperf", "min": 3, "lazy": "cl", "words": "voucher blast blasts whatsapp email wave send message vouchers clients 3rd 4th last push performance per blast", "lv": [2, 4]},
   {"id": "reviews", "label": "Google Reviews", "group": "Numbers", "sub": "Clients", "filtered": 1, "words": "google reviews ratings stars", "lv": [2]},
   {"id": "services", "label": "Service Rankings", "group": "Numbers", "sub": "Sales & Stock", "lazy": "cl", "words": "service rankings treatments top services", "lv": []},
   {"id": "products", "lazy": "pr", "label": "Products", "group": "Numbers", "sub": "Sales & Stock", "filtered": 1, "words": "products stock orders retail professional spend", "lv": [4]},
@@ -66,7 +66,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "website", "lazy": "mk", "label": "Website & Search", "group": "Content", "min": 3, "free": 1, "ic": "dashboards", "words": "website traffic visitors seo search console sessions analytics google", "lv": []},
   {"id": "social", "lazy": "mk", "label": "Social", "group": "Content", "min": 3, "free": 1, "ic": "marketing", "words": "instagram tiktok youtube facebook followers reach views posts reels metricool", "lv": []},
   {"id": "wvperf", "label": "Wellness Voucher Performance", "group": "Campaigns", "sub": "2026", "min": 2, "ic": "campaigns", "words": "voucher performance redemptions credit collected campaign target", "lv": [2, 4]},
-  {"id": "glowclub", "label": "Glow Club Performance", "group": "Campaigns", "sub": "2025", "min": 3, "lazy": "gc", "ic": "campaigns", "words": "glow club membership silver gold platinum members renewals perks used monthly performance campaign circle", "lv": [4]},
+  {"id": "glowclub", "label": "Glow Club Performance", "group": "Campaigns", "sub": "2025", "min": 3, "lazy": "gc", "ic": "campaigns", "words": "glow club membership silver gold platinum members renewals perks used monthly performance campaign circle", "lv": [2, 4]},
   {"id": "dealsperf", "label": "Active Deals Performance", "group": "Campaigns", "sub": "2026", "min": 2, "filtered": 1, "nopulse": 1, "lazy": "ad", "ic": "campaigns", "words": "active deals brochure offers packages blonding balayage brunette sunkissed 599 999 350 450 300 sold per branch performance campaign discounts promo", "lv": [2, 4]},
   {"id": "discountsvouchers", "label": "Discounts and Vouchers", "group": "Campaigns", "sub": "2026", "min": 2, "filtered": 1, "nopulse": 1, "lazy": "dv", "ic": "campaigns", "words": "discounts vouchers phorest archived balance expired outstanding liability gift voucher promo code percent partner corporate staff discount complaint goodwill 100% off issued branch", "lv": [2, 4]},
   {"id": "stylists", "lazy": "sc", "label": "Staff Cards", "group": "People", "free": 1, "ic": "access", "words": "cards photos instagram profiles", "lv": [1, 2, 4]},
@@ -83,16 +83,35 @@ window.TRS_PAGES = /*PAGES*/[
   // or less. Level 2 (coordinators) and Level 4 (accounts) open only the pages whose lv lists them, plus any page named in their own extras.
   // Kate, 22 Oct 2026: Level 1 opens only the pages whose lv lists 1 (Staff Cards, Org Chart). With no level at all (not signed in yet) the old
   // rule stands (min), so nothing is hidden before the sign-in has answered.
+  // Kate, 28 Oct 2026: the Page Access page (Team Home, Level 5) saves ticks per page and level in public.page_access; page_access_get() hands them to every
+  // signed-in person, trsAccessLoad() puts them in TRS_ACCESS ({ pageId: { "2": true, "4": false } }) and they win over the defaults below. No tick saved
+  // for a page and level means the default from lv/min, which is what the boxes show checked from the start. Level 5 is never changed by it.
+  window.TRS_ACCESS = window.TRS_ACCESS || {};
+  window.trsAccessLoad = async function (client) {
+    try {
+      var r = await client.rpc('page_access_get');
+      window.TRS_ACCESS = (!r.error && r.data && typeof r.data === 'object') ? r.data : {};
+    } catch (e) { window.TRS_ACCESS = {}; }
+  };
+  // The built-in rule, with no saved ticks and no extras: what the Page Access page shows as checked from the start.
+  window.trsPageDefault = function (id, level) {
+    var p = by[window.trsLive(id)];
+    if (!p) return true;
+    if (level >= 5) return true;
+    if (level === 1) return !!(p.lv && p.lv.indexOf(1) >= 0);
+    if (level === 3) return (p.min || 1) <= 3;
+    if (p.lv) return p.lv.indexOf(level) >= 0;
+    return (p.min || 1) <= level;
+  };
   window.trsPageOpen = function (id, level, extras) {
     var p = by[window.trsLive(id)];
     if (!p) return true;
     if (!level) return (p.min || 1) <= 1;
-    if (level === 1) return !!(p.lv && p.lv.indexOf(1) >= 0);
     if (level >= 5) return true;
-    if (level === 3) return (p.min || 1) <= 3;
-    if (extras && extras.indexOf(p.id) >= 0) return true;
-    if (p.lv) return p.lv.indexOf(level) >= 0;
-    return (p.min || 1) <= level;
+    if ((level === 2 || level === 4) && extras && extras.indexOf(p.id) >= 0) return true;
+    var ov = window.TRS_ACCESS && window.TRS_ACCESS[p.id];
+    if (ov && ov[level] !== undefined && ov[level] !== null) return !!ov[level];
+    return window.trsPageDefault(p.id, level);
   };
   // The page a person lands on when none is asked for (or the one asked for is not theirs): the Pulse for executives, the
   // Daily Target Sheet for coordinators, Financial Totals for accounts, Staff Cards for the team.
