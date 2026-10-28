@@ -120,12 +120,10 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .plancard__photo img{display:block;width:100%;height:auto;aspect-ratio:5/4;object-fit:cover}
 /* plan photos: show the whole 4:5 photo so the hair is visible, not a tight crop */
 #plans .plancard__photo img,#menu .plancard__photo img{aspect-ratio:4/5;object-position:center center !important}
-/* desktop: the photo follows the screen height so a whole card fits in one view,
-   but never crops tighter than a square, so the hair always shows */
+/* desktop: the same 4:5 photo as on a phone, uncropped, so the face and hair always show */
 @media (min-width:901px){
   #plans .plancard,#menu .plancard{container-type:inline-size}
-  #plans .plancard__photo img{aspect-ratio:auto;height:clamp(90cqw,calc(100vh - var(--nav-h,75px) - 565px),125cqw);height:clamp(72cqw,calc(100svh - var(--nav-h,75px) - 565px),125cqw);object-position:center 30% !important}
-  #menu .plancard__photo img{aspect-ratio:auto;height:clamp(76cqw,calc(100vh - var(--nav-h,75px) - 500px),125cqw);height:clamp(76cqw,calc(100svh - var(--nav-h,75px) - 500px),125cqw);object-position:center 30% !important}
+  #plans .plancard__photo img,#menu .plancard__photo img{aspect-ratio:4/5;height:auto;object-position:center center !important}
   #plans .plancard__body,#menu .plancard__body{padding:18px 20px 18px}
   #plans .plancard h3,#menu .plancard h3{margin:6px 0 4px;font-size:24px}
   #plans .plancard__body>p:not(.plancard__quote),#menu .plancard__body>p{margin-bottom:12px;font-size:14px;line-height:1.5}
