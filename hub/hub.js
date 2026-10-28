@@ -73,6 +73,10 @@
       blurb: 'Top clients, client mix, last visit and Google reviews.' },
     { key: 'numbers-sales', via: 'dashboards', min: 1, ic: 'dashboards', dept: 'Numbers', title: 'Sales & Stock', href: '/?view=services', rule: 'var(--accent-lavender)',
       blurb: 'Service rankings and products.' },
+    // Kate, 28 Oct 2026: Belle's Stylist - Client matching sheet, one page that links to it (kb_sections 'client-matching',
+    // migrations/kb_client_matching.sql). Front Desk (Level 1), Levels 2, 3 and 5; Level 4 skips it. The sheet link lives in kb_pages, not here: this repo is public.
+    { key: 'client-matching', dept: 'Clients', title: 'Stylist & Client Matching', rule: 'var(--accent-lavender)',
+      blurb: 'Which stylist suits which client, by service, personality and appointment vibe.' },
     // Kate, 22 Oct 2026: the client complaints have their own box, Clients ("dapat nasa clients, may sariling box"). Shortcuts to the dashboard's Client
     // Complaints and Log a Client Complaint pages (Levels 2 and up, by those pages' own entries in pages.js); the pages and the database decide who may read or log.
     { key: 'clients-complaints', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Clients', title: 'Client Complaints', href: '/?view=complaints', rule: 'var(--accent-lavender)',
