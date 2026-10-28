@@ -529,6 +529,10 @@ body.kb-wait .wrap{visibility:hidden}
 .kd-body table.mx tr > :nth-child(2){text-align:left;padding:5px 10px 5px 0;color:var(--kd-soft);font-size:11px;font-weight:500}
 .kd-body table.mx tr:nth-child(2) > :nth-child(2){writing-mode:horizontal-tb;transform:none;height:auto;vertical-align:bottom}
 .kd-body table.mx tr:nth-child(2) > :first-child{vertical-align:bottom}
+/* Kate, 28 Oct 2026: a two-column lookup (Client to Staff Matching): what she is booking, then who. */
+.kd-body table.fd th:first-child,.kd-body table.fd td:first-child{width:28%}
+.kd-body table.fd tbody th:nth-child(2){width:auto}
+.kd-body table.fd td:first-child{font-weight:600}
 .kd-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 24px;max-width:560px}
 .kd-photos img,.kd-fig img{display:block;width:100%;height:auto;border-radius:14px;border:0;margin:0;max-width:none}
 .kd-fig{max-width:420px;margin:8px 0 24px}

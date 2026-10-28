@@ -309,7 +309,7 @@
         var rowHead = rows.every(function (r) { return r[0].bold; }) && cols === 2;
         out.push({
           table: { headerRows: !rowHead && rows[0].every(function (c) { return c.bold || !c.text; }) ? 1 : 0,
-            widths: mx ? [60, 34, '*'] : rowHead ? [130, '*'] : rows[0].map(function () { return '*'; }), body: rows, dontBreakRows: true },
+            widths: mx ? [60, 34, '*'] : tb.classList.contains('fd') ? [110, '*'] : rowHead ? [130, '*'] : rows[0].map(function () { return '*'; }), body: rows, dontBreakRows: true },
           layout: { hLineWidth: function () { return 0.6; }, vLineWidth: function () { return 0.6; },
             hLineColor: function () { return C.hair; }, vLineColor: function () { return C.hair; },
             paddingLeft: function () { return 7; }, paddingRight: function () { return 7; },
