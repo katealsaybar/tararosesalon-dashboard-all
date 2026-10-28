@@ -605,7 +605,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
           <h3>Four Weeks of Blow-dries</h3>
           <p>A month of blow-dries already in the diary.</p>
           <ul class="incl" aria-label="What is included"><li>Eight blow-dries, two a week</li><li>Your slots held in advance</li><li>Valid 6 weeks from your first booking</li></ul>
-          <div class="plancard__price" data-price="plan-four-weeks" aria-live="polite"><span>8 blow-dries</span><strong>AED 705</strong><small></small></div>
+          <div class="plancard__price" data-price="plan-four-weeks" aria-live="polite"><span>8 blow-dries</span><strong>AED 705</strong><small>about AED 100 a blow-dry</small></div>
           <a class="pill pill--accent js-book" href="#book" data-book="Four Weeks of Blow-dries" data-svc="bundle">Book now <span class="arr">&rarr;</span></a>
           <details class="gcard__more">
             <summary>See prices by length</summary>
@@ -1111,7 +1111,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
     'o-smooth':{label:'2 services',from:[1085,1285,1400,1600]},
     'plan-edit':{label:'3 blow-dries',exact:[300,336,444,495],n:3},
     'plan-series':{label:'5 blow-dries',exact:[500,560,740,825],n:5},
-    'plan-four-weeks':{label:'8 blow-dries',exact:[705,705,705,705],n:8}
+    'plan-four-weeks':{label:'8 blow-dries',exact:[705,705,705,705],n:8,per:100}
   };
   var fmt=function(v){ return 'AED '+v.toLocaleString('en-US'); };
   var boxes=[].slice.call(document.querySelectorAll('[data-price]'));
@@ -1128,7 +1128,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
       var id=b.getAttribute('data-price'), d=P[id]; if(!d) return;
       if(i<0){ b.innerHTML=orig[id]; return; }
       var hair=NAMES[i]+' hair', small, big;
-      if(d.exact){ big=fmt(d.exact[i]); small=d.n===8?'':'about AED '+Math.round(d.exact[i]/d.n)+' a blow-dry'; b.querySelector('span').textContent=d.label+', '+hair; }
+      if(d.exact){ big=fmt(d.exact[i]); small='about AED '+(d.per||Math.round(d.exact[i]/d.n))+' a blow-dry'; b.querySelector('span').textContent=d.label+', '+hair; }
       else{ big=fmt(d.from[i]); small=d.course?'A visit. Courses of three from '+fmt(d.course[i]):'Your stylist confirms it before you book'; b.querySelector('span').textContent=d.label+', '+hair+', from'; }
       b.querySelector('strong').textContent=big;
       b.querySelector('small').textContent=small;
