@@ -282,7 +282,7 @@
       } else if (e.classList.contains('kd-table') || t === 'TABLE') {
         var tb = t === 'TABLE' ? e : e.querySelector('table');
         var mx = tb.classList.contains('mx'), rows;
-        if (mx) {   // a tick grid (Stylist & Client Matching): on paper, each stylist's ticks as a list
+        if (mx) {   // a tick grid (Client to Staff Matching): on paper, each stylist's ticks as a list
           var trs = [].slice.call(tb.querySelectorAll('tr')), hd = [].slice.call(trs[1].querySelectorAll('th.v')).map(txt);
           var head = function (t) { return { text: t, bold: true, fillColor: C.cream, fontSize: 9.5, colSpan: 1 }; };
           rows = [[head('Stylist'), head('Level'), head('Ticked in the sheet')]];

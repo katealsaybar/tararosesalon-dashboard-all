@@ -80,7 +80,7 @@
     // The pages hold the prices and live in kb_pages, not in this public repo.
     { key: 'price-list', dept: 'Clients', title: 'Price List', rule: 'var(--accent-butter)',
       blurb: 'Hair prices by stylist level and hair length, treatments, extensions and every beauty service.' },
-    { key: 'client-matching', dept: 'Clients', title: 'Stylist & Client Matching', rule: 'var(--accent-lavender)',
+    { key: 'client-matching', dept: 'Clients', title: 'Client to Staff Matching', rule: 'var(--accent-lavender)',
       blurb: 'Which stylist suits which client, by service, personality and appointment vibe.' },
     // Kate, 28 Oct 2026: Belle's Client Marketing Opt-Out List, one page that links to it (kb_sections 'marketing-optout', migrations/kb_marketing_optout.sql).
     // Front Desk and Call Centre ('Reception') Level 1, Levels 2, 3 and 5; Level 4 skips it. The sheet link lives in kb_pages, not here: this repo is public.
@@ -224,7 +224,7 @@
     today: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     approvals: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
     people: '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/>',
-    // Kate, 28 Oct 2026: two people joined by a line, for Stylist & Client Matching.
+    // Kate, 28 Oct 2026: two people joined by a line, for Client to Staff Matching.
     'client-matching': '<circle cx="7" cy="8" r="3"/><circle cx="17" cy="8" r="3"/><path d="M10 8h4"/><path d="M2 20a5 5 0 0 1 10 0"/><path d="M12 20a5 5 0 0 1 10 0"/>',
     // Kate, 28 Oct 2026: a circle with a line through it, for the Marketing Opt-Out List.
     'marketing-optout': '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
