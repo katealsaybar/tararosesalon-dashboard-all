@@ -1237,7 +1237,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     sheet.querySelectorAll('input[name="bkCat"]').forEach(function(r){ r.checked=(r.value===cat); });
     sheet.querySelectorAll('.bk-c').forEach(function(l){ l.classList.toggle('is-on',l.querySelector('input').checked); });
     $('bkSvcL').textContent=cat==='moveups'?'Which method?':'Which plan?';
-    methF.hidden=(cat==='moveups');
+    methF.hidden=false; var unsureL=methF.querySelector('.bk-r--plain'); if(unsureL) unsureL.style.display=(cat==='moveups'?'none':''); var lg=methF.querySelector('legend'); if(lg) lg.textContent=(cat==='moveups'?'Which method do you wear?':'Which method do you wear, or want?'); if(cat==='moveups') svcSel.value=(meth&&MU[meth])?meth:'';
     radios.forEach(function(r){ r.checked=(r.value===meth); }); mark();
     $('waTitle').textContent=cat==='moveups'?'Book your move-up':'Reserve your plan';
     sheet.querySelectorAll('#bkMethF .bk-opts .bk-r').forEach(function(l){
@@ -1250,7 +1250,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     var p=priceFor(); priceLbl.textContent=p[0]+(pm?' ('+pm.n[pk==='3'?1:0]+')':''); priceEl.textContent=p[1]; note.textContent=p[2]; note.hidden=!p[2];
     update();
   };
-  var missing=function(){ var m=[]; if(!meth) m.push(['your method',cat==='moveups'?$('bkSvcF'):methF]); if(!salSel.value) m.push(['your salon',$('bkSalonF')]); return m; };
+  var missing=function(){ var m=[]; if(!meth) m.push(['your method',methF]); if(!salSel.value) m.push(['your salon',$('bkSalonF')]); return m; };
   var message=function(){
     var o=cur(), p=priceFor(), salon=salSel.options[salSel.selectedIndex].text.replace(/\s·.*/,'');
     var lines=['Method: '+MN[meth]];
