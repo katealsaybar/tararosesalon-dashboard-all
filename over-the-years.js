@@ -115,9 +115,11 @@ function otyCss() {
   .oty .oty-tile.now{border-color:var(--accent)}
   .oty .oty-rows,.oty .oty-m,.oty .oty-jumpm{display:none}
   /* Kate, 16 Oct 2026: Measure and Index set against as toggles (one row, like Daily Performance's Team toggle) */
-  .oty .oty-seg{display:flex;max-width:100%;padding:3px;gap:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface2);width:max-content}
-  .oty .oty-sg{appearance:none;border:0;background:transparent;color:var(--muted);font:600 13px Inter,sans-serif;padding:9px 16px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:40px}
-  .oty .oty-sg[aria-pressed=true]{background:var(--accent);color:var(--accent-fg)}
+  /* Kate, 28 Oct 2026: the toggles looked "stocky and out of place": slimmer track, lighter text, a smaller filled pill (phone keeps the 44px touch size below) */
+  .oty .oty-seg{display:flex;max-width:100%;padding:2px;gap:2px;border:1px solid var(--border);border-radius:999px;background:transparent;width:max-content}
+  .oty .oty-sg{appearance:none;border:0;background:transparent;color:var(--muted);font:500 12.5px Inter,sans-serif;padding:5px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;min-height:30px;transition:background .15s,color .15s}
+  .oty .oty-sg:hover:not([aria-pressed=true]){color:var(--text)}
+  .oty .oty-sg[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);font-weight:600}
   .oty .oty-sg .s{display:none}
   .oty .oty-sp,.oty .mo-swipe{display:none}
   .oty .oty-sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:0 32px;margin-top:6px}
@@ -281,6 +283,13 @@ function otyCss() {
   .oty th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);text-align:right;padding:6px 4px;font-weight:700}
   .oty td{padding:9px 4px;border-top:1px solid var(--border);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .oty th:first-child,.oty td:first-child{text-align:left;width:13%}
+  /* The years, side by side (Kate, 28 Oct 2026: "masyadong dikit dikit yung header titles"): room between the six figures, and a long title wraps onto two lines instead of touching the next one. Phone keeps its own card layout above. */
+  @media(min-width:761px){
+    .oty table.oty-yt th{padding:8px 16px 8px 12px;line-height:1.4;white-space:normal;vertical-align:bottom;letter-spacing:.06em}
+    .oty table.oty-yt td{padding:12px 16px 12px 12px}
+    .oty table.oty-yt th:first-child,.oty table.oty-yt td:first-child{width:9%;padding-left:6px}
+    .oty table.oty-yt th:last-child,.oty table.oty-yt td:last-child{padding-right:8px}
+  }
   .oty td.m{color:var(--muted)}
   .oty .oty-chip{display:inline-flex;align-items:center;gap:8px;appearance:none;border:1px solid var(--border);background:transparent;color:var(--muted);font:600 13px Inter,sans-serif;padding:8px 13px;border-radius:999px;cursor:pointer}
   .oty .oty-chip i{width:12px;height:12px;border-radius:3px;display:inline-block}
