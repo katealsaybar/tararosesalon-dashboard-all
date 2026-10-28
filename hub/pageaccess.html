@@ -88,7 +88,7 @@
   var LV = [1, 11, 2, 3, 4];   // 11 is Level 2 Reception & Call Centre: saved under page 'fd:<id>' at internal level 1
   // Kate, 28 Oct 2026: the numbers shown are the new ones (1 Stylists & Beauticians, 2 Reception & Call Centre, 3 Leadership, 4 Executives & Marketing,
   // 5 Accounts & Admin, 6 Kate); the grid's columns are still the old internal levels 1 to 4, so internal 1 (all staff) is one column "Level 1 and 2".
-  var NAMES = { 1: 'Stylists & Beauticians', 11: 'Reception & Call Centre', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
+  var NAMES = { 1: 'Stylists & Beauticians: own staff link only', 11: 'Reception & Call Centre', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
   var DISP = { 1: '1', 11: '2', 2: '3', 3: '4', 4: '5' }, SHORT = { 1: 'L1', 11: 'L2', 2: 'L3', 3: 'L4', 4: 'L5' };
   // The staff are one level inside (1), so Reception & Call Centre keep their own ticks under 'fd:<page>' (pages.js reads them when TRS_STAFF_FD is set).
   function pid(id, l) { return l === 11 ? 'fd:' + id : id; }
@@ -122,7 +122,8 @@
     });
     return TRS_PAGES.filter(function (p) { return !p.retired; }).concat(docs);
   }
-  function lvOf(p) { return p.doc ? [2, 3, 4] : LV; }
+  // Level 1 (stylists, beauticians) do not open the dashboard: their access is their own staff link, so there is no page tick for them.
+  function lvOf(p) { return p.doc ? [2, 3, 4] : [11, 2, 3, 4]; }
   function nameOf(id) { id = String(id).replace(/^fd:/, ''); var p = pages().filter(function (x) { return x.id === id; })[0]; return p ? p.label : trsPageLabel(id); }
   function table() {
     var list = pages(), groups = [], by = {};
@@ -146,6 +147,7 @@
           (p.inside ? '<span class="pa-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</td>' +
           LV.map(function (l) {
             if (p.doc && (l === 1 || l === 11)) return '<td class="pa-c"><span class="pa-five">by team</span></td>';
+            if (l === 1) return '<td class="pa-c"><span class="pa-five" title="Their own staff link">own link</span></td>';
             var chg = saved(p.id, l) !== null && saved(p.id, l) !== dflt(p.id, l);
             return '<td class="pa-c' + (chg ? ' pa-chg' : '') + '"><input type="checkbox" data-l="' + l + '"' + (eff(p.id, l) ? ' checked' : '') +
               ' aria-label="' + esc(p.label) + ', Level ' + DISP[l] + ' ' + esc(NAMES[l]) + '"></td>';
@@ -217,7 +219,7 @@
         '<input type="search" id="paFilter" placeholder="Search pages" autocomplete="off" aria-label="Search pages"></div>' +
         '<button type="button" class="pa-btn" id="paFold"></button><button type="button" class="pa-btn" id="paReset"></button></div>' +
       '<div class="pa-status" id="paStatus" role="status" aria-live="polite"></div>' +
-      '<p class="pa-legend"><b>L1</b> Stylists &amp; Beauticians · <b>L2</b> Reception &amp; Call Centre · <b>L3</b> Leadership · <b>L4</b> Executives &amp; Marketing · <b>L5</b> Accounts &amp; Admin. You (Level 6) always open everything.</p>' +
+      '<p class="pa-legend"><b>L1</b> Stylists &amp; Beauticians (their own staff link only, no page ticks) · <b>L2</b> Reception &amp; Call Centre · <b>L3</b> Leadership · <b>L4</b> Executives &amp; Marketing · <b>L5</b> Accounts &amp; Admin. You (Level 6) always open everything.</p>' +
       '<div class="pa-wrap"><table class="pa-tbl"><thead><tr><th>Page <small>Level 6 (you) always opens every page</small></th>' +
         LV.map(function (l) { return '<th><span class="pa-full">Level ' + DISP[l] + '</span><span class="pa-short">' + SHORT[l] + '</span><small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
       '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level that is below what its data asks for will open and then say it needs a higher level, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents (the sections under “Documents”) are guarded by the database itself, so a tick there really opens or closes the text for that level; Level 1 and 2 staff are opened team by team, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</p>' + '</div>';
