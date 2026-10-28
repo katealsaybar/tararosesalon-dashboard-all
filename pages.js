@@ -1,3 +1,7 @@
+/* Kate, 28 Oct 2026: LEVEL NUMBERS. People now see 1 Stylists & Beauticians, 2 Reception & Call Centre, 3 Leadership, 4 Executives & Marketing,
+   5 Accounts & Admin, 6 Kate. The numbers in this file, in every other script and in the database are still the OLD ones (1 staff, 2 leadership,
+   3 executives, 4 accounts, 5 Kate): only text shown to a person uses the new ones (KB.lvNo / KB.lvName in hub/hub.js). Read every lv, min and
+   TRS_LEVEL here as the old number. */
 /* THE LIST OF DASHBOARD PAGES. One place that says what each page is called, where it sits, who may open it and which address it
    uses. Everything that used to carry its own copy reads this instead: the section label in the masthead, showView's level and
    scope rules, the address slugs, the filter lists, the dashboard search's page words, the /search/ door and Team Home's starred

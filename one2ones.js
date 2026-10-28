@@ -88,7 +88,7 @@ function o2Draw() {
       <span class="o2-pills"><button type="button" class="o2-pill" data-need="1" aria-pressed="${O2.need}">Needs attention</button></span></div>` +
     (l.length ? `<div class="o2-card"><table><thead><tr><th><button type="button" data-sort="name">Name</button></th><th><button type="button" data-sort="oto">1-to-1</button></th><th>Their part</th><th><button type="button" data-sort="goals">Goals ${o2Esc(year)}</button></th><th></th></tr></thead><tbody>${rows}</tbody></table><div class="o2-cards">${cards}</div></div>`
       : '<p class="o2-empty">Nobody matches those filters.</p>') +
-    `<p class="o2-foot">${l.length} of ${all.length} people. Only staff whose 1-to-1 is switched on are listed. Level 3 and 5 only. Statuses and dates; what was written is on each person's own page, for Emma, Tara and Kate.</p>`;
+    `<p class="o2-foot">${l.length} of ${all.length} people. Only staff whose 1-to-1 is switched on are listed. Level 4 and 6 only. Statuses and dates; what was written is on each person's own page, for Emma, Tara and Kate.</p>`;
 }
 
 async function renderOne2Ones() {
@@ -115,10 +115,10 @@ async function renderOne2Ones() {
     if (!key) await new Promise(r => setTimeout(r, 250));
   }
   if (seq !== o2Seq) return;
-  if (!key) { o2Data = null; o2Msg = 'This list needs the Staff Benchmarks key from your sign-in (Level 3 and above). Sign out and in again, or ask Kate.'; o2Draw(); return; }
+  if (!key) { o2Data = null; o2Msg = 'This list needs the Staff Benchmarks key from your sign-in (Level 4 and above). Sign out and in again, or ask Kate.'; o2Draw(); return; }
   const { data, error } = await sb.rpc('perf_one2one_list', { p_admin: key });
   if (seq !== o2Seq) return;
   if (error) { o2Data = null; o2Msg = 'The list did not load. Refresh to try again.'; o2Draw(); return; }
-  if (!data) { o2Data = null; o2Msg = 'This list needs the Staff Benchmarks key from your sign-in (Level 3 and above). Sign out and in again, or ask Kate.'; o2Draw(); return; }
+  if (!data) { o2Data = null; o2Msg = 'This list needs the Staff Benchmarks key from your sign-in (Level 4 and above). Sign out and in again, or ask Kate.'; o2Draw(); return; }
   o2Data = data; o2Draw();
 }

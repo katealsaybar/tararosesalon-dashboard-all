@@ -78,7 +78,7 @@ function cbShell() {
   </style>
   <div class="cb">
     <h1>Client Book</h1>
-    <p class="cb-sub">Every Phorest client with their phone, email, client note and the notes on their visits. Search by name, phone number or email, then tap a client to open the card. Level 5 only. This is a copy taken from Phorest on 21 Oct 2026, so anything typed in Phorest after that is not here.</p>
+    <p class="cb-sub">Every Phorest client with their phone, email, client note and the notes on their visits. Search by name, phone number or email, then tap a client to open the card. Level 6 only. This is a copy taken from Phorest on 21 Oct 2026, so anything typed in Phorest after that is not here.</p>
     <div class="cb-bar">
       <input id="cbQ" class="cb-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, phone number or email" aria-label="Search clients" value="${cbEsc(CB.q)}">
       <select id="cbB" class="cb-sel" aria-label="Branch">${opts}</select>
@@ -222,7 +222,7 @@ async function cbLoad() {
 function renderClientBook() {
   const el = document.getElementById('clientBookContent');
   if (!el) return;
-  if (!cbLevelOk()) { el.innerHTML = '<div class="cb"><p class="cb-meta" style="padding:20px 0">The Client Book is for Level 5 only.</p></div>'; return; }
+  if (!cbLevelOk()) { el.innerHTML = '<div class="cb"><p class="cb-meta" style="padding:20px 0">The Client Book is for Level 6 only.</p></div>'; return; }
   el.innerHTML = cbShell();
   cbWire();
   cbOpen = '';

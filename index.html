@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=5a4c6aff"></script>
+<script src="pages.js?v=22a14d3b"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3569,14 +3569,14 @@ table.tp-cmp td.bad{color:var(--bad)}
   (function(){
     var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
-      oty: ['over-the-years.js?v=1fc5b2c7'],
+      oty: ['over-the-years.js?v=78813c31'],
       dp:  ['daily-performance.js?v=d34664d8', 'daily-addons.js?v=1e57830b'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=25d90f74', 'lost-lists.js?v=601836f9', 'lost-consults.js?v=745ff1fc', 'lost-review-file.js?v=6bf34e37',
-            'send-schedule.js?v=3abf6266', 'lost-queue.js?v=032c13a7', 'lost-waves.js?v=e6102677', 'lost-blast.js?v=79a4a6ba',
-            'lost-report.js?v=34417f27', 'wv-blast.js?v=dc4c6d0f', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=0dd8e569', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=6c5a3d25', 'client-mix.js?v=7ec12be4',
+      cl:  [LGX, 'lost-clients.js?v=240fb683', 'lost-lists.js?v=82848701', 'lost-consults.js?v=8dd97a9d', 'lost-review-file.js?v=de965c04',
+            'send-schedule.js?v=3abf6266', 'lost-queue.js?v=47a42dd0', 'lost-waves.js?v=c142e140', 'lost-blast.js?v=3ca1ba99',
+            'lost-report.js?v=34417f27', 'wv-blast.js?v=96e47ebb', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=0dd8e569', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=ccd22f87', 'client-mix.js?v=cf2a5284',
             'service-rankings.js?v=c1364c02'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
@@ -3590,10 +3590,10 @@ table.tp-cmp td.bad{color:var(--bad)}
       ad:  [LGX, 'active-deals.js?v=442ed4c5'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       dv:  [LGX, 'discounts-vouchers.js?v=7030779f'],
-      o2:  ['one2ones.js?v=05296c93'],
-      at:  ['attrition.js?v=ab90cc3b'],
-      cb:  ['client-book.js?v=9bb069ee'],
-      cp:  ['complaints.js?v=102e0159', 'complaint-log.js?v=ff126fad'],
+      o2:  ['one2ones.js?v=e817d434'],
+      at:  ['attrition.js?v=8ba0f0cd'],
+      cb:  ['client-book.js?v=cb5964c2'],
+      cp:  ['complaints.js?v=7b4fb85b', 'complaint-log.js?v=593a007c'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],

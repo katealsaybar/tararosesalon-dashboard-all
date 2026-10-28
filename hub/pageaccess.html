@@ -86,7 +86,10 @@
 (function () {
   var main = document.getElementById('kbMain');
   var LV = [1, 2, 3, 4];
-  var NAMES = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
+  // Kate, 28 Oct 2026: the numbers shown are the new ones (1 Stylists & Beauticians, 2 Reception & Call Centre, 3 Leadership, 4 Executives & Marketing,
+  // 5 Accounts & Admin, 6 Kate); the grid's columns are still the old internal levels 1 to 4, so internal 1 (all staff) is one column "Level 1 and 2".
+  var NAMES = { 1: 'Stylists, Beauticians, Reception, Call Centre', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
+  var DISP = { 1: '1 and 2', 2: '3', 3: '4', 4: '5' }, SHORT = { 1: 'L1+2', 2: 'L3', 3: 'L4', 4: 'L5' };
   var q = '', statusTimer = null, shut = {}, DOCS = [];
   try { shut = JSON.parse(localStorage.getItem('trs-pa-shut') || '{}') || {}; } catch (e) { shut = {}; }
   function keepShut() { try { localStorage.setItem('trs-pa-shut', JSON.stringify(shut)); } catch (e) {} }
@@ -142,7 +145,7 @@
             if (p.doc && l === 1) return '<td class="pa-c"><span class="pa-five">by team</span></td>';
             var chg = saved(p.id, l) !== null && saved(p.id, l) !== dflt(p.id, l);
             return '<td class="pa-c' + (chg ? ' pa-chg' : '') + '"><input type="checkbox" data-l="' + l + '"' + (eff(p.id, l) ? ' checked' : '') +
-              ' aria-label="' + esc(p.label) + ', Level ' + l + ' ' + esc(NAMES[l]) + '"></td>';
+              ' aria-label="' + esc(p.label) + ', Level ' + DISP[l] + ' ' + esc(NAMES[l]) + '"></td>';
           }).join('') + '</tr>');
       });
     });
@@ -179,7 +182,7 @@
     var o = window.TRS_ACCESS[id] || (window.TRS_ACCESS[id] = {});
     if (send === null) delete o[l]; else o[l] = send;
     var td = box.closest('td'); if (td) td.classList.toggle('pa-chg', send !== null);
-    say('Saved: ' + nameOf(id) + ', Level ' + l + ' ' + NAMES[l] + ', ' + (val ? 'can open it' : 'cannot open it') + '.');
+    say('Saved: ' + nameOf(id) + ', Level ' + DISP[l] + ' ' + NAMES[l] + ', ' + (val ? 'can open it' : 'cannot open it') + '.');
     paintCount();
   }
   async function resetAll() {
@@ -199,7 +202,7 @@
   KB.ready.then(async function () {
     // Level 5 only, and not while "View as" is on: previewing another level must not let that level change its own pages.
     if (KB.realLevel !== 5 || KB.viewAs) {
-      main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page is for Kate only' + (KB.viewAs ? ' (switch View as back to Level 5)' : '') + '.</p>';
+      main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page is for Kate only' + (KB.viewAs ? ' (switch View as back to Level 6)' : '') + '.</p>';
       return;
     }
     try { var dr = await KB.client.rpc('kb_section_defaults'); DOCS = (!dr.error && Array.isArray(dr.data)) ? dr.data : []; } catch (e) { DOCS = []; }
@@ -211,10 +214,10 @@
         '<input type="search" id="paFilter" placeholder="Search pages" autocomplete="off" aria-label="Search pages"></div>' +
         '<button type="button" class="pa-btn" id="paFold"></button><button type="button" class="pa-btn" id="paReset"></button></div>' +
       '<div class="pa-status" id="paStatus" role="status" aria-live="polite"></div>' +
-      '<p class="pa-legend"><b>L1</b> Team · <b>L2</b> Leadership · <b>L3</b> Executives &amp; Marketing · <b>L4</b> Accounts &amp; Admin. You (Level 5) always open everything.</p>' +
-      '<div class="pa-wrap"><table class="pa-tbl"><thead><tr><th>Page <small>Level 5 (you) always opens every page</small></th>' +
-        LV.map(function (l) { return '<th><span class="pa-full">Level ' + l + '</span><span class="pa-short">L' + l + '</span><small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
-      '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level whose data asks for Level 3 will open and then say “Level 3 and above”, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents (the sections under “Documents”) are guarded by the database itself, so a tick there really opens or closes the text for that level; Level 1 staff are opened team by team, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</p>' + '</div>';
+      '<p class="pa-legend"><b>L1+2</b> Stylists, Beauticians, Reception, Call Centre · <b>L3</b> Leadership · <b>L4</b> Executives &amp; Marketing · <b>L5</b> Accounts &amp; Admin. You (Level 6) always open everything.</p>' +
+      '<div class="pa-wrap"><table class="pa-tbl"><thead><tr><th>Page <small>Level 6 (you) always opens every page</small></th>' +
+        LV.map(function (l) { return '<th><span class="pa-full">Level ' + DISP[l] + '</span><span class="pa-short">' + SHORT[l] + '</span><small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
+      '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level that is below what its data asks for will open and then say it needs a higher level, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents (the sections under “Documents”) are guarded by the database itself, so a tick there really opens or closes the text for that level; Level 1 and 2 staff are opened team by team, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</p>' + '</div>';
     setTop();
     draw();
     document.getElementById('paFilter').addEventListener('input', function (e) { q = e.target.value; draw(); });

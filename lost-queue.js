@@ -257,7 +257,7 @@ function lqPaint() {
       </div>
       <p id="lqCount" class="slv-note"></p>
       <div id="lqTable"></div>
-      <p class="slv-muted ll-foot">One message per client, first match wins: smoothing, then colour, then other services, then everyone else. Someone in several groups appears once. This page and its phone numbers are for Level 3 and above.
+      <p class="slv-muted ll-foot">One message per client, first match wins: smoothing, then colour, then other services, then everyone else. Someone in several groups appears once. This page and its phone numbers are for Level 4 and above.
       Sent comes from respond.io (it only sees messages sent through it); a text, or WhatsApp opened from here, is marked by the button. A client with a booking, or who came in within the last 6 weeks, leaves the list on her own. Two clients on one number get one message.</p>
     </section>`;
   lqPaintTable();
@@ -878,9 +878,9 @@ async function lqRetry(i) {
 }
 async function lqSendToggle() {
   const on = !lqSendOn();
-  if (on && !confirm('Switch sending on? Anyone at Level 3 and above can then queue messages to clients.')) return;
+  if (on && !confirm('Switch sending on? Anyone at Level 4 and above can then queue messages to clients.')) return;
   const { data, error } = await sb.rpc('lost_send_config_set', { p_patch: { enabled: on } });
-  if (error) { console.error(error); lqNote('That did not change. Level 5 only.'); return; }
+  if (error) { console.error(error); lqNote('That did not change. Level 6 only.'); return; }
   lqSnd.info = data; lqPaint();
 }
 // A test goes to the number set as lost_send_config.test_phone, through the same worker and template, and is tagged lost-send-test.

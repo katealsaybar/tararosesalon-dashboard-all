@@ -165,16 +165,21 @@
     return KB.allowed.indexOf(s.key) >= 0 && pageOk;
   };
   KB.LEVELS = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin', 5: 'Backend' };
+  // Kate, 28 Oct 2026: the level numbers people SEE moved up: 1 Stylists & Beauticians, 2 Reception & Call Centre, 3 Leadership,
+  // 4 Executives & Marketing, 5 Accounts & Admin, 6 Kate. Inside the database and the code the old numbers stay (1 staff, 2 leadership,
+  // 3 executives, 4 accounts, 5 Kate), so only text meant for a person goes through these two. Level 1 splits by department.
+  KB.lvNo = function (n, dept) { n = +n; if (n === 1) return (dept === 'Front Desk' || dept === 'Call Centre') ? 2 : 1; return (n >= 2 && n <= 5) ? n + 1 : n; };
+  KB.lvName = function (n, dept) { if (+n === 1) return (dept === 'Front Desk' || dept === 'Call Centre') ? 'Reception & Call Centre' : 'Stylists & Beauticians'; return KB.LEVELS[n] || ''; };
   // The "View as" choices, and the key they live under (this browser only).
   KB.VIEW_AS = [
-    { v: '5', label: 'Level 5 · Backend (you)' },
-    { v: '4', label: 'Level 4 · Accounts & Admin' },
-    { v: '3', label: 'Level 3 · Executives & Marketing' },
-    { v: '2', label: 'Level 2 · Leadership' },
-    { v: '1|Front Desk', label: 'Level 1 · Team, Front Desk' },
-    { v: '1|Call Centre', label: 'Level 1 · Team, Call Centre' },
-    { v: '1|Hair', label: 'Level 1 · Team, Hair' },
-    { v: '1|Beauty', label: 'Level 1 · Team, Beauty' }
+    { v: '5', label: 'Level 6 · Backend (you)' },
+    { v: '4', label: 'Level 5 · Accounts & Admin' },
+    { v: '3', label: 'Level 4 · Executives & Marketing' },
+    { v: '2', label: 'Level 3 · Leadership' },
+    { v: '1|Front Desk', label: 'Level 2 · Reception, Front Desk' },
+    { v: '1|Call Centre', label: 'Level 2 · Call Centre' },
+    { v: '1|Hair', label: 'Level 1 · Stylists, Hair' },
+    { v: '1|Beauty', label: 'Level 1 · Beauticians, Beauty' }
   ];
   KB.readViewAs = function () {
     try {
@@ -452,7 +457,7 @@
     if (KB.viewAs && !document.querySelector('.kb-viewas-bar') && document.querySelector('link[href*="hub.css"]')) {
       var vb = document.createElement('div');
       vb.className = 'kb-viewas-bar';
-      vb.innerHTML = '<span>Viewing as <b>Level ' + KB.level + ' · ' + esc(KB.LEVELS[KB.level] || '') +
+      vb.innerHTML = '<span>Viewing as <b>Level ' + KB.lvNo(KB.level, KB.viewAs.dept) + ' · ' + esc(KB.lvName(KB.level, KB.viewAs.dept)) +
         (KB.viewAs.dept ? ', ' + esc(KB.viewAs.dept) : '') + '</b></span><button type="button">Back to my view</button>';
       vb.querySelector('button').onclick = function () { KB.setViewAs('5'); };
       document.body.appendChild(vb);
@@ -522,7 +527,7 @@
         '<div class="kb-menu hide" id="kbMenu">' +
           '<div class="kb-menu-who"><b>' + esc(KB.name || 'Signed in') + '</b><span>' + esc(KB.email || '') + '</span>' +
             // Kate, 2 Oct 2026: the level line is Level 5's alone; nobody else sees a level.
-            (KB.realLevel === 5 ? '<em class="kb-menu-lvl">Level 5 · ' + esc(KB.LEVELS[5]) + '</em>' : '') + '</div>' +
+            (KB.realLevel === 5 ? '<em class="kb-menu-lvl">Level ' + KB.lvNo(5) + ' · ' + esc(KB.LEVELS[5]) + '</em>' : '') + '</div>' +
           // Kate, 2 Oct 2026: our own list, not the browser's select box (it looked out of place).
           (KB.realLevel === 5 ? (function () {
             var cur = KB.viewAs ? KB.viewAs.level + (KB.viewAs.dept ? '|' + KB.viewAs.dept : '') : '5';
@@ -568,7 +573,7 @@
     if (KB.viewAs) {
       var bar = document.createElement('div');
       bar.className = 'kb-viewas-bar';
-      bar.innerHTML = '<span>Viewing as <b>Level ' + KB.level + ' · ' + esc(KB.LEVELS[KB.level] || '') +
+      bar.innerHTML = '<span>Viewing as <b>Level ' + KB.lvNo(KB.level, KB.viewAs.dept) + ' · ' + esc(KB.lvName(KB.level, KB.viewAs.dept)) +
         (KB.viewAs.dept ? ', ' + esc(KB.viewAs.dept) : '') + '</b></span><button type="button">Back to my view</button>';
       bar.querySelector('button').onclick = function () { KB.setViewAs('5'); };
       h.insertAdjacentElement('afterend', bar);

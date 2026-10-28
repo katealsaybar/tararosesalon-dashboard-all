@@ -63,5 +63,5 @@ async function lrfPaintAdd(msg) {
 async function lrfAddSet(on) {
   if (!on && !confirm('Stop adding new clients to the four sheets?\n\nRows already on the sheets keep updating. You can start it again here.')) return;
   const { error } = await sb.rpc('lost_sheet_adding_set', { p_on: !!on });
-  lrfPaintAdd(error ? 'That did not save. You need Level 3 or above.' : '');
+  lrfPaintAdd(error ? 'That did not save. You need Level 4 or above.' : '');
 }

@@ -365,7 +365,7 @@ function cmPaintRoster() {
         <div class="w13-tile"><div class="slv-eyebrow">Matched by name</div><div class="w13-val">${pct(lr)}%</div><div class="slv-note">retired names, ${lcNum(lr)} lines</div></div>
         <div class="w13-tile${ln ? ' warn' : ''}"><div class="slv-eyebrow">Not sorted</div><div class="w13-val">${pct(ln)}%</div><div class="slv-note">${lcNum(ln)} lines, shown below</div></div>
       </div>
-      ${unm.length ? `<div class="cm-warn"><b>${unm.length} Phorest categor${unm.length === 1 ? 'y has' : 'ies have'} no family yet:</b> ${unm.map(c => lcEsc(c.category)).join(', ')}. Their clients show on the Client Mix tab as Unmapped until ${edit ? 'you pick one below' : 'a Level 4 login picks one'}.</div>` : ''}
+      ${unm.length ? `<div class="cm-warn"><b>${unm.length} Phorest categor${unm.length === 1 ? 'y has' : 'ies have'} no family yet:</b> ${unm.map(c => lcEsc(c.category)).join(', ')}. Their clients show on the Client Mix tab as Unmapped until ${edit ? 'you pick one below' : 'a Level 5 login picks one'}.</div>` : ''}
     </section>
     ${edit ? `<section class="slv-card" style="margin-top:14px">
       <div class="slv-eyebrow">Refresh from Phorest</div>
@@ -382,7 +382,7 @@ function cmPaintRoster() {
         <div class="prd-top"><span class="prd-name">${lcEsc(c.category)}${c.family === 'unmapped' ? ' <b>(new)</b>' : ''}</span><span class="prd-spend">${lcNum(c.lines)} lines</span></div>
         <div class="prd-meta">${lcNum(c.services)} service${Number(c.services) === 1 ? '' : 's'}</div>
         <select class="cm-sel-m" data-c="${lcEsc(c.category)}" onchange="cmSetFamily(this)"${edit ? '' : ' disabled'}>${famOpts(c.family)}</select></div></li>`).join('')}</ol>
-      ${edit ? '' : '<p class="slv-note" style="margin-top:8px">Only a Level 4 login can change these.</p>'}
+      ${edit ? '' : '<p class="slv-note" style="margin-top:8px">Only a Level 5 login can change these.</p>'}
     </section>
     <section class="slv-card" style="margin-top:14px">
       <div class="slv-eyebrow">Not sorted yet</div>

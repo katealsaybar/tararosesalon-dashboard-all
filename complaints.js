@@ -84,7 +84,7 @@ async function cqRemove(id) {
   try {
     const { data, error } = await sb.rpc('client_complaint_submission_delete', { p_id: id });
     if (error) throw error;
-    if (!data) { window.alert('Only the person who logged it, or Level 5, can remove it.'); return; }
+    if (!data) { window.alert('Only the person who logged it, or Level 6, can remove it.'); return; }
     cqOpen = 0; cqLoadSummary(); cqLoadList();
   } catch (e) { console.error(e); window.alert('It could not be removed. Try again.'); }
 }
@@ -211,7 +211,7 @@ function cqShell() {
   const ropts = ['<option value="all">All outcomes</option>'].concat(Object.keys(CQ_RES).map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
   return cqCss() + `<div class="cq">
     <h1>Client Complaints</h1>
-    <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 2 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
+    <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 3 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
     ${cqRailShell(`<div id="cqTop"><p class="cq-meta">Loading…</p></div>
     <div class="cq-card cq-wait" id="cq-list">
       <h2>The complaints</h2>
@@ -748,7 +748,7 @@ function renderComplaints() {
   const other = document.getElementById('complaintlogContent'); if (other) other.innerHTML = '';   // one page's ids at a time
   cqMode = 'main';
   CQ.sort = 'date'; CQ.dir = 'desc'; if (['overdue', 'pending'].includes(CQ.status)) CQ.status = 'all';
-  if (!cqLevelOk()) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Client Complaints is for Levels 2 and up.</p></div>'; return; }
+  if (!cqLevelOk()) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Client Complaints is for Levels 3 and up.</p></div>'; return; }
   el.innerHTML = cqShell();
   cqWire();
   cqOpen = 0;

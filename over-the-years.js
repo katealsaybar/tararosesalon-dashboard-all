@@ -1589,7 +1589,7 @@ function otyReviews() {
 // ── INSTAGRAM (UNDER CONSTRUCTION) ───────────────────────────────────────
 function otyInstagram() {
   const head = `<div class="oty-eb"><i style="background:var(--hair)"></i>Instagram · posts, collabs and tags, by month <span class="oty-uc">(UNDER CONSTRUCTION)</span></div>`;
-  if (typeof TRS_LEVEL === 'undefined' || TRS_LEVEL < 3) return head + `<div class="oty-card oty-flag"><div class="oty-note">Instagram is for Level 3 and above.</div></div>`;
+  if (typeof TRS_LEVEL === 'undefined' || TRS_LEVEL < 3) return head + `<div class="oty-card oty-flag"><div class="oty-note">Instagram is for Level 4 and above.</div></div>`;
   if (!otyIgRaw) return head + `<div class="oty-card oty-flag"><div class="oty-note">${otyEsc(otyIgErr || 'Instagram has not loaded.')}</div></div>`;
   const ms = otyIgRaw.months || [], st = otyIgRaw.start || {}, n = ms.length;
   const val = (r, k) => (r.m < (st[k] || '0000') ? null : r[k]);

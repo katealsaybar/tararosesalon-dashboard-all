@@ -225,6 +225,6 @@ async function renderAttrition() {
     }
     atBusy = false;
   }
-  if (!atData) { document.getElementById('atBody').innerHTML = '<p class="at-note">This page is for Level 3 and up, signed in to all branches.</p>'; return; }
+  if (!atData) { document.getElementById('atBody').innerHTML = '<p class="at-note">This page is for Level 4 and up, signed in to all branches.</p>'; return; }
   atPaint();
 }

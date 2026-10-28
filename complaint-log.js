@@ -142,7 +142,7 @@ async function cqSubmit() {
 function cqLogShell() {
   return cqCss() + `<div class="cq">
     <h1>Log a Client Complaint</h1>
-    <p class="cq-sub">When a client complains, log it here so it is written down once, followed up and closed, and not left in WhatsApp. Leave How it was resolved empty and it stays open until you mark it resolved. Reply to the client within 2 days of the complaint and close it within 7; what is overdue shows first. Levels 2 and up. Everything logged here also counts in Client Complaints.</p>
+    <p class="cq-sub">When a client complains, log it here so it is written down once, followed up and closed, and not left in WhatsApp. Leave How it was resolved empty and it stays open until you mark it resolved. Reply to the client within 2 days of the complaint and close it within 7; what is overdue shows first. Levels 3 and up. Everything logged here also counts in Client Complaints.</p>
     ${cqRailShell(`<div class="cq-tiles" id="cqFlags" aria-live="polite"></div>
     <datalist id="cqRespList"><option value="Emma W"><option value="Ashleigh"><option value="Mette"><option value="Coach Emma"><option value="Mona"><option value="Kate"></datalist>
     ${cqForm()}
@@ -165,7 +165,7 @@ function cqLogShell() {
 function renderComplaintLog() {
   const el = document.getElementById('complaintlogContent');
   if (!el) return;
-  if (!cqLevelOk('complaintlog')) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Log a Client Complaint is for Levels 2 and up.</p></div>'; return; }
+  if (!cqLevelOk('complaintlog')) { el.innerHTML = '<div class="cq"><p class="cq-meta" style="padding:20px 0">Log a Client Complaint is for Levels 3 and up.</p></div>'; return; }
   const other = document.getElementById('complaintsContent'); if (other) other.innerHTML = '';
   cqMode = 'log';
   CQ.page = 0; cqOpen = 0; CQ.sort = 'priority'; CQ.dir = 'asc';

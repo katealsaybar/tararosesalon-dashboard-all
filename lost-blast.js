@@ -72,13 +72,13 @@ function lqbRow(g) {
         : '<span class="slv-muted">Today\'s cap is used. Schedule it for another day.</span>';
     } else if (g.n === 1 && g.k === '1b' && LQW_HOLD_1B) act = '<span class="slv-muted">Held back</span>';
     else act = s.sent ? '<span class="slv-muted">Nothing left to send</span>' : '<span class="slv-muted">Nothing ready</span>';
-  } else if (st === 'ready') act = lvl4 && g.k !== '1b' ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqwOpen(${g.n})">Open ${g.n === 1 ? 'Wave 1' : lcEsc(g.label)}</button>` : g.k === '1b' ? '<span class="slv-muted">Opens with 1a</span>' : '<span class="slv-muted">Level 4 opens it</span>';
+  } else if (st === 'ready') act = lvl4 && g.k !== '1b' ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqwOpen(${g.n})">Open ${g.n === 1 ? 'Wave 1' : lcEsc(g.label)}</button>` : g.k === '1b' ? '<span class="slv-muted">Opens with 1a</span>' : '<span class="slv-muted">Level 5 opens it</span>';
   else if (st === 'done') act = '<span class="slv-muted">Done</span>';
   else {
     // The wave before is open and nothing of it is still waiting: this button finishes it and opens this one (lqwOpen asks the usual questions first).
     const prevOpen = g.n > 1 && lqwIsOpen(g.n - 1) && !(lqwSt[g.n - 1] ? lqwSt[g.n - 1].rows : []).some(r => !r.messaged && lqbJobIs(r, 'queued', 'sending'));
     act = prevOpen && lvl4 ? `<button type="button" class="tglr lc-btn wv-go" onclick="lqwOpen(${g.n})" title="Finishes Wave ${g.n - 1} and opens Wave ${g.n}. It asks you to confirm first.">Finish Wave ${g.n - 1}, open ${lcEsc(g.label)}</button>`
-      : prevOpen ? '<span class="slv-muted">Level 4 opens it</span>' : `<span class="slv-muted">After Wave ${g.n - 1}</span>`;
+      : prevOpen ? '<span class="slv-muted">Level 5 opens it</span>' : `<span class="slv-muted">After Wave ${g.n - 1}</span>`;
   }
   return `<tr><td class="ll-nw"><b>${lcEsc(g.label)}</b></td><td class="ll-nw"><a href="#" class="lqb-msg" onclick="event.preventDefault();lqbShowMsg('${g.k}')" title="Read the message">${lcEsc(g.msg)}</a></td><td class="ll-nw">${lcNum(s.total)}</td><td>${status} ${pills}</td><td class="ll-nw">${at}</td><td class="ll-nw">${lqbSetBy(g)}</td><td class="ll-nw">${act}</td></tr>`;
 }
@@ -103,7 +103,7 @@ function lqbSendPanel() {
       <button type="button" class="tglr lc-btn" onclick="lqSendTest()">Send a test to my number</button></span>` : '';
   const gate = lqbNextGate();
   return `<div class="ll-panel wv-send">
-    <div class="wv-send-h"><div><b>Send from here</b> <span class="slv-note">Level 4 opens a wave · Level 5 switches sending and sets the pace</span></div>${sw}</div>
+    <div class="wv-send-h"><div><b>Send from here</b> <span class="slv-note">Level 5 opens a wave · Level 6 switches sending and sets the pace</span></div>${sw}</div>
     <p class="slv-muted wv-send-p">Each message goes through respond.io from that client's own branch number, as an approved template. It sends only between ${lcEsc(lqHour(i.hour_from))} and ${lcEsc(lqHour(i.hour_to))} Dubai${win ? '' : ' <b>(closed right now, so it waits)</b>'}, ${pace}.
       Today <b>${lcNum(i.sent_today || 0)}</b> sent${waiting ? `, <b>${lcNum(waiting)}</b> waiting` : ''}, up to ${lcNum(i.daily_cap)} a day. A client who wrote STOP, is blocked, or is not a respond.io contact is skipped.</p>
     <div class="slv-wrap"><table class="slv-table"><thead><tr><th>Wave</th><th>Message</th><th>Clients</th><th>Status</th><th>Send at</th><th>Set by</th><th></th></tr></thead><tbody>${lqbGroups().map(lqbRow).join('')}</tbody><tbody id="lqbRsTb">${lqbRsRowHtml()}</tbody></table></div>
@@ -133,7 +133,7 @@ function lqbWhy(cur) {
   const allDone = [1, 2, 3, 4].every(n => st(n) === 'done');
   const now = st(cur) === 'open' ? `Wave ${cur} is open now, so its clients can be messaged today.`
     : allDone ? 'All four waves have gone out, so nothing is waiting to send.'
-    : 'No wave is open right now. The next one goes out when a Level 4 person opens it.';
+    : 'No wave is open right now. The next one goes out when a Level 5 person opens it.';
   return whyWall([
     ['Why this page', 'A client who has gone quiet already knows us, so she is the easiest booking we can still win.'],
     ['Why now', now],
@@ -300,7 +300,7 @@ async function lqbCampSet(on) {
     : 'Reopen the campaign?\n\nNew clients are added to the sheets and the lists again, from tonight\'s refresh, and the wave that was ended comes back.';
   if (!confirm(ask)) return;
   const { error } = await sb.rpc('lost_campaign_finish', { p_on: !!on });
-  if (error) { console.error(error); lqNote('That did not save. Only Level 5 can do it.'); return; }
+  if (error) { console.error(error); lqNote('That did not save. Only Level 6 can do it.'); return; }
   await lqbCampLoad();
   lqNote(on ? 'Campaign finished. No new clients will be added.' : 'Campaign reopened.');
 }

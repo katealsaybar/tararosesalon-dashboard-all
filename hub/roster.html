@@ -150,7 +150,7 @@
     if (!canSetLevel(p)) return '';
     return '<select class="rs-lv" data-email="' + esc(p.email) + '" aria-label="Level for ' + esc(p.name) + '">' +
       [2, 3, 4].map(function (l) {
-        return '<option value="' + l + '"' + (l === p.level ? ' selected' : '') + '>Level ' + l + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
+        return '<option value="' + l + '"' + (l === p.level ? ' selected' : '') + '>Level ' + KB.lvNo(l) + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
       }).join('') + '</select>';
   }
   // Kate, 15 Oct 2026: Revoke access on every row except the owner's, at any level or
@@ -209,7 +209,7 @@
     var people = data.people.filter(match);
     var groups = [], by = {};
     people.forEach(function (p) {
-      var g = byLevel ? (p.level > 1 ? 'Level ' + p.level + ' · ' + (KB.LEVELS[p.level] || '') : 'Level 1 · Team, ' + (p.dept || 'Other')) : p.team || 'Other';
+      var g = byLevel ? (p.level > 1 ? 'Level ' + KB.lvNo(p.level) + ' · ' + (KB.LEVELS[p.level] || '') : 'Level ' + KB.lvNo(1, p.dept) + ' · ' + KB.lvName(1, p.dept) + ', ' + (p.dept || 'Other')) : p.team || 'Other';
       if (!by[g]) { by[g] = []; groups.push(g); }
       by[g].push(p);
     });
@@ -229,7 +229,7 @@
           // Job title, Email, Sign-in (the invite button replaces "Never signed in"), and
           // Revoke on the right. Level and Revoke are Level 5 only.
           var lvCell = byLevel ? '<div class="rs-lvc">' + (canSetLevel(p) ? levelBits(p) :
-            '<span class="rs-lvt">Level ' + p.level + ' · ' + esc(KB.LEVELS[p.level] || '') + '</span>') + '</div>' : '';
+            '<span class="rs-lvt">Level ' + KB.lvNo(p.level, p.dept) + ' · ' + esc(KB.lvName(p.level, p.dept)) + '</span>') + '</div>' : '';
           var signIn = p.last_sign_in ? '<span>Signed in</span>' :
             (canInvite(p) ? inviteBits(p) : '<span>Never signed in</span>');
           return '<li>' + lvCell +
@@ -273,11 +273,11 @@
           '<label>Full name<input type="text" id="rsName" required></label>' +
           '<label>Email<input type="email" id="rsEmail" required></label>' +
           '<label>Level<select id="rsLevel">' + [2, 3, 4].map(function (l) {
-            return '<option value="' + l + '">Level ' + l + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
+            return '<option value="' + l + '">Level ' + KB.lvNo(l) + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
           }).join('') + '</select></label>' +
           '<label>Region<select id="rsScope"><option value="">All branches</option><option value="BAH">Bahrain only</option></select></label>' +
           '<button type="submit" class="rs-addbtn" id="rsAddGo">Add and send invite</button>' +
-          '<p class="rs-hint">They get the Team Home invite email straight away. Level 5 is not set here.</p>' +
+          '<p class="rs-hint">They get the Team Home invite email straight away. Level 6 is not set here.</p>' +
         '</form></div>' : '') +
       (data.staff_open ? '' : '<div class="kb-note">Team Home isn’t open to the salon team yet, so they can’t sign in until it is.</div>') +
       '<div class="rs-bar">' +
@@ -287,7 +287,7 @@
           '<select data-k="team" aria-label="Team">' + opts('All teams', teams.map(function (t) { return [t, t]; })) + '</select>' +
           '<select data-k="branch" aria-label="Branch">' + opts('All branches', branches.map(function (b) { return [b, BRANCH[b]]; })) + '</select>' +
           '<select data-k="seen" aria-label="Signed in">' + opts('Signed in or not', [['in', 'Has signed in'], ['never', 'Never signed in']]) + '</select>' +
-          (byLevel ? '<select data-k="level" aria-label="Level">' + opts('All levels', [5, 4, 3, 2, 1].map(function (l) { return [String(l), 'Level ' + l]; })) + '</select>' : '') +
+          (byLevel ? '<select data-k="level" aria-label="Level">' + opts('All levels', [5, 4, 3, 2, 1].map(function (l) { return [String(l), l === 1 ? 'Level 1 and 2' : 'Level ' + KB.lvNo(l)]; })) + '</select>' : '') +
         '</div>' +
       '</div>' +
       '<div class="rs-status"><span id="rsCount"></span><button type="button" id="rsClear" hidden>Clear filters</button></div>' +
@@ -382,14 +382,14 @@
         e.preventDefault();
         var name = document.getElementById('rsName').value.trim(), email = document.getElementById('rsEmail').value.trim().toLowerCase();
         var level = parseInt(document.getElementById('rsLevel').value, 10), scope = document.getElementById('rsScope').value || null;
-        if (!confirm('Add ' + name + ' (' + email + ') at Level ' + level + (scope ? ', Bahrain only' : '') + ' and email them the invite?')) return;
+        if (!confirm('Add ' + name + ' (' + email + ') at Level ' + KB.lvNo(level) + (scope ? ', Bahrain only' : '') + ' and email them the invite?')) return;
         var go = document.getElementById('rsAddGo'); go.disabled = true; go.textContent = 'Adding…';
         var s = await KB.client.rpc('kb_add_user', { p_email: email, p_name: name, p_level: level, p_scope: scope });
         go.disabled = false; go.textContent = 'Add and send invite';
         if (s.error) { alert('Not added: ' + s.error.message); return; }
         form.reset(); form.classList.remove('open');
         await reload();
-        alert(name + ' is on the list at Level ' + level + '. The invite email goes out in a few seconds.');
+        alert(name + ' is on the list at Level ' + KB.lvNo(level) + '. The invite email goes out in a few seconds.');
       });
       // Revoke access (kb_revoke_access): shuts the person out altogether, any level or
       // position: off the dashboard list (a copy is kept), onto the block list, sign-in
@@ -438,7 +438,7 @@
         if (!sel) return;
         var email = sel.dataset.email, who = data.people.find(function (p) { return p.email === email; });
         var lv = parseInt(sel.value, 10);
-        if (!confirm('Change ' + (who ? who.name : email) + ' to Level ' + lv + '?')) { if (who) sel.value = who.level; return; }
+        if (!confirm('Change ' + (who ? who.name : email) + ' to Level ' + KB.lvNo(lv) + '?')) { if (who) sel.value = who.level; return; }
         sel.disabled = true;
         var s = await KB.client.rpc('kb_set_user_level', { p_email: email, p_level: lv });
         if (s.error) { alert('Not changed: ' + s.error.message); if (who) sel.value = who.level; sel.disabled = false; return; }

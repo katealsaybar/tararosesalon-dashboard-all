@@ -173,7 +173,7 @@ async function lqwSet(n, action) {
   return true;
 }
 async function lqwOpen(n) {
-  if (!lqwLevel(4)) { lqNote('Level 4 and above opens a wave.'); return; }
+  if (!lqwLevel(4)) { lqNote('Level 5 and above opens a wave.'); return; }
   const g = n > 1 ? lqwGate(n - 1) : null;
   if (g && g.over.length && !confirm('Wave ' + (n - 1) + ' is over its limit: ' + g.over.join(', ') + '.\n\nOpen Wave ' + n + ' anyway?')) return;
   if (g && g.left > 0 && !confirm(lcNum(g.left) + ' clients in Wave ' + (n - 1) + ' have not been messaged yet. Finish Wave ' + (n - 1) + ' and open Wave ' + n + '?')) return;
@@ -182,12 +182,12 @@ async function lqwOpen(n) {
   lqSel.wv = n; lqSave(); lqPaint();
 }
 async function lqwEnd(n) {
-  if (!lqwLevel(4)) { lqNote('Level 4 and above ends a wave.'); return; }
+  if (!lqwLevel(4)) { lqNote('Level 5 and above ends a wave.'); return; }
   if (!confirm('End Wave ' + n + '? Nothing more goes out in it unless you reopen it.')) return;
   if (await lqwSet(n, 'close')) lqPaint();
 }
 async function lqwReopen(n) {
-  if (!lqwLevel(4)) { lqNote('Level 4 and above reopens a wave.'); return; }
+  if (!lqwLevel(4)) { lqNote('Level 5 and above reopens a wave.'); return; }
   if (await lqwSet(n, 'reopen')) lqPaint();
 }
 function lqwPick(n) { lqSel.wv = n; lqPage = 1; lqSave(); lqPaint(); }
@@ -341,7 +341,7 @@ function lqwGateHtml(n) {
   const lbl = first ? 'Open Wave 1 and start sending' : `Finish Wave ${n - 1} and open Wave ${n}`;
   return `<div class="lqw-gate"><b>${first ? 'Before Wave 1 opens' : `Before Wave ${n} opens`}</b>${items}
     <div class="lqw-chk"><span class="lqw-no">!</span><span>Check each branch number's quality rating in Meta (it cannot be read here)</span></div>
-    <div class="lqw-row" style="margin-top:10px">${lqwLevel(4) ? `<button type="button" class="tglr lc-btn lq-pri" onclick="lqwOpen(${n})">${lbl}</button>` : '<span class="slv-note">Level 4 and above opens a wave.</span>'}
+    <div class="lqw-row" style="margin-top:10px">${lqwLevel(4) ? `<button type="button" class="tglr lc-btn lq-pri" onclick="lqwOpen(${n})">${lbl}</button>` : '<span class="slv-note">Level 5 and above opens a wave.</span>'}
       <span class="slv-note">You can open it with a warning showing. It only asks you to confirm.</span></div></div>`;
 }
 function lqwBody(n) {
