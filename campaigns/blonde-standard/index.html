@@ -883,6 +883,12 @@ html.wa-open{overflow:hidden}
 .plancard p.plancard__quote{margin:0;font-family:var(--fd);font-style:italic;font-weight:500;font-size:17px;line-height:1.35;color:var(--accent-text)}
 .gsvc--row{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:baseline}
 .gsvc__desc{grid-column:1/-1;margin:3px 0 0;font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-cat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#waSheet .bk-c{position:relative;display:flex;align-items:center;justify-content:center;min-height:52px;padding:0 12px;background:#fff;border:1px solid var(--hair);border-radius:14px;cursor:pointer;font-family:var(--fb);font-size:15px;font-weight:500;color:var(--ink);text-align:center;transition:border-color .15s ease,background .15s ease,color .15s ease}
+#waSheet .bk-c input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+#waSheet .bk-c:hover{border-color:rgba(28,117,99,.5)}
+#waSheet .bk-c.is-on{background:var(--ink);border-color:var(--ink);color:#fff}
+#waSheet .bk-c:has(input:focus-visible){outline:2px solid var(--accent-text);outline-offset:2px}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
@@ -1317,10 +1323,18 @@ html.wa-open{overflow:hidden}
     <button class="wa-sheet__x" type="button" data-close aria-label="Close">&times;</button>
     <p class="wa-sheet__eyebrow">Book on WhatsApp</p>
     <h3 id="waTitle" tabindex="-1">Book your appointment</h3>
-    <p class="bk-lede">Answer four quick questions and your WhatsApp message is written for you.</p>
+    <p class="bk-lede">Answer a few quick questions and your WhatsApp message is written for you.</p>
+
+    <div class="bk-f" id="bkCatF">
+      <span class="bk-l" id="bkCatL">What would you like?</span>
+      <div class="bk-cat" role="radiogroup" aria-labelledby="bkCatL">
+        <label class="bk-c"><input type="radio" name="bkCat" value="plans" checked><span>A plan</span></label>
+        <label class="bk-c"><input type="radio" name="bkCat" value="services"><span>A single service</span></label>
+      </div>
+    </div>
 
     <div class="bk-f" id="bkSvcF">
-      <label class="bk-l" for="bkSvc">Which service would you like?</label>
+      <label class="bk-l" for="bkSvc" id="bkSvcL">Which plan?</label>
       <div class="bk-sel"><select id="bkSvc"></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <p class="bk-help" id="bkSvcDesc"></p>
       <p class="bk-bs" id="bkBS" hidden>Send us a message and we will match you with the right colourist.</p>
@@ -1466,13 +1480,16 @@ html.wa-open{overflow:hidden}
   var $=function(id){ return document.getElementById(id); };
   var svcSel=$('bkSvc'), salSel=$('bkSalon'), desc=$('bkSvcDesc'), bsNote=$('bkBS'), title=$('waTitle');
   var lenF=$('bkLenF'), densF=$('bkDensF'), priceEl=$('bkPrice'), priceNote=$('bkPriceNote'), go=$('bkGo'), miss=$('bkMiss');
-  var key='plan', st={len:null,dens:null};
+  var key='plan', cat='plans', lastSel={plans:null,services:null}, st={len:null,dens:null};
+  var GL={highlighting:'Highlighting',balayage:'Balayage',colour:'Colour and add-ons'}, svcL=$('bkSvcL');
   var aed=function(v){ return 'AED '+v.toLocaleString('en-US'); };
-  var cur=function(){ return SV[key].opts[Number(svcSel.value)||0]; };
+  var ref2=function(){ var v=String(svcSel.value||'0').split(':'); return v.length>1?[v[0],Number(v[1])||0]:['plan',Number(v[0])||0]; };
+  var cur=function(){ var r=ref2(); return SV[r[0]].opts[r[1]]; };
   var radios=function(n){ return [].slice.call(sheet.querySelectorAll('input[name="'+n+'"]')); };
-  var mark=function(){ sheet.querySelectorAll('.bk-r,.bk-d').forEach(function(l){ var i=l.querySelector('input'); l.classList.toggle('is-on',i.checked); }); };
+  var mark=function(){ sheet.querySelectorAll('.bk-r,.bk-d,.bk-c').forEach(function(l){ var i=l.querySelector('input'); l.classList.toggle('is-on',i.checked); }); };
   var render=function(){
     var o=cur(), pr=o[2], bs=pr==='bs', arr=Array.isArray(pr);
+    pick=ref2()[0];
     desc.textContent=o[1]; bsNote.hidden=!bs; lenF.hidden=bs; densF.hidden=bs;
     sheet.querySelectorAll('.bk-opts .bk-r').forEach(function(l,i){ l.querySelector('.bk-r__p').textContent=arr?aed(pr[i]):''; });
     var l=st.len, d=st.dens, out=(l!==null&&l>=0&&d!==null)?G[l][d]:null;
@@ -1528,19 +1545,40 @@ html.wa-open{overflow:hidden}
   radios('bkDens').forEach(function(r){ r.addEventListener('change',function(){ st.dens=Number(r.value); mark(); render(); }); });
   svcSel.addEventListener('change',render);
   salSel.addEventListener('change',update);
+  var optText=function(o){
+    var p=o[2], pt=Array.isArray(p)?(p[0]===p[3]?', '+aed(p[0]):', from '+aed(p[0])):(typeof p==='string'&&p.indexOf('from')===0?', '+p.replace('from','from AED'):(typeof p==='string'&&p!=='bs'?', '+p.toLowerCase():''));
+    return (o[3]||o[0].replace(' (solid colour roots)',''))+pt;
+  };
+  /* What would you like? A plan, or a single service. The second bar lists only that group; the choice she made in each group is kept when she switches back. */
+  var fill=function(want){
+    svcSel.innerHTML=''; var sel=null, first=null;
+    var add=function(parent,k,i,o){
+      var op=document.createElement('option'); op.value=(k==='plan')?String(i):k+':'+i; op.textContent=optText(o); parent.appendChild(op);
+      if(first===null) first=op.value;
+      if(want&&want.indexOf(o[0].toLowerCase())===0) sel=op.value;
+    };
+    if(cat==='plans'){ SV.plan.opts.forEach(function(o,i){ add(svcSel,'plan',i,o); }); }
+    else { ['highlighting','balayage','colour'].forEach(function(k){ var g=document.createElement('optgroup'); g.label=GL[k]; SV[k].opts.forEach(function(o,i){ add(g,k,i,o); }); svcSel.appendChild(g); }); }
+    var keep=lastSel[cat], ok=keep&&[].slice.call(svcSel.options).some(function(o){ return o.value===keep; });
+    svcSel.value=ok?keep:(sel!==null?sel:first);
+    title.textContent=cat==='plans'?SV.plan.title:'Book a Blonde Menu service';
+    if(svcL) svcL.textContent=cat==='plans'?'Which plan?':'Which service?';
+    radios('bkCat').forEach(function(r){ r.checked=(r.value===cat); });
+    mark();
+  };
+  var setCat=function(c){
+    if(c===cat) return;
+    lastSel[cat]=svcSel.value; cat=c; fill('');
+    miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
+    render();
+  };
+  radios('bkCat').forEach(function(r){ r.addEventListener('change',function(){ setCat(r.value); }); });
   var open=function(btn){
     last=btn; pick=btn.getAttribute('data-svc')||'';
-    key=SV[pick]?pick:'plan';
-    title.textContent=SV[key].title;
-    svcSel.innerHTML='';
-    var want=(btn.getAttribute('data-book-base')||btn.getAttribute('data-book')||'').toLowerCase(), sel=0;
-    SV[key].opts.forEach(function(o,i){
-      var op=document.createElement('option'); op.value=i;
-      var p=o[2], pt=Array.isArray(p)?(p[0]===p[3]?', '+aed(p[0]):', from '+aed(p[0])):(typeof p==='string'&&p.indexOf('from')===0?', '+p.replace('from','from AED'):(typeof p==='string'&&p!=='bs'?', '+p.toLowerCase():''));
-      op.textContent=(o[3]||o[0].replace(' (solid colour roots)',''))+pt; svcSel.appendChild(op);
-      if(want&&want.indexOf(o[0].toLowerCase())===0) sel=i;
-    });
-    svcSel.value=String(sel);
+    cat=(pick==='plan'||!SV[pick])?'plans':'services';
+    lastSel={plans:null,services:null};
+    var want=(btn.getAttribute('data-book-base')||btn.getAttribute('data-book')||'').toLowerCase();
+    fill(want);
     if(st.len===null&&typeof window.bsL==='number'){ st.len=window.bsL; st.dens=window.bsD; radios('bkLen').forEach(function(r){ r.checked=Number(r.value)===st.len; }); radios('bkDens').forEach(function(r){ r.checked=Number(r.value)===st.dens; }); mark(); }
     miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
     render();
