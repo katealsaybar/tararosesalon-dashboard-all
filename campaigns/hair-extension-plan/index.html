@@ -126,6 +126,9 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .plancard__price span{display:block;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
 .plancard__price strong{display:block;margin:4px 0 2px;font-family:var(--fd);font-weight:500;font-size:30px;line-height:1.1;color:var(--ink);font-variant-numeric:tabular-nums}
 .plancard__price small{display:block;font-size:12.5px;color:var(--ink-soft)}
+.plancard .covers{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:9px;font-family:var(--fb);font-size:14px;font-weight:300;line-height:1.4;color:var(--ink)}
+.plancard .covers li{display:flex;align-items:flex-start;gap:10px}
+.plancard .covers li::before{content:"";flex:0 0 18px;width:18px;height:18px;border-radius:50%;background:rgba(28,117,99,.10) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.6' fill='none' stroke='%231C7563' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/18px no-repeat}
 .plancard .pill{width:100%;justify-content:center;text-align:center;line-height:1.3;margin-top:18px;padding-inline:16px;letter-spacing:.06em}
 .plans-foot{max-width:860px;margin:22px auto 0}
 .plans-foot .short-note{margin-top:14px}
@@ -648,7 +651,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
         <a class="nav-link js-gift" href="#bookForm" style="align-self:center">Gift it instead &rarr;</a>
       </div>
       <ul class="hero-facts" aria-label="At a glance">
-        <li>Credit for cuts, blow-dries, toning, treatments and scalp care</li>
+        <li>Credit for cuts, blow-dries, toning and treatments for your extensions</li>
         <li>Confidence Mapping and your 8-Step Hair Plan, free</li>
         <li>At all four salons in Abu Dhabi and Dubai</li>
       </ul>
@@ -699,7 +702,8 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
         <div class="plancard__body">
           <span class="plancard__label">For extensions you already wear</span>
           <h3>Maintain Essentials</h3>
-          <p>Cuts, blow-dries, toning, treatments and scalp care between your move-ups.</p>
+          <p>Care for your extensions between your move-ups. Extension-related services only.</p>
+          <ul class="covers" aria-label="Covered by this plan"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li></ul>
           <div class="plancard__price"><span>You pay</span><strong>AED 1,500</strong><small>AED 1,800 to spend</small><small>Valid 6 months. Cash or card.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="essentials" data-svc="essentials">Choose Essentials <span class="arr">&rarr;</span></a>
         </div>
@@ -709,7 +713,8 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
         <div class="plancard__body">
           <span class="plancard__label">Our recommendation</span>
           <h3>Maintain Plus</h3>
-          <p>The same care, with more to spend, longer to use it and priority last-minute slots.</p>
+          <p>The same care, with more to spend and longer to use it. Extension-related services only.</p>
+          <ul class="covers" aria-label="Covered by this plan"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
           <div class="plancard__price"><span>You pay</span><strong>AED 3,000</strong><small>AED 3,600 to spend</small><small>Valid 9 months. Or 4 payments of AED 750 with Tabby.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="plus" data-svc="plus">Choose Plus <span class="arr">&rarr;</span></a>
         </div>
@@ -719,8 +724,9 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
         <div class="plancard__body">
           <span class="plancard__label">For your new set</span>
           <h3>New Hair and Maintain Bundle</h3>
-          <p>Your full application in the method you choose, plus AED 1,500 to spend on care over 12 months and priority last-minute slots.</p>
-          <div class="plancard__price"><span>From</span><strong>AED 3,300</strong><small>Valid 12 months. Or 4 payments from AED 825 with Tabby.</small></div>
+          <p>Your full application in the method you choose, plus extra credit for care over 12 months (AED 950 on Beaded or Sewn Weft). Extension-related services only.</p>
+          <ul class="covers" aria-label="Covered by this plan"><li>Full application in your method</li><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
+          <div class="plancard__price"><span>From</span><strong>AED 3,300</strong><small>AED 4,250 to spend on Beaded or Sewn Weft</small><small>Valid 12 months. Or 4 payments from AED 825 with Tabby.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="bundle" data-svc="bundle">Choose the Bundle <span class="arr">&rarr;</span></a>
           <details class="lentable"><summary>See Bundle prices by method</summary>
             <div class="lentable__scroll"><table><caption class="sr-only">New Hair and Maintain Bundle prices by method, in AED</caption><thead><tr><th scope="col">Method</th><th scope="col">From</th></tr></thead><tbody>
@@ -1020,7 +1026,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
       <span class="eyebrow">Questions</span>
       <h2>Quick answers.</h2>
     </div>
-    <details class="q"><summary>Does the plan cover new hair?<span class="chev"></span></summary><div class="ans">Only the Bundle. It includes your full application plus AED 1,500 to spend on care over 12 months. Essentials and Plus are for extensions you already wear.</div></details>
+    <details class="q"><summary>Does the plan cover new hair?<span class="chev"></span></summary><div class="ans">Only the Bundle. It includes your full application plus extra credit for care over 12 months (AED 950 on Beaded or Sewn Weft). Essentials and Plus are for extensions you already wear.</div></details>
     <details class="q"><summary>Does the credit cover my move-up?<span class="chev"></span></summary><div class="ans">No. Move-ups are booked and paid as they are today. Your credit covers the care around them that keeps the blend looking new.</div></details>
     <details class="q"><summary>Can I split the payment?<span class="chev"></span></summary><div class="ans">Yes, with Tabby. Plus splits into 4 payments of AED 750, and the Bundle into 4 payments from AED 825. Your credit stays the same. Essentials is cash or card.</div></details>
     <details class="q"><summary>Can I give it as a gift?<span class="chev"></span></summary><div class="ans">Yes. The plan is issued in her name, ready to book, with a note from you.</div></details>
@@ -1121,7 +1127,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     a.addEventListener('click',function(){ plan.value=a.dataset.plan; });
   });
   /* Plan cards: line up name, description and price block across the row, so no card stretches to the tallest. The Bundle prices open below its button. */
-  var parts=['#plans .plancard__body>h3','#plans .plancard__body>p','#plans .plancard__price'];
+  var parts=['#plans .plancard__body>h3','#plans .plancard__body>p','#plans .plancard__body>.covers','#plans .plancard__price'];
   var level=function(){
     var c=document.querySelectorAll('#plans .plancard');
     var row=c.length>1&&c[0].getBoundingClientRect().top===c[1].getBoundingClientRect().top;
@@ -1187,7 +1193,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
   var SV=[
     {k:'essentials',n:'Maintain Essentials',o:'Maintain Essentials, AED 1,500',d:'For extensions you already wear. AED 1,800 to spend over 6 months.'},
     {k:'plus',n:'Maintain Plus',o:'Maintain Plus, AED 3,000',d:'Our recommendation. AED 3,600 to spend over 9 months, plus priority last-minute slots.'},
-    {k:'bundle',n:'the New Hair and Maintain Bundle',o:'New Hair and Maintain Bundle, from AED 3,300',d:'Your full application, plus AED 1,500 to spend on care over 12 months.'},
+    {k:'bundle',n:'the New Hair and Maintain Bundle',o:'New Hair and Maintain Bundle, from AED 3,300',d:'Your full application, plus extra credit for care over 12 months. AED 950 on Beaded or Sewn Weft.'},
     {k:'moveup',n:'a move-up',o:'A move-up only',d:'Booked and paid separately from a plan.'},
     {k:'unsure',n:'an extension plan, and I would like help choosing',o:'Not sure yet, help me choose',d:'We help you choose the right plan on WhatsApp.'}
   ];
@@ -1202,7 +1208,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     var o=cur(), m=meth&&meth!=='unsure'?meth:null;
     if(o.k==='essentials') return ['You pay','AED 1,500','AED 1,800 to spend.'];
     if(o.k==='plus') return ['You pay','AED 3,000','AED 3,600 to spend. Or 4 payments of AED 750 with Tabby.'];
-    if(o.k==='bundle') return m?['You pay',BU[m],m==='keratin'?'Your stylist quotes Keratin and Fusion at your Confidence Mapping.':'Or 4 payments with Tabby.']:['You pay','From AED 3,300',meth==='unsure'?'Your stylist confirms your method and price at your Confidence Mapping.':''];
+    if(o.k==='bundle') return m?['You pay',BU[m],m==='keratin'?'Your stylist quotes Keratin and Fusion at your Confidence Mapping.':(m==='sewn'||m==='beaded'?'AED 4,250 to spend. ':'')+'Or 4 payments with Tabby.']:['You pay','From AED 3,300',meth==='unsure'?'Your stylist confirms your method and price at your Confidence Mapping.':''];
     if(o.k==='moveup') return m?['Move-up',MU[m],MUX[m]]:['Move-up','From AED 450',''];
     return ['Plans','From AED 1,500',''];
   };
