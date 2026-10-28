@@ -529,11 +529,11 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
             <div class="gcard__list">
               <div class="gcard__cols" aria-hidden="true"><span>Treatment</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
               <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Scalp Health<small>Vegan</small></span></div><div class="gsvc__lens" aria-label="Scalp Health by length: Short / Fine AED 210, Medium AED 220, Long / Thick AED 235, Extra Long AED 245"><span>210</span><span>220</span><span>235</span><span>245</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Scalp Health<small>Caviar</small></span></div><div class="gsvc__lens" aria-label="Scalp Health by length: Short / Fine AED 250, Medium AED 260, Long / Thick AED 275, Extra Long AED 285"><span>250</span><span>260</span><span>275</span><span>285</span></div></li>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Strength</span></div><div class="gsvc__lens" aria-label="Strength by length: Short / Fine AED 210, Medium AED 250, Long / Thick AED 285, Extra Long AED 325"><span>210</span><span>250</span><span>285</span><span>325</span></div></li>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Colour Longevity</span></div><div class="gsvc__lens" aria-label="Colour Longevity by length: Short / Fine AED 250, Medium AED 260, Long / Thick AED 275, Extra Long AED 285"><span>250</span><span>260</span><span>275</span><span>285</span></div></li>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Hydration &amp; Frizz</span></div><div class="gsvc__lens" aria-label="Hydration & Frizz by length: Short / Fine AED 290, Medium AED 330, Long / Thick AED 365, Extra Long AED 405"><span>290</span><span>330</span><span>365</span><span>405</span></div></li>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Scalp Health<small>Vegan</small></span></div><div class="gsvc__lens" aria-label="Scalp Health by length: Short / Fine AED 210, Medium AED 220, Long / Thick AED 235, Extra Long AED 245"><span>210</span><span>220</span><span>235</span><span>245</span></div></li>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Scalp Health<small>Caviar</small></span></div><div class="gsvc__lens" aria-label="Scalp Health by length: Short / Fine AED 250, Medium AED 260, Long / Thick AED 275, Extra Long AED 285"><span>250</span><span>260</span><span>275</span><span>285</span></div></li>
               </ul>
               <p class="gcard__unit">In AED, per visit, blow-dry included.</p>
               <p class="gcard__course"><b>Make it a course.</b> Three sessions, paid once, with the same stylist tracking your result. Strength also comes as a course of five, from AED 1,040.</p>
@@ -792,6 +792,12 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
       <p class="bk-bs" id="bkBS" hidden>Highlighted or foiled roots take longer and sit with The Blonde Standard, not The Hair Rhythm. Send us a message and we will match you with the right stylist.</p>
     </div>
 
+    <fieldset class="bk-f" id="bkCourseF" hidden>
+      <legend class="bk-l">Would you like a single visit or a course?</legend>
+      <p class="bk-help">A course is three sessions, paid once, with the same stylist tracking your result.</p>
+      <div class="bk-copts"><label class="bk-r is-on"><input type="radio" name="bkCourse" value="0" checked><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>A single visit</b><small>Pay per visit</small></span></label><label class="bk-r"><input type="radio" name="bkCourse" value="1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>A course of three</b><small>Three sessions, paid once</small></span></label></div>
+    </fieldset>
+
     <fieldset class="bk-f" id="bkLenF">
       <legend class="bk-l">Where does your hair fall?</legend>
       <p class="bk-help">Check from the back, with your hair dry and brushed straight. Our short may be shorter than you think.</p>
@@ -941,11 +947,11 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
       ['The Face Frame','Soft colour around your hairline.','from 265'],
       ['highlighted or foiled roots','Balayage or highlights at the root.','bs','Highlighted or foiled roots']]},
     treatment:{title:'Book a treatment',opts:[
+      ['Scalp Health, vegan','For your scalp. A blow-dry to finish.',[210,220,235,245]],
+      ['Scalp Health, caviar','For your scalp. A blow-dry to finish.',[250,260,275,285]],
       ['Strength','For hair that snaps or feels weak. A blow-dry to finish.',[210,250,285,325]],
       ['Colour Longevity','Helps your colour last between visits. A blow-dry to finish.',[250,260,275,285]],
       ['Hydration & Frizz','For dry, frizzy hair. A blow-dry to finish.',[290,330,365,405]],
-      ['Scalp Health, vegan','For your scalp. A blow-dry to finish.',[210,220,235,245]],
-      ['Scalp Health, caviar','For your scalp. A blow-dry to finish.',[250,260,275,285]],
       ['a treatment, and I would like my stylist to recommend one','Your stylist looks at your hair and prescribes the right one.',null,'Not sure yet, my stylist recommends']]},
     bundle:{title:'Book a blow-dry package',opts:[
       ['The Blow-dry Edit','3 blow-dries, paid once, valid 3 months.',[300,336,444,495]],
@@ -961,15 +967,17 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
   var $=function(id){ return document.getElementById(id); };
   var svcSel=$('bkSvc'), salSel=$('bkSalon'), desc=$('bkSvcDesc'), bsNote=$('bkBS'), title=$('waTitle');
   var lenF=$('bkLenF'), densF=$('bkDensF'), priceEl=$('bkPrice'), priceNote=$('bkPriceNote'), go=$('bkGo'), miss=$('bkMiss');
-  var key='smooth', st={len:null,dens:null};
+  var key='smooth', st={len:null,dens:null,course:0};
+  var courseF=$('bkCourseF');
   var aed=function(v){ return 'AED '+v.toLocaleString('en-US'); };
   var cur=function(){ return SV[key].opts[Number(svcSel.value)||0]; };
   var radios=function(n){ return [].slice.call(sheet.querySelectorAll('input[name="'+n+'"]')); };
   var mark=function(){ sheet.querySelectorAll('.bk-r,.bk-d').forEach(function(l){ var i=l.querySelector('input'); l.classList.toggle('is-on',i.checked); }); };
   var render=function(){
-    var o=cur(), pr=o[2], bs=pr==='bs', arr=Array.isArray(pr);
+    var o=cur(), pr=o[2], bs=pr==='bs', arr=Array.isArray(pr), course=(key==='treatment'&&st.course===1);
     desc.textContent=o[1]; bsNote.hidden=!bs; lenF.hidden=bs; densF.hidden=bs;
-    sheet.querySelectorAll('.bk-opts .bk-r').forEach(function(l,i){ l.querySelector('.bk-r__p').textContent=arr?aed(pr[i]):''; });
+    courseF.hidden=(key!=='treatment');
+    sheet.querySelectorAll('.bk-opts .bk-r').forEach(function(l,i){ l.querySelector('.bk-r__p').textContent=(arr&&!course)?aed(pr[i]):''; });
     var l=st.len, d=st.dens, out=(l!==null&&l>=0&&d!==null)?G[l][d]:null;
     priceNote.hidden=true;
     if(bs){ priceEl.textContent='At your consultation'; }
@@ -978,6 +986,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
     else if(l<0){ priceEl.textContent='From '+aed(pr[0]); priceNote.textContent='Your salon checks your length and confirms your price before anything is booked.'; priceNote.hidden=false; }
     else if(out===null){ priceEl.textContent=aed(pr[l]); priceNote.textContent='Add how much hair you have, as thick hair can move you up a length.'; priceNote.hidden=false; }
     else { priceEl.textContent=aed(pr[out]); if(out!==l){ priceNote.textContent=(out>l?'Thicker hair takes more time and product, so we price your hair as ':'Finer hair takes less time, so we price your hair as ')+NM[out]+'.'; priceNote.hidden=false; } }
+    if(course){ priceEl.textContent='Course price confirmed by your salon'; priceNote.textContent='Three sessions, paid once, with the same stylist tracking your result. Courses of three start from AED 625.'; priceNote.hidden=false; }
     if(out!==null){ window.hrDens=DN[d]; if(window.hrApplyLen) window.hrApplyLen(out); }
     update();
   };
@@ -995,7 +1004,9 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
     bits.push('Hair length: '+(l<0?'not sure, please check':NM[l]));
     bits.push('Density: '+DN[d]);
     if(out!==null&&out!==l) bits.push('Priced as: '+NM[out]);
-    if(Array.isArray(pr)) bits.push('Guide price: '+(out!==null?aed(pr[out]):'from '+aed(pr[0])));
+    if(key==='treatment') bits.push('Booking: '+(st.course===1?'a course of three, paid once':'a single visit'));
+    if(key==='treatment'&&st.course===1) bits.push('Course price: to be confirmed by the salon');
+    else if(Array.isArray(pr)) bits.push('Guide price: '+(out!==null?aed(pr[out]):'from '+aed(pr[0])));
     else if(typeof pr==='string') bits.push('Guide price: '+pr.replace('from','from AED'));
     return 'Hi Tara Rose, I would like to book '+o[0]+' from The Hair Rhythm at '+salon+'.\n'+bits.join('\n')+'\n(ref '+ref+')';
   };
@@ -1020,6 +1031,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
   });
   radios('bkLen').forEach(function(r){ r.addEventListener('change',function(){ st.len=Number(r.value); mark(); render(); }); });
   radios('bkDens').forEach(function(r){ r.addEventListener('change',function(){ st.dens=Number(r.value); mark(); render(); }); });
+  radios('bkCourse').forEach(function(r){ r.addEventListener('change',function(){ st.course=Number(r.value); mark(); render(); }); });
   svcSel.addEventListener('change',render);
   salSel.addEventListener('change',update);
   var open=function(btn){
@@ -1036,6 +1048,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
     });
     if(pick==='toner') sel=0;
     svcSel.value=String(sel);
+    st.course=0; var c0=radios('bkCourse')[0]; if(c0){ c0.checked=true; mark(); }
     miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
     render();
     sheet.hidden=false; root.classList.add('wa-open');
@@ -1277,6 +1290,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .bk .lf__len{grid-template-columns:120px minmax(0,1fr)!important;gap:12px;align-items:stretch!important}
 .bk .lf__pic{width:120px;align-self:center}
 .bk-opts{display:grid;gap:8px;align-content:center}
+.bk-copts{display:grid;gap:8px}
 #waSheet .bk-r{position:relative;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);transition:border-color .15s ease,background .15s ease}
 #waSheet .bk-r input,#waSheet .bk-d input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
 .bk-r__dot{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(45,46,55,.45);box-sizing:border-box;background:#fff}
