@@ -71,7 +71,7 @@
   var main = document.getElementById('kbMain');
   var LV = [1, 2, 3, 4];
   var NAMES = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
-  var q = '', statusTimer = null, shut = {};
+  var q = '', statusTimer = null, shut = {}, DOCS = [];
   try { shut = JSON.parse(localStorage.getItem('trs-pa-shut') || '{}') || {}; } catch (e) { shut = {}; }
   function keepShut() { try { localStorage.setItem('trs-pa-shut', JSON.stringify(shut)); } catch (e) {} }
   function setTop() { var h = document.getElementById('kbHead'); document.documentElement.style.setProperty('--pa-top', (h ? Math.round(h.getBoundingClientRect().height) : 100) + 'px'); }
@@ -85,8 +85,23 @@
   }
   // A saved tick, if there is one, else the built-in default (the box that is checked from the start).
   function saved(id, l) { var o = window.TRS_ACCESS && window.TRS_ACCESS[id]; return (o && o[l] !== undefined && o[l] !== null) ? !!o[l] : null; }
-  function eff(id, l) { var s = saved(id, l); return s === null ? trsPageDefault(id, l) : s; }
-  function pages() { return TRS_PAGES.filter(function (p) { return !p.retired; }); }
+  // Documents are the Team Home sections (SOPs, induction, front desk, HR forms ...): id 'kb:<section key>', Levels 2 to 4 only (Level 1 staff
+  // are opened team by team, not from here). Their starting ticks come from kb_sections (kb_section_defaults), a saved tick wins over them.
+  function dflt(id, l) {
+    if (String(id).indexOf('kb:') !== 0) return trsPageDefault(id, l);
+    var d = DOCS.filter(function (x) { return 'kb:' + x.key === id; })[0];
+    return !!d && d.min <= l && (d.skip || []).indexOf(l) < 0;
+  }
+  function eff(id, l) { var s = saved(id, l); return s === null ? dflt(id, l) : s; }
+  function pages() {
+    var docs = DOCS.map(function (d) {
+      var sec = (window.KB && KB.SECTIONS || []).filter(function (x) { return x.key === d.key; })[0];
+      return { id: 'kb:' + d.key, label: sec ? sec.title : d.key, group: 'Documents: ' + d.dept, doc: true };
+    });
+    return TRS_PAGES.filter(function (p) { return !p.retired; }).concat(docs);
+  }
+  function lvOf(p) { return p.doc ? [2, 3, 4] : LV; }
+  function nameOf(id) { var p = pages().filter(function (x) { return x.id === id; })[0]; return p ? p.label : trsPageLabel(id); }
   function table() {
     var list = pages(), groups = [], by = {};
     var needle = q.trim().toLowerCase();
@@ -108,7 +123,8 @@
           (p.sub && g === 'Numbers' ? '<span class="pa-note">' + esc(p.sub) + '</span>' : '') +
           (p.inside ? '<span class="pa-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</td>' +
           LV.map(function (l) {
-            var chg = saved(p.id, l) !== null && saved(p.id, l) !== trsPageDefault(p.id, l);
+            if (p.doc && l === 1) return '<td class="pa-c"><span class="pa-five">by team</span></td>';
+            var chg = saved(p.id, l) !== null && saved(p.id, l) !== dflt(p.id, l);
             return '<td class="pa-c' + (chg ? ' pa-chg' : '') + '"><input type="checkbox" data-l="' + l + '"' + (eff(p.id, l) ? ' checked' : '') +
               ' aria-label="' + esc(p.label) + ', Level ' + l + ' ' + esc(NAMES[l]) + '"></td>';
           }).join('') + '</tr>');
@@ -124,7 +140,7 @@
   }
   function changedCount() {
     var n = 0;
-    pages().forEach(function (p) { LV.forEach(function (l) { var s = saved(p.id, l); if (s !== null && s !== trsPageDefault(p.id, l)) n++; }); });
+    pages().forEach(function (p) { lvOf(p).forEach(function (l) { var s = saved(p.id, l); if (s !== null && s !== dflt(p.id, l)) n++; }); });
     return n;
   }
   function paintCount() {
@@ -138,7 +154,7 @@
     paintFold();
   }
   async function save(id, l, val, box) {
-    var def = trsPageDefault(id, l);
+    var def = dflt(id, l);
     var send = (val === def) ? null : val;   // back on the starting tick: remove the saved change instead of storing a copy of the default
     box.disabled = true;
     var r = await KB.client.rpc('page_access_set', { p_page: id, p_level: l, p_allowed: send });
@@ -147,29 +163,30 @@
     var o = window.TRS_ACCESS[id] || (window.TRS_ACCESS[id] = {});
     if (send === null) delete o[l]; else o[l] = send;
     var td = box.closest('td'); if (td) td.classList.toggle('pa-chg', send !== null);
-    say('Saved: ' + trsPageLabel(id) + ', Level ' + l + ' ' + NAMES[l] + ', ' + (val ? 'can open it' : 'cannot open it') + '.');
+    say('Saved: ' + nameOf(id) + ', Level ' + l + ' ' + NAMES[l] + ', ' + (val ? 'can open it' : 'cannot open it') + '.');
     paintCount();
   }
   async function resetAll() {
     var jobs = [];
-    pages().forEach(function (p) { LV.forEach(function (l) { var s = saved(p.id, l); if (s !== null) jobs.push([p.id, l]); }); });
+    pages().forEach(function (p) { lvOf(p).forEach(function (l) { var s = saved(p.id, l); if (s !== null) jobs.push([p.id, l]); }); });
     if (!jobs.length) return;
     if (!confirm('Put every box back to how it started? ' + jobs.length + ' saved change' + (jobs.length > 1 ? 's' : '') + ' will be removed.')) return;
     var b = document.getElementById('paReset'); b.disabled = true;
     for (var i = 0; i < jobs.length; i++) {
       var r = await KB.client.rpc('page_access_set', { p_page: jobs[i][0], p_level: jobs[i][1], p_allowed: null });
-      if (r.error) { say('Stopped at ' + trsPageLabel(jobs[i][0]) + ': ' + (r.error.message || 'try again') + '.', true); draw(); return; }
+      if (r.error) { say('Stopped at ' + nameOf(jobs[i][0]) + ': ' + (r.error.message || 'try again') + '.', true); draw(); return; }
       delete window.TRS_ACCESS[jobs[i][0]][jobs[i][1]];
     }
     say('Every box is back to how it started.');
     draw();
   }
-  KB.ready.then(function () {
+  KB.ready.then(async function () {
     // Level 5 only, and not while "View as" is on: previewing another level must not let that level change its own pages.
     if (KB.realLevel !== 5 || KB.viewAs) {
       main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page is for Kate only' + (KB.viewAs ? ' (switch View as back to Level 5)' : '') + '.</p>';
       return;
     }
+    try { var dr = await KB.client.rpc('kb_section_defaults'); DOCS = (!dr.error && Array.isArray(dr.data)) ? dr.data : []; } catch (e) { DOCS = []; }
     main.innerHTML =
       '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('access', 'Page Access') +
@@ -180,7 +197,7 @@
       '<div class="pa-status" id="paStatus" role="status" aria-live="polite"></div>' +
       '<div class="pa-wrap"><table class="pa-tbl"><thead><tr><th>Page <small>Level 5 (you) always opens every page</small></th>' +
         LV.map(function (l) { return '<th>Level ' + l + '<small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
-      '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level whose data asks for Level 3 will open and then say “Level 3 and above”, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here.</p>';
+      '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level whose data asks for Level 3 will open and then say “Level 3 and above”, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents (the sections under “Documents”) are guarded by the database itself, so a tick there really opens or closes the text for that level; Level 1 staff are opened team by team, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</p>';
     setTop();
     draw();
     document.getElementById('paFilter').addEventListener('input', function (e) { q = e.target.value; draw(); });
