@@ -1550,15 +1550,17 @@ html.wa-open{overflow:hidden}
     return (o[3]||o[0].replace(' (solid colour roots)',''))+pt;
   };
   /* What would you like? A plan, or a single service. The second bar lists only that group; the choice she made in each group is kept when she switches back. */
-  var fill=function(want){
-    svcSel.innerHTML=''; var sel=null, first=null;
+  var fill=function(want,usePick){
+    svcSel.innerHTML=''; var sel=null, first=null, gfirst={};
     var add=function(parent,k,i,o){
       var op=document.createElement('option'); op.value=(k==='plan')?String(i):k+':'+i; op.textContent=optText(o); parent.appendChild(op);
       if(first===null) first=op.value;
+      if(!(k in gfirst)) gfirst[k]=op.value;
       if(want&&want.indexOf(o[0].toLowerCase())===0) sel=op.value;
     };
     if(cat==='plans'){ SV.plan.opts.forEach(function(o,i){ add(svcSel,'plan',i,o); }); }
     else { ['highlighting','balayage','colour'].forEach(function(k){ var g=document.createElement('optgroup'); g.label=GL[k]; SV[k].opts.forEach(function(o,i){ add(g,k,i,o); }); svcSel.appendChild(g); }); }
+    if(sel===null&&usePick&&cat==='services'&&gfirst[pick]) sel=gfirst[pick];
     var keep=lastSel[cat], ok=keep&&[].slice.call(svcSel.options).some(function(o){ return o.value===keep; });
     svcSel.value=ok?keep:(sel!==null?sel:first);
     title.textContent=cat==='plans'?SV.plan.title:'Book a Blonde Menu service';
@@ -1578,7 +1580,7 @@ html.wa-open{overflow:hidden}
     cat=(pick==='plan'||!SV[pick])?'plans':'services';
     lastSel={plans:null,services:null};
     var want=(btn.getAttribute('data-book-base')||btn.getAttribute('data-book')||'').toLowerCase();
-    fill(want);
+    fill(want,true);
     if(st.len===null&&typeof window.bsL==='number'){ st.len=window.bsL; st.dens=window.bsD; radios('bkLen').forEach(function(r){ r.checked=Number(r.value)===st.len; }); radios('bkDens').forEach(function(r){ r.checked=Number(r.value)===st.dens; }); mark(); }
     miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
     render();
