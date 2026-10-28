@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en-GB">
 <head>
-<link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/playfair-display-500.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/inter-300.woff2">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#FAF8F4">
 <title>The Hair Rhythm By Tara Rose</title>
+<link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/playfair-display-500.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/inter-300.woff2">
+<meta name="theme-color" content="#FAF8F4">
 <meta name="description" content="Short appointments between your big colour visits, with our junior stylists: toner, treatment and blow-dry. Abu Dhabi and Dubai.">
 <meta name="robots" content="noindex,nofollow">
 <meta property="og:type" content="website">
@@ -16,642 +16,752 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-96x96.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
-<link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/voucher-base.css">
-<link rel="stylesheet" href="css/the-hair-rhythm.css">
+<link rel="stylesheet" href="css/fonts.css?v=ui1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400&display=swap">
+<link rel="stylesheet" href="css/voucher-base.css?v=ui1">
+<link rel="stylesheet" href="css/blonde-standard.css?v=ui1">
+<link rel="stylesheet" href="css/offers.css?v=ui1">
 <style>
-.door__where{font-size:14px;margin-top:12px}
-.door__where span{font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:11.5px;color:var(--ink-soft);margin-right:6px}
-.door .from--quote b{font-size:19px;line-height:1.25}
-.pick{list-style:none;margin:28px auto 44px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;max-width:980px}
-.pick a{display:flex;flex-direction:column;justify-content:space-between;gap:14px;height:100%;min-height:112px;padding:18px 18px 14px;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--stone-soft);text-decoration:none;color:var(--ink)}
-.pick a:hover,.pick a:focus-visible{border-color:var(--ink)}
-.pick span{font-family:var(--fd);font-size:19px;line-height:1.3}
-.pick small{font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
-.pick small::after{content:" \2192"}
-@media (max-width:560px){.pick{grid-template-columns:1fr 1fr;gap:10px;margin-top:22px;margin-bottom:30px}.pick a{min-height:96px;padding:14px 14px 12px}.pick span{font-size:16.5px}.pick small{font-size:10px;letter-spacing:.08em}.pick li:last-child{grid-column:1/-1}}
-.wa-lbl{margin:18px auto 0;text-align:center;font-family:var(--fb);font-size:15px;font-weight:300;color:var(--ink-soft)}
-.wa-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px auto 0;max-width:640px}
-.wa-row a{display:inline-flex;align-items:center;min-height:42px;padding:0 18px;border:1px solid var(--hair);border-radius:999px;background:var(--paper);font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-text);text-decoration:none}
-.wa-row a:hover,.wa-row a:focus-visible{border-color:var(--ink)}
-.svcalt{display:block;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.4;color:var(--taupe-soft);margin-top:2px}
-.door .bands .ptable{margin-top:4px}
-@media (max-width:480px){
-  .door .ptable th:not(:first-child),.door .ptable td:not(:first-child){padding-left:5px}
-  .door .ptable td,.door .ptable td b{font-size:12.5px}
-  .door .ptable th{font-size:9px;letter-spacing:.05em}
-  .door .ptable .svcalt{font-size:11px}
-}
-.ogroup{margin-top:46px;scroll-margin-top:96px}.ogroup:first-of-type{margin-top:34px}
-.ogroup h3{font-family:var(--fd);font-weight:500;font-size:clamp(26px,3.4vw,32px);text-align:center;margin:0;color:var(--ink)}
-.ogroup .who{max-width:56ch;margin:8px auto 0;text-align:center;font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
-.ogroup .doors{margin-top:22px;grid-template-columns:repeat(auto-fit,minmax(280px,380px));justify-content:center;align-items:start}
-.door .ptable th:not(:first-child),.door .ptable td:not(:first-child){padding-left:10px}
-.door .ptable td,.door .ptable td b{font-size:13.5px}
-.door .ptable th{font-size:10px;letter-spacing:.06em;white-space:normal}
-.cardphoto{margin:0 0 18px}.cardphoto img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:var(--r-md);background:var(--stone-soft)}
-/* tighter, quieter scale so the page reads premium rather than poster-sized */
-#start{padding-block:68px !important}
-#start .sec-head h2{font-size:clamp(30px,3.4vw,40px);line-height:1.15}
-#fit,#rhythm,#reframe{padding-block:60px !important}
-#fit .sec-head h2,#rhythm .sec-head h2{font-size:clamp(26px,3vw,34px)}
-.ogroup{margin-top:40px}
-.ogroup h3{font-size:clamp(22px,2.4vw,26px)}
-.ogroup .who{font-size:15px;margin-top:6px}
-.ogroup .mphoto{max-width:620px;margin-top:20px}
-.ogroup .mphoto img{aspect-ratio:21/9}
-.ochips{margin-top:18px}
-.ochips a{min-height:40px;padding:0 16px;font-size:11.5px}
-.ogroup .doors{gap:16px;margin-top:20px;grid-template-columns:repeat(auto-fit,minmax(260px,340px))}
-#o-treatment .doors{grid-template-columns:repeat(auto-fit,minmax(260px,540px))}
-.ogroup .door{padding:22px 22px 20px}
-.ogroup .door h3{font-size:21px;margin:0 0 8px;text-align:left}
-.ogroup .door>p:not(.door__where){font-size:14.5px;line-height:1.55}
-.ogroup .door__inc{margin-top:12px;gap:6px}
-.ogroup .door__inc li{font-size:13.5px}
-.ogroup .door .from{padding-top:16px;font-size:10.5px}
-.ogroup .door .from b{font-size:24px}
-.ogroup .door__where{margin-top:14px;padding-top:12px;font-size:13.5px}
-.ogroup .door .pill{margin-top:16px}
-.ogroup .bands>summary{min-height:38px;font-size:11.5px}
-.cardphoto img{aspect-ratio:16/9}
-.door .bands .ptable{display:block;overflow-x:auto;max-width:100%}
-#o-treatment .doors{grid-template-columns:repeat(auto-fit,minmax(280px,580px))}
-.ochips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:22px auto 0;max-width:720px}
-.ochips a{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px solid var(--hair);border-radius:999px;background:var(--paper);font-family:var(--fb);font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text);text-decoration:none}
-.ochips a:hover{border-color:var(--accent-text)}
+/* Hair Rhythm additions on top of the Blonde Standard system */
+/* What's included on every card */
+.incl{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:7px;align-content:start;box-sizing:content-box}
+.incl li{position:relative;padding-left:24px;font-family:var(--fb);font-size:13.5px;font-weight:400;line-height:1.45;color:var(--ink)}
+.incl li::before{content:"";position:absolute;left:0;top:.15em;width:15px;height:15px;border-radius:50%;background:rgba(153,246,228,.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.6' fill='none' stroke='%231C7563' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/15px no-repeat}
+.plancard__body>p{margin-bottom:14px}
+/* Booking: WhatsApp only */
 
-/* menu-style rows: photo beside a list of offers, so each group reads at a glance */
-.ogroup{margin-top:52px}
-.ogroup>h3{font-size:clamp(22px,2.3vw,27px)}
-.obody{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:40px;align-items:start;max-width:1040px;margin:24px auto 0}
-.omedia{position:sticky;top:104px}
-.omedia .mphoto{margin:0;max-width:none}
-.omedia .mphoto img{aspect-ratio:4/3;width:100%;height:auto;object-fit:cover;border-radius:var(--r-md);display:block}
-.mphotos{display:grid;gap:14px}
-.mphoto--s{margin:0}
-.ogroup .doors.orows{display:block;margin:0;max-width:none}
-.ogroup .orows .door{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:28px;row-gap:0;align-items:start;padding:20px 0;background:none;border:0;border-top:1px solid var(--hair);border-radius:0;box-shadow:none}
-.ogroup .orows .door:first-child{border-top:0;padding-top:0}
-.ogroup .orows .door>*{grid-column:1;min-width:0}
-.ogroup .orows .door h3{font-size:20px;line-height:1.25;margin:0 0 4px;text-align:left}
-.ogroup .orows .door>p:not(.door__where){font-size:14.5px;line-height:1.55;margin:0}
-.ogroup .orows .door__inc{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 0 0}
-.ogroup .orows .door__inc li{font-size:13px}
-.ogroup .orows .door .from{grid-column:2;grid-row:1 / span 2;align-self:start;text-align:right;padding:0;margin:0;font-size:10px;white-space:nowrap}
-.ogroup .orows .door .from + .from{grid-row:2 / span 1;margin-top:34px}
-.ogroup .orows .door .from b{font-size:22px;display:block}
-.ogroup .orows .door .from--quote b{font-size:13px;white-space:normal}
-.ogroup .orows .door .bands{grid-column:1 / -1;margin-top:10px}
-.ogroup .orows .door .bands>summary{min-height:34px}
-.ogroup .orows .door__where span{display:inline;margin-right:8px}
-.ogroup .orows .door__where{grid-column:1;border:0;margin:10px 0 0;padding:0;font-size:13px}
-.ogroup .orows .door .pill{grid-column:2;grid-row:3 / span 3;align-self:start;justify-self:end;margin:6px 0 0;padding-inline:18px;min-height:40px;font-size:10px}
-@media (max-width:860px){
-  .obody{grid-template-columns:1fr;gap:20px}
-  .omedia{position:static}
-  .omedia .mphoto img{aspect-ratio:16/9}
-  .mphotos{grid-template-columns:1fr 1fr}
-}
-@media (max-width:560px){
-  .ogroup .orows .door{grid-template-columns:1fr}
-  .ogroup .orows .door>*,.ogroup .orows .door .from,.ogroup .orows .door .pill{grid-column:1;grid-row:auto;text-align:left;justify-self:start}
-  .ogroup .orows .door .from{margin-top:12px}
-  .ogroup .orows .door .from b{display:inline;margin-left:6px}
-  .mphotos{grid-template-columns:1fr}
-}
+.salon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:560px;margin:28px auto 0}
+.wa-sheet__alt{margin:16px 0 0;font-family:var(--fb);font-size:14px}
+.wa-sheet__alt a{color:var(--accent-text);font-weight:600;text-underline-offset:3px}
+/* Booking, two columns: WhatsApp left (fastest), the short form right; stacked on phones, WhatsApp first */
 
-.offer-nav{padding:8px 0}
-.ochip{min-height:38px;padding:0 16px;border:1px solid var(--hair);font-size:11.5px;letter-spacing:.1em}
-.ochip:hover,.ochip:focus-visible,.ochip.active{border-color:var(--ink)}
-.ogroup{scroll-margin-top:calc(var(--sticky-h,150px) + 12px)}
-@media(max-width:767px){.offer-nav__row{grid-template-columns:repeat(2,1fr)}.ochip{min-height:34px;font-size:10.5px}}
+.book-note{margin:18px 0 0;max-width:44ch;font-family:var(--fb);font-size:13.5px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
+.book-note a{color:var(--accent-text)}
+#book .formcard{margin:0;scroll-margin-top:calc(var(--nav-h,75px) + 16px)}
+#book .formcard .submit-row .pill{width:100%;justify-content:center}
+@media (max-width:900px){.book-copy{position:static;text-align:left}.book-copy .eyebrow,.book-copy h2{text-align:left;margin-left:0;margin-right:0}}
+/* Salon buttons: icon, name, area and an arrow, raised so they read as tappable */
 
-/* phone hardening: nothing may force the page wider than a 320px screen */
-.obody,.omedia,.ogroup,.orows,.orows .door{min-width:0}
-.obody{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
-.ochip{white-space:normal;text-align:center;line-height:1.15;min-width:0;justify-content:center}
-.offer-nav__row>li{min-width:0}
-@media(max-width:860px){.obody{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:560px){.ogroup .orows .door{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:480px){
-  .trs-nav .nav-link{display:none}
-  .trs-nav .navrow{grid-template-columns:1fr auto 1fr}
-  .trs-nav .nav__cta{padding-inline:14px;font-size:9.5px;letter-spacing:.06em;white-space:nowrap}
-  .trs-nav .brand{padding:0 6px}
-  .trs-nav .brand__wm{font-size:15px;letter-spacing:.18em}
-  .hero-hr .cta-row .nav-link{display:inline-block}
-  .ochip{font-size:10px;letter-spacing:.04em;padding:0 8px;min-height:34px}
-  .ogroup .orows .door .from b{font-size:20px}
-  .door .ptable td,.door .ptable td b{font-size:12px}
-  .door .ptable th{font-size:8.5px}
-  .door .ptable th:not(:first-child),.door .ptable td:not(:first-child){padding-left:4px}
-}
-@media(max-width:380px){
-  .trs-nav .nav__cta{padding-inline:10px;font-size:8.5px;letter-spacing:.04em;min-height:38px}
-  .trs-nav .brand__wm{font-size:13px;letter-spacing:.14em}
-  .trs-nav .brand small{font-size:8px}
-  .trs-nav .brand{padding:0 4px}
-}
-@media(max-width:560px){.ogroup .orows .door .from{white-space:normal}}
-@media(max-width:380px){
-  .trs-nav .navrow{padding-inline:12px}
-  .trs-nav .nav__cta{padding-inline:8px;font-size:8px;letter-spacing:.03em}
-  .trs-nav .brand__wm{font-size:12px;letter-spacing:.12em}
-}
-@media(max-width:767px){
-  .offer-nav{padding:6px 0}
-  .offer-nav__row{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
-  .ochip{min-height:34px;padding:0 2px;font-size:10px;letter-spacing:.02em}
-}
-@media(max-width:340px){.ochip{font-size:8.5px;letter-spacing:0}}
-@media(max-width:560px){.ogroup .orows .door__inc{flex-direction:column;gap:6px}}
+@media (max-width:520px){.salon-grid{grid-template-columns:minmax(0,1fr)}}
+/* Salon buttons in the same teal pill as Book now */
 
-.omedia .ph-slot{aspect-ratio:4/3}
-@media(max-width:767px){.offer-nav__row{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.ochip{font-size:9.5px;letter-spacing:0;padding:0 1px}}
-@media(max-width:360px){.offer-nav__row{grid-template-columns:repeat(4,minmax(0,1fr))}.ochip{font-size:9px}}
-.omedia .mphoto--p img{aspect-ratio:4/5}
-@media(max-width:860px){.omedia .mphoto--p{max-width:420px;margin-inline:auto}.omedia .mphoto--p img{aspect-ratio:4/5}}
-.omedia .mphoto--q img{aspect-ratio:1/1}
-.short-note{max-width:60ch;margin:28px auto 0;text-align:center;font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.6;color:var(--ink-soft)}
-.hero-hr{background:#161512 url(assets/img/hero-junior.jpg) 0% 36%/112% auto no-repeat}
-.hero-hr::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(20,19,17,.9) 0%,rgba(20,19,17,.72) 36%,rgba(20,19,17,.08) 62%,rgba(20,19,17,0) 100%);opacity:1}
+.salon-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+/* Salon chooser: a bottom sheet on phones, a small card on desktop */
+.wa-sheet{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-left,0px))}
+.wa-sheet[hidden]{display:none!important}
+.wa-sheet__scrim{position:absolute;inset:0;background:rgba(22,21,18,.55)}
+.wa-sheet__panel{position:relative;width:100%;max-width:460px;box-sizing:border-box;padding:28px 24px 24px;background:var(--paper);border-radius:var(--r-md);box-shadow:0 30px 60px -20px rgba(0,0,0,.45);text-align:center}
+.wa-sheet__x{position:absolute;top:8px;right:8px;width:44px;height:44px;border:0;background:none;font-size:26px;line-height:1;color:var(--ink-soft);cursor:pointer;border-radius:50%}
+.wa-sheet__x:focus-visible{outline:2px solid var(--accent-text)}
+.wa-sheet__eyebrow{margin:0;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.wa-sheet h3{margin:8px 0 0;font-family:var(--fd);font-weight:500;font-size:26px;color:var(--ink)}
+html.wa-open{overflow:hidden}
+@media (max-width:600px){
+  .wa-sheet{align-items:flex-end;padding:0}
+  .wa-sheet__panel{max-width:none;border-radius:18px 18px 0 0;padding:26px max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px))}
+  .salon-grid{gap:10px}
+}
+.sec-start{background:var(--paper)}
+.rev-stars{margin:30px 0 0;text-align:center;font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.rev-stars span{margin-right:8px;font-size:14px;letter-spacing:.12em;color:var(--accent)}
+.sec-proof .revgrid{margin-top:18px}
+.sec-proof .gcta{margin-top:34px}
+.sec-proof .tcard::before,.sec-proof .tcard::after{display:none !important}
+.sec-proof .tcard blockquote{margin-top:0}
+.bs-step__price{display:block;margin-top:8px;font-family:var(--fd);font-weight:500;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+#rhythm .gcta{margin-top:30px}
+.sec-proof .menu-lede{max-width:62ch;color:rgba(255,255,255,.74)}
+/* Picked state: the tapped statement and the card it leads to both take a teal outline */
+.pick__card.is-picked{border-color:var(--accent-text);box-shadow:0 0 0 2px var(--accent-text),0 10px 26px -14px rgba(28,117,99,.45)}
+.pick__card.is-picked .pick__go{text-decoration:underline;text-underline-offset:3px}
+.plancard.is-target{border-color:var(--accent-text);box-shadow:0 0 0 2px var(--accent-text),0 0 0 8px rgba(153,246,228,.35);transition:box-shadow .3s ease}
+@media (prefers-reduced-motion:reduce){.plancard.is-target{transition:none}}
+/* Where to start: her own words, each one jumps to the right card */
+.pick{list-style:none;margin:38px auto 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;max-width:1040px}
+.pick li{min-width:0}
+.pick__card{display:flex;flex-direction:column;justify-content:flex-start;gap:18px;height:100%;box-sizing:border-box;padding:22px 22px 20px;background:#fff;border:1px solid var(--hair);border-radius:var(--r-md);text-decoration:none;color:var(--ink);transition:border-color var(--dur,.2s) var(--ease,ease),transform var(--dur,.2s) var(--ease,ease)}
+.pick__card::before{content:"";display:block;height:2px;margin-bottom:-6px;background:var(--accent);opacity:.7}
+.pick__q{font-family:var(--fd);font-weight:500;font-size:20px;line-height:1.3;color:var(--ink)}
+.pick__go{margin-top:auto;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
+.pick__go::after{content:"\00a0\2192"}
+.pick__card:hover,.pick__card:focus-visible{border-color:var(--ink);transform:translateY(-2px)}
+.pick__card:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.pick__card{transition:none}.pick__card:hover{transform:none}}
+@media (max-width:900px){.pick{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.pick{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:26px}.pick__card{padding:16px 14px 14px;gap:16px}.pick__q{font-size:17px}.pick__go{font-size:10px;letter-spacing:.08em}}
+/* Hero: the salon photo fills the band, text sits on a dark fade to the left */
+.hero-hr.hero-bg{background:#161512 url(assets/img/hero-junior-wide.jpg) 100% 34%/cover no-repeat !important;padding:112px 0 104px !important}
+.hero-hr.hero-bg::before{content:"";position:absolute;inset:0;display:block !important;opacity:1;background:linear-gradient(100deg,rgba(20,19,17,.92) 0%,rgba(20,19,17,.74) 36%,rgba(20,19,17,.1) 62%,rgba(20,19,17,0) 100%)}
+.hero-hr.hero-bg .inner{margin-left:0;max-width:540px;text-align:left}
+.hero-hr.hero-bg .pill-tag,.hero-hr.hero-bg .lede{text-align:left;margin-left:0;margin-right:0}
+.hero-hr.hero-bg .cta-row{justify-content:flex-start}
+/* First screen on desktop: hero + the Eleven years strip fill the viewport together. */
+@media (min-width:900px){
+  .hero-hr.hero-bg{display:flex;align-items:center;box-sizing:border-box;height:calc(100svh - var(--top-h,106px) - var(--trust-h,54px));min-height:440px;padding-block:24px !important}
+  .hero-hr.hero-bg>.wrap{width:100%}
+  .hero-hr.hero-bg .h-1{margin-left:0;margin-right:0}
+}
+@media (min-width:900px) and (max-height:820px){
+  .hero-hr.hero-bg .h-1{font-size:clamp(40px,6.4vh,56px)}
+  .hero-hr.hero-bg .lede{margin-top:14px}
+  .hero-hr.hero-bg .cta-row{margin-top:20px}
+  .hero-hr.hero-bg .hero-facts{margin-top:18px;padding-top:14px;gap:8px;font-size:15px}
+}
+@media (min-width:900px) and (max-height:680px){
+  .hero-hr.hero-bg .pill-tag{display:none}
+  .hero-hr.hero-bg .hero-facts{gap:6px;font-size:14px}
+}
+@media (max-width:899px){
+  .hero-hr.hero-bg{background:#161512 url(assets/img/hero-junior.jpg) 50% 0/auto 330px no-repeat !important;padding:300px 0 44px !important}
+  .hero-hr.hero-bg::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 190px,#161512 330px)}
+  .hero-hr.hero-bg .inner{margin-inline:auto;text-align:center}
+  .hero-hr.hero-bg .pill-tag,.hero-hr.hero-bg .lede{text-align:center;margin-inline:auto}
+  .hero-hr.hero-bg .cta-row{justify-content:center}
+}
+@media (min-width:600px) and (max-width:899px){
+  .hero-hr.hero-bg{background-size:100% auto !important;padding-top:470px !important}
+  .hero-hr.hero-bg::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 300px,#161512 470px)}
+}
+.gsvc__top small{display:block;margin-top:2px;font-size:11.5px;font-weight:300;line-height:1.4;color:var(--ink-soft)}
+.gsvc__lens--one{grid-template-columns:auto !important}
+.gsvc__lens--one span{white-space:nowrap}
+.gcard__course{margin:14px 0 2px;padding:12px 14px;background:var(--stone-soft);border-radius:var(--r-sm,8px);font-family:var(--fb);font-size:13px;font-weight:300;line-height:1.5;color:var(--ink)}
+.gcard__course b{font-weight:600}
+.sec-menu .short-note{margin-top:26px}
+.sec-proof .revgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:1080px;margin:38px auto 0}
+@media (max-width:900px){.sec-proof .revgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.sec-proof .revgrid{grid-template-columns:minmax(0,1fr)}}
+.sec-proof .tcard{display:flex;flex-direction:column;min-width:0;padding:24px 22px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r-md);background:rgba(255,255,255,.04)}
+.sec-proof .tcard .stars{font-size:14px;letter-spacing:.12em;color:var(--accent)}
+.sec-proof .tcard blockquote{margin:12px 0 0;font-family:'Playfair Display',Georgia,serif;font-weight:400;font-style:normal;font-size:17.5px;line-height:1.6;letter-spacing:.005em;color:rgba(255,255,255,.86)}
+.sec-proof .tcard blockquote *{font-weight:400}
+.sec-proof .tcard cite{margin-top:auto;padding-top:18px;font-style:normal;font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.66)}
+</style>
+
+<style>
+.draft-bar{background:#1c1b18;color:#99f6e4;text-align:center;font:600 11.5px/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:8px 14px}
+.hero-hr .lede .lede-life{display:block;color:rgba(255,255,255,.84)}
+.hero-hr{background:#161512}
+.hero-hr::before{content:"";position:absolute;inset:0;opacity:1;background:linear-gradient(100deg,rgba(22,21,18,.9) 0%,rgba(22,21,18,.6) 40%,rgba(22,21,18,0) 62%)}
 @media (min-width:900px){
   .hero-hr{padding:112px 0 104px !important}
-  .hero-hr .inner{margin-left:0;max-width:520px;text-align:left}
+  .hero-hr .inner{margin-left:0;max-width:540px;text-align:left}
   .hero-hr .inner .pill-tag,.hero-hr .lede{text-align:left;margin-left:0;margin-right:0}
   .hero-hr .inner .cta-row{justify-content:flex-start}
 }
 @media (max-width:899px){
-  .hero-hr{background:#161512 url(assets/img/hero-junior.jpg) 50% 0/auto 330px no-repeat;padding-top:300px !important}
+  .hero-hr{background:#161512;padding-top:300px !important}
   .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 190px,#161512 330px)}
 }
 @media (min-width:600px) and (max-width:899px){
-  .hero-hr{background-size:100% auto;background-position:50% 0;padding-top:470px !important}
-  .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 52%,#161512 calc(100vw * .6667))}
+  .hero-hr{background-size:auto 440px;background-position:100% 0;padding-top:470px !important}
+  .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 300px,#161512 440px)}
+}
+.fit{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1040px;margin:30px auto 0}
+@media (max-width:900px){.fit{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.fit{grid-template-columns:repeat(2,1fr);gap:10px}}
+@media (max-width:359px){.fit{grid-template-columns:1fr}}
+.chat-lbl{text-align:center;margin:26px 0 0;font:600 12px/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+/* Model photos are 4:5 portraits. A 16:9 or 4:3 banner crop on a phone cut faces in half, so show them whole, a little smaller and centred. */
+@media (max-width:860px){
+  .osubgrid .osubphoto img{aspect-ratio:4/5;width:min(66%,260px);margin:0 auto}
+}
+@media (max-width:640px){
+  .ogroup .orows .door--plan .rowphoto{width:100%;display:flex;justify-content:center}
+}
+@media (max-width:860px) and (max-height:640px){
+  .hero-hr .pill-tag{display:none}
+}
+@media (max-width:767px){
+  .trs-nav .nav__cta{font-size:11.5px;padding:11px 16px}
+  .ochip{font-size:11.5px}
+  .field input:not([type=checkbox]),.field select,.field textarea{min-height:46px}
+  main section[id]{scroll-margin-top:calc(var(--nav-h,75px) + 6px)}
+}
+.terms-wrap{margin:0;scroll-margin-top:calc(var(--nav-h,75px) + 6px)}
+/* The terms link is the last row of the FAQ list: same serif, same hairline, same width, arrow where the + is. */
+a.terms.terms--link{display:flex;align-items:center;justify-content:space-between;gap:18px;max-width:none;margin:0;padding:22px 0;background:transparent;border:0;border-bottom:.8px solid rgba(255,255,255,.12);border-radius:0;font-family:var(--fd);font-weight:500;font-size:24px;line-height:1.3;letter-spacing:0;color:#fff;text-decoration:none;min-height:0}
+a.terms--link .tarr{flex:0 0 auto;font-style:normal;font-family:var(--fb);font-size:24px;line-height:1;color:var(--accent);transition:transform .3s var(--ease)}
+a.terms.terms--link:hover{color:var(--accent)}
+a.terms--link:hover .tarr{transform:translateX(6px)}
+@media (max-width:640px){a.terms.terms--link{font-size:19px;line-height:1.62}a.terms--link .tarr{font-size:20px}}
+
+/* v4: wireframe structure, TRS components. Plans and menu are cards; length prices open on tap. */
+
+/* nav: brand left, links and the one CTA right */
+.nav--wf .navrow{display:flex;justify-content:space-between;align-items:center;gap:18px}
+.nav--wf .brand{justify-self:auto;padding:0;align-items:center}
+.nav--wf .navlinks{display:flex;align-items:center;gap:28px}
+.nav--wf .nav-link{justify-self:auto}
+.nav--wf .nav__cta{justify-self:auto}
+@media (max-width:860px){.nav--wf .nav-link{display:none}.nav--wf .navlinks{gap:0}}
+
+/* shared section rhythm */
+.sec-plans,.sec-menu{padding-block:clamp(56px,7vw,96px)}
+.sec-plans{background:var(--paper)}
+.sec-menu{background:var(--cream)}
+.sec-plans .sec-head,.sec-menu .sec-head{margin-bottom:0}
+.short-note{max-width:64ch}
+
+/* plans */
+.plangrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:38px;align-items:stretch}
+.plancard{scroll-margin-top:calc(var(--nav-h,75px) + 70px);display:flex;flex-direction:column;min-width:0;background:#fff;border:1px solid var(--hair);border-radius:var(--r-md);overflow:hidden;scroll-margin-top:calc(var(--nav-h,75px) + 12px)}
+.plancard--hi{border:1.5px solid var(--accent-deep);box-shadow:0 18px 40px -24px rgba(61,140,127,.45)}
+.plancard__photo{margin:0;background:var(--stone-soft)}
+.plancard__photo img{display:block;width:100%;height:auto;aspect-ratio:5/4;object-fit:cover}
+.plancard__body{display:flex;flex-direction:column;flex:1;padding:22px 22px 24px}
+.plancard__label{font-family:var(--fb);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.plancard h3{margin:8px 0 6px;font-family:var(--fd);font-weight:500;font-size:26px;line-height:1.15;color:var(--ink)}
+.plancard p{margin:0 0 18px;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
+.plancard__price{margin-top:auto;padding-top:14px;border-top:1px solid var(--hair);font-family:var(--fb)}
+.plancard__price span{display:block;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.plancard__price strong{display:block;margin:4px 0 2px;font-family:var(--fd);font-weight:500;font-size:30px;line-height:1.1;color:var(--ink);font-variant-numeric:tabular-nums}
+.plancard__price small{display:block;font-size:12.5px;color:var(--ink-soft)}
+.plancard .pill{width:100%;justify-content:center;text-align:center;line-height:1.3;margin-top:18px;padding-inline:16px;letter-spacing:.06em}
+.plans-foot{max-width:860px;margin:22px auto 0}
+.plans-foot .short-note{margin-top:14px}
+
+/* Blonde Menu: one plan-style card per group, its services listed with every length price */
+.gcards{align-items:stretch}
+.gcard .plancard__body>p{margin-bottom:16px}
+.gcard__list{border-top:1px solid var(--hair);padding-top:4px;font-family:var(--fb)}
+.gcard__list ul{list-style:none;margin:0;padding:0}
+.gcard__cols{display:flex;justify-content:space-between;align-items:end;gap:10px;padding:8px 0 6px}
+.gcard__cols>span{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.gcard__cols>div,.gsvc__lens{display:grid;grid-template-columns:repeat(4,40px);gap:4px;text-align:right}
+.gcard__cols>div span{font-size:9.5px;color:var(--ink-soft)}
+.gsvc{padding:10px 0;border-top:1px solid var(--hair)}
+.gsvc__top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.gsvc__top span{min-width:0;font-size:14.5px;font-weight:500;line-height:1.35;color:var(--ink)}
+.gsvc__top b{flex:0 0 auto;font-family:var(--fd);font-weight:500;font-size:16px;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.gsvc__lens{justify-content:end;margin-top:4px}
+.gsvc--row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.gsvc--row .gsvc__top{min-width:0}
+.gsvc--row .gsvc__lens{flex:0 0 auto;margin-top:0}
+.gsvc--row .gsvc__lens span{font-size:13px;color:var(--ink)}
+.gsvc__lens span{font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.gcards{align-items:start}
+/* closed cards level: a small script gives each intro the height of the tallest, so opening one card grows only that card */
+.gcard .plancard__body>p{box-sizing:content-box}
+.gcard .plancard__price{margin-top:0}
+.gcard .pill{margin-top:18px}
+.gcard__more{margin-top:14px;border-top:1px solid var(--hair)}
+.gcard__more summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;cursor:pointer;list-style:none;font-family:var(--fb);font-size:13.5px;font-weight:500;color:var(--accent-text)}
+.gcard__more summary::-webkit-details-marker{display:none}
+.gcard__more summary::after{content:"+";font-size:17px;line-height:1}
+.gcard__more[open] summary::after{content:"\2212"}
+.gcard__more summary:hover{text-decoration:underline;text-underline-offset:3px}
+.gcard__more summary:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.gcard__more .gcard__list{border-top:1px solid var(--hair)}
+.gcard__unit{margin:8px 0 0;font-family:var(--fb);font-size:11.5px;color:var(--ink-soft)}
+.sec-menu .short-note{margin-top:26px}
+
+/* How it works: plain cream. Is this you: warm brown gradient, statements as her own words. */
+
+/* proof: an interactive before and after, tabs to switch client */
+.sec-proof{padding-block:clamp(60px,8vw,110px)}
+
+/* Confidence Promise band: wording verbatim, three key phrases in italic */
+.promise-x{padding-block:clamp(64px,8vw,100px);text-align:center}
+.promise-x__lbl{margin:0 0 22px;font-family:var(--fb);font-size:11.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--accent)}
+.promise-x__line{margin:0 auto;max-width:30ch;font-family:var(--fd);font-weight:500;font-style:normal;font-size:clamp(24px,3.2vw,38px);line-height:1.4;letter-spacing:-.005em;color:#fff;text-wrap:balance}
+.promise-x__line em{font-style:italic;color:#fff}
+.promise-x__tag{margin:26px 0 0;font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+/* booking: copy left, form card right */
+.sec-book{padding-block:clamp(56px,7vw,96px)}
+.book-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(28px,5vw,64px);align-items:start}
+.book-copy{min-width:0}
+.book-copy .eyebrow{display:block;margin-bottom:12px}
+.book-copy h2{margin:0;font-family:var(--fd);font-weight:500;font-size:clamp(32px,4.2vw,48px);line-height:1.05;letter-spacing:-.012em;color:var(--ink);text-wrap:balance}
+.book-copy>p:not(.chat-lbl){margin:16px 0 0;max-width:46ch;font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.62;color:var(--ink-soft)}
+.book-copy .chat-lbl{text-align:left;margin-top:26px}
+/* the copy column follows her down while she fills in the form */
+@media (min-width:901px){.book-copy{position:sticky;top:calc(var(--nav-h,75px) + 24px);align-self:start}}
+.formcard{min-width:0;background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:clamp(20px,3vw,32px);box-shadow:0 14px 34px -24px rgba(45,46,55,.32)}
+.formcard h3{margin:0;font-family:var(--fd);font-weight:500;font-size:24px;color:var(--ink)}
+.formcard__hint{margin:4px 0 18px;font-family:var(--fb);font-size:14px;font-weight:300;color:var(--ink-soft)}
+.formcard form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+.formcard form>*{min-width:0}
+.formcard .field--full{grid-column:1 / -1}
+.formcard .field--hidden{display:none}
+.formcard .consent{text-align:left}
+@media (max-width:900px){
+  .plangrid{grid-template-columns:minmax(0,1fr);max-width:560px;margin-inline:auto}
+  .book-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .formcard form{grid-template-columns:minmax(0,1fr)}
 }
 
-/* phone legibility floor (Kate, 19 Oct): nothing meant to be read or tapped under 11px, tap targets about 44px */
-@media(max-width:767px){
-  html body .pill-tag{font-size:11.5px !important}
-  html body .offer-nav__row{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px}
-  html body .offer-nav__row>li{flex:0 0 auto}
-  html body .ochip{min-height:42px;font-size:13px !important;font-weight:600;letter-spacing:.01em;text-transform:none;padding:0 11px}
-  html body .offer-nav{padding:5px 0}
-  html body .pick small{font-size:11px !important}
-  html body .ogroup .door .from,html body .ogroup .orows .door .from{font-size:11.5px !important}
-  html body .ogroup .orows .door .bands>summary,html body .ogroup .bands>summary{min-height:44px;font-size:12.5px;display:flex;align-items:center}
-  html body .door__where span,html body .ogroup .orows .door__where span{font-size:12px !important}
-  html body .ogroup .orows .door .pill{min-height:46px;font-size:12.5px !important;padding-inline:22px}
-  html body .wa-row a{min-height:46px;font-size:12px}
-  html body .door .ptable th{font-size:10px !important}
-  html body .press-sub,html body .press-quote span,html body .foot .soc-grp{font-size:11.5px !important}
-}
-@media(max-width:480px){
-  html body .trs-nav .nav__cta{font-size:12px !important;letter-spacing:.04em;padding-inline:16px;min-height:42px}
-  html body .trs-nav .nav__cta .nb{display:none}
-}
-@media(max-width:380px){
-  html body .offer-nav__row{gap:5px}
-  html body .ochip{font-size:12.5px !important;padding:0 8px}
-}
-@media(max-width:350px){
-  html body .ochip{font-size:12px !important;padding:0 7px}
-  html body .pick span{font-size:15.5px}
-  html body .offer-nav .wrap{padding-inline:8px}
-  html body .offer-nav__row{gap:4px}
-}
-@media(max-width:300px){
-  html body .offer-nav__row{flex-wrap:wrap}
-  html body .ochip{font-size:12.5px !important;padding:0 11px}
-  html body .pick{grid-template-columns:1fr}
+/* hero: one-line intro and an at-a-glance row */
+.hero-hr .lede .lede-life{color:rgba(255,255,255,.86);font-size:clamp(17px,1.5vw,19px);line-height:1.55}
+.hero-facts{list-style:none;display:grid;gap:8px;margin:28px 0 0;padding:18px 0 0;border-top:1px solid rgba(255,255,255,.16);font-family:var(--fb);font-size:14px;font-weight:300;color:rgba(255,255,255,.8)}
+.hero-facts li{display:flex;align-items:center;gap:10px}
+.hero-facts li::before{content:"";flex:0 0 auto;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.hero-facts b{margin-right:4px;font-weight:600;color:#fff}
+@media (max-width:899px){.hero-facts{justify-items:center}}
+/* hero fills the first screen on wider screens, so the next section starts below the fold */
+@media (min-width:900px){
+  .hero-hr{display:flex;align-items:center;min-height:calc(100vh - var(--nav-h,75px) - 31px);min-height:calc(100svh - var(--nav-h,75px) - 31px);padding-block:56px !important}
+  .hero-hr>.wrap{width:100%}
 }
 
-/* offer terms at a glance (Kate, 19 Oct): the wall of text moved to terms/, in the Wellness Voucher terms style */
-.glance{background:var(--cream);padding:60px 0}
-.glance__row{list-style:none;margin:30px auto 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:980px}
-.glance__row li{background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:20px 18px}
-.glance__row b{display:block;font-family:var(--fb);font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text);margin-bottom:8px}
-.glance__row span{font-family:var(--fd);font-size:18px;line-height:1.35;color:var(--ink)}
-.glance__cta{text-align:center;margin:30px 0 0}
-@media(max-width:860px){.glance__row{grid-template-columns:1fr 1fr}}
-@media(max-width:480px){.glance{padding:48px 0}.glance__row{gap:10px}.glance__row li{padding:16px 14px}.glance__row span{font-size:16px}.glance__cta .pill{width:100%;justify-content:center;min-height:48px}}
-
-/* more reviews (Kate, 19 Oct): six real Google reviews, a swipe row on phones */
-#reviews{padding:64px 0}
-#reviews .sec-head{margin-bottom:30px}
-.revgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:1040px;margin:0 auto}
-#reviews .tcard{display:flex;flex-direction:column}
-#reviews .tcard blockquote{flex:1;margin-bottom:18px}
-#reviews .tcard cite{margin-top:auto}
-@media(max-width:900px){.revgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){
-  #reviews{padding:48px 0}
-  .revgrid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-inline:-20px;padding:2px 20px 14px;-webkit-overflow-scrolling:touch}
-  .revgrid .tcard{flex:0 0 84%;scroll-snap-align:center}
+/* How it works: two tracks,without a plan and with the Blonde Standard */
+.sec-story{padding-block:clamp(60px,8vw,104px)}
+.sec-story .sec-head{margin-bottom:0}
+.sec-story .sec-head h2{color:#fff;font-size:clamp(34px,4.6vw,58px);line-height:1.04;text-wrap:balance}
+.sec-story .menu-lede{max-width:62ch;color:rgba(255,255,255,.74)}
+.bs-tracks{display:grid;gap:16px;max-width:1080px;margin:40px auto 0}
+.bs-track{padding:28px 30px 30px;border-radius:var(--r-md);min-width:0}
+.bs-track--without{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14)}
+.bs-track--with{background:var(--paper);box-shadow:0 24px 50px -30px rgba(0,0,0,.6)}
+.bs-track__lbl{display:block;margin:0 0 22px;font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.bs-track--without .bs-track__lbl{color:rgba(255,255,255,.66)}
+.bs-track--with .bs-track__lbl{color:var(--accent-text)}
+.bs-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:relative}
+.bs-steps::before{content:"";position:absolute;left:9px;right:9px;top:9px;border-top:2px solid var(--accent-text)}
+.bs-track--without .bs-steps::before{border-top:2px dashed rgba(255,255,255,.32)}
+.bs-step{position:relative;padding-right:20px;min-width:0}
+.bs-step::before{content:"";display:block;position:relative;width:20px;height:20px;margin-bottom:16px;border-radius:50%;background:var(--accent);border:2px solid var(--accent-text);box-sizing:border-box}
+.bs-track--without .bs-step::before{background:#24221e;border-color:rgba(255,255,255,.55)}
+.bs-track--without .bs-step--fix::before{background:var(--coral);border-color:var(--coral);box-shadow:0 0 0 6px rgba(255,155,155,.16)}
+.bs-step b{display:block;font-family:var(--fb);font-size:15.5px;font-weight:600;line-height:1.35}
+.bs-step span{display:block;margin-top:5px;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.5}
+.bs-track--without .bs-step b{color:#fff}
+.bs-track--without .bs-step span{color:rgba(255,255,255,.72)}
+.bs-track--without .bs-step--fix b{color:var(--coral)}
+.bs-track--with .bs-step b{color:var(--ink)}
+.bs-track--with .bs-step span{color:var(--ink-soft)}
+.bs-track--without .bs-step__when{color:rgba(255,255,255,.55)}
+.bs-track--without .bs-step--fix .bs-step__when{color:var(--coral)}
+.bs-step__when{display:block;margin:0 0 4px;font-family:var(--fb);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text)}
+@media (max-width:760px){
+  .bs-track{padding:24px 20px 26px}
+  .bs-steps{grid-template-columns:minmax(0,1fr);gap:20px;padding-left:34px}
+  .bs-steps::before{left:9px;right:auto;top:9px;bottom:9px;border-top:0;border-left:2px solid var(--accent-text)}
+  .bs-track--without .bs-steps::before{border-top:0;border-left:2px dashed rgba(255,255,255,.32)}
+  .bs-step{padding-right:0}
+  .bs-step::before{position:absolute;left:-34px;top:0;margin:0}
+  .sec-story .gcta .pill{text-align:center;justify-content:center;line-height:1.3}
 }
 
-/* dark only on what was added (Kate, 19 Oct): the picker band, the reviews and the Good to know row; offers, press, form and FAQ stay light */
-#start{border-top:1px solid rgba(255,255,255,.08)}
-.pickband{background:#161512}
-.pickband .pick{margin-bottom:0}
-#offers{padding:0 0 68px}
-#reviews{background:#161512;border-top:1px solid rgba(255,255,255,.08)}
-#promise{border-top:1px solid rgba(255,255,255,.08)}
-.glance.dark{background:var(--ink-deep)}
-.foot{border-top:1px solid rgba(255,255,255,.08)}
+/* v13 top of page: trust strip, It is not you cards, track week labels */
+.trust--x{background:var(--paper)}
+.trust--x .row{font-family:var(--fb);font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink)}
+.trust--x .row span{display:inline-flex;align-items:center;gap:10px}
+@media (max-width:600px){.trust--x .row{gap:10px 26px;padding:16px 0;font-size:11px;letter-spacing:.12em}}
+.trust--x .tick-i{width:14px;height:2px;background:var(--accent-deep) !important;vertical-align:middle;margin:0}
+.trust--x .tick-i::before,.trust--x .tick-i::after{display:none !important}
+.hero-hr .hero-facts{gap:12px;font-size:16.5px;font-weight:300;color:rgba(255,255,255,.88)}
+.hero-hr .hero-facts li{display:flex;align-items:flex-start;gap:14px;padding:0;line-height:1.45}
+.hero-hr .hero-facts li::before{content:"";flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:rgba(153,246,228,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.6' fill='none' stroke='%2399F6E4' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/20px no-repeat;position:static;margin-top:.12em}
+@media (max-width:560px){.hero-hr .hero-facts{font-size:15px;gap:10px}}
+@media (max-width:899px){.hero-hr .hero-facts{justify-items:start;width:fit-content;max-width:100%;margin-inline:auto;text-align:left}}
+.sec-problem{background:var(--stone-soft);padding-block:clamp(60px,8vw,104px)}
+.sec-problem .sec-head{margin-bottom:0}
+.sec-problem .menu-lede{max-width:62ch}
+.bs-track--with .bs-step__when{margin:3px 0 0}
+.bs-track--with .bs-step b+span{margin-top:5px}
+.bs-track--with .bs-step__when+span{margin-top:5px}
+
+/* plan cards open with her own words */
+
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is a junior stylist experienced enough?", "acceptedAnswer": {"@type": "Answer", "text": "She is a specialist in the appointments she does most. Every one of them is trained the Tara Rose way and supervised by senior team members on everything she offers you."}}, {"@type": "Question", "name": "How often should I come in?", "acceptedAnswer": {"@type": "Answer", "text": "Your stylist will talk you through a rhythm that suits your hair. A common one is colour, a Tone Reset at week four or five, a blow-dry or treatment around week eight, then colour again around week ten."}}, {"@type": "Question", "name": "Which salons?", "acceptedAnswer": {"@type": "Answer", "text": "All four: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai."}}, {"@type": "Question", "name": "What is a Tone Reset?", "acceptedAnswer": {"@type": "Answer", "text": "Toner and a blow-dry. It resets your tone before the warmth comes back."}}]}]}
+{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is a junior stylist experienced enough?", "acceptedAnswer": {"@type": "Answer", "text": "She is a specialist in the appointments she does most. Every one of them is trained the Tara Rose way and supervised by senior team members on everything she offers you."}}, {"@type": "Question", "name": "How often should I come in?", "acceptedAnswer": {"@type": "Answer", "text": "Your stylist will talk you through a rhythm that suits your hair. A common one is colour, a Tone Reset at week four or five, a blow-dry or treatment around week eight, then colour again around week ten."}}, {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Tone Resets start at AED 200, treatments at AED 210 and blow-dry packages at about AED 88 a blow-dry. Your price depends on the service and your length, and your salon confirms it on WhatsApp before you book."}}, {"@type": "Question", "name": "How long do packages last?", "acceptedAnswer": {"@type": "Answer", "text": "The Blow-dry Edit and Series are valid for three months from purchase, Four Weeks for six weeks from your first booking and treatment courses for four months. Moving an appointment needs 48 hours’ notice, and prepaid sessions are not refundable."}}, {"@type": "Question", "name": "How do deposits and the Confidence Promise work?", "acceptedAnswer": {"@type": "Answer", "text": "Some appointments need a deposit, such as longer or higher-value services. It comes off your price on the day, moves with you if you give 48 hours’ notice, and we tell you before anything is confirmed. Every colour and treatment service is covered by the Confidence Promise, set out just above where you book."}}, {"@type": "Question", "name": "Which salons?", "acceptedAnswer": {"@type": "Answer", "text": "All four: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai."}}]}]}
 </script>
 </head>
 <body>
-
 <a href="#main" class="skip">Skip to content</a>
 <div class="draft-bar">Draft for review. Prices and wording are not yet approved.</div>
 
-
-<nav class="trs-nav" aria-label="Primary">
+<nav class="trs-nav nav--wf" aria-label="Primary">
   <div class="wrap navrow">
-    <a class="pill pill--accent nav__cta" href="#book">Book<span class="nb"> an appointment</span></a>
     <a class="brand" href="https://www.tararosesalon.com/" aria-label="Tara Rose, home">
       <span class="brand__tick"></span><span class="brand__wm">TARA ROSE</span><small>UAE</small>
     </a>
-    <a class="nav-link" href="#start">What is on offer &rarr;</a>
+    <div class="navlinks">
+      <a class="nav-link" href="#menu">What we offer</a>
+      <a class="pill pill--accent nav__cta" href="#book">Book an appointment</a>
+    </div>
   </div>
 </nav>
 
 <main id="main">
 
-<section class="hero-c hero-hr">
+<section class="hero-c hero-hr hero-bg">
   <div class="wrap">
     <div class="inner">
-      <span class="pill-tag"><span class="dot"></span>The Hair Rhythm By Tara Rose</span>
+      <span class="pill-tag"><span class="dot"></span>The Hair Rhythm &middot; Dubai and Abu Dhabi</span>
       <h1 class="h-1">Keep your colour looking <em>like colour day.</em></h1>
-      <p class="lede">After colour day the warmth can creep back and the shine can fade. Our junior stylists are the specialists for the toner, treatment or blow-dry that brings it back. Tone Resets from AED&nbsp;200, price confirmed before you book.</p>
+      <p class="lede"><span class="lede-life">Between colour visits, a toner, treatment or blow-dry keeps it looking freshly done. Our junior stylists are the specialists for exactly these appointments.</span></p>
       <div class="cta-row">
         <a class="pill pill--accent" href="#book">Book an appointment <span class="arr">&rarr;</span></a>
-        <a class="nav-link" href="#whatsapp" style="align-self:center">Or message us on WhatsApp &rarr;</a>
+        <a class="nav-link" href="#start" style="align-self:center">What do I need? &darr;</a>
       </div>
+      <ul class="hero-facts" aria-label="At a glance">
+        <li>From AED 200, price confirmed before you book</li>
+        <li>The Confidence Promise on every colour and treatment</li>
+        <li>All four salons in Abu Dhabi and Dubai</li>
+      </ul>
     </div>
   </div>
 </section>
 
-<section id="start" class="pickband dark">
+<div class="trust trust--x" aria-label="Tara Rose at a glance">
   <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">Where to start</span>
-      <h2>What is your hair <em>doing?</em></h2>
+    <div class="row">
+      <span><i class="tick-i" aria-hidden="true"></i>Eleven years</span>
+      <span><i class="tick-i" aria-hidden="true"></i>Four salons across the UAE</span>
     </div>
-    <ul class="pick" aria-label="Start with what your hair is doing">
-      <li><a href="#o-colour"><span>My colour has gone warm or flat.</span><small>Colour maintenance</small></a></li>
-      <li><a href="#o-colour"><span>My roots are showing.</span><small>Colour maintenance</small></a></li>
-      <li><a href="#o-treatment"><span>My hair feels dry or tired.</span><small>Treatments</small></a></li>
-      <li><a href="#o-smooth"><span>I want it smooth, with no frizz.</span><small>Smoothing</small></a></li>
-      <li><a href="#o-blowdry"><span>I want to feel polished all month.</span><small>Blow-dries</small></a></li>
-    </ul>
   </div>
-</section>
-<section id="offers" class="menu-sec" style="background:var(--paper);">
-  <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-blowdry">Blow-dry</a></li><li><a class="ochip" href="#o-treatment">Treatments</a></li><li><a class="ochip" href="#o-smooth">Smoothing</a></li><li><a class="ochip" href="#o-colour">Colour</a></li></ul></div></div>
-  <div class="wrap menu-zone">
-    <div class="ogroup" id="o-blowdry">
-      <h3>Blow-dry packages</h3>
-      <p class="who">For you if you want to feel polished more than once every few weeks.</p>
-    <div class="obody">
-      <div class="omedia"><div class="mphotos"><figure class="mphoto mphoto--s"><img src="assets/img/menu-blowdry.jpg" alt="A junior stylist mid blow-dry, round brush in one hand and dryer in the other, her client relaxed in the chair" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure><figure class="mphoto mphoto--q"><img src="assets/img/menu-blowdry-a.jpg" alt="A stylist blow-drying her client&rsquo;s hair with a round brush" loading="lazy" decoding="async" width="1080" height="1080"></figure><figure class="mphoto mphoto--q"><img src="assets/img/menu-blowdry-b.jpg" alt="A stylist blow-drying a client&rsquo;s long hair with a round brush, seen over the client&rsquo;s shoulder" loading="lazy" decoding="async" width="1080" height="1080"></figure></div></div>
-      <div class="doors orows">
-    <article class="door">
-      <h3>The Blow-dry Edit</h3>
-      <p>Three blow-dries, paid for once and booked whenever you need them.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Three blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>We will do our best to book the same stylist each time</li></ul>
-      <span class="from">Three blow-dries from<b>AED 264</b></span>
-      <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 264</b></li><li><span>Medium</span><b>AED 300</b></li><li><span>Long / Thick</span><b>AED 336</b></li><li><span>Extra Long</span><b>AED 372</b></li></ul></details>
-      <p class="door__where"><span>When</span> Every week, or every other week, across the weeks between colour visits.</p>
-      <p class="door__where"><span>Valid</span> 3 months from purchase.</p>
-      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Blow-dry Series</h3>
-      <p>Five blow-dries, paid for once. For when a blow-dry is part of your week.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Five blow-dries</li><li><span class="tk"></span>Booked as you need them</li><li><span class="tk"></span>We will do our best to book the same stylist each time</li></ul>
-      <span class="from">Five blow-dries from<b>AED 440</b></span>
-      <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 440</b></li><li><span>Medium</span><b>AED 500</b></li><li><span>Long / Thick</span><b>AED 560</b></li><li><span>Extra Long</span><b>AED 620</b></li></ul></details>
-      <p class="door__where"><span>When</span> Weekly, across a month and a bit.</p>
-      <p class="door__where"><span>Valid</span> 3 months from purchase.</p>
-      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>Four Weeks of Blow-dries</h3>
-      <p>Two blow-dries a week across four weeks, booked in advance.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Eight blow-dries across four weeks</li><li><span class="tk"></span>Two a week</li><li><span class="tk"></span>Slots held in advance</li></ul>
-      <span class="from">Eight blow-dries over four weeks<b>AED 705</b></span>
-      
-      <p class="door__where"><span>When</span> A month of blow-dries already in the diary.</p>
-      <p class="door__where"><span>Valid</span> 6 weeks from your first booking.</p>
-      <a class="pill pill--accent" href="#book" data-svc="bundle">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    </div>
-      </div>
-    </div>
-    <div class="ogroup" id="o-treatment">
-      <h3>Treatments</h3>
-      <p class="who">For you if your hair feels tired, dry or frizzy.</p>
-    <div class="obody">
-      <div class="omedia"><div class="mphotos"><figure class="mphoto mphoto--s"><img src="assets/img/menu-treatment-blowdry.jpg" alt="A junior stylist blow-drying her client&rsquo;s freshly treated hair smooth" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure><figure class="mphoto mphoto--s"><img src="assets/img/menu-treatment-course.jpg" alt="A junior stylist at the basin, treatment in hand, talking her client through it" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 30%"></figure></div>
-      </div>
-      <div class="doors orows">
-    <article class="door">
-      <h3>Treatment and Blow-dry</h3>
-      <p>One appointment: a treatment for your hair or scalp, then a blow-dry. Your stylist picks the treatment that suits your hair.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Strength, Colour Longevity, Hydration &amp; Frizz or Scalp Health</li><li><span class="tk"></span>Worked through your 8-Step Hair Plan</li><li><span class="tk"></span>A blow-dry to finish</li></ul>
-      <span class="from">From, per visit<b>AED 210</b></span>
-      <details class="bands"><summary>Prices by treatment and length</summary><table class="ptable"><thead><tr><th scope="col">Treatment</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td><b><span class="cur">AED </span>210</b></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>285</b></td><td><b><span class="cur">AED </span>325</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>275</b></td><td><b><span class="cur">AED </span>285</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td><b><span class="cur">AED </span>290</b></td><td><b><span class="cur">AED </span>330</b></td><td><b><span class="cur">AED </span>365</b></td><td><b><span class="cur">AED </span>405</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td><b><span class="cur">AED </span>210</b></td><td><b><span class="cur">AED </span>220</b></td><td><b><span class="cur">AED </span>235</b></td><td><b><span class="cur">AED </span>245</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td><b><span class="cur">AED </span>250</b></td><td><b><span class="cur">AED </span>260</b></td><td><b><span class="cur">AED </span>275</b></td><td><b><span class="cur">AED </span>285</b></td></tr></tbody></table><p class="ptable__note">Every price includes the blow-dry to finish.</p></details>
-      <p class="door__where"><span>When</span> Monthly, between colour visits.</p>
-      <a class="pill pill--accent" href="#book" data-svc="treatment">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>Treatment Courses</h3>
-      <p>Three or five treatments, paid for once, with the same stylist checking your progress at every visit.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Three or five sessions, one payment</li><li><span class="tk"></span>The same stylist tracking your result</li><li><span class="tk"></span>Your stylist will say so if one session is all you need</li></ul>
-      <span class="from">Three sessions from<b>AED 625</b></span>
-      <span class="from">Five sessions from<b>AED 1,040</b></span>
-      <details class="bands"><summary>Prices by course and length</summary><table class="ptable"><thead><tr><th scope="col">Course</th><th scope="col" class="ses">Sessions</th><th scope="col">Short / Fine</th><th scope="col">Medium</th><th scope="col">Long / Thick</th><th scope="col">Extra Long</th></tr></thead><tbody><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>625</b></td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>855</b></td><td><b><span class="cur">AED </span>975</b></td></tr><tr><td>Strength<span class="svcalt">Repair</span></td><td class="ses">5</td><td><b><span class="cur">AED </span>1,040</b></td><td><b><span class="cur">AED </span>1,240</b></td><td><b><span class="cur">AED </span>1,420</b></td><td><b><span class="cur">AED </span>1,620</b></td></tr><tr><td>Colour Longevity<span class="svcalt">Colour Lock</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>780</b></td><td><b><span class="cur">AED </span>820</b></td><td><b><span class="cur">AED </span>855</b></td></tr><tr><td>Hydration &amp; Frizz<span class="svcalt">Restore Edit</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>865</b></td><td><b><span class="cur">AED </span>985</b></td><td><b><span class="cur">AED </span>1,095</b></td><td><b><span class="cur">AED </span>1,215</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, vegan</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>625</b></td><td><b><span class="cur">AED </span>660</b></td><td><b><span class="cur">AED </span>700</b></td><td><b><span class="cur">AED </span>735</b></td></tr><tr><td>Scalp Health<span class="svcalt">Scalp Reset, caviar</span></td><td class="ses">3</td><td><b><span class="cur">AED </span>745</b></td><td><b><span class="cur">AED </span>780</b></td><td><b><span class="cur">AED </span>820</b></td><td><b><span class="cur">AED </span>855</b></td></tr></tbody></table><p class="ptable__note">One payment covers every session in the course.</p></details>
-      <p class="door__where"><span>When</span> Every three weeks.</p>
-      <p class="door__where"><span>Valid</span> 4 months from purchase.</p>
-      <a class="pill pill--accent" href="#book" data-svc="course">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    </div>
-      </div>
-    </div>
-    <div class="ogroup" id="o-smooth">
-      <h3>Smoothing</h3>
-      <p class="who">For you if you are tired of fighting frizz.</p>
-    <div class="obody">
-      <div class="omedia"><div class="mphotos"><figure class="mphoto mphoto--p"><img src="assets/img/menu-smoothing.jpg" alt="A blow-dry specialist in gloves holding a smoothing product, her client leaning back at the basin" loading="lazy" decoding="async" width="1080" height="1350"></figure><figure class="mphoto mphoto--s"><img src="assets/img/menu-smoothing-2.jpg" alt="A gloved hand drawing a section of treated hair through at the basin" loading="lazy" decoding="async" width="1080" height="810"></figure></div></div>
-      <div class="doors orows">
-    <article class="door">
-      <h3>Keratin Supreme Straightening</h3>
-      <p>A keratin service for hair you want smooth and straight.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Smooths and straightens</li><li><span class="tk"></span>Priced by your hair length</li></ul>
-      <span class="from">From, per visit<b>AED 1,085</b></span>
-      <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 1,085</b></li><li><span>Medium</span><b>AED 1,285</b></li><li><span>Long / Thick</span><b>AED 1,400</b></li><li><span>Extra Long</span><b>AED 1,600</b></li></ul></details>
-      <a class="pill pill--accent" href="#book" data-svc="smooth">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>Keratin Frizz-Free Treatment</h3>
-      <p>A keratin treatment for frizz.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Calms frizz</li><li><span class="tk"></span>Priced by your hair length</li></ul>
-      <span class="from">From, per visit<b>AED 885</b></span>
-      <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 885</b></li><li><span>Medium</span><b>AED 1,085</b></li><li><span>Long / Thick</span><b>AED 1,285</b></li><li><span>Extra Long</span><b>AED 1,450</b></li></ul></details>
-      <a class="pill pill--accent" href="#book" data-svc="smooth">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    </div>
-      </div>
-    </div>
-    <div class="ogroup" id="o-colour">
-      <h3>Colour maintenance</h3>
-      <p class="who">For you if your colour has gone warm or flat, or has started to grow out.</p>
-    <div class="obody">
-      <div class="omedia"><div class="mphotos"><figure class="mphoto mphoto--s"><img src="assets/img/menu-tone-reset.jpg" alt="A straightener gliding through freshly toned copper hair" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:center 40%"></figure><figure class="mphoto mphoto--s"><img src="assets/img/menu-colour-basin.jpg" alt="A gloved hand working colour through blonde hair at the basin" loading="lazy" decoding="async" width="1080" height="810" style="object-position:center 40%"></figure></div></div>
-      <div class="doors orows">
-    <article class="door">
-      <h3>The Tone Reset</h3>
-      <p>Toner and a blow-dry. It resets your tone before the warmth comes back.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Toner, matched to your colour</li><li><span class="tk"></span>A blow-dry to finish</li></ul>
-      <span class="from">From, per visit<b>AED 200</b></span>
-      <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 200</b></li><li><span>Medium</span><b>AED 260</b></li><li><span>Long / Thick</span><b>AED 315</b></li><li><span>Extra Long</span><b>AED 410</b></li></ul></details>
-      <p class="door__where"><span>When</span> Week four to five after colour.</p>
-      <a class="pill pill--accent" href="#book" data-svc="toner">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Root Refresh</h3>
-      <p>A line of regrowth at your parting, and the rest of your colour still looking good.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Root colour matched to your base</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde or brunette</li></ul>
-      <span class="from">From, per visit<b>AED 310</b></span>
-      <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 310</b></li><li><span>Medium</span><b>AED 335</b></li><li><span>Long / Thick</span><b>AED 375</b></li><li><span>Extra Long</span><b>AED 470</b></li></ul></details><p class="door__where"><span>When</span> Week six to eight after colour.</p>
-      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Brightening Refresh</h3>
-      <p>Your parting and hairline look darker than the rest. Partial foils where the grow-out shows first.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Partial foils where it shows first</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde</li></ul>
-      <span class="from">From, per visit<b>AED 370</b></span>
-      <details class="bands" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 370</b></li><li><span>Medium</span><b>AED 395</b></li><li><span>Long / Thick</span><b>AED 425</b></li><li><span>Extra Long</span><b>AED 520</b></li></ul></details><p class="door__where"><span>When</span> Between your full highlight or balayage visits.</p>
-      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    <article class="door">
-      <h3>The Face Frame</h3>
-      <p>The brightness around your face has dropped before the rest. Colour placed softly around your hairline.</p>
-      <ul class="door__inc"><li><span class="tk"></span>Colour placed around your hairline</li><li><span class="tk"></span>A blow-dry to finish</li><li><span class="tk"></span>Blonde or brunette</li></ul>
-      <span class="from">Starting price, per visit<b>AED 265</b></span>
-      
-      <p class="door__where"><span>When</span> Whenever the front grows out before the rest.</p>
-      <a class="pill pill--accent" href="#book" data-svc="colour">Book this <span class="arr">&rarr;</span></a>
-    </article>
-    </div>
-      </div>
-    </div>
-    <p class="short-note">Every price shown is a starting price for short or fine hair. Where a card has a prices-by-length list, open it for yours. Your salon confirms your price before anything is booked, not at the till.</p>
-  </div>
-</section>
+</div>
+<section class="press-strip"><div class="wrap"><p class="press-eyebrow">Press and platforms</p><div class="press-row">
+  <a href="https://www.cosmopolitanme.com/beauty/best-dubai-salons-2026" target="_blank" rel="noopener"><span class="press-logo-box"><img width="600" height="106" class="press-logo press-logo--cosmo" src="assets/press/cosmopolitan.svg" alt="Cosmopolitan" loading="lazy" decoding="async"></span><span class="press-sub">Best Dubai Salons 2026</span></a>
+  <a href="https://www.harpersbazaararabia.com/beauty/best-balayage-salon-in-dubai" target="_blank" rel="noopener"><span class="press-logo-box"><img width="438" height="107" class="press-logo press-logo--hb" src="assets/press/harpers-bazaar.svg" alt="Harper&rsquo;s Bazaar" loading="lazy" decoding="async"></span><span class="press-sub">Arabia, 2024</span></a>
+  <a href="https://professionalbeauty.me/professional-beauty-gcc-awards-hall-of-fame1" target="_blank" rel="noopener"><span class="press-logo-box"><img width="313" height="109" class="press-logo press-logo--pb" src="assets/press/professional-beauty.png" alt="Professional Beauty" loading="lazy" decoding="async"></span><span class="press-sub">GCC Hall of Fame, 2024</span></a>
+  <a href="https://www.entrepreneur.com/en-ae/starting-a-business/turning-your-creative-talent-into-a-successful-business/454020" target="_blank" rel="noopener"><span class="press-logo-box"><img width="787" height="203" class="press-logo press-logo--ent" src="assets/press/entrepreneur.svg" alt="Entrepreneur Middle East" loading="lazy" decoding="async"></span><span class="press-sub">By Tara</span></a>
+  <a href="https://beautyworld-dubai.ae.messefrankfurt.com/dubai/en/press/press-releases/all/20241025.html" target="_blank" rel="noopener"><span class="press-logo-box"><img width="115" height="35" class="press-logo press-logo--bw" src="assets/press/beautyworld.svg" alt="Beautyworld Middle East" loading="lazy" decoding="async"></span><span class="press-sub">Speaker</span></a>
+</div><p class="press-quote">&ldquo;A salon could be a place where a woman walks out feeling genuinely seen, not just groomed.&rdquo;<span>Tara Rose Kidd, Bizpreneur Middle East, August 2026</span></p></div></section>
 
-<section class="dark" id="rhythm">
+<section id="rhythm" class="dark sec-story">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">The rhythm</span>
       <h2>Colour day is week one. <em>Here is what comes next.</em></h2>
+      <p class="menu-lede">Most of us leave colour until it has faded, then start again. A short visit in between keeps it looking right all the way to your next colour day.</p>
     </div>
-    <div class="timeline timeline--strip">
-      <div class="tstep"><span class="wk">Week 1</span><b>Colour day</b></div>
-      <div class="tstep"><span class="wk">Week 4 to 5</span><b>The Tone Reset</b></div>
-      <div class="tstep"><span class="wk">Week 8</span><b>A treatment or a blow-dry</b></div>
-      <div class="tstep"><span class="wk">Week 10</span><b>Colour again</b></div>
+    <div class="bs-tracks">
+      <div class="bs-track bs-track--without">
+        <p class="bs-track__lbl">Without a rhythm</p>
+        <ol class="bs-steps"><li class="bs-step"><b>Colour day</b><em class="bs-step__when">Week 1</em><span>Bright, even, finished.</span></li><li class="bs-step"><b>Warmth shows</b><em class="bs-step__when">Week 4 to 5</em><span>The toner has worn off.</span></li><li class="bs-step"><b>Dull and dry</b><em class="bs-step__when">Week 8</em><span>The shine has gone and the roots are showing.</span></li><li class="bs-step bs-step--fix"><b>The big fix</b><em class="bs-step__when">Week 10</em><span>More time in the chair, more stress on your hair, more cost.</span></li></ol>
+      </div>
+      <div class="bs-track bs-track--with">
+        <p class="bs-track__lbl">The Hair Rhythm</p>
+        <ol class="bs-steps"><li class="bs-step"><b>Colour day</b><em class="bs-step__when">Week 1</em><span>Bright, even, finished.</span></li><li class="bs-step"><b>The Tone Reset</b><em class="bs-step__when">Week 4 to 5</em><span>Toner refreshed before the warmth comes back.</span><strong class="bs-step__price">From AED 200</strong></li><li class="bs-step"><b>A treatment or a blow-dry</b><em class="bs-step__when">Week 8</em><span>Your stylist picks what your hair needs to get its shine back.</span><strong class="bs-step__price">From AED 210</strong></li><li class="bs-step"><b>Colour again</b><em class="bs-step__when">Week 10</em><span>It still looks right, so there is less to fix on colour day.</span></li></ol>
+      </div>
     </div>
+    <div class="gcta"><a class="pill pill--accent js-book" href="#book" data-book="The Tone Reset" data-svc="toner">Book your Tone Reset <span class="arr">&rarr;</span></a></div>
   </div>
 </section>
 
-<section class="dark reframe" id="reframe">
-  <div class="wrap">
-    <p class="reframe__claim">Our junior stylists are the specialists for these appointments</p>
-    <p class="reframe__sub">Blow-dries, toners and maintenance treatments are their daily work, and they have time to look at your hair properly before they start.</p>
-  </div>
-</section>
-
-<section class="press-strip"><div class="wrap"><p class="press-eyebrow">Press and platforms</p><div class="press-row">
-  <a href="https://www.cosmopolitanme.com/beauty/best-dubai-salons-2026" target="_blank" rel="noopener"><span class="press-logo-box"><img width="600" height="106" class="press-logo press-logo--cosmo" src="assets/press/cosmopolitan.svg" alt="Cosmopolitan" decoding="async"></span><span class="press-sub">Best Dubai Salons 2026</span></a>
-  <a href="https://www.harpersbazaararabia.com/beauty/best-balayage-salon-in-dubai" target="_blank" rel="noopener"><span class="press-logo-box"><img width="438" height="107" class="press-logo press-logo--hb" src="assets/press/harpers-bazaar.svg" alt="Harper&rsquo;s Bazaar" decoding="async"></span><span class="press-sub">Arabia, 2024</span></a>
-  <a href="https://professionalbeauty.me/professional-beauty-gcc-awards-hall-of-fame1" target="_blank" rel="noopener"><span class="press-logo-box"><img width="313" height="109" class="press-logo press-logo--pb" src="assets/press/professional-beauty.png" alt="Professional Beauty" decoding="async"></span><span class="press-sub">GCC Hall of Fame, 2024</span></a>
-  <a href="https://www.entrepreneur.com/en-ae/starting-a-business/turning-your-creative-talent-into-a-successful-business/454020" target="_blank" rel="noopener"><span class="press-logo-box"><img width="787" height="203" class="press-logo press-logo--ent" src="assets/press/entrepreneur.svg" alt="Entrepreneur Middle East" decoding="async"></span><span class="press-sub">By Tara</span></a>
-  <a href="https://beautyworld-dubai.ae.messefrankfurt.com/dubai/en/press/press-releases/all/20241025.html" target="_blank" rel="noopener"><span class="press-logo-box"><img width="115" height="35" class="press-logo press-logo--bw" src="assets/press/beautyworld.svg" alt="Beautyworld Middle East" decoding="async"></span><span class="press-sub">Speaker</span></a>
-</div><p class="press-quote">&ldquo;A salon could be a place where a woman walks out feeling genuinely seen, not just groomed.&rdquo;<span>Tara Rose Kidd, Bizpreneur Middle East, August 2026</span></p></div></section>
-
-<section id="reviews" class="dark">
+<section id="start" class="sec-problem sec-start">
   <div class="wrap">
     <div class="sec-head center">
-      <span class="eyebrow">Reviews</span>
-      <h2>What clients <em>say.</em></h2>
+      <span class="eyebrow">Where to start</span>
+      <h2>What is your hair <em>doing?</em></h2>
+      <p class="menu-lede">Pick the one that sounds like you, and we&rsquo;ll take you to the right appointment.</p>
     </div>
+    <ul class="pick" aria-label="Start with what your hair is doing">
+      <li><a class="pick__card" href="#o-smooth"><span class="pick__q">I want it smooth, with no frizz.</span><span class="pick__go">Keratin &amp; Smoothing</span></a></li>
+      <li><a class="pick__card" href="#o-colour"><span class="pick__q">My roots are showing.</span><span class="pick__go">Colour maintenance</span></a></li>
+      <li><a class="pick__card" href="#o-treatment"><span class="pick__q">My hair feels dry or tired.</span><span class="pick__go">Treatments</span></a></li>
+      <li><a class="pick__card" href="#plans"><span class="pick__q">I want to feel polished all month.</span><span class="pick__go">Blow-dry packages</span></a></li>
+    </ul>
+  </div>
+</section>
+
+<section id="menu" class="sec-menu">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">The menu</span>
+      <h2>One visit <em>at a time.</em></h2>
+      <p class="menu-lede">Book as you need it. Prices start from short hair, and you pick your length when you book.</p>
+    </div>
+    <div class="plangrid gcards">
+      <article class="plancard gcard plancard--hi" id="o-smooth">
+        <figure class="plancard__photo"><img src="assets/img/keratin-smoothing.jpg" alt="A gloved stylist running a flat iron through a sectioned panel of dark hair, leaving it smooth and glossy" loading="lazy" decoding="async" width="1600" height="1066" style="object-position:58% 50%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Tired of the frizz</span>
+          <h3>Keratin &amp; Smoothing</h3>
+          <p>A keratin service for frizz, or for hair you want smooth and straight.</p>
+          <ul class="incl" aria-label="What is included"><li>Keratin Frizz-Free: calms frizz</li><li>Keratin Supreme: smooths and straightens</li><li>Done by our junior stylists</li><li>Priced by your hair length</li></ul>
+          <div class="plancard__price" data-price="o-smooth" aria-live="polite"><span>2 services, from</span><strong>AED 1,085</strong><small>Price set by your length</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="Keratin &amp; Smoothing" data-svc="smooth">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Service</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Keratin Frizz-Free</span></div><div class="gsvc__lens" aria-label="Keratin Frizz-Free by length: Short / Fine AED 1,085, Medium AED 1,285, Long / Thick AED 1,400, Extra Long AED 1,600"><span>1,085</span><span>1,285</span><span>1,400</span><span>1,600</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Keratin Supreme Straightening</span></div><div class="gsvc__lens" aria-label="Keratin Supreme Straightening by length: Short / Fine AED 1,085, Medium AED 1,285, Long / Thick AED 1,400, Extra Long AED 1,600"><span>1,085</span><span>1,285</span><span>1,400</span><span>1,600</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+      <article class="plancard gcard" id="o-colour">
+        <figure class="plancard__photo"><img src="assets/img/menu-tone-reset.jpg" alt="A straightener gliding through freshly toned copper hair" loading="lazy" decoding="async" style="object-position:50% 40%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Between colour visits</span>
+          <h3>Colour maintenance</h3>
+          <p>Toner, or one colour through your roots, with a blow-dry to finish.</p>
+          <ul class="incl" aria-label="What is included"><li>The Tone Reset: toner matched to your colour, week 4 to 5</li><li>The Root Refresh: solid colour roots, one application, week 6 to 8</li><li>The Face Frame: soft colour around your hairline</li><li>A blow-dry to finish, every time</li></ul>
+          <div class="plancard__price" data-price="o-colour" aria-live="polite"><span>3 services, from</span><strong>AED 200</strong><small>Price set by your length</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="colour maintenance" data-svc="colour">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Service</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>The Tone Reset<small>Warmth has crept back</small></span></div><div class="gsvc__lens" aria-label="The Tone Reset by length: Short / Fine AED 200, Medium AED 260, Long / Thick AED 315, Extra Long AED 410"><span>200</span><span>260</span><span>315</span><span>410</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>The Root Refresh<small>Solid colour roots only</small></span></div><div class="gsvc__lens" aria-label="The Root Refresh by length: Short / Fine AED 310, Medium AED 335, Long / Thick AED 375, Extra Long AED 470"><span>310</span><span>335</span><span>375</span><span>470</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>The Face Frame<small>Brightness around your face</small></span></div><div class="gsvc__lens gsvc__lens--one" aria-label="The Face Frame: From 265"><span>From 265</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED, blow-dry included. Bleach, scalp bleach, platinum and maximum brightness sit with The Blonde Standard.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+      <article class="plancard gcard" id="o-treatment">
+        <figure class="plancard__photo"><img src="assets/img/menu-treatment-course.jpg" alt="A junior stylist at the basin, treatment in hand, talking her client through it" loading="lazy" decoding="async" style="object-position:50% 35%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Dry, tired or frizzy</span>
+          <h3>Treatments</h3>
+          <p>A treatment for your hair or scalp, then a blow-dry. Your stylist prescribes, you do not choose blind.</p>
+          <ul class="incl" aria-label="What is included"><li>Strength, Colour Longevity, Hydration &amp; Frizz or Scalp Health</li><li>Worked through your 8-Step Hair Plan</li><li>A blow-dry to finish</li><li>Courses of three, with the same stylist tracking your result</li></ul>
+          <div class="plancard__price" data-price="o-treatment" aria-live="polite"><span>5 treatments, from</span><strong>AED 210</strong><small>A visit. Courses of three from AED 625</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="a treatment" data-svc="treatment">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Treatment</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Strength</span></div><div class="gsvc__lens" aria-label="Strength by length: Short / Fine AED 210, Medium AED 250, Long / Thick AED 285, Extra Long AED 325"><span>210</span><span>250</span><span>285</span><span>325</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Colour Longevity</span></div><div class="gsvc__lens" aria-label="Colour Longevity by length: Short / Fine AED 250, Medium AED 260, Long / Thick AED 275, Extra Long AED 285"><span>250</span><span>260</span><span>275</span><span>285</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Hydration &amp; Frizz</span></div><div class="gsvc__lens" aria-label="Hydration & Frizz by length: Short / Fine AED 290, Medium AED 330, Long / Thick AED 365, Extra Long AED 405"><span>290</span><span>330</span><span>365</span><span>405</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Scalp Health<small>Vegan</small></span></div><div class="gsvc__lens" aria-label="Scalp Health by length: Short / Fine AED 210, Medium AED 220, Long / Thick AED 235, Extra Long AED 245"><span>210</span><span>220</span><span>235</span><span>245</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Scalp Health<small>Caviar</small></span></div><div class="gsvc__lens" aria-label="Scalp Health by length: Short / Fine AED 250, Medium AED 260, Long / Thick AED 275, Extra Long AED 285"><span>250</span><span>260</span><span>275</span><span>285</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED, per visit, blow-dry included.</p>
+              <p class="gcard__course"><b>Make it a course.</b> Three sessions, paid once, with the same stylist tracking your result. Strength also comes as a course of five, from AED 1,040.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+    </div>
+    <p class="short-note">Menu prices are in AED and confirmed on WhatsApp before you book, never at the till.</p>
+  </div>
+</section>
+
+<section id="plans" class="sec-plans">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">Blow-dry packages</span>
+      <h2>Polished <em>all month.</em></h2>
+      <p class="menu-lede">Paid once and booked whenever you need them, and we do our best to keep you with the same stylist. You pick your length when you book.</p>
+    </div>
+    <div class="plangrid">
+      <article class="plancard" id="plan-edit">
+        <figure class="plancard__photo"><img src="assets/img/menu-blowdry-a.jpg" alt="A stylist blow-drying her client&rsquo;s hair with a round brush" loading="lazy" decoding="async" style="object-position:50% 30%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Every week or two</span>
+          <h3>The Blow-dry Edit</h3>
+          <p>For polished hair between colour visits.</p>
+          <ul class="incl" aria-label="What is included"><li>Three blow-dries, paid once</li><li>Booked whenever you need them</li><li>The same stylist wherever we can</li><li>Valid 3 months from purchase</li></ul>
+          <div class="plancard__price" data-price="plan-edit" aria-live="polite"><span>3 blow-dries, from</span><strong>AED 264</strong><small>about AED 88 a blow-dry</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="The Blow-dry Edit" data-svc="bundle">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Package<small>3 blow-dries</small></span></div><div class="gsvc__lens" aria-label="Package by length: Short / Fine AED 264, Medium AED 300, Long / Thick AED 336, Extra Long AED 444"><span>264</span><span>300</span><span>336</span><span>444</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per blow-dry<small>about</small></span></div><div class="gsvc__lens" aria-label="Per blow-dry by length: Short / Fine AED 88, Medium AED 100, Long / Thick AED 112, Extra Long AED 148"><span>88</span><span>100</span><span>112</span><span>148</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+      <article class="plancard plancard--hi" id="plan-series">
+        <figure class="plancard__photo"><img src="assets/img/menu-blowdry.jpg" alt="A junior stylist mid blow-dry, round brush in one hand and dryer in the other, her client relaxed in the chair" loading="lazy" decoding="async" style="object-position:50% 30%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Once a week</span>
+          <h3>The Blow-dry Series</h3>
+          <p>For when a blow-dry is part of your week.</p>
+          <ul class="incl" aria-label="What is included"><li>Five blow-dries, paid once</li><li>Booked whenever you need them</li><li>The same stylist wherever we can</li><li>Valid 3 months from purchase</li></ul>
+          <div class="plancard__price" data-price="plan-series" aria-live="polite"><span>5 blow-dries, from</span><strong>AED 440</strong><small>about AED 88 a blow-dry</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="The Blow-dry Series" data-svc="bundle">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Package<small>5 blow-dries</small></span></div><div class="gsvc__lens" aria-label="Package by length: Short / Fine AED 440, Medium AED 500, Long / Thick AED 560, Extra Long AED 740"><span>440</span><span>500</span><span>560</span><span>740</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per blow-dry<small>about</small></span></div><div class="gsvc__lens" aria-label="Per blow-dry by length: Short / Fine AED 88, Medium AED 100, Long / Thick AED 112, Extra Long AED 148"><span>88</span><span>100</span><span>112</span><span>148</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+      <article class="plancard" id="plan-four-weeks">
+        <figure class="plancard__photo"><img src="assets/img/menu-blowdry-b.jpg" alt="A stylist blow-drying a client&rsquo;s long hair with a round brush, seen over the client&rsquo;s shoulder" loading="lazy" decoding="async" style="object-position:50% 30%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Twice a week</span>
+          <h3>Four Weeks of Blow-dries</h3>
+          <p>A month of blow-dries already in the diary.</p>
+          <ul class="incl" aria-label="What is included"><li>Eight blow-dries, two a week</li><li>Your slots held in advance</li><li>Valid 6 weeks from your first booking</li></ul>
+          <div class="plancard__price" data-price="plan-four-weeks" aria-live="polite"><span>8 blow-dries</span><strong>AED 705</strong><small>about AED 88 a blow-dry, any length</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="Four Weeks of Blow-dries" data-svc="bundle">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Package<small>8 blow-dries</small></span></div><div class="gsvc__lens" aria-label="Package by length: Short / Fine AED 705, Medium AED 705, Long / Thick AED 705, Extra Long AED 705"><span>705</span><span>705</span><span>705</span><span>705</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per blow-dry<small>about</small></span></div><div class="gsvc__lens" aria-label="Per blow-dry by length: Short / Fine AED 88, Medium AED 88, Long / Thick AED 88, Extra Long AED 88"><span>88</span><span>88</span><span>88</span><span>88</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+    </div>
+    <div class="plans-foot">
+      <p class="short-note">Your salon confirms your length and price on WhatsApp before you book.</p>
+    </div>
+  </div>
+</section>
+
+<section id="reviews" class="dark sec-proof">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">Proof</span>
+      <h2>What clients say <em>about our juniors.</em></h2>
+      <p class="menu-lede">Our junior stylists are the specialists for these appointments. Blow-dries, toners and maintenance treatments are their daily work, and they have time to look at your hair properly before they start.</p>
+    </div>
+    <p class="rev-stars"><span aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</span> Five stars from our clients</p>
     <div class="revgrid">
       <div class="tcard">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <blockquote>Clarissa did a wonderful job with my blow dry! I&rsquo;ve purchased a blow dry package because of the excellent job she did.</blockquote>
-        <cite>Anamika &middot; on Clarissa, Motor City</cite>
-      </div>
-      <div class="tcard">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
         <blockquote>A special thank you to Xyrhy, the Junior Hair Stylist, who did an absolutely terrific job. She was attentive, gentle, professional, and truly took the time to understand what I wanted.</blockquote>
         <cite>Febbie &middot; on Xyrhy, Motor City</cite>
       </div>
       <div class="tcard">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <blockquote>I visited Tara Rose Al Quoz for the first time and had the most pleasant experience. Areanne was so kind and attentive and really took the time to find out my hair concerns and gave a great recommendation for my hair type. I had the Keratin blow dry and I am really happy with the results.</blockquote>
-        <cite>Elizabeth &middot; on Areanne, Al Quoz</cite>
-      </div>
-      <div class="tcard">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <blockquote>You know that feeling of knowing without a doubt that you have finally found what you were looking for? That is how I felt today during my appointment with Edz.</blockquote>
-        <cite>Marta &middot; on Eds, Mamsha Al Saadiyat</cite>
-      </div>
-      <div class="tcard">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
         <blockquote>I used to go to Mevil in Khalifa City and now see Eds at the Saadiyat branch for my weekly treatment and blow-dry.</blockquote>
         <cite>Amna &middot; on Eds, Mamsha Al Saadiyat</cite>
       </div>
       <div class="tcard">
-        <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-        <blockquote>Hazel did the blowdry so nicely, and I really appreciated that she didn&rsquo;t use high heat.</blockquote>
-        <cite>Sara &middot; on Hazel, Khalifa City A</cite>
+        <blockquote>Clarissa did a wonderful job with my blow dry! I&rsquo;ve purchased a blow dry package because of the excellent job she did.</blockquote>
+        <cite>Anamika &middot; on Clarissa, Motor City</cite>
       </div>
     </div>
+    <div class="gcta"><a class="pill pill--accent" href="#book">Book an appointment <span class="arr">&rarr;</span></a></div>
   </div>
 </section>
 
-<section class="dark promise-band" id="promise">
-  <div class="wrap" style="text-align:center">
-    <p class="promise-band__lbl">The Tara Rose Confidence Promise</p>
-    <p class="promise-band__body">If something does not feel right within seven days of any colour or treatment service, we invite you back to refine it. No blame, just care.</p>
-  </div>
-</section>
-
-<section class="reserve" id="book">
-  <div class="wrap">
-    <div class="inner">
-      <div class="head">
-        <span class="eyebrow">Book</span>
-        <h2>Book your appointment.</h2>
-        <p style="max-width:54ch;margin:14px auto 0;font-size:16.5px;line-height:1.62;color:var(--ink-soft);text-align:center">Tell us what you need. We reply on WhatsApp with a time.</p>
-        <p class="wa-lbl" id="whatsapp">Quicker on WhatsApp? Message your salon.</p>
-        <div class="wa-row">
-          <a href="https://wa.me/971502811494?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">Khalifa City A</a>
-          <a href="https://wa.me/971501968720?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">Mamsha Al Saadiyat</a>
-          <a href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">Al Quoz</a>
-          <a href="https://wa.me/971524960903?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener">Motor City</a>
-        </div>
-      </div>
-      <form novalidate>
-        <div class="field">
-          <label for="fname">First name <span class="req">*</span></label>
-          <input id="fname" name="firstName" type="text" placeholder="Your first name" required autocomplete="given-name">
-        </div>
-        <div class="field">
-          <label for="wa">WhatsApp number <span class="req">*</span></label>
-          <div class="phone-wrap">
-            <select id="cc" name="cc" aria-label="Country code" autocomplete="tel-country-code">
-              <option value="+971" selected>+971 &middot; UAE</option>
-              <option value="+973">+973 &middot; Bahrain</option>
-              <option value="+966">+966 &middot; KSA</option>
-              <option value="+965">+965 &middot; Kuwait</option>
-              <option value="+974">+974 &middot; Qatar</option>
-              <option value="+968">+968 &middot; Oman</option>
-              <option value="+44">+44 &middot; UK</option>
-            </select>
-            <input id="wa" name="whatsapp" type="tel" placeholder="50 000 0000" required autocomplete="tel">
-          </div>
-        </div>
-        <div class="field">
-          <label for="email">Email <span class="req">*</span></label>
-          <input id="email" name="email" type="email" placeholder="you@example.com" required autocomplete="email">
-        </div>
-        <div class="field">
-          <label for="svc">What do you need? <span class="req">*</span></label>
-          <select id="svc" name="svc" required>
-            <option value="" disabled selected>Choose the closest one</option>
-            <option value="toner">The Tone Reset, my colour has gone warm</option>
-            <option value="treatment">Treatment and blow-dry</option>
-            <option value="course">A course of treatments, three or five</option>
-            <option value="bundle">Blow-dries, a bundle of three or five</option>
-            <option value="colour">A colour refresh</option>
-            <option value="smooth">Keratin smoothing</option>
-            <option value="scalp">Something for my scalp, match me with a treatment</option>
-            <option value="mapping">Confidence Mapping first: a free look at my hair, and a plan, before the chair</option>
-            <option value="unsure">Something else, or not sure</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="salon">Which salon? <span class="req">*</span></label>
-          <select id="salon" name="salon" required>
-            <option value="" disabled selected>Choose a salon</option>
-            <option value="khalifa-city">Khalifa City A, Abu Dhabi</option>
-            <option value="saadiyat">Mamsha Al Saadiyat, Abu Dhabi</option>
-            <option value="al-quoz">Al Quoz 1, Dubai</option>
-            <option value="motor-city">Motor City, Dubai</option>
-            <option value="either-abudhabi">Either Abu Dhabi salon is fine</option>
-            <option value="either-dubai">Either Dubai salon is fine</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="heard">How did you hear about us? <span class="req">*</span></label>
-          <select id="heard" name="heard" required>
-            <option value="" disabled selected>Choose one</option>
-            <option value="instagram">Instagram</option>
-            <option value="facebook">Facebook</option>
-            <option value="google">Google search</option>
-            <option value="friend">A friend told me</option>
-            <option value="walked-past">I walked past the salon</option>
-            <option value="client">I am already a client</option>
-            <option value="other">Somewhere else</option>
-          </select>
-        </div>
-        <div class="field field--hidden" id="thankField">
-          <label for="thank">Who should we thank?</label>
-          <input id="thank" name="referrer_name" type="text" placeholder="Her name, so we can say thank you">
-        </div>
-        <div class="field">
-          <label for="notes">Anything we should know? (optional)</label>
-          <textarea id="notes" name="notes" rows="3" placeholder="Optional"></textarea>
-        </div>
-
-        <div class="pdpl">
-          <div class="pdpl__group">
-            <input type="checkbox" class="pdpl__checkbox" id="c-contact" name="consent_contact" required>
-            <label class="pdpl__label" for="c-contact">I am happy for the Tara Rose team to contact me about this booking. <span>(required)</span></label>
-          </div>
-          <div class="pdpl__group">
-            <input type="checkbox" class="pdpl__checkbox" id="c-marketing" name="consent_marketing">
-            <label class="pdpl__label" for="c-marketing">I am happy to hear from Tara Rose about hair care and news. <span>(optional)</span></label>
-          </div>
-          <p class="pdpl__note"><strong>Tara Rose Salon</strong> is the data controller. We use what you send only to arrange your appointment, and it lands with our team, never a personal inbox. You can access, correct or delete your details any time at privacy@tararosesalon.com. See our <a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy Policy</a>.</p>
-        </div>
-
-        <input type="hidden" name="utm_source"><input type="hidden" name="utm_medium"><input type="hidden" name="utm_campaign"><input type="hidden" name="utm_content"><input type="hidden" name="utm_term">
-        <input type="hidden" name="gclid"><input type="hidden" name="fbclid"><input type="hidden" name="fbp"><input type="hidden" name="fbc">
-        <input type="hidden" name="first_touch"><input type="hidden" name="last_touch"><input type="hidden" name="landing_path"><input type="hidden" name="referrer">
-        <input type="hidden" name="page_variant" value="hero-1"><input type="hidden" name="ref">
-        <input type="hidden" name="campaign" value="the-hair-rhythm-2026">
-        <input type="hidden" name="product"><input type="hidden" name="emirate"><input type="hidden" name="channel"><input type="hidden" name="branch"><input type="hidden" name="offering">
-
-        <div class="submit-row">
-          <button class="pill pill--accent" type="submit">Book an appointment <span class="arr">&rarr;</span></button>
-        </div>
-        <p class="consent">We reply on WhatsApp with a time. New to us? A deposit secures your appointment, and we explain it when we reply: <a href="https://promo.tararosesalon.com/deposit-policy?client=new" target="_blank" rel="noopener" style="color:#3aa892">how deposits work</a>.</p>
-      </form>
+<section class="dark promise-x" id="promise">
+  <div class="wrap promise-v">
+    <div class="promise-v__text">
+      <p class="promise-x__lbl">The Tara Rose Confidence Promise</p>
+      <p class="promise-x__line">If something does not feel right within <em>seven days</em> of any colour or treatment service, we invite you back to <em>refine it</em>. No blame, <em>just care.</em></p>
+      <p class="promise-x__tag">Refine, never refund.</p>
     </div>
+    <figure class="promise-v__video">
+      <video controls playsinline preload="none" poster="assets/video/confidence-promise-cover.jpg" width="540" height="960" aria-label="The Confidence Promise explained in one minute">
+        <source src="assets/video/confidence-promise.mp4" type="video/mp4">
+      </video>
+      <figcaption>Watch: the Confidence Promise in one minute</figcaption>
+    </figure>
   </div>
 </section>
 
-<section class="faq faq--light" id="faq" style="background:var(--cream);">
+<section class="reserve sec-book" id="book">
+  <div class="wrap book-grid">
+    <div class="book-copy">
+      <span class="eyebrow">Book</span>
+      <h2>Book your appointment.</h2>
+      <p>Fastest on WhatsApp. Pick your salon and your message opens ready to send. We reply within salon hours, 9am to 8pm, with a time and your price.</p>
+      <p class="chat-lbl">WhatsApp your salon</p>
+      <div class="salon-grid wa-list" id="whatsapp"><a class="wa-row" data-wa="971502811494" href="https://wa.me/971502811494?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" aria-label="WhatsApp Khalifa City A, Abu Dhabi"><span class="wa-row__t"><span class="wa-row__n">Khalifa City A</span><span class="wa-row__c">Abu Dhabi</span></span><span class="wa-row__go" aria-hidden="true">&rarr;</span></a><a class="wa-row" data-wa="971501968720" href="https://wa.me/971501968720?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" aria-label="WhatsApp Mamsha Al Saadiyat, Abu Dhabi"><span class="wa-row__t"><span class="wa-row__n">Mamsha Al Saadiyat</span><span class="wa-row__c">Abu Dhabi</span></span><span class="wa-row__go" aria-hidden="true">&rarr;</span></a><a class="wa-row" data-wa="971556245520" href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" aria-label="WhatsApp Al Quoz, Dubai"><span class="wa-row__t"><span class="wa-row__n">Al Quoz</span><span class="wa-row__c">Dubai</span></span><span class="wa-row__go" aria-hidden="true">&rarr;</span></a><a class="wa-row" data-wa="971524960903" href="https://wa.me/971524960903?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Hair%20Rhythm%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" aria-label="WhatsApp Motor City, Dubai"><span class="wa-row__t"><span class="wa-row__n">Motor City</span><span class="wa-row__c">Dubai</span></span><span class="wa-row__go" aria-hidden="true">&rarr;</span></a></div>
+      <p class="book-note">Some appointments need a deposit. It comes off your price on the day, and we tell you before anything is confirmed: <a href="https://www.tararosesalon.com/en/ae/deposit-policy/" target="_blank" rel="noopener">our deposit policy</a>.</p>
+    </div>
+    <div class="formcard" id="bookForm">
+          <h3>Or we message you</h3>
+          <p class="formcard__hint">Leave your number and the team will reply on WhatsApp.</p>
+          <form novalidate>
+            <div class="field">
+              <label for="fname">First name <span class="req">*</span></label>
+              <input id="fname" name="firstName" type="text" placeholder="Your first name" required autocomplete="given-name">
+            </div>
+            <div class="field">
+              <label for="email">Email <span class="req">*</span></label>
+              <input id="email" name="email" type="email" placeholder="you@example.com" required autocomplete="email">
+            </div>
+            <div class="field field--full">
+              <label for="wa">WhatsApp number <span class="req">*</span></label>
+              <div class="phone-wrap">
+                <select id="cc" name="cc" aria-label="Country code" autocomplete="tel-country-code">
+                  <option value="+971" selected>+971 &middot; UAE</option>
+                  <option value="+973">+973 &middot; Bahrain</option>
+                  <option value="+966">+966 &middot; KSA</option>
+                  <option value="+965">+965 &middot; Kuwait</option>
+                  <option value="+974">+974 &middot; Qatar</option>
+                  <option value="+968">+968 &middot; Oman</option>
+                  <option value="+44">+44 &middot; UK</option>
+                </select>
+                <input id="wa" name="whatsapp" type="tel" placeholder="50 000 0000" required autocomplete="tel">
+              </div>
+            </div>
+            <div class="field field--full">
+              <label for="svc">What do you need? <span class="req">*</span></label>
+              <select id="svc" name="svc" required>
+                <option value="" disabled selected>Choose the closest one</option>
+                <option value="toner">The Tone Reset, my colour has gone warm</option>
+                <option value="colour">A colour refresh</option>
+                <option value="treatment">Treatment and blow-dry</option>
+                <option value="course">A course of treatments</option>
+                <option value="bundle">A blow-dry package</option>
+                <option value="smooth">Keratin &amp; Smoothing</option>
+                <option value="scalp">Something for my scalp, match me with a treatment</option>
+                <option value="mapping">Confidence Mapping first: a free look at my hair, and a plan, before the chair</option>
+                <option value="unsure">Something else, or not sure</option>
+              </select>
+            </div>
+            <div class="field field--full">
+              <label for="salon">Which salon? <span class="req">*</span></label>
+              <select id="salon" name="salon" required>
+                <option value="" disabled selected>Choose a salon</option>
+                <option value="al-quoz">Al Quoz, Dubai</option>
+                <option value="motor-city">Motor City, Dubai</option>
+                <option value="khalifa-city">Khalifa City A, Abu Dhabi</option>
+                <option value="saadiyat">Mamsha al Saadiyat, Abu Dhabi</option>
+                <option value="either-dubai">Either Dubai salon</option>
+                <option value="either-abudhabi">Either Abu Dhabi salon</option>
+              </select>
+            </div>
+    
+            <div class="pdpl field--full">
+              <div class="pdpl__group">
+                <input type="checkbox" class="pdpl__checkbox" id="c-contact" name="consent_contact" required>
+                <label class="pdpl__label" for="c-contact">I am happy for the Tara Rose team to contact me about this booking. <span>(required)</span></label>
+              </div>
+              <div class="pdpl__group">
+                <input type="checkbox" class="pdpl__checkbox" id="c-marketing" name="consent_marketing">
+                <label class="pdpl__label" for="c-marketing">I am happy to hear from Tara Rose about hair care and news. <span>(optional)</span></label>
+              </div>
+              <p class="pdpl__note"><strong>Tara Rose Salon</strong> is the data controller. We use what you send only to arrange your appointment, and it lands with our team, never a personal inbox. You can access, correct or delete your details any time at privacy@tararosesalon.com. See our <a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy Policy</a>.</p>
+            </div>
+    
+            <input type="hidden" name="utm_source"><input type="hidden" name="utm_medium"><input type="hidden" name="utm_campaign"><input type="hidden" name="utm_content"><input type="hidden" name="utm_term">
+            <input type="hidden" name="gclid"><input type="hidden" name="fbclid"><input type="hidden" name="fbp"><input type="hidden" name="fbc">
+            <input type="hidden" name="first_touch"><input type="hidden" name="last_touch"><input type="hidden" name="landing_path"><input type="hidden" name="referrer">
+            <input type="hidden" name="page_variant" value="hero-1"><input type="hidden" name="ref">
+            <input type="hidden" name="campaign" value="the-hair-rhythm-2026">
+            <input type="hidden" name="product"><input type="hidden" name="emirate"><input type="hidden" name="channel"><input type="hidden" name="branch"><input type="hidden" name="offering">
+    
+            <div class="submit-row field--full">
+              <button class="pill pill--accent" type="submit">Send my details <span class="arr">&rarr;</span></button>
+            </div>
+          </form>
+        </div>
+  </div>
+</section>
+
+<section class="faq dark" id="faq">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Questions</span>
@@ -659,28 +769,58 @@
     </div>
     <details class="q"><summary>Is a junior stylist experienced enough?<span class="chev"></span></summary><div class="ans">She is a specialist in the appointments she does most. Every one of them is trained the Tara Rose way and supervised by senior team members on everything she offers you.</div></details>
     <details class="q"><summary>How often should I come in?<span class="chev"></span></summary><div class="ans">Your stylist will talk you through a rhythm that suits your hair. A common one is colour, a Tone Reset at week four or five, a blow-dry or treatment around week eight, then colour again around week ten.</div></details>
+    <details class="q"><summary>What does it cost?<span class="chev"></span></summary><div class="ans">Tone Resets start at AED 200, treatments at AED 210 and blow-dry packages at about AED 88 a blow-dry. Your price depends on the service and your length, and your salon confirms it on WhatsApp before you book.</div></details>
+    <details class="q"><summary>How long do packages last?<span class="chev"></span></summary><div class="ans">The Blow-dry Edit and Series are valid for three months from purchase, Four Weeks for six weeks from your first booking and treatment courses for four months. Moving an appointment needs 48 hours&rsquo; notice, and prepaid sessions are not refundable.</div></details>
+    <details class="q"><summary>How do deposits and the Confidence Promise work?<span class="chev"></span></summary><div class="ans">Some appointments need a deposit, such as longer or higher-value services. It comes off your price on the day, moves with you if you give 48 hours’ notice, and we tell you before anything is confirmed: <a href="https://www.tararosesalon.com/en/ae/deposit-policy/" target="_blank" rel="noopener" style="color:var(--accent)">our deposit policy</a>. Every colour and treatment service is covered by the Confidence Promise, set out just above where you book.</div></details>
     <details class="q"><summary>Which salons?<span class="chev"></span></summary><div class="ans">All four: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai.</div></details>
-    <details class="q"><summary>What is a Tone Reset?<span class="chev"></span></summary><div class="ans">Toner and a blow-dry. It resets your tone before the warmth comes back.</div></details>
-  </div>
-</section>
-
-<section id="terms" class="glance dark">
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">Offer terms</span>
-      <h2>Good to <em>know.</em></h2>
-    </div>
-    <ul class="glance__row">
-      <li><b>Valid</b><span>3 months for blow-dries, 4 months for courses, 6 weeks for Four Weeks.</span></li>
-      <li><b>Notice</b><span>48 hours to move an appointment.</span></li>
-      <li><b>Refunds</b><span>Prepaid sessions are not refundable.</span></li>
-      <li><b>Where</b><span>All four Tara Rose salons.</span></li>
-    </ul>
-    <p class="glance__cta"><a class="pill pill--accent" href="terms/">Read the full offer terms <span class="arr">&rarr;</span></a></p>
+    <div id="terms" class="terms-wrap"><a class="terms terms--link" href="terms/" target="_blank" rel="noopener"><span>Read the full offer terms</span><i class="tarr">&rarr;</i></a></div>
   </div>
 </section>
 
 </main>
+<div class="wa-sheet" id="waSheet" hidden>
+  <div class="wa-sheet__scrim" data-close></div>
+  <div class="wa-sheet__panel bk" role="dialog" aria-modal="true" aria-labelledby="waTitle">
+    <button class="wa-sheet__x" type="button" data-close aria-label="Close">&times;</button>
+    <p class="wa-sheet__eyebrow">Book on WhatsApp</p>
+    <h3 id="waTitle" tabindex="-1">Book your appointment</h3>
+    <p class="bk-lede">Answer four quick questions and your WhatsApp message is written for you.</p>
+
+    <div class="bk-f" id="bkSvcF">
+      <label class="bk-l" for="bkSvc">Which service would you like?</label>
+      <div class="bk-sel"><select id="bkSvc"></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <p class="bk-help" id="bkSvcDesc"></p>
+      <p class="bk-bs" id="bkBS" hidden>Highlighted or foiled roots take longer and sit with The Blonde Standard, not The Hair Rhythm. Send us a message and we will match you with the right stylist.</p>
+    </div>
+
+    <fieldset class="bk-f" id="bkLenF">
+      <legend class="bk-l">Where does your hair fall?</legend>
+      <p class="bk-help">Check from the back, with your hair dry and brushed straight. Our short may be shorter than you think.</p>
+      <div class="lf__len bk-lenwrap"><img src="assets/img/len-hair.jpg" alt="Long straight hair seen from the back, with lines marking the chin, the shoulders and the armpits" width="250" height="440"><div class="bk-opts"><label class="bk-r"><input type="radio" name="bkLen" value="0"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Short</b><small>To the chin</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Medium</b><small>Chin to above the shoulders</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="2"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Long</b><small>Shoulders to the armpits</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="3"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Extra long</b><small>Below the armpits</small></span><em class="bk-r__p"></em></label></div></div>
+      <label class="bk-r bk-r--plain"><input type="radio" name="bkLen" value="-1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>I am not sure. Ask my salon to check.</b></span></label>
+    </fieldset>
+
+    <fieldset class="bk-f" id="bkDensF">
+      <legend class="bk-l">How much hair do you have?</legend>
+      <p class="bk-help">Tie a ponytail with a standard hair tie and count the wraps. Thick hair takes more time and product, so it can move you up a length.</p>
+      <div class="bk-dens"><label class="bk-d"><input type="radio" name="bkDens" value="0"><img src="assets/img/dens-fine.jpg" alt="" width="34" height="34"><b>Fine</b><small>Wraps 3 times</small></label><label class="bk-d"><input type="radio" name="bkDens" value="1"><img src="assets/img/dens-medium.jpg" alt="" width="34" height="34"><b>Medium</b><small>Wraps 2 times</small></label><label class="bk-d"><input type="radio" name="bkDens" value="2"><img src="assets/img/dens-thick.jpg" alt="" width="34" height="34"><b>Thick</b><small>Wraps once</small></label><label class="bk-d"><input type="radio" name="bkDens" value="3"><img src="assets/img/dens-xthick.jpg" alt="" width="34" height="34"><b>Extra thick</b><small>Barely fits once</small></label></div>
+    </fieldset>
+
+    <div class="bk-f" id="bkSalonF">
+      <label class="bk-l" for="bkSalon">Which salon would you like to visit?</label>
+      <div class="bk-sel"><select id="bkSalon"><option value="">Choose a salon</option><option value="971502811494">Khalifa City A &middot; Abu Dhabi</option><option value="971501968720">Mamsha Al Saadiyat &middot; Abu Dhabi</option><option value="971556245520">Al Quoz &middot; Dubai</option><option value="971524960903">Motor City &middot; Dubai</option></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+
+    <div class="bk-price" aria-live="polite"><span>Estimated service price</span><b id="bkPrice">&ndash;</b></div>
+    <p class="bk-price__note" id="bkPriceNote" hidden></p>
+
+    <a class="bk-go" id="bkGo" href="#" target="_blank" rel="noopener">Continue on WhatsApp <span aria-hidden="true">&rarr;</span></a>
+    <p class="bk-miss" id="bkMiss" role="alert" hidden></p>
+    <p class="bk-small">Your service, hair length and guide price go in the message.</p>
+    <p class="bk-small">Guide prices. Your salon confirms the final price after checking your hair. Some appointments need a deposit, which comes off your price on the day: <a href="https://www.tararosesalon.com/en/ae/deposit-policy/" target="_blank" rel="noopener">our deposit policy</a>.</p>
+    <p class="wa-sheet__alt"><a href="#bookForm" id="waForm">Prefer we message you? Leave your details</a></p>
+  </div>
+</div>
 
 <footer class="foot">
   <div class="wrap">
@@ -692,10 +832,10 @@
       </div>
       <div>
         <h3>The Hair Rhythm</h3>
-        <p><a href="#start">What is on offer</a></p>
+        <p><a href="#menu">The menu</a></p><p><a href="#plans">Blow-dry packages</a></p>
         <p><a href="#book">Book an appointment</a></p>
+        <p><a href="terms/" target="_blank" rel="noopener">Offer terms</a></p>
         <p><a href="#promise">The Confidence Promise</a></p>
-        <p><a href="#terms">Offer terms</a></p>
       </div>
       <div>
         <h3>Locations</h3>
@@ -727,12 +867,489 @@
   </div>
 </footer>
 
-<script src="js/nav-scroll.js?v=mock5" defer></script>
+<script>
+/* Level the Blonde Menu cards: intros get the height of the tallest when the cards sit side by side. */
+(function(){
+  var ps=[].slice.call(document.querySelectorAll('.gcards .plancard__body>p'));
+  if(!ps.length) return;
+  var level=function(){
+    ps.forEach(function(p){ p.style.minHeight=''; });
+    var cards=document.querySelectorAll('.gcards .gcard');
+    if(cards.length<2||cards[0].getBoundingClientRect().top!==cards[1].getBoundingClientRect().top) return;
+    var h=Math.max.apply(null,ps.map(function(p){ return p.getBoundingClientRect().height; }));
+    ps.forEach(function(p){ p.style.minHeight=h+'px'; });
+  };
+  window.addEventListener('resize',level,{passive:true});
+  window.addEventListener('load',level);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(level);
+  level();
+})();
+</script>
+<script>
+/* Hero height: measured, because the draft bar and nav wrap differently by width. */
+(function(){
+  var root=document.documentElement;
+  var fit=function(){
+    var bar=document.querySelector('.draft-bar'), nav=document.querySelector('.trs-nav'), tr=document.querySelector('.trust');
+    root.style.setProperty('--top-h',((bar?bar.offsetHeight:0)+(nav?nav.offsetHeight:0))+'px');
+    if(tr) root.style.setProperty('--trust-h',tr.offsetHeight+'px');
+  };
+  window.addEventListener('resize',fit,{passive:true});
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fit);
+  fit();
+})();
+</script>
+<script>
+/* Where to start: mark the statement she tapped and outline the card it leads to, so she can see where she landed. */
+(function(){
+  var picks=[].slice.call(document.querySelectorAll('.pick__card'));
+  if(!picks.length) return;
+  picks.forEach(function(a){
+    a.addEventListener('click',function(){
+      picks.forEach(function(p){ p.classList.toggle('is-picked',p===a); p.setAttribute('aria-current',p===a?'true':'false'); });
+      document.querySelectorAll('.plancard.is-target').forEach(function(c){ c.classList.remove('is-target'); });
+      var t=document.querySelector(a.getAttribute('href'));
+      if(!t) return;
+      var cards=t.classList.contains('plancard')?[t]:[].slice.call(t.querySelectorAll('.plancard'));
+      cards.forEach(function(c){ c.classList.add('is-target'); });
+    });
+  });
+})();
+</script>
+<script>
+/* Book now: every button opens a salon choice, and the WhatsApp message names the service she tapped plus a ref code reception can match. */
+(function(){
+  var ref=null;
+  try{ ref=localStorage.getItem('trs_ref'); }catch(e){}
+  if(!ref){ ref='JE-'+Math.random().toString(36).slice(2,6).toUpperCase(); try{ localStorage.setItem('trs_ref',ref); }catch(e){} }
+  var msg=function(svc){
+    return svc ? 'Hi Tara Rose, I\'d like to book '+svc+' from The Hair Rhythm. (ref '+ref+')'
+               : 'Hi Tara Rose, I read about The Hair Rhythm and I\'d like to book an appointment. (ref '+ref+')';
+  };
+  var point=function(scope,svc){
+    scope.querySelectorAll('[data-wa]').forEach(function(a){ a.href='https://wa.me/'+a.getAttribute('data-wa')+'?text='+encodeURIComponent(msg(svc)); });
+  };
+  var book=document.getElementById('book');
+  var pointBook=function(){ if(book) book.querySelectorAll('.salon-grid [data-wa]').forEach(function(a){ a.href='https://wa.me/'+a.getAttribute('data-wa')+'?text='+encodeURIComponent(msg('')); }); };
+  pointBook(); document.addEventListener('DOMContentLoaded',pointBook);
+  var sheet=document.getElementById('waSheet'); if(!sheet) return;
+  var root=document.documentElement, last=null, pick='';
+  /* One screen: service, hair length, density, salon. Prices are guide prices by length. */
+  var SV={
+    colour:{title:'Book colour maintenance',opts:[
+      ['The Tone Reset','Toner, when warmth has crept back. Week 4 to 5.',[200,260,315,410]],
+      ['The Root Refresh (solid colour roots)','Solid colour roots: one colour, like a dark base or grey regrowth. Week 6 to 8.',[310,335,375,470]],
+      ['The Face Frame','Soft colour around your hairline.','from 265'],
+      ['highlighted or foiled roots','Balayage or highlights at the root.','bs','Highlighted or foiled roots']]},
+    treatment:{title:'Book a treatment',opts:[
+      ['Strength','For hair that snaps or feels weak. A blow-dry to finish.',[210,250,285,325]],
+      ['Colour Longevity','Helps your colour last between visits. A blow-dry to finish.',[250,260,275,285]],
+      ['Hydration & Frizz','For dry, frizzy hair. A blow-dry to finish.',[290,330,365,405]],
+      ['Scalp Health, vegan','For your scalp. A blow-dry to finish.',[210,220,235,245]],
+      ['Scalp Health, caviar','For your scalp. A blow-dry to finish.',[250,260,275,285]],
+      ['a treatment, and I would like my stylist to recommend one','Your stylist looks at your hair and prescribes the right one.',null,'Not sure yet, my stylist recommends']]},
+    bundle:{title:'Book a blow-dry package',opts:[
+      ['The Blow-dry Edit','3 blow-dries, paid once, valid 3 months.',[264,300,336,444]],
+      ['The Blow-dry Series','5 blow-dries, paid once, valid 3 months.',[440,500,560,740]],
+      ['Four Weeks of Blow-dries','8 blow-dries, two a week, slots held. One price at any length.',[705,705,705,705]]]},
+    smooth:{title:'Book Keratin & Smoothing',opts:[
+      ['Keratin Frizz-Free','Calms frizz. Done by our junior stylists.',[1085,1285,1400,1600]],
+      ['Keratin Supreme Straightening','Smooths and straightens. Done by our junior stylists.',[1085,1285,1400,1600]],
+      ['Keratin & Smoothing, and I would like help choosing between the two','We will help you choose between the two.',null,'Not sure yet, help me choose']]}
+  };
+  var NM=['short','medium','long','extra long'], DN=['fine','medium density','thick','extra thick'];
+  var G=[[0,0,1,2],[0,1,2,3],[1,2,3,3],[2,3,3,3]];
+  var $=function(id){ return document.getElementById(id); };
+  var svcSel=$('bkSvc'), salSel=$('bkSalon'), desc=$('bkSvcDesc'), bsNote=$('bkBS'), title=$('waTitle');
+  var lenF=$('bkLenF'), densF=$('bkDensF'), priceEl=$('bkPrice'), priceNote=$('bkPriceNote'), go=$('bkGo'), miss=$('bkMiss');
+  var key='smooth', st={len:null,dens:null};
+  var aed=function(v){ return 'AED '+v.toLocaleString('en-US'); };
+  var cur=function(){ return SV[key].opts[Number(svcSel.value)||0]; };
+  var radios=function(n){ return [].slice.call(sheet.querySelectorAll('input[name="'+n+'"]')); };
+  var mark=function(){ sheet.querySelectorAll('.bk-r,.bk-d').forEach(function(l){ var i=l.querySelector('input'); l.classList.toggle('is-on',i.checked); }); };
+  var render=function(){
+    var o=cur(), pr=o[2], bs=pr==='bs', arr=Array.isArray(pr);
+    desc.textContent=o[1]; bsNote.hidden=!bs; lenF.hidden=bs; densF.hidden=bs;
+    sheet.querySelectorAll('.bk-opts .bk-r').forEach(function(l,i){ l.querySelector('.bk-r__p').textContent=arr?aed(pr[i]):''; });
+    var l=st.len, d=st.dens, out=(l!==null&&l>=0&&d!==null)?G[l][d]:null;
+    priceNote.hidden=true;
+    if(bs){ priceEl.textContent='At your consultation'; }
+    else if(!arr){ priceEl.textContent=typeof pr==='string'?pr.replace('from','From AED'):'Confirmed by your stylist'; }
+    else if(l===null){ priceEl.textContent='From '+aed(pr[0]); }
+    else if(l<0){ priceEl.textContent='From '+aed(pr[0]); priceNote.textContent='Your salon checks your length and confirms your price before anything is booked.'; priceNote.hidden=false; }
+    else if(out===null){ priceEl.textContent=aed(pr[l]); priceNote.textContent='Add how much hair you have, as thick hair can move you up a length.'; priceNote.hidden=false; }
+    else { priceEl.textContent=aed(pr[out]); if(out!==l){ priceNote.textContent=(out>l?'Thicker hair takes more time and product, so we price your hair as ':'Finer hair takes less time, so we price your hair as ')+NM[out]+'.'; priceNote.hidden=false; } }
+    if(out!==null){ window.hrDens=DN[d]; if(window.hrApplyLen) window.hrApplyLen(out); }
+    update();
+  };
+  var missing=function(){
+    var o=cur(), bs=o[2]==='bs', m=[];
+    if(!bs&&st.len===null) m.push(['your hair length',lenF]);
+    if(!bs&&st.dens===null) m.push(['how much hair you have',densF]);
+    if(!salSel.value) m.push(['your salon',$('bkSalonF')]);
+    return m;
+  };
+  var message=function(){
+    var o=cur(), pr=o[2], bs=pr==='bs', l=st.len, d=st.dens, salon=salSel.options[salSel.selectedIndex].text.replace(/\s·.*/,'');
+    if(bs) return 'Hi Tara Rose, I have highlighted or foiled roots and would like to book with The Blonde Standard at '+salon+'. (ref '+ref+')';
+    var out=(l>=0&&d!==null)?G[l][d]:null, bits=[];
+    bits.push('Hair length: '+(l<0?'not sure, please check':NM[l]));
+    bits.push('Density: '+DN[d]);
+    if(out!==null&&out!==l) bits.push('Priced as: '+NM[out]);
+    if(Array.isArray(pr)) bits.push('Guide price: '+(out!==null?aed(pr[out]):'from '+aed(pr[0])));
+    else if(typeof pr==='string') bits.push('Guide price: '+pr.replace('from','from AED'));
+    return 'Hi Tara Rose, I would like to book '+o[0]+' from The Hair Rhythm at '+salon+'.\n'+bits.join('\n')+'\n(ref '+ref+')';
+  };
+  var update=function(){
+    var m=missing(); go.classList.toggle('is-ready',!m.length);
+    go.setAttribute('aria-disabled',String(!!m.length));
+    go.href=m.length?'#':'https://wa.me/'+salSel.value+'?text='+encodeURIComponent(message());
+    if(!m.length) miss.hidden=true;
+    sheet.querySelectorAll('.bk-f.is-missing').forEach(function(f){ if(m.every(function(x){ return x[1]!==f; })) f.classList.remove('is-missing'); });
+  };
+  go.addEventListener('click',function(e){
+    var m=missing();
+    if(m.length){
+      e.preventDefault();
+      miss.textContent='Almost there. Please choose '+m.map(function(x){ return x[0]; }).join(', ').replace(/, ([^,]*)$/,' and $1')+'.';
+      miss.hidden=false;
+      m.forEach(function(x){ x[1].classList.add('is-missing'); });
+      m[0][1].scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    setTimeout(close,200);
+  });
+  radios('bkLen').forEach(function(r){ r.addEventListener('change',function(){ st.len=Number(r.value); mark(); render(); }); });
+  radios('bkDens').forEach(function(r){ r.addEventListener('change',function(){ st.dens=Number(r.value); mark(); render(); }); });
+  svcSel.addEventListener('change',render);
+  salSel.addEventListener('change',update);
+  var open=function(btn){
+    last=btn; pick=btn.getAttribute('data-svc')||'';
+    key=pick==='toner'?'colour':(SV[pick]?pick:'smooth');
+    title.textContent=SV[key].title;
+    svcSel.innerHTML='';
+    var want=(btn.getAttribute('data-book-base')||btn.getAttribute('data-book')||'').toLowerCase(), sel=0;
+    SV[key].opts.forEach(function(o,i){
+      var op=document.createElement('option'); op.value=i;
+      var p=o[2], pt=Array.isArray(p)?(p[0]===p[3]?', '+aed(p[0]):', from '+aed(p[0])):(typeof p==='string'&&p!=='bs'?', '+p.replace('from','from AED'):'');
+      op.textContent=(o[3]||o[0].replace(' (solid colour roots)',''))+pt; svcSel.appendChild(op);
+      if(want&&want.indexOf(o[0].toLowerCase())===0) sel=i;
+    });
+    if(pick==='toner') sel=0;
+    svcSel.value=String(sel);
+    miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
+    render();
+    sheet.hidden=false; root.classList.add('wa-open');
+    var panel=sheet.querySelector('.wa-sheet__panel'); if(panel) panel.scrollTop=0;
+    title.focus({preventScroll:true});
+  };
+  window.hrReopenBook=function(){ if(last) open(last); };
+  var close=function(){ sheet.hidden=true; root.classList.remove('wa-open'); if(last) last.focus({preventScroll:true}); };
+  document.querySelectorAll('.js-book').forEach(function(btn){
+    btn.addEventListener('click',function(e){ e.preventDefault(); open(btn); });
+  });
+  sheet.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
+  var toForm=document.getElementById('waForm');
+  if(toForm) toForm.addEventListener('click',function(e){
+    e.preventDefault(); sheet.hidden=true; root.classList.remove('wa-open');
+    var sel=document.getElementById('svc'); if(sel&&pick){ sel.value=pick; sel.dispatchEvent(new Event('change',{bubbles:true})); }
+    var fc=document.getElementById('bookForm'); if(fc){ fc.scrollIntoView({behavior:'smooth',block:'start'}); var fn=document.getElementById('fname'); if(fn) setTimeout(function(){ fn.focus({preventScroll:true}); },400); }
+  });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!sheet.hidden) close(); });
+})();
+/* Level the "what's included" lists so prices line up when cards sit side by side. */
+(function(){
+  var grids=[].slice.call(document.querySelectorAll('.plangrid'));
+  var level=function(){
+    grids.forEach(function(g){
+      ['.plancard__body>p','.incl'].forEach(function(sel){
+        var els=[].slice.call(g.querySelectorAll(sel)); if(!els.length) return;
+        els.forEach(function(el){ el.style.minHeight=''; });
+        var cards=g.querySelectorAll('.plancard');
+        if(cards.length<2||cards[0].getBoundingClientRect().top!==cards[1].getBoundingClientRect().top) return;
+        var h=Math.max.apply(null,els.map(function(el){ return el.getBoundingClientRect().height; }));
+        els.forEach(function(el){ el.style.minHeight=h+'px'; });
+      });
+    });
+  };
+  window.addEventListener('resize',level,{passive:true});
+  window.addEventListener('load',level);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(level);
+  level();
+})();
+</script>
+<style>
+/* Phone pass: shorter photos, tighter timelines, press logos three across, footer in two columns */
+@media (max-width:600px){
+  .press-strip{padding-block:28px 24px !important}
+  .press-strip .press-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 8px}
+  .press-strip .press-row a{padding:2px !important;border:0 !important;min-width:0}
+  .press-strip .press-logo-box{height:30px}
+  .press-strip .press-logo{height:20px !important;width:auto !important;max-width:92%;object-fit:contain}
+  .press-strip .press-sub{font-size:8.5px !important;letter-spacing:.06em;margin-top:4px}
+  #rhythm .bs-track{padding:18px 16px}
+  #rhythm .bs-steps{gap:14px;padding-left:30px}
+  #rhythm .bs-step span{font-size:14px;line-height:1.45}
+  #rhythm .sec-head{margin-bottom:22px}
+  .plancard__photo img{aspect-ratio:16/9}
+  .plancard__body{padding:18px 18px 20px}
+  .plancard h3{font-size:24px}
+  .plancard__price strong{font-size:27px}
+  .sec-menu,.sec-plans,#start,#rhythm,#reviews,.sec-book,#faq{padding-block:52px !important}
+  .foot .row{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:26px 18px}
+  .foot .row>div:first-child,.foot .row>div:last-child{grid-column:1 / -1}
+  .foot .row p{margin:0 0 4px;line-height:1.55}
+  .foot .row h3{margin-bottom:8px}
+}
+</style>
+<script>
+/* Length switch: one choice sets every price on the page, and Book now carries her length (and, for packages, the price) to reception. */
+(function(){
+  var NAMES=['short','medium','long','extra long'];
+  var P={
+    'o-colour':{label:'3 services',from:[200,260,315,410]},
+    'o-treatment':{label:'5 treatments',from:[210,220,235,245],course:[625,660,700,735]},
+    'o-smooth':{label:'2 services',from:[1085,1285,1400,1600]},
+    'plan-edit':{label:'3 blow-dries',exact:[264,300,336,444],n:3},
+    'plan-series':{label:'5 blow-dries',exact:[440,500,560,740],n:5},
+    'plan-four-weeks':{label:'8 blow-dries',exact:[705,705,705,705],n:8}
+  };
+  var fmt=function(v){ return 'AED '+v.toLocaleString('en-US'); };
+  var boxes=[].slice.call(document.querySelectorAll('[data-price]'));
+  if(!boxes.length) return;
+  var orig={};
+  boxes.forEach(function(b){ orig[b.getAttribute('data-price')]=b.innerHTML; });
+  var books=[].slice.call(document.querySelectorAll('.js-book'));
+  books.forEach(function(a){ a.setAttribute('data-book-base',a.getAttribute('data-book')||''); });
+  var cardOf=function(el){ var c=el.closest('.plancard'); return c?c.id:''; };
+  var apply=function(i){
+    window.hrLen=i;
+    document.querySelectorAll('.len-switch button').forEach(function(btn){ btn.setAttribute('aria-pressed',String(Number(btn.getAttribute('data-len'))===i)); });
+    boxes.forEach(function(b){
+      var id=b.getAttribute('data-price'), d=P[id]; if(!d) return;
+      if(i<0){ b.innerHTML=orig[id]; return; }
+      var hair=NAMES[i]+' hair', small, big;
+      if(d.exact){ big=fmt(d.exact[i]); small='about AED '+Math.round(d.exact[i]/d.n)+' a blow-dry'; b.querySelector('span').textContent=d.label+', '+hair; }
+      else{ big=fmt(d.from[i]); small=d.course?'A visit. Courses of three from '+fmt(d.course[i]):'Your stylist confirms it before you book'; b.querySelector('span').textContent=d.label+', '+hair+', from'; }
+      b.querySelector('strong').textContent=big;
+      b.querySelector('small').textContent=small;
+    });
+    document.querySelectorAll('.gcard__cols>div, .gsvc__lens:not(.gsvc__lens--one)').forEach(function(row){
+      [].slice.call(row.children).forEach(function(c,k){ c.classList.toggle('is-len',k===i); });
+    });
+    books.forEach(function(a){
+      var base=a.getAttribute('data-book-base'); if(i<0){ a.setAttribute('data-book',base); return; }
+      var d=P[cardOf(a)], extra=', '+NAMES[i]+' hair'+(window.hrDens?' ('+window.hrDens+')':'');
+      if(d&&d.exact) extra+=' ('+fmt(d.exact[i])+')';
+      a.setAttribute('data-book',base+extra);
+    });
+  };
+  document.querySelectorAll('.len-switch button').forEach(function(btn){
+    btn.addEventListener('click',function(){ window.hrDens=null; apply(Number(btn.getAttribute('data-len'))); });
+  });
+  var saved=-1; try{ localStorage.removeItem('hr_len'); }catch(e){}
+  window.hrApplyLen=apply;
+  apply(saved>=0&&saved<4?saved:-1);
+})();
+</script>
+<style>
+/* Length switch */
 
-<script src="js/form-prefill.js" defer></script>
+.len-switch{display:flex;justify-content:center}
+.len-switch button{min-height:44px;padding:0 20px;border:0;border-radius:100px;background:none;font-family:var(--fb);font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:background .18s ease,color .18s ease}
+.len-switch button:hover{color:var(--ink)}
+.len-switch button[aria-pressed="true"]{color:#0E2A25;background:linear-gradient(178deg,#8FF0DC 0%,#7CE8D2 52%,#62DCC4 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 1px 2px rgba(14,42,37,.16),0 6px 14px -8px rgba(14,42,37,.45)}
+.len-switch button:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.gcard__cols>div span.is-len{color:var(--accent-text);font-weight:700}
+.gsvc__lens span.is-len{color:#0E2A25;font-weight:700;background:rgba(153,246,228,.5);border-radius:4px;padding:0 3px}
+/* package cards: opening one card's prices grows only that card */
+#plans .plangrid{align-items:start}
+#plans .plancard__price{margin-top:0}
+/* the site-wide focus ring squares corners; keep the pills round */
+.pill:focus-visible,.len-switch button:focus-visible{border-radius:100px}
+@media (max-width:600px){
+  .len-switch button{padding:0 4px;font-size:13px}
+}
+</style>
+<style>
+/* Smoothing push: first card, highlighted, and a nudge from the blow-dry packages */
+#o-smooth.plancard--hi{border:1.5px solid var(--accent-text);box-shadow:0 18px 40px -24px rgba(28,117,99,.55)}
+</style>
+<style>
+/* Confidence Promise with its video: text left, portrait video right; stacked on phones */
+.promise-v{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:clamp(32px,6vw,72px);align-items:center;max-width:980px;text-align:left}
+.promise-v .promise-x__line{margin:0;max-width:24ch}
+.promise-v__video{margin:0;min-width:0}
+.promise-v__video video{display:block;width:100%;height:auto;aspect-ratio:9/16;max-width:100%;border-radius:var(--r-md);background:#161512;box-shadow:0 30px 60px -28px rgba(0,0,0,.7)}
+.promise-v__video figcaption{margin-top:12px;font-family:var(--fb);font-size:12.5px;font-weight:500;letter-spacing:.06em;color:rgba(255,255,255,.72);text-align:center}
+@media (max-width:760px){
+  .promise-v{grid-template-columns:minmax(0,1fr);text-align:center;gap:28px}
+  .promise-v .promise-x__line{margin:0 auto}
+  .promise-v__video{width:min(260px,72vw);margin:0 auto}
+}
+</style>
+<style>
+/* Roots choice, length help and the length step in the booking pop-up */
 
-<script src="js/tracking.js" defer></script>
+.roots{margin:0 0 16px;padding:14px;border:1px solid rgba(28,117,99,.22);border-radius:14px;background:rgba(153,246,228,.12)}
+.wa-sheet__panel{max-height:92vh;overflow-y:auto}
+.salon-grid[hidden]{display:none!important}
+</style>
+<style>
+/* Length and density finder */
 
-<script src="js/submit-guard.js" defer></script>
-</body>
-</html>
+.lf__len{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:stretch}
+.lf__len img{width:110px;height:100%;max-height:220px;object-fit:cover;object-position:50% 0;border-radius:12px}
+@media (max-width:600px){
+  .lf__len{grid-template-columns:84px minmax(0,1fr)}
+  .lf__len img{width:84px}
+}
+</style>
+<script>
+/* Label the length photo: line names on the right, each length named in its band on the left. No animation. */
+(function(){
+  var Z=[[0,30.7,'Short'],[30.7,40.9,'Medium'],[40.9,58.6,'Long'],[58.6,100,'Extra long']], LINES=[[30.7,'Chin'],[40.9,'Shoulders'],[58.6,'Armpits']];
+  document.querySelectorAll('.lf__len').forEach(function(wrap){
+    var img=wrap.querySelector('img'); if(!img) return;
+    var pic=document.createElement('div'); pic.className='lf__pic';
+    img.parentNode.insertBefore(pic,img); pic.appendChild(img);
+    Z.forEach(function(z){ var t=document.createElement('span'); t.className='lf__band'; t.style.top=((z[0]+z[1])/2)+'%'; t.textContent=z[2]; pic.appendChild(t); });
+  });
+})();
+</script>
+<style>
+.lf__len{grid-template-columns:150px minmax(0,1fr) !important;align-items:center !important}
+.lf__pic{position:relative;width:150px;aspect-ratio:250/440;max-width:100%;border-radius:12px;overflow:hidden}
+.lf__pic img{display:block;width:100% !important;height:100% !important;max-height:none !important;object-fit:fill !important;border-radius:0 !important}
+.lf__band{position:absolute;left:4px;transform:translateY(-50%);padding:1px 6px;border-radius:100px;background:var(--accent-text);color:#fff;font-family:var(--fb);font-size:9.5px;font-weight:700;letter-spacing:.04em;line-height:1.5}
+@media (max-width:600px){.lf__len{grid-template-columns:124px minmax(0,1fr) !important}.lf__pic{width:124px}}
+</style>
+<script>
+/* Where to start: take her straight to the card, outlined, with its price list open. */
+(function(){
+  document.querySelectorAll('.pick__card').forEach(function(a){
+    a.addEventListener('click',function(e){
+      var t=document.querySelector(a.getAttribute('href')); if(!t) return;
+      e.preventDefault();
+      document.querySelectorAll('.plancard.is-target').forEach(function(c){ c.classList.remove('is-target'); });
+      var cards=t.classList.contains('plancard')?[t]:[].slice.call(t.querySelectorAll('.plancard'));
+      cards.forEach(function(c){ c.classList.add('is-target'); });
+      if(cards.length===1){ var d=cards[0].querySelector('.gcard__more'); if(d) d.open=true; }
+      var nav=document.querySelector('.trs-nav'), off=(nav?nav.offsetHeight:75)+16;
+      window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-off,behavior:'smooth'});
+    });
+  });
+})();
+</script>
+<style>
+/* Pop-up, tightened so the whole choice fits one phone screen */
+#waSheet .wa-sheet__panel{padding-top:16px}
+#waSheet h3{margin-top:4px;font-size:23px;line-height:1.2}
+#waSheet .wa-sheet__eyebrow{font-size:10.5px}
+#waSheet .wa-sheet__alt{margin-top:12px;font-size:13.5px}
+#waSheet .lf__len{grid-template-columns:110px minmax(0,1fr)!important;gap:10px}
+#waSheet .lf__pic{width:110px}
+@media (min-width:601px){#waSheet .lf__len{grid-template-columns:130px minmax(0,1fr)!important}#waSheet .lf__pic{width:130px}}
+</style>
+<style>
+/* Salon buttons: quiet white cards, Playfair name, ink circle that turns turquoise */
+
+.salon-grid{gap:10px!important}
+#waTitle:focus{outline:none}
+</style>
+<style>
+/* One-screen booking form */
+.bk{max-width:560px;text-align:left}
+.bk .wa-sheet__eyebrow,.bk h3{text-align:center}
+.bk h3:focus{outline:none}
+.bk-lede{margin:6px auto 0;max-width:40ch;text-align:center;font-family:var(--fb);font-size:13.5px;font-weight:300;color:var(--ink-soft)}
+.bk-f{margin:22px 0 0;padding:0;border:0;min-width:0;transition:background .2s ease}
+.bk-f[hidden]{display:none!important}
+.bk-l{display:block;padding:0;margin:0 0 8px;font-family:var(--fb);font-size:15px;font-weight:500;color:var(--ink)}
+.bk-help{margin:-2px 0 10px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-f>.bk-help:last-child{margin:8px 0 0}
+.bk-bs{margin:10px 0 0;padding:12px 14px;border-radius:12px;background:rgba(153,246,228,.2);border:1px solid rgba(28,117,99,.25);font-family:var(--fb);font-size:13.5px;line-height:1.5;color:var(--ink)}
+.bk-bs[hidden]{display:none}
+.bk-sel{position:relative}
+.bk-sel select{width:100%;min-height:56px;padding:0 48px 0 18px;-webkit-appearance:none;appearance:none;background:#fff;border:1px solid var(--hair);border-radius:14px;font-family:var(--fb);font-size:16px;font-weight:400;color:var(--ink);cursor:pointer;box-sizing:border-box}
+.bk-sel select:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.bk-sel__chev{position:absolute;right:16px;top:50%;width:20px;height:20px;margin-top:-10px;color:var(--ink-soft);pointer-events:none}
+.bk-lenwrap{margin-top:2px}
+.bk .lf__len{grid-template-columns:120px minmax(0,1fr)!important;gap:12px;align-items:stretch!important}
+.bk .lf__pic{width:120px;align-self:center}
+.bk-opts{display:grid;gap:8px;align-content:center}
+#waSheet .bk-r{position:relative;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);transition:border-color .15s ease,background .15s ease}
+#waSheet .bk-r input,#waSheet .bk-d input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.bk-r__dot{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(45,46,55,.45);box-sizing:border-box;background:#fff}
+#waSheet .bk-r.is-on .bk-r__dot{border:5px solid var(--ink)}
+.bk-r__t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.bk-r__t b{font-size:14.5px;font-weight:500}
+.bk-r__t small{font-size:12px;font-weight:300;color:var(--ink-soft);line-height:1.35}
+.bk-r__p{font-style:normal;font-size:13.5px;font-weight:500;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+#waSheet .bk-r:hover{border-color:rgba(28,117,99,.5)}
+#waSheet .bk-r.is-on{border-color:var(--ink);background:#F4F1EA}
+#waSheet .bk-r:has(input:focus-visible),#waSheet .bk-d:has(input:focus-visible){outline:2px solid var(--accent-text);outline-offset:2px}
+#waSheet .bk-r--plain{margin-top:10px;padding:6px 2px;background:none!important;border:0!important;box-shadow:none!important}
+#waSheet .bk-r--plain .bk-r__t b{font-weight:400;font-size:14px}
+.bk-dens{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#waSheet .bk-d{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:10px 4px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);text-align:center}
+#waSheet .bk-d img{width:34px;height:34px;border-radius:50%;margin-bottom:4px}
+#waSheet .bk-d b{font-size:13px;font-weight:500}
+#waSheet .bk-d small{font-size:11px;font-weight:300;color:var(--ink-soft);line-height:1.3}
+#waSheet .bk-d:hover{border-color:rgba(28,117,99,.5)}
+#waSheet .bk-d.is-on{border-color:var(--ink);background:#F4F1EA;box-shadow:inset 0 0 0 1px var(--ink)}
+.bk-f.is-missing .bk-l{color:#9a3b2f}
+.bk-f.is-missing .bk-sel select,.bk-f.is-missing .bk-r:not(.bk-r--plain),.bk-f.is-missing .bk-d{border-color:rgba(154,59,47,.55)}
+.bk-price{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:26px 0 0;padding:0 0 16px;border-bottom:1px solid var(--hair);font-family:var(--fb)}
+.bk-price span{font-size:13.5px;font-weight:300;color:var(--ink-soft)}
+.bk-price b{font-family:var(--fd);font-size:22px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.bk-price__note{margin:8px 0 0;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-price__note[hidden],.bk-miss[hidden]{display:none}
+.bk-go{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;margin:18px 0 0;padding:0 28px;border-radius:100px;background:linear-gradient(178deg,#8FF0DC 0%,#7CE8D2 52%,#62DCC4 100%);border:1px solid rgba(14,42,37,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 12px 26px -12px rgba(14,42,37,.45);font-family:var(--fb);font-size:16px;font-weight:500;color:#0E2A25;text-decoration:none;transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease}
+.bk-go span{font-size:20px;line-height:1}
+.bk-go:not(.is-ready){opacity:.62;box-shadow:none}
+.bk-go.is-ready:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 16px 30px -12px rgba(14,42,37,.5)}
+.bk-go:focus-visible{outline:2px solid #0E2A25;outline-offset:3px}
+.bk-miss{margin:10px 0 0;font-family:var(--fb);font-size:13px;font-weight:500;color:#9a3b2f;text-align:center}
+.bk-small{margin:10px auto 0;max-width:46ch;font-family:var(--fb);font-size:12px;font-weight:300;line-height:1.5;color:var(--ink-soft);text-align:center}
+.bk-small a{color:var(--accent-text)}
+.bk .wa-sheet__alt{text-align:center;margin-top:14px}
+@media (max-width:600px){
+.bk{padding-left:18px!important;padding-right:18px!important}
+.bk .lf__len{grid-template-columns:104px minmax(0,1fr)!important;gap:10px}
+.bk .lf__pic{width:104px}
+#waSheet .bk-r{grid-template-columns:18px minmax(0,1fr) auto;gap:10px;padding:9px 12px}
+.bk-r__t b{font-size:14px}
+.bk-r__t small{font-size:11.5px}
+.bk-r__p{font-size:12.5px}
+.bk-dens{gap:6px}
+#waSheet .bk-d{padding:8px 2px}
+#waSheet .bk-d small{font-size:10.5px}
+}
+@media (prefers-reduced-motion:reduce){.bk-go{transition:none}}
+#bkSvcDesc{margin:8px 0 0}
+#waSheet .bk-r,#waSheet .bk-d{min-height:0;line-height:1.3;font-size:inherit;box-shadow:none!important}
+#waSheet .bk-r{align-items:center}
+#waSheet .bk-d.is-on{box-shadow:inset 0 0 0 1px var(--ink)!important}
+#waSheet .bk-r:not(.is-on):not(.bk-r--plain),#waSheet .bk-d:not(.is-on){background:#fff}
+</style>
+<style>
+/* WhatsApp your salon: one compact card, whole row taps through */
+#whatsapp.wa-list{display:block!important;margin-top:12px;background:#fff;border:1px solid var(--hair);border-radius:16px;overflow:hidden;box-shadow:0 1px 0 rgba(45,46,55,.04),0 14px 30px -24px rgba(45,46,55,.45)}
+.wa-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 14px 8px 18px;text-decoration:none;color:var(--ink);transition:background .18s ease}
+.wa-row+.wa-row{border-top:1px solid var(--hair)}
+.wa-row__t{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;min-width:0}
+.wa-row__n{font-family:var(--fd);font-size:18px;font-weight:500;line-height:1.25}
+.wa-row__c{font-family:var(--fb);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.wa-row__go{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:1px solid rgba(45,46,55,.2);font-family:var(--fb);font-size:15px;line-height:1;color:var(--ink);transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.wa-row:hover{background:#FBFAF7}
+.wa-row:hover .wa-row__go,.wa-row:focus-visible .wa-row__go{background:linear-gradient(178deg,#8FF0DC 0%,#7CE8D2 52%,#62DCC4 100%);border-color:rgba(14,42,37,.2);color:#0E2A25;transform:translateX(2px)}
+.wa-row:focus-visible{outline:2px solid var(--accent-text);outline-offset:-3px}
+.wa-row:active .wa-row__go{transform:scale(.94)}
+@media (prefers-reduced-motion:reduce){.wa-row,.wa-row__go{transition:none}}
+</style>
+<script src="js/nav-scroll.js?v=ui1" defer></script>
+<script src="js/tracking.js?v=ui1" defer></script>
+<script src="js/submit-guard.js?v=ui1" defer></script>
+
+</body></html>

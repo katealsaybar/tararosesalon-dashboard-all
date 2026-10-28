@@ -8,21 +8,13 @@
    reading courses). replaceState, not pushState, so back does not replay every
    group she scrolled past. The blonde band is in the spy map without a chip: the
    hash says where she is, and no chip pretends to be it. */
-/* Phones: the "Prices by length" lists start folded (Kate, 19 Oct). The from-price stays
-   visible on every card, one tap opens the lengths, and desktop keeps them open. Done in
-   script, not markup, so the HTML default stays open for wide screens and no-JS readers. */
-(function(){
-  if(window.matchMedia&&window.matchMedia('(max-width:767px)').matches){
-    document.querySelectorAll('details.bands[open]').forEach(function(d){ d.removeAttribute('open'); });
-  }
-})();
 (function(){
   var nav=document.querySelector('.trs-nav');
   if(!nav) return;
   var bar=document.querySelector('.offer-nav');
   var zone=document.querySelector('.menu-zone');
   var root=document.documentElement;
-  var SPY=['o-blowdry','o-treatment','o-smooth','o-colour']
+  var SPY=['o-plans','o-menu']
     .map(function(id){ return document.getElementById(id); }).filter(Boolean);
   var chips={};
   document.querySelectorAll('.ochip').forEach(function(a){
