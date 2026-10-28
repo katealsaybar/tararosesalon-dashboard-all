@@ -75,6 +75,11 @@
       blurb: 'Service rankings and products.' },
     // Kate, 28 Oct 2026: Belle's Stylist - Client matching sheet, one page that links to it (kb_sections 'client-matching',
     // migrations/kb_client_matching.sql). Front Desk (Level 1), Levels 2, 3 and 5; Level 4 skips it. The sheet link lives in kb_pages, not here: this repo is public.
+    // Kate, 28 Oct 2026: the 2026 price list (Hair and Beauty, from the client-ready PDFs) as Team Home pages so new staff and
+    // anyone who books can search it (kb_sections 'price-list', migrations/kb_price_list.sql). Level 1 of every team and Levels 2 and up.
+    // The pages hold the prices and live in kb_pages, not in this public repo.
+    { key: 'price-list', dept: 'Clients', title: 'Price List', rule: 'var(--accent-butter)',
+      blurb: 'Hair prices by stylist level and hair length, treatments, extensions and every beauty service.' },
     { key: 'client-matching', dept: 'Clients', title: 'Stylist & Client Matching', rule: 'var(--accent-lavender)',
       blurb: 'Which stylist suits which client, by service, personality and appointment vibe.' },
     // Kate, 22 Oct 2026: the client complaints have their own box, Clients ("dapat nasa clients, may sariling box"). Shortcuts to the dashboard's Client
@@ -209,6 +214,7 @@
     marketing: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/>',
     'full-loop': '<path d="M2 5h6a4 4 0 0 1 4 4v11a3 3 0 0 0-3-3H2z"/><path d="M22 5h-6a4 4 0 0 0-4 4v11a3 3 0 0 1 3-3h7z"/>',
     'hr-forms': '<path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2.5" width="6" height="3" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>',
+    'price-list': '<path d="M20 12.5 12.5 20a2 2 0 0 1-2.8 0l-6.2-6.2a2 2 0 0 1 0-2.8L11 3.5H20z"/><circle cx="15.5" cy="8.5" r="1.3"/>',
     magazines: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M10 8h5"/>',
     uploads: '<path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
     today: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
