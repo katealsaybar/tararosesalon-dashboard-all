@@ -35,22 +35,6 @@
 .pa-tbl thead th{position:sticky;top:calc(var(--pa-top,100px) - 1px);background:var(--surface);z-index:2;font-size:12.5px;font-weight:700;vertical-align:bottom;line-height:1.25}
 .pa-tbl thead th:first-child{z-index:3;border-top-left-radius:13px}
 .pa-tbl thead th:last-child{border-top-right-radius:13px}
-/* The heading row sticks under the site header while the page scrolls (--pa-top is that header's height, set below).
-   Phones: no sideways scroll; the Level columns shrink to L1 to L4 (spelled out in the line above the table) and the page name wraps. */
-@media(max-width:700px){
-  .pa-tbl{min-width:0}
-  .pa-tbl th,.pa-tbl td{padding:10px 2px}
-  .pa-tbl th:first-child,.pa-tbl td:first-child{padding-left:12px;padding-right:6px}
-  .pa-tbl td:first-child{position:static}
-  .pa-tbl td.pa-c,.pa-tbl thead th:not(:first-child){width:54px}
-  .pa-tbl th small{display:none}
-  .pa-full{display:none}.pa-short{display:inline}
-  .pa-tbl input[type=checkbox]{width:26px;height:26px}
-  .pa-tbl tr.pa-grp td{padding-left:12px}
-  .pa-five{font-size:10.5px;line-height:1.2}
-  .pa-bar .kb-search{flex:1 1 100%;max-width:none}
-  .pa-btn{flex:1 1 auto;padding:8px 12px}
-  .pa-legend{display:block;font-size:12.5px;color:var(--muted);margin:0 0 10px}
 }
 .pa-tbl th small{display:block;font-weight:500;color:var(--muted);margin-top:2px}
 .pa-tbl tr.pa-grp td{background:var(--bg);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding-top:14px;cursor:pointer;user-select:none}
@@ -70,6 +54,22 @@
 .pa-tbl td.pa-chg::after{content:'changed';display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
 .pa-five{color:var(--muted);font-size:12.5px}
 .pa-hint{font-size:13px;color:var(--muted);margin:10px 0 0;max-width:760px}
+/* The heading row sticks under the site header while the page scrolls (--pa-top is that header's height, set below).
+   Phones: no sideways scroll; the Level columns shrink to L1 to L4 (spelled out in the line above the table) and the page name wraps. */
+@media(max-width:700px){
+  .pa-tbl{min-width:0}
+  .pa-tbl th,.pa-tbl td{padding:10px 2px}
+  .pa-tbl th:first-child,.pa-tbl td:first-child{padding-left:12px;padding-right:6px}
+  .pa-tbl td:first-child{position:static}
+  .pa-tbl td.pa-c,.pa-tbl thead th:not(:first-child){width:54px}
+  .pa-tbl th small{display:none}
+  .pa-full{display:none}.pa-short{display:inline}
+  .pa-tbl input[type=checkbox]{width:26px;height:26px}
+  .pa-tbl tr.pa-grp td{padding-left:12px}
+  .pa-five{font-size:10.5px;line-height:1.2}
+  .pa-bar .kb-search{flex:1 1 100%;max-width:none}
+  .pa-btn{flex:1 1 auto;padding:8px 12px}
+  .pa-legend{display:block;font-size:12.5px;color:var(--muted);margin:0 0 10px}
 </style>
 </head>
 <body class="kb-wait">
