@@ -403,7 +403,8 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 #plans .plancard__price{margin-top:0}
 #plans .plancard__body>p{box-sizing:border-box}
 .plancard .lentable td{color:var(--ink)}
-.plancard__price small+small{margin-top:2px}
+.plancard__price small{font-size:13.5px;line-height:1.45}
+.plancard__price small+small{margin-top:9px}
 .mu-sum{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 28px;max-width:860px;margin:26px auto 0;font-family:var(--fb);font-size:14px;color:var(--ink-soft)}
 .mu-sum b{font-weight:600;color:var(--ink)}
 .sec-menu .plans-foot{margin-top:18px}
@@ -710,7 +711,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <h3>Maintain Essentials</h3>
           <p>Care for your extensions between your move-ups. Extension-related services only.</p>
           <ul class="incl covers" aria-label="What is covered"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li></ul>
-          <div class="plancard__price"><span>You pay</span><strong>AED 1,500</strong><small>AED 1,800 to spend, includes AED 300 extra credit</small><small>Valid 6 months after purchase. Cash or card.</small></div>
+          <div class="plancard__price"><span>You pay</span><strong>AED 1,500</strong><small>AED 300 extra credit included.</small><small>A total of AED 1,800 to spend.</small><small>Valid 6 months after purchase.</small><small>Cash or card.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="essentials" data-svc="essentials">Choose Essentials <span class="arr">&rarr;</span></a>
         </div>
       </article>
@@ -721,7 +722,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <h3>Maintain Plus</h3>
           <p>The same care, with more to spend and longer to use it. Extension-related services only.</p>
           <ul class="incl covers" aria-label="What is covered"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
-          <div class="plancard__price"><span>You pay</span><strong>AED 3,000</strong><small>AED 3,600 to spend, includes AED 600 extra credit</small><small>Valid 9 months after purchase. Or 4 payments of AED 750 with Tabby.</small></div>
+          <div class="plancard__price"><span>You pay</span><strong>AED 3,000</strong><small>AED 600 extra credit included.</small><small>A total of AED 3,600 to spend.</small><small>Valid 9 months after purchase.</small><small>Or 4 payments of AED 750 with Tabby.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="plus" data-svc="plus">Choose Plus <span class="arr">&rarr;</span></a>
         </div>
       </article>
@@ -732,7 +733,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <h3>New Hair and Maintain Bundle</h3>
           <p>Your full application in the method you choose, plus AED 950 to spend on care. Extension-related services only.</p>
           <ul class="incl covers" aria-label="What is covered"><li>Full application in your method</li><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
-          <div class="plancard__price"><span>You pay</span><strong>AED 3,300</strong><small>AED 4,250 to spend, includes AED 950 extra credit</small><small>Valid 12 months after purchase. Or 4 payments of AED 825 with Tabby.</small></div>
+          <div class="plancard__price"><span>You pay</span><strong>AED 3,300</strong><small>AED 950 extra credit included.</small><small>A total of AED 4,250 to spend.</small><small>Valid 12 months after purchase.</small><small>Or 4 payments of AED 825 with Tabby.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="bundle" data-svc="bundle">Choose the Bundle <span class="arr">&rarr;</span></a>
           <div class="mapnote" style="margin-top:14px;font-family:var(--fb);font-size:12.5px;line-height:1.45;color:var(--ink-soft);text-align:center">Keratin and Fusion are quoted at your Confidence Mapping.</div>
         </div>
@@ -1226,9 +1227,9 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
   var mark=function(){ sheet.querySelectorAll('.bk-r').forEach(function(l){ l.classList.toggle('is-on',l.querySelector('input').checked); }); };
   var priceFor=function(){
     var o=cur(), m=meth&&meth!=='unsure'?meth:null;
-    if(o.k==='essentials') return ['You pay','AED 1,500','AED 1,800 to spend, includes AED 300 extra credit.'];
-    if(o.k==='plus') return ['You pay','AED 3,000','AED 3,600 to spend, includes AED 600 extra credit. Or 4 payments of AED 750 with Tabby.'];
-    if(o.k==='bundle') return m?['You pay',BU[m],m==='keratin'?'Your stylist quotes Keratin and Fusion at your Confidence Mapping.':'AED 4,250 to spend, includes AED 950 extra credit. Or 4 payments with Tabby.']:['You pay','AED 3,300',meth==='unsure'?'AED 4,250 to spend, includes AED 950 extra credit. Your stylist confirms your method at your Confidence Mapping.':''];
+    if(o.k==='essentials') return ['You pay','AED 1,500','AED 300 extra credit included. A total of AED 1,800 to spend.'];
+    if(o.k==='plus') return ['You pay','AED 3,000','AED 600 extra credit included. A total of AED 3,600 to spend. Or 4 payments of AED 750 with Tabby.'];
+    if(o.k==='bundle') return m?['You pay',BU[m],m==='keratin'?'Your stylist quotes Keratin and Fusion at your Confidence Mapping.':'AED 950 extra credit included. A total of AED 4,250 to spend. Or 4 payments with Tabby.']:['You pay','AED 3,300',meth==='unsure'?'AED 950 extra credit included. A total of AED 4,250 to spend. Your stylist confirms your method at your Confidence Mapping.':''];
     if(o.k==='moveup') return m?(PK[m]?['Move-up',PK[m].p[pk==='3'?1:0],'']:['Move-up',MU[m],MUX[m]]):['Move-up','From AED 450',''];
     return ['Plans','From AED 1,500',''];
   };
