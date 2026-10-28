@@ -254,29 +254,38 @@ const PD = (() => {
     if (!canNames() || !o.from) return null;
     const lead = o.who ? `${esc(o.who)}, ${esc(o.when)}` : esc(o.when);
     const sub = data => {
-      const shown = (data.rows || []).length;
+      const shown = (data.rows || []).filter(r => !r.z).length;
       let t = `${esc(ctx.label)}. ${lead}: ${cnt(data.total)} client${data.total === 1 ? '' : 's'} handled, from Phorest's sales lines (every client each staff member handled that day, so a client seen by two staff is in the list twice; a deposit, a balance payment or a voucher bought on its own, staff bookings and the BUSINESS TRS house account are left out).`;
       if (o.kind === 'req') t += ` ${cnt(o.ledger)} of them asked for ${o.who ? esc(o.who) : 'a stylist'} by name, but neither the ledger nor Phorest keeps which clients those were, only the count, so this is every client handled and not only the requests.`;
       else if (o.phCol) t += ` The ledger column beside it, typed by reception, shows ${cnt(o.ledger)}${o.ledger === data.total ? ', the same' : ': a separate count with no names behind it, so it can differ'}; this list is the Phorest column.`;
       else if (o.ledger != null) t += ` The branch ledger, typed by reception, shows ${cnt(o.ledger)}${o.ledger === data.total ? ', the same.' : ': they are two separate counts, so they can differ.'}`;
+      // Kate, 28 Oct 2026: a client-day worth AED 0 to this staff member (redo, a consultation or complimentary service) is not a visit; it is not counted and shows on its own tab.
+      if (+data.zero) t += ` ${cnt(data.zero)} ${data.zero === 1 ? 'visit is' : 'visits are'} AED 0 spend and not counted: see the AED 0 spend tab.`;
       if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
       return t;
     };
     const head = o.kind === 'req' ? 'Requests' : 'Clients handled';
     return { title: o.who ? `${head} · ${o.who}` : `${head} · ${o.when}`, cur: ctx.cur, views: [
       { id: 'each', label: 'Each client', load: async () => {
-        const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
+        const data = await staffClientsLoad(ctx, o), rows = (data.rows || []).filter(r => !r.z);
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }],
           client: { k: 'c', b: 'bc', d: 'd', i: 'k' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, k: r.k, s: r.s, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d, cid: r.k }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, cid: r.k, who: nm(r.e) }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' clients', s: data.spend } : null };
       } },
       { id: 'by', label: 'By client', load: async () => {
-        const data = await staffClientsLoad(ctx, o), rows = data.rows || [];
+        const data = await staffClientsLoad(ctx, o), rows = (data.rows || []).filter(r => !r.z);
         if (data.total > rows.length) return { sub: sub(data), rows: [], empty: 'Too many to group by client. Pick a shorter window.' };
         const m = new Map();
         rows.forEach(r => { const k = r.k || String(r.c).toLowerCase().trim(), x = m.get(k) || { c: r.c, k: r.k, v: 0, s: 0, e: new Set() }; x.v++; x.s += +r.s || 0; x.e.add(r.e); m.set(k, x); });
         const list = [...m.values()].sort((a, b) => b.v - a.v || b.s - a.s || a.c.localeCompare(b.c));
         return { sub: sub(data) + ` ${cnt(list.length)} different clients (by her Phorest client id, so one client under two spellings is one, and two women with one name are two).`, cols: [{ k: 'c', l: 'Client' }, { k: 'v', l: o.who ? 'Days' : 'Times handled', t: 'num' }, { k: 's', l: 'Spent', t: 'aed' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }])],
           client: { k: 'c', i: 'k', from: o.from, to: o.to }, rows: list.map(x => { const sp = clientLinesSpec(ctx, { from: o.from, to: o.to, branches: o.branches, employees: o.employees, client: x.c, cid: x.k, who: o.who || '' }); return { c: x.c, k: x.k, v: x.v, s: x.s, e: [...x.e].map(nm).join(', '), _dn: { s: sp, v: sp, c: clientHistorySpec(ctx, { client: x.c, from: o.from, to: o.to, cid: x.k }) } }; }), foot: { c: 'Total', v: data.total, s: data.spend, e: '' } };
+      } },
+      { id: 'zero', label: 'AED 0 spend', load: async () => {
+        const data = await staffClientsLoad(ctx, o), rows = (data.rows || []).filter(r => r.z);
+        return { sub: sub(data) + ' This tab lists the client-days where her lines add up to AED 0 or less. They are shown here but not counted.',
+          cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 's', l: 'Spent', t: 'aed' }],
+          client: { k: 'c', b: 'bc', d: 'd', i: 'k' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: r.e, c: r.c, k: r.k, s: r.s, _dn: { c: clientHistorySpec(ctx, { client: r.c, on: r.d, cid: r.k }), s: clientLinesSpec(ctx, { from: r.d, to: r.d, branches: [r.b], employees: [r.e], client: r.c, cid: r.k, who: nm(r.e) }) } })),
+          empty: 'No client-day in this window adds up to AED 0.', foot: rows.length ? { d: '', b: '', e: '', c: cnt(rows.length) + ' client-days', s: 0 } : null };
       } },
     ] };
   }
