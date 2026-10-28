@@ -233,6 +233,8 @@
     'client-matching': '<circle cx="7" cy="8" r="3"/><circle cx="17" cy="8" r="3"/><path d="M10 8h4"/><path d="M2 20a5 5 0 0 1 10 0"/><path d="M12 20a5 5 0 0 1 10 0"/>',
     // Kate, 28 Oct 2026: a circle with a line through it, for the Marketing Opt-Out List.
     'marketing-optout': '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+    // Kate, 28 Oct 2026: a tick-list sheet, for Page Access (it showed the initials PA).
+    'page-access': '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="m8 8.2 1.4 1.4L12 7"/><path d="M14.5 8.5H17"/><path d="m8 14.2 1.4 1.4L12 13"/><path d="M14.5 14.5H17"/>',
     'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP,
     // Kate, 6 Oct 2026: one icon per kind of page, for the page lists inside a section
     // (KB.pageIcon picks one from the title and chapter).
