@@ -126,9 +126,9 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .plancard__price span{display:block;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
 .plancard__price strong{display:block;margin:4px 0 2px;font-family:var(--fd);font-weight:500;font-size:30px;line-height:1.1;color:var(--ink);font-variant-numeric:tabular-nums}
 .plancard__price small{display:block;font-size:12.5px;color:var(--ink-soft)}
-.plancard .covers{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:9px;font-family:var(--fb);font-size:14px;font-weight:300;line-height:1.4;color:var(--ink)}
-.plancard .covers li{display:flex;align-items:flex-start;gap:10px}
-.plancard .covers li::before{content:"";flex:0 0 18px;width:18px;height:18px;border-radius:50%;background:rgba(28,117,99,.10) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.6' fill='none' stroke='%231C7563' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/18px no-repeat}
+.incl{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:7px;align-content:start;box-sizing:content-box}
+.incl li{position:relative;padding-left:24px;font-family:var(--fb);font-size:13.5px;font-weight:400;line-height:1.45;color:var(--ink)}
+.incl li::before{content:"";position:absolute;left:0;top:.15em;width:15px;height:15px;border-radius:50%;background:rgba(153,246,228,.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.6' fill='none' stroke='%231C7563' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/15px no-repeat}
 .plancard .pill{width:100%;justify-content:center;text-align:center;line-height:1.3;margin-top:18px;padding-inline:16px;letter-spacing:.06em}
 .plans-foot{max-width:860px;margin:22px auto 0}
 .plans-foot .short-note{margin-top:14px}
@@ -703,7 +703,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <span class="plancard__label">For extensions you already wear</span>
           <h3>Maintain Essentials</h3>
           <p>Care for your extensions between your move-ups. Extension-related services only.</p>
-          <ul class="covers" aria-label="Covered by this plan"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li></ul>
+          <ul class="incl covers" aria-label="What is covered"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li></ul>
           <div class="plancard__price"><span>You pay</span><strong>AED 1,500</strong><small>AED 1,800 to spend</small><small>Valid 6 months. Cash or card.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="essentials" data-svc="essentials">Choose Essentials <span class="arr">&rarr;</span></a>
         </div>
@@ -714,7 +714,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <span class="plancard__label">Our recommendation</span>
           <h3>Maintain Plus</h3>
           <p>The same care, with more to spend and longer to use it. Extension-related services only.</p>
-          <ul class="covers" aria-label="Covered by this plan"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
+          <ul class="incl covers" aria-label="What is covered"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
           <div class="plancard__price"><span>You pay</span><strong>AED 3,000</strong><small>AED 3,600 to spend</small><small>Valid 9 months. Or 4 payments of AED 750 with Tabby.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="plus" data-svc="plus">Choose Plus <span class="arr">&rarr;</span></a>
         </div>
@@ -725,7 +725,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <span class="plancard__label">For your new set</span>
           <h3>New Hair and Maintain Bundle</h3>
           <p>Your full application in the method you choose, plus AED 950 to spend on care over 12 months. Extension-related services only.</p>
-          <ul class="covers" aria-label="Covered by this plan"><li>Full application in your method</li><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
+          <ul class="incl covers" aria-label="What is covered"><li>Full application in your method</li><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
           <div class="plancard__price"><span>You pay</span><strong>AED 3,300</strong><small>AED 4,250 to spend</small><small>Valid 12 months. Or 4 payments of AED 825 with Tabby.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="bundle" data-svc="bundle">Choose the Bundle <span class="arr">&rarr;</span></a>
           <div class="mapnote" style="margin-top:14px;font-family:var(--fb);font-size:12.5px;line-height:1.45;color:var(--ink-soft);text-align:center">Keratin and Fusion are quoted at your Confidence Mapping.</div>
