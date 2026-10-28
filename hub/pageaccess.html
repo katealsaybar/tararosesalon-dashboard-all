@@ -26,18 +26,29 @@
 .pa-btn:disabled{opacity:.5;cursor:default}
 .pa-status{min-height:22px;font-size:13px;color:var(--muted);margin:2px 0 10px}
 .pa-status.err{color:#B3402A;font-weight:600}
-.pa-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
-.pa-tbl{width:100%;border-collapse:separate;border-spacing:0;min-width:640px}
+.pa-wrap{border:1px solid var(--border);border-radius:14px;background:var(--surface);max-width:880px}
+.pa-tbl{width:100%;border-collapse:separate;border-spacing:0;min-width:560px}
 .pa-tbl th,.pa-tbl td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-size:14px}
 .pa-tbl th:first-child,.pa-tbl td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
-.pa-tbl thead th{position:sticky;top:0;background:var(--surface);z-index:2;font-size:12.5px;font-weight:700;vertical-align:bottom;line-height:1.25}
-.pa-tbl thead th:first-child{z-index:3}
+.pa-tbl thead th{position:sticky;top:calc(var(--pa-top,100px) - 1px);background:var(--surface);z-index:2;font-size:12.5px;font-weight:700;vertical-align:bottom;line-height:1.25}
+.pa-tbl thead th:first-child{z-index:3;border-top-left-radius:13px}
+.pa-tbl thead th:last-child{border-top-right-radius:13px}
+/* Wide screens: the heading row sticks under the site header while the page scrolls (--pa-top is that header's height, set below).
+   Phones: the table scrolls sideways inside its own box, so the box gets a height and the heading row sticks to the top of it. */
+@media(max-width:700px){.pa-wrap{overflow:auto;max-height:calc(100vh - 150px)}.pa-tbl thead th{top:0}}
 .pa-tbl th small{display:block;font-weight:500;color:var(--muted);margin-top:2px}
-.pa-tbl tr.pa-grp td{background:var(--bg);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding-top:14px}
+.pa-tbl tr.pa-grp td{background:var(--bg);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding-top:14px;cursor:pointer;user-select:none}
+.pa-tbl tr.pa-grp:hover td{color:var(--text)}
+.pa-tbl tr.pa-grp:focus-visible td{outline:2px solid var(--text);outline-offset:-2px}
+.pa-chev{display:inline-block;width:14px;margin-right:8px;transition:transform .15s}
+.pa-grp.pa-shut .pa-chev{transform:rotate(-90deg)}
+.pa-grp .pa-n{font-weight:500;letter-spacing:0;text-transform:none;margin-left:8px}
 .pa-tbl tr:last-child td{border-bottom:0}
 .pa-name{font-weight:600}
 .pa-note{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:2px}
-.pa-tbl td.pa-c{width:104px}
+.pa-tbl td.pa-c,.pa-tbl thead th:not(:first-child){width:112px}
+.pa-tbl tbody tr:not(.pa-grp):hover td{background:color-mix(in srgb,var(--text) 7%,var(--surface))}
+.pa-tbl tbody tr:not(.pa-grp):hover td.pa-chg{background:rgba(214,158,46,.24)}
 .pa-tbl input[type=checkbox]{width:22px;height:22px;accent-color:var(--text);cursor:pointer;vertical-align:middle}
 .pa-tbl td.pa-chg{background:rgba(214,158,46,.14)}
 .pa-tbl td.pa-chg::after{content:'changed';display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
@@ -60,7 +71,11 @@
   var main = document.getElementById('kbMain');
   var LV = [1, 2, 3, 4];
   var NAMES = { 1: 'Team', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
-  var q = '', statusTimer = null;
+  var q = '', statusTimer = null, shut = {};
+  try { shut = JSON.parse(localStorage.getItem('trs-pa-shut') || '{}') || {}; } catch (e) { shut = {}; }
+  function keepShut() { try { localStorage.setItem('trs-pa-shut', JSON.stringify(shut)); } catch (e) {} }
+  function setTop() { var h = document.getElementById('kbHead'); document.documentElement.style.setProperty('--pa-top', (h ? Math.round(h.getBoundingClientRect().height) : 100) + 'px'); }
+  window.addEventListener('resize', setTop);
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function say(t, err) {
     var el = document.getElementById('paStatus'); if (!el) return;
@@ -73,23 +88,39 @@
   function eff(id, l) { var s = saved(id, l); return s === null ? trsPageDefault(id, l) : s; }
   function pages() { return TRS_PAGES.filter(function (p) { return !p.retired; }); }
   function table() {
-    var list = pages(), out = [], lastG = null, n = 0;
+    var list = pages(), groups = [], by = {};
     var needle = q.trim().toLowerCase();
     list.forEach(function (p) {
       if (needle && (p.label + ' ' + (p.group || '') + ' ' + (p.sub || '')).toLowerCase().indexOf(needle) < 0) return;
       var g = p.group || 'Other';
-      if (g !== lastG) { out.push('<tr class="pa-grp"><td colspan="' + (LV.length + 1) + '">' + esc(g) + '</td></tr>'); lastG = g; }
-      n++;
-      out.push('<tr data-id="' + esc(p.id) + '"><td><span class="pa-name">' + esc(p.label) + '</span>' +
-        (p.sub && g === 'Numbers' ? '<span class="pa-note">' + esc(p.sub) + '</span>' : '') +
-        (p.inside ? '<span class="pa-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</td>' +
-        LV.map(function (l) {
-          var chg = saved(p.id, l) !== null && saved(p.id, l) !== trsPageDefault(p.id, l);
-          return '<td class="pa-c' + (chg ? ' pa-chg' : '') + '"><input type="checkbox" data-l="' + l + '"' + (eff(p.id, l) ? ' checked' : '') +
-            ' aria-label="' + esc(p.label) + ', Level ' + l + ' ' + esc(NAMES[l]) + '"></td>';
-        }).join('') + '</tr>');
+      if (!by[g]) { by[g] = []; groups.push(g); }
+      by[g].push(p);
     });
-    return n ? out.join('') : '<tr><td colspan="' + (LV.length + 1) + '" style="text-align:left">Nothing matches that search.</td></tr>';
+    if (!groups.length) return '<tr><td colspan="' + (LV.length + 1) + '" style="text-align:left">Nothing matches that search.</td></tr>';
+    var out = [];
+    groups.forEach(function (g) {
+      var closed = !!shut[g] && !needle;   // a search always shows what it found
+      out.push('<tr class="pa-grp' + (closed ? ' pa-shut' : '') + '" data-g="' + esc(g) + '" tabindex="0" role="button" aria-expanded="' + (closed ? 'false' : 'true') + '"><td colspan="' + (LV.length + 1) + '">' +
+        '<span class="pa-chev" aria-hidden="true">&#9662;</span>' + esc(g) + '<span class="pa-n">' + by[g].length + ' page' + (by[g].length > 1 ? 's' : '') + '</span></td></tr>');
+      if (closed) return;
+      by[g].forEach(function (p) {
+        out.push('<tr data-id="' + esc(p.id) + '"><td><span class="pa-name">' + esc(p.label) + '</span>' +
+          (p.sub && g === 'Numbers' ? '<span class="pa-note">' + esc(p.sub) + '</span>' : '') +
+          (p.inside ? '<span class="pa-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</td>' +
+          LV.map(function (l) {
+            var chg = saved(p.id, l) !== null && saved(p.id, l) !== trsPageDefault(p.id, l);
+            return '<td class="pa-c' + (chg ? ' pa-chg' : '') + '"><input type="checkbox" data-l="' + l + '"' + (eff(p.id, l) ? ' checked' : '') +
+              ' aria-label="' + esc(p.label) + ', Level ' + l + ' ' + esc(NAMES[l]) + '"></td>';
+          }).join('') + '</tr>');
+      });
+    });
+    return out.join('');
+  }
+  function allGroups() { var g = [], seen = {}; pages().forEach(function (p) { var k = p.group || 'Other'; if (!seen[k]) { seen[k] = 1; g.push(k); } }); return g; }
+  function paintFold() {
+    var b = document.getElementById('paFold'); if (!b) return;
+    var any = allGroups().some(function (g) { return !shut[g]; });
+    b.textContent = any ? 'Collapse all sections' : 'Expand all sections';
   }
   function changedCount() {
     var n = 0;
@@ -104,6 +135,7 @@
   function draw() {
     document.getElementById('paBody').innerHTML = table();
     paintCount();
+    paintFold();
   }
   async function save(id, l, val, box) {
     var def = trsPageDefault(id, l);
@@ -144,14 +176,30 @@
       '<p class="kb-meta">Tick the reports each level can open. The ticks you see now are where each page starts; a change is saved as soon as you click it and takes effect the next time that person opens or refreshes the dashboard.</p>' +
       '<div class="pa-bar"><div class="kb-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
         '<input type="search" id="paFilter" placeholder="Search pages" autocomplete="off" aria-label="Search pages"></div>' +
-        '<button type="button" class="pa-btn" id="paReset"></button></div>' +
+        '<button type="button" class="pa-btn" id="paFold"></button><button type="button" class="pa-btn" id="paReset"></button></div>' +
       '<div class="pa-status" id="paStatus" role="status" aria-live="polite"></div>' +
       '<div class="pa-wrap"><table class="pa-tbl"><thead><tr><th>Page <small>Level 5 (you) always opens every page</small></th>' +
         LV.map(function (l) { return '<th>Level ' + l + '<small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
       '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level whose data asks for Level 3 will open and then say “Level 3 and above”, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here.</p>';
+    setTop();
     draw();
     document.getElementById('paFilter').addEventListener('input', function (e) { q = e.target.value; draw(); });
     document.getElementById('paReset').addEventListener('click', resetAll);
+    document.getElementById('paFold').addEventListener('click', function () {
+      var any = allGroups().some(function (g) { return !shut[g]; });
+      allGroups().forEach(function (g) { if (any) shut[g] = 1; else delete shut[g]; });
+      keepShut(); draw();
+    });
+    function flip(tr) {
+      var g = tr.getAttribute('data-g'); if (shut[g]) delete shut[g]; else shut[g] = 1;
+      keepShut(); draw();
+      var back = document.querySelector('tr.pa-grp[data-g="' + g.replace(/"/g, '\\"') + '"]'); if (back) back.focus();
+    }
+    document.getElementById('paBody').addEventListener('click', function (e) { var tr = e.target.closest && e.target.closest('tr.pa-grp'); if (tr) flip(tr); });
+    document.getElementById('paBody').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var tr = e.target.closest && e.target.closest('tr.pa-grp'); if (tr) { e.preventDefault(); flip(tr); }
+    });
     document.getElementById('paBody').addEventListener('change', function (e) {
       var box = e.target; if (!box || box.type !== 'checkbox') return;
       var tr = box.closest('tr'); if (!tr) return;
