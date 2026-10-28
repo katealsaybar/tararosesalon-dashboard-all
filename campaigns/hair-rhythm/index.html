@@ -794,6 +794,11 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
       </div>
     </div>
 
+    <div class="bk-f" id="bkTypeF">
+      <label class="bk-l" for="bkType">Which type of service?</label>
+      <div class="bk-sel"><select id="bkType"><option value="smooth">Keratin &amp; Smoothing</option><option value="colour">Colour maintenance</option><option value="treatment">Treatments</option></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+
     <div class="bk-f" id="bkSvcF">
       <label class="bk-l" for="bkSvc" id="bkSvcL">Which service would you like?</label>
       <div class="bk-sel"><select id="bkSvc"></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -1004,13 +1009,13 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
     mark(); syncMore(); render();
   });
   var aed=function(v){ return 'AED '+v.toLocaleString('en-US'); };
-  var grp='svc', saved={svc:'smooth:0',blow:'bundle:0'};
+  var grp='svc', svcType='smooth', saved={svc:'smooth:0',blow:'bundle:0'}, savedT={smooth:'smooth:0',colour:'colour:0',treatment:'treatment:0'};
   var cur=function(){ var v=String(svcSel.value||'smooth:0').split(':'); key=v[0]; return SV[key].opts[Number(v[1])||0]; };
   var radios=function(n){ return [].slice.call(sheet.querySelectorAll('input[name="'+n+'"]')); };
   var mark=function(){ sheet.querySelectorAll('.bk-r,.bk-d').forEach(function(l){ var i=l.querySelector('input'); l.classList.toggle('is-on',i.checked); }); };
   var render=function(){
     var o=cur(), pr=o[2], bs=pr==='bs', arr=Array.isArray(pr), course=(key==='treatment'&&st.course>0), nx=(key==='treatment'?st.extra.length:0);
-    title.textContent=(grp==='blow'?'Book a blow-dry package':'Book your appointment'); $('bkSvcL').textContent=(grp==='blow'?'Which package would you like?':'Which service would you like?');
+    title.textContent=(grp==='blow'?'Book a blow-dry package':'Book your appointment'); $('bkSvcL').textContent=(grp==='blow'?'Which package would you like?':({smooth:'Which keratin or smoothing service?',colour:'Which colour maintenance service?',treatment:'Which treatment?'})[svcType]); $('bkTypeF').hidden=(grp!=='svc'); $('bkType').value=svcType;
     sheet.querySelectorAll('input[name="bkCat"]').forEach(function(r){ r.checked=(r.value===grp); }); sheet.querySelectorAll('.bk-c').forEach(function(l){ l.classList.toggle('is-on',l.querySelector('input').checked); });
     desc.textContent=o[1]; bsNote.hidden=!bs; lenF.hidden=bs; densF.hidden=bs;
     courseF.hidden=(key!=='treatment');
@@ -1079,22 +1084,23 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
       op.textContent=(o[3]||o[0].replace(' (solid colour roots)',''))+pt; parent.appendChild(op);
     };
     if(g==='blow'){ SV.bundle.opts.forEach(function(o,i){ add(svcSel,'bundle',o,i); }); return; }
-    [['smooth','Keratin & Smoothing'],['colour','Colour maintenance'],['treatment','Treatments']].forEach(function(gr){
-      var og=document.createElement('optgroup'); og.label=gr[1];
-      SV[gr[0]].opts.forEach(function(o,i){ add(og,gr[0],o,i); });
-      svcSel.appendChild(og);
-    });
+    SV[svcType].opts.forEach(function(o,i){ add(svcSel,svcType,o,i); });
   };
   var setGrp=function(g){
     saved[grp]=svcSel.value; grp=g; fillSvc(g);
     svcSel.value=saved[g]; if(svcSel.selectedIndex<0) svcSel.selectedIndex=0;
     buildMore(); render();
   };
+  $('bkType').addEventListener('change',function(){
+    savedT[svcType]=svcSel.value; svcType=$('bkType').value; fillSvc('svc');
+    svcSel.value=savedT[svcType]; if(svcSel.selectedIndex<0) svcSel.selectedIndex=0;
+    buildMore(); render();
+  });
   [].slice.call(sheet.querySelectorAll('input[name="bkCat"]')).forEach(function(r){ r.addEventListener('change',function(){ setGrp(r.value); }); });
   svcSel.addEventListener('change',function(){ buildMore(); render(); });
   salSel.addEventListener('change',update);
   /* Fill the guide once on load, so it is never an empty bar however it is shown; a card button then sets its own group and choice. */
-  fillSvc('svc'); svcSel.value='smooth:0'; buildMore(); render();
+  svcType='smooth'; fillSvc('svc'); svcSel.value='smooth:0'; buildMore(); render();
   var open=function(btn){
     last=btn; pick=btn.getAttribute('data-svc')||'';
     key=pick==='toner'?'colour':(SV[pick]?pick:'smooth');
@@ -1102,8 +1108,10 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
     SV[key].opts.forEach(function(o,i){ if(want&&want.indexOf(o[0].toLowerCase())===0) sel=i; });
     if(pick==='toner') sel=0;
     grp=(key==='bundle')?'blow':'svc'; saved={svc:'smooth:0',blow:'bundle:0'};
+    savedT={smooth:'smooth:0',colour:'colour:0',treatment:'treatment:0'};
+    if(grp==='svc') svcType=key;
     fillSvc(grp);
-    svcSel.value=key+':'+sel; saved[grp]=svcSel.value;
+    svcSel.value=key+':'+sel; saved[grp]=svcSel.value; if(grp==='svc') savedT[svcType]=svcSel.value;
     st.course=0; st.extra=[]; var c0=radios('bkCourse')[0]; if(c0){ c0.checked=true; }
     buildMore(); mark();
     miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
