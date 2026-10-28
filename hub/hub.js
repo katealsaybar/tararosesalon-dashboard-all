@@ -76,7 +76,7 @@
     // Kate, 28 Oct 2026: Belle's Stylist - Client matching sheet, one page that links to it (kb_sections 'client-matching',
     // migrations/kb_client_matching.sql). Front Desk (Level 1), Levels 2, 3 and 5; Level 4 skips it. The sheet link lives in kb_pages, not here: this repo is public.
     // Kate, 28 Oct 2026: the 2026 price list (Hair and Beauty, from the client-ready PDFs) as Team Home pages so new staff and
-    // anyone who books can search it (kb_sections 'price-list', migrations/kb_price_list.sql). Level 1 of every team and Levels 2 and up.
+    // anyone who books can search it (kb_sections 'price-list', migrations/kb_price_list.sql). Level 1 Front Desk and Call Centre ('Reception'), and Levels 2 and up; Hair and Beauty Level 1 do not see it.
     // The pages hold the prices and live in kb_pages, not in this public repo.
     { key: 'price-list', dept: 'Clients', title: 'Price List', rule: 'var(--accent-butter)',
       blurb: 'Hair prices by stylist level and hair length, treatments, extensions and every beauty service.' },
