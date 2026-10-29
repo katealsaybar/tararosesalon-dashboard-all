@@ -1154,7 +1154,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
   var grids=[].slice.call(document.querySelectorAll('.plangrid'));
   var level=function(){
     grids.forEach(function(g){
-      ['.plancard__body>p','.incl'].forEach(function(sel){
+      ['.plancard__body>h3','.plancard__body>p','.incl','.plancard__price'].forEach(function(sel){
         var els=[].slice.call(g.querySelectorAll(sel)); if(!els.length) return;
         els.forEach(function(el){ el.style.minHeight=''; });
         var cards=g.querySelectorAll('.plancard');
@@ -1164,6 +1164,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
       });
     });
   };
+  window.hrLevel=level;
   window.addEventListener('resize',level,{passive:true});
   window.addEventListener('load',level);
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(level);
@@ -1237,10 +1238,10 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
     });
   };
   document.querySelectorAll('.len-switch button').forEach(function(btn){
-    btn.addEventListener('click',function(){ window.hrDens=null; apply(Number(btn.getAttribute('data-len'))); });
+    btn.addEventListener('click',function(){ window.hrDens=null; window.hrApplyLen(Number(btn.getAttribute('data-len'))); });
   });
   var saved=-1; try{ localStorage.removeItem('hr_len'); }catch(e){}
-  window.hrApplyLen=apply;
+  window.hrApplyLen=function(i){ apply(i); if(window.hrLevel) window.hrLevel(); };
   apply(saved>=0&&saved<4?saved:-1);
 })();
 </script>
