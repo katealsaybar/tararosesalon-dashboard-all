@@ -504,6 +504,13 @@
     location.replace('/');
   };
 
+  // Kate, 29 Oct 2026: the big title is the way back to Team Home, underlined on hover, so no page
+  // needs a second small "Team Home" link under it. On Team Home itself it is just the title.
+  function titleHtml(t) {
+    if (t !== 'Team Home' || /^\/hub\/?(index\.html)?$/.test(location.pathname)) return esc(t);
+    return '<a href="/hub/">' + esc(t) + '</a>';
+  }
+
   // ── Header: brand, title, search, account.
   function drawHeader() {
     var h = document.getElementById('kbHead');
@@ -515,7 +522,7 @@
         '<img class="kb-logo-light" src="/assets/mast-ink.png" alt="Tara Rose">' +
         '<img class="kb-logo-dark" src="/assets/mast-paper.png" alt="Tara Rose">' +
         '<span>Salons</span></a>' +
-      '<div class="kb-titles"><span class="kb-eyebrow">Knowledge Base</span><div class="kb-titlerow"><h1>' + esc(h.dataset.title || 'Team Home') + '</h1>' +
+      '<div class="kb-titles"><span class="kb-eyebrow">Knowledge Base</span><div class="kb-titlerow"><h1>' + titleHtml(h.dataset.title || 'Team Home') + '</h1>' +
         // Kate, 8 Oct 2026: the second front door, the plain search page. On the title's line on a
         // desktop (the right side has no room), under it on a phone.
         '<a class="kb-searchpage" href="/search/">Search page &rarr;</a></div></div>' +

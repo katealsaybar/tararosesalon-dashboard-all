@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=02e4f77a">
+<link rel="stylesheet" href="/hub/hub.css?v=ee19e629">
 <link rel="stylesheet" href="/jump-nav.css?v=e099d37d">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
@@ -30,7 +30,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=869f376d"></script>
+<script src="/hub/hub.js?v=1dfe918d"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script src="/hub/kb-doc.js?v=85cc532b"></script>
 <script>
@@ -42,7 +42,7 @@
     catch (e) { return ''; }
   }
   function notFound() {
-    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t here, or it isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+    main.innerHTML = '<p class="kb-msg">This page isn’t here, or it isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
   }
 
   // Every page can be starred, from the list and from the page itself (Kate, 1 Oct 2026).
@@ -120,7 +120,6 @@
     var toCheck = function (p) { return KB.level >= 2 && !!p.note && /confirm|approv|review/i.test(p.note); };
     var nCheck = r.data.filter(toCheck).length, only = q.get('check') === '1' && nCheck > 0;
     main.innerHTML =
-      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon(sec.key, esc(sec.title)) +
       '<p class="kb-meta">' + r.data.length + (r.data.length === 1 ? ' page' : ' pages') + '</p>' +
       '<div class="kb-tools">' + pdfBtn('Download all as one PDF') + '</div>' +
@@ -176,7 +175,7 @@
     var list = (all.data || []).filter(function (x) { return KB.shows(x.slug); }), i = list.findIndex(function (x) { return x.slug === p.slug; });
     var prev = i > 0 ? list[i - 1] : null, next = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
     main.innerHTML =
-      '<p class="kb-crumbs"><a href="/hub/">Team Home</a> › <a href="/hub/kb.html?s=' + encodeURIComponent(p.section) + '">' + esc(sec.title) + '</a>' +
+      '<p class="kb-crumbs"><a href="/hub/kb.html?s=' + encodeURIComponent(p.section) + '">' + esc(sec.title) + '</a>' +
         (p.group_name ? ' › ' + esc(p.group_name) : '') + '</p>' +
       '<div class="kb-reader">' +
         '<details class="kb-toc" open><summary>Chapters <span>' + list.length + '</span></summary>' +

@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=02e4f77a">
+<link rel="stylesheet" href="/hub/hub.css?v=ee19e629">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
 <body class="kb-wait">
@@ -32,7 +32,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=869f376d"></script>
+<script src="/hub/hub.js?v=1dfe918d"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
 (function () {
@@ -45,7 +45,7 @@
   var SHORT = { 'Khalifa City': 'Khalifa City', 'Mamsha Al Saadiyat': 'Saadiyat', 'Motor City': 'Motor City', 'Al Quoz': 'Al Quoz' };
   function link(s, view) { return BASE + '&staff=' + s[4] + '&view=' + view; }
   function notFound() {
-    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+    main.innerHTML = '<p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
   }
   function copy(text) {
     if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
@@ -72,7 +72,6 @@
       }).join('');
     }
     main.innerHTML =
-      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
       KB.titleIcon('card-links', 'Staff Card Links') +
       '<p class="kb-meta">One link per stylist and beautician. Copy it, paste it into WhatsApp, and the client lands straight on her card. The card link opens her card; the photo link opens her photo.</p>' +
       '<div class="fm-switch" role="group" aria-label="Which branch">' + BRANCHES.map(function (b, i) {

@@ -17,6 +17,22 @@ body.mx-grid .wrap{max-width:min(1500px,calc(100% - 32px));padding-left:0;paddin
 .mx-btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .mx-editing .mx-btn.edit{background:var(--accent-mint);color:#1A1A1A;border-color:var(--accent-mint)}
 
+/* ---------- mini sidebar: the two pages side by side (Kate, 29 Oct 2026) ---------- */
+.mx-shell{display:grid;grid-template-columns:184px minmax(0,1fr);gap:28px}
+.mx-shell>.mx,.mx-shell>.mx-find{min-width:0}
+.mx-rail{position:sticky;top:calc(var(--mx-top) + 14px);display:flex;flex-direction:column;gap:2px;padding-top:8px}
+.mx-rail-t{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);font-weight:600;margin:0 0 6px 10px}
+.mx-rail a{display:block;padding:7px 10px;border-radius:8px;font-size:14px;line-height:1.35;text-decoration:none;color:var(--soft)}
+.mx-rail a:hover{background:var(--surface2);color:var(--ink)}
+.mx-rail a.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:inset 3px 0 0 var(--accent-mint)}
+@media(max-width:900px){
+  .mx-shell{display:block}
+  .mx-rail{position:static;flex-direction:row;gap:8px;padding:0;margin:0 0 12px;overflow-x:auto}
+  .mx-rail-t{display:none}
+  .mx-rail a{flex:none;display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:99px;white-space:nowrap}
+  .mx-rail a.on{border-color:var(--accent-mint);box-shadow:none;background:color-mix(in srgb,var(--accent-mint) 38%,var(--surface))}
+}
+
 /* ---------- Find a stylist: one question at a time ---------- */
 .mx-find{max-width:620px;margin:0 auto}
 .mx-find .mx-doc{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:24px 22px 28px;box-shadow:var(--shadow)}
@@ -73,7 +89,7 @@ h2.mx-q{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:2
 .mx-fbar .chip{display:inline-flex;gap:6px;align-items:center;background:color-mix(in srgb,var(--accent-mint) 40%,var(--surface));color:var(--ink);border-radius:99px;padding:4px 6px 4px 12px}
 .mx-fbar .chip button{border:0;background:transparent;color:var(--ink);cursor:pointer;font:inherit;padding:0 6px}
 .mx-fbar .clear{border:0;background:none;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit}
-.mx-wrap{background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:auto;max-height:calc(100vh - 230px);min-height:420px;box-shadow:var(--shadow)}
+.mx-wrap{isolation:isolate;background:var(--surface);border:1px solid var(--border);border-radius:22px;overflow:auto;max-height:calc(100vh - 230px);min-height:420px;box-shadow:var(--shadow)}
 .mx-editing .mx-wrap{box-shadow:0 0 0 3px var(--accent-mint)}
 body.mx-previewing .mx-wrap{box-shadow:0 0 0 3px #f3c746}
 body.mx-previewing .mx-btn.edit{opacity:.4;pointer-events:none}

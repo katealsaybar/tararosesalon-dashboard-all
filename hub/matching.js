@@ -46,7 +46,13 @@
   function sortRows(a) { return a.sort(function (x, y) { return brIdx(x.b) - brIdx(y.b) || ORD[x.l] - ORD[y.l] || x.sort - y.sort; }); }
   function setBit(x, ci, on) { x.t = x.t.substr(0, ci) + (on ? '1' : '0') + x.t.substr(ci + 1); }
   function notFound() {
-    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+    main.innerHTML = '<p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+  }
+  // Kate, 29 Oct 2026: the mini sidebar on both pages, so the two ways in are always one tap apart.
+  function rail(cur) {
+    function a(k, href, label) { return '<a href="' + href + '"' + (cur === k ? ' class="on" aria-current="page"' : '') + '>' + label + '</a>'; }
+    return '<div class="mx-railcol"><nav class="mx-rail" aria-label="Client matching"><span class="mx-rail-t">Client matching</span>' +
+      a('find', '/hub/find-stylist', 'Find a stylist for her') + a('grid', '/hub/matching', 'Full checklist') + '</nav></div>';
   }
   async function rpc(name, args) { var r = await KB.client.rpc(name, args || {}); if (r.error) throw r.error; return r.data; }
   async function load() {
@@ -141,10 +147,10 @@
       app.innerHTML = h;
     }
     function reset() { st = {br: null, brAny: false, cat: null, svc: null, vibe: null, vibeAny: false, style: null}; }
-    main.innerHTML = '<div class="mx mx-find"><p class="kb-crumbs"><a href="/hub/">Team Home</a></p><div class="mx-doc">' +
+    main.innerHTML = '<div class="mx-shell">' + rail('find') + '<div class="mx mx-find"><div class="mx-doc">' +
       '<p class="mx-eyebrow">Team Home · Clients</p><h1>Find a stylist for her</h1>' +
       '<p class="mx-lead">Three quick questions, and it gives you the names to offer her. Want to check who does what? Open the <a href="/hub/matching">full checklist</a>.</p>' +
-      '<div class="mx-trail" id="mxTrail"></div><div id="mxApp"></div><p class="mx-foot" id="mxLast"></p></div></div>';
+      '<div class="mx-trail" id="mxTrail"></div><div id="mxApp"></div><p class="mx-foot" id="mxLast"></p></div></div></div>';
     app = document.getElementById('mxApp'); trailEl = document.getElementById('mxTrail');
     main.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b || b.disabled) return;
@@ -523,7 +529,7 @@
     }
 
     /* ----- build the page ----- */
-    main.innerHTML = '<div class="mx"><p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' +
+    main.innerHTML = '<div class="mx-shell">' + rail('grid') + '<div class="mx">' +
       '<div class="mx-mast"><div class="mx-frow"><span class="mx-flbl" id="mxBl">Branch</span><div class="mx-chipset" role="group" aria-labelledby="mxBl" id="mxBranch"></div></div></div>' +
       '<div class="mx-head"><div><p class="mx-eyebrow">Team Home · Clients</p><h1>Who does what</h1>' +
       '<p class="mx-lead">A tick means she does it, or it is her style. Click a heading to filter or sort. Click a name to open her card. Just need a name? <a href="/hub/find-stylist">Find a stylist for her</a>.</p></div>' +
@@ -532,7 +538,7 @@
       '<div class="mx-note" id="mxNote"><span><b>Editing.</b> Click a box to tick or untick it. It saves as you go, and everyone sees it straight away. Right-click a box to see who changed it.</span><span><button id="mxAddBtn">+ Add a stylist</button><button id="mxDone">Done</button></span></div>' +
       '<div class="mx-fbar" id="mxFbar"></div>' +
       '<div class="mx-wrap" id="mxWrap"><table id="mxTbl"></table></div>' +
-      '<p class="mx-foot" id="mxLast"></p></div>';
+      '<p class="mx-foot" id="mxLast"></p></div></div>';
     var layer = document.createElement('div');
     layer.innerHTML =
       '<aside class="mx-drawer" id="mxDrawer" aria-label="Version history"><div class="dh"><b>Version history</b><button id="mxHistClose" aria-label="Close">✕</button></div>' +
