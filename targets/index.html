@@ -134,7 +134,7 @@ table.t td.name b{font-weight:600}
 table.t td[data-l="Clients"]{white-space:normal;min-width:108px;max-width:130px}
 table.t td[data-l="Clients"] .rng{white-space:normal}
 table.t td[data-l="Retail"]{white-space:normal;min-width:124px;max-width:140px}table.t td[data-l="Retail"] .rng{white-space:normal}
-table.t td[data-l="Utilisation"]{white-space:normal;min-width:96px;max-width:130px}table.t td[data-l="Utilisation"] .rng,table.t td[data-l="Net take target"] .rng,table.t td[data-l="Service"] .rng,table.t td[data-l="Treatment"] .rng{white-space:normal}
+table.t td[data-l="Utilisation"]{white-space:normal;min-width:96px;max-width:130px}table.t td[data-l="Utilisation"] .rng,table.t td[data-l="Net take"] .rng,table.t td[data-l="Service"] .rng,table.t td[data-l="Treatment"] .rng{white-space:normal}
 .phbd{display:none}
 .tg{font-size:12.5px;font-weight:300;color:var(--muted)}
 tr.grp td{padding:20px 10px 6px;border-bottom:1px solid var(--text);font-size:11px;font-weight:500;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);text-align:left}
@@ -825,7 +825,7 @@ function personRow(r){
    `<td data-l="Adjustment %">${has?`<input class="days bu${r.bu?' changed':''}" type="number" min="-50" max="100" step="0.1" value="${r.bu}" data-i="${r.i}" aria-label="Adjustment in percent for ${r.p[1]}">`:'n/a'}</td>`+
    `<td data-l="Low">${has?fmt(r.low):(r.cover?'0':'n/a')}</td>`+
    `<td data-l="Target" class="plan">${has?fmt(r.med):(r.cover?'0':'No plan')}</td>`+
-   `<td data-l="Full team">${has?fmt(r.high):(r.cover?'0':'n/a')}</td>`+
+   `<td data-l="Net take target">${has?fmt(r.high):(r.cover?'0':'n/a')}</td>`+
    `<td data-l="Service">${has?fmt(r.service):'n/a'}</td>`+
    `<td data-l="Treatment">${has?fmt(r.treat):'n/a'}${has&&r.act&&r.act.tpct!=null?`<span class="rng">now ${r.act.tpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Retail">${has?fmt(r.retail):'n/a'}${has&&r.act&&r.act.rpct!=null?`<span class="rng">now ${r.act.rpct.toFixed(0)}%</span>`:''}</td>`+
@@ -870,7 +870,7 @@ const COLS=[
  {k:'bu',t:'Adjustment %',x:'n',get:r=>r.med==null||r.cover?null:(r.bu||0)},
  {k:'low',t:'Low',x:'n',get:r=>r.low},
  {k:'tgt',t:'Target',x:'n',get:r=>r.med},
- {k:'high',t:'Full team',x:'n',get:r=>r.high},
+ {k:'high',t:'Net take target',x:'n',get:r=>r.high},
  {k:'svc',t:'Service',x:'n',get:r=>r.service},
  {k:'trt',t:'Treatment',x:'n',get:r=>r.treat},
  {k:'ret',t:'Retail',x:'n',get:r=>r.retail},
@@ -1019,7 +1019,7 @@ function branchRow(label,t,cls,sub,rv,scope){
   /* Kate, 29 Oct 2026: Net take = the target plus retail at what we sell today (the same as the card); each money column shows its share of it. */
   const net=t.plan+Math.round(t.plan*S.retailNow/100),shr=(v,pre)=>net?`<span class="rng">${pre||''}${Math.round(v/net*100)}% of net take</span>`:'';
   return `<tr class="${cls}"><td class="name"><b>${label}</b>${sub?`<div class="tg">${sub}</div>`:''}</td>`+
-   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Adjustment">${t.n?`<input class="days bub" type="number" min="-50" max="100" step="0.1" value="${Math.round((bu||0)*10)/10}" data-sb="${(scope&&scope.b)||''}" data-st="${(scope&&scope.tm)||''}" aria-label="Adjustment in percent for ${label}">`:'n/a'}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="Full team">${fmt(t.high)}</td><td data-l="Net take target">${fmt(net)}</td><td data-l="Service">${fmt(t.service)}${shr(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}${shr(t.treat)}</td><td data-l="Retail">${fmt(t.retail+(rv||0))}${shr(t.retail+(rv||0),rv?`incl. ${fmt(rv)} Business TRS, `:'')}</td><td data-l="Clients">${fmt(t.clients)}</td><td data-l="Utilisation">${utilOf(t)!=null?utilOf(t)+'%':'n/a'}${utilNote(t)}</td><td data-l="Bottom-up">${t.bc>0?fmt(t.bc):'n/a'}${t.bc>0?`<span class="rng">${sgn((t.bc/t.bp-1)*100)} on target</span>`:''}</td>`+
+   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Adjustment">${t.n?`<input class="days bub" type="number" min="-50" max="100" step="0.1" value="${Math.round((bu||0)*10)/10}" data-sb="${(scope&&scope.b)||''}" data-st="${(scope&&scope.tm)||''}" aria-label="Adjustment in percent for ${label}">`:'n/a'}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="Net take target">${fmt(t.high)}</td><td data-l="Net take">${fmt(net)}</td><td data-l="Service">${fmt(t.service)}${shr(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}${shr(t.treat)}</td><td data-l="Retail">${fmt(t.retail+(rv||0))}${shr(t.retail+(rv||0),rv?`incl. ${fmt(rv)} Business TRS, `:'')}</td><td data-l="Clients">${fmt(t.clients)}</td><td data-l="Utilisation">${utilOf(t)!=null?utilOf(t)+'%':'n/a'}${utilNote(t)}</td><td data-l="Bottom-up">${t.bc>0?fmt(t.bc):'n/a'}${t.bc>0?`<span class="rng">${sgn((t.bc/t.bp-1)*100)} on target</span>`:''}</td>`+
    `<td data-l="Target against Sep delivered"><span class="chip ${band(d1)}">${sgn(d1)}</span><span class="rng">${fmt(t.sep)}</span></td></tr>`;
 }
 let lastBranchRows=[];
@@ -1031,7 +1031,7 @@ function renderBranch(rows){
   document.getElementById('secEyebrow').textContent='Branch by branch';
   document.getElementById('secTitle').textContent='Adding it up';
   document.getElementById('secWhy').textContent='Each branch is the sum of its people, and its Retail also includes the reception retail, what the front desk sells. The gap between low and full team is what leave and missing staff cost us in a month. The target against what the same people delivered in September is for a first look: further out, find out why before anything changes.';
-  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Adjustment ${ibw(TIP_BU_B)}</th><th>Full team</th><th class="rel">Net take target ${ibw('<b>Net take target</b> is the target plus retail at what we sell today ('+S.retailNow+'%), the same as the Total net take on the card. The % under Service, Treatment and Retail is each one&#39;s share of it. Treatment is inside Service. Retail is aimed at '+S.retail+'%, so the shares can add to more than 100%.','What the net take target is')}</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th class="rel">Utilisation ${ibw('<b>Utilisation</b> the plan asks for: the hours the clients need over the hours the team can give. An adjustment % puts more clients in the same hours, so it lifts this by the same %. The line under shows it before the adjustment.','What utilisation is')}</th><th class="rel">Bottom-up ${ibw(TIP_BOT(),'What bottom-up is')}</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Adjustment ${ibw(TIP_BU_B)}</th><th class="rel">Net take target ${ibw('<b>Net take target</b> is the target with nobody on leave, the full-team plan. The Target next to it is the middle of this and the Low.','What the net take target is')}</th><th class="rel">Net take ${ibw('<b>Net take</b> is the target plus retail at what we sell today ('+S.retailNow+'%), the same as the Total net take on the card. The % under Service, Treatment and Retail is each one&#39;s share of it. Treatment is inside Service. Retail is aimed at '+S.retail+'%, so the shares can add to more than 100%.','What net take is')}</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th class="rel">Utilisation ${ibw('<b>Utilisation</b> the plan asks for: the hours the clients need over the hours the team can give. An adjustment % puts more clients in the same hours, so it lifts this by the same %. The line under shows it before the adjustment.','What utilisation is')}</th><th class="rel">Bottom-up ${ibw(TIP_BOT(),'What bottom-up is')}</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
   brs.forEach(b=>{
     const br=vis.filter(r=>r.p[0]===b);
     if(teamAll){
@@ -1055,12 +1055,12 @@ function tsv(){
   const rows=build();
   const lines=[];
   if(st.view==='PERSON'){
-    lines.push(['Branch','Person','Designation','Status','Planned days','Adjustment %','Low','Target','Full team','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
+    lines.push(['Branch','Person','Designation','Status','Planned days','Adjustment %','Low','Target','Net take target','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
     visible(rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team))).forEach(r=>{
       lines.push([BN[r.p[0]],r.p[1],r.p[3],(r.leave?'On leave this month':badge[r.status][0]),r.dLow??r.planned??'',r.bu||0,r.low??'',r.med??'',r.high??'',r.service??'',r.treat??'',r.retail??'',r.clients??'',r.uAvail?Math.round(r.uNeed/r.uAvail*100):'',r.clientsRaw??'',r.billNeed??'',r.med!=null?r.avgBill:'',r.act&&r.act.tpct!=null?r.act.tpct.toFixed(1):'',r.act&&r.act.rpct!=null?r.act.rpct.toFixed(1):'',r.act&&r.act.bill?Math.round(r.act.bill):''].join('\t'));
     });
   }else{
-    lines.push(['Branch','Team','People','Low','Target','Top-down','Adjustment %','Full team','Service','Treatment','Retail','Reception retail','Clients','Utilisation %','Sep delivered'].join('\t'));
+    lines.push(['Branch','Team','People','Low','Target','Top-down','Adjustment %','Net take target','Service','Treatment','Retail','Reception retail','Clients','Utilisation %','Sep delivered'].join('\t'));
     const row=(b,tm,t,rv)=>lines.push([b,tm,t.n,t.low,t.plan,t.top,t.top?((t.plan/t.top-1)*100).toFixed(1):'',t.high,t.service,t.treat,t.retail,rv||0,t.clients,utilOf(t)??'',t.sep].join('\t'));
     ['SAA','KCA','MC','AQ'].forEach(b=>{
       const br=rows.filter(r=>r.p[0]===b);
