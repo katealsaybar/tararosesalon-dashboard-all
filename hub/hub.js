@@ -93,6 +93,10 @@
       blurb: 'Complaints by branch, year, kind and how each was resolved.' },
     { key: 'log-complaint', via: 'dashboards', min: 2, ic: 'suggestions', dept: 'Clients', title: 'Log a Client Complaint', href: '/?view=complaintlog', rule: 'var(--accent-lavender)',
       blurb: 'Write down a client complaint, follow it up and mark it resolved, so it is not left in WhatsApp.' },
+    // Kate, 31 Oct 2026: the complaints that are with you, that you logged or that you are copied on. Leadership and the salon coordinators also get the Pipeline
+    // board from there (the page decides who sees that tab; the database decides who may read).
+    { key: 'my-complaints', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Clients', title: 'My Complaints', href: '/hub/complaint', rule: 'var(--accent-lavender)',
+      blurb: 'The complaints waiting for you, and the pipeline of every complaint by stage for leadership and coordinators.' },
     // Kate, 21 Oct 2026: accounts (Level 4) no longer see the Business row, so these two are their way in (`only` = the levels that see the row).
     { key: 'numbers-financials', via: 'dashboards', only: [4], ic: 'dashboards', dept: 'Numbers', title: 'Financial Totals', href: '/?view=ledgerFinancials', rule: 'var(--accent-lavender)',
       blurb: 'Takings by branch: cash, card and other payments.' },

@@ -237,6 +237,18 @@ async function cmpUrgentShow(id, code) {
   cmpUrgentTimer = setInterval(look, 20000);
 }
 
+// Under the title: My complaints, and the Pipeline for leadership and the salon coordinators (the database says who, cmp_my_badge)
+async function cmpLinks() {
+  const box = document.getElementById('cmpLinks');
+  if (!box) return;
+  try {
+    const { data } = await sb.rpc('cmp_my_badge');
+    if (!data) return;
+    const dot = ((data.waiting || 0) + (data.tagged || 0)) > 0 ? ' <span title="Something is waiting for you" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#B4412F;vertical-align:middle"></span>' : '';
+    box.innerHTML = `<a class="cq-link" href="/hub/complaint">My complaints${dot}</a>` + (data.board ? ` &nbsp;·&nbsp; <a class="cq-link" href="/hub/complaint?view=board">Pipeline</a>` : '');
+  } catch (e) { /* the plain link stays */ }
+}
+
 // the new code, shown right after the save with a Copy button
 async function cmpDone(id, text) {
   const ok = document.getElementById('cqfOk');
@@ -397,6 +409,7 @@ function cqLogShell() {
   return cqCss() + `<div class="cq">
     <h1>Log a Client Complaint</h1>
     <p class="cq-sub">When a client complains, log it here so it is written down once, followed up and closed, and not left in WhatsApp. Leave How it was resolved empty and it stays open until you mark it resolved. Reply to the client within 2 days of the complaint and close it within 7; what is overdue shows first. Levels 3 and up. Everything logged here also counts in Client Complaints.</p>
+    <p class="cq-sub" id="cmpLinks" style="margin:-8px 0 14px"><a class="cq-link" href="/hub/complaint">My complaints</a></p>
     ${cqRailShell(`<div class="cq-tiles" id="cqFlags" aria-live="polite"></div>
     <datalist id="cqRespList"><option value="Emma W"><option value="Ashleigh"><option value="Mette"><option value="Coach Emma"><option value="Mona"><option value="Kate"></datalist>
     ${cqForm()}
@@ -426,6 +439,7 @@ function renderComplaintLog() {
   el.innerHTML = cqLogShell();
   cqWire();
   cmpFormInit();
+  cmpLinks();
   const fl = document.getElementById('cqFlags');
   if (fl) fl.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('[data-flt]');
