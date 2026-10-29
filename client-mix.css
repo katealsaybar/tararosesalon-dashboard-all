@@ -8,21 +8,28 @@
 
 .cm-bar{margin-top:16px}
 .cm-cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:16px}
-.cm-cat{text-align:left;background:var(--surface);color:var(--text);border:1px solid var(--border);border-top:4px solid var(--c);border-radius:var(--radius-card);padding:14px;box-shadow:var(--shadow-card);font:inherit;cursor:pointer;min-width:0}
+.cm-cat{text-align:left;background:var(--surface);color:var(--text);border:1px solid var(--border);border-top:4px solid var(--c);border-radius:var(--radius-card);padding:14px;box-shadow:var(--shadow-card);font:inherit;cursor:pointer;min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start}
 .cm-cat.on{outline:2px solid var(--text);outline-offset:-2px}
 .cm-cat.un{border-style:dashed;border-top-style:solid}
 @media(hover:hover){.cm-cat:hover{box-shadow:var(--shadow-card-hover)}}
 .cm-nm{font-size:13px;font-weight:600}
 .cm-n{font-family:'Playfair Display',serif;font-size:34px;line-height:1.1;margin-top:4px}
-.cm-k{font-size:12.5px;color:var(--muted);line-height:1.4}
+.cm-u{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:2px 0 6px}
+.cm-k{font-size:12.5px;color:var(--muted);line-height:1.45}
+.cm-def{font-size:13px;color:var(--muted);line-height:1.5;max-width:820px;margin:10px 0 0}
+.cm-def b{color:var(--text);font-weight:600}
 
-.cm-narrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:16px 0 0}
-.cm-chip{border:1px dashed var(--border);background:transparent;color:var(--muted);border-radius:20px;font:inherit;font-size:13px;padding:4px 12px;min-height:32px;cursor:pointer}
+.cm-chip{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:20px;font:inherit;font-size:13px;padding:4px 12px;min-height:32px;cursor:pointer}
 .cm-chip.with{border:1px solid var(--good);color:var(--good);font-weight:600}
 .cm-chip.without{border:1px solid var(--bad);color:var(--bad);font-weight:600;text-decoration:line-through}
-.cm-pcats{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 0}
-.cm-seg{flex-wrap:wrap}
-.cm-seg button em{font-style:normal;opacity:.6;margin-left:4px;font-size:11.5px}
+/* The two filter rows sit in one card: label on its own line, chips under it, a quiet hint last. */
+.cm-refine{margin-top:16px;padding:16px 18px;display:grid;gap:18px}
+.cm-narrow,.cm-pcats{display:block;margin:0}
+.cm-narrow>.slv-eyebrow,.cm-pcats>.slv-eyebrow{display:block;margin:0 0 8px}
+.cm-narrow>.slv-note,.cm-pcats>.slv-note{display:block;margin-top:8px;font-size:12.5px}
+.cm-chip em{font-style:normal;opacity:.6;margin-left:4px;font-size:12px}
+.cm-chip.on{border:1px solid var(--text);background:var(--surface2);color:var(--text);font-weight:600}
+@media(hover:hover){.cm-chip:hover{color:var(--text);border-color:var(--text)}}
 .cm-summary{font-size:15px;margin:16px 0 14px}
 .cm-summary b{font-family:'Playfair Display',serif;font-size:20px;font-weight:600}
 
@@ -57,9 +64,7 @@ tr.cm-unm td{background:var(--warn-bg)}
   .cm-cat{padding:11px 12px}
   .cm-n{font-size:28px}
   .cm-k{font-size:12px}
-  .cm-narrow,.cm-pcats{display:block;margin-top:14px}
-  .cm-narrow>.slv-eyebrow,.cm-pcats>.slv-eyebrow{display:block;margin:0 0 6px 2px}
-  .cm-narrow>.slv-note{display:block;margin-top:4px}
+  .cm-refine{margin-top:12px;padding:12px;gap:14px}
   .cm-row,.cm-seg{flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .cm-row::-webkit-scrollbar,.cm-seg::-webkit-scrollbar{display:none}
   .cm-chip,.cm-seg button{flex:0 0 auto;white-space:nowrap}

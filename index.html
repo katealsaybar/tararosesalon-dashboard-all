@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=bf8ff743"></script>
+<script src="pages.js?v=f0ff9494"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3517,7 +3517,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
 <link rel="stylesheet" href="mobile.css?v=a4af2688">
 <link rel="stylesheet" href="search.css?v=ad896c51">
-<link rel="stylesheet" href="client-mix.css?v=f68cc80a">
+<link rel="stylesheet" href="client-mix.css?v=e3666ef6">
 <link rel="stylesheet" href="lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="lost-queue.css?v=ce470057">
 <link rel="stylesheet" href="send-schedule.css?v=88a70391">
@@ -3576,7 +3576,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
       cl:  [LGX, 'lost-clients.js?v=240fb683', 'lost-lists.js?v=82848701', 'lost-consults.js?v=8dd97a9d', 'lost-review-file.js?v=de965c04',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=47a42dd0', 'lost-waves.js?v=c142e140', 'lost-blast.js?v=3ca1ba99',
-            'lost-report.js?v=7efb0908', 'wv-blast.js?v=96e47ebb', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=0dd8e569', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=ccd22f87', 'client-mix.js?v=cf2a5284',
+            'lost-report.js?v=7efb0908', 'wv-blast.js?v=96e47ebb', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=0dd8e569', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=ccd22f87', 'client-mix.js?v=ce965ca8',
             'service-rankings.js?v=c1364c02'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
@@ -4575,7 +4575,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=d06a7092"></script>
 <script src="pulse-drill.js?v=4fb4afba"></script>
-<script src="dashboard.js?v=f8fb7392"></script>
+<script src="dashboard.js?v=49f48a91"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
@@ -5065,7 +5065,7 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'clients' || view === 'clientmix' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub');

@@ -14,13 +14,14 @@
 // (Manager > Services > Export all services), kept in service_catalog; retired names from before
 // the Nov 2025 menu rename are sorted by name rules and listed on the roster tab.
 //
-// Own controls (branch, period), so the masthead filters are hidden here, as on Top Clients.
+// Branch and period are the GLOBAL sticky header filter's (sel.branch, dateFrom and dateTo, Kate 29 Oct 2026), the same as Discounts and
+// Vouchers: this page draws no Branch or Period bar of its own, only Show (clients or units). Several cards can be picked at once: the
+// first one picked leads (its items and units), the rest are "also had", so the list is the clients who had ALL the picked cards.
 // Everyone signed in sees counts and names; only Level 2 and above can open a client (the same
 // lost_client_detail panel as Top Clients); only Level 4 and above can change the roster.
 const CM_STORE = 'trs-client-mix';
-const CM = { branch: 'all', period: 'last', month: '', year: '', pfrom: '', pto: '', mode: 'clients', fam: 'colour',
-  cat: null, item: null, tri: {}, tab: 'mix' };
-let cmCards = null, cmDetail = null, cmRoster = null, cmSeqC = 0, cmSeqD = 0, cmShowN = 25, cmStamp = 0, cmBusy = false;
+const CM = { mode: 'clients', fams: ['colour'], cats: [], item: null, tri: {}, tab: 'mix' };
+let cmCards = null, cmDetail = null, cmRoster = null, cmSeqC = 0, cmSeqD = 0, cmShowN = 25, cmStamp = 0, cmBusy = false, cmWinKey = '';
 const cmCache = {};
 let cmItemsAll = false;
 const CM_FIRST = '2021-08-01';   // sales_transaction_lines starts here (Aug 2021 at Khalifa City and Saadiyat)
@@ -28,11 +29,12 @@ const cmIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0
 const cmToday = () => cmIso(new Date());
 try {
   const s = JSON.parse(localStorage.getItem(CM_STORE) || '{}');
-  for (const k of ['branch', 'period', 'month', 'year', 'pfrom', 'pto', 'mode', 'fam']) if (typeof s[k] === 'string') CM[k] = s[k];
+  if (s.mode === 'clients' || s.mode === 'visits' || s.mode === 'units') CM.mode = s.mode;
+  const f = Array.isArray(s.fams) ? s.fams : (typeof s.fam === 'string' ? [s.fam] : []);
+  if (f.length && f.every(x => typeof x === 'string')) CM.fams = f;
 } catch (e) {}
-function cmSave() { try { localStorage.setItem(CM_STORE, JSON.stringify({ branch: CM.branch, period: CM.period, month: CM.month, year: CM.year, pfrom: CM.pfrom, pto: CM.pto, mode: CM.mode, fam: CM.fam })); } catch (e) {} }
-
-const CM_PERIODS = [['this', 'This month'], ['last', 'Last month'], ['month', 'Month'], ['year', 'Year'], ['custom', 'Custom']];
+function cmSave() { try { localStorage.setItem(CM_STORE, JSON.stringify({ mode: CM.mode, fams: CM.fams })); } catch (e) {} }
+const cmLead = () => CM.fams[0];
 // Families: how the dashboard groups Phorest's categories. 'unmapped' is a Phorest category nobody
 // has given a family yet; 'skip' (deposits, vouchers, packages, no-shows) is never counted.
 const CM_FAMS = [
@@ -52,46 +54,37 @@ const cmCanEdit = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 4;
 const cmCanOpen = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2;
 
 // ── THE WINDOW ──────────────────────────────────────────────────────────────
-function cmYears() {   // newest first, back to the first year with sales lines
-  const out = [];
-  for (let y = new Date().getFullYear(); y >= Number(CM_FIRST.slice(0, 4)); y--) out.push(String(y));
-  return out;
-}
-function cmMonths() {   // newest first, back to Aug 2021
-  const out = [], now = new Date();
-  for (let y = now.getFullYear(), m = now.getMonth(); y > 2021 || (y === 2021 && m >= 7);) {
-    out.push(`${y}-${String(m + 1).padStart(2, '0')}`);
-    if (--m < 0) { m = 11; y--; }
-  }
-  return out;
-}
-const cmMonthLabel = ym => new Date(ym + '-01T00:00:00').toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+// The header's Period is dateFrom to dateTo (null both = All time), clamped to where the sales lines start and to today.
 function cmRange() {
-  const today = cmToday(), now = new Date(), y = now.getFullYear(), pad = n => String(n).padStart(2, '0');
-  const lastDay = ym => { const [yy, mm] = ym.split('-').map(Number); return cmIso(new Date(yy, mm, 0)); };
-  let a, b;
-  if (CM.period === 'this') { a = `${y}-${pad(now.getMonth() + 1)}-01`; b = today; }
-  else if (CM.period === 'last') { const p = new Date(y, now.getMonth() - 1, 1); const ym = cmIso(p).slice(0, 7); a = ym + '-01'; b = lastDay(ym); }
-  else if (CM.period === 'month') { const ym = /^\d{4}-\d{2}$/.test(CM.month) ? CM.month : today.slice(0, 7); a = ym + '-01'; b = lastDay(ym); }
-  else if (CM.period === 'custom') { a = CM.pfrom || `${y}-01-01`; b = CM.pto || today; }
-  else { const yy = /^\d{4}$/.test(CM.year) ? Number(CM.year) : y; a = `${yy}-01-01`; b = yy === y ? today : `${yy}-12-31`; }
+  const today = cmToday();
+  let a = typeof dateFrom !== 'undefined' && dateFrom ? dateToIso(dateFrom) : CM_FIRST;
+  let b = typeof dateTo !== 'undefined' && dateTo ? dateToIso(dateTo) : today;
   if (a < CM_FIRST) a = CM_FIRST;
   if (b > today) b = today;
   if (b < a) b = a;
   return [a, b];
 }
-const cmPeriodTxt = () => { const r = cmRange(); return lcDayY(r[0]) + ' to ' + lcDayY(r[1]); };
-const cmBranchArg = () => CM.branch === 'all' ? null : CM.branch;
-const cmBranchTxt = () => CM.branch === 'all' ? 'All branches' : lcBranchName(CM.branch);
+const cmPeriodTxt = () => { const r = cmRange(); return r[0] === r[1] ? lcDayY(r[0]) : lcDayY(r[0]) + ' to ' + lcDayY(r[1]); };
+// The header's Branch: ['all'] is the four open UAE branches (null to the RPCs); otherwise the codes picked, which the RPCs take as a
+// comma list. Bahrain has no lines here (its chip is struck out on this page).
+function cmCodes() {
+  if (typeof sel === 'undefined' || !sel.branch || sel.branch.includes('all')) return null;
+  const c = sel.branch.filter(b => typeof BH_BRANCHES === 'undefined' || !BH_BRANCHES.includes(b));
+  return !c.length || (typeof UAE_ACTIVE !== 'undefined' && UAE_ACTIVE.every(b => c.includes(b))) ? null : c;
+}
+const cmBranchArg = () => { const c = cmCodes(); return c ? c.join(',') : null; };
+const cmBranchTxt = () => { const c = cmCodes(); return c ? c.map(lcBranchName).join(' + ') : 'All branches'; };
 function cmArgs(extra) {
   const [a, b] = cmRange();
   return Object.assign({ p_from: a, p_to: b, p_branch: cmBranchArg() }, extra || {});
 }
 function cmDetailArgs(limit) {
-  const w = [], wo = [];
-  Object.keys(CM.tri).forEach(k => (CM.tri[k] === 'with' ? w : wo).push(k));
-  return cmArgs({ p_fam: CM.fam, p_with: w, p_without: wo, p_cat: CM.cat, p_item: CM.item, p_limit: limit || 300 });
+  return cmArgs({ p_fam: cmLead(), p_with: CM.fams.slice(1), p_without: Object.keys(CM.tri), p_cat: CM.cats.length ? CM.cats.join('|') : null, p_item: CM.item, p_limit: limit || 300 });
 }
+// "colour", "colour and nails", "colour, nails and beauty"
+// Phorest writes its categories in capitals; shown in words, matched by the raw name (data-c).
+const cmTitle = t => String(t || '').toLowerCase().replace(/(^|[\s\-(\/])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\s(And|Of|The)\s/g, x => x.toLowerCase());
+const cmJoin = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
 // One ask per distinct question, kept ten minutes (a changed pill asks again, a changed-back one does not).
 function cmCall(name, args) {
   const key = name + JSON.stringify(args || {});
@@ -108,24 +101,29 @@ const cmForget = () => Object.keys(cmCache).forEach(k => delete cmCache[k]);
 // ── CONTROLS ────────────────────────────────────────────────────────────────
 function cmSet(k, v) {
   CM[k] = v;
-  if (k === 'pfrom' && CM.pto && CM.pto < v) CM.pto = v;
-  if (k === 'pto' && CM.pfrom && CM.pfrom > v) CM.pfrom = v;
-  if (k === 'branch' || k === 'period' || k === 'month' || k === 'year' || k === 'pfrom' || k === 'pto') { CM.item = null; cmShowN = 25; }
   cmSave();
   if (k === 'mode') { cmPaintCards(); cmPaintDetail(); return; }
   renderClientMix();
 }
+// A card toggles. The first one picked leads; the rest are "also had". The last one left cannot be switched off.
 function cmPickFam(k) {
   if (k === 'unmapped') { cmTab('roster'); return; }
-  CM.fam = k; CM.cat = null; CM.item = null; CM.tri = {}; cmShowN = 25; cmItemsAll = false; cmSave();
+  const i = CM.fams.indexOf(k);
+  if (i >= 0) { if (CM.fams.length < 2) return; CM.fams.splice(i, 1); }
+  else { CM.fams.push(k); delete CM.tri[k]; }
+  CM.cats = []; CM.item = null; cmShowN = 25; cmItemsAll = false; cmSave();
   cmPaintCards(); cmLoadDetail();
 }
+// A chip under the cards leaves out the clients who had that family.
 function cmTri(k) {
-  const t = CM.tri[k];
-  if (!t) CM.tri[k] = 'with'; else if (t === 'with') CM.tri[k] = 'without'; else delete CM.tri[k];
+  if (CM.tri[k]) delete CM.tri[k]; else CM.tri[k] = 'without';
   CM.item = null; cmShowN = 25; cmPaintNarrow(); cmLoadDetail();
 }
-function cmPickCat(c) { CM.cat = c || null; CM.item = null; cmShowN = 25; cmItemsAll = false; cmLoadDetail(); }
+// Categories toggle: none picked is All, several picked are added together.
+function cmPickCat(c) {
+  if (!c) CM.cats = [];
+  else { const i = CM.cats.indexOf(c); if (i >= 0) CM.cats.splice(i, 1); else CM.cats.push(c); }
+  CM.item = null; cmShowN = 25; cmItemsAll = false; cmLoadDetail(); }
 function cmPickItem(i) {
   const it = cmDetail && cmDetail.items[i];
   if (!it) return;
@@ -144,16 +142,10 @@ function cmTab(t) {
 function cmShell() {
   const seg = (key, opts) => `<div class="sc-seg" role="group">${opts.map(([k, l]) =>
     `<button type="button" class="${String(CM[key]) === String(k) ? 'on' : ''}" onclick="cmSet('${key}','${k}')">${l}</button>`).join('')}</div>`;
-  let sub = '';
-  if (CM.period === 'year') sub += `<div class="lc-cust"><span>Year</span><select aria-label="Year" onchange="cmSet('year', this.value)">${cmYears().map(y =>
-    `<option value="${y}"${cmRange()[0].slice(0, 4) === y ? ' selected' : ''}>${y}</option>`).join('')}</select></div>`;
-  if (CM.period === 'month') sub += `<div class="lc-cust"><span>Month</span><select aria-label="Month" onchange="cmSet('month', this.value)">${cmMonths().map(m =>
-    `<option value="${m}"${cmRange()[0].slice(0, 7) === m ? ' selected' : ''}>${cmMonthLabel(m)}</option>`).join('')}</select></div>`;
-  if (CM.period === 'custom') { const [a, b] = cmRange(); sub += `<div class="lc-cust"><span>From</span><input type="date" style="width:auto" value="${a}" min="${CM_FIRST}" max="${cmToday()}" aria-label="From date" onchange="cmSet('pfrom', this.value)"><span>to</span><input type="date" style="width:auto" value="${b}" min="${CM_FIRST}" max="${cmToday()}" aria-label="To date" onchange="cmSet('pto', this.value)"></div>`; }
   return `
     <section class="slv-intro">
       <h2>Client Mix</h2>
-      <p>How many different clients had colour, hair treatments, nails or beauty, or bought retail, and how many units that came to. Click a card, then see exactly who they were.</p>
+      <p>How many different clients had colour, hair treatments, nails or beauty, or bought retail, and how many units that came to. Click a card, then see exactly who they were. Click more than one card to see the clients who had all of them.</p>
     </section>
     <div class="cm-tabs" role="tablist">
       <button type="button" class="cm-tab${CM.tab === 'mix' ? ' on' : ''}" data-t="mix" onclick="cmTab('mix')">Client Mix</button>
@@ -161,14 +153,14 @@ function cmShell() {
     </div>
     <div id="cmPageMix"${CM.tab === 'mix' ? '' : ' style="display:none"'}>
       <div class="sc-bar w13-bar lc-bar tc-bar cm-bar">
-        <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(cmRange()).map(k => [k, k])))}</div>
-        <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', CM_PERIODS)}</div>
-        <div class="lc-grp"><div class="slv-eyebrow">Show</div>${seg('mode', [['clients', 'Clients'], ['units', 'Units']])}</div>
+        <div class="lc-grp"><div class="slv-eyebrow">Show</div>${seg('mode', [['clients', 'Clients'], ['visits', 'Visits'], ['units', 'Units']])}</div>
       </div>
-      ${sub}
+      <p class="cm-def"><b>Clients</b> are different people, each counted once however often she came. <b>Visits</b> are days she came in (one day at one branch is one visit). <b>Units</b> are what was rung up: every service or add-on on the till is a unit, so one manicure with a gel polish add-on is two units.</p>
       <div class="cm-cards" id="cmCards"><p class="slv-muted">Counting clients…</p></div>
-      <div class="cm-narrow" id="cmNarrow"></div>
-      <div class="cm-pcats" id="cmPcats"></div>
+      <section class="slv-card cm-refine">
+        <div class="cm-narrow" id="cmNarrow"></div>
+        <div class="cm-pcats" id="cmPcats"></div>
+      </section>
       <p class="cm-summary" id="cmSummary"></p>
       <div class="cm-two">
         <section class="slv-card"><div class="slv-eyebrow" id="cmItemsTitle"></div><div id="cmItems"></div></section>
@@ -176,7 +168,7 @@ function cmShell() {
           <button type="button" class="cm-pill" id="cmCopy" onclick="cmCopy()">Copy list for Sheets</button></div>
           <div id="cmList"></div></section>
       </div>
-      <p class="slv-muted cm-foot">From Phorest's Sales Transactions, whose data starts in May 2021 at Saadiyat and Khalifa City A, December 2022 at Motor City and September 2023 at Al Quoz; this page reads from August 2021 on. Each sale is sorted by Phorest's own service categories (see the Service roster tab). A client is counted once per family however many times she came. Units are sales lines; the second half of a keratin counts as the same treatment. Deposits, vouchers, refunds, prepaid courses and walk-ins are left out.</p>
+      <p class="slv-muted cm-foot">From Phorest's Sales Transactions, whose data starts in May 2021 at Saadiyat and Khalifa City A, December 2022 at Motor City and September 2023 at Al Quoz; this page reads from August 2021 on. Each sale is sorted by Phorest's own service categories (see the Service roster tab). A client is counted once per family however many times she came. A unit is one sales line (a service or an add-on); the second half of a keratin counts as the same treatment. Deposits, vouchers, refunds, prepaid courses and walk-ins are left out.</p>
     </div>
     <div id="cmPageRoster"${CM.tab === 'roster' ? '' : ' style="display:none"'}><p class="slv-muted" style="margin-top:16px">Loading the roster…</p></div>`;
 }
@@ -185,7 +177,9 @@ function cmShell() {
 async function renderClientMix() {
   const el = document.getElementById('clientMixContent');
   if (!el) return;
-  if (CM.branch !== 'all' && !lcBranchKeys(cmRange()).includes(CM.branch)) { CM.branch = 'all'; cmSave(); }   // a closed branch goes when the window no longer touches its open days
+  try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) {}
+  const wk = cmBranchArg() + '|' + cmRange().join();   // the header's Branch or Period moved: the picked item and category belonged to the old window
+  if (wk !== cmWinKey) { cmWinKey = wk; CM.item = null; CM.cats = []; cmShowN = 25; cmItemsAll = false; }
   if (Date.now() - cmStamp > 600000) { cmForget(); cmStamp = Date.now(); cmRoster = null; }
   lcDetailCtx = { branch: () => cmBranchArg(), html: d => lcDetailHtml(d, { allBranches: CM.branch === 'all' && ((d && d.branches) || []).length > 1 }) };
   el.innerHTML = cmShell();
@@ -194,11 +188,14 @@ async function renderClientMix() {
   if (CM.tab === 'roster') cmLoadRoster();
 }
 function cmEnsureFam() {
-  const have = (cmCards.fams || []).filter(f => f.family !== 'skip');
-  if (!have.some(f => f.family === CM.fam) && have.length) {
+  const have = (cmCards.fams || []).filter(f => f.family !== 'skip' && f.clients > 0);
+  const keep = CM.fams.filter(k => have.some(h => h.family === k));   // a family nobody had in this window drops out of the picks
+  if (keep.length !== CM.fams.length || !keep.length) {
     const first = CM_FAMS.find(f => f.k !== 'unmapped' && have.some(h => h.family === f.k));
-    if (first) CM.fam = first.k;
+    CM.fams = keep.length ? keep : (first ? [first.k] : CM.fams);
+    CM.cats = []; CM.item = null;
   }
+  Object.keys(CM.tri).forEach(k => { if (CM.fams.includes(k) || !have.some(h => h.family === k)) delete CM.tri[k]; });
 }
 async function cmLoadCards() {
   const seq = ++cmSeqC;
@@ -236,56 +233,59 @@ function cmPaintCards() {
   const by = {}; (cmCards.fams || []).forEach(f => { by[f.family] = f; });
   const fams = CM_FAMS.filter(f => (by[f.k] && by[f.k].clients > 0) && (f.k !== 'unmapped' || true));
   if (!fams.length) { box.innerHTML = '<p class="slv-muted">No sales in this period.</p>'; return; }
-  const units = CM.mode === 'units';
+  const m = CM.mode === 'units' ? 'units' : CM.mode === 'visits' ? 'visits' : 'clients';
+  const one = { clients: 'client', visits: 'visit', units: 'unit' };
+  const cnt = (d, k) => `${lcNum(d[k])} ${d[k] === 1 ? one[k] : k}`;
   box.innerHTML = fams.map(f => {
     const d = by[f.k];
-    const big = units ? d.units : d.clients, other = units ? `${lcNum(d.clients)} clients` : `${lcNum(d.units)} units`;
-    const sub = f.k === 'unmapped' ? 'needs a family in the roster' : `${other} · ${total ? Math.round(100 * d.clients / total) : 0}% of clients in this view`;
-    return `<button type="button" class="cm-cat${f.k === 'unmapped' ? ' un' : ''}${CM.fam === f.k ? ' on' : ''}" style="--c:${f.color}" onclick="cmPickFam('${f.k}')">
-      <div class="cm-nm">${f.name}</div><div class="cm-n">${lcNum(big)}</div><div class="cm-k">${sub}</div></button>`;
+    const others = ['clients', 'visits', 'units'].filter(k => k !== m).map(k => cnt(d, k)).join(' · ');
+    const sub = f.k === 'unmapped' ? 'needs a family in the roster' : `${others}<br>${total ? Math.round(100 * d.clients / total) : 0}% of all clients`;
+    return `<button type="button" class="cm-cat${f.k === 'unmapped' ? ' un' : ''}${CM.fams.includes(f.k) ? ' on' : ''}" aria-pressed="${CM.fams.includes(f.k)}" style="--c:${f.color}" onclick="cmPickFam('${f.k}')">
+      <div class="cm-nm">${f.name}</div><div class="cm-n">${lcNum(d[m])}</div><div class="cm-u">${m}</div><div class="cm-k">${sub}</div></button>`;
   }).join('');
   cmPaintNarrow();
 }
 function cmPaintNarrow() {
   const box = document.getElementById('cmNarrow');
   if (!box || !cmCards) return;
-  const others = CM_FAMS.filter(f => f.k !== CM.fam && f.k !== 'unmapped' && (cmCards.fams || []).some(x => x.family === f.k && x.clients > 0));
-  box.innerHTML = `<span class="slv-eyebrow">Narrow it down</span><div class="cm-row">` + others.map(f => {
+  const others = CM_FAMS.filter(f => !CM.fams.includes(f.k) && f.k !== 'unmapped' && (cmCards.fams || []).some(x => x.family === f.k && x.clients > 0));
+  box.innerHTML = `<span class="slv-eyebrow">Leave out</span><div class="cm-row">` + others.map(f => {
     const t = CM.tri[f.k] || '';
-    const label = t === 'with' ? 'Also had ' + f.name : t === 'without' ? 'No ' + f.name : f.name;
-    return `<button type="button" class="cm-chip ${t}" onclick="cmTri('${f.k}')">${lcEsc(label)}</button>`;
-  }).join('') + `</div><span class="slv-note">once = also had, twice = did not have</span>`;
+    return `<button type="button" class="cm-chip ${t}" aria-pressed="${!!t}" onclick="cmTri('${f.k}')">${lcEsc(t ? 'No ' + f.name : f.name)}</button>`;
+  }).join('') + `</div><span class="slv-note">click a family to leave out the clients who had it</span>`;
 }
 function cmPaintDetail() {
   cmShowBusy();
   const d = cmDetail;
   const sum = document.getElementById('cmSummary');
   if (!d || !sum) return;
-  const f = cmFam(CM.fam);
+  const f = cmFam(cmLead());
   // Phorest category pills (counts are for the family as narrowed, not for the pill picked).
   const pc = document.getElementById('cmPcats');
   if (pc) {
     const cats = (d.cats || []).slice().sort((a, b) => b.clients - a.clients);
-    pc.innerHTML = `<span class="slv-eyebrow">Phorest category</span><div class="sc-seg cm-seg" role="group">` +
-      `<button type="button" class="${CM.cat ? '' : 'on'}" onclick="cmPickCat('')">All</button>` +
-      cats.map(c => `<button type="button" class="${CM.cat === c.category ? 'on' : ''}" data-c="${lcEsc(c.category)}" onclick="cmPickCat(this.dataset.c)">${lcEsc(c.category)} <em>${lcNum(c.clients)}</em></button>`).join('') + `</div>`;
+    pc.innerHTML = `<span class="slv-eyebrow">Phorest category</span><div class="cm-row" role="group">` +
+      `<button type="button" class="cm-chip${CM.cats.length ? '' : ' on'}" aria-pressed="${!CM.cats.length}" onclick="cmPickCat('')">All</button>` +
+      cats.map(c => { const on = CM.cats.includes(c.category); return `<button type="button" class="cm-chip${on ? ' on' : ''}" aria-pressed="${on}" data-c="${lcEsc(c.category)}" onclick="cmPickCat(this.dataset.c)">${lcEsc(cmTitle(c.category))} <em>${lcNum(c.clients)}</em></button>`; }).join('') +
+      `</div><span class="slv-note">pick one or more; the number is the clients in that category</span>`;
   }
-  const narrowTxt = Object.keys(CM.tri).map(k => (CM.tri[k] === 'with' ? 'also had ' : 'no ') + cmFam(k).name.toLowerCase()).join(', ');
-  sum.innerHTML = `<b>${lcNum(d.clients)} client${Number(d.clients) === 1 ? '' : 's'}</b> had ${lcEsc(f.name.toLowerCase())}${CM.cat ? ' (' + lcEsc(CM.cat) + ')' : ''}${narrowTxt ? ' and ' + lcEsc(narrowTxt) : ''}, for <b>${lcNum(d.units)} unit${Number(d.units) === 1 ? '' : 's'}</b>. ${lcEsc(cmBranchTxt())}, ${lcEsc(cmPeriodTxt())}.`;
+  const narrowTxt = Object.keys(CM.tri).map(k => 'no ' + cmFam(k).name.toLowerCase()).join(', ');
+  const picked = cmJoin(CM.fams.map((k, i) => cmFam(k).name.toLowerCase() + (i === 0 && CM.cats.length ? ' (' + CM.cats.map(cmTitle).join(' + ') + ')' : '')));
+  sum.innerHTML = `<b>${lcNum(d.clients)} client${Number(d.clients) === 1 ? '' : 's'}</b> had ${lcEsc(picked)}${narrowTxt ? ', with ' + lcEsc(narrowTxt) : ''}, for <b>${lcNum(d.units)} ${lcEsc(f.name.toLowerCase())} unit${Number(d.units) === 1 ? '' : 's'}</b>. ${lcEsc(cmBranchTxt())}, ${lcEsc(cmPeriodTxt())}.`;
   cmPaintItems();
   cmPaintList();
 }
 function cmPaintItems() {
   const d = cmDetail, box = document.getElementById('cmItems');
   if (!d || !box) return;
-  document.getElementById('cmItemsTitle').textContent = cmFam(CM.fam).name + ', by item';
-  const key = CM.mode === 'units' ? 'units' : 'clients';
+  document.getElementById('cmItemsTitle').textContent = cmFam(cmLead()).name + ', by item';
+  const key = CM.mode === 'units' ? 'units' : 'clients';   // the items table has no visits column, so Visits shows clients
   const items = (d.items || []).map((x, i) => Object.assign({ _i: i }, x)).sort((a, b) => b[key] - a[key] || b.clients - a.clients);
   const mx = Math.max(1, ...items.map(x => x[key]));
-  const color = cmFam(CM.fam).color;
+  const color = cmFam(cmLead()).color;
   const shownItems = (cmItemsAll || !window.matchMedia('(max-width:760px)').matches) ? items : items.slice(0, 8);
   box.innerHTML = items.length ? `<div class="slv-wrap"><table class="slv-table cm-items"><thead><tr><th class="lc-l">Item</th><th>Clients</th><th>Units</th></tr></thead><tbody>${shownItems.map(x =>
-    `<tr class="cm-item${CM.item === x.stem ? ' sel' : ''}" onclick="cmPickItem(${x._i})"><td class="lc-l"><span class="tc-name">${lcEsc(x.stem)}</span><div class="cm-cell-cat">${lcEsc(x.category)}</div><div class="cm-bar1" style="--c:${color}"><i style="width:${Math.round(100 * x[key] / mx)}%"></i></div></td><td>${lcNum(x.clients)}</td><td>${lcNum(x.units)}</td></tr>`).join('')}</tbody></table></div>
+    `<tr class="cm-item${CM.item === x.stem ? ' sel' : ''}" onclick="cmPickItem(${x._i})"><td class="lc-l"><span class="tc-name">${lcEsc(x.stem)}</span><div class="cm-cell-cat">${lcEsc(cmTitle(x.category))}</div><div class="cm-bar1" style="--c:${color}"><i style="width:${Math.round(100 * x[key] / mx)}%"></i></div></td><td>${lcNum(x.clients)}</td><td>${lcNum(x.units)}</td></tr>`).join('')}</tbody></table></div>
     <p class="slv-note" style="margin-top:8px">Click an item to list only the clients who had it.${(d.items || []).length >= 80 ? ' Showing the 80 most common.' : ''}</p>${shownItems.length < items.length ? `<p style="margin:8px 0 0"><button type="button" class="cm-pill" onclick="cmAllItems()">Show all ${items.length} items</button></p>` : ''}`
     : '<p class="slv-muted">Nothing here for these filters.</p>';
 }
@@ -309,10 +309,10 @@ function cmPaintList() {
       ${open ? '<div class="lc-hint-m">Tap for her visits ›</div>' : ''}</div></li>`).join('');
   const more = rows.length > shown.length ? `<p style="margin:10px 0 0"><button type="button" class="cm-pill" onclick="cmMore()">Show ${Math.min(25, rows.length - shown.length)} more</button> <span class="slv-note">${lcNum(shown.length)} of ${lcNum(matched)}${matched > rows.length ? ' (the top ' + lcNum(rows.length) + ' are loaded)' : ''}</span></p>` : '';
   const empty = 'No one matches those filters. Try a wider period, or clear a filter.';
-  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap tc-wrap"><table class="slv-table"><thead><tr><th class="lc-l">Client</th><th class="lc-l">Bought</th><th>${CM.item || CM.cat ? 'Units here' : 'Units'}</th></tr></thead>
+  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap tc-wrap"><table class="slv-table"><thead><tr><th class="lc-l">Client</th><th class="lc-l">Bought</th><th>${CM.item || CM.cats.length ? 'Units here' : 'Units'}</th></tr></thead>
       <tbody>${tr || `<tr><td colspan="3" class="slv-muted">${empty}</td></tr>`}</tbody></table></div>
     <ol class="prd-cards">${cards || `<li class="slv-muted">${empty}</li>`}</ol>${more}
-    <p class="slv-note" style="margin-top:8px">Sorted by units in ${lcEsc(cmFam(CM.fam).name.toLowerCase())}${CM.cat ? ', ' + lcEsc(CM.cat) : ''}. Tags are what she bought in this period, her ${lcEsc(cmFam(CM.fam).name.toLowerCase())} first.</p>`;
+    <p class="slv-note" style="margin-top:8px">Sorted by units in ${lcEsc(cmFam(cmLead()).name.toLowerCase())}${CM.cats.length ? ', ' + lcEsc(CM.cats.map(cmTitle).join(' + ')) : ''}${CM.fams.length > 1 ? ' (the first card you picked)' : ''}. Tags are what she bought in this period, her ${lcEsc(cmFam(cmLead()).name.toLowerCase())} first.</p>`;
 }
 
 // Copy for Sheets: asks again for everyone, not just the 300 on screen.

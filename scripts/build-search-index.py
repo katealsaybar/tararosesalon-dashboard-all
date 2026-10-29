@@ -108,7 +108,7 @@ PAGE_ANCHORS = {
     'stafflevels': ['At this level'],
     'attrition': ['How long they stayed'],
     'clients': ['Not back in 60+ days'],
-    'clientmix': ['Narrow it down'],
+    'clientmix': ['Leave out'],
     'clientbook': ['Name, phone number or email'],
     'complaints': ['The complaints'],
     'lostclients': ['Regulars (3+ visits)', 'Days away'],
