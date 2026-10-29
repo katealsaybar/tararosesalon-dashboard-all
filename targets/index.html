@@ -707,22 +707,20 @@ function syncUrl(){
   lastQs=qs;
   try{history.replaceState(null,'',location.pathname+qs+location.hash);}catch(e){}
 }
-let selNow=[];
 function render(){
   const rows=build();
   renderEdits();
   const sel=rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team));
-  selNow=sel;
   howExample(rows);
   renderTiles(sel,rows);
   if(st.view==='PERSON')renderPerson(sel);else renderBranch(rows);
   /* the branch and team row must be shown or hidden before stickFit() measures the bar, or the header sticks one row too low (Kate, 27 Oct 2026) */
   /* Kate, 27 Oct 2026: the Branch and Team chips stay in By branch too, the tiles above follow them (the branch table itself always lists every branch) */
   document.getElementById('rowFilters').style.display='';
-  /* Kate, 29 Oct 2026: the Adjustment % box for everyone shown stays in By branch too, for the people the Branch and Team chips pick, so 2.5 for all is one entry. */
+  /* Kate, 29 Oct 2026: the Adjustment % box stays in By branch too. The table always lists every branch and both teams, so the box covers everyone in it and 2.5 for all is one entry. */
   document.getElementById('sfTools').hidden=false;
   document.getElementById('sfOpen').style.display=st.view==='BRANCH'?'none':'';
-  if(st.view==='BRANCH'){document.getElementById('sfNote').innerHTML='';document.getElementById('sfN').textContent=sel.filter(r=>r.med!=null&&!r.cover).length;}
+  if(st.view==='BRANCH'){document.getElementById('sfNote').innerHTML='';document.getElementById('sfN').textContent=rows.filter(r=>r.med!=null&&!r.cover).length;}
   document.querySelector('.tw').classList.toggle('sheet',st.view==='BRANCH');
   if(barEl.classList.contains('closed'))document.getElementById('barSum').textContent=barSum();
   stickFit();
@@ -989,7 +987,7 @@ document.getElementById('sfTools').addEventListener('click',e=>{
   if(e.target.id==='buApply'||e.target.id==='buZero'){
     const v=e.target.id==='buZero'?0:parseFloat(document.getElementById('buAll').value);
     if(isNaN(v))return;
-    bulkBu(Math.max(-50,Math.min(100,v)),st.view==='BRANCH'?selNow:undefined);
+    bulkBu(Math.max(-50,Math.min(100,v)),st.view==='BRANCH'?lastBranchRows:undefined);
   }
 });
 async function bulkBu(v,rowsIn){
