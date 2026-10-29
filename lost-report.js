@@ -333,29 +333,40 @@ function lrDepSet(v) {
   if (el) el.innerHTML = lrDepInner();
 }
 // Money from the bookings (Kate, 22 Oct 2026): what the blast cost, what the clients who booked are worth, and what the clients we messaged have really spent
-// since. Visual by default, Table beside it. Projected = --accent, actual = --good (the page's own, like the deposit bars). All AED, VAT included.
+// since. Graph by default (cards until 29 Oct 2026), Table beside it. Projected = --accent, actual = --good (the page's own, like the deposit bars). All AED, VAT included.
 // lost_campaign_money explains each number; the notes under the section say the same in plain words.
 const LR_SPLIT = [['hair_services', 'Hair services', 'colour, cut and extensions'], ['hair_treat', 'Hair treatments', 'treatments'], ['beauty_services', 'Beauty services', 'beauty and nails'], ['retail_hair', 'Hair retail', 'shampoo, treatments, styling and tools'], ['retail_beauty', 'Beauty retail', 'skincare, lashes and nails'], ['retail', 'Retail', 'products, hair and beauty together'], ['other', 'Other', 'consultations and anything not sorted yet']];
 // Retail is two lines (Hair retail, Beauty retail) once lost_campaign_money gives retail_hair; before that it is the one Retail line.
 const lrSplitRows = a => LR_SPLIT.filter(([k]) => k === 'other' ? a.other : k === 'retail' ? a.retail_hair == null : (k === 'retail_hair' || k === 'retail_beauty') ? a.retail_hair != null : true);
+// Graph view (Kate, 29 Oct 2026, mockup approved): bars instead of cards. Spent, projected and actual on ONE scale; branches side by side (projected
+// above actual); what they bought as a share bar plus a bar a line. Every bar keeps the tap/hover tip lrSegI gives.
+const LR_GCOL = { hair_services: 'lr-c0', hair_treat: 'lr-c1', beauty_services: 'lr-c2', retail_hair: 'lr-c3', retail_beauty: 'lr-c4', retail: 'lr-c3', other: 'lr-c4' };
+function lrGLine(cls, label, v, max) {
+  return `<div class="lr-gline"><div class="lr-gtrack">${v > 0 ? lrSegI(cls, label, v, 0, Math.max(1, 100 * v / max), lrAed) : ''}</div><b>${lrAed(v)}</b></div>`;
+}
+const lrGRow = (label, sub, lines) => `<div class="lr-grow"><div class="lr-glab">${label}${sub ? `<small>${sub}</small>` : ''}</div><div class="lr-glines">${lines}</div></div>`;
 function lrMoneyVisual(m) {
-  const b = m.booked, a = m.actual, by = m.by_branch || [];
-  const maxP = Math.max(1, ...by.map(x => x.proj)), maxA = Math.max(1, ...by.map(x => x.actual));
-  const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${n}</div><div class="ll-d">${ds}</div></div>`;
+  const b = m.booked, a = m.actual, by = (m.by_branch || []).slice().sort((x, y) => y.actual - x.actual), spent = m.cost.aed;
+  const mx = Math.max(1, b.proj, a.total, spent), bmx = Math.max(1, ...by.map(x => Math.max(x.proj, x.actual)));
+  const split = lrSplitRows(a);
+  const ratio = spent > 0 && a.total > 0 ? a.total / spent : 0;
   const key = '<div class="lr-dkey"><span><i class="d-unpaid"></i>Projected (booked from today on)</span><span><i class="d-paid"></i>Actual (spent since our message)</span></div>';
-  const brow = (x, k, max, cls) => `<div class="lr-drow lr-drow2"><span>${lcEsc(LC_BRANCH[x.k] || x.k)}</span><span class="lr-dbar" style="width:${Math.max(4, 100 * x[k] / max)}%">${lrSegI(cls, k === 'proj' ? 'Projected' : 'Actual', x[k], 0, 100, lrAed)}</span><b>${lrAed(x[k])}</b></div>`;
-  return `<div class="ll-cards lr-cards">
-      ${card(lrAed(b.proj), 'Projected spend', `${lcNum(b.clients)} clients booked, ${lcNum(b.appts)} appointments from today on`)}
-      ${card(lrAed(b.clients ? b.proj / b.clients : 0), 'Average projected per client', `${lrAed(b.appts ? b.proj / b.appts : 0)} per appointment`)}
-      ${card(lrAed(a.total), 'Actual spend so far', `${lcNum(a.visited)} of the ${lcNum(a.messaged)} we messaged have paid for something since`)}
+  return `<div class="lr-dcard lr-gpanel"><h4>What we spent, and what it is worth</h4>
+      <p class="slv-note">All on one scale. AED, VAT included.</p>
+      ${lrGRow('Spent on messages', `${lcNum(m.cost.sent)} sent at AED ${(+m.rate).toFixed(2)} (estimate)`, lrGLine('d-spent', 'Spent on messages (estimate)', spent, mx))}
+      ${lrGRow('Projected', `${lcNum(b.clients)} clients booked, ${lcNum(b.appts)} appointments from today on`, lrGLine('d-unpaid', 'Projected spend', b.proj, mx))}
+      ${lrGRow('Actual so far', `${lcNum(a.visited)} of the ${lcNum(a.messaged)} we messaged have paid`, lrGLine('d-paid', 'Actual spend so far', a.total, mx))}
+      <p class="lr-gcall">${ratio ? `For every <b>AED 1</b> the messages cost, the clients we messaged have spent <b>AED ${lcNum(Math.round(ratio))}</b> since. ` : ''}Average projected per client <b>${lrAed(b.clients ? b.proj / b.clients : 0)}</b> (${lrAed(b.appts ? b.proj / b.appts : 0)} per appointment).<span class="lr-gnote">Some of them may have come in anyway, so read it as a ceiling, not proof the message did it.</span></p>
     </div>
-    <h4 class="lr-dh">Actual spend, by what they bought</h4>
-    <div class="ll-cards lr-cards">
-      ${lrSplitRows(a).map(([k, l, d]) => card(lrAed(a[k]), l, `${a.total ? lrPct(a[k], a.total) + ' of the actual, ' : ''}${d}`)).join('')}
+    <div class="lr-dcard lr-gpanel"><h4>By branch: projected and actual</h4>
+      <p class="slv-note">Biggest actual first.</p>
+      ${by.map(x => lrGRow(lcEsc(LC_BRANCH[x.k] || x.k), `${lcNum(x.booked)} booked, ${lcNum(x.visited)} came in`, lrGLine('d-unpaid', 'Projected', x.proj, bmx) + lrGLine('d-paid', 'Actual', x.actual, bmx))).join('') || '<p class="slv-muted">Nobody yet.</p>'}
+      ${key}
     </div>
-    <div class="lr-dgrid">
-      <div class="lr-dcard"><h4>Projected spend by branch</h4>${by.filter(x => x.booked).map(x => brow(x, 'proj', maxP, 'd-unpaid')).join('') || '<p class="slv-muted">Nobody yet.</p>'}</div>
-      <div class="lr-dcard"><h4>Actual spend by branch</h4>${by.filter(x => x.visited).map(x => brow(x, 'actual', maxA, 'd-paid')).join('') || '<p class="slv-muted">Nobody yet.</p>'}${key}</div>
+    <div class="lr-dcard lr-gpanel"><h4>Actual spend, by what they bought</h4>
+      <p class="slv-note">${lrAed(a.total)} in all.</p>
+      <div class="lr-gstack">${split.filter(([k]) => a[k] > 0).map(([k, l]) => lrSegI(LR_GCOL[k] || 'lr-c4', l, a[k], a.total, 100 * a[k] / Math.max(1, a.total), lrAed)).join('')}</div>
+      ${split.map(([k, l, d]) => lrGRow(l, d, `<div class="lr-gline"><div class="lr-gtrack">${a[k] > 0 ? lrSegI(LR_GCOL[k] || 'lr-c4', l, a[k], a.total, Math.max(1, 100 * a[k] / Math.max(1, a.total)), lrAed) : ''}</div><b>${lrAed(a[k])}<em>${a.total ? lrPct(a[k], a.total) : ''}</em></b></div>`)).join('')}
     </div>`;
 }
 function lrMoneyTable(m) {
@@ -374,7 +385,7 @@ function lrMoneyInner() {
   if (!m) return '';
   const tbl = lrMoneyView === 'table', b = m.booked, unp = b.unpriced || 0;
   return `<div class="lr-dhd"><h3>Money from the bookings</h3>
-      <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrMoneySet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrMoneySet('table')">Table</button></div></div>
+      <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrMoneySet('visual')">Graph</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrMoneySet('table')">Table</button></div></div>
     ${tbl ? lrMoneyTable(m) : lrMoneyVisual(m)}
     ${lrRecInner()}
     <p class="slv-note">What the bookings are worth, and what the messages cost.</p>
