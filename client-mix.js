@@ -102,7 +102,10 @@ const cmForget = () => Object.keys(cmCache).forEach(k => delete cmCache[k]);
 function cmSet(k, v) {
   CM[k] = v;
   cmSave();
-  if (k === 'mode') { cmPaintCards(); cmPaintDetail(); return; }
+  if (k === 'mode') {
+    document.querySelectorAll('.cm-bar .sc-seg button').forEach(b => { const on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });   // the highlight follows the click
+    cmPaintCards(); cmPaintDetail(); return;
+  }
   renderClientMix();
 }
 // A card toggles. The first one picked leads; the rest are "also had". The last one left cannot be switched off.
@@ -141,7 +144,7 @@ function cmTab(t) {
 
 function cmShell() {
   const seg = (key, opts) => `<div class="sc-seg" role="group">${opts.map(([k, l]) =>
-    `<button type="button" class="${String(CM[key]) === String(k) ? 'on' : ''}" onclick="cmSet('${key}','${k}')">${l}</button>`).join('')}</div>`;
+    `<button type="button" class="${String(CM[key]) === String(k) ? 'on' : ''}" data-v="${k}" aria-pressed="${String(CM[key]) === String(k)}" onclick="cmSet('${key}','${k}')">${l}</button>`).join('')}</div>`;
   return `
     <section class="slv-intro">
       <h2>Client Mix</h2>
