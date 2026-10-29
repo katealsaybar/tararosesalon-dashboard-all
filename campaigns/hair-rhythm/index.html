@@ -257,6 +257,14 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .gcard__more summary:hover{text-decoration:underline;text-underline-offset:3px}
 .gcard__more summary:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
 .gcard__more .gcard__list{border-top:1px solid var(--hair)}
+/* all three price lists open: cards share one height and the bullet boxes sit on the same bottom line */
+@media (min-width:900px){
+.plangrid:not(:has(.gcard__more:not([open]))),#plans .plangrid:not(:has(.gcard__more:not([open]))){align-items:stretch}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more::details-content{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more .gcard__list{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__course{margin-top:auto}
+}
 .gcard__unit{margin:8px 0 0;font-family:var(--fb);font-size:11.5px;color:var(--ink-soft)}
 .sec-menu .short-note{margin-top:26px}
 
@@ -811,14 +819,14 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
     </div>
 
     <fieldset class="bk-f" id="bkMoreF" hidden>
-      <legend class="bk-l">Would you like more than one treatment?</legend>
-      <p class="bk-help">Optional. Add up to four more, for five treatments in all in one session.</p>
+      <legend class="bk-l">Which treatments?</legend>
+      <p class="bk-help">Tick one, or tick more to have them in the same visit.</p>
       <div class="bk-copts" id="bkMore"></div>
     </fieldset>
 
     <fieldset class="bk-f" id="bkCourseF" hidden>
       <legend class="bk-l">Would you like a single visit or a course?</legend>
-      <p class="bk-help">A course is paid once, with the same stylist tracking your result: three sessions valid 3 months, or five sessions valid 6 months.</p>
+      <ul class="bk-bul"><li>3 sessions: valid 3 months</li><li>5 sessions: valid 6 months</li><li>Paid once, same stylist tracks your result</li></ul>
       <div class="bk-copts"><label class="bk-r is-on"><input type="radio" name="bkCourse" value="0" checked><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>A single visit</b><small>Pay per visit</small></span></label><label class="bk-r"><input type="radio" name="bkCourse" value="1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>A course of three</b><small>Three sessions, valid 3 months</small></span></label><label class="bk-r"><input type="radio" name="bkCourse" value="2"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>A course of five</b><small>Five sessions, valid 6 months</small></span></label></div>
     </fieldset>
 
@@ -991,26 +999,29 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
   var lenF=$('bkLenF'), densF=$('bkDensF'), priceEl=$('bkPrice'), priceNote=$('bkPriceNote'), go=$('bkGo'), miss=$('bkMiss');
   var key='smooth', st={len:null,dens:null,course:0,extra:[]};
   var courseF=$('bkCourseF'), moreF=$('bkMoreF'), moreBox=$('bkMore');
+  /* Treatments: one question, "Which treatments?", ticks from one to all of them. The first tick is the main service the rest of the guide already reads, the other ticks are the extras. */
+  var tMode=function(){ return grp==='svc'&&svcType==='treatment'; };
+  var recIdx=SV.treatment.opts.findIndex(function(o){ return !Array.isArray(o[2]); });
   var buildMore=function(){
-    var c=cur(), show=(key==='treatment')&&Array.isArray(c[2]);
-    moreF.hidden=!show; moreBox.innerHTML=''; if(!show){ st.extra=[]; return; }
-    var sel=Number(String(svcSel.value).split(':')[1])||0;
-    st.extra=st.extra.filter(function(i){ return i!==sel; });
+    var on=tMode(); $('bkSvcF').hidden=on; moreF.hidden=!on; moreBox.innerHTML='';
+    if(!on){ st.extra=[]; return; }
+    var idx0=Number(String(svcSel.value).split(':')[1])||0;
+    var sel=[idx0].concat(st.extra.filter(function(i){ return i!==idx0; }));
+    st.extra=sel.slice(1);
     SV.treatment.opts.forEach(function(o,i){
-      if(i===sel||!Array.isArray(o[2])) return;
-      var lab=document.createElement('label'); lab.className='bk-r bk-x'+(st.extra.indexOf(i)>-1?' is-on':'');
-      lab.innerHTML='<input type="checkbox" value="'+i+'"'+(st.extra.indexOf(i)>-1?' checked':'')+'><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>'+o[0]+'</b></span>';
+      var pr=o[2], ck=sel.indexOf(i)>-1;
+      var lab=document.createElement('label'); lab.className='bk-r bk-x'+(ck?' is-on':'');
+      lab.innerHTML='<input type="checkbox" value="'+i+'"'+(ck?' checked':'')+'><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>'+(o[3]||o[0])+'</b><small>'+o[1]+'</small></span><span class="bk-r__p">'+(Array.isArray(pr)?'from '+aed(pr[0]):'')+'</span>';
       moreBox.appendChild(lab);
     });
-    syncMore();
   };
-  var syncMore=function(){
-    var boxes=[].slice.call(moreBox.querySelectorAll('input'));
-    boxes.forEach(function(b){ b.disabled=(!b.checked&&st.extra.length>=4); b.parentNode.style.opacity=b.disabled?'.5':''; });
-  };
-  moreBox.addEventListener('change',function(){
-    st.extra=[].slice.call(moreBox.querySelectorAll('input:checked')).map(function(b){ return Number(b.value); });
-    mark(); syncMore(); render();
+  moreBox.addEventListener('change',function(e){
+    var t=e.target, boxes=[].slice.call(moreBox.querySelectorAll('input'));
+    if(t.checked){ boxes.forEach(function(b){ if(Number(t.value)===recIdx?b!==t:Number(b.value)===recIdx) b.checked=false; }); }
+    var chosen=boxes.filter(function(b){ return b.checked; }).map(function(b){ return Number(b.value); });
+    if(!chosen.length){ t.checked=true; chosen=[Number(t.value)]; }
+    svcSel.value='treatment:'+chosen[0]; st.extra=chosen.slice(1);
+    mark(); render();
   });
   var aed=function(v){ return 'AED '+v.toLocaleString('en-US'); };
   var grp='svc', svcType='smooth', saved={svc:'smooth:0',blow:'bundle:0'}, savedT={smooth:'smooth:0',colour:'colour:0',treatment:'treatment:0'};
@@ -1347,6 +1358,9 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .bk-f{margin:22px 0 0;padding:0;border:0;min-width:0;transition:background .2s ease}
 .bk-f[hidden]{display:none!important}
 .bk-l{display:block;padding:0;margin:0 0 8px;font-family:var(--fb);font-size:15px;font-weight:500;color:var(--ink)}
+.bk-bul{list-style:none;margin:-2px 0 10px;padding:0;display:grid;gap:4px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-bul li{position:relative;padding-left:14px}
+.bk-bul li::before{content:"";position:absolute;left:2px;top:.6em;width:5px;height:5px;border-radius:50%;background:#1C7563}
 .bk-help{margin:-2px 0 10px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
 .bk-f>.bk-help:last-child{margin:8px 0 0}
 .bk-bs{margin:10px 0 0;padding:12px 14px;border-radius:12px;background:rgba(153,246,228,.2);border:1px solid rgba(28,117,99,.25);font-family:var(--fb);font-size:13.5px;line-height:1.5;color:var(--ink)}
