@@ -243,6 +243,7 @@ table.t th.rel{white-space:nowrap}
 .abb .k{position:absolute;top:-3px;width:2px;height:10px;background:var(--text);opacity:.55}
 .abp{font-size:12.5px;color:var(--muted);text-align:right}
 .abr.hero{border-top:none;padding-top:2px}
+.abr.sub{padding:7px 0;border-top:1px dashed var(--rule)}.abr.sub .abl{padding-left:16px;font-size:12.5px}.abr.sub .abt{font-size:.92em}
 .abr.hero .abl{font-size:14px;font-weight:500;color:var(--text)}
 .abr.hero .aba,.abr.hero .abt{font-size:28px}
 .abr.hero .abv{height:32px}
@@ -713,10 +714,10 @@ function renderTiles(sel,all){
   const sum=(list,k)=>list.reduce((a,b)=>a+(brs[b]?brs[b][k]:0),0);
   const el=A?A.elapsed/A.days:0,upto=A?(+A.upto.slice(8))+' '+MN[+A.upto.slice(5,7)-1]:'';
   /* Kate, 27 Oct 2026: the same card for every month. A month with no actuals yet shows the Target column in full and "not yet" under Actual. */
-  const row=(label,act,tgt,hero,note,tip)=>{
+  const row=(label,act,tgt,hero,note,tip,sub)=>{
     const has=act!=null,pct=has&&tgt?act/tgt*100:null;
     const cls=pct==null?'':pct>=el*100-10?'':pct>=el*100-25?'warn':'bad';
-    return `<div class="abg abr${hero?' hero':''}"><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?fmt(act):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt${tgt==null?' na':''}">${tgt==null?'n/a':fmt(tgt)}</span>`+
+    return `<div class="abg abr${hero?' hero':''}${sub?' sub':''}"><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?fmt(act):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt${tgt==null?' na':''}">${tgt==null?'n/a':fmt(tgt)}</span>`+
       `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
       `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
   };
@@ -724,7 +725,6 @@ function renderTiles(sel,all){
   const svcAct=A&&teamAll?sum(selB,'svc'):null,retAct=A&&teamAll?sum(selB,'ret'):null,visAct=A&&teamAll?sum(selB,'visits'):null;
   const trAct=A&&(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
   const rv=teamAll?(st.branch==='ALL'?BR4:[st.branch]).reduce((a,b)=>a+recvOf(b),0):0,retTgt=t.retail+rv;
-  const retNote=rv?`<div class="abn s">Staff ${fmt(t.retail)} plus reception ${fmt(rv)}, what the front desk sells.</div>`:'';
   const verdict=scoped?'The 1.7M floor and 1.8M aim are for all four branches together, so there is no verdict for this selection.':`Target ${fmt(gTot)}. Break-even floor 1.7M: ${gTot>=BREAK_EVEN[0]?'above by '+fmt(gTot-BREAK_EVEN[0]):'below by '+fmt(BREAK_EVEN[0]-gTot)}. Aim 1.8M: ${gTot>=BREAK_EVEN[1]?'above by '+fmt(gTot-BREAK_EVEN[1]):'below by '+fmt(BREAK_EVEN[1]-gTot)}.`;
   const netNote=`<div class="abn">${pace!=null?`Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). `:''}${verdict}</div>`+
     `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar+rv)}. Without retail ${fmt(nb.plan)}.${nb.plan!==nb.top?` Includes the bottom-up ${sgnA(nb.plan-nb.top)}.`:''}</div>`;
@@ -743,7 +743,9 @@ function renderTiles(sel,all){
     `<div class="abg abh"><span class="abl"></span><span class="a">Actual</span><span></span><span>Target</span><span>${A?'Progress':''}</span><span></span></div>`+
     row('Total net take',netAct,gTot,true,netNote,tipNet)+
     row('Services and treatment',svcAct,t.plan,false,planNote,tipSvc)+
-    row('Retail',retAct,retTgt,false,retNote,tipRet)+
+    row('Retail',retAct,retTgt,false,'',tipRet)+
+    (rv?row('Staff retail',null,t.retail,false,'',`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = <b>${fmt(t.retail)}</b>. Stylists and beauticians only.`,true)+
+        row('Reception retail (BUSINESS TRS)',null,rv,false,'',`<b>Target</b> is what the front desk sells, the retail rung to BUSINESS TRS in Phorest, which belongs to no stylist: the August to October monthly average, kept flat = <b>${fmt(rv)}</b>.`,true):'')+
     row('Treatment (hair)',trAct,st.team==='BEAUTY'?null:trTgt,false,'',tipTr)+
     row('Clients',visAct,t.clients,false,'',tipCl)+
     (A&&!teamAll?`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`:'')+`</div>`;
