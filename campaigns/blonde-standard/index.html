@@ -197,6 +197,13 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .gcard__more summary:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
 .gcard__more .gcard__list{border-top:1px solid var(--hair)}
 .gcard__unit{margin:8px 0 0;font-family:var(--fb);font-size:11.5px;color:var(--ink-soft)}
+/* all three price lists open: cards share one height (desktop only, closed cards keep growing alone) */
+@media (min-width:900px){
+.plangrid:not(:has(.gcard__more:not([open]))),#plans .plangrid:not(:has(.gcard__more:not([open]))){align-items:stretch}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more::details-content{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more .gcard__list{flex:1;display:flex;flex-direction:column}
+}
 .sec-menu .short-note{margin-top:26px}
 
 /* How it works: plain cream. Is this you: warm brown gradient, statements as her own words. */
@@ -1013,7 +1020,7 @@ html.wa-open{overflow:hidden}
             <li><b>Visit 3 &middot; Keep on Track</b><em>Week 8 to 12</em><span>Toner, gloss and bond care</span></li>
           </ul>
 
-          <div class="plancard__price" data-price="plan-soft" aria-live="polite"><span>3 visits, from</span><strong>AED 1,550</strong><small>about AED 515 a visit</small></div>
+          <div class="plancard__price" data-price="plan-soft" aria-live="polite"><span>3 visits, from</span><strong>AED 1,550</strong><small>from AED 515 a visit</small></div>
           <a class="pill pill--accent js-book" href="#book" data-book="Soft Blonde" data-svc="soft">Book now <span class="arr">&rarr;</span></a>
           <details class="gcard__more plan-len">
             <summary>See prices by length</summary>
@@ -1021,7 +1028,7 @@ html.wa-open{overflow:hidden}
               <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
               <ul>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Soft Blonde by length: Short / Fine AED 1,550, Medium AED 1,705, Long / Thick AED 1,960, Extra Long AED 2,565"><span>1,550</span><span>1,705</span><span>1,960</span><span>2,565</span></div></li>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>about</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine about AED 515, Medium about AED 570, Long / Thick about AED 655, Extra Long about AED 855"><span>515</span><span>570</span><span>655</span><span>855</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>from</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine from AED 515, Medium from AED 570, Long / Thick from AED 655, Extra Long from AED 855"><span>515</span><span>570</span><span>655</span><span>855</span></div></li>
               </ul>
               <p class="gcard__unit">In AED, for a Stylist, VAT included.</p>
             </div>
@@ -1041,7 +1048,7 @@ html.wa-open{overflow:hidden}
             <li><b>Visit 3 &middot; Keep on Track</b><em>Week 8 to 12</em><span>Toner, gloss and bond care</span></li>
           </ul>
 
-          <div class="plancard__price" data-price="plan-signature" aria-live="polite"><span>3 visits, from</span><strong>AED 1,695</strong><small>about AED 565 a visit</small></div>
+          <div class="plancard__price" data-price="plan-signature" aria-live="polite"><span>3 visits, from</span><strong>AED 1,695</strong><small>from AED 565 a visit</small></div>
           <a class="pill pill--accent js-book" href="#book" data-book="Signature Blonde" data-svc="signature">Book now <span class="arr">&rarr;</span></a>
           <details class="gcard__more plan-len">
             <summary>See prices by length</summary>
@@ -1049,7 +1056,7 @@ html.wa-open{overflow:hidden}
               <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
               <ul>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Signature Blonde by length: Short / Fine AED 1,695, Medium AED 1,870, Long / Thick AED 2,105, Extra Long AED 2,705"><span>1,695</span><span>1,870</span><span>2,105</span><span>2,705</span></div></li>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>about</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine about AED 565, Medium about AED 625, Long / Thick about AED 700, Extra Long about AED 900"><span>565</span><span>625</span><span>700</span><span>900</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>from</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine from AED 565, Medium from AED 625, Long / Thick from AED 700, Extra Long from AED 900"><span>565</span><span>625</span><span>700</span><span>900</span></div></li>
               </ul>
               <p class="gcard__unit">In AED, for a Stylist, VAT included.</p>
             </div>
@@ -1069,7 +1076,7 @@ html.wa-open{overflow:hidden}
             <li><b>Visit 3 &middot; Keep on Track</b><em>Week 8 to 12</em><span>Toner, gloss and bond care</span></li>
           </ul>
 
-          <div class="plancard__price" data-price="plan-transformation" aria-live="polite"><span>3 visits, from</span><strong>AED 2,160</strong><small>about AED 720 a visit</small></div>
+          <div class="plancard__price" data-price="plan-transformation" aria-live="polite"><span>3 visits, from</span><strong>AED 2,160</strong><small>from AED 720 a visit</small></div>
           <a class="pill pill--accent js-book" href="#book" data-book="Transformation Blonde" data-svc="transformation">Book now <span class="arr">&rarr;</span></a>
           <details class="gcard__more plan-len">
             <summary>See prices by length</summary>
@@ -1077,7 +1084,7 @@ html.wa-open{overflow:hidden}
               <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
               <ul>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Transformation Blonde by length: Short / Fine AED 2,160, Medium AED 2,325, Long / Thick AED 2,555, Extra Long AED 3,150"><span>2,160</span><span>2,325</span><span>2,555</span><span>3,150</span></div></li>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>about</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine about AED 720, Medium about AED 775, Long / Thick about AED 850, Extra Long about AED 1,050"><span>720</span><span>775</span><span>850</span><span>1,050</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>from</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine from AED 720, Medium from AED 775, Long / Thick from AED 850, Extra Long from AED 1,050"><span>720</span><span>775</span><span>850</span><span>1,050</span></div></li>
               </ul>
               <p class="gcard__unit">In AED, for a Stylist, VAT included.</p>
             </div>
@@ -1687,7 +1694,7 @@ html.wa-open{overflow:hidden}
       var id=b.getAttribute('data-price'), d=P[id]; if(!d) return;
       if(i<0){ b.innerHTML=orig[id]; return; }
       var hair=NAMES[i]+' hair';
-      if(d.exact){ b.querySelector('span').textContent=d.label+', '+hair; b.querySelector('strong').textContent=fmt(d.exact[i]); b.querySelector('small').textContent='about '+fmt(d.per[i])+' a visit'; }
+      if(d.exact){ b.querySelector('span').textContent=d.label+', '+hair; b.querySelector('strong').textContent=fmt(d.exact[i]); b.querySelector('small').textContent='from '+fmt(d.per[i])+' a visit'; }
       else{ b.querySelector('span').textContent=d.label+', '+hair+', from'; b.querySelector('strong').textContent=fmt(d.from[i]); b.querySelector('small').textContent='Your stylist confirms it before you book'; }
     });
     document.querySelectorAll('.gcard__cols>div, .gsvc__lens').forEach(function(row){
