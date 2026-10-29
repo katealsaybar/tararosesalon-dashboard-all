@@ -197,12 +197,23 @@ body.mx-previewing .mx-btn.edit{opacity:.4;pointer-events:none}
 .mx-toast.show{display:flex}.mx-toast button{border:0;background:transparent;color:var(--mx-green);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline}
 [data-theme="dark"] .mx-toast button{color:#2f8f7c}
 
-/* ---------- phones: 10px sides, as everywhere on the site ---------- */
+/* ---------- phones: 10px sides on both pages, as everywhere on the site; one line of branch chips; bigger heading taps ---------- */
 @media(max-width:760px){
-  body.mx-grid .wrap{max-width:100%;padding-left:10px;padding-right:10px}
+  body.mx-page .wrap{padding-left:10px;padding-right:10px}
+  body.mx-grid .wrap{max-width:100%}
   .mx h1{font-size:26px}
   .mx-find .mx-doc{padding:18px 14px 22px}
-  .mx-wrap{max-height:calc(100vh - 210px)}
+  .mx-frow{align-items:center}
+  .mx-chipset{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;gap:0 16px;padding:2px 0}
+  .mx-chipset::-webkit-scrollbar{display:none}
+  .mx-chip,.mx-sep{flex:none}
+  .mx-chip{padding:9px 0}
+  .mx-wrap{max-height:calc(100vh - 230px)}
   #mxTbl th.name,#mxTbl td.name,#mxTbl tr.br td.brn{min-width:150px;max-width:150px}
+  #mxTbl td.t,#mxTbl thead tr.lab th.v{width:36px;min-width:36px;max-width:36px}
+  #mxTbl thead tr.lab th{height:150px}
+  #mxTbl th.v .lbl{left:19px;padding:6px 9px;font-size:12.5px}
+  #mxTbl th.pad,#mxTbl td.pad{min-width:130px;width:130px}
   .mx-addhere{left:170px}
+  .mx-btn{padding:10px 18px}
 }
