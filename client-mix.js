@@ -29,7 +29,7 @@ const cmIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0
 const cmToday = () => cmIso(new Date());
 try {
   const s = JSON.parse(localStorage.getItem(CM_STORE) || '{}');
-  if (s.mode === 'clients' || s.mode === 'visits' || s.mode === 'units') CM.mode = s.mode;
+  if (s.mode === 'clients' || s.mode === 'visits' || s.mode === 'units' || s.mode === 'revenue') CM.mode = s.mode;
   const f = Array.isArray(s.fams) ? s.fams : (typeof s.fam === 'string' ? [s.fam] : []);
   if (f.length && f.every(x => typeof x === 'string')) CM.fams = f;
 } catch (e) {}
@@ -153,9 +153,9 @@ function cmShell() {
     </div>
     <div id="cmPageMix"${CM.tab === 'mix' ? '' : ' style="display:none"'}>
       <div class="sc-bar w13-bar lc-bar tc-bar cm-bar">
-        <div class="lc-grp"><div class="slv-eyebrow">Show</div>${seg('mode', [['clients', 'Clients'], ['visits', 'Visits'], ['units', 'Units']])}</div>
+        <div class="lc-grp"><div class="slv-eyebrow">Show</div>${seg('mode', [['clients', 'Clients'], ['visits', 'Visits'], ['units', 'Units'], ['revenue', 'Revenue']])}</div>
       </div>
-      <p class="cm-def"><b>Clients</b> are different people, each counted once however often she came. <b>Visits</b> are days she came in (one day at one branch is one visit). <b>Units</b> are what was rung up: every service or add-on on the till is a unit, so one manicure with a gel polish add-on is two units.</p>
+      <p class="cm-def"><b>Clients</b> are different people, each counted once however often she came. <b>Visits</b> are days she came in (one day at one branch is one visit). <b>Units</b> are what was rung up: every service or add-on on the till is a unit, so one manicure with a gel polish add-on is two units. <b>Revenue</b> is what was paid for those lines in AED, after discounts, with refunds left out.</p>
       <div class="cm-cards" id="cmCards"><p class="slv-muted">Counting clients…</p></div>
       <section class="slv-card cm-refine">
         <div class="cm-narrow" id="cmNarrow"></div>
@@ -233,15 +233,15 @@ function cmPaintCards() {
   const by = {}; (cmCards.fams || []).forEach(f => { by[f.family] = f; });
   const fams = CM_FAMS.filter(f => (by[f.k] && by[f.k].clients > 0) && (f.k !== 'unmapped' || true));
   if (!fams.length) { box.innerHTML = '<p class="slv-muted">No sales in this period.</p>'; return; }
-  const m = CM.mode === 'units' ? 'units' : CM.mode === 'visits' ? 'visits' : 'clients';
+  const m = ['units', 'visits', 'revenue'].includes(CM.mode) ? CM.mode : 'clients';
   const one = { clients: 'client', visits: 'visit', units: 'unit' };
-  const cnt = (d, k) => `${lcNum(d[k])} ${d[k] === 1 ? one[k] : k}`;
+  const cnt = (d, k) => k === 'revenue' ? 'AED ' + lcNum(d.revenue) : `${lcNum(d[k])} ${d[k] === 1 ? one[k] : k}`;
   box.innerHTML = fams.map(f => {
     const d = by[f.k];
-    const others = ['clients', 'visits', 'units'].filter(k => k !== m).map(k => cnt(d, k)).join(' · ');
+    const others = ['clients', 'visits', 'units', 'revenue'].filter(k => k !== m).map(k => cnt(d, k)).join(' · ');
     const sub = f.k === 'unmapped' ? 'needs a family in the roster' : `${others}<br>${total ? Math.round(100 * d.clients / total) : 0}% of all clients`;
     return `<button type="button" class="cm-cat${f.k === 'unmapped' ? ' un' : ''}${CM.fams.includes(f.k) ? ' on' : ''}" aria-pressed="${CM.fams.includes(f.k)}" style="--c:${f.color}" onclick="cmPickFam('${f.k}')">
-      <div class="cm-nm">${f.name}</div><div class="cm-n">${lcNum(d[m])}</div><div class="cm-u">${m}</div><div class="cm-k">${sub}</div></button>`;
+      <div class="cm-nm">${f.name}</div><div class="cm-n">${lcNum(d[m])}</div><div class="cm-u">${m === 'revenue' ? 'AED revenue' : m}</div><div class="cm-k">${sub}</div></button>`;
   }).join('');
   cmPaintNarrow();
 }
@@ -271,7 +271,7 @@ function cmPaintDetail() {
   }
   const narrowTxt = Object.keys(CM.tri).map(k => 'no ' + cmFam(k).name.toLowerCase()).join(', ');
   const picked = cmJoin(CM.fams.map((k, i) => cmFam(k).name.toLowerCase() + (i === 0 && CM.cats.length ? ' (' + CM.cats.map(cmTitle).join(' + ') + ')' : '')));
-  sum.innerHTML = `<b>${lcNum(d.clients)} client${Number(d.clients) === 1 ? '' : 's'}</b> had ${lcEsc(picked)}${narrowTxt ? ', with ' + lcEsc(narrowTxt) : ''}, for <b>${lcNum(d.units)} ${lcEsc(f.name.toLowerCase())} unit${Number(d.units) === 1 ? '' : 's'}</b>. ${lcEsc(cmBranchTxt())}, ${lcEsc(cmPeriodTxt())}.`;
+  sum.innerHTML = `<b>${lcNum(d.clients)} client${Number(d.clients) === 1 ? '' : 's'}</b> had ${lcEsc(picked)}${narrowTxt ? ', with ' + lcEsc(narrowTxt) : ''}, for <b>${lcNum(d.units)} ${lcEsc(f.name.toLowerCase())} unit${Number(d.units) === 1 ? '' : 's'}</b> and <b>AED ${lcNum(d.revenue)}</b>. ${lcEsc(cmBranchTxt())}, ${lcEsc(cmPeriodTxt())}.`;
   cmPaintItems();
   cmPaintList();
 }
@@ -279,13 +279,13 @@ function cmPaintItems() {
   const d = cmDetail, box = document.getElementById('cmItems');
   if (!d || !box) return;
   document.getElementById('cmItemsTitle').textContent = cmFam(cmLead()).name + ', by item';
-  const key = CM.mode === 'units' ? 'units' : 'clients';   // the items table has no visits column, so Visits shows clients
+  const key = CM.mode === 'units' ? 'units' : CM.mode === 'revenue' ? 'revenue' : 'clients';   // the items table has no visits column, so Visits shows clients
   const items = (d.items || []).map((x, i) => Object.assign({ _i: i }, x)).sort((a, b) => b[key] - a[key] || b.clients - a.clients);
   const mx = Math.max(1, ...items.map(x => x[key]));
   const color = cmFam(cmLead()).color;
   const shownItems = (cmItemsAll || !window.matchMedia('(max-width:760px)').matches) ? items : items.slice(0, 8);
-  box.innerHTML = items.length ? `<div class="slv-wrap"><table class="slv-table cm-items"><thead><tr><th class="lc-l">Item</th><th>Clients</th><th>Units</th></tr></thead><tbody>${shownItems.map(x =>
-    `<tr class="cm-item${CM.item === x.stem ? ' sel' : ''}" onclick="cmPickItem(${x._i})"><td class="lc-l"><span class="tc-name">${lcEsc(x.stem)}</span><div class="cm-cell-cat">${lcEsc(cmTitle(x.category))}</div><div class="cm-bar1" style="--c:${color}"><i style="width:${Math.round(100 * x[key] / mx)}%"></i></div></td><td>${lcNum(x.clients)}</td><td>${lcNum(x.units)}</td></tr>`).join('')}</tbody></table></div>
+  box.innerHTML = items.length ? `<div class="slv-wrap"><table class="slv-table cm-items"><thead><tr><th class="lc-l">Item</th><th>Clients</th><th>Units</th><th>AED</th></tr></thead><tbody>${shownItems.map(x =>
+    `<tr class="cm-item${CM.item === x.stem ? ' sel' : ''}" onclick="cmPickItem(${x._i})"><td class="lc-l"><span class="tc-name">${lcEsc(x.stem)}</span><div class="cm-cell-cat">${lcEsc(cmTitle(x.category))}</div><div class="cm-bar1" style="--c:${color}"><i style="width:${Math.round(100 * x[key] / mx)}%"></i></div></td><td>${lcNum(x.clients)}</td><td>${lcNum(x.units)}</td><td>${lcNum(x.revenue)}</td></tr>`).join('')}</tbody></table></div>
     <p class="slv-note" style="margin-top:8px">Click an item to list only the clients who had it.${(d.items || []).length >= 80 ? ' Showing the 80 most common.' : ''}</p>${shownItems.length < items.length ? `<p style="margin:8px 0 0"><button type="button" class="cm-pill" onclick="cmAllItems()">Show all ${items.length} items</button></p>` : ''}`
     : '<p class="slv-muted">Nothing here for these filters.</p>';
 }
@@ -297,22 +297,22 @@ function cmPaintList() {
   lcShown = rows;
   const open = cmCanOpen(), cls = open ? 'lc-row' : 'tc-flat';
   const click = i => open ? ` onclick="lcToggleDetail(event,${i})"` : '';
-  const shown = rows.slice(0, cmShowN);
+  const shown = (CM.mode === 'revenue' ? rows.slice().sort((a, b) => (b.revenue || 0) - (a.revenue || 0)) : rows).slice(0, cmShowN);   // Revenue sorts the loaded clients by what they paid
   const tags = (r, max) => (r.bought || []).slice(0, max).map(b => `<span class="cm-tag" style="--c:${cmFam(b.f).color}">${lcEsc(b.s)}${b.u > 1 ? ' x' + b.u : ''}</span>`).join('');
   const tr = shown.map((r, i) => `<tr class="${cls}"${open ? ' title="Click to see everything she came in for"' : ''}${click(i)}>
       <td class="lc-stc"><span class="tc-name">${lcEsc(r.client_name)}</span>${open ? '<span class="lc-hint" aria-hidden="true">See her visits ›</span>' : ''}<div class="slv-note">${lcEsc(r.branch || '')} · ${lcNum(r.visits)} visit${Number(r.visits) === 1 ? '' : 's'}</div></td>
-      <td class="lc-l cm-bought">${tags(r, 10)}</td><td>${lcNum(r.units)}</td></tr>`).join('');
+      <td class="lc-l cm-bought">${tags(r, 10)}</td><td>${lcNum(r.units)}</td><td>${lcNum(r.revenue)}</td></tr>`).join('');
   const cards = shown.map((r, i) => `<li class="prd-card ${cls}"${click(i)}><div class="prd-body">
-      <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}</span><span class="prd-spend">${lcNum(r.units)} unit${Number(r.units) === 1 ? '' : 's'}</span></div>
-      <div class="prd-meta">${lcEsc(r.branch ? lcBranchName(r.branch) : '')} · ${lcNum(r.visits)} visit${Number(r.visits) === 1 ? '' : 's'}</div>
+      <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}</span><span class="prd-spend">AED ${lcNum(r.revenue)}</span></div>
+      <div class="prd-meta">${lcEsc(r.branch ? lcBranchName(r.branch) : '')} · ${lcNum(r.visits)} visit${Number(r.visits) === 1 ? '' : 's'} · ${lcNum(r.units)} unit${Number(r.units) === 1 ? '' : 's'}</div>
       <div class="prd-meta" style="margin-top:4px">${tags(r, 6)}</div>
       ${open ? '<div class="lc-hint-m">Tap for her visits ›</div>' : ''}</div></li>`).join('');
   const more = rows.length > shown.length ? `<p style="margin:10px 0 0"><button type="button" class="cm-pill" onclick="cmMore()">Show ${Math.min(25, rows.length - shown.length)} more</button> <span class="slv-note">${lcNum(shown.length)} of ${lcNum(matched)}${matched > rows.length ? ' (the top ' + lcNum(rows.length) + ' are loaded)' : ''}</span></p>` : '';
   const empty = 'No one matches those filters. Try a wider period, or clear a filter.';
-  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap tc-wrap"><table class="slv-table"><thead><tr><th class="lc-l">Client</th><th class="lc-l">Bought</th><th>${CM.item || CM.cats.length ? 'Units here' : 'Units'}</th></tr></thead>
-      <tbody>${tr || `<tr><td colspan="3" class="slv-muted">${empty}</td></tr>`}</tbody></table></div>
+  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap tc-wrap"><table class="slv-table"><thead><tr><th class="lc-l">Client</th><th class="lc-l">Bought</th><th>${CM.item || CM.cats.length ? 'Units here' : 'Units'}</th><th>AED</th></tr></thead>
+      <tbody>${tr || `<tr><td colspan="4" class="slv-muted">${empty}</td></tr>`}</tbody></table></div>
     <ol class="prd-cards">${cards || `<li class="slv-muted">${empty}</li>`}</ol>${more}
-    <p class="slv-note" style="margin-top:8px">Sorted by units in ${lcEsc(cmFam(cmLead()).name.toLowerCase())}${CM.cats.length ? ', ' + lcEsc(CM.cats.map(cmTitle).join(' + ')) : ''}${CM.fams.length > 1 ? ' (the first card you picked)' : ''}. Tags are what she bought in this period, her ${lcEsc(cmFam(cmLead()).name.toLowerCase())} first.</p>`;
+    <p class="slv-note" style="margin-top:8px">Sorted by ${CM.mode === 'revenue' ? 'what they paid' : 'units'} in ${lcEsc(cmFam(cmLead()).name.toLowerCase())}${CM.cats.length ? ', ' + lcEsc(CM.cats.map(cmTitle).join(' + ')) : ''}${CM.fams.length > 1 ? ' (the first card you picked)' : ''}. Tags are what she bought in this period, her ${lcEsc(cmFam(cmLead()).name.toLowerCase())} first.</p>`;
 }
 
 // Copy for Sheets: asks again for everyone, not just the 300 on screen.
@@ -323,8 +323,8 @@ async function cmCopy() {
     if (btn) btn.textContent = 'Getting everyone…';
     const d = await cmCall('client_mix_detail', cmDetailArgs(5000));
     const rows = (d && d.rows) || [];
-    const head = ['Client', 'Branch', 'Visits', 'Units', 'Bought'];
-    const tsv = [head.join('\t')].concat(rows.map(r => [r.client_name, r.branch || '', r.visits, r.units,
+    const head = ['Client', 'Branch', 'Visits', 'Units', 'AED', 'Bought'];
+    const tsv = [head.join('\t')].concat(rows.map(r => [r.client_name, r.branch || '', r.visits, r.units, r.revenue || 0,
       (r.bought || []).map(b => b.s + (b.u > 1 ? ' x' + b.u : '')).join('; ')].map(v => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t'))).join('\n');
     await navigator.clipboard.writeText(tsv);
     say(`Copied ${lcNum(rows.length)}, paste into Sheets`);
