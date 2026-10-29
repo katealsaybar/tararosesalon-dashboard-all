@@ -46,6 +46,7 @@
 .sc-msg{font-size:14px;margin:10px 0 0}
 .sc-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px;font-size:13.5px}
 .sc-list .sc-err{color:#9A2A22}
+.sc-pimg{display:block;max-width:100%;max-height:280px;border-radius:10px;margin:0 0 10px}
 .sc-bar{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;margin-top:8px}
 </style>
 </head>
@@ -87,24 +88,26 @@
   function val(id) { return (document.getElementById(id) || { value: '' }).value.trim(); }
   // What goes into the template's {{n}} slots, by name. first_name is filled per person by the database.
   function vars() {
-    return { campaign_name: val('scName'), launch_day: val('scDay'), pitch: val('scPitch'), note: val('scPitch'), link: val('scLink') };
+    return { campaign_name: val('scName'), launch_day: val('scDay'), pitch: val('scPitch'), link: val('scLink'), image_url: val('scImg') };
   }
   function preview() {
     var t = tpl(), v = vars();
     v.first_name = 'Kate';
     var text = t.body;
     t.vars.forEach(function (n, i) { text = text.split('{{' + (i + 1) + '}}').join(v[n] || '[' + n.replace('_', ' ') + ']'); });
-    document.getElementById('scPrev').innerHTML = esc(text) + (t.footer ? '<small>' + esc(t.footer) + '</small>' : '');
+    var im = t.header_image && /^https:\/\//.test(v.image_url || '') ? '<img class="sc-pimg" alt="The memo" src="' + esc(v.image_url) + '">' : (t.header_image ? '<small>The memo picture goes here.</small>' : '');
+    document.getElementById('scPrev').innerHTML = im + esc(text) + (t.footer ? '<small>' + esc(t.footer) + '</small>' : '');
   }
   function checked() {
     return Array.prototype.map.call(document.querySelectorAll('.sc-ppl input[type=checkbox]:checked'), function (c) { return Number(c.value); });
   }
+  function imgOk() { return /^https:\/\/[^\s"<>]+\.(jpe?g|png)(\?[^\s"<>]*)?$/i.test(val('scImg')); }
   function refreshSend() {
-    var n = checked().length, t = tpl(), ready = info.enabled && t.approved && n > 0 && val('scName') && val('scLink') && (val('scPitch')) && (tkey === 'live' || val('scDay'));
+    var n = checked().length, t = tpl(), ready = info.enabled && t.approved && n > 0 && val('scName') && val('scLink') && (val('scPitch')) && (tkey === 'live' || val('scDay')) && (!t.header_image || imgOk());
     var b = document.getElementById('scSend');
     b.textContent = 'Send to ' + n + ' staff';
     b.disabled = !ready;
-    document.getElementById('scWhy').textContent = !info.enabled ? 'Sending to staff is switched off.' : !t.approved ? 'This template is not approved in Meta yet.' : '';
+    document.getElementById('scWhy').textContent = !info.enabled ? 'Sending to staff is switched off.' : !t.approved ? 'This template is not approved in Meta yet.' : (t.header_image && !imgOk()) ? 'Add the memo picture first.' : '';
   }
   function draw() {
     var t = tpl();
@@ -134,6 +137,9 @@
           '<label><span id="scPitchT">One line on the campaign</span><textarea id="scPitch" maxlength="240"></textarea>' +
             '<span class="sc-hint">One short paragraph, no line breaks.</span></label>' +
           '<label>Link for the team<input type="url" id="scLink" autocomplete="off" placeholder="https://trk-salon-os.com/campaigns/..."></label>' +
+          '<label id="scImgL">The memo, as a picture (jpg or png, up to 5 MB)<input type="file" id="scFile" accept="image/jpeg,image/png">' +
+            '<input type="url" id="scImg" autocomplete="off" placeholder="Upload it above, or paste an https link to a jpg or png">' +
+            '<span class="sc-hint" id="scImgMsg">It goes at the top of the message. Anyone with the link can open the picture, so use the memo, not anything private.</span></label>' +
         '</div></section>' +
       '<section class="sc-card"><h2>Preview</h2><div class="sc-prev" id="scPrev"></div>' +
         '<div class="sc-row"><button type="button" class="sc-btn" id="scTest">Send a test to my number</button>' +
@@ -152,13 +158,14 @@
 
     // wiring
     document.getElementById('scTpl').addEventListener('change', function (e) { tkey = e.target.value; sync(); });
-    ['scName', 'scDay', 'scPitch', 'scLink'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { preview(); refreshSend(); }); });
+    ['scName', 'scDay', 'scPitch', 'scLink', 'scImg'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { preview(); refreshSend(); }); });
     document.getElementById('scName').addEventListener('change', function () {
       var l = CAMPAIGNS[val('scName')]; if (l && !val('scLink')) { document.getElementById('scLink').value = l; preview(); refreshSend(); }
     });
     document.querySelector('.sc-ppl').addEventListener('change', refreshSend);
     document.getElementById('scAll').onclick = function () { document.querySelectorAll('.sc-ppl input:not(:disabled)').forEach(function (c) { c.checked = true; }); refreshSend(); };
     document.getElementById('scNone').onclick = function () { document.querySelectorAll('.sc-ppl input').forEach(function (c) { c.checked = false; }); refreshSend(); };
+    document.getElementById('scFile').addEventListener('change', upload);
     document.getElementById('scSwitch').onclick = switchIt;
     document.getElementById('scTest').onclick = function () { test('template'); };
     document.getElementById('scTestText').onclick = function () { test('text'); };
@@ -168,8 +175,23 @@
   function sync() {
     var live = tkey === 'live';
     document.getElementById('scDayL').style.display = live ? 'none' : '';
+    document.getElementById('scImgL').style.display = tpl().header_image ? '' : 'none';
     document.getElementById('scPitchT').textContent = live ? 'One line for the team today' : 'One line on the campaign';
     preview(); refreshSend();
+  }
+  // The memo picture goes to the staff-memos bucket (public read, so WhatsApp can fetch it; upload is Level 5 only, names are random).
+  async function upload(e) {
+    var f = e.target.files && e.target.files[0], msg = document.getElementById('scImgMsg');
+    if (!f) return;
+    if (!/^image\/(jpeg|png)$/.test(f.type)) { msg.textContent = 'Use a jpg or png picture.'; e.target.value = ''; return; }
+    if (f.size > 5 * 1024 * 1024) { msg.textContent = 'That picture is over 5 MB. Make it smaller and try again.'; e.target.value = ''; return; }
+    msg.textContent = 'Uploading…';
+    var path = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2)) + (f.type === 'image/png' ? '.png' : '.jpg');
+    var up = await KB.client.storage.from('staff-memos').upload(path, f, { contentType: f.type, upsert: false });
+    if (up.error) { msg.textContent = 'Could not upload: ' + up.error.message; return; }
+    var url = KB.client.storage.from('staff-memos').getPublicUrl(path).data.publicUrl;
+    var inp = document.getElementById('scImg'); inp.value = url; inp.dispatchEvent(new Event('input', { bubbles: true }));
+    msg.textContent = 'Uploaded.';
   }
   async function switchIt() {
     var turnOn = !info.enabled;
@@ -184,6 +206,7 @@
     var msg = document.getElementById('scTestMsg');
     var t = tpl();
     if (!val('scName') || !val('scLink') || !val('scPitch') || (tkey !== 'live' && !val('scDay'))) { msg.textContent = 'Fill in the blanks first.'; return; }
+    if (mode === 'template' && t.header_image && !imgOk()) { msg.textContent = 'Add the memo picture first.'; return; }
     msg.textContent = 'Sending…';
     try {
       var id = await rpc('staff_cmp_test', { p_tkey: t.key, p_vars: vars(), p_mode: mode });

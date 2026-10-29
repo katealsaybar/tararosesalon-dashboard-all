@@ -31,7 +31,7 @@ const CORS = {
 
 type Job = {
   id: number; phone: string; channel_id: number; campaign: string; params: string[]; body_text: string; is_test: boolean;
-  mode: 'template' | 'text'; attempts: number; phone_id: number; template: string; language: string; footer: string | null;
+  mode: 'template' | 'text'; image_url: string | null; attempts: number; phone_id: number; template: string; language: string; footer: string | null;
 };
 
 async function rio(method: string, path: string, body?: unknown): Promise<Response> {
@@ -58,7 +58,11 @@ function buildPayload(j: Job) {
       template: {
         name: j.template,
         languageCode: j.language,
-        components: [{ type: 'body', text: j.body_text, parameters: j.params.map((p) => ({ type: 'text', text: p })) }],
+        // The memo is the image header; its link is the one the page uploaded. Format as respond.io documents it (check on the first approved template send).
+        components: [
+          ...(j.image_url ? [{ type: 'header', format: 'image', link: j.image_url }] : []),
+          { type: 'body', text: j.body_text, parameters: j.params.map((p) => ({ type: 'text', text: p })) },
+        ],
       },
     },
   };
