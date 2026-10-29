@@ -133,6 +133,7 @@ table.t td.name b{font-weight:600}
 .who .wtxt{min-width:0;text-align:left}
 table.t td[data-l="Clients"]{white-space:normal;min-width:108px;max-width:130px}
 table.t td[data-l="Clients"] .rng{white-space:normal}
+table.t td[data-l="Utilisation"]{white-space:normal;min-width:96px;max-width:130px}table.t td[data-l="Utilisation"] .rng,table.t td[data-l="Net take"] .rng,table.t td[data-l="Service"] .rng,table.t td[data-l="Treatment"] .rng{white-space:normal}
 .phbd{display:none}
 .tg{font-size:12.5px;font-weight:300;color:var(--muted)}
 tr.grp td{padding:20px 10px 6px;border-bottom:1px solid var(--text);font-size:11px;font-weight:500;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);text-align:left}
@@ -244,6 +245,7 @@ table.t th.rel{white-space:nowrap}
 .abp{font-size:12.5px;color:var(--muted);text-align:right}
 .abr.hero{border-top:none;padding-top:2px}
 .abr.sub{padding:7px 0;border-top:1px dashed var(--rule)}.abr.sub .abl{padding-left:16px;font-size:13px}
+.ps{display:block;font-family:inherit;font-size:11.5px;font-weight:400;color:var(--muted);margin-top:3px;letter-spacing:.01em}
 .abr.hero .abl{font-size:14px;font-weight:500;color:var(--text)}
 .abr.hero .aba,.abr.hero .abt{font-size:28px}
 .abr.hero .abv{height:32px}
@@ -449,7 +451,9 @@ const median=a=>{const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2
 /* Kate, 23 Oct 2026: three plans per person. LOW is what happens with the leave we have now (her usual days), HIGH is nobody on leave (her best month's days),
    and the TARGET is the median of the two. The base is the last three months, each month corrected by the season calendar. */
 const JUL=DATA.jul||{},HRS=DATA.hours||{},RULES=DATA.rules||{};
-const S={month:10,treat:20,retail:12,retailNow:5,util:RULES.util||85,join:70,bill:1,cap:1,clcap:1,basis:0,fac:FAC.slice()};
+/* Kate, 29 Oct 2026: the address follows the filters. ?month=nov&view=by-branch&branch=saa&team=hair, read here and written by syncUrl() after every render. */
+const QP=new URLSearchParams(location.search),QM={oct:10,nov:11,dec:12},QMN={10:'oct',11:'nov',12:'dec'};
+const S={month:QM[(QP.get('month')||'').toLowerCase()]||10,treat:20,retail:12,retailNow:5,util:RULES.util||85,join:70,bill:1,cap:1,clcap:1,basis:0,fac:FAC.slice()};
 const days={};
 /* Kate, 27 Oct 2026: reception retail. What the front desk sells (BUSINESS TRS in Phorest) belongs to no stylist, so it is not in anyone's retail target. It is a flat target per branch,
    the August to October monthly average, saved in rules.recv by month ({"11": {"SAA": 4400, ...}}). It is added to the branch and group retail, never to a person. */
@@ -593,6 +597,13 @@ function build(){
       if(r.capClients&&r.clientsRaw>r.capClients){r.clients=r.capClients;r.clCapped=true;}
     }
     r.billNeed=r.clients?Math.round(r.plan/r.clients):null;
+    /* Kate, 29 Oct 2026: utilisation the plan asks for. Hours she can give = the days the middle plan needs x her hours a day. Hours the clients need = plan / average bill x her hours a client.
+       A bottom-up % puts more clients in the same hours, so it lifts utilisation by the same %. */
+    r.uNeed=r.uNeedTop=r.uAvail=null;
+    if(h&&h[3]>0&&h[2]>0&&h[1]>0&&r.adj&&!r.grp&&!r.cover&&r.topDown!=null&&r.avgBill){
+      const hd=h[0]/h[3],hc=h[1]/h[2];
+      r.uAvail=r.topDown/r.adj*hd;r.uNeedTop=r.topDown/r.avgBill*hc;r.uNeed=r.plan/r.avgBill*hc;
+    }
   });
   return rows;
 }
@@ -602,15 +613,18 @@ const badge={regular:['Regular','good'],joiner:['Joiner','on'],left:['Short mont
 const flagged=r=>['none','left','part'].includes(r.status);
 
 function sumRows(list){
-  const t={n:0,low:0,plan:0,high:0,service:0,treat:0,retail:0,clients:0,sep:0,loaded:0,top:0};
+  const t={n:0,low:0,plan:0,high:0,service:0,treat:0,retail:0,clients:0,sep:0,loaded:0,top:0,uN:0,uT:0,uA:0};
   list.forEach(r=>{
     if(r.med==null)return;
     t.n++;t.low+=r.low;t.plan+=r.med;t.top+=(r.topDown!=null?r.topDown:r.med);t.high+=r.high;t.service+=r.service;t.treat+=r.treat;t.retail+=r.retail;t.clients+=r.clients;
     t.sep+=r.p[5][1];t.loaded+=r.loaded;
+    if(r.uAvail){t.uN+=r.uNeed;t.uT+=r.uNeedTop;t.uA+=r.uAvail;}
   });
   return t;
 }
 const pct=(a,b)=>b?((a/b-1)*100):null;
+const utilOf=t=>t.uA>0?Math.round(t.uN/t.uA*100):null,utilTop=t=>t.uA>0?Math.round(t.uT/t.uA*100):null;
+const utilNote=t=>{const a=utilOf(t),b=utilTop(t);return a!=null&&b!=null&&a!==b?`<span class="rng">was ${b}% before bottom-up, ${a>b?'+':''}${a-b} pts</span>`:'';};
 const sgn=v=>v==null?'n/a':(v>=0?'+':'')+v.toFixed(1)+'%';
 const sgnA=v=>(v>=0?'+':'')+fmt(v);
 const band=v=>v==null?'na':Math.abs(v)<=5?'good':Math.abs(v)<=15?'warn':'bad';
@@ -678,6 +692,18 @@ function stickFit(){
   if(th.length>2){t.style.setProperty('--w1',th[0].offsetWidth+'px');t.style.setProperty('--w2',th[1].offsetWidth+'px');}
 }
 window.addEventListener('resize',stickFit);
+let lastQs=null;
+function syncUrl(){
+  const q=new URLSearchParams();
+  q.set('month',QMN[S.month]||String(S.month));
+  q.set('view',st.view==='BRANCH'?'by-branch':'by-person');
+  if(st.branch!=='ALL')q.set('branch',st.branch.toLowerCase());
+  if(st.team!=='ALL')q.set('team',st.team.toLowerCase());
+  const qs='?'+q.toString();
+  if(qs===lastQs)return;
+  lastQs=qs;
+  try{history.replaceState(null,'',location.pathname+qs+location.hash);}catch(e){}
+}
 function render(){
   const rows=build();
   renderEdits();
@@ -692,13 +718,14 @@ function render(){
   document.querySelector('.tw').classList.toggle('sheet',st.view==='BRANCH');
   if(barEl.classList.contains('closed'))document.getElementById('barSum').textContent=barSum();
   stickFit();
+  syncUrl();
 }
 
 /* Break-even floor and aim for the whole business per month, AED (Coach Emma, 22 Oct: "over 1.7 to 1.8, otherwise we are targeting for less than break-even") */
 const BREAK_EVEN=[1700000,1800000];
 /* Kate, 27 Oct 2026: what the bottom-up % is, on hover, beside the bulk box and the By branch column */
-const TIP_BU_P=`<b>Bottom-up %</b> is your own adjustment to the target.<br>Target 100,000 and more people in than usual? Type 10 and it becomes 110,000. Fewer people? Type -10 for 90,000.`;
-const TIP_BU_B=`<b>Bottom-up</b> is what your own adjustments add to or take off the target, shown as a % and in AED.<br>No adjustment reads +0.0%. Set it in By person.`;
+const TIP_BU_P=`<b>Bottom-up %</b> is your own adjustment to the target.<br>Target 100,000 and more people in than usual? Type 10 and it becomes 110,000. Fewer people? Type -10 for 90,000.<br>The hours stay the same, so more clients lift the Utilisation by the same %: see the Utilisation column.`;
+const TIP_BU_B=`<b>Bottom-up</b> is what your own adjustments add to or take off the target, shown as a % and in AED.<br>No adjustment reads +0.0%. Set it in By person.<br>The Utilisation column shows what it does to the hours: the same hours, more clients.`;
 const TIP_RET_B=()=>`<b>Retail</b> on the Hair and Beauty rows is what the staff are asked to sell, ${S.retail}% of their plan.<br>On a branch or group row it also includes the reception retail: what the front desk sells (BUSINESS TRS in Phorest), the August to October monthly average, kept flat. It is not spread over the stylists.`;
 const ibw=(h,l)=>`<span class="ibw"><button class="ib" type="button" aria-expanded="false" aria-label="${l||'What bottom-up % is'}">i</button><span class="tip" role="tooltip">${h}</span></span>`;
 document.getElementById('buTipP').innerHTML=ibw(TIP_BU_P);
@@ -714,15 +741,22 @@ function renderTiles(sel,all){
   const sum=(list,k)=>list.reduce((a,b)=>a+(brs[b]?brs[b][k]:0),0);
   const el=A?A.elapsed/A.days:0,upto=A?(+A.upto.slice(8))+' '+MN[+A.upto.slice(5,7)-1]:'';
   /* Kate, 27 Oct 2026: the same card for every month. A month with no actuals yet shows the Target column in full and "not yet" under Actual. */
-  const row=(label,act,tgt,hero,note,tip,sub)=>{
+  /* Kate, 29 Oct 2026: under each money line, its share of the Total net take (actual of the actual, target of the target). */
+  const ps=(v,d)=>d?`<small class="ps">${Math.round(v/d*100)}% of net take</small>`:'';
+  const row=(label,act,tgt,hero,note,tip,sub,share,F)=>{
+    F=F||fmt;
     const has=act!=null,pct=has&&tgt?act/tgt*100:null;
     const cls=pct==null?'':pct>=el*100-10?'':pct>=el*100-25?'warn':'bad';
-    return `<div class="abg abr${hero?' hero':''}${sub?' sub':''}"><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?fmt(act):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt${tgt==null?' na':''}">${tgt==null?'n/a':fmt(tgt)}</span>`+
+    return `<div class="abg abr${hero?' hero':''}${sub?' sub':''}"><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?F(act)+(share?ps(act,netAct):''):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt${tgt==null?' na':''}">${tgt==null?'n/a':F(tgt)+(share?ps(tgt,gTot):'')}</span>`+
       `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
       `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
   };
   const netAct=A&&teamAll?sum(selB,'net'):null,pace=netAct!=null?netAct/el:null;
   const svcAct=A&&teamAll?sum(selB,'svc'):null,retAct=A&&teamAll?sum(selB,'ret'):null,rcvAct=A&&teamAll?sum(selB,'ret_recv'):null,stfRetAct=retAct!=null?retAct-rcvAct:null,visAct=A&&teamAll?sum(selB,'visits'):null;
+  const uTgt=utilOf(t),uTop=utilTop(t),pc=v=>v+'%';
+  const uAv=sum(selB,'util_av'),uUt=sum(selB,'util_ut'),uAct=A&&teamAll&&uAv>0?Math.round(uUt/uAv*100):null;
+  const uNote=uTgt!=null&&uTop!=null&&uTgt!==uTop?`<div class="abn s">Before the bottom-up the plan asks for ${uTop}% (the same hours and more clients: ${uTgt>uTop?'+':''}${uTgt-uTop} points).</div>`:'';
+  const tipUt=`<b>Target</b> is the utilisation the plan asks for: the hours the clients need (plan divided by the average bill, times the hours a client takes) over the hours she can give in the days the plan needs. Added up over the people shown = <b>${uTgt==null?'n/a':uTgt+'%'}</b>.<br>A bottom-up % puts more clients in the same hours, so it lifts this by the same %.<br><b>Actual</b> is booked hours over available hours in the utilisation reports, ${A?`1 to ${upto}`:'the month so far'}, hair and beauty on shift only (assistants, reception and office left out).`;
   const trAct=A&&(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
   const rv=teamAll?(st.branch==='ALL'?BR4:[st.branch]).reduce((a,b)=>a+recvOf(b),0):0,retTgt=t.retail+rv;
   const verdict=scoped?'The 1.7M floor and 1.8M aim are for all four branches together, so there is no verdict for this selection.':`Target ${fmt(gTot)}. Break-even floor 1.7M: ${gTot>=BREAK_EVEN[0]?'above by '+fmt(gTot-BREAK_EVEN[0]):'below by '+fmt(BREAK_EVEN[0]-gTot)}. Aim 1.8M: ${gTot>=BREAK_EVEN[1]?'above by '+fmt(gTot-BREAK_EVEN[1]):'below by '+fmt(BREAK_EVEN[1]-gTot)}.`;
@@ -733,7 +767,7 @@ function renderTiles(sel,all){
     `<div class="abn s">The middle of low ${fmt(t.low)} and high ${fmt(t.high)}.</div>`;
   /* Kate, 27 Oct 2026: the i beside each line shows, on hover, how that line is worked out, with the numbers on the screen. */
   const upto2=A?`1 to ${upto}`:'the month so far';
-  const tipNet=`<b>Actual</b> is the net take in the ledgers, ${upto2}: services, courses and retail, ${scoped?'for the branch shown':'all branches'}.<br><b>Target</b> is the services and treatment target ${fmt(nb.plan)} plus the retail we sell today (${S.retailNow}% of it, ${fmt(now)}) = <b>${fmt(gTot)}</b>.${A?`<br>The tick on the bar is how far the month has gone: ${A.elapsed} of ${A.days} days.`:''}`;
+  const tipNet=`The % under each line is its share of this Total net take, actual of the actual and target of the target. Retail is aimed at ${S.retail}% but the net take counts it at what we sell today (${S.retailNow}%), and treatment sits inside services, so the shares can add to more than 100%.<br><b>Actual</b> is the net take in the ledgers, ${upto2}: services, courses and retail, ${scoped?'for the branch shown':'all branches'}.<br><b>Target</b> is the services and treatment target ${fmt(nb.plan)} plus the retail we sell today (${S.retailNow}% of it, ${fmt(now)}) = <b>${fmt(gTot)}</b>.${A?`<br>The tick on the bar is how far the month has gone: ${A.elapsed} of ${A.days} days.`:''}`;
   const tipSvc=`<b>Target</b> is every person's target added up = <b>${fmt(t.plan)}</b>.<br>One person: her average day (sales of the last 3 months divided by the days she worked) x the season (${MN[S.month-1]} against the months used) x her days. Low uses the days she is in, high uses nobody on leave, the target is the middle of the two${t.plan!==t.top?`, then the bottom-up % on top (${sgnA(t.plan-t.top)}).`:'.'}<br><b>Actual</b> is services and courses in the ledgers.`;
   const tipRet=`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = ${fmt(t.retail)}.${rv?`<br>Plus the reception retail ${fmt(rv)}: what the front desk sells (BUSINESS TRS in Phorest), the August to October monthly average, kept flat. It belongs to the branch, not to a stylist. Total <b>${fmt(retTgt)}</b>.`:(teamAll?'':'<br>Reception retail has no hair or beauty split, so it is left out here.')}<br><b>Actual</b> is all retail in the ledgers, staff and reception.`;
   const tipTr=`<b>Target</b> is ${S.treat}% of each hair stylist's plan, added up = <b>${fmt(trTgt)}</b>. Beauty has no treatment line.<br><b>Actual</b> is hair treatment sales in the ledgers.`;
@@ -742,12 +776,13 @@ function renderTiles(sel,all){
   tilesEl.innerHTML=`<div class="abc"><div class="abtop">${A?`${m} 2026, actual to ${upto} (${A.elapsed} of ${A.days} days). The tick on each line is where the month is. Built from ${BASE_NOTE[S.month]}.`:`${m} 2026. No actuals yet, they start with the month. Built from ${BASE_NOTE[S.month]}.`}</div>`+
     `<div class="abg abh"><span class="abl"></span><span class="a">Actual</span><span></span><span>Target</span><span>${A?'Progress':''}</span><span></span></div>`+
     row('Total net take',netAct,gTot,true,netNote,tipNet)+
-    row('Services and treatment',svcAct,t.plan,false,planNote,tipSvc)+
-    row('Retail',retAct,retTgt,false,'',tipRet)+
-    (rv?row('Staff retail',stfRetAct,t.retail,false,'',`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = <b>${fmt(t.retail)}</b>. Stylists and beauticians only.${A?`<br><b>Actual</b> is the branch retail in the ledgers minus the reception retail, ${upto2}.`:''}`,true)+
-        row('Business TRS retail',rcvAct,rv,false,'',`<b>Target</b> is what the front desk sells, the retail rung to BUSINESS TRS in Phorest, which belongs to no stylist: the August to October monthly average, kept flat = <b>${fmt(rv)}</b>.${A?`<br><b>Actual</b> is the retail rung to BUSINESS TRS in the staff daily reports, ${upto2}.`:''}`,true):'')+
-    row('Treatment (hair)',trAct,st.team==='BEAUTY'?null:trTgt,false,'',tipTr)+
+    row('Services and treatment',svcAct,t.plan,false,planNote,tipSvc,false,true)+
+    row('Retail',retAct,retTgt,false,'',tipRet,false,true)+
+    (rv?row('Staff retail',stfRetAct,t.retail,false,'',`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = <b>${fmt(t.retail)}</b>. Stylists and beauticians only.${A?`<br><b>Actual</b> is the branch retail in the ledgers minus the reception retail, ${upto2}.`:''}`,true,true)+
+        row('Business TRS retail',rcvAct,rv,false,'',`<b>Target</b> is what the front desk sells, the retail rung to BUSINESS TRS in Phorest, which belongs to no stylist: the August to October monthly average, kept flat = <b>${fmt(rv)}</b>.${A?`<br><b>Actual</b> is the retail rung to BUSINESS TRS in the staff daily reports, ${upto2}.`:''}`,true,true):'')+
+    row('Treatment (hair)',trAct,st.team==='BEAUTY'?null:trTgt,false,'',tipTr,false,true)+
     row('Clients',visAct,t.clients,false,'',tipCl)+
+    row('Utilisation',uAct,uTgt,false,uNote,tipUt,false,false,pc)+
     (A&&!teamAll?`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`:'')+`</div>`;
 }
 
@@ -786,8 +821,9 @@ function personRow(r){
    `<td data-l="Treatment">${has?fmt(r.treat):'n/a'}${has&&r.act&&r.act.tpct!=null?`<span class="rng">now ${r.act.tpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Retail">${has?fmt(r.retail):'n/a'}${has&&r.act&&r.act.rpct!=null?`<span class="rng">now ${r.act.rpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Clients">${has?fmt(r.clients):'n/a'}<span class="rng">${has?(r.clCapped?'hours cap, bill '+fmt(r.billNeed)+' needed':'bill '+fmt(r.avgBill))+(r.act&&r.act.bill?' (now '+fmt(r.act.bill)+')':''):''}</span></td>`+
+   `<td data-l="Utilisation">${r.uAvail?Math.round(r.uNeed/r.uAvail*100)+'%':'n/a'}${r.uAvail&&r.bu?`<span class="rng">was ${Math.round(r.uNeedTop/r.uAvail*100)}% before bottom-up</span>`:''}</td>`+
    `<td class="act"><button class="how" data-how="${r.i}" aria-expanded="${open}">${open?'Close':'Why this?'}</button></td></tr>`;
-  if(open)h+=`<tr class="det"><td colspan="13">${detail(r)}</td></tr>`;
+  if(open)h+=`<tr class="det"><td colspan="14">${detail(r)}</td></tr>`;
   return h;
 }
 function mos(r){
@@ -829,9 +865,10 @@ const COLS=[
  {k:'svc',t:'Service',x:'n',get:r=>r.service},
  {k:'trt',t:'Treatment',x:'n',get:r=>r.treat},
  {k:'ret',t:'Retail',x:'n',get:r=>r.retail},
- {k:'cl',t:'Clients',x:'n',get:r=>r.clients}
+ {k:'cl',t:'Clients',x:'n',get:r=>r.clients},
+ {k:'ut',t:'Utilisation',x:'n',get:r=>r.uAvail?Math.round(r.uNeed/r.uAvail*100):null}
 ];
-const TH=[['br','bd',''],['dp','bd',''],['who','nm',''],['days','',"The days we plan she works for the low plan. It starts as her usual days, and as the days she came in if she is on leave."],['bu','',"Add or take off a percentage for who is really on the floor. It starts at 0."],['low','',"Her usual days, leave included."],['tgt','',"The middle of low and high. This is the goal."],['high','',"Nobody on leave: her best month's days."],['svc','',''],['trt','',''],['ret','',''],['cl','','']];
+const TH=[['br','bd',''],['dp','bd',''],['who','nm',''],['days','',"The days we plan she works for the low plan. It starts as her usual days, and as the days she came in if she is on leave."],['bu','',"Add or take off a percentage for who is really on the floor. It starts at 0."],['low','',"Her usual days, leave included."],['tgt','',"The middle of low and high. This is the goal."],['high','',"Nobody on leave: her best month's days."],['svc','',''],['trt','',''],['ret','',''],['cl','',''],['ut','',"How full her hours are if she sells the target: clients needed x her hours a client, over the hours she can give. A bottom-up % puts more clients in the same hours, so it lifts this by the same %."]];
 const sf={sort:null,f:{}};
 let lastSel=[],shown=[],pop=null;
 const isBlank=v=>v==null||v==='';
@@ -962,7 +999,7 @@ function renderPerson(sel){
   document.getElementById('secTitle').textContent='The month, split up';
   document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>High</b> is nobody on leave. <b>Target</b> is the middle. Change a person\'s <b>planned days</b> (the low), or add a <b>bottom-up %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
   let h=`<thead><tr>${TH.map(thCell).join('')}<th></th></tr></thead><tbody>`;
-  if(!list.length)h+=`<tr><td colspan="13" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
+  if(!list.length)h+=`<tr><td colspan="14" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
   list.forEach(r=>{h+=personRow(r);});   // Branch and Dept are their own columns now, so no group heading rows
   document.getElementById('tbl').setAttribute('data-frz','3');
   document.getElementById('tbl').innerHTML=h+'</tbody>';
@@ -970,15 +1007,17 @@ function renderPerson(sel){
 }
 function branchRow(label,t,cls,sub,rv){
   const d1=pct(t.plan,t.sep),bu=pct(t.plan,t.top);
+  /* Kate, 29 Oct 2026: Net take = the target plus retail at what we sell today (the same as the card); each money column shows its share of it. */
+  const net=t.plan+Math.round(t.plan*S.retailNow/100),shr=(v,pre)=>net?`<span class="rng">${pre||''}${Math.round(v/net*100)}% of net take</span>`:'';
   return `<tr class="${cls}"><td class="name"><b>${label}</b>${sub?`<div class="tg">${sub}</div>`:''}</td>`+
-   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Bottom-up">${sgn(bu)}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="High">${fmt(t.high)}</td><td data-l="Service">${fmt(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}</td><td data-l="Retail">${fmt(t.retail+(rv||0))}${rv?`<span class="rng">incl. ${fmt(rv)} reception</span>`:''}</td><td data-l="Clients">${fmt(t.clients)}</td>`+
+   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Bottom-up">${sgn(bu)}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="High">${fmt(t.high)}</td><td data-l="Net take">${fmt(net)}</td><td data-l="Service">${fmt(t.service)}${shr(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}${shr(t.treat)}</td><td data-l="Retail">${fmt(t.retail+(rv||0))}${shr(t.retail+(rv||0),rv?`incl. ${fmt(rv)} Business TRS, `:'')}</td><td data-l="Clients">${fmt(t.clients)}</td><td data-l="Utilisation">${utilOf(t)!=null?utilOf(t)+'%':'n/a'}${utilNote(t)}</td>`+
    `<td data-l="Target against Sep delivered"><span class="chip ${band(d1)}">${sgn(d1)}</span><span class="rng">${fmt(t.sep)}</span></td></tr>`;
 }
 function renderBranch(rows){
   document.getElementById('secEyebrow').textContent='Branch by branch';
   document.getElementById('secTitle').textContent='Adding it up';
   document.getElementById('secWhy').textContent='Each branch is the sum of its people, and its Retail also includes the reception retail, what the front desk sells. The gap between low and high is what leave and missing staff cost us in a month. The target against what the same people delivered in September is for a first look: further out, find out why before anything changes.';
-  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Bottom-up ${ibw(TIP_BU_B)}</th><th>High</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Bottom-up ${ibw(TIP_BU_B)}</th><th>High</th><th class="rel">Net take ${ibw('<b>Net take</b> is the target plus retail at what we sell today ('+S.retailNow+'%), the same as the Total net take on the card. The % under Service, Treatment and Retail is each one&#39;s share of it. Treatment is inside Service. Retail is aimed at '+S.retail+'%, so the shares can add to more than 100%.','What net take is')}</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th class="rel">Utilisation ${ibw('<b>Utilisation</b> the plan asks for: the hours the clients need over the hours the team can give. A bottom-up % puts more clients in the same hours, so it lifts this by the same %. The line under shows it before the bottom-up.','What utilisation is')}</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
   ['SAA','KCA','MC','AQ'].forEach(b=>{
     const br=rows.filter(r=>r.p[0]===b);
     ['HAIR','BEAUTY'].forEach(tm=>{
@@ -998,13 +1037,13 @@ function tsv(){
   const rows=build();
   const lines=[];
   if(st.view==='PERSON'){
-    lines.push(['Branch','Person','Designation','Status','Planned days','Bottom-up %','Low','Target','High','Service','Treatment','Retail','Clients','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
+    lines.push(['Branch','Person','Designation','Status','Planned days','Bottom-up %','Low','Target','High','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
     visible(rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team))).forEach(r=>{
-      lines.push([BN[r.p[0]],r.p[1],r.p[3],(r.leave?'On leave this month':badge[r.status][0]),r.dLow??r.planned??'',r.bu||0,r.low??'',r.med??'',r.high??'',r.service??'',r.treat??'',r.retail??'',r.clients??'',r.clientsRaw??'',r.billNeed??'',r.med!=null?r.avgBill:'',r.act&&r.act.tpct!=null?r.act.tpct.toFixed(1):'',r.act&&r.act.rpct!=null?r.act.rpct.toFixed(1):'',r.act&&r.act.bill?Math.round(r.act.bill):''].join('\t'));
+      lines.push([BN[r.p[0]],r.p[1],r.p[3],(r.leave?'On leave this month':badge[r.status][0]),r.dLow??r.planned??'',r.bu||0,r.low??'',r.med??'',r.high??'',r.service??'',r.treat??'',r.retail??'',r.clients??'',r.uAvail?Math.round(r.uNeed/r.uAvail*100):'',r.clientsRaw??'',r.billNeed??'',r.med!=null?r.avgBill:'',r.act&&r.act.tpct!=null?r.act.tpct.toFixed(1):'',r.act&&r.act.rpct!=null?r.act.rpct.toFixed(1):'',r.act&&r.act.bill?Math.round(r.act.bill):''].join('\t'));
     });
   }else{
-    lines.push(['Branch','Team','People','Low','Target','Top-down','Bottom-up %','High','Service','Treatment','Retail','Reception retail','Clients','Sep delivered'].join('\t'));
-    const row=(b,tm,t,rv)=>lines.push([b,tm,t.n,t.low,t.plan,t.top,t.top?((t.plan/t.top-1)*100).toFixed(1):'',t.high,t.service,t.treat,t.retail,rv||0,t.clients,t.sep].join('\t'));
+    lines.push(['Branch','Team','People','Low','Target','Top-down','Bottom-up %','High','Service','Treatment','Retail','Reception retail','Clients','Utilisation %','Sep delivered'].join('\t'));
+    const row=(b,tm,t,rv)=>lines.push([b,tm,t.n,t.low,t.plan,t.top,t.top?((t.plan/t.top-1)*100).toFixed(1):'',t.high,t.service,t.treat,t.retail,rv||0,t.clients,utilOf(t)??'',t.sep].join('\t'));
     ['SAA','KCA','MC','AQ'].forEach(b=>{
       const br=rows.filter(r=>r.p[0]===b);
       ['HAIR','BEAUTY'].forEach(tm=>{const t=sumRows(br.filter(r=>r.p[2]===tm));if(t.n)row(BN[b],tm==='HAIR'?'Hair':'Beauty',t);});
@@ -1075,6 +1114,13 @@ try{
   if(gb.length===1&&BN[gb[0]]){st.branch=gb[0];document.querySelectorAll('#segBranch button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===gb[0]));}
 }catch(e){}
 if(location.hash==='#by-branch'){st.view='BRANCH';document.querySelectorAll('#segView button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==='BRANCH'));}
+try{
+  const qb=(QP.get('branch')||'').toUpperCase(),qt=(QP.get('team')||'').toUpperCase(),qv=(QP.get('view')||'').toLowerCase();
+  const press=(id,v)=>document.querySelectorAll('#'+id+' button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===v));
+  if(BN[qb]){st.branch=qb;press('segBranch',qb);}
+  if(qt==='HAIR'||qt==='BEAUTY'){st.team=qt;press('segTeam',qt);}
+  if(qv==='by-branch'||qv==='by-person'){st.view=qv==='by-branch'?'BRANCH':'PERSON';press('segView',st.view);}
+}catch(e){}
 loadBu();
 render();
 loadAct();
