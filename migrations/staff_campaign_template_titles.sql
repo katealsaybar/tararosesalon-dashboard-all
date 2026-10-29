@@ -5,3 +5,6 @@ update public.staff_cmp_templates set footer = 'Tara Rose Salons', body = E'*Cam
 where key = 'heads_up' and not approved and body not like '*Campaign heads-up*%';
 update public.staff_cmp_templates set footer = 'Tara Rose Salons', body = E'*Campaign update*\n\n' || body
 where key = 'live' and not approved and body not like '*Campaign update*%';
+
+-- Kate, 29 Oct 2026: the link line of the live template reads "Everything is in here: {{4}}" (her wording).
+update public.staff_cmp_templates set body = replace(body, 'Everything is here: {{4}}', 'Everything is in here: {{4}}') where key = 'live' and not approved;
