@@ -20,7 +20,9 @@
 //   - tagged events (migrations/complaint_people_assign.sql): copied people get ONE message, WhatsApp first, email only if WhatsApp fails or there is no
 //     number. Tags to the same person within tag_batch_minutes (10) become one message; tags between 10 pm and 9 am wait until 9 am (not for urgent ones);
 //   - assigned events: the person it was assigned to is told, the 3 hour clock has already stopped;
-//   - the minor daily summary goes to Kate (all) and each coordinator (her branch).
+//   - the minor daily summary goes to Kate (all) and each coordinator (her branch);
+//   - 31 Oct 2026: until the templates are approved the buttons are one tap links in the text (I've got this, Not mine, Open it): the page does the action
+//     when it opens (?a=claim or ?a=pass).
 //
 // DRY RUN (complaint_triage_config.dry_run, on by default): every message goes only to dry_run_to (Kate) with "Dry run, would go to NAME" in front,
 // every step lasts dry_minutes instead of the real time, tags batch over dry_minutes, and quiet hours are not applied, so a test can be seen at any hour.
@@ -203,20 +205,24 @@ const linkOf = (cfg: Cfg, id: number) => `${cfg.link_base}/hub/complaint?cid=${i
 const branchName = (c: Cmp) => BRANCH[c.branch_code || ""] || c.branch_code || "the salon";
 const kindName = (c: Cmp) => KIND[c.complaint_type || ""] || "client";
 const codeOf = (c: Cmp) => (c.code ? ` (${c.code})` : "");
+// WhatsApp buttons only come with an approved template (docs/COMPLAINT-WHATSAPP-TEMPLATES.md). Until then each button is a one tap link: the page does the
+// action when it opens (a=claim, a=pass), once the person is signed in. Not for a skin reaction or injury: everyone has it at once, so no "Not mine".
+const taps = (cfg: Cfg, c: Cmp, pass: boolean) =>
+  `I've got this: ${linkOf(cfg, c.id)}&a=claim\n` + (pass ? `Not mine, pass it on: ${linkOf(cfg, c.id)}&a=pass\n` : "") + `Open it: ${linkOf(cfg, c.id)}`;
 
 // ------------------------------------------------------------ the messages (wording from the approved mockup; templates: docs/COMPLAINT-WHATSAPP-TEMPLATES.md)
 const hoursWord = (mins: number) => (mins >= 60 ? Math.round(mins / 60) + " hours" : mins + " minutes");
 const msg = {
   alert: (cfg: Cfg, c: Cmp, r: Rec, next: string | null, mins: number) =>
     `Hi ${nm(r)}, a client complaint came in at ${branchName(c)}${codeOf(c)}. It is about ${kindName(c)}, so it is yours to look at first.\n\n` +
-    `Take it, or pass it on if it is not yours: ${linkOf(cfg, c.id)}\n` +
+    `${taps(cfg, c, true)}\n\n` +
     (next ? `If nobody takes it in ${hoursWord(mins)} it moves to ${next}.` : "If nobody takes it, it comes back to Kate."),
   urgent: (cfg: Cfg, c: Cmp, r: Rec) =>
     `Hi ${nm(r)}, a skin reaction or injury was logged at ${branchName(c)}${codeOf(c)}. This one needs a person, not just a message.\n\n` +
-    `Please take it now: ${linkOf(cfg, c.id)}\nEveryone on the list got this at the same time. The first to take it stops the rest.`,
+    `${taps(cfg, c, false)}\n\nEveryone on the list got this at the same time. The first to take it stops the rest.`,
   escalated: (cfg: Cfg, c: Cmp, r: Rec, why: string) =>
     `Hi ${nm(r)}, a ${kindName(c)} complaint at ${branchName(c)}${codeOf(c)} is now with you. ${why}\n\n` +
-    `Take it, or pass it on if it is not yours: ${linkOf(cfg, c.id)}`,
+    `${taps(cfg, c, true)}`,
   fyi: (cfg: Cfg, c: Cmp, r: Rec, line: string) =>
     `Hi ${nm(r)}, a client complaint at ${branchName(c)}${codeOf(c)} has something for you to see. ${line}\n\nThere is nothing you need to do now. See how it is going: ${linkOf(cfg, c.id)}`,
   fyiMany: (cfg: Cfg, r: Rec, codes: string[]) =>

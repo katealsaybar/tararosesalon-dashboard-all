@@ -2,7 +2,7 @@
 
 Create these in respond.io: Settings, Channels, the backup number (channel 569496), Message Templates. Nothing is created yet. Until they are approved, the worker sends the same words as plain text, which only reaches someone who wrote to that number in the last 24 hours.
 
-For all of them: category **Utility**, language **English (UK), en_GB**, footer **Tara Rose Salons**. The wording below is the same as the plain text the worker already sends, so nothing changes for the reader when we switch.
+For all of them: category **Utility**, language **English (UK), en_GB**, footer **Tara Rose Salons**. The wording below is the same as the plain text the worker already sends, except the buttons. Until the templates are approved, the plain text carries the buttons as three one tap links (`I've got this`, `Not mine, pass it on`, `Open it`): the page does the action when it opens. Real buttons need an approved template.
 
 Rules respond.io and Meta apply: a variable cannot be at the very start or end of the body, a variable cannot hold a new line, and a button link can have one variable, at the end.
 

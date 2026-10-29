@@ -501,6 +501,15 @@ button.tk-pill{cursor:pointer}
     if (r.error || !r.data) return notOpen();
     S.c = r.data;
     draw(S.c);
+    // a one tap link from the WhatsApp message (?a=claim or ?a=pass): do it once, now that the person is signed in and the page has loaded
+    var act = P.get('a');
+    if (act && !S.acted) {
+      S.acted = true;
+      history.replaceState(null, '', location.pathname + '?cid=' + cid);
+      var btn = main.querySelector('button[data-a="' + act + '"]');
+      if (btn && (act === 'claim' || act === 'pass')) btn.click();
+      else main.insertAdjacentHTML('afterbegin', '<div class="cp-tagline" style="max-width:1040px;margin:0 auto 12px">That one is not waiting for you any more. Someone may have taken it, or it moved on to the next person.</div>');
+    }
     if (S.c.tagged_me) { KB.client.rpc('cmp_seen', { p_id: cid }); }
   }
 
