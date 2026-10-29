@@ -139,6 +139,10 @@
     { key: 'card-links', dept: 'People', title: 'Staff Card Links', href: '/hub/card-links', live: true, rule: 'var(--accent-mint)',
       blurb: 'A link for every stylist and beautician’s card, by branch, ready to paste into WhatsApp.' },
     // Kate, 3 Oct 2026: who can sign in, for Level 3 and up (kb_sections.min_level 3), view only.
+    // Kate, 29 Oct 2026: tell the team about a campaign on WhatsApp before it launches (Level 5 only,
+    // kb_sections 'staff-campaign', migrations/staff_campaign_send.sql).
+    { key: 'staff-campaign', dept: 'Marketing', title: 'Staff Campaign Messages', href: '/hub/staff-campaign', live: true, rule: 'var(--accent-butter)',
+      blurb: 'Tell the team about a campaign on WhatsApp before it launches.' },
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
     // Kate, 28 Oct 2026: which dashboard pages each level opens, as tick boxes (Level 5 only; saved in public.page_access, defaults from pages.js).

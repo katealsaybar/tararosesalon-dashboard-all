@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Staff Campaign Messages · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=d5913c31">
+<style>
+/* Kate, 29 Oct 2026: tell the team about a campaign on WhatsApp before it launches. Level 5 only. */
+.sc-card{margin:16px 0;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.sc-card h2{margin:0 0 4px;font-size:18px}
+.sc-sub{margin:0 0 12px;font-size:13px;color:var(--muted2)}
+.sc-status{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:14px}
+.sc-pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.04em}
+.sc-on{background:#E3F2E9;color:#1E6B45}.sc-off{background:#F4E1DF;color:#9A2A22}
+.sc-ok{color:#1E6B45}.sc-no{color:#9A2A22}
+.sc-btn{font:inherit;font-size:13.5px;font-weight:600;padding:9px 18px;min-height:40px;border-radius:999px;border:1px solid var(--text);background:transparent;color:var(--text);cursor:pointer}
+.sc-btn.sc-go{background:var(--text);color:var(--bg)}
+.sc-btn:disabled{opacity:.5;cursor:default}
+.sc-tpl{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.sc-tpl label{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:999px;font-size:14px;cursor:pointer}
+.sc-tpl input:checked + span{font-weight:700}
+.sc-form{display:grid;gap:12px}
+.sc-form label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted2)}
+.sc-form input,.sc-form textarea{font:inherit;font-size:15px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:100%;box-sizing:border-box}
+.sc-form textarea{min-height:76px;resize:vertical}
+.sc-form .sc-hint{font-size:12px;color:var(--muted2)}
+.sc-prev{white-space:pre-wrap;font-size:14.5px;line-height:1.5;padding:14px 16px;border-radius:14px;background:var(--bg);border:1px dashed var(--border)}
+.sc-prev small{display:block;margin-top:8px;color:var(--muted2);font-size:12px}
+.sc-ppl{display:grid;gap:14px}
+.sc-grp h3{margin:0 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);font-weight:600}
+.sc-grp ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 14px}
+.sc-grp li label{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;min-height:36px}
+.sc-grp li.sc-blocked label{color:var(--muted2);text-decoration:line-through}
+.sc-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.sc-msg{font-size:14px;margin:10px 0 0}
+.sc-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px;font-size:13.5px}
+.sc-list .sc-err{color:#9A2A22}
+.sc-bar{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;margin-top:8px}
+</style>
+</head>
+<body>
+<!-- Kate, 29 Oct 2026. Level 5 only (kb_sections 'staff-campaign', min_level 5; the database functions check Level 5 again).
+     No phone number or name list is in this file or in anything it loads: the page sees names and counts, and the numbers stay in the database
+     (migrations/staff_campaign_send.sql, supabase/functions/staff-campaign-worker). -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=3823f956"></script>
+<script src="/assets/theme-fade.js"></script>
+<script src="/hub/hub.js?v=7909a108"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain'), esc = KB.esc;
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
+  // The three campaign pages. The link fills in when a campaign is picked; it can always be typed over.
+  var CAMPAIGNS = {
+    'Blonde Standard': 'https://trk-salon-os.com/campaigns/blonde-standard/',
+    'The Hair Rhythm': 'https://trk-salon-os.com/campaigns/hair-rhythm/',
+    'Hair Extension Plan': 'https://trk-salon-os.com/campaigns/hair-extension-plan/'
+  };
+  var TEAMS = ['Hair', 'Beauty', 'Receptionist', 'Assistant', 'Call Centre', 'Office/Admin', 'Management and office'];
+  var info = null, tkey = 'heads_up', campaignKey = '', timer = null;
+
+  function notFound() {
+    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+  }
+  async function rpc(name, args) {
+    var r = await KB.client.rpc(name, args || {});
+    if (r.error) throw new Error(r.error.message);
+    return r.data;
+  }
+  function tpl() { return info.templates.filter(function (t) { return t.key === tkey; })[0]; }
+  function val(id) { return (document.getElementById(id) || { value: '' }).value.trim(); }
+  // What goes into the template's {{n}} slots, by name. first_name is filled per person by the database.
+  function vars() {
+    return { campaign_name: val('scName'), launch_day: val('scDay'), pitch: val('scPitch'), note: val('scPitch'), link: val('scLink') };
+  }
+  function preview() {
+    var t = tpl(), v = vars();
+    v.first_name = 'Kate';
+    var text = t.body;
+    t.vars.forEach(function (n, i) { text = text.split('{{' + (i + 1) + '}}').join(v[n] || '[' + n.replace('_', ' ') + ']'); });
+    document.getElementById('scPrev').innerHTML = esc(text) + (t.footer ? '<small>' + esc(t.footer) + '</small>' : '');
+  }
+  function checked() {
+    return Array.prototype.map.call(document.querySelectorAll('.sc-ppl input[type=checkbox]:checked'), function (c) { return Number(c.value); });
+  }
+  function refreshSend() {
+    var n = checked().length, t = tpl(), ready = info.enabled && t.approved && n > 0 && val('scName') && val('scLink') && (val('scPitch')) && (tkey === 'live' || val('scDay'));
+    var b = document.getElementById('scSend');
+    b.textContent = 'Send to ' + n + ' staff';
+    b.disabled = !ready;
+    document.getElementById('scWhy').textContent = !info.enabled ? 'Sending to staff is switched off.' : !t.approved ? 'This template is not approved in Meta yet.' : '';
+  }
+  function draw() {
+    var t = tpl();
+    var groups = {};
+    info.people.forEach(function (p) { (groups[p.team] = groups[p.team] || []).push(p); });
+    var order = TEAMS.filter(function (g) { return groups[g]; }).concat(Object.keys(groups).filter(function (g) { return TEAMS.indexOf(g) < 0; }));
+    main.innerHTML =
+      '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p>' + KB.titleIcon('marketing', 'Staff Campaign Messages') +
+      '<p class="kb-meta">Tell the team about a campaign on WhatsApp before it launches, so they never hear it first from Instagram. Level 5 only.</p>' +
+      '<section class="sc-card"><div class="sc-status">' +
+        '<span>Sending to staff <span class="sc-pill ' + (info.enabled ? 'sc-on' : 'sc-off') + '">' + (info.enabled ? 'ON' : 'OFF') + '</span></span>' +
+        '<span>From: ' + esc(info.channel_label) + '</span>' +
+        '<span>Window: ' + info.hour_from + ':00 to ' + info.hour_to + ':00 Dubai</span>' +
+        '<button type="button" class="sc-btn" id="scSwitch">' + (info.enabled ? 'Switch off' : 'Switch on') + '</button></div>' +
+        '<p class="sc-sub" style="margin-top:10px">Templates: ' + info.templates.map(function (x) {
+          return esc(x.respond_name) + ' <b class="' + (x.approved ? 'sc-ok' : 'sc-no') + '">' + (x.approved ? 'approved' : 'not approved yet') + '</b>';
+        }).join(' · ') + '</p></section>' +
+      '<section class="sc-card"><h2>The message</h2><p class="sc-sub">Pick the message, fill the blanks, check the preview.</p>' +
+        '<div class="sc-tpl" id="scTpl">' + info.templates.map(function (x) {
+          return '<label><input type="radio" name="scT" value="' + esc(x.key) + '"' + (x.key === tkey ? ' checked' : '') + '><span>' +
+            (x.key === 'heads_up' ? 'Heads-up before launch' : 'It is live today') + '</span></label>';
+        }).join('') + '</div>' +
+        '<div class="sc-form">' +
+          '<label>Campaign<input type="text" id="scName" list="scCamps" autocomplete="off" placeholder="Blonde Standard"><datalist id="scCamps">' +
+            Object.keys(CAMPAIGNS).map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist></label>' +
+          '<label id="scDayL">Launch day<input type="text" id="scDay" autocomplete="off" placeholder="Monday 3 November"></label>' +
+          '<label><span id="scPitchT">One line on the campaign</span><textarea id="scPitch" maxlength="240"></textarea>' +
+            '<span class="sc-hint">One short paragraph, no line breaks.</span></label>' +
+          '<label>Link for the team<input type="url" id="scLink" autocomplete="off" placeholder="https://trk-salon-os.com/campaigns/..."></label>' +
+        '</div></section>' +
+      '<section class="sc-card"><h2>Preview</h2><div class="sc-prev" id="scPrev"></div>' +
+        '<div class="sc-row"><button type="button" class="sc-btn" id="scTest">Send a test to my number</button>' +
+          '<button type="button" class="sc-btn" id="scTestText">Test as plain text</button></div>' +
+        '<p class="sc-sub" style="margin-top:8px">The test goes to your own number only, from the same backup number. “Plain text” only arrives if you have messaged that number in the last 24 hours; use it before the template is approved.</p>' +
+        '<p class="sc-msg" id="scTestMsg"></p></section>' +
+      '<section class="sc-card"><h2>Who gets it</h2><p class="sc-sub">Everyone is ticked except people who have left or are not salon staff (crossed out).</p>' +
+        '<div class="sc-row" style="margin:0 0 10px"><button type="button" class="sc-btn" id="scAll">Tick all</button><button type="button" class="sc-btn" id="scNone">Untick all</button></div>' +
+        '<div class="sc-ppl">' + order.map(function (g) {
+          return '<div class="sc-grp"><h3>' + esc(g) + ' (' + groups[g].length + ')</h3><ul>' + groups[g].map(function (p) {
+            return '<li class="' + (p.blocked ? 'sc-blocked' : '') + '"><label><input type="checkbox" value="' + p.id + '"' + (p.blocked ? ' disabled' : ' checked') + '> ' + esc(p.name) + '</label></li>';
+          }).join('') + '</ul></div>';
+        }).join('') + '</div>' +
+        '<div class="sc-row"><button type="button" class="sc-btn sc-go" id="scSend">Send</button><span class="sc-sub" id="scWhy" style="margin:0"></span></div>' +
+        '<p class="sc-msg" id="scSendMsg"></p><div id="scProg"></div></section>';
+
+    // wiring
+    document.getElementById('scTpl').addEventListener('change', function (e) { tkey = e.target.value; sync(); });
+    ['scName', 'scDay', 'scPitch', 'scLink'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { preview(); refreshSend(); }); });
+    document.getElementById('scName').addEventListener('change', function () {
+      var l = CAMPAIGNS[val('scName')]; if (l && !val('scLink')) { document.getElementById('scLink').value = l; preview(); refreshSend(); }
+    });
+    document.querySelector('.sc-ppl').addEventListener('change', refreshSend);
+    document.getElementById('scAll').onclick = function () { document.querySelectorAll('.sc-ppl input:not(:disabled)').forEach(function (c) { c.checked = true; }); refreshSend(); };
+    document.getElementById('scNone').onclick = function () { document.querySelectorAll('.sc-ppl input').forEach(function (c) { c.checked = false; }); refreshSend(); };
+    document.getElementById('scSwitch').onclick = switchIt;
+    document.getElementById('scTest').onclick = function () { test('template'); };
+    document.getElementById('scTestText').onclick = function () { test('text'); };
+    document.getElementById('scSend').onclick = send;
+    sync();
+  }
+  function sync() {
+    var live = tkey === 'live';
+    document.getElementById('scDayL').style.display = live ? 'none' : '';
+    document.getElementById('scPitchT').textContent = live ? 'One line for the team today' : 'One line on the campaign';
+    preview(); refreshSend();
+  }
+  async function switchIt() {
+    var turnOn = !info.enabled;
+    if (!confirm(turnOn ? 'Switch ON? Messages you send from this page then go to the team on WhatsApp.' : 'Switch OFF? Queued messages stop going out.')) return;
+    try { info = await rpc('staff_cmp_config_set', { p_patch: { enabled: turnOn } }); draw(); }
+    catch (e) { alert('Not changed: ' + e.message); }
+  }
+  async function run() {   // one pass of the sender; the cron does the same every minute
+    try { await KB.client.functions.invoke('staff-campaign-worker', { body: {} }); } catch (e) { /* the cron picks it up */ }
+  }
+  async function test(mode) {
+    var msg = document.getElementById('scTestMsg');
+    var t = tpl();
+    if (!val('scName') || !val('scLink') || !val('scPitch') || (tkey !== 'live' && !val('scDay'))) { msg.textContent = 'Fill in the blanks first.'; return; }
+    msg.textContent = 'Sending…';
+    try {
+      var id = await rpc('staff_cmp_test', { p_tkey: t.key, p_vars: vars(), p_mode: mode });
+      await run();
+      for (var i = 0; i < 8; i++) {
+        var r = await rpc('staff_cmp_test_get', { p_id: id });
+        if (r && r.status === 'sent') { msg.textContent = 'Sent to your number. Check WhatsApp.'; return; }
+        if (r && (r.status === 'failed' || r.status === 'skipped')) { msg.textContent = 'Not sent: ' + (r.error || r.status); return; }
+        await new Promise(function (ok) { setTimeout(ok, 2000); });
+        if (i === 3) await run();
+      }
+      msg.textContent = 'Still queued. It goes out within a minute.';
+    } catch (e) { msg.textContent = 'Not sent: ' + e.message; }
+  }
+  async function send() {
+    var ids = checked(), t = tpl(), msg = document.getElementById('scSendMsg');
+    if (!ids.length) return;
+    if (!confirm('Send “' + val('scName') + '” (' + (t.key === 'live' ? 'it is live' : 'heads-up') + ') to ' + ids.length + ' people on WhatsApp now? Check the preview and send a test first.')) return;
+    document.getElementById('scSend').disabled = true;
+    try {
+      var r = await rpc('staff_cmp_enqueue', { p_campaign: val('scName'), p_tkey: t.key, p_vars: vars(), p_ids: ids });
+      campaignKey = r.campaign;
+      msg.textContent = r.queued + ' queued' + (r.skipped.length ? ', ' + r.skipped.length + ' left out (' + r.skipped.map(function (s) { return s.name + ': ' + s.reason; }).join('; ') + ')' : '') + '.';
+      await run(); progress();
+    } catch (e) { msg.textContent = 'Not sent: ' + e.message; refreshSend(); }
+  }
+  async function progress() {
+    clearTimeout(timer);
+    if (!campaignKey) return;
+    var box = document.getElementById('scProg'); if (!box) return;
+    try {
+      var d = await rpc('staff_cmp_jobs_get', { p_campaign: campaignKey }), c = d.counts || {};
+      var open = (c.queued || 0) + (c.sending || 0);
+      box.innerHTML = '<div class="sc-bar"><span>Sent <b>' + (c.sent || 0) + '</b></span><span>Waiting <b>' + open + '</b></span><span>Failed <b>' + (c.failed || 0) + '</b></span><span>Skipped <b>' + (c.skipped || 0) + '</b></span></div>' +
+        '<ul class="sc-list">' + d.jobs.filter(function (j) { return j.status === 'failed' || j.status === 'skipped'; }).map(function (j) {
+          return '<li><b>' + esc(j.name) + '</b> <span class="sc-err">' + esc(j.error || j.status) + '</span> ' + (j.status === 'failed' ? '<button type="button" class="sc-btn" data-retry="' + j.id + '">Retry</button>' : '') + '</li>';
+        }).join('') + '</ul>' + (open ? '<div class="sc-row"><button type="button" class="sc-btn" id="scCancel">Stop the ones still waiting</button></div>' : '');
+      box.querySelectorAll('[data-retry]').forEach(function (b) { b.onclick = async function () { b.disabled = true; await rpc('staff_cmp_retry', { p_ids: [Number(b.dataset.retry)] }); await run(); progress(); }; });
+      var cb = document.getElementById('scCancel');
+      if (cb) cb.onclick = async function () { await rpc('staff_cmp_cancel', { p_campaign: campaignKey }); progress(); };
+      if (open) timer = setTimeout(function () { run().then(progress); }, 6000);
+    } catch (e) { box.textContent = 'Could not read progress: ' + e.message; }
+  }
+
+  KB.ready.then(async function () {
+    if (KB.level !== 5 || KB.allowed.indexOf('staff-campaign') < 0) { notFound(); return; }   // also "View as" below Level 5
+    try { info = await rpc('staff_cmp_info'); } catch (e) { notFound(); return; }
+    draw();
+  });
+})();
+</script>
+</body>
+</html>
