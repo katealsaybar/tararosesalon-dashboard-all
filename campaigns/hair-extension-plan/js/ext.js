@@ -63,6 +63,8 @@
     var upd=function(){
       var pastHero=hero?(hero.getBoundingClientRect().bottom<40):(window.scrollY>500);
       var rv=false; if(reserve){ var r=reserve.getBoundingClientRect(); rv=r.top<window.innerHeight&&r.bottom>0; }
+      /* the floating button also steps aside while a plan card's own Reserve button is on screen, so it never sits on top of the card */
+      if(!rv){ var ps=document.querySelectorAll('.door .pill'); for(var i=0;i<ps.length;i++){ var pb=ps[i].getBoundingClientRect(); if(pb.bottom>0&&pb.top<window.innerHeight){ rv=true; break; } } }
       var show=pastHero&&!rv;
       fc.classList.toggle('show',show); fc.setAttribute('aria-hidden',show?'false':'true');
       var l=fc.querySelector('a'); if(l) l.tabIndex=show?0:-1;
