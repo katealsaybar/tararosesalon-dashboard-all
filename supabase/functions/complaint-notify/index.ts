@@ -116,6 +116,22 @@ async function sendWhatsApp(r: Rec, phone: string, a: Alert) {
   });
 }
 
+// respond.io accepts a message and fails it afterwards (for example "Messaging window has been closed" when plain text goes outside the 24 hour
+// window), so a 200 is not delivery. Look at the newest message to this phone a few seconds later and treat a failed status as a failure.
+async function checkDelivery(phone: string) {
+  await new Promise((res) => setTimeout(res, 4000));
+  const who = encodeURIComponent("phone:" + phoneE164(phone));
+  const c = await fetch(RESPOND_API + "/contact/" + who, { headers: { Authorization: "Bearer " + RESPOND_TOKEN } });
+  if (!c.ok) return;
+  const id = (await c.json()).id;
+  const m = await fetch(RESPOND_API + "/contact/id:" + id + "/message/list?limit=1", { headers: { Authorization: "Bearer " + RESPOND_TOKEN } });
+  if (!m.ok) return;
+  const list = await m.json();
+  const last = (list.items || list.data || [])[0];
+  const failed = last && last.traffic === "outgoing" && (last.status || []).find((s: any) => s.value === "failed");
+  if (failed) throw new Error("not delivered: " + String(failed.message || "failed"));
+}
+
 async function deliver(r: Rec, complaintId: number | null, subject: string, text: string, html: string, a: Alert) {
   const out: string[] = [];
   if (r.email_on && r.email) {
@@ -130,7 +146,7 @@ async function deliver(r: Rec, complaintId: number | null, subject: string, text
   if (r.wa_on && phone) {
     if (!RESPOND_TOKEN) { await log(complaintId, r.name, "whatsapp", "skipped", "RESPOND_TOKEN not set"); out.push("whatsapp skipped"); }
     else {
-      try { await sendWhatsApp(r, phone, a); await log(complaintId, r.name, "whatsapp", "sent"); out.push("whatsapp sent"); }
+      try { await sendWhatsApp(r, phone, a); await checkDelivery(phone); await log(complaintId, r.name, "whatsapp", "sent"); out.push("whatsapp sent"); }
       catch (e) { await log(complaintId, r.name, "whatsapp", "failed", String((e as Error).message || e)); out.push("whatsapp failed"); }
     }
   }
