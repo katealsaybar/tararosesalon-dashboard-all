@@ -722,7 +722,7 @@ function renderTiles(sel,all){
       `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
   };
   const netAct=A&&teamAll?sum(selB,'net'):null,pace=netAct!=null?netAct/el:null;
-  const svcAct=A&&teamAll?sum(selB,'svc'):null,retAct=A&&teamAll?sum(selB,'ret'):null,visAct=A&&teamAll?sum(selB,'visits'):null;
+  const svcAct=A&&teamAll?sum(selB,'svc'):null,retAct=A&&teamAll?sum(selB,'ret'):null,rcvAct=A&&teamAll?sum(selB,'ret_recv'):null,stfRetAct=retAct!=null?retAct-rcvAct:null,visAct=A&&teamAll?sum(selB,'visits'):null;
   const trAct=A&&(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
   const rv=teamAll?(st.branch==='ALL'?BR4:[st.branch]).reduce((a,b)=>a+recvOf(b),0):0,retTgt=t.retail+rv;
   const verdict=scoped?'The 1.7M floor and 1.8M aim are for all four branches together, so there is no verdict for this selection.':`Target ${fmt(gTot)}. Break-even floor 1.7M: ${gTot>=BREAK_EVEN[0]?'above by '+fmt(gTot-BREAK_EVEN[0]):'below by '+fmt(BREAK_EVEN[0]-gTot)}. Aim 1.8M: ${gTot>=BREAK_EVEN[1]?'above by '+fmt(gTot-BREAK_EVEN[1]):'below by '+fmt(BREAK_EVEN[1]-gTot)}.`;
@@ -744,8 +744,8 @@ function renderTiles(sel,all){
     row('Total net take',netAct,gTot,true,netNote,tipNet)+
     row('Services and treatment',svcAct,t.plan,false,planNote,tipSvc)+
     row('Retail',retAct,retTgt,false,'',tipRet)+
-    (rv?row('Staff retail',null,t.retail,false,'',`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = <b>${fmt(t.retail)}</b>. Stylists and beauticians only.`,true)+
-        row('Reception retail (BUSINESS TRS)',null,rv,false,'',`<b>Target</b> is what the front desk sells, the retail rung to BUSINESS TRS in Phorest, which belongs to no stylist: the August to October monthly average, kept flat = <b>${fmt(rv)}</b>.`,true):'')+
+    (rv?row('Staff retail',stfRetAct,t.retail,false,'',`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = <b>${fmt(t.retail)}</b>. Stylists and beauticians only.${A?`<br><b>Actual</b> is the branch retail in the ledgers minus the reception retail, ${upto2}.`:''}`,true)+
+        row('Reception retail (BUSINESS TRS)',rcvAct,rv,false,'',`<b>Target</b> is what the front desk sells, the retail rung to BUSINESS TRS in Phorest, which belongs to no stylist: the August to October monthly average, kept flat = <b>${fmt(rv)}</b>.${A?`<br><b>Actual</b> is the retail rung to BUSINESS TRS in the staff daily reports, ${upto2}.`:''}`,true):'')+
     row('Treatment (hair)',trAct,st.team==='BEAUTY'?null:trTgt,false,'',tipTr)+
     row('Clients',visAct,t.clients,false,'',tipCl)+
     (A&&!teamAll?`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`:'')+`</div>`;
