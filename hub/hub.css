@@ -288,17 +288,50 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-pager a:hover{border-color:var(--text)}
 .kb-pager small{display:block;color:var(--muted2);font-size:12px}
 .kb-pager .next{text-align:right;margin-left:auto}
+/* ── Mini sidebar (Kate, 29 Oct 2026): ONE look for every page that has one, taken from the dashboard's own rail
+   (index.html .side-k / .side-nav, jump-nav.css). From 1100px it is a 172px column: a small bold label over a rule, then the
+   links with a 2px rule on the left that lights the open one. Narrower it lies down into a row of pill chips, the open one
+   outlined. .kb-shell-wide keeps the chips until 1400px, as the dashboard does for its widest tables. ── */
+.kb-shell>*{min-width:0}
+.kb-side-nav{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;padding:0 0 14px}
+.kb-side-k{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);padding:0 4px 0 0}
+.kb-side-nav a{position:relative;padding:4px 12px;border:1px solid var(--border);border-radius:999px;font-size:13px;line-height:1.35;color:var(--text);text-decoration:none;white-space:nowrap;
+  transition:color 160ms var(--ease),border-color 160ms var(--ease)}
+.kb-side-nav a::after{content:"";position:absolute;left:0;right:0;top:50%;height:44px;transform:translateY(-50%)}
+@media(hover:hover){.kb-side-nav a:hover{border-color:var(--accent)}}
+.kb-side-nav a.on{border-color:var(--text);font-weight:600}
+.kb-side-nav a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+@media(min-width:1100px){
+  .kb-shell:not(.kb-shell-wide){display:grid;grid-template-columns:172px minmax(0,1fr);gap:46px;align-items:start}
+  .kb-shell:not(.kb-shell-wide)>.kb-side{position:sticky;top:calc(var(--kb-top,76px) + 24px)}
+}
+@media(min-width:1400px){
+  .kb-shell-wide{display:grid;grid-template-columns:172px minmax(0,1fr);gap:46px;align-items:start}
+  .kb-shell-wide>.kb-side{position:sticky;top:calc(var(--kb-top,76px) + 24px)}
+}
+@media(min-width:1100px){.kb-shell:not(.kb-shell-wide) .kb-side-nav{display:block;padding:0}
+  .kb-shell:not(.kb-shell-wide) .kb-side-k{display:block;padding:0 0 9px;border-bottom:1px solid var(--text)}
+  .kb-shell:not(.kb-shell-wide) .kb-side-nav a{display:block;padding:8px 0 8px 13px;border:0;border-left:2px solid var(--border2);border-radius:0;font-size:14px;color:var(--muted);white-space:normal}
+  .kb-shell:not(.kb-shell-wide) .kb-side-nav a.on{color:var(--text);border-left-color:var(--text)}
+  .kb-shell:not(.kb-shell-wide) .kb-side-nav a::after{display:none}}
+@media(min-width:1400px){.kb-shell-wide .kb-side-nav{display:block;padding:0}
+  .kb-shell-wide .kb-side-k{display:block;padding:0 0 9px;border-bottom:1px solid var(--text)}
+  .kb-shell-wide .kb-side-nav a{display:block;padding:8px 0 8px 13px;border:0;border-left:2px solid var(--border2);border-radius:0;font-size:14px;color:var(--muted);white-space:normal}
+  .kb-shell-wide .kb-side-nav a.on{color:var(--text);border-left-color:var(--text)}
+  .kb-shell-wide .kb-side-nav a::after{display:none}}
+@media print{.kb-side{display:none}}
+
 /* ── Reader (Kate, 1 Oct 2026): chapters down the side ── */
 .kb-reader{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;align-items:start}
 .kb-toc{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;padding:4px 4px 12px 0}
-.kb-toc summary{list-style:none;cursor:default;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);font-weight:600;margin:0 0 6px}
+.kb-toc summary{list-style:none;cursor:default;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);font-weight:700;margin:0 0 4px;padding-bottom:9px;border-bottom:1px solid var(--text)}
 .kb-toc summary::-webkit-details-marker{display:none}
 .kb-toc summary span{letter-spacing:0;font-weight:500}
 .kb-toc-g{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin:14px 0 4px}
 .kb-toc ul{list-style:none;margin:0;padding:0}
-.kb-toc a{display:block;padding:5px 10px;border-radius:8px;font-size:14px;line-height:1.35;text-decoration:none;color:var(--muted)}
-.kb-toc a:hover{background:var(--surface2);color:var(--text)}
-.kb-toc a.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:inset 3px 0 0 var(--accent-mint)}
+.kb-toc a{display:block;padding:8px 0 8px 13px;border-left:2px solid var(--border2);font-size:14px;line-height:1.35;text-decoration:none;color:var(--muted)}
+@media(hover:hover){.kb-toc a:hover{color:var(--text)}}
+.kb-toc a.on{color:var(--text);font-weight:600;border-left-color:var(--text)}
 .kb-read{min-width:0;max-width:860px}
 .kb-read .kb-pager{max-width:none}
 @media (max-width:900px){

@@ -51,8 +51,8 @@
   // Kate, 29 Oct 2026: the mini sidebar on both pages, so the two ways in are always one tap apart.
   function rail(cur) {
     function a(k, href, label) { return '<a href="' + href + '"' + (cur === k ? ' class="on" aria-current="page"' : '') + '>' + label + '</a>'; }
-    return '<div class="mx-railcol"><nav class="mx-rail" aria-label="Client matching"><span class="mx-rail-t">Client matching</span>' +
-      a('find', '/hub/find-stylist', 'Find a stylist for her') + a('grid', '/hub/matching', 'Full checklist') + '</nav></div>';
+    return '<aside class="kb-side"><nav class="kb-side-nav" aria-label="Client matching"><div class="kb-side-k">Client matching</div>' +
+      a('find', '/hub/find-stylist', 'Find a stylist for her') + a('grid', '/hub/matching', 'Full checklist') + '</nav></aside>';
   }
   async function rpc(name, args) { var r = await KB.client.rpc(name, args || {}); if (r.error) throw r.error; return r.data; }
   async function load() {
@@ -147,7 +147,7 @@
       app.innerHTML = h;
     }
     function reset() { st = {br: null, brAny: false, cat: null, svc: null, vibe: null, vibeAny: false, style: null}; }
-    main.innerHTML = '<div class="mx-shell">' + rail('find') + '<div class="mx mx-find"><div class="mx-doc">' +
+    main.innerHTML = '<div class="kb-shell">' + rail('find') + '<div class="mx mx-find"><div class="mx-doc">' +
       '<p class="mx-eyebrow">Team Home · Clients</p><h1>Find a stylist for her</h1>' +
       '<p class="mx-lead">Three quick questions, and it gives you the names to offer her. Want to check who does what? Open the <a href="/hub/matching">full checklist</a>.</p>' +
       '<div class="mx-trail" id="mxTrail"></div><div id="mxApp"></div><p class="mx-foot" id="mxLast"></p></div></div></div>';
@@ -529,7 +529,7 @@
     }
 
     /* ----- build the page ----- */
-    main.innerHTML = '<div class="mx-shell">' + rail('grid') + '<div class="mx">' +
+    main.innerHTML = '<div class="kb-shell kb-shell-wide">' + rail('grid') + '<div class="mx">' +
       '<div class="mx-mast"><div class="mx-frow"><span class="mx-flbl" id="mxBl">Branch</span><div class="mx-chipset" role="group" aria-labelledby="mxBl" id="mxBranch"></div></div></div>' +
       '<div class="mx-head"><div><p class="mx-eyebrow">Team Home · Clients</p><h1>Who does what</h1>' +
       '<p class="mx-lead">A tick means she does it, or it is her style. Click a heading to filter or sort. Click a name to open her card. Just need a name? <a href="/hub/find-stylist">Find a stylist for her</a>.</p></div>' +
