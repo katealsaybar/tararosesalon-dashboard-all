@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Staff Payroll WhatsApp · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=d5913c31">
+<style>
+/* Kate, 29 Oct 2026: payroll WhatsApp to staff, Level 5 only. */
+.sm-card{margin:14px 0;padding:16px 18px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.sm-card h2{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);font-weight:600;margin:0 0 10px}
+.sm-row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.sm-pill{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:999px}
+.sm-on{background:rgba(46,125,91,.15);color:#2E7D5B}.sm-off{background:rgba(179,38,30,.12);color:#B3261E}
+.sm-btn{font:inherit;font-size:13.5px;font-weight:600;padding:9px 18px;min-height:40px;border-radius:999px;border:1px solid var(--text);background:transparent;color:var(--text);cursor:pointer}
+.sm-btn.go{background:var(--text);color:var(--bg)}
+.sm-btn:disabled{opacity:.5;cursor:default}
+.sm-btn.sm{font-size:12px;padding:4px 12px;min-height:30px;border-color:var(--border)}
+.sm-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.sm-fields label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted2)}
+.sm-fields input,.sm-fields select,.sm-fields textarea,.sm-txt{font:inherit;font-size:14px;padding:9px 11px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:100%}
+.sm-prev{white-space:pre-wrap;margin:12px 0 0;padding:14px 16px;border-radius:14px;background:var(--surface2);font-size:14.5px;line-height:1.55}
+.sm-note{font-size:13px;color:var(--muted);margin:8px 0 0}
+.sm-warn{color:var(--warn);background:var(--warn-bg);padding:8px 12px;border-radius:10px;font-size:13px;margin:10px 0 0}
+.sm-grp{border-top:1px solid var(--border2);padding:10px 0}
+.sm-grp summary{cursor:pointer;display:flex;align-items:center;gap:10px;min-height:36px;font-weight:600;list-style:none}
+.sm-grp summary::-webkit-details-marker{display:none}
+.sm-grp summary::before{content:'+';width:16px;color:var(--muted)}
+.sm-grp[open] summary::before{content:'−'}
+.sm-n{font-weight:400;color:var(--muted2);font-size:13px}
+.sm-ppl{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px 18px;margin:6px 0 0 26px}
+.sm-ppl label{display:flex;align-items:center;gap:8px;min-height:34px;font-size:14px;cursor:pointer}
+.sm-ppl label.off{opacity:.5}
+.sm-ppl input{width:18px;height:18px;flex:none}
+.sm-tog{margin-left:auto;font:inherit;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer}
+.sm-log{width:100%;border-collapse:collapse;font-size:13.5px}
+.sm-log td,.sm-log th{text-align:left;padding:7px 8px;border-top:1px solid var(--border2);vertical-align:top}
+.sm-log th{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);font-weight:600;border-top:0}
+.sm-st-sent{color:#2E7D5B;font-weight:600}.sm-st-failed{color:#B3261E;font-weight:600}.sm-st-queued,.sm-st-sending{color:var(--warn)}
+.sm-err{display:block;color:var(--muted2);font-size:12px}
+@media (max-width:760px){.sm-card{padding:14px}.sm-ppl{margin-left:0}.sm-log .sm-hide{display:none}}
+</style>
+</head>
+<body class="kb-wait">
+<!-- Staff Payroll WhatsApp (Kate, 29 Oct 2026). Level 5 only (kb_sections 'staff-wa'; every database function checks Level 5 again).
+     Queues payroll messages (payslip ready, payroll reminder, salary processed) to staff; the staff-wa-worker edge function sends them through respond.io
+     on the BACKUP WhatsApp number (channel 569496), as Meta-approved templates only. migrations/staff_wa.sql. No number, name or token is in this file. -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=3823f956"></script>
+<script src="/assets/theme-fade.js"></script>
+<script src="/hub/hub.js?v=6cbb18a6"></script>
+<script src="/visits.js?v=1176426c"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain'), esc = KB.esc, info = null, picked = {}, timer = null, TEAM_ORDER = ['Management & Office', 'Hair', 'Beauty', 'Receptionist', 'Assistant', 'Office/Admin', 'Call Centre', 'Other'];
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
+  function notFound() {
+    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
+  }
+  function say(el, msg, bad) { el.textContent = msg || ''; el.style.color = bad ? '#B3261E' : ''; }
+  function render(body, params) { return params.reduce(function (s, p, i) { return s.split('{{' + (i + 1) + '}}').join(p); }, body); }
+  function tpl() { return info.templates.filter(function (t) { return t.kind === 'payroll'; }); }
+  function curT() { var k = document.getElementById('smT').value; return tpl().filter(function (t) { return t.key === k; })[0]; }
+  function varsNow() {
+    var v = {}; main.querySelectorAll('[data-var]').forEach(function (i) { v[i.dataset.var] = i.value.trim(); }); return v;
+  }
+  function labelOf(v) { return ({ month: 'Month, e.g. October 2026', item: 'What we need, e.g. your timesheet', deadline: 'By when, e.g. Friday 6 November', pay_date: 'Pay date, e.g. Monday 2 November' })[v] || v; }
+
+  function drawFields() {
+    var t = curT();
+    if (!t) return;
+    document.getElementById('smFields').innerHTML = t.vars.filter(function (v) { return v !== 'first_name'; }).map(function (v) {
+      return '<label>' + esc(labelOf(v)) + '<input data-var="' + esc(v) + '" autocomplete="off" maxlength="120"></label>';
+    }).join('');
+    main.querySelectorAll('[data-var]').forEach(function (i) { i.addEventListener('input', drawPrev); });
+    document.getElementById('smAppr').innerHTML = t.approved ? '' : '<p class="sm-warn">This message is waiting for Meta’s approval (template <b>' + esc(t.respond_name) + '</b> in respond.io, Backup number). Nothing can be sent with it until it is approved and switched on here.</p>';
+    drawPrev(); drawCount();
+  }
+  function drawPrev() {
+    var t = curT(); if (!t) return;
+    var v = varsNow(), first = 'Sample';
+    var params = t.vars.map(function (n) { return n === 'first_name' ? first : (v[n] || '[' + n + ']'); });
+    document.getElementById('smPrev').textContent = render(t.body, params);
+  }
+  function peopleBy() {
+    var g = {};
+    info.staff.forEach(function (p) { (g[p.team] = g[p.team] || []).push(p); });
+    return Object.keys(g).sort(function (a, b) { var x = TEAM_ORDER.indexOf(a), y = TEAM_ORDER.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); }).map(function (k) { return [k, g[k]]; });
+  }
+  function drawPeople() {
+    document.getElementById('smPeople').innerHTML = peopleBy().map(function (g) {
+      var ppl = g[1], ok = ppl.filter(function (p) { return p.wa_payroll; });
+      return '<details class="sm-grp" open data-g="' + esc(g[0]) + '"><summary>' + esc(g[0]) + ' <span class="sm-n">' + ppl.length + '</span>' +
+        '<button type="button" class="sm-btn sm" data-all="' + esc(g[0]) + '" style="margin-left:auto">Tick all</button></summary><div class="sm-ppl">' +
+        ppl.map(function (p) {
+          return '<label class="' + (p.wa_payroll ? '' : 'off') + '"><input type="checkbox" data-id="' + p.id + '"' + (picked[p.id] ? ' checked' : '') + (p.wa_payroll ? '' : ' disabled') + '>' +
+            '<span>' + esc(p.name) + (p.branch ? ' <span class="sm-n">' + esc(p.branch) + '</span>' : '') + '</span>' +
+            '<button type="button" class="sm-tog" data-tog="' + p.id + '" data-on="' + (p.wa_payroll ? 1 : 0) + '">' + (p.wa_payroll ? 'Leave out' : 'Include') + '</button></label>';
+        }).join('') + '</div></details>';
+    }).join('');
+  }
+  function drawCount() {
+    var n = Object.keys(picked).filter(function (k) { return picked[k]; }).length, t = curT();
+    var b = document.getElementById('smSend');
+    b.textContent = 'Queue for ' + n + (n === 1 ? ' person' : ' people');
+    b.disabled = !n || !t || !t.approved || !info.enabled;
+    var h = document.getElementById('smSendHint');
+    h.textContent = !info.enabled ? 'Sending is switched off. Switch it on above first.' : (t && !t.approved ? 'This message is not approved in Meta yet.' : '');
+  }
+  function drawStatus() {
+    var el = document.getElementById('smStatus');
+    el.innerHTML = '<div class="sm-row"><span class="sm-pill ' + (info.enabled ? 'sm-on' : 'sm-off') + '">Sending ' + (info.enabled ? 'on' : 'off') + '</span>' +
+      '<button type="button" class="sm-btn" id="smSw">' + (info.enabled ? 'Switch off' : 'Switch on') + '</button>' +
+      '<span class="sm-n">From the Backup WhatsApp number · ' + info.used_today + ' of ' + info.daily_cap + ' today · sends between ' + info.hour_from + ':00 and ' + info.hour_to + ':00 Dubai time (now ' + info.dubai_hour + ':00)</span></div>';
+    document.getElementById('smSw').addEventListener('click', async function () {
+      var b = this;
+      if (!info.enabled && !confirm('Switch sending ON? Queued payroll messages then go out to staff.')) return;
+      b.disabled = true;
+      var r = await KB.client.rpc('staff_wa_config_set', { p_patch: { enabled: !info.enabled } });
+      if (r.error) { alert('Not changed: ' + r.error.message); b.disabled = false; return; }
+      info = r.data; drawStatus(); drawCount();
+    });
+  }
+  async function kick() { try { await KB.client.functions.invoke('staff-wa-worker', { body: {} }); } catch (e) { /* the cron picks it up */ } }
+  async function drawLog() {
+    var r = await KB.client.rpc('staff_wa_jobs_get', { p_batch: null });
+    var el = document.getElementById('smLog');
+    if (r.error) { el.textContent = r.error.message; return; }
+    var rows = r.data || [], busy = rows.some(function (j) { return j.status === 'queued' || j.status === 'sending'; });
+    el.innerHTML = rows.length ? '<table class="sm-log"><tr><th>Who</th><th>Message</th><th>Status</th><th class="sm-hide">When</th><th></th></tr>' + rows.slice(0, 120).map(function (j) {
+      var when = j.sent_at || j.requested_at;
+      return '<tr><td>' + esc(j.name) + (j.is_test ? ' <span class="sm-n">test</span>' : '') + '</td><td>' + esc(j.batch === 'test' ? (j.tkey || 'plain text') : j.batch) + '</td>' +
+        '<td><span class="sm-st-' + esc(j.status) + '">' + esc(j.status) + '</span>' + (j.error ? '<span class="sm-err">' + esc(j.error) + '</span>' : '') + '</td>' +
+        '<td class="sm-hide">' + esc(new Date(when).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Dubai' })) + '</td>' +
+        '<td>' + (j.status === 'queued' ? '<button type="button" class="sm-btn sm" data-cancel="' + j.id + '">Cancel</button>' : j.status === 'failed' && !j.is_test ? '<button type="button" class="sm-btn sm" data-retry="' + j.id + '">Retry</button>' : '') + '</td></tr>';
+    }).join('') + '</table>' : '<p class="sm-note">Nothing sent yet.</p>';
+    clearTimeout(timer);
+    if (busy) timer = setTimeout(drawLog, 8000);
+  }
+  async function reload() { var r = await KB.client.rpc('staff_wa_info'); if (!r.error && r.data) { info = r.data; drawStatus(); drawPeople(); drawCount(); } }
+
+  KB.ready.then(async function () {
+    if (KB.level !== 5 || KB.allowed.indexOf('staff-wa') < 0) { notFound(); return; }   // also "View as" below Level 5
+    var r = await KB.client.rpc('staff_wa_info');
+    if (r.error || !r.data) { notFound(); return; }
+    info = r.data;
+    main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a> › Staff Payroll WhatsApp</p>' +
+      '<h1 style="font-family:\'Playfair Display\',serif;font-weight:500;margin:6px 0 4px">Staff Payroll WhatsApp</h1>' +
+      '<p class="sm-note" style="margin:0 0 6px">Payroll messages to the team on WhatsApp, from the Backup number. Only approved messages can go. No amounts are ever in the message.</p>' +
+      '<div class="sm-card" id="smStatus"></div>' +
+      '<div class="sm-card"><h2>1 · The message</h2><label style="font-size:12px;color:var(--muted2)">Which message<select id="smT" class="sm-txt" aria-label="Which message"></select></label>' +
+        '<div class="sm-fields" id="smFields"></div><div id="smAppr"></div><div class="sm-prev" id="smPrev"></div></div>' +
+      '<div class="sm-card"><h2>2 · Who</h2><div class="sm-row"><button type="button" class="sm-btn sm" id="smAll">Tick everyone</button><button type="button" class="sm-btn sm" id="smNone">Clear</button></div><div id="smPeople"></div></div>' +
+      '<div class="sm-card"><h2>3 · Send</h2><div class="sm-fields"><label>Name this send (so it is never sent twice)<input id="smBatch" maxlength="60" autocomplete="off"></label></div>' +
+        '<div class="sm-row" style="margin-top:12px"><button type="button" class="sm-btn go" id="smSend">Queue</button><button type="button" class="sm-btn" id="smTest">Send a test to me</button><span class="sm-note" id="smSendHint" style="margin:0"></span></div>' +
+        '<p class="sm-note" id="smMsg"></p>' +
+        '<details style="margin-top:10px"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Check the pipeline with plain text (works in the 24 hours after you wrote to the Backup number)</summary>' +
+        '<div class="sm-fields"><label>Plain text to me<textarea id="smPlain" rows="3" maxlength="500">Test from the dashboard. If you can read this, the Backup number works.</textarea></label></div>' +
+        '<div class="sm-row" style="margin-top:8px"><button type="button" class="sm-btn" id="smPlainGo">Send plain test to me</button></div></details></div>' +
+      '<div class="sm-card"><h2>Activity</h2><div id="smLog"></div></div>';
+    var d = new Date(), mo = d.toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Dubai' });
+    document.getElementById('smBatch').value = 'payroll ' + mo.toLowerCase();
+    var sel = document.getElementById('smT');
+    sel.innerHTML = tpl().map(function (t) { return '<option value="' + esc(t.key) + '">' + esc(t.label) + (t.approved ? '' : ' (waiting for Meta)') + '</option>'; }).join('');
+    KB.pillDD(sel);
+    sel.addEventListener('change', drawFields);
+    drawStatus(); drawFields(); drawPeople(); drawLog();
+
+    document.getElementById('smPeople').addEventListener('change', function (e) {
+      var c = e.target.closest('input[data-id]'); if (!c) return;
+      picked[c.dataset.id] = c.checked; drawCount();
+    });
+    document.getElementById('smPeople').addEventListener('click', async function (e) {
+      var a = e.target.closest('[data-all]');
+      if (a) {
+        e.preventDefault();
+        var g = peopleBy().filter(function (x) { return x[0] === a.dataset.all; })[0];
+        var all = g[1].filter(function (p) { return p.wa_payroll; }), on = !all.every(function (p) { return picked[p.id]; });
+        all.forEach(function (p) { picked[p.id] = on; }); drawPeople(); drawCount(); return;
+      }
+      var t = e.target.closest('[data-tog]');
+      if (t) {
+        e.preventDefault();
+        var id = Number(t.dataset.tog), on = t.dataset.on === '1';
+        var who = info.staff.filter(function (p) { return p.id === id; })[0];
+        if (!confirm((on ? 'Leave ' : 'Include ') + who.name + (on ? ' out of' : ' in') + ' payroll messages?')) return;
+        var r2 = await KB.client.rpc('staff_wa_recipient_set', { p_id: id, p_payroll: !on, p_campaign: null });
+        if (r2.error) { alert('Not changed: ' + r2.error.message); return; }
+        picked[id] = false; await reload();
+      }
+    });
+    document.getElementById('smAll').addEventListener('click', function () { info.staff.forEach(function (p) { if (p.wa_payroll) picked[p.id] = true; }); drawPeople(); drawCount(); });
+    document.getElementById('smNone').addEventListener('click', function () { picked = {}; drawPeople(); drawCount(); });
+
+    document.getElementById('smSend').addEventListener('click', async function () {
+      var t = curT(), ids = Object.keys(picked).filter(function (k) { return picked[k]; }).map(Number), msg = document.getElementById('smMsg'), b = this;
+      var batch = document.getElementById('smBatch').value.trim();
+      if (!t || !ids.length || !batch) return;
+      if (!confirm('Queue "' + t.label + '" for ' + ids.length + ' people? They are sent at once (inside the send window).')) return;
+      b.disabled = true; say(msg, 'Queuing…');
+      var r2 = await KB.client.rpc('staff_wa_enqueue', { p_tkey: t.key, p_batch: batch, p_staff_ids: ids, p_vars: varsNow() });
+      if (r2.error) { say(msg, r2.error.message, true); drawCount(); return; }
+      var sk = r2.data.skipped || [];
+      say(msg, 'Queued ' + r2.data.queued + '.' + (sk.length ? ' Not queued: ' + sk.slice(0, 6).map(function (s) { return s.name + ' (' + s.reason + ')'; }).join(', ') + (sk.length > 6 ? ' and ' + (sk.length - 6) + ' more' : '') + '.' : ''));
+      picked = {}; drawPeople(); drawCount(); kick(); setTimeout(drawLog, 2500); await reload();
+    });
+    async function runTest(tk, text, btn) {
+      var msg = document.getElementById('smMsg'); btn.disabled = true; say(msg, 'Sending a test to you…');
+      var r2 = await KB.client.rpc('staff_wa_test', { p_tkey: tk, p_vars: varsNow(), p_text: text });
+      if (r2.error) { say(msg, r2.error.message, true); btn.disabled = false; return; }
+      await kick();
+      for (var i = 0; i < 8; i++) {
+        await new Promise(function (ok) { setTimeout(ok, 2000); });
+        var g = await KB.client.rpc('staff_wa_test_get', { p_id: r2.data });
+        if (g.data && g.data.status !== 'queued' && g.data.status !== 'sending') { say(msg, g.data.status === 'sent' ? 'Test sent. Check your WhatsApp.' : 'Test ' + g.data.status + ': ' + (g.data.error || ''), g.data.status !== 'sent'); break; }
+      }
+      btn.disabled = false; drawLog();
+    }
+    document.getElementById('smTest').addEventListener('click', function () {
+      var t = curT();
+      if (!t || !t.approved) { say(document.getElementById('smMsg'), 'This message is not approved in Meta yet. Use the plain text check below to test the pipeline.', true); return; }
+      runTest(t.key, null, this);
+    });
+    document.getElementById('smPlainGo').addEventListener('click', function () { runTest('', document.getElementById('smPlain').value, this); });
+    document.getElementById('smLog').addEventListener('click', async function (e) {
+      var c = e.target.closest('[data-cancel]'), r3 = e.target.closest('[data-retry]');
+      if (c) { await KB.client.rpc('staff_wa_cancel', { p_ids: [Number(c.dataset.cancel)] }); drawLog(); }
+      if (r3) { if (!confirm('This one may already have gone. Look in respond.io first. Retry anyway?')) return; await KB.client.rpc('staff_wa_retry', { p_ids: [Number(r3.dataset.retry)] }); kick(); drawLog(); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

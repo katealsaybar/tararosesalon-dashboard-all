@@ -150,7 +150,10 @@
       blurb: 'Tick the reports each level can open: Team, Leadership, Executives and Accounts.' },
 
     { key: 'uploads', dept: 'Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
-      blurb: 'Payslips, and the uploads that feed the dashboard.' }
+      blurb: 'Payslips, and the uploads that feed the dashboard.' },
+    // Kate, 29 Oct 2026: payroll messages to staff on WhatsApp (Level 5 only, kb_sections 'staff-wa', migrations/staff_wa.sql).
+    { key: 'staff-wa', dept: 'Admin', title: 'Staff Payroll WhatsApp', href: '/hub/staff-messages', live: true, rule: 'var(--accent-mint)',
+      blurb: 'Payslip and payroll messages to the team, from the Backup WhatsApp number.' }
   ];
   // A shortcut row shows when its `via` section is open to this person and they are at
   // its `min` level; every other row when kb_access() opened its own key.
