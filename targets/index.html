@@ -350,7 +350,7 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
       <dt>Three numbers</dt><dd>High is what we could sell if nobody took leave. Low is what we sell with the leave we have. The target sits in the middle, so it is a goal that still looks real. The gap between low and high is what missing staff cost.</dd>
       <dt>If we do nothing</dt><dd>Targets stay as guesses, and the business can be planned below break-even, which is AED 1.7 to 1.8 million a month.</dd>
     </dl>
-    <p class="ww-foot"><span>Try it: change a person's days, or add a bottom-up %. Then tap <b>Why this?</b> on any row.</span><a href="/targets/how/">How a target is made</a><button class="copy" id="wwDone" type="button">Got it, hide this</button></p>
+    <p class="ww-foot"><span>Try it: change a person's days, or add an adjustment %. Then tap <b>Why this?</b> on any row.</span><a href="/targets/how/">How a target is made</a><button class="copy" id="wwDone" type="button">Got it, hide this</button></p>
   </details>
 
   <div class="tiles" id="tiles"></div>
@@ -364,7 +364,7 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
       <label><span>Joiner<small>% of the regulars' median</small></span><input class="f" id="pJoin" type="number" min="30" max="100" step="5" value="70"></label>
       <label><span>Average bill for clients<small>from the level</small></span><select id="pBill"><option value="1">Level aim</option><option value="0">Level minimum</option></select></label>
       <label><span>Joiner cap<small>how a joiner's plan is capped</small></span><select id="pCap"><option value="1">Lower of 70% and own pace</option><option value="0">70% only</option></select></label>
-      <label><span>Utilisation for the clients cap<small>% of her hours, 80 to 90 is fine</small></span><input class="f" id="pUtil" type="number" min="50" max="100" step="1" value="85"></label>
+      <label><span>Bottom-up productivity<small>% of her hours that earn, 85 is our benchmark. Also caps her clients</small></span><input class="f" id="pUtil" type="number" min="50" max="100" step="1" value="85"></label>
       <label><span>Clients held to her hours<small>or plan divided by the average bill</small></span><select id="pClCap"><option value="1">Yes, at that utilisation</option><option value="0">No</option></select></label>
       <label><span>Retail we sell today<small>% for the net take check</small></span><input class="f" id="pRetailNow" type="number" min="0" max="40" step="1" value="5"></label>
     </div>
@@ -377,7 +377,7 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
     <div class="head"><div><div class="eyebrow" id="secEyebrow">Person by person</div><h2 style="margin-top:6px" id="secTitle">The month, split up</h2></div>
       <span><button class="copy" id="btnCopy">Copy for Sheets</button><span class="copied" id="copied" hidden>Copied</span></span></div>
     <p class="why" id="secWhy"></p>
-    <div class="sft" id="sfTools"><span id="sfNote"></span><span class="sfbulk">Bottom-up % <span id="buTipP"></span> for the <b id="sfN">0</b> shown: <input class="days" id="buAll" type="number" min="-50" max="100" step="0.1" placeholder="%" aria-label="Bottom-up percent for every person shown"> <button class="copy" id="buApply" type="button">Apply</button> <button class="copy" id="buZero" type="button">Set to 0</button> <span id="buDone" role="status"></span></span><button class="copy sfopen" id="sfOpen" type="button">Sort and filter</button></div>
+    <div class="sft" id="sfTools"><span id="sfNote"></span><span class="sfbulk">Adjustment % <span id="buTipP"></span> for the <b id="sfN">0</b> shown: <input class="days" id="buAll" type="number" min="-50" max="100" step="0.1" placeholder="%" aria-label="Adjustment percent for every person shown"> <button class="copy" id="buApply" type="button">Apply</button> <button class="copy" id="buZero" type="button">Set to 0</button> <span id="buDone" role="status"></span></span><button class="copy sfopen" id="sfOpen" type="button">Sort and filter</button></div>
     <div class="tw"><table class="t" id="tbl"></table></div>
   </section>
 
@@ -460,10 +460,10 @@ const days={};
    the August to October monthly average, saved in rules.recv by month ({"11": {"SAA": 4400, ...}}). It is added to the branch and group retail, never to a person. */
 const BR4=['SAA','KCA','MC','AQ'];
 const recvOf=b=>(((RULES.recv||{})[S.month]||{})[b])||0;
-/* bottom-up check (Mette, 22 Oct): % added to or taken off a person's plan for staffing the history cannot see, e.g. a new starter with a guest book. Default 0. */
+/* adjustment % (Mette's 22 Oct bottom-up check, renamed 29 Oct when bottom-up came to mean productivity): % added to or taken off a person's plan for staffing the history cannot see, e.g. a new starter with a guest book. Default 0. */
 const bu={};
 const keyOf=p=>p[0]+'|'+p[1];
-/* Kate, 27 Oct 2026: bottom-up % is saved per month and person (rules.bu in target_calc_snapshot, written by target_calc_set_bu, Level 3 and 5 only), so it is still there next time. */
+/* Kate, 27 Oct 2026: adjustment % (rules.bu) is saved per month and person (rules.bu in target_calc_snapshot, written by target_calc_set_bu, Level 3 and 5 only), so it is still there next time. */
 const BU_SAVED=RULES.bu||{};let buErr='';
 /* actual so far this month (financial_totals and phorest_staff_daily, through target_calc_actuals, Level 3 and 5): cached per month, the tiles fall back to the plain ones when there is none */
 const ACTM={};
@@ -477,7 +477,7 @@ function loadBu(){Object.keys(bu).forEach(k=>delete bu[k]);const m=BU_SAVED[S.mo
 async function saveBu(i,v){
   const k=keyOf(P[i]),m=(BU_SAVED[S.month]=BU_SAVED[S.month]||{});m[k]=v;
   try{const r=await KB.client.rpc('target_calc_set_bu',{p_month:S.month,p_key:k,p_pct:v});if(r.error)throw r.error;buErr='';}
-  catch(err){buErr='The bottom-up % for '+P[i][1]+' was not saved ('+(err&&err.message||err)+'). It shows here until you reload.';}
+  catch(err){buErr='The adjustment % for '+P[i][1]+' was not saved ('+(err&&err.message||err)+'). It shows here until you reload.';}
   renderEdits();
 }
 function mData(p,m){
@@ -599,11 +599,13 @@ function build(){
     }
     r.billNeed=r.clients?Math.round(r.plan/r.clients):null;
     /* Kate, 29 Oct 2026: utilisation the plan asks for. Hours she can give = the days the middle plan needs x her hours a day. Hours the clients need = plan / average bill x her hours a client.
-       A bottom-up % puts more clients in the same hours, so it lifts utilisation by the same %. */
-    r.uNeed=r.uNeedTop=r.uAvail=null;
+       An adjustment % puts more clients in the same hours, so it lifts utilisation by the same %. */
+    r.uNeed=r.uNeedTop=r.uAvail=r.bcap=null;
     if(h&&h[3]>0&&h[2]>0&&h[1]>0&&r.adj&&!r.grp&&!r.cover&&r.topDown!=null&&r.avgBill){
       const hd=h[0]/h[3],hc=h[1]/h[2];
       r.uAvail=r.topDown/r.adj*hd;r.uNeedTop=r.topDown/r.avgBill*hc;r.uNeed=r.plan/r.avgBill*hc;
+      /* Kate, 29 Oct 2026 (Mette): bottom-up = the same hours at the benchmark productivity (S.util, 85) x her average bill per hour. */
+      r.bcap=Math.round(r.uAvail*(S.util/100)*r.avgBill/hc);
     }
   });
   return rows;
@@ -614,18 +616,18 @@ const badge={regular:['Regular','good'],joiner:['Joiner','on'],left:['Short mont
 const flagged=r=>['none','left','part'].includes(r.status);
 
 function sumRows(list){
-  const t={n:0,low:0,plan:0,high:0,service:0,treat:0,retail:0,clients:0,sep:0,loaded:0,top:0,uN:0,uT:0,uA:0};
+  const t={n:0,low:0,plan:0,high:0,service:0,treat:0,retail:0,clients:0,sep:0,loaded:0,top:0,uN:0,uT:0,uA:0,bc:0,bp:0};
   list.forEach(r=>{
     if(r.med==null)return;
     t.n++;t.low+=r.low;t.plan+=r.med;t.top+=(r.topDown!=null?r.topDown:r.med);t.high+=r.high;t.service+=r.service;t.treat+=r.treat;t.retail+=r.retail;t.clients+=r.clients;
     t.sep+=r.p[5][1];t.loaded+=r.loaded;
-    if(r.uAvail){t.uN+=r.uNeed;t.uT+=r.uNeedTop;t.uA+=r.uAvail;}
+    if(r.uAvail){t.uN+=r.uNeed;t.uT+=r.uNeedTop;t.uA+=r.uAvail;t.bc+=r.bcap;t.bp+=r.med;}
   });
   return t;
 }
 const pct=(a,b)=>b?((a/b-1)*100):null;
 const utilOf=t=>t.uA>0?Math.round(t.uN/t.uA*100):null,utilTop=t=>t.uA>0?Math.round(t.uT/t.uA*100):null;
-const utilNote=t=>{const a=utilOf(t),b=utilTop(t);return a!=null&&b!=null&&a!==b?`<span class="rng">was ${b}% before bottom-up, ${a>b?'+':''}${a-b} pts</span>`:'';};
+const utilNote=t=>{const a=utilOf(t),b=utilTop(t);return a!=null&&b!=null&&a!==b?`<span class="rng">was ${b}% before the adjustment, ${a>b?'+':''}${a-b} pts</span>`:'';};
 const sgn=v=>v==null?'n/a':(v>=0?'+':'')+v.toFixed(1)+'%';
 const sgnA=v=>(v>=0?'+':'')+fmt(v);
 const band=v=>v==null?'na':Math.abs(v)<=5?'good':Math.abs(v)<=15?'warn':'bad';
@@ -724,11 +726,12 @@ function render(){
 
 /* Break-even floor and aim for the whole business per month, AED (Coach Emma, 22 Oct: "over 1.7 to 1.8, otherwise we are targeting for less than break-even") */
 const BREAK_EVEN=[1700000,1800000];
-/* Kate, 27 Oct 2026: what the bottom-up % is, on hover, beside the bulk box and the By branch column */
-const TIP_BU_P=`<b>Bottom-up %</b> is your own adjustment to the target.<br>Target 100,000 and more people in than usual? Type 10 and it becomes 110,000. Fewer people? Type -10 for 90,000.<br>The hours stay the same, so more clients lift the Utilisation by the same %: see the Utilisation column.`;
-const TIP_BU_B=`<b>Bottom-up</b> is what your own adjustments add to or take off the target, shown as a % and in AED.<br>No adjustment reads +0.0%. Set it in By person.<br>The Utilisation column shows what it does to the hours: the same hours, more clients.`;
+/* Kate, 27 Oct 2026: what the adjustment % is, on hover, beside the bulk box and the By branch column */
+const TIP_BU_P=`<b>Adjustment %</b> is your own change to the target, for what the past cannot see.<br>Target 100,000 and more people in than usual? Type 10 and it becomes 110,000. Fewer people? Type -10 for 90,000. Tenths are fine: 2.5.<br>The hours stay the same, so more clients lift the Utilisation by the same %. The Bottom-up column shows what those hours could earn at the benchmark productivity.`;
+const TIP_BU_B=`<b>Adjustment</b> is what your own % adds to or takes off the target, with the AED under it.<br>Type a % in the box to apply it to every person in that row, tenths are fine (2.5). No adjustment reads 0.<br>The Utilisation column shows what it does to the hours: the same hours, more clients.`;
+const TIP_BOT=()=>`<b>Bottom-up</b> starts from the hours: the hours the people in this row can give, ${S.util}% of them productive (our benchmark, set in the settings), priced at their average bill per hour.<br>It is what those hours could earn, and the % under it is against the target. If the target needs more than ${S.util}% of the hours, it asks too much of them.`;
 const TIP_RET_B=()=>`<b>Retail</b> on the Hair and Beauty rows is what the staff are asked to sell, ${S.retail}% of their plan.<br>On a branch or group row it also includes the reception retail: what the front desk sells (BUSINESS TRS in Phorest), the August to October monthly average, kept flat. It is not spread over the stylists.`;
-const ibw=(h,l)=>`<span class="ibw"><button class="ib" type="button" aria-expanded="false" aria-label="${l||'What bottom-up % is'}">i</button><span class="tip" role="tooltip">${h}</span></span>`;
+const ibw=(h,l)=>`<span class="ibw"><button class="ib" type="button" aria-expanded="false" aria-label="${l||'What the adjustment % is'}">i</button><span class="tip" role="tooltip">${h}</span></span>`;
 document.getElementById('buTipP').innerHTML=ibw(TIP_BU_P);
 function renderTiles(sel,all){
   const t=sumRows(sel);
@@ -756,23 +759,22 @@ function renderTiles(sel,all){
   const svcAct=A&&teamAll?sum(selB,'svc'):null,retAct=A&&teamAll?sum(selB,'ret'):null,rcvAct=A&&teamAll?sum(selB,'ret_recv'):null,stfRetAct=retAct!=null?retAct-rcvAct:null,visAct=A&&teamAll?sum(selB,'visits'):null;
   const uTgt=utilOf(t),uTop=utilTop(t),pc=v=>v+'%';
   const uAv=sum(selB,'util_av'),uUt=sum(selB,'util_ut'),uAct=A&&teamAll&&uAv>0?Math.round(uUt/uAv*100):null;
-  const uNote=uTgt!=null&&uTop!=null&&uTgt!==uTop?`<div class="abn s">Before the bottom-up the plan asks for ${uTop}% (the same hours and more clients: ${uTgt>uTop?'+':''}${uTgt-uTop} points).</div>`:'';
-  /* Kate, 29 Oct 2026 (Mette): bottom-up is a productivity check. At the benchmark utilisation (85%) the same hours earn plan x 85 / the utilisation the plan asks for. */
-  const uCap=uTgt?Math.round(t.plan*S.util/uTgt):null;
-  const uChk=uCap!=null?`<div class="abn s">Bottom-up check: at ${S.util}% utilisation these hours could earn about ${fmt(uCap)}, ${sgn((uCap/t.plan-1)*100)} on the plan of ${fmt(t.plan)}. The plan asks for ${uTgt}%.</div>`:'';
-  const tipUt=`<b>Target</b> is the utilisation the plan asks for: the hours the clients need (plan divided by the average bill, times the hours a client takes) over the hours she can give in the days the plan needs. Added up over the people shown = <b>${uTgt==null?'n/a':uTgt+'%'}</b>.<br>A bottom-up % puts more clients in the same hours, so it lifts this by the same %.<br><b>Actual</b> is booked hours over available hours in the utilisation reports, ${A?`1 to ${upto}`:'the month so far'}, hair and beauty on shift only (assistants, reception and office left out).`;
+  const uNote=uTgt!=null&&uTop!=null&&uTgt!==uTop?`<div class="abn s">Before the adjustment the plan asks for ${uTop}% (the same hours and more clients: ${uTgt>uTop?'+':''}${uTgt-uTop} points).</div>`:'';
+  /* Kate, 29 Oct 2026 (Mette): bottom-up is the productivity check. The same hours at the benchmark productivity, priced at the average bill per hour, against the target of the same people. */
+  const uChk=t.bc>0?`<div class="abn s">Bottom-up: at ${S.util}% productivity these hours could earn about ${fmt(t.bc)}, ${sgn((t.bc/t.bp-1)*100)} on the target of ${fmt(t.bp)}. The target asks for ${uTgt}% of the hours.</div>`:'';
+  const tipUt=`<b>Target</b> is the utilisation the plan asks for: the hours the clients need (plan divided by the average bill, times the hours a client takes) over the hours she can give in the days the plan needs. Added up over the people shown = <b>${uTgt==null?'n/a':uTgt+'%'}</b>.<br>An adjustment % puts more clients in the same hours, so it lifts this by the same %.<br><b>Bottom-up</b> is the same hours at ${S.util}% productivity: what they could earn, shown under the line.<br><b>Actual</b> is booked hours over available hours in the utilisation reports, ${A?`1 to ${upto}`:'the month so far'}, hair and beauty on shift only (assistants, reception and office left out).`;
   const trAct=A&&(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
   const rv=teamAll?(st.branch==='ALL'?BR4:[st.branch]).reduce((a,b)=>a+recvOf(b),0):0,retTgt=t.retail+rv;
   const verdict=scoped?'The 1.7M floor and 1.8M aim are for all four branches together, so there is no verdict for this selection.':`Target ${fmt(gTot)}. Break-even floor 1.7M: ${gTot>=BREAK_EVEN[0]?'above by '+fmt(gTot-BREAK_EVEN[0]):'below by '+fmt(BREAK_EVEN[0]-gTot)}. Aim 1.8M: ${gTot>=BREAK_EVEN[1]?'above by '+fmt(gTot-BREAK_EVEN[1]):'below by '+fmt(BREAK_EVEN[1]-gTot)}.`;
   const netNote=`<div class="abn">${pace!=null?`Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). `:''}${verdict}</div>`+
-    `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar+rv)}. Without retail ${fmt(nb.plan)}.${nb.plan!==nb.top?` Includes the bottom-up ${sgnA(nb.plan-nb.top)}.`:''}</div>`;
+    `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar+rv)}. Without retail ${fmt(nb.plan)}.${nb.plan!==nb.top?` Includes the adjustment ${sgnA(nb.plan-nb.top)}.`:''}</div>`;
   const planNote=t.plan!==t.top?
-    `<div class="abn s">Top-down ${fmt(t.top)}, the middle of low and high. Bottom-up ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Low ${fmt(t.low)}, high ${fmt(t.high)}.</div>`:
+    `<div class="abn s">Top-down ${fmt(t.top)}, the middle of low and high. Adjustment ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Low ${fmt(t.low)}, high ${fmt(t.high)}.</div>`:
     `<div class="abn s">The middle of low ${fmt(t.low)} and high ${fmt(t.high)}.</div>`;
   /* Kate, 27 Oct 2026: the i beside each line shows, on hover, how that line is worked out, with the numbers on the screen. */
   const upto2=A?`1 to ${upto}`:'the month so far';
   const tipNet=`The % under each line is its share of this Total net take, actual of the actual and target of the target. Retail is aimed at ${S.retail}% but the net take counts it at what we sell today (${S.retailNow}%), and treatment sits inside services, so the shares can add to more than 100%.<br><b>Actual</b> is the net take in the ledgers, ${upto2}: services, courses and retail, ${scoped?'for the branch shown':'all branches'}.<br><b>Target</b> is the services and treatment target ${fmt(nb.plan)} plus the retail we sell today (${S.retailNow}% of it, ${fmt(now)}) = <b>${fmt(gTot)}</b>.${A?`<br>The tick on the bar is how far the month has gone: ${A.elapsed} of ${A.days} days.`:''}`;
-  const tipSvc=`<b>Target</b> is every person's target added up = <b>${fmt(t.plan)}</b>.<br>One person: her average day (sales of the last 3 months divided by the days she worked) x the season (${MN[S.month-1]} against the months used) x her days. Low uses the days she is in, high uses nobody on leave, the target is the middle of the two${t.plan!==t.top?`, then the bottom-up % on top (${sgnA(t.plan-t.top)}).`:'.'}<br><b>Actual</b> is services and courses in the ledgers.`;
+  const tipSvc=`<b>Target</b> is every person's target added up = <b>${fmt(t.plan)}</b>.<br>One person: her average day (sales of the last 3 months divided by the days she worked) x the season (${MN[S.month-1]} against the months used) x her days. Low uses the days she is in, high uses nobody on leave, the target is the middle of the two${t.plan!==t.top?`, then the adjustment % on top (${sgnA(t.plan-t.top)}).`:'.'}<br><b>Actual</b> is services and courses in the ledgers.`;
   const tipRet=`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = ${fmt(t.retail)}.${rv?`<br>Plus the reception retail ${fmt(rv)}: what the front desk sells (BUSINESS TRS in Phorest), the August to October monthly average, kept flat. It belongs to the branch, not to a stylist. Total <b>${fmt(retTgt)}</b>.`:(teamAll?'':'<br>Reception retail has no hair or beauty split, so it is left out here.')}<br><b>Actual</b> is all retail in the ledgers, staff and reception.`;
   const tipTr=`<b>Target</b> is ${S.treat}% of each hair stylist's plan, added up = <b>${fmt(trTgt)}</b>. Beauty has no treatment line.<br><b>Actual</b> is hair treatment sales in the ledgers.`;
   const tipCl=`<b>Target</b>: each person's plan divided by the average bill of her level, held to the clients her hours can fit at ${S.util}% utilisation. Added up = <b>${fmt(t.clients)}</b>.<br><b>Actual</b> is visits from the staff daily reports, BUSINESS TRS left out.`;
@@ -817,7 +819,7 @@ function personRow(r){
   const ch=days[r.i]!=null;
   let h=`<tr class="p">${nameCell(r)}`+
    `<td data-l="Planned days">${has?`<input class="days${ch?' changed':''}" type="number" min="0" max="26" value="${r.dLow!=null?r.dLow:r.planned}" data-i="${r.i}" aria-label="Planned days for ${r.p[1]}">`:'n/a'}</td>`+
-   `<td data-l="Bottom-up %">${has?`<input class="days bu${r.bu?' changed':''}" type="number" min="-50" max="100" step="0.1" value="${r.bu}" data-i="${r.i}" aria-label="Bottom-up adjustment in percent for ${r.p[1]}">`:'n/a'}</td>`+
+   `<td data-l="Adjustment %">${has?`<input class="days bu${r.bu?' changed':''}" type="number" min="-50" max="100" step="0.1" value="${r.bu}" data-i="${r.i}" aria-label="Adjustment in percent for ${r.p[1]}">`:'n/a'}</td>`+
    `<td data-l="Low">${has?fmt(r.low):(r.cover?'0':'n/a')}</td>`+
    `<td data-l="Target" class="plan">${has?fmt(r.med):(r.cover?'0':'No plan')}</td>`+
    `<td data-l="High">${has?fmt(r.high):(r.cover?'0':'n/a')}</td>`+
@@ -825,7 +827,7 @@ function personRow(r){
    `<td data-l="Treatment">${has?fmt(r.treat):'n/a'}${has&&r.act&&r.act.tpct!=null?`<span class="rng">now ${r.act.tpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Retail">${has?fmt(r.retail):'n/a'}${has&&r.act&&r.act.rpct!=null?`<span class="rng">now ${r.act.rpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Clients">${has?fmt(r.clients):'n/a'}<span class="rng">${has?(r.clCapped?'hours cap, bill '+fmt(r.billNeed)+' needed':'bill '+fmt(r.avgBill))+(r.act&&r.act.bill?' (now '+fmt(r.act.bill)+')':''):''}</span></td>`+
-   `<td data-l="Utilisation">${r.uAvail?Math.round(r.uNeed/r.uAvail*100)+'%':'n/a'}${r.uAvail&&r.bu?`<span class="rng">was ${Math.round(r.uNeedTop/r.uAvail*100)}% before bottom-up</span>`:''}</td>`+
+   `<td data-l="Utilisation">${r.uAvail?Math.round(r.uNeed/r.uAvail*100)+'%':'n/a'}${r.uAvail&&r.bu?`<span class="rng">was ${Math.round(r.uNeedTop/r.uAvail*100)}% before the adjustment</span>`:''}</td>`+
    `<td class="act"><button class="how" data-how="${r.i}" aria-expanded="${open}">${open?'Close':'Why this?'}</button></td></tr>`;
   if(open)h+=`<tr class="det"><td colspan="14">${detail(r)}</td></tr>`;
   return h;
@@ -847,7 +849,7 @@ function detail(r){
     const mo=r.grp?r.grp.months.map(x=>`${MN[x.m-1]}: ${x.d} ${x.d===1?'day':'days'}, ${fmt(x.r)}${x.d?` (${fmt(x.r/x.d)} a day)`:''}`).join('<br>'):mos(r);
     first=`<div><b class="h">1. Average day</b>${r.grp?'Both branches added together.<br>':''}${mo}<br><b>Average ${fmt(r.avgDay)}</b></div>`+
      `<div><b class="h">2. Season</b>The months used ran at ${r.used.map(x=>S.fac[x.m-1].toFixed(2)).join(', ')} (average ${mean(r.used.map(x=>S.fac[x.m-1])).toFixed(2)}). ${MN[S.month-1]} runs at ${S.fac[S.month-1].toFixed(2)}. That is x ${r.ratio.toFixed(3)}, so the day becomes ${fmt(r.adj)}.</div>`+
-     `<div><b class="h">3. Low, high and the target</b>Low: ${r.dLow} days${r.leave?', because she is on leave this month and we count the days she came in':', her usual days'}. ${fmt(r.adj)} x ${r.dLow}${r.grp?' = '+fmt(r.grp.total)+' for both branches':' = '+fmt(r.adj*r.dLow)}.<br>High: nobody on leave, ${hd} days${r.grp&&r.grp.hd===hd&&hd===((RULES.days4||{})[r.p[2]]||18)?' (a 4-day week)':', her best month'}. ${fmt(r.adj)} x ${hd}${r.grp?' = '+fmt(r.grp.totalHigh):' = '+fmt(r.adj*hd)}.<br>${r.grp?`Shared out by days: ${r.grp.split}. `:''}Low ${fmt(r.low)}, high ${fmt(r.high)}. <b>The target is the middle: ${fmt(r.topDown)}.</b>${r.bu?`<br><b>Bottom-up check:</b> ${sgn(r.bu)} for who is actually on the floor this month. ${fmt(r.topDown)} becomes <b>${fmt(r.med)}</b>.`:''}</div>`;
+     `<div><b class="h">3. Low, high and the target</b>Low: ${r.dLow} days${r.leave?', because she is on leave this month and we count the days she came in':', her usual days'}. ${fmt(r.adj)} x ${r.dLow}${r.grp?' = '+fmt(r.grp.total)+' for both branches':' = '+fmt(r.adj*r.dLow)}.<br>High: nobody on leave, ${hd} days${r.grp&&r.grp.hd===hd&&hd===((RULES.days4||{})[r.p[2]]||18)?' (a 4-day week)':', her best month'}. ${fmt(r.adj)} x ${hd}${r.grp?' = '+fmt(r.grp.totalHigh):' = '+fmt(r.adj*hd)}.<br>${r.grp?`Shared out by days: ${r.grp.split}. `:''}Low ${fmt(r.low)}, high ${fmt(r.high)}. <b>The target is the middle: ${fmt(r.topDown)}.</b>${r.bu?`<br><b>Adjustment:</b> ${sgn(r.bu)} for who is actually on the floor this month. ${fmt(r.topDown)} becomes <b>${fmt(r.med)}</b>.`:''}${r.bcap?`<br><b>Bottom-up:</b> at ${S.util}% productivity her ${Math.round(r.uAvail)} hours could earn <b>${fmt(r.bcap)}</b>, ${sgn((r.bcap/r.med-1)*100)} on her target.`:''}</div>`;
   }
   const act=r.act?`<div><b class="h">Where she is now, Aug to 20 Oct</b>Treatment ${r.act.tpct!=null?r.act.tpct.toFixed(0)+'%':'n/a'}, target ${S.treat}%.<br>Retail ${r.act.rpct!=null?r.act.rpct.toFixed(0)+'%':'n/a'}, target ${S.retail}%.<br>Average bill (services with treatments, no retail, divided by clients) ${r.act.bill?fmt(r.act.bill):'n/a'}, level ${fmt(r.avgBill)}.<br>Clients at her current pace ${r.act.pace?fmt(r.act.pace):'n/a'}, target ${fmt(r.clients)}.</div>`:'';
   const cap=r.capClients?`<br>Her hours: about ${r.hrsDay.toFixed(1)} a day, ${r.hrsClient.toFixed(1)} hours a client. At ${S.util}% utilisation about <b>${fmt(r.capClients)}</b> clients fit in ${r.dImp.toFixed(0)} days.${r.clCapped?` So the target is held to <b>${fmt(r.clients)}</b> clients, and to reach ${fmt(r.plan)} her average bill has to be <b>${fmt(r.billNeed)}</b> (level ${fmt(r.avgBill)}).`:''}`:'';
@@ -862,7 +864,7 @@ const COLS=[
  {k:'dp',t:'Dept',x:'t',get:r=>r.p[2]==='HAIR'?'Hair':'Beauty'},
  {k:'who',t:'Person',x:'t',get:r=>r.p[1]},
  {k:'days',t:'Planned days',x:'n',get:r=>r.med==null||r.cover?null:(r.dLow!=null?r.dLow:r.planned)},
- {k:'bu',t:'Bottom-up %',x:'n',get:r=>r.med==null||r.cover?null:(r.bu||0)},
+ {k:'bu',t:'Adjustment %',x:'n',get:r=>r.med==null||r.cover?null:(r.bu||0)},
  {k:'low',t:'Low',x:'n',get:r=>r.low},
  {k:'tgt',t:'Target',x:'n',get:r=>r.med},
  {k:'high',t:'High',x:'n',get:r=>r.high},
@@ -872,7 +874,7 @@ const COLS=[
  {k:'cl',t:'Clients',x:'n',get:r=>r.clients},
  {k:'ut',t:'Utilisation',x:'n',get:r=>r.uAvail?Math.round(r.uNeed/r.uAvail*100):null}
 ];
-const TH=[['br','bd',''],['dp','bd',''],['who','nm',''],['days','',"The days we plan she works for the low plan. It starts as her usual days, and as the days she came in if she is on leave."],['bu','',"Add or take off a percentage for who is really on the floor. It starts at 0."],['low','',"Her usual days, leave included."],['tgt','',"The middle of low and high. This is the goal."],['high','',"Nobody on leave: her best month's days."],['svc','',''],['trt','',''],['ret','',''],['cl','',''],['ut','',"How full her hours are if she sells the target: clients needed x her hours a client, over the hours she can give. A bottom-up % puts more clients in the same hours, so it lifts this by the same %."]];
+const TH=[['br','bd',''],['dp','bd',''],['who','nm',''],['days','',"The days we plan she works for the low plan. It starts as her usual days, and as the days she came in if she is on leave."],['bu','',"Add or take off a percentage for who is really on the floor. Tenths are fine (2.5). It starts at 0."],['low','',"Her usual days, leave included."],['tgt','',"The middle of low and high. This is the goal."],['high','',"Nobody on leave: her best month's days."],['svc','',''],['trt','',''],['ret','',''],['cl','',''],['ut','',"How full her hours are if she sells the target: clients needed x her hours a client, over the hours she can give. An adjustment % puts more clients in the same hours, so it lifts this by the same %."]];
 const sf={sort:null,f:{}};
 let lastSel=[],shown=[],pop=null;
 const isBlank=v=>v==null||v==='';
@@ -985,15 +987,15 @@ document.getElementById('sfTools').addEventListener('click',e=>{
     bulkBu(Math.max(-50,Math.min(100,v)));
   }
 });
-async function bulkBu(v){
-  const rows=shown.filter(r=>r.med!=null&&!r.cover);
+async function bulkBu(v,rowsIn){
+  const rows=(rowsIn||shown).filter(r=>r.med!=null&&!r.cover);
   if(!rows.length)return;
   const vals={},m=(BU_SAVED[S.month]=BU_SAVED[S.month]||{});
   rows.forEach(r=>{bu[r.i]=v;vals[r.key]=v;m[r.key]=v;});
   render();
   const done=document.getElementById('buDone');
   try{const res=await KB.client.rpc('target_calc_set_bu_many',{p_month:S.month,p_vals:vals});if(res.error)throw res.error;buErr='';done.textContent='Saved for '+rows.length+' '+(rows.length===1?'person':'people')+'.';}
-  catch(err){buErr='The bottom-up % was not saved ('+(err&&err.message||err)+'). It shows here until you reload.';done.textContent='';}
+  catch(err){buErr='The adjustment % was not saved ('+(err&&err.message||err)+'). It shows here until you reload.';done.textContent='';}
   renderEdits();
   setTimeout(()=>{done.textContent='';},3000);
 }
@@ -1001,7 +1003,7 @@ function renderPerson(sel){
   lastSel=sel;const list=visible(sel);shown=list;
   document.getElementById('secEyebrow').textContent='Person by person';
   document.getElementById('secTitle').textContent='The month, split up';
-  document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>High</b> is nobody on leave. <b>Target</b> is the middle. Change a person\'s <b>planned days</b> (the low), or add a <b>bottom-up %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
+  document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>High</b> is nobody on leave. <b>Target</b> is the middle. Change a person\'s <b>planned days</b> (the low), or add an <b>adjustment %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
   let h=`<thead><tr>${TH.map(thCell).join('')}<th></th></tr></thead><tbody>`;
   if(!list.length)h+=`<tr><td colspan="14" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
   list.forEach(r=>{h+=personRow(r);});   // Branch and Dept are their own columns now, so no group heading rows
@@ -1009,29 +1011,31 @@ function renderPerson(sel){
   document.getElementById('tbl').innerHTML=h+'</tbody>';
   updateTools(sel.length,list.length);
 }
-function branchRow(label,t,cls,sub,rv){
+function branchRow(label,t,cls,sub,rv,scope){
   const d1=pct(t.plan,t.sep),bu=pct(t.plan,t.top);
   /* Kate, 29 Oct 2026: Net take = the target plus retail at what we sell today (the same as the card); each money column shows its share of it. */
   const net=t.plan+Math.round(t.plan*S.retailNow/100),shr=(v,pre)=>net?`<span class="rng">${pre||''}${Math.round(v/net*100)}% of net take</span>`:'';
   return `<tr class="${cls}"><td class="name"><b>${label}</b>${sub?`<div class="tg">${sub}</div>`:''}</td>`+
-   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Bottom-up">${sgn(bu)}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="High">${fmt(t.high)}</td><td data-l="Net take">${fmt(net)}</td><td data-l="Service">${fmt(t.service)}${shr(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}${shr(t.treat)}</td><td data-l="Retail">${fmt(t.retail+(rv||0))}${shr(t.retail+(rv||0),rv?`incl. ${fmt(rv)} Business TRS, `:'')}</td><td data-l="Clients">${fmt(t.clients)}</td><td data-l="Utilisation">${utilOf(t)!=null?utilOf(t)+'%':'n/a'}${utilNote(t)}</td>`+
+   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Adjustment">${t.n?`<input class="days bub" type="number" min="-50" max="100" step="0.1" value="${Math.round((bu||0)*10)/10}" data-sb="${(scope&&scope.b)||''}" data-st="${(scope&&scope.tm)||''}" aria-label="Adjustment in percent for ${label}">`:'n/a'}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="High">${fmt(t.high)}</td><td data-l="Net take">${fmt(net)}</td><td data-l="Service">${fmt(t.service)}${shr(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}${shr(t.treat)}</td><td data-l="Retail">${fmt(t.retail+(rv||0))}${shr(t.retail+(rv||0),rv?`incl. ${fmt(rv)} Business TRS, `:'')}</td><td data-l="Clients">${fmt(t.clients)}</td><td data-l="Utilisation">${utilOf(t)!=null?utilOf(t)+'%':'n/a'}${utilNote(t)}</td><td data-l="Bottom-up">${t.bc>0?fmt(t.bc):'n/a'}${t.bc>0?`<span class="rng">${sgn((t.bc/t.bp-1)*100)} on target</span>`:''}</td>`+
    `<td data-l="Target against Sep delivered"><span class="chip ${band(d1)}">${sgn(d1)}</span><span class="rng">${fmt(t.sep)}</span></td></tr>`;
 }
+let lastBranchRows=[];
 function renderBranch(rows){
+  lastBranchRows=rows;
   document.getElementById('secEyebrow').textContent='Branch by branch';
   document.getElementById('secTitle').textContent='Adding it up';
   document.getElementById('secWhy').textContent='Each branch is the sum of its people, and its Retail also includes the reception retail, what the front desk sells. The gap between low and high is what leave and missing staff cost us in a month. The target against what the same people delivered in September is for a first look: further out, find out why before anything changes.';
-  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Bottom-up ${ibw(TIP_BU_B)}</th><th>High</th><th class="rel">Net take ${ibw('<b>Net take</b> is the target plus retail at what we sell today ('+S.retailNow+'%), the same as the Total net take on the card. The % under Service, Treatment and Retail is each one&#39;s share of it. Treatment is inside Service. Retail is aimed at '+S.retail+'%, so the shares can add to more than 100%.','What net take is')}</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th class="rel">Utilisation ${ibw('<b>Utilisation</b> the plan asks for: the hours the clients need over the hours the team can give. A bottom-up % puts more clients in the same hours, so it lifts this by the same %. The line under shows it before the bottom-up.','What utilisation is')}</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
+  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Adjustment ${ibw(TIP_BU_B)}</th><th>High</th><th class="rel">Net take ${ibw('<b>Net take</b> is the target plus retail at what we sell today ('+S.retailNow+'%), the same as the Total net take on the card. The % under Service, Treatment and Retail is each one&#39;s share of it. Treatment is inside Service. Retail is aimed at '+S.retail+'%, so the shares can add to more than 100%.','What net take is')}</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th class="rel">Utilisation ${ibw('<b>Utilisation</b> the plan asks for: the hours the clients need over the hours the team can give. An adjustment % puts more clients in the same hours, so it lifts this by the same %. The line under shows it before the adjustment.','What utilisation is')}</th><th class="rel">Bottom-up ${ibw(TIP_BOT(),'What bottom-up is')}</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
   ['SAA','KCA','MC','AQ'].forEach(b=>{
     const br=rows.filter(r=>r.p[0]===b);
     ['HAIR','BEAUTY'].forEach(tm=>{
       const t=sumRows(br.filter(r=>r.p[2]===tm));
       if(!t.n)return;
-      h+=branchRow(tm==='HAIR'?'Hair':'Beauty',t,'p',BN[b]);
+      h+=branchRow(tm==='HAIR'?'Hair':'Beauty',t,'p',BN[b],0,{b,tm});
     });
-    h+=branchRow(BN[b]+' total',sumRows(br),'sum','',recvOf(b));
+    h+=branchRow(BN[b]+' total',sumRows(br),'sum','',recvOf(b),{b});
   });
-  h+=branchRow('Group total',sumRows(rows),'tot','Four UAE branches',BR4.reduce((a,b)=>a+recvOf(b),0));
+  h+=branchRow('Group total',sumRows(rows),'tot','Four UAE branches',BR4.reduce((a,b)=>a+recvOf(b),0),{});
   document.getElementById('tbl').setAttribute('data-frz','1');
   document.getElementById('tbl').innerHTML=h+'</tbody>';
 }
@@ -1041,12 +1045,12 @@ function tsv(){
   const rows=build();
   const lines=[];
   if(st.view==='PERSON'){
-    lines.push(['Branch','Person','Designation','Status','Planned days','Bottom-up %','Low','Target','High','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
+    lines.push(['Branch','Person','Designation','Status','Planned days','Adjustment %','Low','Target','High','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
     visible(rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team))).forEach(r=>{
       lines.push([BN[r.p[0]],r.p[1],r.p[3],(r.leave?'On leave this month':badge[r.status][0]),r.dLow??r.planned??'',r.bu||0,r.low??'',r.med??'',r.high??'',r.service??'',r.treat??'',r.retail??'',r.clients??'',r.uAvail?Math.round(r.uNeed/r.uAvail*100):'',r.clientsRaw??'',r.billNeed??'',r.med!=null?r.avgBill:'',r.act&&r.act.tpct!=null?r.act.tpct.toFixed(1):'',r.act&&r.act.rpct!=null?r.act.rpct.toFixed(1):'',r.act&&r.act.bill?Math.round(r.act.bill):''].join('\t'));
     });
   }else{
-    lines.push(['Branch','Team','People','Low','Target','Top-down','Bottom-up %','High','Service','Treatment','Retail','Reception retail','Clients','Utilisation %','Sep delivered'].join('\t'));
+    lines.push(['Branch','Team','People','Low','Target','Top-down','Adjustment %','High','Service','Treatment','Retail','Reception retail','Clients','Utilisation %','Sep delivered'].join('\t'));
     const row=(b,tm,t,rv)=>lines.push([b,tm,t.n,t.low,t.plan,t.top,t.top?((t.plan/t.top-1)*100).toFixed(1):'',t.high,t.service,t.treat,t.retail,rv||0,t.clients,utilOf(t)??'',t.sep].join('\t'));
     ['SAA','KCA','MC','AQ'].forEach(b=>{
       const br=rows.filter(r=>r.p[0]===b);
@@ -1107,6 +1111,8 @@ document.getElementById('tbl').addEventListener('click',e=>{
   const i=+b.dataset.how;st.open.has(i)?st.open.delete(i):st.open.add(i);render();
 });
 document.getElementById('tbl').addEventListener('change',e=>{
+  const bb=e.target.closest('input.bub');
+  if(bb){const v=Math.max(-50,Math.min(100,parseFloat(bb.value)||0));bulkBu(v,lastBranchRows.filter(r=>(!bb.dataset.sb||r.p[0]===bb.dataset.sb)&&(!bb.dataset.st||r.p[2]===bb.dataset.st)));return;}
   const b=e.target.closest('input.bu');
   if(b){const v=Math.max(-50,Math.min(100,parseFloat(b.value)||0));bu[+b.dataset.i]=v;saveBu(+b.dataset.i,v);render();return;}
   const inp=e.target.closest('input.days');if(!inp)return;
