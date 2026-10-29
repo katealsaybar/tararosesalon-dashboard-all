@@ -722,16 +722,22 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
               <label for="svc">What do you need? <span class="req">*</span></label>
               <select id="svc" name="svc" required>
                 <option value="" disabled selected>Choose the closest one</option>
-                <option value="toner">The Tone Reset, my colour has gone warm</option>
-                <option value="colour">A colour refresh</option>
-                <option value="treatment">Treatment and blow-dry</option>
-                <option value="course">A course of treatments</option>
-                <option value="bundle">A blow-dry package</option>
                 <option value="smooth">Keratin &amp; Smoothing</option>
+                <option value="toner">Colour maintenance: The Tone Reset, my colour has gone warm</option>
+                <option value="colour">Colour maintenance: The Root Refresh or The Face Frame</option>
+                <option value="treatment">Treatments, one or more, with a blow-dry</option>
+                <option value="course">A treatment course, 3 or 5 sessions</option>
                 <option value="scalp">Something for my scalp, match me with a treatment</option>
+                <option value="bundle">A blow-dry package: Edit, Series or Four Weeks</option>
                 <option value="mapping">Confidence Mapping first: a free look at my hair, and a plan, before the chair</option>
                 <option value="unsure">Something else, or not sure</option>
               </select>
+            </div>
+            <div class="pdpl field--full" id="addonField" hidden>
+              <div class="pdpl__group">
+                <input type="checkbox" class="pdpl__checkbox" id="c-addon" name="addon" value="make-it-a-year">
+                <label class="pdpl__label" for="c-addon"><strong>Add Make it a year.</strong> A root touch-up visit within 3 to 4 months, plus AED 500 to 600. <span>(optional)</span></label>
+              </div>
             </div>
             <div class="field field--full">
               <label for="salon">Which salon? <span class="req">*</span></label>
@@ -1466,4 +1472,15 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 <script src="js/tracking.js?v=ui1" defer></script>
 <script src="js/submit-guard.js?v=ui1" defer></script>
 
+<script>
+/* Keratin & Smoothing: the Make it a year add-on shows only when keratin is chosen, and clears when it is not. */
+(function(){
+  var sel=document.getElementById('svc'), box=document.getElementById('addonField'), cb=document.getElementById('c-addon');
+  if(!sel||!box||!cb) return;
+  var sync=function(){ var on=(sel.value==='smooth'); box.hidden=!on; if(!on) cb.checked=false; };
+  sel.addEventListener('change',sync);
+  document.addEventListener('click',function(e){ if(e.target.closest&&e.target.closest('[data-svc]')) setTimeout(sync,50); });
+  sync();
+})();
+</script>
 </body></html>
