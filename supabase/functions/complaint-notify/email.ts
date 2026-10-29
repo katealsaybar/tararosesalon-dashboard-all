@@ -35,9 +35,9 @@ export function renderEmail(c: any, first: string) {
   const by = c.submitted_by || "A team member";
   const outcome = open ? "Still open, waiting on a follow-up" : (RES[c.resolution] || c.resolution || "") + (c.resolution_detail ? ": " + c.resolution_detail : "");
   const logged = when(c.submitted_at);
-  const subject = `Complaint logged at ${branch}: ${c.client_name}${open ? " (still open)" : ""}`;
+  const subject = `Complaint logged at ${branch}: ${c.client_name}${open ? " (still open)" : ""}${c.code ? " " + c.code : ""}`;
   const rows: [string, string][] = [
-    ["Client", c.client_name], ["Branch", branch], ["Visit", day(c.event_date)], ["Stylist", c.stylists || ""], ["Service", c.services || ""],
+    ["Code", c.code || ""], ["Client", c.client_name], ["Branch", branch], ["Visit", day(c.event_date)], ["Stylist", c.stylists || ""], ["Service", c.services || ""],
     ["About", kind], ["Outcome", outcome],
   ].filter(([, v]) => v) as [string, string][];
   const hi = first ? `Hi ${first},` : "Hi,";

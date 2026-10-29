@@ -17,8 +17,11 @@
 <link rel="stylesheet" href="/hub/hub.css?v=d5913c31">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 <style>
-/* Complaint triage page (Kate, 29 Oct 2026). Phone first: one big action per screen, why before what. The mockup is complaint-triage-mockup.html. */
+/* Complaint triage pages (Kate, 29 Oct 2026). Phone first: one big action per screen, why before what. The mockup is complaint-triage-mockup.html.
+   Four views in this one file: My complaints, one complaint as an action screen (take it, or it is yours), one complaint as a ticket (three columns on a
+   laptop), and the pipeline board for leadership and coordinators. */
 .cp{max-width:1040px;margin:0 auto;display:grid;gap:18px}
+.cp.wide{max-width:1240px}
 .cp h1{font-family:'Playfair Display',Georgia,serif;font-weight:600;font-size:clamp(1.5rem,1.1rem + 1.6vw,2.1rem);line-height:1.2;margin:4px 0 0}
 .cp .sub{color:var(--muted);font-size:14px}
 .cp-main{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
@@ -32,17 +35,19 @@
 .cp-btn{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:14px;font:inherit;font-weight:600;font-size:16px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);padding:10px 14px;cursor:pointer;text-decoration:none;text-align:center;width:100%}
 .cp-btn.pri{background:var(--text);border-color:var(--text);color:var(--bg)}
 .cp-btn.sub{min-height:46px;font-weight:500}
+.cp-btn.mini{min-height:40px;width:auto;font-size:14px;font-weight:500;padding:6px 16px}
 .cp-btn:disabled{opacity:.55;cursor:default}
 .cp-btns{display:grid;gap:10px}
 .cp-btnrow{display:grid;gap:10px;grid-template-columns:1fr 1fr}
 .cp-timer{display:flex;align-items:center;gap:8px;font-size:14px;color:#8A5A00;background:#FAEFD6;border-radius:10px;padding:8px 12px}
 .cp-timer.late{color:#B4412F;background:#F8E4DF}
 .cp-dry{font-size:13px;background:#E6F3F0;color:#1F6B59;border-radius:10px;padding:8px 12px}
+.cp-tagline{font-size:14px;background:color-mix(in srgb,var(--accent-lavender,#D9D2EE) 45%,var(--surface));border-radius:10px;padding:8px 12px}
 .cp-msg{font-size:14px;min-height:20px}.cp-msg.bad{color:#B4412F}
-.cp-ta{font:inherit;font-size:15px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);width:100%;min-height:84px;resize:vertical}
+.cp-ta{font:inherit;font-size:15px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);width:100%;min-height:84px;resize:vertical;box-sizing:border-box}
 .cp-lab{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 4px}
 .cp-pill{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
-.cp-pill.red{background:#F8E4DF;color:#B4412F}.cp-pill.amber{background:#FAEFD6;color:#8A5A00}.cp-pill.green{background:#E1F1E6;color:#2F7A4B}.cp-pill.grey{background:var(--border);color:var(--muted)}
+.cp-pill.red{background:#F8E4DF;color:#B4412F}.cp-pill.amber{background:#FAEFD6;color:#8A5A00}.cp-pill.green{background:#E1F1E6;color:#2F7A4B}.cp-pill.grey{background:var(--border);color:var(--muted)}.cp-pill.teal{background:#E6F3F0;color:#1F6B59}
 .cp-up{display:grid;gap:8px;font-size:14px}.cp-up div{border-left:3px solid var(--border);padding:2px 0 2px 10px}.cp-up small{color:var(--muted)}
 .cp-li{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--border);text-decoration:none;color:inherit;min-height:56px}
 .cp-li:first-child{border-top:0}
@@ -50,12 +55,67 @@
 .cp-bar.red{background:#B4412F}.cp-bar.amber{background:#D9A441}.cp-bar.green{background:#2F7A4B}
 .cp-li .t{font-weight:600;font-size:15.5px}.cp-li .s{font-size:13.5px;color:var(--muted)}
 .cp-foot{font-size:13px;color:var(--muted)}
+/* navigation strip, the code, small links */
+.cp-nav{display:flex;gap:6px;flex-wrap:wrap}
+.cp-nav a{padding:8px 14px;border-radius:999px;border:1.5px solid var(--border);color:var(--text);text-decoration:none;font-size:14px;font-weight:500}
+.cp-nav a.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.cp-nav .bd{display:inline-block;width:8px;height:8px;border-radius:50%;background:#B4412F;margin-left:6px;vertical-align:middle}
+.cp-code{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;background:#E6F3F0;color:#1F6B59;border-radius:8px;padding:3px 10px;white-space:nowrap}
+.cp-code button{background:none;border:0;padding:0;font:inherit;font-size:12.5px;font-weight:500;color:inherit;opacity:.8;text-decoration:underline;cursor:pointer}
+.cp-sm{font-size:12.5px;color:var(--muted)}
+.cp-dotline{display:inline-flex;align-items:center}
+/* the pipeline */
+.cp-fil{display:flex;gap:8px;flex-wrap:wrap}
+.cp-fil button{font:inherit;font-size:13.5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;cursor:pointer}
+.cp-fil button.on{background:color-mix(in srgb,var(--accent,#3AA892) 18%,var(--surface));border-color:var(--accent,#3AA892);font-weight:600}
+.cp-board{display:grid;grid-template-columns:repeat(6,minmax(212px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px;align-items:start}
+.cp-col{background:color-mix(in srgb,var(--border) 45%,var(--bg));border-radius:12px;padding:10px;min-width:0}
+.cp-col h4{font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px;margin:2px 4px 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cp-col h4 em{font-style:normal;background:var(--surface);border-radius:999px;padding:1px 9px;color:var(--text)}
+.cp-col.stuck{background:#F8E4DF}
+.cp-col.stuck h4{color:#B4412F}
+.cp-tk{display:block;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:9px;font-size:13.5px;color:inherit;text-decoration:none}
+.cp-tk:hover{border-color:var(--muted)}
+.cp-tk b{display:block;font-size:14.5px;margin-bottom:2px}
+.cp-tk .m{color:var(--muted);font-size:12.5px;display:block}
+.cp-tk .cd{font-size:11.5px;color:var(--muted);letter-spacing:.02em;display:block;margin-bottom:2px}
+.cp-tk.red{border-left-color:#B4412F}.cp-tk.amber{border-left-color:#D9A441}.cp-tk.green{border-left-color:#2F7A4B}
+.cp-tk .cp-pill{margin-top:6px}
+.cp-empty{font-size:13px;color:var(--muted);margin:4px}
+@media (max-width:760px){.cp-board{grid-template-columns:minmax(0,1fr);overflow:visible}.cp-col.stuck{order:-1}}
+/* one complaint as a ticket */
+.tk{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
+@media (min-width:980px){.tk{grid-template-columns:260px minmax(0,1fr) 290px}}
+.tk-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.tk-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tk h5{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 6px}
+.tk-prop{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:14px}
+.tk-prop:first-of-type{border-top:0}.tk-prop span{color:var(--muted)}.tk-prop b{font-weight:500;text-align:right}
+.tk-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.tk-pill{display:inline-flex;align-items:center;gap:4px;border:1.5px solid var(--border);border-radius:999px;padding:4px 11px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit}
+.tk-pill.on{background:#E6F3F0;border-color:#3AA892;color:#1F6B59;font-weight:600}
+button.tk-pill{cursor:pointer}
+.tk-tabs{display:flex;gap:18px;border-bottom:1px solid var(--border);margin-bottom:10px;font-size:14px}
+.tk-tabs button{background:none;border:0;border-bottom:2px solid transparent;font:inherit;color:var(--muted);padding:6px 0;cursor:pointer}
+.tk-tabs button.on{color:var(--text);font-weight:600;border-bottom-color:#3AA892}
+.tk-comp{position:relative;margin-bottom:6px}
+.tk-menu{position:absolute;left:0;top:100%;margin-top:4px;width:min(320px,100%);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 26px rgba(40,30,20,.16);padding:6px;z-index:5}
+.tk-te{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid var(--border);font-size:14px}
+.tk-te:first-child{border-top:0}
+.tk-te time{color:var(--muted);font-size:12px;padding-top:2px}
+.tk-te .sys{color:var(--muted)}
+.tk-at{color:#1F6B59;font-weight:600;background:#E6F3F0;border-radius:6px;padding:0 4px}
+.tk-note{white-space:pre-wrap;overflow-wrap:anywhere}
+.tk-seg{display:flex;gap:6px;margin:0 0 8px}
+.tk-seg button{font:inherit;font-size:13px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:5px 13px;cursor:pointer}
+.tk-seg button.on{background:#E6F3F0;border-color:#3AA892;font-weight:600}
 </style>
 </head>
 <body class="kb-wait">
-<!-- Complaint triage page (Kate, 29 Oct 2026). Everything is read and changed through cmp_* functions in Supabase (migrations/complaint_triage.sql),
-     which decide who sees what: the person it is with, the coordinator and reception of the branch, the one who filed it, and leadership.
-     The client's name and number show only to the person who took it, the filer, the coordinator and leadership. Nothing is in this file: the repo is public. -->
+<!-- Complaint triage pages (Kate, 29 Oct 2026). Everything is read and changed through cmp_* functions in Supabase (migrations/complaint_triage.sql and the
+     files after it), which decide who sees what: the person it is with, whoever it was assigned to, the coordinator of the branch, the people copied on it,
+     the one who filed it, and leadership. The client's name and number show only to the person who took it, the filer, the coordinator and leadership.
+     Nothing in this file: the repo is public. -->
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
@@ -64,20 +124,30 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=1dfe918d"></script>
+<script src="/hub/hub.js?v=89e6c0ca"></script>
+<script src="/cmp-people.js?v=fbeafe2a"></script>
 <script>
 (function () {
-  var main = document.getElementById('kbMain'), esc = KB.esc;
+  var main = document.getElementById('kbMain'), esc = KB.esc, CP = window.CmpPeople;
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
   var BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', BAH: 'Bahrain' };
   var KIND = { colour_result: 'colour', cut_result: 'cut', nail_service: 'nail', treatment_result: 'treatment', staff_attitude: 'staff attitude',
     skin_reaction_or_injury: 'skin reaction or injury', price_or_billing: 'price or billing', booking_or_admin: 'booking or admin', wait_or_time: 'wait or time',
     facility_or_parking: 'facility or parking', product: 'product', other: 'other' };
-  var cid = Number(new URLSearchParams(location.search).get('cid')) || 0;
-  var timer = 0;
+  var P = new URLSearchParams(location.search);
+  var cid = Number(P.get('cid')) || 0, view = P.get('view') || '', forceTicket = P.get('t') === '1';
+  var timer = 0, badge = null;
+  var S = { c: null, tab: 'activity', mentions: {}, draft: '', open: '', tagKind: 'copied', board: { branch: 'all', mine: false, serious: false } };
+  var cap = function (s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); };
 
   function day(d) { try { return new Date(d.length === 10 ? d + 'T00:00:00' : d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }); } catch (e) { return ''; } }
   function clock(ts) { try { return new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Dubai' }); } catch (e) { return ''; } }
+  function short(ts) {
+    try {
+      var d = new Date(ts), t = new Date(), same = d.toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai' }) === t.toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai' });
+      return same ? d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Dubai' }) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }) + ', ' + d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Dubai' });
+    } catch (e) { return ''; }
+  }
   function left(ts) {
     var ms = new Date(ts).getTime() - Date.now();
     if (ms <= 0) return null;
@@ -85,7 +155,31 @@
     return h ? h + ' h ' + (m % 60) + ' min' : m + ' min';
   }
   function row(k, v) { return v ? '<div class="cp-k"><span>' + esc(k) + '</span><b>' + v + '</b></div>' : ''; }
+  function kindOf(c) { return KIND[c.type] || 'client'; }
   function notOpen() { main.innerHTML = '<p class="kb-msg">This complaint isn’t open to your account. <a href="/hub/complaint">Your complaints</a> · <a href="/hub/">Team Home</a></p>'; }
+  function codeChip(code) { return code ? '<span class="cp-code">' + esc(code) + ' <button type="button" data-copy="' + esc(code) + '">Copy</button></span>' : ''; }
+  function personDot(name) { var p = CP && CP.byEmailOrName(null, name); return p ? CP.dot(p) : ''; }
+  function nav(active) {
+    var dot = badge && ((badge.waiting || 0) + (badge.tagged || 0)) > 0 ? '<i class="bd" title="Something is waiting for you" role="img" aria-label="Something is waiting for you"></i>' : '';
+    return '<div class="cp-nav"><a href="/hub/complaint" class="' + (active === 'list' ? 'on' : '') + '">My complaints' + dot + '</a>' +
+      (badge && badge.board ? '<a href="/hub/complaint?view=board" class="' + (active === 'board' ? 'on' : '') + '">Pipeline</a>' : '') + '</div>';
+  }
+  async function copyText(btn) {
+    var t = btn.dataset.copy || '';
+    try { await navigator.clipboard.writeText(t); } catch (e) { var ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e2) {} ta.remove(); }
+    var was = btn.textContent; btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = was; }, 1400);
+  }
+  function stageOf(c) {
+    var t = c.triage;
+    if (c.duplicate_of) return 'Duplicate of ' + (c.duplicate_code || 'another complaint');
+    if (c.status === 'resolved') return 'Closed';
+    if (!t) return 'Not under triage';
+    if (t.state === 'stuck') return 'Stuck, needs a person';
+    if (t.state === 'claimed') return c.first_response_at ? 'Replied, client back?' : 'Taken, reply due';
+    if (t.state === 'minor') return 'Minor, daily summary';
+    if (t.state === 'done') return 'Closed';
+    return 'Waiting to be taken';
+  }
 
   // ---------------------------------------------------------------- my complaints
   async function list() {
@@ -94,38 +188,231 @@
     if (r.error) { main.innerHTML = '<p class="kb-msg">The list did not load. Refresh to try again.</p>'; return; }
     var rows = r.data || [];
     var need = rows.filter(function (x) { return x.waiting_on_me || x.state === 'stuck'; }).length;
-    var h = '<div class="cp"><div><h1>' + (need ? (need === 1 ? 'One needs you today' : need + ' need you today') : 'Nothing is waiting for you') + '</h1>' +
-      '<p class="sub">Only the complaints that are with you, that you logged, or that you are copied on.</p></div><div class="cp-card">';
+    var tagged = rows.filter(function (x) { return x.tagged_me; }).length;
+    var h = '<div class="cp">' + nav('list') + '<div><h1>' + (need ? (need === 1 ? 'One needs you today' : need + ' need you today') : 'Nothing is waiting for you') + '</h1>' +
+      '<p class="sub">Only the complaints that are with you, that you logged, or that you are copied on.' + (tagged ? ' ' + tagged + (tagged === 1 ? ' is' : ' are') + ' marked “Tagged you”: you were tagged and have not opened ' + (tagged === 1 ? 'it' : 'them') + ' yet.' : '') + '</p></div><div class="cp-card">';
     if (!rows.length) h += '<p class="sub" style="margin:8px 0">No complaints to show.</p>';
     rows.forEach(function (x) {
       var cls = x.waiting_on_me ? 'amber' : x.flag === 'overdue' || x.state === 'stuck' ? 'red' : x.flag === 'pending' ? 'amber' : x.status === 'open' ? 'green' : '';
       var sub = x.waiting_on_me ? 'Waiting for you to take it' + (x.due_at && left(x.due_at) ? '. ' + left(x.due_at) + ' before it moves on' : '')
         : x.state === 'stuck' ? 'Nobody has taken it yet'
+        : x.tagged_me ? 'You were tagged on this. Nothing is needed unless you want to add something'
         : x.state === 'claimed' ? 'Taken by ' + esc(x.claimed_by || 'someone') + (x.status === 'open' ? '' : '. Closed')
         : x.state === 'active' ? 'With someone else right now'
         : x.status === 'open' ? 'Open' : 'Closed';
       h += '<a class="cp-li" href="/hub/complaint?cid=' + x.id + '"><span class="cp-bar ' + cls + '"></span><div><div class="t">' +
-        esc((KIND[x.type] || 'Client').replace(/^./, function (c) { return c.toUpperCase(); })) + ' · ' + esc(BRANCH[x.branch] || x.branch || '') +
-        (x.dry_run ? ' <span class="cp-pill grey">dry run</span>' : '') + '</div><div class="s">' + sub + '</div></div></a>';
+        esc(cap(KIND[x.type] || 'client')) + ' · ' + esc(BRANCH[x.branch] || x.branch || '') +
+        (x.tagged_me ? ' <span class="cp-pill teal">Tagged you</span>' : '') +
+        (x.dry_run ? ' <span class="cp-pill grey">dry run</span>' : '') + '</div><div class="s">' + sub + '</div>' +
+        (x.code ? '<div class="cp-sm">' + esc(x.code) + '</div>' : '') + '</div></a>';
     });
     main.innerHTML = h + '</div></div>';
   }
 
-  // ---------------------------------------------------------------- one complaint
-  async function one() {
+  // ---------------------------------------------------------------- the pipeline
+  var STAGES = [['waiting', 'Waiting to be taken'], ['taken', 'Taken, reply due'], ['replied', 'Replied, client back?'], ['closed', 'Closed this week'], ['minor', 'Minor, daily summary'], ['stuck', 'Stuck']];
+  function card(x) {
+    var cls = x.stage === 'stuck' || x.flag === 'overdue' ? 'red' : x.stage === 'replied' ? 'green' : x.stage === 'waiting' || x.stage === 'taken' ? 'amber' : '';
+    var who = x.stage === 'waiting' ? (x.holder ? esc(cap(x.holder)) : '') : x.stage === 'stuck' ? 'Everyone had it. Nobody took it' : x.stage === 'minor' ? 'No clock' : x.owner ? esc(x.owner) : '';
+    var chip = '';
+    if (x.stage === 'stuck') chip = '<span class="cp-pill red">Needs Kate now</span>';
+    else if (x.stage === 'waiting') chip = x.due_at && left(x.due_at) ? '<span class="cp-pill amber">' + esc(left(x.due_at)) + ' left</span>' : '<span class="cp-pill amber">Moving on now</span>';
+    else if (x.stage === 'taken') chip = x.flag === 'overdue' ? '<span class="cp-pill red">Overdue</span>' : '<span class="cp-pill amber">Reply by ' + esc(day(x.reply_due)) + '</span>';
+    else if (x.stage === 'replied') chip = x.flag === 'overdue' ? '<span class="cp-pill red">Overdue</span>' : '<span class="cp-pill green">On track, close by ' + esc(day(x.close_due)) + '</span>';
+    else if (x.stage === 'closed') chip = '<span class="cp-pill grey">Closed ' + esc(day(x.resolved_at)) + '</span>';
+    return '<a class="cp-tk ' + cls + '" href="/hub/complaint?cid=' + x.id + '&t=1"><span class="cd">' + esc(x.code || '') + '</span><b>' + esc(cap(KIND[x.type] || 'client')) + ' · ' + esc(BRANCH[x.branch] || x.branch || '') + '</b>' +
+      (who ? '<span class="m">' + who + (x.dry_run ? ' · dry run' : '') + '</span>' : '') + chip + '</a>';
+  }
+  async function board() {
+    document.title = 'Pipeline · Team Home';
+    var b = S.board;
+    var r = await KB.client.rpc('cmp_board', { p_branch: b.branch, p_mine: b.mine, p_serious: b.serious });
+    if (r.error) { main.innerHTML = '<p class="kb-msg">The pipeline did not load. Refresh to try again.</p>'; return; }
+    if (r.data == null) { main.innerHTML = '<div class="cp">' + nav('board') + '<p class="kb-msg">The pipeline is for leadership and the salon coordinators.</p></div>'; return; }
+    var cards = r.data || [];
+    var fil = '<div class="cp-fil" role="group" aria-label="Filters">' + [['all', 'All branches']].concat(Object.keys(BRANCH).map(function (k) { return [k, BRANCH[k]]; })).map(function (x) {
+      return '<button type="button" data-f="branch" data-v="' + x[0] + '" class="' + (b.branch === x[0] ? 'on' : '') + '" aria-pressed="' + (b.branch === x[0]) + '">' + esc(x[1]) + '</button>';
+    }).join('') + '<button type="button" data-f="mine" class="' + (b.mine ? 'on' : '') + '" aria-pressed="' + b.mine + '">Mine only</button><button type="button" data-f="serious" class="' + (b.serious ? 'on' : '') + '" aria-pressed="' + b.serious + '">Serious only</button></div>';
+    var cols = STAGES.map(function (s) {
+      var xs = cards.filter(function (x) { return x.stage === s[0]; });
+      return '<div class="cp-col' + (s[0] === 'stuck' ? ' stuck' : '') + '"><h4>' + esc(s[1]) + ' <em>' + xs.length + '</em></h4>' + (xs.length ? xs.map(card).join('') : '<p class="cp-empty">Nothing here.</p>') + '</div>';
+    }).join('');
+    main.innerHTML = '<div class="cp wide">' + nav('board') + '<div><h1>Complaints pipeline</h1><p class="sub">The same complaints, laid out by stage. A card moves when something real happens: someone takes it, replies to the client, or it is closed. Nobody drags a card, so the board cannot be tidied by hand. Serious means everything except the minor ones. Click a card to open it.</p></div>' + fil + '<div class="cp-board">' + cols + '</div></div>';
+  }
+
+  // ---------------------------------------------------------------- tagging, in the action screen and the ticket
+  function peopleBlock(c) {
+    var inv = (c.people || []).filter(function (p) { return p.kind === 'involved'; }), cc = (c.people || []).filter(function (p) { return p.kind === 'copied'; });
+    return '<h5>People</h5><div class="tk-pills">' + (inv.length ? inv.map(function (p) { return '<span class="tk-pill on">Involved: ' + esc(p.name) + '</span>'; }).join('') : '<span class="cp-sm">Nobody marked as involved.</span>') + '</div>' +
+      '<div class="tk-pills">' + cc.map(function (p) { var q = CP && CP.byEmailOrName(p.email, p.name); return '<span class="tk-pill on">' + (q ? CP.dot(q) : '') + 'Copied: ' + esc(p.name) + '</span>'; }).join('') +
+      '<button type="button" class="tk-pill" data-open="tag">+ Tag</button></div>';
+  }
+  function tagCard(c) {
+    return '<div class="cp-card" id="tkTag"><h5>Tag a person</h5><div class="tk-seg"><button type="button" data-tk="copied" class="' + (S.tagKind === 'copied' ? 'on' : '') + '">Copied</button><button type="button" data-tk="involved" class="' + (S.tagKind === 'involved' ? 'on' : '') + '">Involved</button></div>' +
+      '<p class="cp-sm" style="margin:0 0 8px">Copied people get one message and can open this. Involved people are only written down, nobody messages them.</p><div id="tkTagPick"></div><div class="cp-msg" id="tkTagMsg" aria-live="polite"></div></div>';
+  }
+  function mountTag(c) {
+    var el = document.getElementById('tkTagPick');
+    if (!el || !CP) return;
+    CP.mount(el, {
+      badges: function () { var b = {}; ((S.c || c).people || []).forEach(function (p) { if (p.email && p.kind === S.tagKind) b[p.email] = 'tagged'; }); return b; },
+      lockBadged: true,
+      onPick: async function (p) {
+        var m = document.getElementById('tkTagMsg');
+        var r = await KB.client.rpc('cmp_tag', { p_id: cid, p_email: p.email, p_kind: S.tagKind });
+        if (r.error || !r.data || !r.data.ok) { if (m) { m.textContent = (r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not go through. Try again.'; m.className = 'cp-msg bad'; } return; }
+        S.open = 'tag'; await reload();
+        var m2 = document.getElementById('tkTagMsg'); if (m2) m2.textContent = S.tagKind === 'copied' ? p.short + ' is tagged and gets one message.' : p.short + ' is marked as involved. Nobody messages them.';
+      }
+    });
+  }
+  async function reload() {
     var r = await KB.client.rpc('cmp_get', { p_id: cid });
     if (r.error || !r.data) return notOpen();
-    var c = r.data, t = c.triage, kind = KIND[c.type] || 'client', branch = BRANCH[c.branch] || c.branch || '';
-    var Kind = kind.replace(/^./, function (x) { return x.toUpperCase(); });
+    S.c = r.data; draw(S.c);
+  }
+
+  // ---------------------------------------------------------------- assign, in the ticket
+  function assignCard() {
+    return '<div class="cp-card" id="tkAssign"><h5>Assign to</h5><div id="tkAssignPick"></div><p class="cp-sm" style="margin:8px 0 0">Assigning stops the 3 hour clock and sends them a message. They can still pass it on.</p><div class="cp-msg" id="tkAssignMsg" aria-live="polite"></div></div>';
+  }
+  function mountAssign(c) {
+    var el = document.getElementById('tkAssignPick');
+    if (!el || !CP) return;
+    CP.mount(el, {
+      badges: function () { var b = {}, t = (S.c || c).triage; if (t && t.claimed_by) { var p = CP.byEmailOrName(null, t.claimed_by); if (p) b[p.email] = 'assigned'; } return b; },
+      lockBadged: true,
+      onPick: async function (p) {
+        var m = document.getElementById('tkAssignMsg');
+        if (!window.confirm('Assign this complaint to ' + p.short + '? ' + p.short + ' gets a message and the clock stops.')) return;
+        var r = await KB.client.rpc('cmp_assign', { p_id: cid, p_email: p.email });
+        if (r.error || !r.data || !r.data.ok) { if (m) { m.textContent = (r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not go through. Try again.'; m.className = 'cp-msg bad'; } return; }
+        S.open = ''; await reload();
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------- notes with @
+  function noteHtml(t) {
+    var names = (CP && CP.list || []).map(function (p) { return p.short; }).sort(function (a, b) { return b.length - a.length; }).map(function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+    var out = esc(t);
+    if (names.length) out = out.replace(new RegExp('@(' + names.join('|') + ')', 'g'), '<span class="tk-at">@$1</span>');
+    return out;
+  }
+  function timelineHtml(c) {
+    var tab = S.tab, items = (c.timeline || []);
+    var MSG = { notified: 1, cc: 1, tag_sent: 1, assigned_sent: 1, failed: 1, escalated: 1, remind_reply: 1, remind_close: 1, question_sent: 1 };
+    items = items.filter(function (x) { return tab === 'notes' ? (x.kind === 'note' || x.kind === 'reply') : tab === 'messages' ? !!MSG[x.kind] : true; });
+    if (!items.length) return '<p class="cp-sm" style="margin:8px 0">' + (tab === 'notes' ? 'No notes yet.' : tab === 'messages' ? 'No messages sent yet.' : 'Nothing yet.') + '</p>';
+    return items.map(function (x) {
+      var isNote = x.kind === 'note' || x.kind === 'reply';
+      return '<div class="tk-te"><time>' + esc(short(x.at)) + '</time><div' + (isNote ? '' : ' class="sys"') + '>' +
+        (isNote ? '<b>' + esc(x.by || 'Someone') + '</b> ' + (x.kind === 'reply' ? 'contacted the client' : 'added a note') + '<div class="tk-note">' + noteHtml(x.text || '') + '</div>' : esc(x.text || '')) + '</div></div>';
+    }).join('');
+  }
+  function bindComposer(c) {
+    var ta = document.getElementById('tkNote'), menu = document.getElementById('tkMenu');
+    if (!ta || !CP) return;
+    var hide = function () { menu.hidden = true; menu.innerHTML = ''; };
+    var token = function () {
+      var pos = ta.selectionStart, before = ta.value.slice(0, pos), at = before.lastIndexOf('@');
+      if (at < 0 || (at > 0 && !/\s/.test(before.charAt(at - 1)))) return null;
+      var t = before.slice(at + 1);
+      return t.length > 20 || /\n/.test(t) ? null : { at: at, q: t, pos: pos };
+    };
+    ta.addEventListener('input', function () {
+      S.draft = ta.value;
+      var tk = token();
+      if (!tk) { hide(); return; }
+      var q = tk.q.toLowerCase().trim();
+      var me = c.me && c.me.email;
+      var rows = CP.list.filter(function (p) { return p.email !== me && (!q || (p.name + ' ' + p.short + ' ' + p.role).toLowerCase().indexOf(q) >= 0); }).slice(0, 6);
+      if (!rows.length) { hide(); return; }
+      menu.innerHTML = rows.map(function (p) { return CP.row(p); }).join('');
+      menu.hidden = false;
+    });
+    menu.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    menu.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-pick]'); if (!b) return;
+      var p = CP.byEmail[b.dataset.pick], tk = token(); if (!p || !tk) return;
+      ta.value = ta.value.slice(0, tk.at) + '@' + p.short + ' ' + ta.value.slice(tk.pos);
+      S.mentions[p.short] = p.email; S.draft = ta.value; hide(); ta.focus();
+      var np = tk.at + p.short.length + 2; ta.setSelectionRange(np, np);
+    });
+    ta.addEventListener('blur', function () { setTimeout(hide, 150); });
+  }
+  async function sendNote() {
+    var ta = document.getElementById('tkNote'), msg = document.getElementById('tkNoteMsg'), btn = document.getElementById('tkSend');
+    var text = (ta && ta.value || '').trim();
+    if (text.length < 2) { if (msg) { msg.textContent = 'Write the note first.'; msg.className = 'cp-msg bad'; } return; }
+    var ments = Object.keys(S.mentions).filter(function (s) { return text.indexOf('@' + s) >= 0; }).map(function (s) { return S.mentions[s]; });
+    btn.disabled = true;
+    var r = await KB.client.rpc('cmp_note', { p_id: cid, p_text: text, p_mentions: ments });
+    btn.disabled = false;
+    if (r.error || !r.data || !r.data.ok) { if (msg) { msg.textContent = (r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not save. Try again.'; msg.className = 'cp-msg bad'; } return; }
+    var tagged = r.data.tagged || [];
+    S.draft = ''; S.mentions = {};
+    await reload();
+    var m2 = document.getElementById('tkNoteMsg'); if (m2) m2.textContent = tagged.length ? 'Saved. ' + tagged.join(', ') + (tagged.length === 1 ? ' is tagged and gets' : ' are tagged and get') + ' one message.' : 'Saved.';
+  }
+
+  // ---------------------------------------------------------------- one complaint as a ticket (three columns on a laptop)
+  function ticket(c) {
+    var t = c.triage, kind = kindOf(c), Kind = cap(kind), branch = BRANCH[c.branch] || c.branch || '';
+    var assigned = t && t.state === 'claimed' ? '<span class="cp-dotline">' + personDot(t.claimed_by) + esc(t.claimed_by || '') + '</span>' : t && t.state === 'active' ? esc(cap(t.holder || 'Waiting')) : '<span class="cp-sm">Nobody yet</span>';
+    var canAssign = c.can_manage && c.status === 'open' && !c.duplicate_of;
+    var chipCls = c.duplicate_of ? 'grey' : c.status === 'resolved' ? 'grey' : (t && t.state === 'stuck') ? 'red' : (t && t.state === 'claimed' && c.first_response_at) ? 'green' : 'amber';
+    var fromBoard = badge && badge.board && forceTicket;
+    var h = '<div class="cp wide">' + nav('') + '<a class="sub" href="' + (fromBoard ? '/hub/complaint?view=board' : '/hub/complaint') + '">← ' + (fromBoard ? 'Pipeline' : 'My complaints') + '</a>';
+    if (t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
+    if (c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
+    if (c.duplicate_of) h += '<div class="cp-tagline">This is a duplicate of <b>' + esc(c.duplicate_code || 'another complaint') + '</b>. It stays on file and is not counted twice.</div>';
+    h += '<div class="tk-head"><div>' + codeChip(c.code) + '<h1 style="margin-top:8px">' + esc(Kind) + ' · ' + esc(branch) + '</h1><div class="sub">Logged by ' + esc(c.by || 'someone') + (c.by_at ? ', ' + esc(clock(c.by_at)) : '') + '</div></div>' +
+      '<div class="tk-acts"><span class="cp-pill ' + chipCls + '">' + esc(stageOf(c)) + '</span>' +
+      (canAssign ? '<button type="button" class="cp-btn sub mini" data-open="assign">Assign</button>' : '') +
+      '<button type="button" class="cp-btn sub mini" data-open="tag">Tag</button>' +
+      (c.status === 'open' && !c.duplicate_of ? '<a class="cp-btn pri mini" href="/?view=complaintlog&cid=' + c.id + '">Close it</a>' : '') + '</div></div>';
+    h += '<div class="tk"><div class="cp-card"><h5>About this complaint</h5>' +
+      '<div class="tk-prop"><span>Stage</span><b>' + esc(stageOf(c)) + '</b></div>' +
+      '<div class="tk-prop"><span>Assigned to</span><b>' + assigned + '</b></div>' +
+      '<div class="tk-prop"><span>Reply to client by</span><b>' + esc(day(c.reply_due)) + (c.first_response_at ? ' <span class="cp-pill green">done</span>' : '') + '</b></div>' +
+      '<div class="tk-prop"><span>Close by</span><b>' + esc(day(c.close_due)) + '</b></div>' +
+      '<div class="tk-prop"><span>Client</span><b>' + (c.revealed ? esc(c.client || '') + (c.phone ? ' · ' + esc(c.phone) : '') : '<span class="cp-sm">Not shown to you</span>') + '</b></div>' +
+      (c.event_date ? '<div class="tk-prop"><span>Appointment</span><b>' + esc(day(c.event_date)) + '</b></div>' : '') +
+      (c.services ? '<div class="tk-prop"><span>Service</span><b>' + esc(c.services) + '</b></div>' : '') +
+      (c.stylists ? '<div class="tk-prop"><span>Stylist</span><b>' + esc(c.stylists) + '<br><span class="cp-sm">recorded, not messaged</span></b></div>' : '') +
+      '<div class="tk-prop"><span>What happened</span><b style="max-width:60%">' + esc(c.detail || 'Not stated') + '</b></div>' +
+      '<div style="margin-top:12px">' + peopleBlock(c) + '</div></div>';
+    h += '<div><div class="tk-tabs" role="tablist">' + [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']].map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="tk-comp"><textarea class="cp-ta" id="tkNote" placeholder="Write a note. Type @ to tag someone." aria-label="Write a note">' + esc(S.draft) + '</textarea><div class="tk-menu" id="tkMenu" hidden></div></div>' +
+      '<div class="cp-btnrow" style="grid-template-columns:auto 1fr;align-items:center"><button type="button" class="cp-btn pri mini" id="tkSend">Add note</button><div class="cp-msg" id="tkNoteMsg" aria-live="polite"></div></div>' +
+      '<div id="tkTimeline">' + timelineHtml(c) + '</div></div>';
+    h += '<div style="display:grid;gap:12px;align-content:start">' + (canAssign ? '<div id="tkAssignHold"' + (S.open === 'assign' ? '' : ' hidden') + '>' + assignCard() + '</div>' : '') +
+      '<div id="tkTagHold"' + (S.open === 'tag' ? '' : ' hidden') + '>' + tagCard(c) + '</div>' +
+      '<div class="cp-card"><h5>Possible duplicate</h5>' + ((c.dupes && c.dupes.length) ? c.dupes.map(function (d) { return '<p class="cp-sm" style="margin:0 0 6px"><b>' + esc(d.code || '') + '</b>' + (d.by_phone ? ', same mobile number' : '') + (d.holder ? ', ' + esc(d.holder) : '') + '<br>' + esc(d.text || '') + '</p>'; }).join('') + '<p class="cp-sm" style="margin:0">If it is the same complaint, link it as a duplicate on the dashboard.</p>' : '<p class="cp-sm" style="margin:0">None found for this client in the last 30 days.</p>') + '</div>' +
+      '<div class="cp-card"><h5>Files</h5><p class="cp-sm" style="margin:0">' + (c.file_count ? c.file_count + (c.file_count === 1 ? ' file' : ' files') + '. ' : 'No files. ') + '<a href="/?view=complaintlog&cid=' + c.id + '">Open on the dashboard</a> to see or add them.</p></div></div></div>';
+    h += '</div>';
+    main.innerHTML = h;
+    var th = document.getElementById('tkTagHold'); if (th && !th.hidden) mountTag(c);
+    var ah = document.getElementById('tkAssignHold'); if (ah && !ah.hidden) mountAssign(c);
+    bindComposer(c);
+  }
+
+  // ---------------------------------------------------------------- one complaint: take it, or it is yours, or the ticket
+  function draw(c) {
+    var t = c.triage, kind = kindOf(c), branch = BRANCH[c.branch] || c.branch || '', Kind = cap(kind);
     document.title = Kind + ' complaint · Team Home';
     var canClaim = t && t.state === 'active' && t.can_claim, mine = t && t.i_claimed, urgent = t && t.grp === 'urgent';
-    var facts = '<div class="cp-card">' + row('Branch', esc(branch)) + row('About', esc(Kind)) +
+    clearInterval(timer);
+    if (forceTicket || !(canClaim || mine) || c.duplicate_of) { return ticket(c); }
+    var facts = '<div class="cp-card">' + row('Branch', esc(branch)) + row('About', esc(Kind)) + row('Code', codeChip(c.code)) +
       row('Logged by', esc(c.by || '') + (c.by_at ? ', ' + esc(clock(c.by_at)) : '')) +
       row('What happened', esc(c.detail || 'Not stated')) +
       (c.revealed ? row('Client', esc(c.client || '')) + (c.phone ? row('Mobile', esc(c.phone)) : '') : row('Client', 'Shown once you take it')) + '</div>';
-    var h = '<div class="cp"><a class="sub" href="/hub/complaint">← My complaints</a>';
+    var h = '<div class="cp">' + nav('') + '<a class="sub" href="/hub/complaint">← My complaints</a>';
     if (t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
-
+    if (c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
+    var full = '<p class="cp-foot"><a href="/hub/complaint?cid=' + c.id + '&t=1">Open the full ticket</a> (people, notes, assign)</p>';
     if (canClaim) {
       var tl = t.due_at ? left(t.due_at) : null;
       h += '<h1>' + (urgent ? 'A skin reaction or injury needs a person now' : 'A ' + esc(kind) + ' complaint is waiting for you') + '</h1>' +
@@ -139,62 +426,90 @@
         '<button class="cp-btn sub" data-a="askbox">I have a question first</button></div>' +
         '<div id="cpAsk" hidden><p class="cp-lab">Your question for ' + esc(c.by || 'the person who logged it') + '</p><textarea class="cp-ta" id="cpQ"></textarea>' +
         '<button class="cp-btn sub" data-a="ask" style="margin-top:8px">Send the question</button></div>' +
-        '<div class="cp-msg" id="cpMsg" aria-live="polite"></div></div></div>';
-    } else if (mine) {
+        '<div class="cp-msg" id="cpMsg" aria-live="polite"></div></div></div>' + full;
+    } else {
       var tel = String(c.phone || '').replace(/[^0-9+]/g, ''), wa = tel.replace(/^\+/, '');
       h += '<h1>It is yours. Next, reach her.</h1><div class="cp-main two"><div class="cp-main">' + facts +
         '<div class="cp-card">' + row('Reply to her by', esc(day(c.reply_due)) + (c.first_response_at ? ' <span class="cp-pill green">done</span>' : ' <span class="cp-pill amber">2 days</span>')) +
-        row('Close by', esc(day(c.close_due))) + (c.needs_revisit ? row('Colour', 'Closes once she has come back and is happy') : '') + '</div></div>' +
+        row('Close by', esc(day(c.close_due))) + (c.needs_revisit ? row('Colour', 'Closes once she has come back and is happy') : '') + '</div>' +
+        '<div class="cp-card">' + peopleBlock(c) + '</div><div id="tkTagHold" hidden>' + tagCard(c) + '</div></div>' +
         '<div class="cp-side stick">' + (tel ? '<div class="cp-btnrow"><a class="cp-btn sub" href="tel:' + esc(tel) + '">Call her</a><a class="cp-btn sub" href="https://wa.me/' + esc(wa) + '">WhatsApp her</a></div>' : '') +
         '<div><p class="cp-lab">After you spoke to her: what did she say, and what did you notice?</p><textarea class="cp-ta" id="cpN"></textarea></div>' +
         '<div class="cp-btns"><button class="cp-btn pri" data-a="replied">I’ve replied to her</button>' +
+        (t.can_pass ? '<button class="cp-btn sub" data-a="pass">Not mine, give it back</button>' : '') +
         '<button class="cp-btn sub" data-a="askbox">Ask ' + esc(c.by || 'the person who logged it') + ' a question</button></div>' +
         '<div id="cpAsk" hidden><textarea class="cp-ta" id="cpQ"></textarea><button class="cp-btn sub" data-a="ask" style="margin-top:8px">Send the question</button></div>' +
-        '<div class="cp-msg" id="cpMsg" aria-live="polite"></div></div></div>';
-    } else {
-      var state = !t ? 'Not under triage' : t.state === 'claimed' ? 'Taken by ' + esc(t.claimed_by || 'someone') : t.state === 'stuck' ? 'Nobody has taken it yet' :
-        t.state === 'minor' ? 'Goes in the daily summary, no clock' : 'With someone else right now' + (t.next ? ', then ' + esc(t.next) : '');
-      h += '<h1>' + esc(Kind) + ' complaint · ' + esc(branch) + '</h1><p class="sub">' + state + '</p><div class="cp-main two"><div class="cp-main">' + facts + '</div>' +
-        '<div class="cp-side"><div><p class="cp-lab">Ask or write back</p><textarea class="cp-ta" id="cpQ"></textarea></div>' +
-        '<button class="cp-btn sub" data-a="ask">Send</button>' +
-        (t && t.state === 'stuck' ? '<button class="cp-btn pri" data-a="claim">I’ll take it</button>' : '') +
-        '<div class="cp-msg" id="cpMsg" aria-live="polite"></div></div></div>';
+        '<div class="cp-msg" id="cpMsg" aria-live="polite"></div></div></div>' + full;
     }
     if (c.updates && c.updates.length) {
       h += '<div class="cp-card"><p class="cp-lab">What has been written</p><div class="cp-up">' + c.updates.map(function (u) {
         return '<div>' + esc(u.note || '') + '<br><small>' + esc(u.by || '') + ' · ' + esc(clock(u.at)) + '</small></div>';
       }).join('') + '</div></div>';
     }
-    if (c.people && c.people.length) {
-      h += '<p class="cp-foot">Involved: ' + c.people.filter(function (p) { return p.kind === 'involved'; }).map(function (p) { return esc(p.name); }).join(', ') +
-        (c.people.some(function (p) { return p.kind === 'cc'; }) ? ' · Copied: ' + c.people.filter(function (p) { return p.kind === 'cc'; }).map(function (p) { return esc(p.name); }).join(', ') : '') + '</p>';
-    }
     h += '<p class="cp-foot"><a href="/?view=complaintlog&cid=' + c.id + '">Open on the dashboard</a> (to close it with how it ended)</p></div>';
     main.innerHTML = h;
-    main.onclick = async function (e) {
-      var b = e.target.closest('button[data-a]');
-      if (!b) return;
-      var a = b.dataset.a, msg = document.getElementById('cpMsg');
-      function say(t, bad) { if (msg) { msg.textContent = t; msg.className = 'cp-msg' + (bad ? ' bad' : ''); } }
-      if (a === 'askbox') { var box = document.getElementById('cpAsk'); if (box) { box.hidden = !box.hidden; var q = document.getElementById('cpQ'); if (q && !box.hidden) q.focus(); } return; }
-      b.disabled = true;
-      var res;
-      if (a === 'claim') res = await KB.client.rpc('cmp_claim', { p_id: cid });
-      else if (a === 'pass') res = await KB.client.rpc('cmp_pass', { p_id: cid });
-      else if (a === 'replied') res = await KB.client.rpc('cmp_replied', { p_id: cid, p_note: (document.getElementById('cpN') || {}).value || '' });
-      else if (a === 'ask') res = await KB.client.rpc('cmp_ask', { p_id: cid, p_q: (document.getElementById('cpQ') || {}).value || '' });
-      b.disabled = false;
-      if (res.error || !res.data || !res.data.ok) { say((res.data && res.data.why) ? res.data.why.charAt(0).toUpperCase() + res.data.why.slice(1) + '.' : 'That did not go through. Try again.', true); if (a === 'claim') setTimeout(one, 1800); return; }
-      if (a === 'pass') { say('Passed on. It goes to the next person in a moment.'); setTimeout(function () { location.href = '/hub/complaint'; }, 1400); return; }
-      if (a === 'ask') { say('Sent. They will see it on the complaint.'); var qq = document.getElementById('cpQ'); if (qq) qq.value = ''; return; }
-      if (a === 'replied') { say('Saved. Thank you.'); setTimeout(one, 900); return; }
-      one();
-    };
-    clearInterval(timer);
-    if (canClaim && t.due_at) timer = setInterval(function () { var el = main.querySelector('.cp-timer'); if (!el) return; var tl = left(t.due_at); if (tl) el.textContent = tl + ' before it moves on'; else { el.textContent = 'It is moving on now'; el.classList.add('late'); } }, 30000);
+    var th = document.getElementById('tkTagHold'); if (th && !th.hidden) mountTag(c);
+    if (canClaim && t.due_at) timer = setInterval(function () { var el = main.querySelector('.cp-timer'); if (!el) return; var tl2 = left(t.due_at); if (tl2) el.textContent = tl2 + ' before it moves on'; else { el.textContent = 'It is moving on now'; el.classList.add('late'); } }, 30000);
   }
 
-  KB.ready.then(function () { return cid ? one() : list(); });
+  // ---------------------------------------------------------------- clicks
+  main.addEventListener('click', async function (e) {
+    var cp = e.target.closest('[data-copy]');
+    if (cp) { copyText(cp); return; }
+    var f = e.target.closest('[data-f]');
+    if (f) {
+      var b = S.board;
+      if (f.dataset.f === 'branch') b.branch = f.dataset.v; else if (f.dataset.f === 'mine') b.mine = !b.mine; else if (f.dataset.f === 'serious') b.serious = !b.serious;
+      board(); return;
+    }
+    var tab = e.target.closest('[data-tab]');
+    if (tab) { S.tab = tab.dataset.tab; var tl = document.getElementById('tkTimeline'); if (tl && S.c) tl.innerHTML = timelineHtml(S.c); main.querySelectorAll('[data-tab]').forEach(function (x) { var on = x.dataset.tab === S.tab; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); }); return; }
+    var op = e.target.closest('[data-open]');
+    if (op) {
+      var which = op.dataset.open, hold = document.getElementById(which === 'tag' ? 'tkTagHold' : 'tkAssignHold');
+      if (!hold) return;
+      var willShow = hold.hidden;
+      ['tkTagHold', 'tkAssignHold'].forEach(function (id) { var x = document.getElementById(id); if (x && id !== hold.id) x.hidden = true; });
+      hold.hidden = !willShow; S.open = willShow ? which : '';
+      if (willShow) { if (which === 'tag') mountTag(S.c); else mountAssign(S.c); hold.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      return;
+    }
+    var tk = e.target.closest('[data-tk]');
+    if (tk) { S.tagKind = tk.dataset.tk; main.querySelectorAll('[data-tk]').forEach(function (x) { x.classList.toggle('on', x.dataset.tk === S.tagKind); }); if (document.getElementById('tkTagPick') && S.c) mountTag(S.c); return; }
+    if (e.target.id === 'tkSend') { sendNote(); return; }
+    var bt = e.target.closest('button[data-a]');
+    if (!bt) return;
+    var a = bt.dataset.a, msg = document.getElementById('cpMsg');
+    function say(t, bad) { if (msg) { msg.textContent = t; msg.className = 'cp-msg' + (bad ? ' bad' : ''); } }
+    if (a === 'askbox') { var box = document.getElementById('cpAsk'); if (box) { box.hidden = !box.hidden; var q = document.getElementById('cpQ'); if (q && !box.hidden) q.focus(); } return; }
+    bt.disabled = true;
+    var res;
+    if (a === 'claim') res = await KB.client.rpc('cmp_claim', { p_id: cid });
+    else if (a === 'pass') res = await KB.client.rpc('cmp_pass', { p_id: cid });
+    else if (a === 'replied') res = await KB.client.rpc('cmp_replied', { p_id: cid, p_note: (document.getElementById('cpN') || {}).value || '' });
+    else if (a === 'ask') res = await KB.client.rpc('cmp_ask', { p_id: cid, p_q: (document.getElementById('cpQ') || {}).value || '' });
+    bt.disabled = false;
+    if (res.error || !res.data || !res.data.ok) { say((res.data && res.data.why) ? cap(res.data.why) + '.' : 'That did not go through. Try again.', true); if (a === 'claim') setTimeout(one, 1800); return; }
+    if (a === 'pass') { say('Passed on. It goes to the next person in a moment.'); setTimeout(function () { location.href = '/hub/complaint'; }, 1400); return; }
+    if (a === 'ask') { say('Sent. They will see it on the complaint.'); var qq = document.getElementById('cpQ'); if (qq) qq.value = ''; return; }
+    if (a === 'replied') { say('Saved. Thank you.'); setTimeout(one, 900); return; }
+    one();
+  });
+
+  async function one() {
+    var r = await KB.client.rpc('cmp_get', { p_id: cid });
+    if (r.error || !r.data) return notOpen();
+    S.c = r.data;
+    draw(S.c);
+    if (S.c.tagged_me) { KB.client.rpc('cmp_seen', { p_id: cid }); }
+  }
+
+  KB.ready.then(async function () {
+    var b = await KB.client.rpc('cmp_my_badge');
+    badge = b && !b.error ? b.data : null;
+    if (CP) await CP.load();
+    return cid ? one() : view === 'board' ? board() : list();
+  });
 })();
 </script>
 </body>
