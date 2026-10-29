@@ -91,12 +91,28 @@ async function lrRenderPerf(force) {
   }
   lrPaint();
 }
+// Every call here is slow (lost_send_report_get alone takes about 7 s, near the database's limit), so fired all at once one of them could fail and take the
+// whole report with it (Kate, 29 Oct 2026). Now: the two the page cannot draw without go first, each retried; then the optional ones together, each retried too.
+async function lrRetry(fn, tries) {
+  let r;
+  for (let i = 0; i < tries; i++) {
+    try { r = await fn(); } catch (e) { r = { error: e }; }
+    if (!r.error || /Level 3/.test(r.error.message || '')) return r;
+    console.warn('retry ' + (i + 1), r.error);
+    await new Promise(res => setTimeout(res, 900 * (i + 1)));
+  }
+  return r;
+}
 async function lrLoad() {
   if (lrBusy) return;
   lrBusy = true; lrErr = '';
   try {
-    const [s, l, dp, dl, bs, rc, ad] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_booked_since', lrArgs()), sb.rpc('lost_blast_record_get'), sb.rpc('lost_after_deadline')]);
+    const [s, l] = await Promise.all([lrRetry(() => sb.rpc('lost_send_report_get', lrArgs()), 3), lrRetry(() => lrFetchPage(), 3)]);
     if (s.error || !s.data) throw s.error || new Error('no report');
+    if (l.error || !l.data) throw l.error || new Error('no log');
+    const [dp, dl, bs, rc, ad, mo] = await Promise.all([lrRetry(() => sb.rpc('lost_booked_deposits', lrArgs()), 2), lrRetry(() => sb.rpc('lost_delivery_report', lrArgs()), 2),
+      lrRetry(() => sb.rpc('lost_booked_since', lrArgs()), 2), lrRetry(() => sb.rpc('lost_blast_record_get'), 2), lrRetry(() => sb.rpc('lost_after_deadline'), 2),
+      lrRetry(() => sb.rpc('lost_campaign_money', lrArgs()), 2)]);
     lrSum = s.data;
     lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
     if (dp.error) console.warn('lost_booked_deposits', dp.error);
@@ -106,17 +122,15 @@ async function lrLoad() {
     if (ad.error && !/Level 3/.test(ad.error.message || '')) console.warn('lost_after_deadline', ad.error);
     lrDel = (!dl.error && dl.data && dl.data.total) ? dl.data : null;   // optional too
     if (dl.error) console.warn('lost_delivery_report', dl.error);
-    lrMoney = null;   // comes in on its own below, after the report has drawn
+    lrMoney = (!mo.error && mo.data && mo.data.cost) ? mo.data : null;   // optional too; if it failed, lrLoadMoney below keeps trying
     lrRec = (!rc.error && rc.data && (rc.data.rows || []).length) ? rc.data : null;   // optional too
     if (rc.error && !/Level 3/.test(rc.error.message || '')) console.warn('lost_blast_record_get', rc.error);
-    if (l.error || !l.data) throw l.error || new Error('no log');
     lrRowsPage = l.data.rows || []; lrTotal = l.data.total || 0; lrOutcomes = l.data.outcomes || {};
+    if (!lrMoney && mo.error && !/Level 3/.test(mo.error.message || '')) { lrBusy = false; lrLoadMoney(); return; }
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
   lrBusy = false;
-  lrLoadMoney();
 }
-// The money (Kate, 29 Oct 2026): lost_campaign_money is the slowest call (4 to 6 s), and fired together with the other seven it failed on a cold load,
-// so the Spent card and the Money section vanished. It now goes on its own once the report has drawn, tries up to three times, and repaints when it lands.
+// The money (Kate, 29 Oct 2026): if it did not come with the report it goes again on its own, three tries, and the page repaints in place when it lands.
 let lrMoneyTok = 0;
 async function lrLoadMoney() {
   const tok = ++lrMoneyTok;
