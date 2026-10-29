@@ -717,10 +717,10 @@ function render(){
   /* the branch and team row must be shown or hidden before stickFit() measures the bar, or the header sticks one row too low (Kate, 27 Oct 2026) */
   /* Kate, 27 Oct 2026: the Branch and Team chips stay in By branch too, the tiles above follow them (the branch table itself always lists every branch) */
   document.getElementById('rowFilters').style.display='';
-  /* Kate, 29 Oct 2026: the Adjustment % box stays in By branch too. The table always lists every branch and both teams, so the box covers everyone in it and 2.5 for all is one entry. */
+  /* Kate, 29 Oct 2026: the Adjustment % box stays in By branch too, for the people in the table (the Branch and Team chips pick them), so 2.5 for all is one entry. */
   document.getElementById('sfTools').hidden=false;
   document.getElementById('sfOpen').style.display=st.view==='BRANCH'?'none':'';
-  if(st.view==='BRANCH'){document.getElementById('sfNote').innerHTML='';document.getElementById('sfN').textContent=rows.filter(r=>r.med!=null&&!r.cover).length;}
+  if(st.view==='BRANCH'){document.getElementById('sfNote').innerHTML='';document.getElementById('sfN').textContent=sel.filter(r=>r.med!=null&&!r.cover).length;}
   document.querySelector('.tw').classList.toggle('sheet',st.view==='BRANCH');
   if(barEl.classList.contains('closed'))document.getElementById('barSum').textContent=barSum();
   stickFit();
@@ -1024,21 +1024,28 @@ function branchRow(label,t,cls,sub,rv,scope){
 }
 let lastBranchRows=[];
 function renderBranch(rows){
-  lastBranchRows=rows;
+  /* Kate, 29 Oct 2026: the table follows the Branch and Team chips (it listed every branch whatever was picked). */
+  const brs=st.branch==='ALL'?BR4:[st.branch],teamAll=st.team==='ALL',tms=teamAll?['HAIR','BEAUTY']:[st.team],tmName=t=>t==='HAIR'?'Hair':'Beauty';
+  const vis=rows.filter(r=>brs.includes(r.p[0])&&(teamAll||r.p[2]===st.team));
+  lastBranchRows=vis;
   document.getElementById('secEyebrow').textContent='Branch by branch';
   document.getElementById('secTitle').textContent='Adding it up';
   document.getElementById('secWhy').textContent='Each branch is the sum of its people, and its Retail also includes the reception retail, what the front desk sells. The gap between low and full team is what leave and missing staff cost us in a month. The target against what the same people delivered in September is for a first look: further out, find out why before anything changes.';
   let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Adjustment ${ibw(TIP_BU_B)}</th><th>Full team</th><th class="rel">Net take ${ibw('<b>Net take</b> is the target plus retail at what we sell today ('+S.retailNow+'%), the same as the Total net take on the card. The % under Service, Treatment and Retail is each one&#39;s share of it. Treatment is inside Service. Retail is aimed at '+S.retail+'%, so the shares can add to more than 100%.','What net take is')}</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th class="rel">Utilisation ${ibw('<b>Utilisation</b> the plan asks for: the hours the clients need over the hours the team can give. An adjustment % puts more clients in the same hours, so it lifts this by the same %. The line under shows it before the adjustment.','What utilisation is')}</th><th class="rel">Bottom-up ${ibw(TIP_BOT(),'What bottom-up is')}</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
-  ['SAA','KCA','MC','AQ'].forEach(b=>{
-    const br=rows.filter(r=>r.p[0]===b);
-    ['HAIR','BEAUTY'].forEach(tm=>{
-      const t=sumRows(br.filter(r=>r.p[2]===tm));
-      if(!t.n)return;
-      h+=branchRow(tm==='HAIR'?'Hair':'Beauty',t,'p',BN[b],0,{b,tm});
-    });
-    h+=branchRow(BN[b]+' total',sumRows(br),'sum','',recvOf(b),{b});
+  brs.forEach(b=>{
+    const br=vis.filter(r=>r.p[0]===b);
+    if(teamAll){
+      tms.forEach(tm=>{
+        const t=sumRows(br.filter(r=>r.p[2]===tm));
+        if(!t.n)return;
+        h+=branchRow(tmName(tm),t,'p',BN[b],0,{b,tm});
+      });
+      h+=branchRow(BN[b]+' total',sumRows(br),'sum','',recvOf(b),{b});
+    }else{
+      h+=branchRow(BN[b]+' '+tmName(st.team),sumRows(br),'sum','',0,{b,tm:st.team});
+    }
   });
-  h+=branchRow('Group total',sumRows(rows),'tot','Four UAE branches',BR4.reduce((a,b)=>a+recvOf(b),0),{});
+  if(brs.length>1)h+=branchRow(teamAll?'Group total':'Group total, '+tmName(st.team),sumRows(vis),'tot','Four UAE branches',teamAll?BR4.reduce((a,b)=>a+recvOf(b),0):0,{b:'',tm:teamAll?'':st.team});
   document.getElementById('tbl').setAttribute('data-frz','1');
   document.getElementById('tbl').innerHTML=h+'</tbody>';
 }
