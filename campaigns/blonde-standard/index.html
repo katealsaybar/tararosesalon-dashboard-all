@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html lang="en-GB">
 <head>
-<link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/playfair-display-500.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/inter-300.woff2">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#FAF8F4">
 <title>The Blonde Standard &middot; Tara Rose Salon</title>
-<meta name="description" content="A three-visit plan for blonde that stays blonde: Create, Protect, Keep on Track. Soft, Signature and Transformation Blonde, plans from AED 1,550 for short or fine hair. The Confidence Mapping is free. Abu Dhabi and Dubai.">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/playfair-display-500.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="assets/fonts/inter-300.woff2">
+<meta name="theme-color" content="#FAF8F4">
+<meta name="description" content="Keep your blonde looking fresh all year. Three planned visits in Dubai and Abu Dhabi, from AED 1,550, with the Confidence Promise on every plan.">
 <meta name="robots" content="noindex,nofollow">
 <meta property="og:type" content="website">
 <meta property="og:title" content="The Blonde Standard &middot; Tara Rose Salon">
-<meta property="og:description" content="A three-visit plan for blonde that stays blonde: Create, Protect, Keep on Track. Soft, Signature and Transformation Blonde, plans from AED 1,550 for short or fine hair. The Confidence Mapping is free. Abu Dhabi and Dubai.">
+<meta property="og:description" content="Keep your blonde looking fresh all year. Three planned visits in Dubai and Abu Dhabi, from AED 1,550, with the Confidence Promise on every plan.">
 <meta property="og:locale" content="en_GB">
 <meta property="og:site_name" content="Tara Rose">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-96x96.png" type="image/png" sizes="96x96">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
-<link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/voucher-base.css">
-<link rel="stylesheet" href="css/blonde-standard.css">
-<link rel="stylesheet" href="css/offers.css?v=7de82534">
+<link rel="stylesheet" href="css/fonts.css?v=ui1">
+<link rel="stylesheet" href="css/voucher-base.css?v=ui1">
+<link rel="stylesheet" href="css/blonde-standard.css?v=ui1">
+<link rel="stylesheet" href="css/offers.css?v=ui1">
 <style>
 .draft-bar{background:#1c1b18;color:#99f6e4;text-align:center;font:600 11.5px/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;padding:8px 14px}
 .hero-b .lede{max-width:46ch}
+.hero-hr .lede .lede-tag{display:block;font:400 clamp(18px,1.6vw,21px)/1.4 Inter,system-ui,sans-serif;letter-spacing:0;text-transform:none;color:#fff;margin-bottom:12px}
+.hero-hr .lede .lede-life{display:block;color:rgba(255,255,255,.84)}
 .hero-hr{background:#161512 url(assets/img/hero-blonde-wide.jpg) 100% 0/cover no-repeat}
 .hero-hr::before{content:"";position:absolute;inset:0;opacity:1;background:linear-gradient(100deg,rgba(22,21,18,.9) 0%,rgba(22,21,18,.6) 40%,rgba(22,21,18,0) 62%)}
 @media (min-width:900px){
@@ -39,28 +41,881 @@
   .hero-hr{background-size:auto 440px;background-position:100% 0;padding-top:470px !important}
   .hero-hr::before{background:linear-gradient(to bottom,rgba(22,21,18,0) 0,rgba(22,21,18,0) 300px,#161512 440px)}
 }
-#environment{padding-block:56px}
-#environment .sec-head{margin-bottom:0}
+.fit{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1040px;margin:30px auto 0}
+@media (max-width:900px){.fit{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.fit{grid-template-columns:repeat(2,1fr);gap:10px}a.inc.fitcard{min-height:0;padding:14px 12px;gap:6px}.fitcard p{font-size:16.5px}.fitcard span{font-size:12.5px}}
+@media (max-width:359px){.fit{grid-template-columns:1fr}a.inc.fitcard{padding:14px 16px}}
+a.inc.fitcard{padding:22px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:128px;text-decoration:none;color:var(--ink)}
+.fitcard p{margin:0;font-family:var(--fd);font-size:19px;line-height:1.3;color:var(--ink)}
+.fitcard span{font-family:var(--fb);font-size:13.5px;font-weight:600;color:var(--accent-text)}
+.fitcard:hover span{text-decoration:underline}
+.chat-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:16px auto 0;max-width:640px}
+.chat-row a{display:inline-flex;align-items:center;padding:11px 18px;border:1px solid rgba(45,46,55,.18);border-radius:999px;font:600 14px/1 Inter,system-ui,sans-serif;color:var(--ink);text-decoration:none;background:#fff}
+.chat-row a:hover{border-color:var(--accent-deep)}
+.chat-lbl{text-align:center;margin:26px 0 0;font:600 12px/1.4 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+@media (max-width:860px){
+  .hero-hr.hero-photo-right .hero-photo{order:1}
+  .hero-hr.hero-photo-right .hero-photo img{max-height:380px}
+  .hero-hr.hero-photo-right .wrap{padding-block:30px 36px;gap:28px}
+}
+/* Model photos are 4:5 portraits. A 16:9 or 4:3 banner crop on a phone cut faces in half, so show them whole, a little smaller and centred. */
+@media (max-width:860px){
+  .osubgrid .osubphoto img{aspect-ratio:4/5;width:min(66%,260px);margin:0 auto}
+}
+@media (max-width:640px){
+  .ogroup .orows .door--plan .rowphoto{width:100%;display:flex;justify-content:center}
+  .ogroup .orows .door--plan .rowphoto img{aspect-ratio:4/5;width:min(66%,260px);height:auto;margin:0}
+}
+@media (max-width:860px) and (max-height:640px){
+  .hero-hr .pill-tag{display:none}
+}
+@media (max-width:767px){
+  .trs-nav .nav__cta{font-size:11.5px;padding:11px 16px}
+  .ochip{font-size:11.5px}
+  .ogroup .orows .door .bands>summary{min-height:44px;font-size:12.5px}
+  .bands--len li span{font-size:13px}
+  .from--quote b{font-size:14px}
+  .field input:not([type=checkbox]),.field select,.field textarea{min-height:46px}
+  .chat-row a{flex:1 1 calc(50% - 10px);justify-content:center;min-height:46px}
+  main section[id]{scroll-margin-top:calc(var(--nav-h,75px) + 6px)}
+  .door--plan{scroll-margin-top:calc(var(--sticky-h,130px) + 8px)}
+}
+.terms-wrap{margin:0;scroll-margin-top:calc(var(--nav-h,75px) + 6px)}
+/* The terms link is the last row of the FAQ list: same serif, same hairline, same width, arrow where the + is. */
+a.terms.terms--link{display:flex;align-items:center;justify-content:space-between;gap:18px;max-width:none;margin:0;padding:22px 0;background:transparent;border:0;border-bottom:.8px solid rgba(255,255,255,.12);border-radius:0;font-family:var(--fd);font-weight:500;font-size:24px;line-height:1.3;letter-spacing:0;color:#fff;text-decoration:none;min-height:0}
+a.terms--link .tarr{flex:0 0 auto;font-style:normal;font-family:var(--fb);font-size:24px;line-height:1;color:var(--accent);transition:transform .3s var(--ease)}
+a.terms.terms--link:hover{color:var(--accent)}
+a.terms--link:hover .tarr{transform:translateX(6px)}
+@media (max-width:640px){a.terms.terms--link{font-size:19px;line-height:1.62}a.terms--link .tarr{font-size:20px}}
+.dark .rhythm-note{color:rgba(255,255,255,.8)}
+#shift .proof-lane__label,#shift .proof__line,#shift figcaption{color:rgba(255,255,255,.82)}
+#shift .proof-lane__label--hero{color:#fff}
+.rhythm-note{max-width:56ch;margin:22px auto 0;text-align:center;font:300 16.5px/1.6 Inter,system-ui,sans-serif;color:var(--ink-soft)}
+
+/* v4: wireframe structure, TRS components. Plans and menu are cards; length prices open on tap. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.pill--line{background:transparent;color:var(--ink);border:1px solid var(--ink);box-shadow:none}
+.pill--line:hover{background:var(--ink);color:var(--paper)}
+
+/* nav: brand left, links and the one CTA right */
+.nav--wf .navrow{display:flex;justify-content:space-between;align-items:center;gap:18px}
+.nav--wf .brand{justify-self:auto;padding:0;align-items:center}
+.nav--wf .navlinks{display:flex;align-items:center;gap:28px}
+.nav--wf .nav-link{justify-self:auto}
+.nav--wf .nav__cta{justify-self:auto}
+@media (max-width:860px){.nav--wf .nav-link{display:none}.nav--wf .navlinks{gap:0}}
+
+/* shared section rhythm */
+.sec-plans,.sec-menu{padding-block:clamp(56px,7vw,96px)}
+.sec-plans{background:var(--paper)}
+.sec-menu{background:var(--cream)}
+.sec-plans .sec-head,.sec-menu .sec-head{margin-bottom:0}
+.short-note{max-width:64ch}
+
+/* plans */
+.plangrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:38px;align-items:stretch}
+.plancard{display:flex;flex-direction:column;min-width:0;background:#fff;border:1px solid var(--hair);border-radius:var(--r-md);overflow:hidden;scroll-margin-top:calc(var(--nav-h,75px) + 12px)}
+.plancard--hi{border:1.5px solid var(--accent-deep);box-shadow:0 18px 40px -24px rgba(61,140,127,.45)}
+.plancard__photo{margin:0;background:var(--stone-soft)}
+.plancard__photo img{display:block;width:100%;height:auto;aspect-ratio:5/4;object-fit:cover}
+/* plan photos: show the whole 4:5 photo so the hair is visible, not a tight crop */
+#plans .plancard__photo img,#menu .plancard__photo img{aspect-ratio:4/5;object-position:center center !important}
+/* desktop: the same 4:5 photo as on a phone, uncropped, so the face and hair always show */
+@media (min-width:901px){
+  #plans .plancard,#menu .plancard{container-type:inline-size}
+  #plans .plancard__photo img,#menu .plancard__photo img{aspect-ratio:4/5;height:auto;object-position:center center !important}
+  #plans .plancard__body,#menu .plancard__body{padding:18px 20px 18px}
+  #plans .plancard h3,#menu .plancard h3{margin:6px 0 4px;font-size:24px}
+  #plans .plancard__body>p:not(.plancard__quote),#menu .plancard__body>p{margin-bottom:12px;font-size:14px;line-height:1.5}
+  #plans .plancard__price,#menu .plancard__price{padding-top:10px}
+  #plans .plancard__price strong,#menu .plancard__price strong{font-size:27px;margin:2px 0 0}
+  #plans .plancard .pill,#menu .plancard .pill{margin-top:12px;min-height:42px}
+  #menu .gcard__more summary{min-height:40px}
+}
+.plancard__body{display:flex;flex-direction:column;flex:1;padding:22px 22px 24px}
+.plancard__label{font-family:var(--fb);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.plancard h3{margin:8px 0 6px;font-family:var(--fd);font-weight:500;font-size:26px;line-height:1.15;color:var(--ink)}
+.plancard p{margin:0 0 18px;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
+.plancard__price{margin-top:auto;padding-top:14px;border-top:1px solid var(--hair);font-family:var(--fb)}
+.plancard__price span{display:block;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.plancard__price strong{display:block;margin:4px 0 2px;font-family:var(--fd);font-weight:500;font-size:30px;line-height:1.1;color:var(--ink);font-variant-numeric:tabular-nums}
+.plancard__price small{display:block;font-size:12.5px;color:var(--ink-soft)}
+.plancard .pill{width:100%;justify-content:center;text-align:center;line-height:1.3;margin-top:18px;padding-inline:16px;letter-spacing:.06em}
+.plans-foot{max-width:860px;margin:22px auto 0}
+.plans-foot .short-note{margin-top:14px}
+
+.lentable{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+.lentable summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;cursor:pointer;list-style:none;font-family:var(--fb);font-size:13.5px;font-weight:500;color:var(--accent-text)}
+.lentable summary::-webkit-details-marker{display:none}
+.lentable summary::after{content:"+";font-size:17px;line-height:1}
+.lentable[open] summary::after{content:"\2212"}
+.lentable summary:hover{text-decoration:underline;text-underline-offset:3px}
+.lentable__scroll{overflow-x:auto;padding-bottom:10px}
+.lentable table{width:100%;border-collapse:collapse;font-family:var(--fb);font-size:13.5px;font-variant-numeric:tabular-nums}
+.lentable th,.lentable td{padding:9px 0 9px 10px;border-top:1px solid var(--hair);text-align:right;white-space:nowrap}
+.lentable thead th{border-top:0;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);white-space:normal;vertical-align:bottom}
+.lentable thead th:first-child,.lentable tbody th{padding-left:0;text-align:left}
+.lentable tbody th{font-weight:500;color:var(--ink);white-space:normal}
+.lentable td{color:var(--ink-soft)}
+
+.menulink{display:flex;align-items:center;justify-content:space-between;gap:16px 28px;flex-wrap:wrap;max-width:860px;margin:34px auto 0;padding:24px 26px;background:var(--cream);border-radius:var(--r-md)}
+.menulink>div{min-width:0;flex:1 1 320px}
+.menulink h3{margin:0 0 4px;font-family:var(--fd);font-weight:500;font-size:23px;color:var(--ink)}
+.menulink p{margin:0;font-family:var(--fb);font-size:14px;font-weight:300;color:var(--ink-soft)}
+.menulink .pill{margin-top:0}
+
+/* Blonde Menu: one plan-style card per group, its services listed with every length price */
+.gcards{align-items:stretch}
+.gcard .plancard__body>p{margin-bottom:16px}
+.gcard__list{border-top:1px solid var(--hair);padding-top:4px;font-family:var(--fb)}
+.gcard__list ul{list-style:none;margin:0;padding:0}
+.gcard__cols{display:flex;justify-content:space-between;align-items:end;gap:10px;padding:8px 0 6px}
+.gcard__cols>span{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.gcard__cols>div,.gsvc__lens{display:grid;grid-template-columns:repeat(4,40px);gap:4px;text-align:right}
+.gcard__cols>div span{font-size:9.5px;color:var(--ink-soft)}
+.gsvc{padding:10px 0;border-top:1px solid var(--hair)}
+.gsvc__top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.gsvc__top span{min-width:0;font-size:14.5px;font-weight:500;line-height:1.35;color:var(--ink)}
+.gsvc__top b{flex:0 0 auto;font-family:var(--fd);font-weight:500;font-size:16px;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.gsvc__lens{justify-content:end;margin-top:4px}
+.gsvc--row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.gsvc--row .gsvc__top{min-width:0}
+.gsvc--row .gsvc__lens{flex:0 0 auto;margin-top:0}
+.gsvc--row .gsvc__lens span{font-size:13px;color:var(--ink)}
+.gsvc__lens span{font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.gcards{align-items:start}
+/* closed cards level: a small script gives each intro the height of the tallest, so opening one card grows only that card */
+.gcard .plancard__body>p{box-sizing:content-box}
+.gcard .plancard__price{margin-top:0}
+.gcard .pill{margin-top:18px}
+.gcard__more{margin-top:14px;border-top:1px solid var(--hair)}
+.gcard__more summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;cursor:pointer;list-style:none;font-family:var(--fb);font-size:13.5px;font-weight:500;color:var(--accent-text)}
+.gcard__more summary::-webkit-details-marker{display:none}
+.gcard__more summary::after{content:"+";font-size:17px;line-height:1}
+.gcard__more[open] summary::after{content:"\2212"}
+.gcard__more summary:hover{text-decoration:underline;text-underline-offset:3px}
+.gcard__more summary:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.gcard__more .gcard__list{border-top:1px solid var(--hair)}
+.gcard__unit{margin:8px 0 0;font-family:var(--fb);font-size:11.5px;color:var(--ink-soft)}
+/* all three price lists open: cards share one height (desktop only, closed cards keep growing alone) */
+@media (min-width:900px){
+.plangrid:not(:has(.gcard__more:not([open]))),#plans .plangrid:not(:has(.gcard__more:not([open]))){align-items:stretch}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more::details-content{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more .gcard__list{flex:1;display:flex;flex-direction:column}
+}
+.sec-menu .short-note{margin-top:26px}
+
+/* How it works: plain cream. Is this you: warm brown gradient, statements as her own words. */
+.sec-fit{padding-block:clamp(60px,8vw,104px)}
+.fitx{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:clamp(28px,6vw,88px);align-items:center}
+.fitx__head{min-width:0}
+.fitx__head .eyebrow{display:block;margin-bottom:14px}
+.fitx__head h2{margin:0;font-family:var(--fd);font-weight:500;font-size:clamp(36px,4.4vw,54px);line-height:1.02;letter-spacing:-.015em;color:#fff}
+.fitx__head h2 em{color:var(--accent)}
+.fitx__head p{margin:18px 0 0;max-width:30ch;font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.6;color:rgba(255,255,255,.72)}
+.fitx__list{min-width:0;border-top:1px solid rgba(255,255,255,.14)}
+.fitx__row{position:relative;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px 6px;border-bottom:1px solid rgba(255,255,255,.12);color:#fff;text-decoration:none}
+.fitx__row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fitx__q{min-width:0;font-family:var(--fd);font-weight:500;font-size:clamp(18px,1.6vw,21px);line-height:1.3;color:rgba(255,255,255,.88);transition:color var(--dur) var(--ease),transform var(--dur) var(--ease)}
+.fitx__row:hover .fitx__q,.fitx__row:focus-visible .fitx__q{color:#fff;transform:translateX(6px)}
+.fitx__arr{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid rgba(153,246,228,.4);border-radius:50%;font-family:var(--fb);font-size:13px;color:var(--accent);transition:transform var(--dur) var(--ease),background var(--dur) var(--ease),color var(--dur) var(--ease)}
+.fitx__row:hover .fitx__arr,.fitx__row:focus-visible .fitx__arr{transform:translateX(3px);background:var(--accent);color:var(--ink)}
+.fitx__row--unsure .fitx__q{font-style:italic;color:var(--accent)}
+@media (max-width:900px){
+  .fitx{grid-template-columns:minmax(0,1fr)}
+  .fitx__head{text-align:center}
+  .fitx__head p{margin-inline:auto}
+}
+@media (max-width:600px){.fitx__q{font-size:18px}.fitx__row{padding:14px 2px}}
+@media (prefers-reduced-motion:reduce){.fitx__q,.fitx__arr{transition:none}}
+/* proof: an interactive before and after, tabs to switch client */
+.sec-proof{padding-block:clamp(60px,8vw,110px)}
+.proofx{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(30px,6vw,80px);align-items:center}
+.proofx__copy{min-width:0}
+.proofx__copy .eyebrow{display:block;margin-bottom:14px}
+.proofx__copy h2{margin:0;font-family:var(--fd);font-weight:500;font-size:clamp(38px,5vw,62px);line-height:1.02;letter-spacing:-.015em;color:#fff;text-wrap:balance}
+.proofx__copy h2 em{color:var(--accent)}
+.proofx__lede{margin:16px 0 26px;font-family:var(--fb);font-size:16px;font-weight:300;color:rgba(255,255,255,.72)}
+.proofx__tabs{display:grid;gap:0;border-top:1px solid rgba(255,255,255,.14);margin-bottom:30px}
+.proofx__tab{display:flex;align-items:center;gap:18px;width:100%;padding:16px 4px;border:0;border-bottom:1px solid rgba(255,255,255,.14);background:none;cursor:pointer;text-align:left;color:rgba(255,255,255,.55);transition:color var(--dur) var(--ease),padding var(--dur) var(--ease)}
+.proofx__tab:hover{color:#fff}
+.proofx__tab[aria-selected="true"]{color:#fff;padding-left:14px}
+.proofx__tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.proofx__num{flex:0 0 auto;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--accent);opacity:.55}
+.proofx__tab[aria-selected="true"] .proofx__num{opacity:1}
+.proofx__txt{min-width:0}
+.proofx__txt b{display:block;font-family:var(--fd);font-weight:500;font-size:22px;line-height:1.2}
+.proofx__txt small{display:block;margin-top:2px;font-family:var(--fb);font-size:12.5px;letter-spacing:.04em;color:rgba(255,255,255,.55)}
+.proofx__copy .pill{margin-top:0}
+
+.pair{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:0;min-width:0;border-radius:var(--r-md);overflow:hidden;box-shadow:0 30px 60px -36px rgba(0,0,0,.7)}
+.pair__fig{position:relative;margin:0;min-width:0;background:#2a2824}
+.pair__fig+.pair__fig{border-left:2px solid rgba(255,255,255,.85)}
+.pair__img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;transition:opacity .18s var(--ease)}
+.pair.is-swap .pair__img{opacity:0}
+.pair__fig figcaption{position:absolute;left:12px;bottom:12px;padding:5px 11px;border-radius:var(--r-pill);background:rgba(22,21,18,.62);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-family:var(--fb);font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#fff}
+#shift .pair__fig figcaption{color:#fff}
+#shift .pair__fig:last-of-type figcaption{background:var(--accent);color:var(--ink)}
+.cmp__preload{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}
+.cmp__preload img{width:1px;height:1px}
+@media (max-width:900px){
+  .proofx{grid-template-columns:minmax(0,1fr)}
+  .proofx__copy{display:contents}
+  .proofx__copy .eyebrow,.proofx__copy h2,.proofx__lede{text-align:center}
+  .proofx__copy h2{order:1}.proofx__copy .eyebrow{order:0;margin-bottom:-14px}.proofx__lede{order:2;margin:-10px 0 0}
+  .proofx__tabs{order:3;grid-template-columns:repeat(3,minmax(0,1fr));border-top:0;margin:0;gap:6px}
+  .proofx__tab{flex-direction:column;align-items:flex-start;gap:4px;padding:10px;border:1px solid rgba(255,255,255,.16);border-radius:12px}
+  .proofx__tab[aria-selected="true"]{padding-left:10px;border-color:var(--accent);background:rgba(153,246,228,.08)}
+  .proofx__tab{padding:10px 8px}
+  .proofx__tab[aria-selected="true"]{padding-left:8px}
+  .proofx__txt b{font-size:14px}
+  .proofx__b{display:none}
+  .proofx__copy .pill{text-align:center;justify-content:center;line-height:1.3}
+  .proofx__txt small{font-size:10.5px}
+  .pair{order:4;width:100%;max-width:560px;justify-self:center}
+  .proofx__copy .pill{order:5;justify-self:center}
+}
+@media (prefers-reduced-motion:reduce){.pair__img,.proofx__tab{transition:none}}
+
+/* Confidence Promise band: wording verbatim, three key phrases in italic */
+.promise-x{padding-block:clamp(64px,8vw,100px);text-align:center}
+.promise-x__inner{max-width:860px}
+.promise-x__lbl{margin:0 0 22px;font-family:var(--fb);font-size:11.5px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--accent)}
+.promise-x__line{margin:0 auto;max-width:30ch;font-family:var(--fd);font-weight:500;font-style:normal;font-size:clamp(24px,3.2vw,38px);line-height:1.4;letter-spacing:-.005em;color:#fff;text-wrap:balance}
+.promise-x__line em{font-style:italic;color:#fff}
+.promise-x__tag{margin:26px 0 0;font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+/* booking: copy left, form card right */
+.sec-book{padding-block:clamp(56px,7vw,96px)}
+.book-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:clamp(28px,5vw,64px);align-items:start}
+.book-copy{min-width:0}
+.book-copy .eyebrow{display:block;margin-bottom:12px}
+.book-copy h2{margin:0;font-family:var(--fd);font-weight:500;font-size:clamp(32px,4.2vw,48px);line-height:1.05;letter-spacing:-.012em;color:var(--ink);text-wrap:balance}
+.book-copy>p:not(.chat-lbl){margin:16px 0 0;max-width:46ch;font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.62;color:var(--ink-soft)}
+.book-copy .chat-lbl{text-align:left;margin-top:26px}
+.book-copy .chat-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 0;max-width:420px}
+.book-copy .chat-row a{justify-content:center;text-align:center;min-height:46px;flex:none}
+/* the copy column follows her down while she fills in the form */
+@media (min-width:901px){.book-copy{position:sticky;top:calc(var(--nav-h,75px) + 24px);align-self:start}}
+.formcard{min-width:0;background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);padding:clamp(20px,3vw,32px);box-shadow:0 14px 34px -24px rgba(45,46,55,.32)}
+.formcard h3{margin:0;font-family:var(--fd);font-weight:500;font-size:24px;color:var(--ink)}
+.formcard__hint{margin:4px 0 18px;font-family:var(--fb);font-size:14px;font-weight:300;color:var(--ink-soft)}
+.formcard form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+.formcard form>*{min-width:0}
+.formcard .field--full{grid-column:1 / -1}
+.formcard .field--hidden{display:none}
+.formcard .consent{text-align:left}
+.field label .lbl-opt{font-weight:400;letter-spacing:.02em;text-transform:none;color:var(--ink-soft)}
+@media (max-width:900px){
+  .plangrid,.menugrid,.proofgrid{grid-template-columns:minmax(0,1fr);max-width:560px;margin-inline:auto}
+  .book-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .formcard form{grid-template-columns:minmax(0,1fr)}
+  .menulink{padding:20px}
+  .menulink .pill{width:100%;justify-content:center}
+  .promise-strip__title{max-width:none}
+}
+
+/* hero: one-line intro and an at-a-glance row */
+.hero-hr .lede .lede-life{color:rgba(255,255,255,.86);font-size:clamp(17px,1.5vw,19px);line-height:1.55}
+.hero-facts{list-style:none;display:grid;gap:8px;margin:28px 0 0;padding:18px 0 0;border-top:1px solid rgba(255,255,255,.16);font-family:var(--fb);font-size:14px;font-weight:300;color:rgba(255,255,255,.8)}
+.hero-facts li{display:flex;align-items:center;gap:10px}
+.hero-facts li::before{content:"";flex:0 0 auto;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.hero-facts b{margin-right:4px;font-weight:600;color:#fff}
+@media (max-width:899px){.hero-facts{justify-items:center}}
+/* hero fills the first screen on wider screens, so the next section starts below the fold */
+@media (min-width:900px){
+  .hero-hr{display:flex;align-items:center;min-height:calc(100vh - var(--nav-h,75px) - 31px);min-height:calc(100svh - var(--nav-h,75px) - 31px);padding-block:56px !important}
+  .hero-hr>.wrap{width:100%}
+  .hero-hr .hero-photo img{max-height:calc(100svh - var(--nav-h,75px) - 31px - 112px);width:auto;max-width:100%;object-fit:cover}
+}
+
+/* How it works: two tracks, without a plan and with the Blonde Standard */
+.sec-story{padding-block:clamp(60px,8vw,104px)}
+.sec-story .sec-head{margin-bottom:0}
+.sec-story .sec-head h2{color:#fff;font-size:clamp(34px,4.6vw,58px);line-height:1.04;text-wrap:balance}
+.sec-story .menu-lede{max-width:62ch;color:rgba(255,255,255,.74)}
+.bs-tracks{display:grid;gap:16px;max-width:1080px;margin:40px auto 0}
+.bs-track{padding:28px 30px 30px;border-radius:var(--r-md);min-width:0}
+.bs-track--without{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14)}
+.bs-track--with{background:var(--paper);box-shadow:0 24px 50px -30px rgba(0,0,0,.6)}
+.bs-track__lbl{display:block;margin:0 0 22px;font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+.bs-track--without .bs-track__lbl{color:rgba(255,255,255,.66)}
+.bs-track--with .bs-track__lbl{color:var(--accent-text)}
+.bs-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:relative}
+.bs-steps::before{content:"";position:absolute;left:9px;right:9px;top:9px;border-top:2px solid var(--accent-text)}
+.bs-track--without .bs-steps::before{border-top:2px dashed rgba(255,255,255,.32)}
+.bs-step{position:relative;padding-right:20px;min-width:0}
+.bs-step::before{content:"";display:block;position:relative;width:20px;height:20px;margin-bottom:16px;border-radius:50%;background:var(--accent);border:2px solid var(--accent-text);box-sizing:border-box}
+.bs-track--without .bs-step::before{background:#24221e;border-color:rgba(255,255,255,.55)}
+.bs-track--without .bs-step--fix::before{background:var(--coral);border-color:var(--coral);box-shadow:0 0 0 6px rgba(255,155,155,.16)}
+.bs-step b{display:block;font-family:var(--fb);font-size:15.5px;font-weight:600;line-height:1.35}
+.bs-step span{display:block;margin-top:5px;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.5}
+.bs-track--without .bs-step b{color:#fff}
+.bs-track--without .bs-step span{color:rgba(255,255,255,.72)}
+.bs-track--without .bs-step--fix b{color:var(--coral)}
+.bs-track--with .bs-step b{color:var(--ink)}
+.bs-track--with .bs-step span{color:var(--ink-soft)}
+.sec-story .rhythm-note{margin-top:18px}
+.bs-track--without .bs-step__when{color:rgba(255,255,255,.55)}
+.bs-track--without .bs-step--fix .bs-step__when{color:var(--coral)}
+.bs-price{margin:30px auto 0;text-align:center;font-family:var(--fb);font-size:16px;font-weight:300;color:rgba(255,255,255,.85)}
+.bs-price b{font-family:var(--fd);font-weight:500;font-size:22px;color:#fff}
+.bs-price a{margin-left:6px;font-weight:500;color:var(--accent);border-bottom:1px solid rgba(153,246,228,.4);text-decoration:none}
+.bs-price a:hover{border-color:var(--accent)}
+.bs-step__when{display:block;margin:0 0 4px;font-family:var(--fb);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-text)}
+@media (max-width:760px){
+  .bs-track{padding:24px 20px 26px}
+  .bs-steps{grid-template-columns:minmax(0,1fr);gap:20px;padding-left:34px}
+  .bs-steps::before{left:9px;right:auto;top:9px;bottom:9px;border-top:0;border-left:2px solid var(--accent-text)}
+  .bs-track--without .bs-steps::before{border-top:0;border-left:2px dashed rgba(255,255,255,.32)}
+  .bs-step{padding-right:0}
+  .bs-step::before{position:absolute;left:-34px;top:0;margin:0}
+  .sec-story .gcta .pill{text-align:center;justify-content:center;line-height:1.3}
+}
+
+/* v13 top of page: trust strip, It is not you cards, track week labels */
+.trust--x{background:var(--paper)}
+.trust--x .row{font-family:var(--fb);font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink)}
+.trust--x .row span{display:inline-flex;align-items:center;gap:10px}
+@media (max-width:600px){.trust--x .row{gap:10px 26px;padding:16px 0;font-size:11px;letter-spacing:.12em}}
+.trust--x .tick-i{width:14px;height:2px;background:var(--accent-deep) !important;vertical-align:middle;margin:0}
+.trust--x .tick-i::before,.trust--x .tick-i::after{display:none !important}
+.hero-hr .hero-facts{gap:12px;font-size:16.5px;font-weight:300;color:rgba(255,255,255,.88)}
+.hero-hr .hero-facts li{display:flex;align-items:flex-start;gap:14px;padding:0;line-height:1.45}
+.hero-hr .hero-facts li::before{content:"";flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:rgba(153,246,228,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.6' fill='none' stroke='%2399F6E4' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/20px no-repeat;position:static;margin-top:.12em}
+@media (max-width:560px){.hero-hr .hero-facts{font-size:15px;gap:10px}}
+@media (max-width:899px){.hero-hr .hero-facts{justify-items:start;width:fit-content;max-width:100%;margin-inline:auto;text-align:left}}
+.sec-problem{background:var(--stone-soft);padding-block:clamp(60px,8vw,104px)}
+.sec-problem .sec-head{margin-bottom:0}
+.sec-problem .menu-lede{max-width:62ch}
+.env-x{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;max-width:1120px;margin:40px auto 0}
+.env{min-width:0;padding:24px 22px 26px;background:#fff;border:1px solid var(--hair);border-radius:var(--r-md)}
+.env h3{margin:0 0 8px;padding-top:14px;border-top:2px solid var(--accent-deep);font-family:var(--fd);font-weight:500;font-size:23px;line-height:1.2;color:var(--ink)}
+.env p{margin:0;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
+@media (max-width:980px){.env-x{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.env-x{grid-template-columns:minmax(0,1fr);gap:12px}}
+.bs-track--with .bs-step__when{margin:3px 0 0}
+.bs-track--with .bs-step b+span{margin-top:5px}
+.bs-track--with .bs-step__when+span{margin-top:5px}
+
+/* v14: WhatsApp booking, plan inclusions */
+#plans .plangrid{align-items:start}
+.plan-inc{margin:0 0 4px;border-top:1px solid var(--hair)}
+.plan-inc summary{display:flex;align-items:center;justify-content:space-between;min-height:42px;cursor:pointer;list-style:none;font-family:var(--fb);font-size:13.5px;font-weight:600;color:var(--accent-text)}
+.plan-inc summary::-webkit-details-marker{display:none}
+.plan-inc summary::after{content:"+";font-size:18px;font-weight:400;line-height:1}
+.plan-inc[open] summary::after{content:"\2212"}
+.plan-inc summary:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.plan-inc ol{list-style:none;margin:0;padding:2px 0 12px;display:grid;gap:10px}
+.plan-inc li{font-family:var(--fb);font-size:13.5px;line-height:1.45;color:var(--ink-soft)}
+.plan-inc li b{display:block;font-size:13.5px;font-weight:600;color:var(--ink)}
+.plan-inc li em{display:block;font-style:normal;font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.plan-inc li span{display:block}
+.todo{font-style:italic;color:#B5523B}
+.sec-book .wa-book{max-width:720px;margin:0 auto;padding:clamp(24px,4vw,40px);background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-md);box-shadow:0 14px 34px -24px rgba(45,46,55,.32);text-align:center}
+.wa-book .eyebrow{display:block;margin-bottom:12px}
+.wa-book h2{margin:0;font-family:var(--fd);font-weight:500;font-size:clamp(30px,4vw,44px);line-height:1.08;color:var(--ink);text-wrap:balance}
+.wa-book__lede{margin:14px auto 0;max-width:52ch;font-family:var(--fb);font-size:16px;font-weight:300;line-height:1.6;color:var(--ink-soft)}
+.wa-book__step{margin-top:28px}
+.wa-book__lbl{margin:0 0 12px;font-family:var(--fb);font-size:11.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink)}
+.wa-plans{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.wa-plans button{min-height:44px;padding:10px 18px;border:1px solid rgba(45,46,55,.2);border-radius:var(--r-pill);background:#fff;cursor:pointer;font:500 14px/1.2 var(--fb);color:var(--ink)}
+.wa-plans button[aria-checked="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.wa-plans button:focus-visible,.wa-salon:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.wa-salons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:520px;margin:0 auto}
+.wa-salon{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:64px;padding:10px 14px;border-radius:var(--r-md);background:var(--accent);color:var(--ink);text-decoration:none;box-shadow:0 1px 2px rgba(61,140,127,.2);transition:background var(--dur) var(--ease)}
+.wa-salon:hover{background:var(--accent-deep)}
+.wa-salon b{font:600 15px/1.2 var(--fb)}
+.wa-salon span{font:400 12px/1.2 var(--fb);color:rgba(45,46,55,.72)}
+.wa-book__msg{margin:22px auto 0;max-width:56ch;font-family:var(--fb);font-size:13.5px;color:var(--ink-soft)}
+.wa-book__msg q{color:var(--ink);font-style:italic}
+.wa-book__note{margin:14px auto 0;max-width:56ch;font-family:var(--fb);font-size:13px;font-weight:300;color:var(--ink-soft)}
+.wa-book__note a{color:var(--accent-text)}
+.wa-form{margin:30px 0 0;padding-top:24px;border-top:1px solid var(--hair);text-align:left}
+.wa-form__head{margin:0 0 16px;text-align:center;font-family:var(--fd);font-weight:500;font-size:21px;color:var(--ink)}
+.wa-form form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+.wa-form form>*{min-width:0}
+.wa-form .field--full{grid-column:1 / -1}
+.wa-form .submit-row{margin-top:18px}
+.wa-form .submit-row .pill{width:100%;justify-content:center}
+@media (max-width:560px){.wa-form form{grid-template-columns:minmax(0,1fr)}}
+
+/* v16: booking copied from The Hair Rhythm */
+.salon-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:560px;margin:28px auto 0}
+.salon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:64px;padding:12px 14px;background:#fff;border:1px solid var(--hair);border-radius:var(--r-md);text-decoration:none;color:var(--ink);transition:border-color .2s ease,box-shadow .2s ease}
+.salon-btn b{font-family:var(--fb);font-size:15px;font-weight:600}
+.salon-btn span{font-family:var(--fb);font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.salon-btn:hover,.salon-btn:focus-visible{border-color:var(--accent-text);box-shadow:0 0 0 2px var(--accent-text)}
+.salon-btn:focus-visible{outline:none}
+.book-wa__note,.wa-sheet__note{max-width:52ch;margin:20px auto 0;font-family:var(--fb);font-size:13.5px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
+.book-wa__note a,.wa-sheet__note a{color:var(--accent-text)}
+.book-wa .formcard{max-width:560px;margin:34px auto 0;text-align:left;scroll-margin-top:calc(var(--nav-h,75px) + 16px)}
+.book-wa .formcard .submit-row .pill{width:100%;justify-content:center}
+.wa-sheet__alt{margin:16px 0 0;font-family:var(--fb);font-size:14px}
+.wa-sheet__alt a{color:var(--accent-text);font-weight:600;text-underline-offset:3px}
+/* Booking, two columns: WhatsApp left (fastest), the short form right; stacked on phones, WhatsApp first */
+.salon-grid--book{max-width:440px;margin:12px 0 0}
+.book-note{margin:18px 0 0;max-width:44ch;font-family:var(--fb);font-size:13.5px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
+.book-note a{color:var(--accent-text)}
+#book .formcard{margin:0;scroll-margin-top:calc(var(--nav-h,75px) + 16px)}
+#book .formcard .submit-row .pill{width:100%;justify-content:center}
+@media (max-width:900px){.book-copy{position:static;text-align:left}.book-copy .eyebrow,.book-copy h2{text-align:left;margin-left:0;margin-right:0}.salon-grid--book{max-width:none}}
+/* Salon buttons: icon, name, area and an arrow, raised so they read as tappable */
+.salon-btn{display:grid;grid-template-columns:36px minmax(0,1fr) 18px;grid-template-areas:'icon name go' 'icon area go';column-gap:12px;row-gap:1px;align-items:center;justify-items:start;text-align:left;min-height:68px;padding:12px 14px 12px 12px;background:#fff;border:1px solid rgba(28,117,99,.22);border-radius:14px;box-shadow:0 1px 0 rgba(45,46,55,.05),0 10px 22px -14px rgba(45,46,55,.45);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.salon-btn::before{content:'';grid-area:icon;align-self:center;width:36px;height:36px;border-radius:50%;background:rgba(153,246,228,.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231C7563' d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'/%3E%3C/svg%3E") center/18px no-repeat}
+.salon-btn::after{content:'\2192';grid-area:go;justify-self:end;font-family:var(--fb);font-size:17px;line-height:1;color:var(--accent-text);transition:transform .18s ease}
+.salon-btn b{grid-area:name;align-self:end;font-size:15px;line-height:1.25}
+.salon-btn span{grid-area:area;align-self:start;font-size:11px}
+.salon-btn:hover,.salon-btn:focus-visible{transform:translateY(-2px);border-color:var(--accent-text);box-shadow:0 1px 0 rgba(45,46,55,.05),0 16px 28px -14px rgba(28,117,99,.5)}
+.salon-btn:hover::after,.salon-btn:focus-visible::after{transform:translateX(3px)}
+.salon-btn:active{transform:translateY(0) scale(.985);box-shadow:0 1px 0 rgba(45,46,55,.05),0 4px 10px -6px rgba(45,46,55,.4)}
+.salon-btn:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.salon-btn,.salon-btn::after{transition:none}.salon-btn:hover,.salon-btn:active{transform:none}}
+@media (max-width:520px){.salon-grid{grid-template-columns:minmax(0,1fr)}.salon-btn{min-height:62px}}
+/* Salon buttons in the same teal pill as Book now */
+.salon-btn{border-radius:100px;padding:10px 22px 10px 12px;color:#0E2A25;background:linear-gradient(178deg,#8FF0DC 0%,#7CE8D2 52%,#62DCC4 100%);border:1px solid rgba(14,42,37,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.72),inset 0 -1px 0 rgba(28,26,22,.05),0 1px 2px rgba(14,42,37,.16),0 12px 26px -10px rgba(14,42,37,.42)}
+.salon-btn::before{background-color:rgba(255,255,255,.6);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%230E2A25' d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z'/%3E%3C/svg%3E")}
+.salon-btn b{font-size:13px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#0E2A25}
+.salon-btn span{font-size:10.5px;font-weight:500;letter-spacing:.12em;color:rgba(14,42,37,.68)}
+.salon-btn::after{color:#0E2A25;font-size:15px}
+.salon-btn:hover,.salon-btn:focus-visible{background:linear-gradient(178deg,#9CF4E4 0%,#89ECDA 52%,#70E2CC 100%);border-color:rgba(14,42,37,.3);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.72),inset 0 -1px 0 rgba(28,26,22,.05),0 2px 4px rgba(14,42,37,.16),0 16px 30px -10px rgba(14,42,37,.45)}
+.salon-btn:active{transform:translateY(0) scale(.985)}
+.salon-btn:focus-visible{outline:2px solid #0E2A25;outline-offset:3px}
+.salon-grid,.salon-grid--book,.salon-grid--sheet{grid-template-columns:minmax(0,1fr);gap:10px}
+.salon-grid--book{max-width:420px}
+.salon-btn{min-height:58px;grid-template-columns:minmax(0,1fr) 18px;grid-template-areas:'name go' 'area go';padding:10px 24px}
+.salon-btn::before{content:none;display:none}
+/* Salon chooser: a bottom sheet on phones, a small card on desktop */
+.wa-sheet{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-left,0px))}
+.wa-sheet[hidden]{display:none!important}
+.wa-sheet__scrim{position:absolute;inset:0;background:rgba(22,21,18,.55)}
+.wa-sheet__panel{position:relative;width:100%;max-width:460px;box-sizing:border-box;padding:28px 24px 24px;background:var(--paper);border-radius:var(--r-md);box-shadow:0 30px 60px -20px rgba(0,0,0,.45);text-align:center}
+.wa-sheet__x{position:absolute;top:8px;right:8px;width:44px;height:44px;border:0;background:none;font-size:26px;line-height:1;color:var(--ink-soft);cursor:pointer;border-radius:50%}
+.wa-sheet__x:focus-visible{outline:2px solid var(--accent-text)}
+.wa-sheet__eyebrow{margin:0;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.wa-sheet h3{margin:8px 0 0;font-family:var(--fd);font-weight:500;font-size:26px;color:var(--ink)}
+.wa-sheet__svc{margin:8px 0 0;font-family:var(--fb);font-size:14.5px;font-weight:300;color:var(--ink-soft)}
+.wa-sheet__svc b{font-weight:600;color:var(--ink)}
+.salon-grid--sheet{margin-top:20px}
+html.wa-open{overflow:hidden}
+@media (max-width:600px){
+  .wa-sheet{align-items:flex-end;padding:0}
+  .wa-sheet__panel{max-width:none;border-radius:18px 18px 0 0;padding:26px max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px))}
+  .salon-grid{gap:10px}
+  .salon-btn{min-height:60px}
+}
+#book .formcard{margin:0;scroll-margin-top:calc(var(--nav-h,75px) + 16px)}
+#book .formcard .submit-row{margin-top:18px}
+#book .formcard .submit-row .pill{width:100%;justify-content:center}
+
+/* v17: plan cards list the three visits, always visible */
+.visits-lbl{margin:2px 0 10px !important;padding-top:12px;border-top:1px solid var(--hair);font-family:var(--fb) !important;font-size:11px !important;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink) !important}
+.incl{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:9px;align-content:start;box-sizing:content-box}
+.incl li{position:relative;padding-left:24px;font-family:var(--fb);font-size:13.5px;font-weight:400;line-height:1.45;color:var(--ink)}
+.incl li::before{content:"";position:absolute;left:0;top:.15em;width:15px;height:15px;border-radius:50%;background:rgba(153,246,228,.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.6' fill='none' stroke='%231C7563' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/15px no-repeat}
+.incl--visits li b{font-weight:600;color:var(--ink)}
+.incl--visits li em{margin-left:6px;font-style:normal;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-text);white-space:nowrap}
+.incl--visits li span{display:block;color:var(--ink-soft)}
+.visits-todo{max-width:62ch;margin:-12px auto 22px;text-align:center;font-family:var(--fb);font-size:13px;line-height:1.5}
+.plan-len{margin-top:6px}
+/* v35: hero photo first on phones and tablets */
+@media (max-width:860px){
+  .hero-hr.hero-photo-right .hero-photo{order:-1}
+  .hero-hr.hero-photo-right .hero-photo img{width:min(100%,280px);height:340px;max-height:none;aspect-ratio:auto;margin-inline:auto;object-fit:cover;object-position:50% 12%}
+  .hero-hr.hero-photo-right .wrap{padding-block:20px 34px;gap:22px}
+}
+/* v32: length and thickness pickers in the on-page form */
+.ff-native{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;overflow:hidden}
+.ff-pick{position:relative}
+.ff-l{display:block;margin:0 0 6px;font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink)}
+.ff-help{margin:0 0 10px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.ff-lenwrap{grid-template-columns:120px minmax(0,1fr)!important;gap:12px!important}
+.ff-lenwrap .lf__pic{width:120px}
+.ff-opts{display:grid;gap:8px;align-content:center}
+.ff-opt,.ff-d{display:flex;flex-direction:column;gap:1px;min-width:0;padding:10px 14px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);text-align:left;transition:border-color .15s ease,background .15s ease}
+.ff-opt b,.ff-d b{font-size:14.5px;font-weight:500}
+.ff-opt small,.ff-d small{font-size:12px;font-weight:300;line-height:1.35;color:var(--ink-soft)}
+.ff-dens{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ff-d{align-items:center;text-align:center;padding:10px 4px}
+.ff-d img{width:34px;height:34px;border-radius:50%;margin-bottom:4px}
+.ff-d b{font-size:13.5px}
+.ff-d small{font-size:11px}
+.ff-opt:hover,.ff-d:hover{border-color:rgba(28,117,99,.5)}
+.ff-opt[aria-pressed="true"],.ff-d[aria-pressed="true"]{border-color:var(--ink);background:#F4F1EA;box-shadow:inset 0 0 0 1px var(--ink)}
+.ff-opt:focus-visible,.ff-d:focus-visible,.ff-plain:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.ff-plain{display:inline-flex;align-items:center;gap:10px;margin:10px 0 0;padding:4px 0;border:0;background:none;cursor:pointer;font-family:var(--fb);font-size:13.5px;color:var(--ink-soft)}
+.ff-plain::before{content:"";width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(45,46,55,.45);box-sizing:border-box}
+.ff-plain[aria-pressed="true"]{color:var(--ink)}
+.ff-plain[aria-pressed="true"]::before{border:5px solid var(--ink)}
+@media (max-width:560px){
+  .ff-lenwrap{grid-template-columns:104px minmax(0,1fr)!important;gap:10px!important}
+  .ff-lenwrap .lf__pic{width:104px}
+  .ff-opt{padding:9px 12px}
+  .ff-dens{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){.ff-opt,.ff-d{transition:none}}
+/* v33: compact pickers */
+.ff-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.ff-head .ff-l{margin:0 0 4px}
+.ff-head .ff-plain{margin:0;padding:2px 0;font-size:12.5px;white-space:nowrap}
+.ff-head .ff-plain::before{width:14px;height:14px}
+.ff-head .ff-plain[aria-pressed="true"]::before{border-width:4px}
+.ff-help{margin:0 0 8px;font-size:12px}
+.ff-lenwrap{grid-template-columns:92px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}
+.ff-lenwrap .lf__pic{width:92px}
+.ff-lenwrap .lf__band{font-size:8.5px;padding:0 5px}
+.ff-opts{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.ff-opt{padding:8px 12px;border-radius:10px}
+.ff-opt b{font-size:14px}
+.ff-opt small{font-size:11.5px}
+.ff-dens{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px}
+.ff-d{flex-direction:row;justify-content:center;gap:8px;padding:8px 6px;border-radius:10px;text-align:left}
+.ff-d img{width:26px;height:26px;margin:0;flex:0 0 auto}
+.ff-d span{display:flex;flex-direction:column;min-width:0}
+.ff-d b{font-size:13px;line-height:1.2}
+.ff-d small{font-size:10.5px;line-height:1.25}
+@media (max-width:560px){
+  .ff-lenwrap{grid-template-columns:84px minmax(0,1fr)!important;gap:10px!important}
+  .ff-lenwrap .lf__pic{width:84px}
+  .ff-lenwrap .lf__band{font-size:7.5px;padding:0 4px;left:2px}
+  .ff-opts{grid-template-columns:minmax(0,1fr);gap:5px}
+  .ff-opt{padding:7px 10px}
+  .ff-opt b{font-size:13.5px}
+  .ff-d{flex-direction:column;align-items:center;text-align:center;gap:3px;padding:7px 2px}
+  .ff-d span{align-items:center}
+  .ff-d img{width:24px;height:24px}
+  .ff-d b{font-size:12px}
+  .ff-d small{font-size:9.5px}
+}
+/* v31: why a plan, three equal columns */
+.why-plan{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));max-width:980px;margin:30px auto 0;padding:0;font-family:var(--fb);border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+.why-plan li{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;padding:18px 16px;text-align:center}
+.why-plan li+li{border-left:1px solid var(--hair)}
+.why-plan li::before{content:"";width:22px;height:22px;margin-bottom:6px;border-radius:50%;background:rgba(153,246,228,.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.4l3 3 6-6.6' fill='none' stroke='%231C7563' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/22px no-repeat}
+.why-plan b{font-family:var(--fd);font-weight:500;font-size:19px;line-height:1.25;color:var(--ink)}
+.why-plan span{font-size:13.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+#plans .why-plan+.plangrid{margin-top:30px}
+@media (max-width:760px){
+  .why-plan{grid-template-columns:minmax(0,1fr);max-width:460px;border:0}
+  .why-plan li{display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:12px;row-gap:2px;align-items:start;text-align:left;padding:10px 0}
+  .why-plan li+li{border-left:0;border-top:1px solid var(--hair)}
+  .why-plan li::before{grid-row:1 / span 2;margin:2px 0 0}
+  .why-plan b{font-size:17px}
+}
+@media (max-width:760px){.why-plan{flex-direction:column;align-items:flex-start;max-width:460px;gap:10px}}
+/* Narrow sticky menu under the brand nav: one slim row of chips to jump to an option. */
+body .offer-nav{position:sticky;top:var(--nav-h,75px);z-index:50;background:var(--cream);border-bottom:1px solid var(--hair);padding:5px 0}
+body .offer-nav .wrap{display:block;padding-inline:20px}
+body .offer-nav .offer-nav__row{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;width:max-content;max-width:100%;margin-inline:auto;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+body .offer-nav .offer-nav__row::-webkit-scrollbar{display:none}
+body .offer-nav .offer-nav__row>li{flex:0 0 auto;max-width:none;min-width:0}
+body .offer-nav .ochip{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 14px;border-radius:100px;background:var(--paper);border:1px solid var(--hair);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);white-space:nowrap;text-align:center;line-height:1.15}
+body .offer-nav .ochip:hover,body .offer-nav .ochip:focus-visible,body .offer-nav .ochip.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+body .offer-nav .ochip--cta{background:var(--accent-text);border-color:var(--accent-text);color:#fff}
+body .offer-nav .ochip--cta:hover,body .offer-nav .ochip--cta:focus-visible,body .offer-nav .ochip--cta.active{background:var(--ink);border-color:var(--ink)}
+body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px) - 4px)}
+@media (max-width:520px){body .offer-nav{padding:4px 0}body .offer-nav .wrap{padding-inline:8px}body .offer-nav .offer-nav__row{gap:4px}body .offer-nav .ochip{min-height:32px;padding:0 8px;font-size:9.5px;letter-spacing:.16em}}
+@media (max-width:400px){body .offer-nav .offer-nav__row{gap:3px}body .offer-nav .ochip{padding:0 6px}}
+@media (max-width:380px){body .offer-nav .ochip{letter-spacing:.12em}}
+/* v25: booking copied from The Hair Rhythm */
+/* Pop-up, tightened so the whole choice fits one phone screen */
+#waSheet .wa-sheet__panel{padding-top:16px}
+#waSheet h3{margin-top:4px;font-size:23px;line-height:1.2}
+#waSheet .wa-sheet__eyebrow{font-size:10.5px}
+#waSheet .wa-sheet__alt{margin-top:12px;font-size:13.5px}
+#waSheet .lf__len{grid-template-columns:110px minmax(0,1fr)!important;gap:10px}
+#waSheet .lf__pic{width:110px}
+@media (min-width:601px){#waSheet .lf__len{grid-template-columns:130px minmax(0,1fr)!important}#waSheet .lf__pic{width:130px}}
+/* Salon buttons: quiet white cards, Playfair name, ink circle that turns turquoise */
+
+.salon-grid{gap:10px!important}
+#waTitle:focus{outline:none}
+/* One-screen booking form */
+.bk{max-width:560px;text-align:left}
+.bk .wa-sheet__eyebrow,.bk h3{text-align:center}
+.bk h3:focus{outline:none}
+.bk-lede{margin:6px auto 0;max-width:40ch;text-align:center;font-family:var(--fb);font-size:13.5px;font-weight:300;color:var(--ink-soft)}
+.bk-f{margin:22px 0 0;padding:0;border:0;min-width:0;transition:background .2s ease}
+.bk-f[hidden]{display:none!important}
+.bk-l{display:block;padding:0;margin:0 0 8px;font-family:var(--fb);font-size:15px;font-weight:500;color:var(--ink)}
+.bk-help{margin:-2px 0 10px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-f>.bk-help:last-child{margin:8px 0 0}
+.bk-bs{margin:10px 0 0;padding:12px 14px;border-radius:12px;background:rgba(153,246,228,.2);border:1px solid rgba(28,117,99,.25);font-family:var(--fb);font-size:13.5px;line-height:1.5;color:var(--ink)}
+.bk-bs[hidden]{display:none}
+.bk-sel{position:relative}
+.bk-sel select{width:100%;min-height:56px;padding:0 48px 0 18px;-webkit-appearance:none;appearance:none;background:#fff;border:1px solid var(--hair);border-radius:14px;font-family:var(--fb);font-size:16px;font-weight:400;color:var(--ink);cursor:pointer;box-sizing:border-box}
+.bk-sel select:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.bk-sel__chev{position:absolute;right:16px;top:50%;width:20px;height:20px;margin-top:-10px;color:var(--ink-soft);pointer-events:none}
+.bk-lenwrap{margin-top:2px}
+.bk .lf__len{grid-template-columns:120px minmax(0,1fr)!important;gap:12px;align-items:stretch!important}
+.bk .lf__pic{width:120px;align-self:center}
+.bk-opts{display:grid;gap:8px;align-content:center}
+#waSheet .bk-r{position:relative;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);transition:border-color .15s ease,background .15s ease}
+#waSheet .bk-r input,#waSheet .bk-d input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.bk-r__dot{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(45,46,55,.45);box-sizing:border-box;background:#fff}
+#waSheet .bk-r.is-on .bk-r__dot{border:5px solid var(--ink)}
+.bk-r__t{display:flex;flex-direction:column;gap:1px;min-width:0}
+.bk-r__t b{font-size:14.5px;font-weight:500}
+.bk-r__t small{font-size:12px;font-weight:300;color:var(--ink-soft);line-height:1.35}
+.bk-r__p{font-style:normal;font-size:13.5px;font-weight:500;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+#waSheet .bk-r:hover{border-color:rgba(28,117,99,.5)}
+#waSheet .bk-r.is-on{border-color:var(--ink);background:#F4F1EA}
+#waSheet .bk-r:has(input:focus-visible),#waSheet .bk-d:has(input:focus-visible){outline:2px solid var(--accent-text);outline-offset:2px}
+#waSheet .bk-r--plain{margin-top:10px;padding:6px 2px;background:none!important;border:0!important;box-shadow:none!important}
+#waSheet .bk-r--plain .bk-r__t b{font-weight:400;font-size:14px}
+.bk-dens{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#waSheet .bk-d{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:10px 4px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);text-align:center}
+#waSheet .bk-d img{width:34px;height:34px;border-radius:50%;margin-bottom:4px}
+#waSheet .bk-d b{font-size:13px;font-weight:500}
+#waSheet .bk-d small{font-size:11px;font-weight:300;color:var(--ink-soft);line-height:1.3}
+#waSheet .bk-d:hover{border-color:rgba(28,117,99,.5)}
+#waSheet .bk-d.is-on{border-color:var(--ink);background:#F4F1EA;box-shadow:inset 0 0 0 1px var(--ink)}
+.bk-f.is-missing .bk-l{color:#9a3b2f}
+.bk-f.is-missing .bk-sel select,.bk-f.is-missing .bk-r:not(.bk-r--plain),.bk-f.is-missing .bk-d{border-color:rgba(154,59,47,.55)}
+.bk-price{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:26px 0 0;padding:0 0 16px;border-bottom:1px solid var(--hair);font-family:var(--fb)}
+.bk-price span{font-size:13.5px;font-weight:300;color:var(--ink-soft)}
+.bk-price b{font-family:var(--fd);font-size:22px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+.bk-price__note{margin:8px 0 0;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-price__note[hidden],.bk-miss[hidden]{display:none}
+.bk-go{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;margin:18px 0 0;padding:0 28px;border-radius:100px;background:linear-gradient(178deg,#8FF0DC 0%,#7CE8D2 52%,#62DCC4 100%);border:1px solid rgba(14,42,37,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 12px 26px -12px rgba(14,42,37,.45);font-family:var(--fb);font-size:16px;font-weight:500;color:#0E2A25;text-decoration:none;transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease}
+.bk-go span{font-size:20px;line-height:1}
+.bk-go:not(.is-ready){opacity:.62;box-shadow:none}
+.bk-go.is-ready:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 16px 30px -12px rgba(14,42,37,.5)}
+.bk-go:focus-visible{outline:2px solid #0E2A25;outline-offset:3px}
+.bk-miss{margin:10px 0 0;font-family:var(--fb);font-size:13px;font-weight:500;color:#9a3b2f;text-align:center}
+.bk-small{margin:10px auto 0;max-width:46ch;font-family:var(--fb);font-size:12px;font-weight:300;line-height:1.5;color:var(--ink-soft);text-align:center}
+.bk-small a{color:var(--accent-text)}
+.bk .wa-sheet__alt{text-align:center;margin-top:14px}
+@media (max-width:600px){
+.bk{padding-left:18px!important;padding-right:18px!important}
+.bk .lf__len{grid-template-columns:104px minmax(0,1fr)!important;gap:10px}
+.bk .lf__pic{width:104px}
+#waSheet .bk-r{grid-template-columns:18px minmax(0,1fr) auto;gap:10px;padding:9px 12px}
+.bk-r__t b{font-size:14px}
+.bk-r__t small{font-size:11.5px}
+.bk-r__p{font-size:12.5px}
+.bk-dens{gap:6px}
+#waSheet .bk-d{padding:8px 2px}
+#waSheet .bk-d small{font-size:10.5px}
+}
+@media (prefers-reduced-motion:reduce){.bk-go{transition:none}}
+#bkSvcDesc{margin:8px 0 0}
+#waSheet .bk-r,#waSheet .bk-d{min-height:0;line-height:1.3;font-size:inherit;box-shadow:none!important}
+#waSheet .bk-r{align-items:center}
+#waSheet .bk-d.is-on{box-shadow:inset 0 0 0 1px var(--ink)!important}
+#waSheet .bk-r:not(.is-on):not(.bk-r--plain),#waSheet .bk-d:not(.is-on){background:#fff}
+/* WhatsApp your salon: one compact card, whole row taps through */
+#whatsapp.wa-list{display:block!important;margin-top:12px;background:#fff;border:1px solid var(--hair);border-radius:16px;overflow:hidden;box-shadow:0 1px 0 rgba(45,46,55,.04),0 14px 30px -24px rgba(45,46,55,.45)}
+.wa-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 14px 8px 18px;text-decoration:none;color:var(--ink);transition:background .18s ease}
+.wa-row+.wa-row{border-top:1px solid var(--hair)}
+.wa-row__t{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;min-width:0}
+.wa-row__n{font-family:var(--fd);font-size:18px;font-weight:500;line-height:1.25}
+.wa-row__c{font-family:var(--fb);font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-text)}
+.wa-row__go{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:1px solid rgba(45,46,55,.2);font-family:var(--fb);font-size:15px;line-height:1;color:var(--ink);transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.wa-row:hover{background:#FBFAF7}
+.wa-row:hover .wa-row__go,.wa-row:focus-visible .wa-row__go{background:linear-gradient(178deg,#8FF0DC 0%,#7CE8D2 52%,#62DCC4 100%);border-color:rgba(14,42,37,.2);color:#0E2A25;transform:translateX(2px)}
+.wa-row:focus-visible{outline:2px solid var(--accent-text);outline-offset:-3px}
+.wa-row:active .wa-row__go{transform:scale(.94)}
+@media (prefers-reduced-motion:reduce){.wa-row,.wa-row__go{transition:none}}
+/* v24: length steps, copied from The Hair Rhythm */
+/* Roots choice, length help and the length step in the booking pop-up */
+.roots-note{margin:-6px 0 16px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.5;color:var(--ink-soft)}
+.wa-colour{margin-top:14px}
+.wa-colour__opts button .wo__top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%}
+.wa-colour__opts button em{flex:0 0 auto;font-style:normal;font-family:var(--fd);font-weight:500;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums}
+.wa-colour__opts button .wo__sub{font-size:12.5px;font-weight:300;line-height:1.4;color:var(--ink-soft)}
+.wa-colour__opts{max-height:52vh;overflow-y:auto}
+.wa-colour__opts button.is-current{border-color:var(--accent-text);box-shadow:0 0 0 2px var(--accent-text)}
+.wa-colour__opts{display:grid;gap:8px;text-align:left}
+.wa-colour__opts[hidden]{display:none}
+.wa-colour__opts button{display:flex;flex-direction:column;gap:2px;padding:11px 14px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);text-align:left}
+.wa-colour__opts button b{font-size:14.5px;font-weight:600}
+.wa-colour__opts button span{font-size:12.5px;font-weight:300;line-height:1.4;color:var(--ink-soft)}
+.wa-colour__opts button:hover{border-color:var(--accent-text)}
+.wa-colour__opts button:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px;border-radius:12px}
+.wa-colour__bs{margin:4px auto 0;max-width:40ch;font-family:var(--fb);font-size:14px;line-height:1.5;color:var(--ink)}
+.roots{margin:0 0 16px;padding:14px;border:1px solid rgba(28,117,99,.22);border-radius:14px;background:rgba(153,246,228,.12)}
+.roots__q{margin:0 0 10px;font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-text)}
+.roots__opts{display:grid;gap:8px}
+.roots__opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:10px 12px;text-align:left;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink)}
+.roots__opt b{font-size:14px;font-weight:600}
+.roots__opt span{font-size:12.5px;font-weight:300;line-height:1.4;color:var(--ink-soft)}
+.roots__opt[aria-pressed="true"]{border-color:var(--accent-text);box-shadow:0 0 0 2px var(--accent-text)}
+.roots__opt:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px;border-radius:12px}
+.roots__ans{margin:10px 0 0;font-family:var(--fb);font-size:13px;line-height:1.5;color:var(--ink)}
+.roots__ans a{color:var(--accent-text);font-weight:600}
+.len-switch__help{margin:6px auto 0;max-width:46ch;text-align:center;font-family:var(--fb);font-size:13.5px;font-weight:300;color:var(--ink-soft)}
+.len-switch__help a,.wa-len__chart{color:var(--accent-text);font-weight:600}
+.wa-len{margin-top:16px}
+.wa-pl-wrap{display:grid;gap:12px}
+.wa-pl-wrap .wa-pl{grid-template-columns:minmax(0,1fr)}
+.wa-back{position:absolute;top:12px;left:10px;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:0;background:none;font-family:var(--fb);font-size:14px;font-weight:600;color:var(--accent-text);cursor:pointer;border-radius:100px}
+.wa-back:hover{background:rgba(153,246,228,.25)}
+.wa-back[hidden]{display:none!important}
+.wa-swap{margin:14px 0 4px}
+.wa-swap__lbl{margin:0 0 8px;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+.wa-swap .len-switch__opts{display:grid;width:100%;box-sizing:border-box;grid-template-columns:repeat(4,minmax(0,1fr))}
+.wa-swap .len-switch button{min-height:42px;padding:0 4px;font-size:13.5px}
+.wa-swap__help{display:inline-block;margin-top:8px;font-family:var(--fb);font-size:13px;font-weight:600;color:var(--accent-text)}
+.wa-swap[hidden]{display:none!important}
+.wa-len__step{display:flex;align-items:center;gap:8px;margin:14px 0 0;font-family:var(--fd);font-weight:500;font-size:17px;color:var(--ink);text-align:left}
+.wa-len__step span{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;font-family:var(--fb);font-size:11px;font-weight:600}
+.wa-len__how{margin:3px 0 8px;font-family:var(--fb);font-size:12.5px;font-weight:300;color:var(--ink-soft);text-align:left}
+.wa-pl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.wa-pd{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.wa-pl button,.wa-pd button{display:flex;flex-direction:column;gap:1px;padding:9px 10px;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink);text-align:left}
+.wa-pd button{align-items:center;text-align:center;padding:8px 4px}
+.wa-pd img{width:40px;height:40px;border-radius:50%;margin-bottom:3px}
+.wa-pl b,.wa-pd b{font-size:13.5px;font-weight:600}
+.wa-pl span,.wa-pd span{font-size:11.5px;font-weight:300;line-height:1.3;color:var(--ink-soft)}
+.wa-pl button[aria-pressed="true"],.wa-pd button[aria-pressed="true"]{border-color:var(--accent-text);box-shadow:0 0 0 2px var(--accent-text)}
+.wa-pl button:focus-visible,.wa-pd button:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px;border-radius:12px}
+.wa-len__res{margin-top:14px;padding:14px;border-radius:14px;background:rgba(153,246,228,.25);border:1px solid rgba(28,117,99,.25)}
+.wa-len__res p{margin:0;font-family:var(--fd);font-size:18px;color:var(--ink)}
+.wa-len__res p b{font-style:italic;font-weight:500}
+.wa-len__res p span{display:block;margin-top:3px;font-family:var(--fb);font-size:12.5px;font-weight:300;color:var(--ink-soft)}
+.wa-len__res .pill{margin-top:10px;width:100%;justify-content:center}
+.wa-sheet__panel{max-height:92vh;overflow-y:auto}
+.wa-len__q{margin:0;font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.wa-len__hint{margin:8px auto 14px;max-width:40ch;font-family:var(--fb);font-size:13.5px;font-weight:300;line-height:1.5;color:var(--ink-soft)}
+.wa-len__opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;border-radius:18px}
+.wa-len__opts button{min-height:48px;border:1px solid var(--hair);border-radius:12px;background:#fff;font-family:var(--fb);font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+.wa-len__opts button:hover{border-color:var(--accent-text)}
+.wa-len__opts button:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px;border-radius:12px}
+.wa-len .wa-len__q{display:none}
+.roots p.roots__q{font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.1em;line-height:1.4;color:var(--accent-text)}
+.roots p.roots__ans{font-size:13.5px;font-weight:400;color:var(--ink)}
+.wa-len__chart{display:inline-block;margin-top:12px;font-family:var(--fb);font-size:14px}
+.salon-grid[hidden]{display:none!important}
+/* Length and density finder */
+.lf__panel{max-width:560px;max-height:min(92vh,880px);overflow-y:auto;text-align:left}
+.lf__panel .wa-sheet__eyebrow,.lf__panel h3,.lf__intro{text-align:center}
+.lf__intro{margin:8px auto 0;max-width:44ch;font-family:var(--fb);font-size:14px;font-weight:300;line-height:1.5;color:var(--ink-soft)}
+.lf__step{margin-top:22px;padding-top:18px;border-top:1px solid var(--hair)}
+.lf__q{display:flex;align-items:center;gap:10px;margin:0;font-family:var(--fd);font-weight:500;font-size:20px;color:var(--ink)}
+.lf__q span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-family:var(--fb);font-size:12px;font-weight:600}
+.lf__how{margin:6px 0 14px;font-family:var(--fb);font-size:13px;font-weight:300;color:var(--ink-soft)}
+.lf__len{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:stretch}
+.lf__len img{width:110px;height:100%;max-height:220px;object-fit:cover;object-position:50% 0;border-radius:12px}
+.lf__opts{display:grid;gap:8px;align-content:center}
+.lf-opt,.lf-dens{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;text-align:left;background:#fff;border:1px solid var(--hair);border-radius:12px;cursor:pointer;font-family:var(--fb);color:var(--ink)}
+.lf-opt b,.lf-dens b{font-size:14.5px;font-weight:600}
+.lf-opt span,.lf-dens span{font-size:12.5px;font-weight:300;line-height:1.35;color:var(--ink-soft)}
+.lf-opt[aria-pressed="true"],.lf-dens[aria-pressed="true"]{border-color:var(--accent-text);box-shadow:0 0 0 2px var(--accent-text)}
+.lf-opt:focus-visible,.lf-dens:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px;border-radius:12px}
+.lf__densgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.lf-dens{align-items:center;text-align:center;padding:10px 6px}
+.lf-dens img{width:56px;height:56px;border-radius:50%;margin-bottom:6px}
+.lf__result{margin-top:20px;padding:16px;border-radius:14px;background:rgba(153,246,228,.25);border:1px solid rgba(28,117,99,.25);text-align:center}
+.lf__res-line{margin:0;font-family:var(--fd);font-size:21px;color:var(--ink)}
+.lf__res-line b{font-style:italic;font-weight:500}
+.lf__use{margin-top:12px;width:100%;justify-content:center}
+.lf__note{margin:18px 0 0;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.5;color:var(--ink-soft);text-align:center}
+.lf__note a{color:var(--accent-text);font-weight:600}
+@media (max-width:600px){
+  .lf__panel{max-height:92vh}
+  .lf__densgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lf__len{grid-template-columns:84px minmax(0,1fr)}
+  .lf__len img{width:84px}
+}
+.sec-length{padding-block:clamp(52px,7vw,88px);background:var(--paper);border-top:1px solid var(--hair)}
+.ls-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;max-width:980px;margin:34px auto 0}
+.ls-card{min-width:0;padding:22px;background:#fff;border:1px solid var(--hair);border-radius:var(--r-md)}
+.ls-card .lf__len img{max-height:240px}
+.ls-card .lf__densgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ls-result{max-width:640px;margin:22px auto 0;padding:18px 20px;border-radius:14px;background:rgba(153,246,228,.25);border:1px solid rgba(28,117,99,.25);text-align:center}
+.ls-result__line{margin:0;font-family:var(--fd);font-size:22px;line-height:1.35;color:var(--ink)}
+.ls-result__line b{font-style:italic;font-weight:500}
+.ls-result__line span{display:block;margin-top:4px;font-family:var(--fb);font-size:13.5px;font-weight:300;color:var(--ink-soft)}
+.ls-go{margin-top:14px}
+.ls-note{max-width:60ch;margin:16px auto 0;text-align:center;font-family:var(--fb);font-size:13px;font-weight:300;line-height:1.55;color:var(--ink-soft)}
+.ls-note a{color:var(--accent-text);font-weight:600}
+@media (max-width:760px){.ls-grid{grid-template-columns:minmax(0,1fr)}.ls-card{padding:18px 16px}.ls-result__line{font-size:20px}}
+.lf__len{grid-template-columns:150px minmax(0,1fr) !important;align-items:center !important}
+.lf__pic{position:relative;width:150px;aspect-ratio:250/440;max-width:100%;border-radius:12px;overflow:hidden}
+.lf__pic img{display:block;width:100% !important;height:100% !important;max-height:none !important;object-fit:fill !important;border-radius:0 !important}
+.lf__band{position:absolute;left:4px;transform:translateY(-50%);padding:1px 6px;border-radius:100px;background:var(--accent-text);color:#fff;font-family:var(--fb);font-size:9.5px;font-weight:700;letter-spacing:.04em;line-height:1.5}
+.lf__mark{position:absolute;right:4px;transform:translateY(-50%);padding:1px 6px;border-radius:100px;background:rgba(22,21,18,.72);color:#fff;font-family:var(--fb);font-size:9.5px;font-weight:600;letter-spacing:.04em;line-height:1.5}
+@media (max-width:600px){.lf__len{grid-template-columns:124px minmax(0,1fr) !important}.lf__pic{width:124px}}
+.len-guide{max-width:780px;margin:14px auto 0;text-align:center;font-family:var(--fb)}
+.len-guide__list{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 20px;margin:0;font-size:13px;color:var(--ink-soft)}
+.len-guide__list b{font-weight:600;color:var(--ink)}
+.len-guide__note{max-width:60ch;margin:8px auto 0;font-size:12.5px;line-height:1.5;color:var(--ink-soft)}
+@media (max-width:600px){.len-guide__list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;text-align:left;max-width:360px;margin:0 auto}.len-guide__list span{min-width:0}.len-guide__list b{display:block}}
+/* Confidence Promise with its video: text left, portrait video right; stacked on phones */
+.promise-v{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:clamp(32px,6vw,72px);align-items:center;max-width:980px;text-align:left}
+.promise-v .promise-x__line{margin:0;max-width:24ch}
+.promise-v__video{margin:0;min-width:0}
+.promise-v__video video{display:block;width:100%;height:auto;aspect-ratio:9/16;max-width:100%;border-radius:var(--r-md);background:#161512;box-shadow:0 30px 60px -28px rgba(0,0,0,.7)}
+.promise-v__video figcaption{margin-top:12px;font-family:var(--fb);font-size:12.5px;font-weight:500;letter-spacing:.06em;color:rgba(255,255,255,.72);text-align:center}
+@media (max-width:760px){
+  .promise-v{grid-template-columns:minmax(0,1fr);text-align:center;gap:28px}
+  .promise-v .promise-x__line{margin:0 auto}
+  .promise-v__video{width:min(260px,72vw);margin:0 auto}
+}
+.gcard .incl{margin:0 0 14px}
+.gcard .incl li{font-size:13.5px}
+.gsvc__top small{display:block;margin-top:2px;font-size:11.5px;font-weight:300;line-height:1.4;color:var(--ink-soft)}
+/* Length switch */
+.len-switch__lbl{display:block;margin:22px 0 0;text-align:center}
+.len-sticky{position:sticky;top:calc(var(--nav-h,75px) + 10px);z-index:40;display:flex;justify-content:center;margin:12px auto 0;pointer-events:none}
+.len-sticky .len-switch__opts{pointer-events:auto;box-shadow:0 10px 24px -12px rgba(45,46,55,.45)}
+.len-switch{display:flex;justify-content:center}
+.len-switch__lbl{font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+.len-switch__opts{display:inline-grid;grid-template-columns:repeat(4,auto);gap:4px;padding:4px;background:#fff;border:1px solid var(--hair);border-radius:100px;box-shadow:0 8px 20px -14px rgba(45,46,55,.4)}
+.len-switch button{min-height:44px;padding:0 20px;border:0;border-radius:100px;background:none;font-family:var(--fb);font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;transition:background .18s ease,color .18s ease}
+.len-switch button:hover{color:var(--ink)}
+.len-switch button[aria-pressed="true"]{color:#0E2A25;background:linear-gradient(178deg,#8FF0DC 0%,#7CE8D2 52%,#62DCC4 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 1px 2px rgba(14,42,37,.16),0 6px 14px -8px rgba(14,42,37,.45)}
+.len-switch button:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.gcard__cols>div span.is-len{color:var(--accent-text);font-weight:700}
+.gsvc__lens span.is-len{color:#0E2A25;font-weight:700;background:rgba(153,246,228,.5);border-radius:4px;padding:0 3px}
+/* package cards: opening one card's prices grows only that card */
+#plans .plangrid{align-items:start}
+#plans .plancard__price{margin-top:0}
+/* the site-wide focus ring squares corners; keep the pills round */
+.pill:focus-visible,.salon-btn:focus-visible,.len-switch button:focus-visible{border-radius:100px}
+@media (max-width:600px){
+  .len-sticky{top:calc(var(--nav-h,64px) + 8px)}
+  .len-switch__opts{display:grid;width:100%;box-sizing:border-box;grid-template-columns:repeat(4,minmax(0,1fr))}
+  .len-switch button{padding:0 4px;font-size:13px}
+}
+.lenlist{list-style:none;margin:0;padding:6px 0 2px;border-top:1px solid var(--hair);font-family:var(--fb)}
+.lenlist li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:8px 2px;border-bottom:1px dashed var(--hair);font-size:14px;color:var(--ink-soft)}
+.lenlist li:last-child{border-bottom:0}
+.lenlist b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+/* plan cards open with her own words */
+.plancard p.plancard__quote{margin:0;font-family:var(--fd);font-style:italic;font-weight:500;font-size:17px;line-height:1.35;color:var(--accent-text)}
+.gsvc--row{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:baseline}
+.gsvc__desc{grid-column:1/-1;margin:3px 0 0;font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-cat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#waSheet .bk-c{position:relative;display:flex;align-items:center;justify-content:center;min-height:52px;padding:0 12px;background:#fff;border:1px solid var(--hair);border-radius:14px;cursor:pointer;font-family:var(--fb);font-size:15px;font-weight:500;color:var(--ink);text-align:center;transition:border-color .15s ease,background .15s ease,color .15s ease}
+#waSheet .bk-c input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+#waSheet .bk-c:hover{border-color:rgba(28,117,99,.5)}
+#waSheet .bk-c.is-on{background:var(--ink);border-color:var(--ink);color:#fff}
+#waSheet .bk-c:has(input:focus-visible){outline:2px solid var(--accent-text);outline-offset:2px}
 </style>
 <meta name="geo.region" content="AE">
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I know which lane I am?", "acceptedAnswer": {"@type": "Answer", "text": "Soft Blonde is brightness with lower upkeep. Signature Blonde is for women who identify as blonde and want a regular rhythm. Transformation Blonde is for a major change, high lift or correction. You do not have to be right: the Confidence Mapping names it with you. Balayage sits inside whichever lane you are in."}}, {"@type": "Question", "name": "How often will I need to come in?", "acceptedAnswer": {"@type": "Answer", "text": "Visit 2 sits at week four to six, and visit 3 at week eight to twelve. Your stylist names your exact weeks in the chair, and you leave with the next two visits booked."}}, {"@type": "Question", "name": "Will lightening damage my hair?", "acceptedAnswer": {"@type": "Answer", "text": "Lightening always puts hair under stress, so protection has to be built in from the start. Bond protection runs through every blonde service here, before, during and after your colour, and your plan keeps it cared for between visits. That is how blonde stays healthy."}}, {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Plans start from AED 1,550 for short or fine hair, and every service price is confirmed at your free Confidence Mapping, before you commit to anything."}}]}]}
+{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I know which plan is mine?", "acceptedAnswer": {"@type": "Answer", "text": "You do not have to know. Soft Blonde is brightness with lower upkeep, Signature Blonde is blonde that stays right and Transformation Blonde is a big change or a correction. Message your salon on WhatsApp and a colourist works it out with you."}}, {"@type": "Question", "name": "How often will I need to come in?", "acceptedAnswer": {"@type": "Answer", "text": "Visit 2 sits at week four to six, and visit 3 at week eight to twelve. Your stylist names your exact weeks in the chair, and you leave with the next two visits booked."}}, {"@type": "Question", "name": "Will lightening damage my hair?", "acceptedAnswer": {"@type": "Answer", "text": "Lightening does put stress on hair, so protection is built in from the start. Bond protection is part of every blonde plan, before, during and after your colour, and your plan keeps it topped up between visits."}}, {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Plans start from AED 1,550 for all three visits, VAT included. Your price depends on your plan, your hair length and thickness, and your stylist level. You see a guide price when you book, and your salon confirms it after checking your hair."}}, {"@type": "Question", "name": "How do deposits and the Confidence Promise work?", "acceptedAnswer": {"@type": "Answer", "text": "A first highlights, balayage or colour change, or any appointment over two hours, may need a deposit to hold your time. It is never added on top: it comes off your price on the day. You can move your appointment up to two times with at least 48 hours’ notice and the deposit moves with you. With less notice it is not refundable, and same-day bookings never need one. Every colour and treatment service is covered by the Confidence Promise, set out just above the booking section."}}]}]}
 </script>
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
 <body>
-
 <a href="#main" class="skip">Skip to content</a>
 <div class="draft-bar">Draft for review. Prices and wording are not yet approved.</div>
 
 
-<nav class="trs-nav" aria-label="Primary">
+<nav class="trs-nav nav--wf" aria-label="Primary">
   <div class="wrap navrow">
-    <a class="pill pill--accent nav__cta" href="#book">Confidence Mapping</a>
     <a class="brand" href="https://www.tararosesalon.com/" aria-label="Tara Rose, home">
       <span class="brand__tick"></span><span class="brand__wm">TARA ROSE</span><small>UAE</small>
     </a>
-    <a class="nav-link" href="#start">What we offer &rarr;</a>
+    <div class="navlinks">
+      <a class="nav-link" href="#plans">What we offer</a>
+      <a class="pill pill--accent nav__cta" href="#book">Book an appointment</a>
+    </div>
   </div>
 </nav>
 
@@ -69,416 +924,465 @@
 <section class="hero-c hero-hr hero-photo-right">
   <div class="wrap">
     <div class="inner">
-      <span class="pill-tag"><span class="dot"></span>We set the Blonde Standard</span>
-      <h1 class="h-1">Protect the blonde <em>investment.</em></h1>
-      <p class="lede"><span class="lede-tag">You&rsquo;re not high maintenance. You&rsquo;ve never had the right plan.</span> <span class="lede-life">A three-visit plan for blonde that stays blonde, starting with a free Confidence Mapping. Plans from AED 1,550 for short or fine hair.</span></p>
+      <span class="pill-tag"><span class="dot"></span>The Blonde Standard &middot; Dubai and Abu Dhabi</span>
+      <h1 class="h-1">Keep your blonde looking fresh <em>throughout the year.</em></h1>
+      <p class="lede"><span class="lede-life">A planned rhythm of three visits keeps your colour bright and even, week after week. No long gaps, no big fixes and healthier hair.</span></p>
       <div class="cta-row">
-        <a class="pill pill--accent" href="#book">Book your free Confidence Mapping <span class="arr">&rarr;</span></a>
-        <a class="nav-link" href="#start" style="align-self:center">What we offer &rarr;</a>
+        <a class="pill pill--accent" href="#book">Book an appointment <span class="arr">&rarr;</span></a>
+        <a class="nav-link" href="#plans" style="align-self:center">Which plan am I? &darr;</a>
       </div>
+      <ul class="hero-facts" aria-label="At a glance">
+        <li>Plans start from AED 1,550 and include all three visits</li>
+        <li>The Confidence Promise on every plan</li>
+        <li>Available at our salons across Dubai and Abu Dhabi</li>
+      </ul>
     </div>
-    <figure class="hero-photo"><img src="assets/img/hero-blonde-original.jpg" alt="Long blonde hair with soft, dimensional highlights, glossy from root to tip" width="800" height="1200" decoding="async"></figure>
+    <figure class="hero-photo"><img src="assets/img/hero-blonde.jpg" alt="One client with healthy, bright blonde hair in natural light at a Tara Rose salon" width="1200" height="1800" decoding="async" fetchpriority="high" style="object-position:center 22%"></figure>
   </div>
 </section>
 
-<section id="start" class="menu-sec" style="background:var(--paper);">
+<div class="offer-nav" aria-label="Jump to an option"><div class="wrap"><ul class="offer-nav__row">
+  <li><a class="ochip" href="#plans">Plans</a></li>
+  <li><a class="ochip" href="#menu-highlighting">Highlights</a></li>
+  <li><a class="ochip" href="#menu-balayage">Balayage</a></li>
+  <li><a class="ochip" href="#menu-colour">Colour</a></li>
+  <li><a class="ochip ochip--cta" href="#book">Book</a></li>
+</ul></div></div>
+
+<div class="trust trust--x" aria-label="Tara Rose at a glance">
   <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">What we offer</span>
-      <h2>Pick the one that sounds like <em>you.</em></h2>
-      <p class="menu-lede">Not sure? Start with a plan. Know exactly what you want? Choose from the menu. Every price is a starting price, shown by length.</p>
+    <div class="row">
+      <span><i class="tick-i" aria-hidden="true"></i>Eleven years</span>
+      <span><i class="tick-i" aria-hidden="true"></i>Four salons across the UAE</span>
     </div>
   </div>
-  <div class="offer-nav" aria-label="Jump to a group"><div class="wrap"><ul class="offer-nav__row"><li><a class="ochip" href="#o-plans">Plans</a></li><li><a class="ochip" href="#o-menu">The Blonde Menu</a></li></ul></div></div>
-  <div class="wrap menu-zone">
-  <div class="ogroup" id="o-plans">
-    <h3>Blonde plans</h3>
-    <p class="who">For you if you want blonde that stays blonde: three visits, one plan, starting with a free Confidence Mapping.</p>
-    <div class="obody">
-      <div class="doors orows">
-      <article class="door door--plan">
-        <figure class="rowphoto"><img src="assets/img/lane-soft.jpg" alt="Soft blonde with a brighter face frame, the lengths left natural with a gentle grow-out" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 18%"></figure>
-        <h3>Soft Blonde</h3>
-        <p>For you when you want brightness with lower upkeep: soft grow-out, face-framing light.</p>
-        <span class="from">The plan, from<b>AED 1,550</b></span>
-        <a class="pill pill--accent" href="#book" data-svc="soft">This sounds like me <span class="arr">&rarr;</span></a>
-        <details class="bands bands--len" open><summary>The plan, by length</summary><ul><li><span>Short / Fine</span><b>AED 1,550</b></li><li><span>Medium</span><b>AED 1,705</b></li><li><span>Long / Thick</span><b>AED 1,960</b></li><li><span>Extra Long</span><b>AED 2,565</b></li></ul></details>
-      </article>
-      <article class="door door--plan">
-        <figure class="rowphoto"><img src="assets/img/lane-signature.jpg" alt="Creamy, even blonde from the parting through the lengths, glossy and freshly finished" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 25%"></figure>
-        <h3>Signature Blonde</h3>
-        <p>For you when you identify as blonde: regular maintenance, a toner and gloss rhythm.</p>
-        <span class="from">The plan, from<b>AED 1,695</b></span>
-        <a class="pill pill--accent" href="#book" data-svc="signature">This sounds like me <span class="arr">&rarr;</span></a>
-        <details class="bands bands--len" open><summary>The plan, by length</summary><ul><li><span>Short / Fine</span><b>AED 1,695</b></li><li><span>Medium</span><b>AED 1,870</b></li><li><span>Long / Thick</span><b>AED 2,105</b></li><li><span>Extra Long</span><b>AED 2,705</b></li></ul></details>
-      </article>
-      <article class="door door--plan">
-        <figure class="rowphoto"><img src="assets/img/lane-transformation.jpg" alt="A high-lift platinum blonde, kept glossy and strong" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 25%"></figure>
-        <h3>Transformation Blonde</h3>
-        <p>For you when it is a major change: high lift, correction, big contrast.</p>
-        <span class="from">The plan, from<b>AED 2,160</b></span>
-        <a class="pill pill--accent" href="#book" data-svc="transformation">This sounds like me <span class="arr">&rarr;</span></a>
-        <details class="bands bands--len" open><summary>The plan, by length</summary><ul><li><span>Short / Fine</span><b>AED 2,160</b></li><li><span>Medium</span><b>AED 2,325</b></li><li><span>Long / Thick</span><b>AED 2,555</b></li><li><span>Extra Long</span><b>AED 3,150</b></li></ul></details>
-      </article>
 </div>
-      <p class="short-note">Prices are for a Stylist, and your stylist level is confirmed at your free Confidence Mapping. The plan is booked and paid as one, across your three visits. Your length sets your price, confirmed at the Mapping.</p>
-    </div>
-  </div>
-  <div class="ogroup" id="o-menu">
-    <h3>The Blonde Menu</h3>
-    <p class="who">Prefer one service at a time? Choose from the menu. Not sure which? Start with a plan above.</p>
-    <div class="obody">
-      <h4 class="osub">Highlighting</h4>
-      <p class="osub__who">For you if you want brightness through foils, from a quick refresh to a full change.</p>
-      <div class="osubgrid">
-      <figure class="osubphoto"><img src="assets/img/menu-highlighting.jpg" alt="Soft, bright blonde highlights with loose waves, glossy and dimensional" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 18%"></figure>
-      <div class="doors orows">
-      <article class="door door--menu">
-        <h3>Root Touch</h3>
-        <p>A colour top-up that keeps your roots fresh and the grow-out line blended.</p>
-        <span class="from">From<b>AED 330</b></span>
-        <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 330</b></li><li><span>Medium</span><b>AED 355</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Blonde Veil</h3>
-        <p>Partial highlights to freshen your parting and hairline.</p>
-        <span class="from">From<b>AED 340</b></span>
-        <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 345</b></li><li><span>Medium</span><b>AED 340</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Classic Halo</h3>
-        <p>Half-head highlights for soft dimension and natural lift.</p>
-        <span class="from">From<b>AED 490</b></span>
-        <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 490</b></li><li><span>Medium</span><b>AED 505</b></li><li><span>Long / Thick</span><b>AED 525</b></li><li><span>Extra Long</span><b>AED 635</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Full Blonde Coverage</h3>
-        <p>Full-head highlights for a bright, all-over blonde.</p>
-        <span class="from">From<b>AED 650</b></span>
-        <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 650</b></li><li><span>Medium</span><b>AED 665</b></li><li><span>Long / Thick</span><b>AED 690</b></li><li><span>Extra Long</span><b>AED 795</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>High Impact Blonde</h3>
-        <p>Maximum foil coverage for a brighter, bolder blonde with a refined tone.</p>
-        <span class="from">From<b>AED 895</b></span>
-        <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 895</b></li><li><span>Medium</span><b>AED 915</b></li><li><span>Long / Thick</span><b>AED 935</b></li><li><span>Extra Long</span><b>AED 1,045</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Global Bleach Application</h3>
-        <p>A precision all-over bleach application. The biggest change we make.</p>
-        <span class="from">From<b>AED 1,160</b></span>
-        <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 1,160</b></li><li><span>Medium</span><b>AED 1,160</b></li><li><span>Long / Thick</span><b>AED 1,235</b></li><li><span>Extra Long</span><b>AED 1,400</b></li></ul></details>
-      </article>
-</div>
-      </div>
-      <h4 class="osub">Balayage</h4>
-      <p class="osub__who">For you if you want a softer, hand-painted blonde with a natural grow-out.</p>
-      <div class="osubgrid">
-      <figure class="osubphoto"><img src="assets/img/menu-balayage.jpg" alt="Blended balayage, deep roots melting into light golden-blonde lengths" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 22%"></figure>
-      <div class="doors orows">
-      <article class="door door--menu">
-        <h3>Blonde Face Frame</h3>
-        <p>Brightness placed softly around your hairline to frame your face.</p>
-        <span class="from">From<b>AED 320</b></span>
-        <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 320</b></li><li><span>Medium</span><b>AED 340</b></li><li><span>Long / Thick</span><b>AED 360</b></li><li><span>Extra Long</span><b>AED 460</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Balayage Refresh</h3>
-        <p>A subtle refresh through your parting and hairline between full balayage services.</p>
-        <span class="from">From<b>AED 515</b></span>
-        <p class="door__where"><span>Type</span> Refresh</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 515</b></li><li><span>Medium</span><b>AED 540</b></li><li><span>Long / Thick</span><b>AED 560</b></li><li><span>Extra Long</span><b>AED 665</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Blonde Custom Face Frame</h3>
-        <p>A new placement: face-framing brightness mapped to your features.</p>
-        <span class="from">From<b>AED 410</b></span>
-        <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 410</b></li><li><span>Medium</span><b>AED 430</b></li><li><span>Long / Thick</span><b>AED 450</b></li><li><span>Extra Long</span><b>AED 560</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Classic Balayage</h3>
-        <p>Natural, hand-painted lightness through the top and sides.</p>
-        <span class="from">From<b>AED 630</b></span>
-        <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 630</b></li><li><span>Medium</span><b>AED 645</b></li><li><span>Long / Thick</span><b>AED 665</b></li><li><span>Extra Long</span><b>AED 775</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Full Balayage</h3>
-        <p>Our most-requested balayage: the full head, bright and blended, with depth and movement.</p>
-        <span class="from">From<b>AED 735</b></span>
-        <p class="door__where"><span>Type</span> Big Change</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 735</b></li><li><span>Medium</span><b>AED 750</b></li><li><span>Long / Thick</span><b>AED 775</b></li><li><span>Extra Long</span><b>AED 880</b></li></ul></details>
-      </article>
-</div>
-      </div>
-      <h4 class="osub">Correction and tailoring</h4>
-      <p class="osub__who">For you if you are changing colour completely, or want to tailor a colour service.</p>
-      <div class="osubgrid">
-      <figure class="osubphoto"><img src="assets/img/menu-correction.jpg" alt="A colour change from deep brown to dimensional ash-gold blonde" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 35%"></figure>
-      <div class="doors orows">
-      <article class="door door--menu">
-        <h3>Balayage Transformation</h3>
-        <p>For dramatic changes or a full colour change. Includes full balayage and root-to-tip blending.</p>
-        <span class="from">From<b>AED 845</b></span>
-        <p class="door__where"><span>Type</span> Big Change</p>
-      </article>
-      <article class="door door--menu">
-        <h3>Colour Correction</h3>
-        <p>Bespoke colour-change and correction work, quoted individually.</p>
-        <span class="from from--quote"><b>At your Confidence Mapping</b></span>
-        <p class="door__where"><span>Type</span> Big Change</p>
-      </article>
-      <article class="door door--menu">
-        <h3>Added Root Colour</h3>
-        <p>A root colour worked in alongside your foils, to add depth at the base.</p>
-        <span class="from">From<b>AED 330</b></span>
-        <p class="door__where"><span>Type</span> Pairs with any colour service</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 330</b></li><li><span>Medium</span><b>AED 355</b></li><li><span>Long / Thick</span><b>AED 385</b></li><li><span>Extra Long</span><b>AED 495</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>All-Over Colour</h3>
-        <p>A full base colour with your foils, for complete coverage or a tonal shift.</p>
-        <span class="from">From<b>AED 535</b></span>
-        <p class="door__where"><span>Type</span> Pairs with any colour service</p>
-      <details class="bands bands--len" open><summary>Prices by length</summary><ul><li><span>Short / Fine</span><b>AED 535</b></li><li><span>Medium</span><b>AED 550</b></li><li><span>Long / Thick</span><b>AED 580</b></li><li><span>Extra Long</span><b>AED 690</b></li></ul></details>
-      </article>
-      <article class="door door--menu">
-        <h3>Ammonia-Free Colour</h3>
-        <p>A gentler colour formula, for a sensitive scalp or simple preference.</p>
-        <span class="from">Adds<b>AED 100</b></span>
-        <p class="door__where"><span>Type</span> Pairs with any colour service</p>
-      </article>
-      <article class="door door--menu">
-        <h3>Ammonia-Free Bleach</h3>
-        <p>A gentler way to go lighter, kinder to your hair and scalp.</p>
-        <span class="from">Adds<b>AED 100</b></span>
-        <p class="door__where"><span>Type</span> Pairs with any colour service</p>
-      </article>
-</div>
-      </div>
-            <div class="gcta"><a class="pill pill--accent" href="#book" data-svc="unsure">Book a free Confidence Mapping <span class="arr">&rarr;</span></a></div>
-    </div>
-  </div>
-  <p class="short-note">Services without a price are priced at your free Confidence Mapping, where every price is confirmed for your length, thickness and starting colour. A Create visit is the colour service plus your finish, so it is priced above the service on its own.</p>
-  </div>
-</section>
+<section class="press-strip"><div class="wrap"><p class="press-eyebrow">Press and platforms</p><div class="press-row">
+  <a href="https://www.cosmopolitanme.com/beauty/best-dubai-salons-2026" target="_blank" rel="noopener"><span class="press-logo-box"><img width="600" height="106" class="press-logo press-logo--cosmo" src="assets/press/cosmopolitan.svg" alt="Cosmopolitan" loading="lazy" decoding="async"></span><span class="press-sub">Best Dubai Salons 2026</span></a>
+  <a href="https://www.harpersbazaararabia.com/beauty/best-balayage-salon-in-dubai" target="_blank" rel="noopener"><span class="press-logo-box"><img width="438" height="107" class="press-logo press-logo--hb" src="assets/press/harpers-bazaar.svg" alt="Harper&rsquo;s Bazaar" loading="lazy" decoding="async"></span><span class="press-sub">Arabia, 2024</span></a>
+  <a href="https://professionalbeauty.me/professional-beauty-gcc-awards-hall-of-fame1" target="_blank" rel="noopener"><span class="press-logo-box"><img width="313" height="109" class="press-logo press-logo--pb" src="assets/press/professional-beauty.png" alt="Professional Beauty" loading="lazy" decoding="async"></span><span class="press-sub">GCC Hall of Fame, 2024</span></a>
+  <a href="https://www.entrepreneur.com/en-ae/starting-a-business/turning-your-creative-talent-into-a-successful-business/454020" target="_blank" rel="noopener"><span class="press-logo-box"><img width="787" height="203" class="press-logo press-logo--ent" src="assets/press/entrepreneur.svg" alt="Entrepreneur Middle East" loading="lazy" decoding="async"></span><span class="press-sub">By Tara</span></a>
+  <a href="https://beautyworld-dubai.ae.messefrankfurt.com/dubai/en/press/press-releases/all/20241025.html" target="_blank" rel="noopener"><span class="press-logo-box"><img width="115" height="35" class="press-logo press-logo--bw" src="assets/press/beautyworld.svg" alt="Beautyworld Middle East" loading="lazy" decoding="async"></span><span class="press-sub">Speaker</span></a>
+</div><p class="press-quote">&ldquo;A salon could be a place where a woman walks out feeling genuinely seen, not just groomed.&rdquo;<span>Tara Rose Kidd, Bizpreneur Middle East, August 2026</span></p></div></section>
 
-<section id="rhythm" style="background:var(--paper);">
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">How the plan works</span>
-      <h2>Visit&nbsp;1 creates the result. Visit&nbsp;2 protects it. <em>Visit&nbsp;3 keeps it on track.</em></h2>
-    </div>
-    <div class="timeline timeline--three">
-      <div class="tstep"><span class="wk">One &middot; Create</span><b>The blonde itself</b><p>Core blonde, with bond protection at every stage.</p></div>
-      <div class="tstep"><span class="wk">Two &middot; Protect</span><b>Week 4 to 6</b><p>Hydration, and the toner refreshed before it shifts warm.</p></div>
-      <div class="tstep"><span class="wk">Three &middot; Keep it on track</span><b>Week 8 to 12</b><p>Tone and shine refreshed, re-protected, next cycle booked.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="environment" style="background:var(--stone-soft);">
+<section id="problem" class="sec-problem">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">It is not you</span>
-      <h2>The UAE moves your colour. <em>Your plan holds it.</em></h2>
-      <p class="stack-anchor">Sun, pool, hard water and air conditioning. Your blonde is not going brassy: the cool tone has worn off.</p>
+      <h2>Your blonde fades <em>faster here.</em></h2>
+      <p class="menu-lede">You wonder why your hair is fading faster than you think it should. It&rsquo;s not you; you&rsquo;re just missing a plan that protects you from the local elements that affect your blonde. Brassy is the toner wearing off. In the UAE, that happens in weeks, not months.</p>
+    </div>
+    <div class="env-x">
+      <div class="env"><h3>Sun</h3><p>UV opens the hair and lifts the toner out, so the warm base underneath shows through.</p></div>
+      <div class="env"><h3>Pool</h3><p>Chlorine and copper settle in lightened hair. That is the greenish grey cast after a weekend swim.</p></div>
+      <div class="env"><h3>Hard water</h3><p>Tap water here is chlorinated and stored in tanks. The residue builds up on lightened hair and dulls it.</p></div>
+      <div class="env"><h3>Air conditioning</h3><p>Dry indoor air all year pulls moisture out. Dry hair holds tone badly and snaps more easily at the ends.</p></div>
     </div>
   </div>
 </section>
 
-<section id="shift" style="background:var(--paper);">
+<section id="rhythm" class="dark sec-story">
   <div class="wrap">
-    <div class="sec-head center" style="margin-bottom:30px;">
+    <div class="sec-head center">
+      <span class="eyebrow">Avoid the big fix</span>
+      <h2>Refresh it before it goes wrong, <em>not after.</em></h2>
+      <p class="menu-lede">Most blondes wait until it has faded, then start over, and by then the fix is expensive. The plan refreshes your blonde before it drifts, so it stays healthier week after week.</p>
+    </div>
+    <div class="bs-tracks">
+      <div class="bs-track bs-track--without">
+        <p class="bs-track__lbl">Without a plan</p>
+        <ol class="bs-steps"><li class="bs-step"><b>Visit</b><span>Bright, even, finished.</span></li><li class="bs-step"><b>Week 3 to 6</b><span>Toner wears off. Warm shows.</span></li><li class="bs-step"><b>Week 6 to 12</b><span>Dry, dull, roots grown out.</span></li><li class="bs-step bs-step--fix"><b>Week 12 to 16: the big fix</b><span>Correction, lift, more damage, more cost.</span></li></ol>
+      </div>
+      <div class="bs-track bs-track--with">
+        <p class="bs-track__lbl">The Blonde Standard</p>
+        <ol class="bs-steps"><li class="bs-step"><b>1 &middot; Create</b><span>The blonde itself, bond protection at every stage.</span></li><li class="bs-step"><b>2 &middot; Protect</b><em class="bs-step__when">Week 4 to 6</em><span>Hydration. Toner refreshed before it turns warm.</span></li><li class="bs-step"><b>3 &middot; Keep on Track</b><em class="bs-step__when">Week 8 to 12</em><span>Tone and shine refreshed, protection renewed.</span></li><li class="bs-step"><b>Next cycle booked</b><span>So it stays ahead of the big fix.</span></li></ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="plans" class="sec-plans">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">Blonde plans</span>
+      <h2>Choose your <em>blonde plan.</em></h2>
+      <p class="menu-lede">Each plan is three visits, booked and paid as one. Prices start from short hair, and you pick your length when you book. Blow-dry is not included. Add one at the regular price.</p>
+    </div>
+    <ul class="why-plan" aria-label="Why a plan">
+      <li><b>Your next visits, booked</b><span>Booked before you leave, no deposit needed</span></li>
+      <li><b>Your price, held</b><span>The same price for all three visits</span></li>
+      <li><b>Your colourist, every time</b><span>The same colourist at every visit</span></li>
+    </ul>
+    <div class="plangrid">
+      <article class="plancard" id="plan-soft">
+        <figure class="plancard__photo"><img src="assets/img/lane-soft2-c.jpg" alt="Soft golden blonde with a bright face frame and a gentle root, freshly finished in the salon" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 16%"></figure>
+        <div class="plancard__body">
+          <p class="plancard__quote">&ldquo;I want brighter hair that grows out softly.&rdquo;</p>
+          <h3>Soft Blonde</h3>
+          <p>Less upkeep, with light placed around your face.</p>
+          <p class="visits-lbl">What your 3 visits include</p>
+          <ul class="incl incl--visits" aria-label="What your three visits include">
+            <li><b>Visit 1 &middot; Create</b><span>Partial highlights, with bond protection</span></li>
+            <li><b>Visit 2 &middot; Protect</b><em>Week 4 to 6</em><span>Toner refresh and hydration</span></li>
+            <li><b>Visit 3 &middot; Keep on Track</b><em>Week 8 to 12</em><span>Toner, gloss and bond care</span></li>
+          </ul>
+
+          <div class="plancard__price" data-price="plan-soft" aria-live="polite"><span>3 visits, from</span><strong>AED 1,550</strong><small>from AED 515 a visit</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="Soft Blonde" data-svc="soft">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more plan-len">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Soft Blonde by length: Short / Fine AED 1,550, Medium AED 1,705, Long / Thick AED 1,960, Extra Long AED 2,565"><span>1,550</span><span>1,705</span><span>1,960</span><span>2,565</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>from</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine from AED 515, Medium from AED 570, Long / Thick from AED 655, Extra Long from AED 855"><span>515</span><span>570</span><span>655</span><span>855</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED, for a Stylist, VAT included.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+      <article class="plancard plancard--hi" id="plan-signature">
+        <figure class="plancard__photo"><img src="assets/img/lane-signature-c.jpg" alt="Creamy, even blonde from the parting through the lengths, glossy and freshly finished" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 25%"></figure>
+        <div class="plancard__body">
+          <p class="plancard__quote">&ldquo;I am blonde and I want to stay blonde.&rdquo;</p>
+          <h3>Signature Blonde</h3>
+          <p>Regular toning and gloss keep it right.</p>
+          <p class="visits-lbl">What your 3 visits include</p>
+          <ul class="incl incl--visits" aria-label="What your three visits include">
+            <li><b>Visit 1 &middot; Create</b><span>Half-head highlights, with bond protection</span></li>
+            <li><b>Visit 2 &middot; Protect</b><em>Week 4 to 6</em><span>Toner refresh and hydration</span></li>
+            <li><b>Visit 3 &middot; Keep on Track</b><em>Week 8 to 12</em><span>Toner, gloss and bond care</span></li>
+          </ul>
+
+          <div class="plancard__price" data-price="plan-signature" aria-live="polite"><span>3 visits, from</span><strong>AED 1,695</strong><small>from AED 565 a visit</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="Signature Blonde" data-svc="signature">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more plan-len">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Signature Blonde by length: Short / Fine AED 1,695, Medium AED 1,870, Long / Thick AED 2,105, Extra Long AED 2,705"><span>1,695</span><span>1,870</span><span>2,105</span><span>2,705</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>from</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine from AED 565, Medium from AED 625, Long / Thick from AED 700, Extra Long from AED 900"><span>565</span><span>625</span><span>700</span><span>900</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED, for a Stylist, VAT included.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+      <article class="plancard" id="plan-transformation">
+        <figure class="plancard__photo"><img src="assets/img/lane-transformation-c.jpg" alt="A high-lift platinum blonde, kept glossy and strong" loading="lazy" decoding="async" width="520" height="650" style="object-position:50% 25%"></figure>
+        <div class="plancard__body">
+          <p class="plancard__quote">&ldquo;I want a big change.&rdquo;</p>
+          <h3>Transformation Blonde</h3>
+          <p>Much lighter, more contrast, or a colour put right.</p>
+          <p class="visits-lbl">What your 3 visits include</p>
+          <ul class="incl incl--visits" aria-label="What your three visits include">
+            <li><b>Visit 1 &middot; Create</b><span>Full-head highlights, with bond protection</span></li>
+            <li><b>Visit 2 &middot; Protect</b><em>Week 4 to 6</em><span>Toner refresh and hydration</span></li>
+            <li><b>Visit 3 &middot; Keep on Track</b><em>Week 8 to 12</em><span>Toner, gloss and bond care</span></li>
+          </ul>
+
+          <div class="plancard__price" data-price="plan-transformation" aria-live="polite"><span>3 visits, from</span><strong>AED 2,160</strong><small>from AED 720 a visit</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="Transformation Blonde" data-svc="transformation">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more plan-len">
+            <summary>See prices by length</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Transformation Blonde by length: Short / Fine AED 2,160, Medium AED 2,325, Long / Thick AED 2,555, Extra Long AED 3,150"><span>2,160</span><span>2,325</span><span>2,555</span><span>3,150</span></div></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Per visit<small>from</small></span></div><div class="gsvc__lens" aria-label="Per visit by length: Short / Fine from AED 720, Medium from AED 775, Long / Thick from AED 850, Extra Long from AED 1,050"><span>720</span><span>775</span><span>850</span><span>1,050</span></div></li>
+              </ul>
+              <p class="gcard__unit">In AED, for a Stylist, VAT included.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+    </div>
+    <div class="plans-foot">
+      <p class="short-note">Prices shown are for a Stylist, in AED, VAT included. Your stylist level and your length are confirmed on WhatsApp before you book. A first highlights, balayage or colour change may need a deposit, which comes off your price on the day.</p>
+    </div>
+  </div>
+</section>
+
+<section id="menu" class="sec-menu">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">The Blonde Menu</span>
+      <h2>Find your kind <em>of blonde.</em></h2>
+      <p class="menu-lede">Prefer one service at a time? Prices start from short hair, and you pick your length when you book.</p>
+    </div>
+    <div class="plangrid gcards">
+      <article class="plancard gcard" id="menu-highlighting">
+        <figure class="plancard__photo"><img src="assets/img/menu-highlighting-c.jpg" alt="Soft, bright blonde highlights with loose waves, glossy and dimensional" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 18%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Foil brightness</span>
+          <h3>Highlighting</h3>
+          <p>Brightness with foils, from a refresh to a big change.</p>
+          <ul class="incl" aria-label="What is included"><li>Root touch-ups, the grow-out blended</li><li>Partial or half-head highlights</li><li>Full-head highlights</li></ul>
+          <div class="plancard__price" data-price="menu-highlighting" aria-live="polite"><span>5 services, from</span><strong>AED 330</strong><small>Price set by your length</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="highlights" data-svc="highlighting">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See all prices</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Service</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Root Touch</span></div><div class="gsvc__lens" aria-label="Root Touch by length: Short / Fine AED 330, Medium AED 355, Long / Thick AED 385, Extra Long AED 495"><span>330</span><span>355</span><span>385</span><span>495</span></div><p class="gsvc__desc">Essential root maintenance between visits: a colour top-up that keeps your roots fresh and the line where it grows out seamlessly blended.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Blonde Veil</span></div><div class="gsvc__lens" aria-label="Blonde Veil by length: Short / Fine AED 345, Medium AED 340, Long / Thick AED 385, Extra Long AED 495"><span>345</span><span>340</span><span>385</span><span>495</span></div><p class="gsvc__desc">Partial highlights to freshen your parting and hairline between full services.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Classic Halo</span></div><div class="gsvc__lens" aria-label="Classic Halo by length: Short / Fine AED 490, Medium AED 505, Long / Thick AED 525, Extra Long AED 635"><span>490</span><span>505</span><span>525</span><span>635</span></div><p class="gsvc__desc">Half-head highlights for soft dimension and a natural lift throughout the top and sides.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Full Blonde Coverage</span></div><div class="gsvc__lens" aria-label="Full Blonde Coverage by length: Short / Fine AED 650, Medium AED 665, Long / Thick AED 690, Extra Long AED 795"><span>650</span><span>665</span><span>690</span><span>795</span></div><p class="gsvc__desc">Full-head highlights for a luminous, all-over blonde look.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>High Impact Blonde</span></div><div class="gsvc__lens" aria-label="High Impact Blonde by length: Short / Fine AED 895, Medium AED 915, Long / Thick AED 935, Extra Long AED 1,045"><span>895</span><span>915</span><span>935</span><span>1,045</span></div><p class="gsvc__desc">Maximum foil coverage for when you want a brighter, bolder blonde with a refined tone.</p></li>
+              </ul>
+              <p class="gcard__unit">In AED, for a Stylist.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+      <article class="plancard gcard" id="menu-balayage">
+        <figure class="plancard__photo"><img src="assets/img/menu-balayage-c.jpg" alt="Blended balayage, deep roots melting into light golden-blonde lengths" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 22%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Hand-painted</span>
+          <h3>Balayage</h3>
+          <p>Hand-painted, with a soft grow-out.</p>
+          <ul class="incl" aria-label="What is included"><li>Face frame, brightness around your face</li><li>Balayage Refresh, between full visits</li><li>Classic or full-head balayage</li><li>A full colour change, hand-painted</li></ul>
+          <div class="plancard__price" data-price="menu-balayage" aria-live="polite"><span>6 services, from</span><strong>AED 320</strong><small>Price set by your length</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="balayage" data-svc="balayage">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See all prices</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Service</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Blonde Face Frame</span></div><div class="gsvc__lens" aria-label="Blonde Face Frame by length: Short / Fine AED 320, Medium AED 340, Long / Thick AED 360, Extra Long AED 460"><span>320</span><span>340</span><span>360</span><span>460</span></div><p class="gsvc__desc">Brightness placed softly around your hairline to lift and frame your face between full services.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Balayage Refresh</span></div><div class="gsvc__lens" aria-label="Balayage Refresh by length: Short / Fine AED 515, Medium AED 540, Long / Thick AED 560, Extra Long AED 665"><span>515</span><span>540</span><span>560</span><span>665</span></div><p class="gsvc__desc">A subtle refresh through your parting and hairline to maintain softness between full balayage services.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Blonde Custom Face Frame</span></div><div class="gsvc__lens" aria-label="Blonde Custom Face Frame by length: Short / Fine AED 410, Medium AED 430, Long / Thick AED 450, Extra Long AED 560"><span>410</span><span>430</span><span>450</span><span>560</span></div><p class="gsvc__desc">A brand-new placement. Custom face-framing brightness, mapped to your features and placed to give you a whole new look.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Classic Balayage</span></div><div class="gsvc__lens" aria-label="Classic Balayage by length: Short / Fine AED 630, Medium AED 645, Long / Thick AED 665, Extra Long AED 775"><span>630</span><span>645</span><span>665</span><span>775</span></div><p class="gsvc__desc">Natural, hand-painted lightness through the top and sides for effortless dimension.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Full Balayage</span></div><div class="gsvc__lens" aria-label="Full Balayage by length: Short / Fine AED 735, Medium AED 750, Long / Thick AED 775, Extra Long AED 880"><span>735</span><span>750</span><span>775</span><span>880</span></div><p class="gsvc__desc">Our most-requested look: balayage throughout the full head, for a luminous, blended colour with depth and movement.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Balayage Transformation</span></div><div class="gsvc__lens" aria-label="Balayage Transformation by length: Short / Fine AED 845, Medium AED 860, Long / Thick AED 880, Extra Long AED 990"><span>845</span><span>860</span><span>880</span><span>990</span></div><p class="gsvc__desc">For dramatic changes, colour corrections, or a full colour change. Includes full balayage and root-to-tip blending.</p></li>
+              </ul>
+              <p class="gcard__unit">In AED, for a Stylist.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+      <article class="plancard gcard" id="menu-colour">
+        <figure class="plancard__photo"><img src="assets/img/menu-correction-c.jpg" alt="A colour change from deep brown to dimensional ash-gold blonde" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 35%"></figure>
+        <div class="plancard__body">
+          <span class="plancard__label">Tailored to you</span>
+          <h3>Colour and add-ons</h3>
+          <p>Correction, base colour, and gentler formulas for any colour service.</p>
+          <ul class="incl" aria-label="What is included"><li>Colour correction, quoted for you</li><li>Root colour, with your foils</li><li>An all-over base colour</li><li>Ammonia-free option, adds AED 100</li></ul>
+          <div class="plancard__price" data-price="menu-colour" aria-live="polite"><span>5 services, from</span><strong>AED 330</strong><small>Price set by your length</small></div>
+          <a class="pill pill--accent js-book" href="#book" data-book="a colour service" data-svc="colour">Book now <span class="arr">&rarr;</span></a>
+          <details class="gcard__more">
+            <summary>See all prices</summary>
+            <div class="gcard__list">
+              <div class="gcard__cols" aria-hidden="true"><span>Service</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
+              <ul>
+            <li class="gsvc gsvc--flat"><div class="gsvc__top"><span>Colour Correction</span><b>Quoted for you</b></div><p class="gsvc__desc">Bespoke colour-change and correction work, quoted individually after a full consultation.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Added Root Colour</span></div><div class="gsvc__lens" aria-label="Added Root Colour by length: Short / Fine AED 330, Medium AED 355, Long / Thick AED 385, Extra Long AED 495"><span>330</span><span>355</span><span>385</span><span>495</span></div><p class="gsvc__desc">A root colour worked in alongside your foils to refresh the roots and add depth at the base.</p></li>
+            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>All-Over Colour</span></div><div class="gsvc__lens" aria-label="All-Over Colour by length: Short / Fine AED 535, Medium AED 550, Long / Thick AED 580, Extra Long AED 690"><span>535</span><span>550</span><span>580</span><span>690</span></div><p class="gsvc__desc">A full base colour applied with your foils for complete coverage or a tonal shift, roots to ends.</p></li>
+            <li class="gsvc gsvc--flat"><div class="gsvc__top"><span>Ammonia-Free Colour</span><b>Adds AED 100</b></div><p class="gsvc__desc">A gentler colour formula: a kinder option if you have a sensitive scalp, or simply prefer to go ammonia-free.</p></li>
+            <li class="gsvc gsvc--flat"><div class="gsvc__top"><span>Ammonia-Free Bleach</span><b>Adds AED 100</b></div><p class="gsvc__desc">A gentler way to go lighter, kinder to your hair and scalp.</p></li>
+              </ul>
+              <p class="gcard__unit">In AED, for a Stylist.</p>
+            </div>
+          </details>
+        </div>
+      </article>
+    </div>
+    <p class="short-note">For blonde hair, including lightening at the root. For natural or brunette colour, ask about The Hair Rhythm. Prices are for a Stylist, in AED, and Colour Correction is quoted for you.</p>
+  </div>
+</section>
+
+<section id="shift" class="dark sec-proof">
+  <div class="wrap proofx">
+    <div class="proofx__copy">
       <span class="eyebrow">Proof</span>
+      <h2>The same hair, <em>one visit apart.</em></h2>
+      <p class="proofx__lede">Choose a plan to see its before and after.</p>
+      <div class="proofx__tabs" role="tablist" aria-label="Choose a client"><button type="button" class="proofx__tab" role="tab" aria-selected="true" data-before="assets/img/soft-before.jpg" data-after="assets/img/soft-after.jpg" data-before-alt="A client&rsquo;s blonde before her Create visit: flat, warm and grown out at the roots" data-after-alt="The same client after her Create visit: bright, even and finished"><span class="proofx__num">01</span><span class="proofx__txt"><b>Soft<span class="proofx__b"> Blonde</span></b><small>After one Create visit</small></span></button><button type="button" class="proofx__tab" role="tab" aria-selected="false" data-before="assets/img/sig-before-c.jpg" data-after="assets/img/sig-after-c.jpg" data-before-alt="A client&rsquo;s blonde before her visit: pale but flat, the shine worn away" data-after-alt="The same hair after: glossy, smooth and evenly toned"><span class="proofx__num">02</span><span class="proofx__txt"><b>Signature<span class="proofx__b"> Blonde</span></b><small>After one visit</small></span></button><button type="button" class="proofx__tab" role="tab" aria-selected="false" data-before="assets/img/proof-before.jpg" data-after="assets/img/proof-after.jpg" data-before-alt="A client&rsquo;s blonde before her Create visit: warm, uneven lengths and grown-out roots" data-after-alt="The same client&rsquo;s blonde after her Create visit: bright, even and finished"><span class="proofx__num">03</span><span class="proofx__txt"><b>Transformation<span class="proofx__b"> Blonde</span></b><small>After one Create visit</small></span></button></div>
+      <a class="pill pill--accent" href="#book">Book an appointment <span class="arr">&rarr;</span></a>
     </div>
-    <div class="proof">
-      <figure class="proof__half"><img src="assets/img/proof-before.jpg" alt="A client&rsquo;s blonde before her Create visit: warm, uneven lengths and grown-out roots" loading="lazy" decoding="async" width="1080" height="1350"><figcaption>Before</figcaption></figure>
-      <figure class="proof__half"><img src="assets/img/proof-after.jpg" alt="The same client&rsquo;s blonde after her Create visit: bright, even and finished" loading="lazy" decoding="async" width="1080" height="1350"><figcaption>After</figcaption></figure>
+    <div class="pair">
+      <figure class="pair__fig"><img class="pair__img cmp__before" src="assets/img/soft-before.jpg" alt="A client&rsquo;s blonde before her Create visit: flat, warm and grown out at the roots" width="1080" height="1350" loading="lazy" decoding="async"><figcaption>Before</figcaption></figure>
+      <figure class="pair__fig"><img class="pair__img cmp__after" src="assets/img/soft-after.jpg" alt="The same client after her Create visit: bright, even and finished" width="1080" height="1350" loading="lazy" decoding="async"><figcaption>After</figcaption></figure>
+      <div class="cmp__preload" aria-hidden="true"><img src="assets/img/sig-before-c.jpg" alt="" aria-hidden="true"><img src="assets/img/sig-after-c.jpg" alt="" aria-hidden="true"><img src="assets/img/proof-before.jpg" alt="" aria-hidden="true"><img src="assets/img/proof-after.jpg" alt="" aria-hidden="true"></div>
     </div>
-    <p class="proof-lane__label proof-lane__label--hero">Transformation Blonde</p>
-    <div class="proof-lanes">
-      <div class="proof-lane">
-        <div class="proof proof--mini">
-          <figure class="proof__half"><img src="assets/img/soft-before.jpg" alt="A client&rsquo;s blonde before her Create visit: flat, warm and grown out at the roots" loading="lazy" decoding="async" width="1080" height="1350"></figure>
-          <figure class="proof__half"><img src="assets/img/soft-after.jpg" alt="The same client after her Create visit: bright, even and finished" loading="lazy" decoding="async" width="1080" height="1350"></figure>
-        </div>
-        <p class="proof-lane__label">Soft Blonde</p>
-      </div>
-      <div class="proof-lane">
-        <div class="proof proof--mini">
-          <figure class="proof__half"><img src="assets/img/sig-before.jpg" alt="A client&rsquo;s blonde before her visit: pale but flat, the shine worn away" loading="lazy" decoding="async" width="422" height="527"></figure>
-          <figure class="proof__half"><img src="assets/img/sig-after.jpg" alt="The same hair after: glossy, smooth and evenly toned" loading="lazy" decoding="async" width="520" height="650"></figure>
-        </div>
-        <p class="proof-lane__label">Signature Blonde</p>
-      </div>
-    </div>
-    <p class="proof__line">The same hair, one visit apart.</p>
   </div>
 </section>
 
-<section class="press-strip"><div class="wrap"><p class="press-eyebrow">Press and platforms</p><div class="press-row">
-  <a href="https://www.cosmopolitanme.com/beauty/best-dubai-salons-2026" target="_blank" rel="noopener"><span class="press-logo-box"><img width="600" height="106" class="press-logo press-logo--cosmo" src="assets/press/cosmopolitan.svg" alt="Cosmopolitan" decoding="async"></span><span class="press-sub">Best Dubai Salons 2026</span></a>
-  <a href="https://www.harpersbazaararabia.com/beauty/best-balayage-salon-in-dubai" target="_blank" rel="noopener"><span class="press-logo-box"><img width="438" height="107" class="press-logo press-logo--hb" src="assets/press/harpers-bazaar.svg" alt="Harper&rsquo;s Bazaar" decoding="async"></span><span class="press-sub">Arabia, 2024</span></a>
-  <a href="https://professionalbeauty.me/professional-beauty-gcc-awards-hall-of-fame1" target="_blank" rel="noopener"><span class="press-logo-box"><img width="313" height="109" class="press-logo press-logo--pb" src="assets/press/professional-beauty.png" alt="Professional Beauty" decoding="async"></span><span class="press-sub">GCC Hall of Fame, 2024</span></a>
-  <a href="https://www.entrepreneur.com/en-ae/starting-a-business/turning-your-creative-talent-into-a-successful-business/454020" target="_blank" rel="noopener"><span class="press-logo-box"><img width="787" height="203" class="press-logo press-logo--ent" src="assets/press/entrepreneur.svg" alt="Entrepreneur Middle East" decoding="async"></span><span class="press-sub">By Tara</span></a>
-  <a href="https://beautyworld-dubai.ae.messefrankfurt.com/dubai/en/press/press-releases/all/20241025.html" target="_blank" rel="noopener"><span class="press-logo-box"><img width="115" height="35" class="press-logo press-logo--bw" src="assets/press/beautyworld.svg" alt="Beautyworld Middle East" decoding="async"></span><span class="press-sub">Speaker</span></a>
-</div><p class="press-quote">&ldquo;A salon could be a place where a woman walks out feeling genuinely seen, not just groomed.&rdquo;<span>Tara Rose Kidd, Bizpreneur Middle East, August 2026</span></p></div></section>
 
-<section class="dark promise-band" id="promise">
-  <div class="wrap">
-    <p class="promise-band__lbl">The Tara Rose Confidence Promise</p>
-    <p class="promise-band__lead">If something does not feel right within seven days of any colour or treatment service, we invite you back to refine it. No blame, just care.</p>
-    <p class="promise-band__tag">Refine, never refund.</p>
+
+<section class="dark promise-x" id="promise">
+  <div class="wrap promise-v">
+    <div class="promise-v__text">
+      <p class="promise-x__lbl">The Tara Rose Confidence Promise</p>
+      <p class="promise-x__line">If something does not feel right within <em>seven days</em> of any colour or treatment service, we invite you back to <em>refine it</em>. No blame, <em>just care.</em></p>
+      <p class="promise-x__tag">Refine, never refund.</p>
+    </div>
+    <figure class="promise-v__video">
+      <video controls playsinline preload="none" poster="assets/video/promise-poster-v2.jpg" width="540" height="960" aria-label="The Confidence Promise explained in one minute">
+        <source src="assets/video/confidence-promise.mp4" type="video/mp4">
+      </video>
+      <figcaption>Watch: the Confidence Promise in one minute</figcaption>
+    </figure>
   </div>
 </section>
 
-<section class="reserve" id="book">
-  <div class="wrap">
-    <div class="inner">
-      <div class="head">
-        <span class="eyebrow">Book</span>
-        <h2>Start with a free Confidence Mapping.</h2>
-        <p style="max-width:54ch;margin:14px auto 0;font-size:16.5px;line-height:1.62;color:var(--ink-soft);text-align:center">Free, before the chair. We look at your hair history, water, routine and goal, and map what your blonde needs and what it will cost.</p>
-      </div>
-      <form novalidate>
-        <div class="field">
-          <label for="fname">First name <span class="req">*</span></label>
-          <input id="fname" name="firstName" type="text" placeholder="Your first name" required autocomplete="given-name">
-        </div>
-        <div class="field">
-          <label for="wa">WhatsApp number <span class="req">*</span></label>
-          <div class="phone-wrap">
-            <select id="cc" name="cc" aria-label="Country code" autocomplete="tel-country-code">
-              <option value="+971" selected>&#127462;&#127466; +971 &middot; UAE</option>
-              <option value="+973">&#127463;&#127469; +973 &middot; Bahrain</option>
-              <option value="+966">&#127480;&#127462; +966 &middot; KSA</option>
-              <option value="+965">&#127472;&#127484; +965 &middot; Kuwait</option>
-              <option value="+974">&#127478;&#127462; +974 &middot; Qatar</option>
-              <option value="+968">&#127476;&#127474; +968 &middot; Oman</option>
-              <option value="+44">&#127468;&#127463; +44 &middot; UK</option>
+<section class="reserve sec-book" id="book">
+  <div class="wrap book-grid">
+    <div class="book-copy">
+      <span class="eyebrow">Book</span>
+      <h2>Book your appointment.</h2>
+      <p>Fastest on WhatsApp. Pick your salon and your message opens ready to send. We reply within salon hours, 9am to 8pm, with a time and your price.</p>
+      <p class="chat-lbl">WhatsApp your salon</p>
+      <div class="salon-grid wa-list" id="whatsapp"><a class="wa-row" data-wa="971502811494" href="https://wa.me/971502811494?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Blonde%20Standard%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" aria-label="WhatsApp Khalifa City A, Abu Dhabi"><span class="wa-row__t"><span class="wa-row__n">Khalifa City A</span><span class="wa-row__c">Abu Dhabi</span></span><span class="wa-row__go" aria-hidden="true">&rarr;</span></a><a class="wa-row" data-wa="971501968720" href="https://wa.me/971501968720?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Blonde%20Standard%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" aria-label="WhatsApp Mamsha Al Saadiyat, Abu Dhabi"><span class="wa-row__t"><span class="wa-row__n">Mamsha Al Saadiyat</span><span class="wa-row__c">Abu Dhabi</span></span><span class="wa-row__go" aria-hidden="true">&rarr;</span></a><a class="wa-row" data-wa="971556245520" href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Blonde%20Standard%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" aria-label="WhatsApp Al Quoz, Dubai"><span class="wa-row__t"><span class="wa-row__n">Al Quoz</span><span class="wa-row__c">Dubai</span></span><span class="wa-row__go" aria-hidden="true">&rarr;</span></a><a class="wa-row" data-wa="971524960903" href="https://wa.me/971524960903?text=Hi%20Tara%20Rose%2C%20I%20read%20about%20The%20Blonde%20Standard%20and%20I%27d%20like%20to%20book%20an%20appointment." target="_blank" rel="noopener" aria-label="WhatsApp Motor City, Dubai"><span class="wa-row__t"><span class="wa-row__n">Motor City</span><span class="wa-row__c">Dubai</span></span><span class="wa-row__go" aria-hidden="true">&rarr;</span></a></div>
+      <p class="book-note">Some appointments need a deposit. It comes off your price on the day, and we tell you before anything is confirmed: <a href="https://www.tararosesalon.com/en/ae/deposit-policy/" target="_blank" rel="noopener">our deposit policy</a>.</p>
+    </div>
+    <div class="formcard" id="bookForm">
+      <h3>Or we message you</h3>
+      <p class="formcard__hint">Leave your number and the team will reply on WhatsApp.</p>
+        <form novalidate>
+          <div class="field">
+            <label for="fname">First name <span class="req">*</span></label>
+            <input id="fname" name="firstName" type="text" placeholder="Your first name" required autocomplete="given-name">
+          </div>
+          <div class="field">
+            <label for="email">Email <span class="req">*</span></label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+          <div class="field field--full">
+            <label for="wa">WhatsApp number <span class="req">*</span></label>
+            <div class="phone-wrap">
+              <select id="cc" name="cc" aria-label="Country code" autocomplete="tel-country-code">
+                <option value="+971" selected>+971 &middot; UAE</option>
+                <option value="+973">+973 &middot; Bahrain</option>
+                <option value="+966">+966 &middot; KSA</option>
+                <option value="+965">+965 &middot; Kuwait</option>
+                <option value="+974">+974 &middot; Qatar</option>
+                <option value="+968">+968 &middot; Oman</option>
+                <option value="+44">+44 &middot; UK</option>
+              </select>
+              <input id="wa" name="whatsapp" type="tel" placeholder="50 000 0000" required autocomplete="tel-national">
+            </div>
+          </div>
+          <div class="field field--full">
+            <label for="svc">What do you need? <span class="req">*</span></label>
+            <select id="svc" name="svc" required>
+              <option value="" disabled selected>Choose the closest one</option>
+              <option value="soft">Soft Blonde plan, three visits</option>
+              <option value="signature">Signature Blonde plan, three visits</option>
+              <option value="transformation">Transformation Blonde plan, three visits</option>
+              <option value="highlighting">Highlights, one visit</option>
+              <option value="balayage">Balayage, one visit</option>
+              <option value="colour">Colour or a colour put right, one visit</option>
+              <option value="unsure">Not sure yet, help me choose</option>
             </select>
-            <input id="wa" name="whatsapp" type="tel" placeholder="50 000 0000" required autocomplete="tel">
           </div>
-        </div>
-        <div class="field">
-          <label for="email">Email <span class="req">*</span></label>
-          <input id="email" name="email" type="email" placeholder="you@example.com" required autocomplete="email">
-        </div>
-        <div class="field">
-          <label for="svc">Which of these sounds most like you? <span class="req">*</span></label>
-          <select id="svc" name="svc" required>
-            <option value="" disabled selected>Choose the closest one</option>
-            <option value="soft">Soft Blonde, brightness with lower upkeep</option>
-            <option value="signature">Signature Blonde, I am blonde and I want it to stay right</option>
-            <option value="transformation">Transformation Blonde, a big change or a correction</option>
-            <option value="warm">My blonde keeps going warm or yellow</option>
-            <option value="dry">It feels dry or rough since lightening</option>
-            <option value="new">I have never been blonde and I am thinking about it</option>
-            <option value="unsure">Not sure, work it out with me</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="salon">Which salon? <span class="req">*</span></label>
-          <select id="salon" name="salon" required>
-            <option value="" disabled selected>Choose a salon</option>
-            <option value="khalifa-city">Khalifa City A, Abu Dhabi</option>
-            <option value="saadiyat">Mamsha Al Saadiyat, Abu Dhabi</option>
-            <option value="al-quoz">Al Quoz 1, Dubai</option>
-            <option value="motor-city">Motor City, Dubai</option>
-            <option value="either-abudhabi">Either Abu Dhabi salon is fine</option>
-            <option value="either-dubai">Either Dubai salon is fine</option>
-          </select>
-          <p class="help">We confirm your stylist and booking before anything is fixed.</p>
-        </div>
-        <div class="field">
-          <label for="heard">How did you hear about us? <span class="req">*</span></label>
-          <select id="heard" name="heard" required>
-            <option value="" disabled selected>Choose one</option>
-            <option value="instagram">Instagram</option>
-            <option value="facebook">Facebook</option>
-            <option value="google">Google search</option>
-            <option value="friend">A friend told me</option>
-            <option value="walked-past">I walked past the salon</option>
-            <option value="client">I am already a client</option>
-            <option value="other">Somewhere else</option>
-          </select>
-        </div>
-        <div class="field field--hidden" id="thankField">
-          <label for="thank">Who should we thank?</label>
-          <input id="thank" name="referrer_name" type="text" placeholder="Her name, so we can say thank you">
-        </div>
-        <div class="field">
-          <label for="notes">Anything we should know? (optional)</label>
-          <textarea id="notes" name="notes" rows="3" placeholder="Colour history, box dye, anything that has gone wrong before, anything you are worried about."></textarea>
-        </div>
-
-        <div class="pdpl">
-          <div class="pdpl__group">
-            <input type="checkbox" class="pdpl__checkbox" id="c-contact" name="consent_contact" required>
-            <label class="pdpl__label" for="c-contact">I am happy for the Tara Rose team to contact me about this booking. <span>(required)</span></label>
+          <div class="field field--full">
+            <label for="salon">Which salon? <span class="req">*</span></label>
+            <select id="salon" name="salon" required>
+              <option value="" disabled selected>Choose a salon</option>
+              <option value="khalifa-city">Khalifa City A, Abu Dhabi</option>
+              <option value="saadiyat">Mamsha Al Saadiyat, Abu Dhabi</option>
+              <option value="al-quoz">Al Quoz, Dubai</option>
+              <option value="motor-city">Motor City, Dubai</option>
+              <option value="either-abudhabi">Either Abu Dhabi salon</option>
+              <option value="either-dubai">Either Dubai salon</option>
+            </select>
           </div>
-          <div class="pdpl__group">
-            <input type="checkbox" class="pdpl__checkbox" id="c-marketing" name="consent_marketing">
-            <label class="pdpl__label" for="c-marketing">I am happy to hear from Tara Rose about hair care and news. <span>(optional)</span></label>
+          <div class="pdpl field--full">
+            <div class="pdpl__group">
+              <input type="checkbox" class="pdpl__checkbox" id="c-contact" name="consent_contact" required>
+              <label class="pdpl__label" for="c-contact">I am happy for the Tara Rose team to contact me about this booking. <span>(required)</span></label>
+            </div>
+            <div class="pdpl__group">
+              <input type="checkbox" class="pdpl__checkbox" id="c-marketing" name="consent_marketing">
+              <label class="pdpl__label" for="c-marketing">I am happy to hear from Tara Rose about hair care and news. <span>(optional)</span></label>
+            </div>
+            <p class="pdpl__note"><strong>Tara Rose Salon</strong> is the data controller. We use what you send only to arrange your appointment. You can access, correct or delete your details any time at privacy@tararosesalon.com. See our <a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy Policy</a>.</p>
           </div>
-          <p class="pdpl__note"><strong>Tara Rose Salon</strong> is the data controller. We use what you send only to arrange your appointment, and it lands with our team, never a personal inbox. You can access, correct or delete your details any time at privacy@tararosesalon.com. See our <a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy Policy</a>.</p>
-        </div>
-
-        <input type="hidden" name="utm_source"><input type="hidden" name="utm_medium"><input type="hidden" name="utm_campaign"><input type="hidden" name="utm_content"><input type="hidden" name="utm_term">
-        <input type="hidden" name="gclid"><input type="hidden" name="fbclid"><input type="hidden" name="fbp"><input type="hidden" name="fbc">
-        <input type="hidden" name="first_touch"><input type="hidden" name="last_touch"><input type="hidden" name="landing_path"><input type="hidden" name="referrer">
-        <input type="hidden" name="page_variant" value="hero-1"><input type="hidden" name="ref">
-        <input type="hidden" name="campaign" value="blonde-2026">
-        <input type="hidden" name="product"><input type="hidden" name="emirate"><input type="hidden" name="channel"><input type="hidden" name="branch"><input type="hidden" name="offering">
-
-        <div class="submit-row">
-          <button class="pill pill--accent" type="submit">Book my free Confidence Mapping <span class="arr">&rarr;</span></button>
-        </div>
-        <p class="consent">We reply on WhatsApp. Prefer to message your salon? <a href="https://wa.me/971502811494?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener" style="color:#3aa892">Khalifa City A</a>, <a href="https://wa.me/971501968720?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener" style="color:#3aa892">Mamsha Al Saadiyat</a>, <a href="https://wa.me/971556245520?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener" style="color:#3aa892">Al Quoz</a>, or <a href="https://wa.me/971524960903?text=Hi%20Tara%20Rose%2C%20I%20would%20like%20to%20book%20a%20free%20Confidence%20Mapping%20for%20my%20blonde." target="_blank" rel="noopener" style="color:#3aa892">Motor City</a>. New to us? A deposit secures your appointment, and we explain it when we reply: <a href="https://promo.tararosesalon.com/deposit-policy?client=new" target="_blank" rel="noopener" style="color:#3aa892">how deposits work</a>.</p>
-      </form>
+          <input type="hidden" name="utm_source"><input type="hidden" name="utm_medium"><input type="hidden" name="utm_campaign"><input type="hidden" name="utm_content"><input type="hidden" name="utm_term">
+          <input type="hidden" name="gclid"><input type="hidden" name="fbclid"><input type="hidden" name="fbp"><input type="hidden" name="fbc">
+          <input type="hidden" name="first_touch"><input type="hidden" name="last_touch"><input type="hidden" name="landing_path"><input type="hidden" name="referrer">
+          <input type="hidden" name="page_variant" value="whatsapp-first"><input type="hidden" name="ref">
+          <input type="hidden" name="campaign" value="blonde-2026">
+          <input type="hidden" name="product"><input type="hidden" name="emirate"><input type="hidden" name="channel"><input type="hidden" name="branch"><input type="hidden" name="offering">
+          <div class="submit-row field--full">
+            <button class="pill pill--accent" type="submit">Send my details <span class="arr">&rarr;</span></button>
+          </div>
+        </form>
     </div>
   </div>
 </section>
-
-<section id="terms" style="background:var(--cream);padding:48px 0">
-  <div class="wrap">
-    <div class="sec-head center"><span class="eyebrow">Plan terms</span><h2>The small print, <em>in plain English.</em></h2></div>
-    <details class="q terms-q"><summary>Read the plan terms<span class="chev"></span></summary><div class="ans"><ol class="terms-list">
-      <li><b>What the plan is.</b> Three visits, Create, Protect and Keep on Track, booked and paid together. Your plan price depends on your length and starting colour, and it is confirmed at your free Confidence Mapping before you pay anything.</li>
-      <li><b>When the visits happen.</b> Visit 2 is four to six weeks after Visit 1, and Visit 3 is eight to twelve weeks after it. You leave Visit 1 with the next two booked.</li>
-      <li><b>Which plan.</b> If your Confidence Mapping shows that another lane suits your hair better, we tell you and the plan price moves to that lane before you pay.</li>
-      <li><b>Paying.</b> Our team sends you a secure payment link during salon hours, 9am to 8pm. New clients secure the first appointment with a deposit, and we explain how deposits work when we reply.</li>
-      <li><b>Changing a visit.</b> Please give us 48 hours&rsquo; notice to move or cancel a visit. A deposit is non-refundable if the appointment is missed or cancelled late.</li>
-      <li><b>The Confidence Promise.</b> If something does not feel right within seven days of any colour or treatment service, we invite you back to refine it. No blame, just care.</li>
-      <li><b>Prices.</b> Prices shown are for a Stylist, in AED, with VAT. Your stylist level and your length are confirmed at the Confidence Mapping, before anything is booked.</li>
-      <li><b>Your details.</b> We use what you send only to arrange your appointments. See our <a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy Policy</a>.</li>
-    </ol></div></details>
-  </div>
-</section>
-
 <section class="faq dark" id="faq">
   <div class="wrap">
     <div class="sec-head center">
       <span class="eyebrow">Questions</span>
       <h2>Quick answers.</h2>
     </div>
-    <details class="q"><summary>How do I know which lane I am?<span class="chev"></span></summary><div class="ans">Soft Blonde is brightness with lower upkeep. Signature Blonde is for women who identify as blonde and want a regular rhythm. Transformation Blonde is for a major change, high lift or correction. You do not have to be right: the Confidence Mapping names it with you. Balayage sits inside whichever lane you are in.</div></details>
+    <details class="q"><summary>How do I know which plan is mine?<span class="chev"></span></summary><div class="ans">You do not have to know. Soft Blonde is brightness with lower upkeep, Signature Blonde is blonde that stays right and Transformation Blonde is a big change or a correction. Message your salon on WhatsApp and a colourist works it out with you.</div></details>
     <details class="q"><summary>How often will I need to come in?<span class="chev"></span></summary><div class="ans">Visit 2 sits at week four to six, and visit 3 at week eight to twelve. Your stylist names your exact weeks in the chair, and you leave with the next two visits booked.</div></details>
-    <details class="q"><summary>Will lightening damage my hair?<span class="chev"></span></summary><div class="ans">Lightening always puts hair under stress, so protection has to be built in from the start. Bond protection runs through every blonde service here, before, during and after your colour, and your plan keeps it cared for between visits. That is how blonde stays healthy.</div></details>
-    <details class="q"><summary>What does it cost?<span class="chev"></span></summary><div class="ans">Plans start from AED 1,550 for short or fine hair, and every service price is confirmed at your free Confidence Mapping, before you commit to anything.</div></details>
+    <details class="q"><summary>Will lightening damage my hair?<span class="chev"></span></summary><div class="ans">Lightening does put stress on hair, so protection is built in from the start. Bond protection is part of every blonde plan, before, during and after your colour, and your plan keeps it topped up between visits.</div></details>
+    <details class="q"><summary>What does it cost?<span class="chev"></span></summary><div class="ans">Plans start from AED 1,550 for all three visits, VAT included. Your price depends on your plan, your hair length and thickness, and your stylist level. You see a guide price when you book, and your salon confirms it after checking your hair.</div></details>
+    <details class="q"><summary>How do deposits and the Confidence Promise work?<span class="chev"></span></summary><div class="ans">A first highlights, balayage or colour change, or any appointment over two hours, may need a deposit to hold your time. It is never added on top: it comes off your price on the day. You can move your appointment up to two times with at least 48 hours&rsquo; notice and the deposit moves with you. With less notice it is not refundable, and same-day bookings never need one. The full details are in <a href="https://www.tararosesalon.com/en/ae/deposit-policy/" target="_blank" rel="noopener" style="color:var(--accent)">our deposit policy</a>. Every colour and treatment service is covered by the Confidence Promise, set out just above the booking section.</div></details>
+    <div id="terms" class="terms-wrap"><a class="terms terms--link" href="terms/" target="_blank" rel="noopener"><span>Read the full terms, and what your plan covers</span><i class="tarr">&rarr;</i></a></div>
   </div>
 </section>
 
 </main>
+<div class="wa-sheet" id="waSheet" hidden>
+  <div class="wa-sheet__scrim" data-close></div>
+  <div class="wa-sheet__panel bk" role="dialog" aria-modal="true" aria-labelledby="waTitle">
+    <button class="wa-sheet__x" type="button" data-close aria-label="Close">&times;</button>
+    <p class="wa-sheet__eyebrow">Book on WhatsApp</p>
+    <h3 id="waTitle" tabindex="-1">Book your appointment</h3>
+    <p class="bk-lede">Answer a few quick questions and your WhatsApp message is written for you.</p>
+
+    <div class="bk-f" id="bkCatF">
+      <span class="bk-l" id="bkCatL">What would you like?</span>
+      <div class="bk-cat" role="radiogroup" aria-labelledby="bkCatL">
+        <label class="bk-c"><input type="radio" name="bkCat" value="plans" checked><span>A plan</span></label>
+        <label class="bk-c"><input type="radio" name="bkCat" value="services"><span>A single service</span></label>
+      </div>
+    </div>
+
+    <div class="bk-f" id="bkSvcF">
+      <label class="bk-l" for="bkSvc" id="bkSvcL">Which plan?</label>
+      <div class="bk-sel"><select id="bkSvc"></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <p class="bk-help" id="bkSvcDesc"></p>
+      <p class="bk-bs" id="bkBS" hidden>Send us a message and we will match you with the right colourist.</p>
+    </div>
+
+    <fieldset class="bk-f" id="bkLenF">
+      <legend class="bk-l">Where does your hair fall?</legend>
+      <p class="bk-help">Check from the back, with your hair dry and brushed straight. Our short may be shorter than you think.</p>
+      <div class="lf__len bk-lenwrap"><img src="assets/img/len-hair.jpg" alt="Long straight hair seen from the back, with lines marking the chin, the shoulders and the armpits" width="250" height="440"><div class="bk-opts"><label class="bk-r"><input type="radio" name="bkLen" value="0"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Short</b><small>To the chin</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Medium</b><small>Chin to above the shoulders</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="2"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Long</b><small>Shoulders to the armpits</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="3"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Extra long</b><small>Below the armpits</small></span><em class="bk-r__p"></em></label></div></div>
+      <label class="bk-r bk-r--plain"><input type="radio" name="bkLen" value="-1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>I am not sure. Ask my salon to check.</b></span></label>
+    </fieldset>
+
+    <fieldset class="bk-f" id="bkDensF">
+      <legend class="bk-l">How much hair do you have?</legend>
+      <p class="bk-help">Tie a ponytail with a standard hair tie and count the wraps. Thick hair takes more time and product, so it can move you up a length.</p>
+      <div class="bk-dens"><label class="bk-d"><input type="radio" name="bkDens" value="0"><img src="assets/img/dens-fine.jpg" alt="" width="34" height="34"><b>Fine</b><small>Wraps 3 times</small></label><label class="bk-d"><input type="radio" name="bkDens" value="1"><img src="assets/img/dens-medium.jpg" alt="" width="34" height="34"><b>Medium</b><small>Wraps 2 times</small></label><label class="bk-d"><input type="radio" name="bkDens" value="2"><img src="assets/img/dens-thick.jpg" alt="" width="34" height="34"><b>Thick</b><small>Wraps once</small></label><label class="bk-d"><input type="radio" name="bkDens" value="3"><img src="assets/img/dens-xthick.jpg" alt="" width="34" height="34"><b>Extra thick</b><small>Barely fits once</small></label></div>
+    </fieldset>
+
+    <div class="bk-f" id="bkSalonF">
+      <label class="bk-l" for="bkSalon">Which salon would you like to visit?</label>
+      <div class="bk-sel"><select id="bkSalon"><option value="">Choose a salon</option><option value="971502811494">Khalifa City A &middot; Abu Dhabi</option><option value="971501968720">Mamsha Al Saadiyat &middot; Abu Dhabi</option><option value="971556245520">Al Quoz &middot; Dubai</option><option value="971524960903">Motor City &middot; Dubai</option></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+
+    <div class="bk-price" aria-live="polite"><span>Estimated service price</span><b id="bkPrice">&ndash;</b></div>
+    <p class="bk-price__note" id="bkPriceNote" hidden></p>
+
+    <a class="bk-go" id="bkGo" href="#" target="_blank" rel="noopener">Continue on WhatsApp <span aria-hidden="true">&rarr;</span></a>
+    <p class="bk-miss" id="bkMiss" role="alert" hidden></p>
+    <p class="bk-small">Your service, hair length and guide price go in the message.</p>
+    <p class="bk-small">Guide prices. Your salon confirms the final price after checking your hair. Some appointments need a deposit, which comes off your price on the day: <a href="https://www.tararosesalon.com/en/ae/deposit-policy/" target="_blank" rel="noopener">our deposit policy</a>.</p>
+    <p class="wa-sheet__alt"><a href="#bookForm" id="waForm">Prefer we message you? Leave your details</a></p>
+  </div>
+</div>
 
 <footer class="foot">
   <div class="wrap">
@@ -490,9 +1394,9 @@
       </div>
       <div>
         <h3>The Blonde Standard</h3>
-        <p><a href="#start">What we offer</a></p>
-        <p><a href="#book">Book a Confidence Mapping</a></p>
-        <p><a href="#terms">Plan terms</a></p>
+        <p><a href="#plans">Blonde plans</a></p><p><a href="#menu">The Blonde Menu</a></p>
+        <p><a href="#book">Book an appointment</a></p>
+        <p><a href="terms/" target="_blank" rel="noopener">Plan terms</a></p>
         <p><a href="#promise">The Confidence Promise</a></p>
       </div>
       <div>
@@ -521,16 +1425,343 @@
       <span>&copy; 2026 Tara Rose Salon.</span>
       <span><a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy</a> &middot; <a href="https://www.tararosesalon.com/en/ae/terms-and-conditions/">Terms</a> &middot; <a href="https://www.tararosesalon.com/en/ae/cookies-policy/">Cookies</a></span>
     </div>
-    <p class="permit">The Blonde Standard, at all four salons in Abu Dhabi and Dubai. The Confidence Mapping is free.</p>
+    <p class="permit">The Blonde Standard, at all four salons in Abu Dhabi and Dubai.</p>
   </div>
 </footer>
 
-<script src="js/nav-scroll.js?v=c5ff7a5d" defer></script>
+<script>
+/* Level the Blonde Menu cards: intros get the height of the tallest when the cards sit side by side. */
+(function(){
+  var ps=[].slice.call(document.querySelectorAll('.gcards .plancard__body>p'));
+  if(!ps.length) return;
+  var groups=[ps,[].slice.call(document.querySelectorAll('.gcards .incl'))];
+  var level=function(){
+    var cards=document.querySelectorAll('.gcards .gcard');
+    var row=cards.length>1&&cards[0].getBoundingClientRect().top===cards[1].getBoundingClientRect().top;
+    groups.forEach(function(els){
+      els.forEach(function(p){ p.style.minHeight=''; });
+      if(!row) return;
+      var h=Math.max.apply(null,els.map(function(p){ return p.getBoundingClientRect().height; }));
+      els.forEach(function(p){ p.style.minHeight=h+'px'; });
+    });
+  };
+  window.addEventListener('resize',level,{passive:true});
+  window.addEventListener('load',level);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(level);
+  level();
+})();
+</script>
+<script>
+/* Proof: tabs switch which client's before and after is shown. */
+(function(){
+  var box=document.querySelector('.pair'); if(!box) return;
+  var before=box.querySelector('.cmp__before'), after=box.querySelector('.cmp__after');
+  var tabs=[].slice.call(document.querySelectorAll('.proofx__tab'));
+  tabs.forEach(function(t){
+    t.addEventListener('click',function(){
+      tabs.forEach(function(o){ o.setAttribute('aria-selected',String(o===t)); });
+      box.classList.add('is-swap');
+      setTimeout(function(){
+        before.src=t.dataset.before; before.alt=t.dataset.beforeAlt;
+        after.src=t.dataset.after; after.alt=t.dataset.afterAlt;
+        box.classList.remove('is-swap');
+      },180);
+    });
+  });
+})();
+</script>
+<script>
+/* Book now: every button opens a salon choice, and the WhatsApp message names the service she tapped plus a ref code reception can match. */
+(function(){
+  var ref=null;
+  try{ ref=localStorage.getItem('trs_ref'); }catch(e){}
+  if(!ref){ ref='TBS-'+Math.random().toString(36).slice(2,6).toUpperCase(); try{ localStorage.setItem('trs_ref',ref); }catch(e){} }
+  var msg=function(svc){
+    return svc ? 'Hi Tara Rose, I\'d like to book '+svc+' from The Blonde Standard. (ref '+ref+')'
+               : 'Hi Tara Rose, I read about The Blonde Standard and I\'d like to book an appointment. (ref '+ref+')';
+  };
+  var point=function(scope,svc){
+    scope.querySelectorAll('[data-wa]').forEach(function(a){ a.href='https://wa.me/'+a.getAttribute('data-wa')+'?text='+encodeURIComponent(msg(svc)); });
+  };
+  var book=document.getElementById('book');
+  var pointBook=function(){ if(book) book.querySelectorAll('.salon-grid [data-wa]').forEach(function(a){ a.href='https://wa.me/'+a.getAttribute('data-wa')+'?text='+encodeURIComponent(msg('')); }); };
+  pointBook(); document.addEventListener('DOMContentLoaded',pointBook);
+  var sheet=document.getElementById('waSheet'); if(!sheet) return;
+  var root=document.documentElement, last=null, pick='';
+  /* One screen: service, hair length, density, salon. Prices are guide prices by length. */
+  var SV={"plan": {"title": "Book a Blonde Standard plan", "opts": [["Soft Blonde", "3 visits: Create, Protect and Keep on Track. Less upkeep, with light placed around your face.", [1550, 1705, 1960, 2565]], ["Signature Blonde", "3 visits: Create, Protect and Keep on Track. Regular toning and gloss keep it right.", [1695, 1870, 2105, 2705]], ["Transformation Blonde", "3 visits: Create, Protect and Keep on Track. Much lighter, more contrast, or a colour put right.", [2160, 2325, 2555, 3150]], ["a Blonde Standard plan, and I would like help choosing", "We help you choose the right plan on WhatsApp.", null, "Not sure yet, help me choose"]]}, "highlighting": {"title": "Book highlights", "opts": [["Root Touch", "Essential root maintenance between visits: a colour top-up that keeps your roots fresh and the line where it grows out seamlessly blended.", [330, 355, 385, 495]], ["Blonde Veil", "Partial highlights to freshen your parting and hairline between full services.", [345, 340, 385, 495]], ["Classic Halo", "Half-head highlights for soft dimension and a natural lift throughout the top and sides.", [490, 505, 525, 635]], ["Full Blonde Coverage", "Full-head highlights for a luminous, all-over blonde look.", [650, 665, 690, 795]], ["High Impact Blonde", "Maximum foil coverage for when you want a brighter, bolder blonde with a refined tone.", [895, 915, 935, 1045]], ["highlights, and I would like my colourist to recommend", "Your colourist looks at your hair and recommends the right one.", null, "Not sure yet, my colourist recommends"]]}, "balayage": {"title": "Book balayage", "opts": [["Blonde Face Frame", "Brightness placed softly around your hairline to lift and frame your face between full services.", [320, 340, 360, 460]], ["Balayage Refresh", "A subtle refresh through your parting and hairline to maintain softness between full balayage services.", [515, 540, 560, 665]], ["Blonde Custom Face Frame", "A brand-new placement. Custom face-framing brightness, mapped to your features and placed to give you a whole new look.", [410, 430, 450, 560]], ["Classic Balayage", "Natural, hand-painted lightness through the top and sides for effortless dimension.", [630, 645, 665, 775]], ["Full Balayage", "Our most-requested look: balayage throughout the full head, for a luminous, blended colour with depth and movement.", [735, 750, 775, 880]], ["Balayage Transformation", "For dramatic changes, colour corrections, or a full colour change. Includes full balayage and root-to-tip blending.", [845, 860, 880, 990]], ["balayage, and I would like my colourist to recommend", "Your colourist looks at your hair and recommends the right one.", null, "Not sure yet, my colourist recommends"]]}, "colour": {"title": "Book a colour service", "opts": [["Colour Correction", "Bespoke colour-change and correction work, quoted individually after a full consultation.", "Quoted for you"], ["Added Root Colour", "A root colour worked in alongside your foils to refresh the roots and add depth at the base.", [330, 355, 385, 495]], ["All-Over Colour", "A full base colour applied with your foils for complete coverage or a tonal shift, roots to ends.", [535, 550, 580, 690]], ["a colour service, and I would like my colourist to recommend", "Your colourist looks at your hair and recommends the right one.", null, "Not sure yet, my colourist recommends"]]}};
+  var NM=['short','medium','long','extra long'], DN=['fine','medium density','thick','extra thick'];
+  var G=[[0,0,1,2],[0,1,2,3],[1,2,3,3],[2,3,3,3]];
+  var $=function(id){ return document.getElementById(id); };
+  var svcSel=$('bkSvc'), salSel=$('bkSalon'), desc=$('bkSvcDesc'), bsNote=$('bkBS'), title=$('waTitle');
+  var lenF=$('bkLenF'), densF=$('bkDensF'), priceEl=$('bkPrice'), priceNote=$('bkPriceNote'), go=$('bkGo'), miss=$('bkMiss');
+  var key='plan', cat='plans', lastSel={plans:null,services:null}, st={len:null,dens:null};
+  var GL={highlighting:'Highlighting',balayage:'Balayage',colour:'Colour and add-ons'}, svcL=$('bkSvcL');
+  var aed=function(v){ return 'AED '+v.toLocaleString('en-US'); };
+  var ref2=function(){ var v=String(svcSel.value||'0').split(':'); return v.length>1?[v[0],Number(v[1])||0]:['plan',Number(v[0])||0]; };
+  var cur=function(){ var r=ref2(); return SV[r[0]].opts[r[1]]; };
+  var radios=function(n){ return [].slice.call(sheet.querySelectorAll('input[name="'+n+'"]')); };
+  var mark=function(){ sheet.querySelectorAll('.bk-r,.bk-d,.bk-c').forEach(function(l){ var i=l.querySelector('input'); l.classList.toggle('is-on',i.checked); }); };
+  var render=function(){
+    var o=cur(), pr=o[2], bs=pr==='bs', arr=Array.isArray(pr);
+    pick=ref2()[0];
+    desc.textContent=o[1]; bsNote.hidden=!bs; lenF.hidden=bs; densF.hidden=bs;
+    sheet.querySelectorAll('.bk-opts .bk-r').forEach(function(l,i){ l.querySelector('.bk-r__p').textContent=arr?aed(pr[i]):''; });
+    var l=st.len, d=st.dens, out=(l!==null&&l>=0&&d!==null)?G[l][d]:null;
+    priceNote.hidden=true;
+    if(bs){ priceEl.textContent='At your consultation'; }
+    else if(!arr){ priceEl.textContent=typeof pr==='string'?pr.replace('from','From AED'):'Confirmed by your stylist'; }
+    else if(l===null){ priceEl.textContent='From '+aed(pr[0]); }
+    else if(l<0){ priceEl.textContent='From '+aed(pr[0]); priceNote.textContent='Your salon checks your length and confirms your price before anything is booked.'; priceNote.hidden=false; }
+    else if(out===null){ priceEl.textContent=aed(pr[l]); priceNote.textContent='Add how much hair you have, as thick hair can move you up a length.'; priceNote.hidden=false; }
+    else { priceEl.textContent=aed(pr[out]); if(out!==l){ priceNote.textContent=(out>l?'Thicker hair takes more time and product, so we price your hair as ':'Finer hair takes less time, so we price your hair as ')+NM[out]+'.'; priceNote.hidden=false; } }
+    if(out!==null){ window.hrDens=DN[d]; if(window.hrApplyLen) window.hrApplyLen(out); }
+    var fl=document.getElementById('hairlen'), fd=document.getElementById('hairthick'); if(fl&&l!==null) fl.value=l<0?'unsure':['short','medium','long','extra-long'][l]; if(fd&&d!==null) fd.value=['fine','medium','thick','extra-thick'][d]; if(window.bsFormSync) window.bsFormSync();
+    update();
+  };
+  var missing=function(){
+    var o=cur(), bs=o[2]==='bs', m=[];
+    if(!bs&&st.len===null) m.push(['your hair length',lenF]);
+    if(!bs&&st.dens===null) m.push(['how much hair you have',densF]);
+    if(!salSel.value) m.push(['your salon',$('bkSalonF')]);
+    return m;
+  };
+  var message=function(){
+    var o=cur(), pr=o[2], bs=pr==='bs', l=st.len, d=st.dens, salon=salSel.options[salSel.selectedIndex].text.replace(/\s·.*/,'');
+    if(bs) return 'Hi Tara Rose, I have highlighted or foiled roots and would like to book with The Blonde Standard at '+salon+'. (ref '+ref+')';
+    var out=(l>=0&&d!==null)?G[l][d]:null, bits=[];
+    bits.push('Hair length: '+(l<0?'not sure, please check':NM[l]));
+    bits.push('Density: '+DN[d]);
+    if(out!==null&&out!==l) bits.push('Priced as: '+NM[out]);
+    if(Array.isArray(pr)) bits.push('Guide price: '+(out!==null?aed(pr[out]):'from '+aed(pr[0])));
+    else if(typeof pr==='string') bits.push('Guide price: '+pr.replace('from','from AED'));
+    return 'Hi Tara Rose, I would like to book '+o[0]+' from The Blonde Standard at '+salon+'.\n'+bits.join('\n')+'\n(ref '+ref+')';
+  };
+  var update=function(){
+    var m=missing(); go.classList.toggle('is-ready',!m.length);
+    go.setAttribute('aria-disabled',String(!!m.length));
+    go.href=m.length?'#':'https://wa.me/'+salSel.value+'?text='+encodeURIComponent(message());
+    if(!m.length) miss.hidden=true;
+    sheet.querySelectorAll('.bk-f.is-missing').forEach(function(f){ if(m.every(function(x){ return x[1]!==f; })) f.classList.remove('is-missing'); });
+  };
+  go.addEventListener('click',function(e){
+    var m=missing();
+    if(m.length){
+      e.preventDefault();
+      miss.textContent='Almost there. Please choose '+m.map(function(x){ return x[0]; }).join(', ').replace(/, ([^,]*)$/,' and $1')+'.';
+      miss.hidden=false;
+      m.forEach(function(x){ x[1].classList.add('is-missing'); });
+      m[0][1].scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    setTimeout(close,200);
+  });
+  radios('bkLen').forEach(function(r){ r.addEventListener('change',function(){ st.len=Number(r.value); mark(); render(); }); });
+  radios('bkDens').forEach(function(r){ r.addEventListener('change',function(){ st.dens=Number(r.value); mark(); render(); }); });
+  svcSel.addEventListener('change',render);
+  salSel.addEventListener('change',update);
+  var optText=function(o){
+    var p=o[2], pt=Array.isArray(p)?(p[0]===p[3]?', '+aed(p[0]):', from '+aed(p[0])):(typeof p==='string'&&p.indexOf('from')===0?', '+p.replace('from','from AED'):(typeof p==='string'&&p!=='bs'?', '+p.toLowerCase():''));
+    return (o[3]||o[0].replace(' (solid colour roots)',''))+pt;
+  };
+  /* What would you like? A plan, or a single service. The second bar lists only that group; the choice she made in each group is kept when she switches back. */
+  var fill=function(want,usePick){
+    svcSel.innerHTML=''; var sel=null, first=null, gfirst={};
+    var add=function(parent,k,i,o){
+      var op=document.createElement('option'); op.value=(k==='plan')?String(i):k+':'+i; op.textContent=optText(o); parent.appendChild(op);
+      if(first===null) first=op.value;
+      if(!(k in gfirst)) gfirst[k]=op.value;
+      if(want&&want.indexOf(o[0].toLowerCase())===0) sel=op.value;
+    };
+    if(cat==='plans'){ SV.plan.opts.forEach(function(o,i){ add(svcSel,'plan',i,o); }); }
+    else { ['highlighting','balayage','colour'].forEach(function(k){ var g=document.createElement('optgroup'); g.label=GL[k]; SV[k].opts.forEach(function(o,i){ add(g,k,i,o); }); svcSel.appendChild(g); }); }
+    if(sel===null&&usePick&&cat==='services'&&gfirst[pick]) sel=gfirst[pick];
+    var keep=lastSel[cat], ok=keep&&[].slice.call(svcSel.options).some(function(o){ return o.value===keep; });
+    svcSel.value=ok?keep:(sel!==null?sel:first);
+    title.textContent=cat==='plans'?SV.plan.title:'Book a Blonde Menu service';
+    if(svcL) svcL.textContent=cat==='plans'?'Which plan?':'Which service?';
+    radios('bkCat').forEach(function(r){ r.checked=(r.value===cat); });
+    mark();
+  };
+  var setCat=function(c){
+    if(c===cat) return;
+    lastSel[cat]=svcSel.value; cat=c; fill('');
+    miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
+    render();
+  };
+  radios('bkCat').forEach(function(r){ r.addEventListener('change',function(){ setCat(r.value); }); });
+  /* Fill the plan list straight away, so the bar is never empty however the guide is reached. */
+  fill(''); render();
+  var open=function(btn){
+    last=btn; pick=btn.getAttribute('data-svc')||'';
+    cat=(pick==='plan'||!SV[pick])?'plans':'services';
+    lastSel={plans:null,services:null};
+    var want=(btn.getAttribute('data-book-base')||btn.getAttribute('data-book')||'').toLowerCase();
+    fill(want,true);
+    if(st.len===null&&typeof window.bsL==='number'){ st.len=window.bsL; st.dens=window.bsD; radios('bkLen').forEach(function(r){ r.checked=Number(r.value)===st.len; }); radios('bkDens').forEach(function(r){ r.checked=Number(r.value)===st.dens; }); mark(); }
+    miss.hidden=true; sheet.querySelectorAll('.is-missing').forEach(function(f){ f.classList.remove('is-missing'); });
+    render();
+    sheet.hidden=false; root.classList.add('wa-open');
+    var panel=sheet.querySelector('.wa-sheet__panel'); if(panel) panel.scrollTop=0;
+    title.focus({preventScroll:true});
+  };
+  window.hrReopenBook=function(){ if(last) open(last); };
+  var close=function(){ sheet.hidden=true; root.classList.remove('wa-open'); if(last) last.focus({preventScroll:true}); };
+  document.querySelectorAll('.js-book').forEach(function(btn){
+    btn.addEventListener('click',function(e){ e.preventDefault(); open(btn); });
+  });
+  sheet.querySelectorAll('[data-close]').forEach(function(x){ x.addEventListener('click',close); });
+  var toForm=document.getElementById('waForm');
+  if(toForm) toForm.addEventListener('click',function(e){
+    e.preventDefault(); sheet.hidden=true; root.classList.remove('wa-open');
+    var sel=document.getElementById('svc'); if(sel&&pick){ sel.value=pick; sel.dispatchEvent(new Event('change',{bubbles:true})); }
+    var fc=document.getElementById('bookForm'); if(fc){ fc.scrollIntoView({behavior:'smooth',block:'start'}); var fn=document.getElementById('fname'); if(fn) setTimeout(function(){ fn.focus({preventScroll:true}); },400); }
+  });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&!sheet.hidden) close(); });
+})();
+/* Sticky menu: the chip for the option on screen is the dark one, and the row scrolls to keep it in view. */
+(function(){
+  var bar=document.querySelector('.offer-nav'); if(!bar) return;
+  var chips=[].slice.call(bar.querySelectorAll('.ochip')), row=bar.querySelector('.offer-nav__row');
+  var targets=chips.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+  var nav=document.querySelector('.trs-nav'), tick=false, last=-2;
+  var run=function(){
+    tick=false;
+    var top=(nav?nav.offsetHeight:75)+bar.offsetHeight+Math.round(window.innerHeight*0.3), cur=-1;
+    targets.forEach(function(t,i){ if(t&&t.getBoundingClientRect().top<=top) cur=i; });
+    if(cur===last) return; last=cur;
+    chips.forEach(function(a,i){ a.classList.toggle('active',i===cur); });
+    if(cur>-1&&row.scrollWidth>row.clientWidth) row.scrollTo({left:chips[cur].offsetLeft-row.offsetLeft-12,behavior:'smooth'});
+  };
+  window.addEventListener('scroll',function(){ if(!tick){ tick=true; setTimeout(run,50); } },{passive:true});
+  window.addEventListener('resize',run,{passive:true});
+  run();
+})();
+/* Form pickers: tap a length or a swatch, the hidden drop-down takes the value, so the form sends it as before. */
+(function(){
+  var btns=[].slice.call(document.querySelectorAll('#bookForm [data-sel]')); if(!btns.length) return;
+  var form=document.querySelector('#bookForm form');
+  var sync=function(){
+    btns.forEach(function(b){ var s=document.getElementById(b.getAttribute('data-sel')); b.setAttribute('aria-pressed',String(!!s&&s.value===b.getAttribute('data-v'))); });
+    if(form) form.dispatchEvent(new Event('input',{bubbles:true}));
+  };
+  btns.forEach(function(b){ b.addEventListener('click',function(){
+    var s=document.getElementById(b.getAttribute('data-sel')); if(!s) return;
+    s.value=b.getAttribute('data-v'); s.dispatchEvent(new Event('change',{bubbles:true})); sync();
+  }); });
+  ['hairlen','hairthick'].forEach(function(id){ var s=document.getElementById(id); if(s) s.addEventListener('change',sync); });
+  window.bsFormSync=sync;
+})();
+/* Plan cards: level the descriptions so the cards line up, and opening one card's list only grows that card. */
+(function(){
+  var sels=['#plans .plancard__quote','#plans .plancard__body>h3','#plans .plancard__body>p:not(.plancard__quote):not(.visits-lbl):not(.visits-todo)','#plans .incl--visits'];
+  if(!document.querySelector('#plans .plancard')) return;
+  var level=function(){
+    var c=document.querySelectorAll('#plans .plancard');
+    var row=c.length>1&&c[0].getBoundingClientRect().top===c[1].getBoundingClientRect().top;
+    sels.forEach(function(sel){
+      var els=[].slice.call(document.querySelectorAll(sel));
+      els.forEach(function(e){ e.style.minHeight=''; });
+      if(!row) return;
+      var h=Math.max.apply(null,els.map(function(e){ return e.getBoundingClientRect().height; }));
+      els.forEach(function(e){ e.style.minHeight=h+'px'; });
+    });
+    var pr=[].slice.call(document.querySelectorAll('#plans .plancard__price'));
+    pr.forEach(function(p){ p.style.marginTop=''; });
+    if(!row) return;
+    var tops=pr.map(function(p){ return p.getBoundingClientRect().top; }), mx=Math.max.apply(null,tops);
+    pr.forEach(function(p,i){ var d=mx-tops[i]; if(d>0.5) p.style.marginTop=(parseFloat(getComputedStyle(p).marginTop)+d)+'px'; });
+  };
+  window.addEventListener('resize',level,{passive:true}); window.addEventListener('load',level);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(level);
+  level();
+})();
+</script>
+<script>
+/* Length switch: one choice sets every price on the page, and Book now carries her length (and, for plans, the price) to reception. */
+(function(){
+  var NAMES=['short','medium','long','extra long'];
+  var P={"plan-soft": {"label": "3 visits", "exact": [1550, 1705, 1960, 2565], "per": [515, 570, 655, 855]}, "plan-signature": {"label": "3 visits", "exact": [1695, 1870, 2105, 2705], "per": [565, 625, 700, 900]}, "plan-transformation": {"label": "3 visits", "exact": [2160, 2325, 2555, 3150], "per": [720, 775, 850, 1050]}, "menu-highlighting": {"label": "6 services", "from": [330, 340, 385, 495]}, "menu-balayage": {"label": "6 services", "from": [320, 340, 360, 460]}, "menu-colour": {"label": "5 services", "from": [330, 355, 385, 495]}};
+  var fmt=function(v){ return 'AED '+v.toLocaleString('en-US'); };
+  var boxes=[].slice.call(document.querySelectorAll('[data-price]'));
+  if(!boxes.length) return;
+  var orig={};
+  boxes.forEach(function(b){ orig[b.getAttribute('data-price')]=b.innerHTML; });
+  var books=[].slice.call(document.querySelectorAll('.js-book'));
+  books.forEach(function(a){ a.setAttribute('data-book-base',a.getAttribute('data-book')||''); });
+  var cardOf=function(el){ var c=el.closest('.plancard'); return c?c.id:''; };
+  var apply=function(i){
+    window.hrLen=i;
+    document.querySelectorAll('.len-switch button').forEach(function(btn){ btn.setAttribute('aria-pressed',String(Number(btn.getAttribute('data-len'))===i)); });
+    boxes.forEach(function(b){
+      var id=b.getAttribute('data-price'), d=P[id]; if(!d) return;
+      if(i<0){ b.innerHTML=orig[id]; return; }
+      var hair=NAMES[i]+' hair';
+      if(d.exact){ b.querySelector('span').textContent=d.label+', '+hair; b.querySelector('strong').textContent=fmt(d.exact[i]); b.querySelector('small').textContent='from '+fmt(d.per[i])+' a visit'; }
+      else{ b.querySelector('span').textContent=d.label+', '+hair+', from'; b.querySelector('strong').textContent=fmt(d.from[i]); b.querySelector('small').textContent='Your stylist confirms it before you book'; }
+    });
+    document.querySelectorAll('.gcard__cols>div, .gsvc__lens').forEach(function(row){
+      [].slice.call(row.children).forEach(function(c,k){ c.classList.toggle('is-len',k===i); });
+    });
+    books.forEach(function(a){
+      var base=a.getAttribute('data-book-base'); if(i<0){ a.setAttribute('data-book',base); return; }
+      var d=P[cardOf(a)], extra=', '+NAMES[i]+' hair'+(window.hrDens?' ('+window.hrDens+')':'');
+      if(d&&d.exact) extra+=' ('+fmt(d.exact[i])+')';
+      a.setAttribute('data-book',base+extra);
+    });
+    try{ if(i>=0) localStorage.setItem('bs_len',String(i)); }catch(e){}
+    try{ window.dispatchEvent(new Event('resize')); }catch(e){}
+  };
+  document.querySelectorAll('.len-switch button').forEach(function(btn){
+    btn.addEventListener('click',function(){ window.hrDens=null; apply(Number(btn.getAttribute('data-len'))); });
+  });
+  var hlSel=document.getElementById('hairlen');
+  var htSel=document.getElementById('hairthick'), LV=['short','medium','long','extra-long'], DV=['fine','medium','thick','extra-thick'], DNM=['fine','medium density','thick','extra thick'], GR=[[0,0,1,2],[0,1,2,3],[1,2,3,3],[2,3,3,3]];
+  var fromForm=function(){ var l=hlSel?LV.indexOf(hlSel.value):-1; if(l<0) return; var d=htSel?DV.indexOf(htSel.value):-1; window.bsL=l; window.bsD=d<0?null:d; if(d<0){ window.hrDens=null; apply(l); return; } window.hrDens=DNM[d]; apply(GR[l][d]); };
+  if(hlSel) hlSel.addEventListener('change',fromForm); if(htSel) htSel.addEventListener('change',fromForm);
+  var saved=-1; try{ localStorage.removeItem('bs_len'); }catch(e){}
+  window.hrApplyLen=apply;
+  apply(saved>=0&&saved<4?saved:-1);
+})();
+/* Step 1 on the page: true length plus density gives her price length, then every price below updates. */
+(function(){
+  var sec=document.getElementById('length'); if(!sec) return;
+  var NAMES=['Short','Medium','Long','Extra long'], DENS=['fine','medium density','thick','extra thick'];
+  var GRID=[[0,0,1,2],[0,1,2,3],[1,2,3,3],[2,3,3,3]], l=-1, d=-1;
+  var line=document.getElementById('lsLine'), go=document.getElementById('lsGo');
+  var update=function(){
+    sec.querySelectorAll('.ls-l').forEach(function(b){ b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-l'))===l)); });
+    sec.querySelectorAll('.ls-d').forEach(function(b){ b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-d'))===d)); });
+    if(l<0||d<0){ line.textContent=l<0&&d<0?'Answer both and we will show your price length.':'One more tap.'; go.hidden=true; return; }
+    var out=GRID[l][d];
+    window.bsL=l; window.bsD=d;
+    window.hrDens=DENS[d];
+    if(window.hrApplyLen) window.hrApplyLen(out);
+    line.innerHTML='We price your hair as <b>'+NAMES[out]+'</b>.'+(out!==l?' <span>'+(out>l?'Thicker hair takes more time and product.':'Finer hair takes less time.')+'</span>':'');
+    go.hidden=false;
+  };
+  sec.querySelectorAll('.ls-l').forEach(function(b){ b.addEventListener('click',function(){ l=Number(b.getAttribute('data-l')); update(); }); });
+  sec.querySelectorAll('.ls-d').forEach(function(b){ b.addEventListener('click',function(){ d=Number(b.getAttribute('data-d')); update(); }); });
+})();
+/* Label the length photo: line names on the right, each length named in its band on the left. No animation. */
+(function(){
+  var Z=[[0,30.7,'Short'],[30.7,40.9,'Medium'],[40.9,58.6,'Long'],[58.6,100,'Extra long']], LINES=[[30.7,'Chin'],[40.9,'Shoulders'],[58.6,'Armpits']];
+  document.querySelectorAll('.lf__len').forEach(function(wrap){
+    var img=wrap.querySelector('img'); if(!img) return;
+    var pic=document.createElement('div'); pic.className='lf__pic';
+    img.parentNode.insertBefore(pic,img); pic.appendChild(img);
+    Z.forEach(function(z){ var t=document.createElement('span'); t.className='lf__band'; t.style.top=((z[0]+z[1])/2)+'%'; t.textContent=z[2]; pic.appendChild(t); });
+  });
+})();
+</script>
+<script src="js/nav-scroll.js?v=ui1" defer></script>
 
-<script src="js/form-prefill.js" defer></script>
+<script src="js/form-prefill.js?v=ui1" defer></script>
 
-<script src="js/tracking.js" defer></script>
+<script src="js/tracking.js?v=ui1" defer></script>
 
-<script src="js/submit-guard.js" defer></script>
-</body>
-</html>
+<script src="js/submit-guard.js?v=ui1" defer></script>
+
+
+
+</body></html>
