@@ -289,7 +289,7 @@ function cqForm() {
   const bopts = ['<option value="">Pick the branch</option>'].concat(brs.map(([k, l]) => `<option value="${k}"${picked.length === 1 && picked[0] === k ? ' selected' : ''}>${l}</option>`)).join('');
   const topts = ['<option value="">Pick one</option>'].concat(Object.keys(CQ_TYPE).filter(k => k !== 'unclear' && k !== 'repeat_complainer').map(k => `<option value="${k}">${cqEsc(CQ_TYPE[k])}</option>`)).join('');
   const ropts = ['<option value="">Not resolved yet (keep it open)</option>'].concat(Object.keys(CQ_RES).filter(k => k !== 'unclear' && k !== 'open').map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
-  const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = cqToday();
   // Minimisable (Kate, 22 Oct 2026): open the first time, then it stays as it was left in this browser.
   let closed = false; try { closed = localStorage.getItem('trs-cq-form') === 'closed'; } catch (e) {}
   return `<details class="cq-card" id="cq-new"${closed ? '' : ' open'} ontoggle="try{localStorage.setItem('trs-cq-form',this.open?'open':'closed')}catch(e){}"><summary>Log a complaint ${cqInfo()}</summary>
@@ -335,7 +335,7 @@ async function cqSubmit() {
     p_google_url: v('cqfG').trim(), p_phone: v('cqfPhone').trim(), p_complaint_date: v('cqfCDate') || null, p_responsible: v('cqfResp').trim()
   };
   const files = Array.from((document.getElementById('cqfFiles') || {}).files || []);
-  const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  const today = cqToday();
   if (p.p_client.length < 3) return say('Write the client\'s full name.', true);
   if (!(p.p_phone.replace(/\D/g, '').length >= 7 && p.p_phone.replace(/\D/g, '').length <= 15)) return say('Write the client\'s mobile number (7 to 15 digits).', true);
   if (!p.p_branch) return say('Pick the branch.', true);

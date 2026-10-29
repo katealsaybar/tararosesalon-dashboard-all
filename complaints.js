@@ -70,6 +70,9 @@ const cqDay = iso => {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 };
 const cqBr = c => CQ_BRANCH[c] || c || 'Not matched';
+// Today as the server counts it: the Dubai day (cq_today). A phone in Manila is a day ahead between midnight and 4 am there, so the browser's own date
+// made the form say "the date she complained is in the future" (Kate, 31 Oct 2026).
+const cqToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
 const cqLevelOk = (pg) => typeof TRS_LEVEL !== 'undefined' && (typeof trsPageOpen === 'function'
   ? trsPageOpen(pg || 'complaints', TRS_LEVEL, typeof TRS_EXTRA !== 'undefined' ? TRS_EXTRA : null) : TRS_LEVEL >= 2);
 
@@ -461,7 +464,7 @@ function cqFollow(r) {
   const ropts = ['<option value="">How it ended (needed to mark it resolved)</option>'].concat(Object.keys(CQ_RES).filter(k => k !== 'unclear' && k !== 'open')
     .map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
   const isOpen = r.status === 'open';
-  const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = cqToday();
   const files = (r.files || []).map(f => `<li><button type="button" class="cq-link" data-file="${cqEsc(f.path)}">${cqEsc(f.name)}</button> <span class="cq-muted">${cqEsc(cqKB(Number(f.size) || 0))}, ${cqEsc(f.by || '')}, ${cqEsc(cqDubai(f.at))}</span>`
     + ` <button type="button" class="cq-btn" data-delfile="${f.id}" data-cid="${r.id}">Remove</button></li>`).join('');
   return `<div style="grid-column:1/-1">
