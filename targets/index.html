@@ -340,14 +340,14 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
   </div>
 
   <p class="tg-note"><b>Draft</b>Real numbers, Jul to 20 Oct 2026. For Level 4 only. This page changes nothing: the targets in use are in the ledgers.</p>
-  <p class="deck">One month, person by person. Each person has three plans: <b>low</b> (the leave we have now), <b>high</b> (nobody on leave) and the <b>target</b>, the middle of the two. The target splits into service, treatment and retail, and the clients to match, held to what her hours can fit. Then it adds up to the branch and the group. Each branch also has a reception retail line, because the front desk sells retail that belongs to no stylist.</p>
+  <p class="deck">One month, person by person. Each person has three plans: <b>low</b> (the leave we have now), <b>full team</b> (nobody on leave) and the <b>target</b>, the middle of the two. The target splits into service, treatment and retail, and the clients to match, held to what her hours can fit. Then it adds up to the branch and the group. Each branch also has a reception retail line, because the front desk sells retail that belongs to no stylist.</p>
 
   <details class="why-wall" id="whyWall" open>
     <summary>Read this first. Thirty seconds.</summary>
     <dl>
       <dt>Why this</dt><dd>A target is not a guess. It is her normal day, adjusted for the kind of month that is coming.</dd>
       <dt>Why now</dt><dd>The November plans go out with the end of October emails. Mette checks them first, so this is the place to try things and adjust.</dd>
-      <dt>Three numbers</dt><dd>High is what we could sell if nobody took leave. Low is what we sell with the leave we have. The target sits in the middle, so it is a goal that still looks real. The gap between low and high is what missing staff cost.</dd>
+      <dt>Three numbers</dt><dd>Full team is what we could sell if nobody took leave. Low is what we sell with the leave we have. The target sits in the middle, so it is a goal that still looks real. The gap between low and full team is what missing staff cost.</dd>
       <dt>If we do nothing</dt><dd>Targets stay as guesses, and the business can be planned below break-even, which is AED 1.7 to 1.8 million a month.</dd>
     </dl>
     <p class="ww-foot"><span>Try it: change a person's days, or add an adjustment %. Then tap <b>Why this?</b> on any row.</span><a href="/targets/how/">How a target is made</a><button class="copy" id="wwDone" type="button">Got it, hide this</button></p>
@@ -449,7 +449,7 @@ const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
 const median=a=>{const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
 
 /* ---------- settings ---------- */
-/* Kate, 23 Oct 2026: three plans per person. LOW is what happens with the leave we have now (her usual days), HIGH is nobody on leave (her best month's days),
+/* Kate, 23 Oct 2026: three plans per person. LOW is what happens with the leave we have now (her usual days), FULL TEAM is nobody on leave (her best month's days),
    and the TARGET is the median of the two. The base is the last three months, each month corrected by the season calendar. */
 const JUL=DATA.jul||{},HRS=DATA.hours||{},RULES=DATA.rules||{};
 /* Kate, 29 Oct 2026: the address follows the filters. ?month=nov&view=by-branch&branch=saa&team=hair, read here and written by syncUrl() after every render. */
@@ -644,8 +644,8 @@ function howExample(rows){
     <li><b>Step 1. What does she sell on a day she comes in?</b> The last three months.<ol type="a" style="margin:4px 0;padding-left:20px">${lines}</ol></li>
     <li><b>Step 2. Her normal day.</b> Add those up and divide by ${r.used.length}: <b>AED ${fmt(r.avgDay)}</b>.</li>
     <li><b>Step 3. Adjust for busy and quiet months.</b> The months she sold in had season numbers ${fac.map(f=>f.toFixed(2)).join(', ')}, which average ${avgF.toFixed(3)}. ${nm} is ${fT.toFixed(2)}. ${fT.toFixed(2)} &divide; ${avgF.toFixed(3)} = ${r.ratio.toFixed(3)}. So her day becomes ${fmt(r.avgDay)} &times; ${r.ratio.toFixed(3)} = <b>AED ${fmt(r.adj)}</b>, which is <b>${sgn((r.ratio-1)*100)}</b> on her normal day.</li>
-    <li><b>Step 4. Two numbers of days.</b> Low: her usual <b>${r.dLow} days</b>, leave included. High: her best month, <b>${hd} days</b>, nobody on leave.</li>
-    <li><b>Step 5. Low, high and the target.</b> Low ${fmt(r.adj)} &times; ${r.dLow} = <b>${fmt(r.low)}</b>. High ${fmt(r.adj)} &times; ${hd} = <b>${fmt(r.high)}</b>. The target is the middle: <b>AED ${fmt(r.med)}</b>.</li>
+    <li><b>Step 4. Two numbers of days.</b> Low: her usual <b>${r.dLow} days</b>, leave included. Full team: her best month, <b>${hd} days</b>, nobody on leave.</li>
+    <li><b>Step 5. Low, full team and the target.</b> Low ${fmt(r.adj)} &times; ${r.dLow} = <b>${fmt(r.low)}</b>. Full team ${fmt(r.adj)} &times; ${hd} = <b>${fmt(r.high)}</b>. The target is the middle: <b>AED ${fmt(r.med)}</b>.</li>
     <li><b>Step 6. Split it.</b> Treatment ${S.treat}% = ${fmt(r.treat)}. Retail ${S.retail}% = ${fmt(r.retail)} (her own retail; the front desk's retail is a separate line for the branch). Clients: ${fmt(r.plan)} &divide; her average bill of ${fmt(r.avgBill)} = about ${fmt(r.clientsRaw)}${r.clCapped?`, but her hours only hold ${fmt(r.capClients)}, so the target is ${fmt(r.clients)} clients and the average bill needed is ${fmt(r.billNeed)}`:''}.</li>
   </ol>
   <p style="margin:6px 0 0">Because we divide by the days she <i>came in</i>, a person who took leave is not marked down for it. Tap "Why this?" on anyone's row to see their own steps.</p>`;
@@ -772,12 +772,12 @@ function renderTiles(sel,all){
   const netNote=`<div class="abn">${pace!=null?`Pace to month end about ${fmt(pace)} (${gTot?Math.round(pace/gTot*100):0}%). `:''}${verdict}</div>`+
     `<div class="abn s">Target plus retail at what we sell today (${S.retailNow}%). At the ${S.retail}% retail target: ${fmt(gTar+rv)}. Without retail ${fmt(nb.plan)}.${nb.plan!==nb.top?` Includes the adjustment ${sgnA(nb.plan-nb.top)}.`:''}</div>`;
   const planNote=t.plan!==t.top?
-    `<div class="abn s">Top-down ${fmt(t.top)}, the middle of low and high. Adjustment ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Low ${fmt(t.low)}, high ${fmt(t.high)}.</div>`:
-    `<div class="abn s">The middle of low ${fmt(t.low)} and high ${fmt(t.high)}.</div>`;
+    `<div class="abn s">Top-down ${fmt(t.top)}, the middle of low and full team. Adjustment ${sgnA(t.plan-t.top)} (${sgn((t.plan/t.top-1)*100)}), who is on the floor. Low ${fmt(t.low)}, full team ${fmt(t.high)}.</div>`:
+    `<div class="abn s">The middle of low ${fmt(t.low)} and full team ${fmt(t.high)}.</div>`;
   /* Kate, 27 Oct 2026: the i beside each line shows, on hover, how that line is worked out, with the numbers on the screen. */
   const upto2=A?`1 to ${upto}`:'the month so far';
   const tipNet=`The % under each line is its share of this Total net take, actual of the actual and target of the target. Retail is aimed at ${S.retail}% but the net take counts it at what we sell today (${S.retailNow}%), and treatment sits inside services, so the shares can add to more than 100%.<br><b>Actual</b> is the net take in the ledgers, ${upto2}: services, courses and retail, ${scoped?'for the branch shown':'all branches'}.<br><b>Target</b> is the services and treatment target ${fmt(nb.plan)} plus the retail we sell today (${S.retailNow}% of it, ${fmt(now)}) = <b>${fmt(gTot)}</b>.${A?`<br>The tick on the bar is how far the month has gone: ${A.elapsed} of ${A.days} days.`:''}`;
-  const tipSvc=`<b>Target</b> is every person's target added up = <b>${fmt(t.plan)}</b>.<br>One person: her average day (sales of the last 3 months divided by the days she worked) x the season (${MN[S.month-1]} against the months used) x her days. Low uses the days she is in, high uses nobody on leave, the target is the middle of the two${t.plan!==t.top?`, then the adjustment % on top (${sgnA(t.plan-t.top)}).`:'.'}<br><b>Actual</b> is services and courses in the ledgers.`;
+  const tipSvc=`<b>Target</b> is every person's target added up = <b>${fmt(t.plan)}</b>.<br>One person: her average day (sales of the last 3 months divided by the days she worked) x the season (${MN[S.month-1]} against the months used) x her days. Low uses the days she is in, full team uses nobody on leave, the target is the middle of the two${t.plan!==t.top?`, then the adjustment % on top (${sgnA(t.plan-t.top)}).`:'.'}<br><b>Actual</b> is services and courses in the ledgers.`;
   const tipRet=`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = ${fmt(t.retail)}.${rv?`<br>Plus the reception retail ${fmt(rv)}: what the front desk sells (BUSINESS TRS in Phorest), the August to October monthly average, kept flat. It belongs to the branch, not to a stylist. Total <b>${fmt(retTgt)}</b>.`:(teamAll?'':'<br>Reception retail has no hair or beauty split, so it is left out here.')}<br><b>Actual</b> is all retail in the ledgers, staff and reception.`;
   const tipTr=`<b>Target</b> is ${S.treat}% of each hair stylist's plan, added up = <b>${fmt(trTgt)}</b>. Beauty has no treatment line.<br><b>Actual</b> is hair treatment sales in the ledgers.`;
   const tipCl=`<b>Target</b>: each person's plan divided by the average bill of her level, held to the clients her hours can fit at ${S.util}% utilisation. Added up = <b>${fmt(t.clients)}</b>.<br><b>Actual</b> is visits from the staff daily reports, BUSINESS TRS left out.`;
@@ -825,7 +825,7 @@ function personRow(r){
    `<td data-l="Adjustment %">${has?`<input class="days bu${r.bu?' changed':''}" type="number" min="-50" max="100" step="0.1" value="${r.bu}" data-i="${r.i}" aria-label="Adjustment in percent for ${r.p[1]}">`:'n/a'}</td>`+
    `<td data-l="Low">${has?fmt(r.low):(r.cover?'0':'n/a')}</td>`+
    `<td data-l="Target" class="plan">${has?fmt(r.med):(r.cover?'0':'No plan')}</td>`+
-   `<td data-l="High">${has?fmt(r.high):(r.cover?'0':'n/a')}</td>`+
+   `<td data-l="Full team">${has?fmt(r.high):(r.cover?'0':'n/a')}</td>`+
    `<td data-l="Service">${has?fmt(r.service):'n/a'}</td>`+
    `<td data-l="Treatment">${has?fmt(r.treat):'n/a'}${has&&r.act&&r.act.tpct!=null?`<span class="rng">now ${r.act.tpct.toFixed(0)}%</span>`:''}</td>`+
    `<td data-l="Retail">${has?fmt(r.retail):'n/a'}${has&&r.act&&r.act.rpct!=null?`<span class="rng">now ${r.act.rpct.toFixed(0)}%</span>`:''}</td>`+
@@ -846,13 +846,13 @@ function detail(r){
   if(r.med==null)return `<div class="steps"><div><b class="h">Why no plan</b>Phorest shows no days under this name in the last 3 months. Check the spelling or the roster.</div></div>`;
   let first;
   if(r.joiner){
-    first=`<div><b class="h">Joiner, first 3 months of employment</b>${S.join}% of the median plan of ${r.nPool} regular${r.nPool===1?'':'s'} (${r.medBasis}). The median is ${fmt(r.med0)}, so ${fmt(r.planJoin)}. Her own pace gives ${fmt(r.own)}${r.capped?', and the plan is capped at that':''}. Low, target and high are the same for a joiner. Visa status is not an exemption.<br><br>${mos(r)}</div>`;
+    first=`<div><b class="h">Joiner, first 3 months of employment</b>${S.join}% of the median plan of ${r.nPool} regular${r.nPool===1?'':'s'} (${r.medBasis}). The median is ${fmt(r.med0)}, so ${fmt(r.planJoin)}. Her own pace gives ${fmt(r.own)}${r.capped?', and the plan is capped at that':''}. Low, target and full team are the same for a joiner. Visa status is not an exemption.<br><br>${mos(r)}</div>`;
   }else{
     const hd=r.grp?r.grp.hd:Math.max(r.best,r.planned,r.dLow);
     const mo=r.grp?r.grp.months.map(x=>`${MN[x.m-1]}: ${x.d} ${x.d===1?'day':'days'}, ${fmt(x.r)}${x.d?` (${fmt(x.r/x.d)} a day)`:''}`).join('<br>'):mos(r);
     first=`<div><b class="h">1. Average day</b>${r.grp?'Both branches added together.<br>':''}${mo}<br><b>Average ${fmt(r.avgDay)}</b></div>`+
      `<div><b class="h">2. Season</b>The months used ran at ${r.used.map(x=>S.fac[x.m-1].toFixed(2)).join(', ')} (average ${mean(r.used.map(x=>S.fac[x.m-1])).toFixed(2)}). ${MN[S.month-1]} runs at ${S.fac[S.month-1].toFixed(2)}. That is x ${r.ratio.toFixed(3)}, so the day becomes ${fmt(r.adj)}.</div>`+
-     `<div><b class="h">3. Low, high and the target</b>Low: ${r.dLow} days${r.leave?', because she is on leave this month and we count the days she came in':', her usual days'}. ${fmt(r.adj)} x ${r.dLow}${r.grp?' = '+fmt(r.grp.total)+' for both branches':' = '+fmt(r.adj*r.dLow)}.<br>High: nobody on leave, ${hd} days${r.grp&&r.grp.hd===hd&&hd===((RULES.days4||{})[r.p[2]]||18)?' (a 4-day week)':', her best month'}. ${fmt(r.adj)} x ${hd}${r.grp?' = '+fmt(r.grp.totalHigh):' = '+fmt(r.adj*hd)}.<br>${r.grp?`Shared out by days: ${r.grp.split}. `:''}Low ${fmt(r.low)}, high ${fmt(r.high)}. <b>The target is the middle: ${fmt(r.topDown)}.</b>${r.bu?`<br><b>Adjustment:</b> ${sgn(r.bu)} for who is actually on the floor this month. ${fmt(r.topDown)} becomes <b>${fmt(r.med)}</b>.`:''}${r.bcap?`<br><b>Bottom-up:</b> at ${S.util}% productivity her ${Math.round(r.uAvail)} hours could earn <b>${fmt(r.bcap)}</b>, ${sgn((r.bcap/r.med-1)*100)} on her target.`:''}</div>`;
+     `<div><b class="h">3. Low, full team and the target</b>Low: ${r.dLow} days${r.leave?', because she is on leave this month and we count the days she came in':', her usual days'}. ${fmt(r.adj)} x ${r.dLow}${r.grp?' = '+fmt(r.grp.total)+' for both branches':' = '+fmt(r.adj*r.dLow)}.<br>Full team: nobody on leave, ${hd} days${r.grp&&r.grp.hd===hd&&hd===((RULES.days4||{})[r.p[2]]||18)?' (a 4-day week)':', her best month'}. ${fmt(r.adj)} x ${hd}${r.grp?' = '+fmt(r.grp.totalHigh):' = '+fmt(r.adj*hd)}.<br>${r.grp?`Shared out by days: ${r.grp.split}. `:''}Low ${fmt(r.low)}, full team ${fmt(r.high)}. <b>The target is the middle: ${fmt(r.topDown)}.</b>${r.bu?`<br><b>Adjustment:</b> ${sgn(r.bu)} for who is actually on the floor this month. ${fmt(r.topDown)} becomes <b>${fmt(r.med)}</b>.`:''}${r.bcap?`<br><b>Bottom-up:</b> at ${S.util}% productivity her ${Math.round(r.uAvail)} hours could earn <b>${fmt(r.bcap)}</b>, ${sgn((r.bcap/r.med-1)*100)} on her target.`:''}</div>`;
   }
   const act=r.act?`<div><b class="h">Where she is now, Aug to 20 Oct</b>Treatment ${r.act.tpct!=null?r.act.tpct.toFixed(0)+'%':'n/a'}, target ${S.treat}%.<br>Retail ${r.act.rpct!=null?r.act.rpct.toFixed(0)+'%':'n/a'}, target ${S.retail}%.<br>Average bill (services with treatments, no retail, divided by clients) ${r.act.bill?fmt(r.act.bill):'n/a'}, level ${fmt(r.avgBill)}.<br>Clients at her current pace ${r.act.pace?fmt(r.act.pace):'n/a'}, target ${fmt(r.clients)}.</div>`:'';
   const cap=r.capClients?`<br>Her hours: about ${r.hrsDay.toFixed(1)} a day, ${r.hrsClient.toFixed(1)} hours a client. At ${S.util}% utilisation about <b>${fmt(r.capClients)}</b> clients fit in ${r.dImp.toFixed(0)} days.${r.clCapped?` So the target is held to <b>${fmt(r.clients)}</b> clients, and to reach ${fmt(r.plan)} her average bill has to be <b>${fmt(r.billNeed)}</b> (level ${fmt(r.avgBill)}).`:''}`:'';
@@ -870,7 +870,7 @@ const COLS=[
  {k:'bu',t:'Adjustment %',x:'n',get:r=>r.med==null||r.cover?null:(r.bu||0)},
  {k:'low',t:'Low',x:'n',get:r=>r.low},
  {k:'tgt',t:'Target',x:'n',get:r=>r.med},
- {k:'high',t:'High',x:'n',get:r=>r.high},
+ {k:'high',t:'Full team',x:'n',get:r=>r.high},
  {k:'svc',t:'Service',x:'n',get:r=>r.service},
  {k:'trt',t:'Treatment',x:'n',get:r=>r.treat},
  {k:'ret',t:'Retail',x:'n',get:r=>r.retail},
@@ -1006,7 +1006,7 @@ function renderPerson(sel){
   lastSel=sel;const list=visible(sel);shown=list;
   document.getElementById('secEyebrow').textContent='Person by person';
   document.getElementById('secTitle').textContent='The month, split up';
-  document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>High</b> is nobody on leave. <b>Target</b> is the middle. Change a person\'s <b>planned days</b> (the low), or add an <b>adjustment %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
+  document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>Full team</b> is nobody on leave. <b>Target</b> is the middle. Change a person\'s <b>planned days</b> (the low), or add an <b>adjustment %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
   let h=`<thead><tr>${TH.map(thCell).join('')}<th></th></tr></thead><tbody>`;
   if(!list.length)h+=`<tr><td colspan="14" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
   list.forEach(r=>{h+=personRow(r);});   // Branch and Dept are their own columns now, so no group heading rows
@@ -1019,7 +1019,7 @@ function branchRow(label,t,cls,sub,rv,scope){
   /* Kate, 29 Oct 2026: Net take = the target plus retail at what we sell today (the same as the card); each money column shows its share of it. */
   const net=t.plan+Math.round(t.plan*S.retailNow/100),shr=(v,pre)=>net?`<span class="rng">${pre||''}${Math.round(v/net*100)}% of net take</span>`:'';
   return `<tr class="${cls}"><td class="name"><b>${label}</b>${sub?`<div class="tg">${sub}</div>`:''}</td>`+
-   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Adjustment">${t.n?`<input class="days bub" type="number" min="-50" max="100" step="0.1" value="${Math.round((bu||0)*10)/10}" data-sb="${(scope&&scope.b)||''}" data-st="${(scope&&scope.tm)||''}" aria-label="Adjustment in percent for ${label}">`:'n/a'}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="High">${fmt(t.high)}</td><td data-l="Net take">${fmt(net)}</td><td data-l="Service">${fmt(t.service)}${shr(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}${shr(t.treat)}</td><td data-l="Retail">${fmt(t.retail+(rv||0))}${shr(t.retail+(rv||0),rv?`incl. ${fmt(rv)} Business TRS, `:'')}</td><td data-l="Clients">${fmt(t.clients)}</td><td data-l="Utilisation">${utilOf(t)!=null?utilOf(t)+'%':'n/a'}${utilNote(t)}</td><td data-l="Bottom-up">${t.bc>0?fmt(t.bc):'n/a'}${t.bc>0?`<span class="rng">${sgn((t.bc/t.bp-1)*100)} on target</span>`:''}</td>`+
+   `<td data-l="People">${t.n}</td><td data-l="Low">${fmt(t.low)}</td><td data-l="Target" class="plan">${fmt(t.plan)}</td><td data-l="Adjustment">${t.n?`<input class="days bub" type="number" min="-50" max="100" step="0.1" value="${Math.round((bu||0)*10)/10}" data-sb="${(scope&&scope.b)||''}" data-st="${(scope&&scope.tm)||''}" aria-label="Adjustment in percent for ${label}">`:'n/a'}<span class="rng">${sgnA(t.plan-t.top)}</span></td><td data-l="Full team">${fmt(t.high)}</td><td data-l="Net take">${fmt(net)}</td><td data-l="Service">${fmt(t.service)}${shr(t.service)}</td><td data-l="Treatment">${fmt(t.treat)}${shr(t.treat)}</td><td data-l="Retail">${fmt(t.retail+(rv||0))}${shr(t.retail+(rv||0),rv?`incl. ${fmt(rv)} Business TRS, `:'')}</td><td data-l="Clients">${fmt(t.clients)}</td><td data-l="Utilisation">${utilOf(t)!=null?utilOf(t)+'%':'n/a'}${utilNote(t)}</td><td data-l="Bottom-up">${t.bc>0?fmt(t.bc):'n/a'}${t.bc>0?`<span class="rng">${sgn((t.bc/t.bp-1)*100)} on target</span>`:''}</td>`+
    `<td data-l="Target against Sep delivered"><span class="chip ${band(d1)}">${sgn(d1)}</span><span class="rng">${fmt(t.sep)}</span></td></tr>`;
 }
 let lastBranchRows=[];
@@ -1027,8 +1027,8 @@ function renderBranch(rows){
   lastBranchRows=rows;
   document.getElementById('secEyebrow').textContent='Branch by branch';
   document.getElementById('secTitle').textContent='Adding it up';
-  document.getElementById('secWhy').textContent='Each branch is the sum of its people, and its Retail also includes the reception retail, what the front desk sells. The gap between low and high is what leave and missing staff cost us in a month. The target against what the same people delivered in September is for a first look: further out, find out why before anything changes.';
-  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Adjustment ${ibw(TIP_BU_B)}</th><th>High</th><th class="rel">Net take ${ibw('<b>Net take</b> is the target plus retail at what we sell today ('+S.retailNow+'%), the same as the Total net take on the card. The % under Service, Treatment and Retail is each one&#39;s share of it. Treatment is inside Service. Retail is aimed at '+S.retail+'%, so the shares can add to more than 100%.','What net take is')}</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th class="rel">Utilisation ${ibw('<b>Utilisation</b> the plan asks for: the hours the clients need over the hours the team can give. An adjustment % puts more clients in the same hours, so it lifts this by the same %. The line under shows it before the adjustment.','What utilisation is')}</th><th class="rel">Bottom-up ${ibw(TIP_BOT(),'What bottom-up is')}</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
+  document.getElementById('secWhy').textContent='Each branch is the sum of its people, and its Retail also includes the reception retail, what the front desk sells. The gap between low and full team is what leave and missing staff cost us in a month. The target against what the same people delivered in September is for a first look: further out, find out why before anything changes.';
+  let h=`<thead><tr><th>Branch</th><th>People</th><th>Low</th><th>Target</th><th class="rel">Adjustment ${ibw(TIP_BU_B)}</th><th>Full team</th><th class="rel">Net take ${ibw('<b>Net take</b> is the target plus retail at what we sell today ('+S.retailNow+'%), the same as the Total net take on the card. The % under Service, Treatment and Retail is each one&#39;s share of it. Treatment is inside Service. Retail is aimed at '+S.retail+'%, so the shares can add to more than 100%.','What net take is')}</th><th>Service</th><th>Treatment</th><th class="rel">Retail ${ibw(TIP_RET_B(),'What the branch retail includes')}</th><th>Clients</th><th class="rel">Utilisation ${ibw('<b>Utilisation</b> the plan asks for: the hours the clients need over the hours the team can give. An adjustment % puts more clients in the same hours, so it lifts this by the same %. The line under shows it before the adjustment.','What utilisation is')}</th><th class="rel">Bottom-up ${ibw(TIP_BOT(),'What bottom-up is')}</th><th>Target against Sep delivered</th></tr></thead><tbody>`;
   ['SAA','KCA','MC','AQ'].forEach(b=>{
     const br=rows.filter(r=>r.p[0]===b);
     ['HAIR','BEAUTY'].forEach(tm=>{
@@ -1048,12 +1048,12 @@ function tsv(){
   const rows=build();
   const lines=[];
   if(st.view==='PERSON'){
-    lines.push(['Branch','Person','Designation','Status','Planned days','Adjustment %','Low','Target','High','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
+    lines.push(['Branch','Person','Designation','Status','Planned days','Adjustment %','Low','Target','Full team','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
     visible(rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team))).forEach(r=>{
       lines.push([BN[r.p[0]],r.p[1],r.p[3],(r.leave?'On leave this month':badge[r.status][0]),r.dLow??r.planned??'',r.bu||0,r.low??'',r.med??'',r.high??'',r.service??'',r.treat??'',r.retail??'',r.clients??'',r.uAvail?Math.round(r.uNeed/r.uAvail*100):'',r.clientsRaw??'',r.billNeed??'',r.med!=null?r.avgBill:'',r.act&&r.act.tpct!=null?r.act.tpct.toFixed(1):'',r.act&&r.act.rpct!=null?r.act.rpct.toFixed(1):'',r.act&&r.act.bill?Math.round(r.act.bill):''].join('\t'));
     });
   }else{
-    lines.push(['Branch','Team','People','Low','Target','Top-down','Adjustment %','High','Service','Treatment','Retail','Reception retail','Clients','Utilisation %','Sep delivered'].join('\t'));
+    lines.push(['Branch','Team','People','Low','Target','Top-down','Adjustment %','Full team','Service','Treatment','Retail','Reception retail','Clients','Utilisation %','Sep delivered'].join('\t'));
     const row=(b,tm,t,rv)=>lines.push([b,tm,t.n,t.low,t.plan,t.top,t.top?((t.plan/t.top-1)*100).toFixed(1):'',t.high,t.service,t.treat,t.retail,rv||0,t.clients,utilOf(t)??'',t.sep].join('\t'));
     ['SAA','KCA','MC','AQ'].forEach(b=>{
       const br=rows.filter(r=>r.p[0]===b);

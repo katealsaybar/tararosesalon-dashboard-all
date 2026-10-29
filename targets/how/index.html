@@ -379,17 +379,17 @@ details p{margin:0 0 12px;font-size:15.5px}
 </section>
 
 <!-- B4 -->
-<section class="card" data-title="Days, low, high, target">
+<section class="card" data-title="Days, low, full team, target">
   <span class="tag">Piece 2 · One person's plan · Step 4 of 6</span>
-  <h2>Her days: low, high and the target</h2>
+  <h2>Her days: low, full team and the target</h2>
   <div class="exbox" data-kind="B"></div>
   <div class="three">
-    <p><b>What you see</b>Two numbers of days. Her usual days, with the leave we have now, give the <i>low</i>. Her best month, with nobody on leave, gives the <i>high</i>. The <i>target</i> is the middle.</p>
-    <p><b>Why it matters</b>The high is what we could sell with a full team. The low is what we sell today. The target is a goal that still looks real, and the gap between low and high is what missing staff cost us.</p>
+    <p><b>What you see</b>Two numbers of days. Her usual days, with the leave we have now, give the <i>low</i>. Her best month, with nobody on leave, gives the <i>full team</i>. The <i>target</i> is the middle.</p>
+    <p><b>Why it matters</b>The full-team plan is what we could sell with nobody on leave. The low is what we sell today. The target is a goal that still looks real, and the gap between low and full team is what missing staff cost us.</p>
   </div>
-  <svg id="b4" viewBox="0 0 760 160" role="img" aria-label="Low, target and high plan as three bars"></svg>
+  <svg id="b4" viewBox="0 0 760 160" role="img" aria-label="Low, target and full team plan as three bars"></svg>
   <div class="sum" id="b4sum"></div>
-  <details><summary>Deep dive: how the days are chosen</summary><p>Low: the average days she worked in her full months, and the days she came in if she is on leave this month. High: her best of the last three months, never more than 26 days. A person who works in two branches gets one plan from both, shared by days. Someone who only covers a few days in a branch has no target there. The most we plan is 26 days. Coach Emma can change a person's days. For December we ask for the roster, because some people then work five days.</p></details>
+  <details><summary>Deep dive: how the days are chosen</summary><p>Low: the average days she worked in her full months, and the days she came in if she is on leave this month. Full team: her best of the last three months, never more than 26 days. A person who works in two branches gets one plan from both, shared by days. Someone who only covers a few days in a branch has no target there. The most we plan is 26 days. Coach Emma can change a person's days. For December we ask for the roster, because some people then work five days.</p></details>
   <details><summary>Deep dive: the bottom-up check</summary><p>The steps above are top-down: they only know the past. A bottom-up check starts from the hours instead. Take the hours she can give, count 85% of them as productive (our benchmark), and price them at her average bill per hour. That is what her hours could earn if she runs at 85%. The calculator shows it next to the target, so everyone can see if the number is realistic. If the target needs more than 85% of the hours, it asks too much of them.</p><p>An <b>adjustment</b> is a different thing: your own percentage added to or taken off a plan for what the past cannot see (leave, a new starter with a guest book, a part-time rota). Example: a plan that grows 7.3% on her normal day can become 17% for a stylist with a new guest book to fill. The adjustment is written next to the plan so everyone can see it.</p></details>
 </section>
 
@@ -911,7 +911,7 @@ function buildB(){
     document.getElementById('b3sum').innerHTML='<b>'+tName+' 2026\u2019s '+fT.toFixed(2)+'</b> (calendar) ÷ <b>'+avgF.toFixed(3)+'</b> (average of her months above) = <b>'+ratio.toFixed(3)+'</b>. Her day: <b>'+fmt(avgDay)+'</b> × '+ratio.toFixed(3)+' = <b>AED '+fmt(adj)+'</b>.';
   }
 
-  /* step 10: her days, low, high and the target */
+  /* step 10: her days, low, full team and the target */
   const hd=r.grp?r.grp.hd:Math.max(r.best||0,r.planned||0,r.dLow||0);
   s=clear('b4');
   if(noPlan){
@@ -919,7 +919,7 @@ function buildB(){
     label(s,380,70,r.cover?'No target at a cover branch.':'No plan to show.',{size:14,fill:C.soft});
   }else{
     const mx=Math.max(r.high,1),W2=700,x0=40;
-    [['Low: the leave we have now',r.low,C.bar],['Target: the middle',r.med,C.accent],['High: nobody on leave',r.high,C.lav]].forEach((b,i)=>{
+    [['Low: the leave we have now',r.low,C.bar],['Target: the middle',r.med,C.accent],['Full team: nobody on leave',r.high,C.lav]].forEach((b,i)=>{
       const y=22+i*46,w=Math.max(4,W2*b[1]/mx*0.62);
       s.appendChild(el('rect',{x:x0,y,width:w,height:30,rx:8,fill:b[2]}));
       label(s,x0+w+10,y+21,'AED '+fmt(b[1]),{anchor:'start',size:15,weight:600});
@@ -929,11 +929,11 @@ function buildB(){
       const lowTxt=r.leave?'She is on leave this month, so we count the days she came in: <b>'+r.dLow+' day'+(r.dLow===1?'':'s')+'</b>.':'Her usual days, like her last full months: <b>'+r.dLow+' days</b>.';
       const hiTxt='Nobody on leave: her best month of the three, <b>'+hd+' days</b>'+(r.grp&&r.grp.hd===hd&&RULES.days4&&hd===RULES.days4[p[2]]?' (a 4-day week)':'')+'.';
       document.getElementById('b4sum').innerHTML='<b>Low.</b> '+lowTxt+leq([['t',fmt(r.adj),'her adjusted day (step 9)'],['o','×'],['t',String(r.dLow),'days'],['o','='],['t',fmt(r.grp?r.grp.total:r.adj*r.dLow),r.grp?'low plan, both branches':'low plan, before rounding']])+
-        '<b>High.</b> '+hiTxt+leq([['t',fmt(r.adj),'her adjusted day'],['o','×'],['t',String(hd),'days'],['o','='],['t',fmt(r.grp?r.grp.totalHigh:r.adj*hd),r.grp?'high plan, both branches':'high plan, before rounding']])+
+        '<b>Full team.</b> '+hiTxt+leq([['t',fmt(r.adj),'her adjusted day'],['o','×'],['t',String(hd),'days'],['o','='],['t',fmt(r.grp?r.grp.totalHigh:r.adj*hd),r.grp?'high plan, both branches':'high plan, before rounding']])+
         (r.grp?'<p style="margin:8px 0">She works in two branches, so we make <b>one plan from both</b> and share it out by days: '+r.grp.split+'. '+(r.grp.note||'')+'</p>':'')+
         '<b>The target is the middle.</b>'+leq([['t',fmt(r.low),'low'],['o','+'],['t',fmt(r.high),'high'],['o','÷'],['t','2','two'],['o','='],['t',fmt(r.med),'her target for '+tName+' 2026, to the nearest 100',1]]);
     }else{
-      document.getElementById('b4sum').innerHTML='She is a joiner, so she has no history of her own yet. Her plan is 70% of what '+r.nPool+' regular'+(r.nPool===1?'':'s')+' ('+r.medBasis+') plan for, or her own pace if that is lower. For a joiner low, target and high are the same.'+
+      document.getElementById('b4sum').innerHTML='She is a joiner, so she has no history of her own yet. Her plan is 70% of what '+r.nPool+' regular'+(r.nPool===1?'':'s')+' ('+r.medBasis+') plan for, or her own pace if that is lower. For a joiner low, target and full team are the same.'+
         leq([['t',fmt(r.own),'her own pace ('+fmt(r.adj)+' × '+r.planned+' days)'],['o','vs'],['t',fmt(r.planJoin),'70% of the regulars\u2019 median ('+fmt(r.med0)+')'],['o','→'],['t',fmt(r.med),'her target for '+tName+(r.capped?' (her own pace is lower)':' (70% of the median)'),1]]);
     }
   }
@@ -979,7 +979,7 @@ function buildB(){
   document.getElementById('formula').innerHTML=noPlan?'<p class="srcnote">'+(r.cover?'Cover only: no target at this branch.':'No plan: no days found for her.')+'</p>':
     fbox('AED '+fmt(r.avgDay),who2+'’s normal day<br>from her last 3 months')+'<div class="op">×</div>'+
     fbox(r.ratio.toFixed(3),'Busy-or-quiet adjustment<br>'+fT.toFixed(2)+' ÷ '+avgF.toFixed(3))+'<div class="op">×</div>'+
-    fbox(String(r.dLow)+' or '+String(hd),'Days she will work<br>low or high')+'<div class="op">=</div>'+
+    fbox(String(r.dLow)+' or '+String(hd),'Days she will work<br>low or full team')+'<div class="op">=</div>'+
     fbox('AED '+fmt(r.med),(r.joiner?'Her target for '+tName+' 2026<br>(joiner rule)':'Her target for '+tName+' 2026<br>the middle of '+fmt(r.low)+' and '+fmt(r.high)),true);
 }
 function buildTop(){
@@ -1003,9 +1003,9 @@ function buildQuiz(){
    {q:'Which month is the busiest on the season calendar?',o:[['June',0],['December',1],['January',0]],yes:'Yes. December is 1.36, so 36% busier than a normal month. June is next at 1.10.',no:'Not quite. December is the busiest at 1.36. June is next at 1.10.'},
    {q:'A plan is AED 85,000 and treatment is 20% of it. What is the treatment target?',o:[['AED 12,000',0],['AED 17,000',1],['AED 20,000',0]],yes:'Yes. 85,000 \u00d7 20% = 17,000. Service is the rest, 68,000.',no:'Not quite. 85,000 \u00d7 20% = <b>17,000</b>. Service is the rest, 68,000.'},
    {q:'Where does a stylist\u2019s rebooking target come from?',o:[['Her last 3 months of sales',0],['Her level\u2019s benchmark table',1],['The season calendar',0]],yes:'Yes. Rebooking comes from the benchmark table for her level, not from her sales. Average bill comes from the table too, and we check it against what her hours can hold.',no:'Not quite. Rebooking comes from the <b>benchmark table for her level</b>, not from her sales or the calendar.'},
-   {q:'What is a person\u2019s target?',o:[['The lowest she could do',0],['The middle of low (the leave we have) and high (nobody on leave)',1],['The most she has ever sold',0]],yes:'Yes. The target is the middle of the low and the high. It is a goal that still looks real.',no:'Not quite. The target is the <b>middle</b> of the low (with the leave we have now) and the high (nobody on leave).'},
+   {q:'What is a person\u2019s target?',o:[['The lowest she could do',0],['The middle of low (the leave we have) and full team (nobody on leave)',1],['The most she has ever sold',0]],yes:'Yes. The target is the middle of the low and the full team. It is a goal that still looks real.',no:'Not quite. The target is the <b>middle</b> of the low (with the leave we have now) and the full team (nobody on leave).'},
    {q:'Her target needs 140 clients, but her hours only hold 100 at 85% utilisation. What do we do?',o:[['Keep 140 and hope',0],['Hold the clients to 100 and show the average bill she needs',1],['Give her more hours',0]],yes:'Yes. Clients cannot go past her hours, so the average bill has to carry the rest. That is the conversation with her.',no:'Not quite. We hold the clients to what her hours can fit (100) and show the <b>average bill she needs</b> to reach her target.'},
-   {q:'A stylist is on leave this month. How is her low worked out?',o:[['She is marked down for the days off',0],['Her adjusted day times the days she actually came in',1],['Her plan is the same as everyone\u2019s',0]],yes:'Yes. Leave is never counted against her: her day is multiplied by the days she came in, and the high shows what a full month could be.',no:'Not quite. Her adjusted day is multiplied by the days she <b>actually came in</b>. The high shows what a full month could be.'},
+   {q:'A stylist is on leave this month. How is her low worked out?',o:[['She is marked down for the days off',0],['Her adjusted day times the days she actually came in',1],['Her plan is the same as everyone\u2019s',0]],yes:'Yes. Leave is never counted against her: her day is multiplied by the days she came in, and the full team shows what a full month could be.',no:'Not quite. Her adjusted day is multiplied by the days she <b>actually came in</b>. The full-team plan shows what a full month could be.'},
    {q:'A new joiner has no sales history yet. What is her plan?',o:[['Zero until she has history',0],['70% of what the regulars in her job plan for, or her own pace if that is lower',1],['Last year\u2019s plan',0]],yes:'Yes. A joiner gets 70% of the regulars\u2019 median plan for the same job, or her own pace if that is lower.',no:'Not quite. A joiner gets <b>70% of the regulars\u2019 median plan</b> for the same job, or her own pace if that is lower.'}
   ];
   [['quizBox1',0,5],['quizBox2',5,9]].forEach(g=>{
