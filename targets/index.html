@@ -376,7 +376,7 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
     <div class="head"><div><div class="eyebrow" id="secEyebrow">Person by person</div><h2 style="margin-top:6px" id="secTitle">The month, split up</h2></div>
       <span><button class="copy" id="btnCopy">Copy for Sheets</button><span class="copied" id="copied" hidden>Copied</span></span></div>
     <p class="why" id="secWhy"></p>
-    <div class="sft" id="sfTools"><span id="sfNote"></span><span class="sfbulk">Bottom-up % <span id="buTipP"></span> for the <b id="sfN">0</b> shown: <input class="days" id="buAll" type="number" min="-50" max="100" step="1" placeholder="%" aria-label="Bottom-up percent for every person shown"> <button class="copy" id="buApply" type="button">Apply</button> <button class="copy" id="buZero" type="button">Set to 0</button> <span id="buDone" role="status"></span></span><button class="copy sfopen" id="sfOpen" type="button">Sort and filter</button></div>
+    <div class="sft" id="sfTools"><span id="sfNote"></span><span class="sfbulk">Bottom-up % <span id="buTipP"></span> for the <b id="sfN">0</b> shown: <input class="days" id="buAll" type="number" min="-50" max="100" step="0.1" placeholder="%" aria-label="Bottom-up percent for every person shown"> <button class="copy" id="buApply" type="button">Apply</button> <button class="copy" id="buZero" type="button">Set to 0</button> <span id="buDone" role="status"></span></span><button class="copy sfopen" id="sfOpen" type="button">Sort and filter</button></div>
     <div class="tw"><table class="t" id="tbl"></table></div>
   </section>
 
@@ -756,6 +756,9 @@ function renderTiles(sel,all){
   const uTgt=utilOf(t),uTop=utilTop(t),pc=v=>v+'%';
   const uAv=sum(selB,'util_av'),uUt=sum(selB,'util_ut'),uAct=A&&teamAll&&uAv>0?Math.round(uUt/uAv*100):null;
   const uNote=uTgt!=null&&uTop!=null&&uTgt!==uTop?`<div class="abn s">Before the bottom-up the plan asks for ${uTop}% (the same hours and more clients: ${uTgt>uTop?'+':''}${uTgt-uTop} points).</div>`:'';
+  /* Kate, 29 Oct 2026 (Mette): bottom-up is a productivity check. At the benchmark utilisation (85%) the same hours earn plan x 85 / the utilisation the plan asks for. */
+  const uCap=uTgt?Math.round(t.plan*S.util/uTgt):null;
+  const uChk=uCap!=null?`<div class="abn s">Bottom-up check: at ${S.util}% utilisation these hours could earn about ${fmt(uCap)}, ${sgn((uCap/t.plan-1)*100)} on the plan of ${fmt(t.plan)}. The plan asks for ${uTgt}%.</div>`:'';
   const tipUt=`<b>Target</b> is the utilisation the plan asks for: the hours the clients need (plan divided by the average bill, times the hours a client takes) over the hours she can give in the days the plan needs. Added up over the people shown = <b>${uTgt==null?'n/a':uTgt+'%'}</b>.<br>A bottom-up % puts more clients in the same hours, so it lifts this by the same %.<br><b>Actual</b> is booked hours over available hours in the utilisation reports, ${A?`1 to ${upto}`:'the month so far'}, hair and beauty on shift only (assistants, reception and office left out).`;
   const trAct=A&&(teamAll||st.team==='HAIR')?sum(selB,'treat'):null,trTgt=sumRows(sel.filter(r=>r.p[2]==='HAIR')).treat;
   const rv=teamAll?(st.branch==='ALL'?BR4:[st.branch]).reduce((a,b)=>a+recvOf(b),0):0,retTgt=t.retail+rv;
@@ -782,7 +785,7 @@ function renderTiles(sel,all){
         row('Business TRS retail',rcvAct,rv,false,'',`<b>Target</b> is what the front desk sells, the retail rung to BUSINESS TRS in Phorest, which belongs to no stylist: the August to October monthly average, kept flat = <b>${fmt(rv)}</b>.${A?`<br><b>Actual</b> is the retail rung to BUSINESS TRS in the staff daily reports, ${upto2}.`:''}`,true,true):'')+
     row('Treatment (hair)',trAct,st.team==='BEAUTY'?null:trTgt,false,'',tipTr,false,true)+
     row('Clients',visAct,t.clients,false,'',tipCl)+
-    row('Utilisation',uAct,uTgt,false,uNote,tipUt,false,false,pc)+
+    row('Utilisation',uAct,uTgt,false,uNote+uChk,tipUt,false,false,pc)+
     (A&&!teamAll?`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`:'')+`</div>`;
 }
 
@@ -813,7 +816,7 @@ function personRow(r){
   const ch=days[r.i]!=null;
   let h=`<tr class="p">${nameCell(r)}`+
    `<td data-l="Planned days">${has?`<input class="days${ch?' changed':''}" type="number" min="0" max="26" value="${r.dLow!=null?r.dLow:r.planned}" data-i="${r.i}" aria-label="Planned days for ${r.p[1]}">`:'n/a'}</td>`+
-   `<td data-l="Bottom-up %">${has?`<input class="days bu${r.bu?' changed':''}" type="number" min="-50" max="100" step="1" value="${r.bu}" data-i="${r.i}" aria-label="Bottom-up adjustment in percent for ${r.p[1]}">`:'n/a'}</td>`+
+   `<td data-l="Bottom-up %">${has?`<input class="days bu${r.bu?' changed':''}" type="number" min="-50" max="100" step="0.1" value="${r.bu}" data-i="${r.i}" aria-label="Bottom-up adjustment in percent for ${r.p[1]}">`:'n/a'}</td>`+
    `<td data-l="Low">${has?fmt(r.low):(r.cover?'0':'n/a')}</td>`+
    `<td data-l="Target" class="plan">${has?fmt(r.med):(r.cover?'0':'No plan')}</td>`+
    `<td data-l="High">${has?fmt(r.high):(r.cover?'0':'n/a')}</td>`+
