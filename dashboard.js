@@ -38,6 +38,10 @@ const TARGETS = {
   get rebookPct()    { return isPostTargetCutover() ? 70 : 45; },
 };
 
+// Complaint alerts (email and WhatsApp) link to one complaint: ?view=complaintlog&cid=<id> (Kate, 29 Oct 2026). The address bar is rewritten on the
+// first move, so the id is taken here, at load; complaints.js opens that record once the list is on screen. Only the id travels, no client details.
+try { window.TRS_CID = Number(new URLSearchParams(location.search).get('cid')) || 0; } catch (e) { window.TRS_CID = 0; }
+
 // The standing ratio targets as ONE function (audit 18 Oct 2026, P5-14): ledger-targets.js used to carry its own copy of these five
 // and the two had to be kept in step by hand. `ym` ('YYYY-MM') is the month the caller is drawing, for the rebooking cutover; the
 // other four do not move by month. The average bills are the UAE figures on purpose (TARGETS.hairAvgBill is null on a Bahrain view).

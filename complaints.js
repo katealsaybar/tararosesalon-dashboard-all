@@ -675,6 +675,26 @@ const cqListArgs = (limit, offset) => ({
   p_limit: limit, p_offset: offset, p_sort: CQ.sort, p_dir: CQ.dir, p_google: CQ.google, p_status: ['overdue', 'pending'].includes(CQ.status) ? 'open' : CQ.status, p_flag: ['overdue', 'pending'].includes(CQ.status) ? CQ.status : 'all', ...cqWin()
 });
 
+// A complaint alert opens its own record (Kate, 29 Oct 2026, "a direct link to the complaint record"): ?view=complaintlog&cid=<id>, read at load into
+// window.TRS_CID by dashboard.js. If the complaint is not on the page showing, it is fetched by id and put at the top of this page of the list.
+async function cqOpenFromLink() {
+  const id = Number(window.TRS_CID) || 0;
+  if (!id || cqMode !== 'log') return;
+  window.TRS_CID = 0;
+  try {
+    let r = ((cqList && cqList.rows) || []).find(x => x.id === id);
+    if (!r) {
+      const { data, error } = await sb.rpc('client_complaints_list', { p_src: 'logged', p_limit: 1, p_offset: 0, p_id: id });
+      if (error) throw error;
+      r = data && data.rows && data.rows[0];
+      if (!r) { const m = document.getElementById('cqMeta'); if (m) m.textContent = 'That complaint is not on file any more.'; return; }
+      cqList.rows.unshift(r); cqList.total = Number(cqList.total || 0) + 1; cqPaintList();
+    }
+    const row = document.querySelector(`#cqBody tr.cq-row[data-i="${id}"]`);
+    if (row) { cqOpen = 0; cqToggle(row); row.scrollIntoView({ block: 'center' }); }
+  } catch (e) { console.error(e); }
+}
+
 // Open in Google Sheets (Kate, 22 Oct 2026: "this table may be opened on Google Sheets"). A Google Sheet cannot be made from the page without a
 // sign-in to Google, so this copies every row the filters match (not only the page on screen), tab separated, and opens a new Google Sheet to
 // paste into with Ctrl+V. The window is opened first, on the click, so the browser does not block it while the rows are fetched.
@@ -726,6 +746,7 @@ async function cqLoadList() {
     if (seq !== cqSeqL) return;
     cqList = data;
     cqPaintList();
+    cqOpenFromLink();
   } catch (e) {
     console.error(e);
     if (seq !== cqSeqL) return;
