@@ -405,6 +405,14 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .plancard .lentable td{color:var(--ink)}
 .plancard__price small{font-size:13.5px;line-height:1.45}
 .plancard__price small+small{margin-top:9px}
+.plancard__price small.tot b{font-weight:600;color:var(--ink)}
+/* all price lists open: cards share one height (desktop only, closed cards keep growing alone) */
+@media (min-width:900px){
+.plangrid:not(:has(.gcard__more:not([open]))),#plans .plangrid:not(:has(.gcard__more:not([open]))){align-items:stretch}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more::details-content{flex:1;display:flex;flex-direction:column}
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more .gcard__list{flex:1;display:flex;flex-direction:column}
+}
 .mu-sum{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 28px;max-width:860px;margin:26px auto 0;font-family:var(--fb);font-size:14px;color:var(--ink-soft)}
 .mu-sum b{font-weight:600;color:var(--ink)}
 .sec-menu .plans-foot{margin-top:18px}
@@ -711,7 +719,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <h3>Maintain Essentials</h3>
           <p>Care for your extensions between your move-ups. Extension-related services only.</p>
           <ul class="incl covers" aria-label="What is covered"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li></ul>
-          <div class="plancard__price"><span>You pay</span><strong>AED 1,500</strong><small>AED 300 extra credit included.</small><small>A total of AED 1,800 to spend.</small><small>Valid 6 months after purchase.</small><small>Cash or card.</small></div>
+          <div class="plancard__price"><span>You pay</span><strong>AED 1,500</strong><small>AED 300 extra credit included.</small><small class="tot"><b>A total of AED 1,800 to spend.</b></small><small>Valid 6 months after purchase.</small><small>Cash or card.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="essentials" data-svc="essentials">Choose Essentials <span class="arr">&rarr;</span></a>
         </div>
       </article>
@@ -722,7 +730,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <h3>Maintain Plus</h3>
           <p>The same care, with more to spend and longer to use it. Extension-related services only.</p>
           <ul class="incl covers" aria-label="What is covered"><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
-          <div class="plancard__price"><span>You pay</span><strong>AED 3,000</strong><small>AED 600 extra credit included.</small><small>A total of AED 3,600 to spend.</small><small>Valid 9 months after purchase.</small><small>Or 4 payments of AED 750 with Tabby.</small></div>
+          <div class="plancard__price"><span>You pay</span><strong>AED 3,000</strong><small>AED 600 extra credit included.</small><small class="tot"><b>A total of AED 3,600 to spend.</b></small><small>Valid 9 months after purchase.</small><small>Or 4 payments of AED 750 with Tabby.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="plus" data-svc="plus">Choose Plus <span class="arr">&rarr;</span></a>
         </div>
       </article>
@@ -733,9 +741,9 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
           <h3>New Hair and Maintain Bundle</h3>
           <p>Your full application in the method you choose, plus AED 950 to spend on care. Extension-related services only.</p>
           <ul class="incl covers" aria-label="What is covered"><li>Full application in your method</li><li>Haircuts</li><li>Blow-dries</li><li>Toning</li><li>Treatments</li><li>Priority last-minute slots</li></ul>
-          <div class="plancard__price"><span>You pay</span><strong>AED 3,300</strong><small>AED 950 extra credit included.</small><small>A total of AED 4,250 to spend.</small><small>Valid 12 months after purchase.</small><small>Or 4 payments of AED 825 with Tabby.</small></div>
+          <div class="plancard__price"><span>You pay</span><strong>AED 3,300</strong><small>AED 950 extra credit included.</small><small class="tot"><b>A total of AED 4,250 to spend.</b></small><small>Valid 12 months after purchase.</small><small>Or 4 payments of AED 825 with Tabby.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-plan="bundle" data-svc="bundle">Choose the Bundle <span class="arr">&rarr;</span></a>
-          <div class="mapnote" style="margin-top:14px;font-family:var(--fb);font-size:12.5px;line-height:1.45;color:var(--ink-soft);text-align:center">Keratin and Fusion are quoted at your Confidence Mapping.</div>
+          <div class="mapnote" style="margin-top:14px;font-family:var(--fb);font-size:12.5px;line-height:1.45;color:var(--ink-soft);text-align:center">Keratin and Fusion are quoted based on your Confidence Mapping.</div>
         </div>
       </article>
     </div>
@@ -812,7 +820,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
         <div class="mv-body">
           <span class="mv-every">Every 8 to 10 weeks</span>
           <h3>Nano Rings</h3>
-          <div class="mv-price"><span>Move-up, per hour</span><strong>AED 500</strong><small>Hours set at your Confidence Mapping.</small></div>
+          <div class="mv-price"><span>Move-up, per hour</span><strong>AED 500</strong><small>Hours set based on your Confidence Mapping.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-method="nano" data-svc="plus">Plan around Nano Rings <span class="arr">&rarr;</span></a>
         </div>
       </article>
@@ -830,13 +838,13 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
         <div class="mv-body">
           <span class="mv-every">Every 10 to 12 weeks</span>
           <h3>Keratin and Fusion</h3>
-          <div class="mv-price"><span>Move-up, per hour</span><strong>AED 500</strong><small>Hours set at your Confidence Mapping.</small></div>
+          <div class="mv-price"><span>Move-up, per hour</span><strong>AED 500</strong><small>Hours set based on your Confidence Mapping.</small></div>
           <a class="pill pill--accent js-book" href="#reserve" data-method="keratin" data-svc="plus">Plan around Keratin <span class="arr">&rarr;</span></a>
         </div>
       </article>
     </div>
 
-    <p class="mv-note">Move-up prices are in AED, booked and paid separately from your plan. Your stylist confirms your packs, rows or hours at your Confidence Mapping, before you pay.</p>
+    <p class="mv-note">Move-up prices are in AED, booked and paid separately from your plan. Your stylist confirms your packs, rows or hours based on your Confidence Mapping, before you pay.</p>
 
   </div>
   <script>
@@ -946,7 +954,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
               <option value="beaded">Beaded Weft</option>
               <option value="nano">Nano Rings</option>
               <option value="keratin">Keratin and Fusion</option>
-              <option value="unsure">Not sure, match me at my Mapping</option>
+              <option value="unsure">Not sure, match me from my Confidence Mapping</option>
             </select>
           </div>
           <div class="field">
@@ -1061,7 +1069,8 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     <fieldset class="bk-f" id="bkMethF">
       <legend class="bk-l">Which method do you wear, or want?</legend>
       <div class="bk-opts"><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="tape"><img class="bk-r__img" src="assets/img/method-tape-in.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Tape-In</b><small>Move-up every 6 to 8 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="sewn"><img class="bk-r__img" src="assets/img/method-sewn-weft.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Sewn Weft</b><small>Move-up every 6 to 8 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="beaded"><img class="bk-r__img" src="assets/img/method-beaded-weft.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Beaded Weft</b><small>Move-up every 8 to 10 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="nano"><img class="bk-r__img" src="assets/img/method-nano-rings.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Nano Rings</b><small>Move-up every 8 to 10 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label><label class="bk-r bk-r--img"><input type="radio" name="bkMeth" value="keratin"><img class="bk-r__img" src="assets/img/method-keratin-fusion.jpg" alt="" width="600" height="600" loading="lazy"><span class="bk-r__t"><b>Keratin and Fusion</b><small>Move-up every 10 to 12 weeks</small></span><em class="bk-r__p"></em><span class="bk-r__dot" aria-hidden="true"></span></label></div>
-      <label class="bk-r bk-r--plain"><input type="radio" name="bkMeth" value="unsure"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>I am not sure. Match me at my Confidence Mapping.</b></span></label>
+      <label class="bk-r bk-r--plain"><input type="radio" name="bkMeth" value="unsure"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>I am not sure. Match me based on my Confidence Mapping.</b></span></label>
+
     </fieldset>
     <fieldset class="bk-f" id="bkPackF" hidden>
       <legend class="bk-l" id="bkPackL">How many?</legend>
@@ -1198,11 +1207,11 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
   var ref=null;
   try{ ref=localStorage.getItem('trs_ref_hep'); }catch(e){}
   if(!ref){ ref='HEP-'+Math.random().toString(36).slice(2,6).toUpperCase(); try{ localStorage.setItem('trs_ref_hep',ref); }catch(e){} }
-  var MN={tape:'Tape-In',sewn:'Sewn Weft',beaded:'Beaded Weft',nano:'Nano Rings',keratin:'Keratin and Fusion',unsure:'not sure, please match me at my Confidence Mapping'};
+  var MN={tape:'Tape-In',sewn:'Sewn Weft',beaded:'Beaded Weft',nano:'Nano Rings',keratin:'Keratin and Fusion',unsure:'not sure, please match me based on my Confidence Mapping'};
   var MU={tape:'AED 450 a pack',sewn:'AED 450 a row',beaded:'AED 450 a row',nano:'AED 500 an hour',keratin:'AED 500 an hour'};
-  var MUX={tape:'Or 4 packs for AED 1,050.',sewn:'Or 3 rows for AED 850.',beaded:'Or 3 rows for AED 850.',nano:'Your stylist sets the hours at your Confidence Mapping.',keratin:'Your stylist sets the hours at your Confidence Mapping.'};
+  var MUX={tape:'Or 4 packs for AED 1,050.',sewn:'Or 3 rows for AED 850.',beaded:'Or 3 rows for AED 850.',nano:'Your stylist sets the hours based on your Confidence Mapping.',keratin:'Your stylist sets the hours based on your Confidence Mapping.'};
   var PK={tape:{l:'How many packs?',n:['1 pack','4 packs'],p:['AED 450','AED 1,050']},sewn:{l:'How many rows?',n:['1 row','3 rows'],p:['AED 450','AED 850']},beaded:{l:'How many rows?',n:['1 row','3 rows'],p:['AED 450','AED 850']}};
-  var BU={tape:'AED 3,300',sewn:'AED 3,300',beaded:'AED 3,300',nano:'AED 3,300',keratin:'At your Mapping'};
+  var BU={tape:'AED 3,300',sewn:'AED 3,300',beaded:'AED 3,300',nano:'AED 3,300',keratin:'Based on your Mapping'};
   var SV=[
     {k:'essentials',n:'Maintain Essentials',o:'Maintain Essentials, AED 1,500',d:'For extensions you already wear. AED 1,800 to spend, valid 6 months after purchase.'},
     {k:'plus',n:'Maintain Plus',o:'Maintain Plus, AED 3,000',d:'Our recommendation. AED 3,600 to spend, valid 9 months after purchase, plus priority last-minute slots.'},
@@ -1229,7 +1238,7 @@ a.inc.fitcard.is-on{border-color:var(--accent-deep);box-shadow:0 0 0 2px var(--a
     var o=cur(), m=meth&&meth!=='unsure'?meth:null;
     if(o.k==='essentials') return ['You pay','AED 1,500','AED 300 extra credit included. A total of AED 1,800 to spend.'];
     if(o.k==='plus') return ['You pay','AED 3,000','AED 600 extra credit included. A total of AED 3,600 to spend. Or 4 payments of AED 750 with Tabby.'];
-    if(o.k==='bundle') return m?['You pay',BU[m],m==='keratin'?'Your stylist quotes Keratin and Fusion at your Confidence Mapping.':'AED 950 extra credit included. A total of AED 4,250 to spend. Or 4 payments with Tabby.']:['You pay','AED 3,300',meth==='unsure'?'AED 950 extra credit included. A total of AED 4,250 to spend. Your stylist confirms your method at your Confidence Mapping.':''];
+    if(o.k==='bundle') return m?['You pay',BU[m],m==='keratin'?'Your stylist quotes Keratin and Fusion based on your Confidence Mapping.':'AED 950 extra credit included. A total of AED 4,250 to spend. Or 4 payments with Tabby.']:['You pay','AED 3,300',meth==='unsure'?'AED 950 extra credit included. A total of AED 4,250 to spend. Your stylist confirms your method based on your Confidence Mapping.':''];
     if(o.k==='moveup') return m?(PK[m]?['Move-up',PK[m].p[pk==='3'?1:0],'']:['Move-up',MU[m],MUX[m]]):['Move-up','From AED 450',''];
     return ['Plans','From AED 1,500',''];
   };
