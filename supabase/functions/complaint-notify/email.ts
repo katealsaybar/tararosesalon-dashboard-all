@@ -2,7 +2,7 @@
 // Outlook and on a phone; the wordmark is the dashboard's own image. No client phone numbers and no marketing, only what the team needs to follow
 // the complaint up. British English, no dashes in the copy. Used by index.ts; also loaded by hand to preview the layout.
 
-const SITE = "https://trk-salon-os.com/?view=complaintlog";
+const BASE = "https://trk-salon-os.com/?view=complaintlog";
 const LOGO = "https://trk-salon-os.com/assets/mast-ink.png";
 
 const BRANCH: Record<string, string> = { SAA: "Saadiyat", KCA: "Khalifa City A", MC: "Motor City", AQ: "Al Quoz", BAH: "Bahrain" };
@@ -28,6 +28,7 @@ const when = (iso: unknown) => {
 };
 
 export function renderEmail(c: any, first: string) {
+  const SITE = c && c.id ? `${BASE}&cid=${c.id}` : BASE;   // Kate, 29 Oct 2026: the link opens this complaint's own record
   const branch = BRANCH[c.branch_code] || c.branch_code || "";
   const kind = TYPE[c.complaint_type] || c.complaint_type || "";
   const open = c.status === "open";

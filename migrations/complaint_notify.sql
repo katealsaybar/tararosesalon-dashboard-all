@@ -1,3 +1,5 @@
+-- 28 Oct 2026: the text is now a WhatsApp message from respond.io only (Twilio dropped), see complaint_notify_whatsapp.sql; wa_on and phone
+-- replace sms_on and phone below.
 -- Client complaint notifications (Kate, 22 Oct 2026): when a complaint is logged on the Client Complaints page, Mette and Emma Coach get an
 -- email and a text. The insert trigger posts to the complaint-notify edge function (the same pattern as dashboard_invite), which reads
 -- complaint_notify_recipients, sends the email by SMTP and the text through Twilio, and writes every attempt to complaint_notify_log.
