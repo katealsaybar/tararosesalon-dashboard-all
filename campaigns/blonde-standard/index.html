@@ -608,16 +608,17 @@ html.wa-open{overflow:hidden}
 /* Narrow sticky menu under the brand nav: one slim row of chips to jump to an option. */
 body .offer-nav{position:sticky;top:var(--nav-h,75px);z-index:50;background:var(--cream);border-bottom:1px solid var(--hair);padding:5px 0}
 body .offer-nav .wrap{display:block;padding-inline:20px}
-body .offer-nav .offer-nav__row{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+body .offer-nav .offer-nav__row{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;width:max-content;max-width:100%;margin-inline:auto;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 body .offer-nav .offer-nav__row::-webkit-scrollbar{display:none}
 body .offer-nav .offer-nav__row>li{flex:0 0 auto;max-width:none;min-width:0}
-body .offer-nav .ochip{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 14px;border-radius:100px;background:var(--paper);border:1px solid var(--hair);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);white-space:nowrap;text-align:center;line-height:1.15}
+body .offer-nav .ochip{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 14px;border-radius:100px;background:var(--paper);border:1px solid var(--hair);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);white-space:nowrap;text-align:center;line-height:1.15}
 body .offer-nav .ochip:hover,body .offer-nav .ochip:focus-visible,body .offer-nav .ochip.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 body .offer-nav .ochip--cta{background:var(--accent-text);border-color:var(--accent-text);color:#fff}
 body .offer-nav .ochip--cta:hover,body .offer-nav .ochip--cta:focus-visible,body .offer-nav .ochip--cta.active{background:var(--ink);border-color:var(--ink)}
 body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px) - 4px)}
-@media (max-width:520px){body .offer-nav{padding:4px 0}body .offer-nav .wrap{padding-inline:10px}body .offer-nav .offer-nav__row{justify-content:flex-start;gap:4px}body .offer-nav .ochip{min-height:32px;padding:0 9px;font-size:10.5px;letter-spacing:.03em}}
-@media (max-width:400px){body .offer-nav .offer-nav__row{gap:3px}body .offer-nav .ochip{padding:0 7px}}
+@media (max-width:520px){body .offer-nav{padding:4px 0}body .offer-nav .wrap{padding-inline:8px}body .offer-nav .offer-nav__row{gap:4px}body .offer-nav .ochip{min-height:32px;padding:0 8px;font-size:9.5px;letter-spacing:.16em}}
+@media (max-width:400px){body .offer-nav .offer-nav__row{gap:3px}body .offer-nav .ochip{padding:0 6px}}
+@media (max-width:380px){body .offer-nav .ochip{letter-spacing:.12em}}
 /* v25: booking copied from The Hair Rhythm */
 /* Pop-up, tightened so the whole choice fits one phone screen */
 #waSheet .wa-sheet__panel{padding-top:16px}
