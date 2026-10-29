@@ -5,14 +5,15 @@
 --
 --   staff_cmp_config        one row: the kill switch (OFF until Kate switches it on), the channel, the Dubai send window, the number test sends go to
 --   staff_cmp_templates     the Meta templates: respond.io name, body with {{1}}.. variables, which variables, approved (false until approved in Meta)
---   staff_cmp_excluded      people who never get a campaign message (left, resigned, not staff), by lower(email) or lower(name); STOP replies land here too
+--   staff_cmp_excluded      people who never get a campaign message (left, resigned, not staff), by lower(email) or lower(name)
 --   staff_cmp_jobs          one row per message: queued -> sending -> sent / failed / skipped / cancelled
 --
 -- Numbers: read ONLY inside the security definer functions below from public.staff_phones (RLS Level 5 only). No function returns a phone number to the
 -- page; the page sees names and counts. Nothing here holds a number, a name list or a token.
 -- Page (Level 5 only): staff_cmp_info(), staff_cmp_jobs_get(campaign), staff_cmp_enqueue(...), staff_cmp_test(...), staff_cmp_cancel(campaign),
 --                      staff_cmp_retry(ids), staff_cmp_config_set(patch)
--- Worker only (service role): staff_cmp_claim(n), staff_cmp_finish(...), staff_cmp_tag_todo(n), staff_cmp_tag_done(id, err), staff_cmp_add_excluded(...)
+-- Worker only (service role): staff_cmp_claim(n), staff_cmp_finish(...), staff_cmp_tag_todo(n), staff_cmp_tag_done(id, err)
+-- Staff messages are mandatory (Kate, 29 Oct 2026): no STOP footer and no opt-out. Only the people in staff_cmp_excluded (left, resigned, not staff) are left out.
 
 create table if not exists public.staff_cmp_config (
   id int primary key default 1 check (id = 1),
@@ -53,14 +54,14 @@ $b$Hi {{1}}, a quick note from the Tara Rose team. We launch {{2}} on {{3}}, and
 The details, and how to talk about it at the desk and in the chair, are here: {{5}}
 
 Any questions, reply here and we will come back to you. Thank you for everything you do for our clients.$b$,
-'Reply STOP to stop these messages', array['first_name','campaign_name','launch_day','pitch','link'], 1),
+null, array['first_name','campaign_name','launch_day','pitch','link'], 1),
 ('live', 'tr_staff_campaign_live',
 $b$Hi {{1}}, {{2}} is live from today. Clients may ask about it in the salon, on WhatsApp and on Instagram, so here it is in one place: {{3}}
 
 {{4}}
 
 Thank you for making it a lovely experience for every client.$b$,
-'Reply STOP to stop these messages', array['first_name','campaign_name','link','note'], 2)
+null, array['first_name','campaign_name','link','note'], 2)
 on conflict (key) do nothing;
 
 create table if not exists public.staff_cmp_excluded (
@@ -166,7 +167,7 @@ begin
 end $$;
 
 -- Queue the message for the people ticked (p_ids = staff_phones ids). Checked again here, whatever the page sent: the switch is on, the template is
--- approved, every variable has a value, nobody blocked (left, resigned, STOP) is queued, nobody gets the same campaign message twice.
+-- approved, every variable has a value, nobody blocked (left, resigned, not staff) is queued, nobody gets the same campaign message twice.
 create or replace function public.staff_cmp_enqueue(p_campaign text, p_tkey text, p_vars jsonb, p_ids bigint[]) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
@@ -335,7 +336,7 @@ language sql security definer set search_path = public as $$
   update staff_cmp_jobs set tagged = (p_err is null), tag_err = left(p_err, 300), tag_attempts = tag_attempts + (case when p_err is null then 0 else 1 end) where id = p_id
 $$;
 
-create or replace function public.staff_cmp_add_excluded(p_phone_id bigint, p_reason text default 'Wrote STOP in respond.io') returns void
+create or replace function public.staff_cmp_add_excluded(p_phone_id bigint, p_reason text default 'Left the team') returns void
 language sql security definer set search_path = public as $$
   insert into staff_cmp_excluded (key, reason)
   select lower(coalesce(p.email, p.name)), p_reason from staff_phones p where p.id = p_phone_id

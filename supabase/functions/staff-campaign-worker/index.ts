@@ -8,6 +8,8 @@
 // The numbers come with the claimed job (read from staff_phones inside the database function, service role only). This function returns counts only,
 // never a number or a name.
 //
+// Staff messages are mandatory (Kate, 29 Oct 2026): there is no opt-out, so no STOP check here. Only a contact blocked in respond.io is skipped.
+//
 // A person who is not a contact in respond.io yet is marked failed, never created here: contacts are added with their full names by the payroll
 // session, so a name that fails here means she is missing there.
 // A test job may be mode 'text' (plain text, no template): it only arrives if the contact has written to the backup number in the last 24 hours.
@@ -68,19 +70,6 @@ async function tagContact(contactId: number, tags: string[]): Promise<string | n
   return `tag ${r.status} ${await errText(r)}`;
 }
 
-// Has she written STOP (or UNSUBSCRIBE, OPT OUT, DND, the whole message) in her last 20 incoming messages?
-async function hasStop(contactId: number): Promise<boolean> {
-  const m = await rio('GET', `/contact/id:${contactId}/message/list?limit=20`);
-  if (!m.ok) return false;
-  const mj = await m.json();
-  for (const it of (mj.items || mj.data || [])) {
-    if (it.traffic !== 'incoming') continue;
-    const txt = String(it.message?.text ?? it.text ?? '').trim();
-    if (/^(stop|unsubscribe|opt[ -]?out|dnd)\s*[.!]*$/i.test(txt)) return true;
-  }
-  return false;
-}
-
 async function sendOne(sb: ReturnType<typeof createClient>, j: Job): Promise<'sent' | 'retry' | 'failed' | 'skipped'> {
   const finish = (status: string, error: string | null, extra: Record<string, unknown> = {}) =>
     sb.rpc('staff_cmp_finish', { p_id: j.id, p_status: status, p_error: error, p_message_id: null, p_contact_id: null, p_retry_min: 5, ...extra });
@@ -94,14 +83,7 @@ async function sendOne(sb: ReturnType<typeof createClient>, j: Job): Promise<'se
     const contact = await c.json();
     if (contact.isBlocked) { await finish('skipped', 'Blocked in respond.io', { p_contact_id: contact.id }); return 'skipped'; }
 
-    // 2. Has she told us to stop?
-    if (!j.is_test && await hasStop(contact.id)) {
-      await sb.rpc('staff_cmp_add_excluded', { p_phone_id: j.phone_id, p_reason: 'Wrote STOP in respond.io' });
-      await finish('skipped', 'She wrote STOP, so she is not sent campaign messages', { p_contact_id: contact.id });
-      return 'skipped';
-    }
-
-    // 3. Send.
+    // 2. Send.
     posting = true;
     let cid = contact.id;
     let s = await rio('POST', `/contact/id:${cid}/message`, buildPayload(j));
