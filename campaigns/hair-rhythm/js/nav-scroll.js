@@ -14,7 +14,7 @@
   var bar=document.querySelector('.offer-nav');
   var zone=document.querySelector('.menu-zone');
   var root=document.documentElement;
-  var SPY=['o-trim','o-blowdry','o-treatment','o-smooth','o-colour']
+  var SPY=['o-plans','o-menu']
     .map(function(id){ return document.getElementById(id); }).filter(Boolean);
   var chips={};
   document.querySelectorAll('.ochip').forEach(function(a){
