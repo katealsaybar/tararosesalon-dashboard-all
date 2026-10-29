@@ -156,3 +156,6 @@ tr.cm-unm td{background:var(--warn-bg)}
   .cm-sel-act .sc-seg button{flex:1}
   .cm-sel-row.any{grid-template-columns:1fr 1fr}
 }
+
+.cm-sel-act .slv-eyebrow{margin:0 2px 0 0}
+@media(max-width:760px){.cm-sel-act .slv-eyebrow{flex:1 1 100%;margin:0}}

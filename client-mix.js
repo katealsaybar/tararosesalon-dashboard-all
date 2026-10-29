@@ -312,7 +312,7 @@ function cmClearSel() {
   CM.fams = [cmLead()]; CM.any = false; CM.cats = []; CM.item = null; cmItemsAll = false; cmSave(); cmSync();
   cmPaintCards(); cmPaintSel(); cmLoadDetail();
 }
-// All of them (the clients who had every picked card) or Any of them (at least one).
+// Had both / all (the clients who had every picked card) or Had either / any (at least one).
 function cmSetAny(v) {
   CM.any = !!v; CM.item = null; cmItemsAll = false; cmSync();
   document.querySelectorAll('#cmSel .sc-seg button').forEach(b => { const on = (b.dataset.v === 'any') === CM.any; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
@@ -337,7 +337,7 @@ function cmPaintSel() {
   const rows = CM.fams.map(k => { const f = s.fams.find(x => x.family === k) || {}; return { k, f }; });
   box.innerHTML = `<div class="cm-sel-top"><div class="cm-sel-t"><span class="cm-sel-dots">${CM.fams.map(k => `<i style="--c:${cmFam(k).color}"></i>`).join('')}</span>${lcEsc(names.join(CM.any ? ' or ' : ' + '))}
       <small>The ${lcNum(c)} client${c === 1 ? '' : 's'} who had ${CM.any ? cmJoin(names.map(x => x.toLowerCase()), 'or') : all}${left.length ? ', without ' + lcEsc(left.join(' or ')) : ''}. ${lcEsc(cmBranchTxt())}, ${lcEsc(cmPeriodTxt())}.</small></div>
-      <div class="cm-sel-act"><div class="sc-seg" role="group" aria-label="All or any of the picked cards"><button type="button" class="${CM.any ? '' : 'on'}" data-v="all" aria-pressed="${!CM.any}" onclick="cmSetAny(false)">All of them</button><button type="button" class="${CM.any ? 'on' : ''}" data-v="any" aria-pressed="${CM.any}" onclick="cmSetAny(true)">Any of them</button></div>
+      <div class="cm-sel-act"><span class="slv-eyebrow">Clients who</span><div class="sc-seg" role="group" aria-label="Clients who had every picked card, or at least one"><button type="button" class="${CM.any ? '' : 'on'}" data-v="all" aria-pressed="${!CM.any}" onclick="cmSetAny(false)">${n === 2 ? 'Had both' : 'Had all ' + n}</button><button type="button" class="${CM.any ? 'on' : ''}" data-v="any" aria-pressed="${CM.any}" onclick="cmSetAny(true)">${n === 2 ? 'Had either' : 'Had any of ' + n}</button></div>
       <button type="button" class="cm-pill" onclick="cmClearSel()">Clear to one card</button></div></div>
     <div class="cm-sel-tiles">
       ${tile('clients', 'Clients', lcNum(c), total ? Math.round(100 * c / total) + '% of all clients' : '')}
