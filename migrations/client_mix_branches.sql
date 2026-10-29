@@ -134,3 +134,6 @@ grant execute on function public.client_mix_detail(date, date, text, text, text[
 -- All the picked cards in the lists (Kate, 29 Oct 2026, applied live as client_mix_all_picked_in_lists): a CTE sla holds the lines of every
 -- picked family (p_fam + p_with) for the clients in pop, the category pick narrowing only the lead family's lines. The items table, the
 -- per-client units and revenue and the item pick read sla, items carry 'family', and a client's tags list the picked families first.
+
+-- Overlap (Kate, 29 Oct 2026, applied live as client_mix_overlap): client_mix_detail also returns 'overlap', for the clients in view, how many
+-- also had each other family and what those lines came to: [{family, clients, revenue}], ordered by clients. Sits just before 'sel'.

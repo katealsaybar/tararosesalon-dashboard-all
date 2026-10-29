@@ -142,3 +142,8 @@ tr.cm-unm td{background:var(--warn-bg)}
 .cm-pager .cm-chip{min-height:32px;min-width:44px;padding:4px 10px}
 .cm-fdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:4px;vertical-align:middle}
 @media(max-width:760px){.cm-pager{flex-wrap:nowrap;overflow-x:auto}}
+
+.cm-over[hidden]{display:none}
+.cm-over{display:block;margin:0}
+.cm-over>.slv-eyebrow{display:block;margin:0 0 8px}
+.cm-over>.slv-note{display:block;margin-top:8px;font-size:12.5px}

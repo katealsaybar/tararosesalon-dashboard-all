@@ -182,6 +182,7 @@ function cmShell() {
       <div class="cm-cards" id="cmCards"><p class="slv-muted">Counting clients…</p></div>
       <section class="cm-sel" id="cmSel" hidden></section>
       <section class="slv-card cm-refine">
+        <div class="cm-over" id="cmOver"></div>
         <div class="cm-narrow" id="cmNarrow"></div>
         <div class="cm-pcats" id="cmPcats"></div>
       </section>
@@ -247,7 +248,7 @@ async function cmLoadDetail() {
   cmPaintDetail();
 }
 function cmShowBusy() {
-  ['cmItems', 'cmList', 'cmSel'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.toggle('cm-busy', cmBusy); });
+  ['cmItems', 'cmList', 'cmSel', 'cmOver'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.toggle('cm-busy', cmBusy); });
 }
 
 function cmPaintCards() {
@@ -301,6 +302,7 @@ function cmPaintDetail() {
   cmPaintItems();
   cmPaintList();
   cmPaintSel();
+  cmPaintOver();
 }
 // The selection box: with two or more cards picked, the totals for the clients who had all of them, and what each card came to.
 function cmClearSel() {
@@ -337,6 +339,20 @@ function cmPaintSel() {
       ${rows.map(r => `<div class="cm-sel-row" style="--c:${cmFam(r.k).color}"><b><i></i>${lcEsc(cmFam(r.k).name)}</b><span data-k="Visits">${lcNum(r.f.visits)}</span><span data-k="Units">${lcNum(r.f.units)}</span><span data-k="AED">${lcNum(r.f.revenue)}</span><span data-k="Share">${Math.round(100 * (Number(r.f.revenue) || 0) / rsum)}%</span></div>`).join('')}
     </div>
     <p class="cm-sel-note">Only clients who had every picked card are counted. A visit with more than one card counts once in the totals. The items and the client list below cover all the picked cards.</p>`;
+}
+// Of the clients in view, how many ALSO had each other card. A chip adds that card to the picks (the clients who had it too).
+function cmPaintOver() {
+  const box = document.getElementById('cmOver'), d = cmDetail;
+  if (!box || !d) return;
+  const c = Number(d.clients) || 0;
+  const ov = (d.overlap || []).filter(o => o.family !== 'unmapped' && o.family !== 'skip' && !CM.fams.includes(o.family) && !CM.tri[o.family]);
+  if (!c || !ov.length) { box.innerHTML = ''; box.hidden = true; return; }
+  box.hidden = false;
+  const who = CM.fams.length > 1 ? 'who had ' + cmJoin(CM.fams.map(k => cmFam(k).name.toLowerCase())) : 'who had ' + cmFam(cmLead()).name.toLowerCase();
+  box.innerHTML = `<span class="slv-eyebrow">Also had</span><div class="cm-row">` + ov.map(o => {
+    const f = cmFam(o.family);
+    return `<button type="button" class="cm-chip" onclick="cmPickFam('${o.family}')" title="Show only the clients ${lcEsc(who)} and ${lcEsc(f.name.toLowerCase())}"><i class="cm-fdot" style="--c:${f.color}"></i>${lcEsc(f.name)} <em>${lcNum(o.clients)} client${o.clients === 1 ? '' : 's'} · ${Math.round(100 * o.clients / c)}% · AED ${lcNum(o.revenue)}</em></button>`;
+  }).join('') + `</div><span class="slv-note">of the ${lcNum(c)} client${c === 1 ? '' : 's'} ${lcEsc(who)}; click one to list just the clients who had it too</span>`;
 }
 function cmPaintItems() {
   const d = cmDetail, box = document.getElementById('cmItems');
