@@ -137,3 +137,8 @@ grant execute on function public.client_mix_detail(date, date, text, text, text[
 
 -- Overlap (Kate, 29 Oct 2026, applied live as client_mix_overlap): client_mix_detail also returns 'overlap', for the clients in view, how many
 -- also had each other family and what those lines came to: [{family, clients, revenue}], ordered by clients. Sits just before 'sel'.
+
+-- Any of them (Kate, 29 Oct 2026, applied live as client_mix_any_of_picked): client_mix_detail takes p_any boolean default false (the old
+-- nine-argument function was dropped; calls that leave p_any out still work). false = the clients who had EVERY picked family, as before;
+-- true = the clients who had AT LEAST ONE of p_fam + p_with. In that mode the lead-only reads (sl0, the category pick) cover every picked
+-- family, and sel.fams carries 'clients' per family (how many of them had that one).

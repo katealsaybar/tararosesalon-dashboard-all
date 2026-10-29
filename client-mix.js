@@ -20,7 +20,7 @@
 // Everyone signed in sees counts and names; only Level 2 and above can open a client (the same
 // lost_client_detail panel as Top Clients); only Level 4 and above can change the roster.
 const CM_STORE = 'trs-client-mix';
-const CM = { mode: 'clients', fams: ['colour'], cats: [], item: null, tri: {}, tab: 'mix', n: 10 };
+const CM = { mode: 'clients', fams: ['colour'], cats: [], item: null, tri: {}, tab: 'mix', n: 10, any: false };
 let cmCards = null, cmDetail = null, cmRoster = null, cmSeqC = 0, cmSeqD = 0, cmStamp = 0, cmBusy = false, cmWinKey = '';
 const cmCache = {};
 let cmItemsAll = false;
@@ -57,6 +57,7 @@ try {
   const q = new URLSearchParams(location.search), keys = CM_FAMS.map(f => f.k).filter(k => k !== 'unmapped');
   const mix = (q.get('mix') || '').split(',').filter(k => keys.includes(k));
   if (mix.length) CM.fams = mix;
+  CM.any = q.get('any') === '1' && CM.fams.length > 1;
   const sh = q.get('show'); if (['clients', 'visits', 'units', 'revenue'].includes(sh)) CM.mode = sh;
   CM.tri = {}; (q.get('out') || '').split(',').filter(k => keys.includes(k) && !CM.fams.includes(k)).forEach(k => { CM.tri[k] = 'without'; });
   CM.cats = q.getAll('cat').filter(Boolean); CM.item = q.get('item') || null;
@@ -68,6 +69,7 @@ function cmUrlParts() {   // index.html trSyncUrl() calls this on this page
   const out = Object.keys(CM.tri); if (out.length) p.push('out=' + out.join(','));
   CM.cats.forEach(c => p.push('cat=' + encodeURIComponent(c)));
   if (CM.item) p.push('item=' + encodeURIComponent(CM.item));
+  if (CM.any && CM.fams.length > 1) p.push('any=1');
   if (CM.n !== 10) p.push('n=' + CM.n);
   return p;
 }
@@ -99,12 +101,13 @@ function cmArgs(extra) {
   return Object.assign({ p_from: a, p_to: b, p_branch: cmBranchArg() }, extra || {});
 }
 function cmDetailArgs(limit) {
-  return cmArgs({ p_fam: cmLead(), p_with: CM.fams.slice(1), p_without: Object.keys(CM.tri), p_cat: CM.cats.length ? CM.cats.join('|') : null, p_item: CM.item, p_limit: limit || 300 });
+  return cmArgs({ p_fam: cmLead(), p_with: CM.fams.slice(1), p_without: Object.keys(CM.tri), p_cat: CM.cats.length ? CM.cats.join('|') : null, p_item: CM.item, p_limit: limit || 300, p_any: CM.any && CM.fams.length > 1 });
 }
 // "colour", "colour and nails", "colour, nails and beauty"
 // Phorest writes its categories in capitals; shown in words, matched by the raw name (data-c).
 const cmTitle = t => String(t || '').toLowerCase().replace(/(^|[\s\-(\/])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\s(And|Of|The)\s/g, x => x.toLowerCase());
-const cmJoin = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+const cmWord = () => CM.any && CM.fams.length > 1 ? 'or' : 'and';   // Any of them reads "colour or nails"
+const cmJoin = (a, w = cmWord()) => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' ' + w + ' ' + a[a.length - 1];
 // One ask per distinct question, kept ten minutes (a changed pill asks again, a changed-back one does not).
 function cmCall(name, args) {
   const key = name + JSON.stringify(args || {});
@@ -132,7 +135,7 @@ function cmSet(k, v) {
 function cmPickFam(k) {
   if (k === 'unmapped') { cmTab('roster'); return; }
   const i = CM.fams.indexOf(k);
-  if (i >= 0) { if (CM.fams.length < 2) return; CM.fams.splice(i, 1); }
+  if (i >= 0) { if (CM.fams.length < 2) return; CM.fams.splice(i, 1); if (CM.fams.length < 2) CM.any = false; }
   else { CM.fams.push(k); delete CM.tri[k]; }
   CM.cats = []; CM.item = null; cmItemsAll = false; cmSave(); cmSync();
   cmPaintCards(); cmPaintSel(); cmLoadDetail();
@@ -239,7 +242,7 @@ async function cmLoadDetail() {
   try {
     const d = await cmCall('client_mix_detail', cmDetailArgs());
     if (seq !== cmSeqD) return;
-    cmDetail = d; cmBusy = false;
+    cmDetail = d; cmDetail._any = !!(CM.any && CM.fams.length > 1); cmBusy = false;
   } catch (e) {
     console.error(e);
     if (seq === cmSeqD) { cmBusy = false; cmDetail = null; const b = document.getElementById('cmList'); if (b) b.innerHTML = '<p class="slv-muted">The client list did not load. Refresh to try again.</p>'; }
@@ -306,8 +309,14 @@ function cmPaintDetail() {
 }
 // The selection box: with two or more cards picked, the totals for the clients who had all of them, and what each card came to.
 function cmClearSel() {
-  CM.fams = [cmLead()]; CM.cats = []; CM.item = null; cmItemsAll = false; cmSave(); cmSync();
+  CM.fams = [cmLead()]; CM.any = false; CM.cats = []; CM.item = null; cmItemsAll = false; cmSave(); cmSync();
   cmPaintCards(); cmPaintSel(); cmLoadDetail();
+}
+// All of them (the clients who had every picked card) or Any of them (at least one).
+function cmSetAny(v) {
+  CM.any = !!v; CM.item = null; cmItemsAll = false; cmSync();
+  document.querySelectorAll('#cmSel .sc-seg button').forEach(b => { const on = (b.dataset.v === 'any') === CM.any; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  cmPaintOver(); cmLoadDetail();
 }
 function cmPaintSel() {
   const box = document.getElementById('cmSel');
@@ -315,6 +324,7 @@ function cmPaintSel() {
   const s = cmDetail && cmDetail.sel, n = CM.fams.length;
   const fresh = s && Array.isArray(s.fams) && s.fams.length === n && CM.fams.every(k => s.fams.some(f => f.family === k));   // not the totals of the cards picked a moment ago
   if (n < 2 || !fresh) { box.hidden = true; return; }
+  if (!!cmDetail._any !== (CM.any && n > 1)) return;   // the toggle was just pressed: the old totals stay, dimmed, until the new ones arrive
   box.hidden = false;
   const c = Number(cmDetail.clients) || 0, total = cmCards ? Number(cmCards.total_clients) || 0 : 0;
   const each = (v, dp) => c ? (v / c).toFixed(dp).replace(/\.0$/, '') : '0';
@@ -325,9 +335,10 @@ function cmPaintSel() {
   const tile = (k, label, val, sub) => `<div class="cm-sel-tile${mode === k ? ' lead' : ''}"><div class="k">${label}</div><div class="v">${val}</div><div class="s">${sub}</div></div>`;
   const rev = Number(s.revenue) || 0, rsum = s.fams.reduce((a, f) => a + (Number(f.revenue) || 0), 0) || 1;
   const rows = CM.fams.map(k => { const f = s.fams.find(x => x.family === k) || {}; return { k, f }; });
-  box.innerHTML = `<div class="cm-sel-top"><div class="cm-sel-t"><span class="cm-sel-dots">${CM.fams.map(k => `<i style="--c:${cmFam(k).color}"></i>`).join('')}</span>${lcEsc(names.join(' + '))}
-      <small>The ${lcNum(c)} client${c === 1 ? '' : 's'} who had ${all}${left.length ? ', without ' + lcEsc(left.join(' or ')) : ''}. ${lcEsc(cmBranchTxt())}, ${lcEsc(cmPeriodTxt())}.</small></div>
-      <button type="button" class="cm-pill" onclick="cmClearSel()">Clear to one card</button></div>
+  box.innerHTML = `<div class="cm-sel-top"><div class="cm-sel-t"><span class="cm-sel-dots">${CM.fams.map(k => `<i style="--c:${cmFam(k).color}"></i>`).join('')}</span>${lcEsc(names.join(CM.any ? ' or ' : ' + '))}
+      <small>The ${lcNum(c)} client${c === 1 ? '' : 's'} who had ${CM.any ? cmJoin(names.map(x => x.toLowerCase()), 'or') : all}${left.length ? ', without ' + lcEsc(left.join(' or ')) : ''}. ${lcEsc(cmBranchTxt())}, ${lcEsc(cmPeriodTxt())}.</small></div>
+      <div class="cm-sel-act"><div class="sc-seg" role="group" aria-label="All or any of the picked cards"><button type="button" class="${CM.any ? '' : 'on'}" data-v="all" aria-pressed="${!CM.any}" onclick="cmSetAny(false)">All of them</button><button type="button" class="${CM.any ? 'on' : ''}" data-v="any" aria-pressed="${CM.any}" onclick="cmSetAny(true)">Any of them</button></div>
+      <button type="button" class="cm-pill" onclick="cmClearSel()">Clear to one card</button></div></div>
     <div class="cm-sel-tiles">
       ${tile('clients', 'Clients', lcNum(c), total ? Math.round(100 * c / total) + '% of all clients' : '')}
       ${tile('visits', 'Visits', lcNum(s.visits), each(s.visits, 1) + ' each')}
@@ -335,10 +346,10 @@ function cmPaintSel() {
       ${tile('revenue', 'Revenue', 'AED ' + lcNum(rev), 'AED ' + lcNum(c ? rev / c : 0) + ' each')}
     </div>
     <div class="cm-sel-split"><div class="slv-eyebrow">What those ${lcNum(c)} client${c === 1 ? '' : 's'} spent, by card</div>
-      <div class="cm-sel-row hd"><b>Card</b><span>Visits</span><span>Units</span><span>AED</span><span>Share</span></div>
-      ${rows.map(r => `<div class="cm-sel-row" style="--c:${cmFam(r.k).color}"><b><i></i>${lcEsc(cmFam(r.k).name)}</b><span data-k="Visits">${lcNum(r.f.visits)}</span><span data-k="Units">${lcNum(r.f.units)}</span><span data-k="AED">${lcNum(r.f.revenue)}</span><span data-k="Share">${Math.round(100 * (Number(r.f.revenue) || 0) / rsum)}%</span></div>`).join('')}
+      <div class="cm-sel-row hd${CM.any ? ' any' : ''}"><b>Card</b>${CM.any ? '<span>Clients</span>' : ''}<span>Visits</span><span>Units</span><span>AED</span><span>Share</span></div>
+      ${rows.map(r => `<div class="cm-sel-row${CM.any ? ' any' : ''}" style="--c:${cmFam(r.k).color}"><b><i></i>${lcEsc(cmFam(r.k).name)}</b>${CM.any ? `<span data-k="Clients">${lcNum(r.f.clients)}</span>` : ''}<span data-k="Visits">${lcNum(r.f.visits)}</span><span data-k="Units">${lcNum(r.f.units)}</span><span data-k="AED">${lcNum(r.f.revenue)}</span><span data-k="Share">${Math.round(100 * (Number(r.f.revenue) || 0) / rsum)}%</span></div>`).join('')}
     </div>
-    <p class="cm-sel-note">Only clients who had every picked card are counted. A visit with more than one card counts once in the totals. The items and the client list below cover all the picked cards.</p>`;
+    <p class="cm-sel-note">${CM.any ? 'A client who had at least one of the picked cards is counted once, however many she had.' : 'Only clients who had every picked card are counted.'} A visit with more than one card counts once in the totals. The items and the client list below cover all the picked cards.</p>`;
 }
 // Of the clients in view, how many ALSO had each other card. A chip adds that card to the picks (the clients who had it too).
 function cmPaintOver() {
@@ -346,7 +357,7 @@ function cmPaintOver() {
   if (!box || !d) return;
   const c = Number(d.clients) || 0;
   const ov = (d.overlap || []).filter(o => o.family !== 'unmapped' && o.family !== 'skip' && !CM.fams.includes(o.family) && !CM.tri[o.family]);
-  if (!c || !ov.length) { box.innerHTML = ''; box.hidden = true; return; }
+  if (!c || !ov.length || (CM.any && CM.fams.length > 1)) { box.innerHTML = ''; box.hidden = true; return; }   // under Any of them, adding a card would only widen the pick
   box.hidden = false;
   const who = CM.fams.length > 1 ? 'who had ' + cmJoin(CM.fams.map(k => cmFam(k).name.toLowerCase())) : 'who had ' + cmFam(cmLead()).name.toLowerCase();
   box.innerHTML = `<span class="slv-eyebrow">Also had</span><div class="cm-row">` + ov.map(o => {

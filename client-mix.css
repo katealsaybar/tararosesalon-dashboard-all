@@ -147,3 +147,12 @@ tr.cm-unm td{background:var(--warn-bg)}
 .cm-over{display:block;margin:0}
 .cm-over>.slv-eyebrow{display:block;margin:0 0 8px}
 .cm-over>.slv-note{display:block;margin-top:8px;font-size:12.5px}
+
+.cm-sel-act{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cm-sel-row.any{grid-template-columns:minmax(120px,1.2fr) repeat(5,1fr)}
+@media(max-width:760px){
+  .cm-sel-act{width:100%}
+  .cm-sel-act .sc-seg{flex:1 1 100%}
+  .cm-sel-act .sc-seg button{flex:1}
+  .cm-sel-row.any{grid-template-columns:1fr 1fr}
+}
