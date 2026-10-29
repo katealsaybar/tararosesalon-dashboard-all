@@ -123,3 +123,14 @@ end $function$;
 revoke all on function public.client_mix_detail(date, date, text, text, text[], text[], text, text, int) from public, anon;
 grant execute on function public.client_mix_detail(date, date, text, text, text[], text[], text, text, int) to authenticated;
 
+-- Selection totals (Kate, 29 Oct 2026, applied live as client_mix_selection_totals): when p_with is not empty, client_mix_detail also returns
+-- 'sel': visits, units and revenue over ALL the picked families (p_fam + p_with) for the clients who had them all, and the same per family.
+-- It sits just before 'rows' in the final jsonb_build_object:
+--   'sel', case when cardinality(coalesce(p_with, '{}'::text[])) = 0 then null else (select jsonb_build_object(
+--       'visits',  count(distinct (k, branch, date)) over p rows of the picked families for the clients in pop,
+--       'units',   sum(u) of the same rows,   'revenue', round(sum(net)) of the same rows,
+--       'fams',    the same three figures per family)) end,
+
+-- All the picked cards in the lists (Kate, 29 Oct 2026, applied live as client_mix_all_picked_in_lists): a CTE sla holds the lines of every
+-- picked family (p_fam + p_with) for the clients in pop, the category pick narrowing only the lead family's lines. The items table, the
+-- per-client units and revenue and the item pick read sla, items carry 'family', and a client's tags list the picked families first.
