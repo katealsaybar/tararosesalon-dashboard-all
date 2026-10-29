@@ -95,7 +95,7 @@ async function lrLoad() {
   if (lrBusy) return;
   lrBusy = true; lrErr = '';
   try {
-    const [s, l, dp, dl, mo, bs, rc, ad] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_campaign_money', lrArgs()), sb.rpc('lost_booked_since', lrArgs()), sb.rpc('lost_blast_record_get'), sb.rpc('lost_after_deadline')]);
+    const [s, l, dp, dl, bs, rc, ad] = await Promise.all([sb.rpc('lost_send_report_get', lrArgs()), lrFetchPage(), sb.rpc('lost_booked_deposits', lrArgs()), sb.rpc('lost_delivery_report', lrArgs()), sb.rpc('lost_booked_since', lrArgs()), sb.rpc('lost_blast_record_get'), sb.rpc('lost_after_deadline')]);
     if (s.error || !s.data) throw s.error || new Error('no report');
     lrSum = s.data;
     lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
@@ -106,14 +106,33 @@ async function lrLoad() {
     if (ad.error && !/Level 3/.test(ad.error.message || '')) console.warn('lost_after_deadline', ad.error);
     lrDel = (!dl.error && dl.data && dl.data.total) ? dl.data : null;   // optional too
     if (dl.error) console.warn('lost_delivery_report', dl.error);
-    lrMoney = (!mo.error && mo.data && mo.data.cost) ? mo.data : null;   // optional too
-    if (mo.error && !/Level 3/.test(mo.error.message || '')) console.warn('lost_campaign_money', mo.error);
+    lrMoney = null;   // comes in on its own below, after the report has drawn
     lrRec = (!rc.error && rc.data && (rc.data.rows || []).length) ? rc.data : null;   // optional too
     if (rc.error && !/Level 3/.test(rc.error.message || '')) console.warn('lost_blast_record_get', rc.error);
     if (l.error || !l.data) throw l.error || new Error('no log');
     lrRowsPage = l.data.rows || []; lrTotal = l.data.total || 0; lrOutcomes = l.data.outcomes || {};
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
   lrBusy = false;
+  lrLoadMoney();
+}
+// The money (Kate, 29 Oct 2026): lost_campaign_money is the slowest call (4 to 6 s), and fired together with the other seven it failed on a cold load,
+// so the Spent card and the Money section vanished. It now goes on its own once the report has drawn, tries up to three times, and repaints when it lands.
+let lrMoneyTok = 0;
+async function lrLoadMoney() {
+  const tok = ++lrMoneyTok;
+  for (let i = 0; i < 3; i++) {
+    let r;
+    try { r = await sb.rpc('lost_campaign_money', lrArgs()); } catch (e) { r = { error: e }; }
+    if (tok !== lrMoneyTok) return;   // another load started (message type changed)
+    if (!r.error && r.data && r.data.cost) {
+      lrMoney = r.data;
+      if (!lrBusy && lrSum && typeof lqSel !== 'undefined' && lqSel.tab === 'perf' && document.getElementById('lqHost')) { const y = window.scrollY; lrPaint(); window.scrollTo(0, y); }
+      return;
+    }
+    if (r.error && /Level 3/.test(r.error.message || '')) return;   // a Level 2 reader gets no money, by design
+    console.warn('lost_campaign_money, try ' + (i + 1), r.error);
+    await new Promise(res => setTimeout(res, 1500));
+  }
 }
 function lrFetchPage(offset, limit) {
   return sb.rpc('lost_send_log_get', {
