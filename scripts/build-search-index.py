@@ -85,6 +85,8 @@ NOT_PAGES = {
     'count-up.js': 'headline numbers count up when a section opens',
     'drill.js': 'the window that opens the list behind a figure, on every page', 'pulse-drill.js': 'what each Pulse figure opens (staff, day and branch lists, the clients through the door)',
     'pages.js': 'the list of dashboard pages: names, levels, slugs; read by the check below',
+    'cmp-people.js': 'the people list and picker shared by Log a Complaint and the Team Home complaint ticket (names come from the database)',
+    'site-presence.js': 'tells the database the site is open, for the green dots in the complaint pickers; draws nothing',
 }
 # A page in the sidebar that may have no text in the index, and why.
 NO_TEXT_OK = {
