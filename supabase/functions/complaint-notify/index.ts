@@ -8,6 +8,8 @@
 // (channel 569496, "WhatsApp Brand Account (Backup nr)"), through the respond.io Developer API.
 // Called by public.complaint_notify(), which the client_complaints insert trigger runs (only for a complaint logged from the page),
 // and which can be run by hand to send one again. complaint_notify_test(recipient id) sends a test to one recipient.
+// Kate, 29 Oct 2026 (batch 2): the complaint code (CMP-SAA-20261029-01) is in the email, and in the WhatsApp text (folded into the kind, so the
+// template body does not change); and body.mail sends one plain email for the triage worker (a tagged person whose WhatsApp did not go).
 //
 // The caller must send the vault secret 'complaint_hook_secret' (checked by complaint_hook_ok(), service role only).
 // Recipients come from complaint_notify_recipients; every attempt is written to complaint_notify_log. A channel whose secrets are not
@@ -58,7 +60,7 @@ const RES: Record<string, string> = {
 };
 
 type Rec = { id: number; name: string; email: string | null; phone: string | null; email_on: boolean; wa_on: boolean; branch_code: string | null; away: boolean; escalate_to: number | null };
-type Alert = { branch: string; by: string; kind: string; status: string; link: string };
+type Alert = { branch: string; by: string; kind: string; status: string; link: string; code?: string };
 
 const log = (complaint_id: number | null, recipient: string, channel: string, status: string, error?: string) =>
   sb.from("complaint_notify_log").insert({ complaint_id, recipient, channel, status, error: error ? error.slice(0, 500) : null });
@@ -104,12 +106,12 @@ async function sendWhatsApp(r: Rec, phone: string, a: Alert) {
   const known = await fetch(RESPOND_API + "/contact/" + encodeURIComponent(who), { headers: { Authorization: "Bearer " + RESPOND_TOKEN } });
   if (known.status === 404) await respond("/contact/create_or_update/" + encodeURIComponent(who), "POST", { firstName: first });
   else if (!known.ok) throw new Error(`respond.io ${known.status}: ${(await known.text()).slice(0, 300)}`);
-  const params = [first, a.branch, a.by, a.kind, a.status, a.link].map((text) => ({ type: "text", text }));
+  const params = [first, a.branch, a.by, a.code ? `${a.kind}, ${a.code}` : a.kind, a.status, a.link].map((text) => ({ type: "text", text }));
   const template = {
     type: "whatsapp_template",
     template: { name: RESPOND_TEMPLATE, languageCode: "en", components: [{ type: "body", text: TEMPLATE_BODY, parameters: params }] },
   };
-  const plain = { type: "text", text: `Tara Rose: a complaint was logged at ${a.branch} by ${a.by} (${a.kind}, ${a.status}). ${a.link}` };
+  const plain = { type: "text", text: `Tara Rose: a complaint${a.code ? " (" + a.code + ")" : ""} was logged at ${a.branch} by ${a.by} (${a.kind}, ${a.status}). ${a.link}` };
   await respond("/contact/" + encodeURIComponent(who) + "/message", "POST", {
     channelId: RESPOND_CHANNEL,
     message: RESPOND_TEMPLATE ? template : plain,
@@ -160,6 +162,15 @@ Deno.serve(async (req) => {
     const ok = await sb.rpc("complaint_hook_ok", { p_secret: String(body.secret || "") });
     if (ok.error || ok.data !== true) return json({ error: "not allowed" }, 401);
 
+    // one plain email for the triage worker (a tagged person whose WhatsApp did not go, or who has no number)
+    if (body.mail) {
+      const m = body.mail || {};
+      if (!m.to || !m.subject || !m.text) return json({ ok: false, error: "mail needs to, subject and text" }, 400);
+      if (!SMTP_USER || !SMTP_PASS) return json({ ok: false, error: "email is not set up yet (NOTIFY_SMTP_USER and NOTIFY_SMTP_PASS)" });
+      try { await sendEmail(String(m.to), String(m.subject), String(m.text), `<p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55">${esc(m.text).replace(/\n/g, "<br>")}</p>`); return json({ ok: true }); }
+      catch (e) { return json({ ok: false, error: String((e as Error).message || e).slice(0, 300) }); }
+    }
+
     // a test to one recipient
     if (body.test) {
       const { data: r } = await sb.from("complaint_notify_recipients").select("*").eq("id", Number(body.recipient_id)).maybeSingle();
@@ -172,7 +183,7 @@ Deno.serve(async (req) => {
 
     const id = Number(body.complaint_id);
     const { data: c } = await sb.from("client_complaints")
-      .select("id, client_name, branch_code, event_date, stylists, services, complaint_type, detail, resolution, resolution_detail, status, submitted_by, submitted_at, google_url")
+      .select("id, code, client_name, branch_code, event_date, stylists, services, complaint_type, detail, resolution, resolution_detail, status, submitted_by, submitted_at, google_url")
       .eq("id", id).maybeSingle();
     if (!c) return json({ error: "no such complaint" }, 404);
     // everyone with no branch set, plus the people set to this complaint's branch
@@ -196,7 +207,7 @@ Deno.serve(async (req) => {
     const kind = TYPE[c.complaint_type] || c.complaint_type || "";
     const open = c.status === "open";
     const by = c.submitted_by || "A team member";
-    const alert: Alert = { branch, by, kind, status: open ? "still open" : "resolved", link: `${SITE}&cid=${id}` };
+    const alert: Alert = { branch, by, kind, status: open ? "still open" : "resolved", link: `${SITE}&cid=${id}`, code: c.code || undefined };
 
     const results = [];
     for (const r of recs) {

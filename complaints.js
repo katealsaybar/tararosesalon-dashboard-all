@@ -186,6 +186,8 @@ function cqCss() {
     .cq-link{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-align:left}
     .cq-chk-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .cq-kv a{color:var(--accent)}
+    .cq-code{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+    .cq-code button{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-size:11.5px;font-weight:500;cursor:pointer;text-decoration:underline}
     @media (max-width:760px){.cq-t .hm{display:none}.cq-t .sm{display:block}.cq-t.cq-lg th,.cq-t.cq-lg td{padding-left:5px;padding-right:5px}.cq-t.cq-lg td.cq-det{padding-left:12px;padding-right:12px}.cq-t.cq-lg{font-size:12px}.cq-t.cq-lg .cq-sub2{font-size:11px}.cq-t.cq-lg .cq-flag{padding:2px 7px;font-size:10.5px}.cq-t.cq-lg td.cq-det{font-size:13px}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}
       .cq-bars.yrs{grid-template-columns:40px 1fr auto}
       .cq-card{padding:12px 12px}
@@ -311,6 +313,12 @@ function cqWireTip(root) {
 
 function cqClick(e) {
   const t = e.target;
+  const cp = t.closest && t.closest('[data-copy]');
+  if (cp) { e.stopPropagation(); cqCopy(cp); return; }
+  const dl = t.closest && t.closest('[data-dup]');
+  if (dl) { cqDupLink(Number(dl.dataset.dup)); return; }
+  const ul = t.closest && t.closest('[data-unlink]');
+  if (ul) { cqDupUnlink(Number(ul.dataset.unlink)); return; }
   const up = t.closest && t.closest('[data-up]');
   if (up) { cqUpdate(Number(up.dataset.id), up.dataset.up); return; }
   const del = t.closest && t.closest('[data-del]');
@@ -459,6 +467,7 @@ function cqFollow(r) {
   return `<div style="grid-column:1/-1">
     <div class="cq-eye">Follow-up ${isOpen ? '<span class="cq-pill warn">Open</span>' : '<span class="cq-pill">Resolved</span>'} ${isOpen ? cqFlagPill(r) : ''}</div>
     ${ups || '<p class="cq-kv cq-muted">No follow-up written yet.</p>'}
+    ${cqDupBlock(r)}
     <div class="cq-eye" style="margin-top:10px">Screenshots and photos</div>
     ${files ? `<ul class="cq-files">${files}</ul>` : '<p class="cq-kv cq-muted">None added yet.</p>'}
     <div class="cq-chk-row"><input type="file" id="cqu-files" multiple accept="image/*,application/pdf,.txt" aria-label="Choose photos or screenshots"><button type="button" class="cq-btn" data-upfiles="${r.id}">Add files</button></div>
@@ -505,6 +514,58 @@ async function cqUpdate(id, kind) {
   } catch (e) { console.error(e); say((e && e.message) || 'It did not save. Try again.'); }
 }
 
+// The complaint code (Kate, 29 Oct 2026): CMP-SAA-20261029-01, the one everybody says out loud. Shown with a Copy button wherever a complaint is.
+const cqCodeChip = r => r.code ? `<span class="cq-code">${cqEsc(r.code)} <button type="button" data-copy="${cqEsc(r.code)}">Copy</button></span>` : '';
+async function cqCopy(btn) {
+  const text = btn.dataset.copy || '';
+  try { await navigator.clipboard.writeText(text); } catch (e) {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e2) { /* nothing to do */ }
+    ta.remove();
+  }
+  const was = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => { btn.textContent = was; }, 1400);
+}
+// Link as a duplicate (Kate, 29 Oct 2026): the record stays on file, is not counted twice and drops out of the pipeline.
+async function cqDupAfter(id) {
+  cqOpen = 0;
+  await Promise.all([cqLoadSummary(), cqLoadList(), (typeof cqLoadFlags === 'function' ? cqLoadFlags() : null)]);
+  const row = document.querySelector(`#cqBody tr.cq-row[data-i="${id}"]`);
+  if (row) cqToggle(row);
+}
+async function cqDupLink(id) {
+  const inp = document.getElementById('cqu-dup'), msg = document.getElementById('cqu-dupmsg');
+  const say = t => { if (msg) msg.textContent = t; };
+  const code = ((inp || {}).value || '').trim();
+  if (code.length < 8) return say('Write the code of the first complaint, for example CMP-SAA-20261029-01.');
+  say('Linking…');
+  try {
+    const { data, error } = await sb.rpc('cmp_link_duplicate', { p_id: id, p_of: code });
+    if (error) throw error;
+    if (!data || !data.ok) return say(data && data.why ? data.why.charAt(0).toUpperCase() + data.why.slice(1) + '.' : 'It did not link. Try again.');
+    await cqDupAfter(id);
+  } catch (e) { console.error(e); say((e && e.message) || 'It did not link. Try again.'); }
+}
+async function cqDupUnlink(id) {
+  const msg = document.getElementById('cqu-dupmsg');
+  try {
+    const { data, error } = await sb.rpc('cmp_unlink_duplicate', { p_id: id });
+    if (error) throw error;
+    if (!data || !data.ok) { if (msg) msg.textContent = data && data.why ? data.why.charAt(0).toUpperCase() + data.why.slice(1) + '.' : 'It did not unlink.'; return; }
+    await cqDupAfter(id);
+  } catch (e) { console.error(e); if (msg) msg.textContent = (e && e.message) || 'It did not unlink. Try again.'; }
+}
+function cqDupBlock(r) {
+  if (!r.by) return '';
+  const ticket = `<a class="cq-link" href="/hub/complaint?cid=${r.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open the ticket</a> <span class="cq-muted">(people, assign, notes)</span>`;
+  if (r.duplicate_of) return `<div class="cq-eye" style="margin-top:10px">Duplicate</div>
+    <p class="cq-kv">Linked as a duplicate of <b>${cqEsc(r.duplicate_code || 'another complaint')}</b>. It stays on file and is not counted twice. <button type="button" class="cq-btn" data-unlink="${r.id}">Unlink</button> <span id="cqu-dupmsg" class="cq-msg err" aria-live="polite"></span></p>
+    <p class="cq-kv">${ticket}</p>`;
+  return `<div class="cq-eye" style="margin-top:10px">Is it the same complaint as another one?</div>
+    <div class="cq-chk-row"><input id="cqu-dup" class="cq-in" maxlength="30" autocomplete="off" placeholder="CMP-SAA-20261029-01" aria-label="Code of the first complaint"> <button type="button" class="cq-btn" data-dup="${r.id}">Link as duplicate</button> <span id="cqu-dupmsg" class="cq-msg err" aria-live="polite"></span></div>
+    <p class="cq-kv cq-muted">It stays on file, is not counted twice and leaves the pipeline.</p>
+    <p class="cq-kv">${ticket}</p>`;
+}
+
 function cqCard(r) {
   const conf = r.confidence === 'low' ? '<span class="cq-pill warn">Unsure</span>' : '';
   const logged = !!r.by, open = r.status === 'open';
@@ -524,6 +585,7 @@ function cqCard(r) {
   return `<div class="cq-grid">
     <div>
       <div class="cq-eye">Where and who</div>
+      ${r.code ? `<p class="cq-kv"><span>Code</span> ${cqCodeChip(r)}</p>` : ''}
       <p class="cq-kv"><span>Branch</span> ${cqEsc(cqBr(r.branch))}${r.src === 'client' ? ' <span class="cq-muted">(the branch the client sits under)</span>' : ''}</p>
       ${dates}
       ${people}
@@ -620,12 +682,13 @@ function cqPaintList() {
   const tr = rows.map(r => log ? `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
       <td class="hm" style="white-space:nowrap">${cqEsc(cqDay(r.date))}</td>
       <td class="hm" style="white-space:nowrap">${cqEsc(cqDay(r.complaint_date))}</td>
-      <td><b>${cqEsc(r.client || 'No name')}</b><div class="cq-sub2">${cqEsc(cqBr(r.branch))}${r.phone ? ' · ' + cqEsc(r.phone) : ''}</div>
+      <td><b>${cqEsc(r.client || 'No name')}</b><div style="margin-top:3px">${cqCodeChip(r)}</div><div class="cq-sub2">${cqEsc(cqBr(r.branch))}${r.phone ? ' · ' + cqEsc(r.phone) : ''}</div>
         <div class="cq-sub2 sm">Appointment ${cqEsc(cqDay(r.date))}<br>Complaint ${cqEsc(cqDay(r.complaint_date))}</div></td>
       <td>${cqEsc(r.detail || 'Not stated')}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
-      <td>${r.status === 'open' ? cqFlagPill(r) : '<span class="cq-pill">Resolved</span>'}
+      <td>${r.duplicate_of ? `<span class="cq-pill">Duplicate of ${cqEsc(r.duplicate_code || 'another')}</span>` : r.status === 'open' ? cqFlagPill(r) : '<span class="cq-pill">Resolved</span>'}
         <div class="cq-sub2${r.flag === 'overdue' ? ' late' : ''}">${cqEsc(cqDaysText(r))}${r.status === 'open' && !r.first_response_at ? ' · no reply yet' : ''}</div>
-        ${r.status === 'open' ? `<div class="cq-sub2">${r.responsible ? 'Responsible: ' + cqEsc(r.responsible) : 'Nobody responsible yet'}${r.pending_reason ? ' · ' + cqEsc(r.pending_reason) : (r.flag ? ' · no reason written' : '')}</div>` : ''}</td>
+        ${r.holder ? `<div class="cq-sub2">${cqEsc(r.holder.charAt(0).toUpperCase() + r.holder.slice(1))}</div>` : ''}
+        ${r.status === 'open' && !r.duplicate_of ? `<div class="cq-sub2">${r.responsible ? 'Responsible: ' + cqEsc(r.responsible) : 'Nobody responsible yet'}${r.pending_reason ? ' · ' + cqEsc(r.pending_reason) : (r.flag ? ' · no reason written' : '')}</div>` : ''}</td>
       <td class="hm" style="white-space:nowrap">${r.resolved_at ? cqEsc(cqDubai(r.resolved_at)) : '<span class="cq-muted">Open</span>'}</td>
       <td class="hm">${r.status === 'open' ? '<span class="cq-muted">Not yet</span>' : cqEsc(CQ_RES[r.resolution] || '')}${r.revisit_date ? `<div class="cq-sub2">${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}</div>` : ''}</td>
     </tr>` : `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
@@ -716,10 +779,10 @@ async function cqSheetsExport() {
       off += 100;
     }
     const cell = v => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ').replace(/"/g, "'").trim();
-    const head = ['Date', 'Branch', 'Client', 'Kind', 'What happened', 'Outcome', 'How it ended', 'Stylist', 'Service', 'Charged (AED)', 'Handled by',
+    const head = ['Code', 'Date', 'Branch', 'Client', 'Kind', 'What happened', 'Outcome', 'How it ended', 'Stylist', 'Service', 'Charged (AED)', 'Handled by',
       'Status', 'Logged by', 'Google review', 'Mobile', 'Date of the complaint', 'Date resolved', 'Days open', 'Flag', 'Responsible', 'Why pending', 'Original note'];
     const lines = [head].concat(rows.map(r => [
-      r.date ? String(r.date).slice(0, 10) : 'Client card', cqBr(r.branch), r.client, CQ_TYPE[r.type] || r.type,
+      r.code, r.date ? String(r.date).slice(0, 10) : 'Client card', cqBr(r.branch), r.client, CQ_TYPE[r.type] || r.type,
       r.detail, r.status === 'open' ? 'Still open' : (CQ_RES[r.resolution] || r.resolution), r.resolution_detail, r.stylists, r.services,
       r.fee, r.handled_by, r.status === 'open' ? 'Open' : (r.status === 'resolved' ? 'Resolved' : ''), r.by,
       r.g_date ? `${'★'.repeat(Math.max(0, Math.min(5, Number(r.g_stars) || 0)))} ${String(r.g_date).slice(0, 10)}` : (r.g_manual ? 'Posted (logged)' : ''),

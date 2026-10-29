@@ -415,6 +415,8 @@
     var r = await c.rpc('kb_access');
     if (r.error || !r.data) { location.replace(back); return new Promise(function () {}); }
     KB.access = r.data;
+    // who is on the site now (29 Oct 2026): the green dot in the complaint pickers; every Team Home page loads it from here
+    try { var ps = document.createElement('script'); ps.src = '/site-presence.js?v=b7e5ccac'; document.head.appendChild(ps); } catch (e) { /* the dots just stay grey */ }
     KB.level = r.data.level;
     KB.allowed = r.data.sections || [];
     KB.myLink = r.data.my_link || null;
