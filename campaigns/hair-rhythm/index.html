@@ -127,6 +127,10 @@ html.wa-open{overflow:hidden}
 .gsvc__lens--one span{white-space:nowrap}
 .gcard__course{margin:14px 0 2px;padding:12px 14px;background:var(--stone-soft);border-radius:var(--r-sm,8px);font-family:var(--fb);font-size:13px;font-weight:300;line-height:1.5;color:var(--ink)}
 .gcard__course b{font-weight:600}
+.gcard__course ul,.gcard__notes{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.gcard__course li,.gcard__notes li{position:relative;padding-left:16px}
+.gcard__course li::before,.gcard__notes li::before{content:"";position:absolute;left:2px;top:.6em;width:5px;height:5px;border-radius:50%;background:#1C7563}
+.gcard__notes{margin:10px 0 0;font-family:var(--fb);font-size:12.5px;line-height:1.45;color:var(--ink-soft)}
 .sec-menu .short-note{margin-top:26px}
 .sec-proof .revgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;max-width:1080px;margin:38px auto 0}
 @media (max-width:900px){.sec-proof .revgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -488,7 +492,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Keratin Supreme Straightening<small>About 70 to 80% straightening</small></span></div><div class="gsvc__lens" aria-label="Keratin Supreme Straightening by length: Short / Fine AED 1,085, Medium AED 1,285, Long / Thick AED 1,400, Extra Long AED 1,600"><span>1,085</span><span>1,285</span><span>1,400</span><span>1,600</span></div></li>
               </ul>
               <p class="gcard__unit">In AED.</p>
-              <p class="gcard__course"><b>Make it a year.</b> Add AED 500 to 600 to your keratin price and we add a root touch-up visit within 3 to 4 months, so your keratin is looked after for the year. If you come back after 6 months, you may need a full keratin service again, with more product and an extra cost. Keratin starts with a consultation on WhatsApp, and we confirm the full price there.</p>
+              <div class="gcard__course"><b>Make it a year.</b><ul><li>Add AED 500 to 600 to your keratin price</li><li>We add a root touch-up visit within 3 to 4 months</li><li>Your keratin is looked after for the year</li><li>Back after 6 months? You may need a full keratin again, with more product and an extra cost</li><li>Keratin starts with a WhatsApp consultation, and we confirm the full price there</li></ul></div>
             </div>
           </details>
         </div>
@@ -511,8 +515,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>The Root Refresh<small>Solid colour roots only</small></span></div><div class="gsvc__lens" aria-label="The Root Refresh by length: Short / Fine AED 310, Medium AED 335, Long / Thick AED 375, Extra Long AED 470"><span>310</span><span>335</span><span>375</span><span>470</span></div></li>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>The Face Frame<small>Brightness around your face</small></span></div><div class="gsvc__lens gsvc__lens--one" aria-label="The Face Frame: From 265"><span>From 265</span></div></li>
               </ul>
-              <p class="gcard__unit">In AED, blow-dry included. A toner after a root colour is booked on its own, at its regular price. Colour correction is quoted for you.</p>
-              <p class="gcard__unit">Not available for bleach, scalp bleach, platinum, maximum brightness or anything that needs bleaching. Please book a consultation first.</p>
+              <ul class="gcard__notes"><li>In AED, blow-dry included</li><li>A toner after a root colour is booked on its own, at its regular price</li><li>Colour correction is quoted for you</li><li>Not available for bleach, scalp bleach, platinum, maximum brightness or anything that needs bleaching</li><li>Bleached hair? Please book a consultation first</li></ul>
             </div>
           </details>
         </div>
@@ -537,7 +540,7 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Hydration &amp; Frizz</span></div><div class="gsvc__lens" aria-label="Hydration & Frizz by length: Short / Fine AED 360, Medium AED 425, Long / Thick AED 490, Extra Long AED 585"><span>360</span><span>425</span><span>490</span><span>585</span></div></li>
               </ul>
               <p class="gcard__unit">In AED, per visit, blow-dry included.</p>
-              <p class="gcard__course"><b>Make it a course.</b> Choose three sessions, valid 3 months, or five sessions, valid 6 months. Paid once, with the same stylist tracking your result. Courses of three start from AED 625 and courses of five from AED 1,040.</p>
+              <div class="gcard__course"><b>Make it a course.</b><ul><li>3 sessions: valid 3 months, from AED 625</li><li>5 sessions: valid 6 months, from AED 1,040</li><li>Paid once</li><li>Same stylist tracks your result</li></ul></div>
             </div>
           </details>
         </div>
