@@ -243,7 +243,7 @@ table.t th.rel{white-space:nowrap}
 .abb .k{position:absolute;top:-3px;width:2px;height:10px;background:var(--text);opacity:.55}
 .abp{font-size:12.5px;color:var(--muted);text-align:right}
 .abr.hero{border-top:none;padding-top:2px}
-.abr.sub{padding:7px 0;border-top:1px dashed var(--rule)}.abr.sub .abl{padding-left:16px;font-size:12.5px}.abr.sub .abt{font-size:.92em}
+.abr.sub{padding:7px 0;border-top:1px dashed var(--rule)}.abr.sub .abl{padding-left:16px;font-size:13px}
 .abr.hero .abl{font-size:14px;font-weight:500;color:var(--text)}
 .abr.hero .aba,.abr.hero .abt{font-size:28px}
 .abr.hero .abv{height:32px}
@@ -745,7 +745,7 @@ function renderTiles(sel,all){
     row('Services and treatment',svcAct,t.plan,false,planNote,tipSvc)+
     row('Retail',retAct,retTgt,false,'',tipRet)+
     (rv?row('Staff retail',stfRetAct,t.retail,false,'',`<b>Target</b> is each person's retail, ${S.retail}% of the plan: ${fmt(t.plan)} x ${S.retail}% = <b>${fmt(t.retail)}</b>. Stylists and beauticians only.${A?`<br><b>Actual</b> is the branch retail in the ledgers minus the reception retail, ${upto2}.`:''}`,true)+
-        row('Reception retail (BUSINESS TRS)',rcvAct,rv,false,'',`<b>Target</b> is what the front desk sells, the retail rung to BUSINESS TRS in Phorest, which belongs to no stylist: the August to October monthly average, kept flat = <b>${fmt(rv)}</b>.${A?`<br><b>Actual</b> is the retail rung to BUSINESS TRS in the staff daily reports, ${upto2}.`:''}`,true):'')+
+        row('Business TRS retail',rcvAct,rv,false,'',`<b>Target</b> is what the front desk sells, the retail rung to BUSINESS TRS in Phorest, which belongs to no stylist: the August to October monthly average, kept flat = <b>${fmt(rv)}</b>.${A?`<br><b>Actual</b> is the retail rung to BUSINESS TRS in the staff daily reports, ${upto2}.`:''}`,true):'')+
     row('Treatment (hair)',trAct,st.team==='BEAUTY'?null:trTgt,false,'',tipTr)+
     row('Clients',visAct,t.clients,false,'',tipCl)+
     (A&&!teamAll?`<div class="abf">n/a: the ledger has no hair and beauty split, and treatment is in the ledger for hair only.</div>`:'')+`</div>`;
