@@ -149,7 +149,7 @@
     // Kate, 3 Oct 2026: who can sign in, for Level 3 and up (kb_sections.min_level 3), view only.
     // Kate, 29 Oct 2026: tell the team about a campaign on WhatsApp before it launches (Level 5 only,
     // kb_sections 'staff-campaign', migrations/staff_campaign_send.sql).
-    { key: 'staff-campaign', dept: 'Marketing', title: 'Staff Campaign Messages', href: '/hub/staff-campaign', live: true, rule: 'var(--accent-butter)',
+    { key: 'staff-campaign', dept: 'Tools', title: 'Staff Campaign Messages', href: '/hub/staff-campaign', live: true, rule: 'var(--accent-butter)',
       blurb: 'Tell the team about a campaign on WhatsApp before it launches.' },
     // Kate, 30 Oct 2026: what each WhatsApp blast looks like on the phone, when it goes out, and Coach Emma's review
     // (a dashboard page, ?view=campaignblasts: it follows that page's own list in pages.js, so Executives & Marketing and Kate; migrations/campaign_blasts.sql).
@@ -161,10 +161,10 @@
     { key: 'page-access', via: 'dashboards', only: [5], dept: 'People', title: 'Page Access', href: '/hub/pageaccess', live: true, rule: 'var(--accent-mint)',
       blurb: 'Tick the reports each level can open: Team, Leadership, Executives and Accounts.' },
 
-    { key: 'uploads', dept: 'Admin', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
+    { key: 'uploads', dept: 'Tools', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
       blurb: 'Payslips, and the uploads that feed the dashboard.' },
     // Kate, 29 Oct 2026: payroll messages to staff on WhatsApp (Level 5 only, kb_sections 'staff-wa', migrations/staff_wa.sql).
-    { key: 'staff-wa', dept: 'Admin', title: 'Staff Payroll WhatsApp', href: '/hub/staff-messages', live: true, rule: 'var(--accent-mint)',
+    { key: 'staff-wa', dept: 'Tools', title: 'Staff Payroll WhatsApp', href: '/hub/staff-messages', live: true, rule: 'var(--accent-mint)',
       blurb: 'Payslip and payroll messages to the team, from the Backup WhatsApp number.' }
   ];
   // A shortcut row shows when its `via` section is open to this person and they are at
