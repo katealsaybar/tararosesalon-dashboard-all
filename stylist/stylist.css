@@ -345,3 +345,9 @@ canvas{max-height:220px}
   input,select{font-size:16px;min-height:44px}
   button,.toggle-wrap{min-height:44px}
 }
+
+/* Kate, 30 Oct 2026: the Tara Rose lockup in the header, the right ink for the theme. */
+.logo-mast{height:30px;width:auto;display:block}
+.logo-mast-dark{display:none}
+[data-theme="dark"] .logo-mast-light{display:none}
+[data-theme="dark"] .logo-mast-dark{display:block}

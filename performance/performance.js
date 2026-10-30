@@ -95,6 +95,11 @@ try { const v = JSON.parse(localStorage.getItem('perf-sort') || 'null'); if (v) 
 let SRC = 'ledger';
 try { if (localStorage.getItem('perf-src') === 'phorest') SRC = 'phorest'; } catch (e) {}
 if (['ledger', 'phorest'].includes(qs.get('src'))) SRC = qs.get('src');
+// Kate, 30 Oct 2026: on the Phorest side the clients count is paid visits (redos, consultations and AED 0 services left out). FREE switches
+// them back in, for the Total clients, Average bill and Request rate cards. The branch sheet has no such split, so the switch only shows on Phorest.
+let FREE = false;
+try { if (localStorage.getItem('perf-free') === '1') FREE = true; } catch (e) {}
+if (['0', '1'].includes(qs.get('free'))) FREE = qs.get('free') === '1';
 let RAW = null, RAW_KEY = null;   // the last perf_dashboard answer, so the switch needn't ask again
 // Rebooking both ways (Kate's ruling, 17 Oct 2026): Phorest's tracker and the branch ledger, side by side wherever a manager reads it, so
 // nobody has to guess which one a card is showing. n is a numbers object as perf_core gives it (ledger at the top, Phorest in n.phorest);
@@ -110,7 +115,11 @@ function withSource(d) {
   if (SRC !== 'phorest') return d;
   const swap = n => {
     if (!n || !n.phorest) return;
-    Object.assign(n, n.phorest);
+    const ph = Object.assign({}, n.phorest);
+    if (FREE && ph.clients_all !== undefined) {
+      ph.clients = ph.clients_all; ph.avg_bill = ph.avg_bill_all; ph.avg_bill_retail = ph.avg_bill_retail_all; ph.request_pct = ph.request_pct_all;
+    }
+    Object.assign(n, ph);
     n.salon = n.ncr = null;
   };
   swap(d.numbers);
@@ -719,8 +728,10 @@ async function renderStylist() {
     <section class="card">
       <div class="eyebrow">${midMonth ? 'This month so far' : 'Your month'}</div>
       <div class="card-head"><h2>The six numbers.</h2><div class="dept-seg chart-seg" id="srcSeg" role="group" aria-label="Where the client numbers come from"><button type="button" data-src="ledger"${SRC === 'ledger' ? ' class="on"' : ''}>Branch sheet</button><button type="button" data-src="phorest"${SRC === 'phorest' ? ' class="on"' : ''}>Phorest</button></div></div>
+      ${SRC === 'phorest' ? `<div class="dept-seg chart-seg free-seg" id="freeSeg" role="group" aria-label="Redos and consultations"><button type="button" data-free="0"${FREE ? '' : ' class="on"'}>Paid visits</button><button type="button" data-free="1"${FREE ? ' class="on"' : ''}>With redos &amp; consults</button></div>` : ''}
       <p class="sub">${SRC === 'phorest'
-        ? 'Clients are counted at the door: each visit Phorest rang up under your name. Requests, new clients, rebooking and average bill are Phorest’s own counts too. Sales are from Phorest either way.'
+        ? (FREE ? `Clients are counted at the door: every visit Phorest rang up under your name, including ${n.free_visits || 0} redos, consultations and AED 0 services. Requests, new clients, rebooking and average bill are Phorest’s own counts too. Sales are from Phorest either way.`
+                : `Clients are counted at the door: each paid visit Phorest rang up under your name. ${n.free_visits ? `${n.free_visits} redos, consultations and AED 0 services are left out; switch them on above.` : 'Redos, consultations and AED 0 services are left out.'} Requests, new clients, rebooking and average bill are Phorest’s own counts too. Sales are from Phorest either way.`)
         : 'Clients are counted at your chair: the clients you handled, from the branch sheet reception fills in. Requests, new clients and rebooking come from the same sheet. Average bill is your Phorest sales divided by that client count. Sales are from Phorest either way.'}</p>
       ${midMonth ? `<p class="sub">Money numbers are judged on pace for the full month, with data up to ${esc(dayLabel(n.data_to || n.last_date))}.</p>` : ''}
       ${started && !(share && share.off) ? `<p class="sub">You started on ${esc(dayLabel(n.start_date))}, so this month's totals are aimed at the ${started.left} days since.</p>` : ''}
@@ -879,6 +890,16 @@ async function renderStylist() {
     if (!b || b.dataset.src === SRC) return;
     SRC = b.dataset.src;
     try { localStorage.setItem('perf-src', SRC); } catch (err) {}
+    const y = scrollY;
+    renderStylist().then(() => scrollTo(0, y));
+  };
+
+  const freeSeg = document.getElementById('freeSeg');
+  if (freeSeg) freeSeg.onclick = (e) => {
+    const b = e.target.closest('button[data-free]');
+    if (!b || (b.dataset.free === '1') === FREE) return;
+    FREE = b.dataset.free === '1';
+    try { localStorage.setItem('perf-free', FREE ? '1' : '0'); } catch (err) {}
     const y = scrollY;
     renderStylist().then(() => scrollTo(0, y));
   };
