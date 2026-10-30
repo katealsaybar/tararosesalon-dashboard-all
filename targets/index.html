@@ -107,7 +107,8 @@ table.t th:first-child,table.t td:first-child,table.t th.bd,table.t td.bd,table.
 table.t thead th{position:sticky;z-index:3;background:var(--bg)}
 .tw.fit{overflow:visible}
 .tw.fit thead th{top:var(--thtop,0px)}
-.tw:not(.fit){max-height:calc(100vh - var(--thtop,0px) - 12px);overflow:auto}
+/* Kate, 30 Oct 2026: a table wider than the page still scrolls sideways in its own frame, but no longer scrolls up and down inside it. The window scrolls, and pinHead() lifts the header row so it stays under the filter bar (a frame that scrolls sideways cannot pin a header to the window with CSS alone). */
+.tw:not(.fit){overflow-x:auto}
 .tw:not(.fit) thead th{top:0}
 .tw:not(.fit) table.t[data-frz="3"] :is(th,td):nth-child(-n+3){position:sticky;background:var(--bg);z-index:2}
 .tw:not(.fit) table.t[data-frz="3"] :is(th,td):nth-child(1){left:0}
@@ -693,7 +694,22 @@ function stickFit(){
   tw.classList.toggle('fit',fit);
   const th=t.querySelectorAll('thead th');
   if(th.length>2){t.style.setProperty('--w1',th[0].offsetWidth+'px');t.style.setProperty('--w2',th[1].offsetWidth+'px');}
+  pinHead();
 }
+function pinHead(){
+  const tw=document.querySelector('.tw'),t=document.getElementById('tbl');
+  if(!tw||!t||!t.tHead)return;
+  let y=0;
+  if(!tw.classList.contains('fit')&&!tw.classList.contains('sheet')){
+    const top=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--thtop'))||0;
+    const last=t.tBodies[0]&&t.tBodies[0].lastElementChild;
+    const max=t.offsetHeight-t.tHead.offsetHeight-(last?last.offsetHeight:0);
+    y=Math.max(0,Math.min(top-tw.getBoundingClientRect().top,max));
+  }
+  t.querySelectorAll('thead th').forEach(th=>{th.style.transform=y?'translateY('+Math.round(y)+'px)':'';});
+}
+let pinRaf=0;
+window.addEventListener('scroll',()=>{if(pinRaf)return;pinRaf=requestAnimationFrame(()=>{pinRaf=0;pinHead();});},{passive:true});
 window.addEventListener('resize',stickFit);
 let lastQs=null;
 function syncUrl(){
