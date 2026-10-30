@@ -65,6 +65,20 @@
   }
   @media (prefers-reduced-motion:reduce){.sr-btn:hover,.sr-btn:active{transform:none}}
   .sr-btn:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
+  /* Kate, 30 Oct 2026: the front door, option A of docs/SITE-MAP-PLAN-30OCT2026.md. Four doors under the bar (Dashboard, Knowledge Base, Tools,
+     Team Home); a person sees only the doors that have something for them. They replace the Team Home and Dashboard buttons. */
+  .sr-doors{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%;max-width:800px;margin:30px auto 0}
+  .sr-door{flex:1 1 168px;max-width:192px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;text-decoration:none;color:var(--text);
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 16px 18px;box-shadow:var(--shadow);
+    transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .2s var(--ease)}
+  .sr-door b{font:500 19px/1.2 'Playfair Display',Georgia,serif}
+  .sr-door span.sr-dt{font-size:13px;line-height:1.35;color:var(--muted)}
+  .sr-di{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--c,var(--accent-mint));color:#1A1A1A;margin-bottom:4px}
+  .sr-di svg{width:22px;height:22px}
+  @media (hover:hover){.sr-door:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:var(--accent)}}
+  .sr-door:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
+  @media (prefers-reduced-motion:reduce){.sr-door:hover{transform:none}}
+  @media (max-width:560px){.sr-doors{gap:10px}.sr-door{flex:1 1 calc(50% - 10px);max-width:none;padding:14px}}
   .sr-hint{margin:22px 0 0;font-size:13px;color:var(--muted2)}
   .sr-hint kbd{font:inherit;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:1px 6px;background:var(--surface)}
   .sr-foot{padding:18px 20px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:13px;color:var(--muted2)}
@@ -194,10 +208,14 @@
     </div>
     <div class="sr-go">
       <button type="submit" class="sr-btn">Search</button>
-      <a class="sr-btn" href="/hub/">Team Home</a>
-      <a class="sr-btn hide" id="srDash" href="/?view=dashboard">Dashboard</a>
     </div>
   </form>
+  <nav class="sr-doors" id="srDoors" aria-label="Where to go">
+    <a class="sr-door hide" data-d="dash" href="/?view=dashboard"><span class="sr-di" style="--c:var(--accent-lavender)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><b>Dashboard</b><span class="sr-dt">Read the numbers</span></a>
+    <a class="sr-door hide" data-d="kb" href="/hub/"><span class="sr-di" style="--c:var(--accent-butter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 8h7"/></svg></span><b>Knowledge Base</b><span class="sr-dt">Read and learn</span></a>
+    <a class="sr-door hide" data-d="tools" href="/hub/"><span class="sr-di" style="--c:var(--accent-coral)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></span><b>Tools</b><span class="sr-dt">Approve, send, record</span></a>
+    <a class="sr-door" data-d="hub" href="/hub/"><span class="sr-di" style="--c:var(--accent-mint)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><b>Team Home</b><span class="sr-dt">Favourites and every shortcut</span></a>
+  </nav>
   <p class="sr-hint" id="srHint"></p>
   </div>
   <nav class="sr-tiles hide" id="srTiles" aria-label="Your shortcuts"><div class="sr-grp" id="srFavGrp"><h2 class="sr-gh">Favourites</h2><div class="kb-fvs" id="srFavRow"></div><p class="sr-cap" id="srFavHint" hidden>Star a page on Team Home or in the dashboard, and it will wait here.</p></div><div class="sr-grp" id="srOftenGrp"><h2 class="sr-gh">Frequently visited</h2><div class="kb-fvs" id="srOftenRow"></div></div><p class="sr-cap" id="srCap"></p></nav>
@@ -252,11 +270,21 @@
   var input = document.getElementById('srIn');
   if (dash) {
     input.placeholder = 'Find anything, or ask a question';
-    document.getElementById('srDash').classList.remove('hide');
     document.getElementById('srHint').textContent = 'Staff, branches, pages, clients, services and Team Home. Ask it the way you would say it.';
   } else {
     document.getElementById('srHint').textContent = 'Treatments, policies and how-tos.';
   }
+  // The four doors (Kate, 30 Oct 2026). A door shows only when this person has something behind it, by the same rule as Team Home's cards (KB.opens).
+  // Knowledge Base and Tools open Team Home on their square; Team Home is always there.
+  var opened = KB.SECTIONS.filter(KB.opens);
+  function hasDept(d) { return opened.some(function (x) { return x.dept === d; }); }
+  var doorOn = { dash: dash, kb: hasDept('Learn') || hasDept('The Tara Rose Way'), tools: hasDept('Tools'), hub: true };
+  document.querySelectorAll('#srDoors .sr-door').forEach(function (a) {
+    var d = a.getAttribute('data-d');
+    a.classList.toggle('hide', !doorOn[d]);
+    if (d === 'kb') a.href = '/hub/#g=' + encodeURIComponent(hasDept('Learn') ? 'Learn' : 'The Tara Rose Way');
+    if (d === 'tools') a.href = '/hub/#g=Tools';
+  });
   document.body.classList.remove('sr-wait');
   input.focus();
 
