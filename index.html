@@ -3815,6 +3815,11 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" data-cmp-pipeline onclick="location.href='/hub/complaint?view=board'">Complaints Pipeline</div>
     <div class="nav-sub" data-tool-link onclick="location.href='/targets/'">Target Calculator</div>
     <div class="nav-sub" data-tool-link onclick="window.open('https://katealsaybar.github.io/smm_board_approvals/', '_blank', 'noopener')">Post Approvals</div>
+    <!-- Upload Portal and the two WhatsApp senders (Kate, 30 Oct 2026): Team Home pages, so links out. data-tool-min is the OLD level number, the same as their kb_sections rows
+         (uploads 4, staff-campaign 5, staff-wa 5); the pages and the database still decide who may open or send. -->
+    <div class="nav-sub" data-tool-min="4" onclick="location.href='/upload/'">Upload Portal</div>
+    <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/staff-campaign'">Staff Campaign Messages</div>
+    <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/staff-messages'">Staff Payroll WhatsApp</div>
   </div>
 
   <!-- Logout button -->
@@ -4802,6 +4807,8 @@ function tidyNav(){
   document.querySelectorAll('#sidebar .nav-sub.has-kids').forEach(p => { const b = p.querySelector('.nav-kids-btn'); if (b && p.nextElementSibling && p.nextElementSibling.hasAttribute('data-wvb')) b.style.display = wvOpen ? '' : 'none'; });
   // Tools' two links out (Target Calculator, Post Approvals) are for Levels 3 and 5 only, as their Team Home cards are (only: [3, 5]).
   document.querySelectorAll('#sidebar .nav-sub[data-tool-link]').forEach(el => { el.style.display = (TRS_LEVEL === 3 || TRS_LEVEL === 5) ? '' : 'none'; });
+  // Upload Portal, Staff Campaign Messages and Staff Payroll WhatsApp (Kate, 30 Oct 2026): links out, shown from the level in data-tool-min (old numbering, as kb_sections).
+  document.querySelectorAll('#sidebar .nav-sub[data-tool-min]').forEach(el => { el.style.display = TRS_LEVEL >= Number(el.dataset.toolMin) ? '' : 'none'; });
   // Complaints Pipeline (Kate, 30 Oct 2026) is a Team Home page, so it is a link out. It shows to whoever sees Log a Client Complaint (Level 2 and up); the page and the
   // database then decide whether you are leadership or a branch coordinator, and say so if you are not.
   const cplOpen = typeof trsPageOpen === 'function' && trsPageOpen('complaintlog', TRS_LEVEL, TRS_EXTRA);
@@ -4813,7 +4820,8 @@ function tidyNav(){
     h.style.display = any ? '' : 'none';
   });
   document.querySelectorAll('#sidebar .nav-group').forEach(g => {
-    if (![...g.querySelectorAll('.nav-sub')].some(open) && !g.querySelector('.nav-sub[onclick*="doLogout"]')) g.style.display = 'none';
+    // A visible Tools link out (data-tool-min) keeps the group, so Accounts, who have no dashboard page in Tools, still reach the Upload Portal.
+    if (![...g.querySelectorAll('.nav-sub')].some(el => open(el) || (el.hasAttribute('data-tool-min') && el.style.display !== 'none')) && !g.querySelector('.nav-sub[onclick*="doLogout"]')) g.style.display = 'none';
   });
 }
 // Kate, 2 Oct 2026: "View as", set from Team Home's account menu (owner only, this
