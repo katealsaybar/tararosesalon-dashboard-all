@@ -360,7 +360,7 @@
     else if (a === 'resolve') { var c = byId(id); act(function () { return rpc('page_comment_resolve', { p_id: id, p_resolved: !(c && c.resolved) }); }); }
     else if (a === 'del') {
       if (!confirm('Delete this comment?')) return;
-      act(async function () { await rpc('page_comment_delete', { p_comment_id: id }); if (!byId(S.cur) || S.cur === id) S.cur = null; });
+      act(async function () { await rpc('page_comment_delete', { p_id: id }); if (!byId(S.cur) || S.cur === id) S.cur = null; });
     }
   }
 
