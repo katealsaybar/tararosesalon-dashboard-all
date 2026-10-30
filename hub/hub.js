@@ -163,8 +163,13 @@
     { key: 'page-access', via: 'dashboards', only: [5], dept: 'People', title: 'Page Access', href: '/hub/pageaccess', live: true, rule: 'var(--accent-mint)',
       blurb: 'Tick the reports each level can open: Team, Leadership, Executives and Accounts.' },
 
-    { key: 'uploads', dept: 'Tools', title: 'Upload Portal', href: '/upload/payslips', live: true, rule: 'var(--accent-mint)',
-      blurb: 'Payslips, and the uploads that feed the dashboard.' },
+    { key: 'uploads', dept: 'Tools', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
+      blurb: 'The files and sheets that feed the dashboard: ledgers, Phorest reports, targets and products.' },
+    // Kate, 30 Oct 2026: "separate dapat yung upload portal from payslip portal, may whatsapp na sya". Payslips is its own entry (the Payslips tab of the
+    // portal, /upload/payslips), right beside Staff Payroll WhatsApp because the two go out together. A shortcut like Plan Stylist Targets: whoever may open the
+    // dashboard at Level 4 (Accounts & Admin) and up, the same people as the Upload Portal; the portal itself decides what each person can change.
+    { key: 'payslips', via: 'dashboards', min: 4, dept: 'Tools', title: 'Payslips', href: '/upload/payslips', rule: 'var(--accent-mint)',
+      blurb: 'Upload each month’s payslips, email them to staff, and see the WhatsApp that goes with each email.' },
     // Kate, 29 Oct 2026: payroll messages to staff on WhatsApp (Level 5 only, kb_sections 'staff-wa', migrations/staff_wa.sql).
     { key: 'staff-wa', dept: 'Tools', title: 'Staff Payroll WhatsApp', href: '/hub/staff-messages', live: true, rule: 'var(--accent-mint)',
       blurb: 'Payslip and payroll messages to the team, from the Backup WhatsApp number.' }
@@ -251,6 +256,8 @@
     // a chat bubble with a sent tick for the payroll message.
     'staff-campaign': '<path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M8 9h8"/><path d="M8 12.5h5"/>',
     'staff-wa': '<path d="M5 4h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-9l-5 4v-4H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="m8.5 10.5 2.2 2.2 4.8-4.8"/>',
+    // Kate, 30 Oct 2026: a sheet with a folded corner and pay lines, for Payslips.
+    payslips: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/>',
     uploads: '<path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
     today: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     approvals: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
