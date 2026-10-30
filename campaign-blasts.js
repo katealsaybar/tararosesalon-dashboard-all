@@ -57,7 +57,7 @@
       '<div class="cbl-thread"><span class="cbl-day">Today</span><div class="cbl-bub">' +
       (img ? '<img class="cbl-hdr" src="' + esc(img) + '" alt="Header photo from the landing page">' : '') +
       '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-ftr">' + esc(FOOT) + '</div><div class="cbl-time">11:00</div></div>' +
-      '<div class="cbl-btn">Tell me more</div>' + replyHtml(reply) + '</div>' +
+      '<div class="cbl-btn' + (reply ? ' tapped' : '') + '">Tell me more</div>' + replyHtml(reply) + '</div>' +
       '<div class="cbl-compose"><span class="cbl-input">Message</span><span class="cbl-mic"></span></div></div></div></div>';
   }
   // What she gets after she taps Tell me more (Kate, 30 Oct 2026): her tap, then our reply, so Emma reads the whole exchange. Plain text in b.data.reply.
@@ -66,7 +66,8 @@
   function replyHtml(t) {
     if (!t) return '';
     var body = esc(String(t).replace(/\{\{1\}\}/g, 'Layla')).replace(/(https?:\/\/[^\s]+)/g, '<span class="cbl-url">$1</span>');
-    return '<div class="cbl-out">Tell me more<span>11:03</span></div>' +
+    return '<div class="cbl-after"><b>She taps Tell me more</b><span>and gets this</span></div>' +
+      '<div class="cbl-out">Tell me more<span>11:03</span></div>' +
       '<div class="cbl-bub cbl-rep"><div class="cbl-body">' + body + '</div><div class="cbl-time">11:03</div></div>';
   }
   function fmtN(n) { return Number(n || 0).toLocaleString('en-GB'); }
