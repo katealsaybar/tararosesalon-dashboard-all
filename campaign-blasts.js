@@ -6,7 +6,7 @@
   function main() { return document.getElementById('campaignBlastsContent'); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
-  var FOOT = 'If you’d rather not hear from us, reply STOP';
+  var FOOT = 'T&Cs apply. If you’d rather not hear from us, reply STOP';   // the WhatsApp template footer, 56 of the 60 characters Meta allows
   var ORDER_KEY = 'trs-cbl-order';
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var D = null, cur = 'all', cal = null, drag = null, draft = {}, errMsg = '', focusCmt = false, jumpIo = null;
