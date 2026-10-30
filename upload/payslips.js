@@ -47,8 +47,9 @@ async function psCall(payload, file) {
 }
 
 function psDefaultMonth() {
-  // Payslips are for the month just finished.
-  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+  // Payslips are for the month just finished, but they are prepared in its last days (Kate, 30 Oct 2026: "october dapat ang default"), so from the 20th
+  // the tab opens on the month in progress; from the 1st to the 19th it opens on the month before, for the send and any late or revised payslips.
+  const d = new Date(); const day = d.getDate(); d.setDate(1); if (day < 20) d.setMonth(d.getMonth() - 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
