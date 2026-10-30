@@ -68,12 +68,12 @@
 .cp-fil{display:flex;gap:8px;flex-wrap:wrap}
 .cp-fil button{font:inherit;font-size:13.5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;cursor:pointer}
 .cp-fil button.on{background:color-mix(in srgb,var(--accent,#3AA892) 18%,var(--surface));border-color:var(--accent,#3AA892);font-weight:600}
-.cp-board{display:grid;grid-template-columns:repeat(6,minmax(212px,1fr));gap:12px;overflow-x:auto;padding-bottom:8px;align-items:start}
-.cp-col{background:color-mix(in srgb,var(--border) 45%,var(--bg));border-radius:12px;padding:10px;min-width:0}
-.cp-col h4{font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:6px;margin:2px 4px 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.cp-col h4 em{font-style:normal;background:var(--surface);border-radius:999px;padding:1px 9px;color:var(--text)}
-.cp-col.stuck{background:#F8E4DF}
-.cp-col.stuck h4{color:#B4412F}
+.cp-board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;align-items:stretch}
+.cp-col{background:color-mix(in srgb,var(--border) 45%,var(--bg));border-radius:12px;padding:10px;min-width:0;min-height:160px}
+.cp-col h4{font-size:12px;line-height:1.3;min-height:2.6em;font-weight:600;display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin:2px 4px 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cp-col h4 em{font-style:normal;flex:none;background:var(--surface);border-radius:999px;padding:1px 9px;color:var(--text);letter-spacing:0}
+.cp-col.stuck.has{background:#F8E4DF}
+.cp-col.stuck.has h4{color:#B4412F}
 .cp-tk{display:block;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:9px;font-size:13.5px;color:inherit;text-decoration:none}
 .cp-tk:hover{border-color:var(--muted)}
 .cp-tk b{display:block;font-size:14.5px;margin-bottom:2px}
@@ -82,7 +82,8 @@
 .cp-tk.red{border-left-color:#B4412F}.cp-tk.amber{border-left-color:#D9A441}.cp-tk.green{border-left-color:#2F7A4B}
 .cp-tk .cp-pill{margin-top:6px}
 .cp-empty{font-size:13px;color:var(--muted);margin:4px}
-@media (max-width:760px){.cp-board{grid-template-columns:minmax(0,1fr);overflow:visible}.cp-col.stuck{order:-1}}
+@media (max-width:1100px){.cp-board{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:760px){.cp-board{grid-template-columns:minmax(0,1fr)}.cp-col{min-height:0}.cp-col.stuck.has{order:-1}}
 /* one complaint as a ticket */
 .tk{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
 @media (min-width:980px){.tk{grid-template-columns:260px minmax(0,1fr) 290px}}
@@ -235,7 +236,7 @@ button.tk-pill{cursor:pointer}
     }).join('') + '<button type="button" data-f="mine" class="' + (b.mine ? 'on' : '') + '" aria-pressed="' + b.mine + '">Mine only</button><button type="button" data-f="serious" class="' + (b.serious ? 'on' : '') + '" aria-pressed="' + b.serious + '">Serious only</button></div>';
     var cols = STAGES.map(function (s) {
       var xs = cards.filter(function (x) { return x.stage === s[0]; });
-      return '<div class="cp-col' + (s[0] === 'stuck' ? ' stuck' : '') + '"><h4>' + esc(s[1]) + ' <em>' + xs.length + '</em></h4>' + (xs.length ? xs.map(card).join('') : '<p class="cp-empty">Nothing here.</p>') + '</div>';
+      return '<div class="cp-col' + (s[0] === 'stuck' ? ' stuck' + (xs.length ? ' has' : '') : '') + '"><h4>' + esc(s[1]) + ' <em>' + xs.length + '</em></h4>' + (xs.length ? xs.map(card).join('') : '<p class="cp-empty">Nothing here.</p>') + '</div>';
     }).join('');
     main.innerHTML = '<div class="cp wide">' + nav('board') + '<div><h1>Complaints pipeline</h1><p class="sub">The same complaints, laid out by stage. A card moves when something real happens: someone takes it, replies to the client, or it is closed. Nobody drags a card, so the board cannot be tidied by hand. Serious means everything except the minor ones. Click a card to open it.</p></div>' + fil + '<div class="cp-board">' + cols + '</div></div>';
   }
