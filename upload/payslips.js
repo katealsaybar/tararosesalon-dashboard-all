@@ -708,6 +708,8 @@ function psWaHtml(ready, pending) {
   const w = PS_STATE.wa;
   if (!w) return '';
   const ok = w.enabled && w.approved;
+  // Only once WhatsApp has run for the month: before that (September and earlier) every email is "without", which says nothing.
+  const without = (w.sent + w.queued + w.failed) > 0 ? w.without : 0;
   const warn = !w.approved ? 'The payslip WhatsApp is not approved in Meta yet, so the emails will go without it.'
     : !w.enabled ? 'WhatsApp is switched off, so the emails go without it, and it is not sent afterwards. Ask Kate to switch it on before the send.' : '';
   const link = window.TRS_ROLE === 'owner' ? ' <a class="ps-link" href="/hub/staff-messages">Open Staff Payroll WhatsApp</a>' : '';
@@ -718,10 +720,10 @@ function psWaHtml(ready, pending) {
       <span class="ps-chip">Sent ${w.sent}</span>
       <span class="ps-chip">Waiting to send ${w.queued}</span>
       ${w.failed ? `<span class="ps-chip st-check">Failed ${w.failed}</span>` : ''}
-      ${w.without ? `<span class="ps-chip">Emailed without WhatsApp ${w.without}</span>` : ''}
+      ${without ? `<span class="ps-chip">Emailed without WhatsApp ${without}</span>` : ''}
     </div>
     ${warn ? (pending || ready ? `<div class="ps-err">${psEsc(warn)}</div>` : `<div class="ps-meta">${psEsc(warn)}</div>`) : ''}
-    ${w.without ? '<div class="ps-meta">Emailed without WhatsApp: no number on file, or WhatsApp was off when the email went.</div>' : ''}`;
+    ${without ? '<div class="ps-meta">Emailed without WhatsApp: no number on file, or WhatsApp was off when the email went.</div>' : ''}`;
 }
 
 // Times are Dubai time whoever is looking (Accounts work from the Philippines).
