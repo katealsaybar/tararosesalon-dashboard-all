@@ -11,6 +11,8 @@
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var D = null, cur = 'all', cal = null, drag = null, draft = {}, errMsg = '';
   var TODAY = dubaiToday();
+  var LIVE = null, liveErr = false;   // the audience counted from the till (blast_plan_audience); the numbers typed into the plan are only a fallback
+  var BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
 
   function dubaiToday() {
     try {
@@ -56,8 +58,36 @@
       '<div class="cbl-btn">Tell me more</div></div>' +
       '<div class="cbl-compose"><span class="cbl-input">Message</span><span class="cbl-mic"></span></div></div></div></div>';
   }
-  function lane(label, m, img) {
-    return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + (m.c ? esc(m.c) + ' clients' : '') + '</span></div>' +
+  function fmtN(n) { return Number(n || 0).toLocaleString('en-GB'); }
+  // The clients behind a number (Kate, 30 Oct 2026: "client numbers should be clickable, and always updated"): the shared list window of drill.js.
+  function drillSpec(b, grp) {
+    var what = grp === 'warm' ? 'warm' : grp === 'std' ? 'standard' : 'all';
+    return {
+      title: b.data.title + ', ' + what + ' clients', cur: 'AED',
+      sub: 'Who is in this blast right now, counted from the till.' + (grp ? '' : ' Warm and standard together.'),
+      views: [{ id: 'clients', label: 'Clients', load: async function () {
+        var r = await rpc('blast_plan_clients', { p_blast: b.id, p_group: grp || null });
+        var rows = (r.rows || []).map(function (x) { return { c: x.c, b: BR[x.b] || x.b, g: x.g === 'warm' ? 'Warm' : 'Standard', lv: x.lv, s: x.s, v: x.v }; });
+        return {
+          cols: [{ k: 'c', l: 'Client' }, { k: 'b', l: 'Branch' }, { k: 'g', l: 'Group' }, { k: 'lv', l: 'Last visit', t: 'date' }, { k: 's', l: 'Spent this year', t: 'aed' }, { k: 'v', l: 'Visits this year', t: 'num' }],
+          rows: rows, empty: 'Nobody is in this group right now.',
+          note: r.total > rows.length ? 'Showing the first ' + fmtN(rows.length) + ' of ' + fmtN(r.total) + '.' : ''
+        };
+      } }]
+    };
+  }
+  // A client number: counted from the till when we have it ('…' while it is being counted), the typed plan number if the count failed. Opens its list.
+  function numHtml(b, key, fallback) {
+    if (!LIVE || !LIVE.blasts) return liveErr ? esc(fallback || '') : '…';
+    var x = LIVE.blasts[b.id] || { n: 0, warm: 0, std: 0 }, n = x[key], t = fmtN(n);
+    return (typeof TRSD !== 'undefined' && n > 0) ? TRSD.num(t, drillSpec(b, key === 'n' ? null : key)) : t;
+  }
+  function liveNote() {
+    if (LIVE && LIVE.asof) return '<span class="cbl-live">Counted from the till, ' + fd(String(LIVE.asof).slice(0, 10)) + '</span>';
+    return '<span class="cbl-live">' + (liveErr ? 'Saved count, could not update' : 'Counting from the till…') + '</span>';
+  }
+  function lane(label, m, img, b, grp) {
+    return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + numHtml(b, grp, m.c) + ' clients</span></div>' +
       '<div class="w">' + (label === 'Warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phone(m, img) +
       '<div class="cbl-name">' + esc(m.name) + '</div></div>';
   }
@@ -96,10 +126,10 @@
     var ids = ord(), ap = ids.filter(function (id) { return item(id).review === 'ok'; }).length, lk = ids.filter(function (id) { return item(id).locked; }).length;
     var rows = ids.map(function (id) {
       var b = item(id);
-      return '<a class="cbl-r" href="?view=campaignblasts" data-go="' + esc(id) + '"><b>' + esc(b.data.title) + '</b><span class="cbl-chip ' + cls(b.review) + '">' + lab(b.review) + '</span>' +
-        '<small>' + fd(b.send_date) + ', ' + ft(b.send_time) + ' · ' + esc(b.data.n) + ' clients' + (b.locked ? ' · time locked' : '') + (b.comments.length ? ' · ' + b.comments.length + ' comments' : '') + '</small></a>';
+      return '<div class="cbl-r" data-go="' + esc(id) + '"><a class="cbl-rl" href="?view=campaignblasts" data-go="' + esc(id) + '"><b>' + esc(b.data.title) + '</b></a><span class="cbl-chip ' + cls(b.review) + '">' + lab(b.review) + '</span>' +
+        '<small>' + fd(b.send_date) + ', ' + ft(b.send_time) + ' · ' + numHtml(b, 'n', b.data.n) + ' clients' + (b.locked ? ' · time locked' : '') + (b.comments.length ? ' · ' + b.comments.length + ' comments' : '') + '</small></div>';
     }).join('');
-    return '<div><div class="cbl-eyebrow">Internal draft</div><h2>Campaign blasts, November</h2></div>' +
+    return '<div><div class="cbl-eyebrow">Internal draft</div><h2>November</h2></div>' +
       '<div class="cbl-sum"><span class="cbl-chip"><b>' + ap + ' of ' + ids.length + '</b> approved</span><span class="cbl-chip"><b>' + lk + ' of ' + ids.length + '</b> times locked</span></div>' +
       '<div class="cbl-card cbl-rows">' + rows + '</div>';
   }
@@ -132,14 +162,14 @@
     var hasWhy = k === 'changes' && b.comments.some(function (c) { return c.by === b.review_by && b.review_at && new Date(c.at) >= new Date(new Date(b.review_at).getTime() - 60000); });
     return '<a class="cbl-back" href="?view=campaignblasts" data-go="all">‹ All blasts</a>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
-      '<div class="cbl-facts"><div class="cbl-fact cbl-card"><small>Clients</small><b>' + esc(b.data.n) + '</b></div><div class="cbl-fact cbl-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cbl-fact cbl-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + '</div>' +
+      '<div class="cbl-facts"><div class="cbl-fact cbl-card"><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b>' + liveNote() + '</div><div class="cbl-fact cbl-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cbl-fact cbl-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + '</div>' +
       '<div class="cbl-row2">' + pageCard(b) +
       '<div class="cbl-card cbl-when"><h3>When it goes out</h3>' +
       '<label class="cbl-fld">Date<input type="date" id="cblDate" value="' + b.send_date + '"></label>' +
       '<label class="cbl-fld">Time (Dubai)<select id="cblTime">' + times + '</select></label>' +
       '<label class="cbl-sw"><input type="checkbox" id="cblLock"' + (b.locked ? ' checked' : '') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
       (w.length ? '<p class="cbl-note warn">' + w.join(' ') + '</p>' : '<p class="cbl-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') + '</div>' + '</div>' +
-      '<div class="cbl-phones">' + lane('Warm', b.data.warm, b.data.img) + lane('Standard', b.data.std, b.data.img) + '</div>' +
+      '<div class="cbl-phones">' + lane('Warm', b.data.warm, b.data.img, b, 'warm') + lane('Standard', b.data.std, b.data.img, b, 'std') + '</div>' +
       '<div class="cbl-card cbl-rev"><div class="cbl-rev-top"><h3>Review and comments</h3><div class="cbl-seg" role="group" aria-label="Review">' +
       '<button type="button" data-st="ok" class="ok' + (k === 'ok' ? ' on' : '') + '">Approve</button><button type="button" data-st="changes" class="changes' + (k === 'changes' ? ' on' : '') + '">Needs changes</button></div></div>' +
       (k !== 'none' && b.review_by ? '<div class="cbl-by">' + (k === 'ok' ? 'Approved' : 'Marked needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + '</div>' : '') +
@@ -188,6 +218,9 @@
     var r = el.getBoundingClientRect();
     if (r.top < 60) window.scrollTo({ top: Math.max(0, window.scrollY + r.top - 140), left: 0, behavior: 'instant' });
   }
+  async function loadLive() {
+    try { LIVE = await rpc('blast_plan_audience'); liveErr = false; } catch (e) { console.error(e); liveErr = true; }
+  }
   async function reload() {
     try { var d = await rpc('blast_plan_get'); D = d; if (cur !== 'all' && !item(cur)) cur = 'all'; } catch (e) { errMsg = 'Could not refresh: ' + e.message; }
   }
@@ -199,7 +232,9 @@
 
   document.addEventListener('click', function (e) {
     var root = main(); if (!root || !D || !root.contains(e.target)) return;
-    var t = e.target, a = t.closest && t.closest('[data-go]');
+    var t = e.target;
+    if (t.closest && t.closest('.dn')) { e.preventDefault(); return; }   // a client number: drill.js opens its list
+    var a = t.closest && t.closest('[data-go]');
     if (a) { e.preventDefault(); go(a.getAttribute('data-go')); return; }
     var c = t.closest && t.closest('[data-act]');
     if (c) { var dm = c.getAttribute('data-act') === 'next' ? 1 : -1; cal.m += dm; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); return; }
@@ -257,7 +292,7 @@
   document.addEventListener('visibilitychange', function () {   // come back to the tab and see what others wrote
     if (document.visibilityState !== 'visible' || !D || !main() || main().offsetParent === null) return;
     var ta = document.getElementById('cblCmt'); if (ta && document.activeElement === ta) return;
-    reload().then(function () { render(true); });
+    Promise.all([reload(), loadLive()]).then(function () { render(true); });
   });
 
   // Called by showView each time the page opens: read what the database says now, then draw.
@@ -269,5 +304,6 @@
     try { D = await rpc('blast_plan_get'); } catch (e) { console.error(e); notFound(); return; }
     if (cur !== 'all' && !item(cur)) cur = 'all';
     render();
+    loadLive().then(function () { if (main() && main().offsetParent !== null) render(true); });   // the counts come a moment after the page
   };
 })();
