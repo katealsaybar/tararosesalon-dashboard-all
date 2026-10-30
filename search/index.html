@@ -275,15 +275,15 @@
     document.getElementById('srHint').textContent = 'Treatments, policies and how-tos.';
   }
   // The four doors (Kate, 30 Oct 2026). A door shows only when this person has something behind it, by the same rule as Team Home's cards (KB.opens).
-  // Knowledge Base and Tools open Team Home on their square; Team Home is always there.
+  // Knowledge Base and Tools open their own page (Team Home with ?door=kb or ?door=tools); Team Home is always there.
   var opened = KB.SECTIONS.filter(KB.opens);
   function hasDept(d) { return opened.some(function (x) { return x.dept === d; }); }
   var doorOn = { dash: dash, kb: hasDept('Learn') || hasDept('The Tara Rose Way'), tools: hasDept('Tools'), hub: true };
   document.querySelectorAll('#srDoors .sr-door').forEach(function (a) {
     var d = a.getAttribute('data-d');
     a.classList.toggle('hide', !doorOn[d]);
-    if (d === 'kb') a.href = '/hub/#g=' + encodeURIComponent(hasDept('Learn') ? 'Learn' : 'The Tara Rose Way');
-    if (d === 'tools') a.href = '/hub/#g=Tools';
+    if (d === 'kb') a.href = '/hub/?door=kb';
+    if (d === 'tools') a.href = '/hub/?door=tools';
   });
   document.body.classList.remove('sr-wait');
   input.focus();

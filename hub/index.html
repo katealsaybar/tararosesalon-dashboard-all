@@ -100,6 +100,21 @@ KB.ready.then(async function () {
       return { key: k, title: DASH_PAGES[v], href: '/?view=' + v, live: true, rule: 'var(--accent-lavender)', blurb: 'Dashboards',
         ic: (trsPage(v) || {}).ic === 'lost-clients' ? 'lost-clients' : 'dashboards' }; });
 
+  // Kate, 30 Oct 2026: the front door's Knowledge Base and Tools doors (/search/) open Team Home on that place only (?door=kb, ?door=tools),
+  // not the whole of Team Home. Team Home itself (no ?door) is unchanged.
+  var DOORS = {
+    kb: { title: 'Knowledge Base', blurb: 'Read and learn: the Tara Rose Way, SOPs, inductions, onboarding, scripts, and the guides and forms we use.',
+      lists: [{ title: 'The Tara Rose Way', dept: 'The Tara Rose Way' }, { title: 'Learn', dept: 'Learn' },
+        { title: 'Guides and forms', keys: ['price-list', 'client-matching', 'marketing-optout', 'hr-forms', 'magazines'] }] },
+    tools: { title: 'Tools', blurb: 'Where you do something and the site remembers it: approve, schedule, send, record.',
+      lists: [{ title: 'Tools', dept: 'Tools' }] }
+  };
+  var door = DOORS[new URLSearchParams(location.search).get('door')] || null;
+  if (door) {
+    document.title = door.title + ' · Team Home';
+    document.getElementById('kbIntro').textContent = door.blurb;
+    document.getElementById('kbMyLink').hidden = true;
+  }
   var isLive = function (s) { return !!(s.live || s.via || counts[s.key]); };
   // Kate, 5 Oct 2026: each department is one panel of rows (icon, title, one line,
   // page count, star), the panels flowing in two columns on a desktop and one on a
@@ -136,7 +151,16 @@ KB.ready.then(async function () {
     return '<div class="kb-fvwrap"><a class="kb-gtile kb-fvbox" href="' + esc(s.href || '/hub/kb.html?s=' + s.key) + '"' + (s.blurb ? ' title="' + esc(s.blurb) + '"' : '') + '>' +
       icon(s) + '<span class="kb-gt-tx"><b>' + esc(s.title) + '</b>' + (function (sub) { return sub ? '<span>' + esc(sub) + '</span>' : ''; })(s.dept || (s.key.indexOf('p:') === 0 ? s.blurb : '') || (/^\/\?view=/.test(s.href || '') ? 'Dashboard' : '')) + '</span></a>' + KB.starBtn(s.key, s.title) + '</div>';
   }
+  function paintDoor() {
+    var html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a></p>', any = false;
+    door.lists.forEach(function (l) {
+      var list = shown.filter(function (s) { return l.keys ? l.keys.indexOf(s.key) >= 0 : s.dept === l.dept; });
+      if (list.length) { any = true; html += '<div class="kb-depts kb-depts-one">' + group(l.title, list) + '</div>'; }
+    });
+    document.getElementById('kbGrid').innerHTML = any ? html : html + '<p class="kb-msg">Nothing here for your account yet. <a href="/search/">Back to the front door</a></p>';
+  }
   function paint() {
+    if (door) { paintDoor(); return; }
     var starred = shown.filter(function (s) { return favs[s.key] && isLive(s) && !s.sample; })
       .concat(pageFavs.filter(function (p) { return favs[p.key]; }))
       .concat(dashFavs.filter(function (p) { return favs[p.key]; }));
