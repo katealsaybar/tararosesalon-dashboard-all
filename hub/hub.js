@@ -148,8 +148,8 @@
     { key: 'staff-campaign', dept: 'Marketing', title: 'Staff Campaign Messages', href: '/hub/staff-campaign', live: true, rule: 'var(--accent-butter)',
       blurb: 'Tell the team about a campaign on WhatsApp before it launches.' },
     // Kate, 30 Oct 2026: what each WhatsApp blast looks like on the phone, when it goes out, and Coach Emma's review
-    // (kb_sections 'campaign-blasts', Executives & Marketing and Kate, migrations/campaign_blasts.sql).
-    { key: 'campaign-blasts', dept: 'Marketing', title: 'Campaign Blasts', href: '/hub/campaign-blasts', live: true, rule: 'var(--accent-butter)',
+    // (a dashboard page, ?view=campaignblasts: it follows that page's own list in pages.js, so Executives & Marketing and Kate; migrations/campaign_blasts.sql).
+    { key: 'campaign-blasts', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Marketing', title: 'Campaign Blasts', href: '/?view=campaignblasts', rule: 'var(--accent-butter)',
       blurb: 'Each WhatsApp blast as the client sees it, the day and time it goes out, and Coach Emma’s review.' },
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },

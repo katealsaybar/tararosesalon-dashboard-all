@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=f0ff9494"></script>
+<script src="pages.js?v=a2cf3c50"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3526,6 +3526,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="wv-blast.css?v=b3a76261">
 <link rel="stylesheet" href="target-links.css?v=20377623">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
+<link rel="stylesheet" href="campaign-blasts.css?v=1c539f91">
 <link rel="stylesheet" href="active-deals.css?v=f6158902">
 <link rel="stylesheet" href="discounts-vouchers.css?v=ef15eb90">
 <link rel="stylesheet" href="tool-spend.css?v=d72f64aa">
@@ -3586,6 +3587,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       lv:  ['stylist-levels.js?v=f8d576a4'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['glow-club.js?v=84f11759'],
+      // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
+      cbl: ['campaign-blasts.js?v=a4413dc1'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'active-deals.js?v=442ed4c5'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -3775,8 +3778,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-subhead">2025</div>
     <div class="nav-sub" onclick="showView('glowclub', this)">Glow Club Performance</div>
     <div class="nav-subhead">2026</div>
-    <!-- Kate, 30 Oct 2026: Campaign Blasts is a Team Home page (hub/campaign-blasts); this row opens it. Executives & Marketing and Kate only, see tidyNav(). -->
-    <div class="nav-sub" data-cbl onclick="location.href='/hub/campaign-blasts'">Campaign Blasts, November</div>
+    <!-- Kate, 30 Oct 2026: Campaign Blasts, Executives & Marketing and Kate (pages.js lv [] and min 3). -->
+    <div class="nav-sub" onclick="showView('campaignblasts', this)">Campaign Blasts, November</div>
     <div class="nav-sub" onclick="showView('lostlists', this)">Lost Client Blasts, October 2026</div>
     <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
     <div class="nav-sub lvl2" data-wvb="all" onclick="wvGoBlast('all', this)">Overall Blast performances</div>
@@ -4391,6 +4394,13 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="glowClubContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- CAMPAIGN BLASTS (Kate, 30 Oct 2026): what each WhatsApp blast looks like on the phone, when it goes out, and Coach Emma's review.
+       Executives & Marketing and Kate; blast_plan_get() and the other blast_plan_* functions check the level again (migrations/campaign_blasts.sql).
+       campaign-blasts.js draws it. Nothing is sent from here. -->
+  <div id="view-campaignblasts" style="display:none">
+    <main id="campaignBlastsContent" style="max-width:1240px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- ACTIVE DEALS PERFORMANCE (Kate, 23 Oct 2026): how many times each deal on the active deals brochure was bought at the till, in the Wellness
        Voucher Performance format. No filters of its own: it reads the masthead's Branch and Period (pages.js filtered + nopulse, dashboard.js
        NOPULSE_REDRAW). Level 2 and above, no client names. active_deals_performance() (migrations/active_deals_performance.sql); active-deals.js draws it. -->
@@ -4780,8 +4790,6 @@ function tidyNav(){
   const wvOpen = typeof trsPageOpen === 'function' && trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
   document.querySelectorAll('#sidebar .nav-sub[data-wvb]').forEach(el => { el.style.display = wvOpen ? '' : 'none'; });
   document.querySelectorAll('#sidebar .nav-sub.has-kids').forEach(p => { const b = p.querySelector('.nav-kids-btn'); if (b && p.nextElementSibling && p.nextElementSibling.hasAttribute('data-wvb')) b.style.display = wvOpen ? '' : 'none'; });
-  // Campaign Blasts (a Team Home page) is for Executives & Marketing and Kate; Accounts and the floor do not get the row.
-  document.querySelectorAll('#sidebar .nav-sub[data-cbl]').forEach(el => { el.style.display = (TRS_LEVEL === 3 || TRS_LEVEL === 5) ? '' : 'none'; });
   const open = el => el.style.display !== 'none' && /showView/.test(el.getAttribute('onclick') || '');
   document.querySelectorAll('#sidebar .nav-subhead').forEach(h => {
     let n = h.nextElementSibling, any = false;
@@ -5072,10 +5080,10 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
-  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub');
+  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
   document.body.classList.toggle('toolspend-chrome', view === 'toolspend');
@@ -5110,6 +5118,7 @@ function showView(view, el){
   if (view === 'lostlists') renderLostListsPage();
   if (view === 'wvblast') renderWvBlast();
   if (view === 'glowclub') renderGlowClub();
+  if (view === 'campaignblasts') renderCampaignBlasts();
   if (view === 'dealsperf') renderDealsPerf();
   if (view === 'discountsvouchers') renderDiscountsVouchers();
   if (view === 'googleads') renderGoogleAds();
