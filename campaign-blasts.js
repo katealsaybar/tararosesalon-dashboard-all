@@ -60,6 +60,8 @@
       '<div class="cbl-compose"><span class="cbl-input">Message</span><span class="cbl-mic"></span></div></div></div></div>';
   }
   // What she gets after she taps Tell me more (Kate, 30 Oct 2026): her tap, then our reply, so Emma reads the whole exchange. Plain text in b.data.reply.
+  // data.reply is {warm, std} (Warm and Standard differ), or one plain text for both.
+  function replyFor(b, grp) { var r = b.data.reply; return r && typeof r === 'object' ? r[grp] : r; }
   function replyHtml(t) {
     if (!t) return '';
     var body = esc(String(t).replace(/\{\{1\}\}/g, 'Layla')).replace(/(https?:\/\/[^\s]+)/g, '<span class="cbl-url">$1</span>');
@@ -96,7 +98,7 @@
   }
   function lane(label, m, img, b, grp) {
     return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + numHtml(b, grp, m.c) + ' clients</span></div>' +
-      '<div class="w">' + (label === 'Warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phone(m, img, b.data.reply) +
+      '<div class="w">' + (label === 'Warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phone(m, img, replyFor(b, grp)) +
       '<div class="cbl-name">' + esc(m.name) + '</div></div>';
   }
 
