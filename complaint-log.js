@@ -43,6 +43,76 @@ function cmpCssTag() {
   </style>`;
 }
 
+// Adult learning audit (ALAD-3, Kate, 30 Oct 2026): the why wall and the two doors at the top, the form in three short steps, the answer to "what did my
+// choice do" under the kind, and one next step after saving. Wording and layout only: the same fields are sent, the same functions are called.
+function cqLogCss() {
+  return `<style>
+    .cql-why{max-width:820px;margin:0 0 14px;font-size:14px;line-height:1.55}
+    .cql-why p{margin:0}
+    .cql-doors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 8px;max-width:820px}
+    .cql-door{display:flex;flex-direction:column;gap:3px;text-align:left;font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:14px 16px;min-height:64px;cursor:pointer}
+    .cql-door b{font-size:15px;font-weight:600}
+    .cql-door span{font-size:12.5px;color:var(--muted)}
+    .cql-door:hover,.cql-door:focus-visible{background:var(--surface2);border-color:var(--accent)}
+    .cql-door.over span{color:#d9534f}
+    .cql-more{margin:0 0 16px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+    .cql-pill{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);text-decoration:none}
+    .cql-pill:hover,.cql-pill:focus-visible{background:var(--surface2);border-color:var(--accent)}
+    .cql-step{margin:14px 0 0}
+    .cql-step h3{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin:0 0 2px}
+    .cql-step h3 i{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--bg);font:600 12px/1 inherit;font-style:normal;flex:none}
+    .cql-l{display:block}
+    .cq-req{font-style:normal;font-size:11px;font-weight:600;color:var(--accent);margin-left:6px;letter-spacing:.02em}
+    .cql-inline{display:flex;gap:8px;align-items:center}
+    .cq-form .cql-inline .cq-in{flex:1 1 auto;width:auto;min-width:0}
+    .cql-inline .cq-btn{flex:none;min-height:38px}
+    .cql-here{margin:-4px 0 0;font-size:12.5px;line-height:1.45;color:var(--muted);padding:7px 10px;border-left:3px solid var(--accent);background:var(--surface2);border-radius:0 8px 8px 0}
+    @media (min-width:1280px){.cql-here{display:none}}
+    .cql-fold{margin:14px 0 4px;border-top:1px solid var(--border);padding-top:10px}
+    .cql-fold>summary{cursor:pointer;font-size:13.5px;font-weight:600;list-style:none}
+    .cql-fold>summary::-webkit-details-marker{display:none}
+    .cql-fold>summary::before{content:'+';display:inline-block;width:16px;color:var(--muted)}
+    .cql-fold[open]>summary::before{content:'−'}
+    .cql-fold>summary small{font-weight:400;color:var(--muted);margin-left:6px}
+    .cql-lead{margin:2px 0 0;font-size:12.5px;color:var(--muted);line-height:1.45}
+    .cql-ask{margin:0 0 10px}
+    .cql-ask .cq-bar{margin:10px 0 0}
+    .cql-alw{font-size:12px;color:var(--muted);align-self:center}
+    @media (max-width:760px){.cql-doors{grid-template-columns:1fr}.cql-door{min-height:60px}#cqfGo{min-height:44px;padding:0 22px}}
+  </style>`;
+}
+
+// Who is signed in, once: the owner of a new complaint defaults to them, and the confirmation says "you".
+let cqMeName = null;
+async function cqWhoAmI() {
+  if (cqMeName !== null) return cqMeName;
+  try { const m = await TRSAuth.me(); cqMeName = String((m && m.name) || '').trim(); } catch (e) { cqMeName = ''; }
+  return cqMeName;
+}
+async function cqFillMe(force) {
+  const el = document.getElementById('cqfResp');
+  if (!el || (el.value.trim() && !force)) return;
+  const n = await cqWhoAmI();
+  if (n && el && (force || !el.value.trim())) el.value = n;
+}
+const cqNameList = (a) => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+const cqShortDay = iso => { const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }); };
+const cqPlusDays = (iso, n) => { const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+
+// What the kind and the branch did, in one line right under the kind (the side card sits beside the form on a wide screen, under it on a phone)
+function cmpDrawHere() {
+  const el = document.getElementById('cmpHere');
+  if (!el) return;
+  const ch = CMPF.chain;
+  if (!ch) { el.textContent = 'Pick the branch and the kind, and this line says who hears about it first.'; return; }
+  const names = ps => cqNameList((ps || []).map(p => p.name));
+  const hrs = Math.round((ch.step_minutes || 180) / 60);
+  const s0 = (ch.steps && ch.steps[0] && ch.steps[0].people) || [], s1 = (ch.steps && ch.steps[1] && ch.steps[1].people) || [];
+  if (ch.grp === 'minor') el.textContent = 'This one goes to the daily summary. Nobody needs to act.';
+  else if (ch.grp === 'urgent') el.textContent = `${names(s0)} are told at once, and you will see who to ring.`;
+  else el.textContent = `${names(s0)} hear about it first${s1.length ? `, then ${names(s1)} after ${hrs} hours` : ''}.`;
+}
+
 function cmpWho() {
   return `<div class="wide cmp-who">
     <div class="cmp-lab">Who was involved? <small>(written down, not messaged. Their coordinator will talk to them)</small></div>
@@ -81,6 +151,7 @@ function cmpDrawCc() {
   if (!box) return;
   const told = (CMPF.chain && CMPF.chain.told) || [];
   const fixed = told.map(t => `<span class="cmp-pill fixed" title="Always told, nothing for you to do">${cmpE(t.name)}${/^(Kate)$/.test(t.name) ? '' : ' (coordinator)'}</span>`);
+  if (fixed.length) fixed.unshift(`<span class="cql-alw">Always told, nothing for you to do:</span>`);   // said on the page, not only in a hover tip (a phone has no hover)
   const mine = CMPF.cc.map(p => `<button type="button" class="cmp-pill on" data-cc="rm" data-v="${cmpE(p.email)}" title="Take off">${cmpE(p.name)} <span class="x">×</span></button>`);
   box.innerHTML = fixed.concat(mine).concat([`<button type="button" class="cmp-pill" data-cc="add">+ Add</button>`]).join('');
 }
@@ -108,6 +179,7 @@ function cmpOpenPanel(mode) {
 }
 
 function cmpDrawSide() {
+  cmpDrawHere();
   const box = document.getElementById('cmpSide');
   if (!box) return;
   const ch = CMPF.chain;
@@ -158,6 +230,9 @@ function cmpFormInit() {
   CmpPeople.load().then(() => { cmpDrawSide(); });
   CmpPeople.subs.push(() => { if (document.getElementById('cmpSide')) cmpDrawSide(); });
   ['cqfType', 'cqfBranch'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('change', cmpLoadChain); });
+  const ty = document.getElementById('cqfType'); if (ty) ty.addEventListener('change', cqKindChanged);
+  const meBtn = document.getElementById('cqfMe'); if (meBtn) meBtn.addEventListener('click', () => cqFillMe(true));
+  cqFillMe(false);
   const stl = document.getElementById('cqfStylist'); if (stl) stl.addEventListener('input', () => { cmpDrawInv(); cmpDrawSide(); });
   cmpLoadChain();
   card.addEventListener('click', e => {
@@ -194,9 +269,9 @@ async function cmpSavePeople(id) {
   try {
     const { data, error } = await sb.rpc('cmp_set_people', { p_id: id, p_involved: involved, p_cc: cc });
     if (error) throw error;
-    if (!data || !data.ok) return `The people were not saved (${data && data.why ? data.why : 'try again on the ticket'}).`;
+    if (!data || !data.ok) return `The people were not saved (${data && data.why ? data.why : 'try again on the complaint page'}).`;
     return '';
-  } catch (e) { console.error(e); return 'The people were not saved. Add them on the ticket.'; }
+  } catch (e) { console.error(e); return 'The people were not saved. Add them on the complaint page.'; }
 }
 
 // Skin reaction or injury: not a message and wait. The person who logged it sees "needs a call now"; the numbers show only to them, only for an hour,
@@ -237,7 +312,7 @@ async function cmpUrgentShow(id, code) {
   cmpUrgentTimer = setInterval(look, 20000);
 }
 
-// Under the title: My complaints, and the Pipeline for leadership and the salon coordinators (the database says who, cmp_my_badge)
+// Under the two doors: My complaints, and the Pipeline for leadership and the salon coordinators (the database says who, cmp_my_badge)
 async function cmpLinks() {
   const box = document.getElementById('cmpLinks');
   if (!box) return;
@@ -245,20 +320,26 @@ async function cmpLinks() {
     const { data } = await sb.rpc('cmp_my_badge');
     if (!data) return;
     const dot = ((data.waiting || 0) + (data.tagged || 0)) > 0 ? ' <span title="Something is waiting for you" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#B4412F;vertical-align:middle"></span>' : '';
-    box.innerHTML = `<a class="cq-link" href="/hub/complaint">My complaints${dot}</a>` + (data.board ? ` &nbsp;·&nbsp; <a class="cq-link" href="/hub/complaint?view=board">Pipeline</a>` : '');
+    box.innerHTML = `<span>Or open</span> <a class="cql-pill" href="/hub/complaint">My complaints${dot}</a>` + (data.board ? ` <a class="cql-pill" href="/hub/complaint?view=board">Pipeline</a>` : '');
   } catch (e) { /* the plain link stays */ }
 }
 
-// the new code, shown right after the save with a Copy button
-async function cmpDone(id, text) {
+// After the save: one next step (who replies, by when), the new code with a Copy button, and one link to the complaint page. info = { client, owner, complaintDate, resolved, extra }
+async function cmpDone(id, info) {
   const ok = document.getElementById('cqfOk');
   if (!ok) return null;
-  let code = null;
+  let code = null, due = null;
   try {
     const { data } = await sb.rpc('client_complaints_list', { p_src: 'logged', p_limit: 1, p_offset: 0, p_id: id });
-    const r = data && data.rows && data.rows[0]; code = r && r.code;
+    const r = data && data.rows && data.rows[0]; code = r && r.code; due = r && r.reply_due;
   } catch (e) { /* the list below shows it */ }
-  ok.innerHTML = `<div class="cmp-ok">${code ? `<span class="cq-code">${cmpE(code)} <button type="button" data-copy="${cmpE(code)}">Copy</button></span>` : ''}<span>${cmpE(text)}</span>${id ? `<a class="cq-link" href="/hub/complaint?cid=${id}" target="_blank" rel="noopener">Open the ticket</a>` : ''}</div>`;
+  if (!due && info.complaintDate) due = cqPlusDays(info.complaintDate, 2);
+  const me = (cqMeName || '').toLowerCase(), owner = info.owner || '';
+  const who = owner && me && owner.toLowerCase() === me ? 'you' : (owner || 'not set');
+  const first = String(info.client || '').trim().split(/\s+/)[0] || 'her';
+  const head = info.resolved ? 'Logged as resolved.' : `Logged. Reply to ${first} by ${due ? cqShortDay(due) : 'the end of day 2'}. Owner: ${who}.`;
+  ok.innerHTML = `<div class="cmp-ok"><b>${cmpE(head)}</b>${code ? `<span class="cq-code">${cmpE(code)} <button type="button" data-copy="${cmpE(code)}">Copy</button></span>` : ''}${id ? `<a class="cq-link" href="/hub/complaint?cid=${id}" target="_blank" rel="noopener">Open the complaint page</a>` : ''}</div>`
+    + (info.extra ? `<p class="cq-note" style="margin:0 0 10px">${cmpE(info.extra.trim())}</p>` : '');
   return code;
 }
 
@@ -295,46 +376,94 @@ async function cqCheckDup() {
   } catch (e) { /* the server checks again on submit */ }
 }
 
+// The outcomes the form offers. A colour complaint cannot be closed until she has come back (Belle's rule, 26 Oct 2026), so for that kind they are not offered at all.
+function cqResOpts(type) {
+  return ['<option value="">Not resolved yet (keep it open)</option>'].concat(Object.keys(CQ_RES)
+    .filter(k => k !== 'unclear' && k !== 'open' && !(type === 'colour_result' && CQ_NEEDS_REVISIT.includes(k)))
+    .map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
+}
+function cqKindChanged() {
+  const t = cmpVal('cqfType'), sel = document.getElementById('cqfRes'), note = document.getElementById('cqlColour');
+  if (sel) { const keep = sel.value; sel.innerHTML = cqResOpts(t); if ([...sel.options].some(o => o.value === keep)) sel.value = keep; }
+  if (note) note.hidden = t !== 'colour_result';
+}
+
 function cqForm() {
   const picked = cqPicked();
   const brs = [['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'], ['BAH', 'Bahrain']];
   const bopts = ['<option value="">Pick the branch</option>'].concat(brs.map(([k, l]) => `<option value="${k}"${picked.length === 1 && picked[0] === k ? ' selected' : ''}>${l}</option>`)).join('');
   const topts = ['<option value="">Pick one</option>'].concat(Object.keys(CQ_TYPE).filter(k => k !== 'unclear' && k !== 'repeat_complainer').map(k => `<option value="${k}">${cqEsc(CQ_TYPE[k])}</option>`)).join('');
-  const ropts = ['<option value="">Not resolved yet (keep it open)</option>'].concat(Object.keys(CQ_RES).filter(k => k !== 'unclear' && k !== 'open').map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
+  const ropts = cqResOpts('');
   const today = cqToday();
-  // Minimisable (Kate, 22 Oct 2026): open the first time, then it stays as it was left in this browser.
+  const req = '<em class="cq-req">required</em>';
+  // Minimisable (Kate, 22 Oct 2026): open the first time, then it stays as it was left in this browser. A door or a link that opens or folds it does not change what is remembered.
   let closed = false; try { closed = localStorage.getItem('trs-cq-form') === 'closed'; } catch (e) {}
-  return `<details class="cq-card" id="cq-new"${closed ? '' : ' open'} ontoggle="try{localStorage.setItem('trs-cq-form',this.open?'open':'closed')}catch(e){}"><summary>Log a complaint ${cqInfo()}</summary>
-    <p class="cq-note" style="margin-top:6px">For a complaint a client made that is not in the Phorest notes yet. It is counted with the rest and marked as logged by staff, under your name. The client, her mobile number, branch, the date of the appointment, the date she complained (as reception wrote it in Phorest), the kind and what happened are needed; the rest helps. The mobile number finds her again fast. Reply to her within 2 days of the complaint and close it within 7: the list shows what is overdue. A colour complaint stays open until she has come back.</p>
+  return `<details class="cq-card" id="cq-new"${closed ? '' : ' open'} ontoggle="try{if(!this.dataset.door)localStorage.setItem('trs-cq-form',this.open?'open':'closed');delete this.dataset.door}catch(e){}"><summary>Log a complaint</summary>
+    <p class="cq-note" style="margin-top:6px">For a complaint a client made that is not in the Phorest notes yet. It is counted with the rest and marked as logged by staff, under your name. Three short steps; the fields marked required are the ones it needs.</p>
     ${cmpCssTag()}
     <div class="cmp-split" id="cmpSplit">
     <div class="cmp-f">
-    <div class="cq-form">
-      <label>Client's full name<input id="cqfClient" class="cq-in" maxlength="80" autocomplete="off"></label>
-      <label>Mobile number<input id="cqfPhone" class="cq-in" type="tel" inputmode="tel" maxlength="24" autocomplete="off" placeholder="05x xxx xxxx or +971 …"></label>
-      <label>Branch<select id="cqfBranch" class="cq-sel">${bopts}</select></label>
-      <label>Date of the appointment<input id="cqfDate" class="cq-in" type="date" max="${today}"></label>
-      <label>Date she complained<input id="cqfCDate" class="cq-in" type="date" max="${today}" value="${today}"></label>
-      <label>Stylist (optional)<input id="cqfStylist" class="cq-in" maxlength="80" autocomplete="off"></label>
-      <label>Service (optional)<input id="cqfService" class="cq-in" maxlength="120" autocomplete="off"></label>
-      <label>What it was about<select id="cqfType" class="cq-sel">${topts}</select></label>
-      <label class="wide">What happened<textarea id="cqfDetail" rows="3" maxlength="4000" placeholder="One or two sentences, in your own words"></textarea></label>
-      <label>Responsible for closing it (optional)<input id="cqfResp" class="cq-in" maxlength="80" list="cqRespList" autocomplete="off"></label>
-      <label>How it was resolved, if it has been<select id="cqfRes" class="cq-sel">${ropts}</select></label>
-      <label>How it ended, in a few words (optional)<input id="cqfResD" class="cq-in" maxlength="300" autocomplete="off"></label>
-      <label>Handled by (optional)<input id="cqfBy" class="cq-in" maxlength="80" autocomplete="off"></label>
-      <label>Google review link, if they posted one (optional)<input id="cqfG" class="cq-in" type="url" placeholder="https://" autocomplete="off"></label>
-      <label class="wide">Screenshots of the conversation or photos (optional, up to 10 files of 10 MB)<input id="cqfFiles" type="file" multiple accept="image/*,application/pdf,.txt"></label>
-      ${cmpWho()}
-    </div>
-    <div id="cqfDup" class="cq-dup" hidden></div>
+    <section class="cql-step">
+      <h3><i>1</i>Who she is</h3>
+      <p class="cql-lead">Search Logged complaints below for her name or mobile number first. If she is already there, open it and add a follow-up instead.</p>
+      <div class="cq-form">
+        <label><span class="cql-l">Client's full name ${req}</span><input id="cqfClient" class="cq-in" maxlength="80" autocomplete="off"></label>
+        <label><span class="cql-l">Mobile number ${req}</span><input id="cqfPhone" class="cq-in" type="tel" inputmode="tel" maxlength="24" autocomplete="off" placeholder="05x xxx xxxx or +971 …"></label>
+        <label><span class="cql-l">Branch ${req}</span><select id="cqfBranch" class="cq-sel">${bopts}</select></label>
+      </div>
+      <div id="cqfDup" class="cq-dup" hidden></div>
+    </section>
+    <section class="cql-step">
+      <h3><i>2</i>What happened</h3>
+      <div class="cq-form">
+        <label><span class="cql-l">Date of the appointment ${req}</span><input id="cqfDate" class="cq-in" type="date" max="${today}"></label>
+        <label><span class="cql-l">Date she complained ${req}</span><input id="cqfCDate" class="cq-in" type="date" max="${today}" value="${today}"></label>
+        <label><span class="cql-l">What it was about ${req}</span><select id="cqfType" class="cq-sel">${topts}</select></label>
+        <div class="wide cql-here" id="cmpHere" aria-live="polite"></div>
+        <div class="wide cq-note" id="cqlColour" hidden style="margin:0">A colour complaint stays open until she has come back and agreed.</div>
+        <label class="wide"><span class="cql-l">What happened ${req}</span><textarea id="cqfDetail" rows="3" maxlength="4000" placeholder="One or two sentences, in your own words"></textarea></label>
+      </div>
+    </section>
+    <section class="cql-step">
+      <h3><i>3</i>Who takes it from here</h3>
+      <div class="cq-form">
+        <label class="wide"><span class="cql-l">Who will reply to her? ${req}</span><span class="cql-inline"><input id="cqfResp" class="cq-in" maxlength="80" list="cqRespList" autocomplete="off" placeholder="A name"><button type="button" class="cq-btn" id="cqfMe">Me</button></span></label>
+        ${cmpWho()}
+      </div>
+    </section>
+    <details class="cql-fold"><summary>Add more detail <small>all optional</small></summary>
+      <div class="cq-form">
+        <label><span class="cql-l">Stylist</span><input id="cqfStylist" class="cq-in" maxlength="80" autocomplete="off"></label>
+        <label><span class="cql-l">Service</span><input id="cqfService" class="cq-in" maxlength="120" autocomplete="off"></label>
+        <label><span class="cql-l">Google review link, if she posted one</span><input id="cqfG" class="cq-in" type="url" placeholder="https://" autocomplete="off"></label>
+        <label class="wide"><span class="cql-l">Screenshots of the conversation or photos (up to 10 files of 10 MB)</span><input id="cqfFiles" type="file" multiple accept="image/*,application/pdf,.txt"></label>
+        <label><span class="cql-l">Already sorted? How it was resolved</span><select id="cqfRes" class="cq-sel">${ropts}</select></label>
+        <label><span class="cql-l">How it ended, in a few words</span><input id="cqfResD" class="cq-in" maxlength="300" autocomplete="off"></label>
+        <label><span class="cql-l">Handled by</span><input id="cqfBy" class="cq-in" maxlength="80" autocomplete="off"></label>
+      </div>
+    </details>
     </div>
     <aside class="cmp-s"><div class="cmp-side" id="cmpSide" aria-live="polite"></div></aside>
-    <div class="cmp-b"><div class="cq-bar"><button type="button" id="cqfGo" class="cq-btn pri">Log this complaint</button>${cqInfo()}<span id="cqfMsg" class="cq-msg" aria-live="polite"></span></div>
+    <div class="cmp-b"><div class="cq-bar"><button type="button" id="cqfGo" class="cq-btn pri">Log this complaint</button><span id="cqfMsg" class="cq-msg" aria-live="polite"></span></div>
     <div id="cqfOk" aria-live="polite"></div></div>
     </div>
     <div id="cmpUrgent" hidden></div>
   </details>`;
+}
+
+// A similar complaint is already on file: ask on the page, with two buttons, instead of the browser's own box. Resolves true when it is the same complaint.
+function cqAskSimilar(lines) {
+  const box = document.getElementById('cqfOk');
+  return new Promise(resolve => {
+    if (!box) { resolve(false); return; }
+    box.innerHTML = `<div class="cq-dup cql-ask" role="group" aria-label="Is it the same complaint?"><b>This client already has a complaint on file. Is it the same one?</b>
+      <ul>${lines.map(l => `<li>${cqEsc(l)}</li>`).join('')}</ul>
+      <div class="cq-bar"><button type="button" class="cq-btn" data-ask="same">Yes, same one. I will add a follow-up there</button><button type="button" class="cq-btn pri" data-ask="new">No, a new one. Log it</button></div></div>`;
+    const done = v => { box.innerHTML = ''; resolve(v); };
+    box.querySelector('[data-ask="same"]').addEventListener('click', () => done(true));
+    box.querySelector('[data-ask="new"]').addEventListener('click', () => done(false));
+    box.querySelector('[data-ask="same"]').focus();
+  });
 }
 
 async function cqSubmit() {
@@ -356,8 +485,9 @@ async function cqSubmit() {
   if (p.p_complaint_date < p.p_date || p.p_complaint_date > today) return say('The date she complained cannot be before the appointment or in the future.', true);
   if (!p.p_type) return say('Pick what the complaint was about.', true);
   if (p.p_detail.length < 10) return say('Write what happened, a sentence will do.', true);
-  if (p.p_google_url && !/^https?:\/\//i.test(p.p_google_url)) return say('The Google link must start with http.', true);
-  if (p.p_type === 'colour_result' && CQ_NEEDS_REVISIT.includes(p.p_resolution)) return say('A colour complaint is closed once she has come back and agreed. Leave How it was resolved empty, then add the revisit when she returns.', true);
+  if (p.p_responsible.length < 2) return say('Write who will reply to her. Tap Me if it is you.', true);
+  if (p.p_google_url && !/^https?:\/\//i.test(p.p_google_url)) { const f = document.querySelector('.cql-fold'); if (f) f.open = true; return say('The Google link must start with http.', true); }
+  if (p.p_type === 'colour_result' && CQ_NEEDS_REVISIT.includes(p.p_resolution)) return say('A colour complaint stays open until she has come back and agreed. Add the revisit when she returns.', true);
   if (files.length > 10) return say('Add up to 10 files.', true);
   if (btn) btn.disabled = true;
   say('Saving…');
@@ -368,9 +498,9 @@ async function cqSubmit() {
       if (!error) { newId = data; break; }
       const m = String(error.message || '');
       if (!force && m.startsWith('SIMILAR:')) {
-        const ok = window.confirm('This client already has a complaint on file:\n\n' + m.replace(/^SIMILAR:\s*/, '').split('; ').join('\n')
-          + '\n\nIf it is the same complaint, cancel and add a follow-up to it instead.\nLog this as a new complaint?');
-        if (!ok) { say('Not logged. Check the one on file first.'); return; }
+        say('One question first, below.');
+        const same = await cqAskSimilar(m.replace(/^SIMILAR:\s*/, '').split('; '));
+        if (same) { say('Not logged. Open the one on file and add a follow-up there.'); return; }
         force = true;
         continue;
       }
@@ -381,15 +511,16 @@ async function cqSubmit() {
     if (files.length && newId) {
       say('Logged. Uploading the files…');
       const r = await cqUpload(Number(newId), files);
-      upMsg = r.fails.length ? ` ${r.ok} file${r.ok === 1 ? '' : 's'} added. Not added: ${r.fails.join('; ')}. Open the complaint to add them again.` : ` ${r.ok} file${r.ok === 1 ? '' : 's'} added.`;
+      upMsg = r.fails.length ? ` ${r.ok} file${r.ok === 1 ? '' : 's'} added. Not added: ${r.fails.join('; ')}. Open the complaint page to add them again.` : '';   // said only when something needs doing
     }
     const dupBox = document.getElementById('cqfDup'); if (dupBox) dupBox.hidden = true;
     ['cqfClient', 'cqfPhone', 'cqfStylist', 'cqfService', 'cqfDetail', 'cqfResp', 'cqfResD', 'cqfBy', 'cqfG', 'cqfDate', 'cqfFiles'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     const cd = document.getElementById('cqfCDate'); if (cd) { cd.value = today; cd.min = ''; }
     ['cqfType', 'cqfRes'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    const doneText = (p.p_resolution ? 'Logged as resolved.' : 'Logged as open. Open it in the list below to add follow-ups and mark it resolved.') + upMsg + (peopleMsg ? ' ' + peopleMsg : '') + ' It shows under the date she complained, as long as that date is inside the Period and Branch picked above.';
+    cqKindChanged(); cqFillMe(false);
+    const doneExtra = (upMsg + (peopleMsg ? ' ' + peopleMsg : '')).trim();
     say('Logged.', false);
-    const newCode = await cmpDone(Number(newId), doneText);
+    const newCode = await cmpDone(Number(newId), { client: p.p_client, owner: p.p_responsible, complaintDate: p.p_complaint_date, resolved: !!p.p_resolution, extra: doneExtra });
     if (p.p_type === 'skin_reaction_or_injury') cmpUrgentShow(Number(newId), newCode);
     CMPF.people = []; CMPF.names = []; CMPF.cc = []; CMPF.roles = { Reception: false, Beautician: false }; CMPF.stylistOn = true; cmpDrawInv(); cmpDrawCc(); cmpDrawSide();
     CQ.page = 0; CQ.sort = 'priority'; CQ.dir = 'asc'; cqOpen = 0;
@@ -406,16 +537,24 @@ async function cqSubmit() {
 // Its own page in the Clients group: the form, and the complaints logged from it, to follow up and close. Same list, filters, follow-up and
 // Remove as Client Complaints (list source 'logged' = only the ones logged from the form), so the ids are shared and only one page is drawn at a time.
 function cqLogShell() {
-  return cqCss() + `<div class="cq">
+  return cqCss() + cqLogCss() + `<div class="cq">
     <h1>Log a Client Complaint</h1>
-    <p class="cq-sub">When a client complains, log it here so it is written down once, followed up and closed, and not left in WhatsApp. Leave How it was resolved empty and it stays open until you mark it resolved. Reply to the client within 2 days of the complaint and close it within 7; what is overdue shows first. Levels 3 and up. Everything logged here also counts in Client Complaints.</p>
-    <p class="cq-sub" id="cmpLinks" style="margin:-8px 0 14px"><a class="cq-link" href="/hub/complaint">My complaints</a></p>
+    <div class="cql-why">
+      <p>We log a complaint here so it is written down once and not lost in a WhatsApp chat. A client who hears nothing for 2 days is the one who writes the review. If nobody replies, she is still waiting, and the complaint turns red and goes up to the next person on the list.</p>
+    </div>
+    <div class="cql-doors" role="group" aria-label="What do you need to do?">
+      <button type="button" class="cql-door" data-door="log"><b>A client just complained</b><span>Log it in three short steps</span></button>
+      <button type="button" class="cql-door" data-door="chase" id="cqlChase"><b>Chase the ones waiting</b><span id="cqlChaseN">See what is overdue</span></button>
+    </div>
+    <p class="cql-more" id="cmpLinks"><span>Or open</span> <a class="cql-pill" href="/hub/complaint">My complaints</a></p>
+    <p class="cq-sub" style="margin:0 0 14px">Levels 3 and up. Everything logged here also counts in Client Complaints.</p>
     ${cqRailShell(`<div class="cq-tiles" id="cqFlags" aria-live="polite"></div>
+    <p class="cq-note" style="margin:-6px 0 14px">These counts follow the Branch above and cover every period. The list below follows Period and Branch.</p>
     <datalist id="cqRespList"><option value="Emma W"><option value="Ashleigh"><option value="Mette"><option value="Coach Emma"><option value="Mona"><option value="Kate"></datalist>
     ${cqForm()}
     <div class="cq-card cq-wait" id="cq-list">
       <h2>Logged complaints</h2>
-      <p class="cq-note">Tap one to add a follow-up, mark it resolved with how it ended, or reopen it. Branch and Period follow the filters at the top.</p>
+      <p class="cq-note">Tap one to open its complaint page in a new tab: the follow-up, how it ended and reopening are there.</p>
       <div class="cq-bar cq-filt">
         <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, mobile number, code (CMP-SAA-20261029-01), stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
         <button type="button" id="cqFtog" class="cq-btn cq-ftog" aria-expanded="false">Filters</button>
@@ -429,6 +568,26 @@ function cqLogShell() {
   </div>`;
 }
 
+// The two doors: log it opens the form, chase it folds the form and shows what is overdue. Neither changes what the form remembers.
+function cqLogDoor(which) {
+  const d = document.getElementById('cq-new');
+  const move = (el, open) => { if (el && el.open !== open) { el.dataset.door = '1'; el.open = open; } };
+  if (which === 'log') {
+    move(d, true);
+    if (d) d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const f = document.getElementById('cqfClient'); if (f) setTimeout(() => f.focus({ preventScroll: true }), 350);
+    return;
+  }
+  move(d, false);
+  const od = Number((document.getElementById('cqlChase') || {}).dataset.n || 0);
+  if (od > 0) {
+    CQ.status = 'overdue';
+    const sel = document.getElementById('cqSt'); if (sel) sel.value = 'overdue';
+    CQ.page = 0; cqOpen = 0; cqLoadList(); cqLoadFlags();
+  }
+  const l = document.getElementById('cq-list'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function renderComplaintLog() {
   const el = document.getElementById('complaintlogContent');
   if (!el) return;
@@ -440,6 +599,9 @@ function renderComplaintLog() {
   cqWire();
   cmpFormInit();
   cmpLinks();
+  el.querySelectorAll('[data-door]').forEach(b => b.addEventListener('click', () => cqLogDoor(b.dataset.door)));
+  // a link that carries #cq-new (or ?open=new) lands on an open form, not on a folded summary line
+  try { if (/(^|[#&])cq-new/.test(location.hash) || new URLSearchParams(location.search).get('open') === 'new') setTimeout(() => cqLogDoor('log'), 60); } catch (e) {}
   const fl = document.getElementById('cqFlags');
   if (fl) fl.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('[data-flt]');
@@ -462,6 +624,11 @@ async function cqLoadFlags() {
     const { data, error } = await sb.rpc('client_complaint_flags', { p_branch: cqBranch() });
     if (error) throw error;
     const t = (k, label, n, cls) => `<button type="button" class="cq-tile btn ${cls}" data-flt="${k}" aria-pressed="${CQ.status === k}"><b>${cqNum(n)}</b><span>${label}</span></button>`;
+    const door = document.getElementById('cqlChase'), doorN = document.getElementById('cqlChaseN');
+    if (door && doorN) {
+      door.dataset.n = Number(data.overdue || 0); door.classList.toggle('over', Number(data.overdue || 0) > 0);
+      doorN.textContent = Number(data.overdue || 0) > 0 ? `${cqNum(data.overdue)} overdue, ${cqNum(data.pending)} pending` : (Number(data.pending || 0) > 0 ? `Nothing overdue, ${cqNum(data.pending)} pending` : 'Nothing overdue');
+    }
     box.innerHTML = t('overdue', 'Overdue: no reply in 2 days, or not closed in 7', data.overdue, 'over')
       + t('pending', 'Pending action: open, inside both limits', data.pending, 'pend')
       + `<div class="cq-tile"><b>${cqNum(data.unreplied)}</b><span>Still waiting for a first reply</span></div>`
