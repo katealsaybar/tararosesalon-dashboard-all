@@ -342,7 +342,16 @@ function cqClick(e) {
   const pg = t.closest && t.closest('[data-pg]');
   if (pg) { CQ.page = Math.max(0, CQ.page + Number(pg.dataset.pg)); cqOpen = 0; cqLoadList(); return; }
   const row = t.closest && t.closest('tr.cq-row');
+  if (row && cqMode === 'log') { cqOpenRecord(Number(row.dataset.i)); return; }
   if (row) cqToggle(row);
+}
+
+// Log a Client Complaint (Kate, 30 Oct 2026): a row opens the full record in a new window (the ticket page, addressed by its code). The follow-up, how it ended,
+// reopen and delete are still on the dashboard, one link away on that page, and open this row when the address carries cid.
+function cqOpenRecord(id) {
+  const r = ((cqList && cqList.rows) || []).find(x => x.id === id);
+  const url = r && r.code ? '/hub/complaint?c=' + encodeURIComponent(r.code) : '/hub/complaint?cid=' + id + '&t=1';
+  window.open(url, '_blank', 'noopener');
 }
 
 function cqToggle(row) {

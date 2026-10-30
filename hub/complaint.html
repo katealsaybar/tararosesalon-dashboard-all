@@ -591,6 +591,7 @@ button.tk-pill{cursor:pointer}
       '<div class="cp-card"><h5>Files' + (c.file_count ? ' (' + c.file_count + ')' : '') + '</h5>' +
       (c.file_count ? '<div class="tk-files" id="tkFiles"><p class="cp-sm" style="margin:0;grid-column:1/-1">Loading…</p></div>' : '<p class="cp-sm" style="margin:0">No files yet.</p>') +
       '<p class="cp-sm" style="margin:8px 0 0"><a href="/?view=complaintlog&cid=' + c.id + '" target="_blank" rel="noopener">Add files on the dashboard</a></p></div></div></div>';
+    h += '<p class="cp-foot"><a href="/?view=complaintlog&cid=' + c.id + '" target="_blank" rel="noopener">Edit this complaint on the dashboard</a> (follow-up, how it ended, reopen, delete)</p>';
     h += '</div>';
     main.innerHTML = h;
     var th = document.getElementById('tkTagHold'); if (th && !th.hidden) mountTag(c);
