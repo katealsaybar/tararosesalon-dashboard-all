@@ -168,6 +168,10 @@
     // Kate, 30 Oct 2026: "separate dapat yung upload portal from payslip portal, may whatsapp na sya". Payslips is its own entry (the Payslips tab of the
     // portal, /upload/payslips), right beside Staff Payroll WhatsApp because the two go out together. A shortcut like Plan Stylist Targets: whoever may open the
     // dashboard at Level 4 (Accounts & Admin) and up, the same people as the Upload Portal; the portal itself decides what each person can change.
+    // Kate, 30 Oct 2026: "i think team roster should be moved to tools". The Upload Portal's Team Roster tab (who is employed or resigned, /upload/team-roster) is its
+    // own entry in Tools, Level 5 only like the tab itself; the portal no longer lists it in its left menu.
+    { key: 'team-roster', via: 'dashboards', min: 5, only: [5], ic: 'access', dept: 'Tools', title: 'Team Roster', href: '/upload/team-roster', rule: 'var(--accent-mint)',
+      blurb: 'Who is employed and who has resigned. It fades their card on Staff Cards.' },
     { key: 'payslips', via: 'dashboards', min: 4, dept: 'Tools', title: 'Payslips', href: '/upload/payslips', rule: 'var(--accent-mint)',
       blurb: 'Upload each month’s payslips, email them to staff, and see the WhatsApp that goes with each email.' },
     // Kate, 29 Oct 2026: payroll messages to staff on WhatsApp (Level 5 only, kb_sections 'staff-wa', migrations/staff_wa.sql).
