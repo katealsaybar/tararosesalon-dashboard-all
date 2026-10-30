@@ -79,14 +79,16 @@
     return h + '</div><div class="cbl-leg"><span><b></b>Locked</span><span><b class="plan"></b>Planned</span></div></div>';
   }
   function tabsHtml() {
-    var h = '<div class="cbl-tabs cbl-card"><h3>Blasts</h3><p class="cbl-hint">Drag the dots to reorder.</p><div id="cblTabs">';
+    var h = '<div class="cbl-tabs cbl-card"><h3>Blasts</h3>' +
+      '<div class="cbl-tab' + (cur === 'all' ? ' on' : '') + '"><a href="?view=campaignblasts" data-go="all" style="padding-left:12px"><span>All blasts</span></a></div>' +
+      '<p class="cbl-hint">Drag the dots to reorder.</p><div id="cblTabs">';
     ord().forEach(function (id) {
       var b = item(id), n = b.comments.length;
       h += '<div class="cbl-tab' + (cur === id ? ' on' : '') + '" data-id="' + esc(id) + '"><button type="button" class="cbl-grip" aria-label="Move ' + esc(b.data.title) + '. Use arrow up and down."></button>' +
         '<a href="?view=campaignblasts" data-go="' + esc(id) + '"><span>' + esc(b.data.title) + '</span><small>' + fd(b.send_date) + ', ' + ft(b.send_time) + '</small></a>' +
         (n ? '<span class="cbl-cc" title="' + n + ' comments">' + n + '</span>' : '') + '<span class="cbl-dot ' + cls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     });
-    return h + '</div><div class="cbl-tab' + (cur === 'all' ? ' on' : '') + '" style="margin-top:6px"><a href="?view=campaignblasts" data-go="all" style="padding-left:12px"><span>All blasts</span></a></div></div>';
+    return h + '</div></div>';
   }
 
   /* pages */
@@ -126,7 +128,8 @@
         (c.mine || D.level === 5 ? ' <button type="button" data-del="' + c.id + '">Delete</button>' : '') + '</span></div><p>' + esc(c.body) + '</p></div>';
     }).join('') : '<p class="cbl-none">No comments yet.</p>';
     var hasWhy = k === 'changes' && b.comments.some(function (c) { return c.by === b.review_by && b.review_at && new Date(c.at) >= new Date(new Date(b.review_at).getTime() - 60000); });
-    return '<div class="cbl-head"><div><div class="cbl-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
+    return '<a class="cbl-back" href="?view=campaignblasts" data-go="all">‹ All blasts</a>' +
+      '<div class="cbl-head"><div><div class="cbl-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
       '<div class="cbl-facts"><div class="cbl-fact cbl-card"><small>Clients</small><b>' + esc(b.data.n) + '</b></div><div class="cbl-fact cbl-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cbl-fact cbl-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + '</div>' +
       '<div class="cbl-row2">' + pageCard(b) +
       '<div class="cbl-card cbl-when"><h3>When it goes out</h3>' +
@@ -245,6 +248,7 @@
   window.renderCampaignBlasts = async function () {
     var el = main(); if (!el) return;
     if (typeof TRS_LEVEL === 'undefined' || (TRS_LEVEL !== 3 && TRS_LEVEL !== 5)) { notFound(); return; }
+    cur = 'all'; cal = null; errMsg = '';   // the sidebar row is the way back to the overview
     if (!D) el.innerHTML = '<section class="cbl-intro"><h2>Campaign Blasts</h2></section><p class="slv-muted">Loading…</p>';
     try { D = await rpc('blast_plan_get'); } catch (e) { console.error(e); notFound(); return; }
     if (cur !== 'all' && !item(cur)) cur = 'all';

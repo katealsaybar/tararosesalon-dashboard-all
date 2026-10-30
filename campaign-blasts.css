@@ -105,7 +105,7 @@
 .cbl-day{align-self:center;background:#E1F2FB;color:#4A6572;border-radius:8px;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;margin-bottom:8px}
 .cbl-bub{position:relative;max-width:92%;background:#fff;border-radius:0 9px 9px 9px;padding:3px 3px 5px;box-shadow:0 1px .5px rgba(11,20,26,.13);font-size:13.5px}
 .cbl-bub::before{content:"";position:absolute;top:0;left:-7px;border-right:7px solid #fff;border-bottom:7px solid transparent}
-.cbl-hdr{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:7px;margin-bottom:5px;background:#e8e2d6}
+.cbl-hdr{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;object-position:center 25%;border-radius:7px;margin-bottom:5px;background:#e8e2d6}
 .cbl-body{padding:2px 6px;overflow-wrap:anywhere;white-space:pre-line}
 .cbl-ftr{padding:5px 6px 0;font-size:11.5px;color:#667781}
 .cbl-time{text-align:right;padding:0 6px;font-size:10.5px;color:#8C9AA0}
@@ -164,3 +164,6 @@
 .cbl-links{display:flex;flex-wrap:wrap;gap:8px 10px;margin:10px 0 0!important}
 .cbl-links a{font-size:13.5px;font-weight:600;color:var(--text);text-decoration:none;border:1px solid var(--border);border-radius:999px;padding:6px 14px;background:var(--surface)}
 .cbl-links a:hover{background:var(--surface2)}
+.cbl-back{align-self:flex-start;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:4px 2px}
+.cbl-back:hover{color:var(--text)}
+.cbl-tabs .cbl-tab+.cbl-hint{margin-top:8px}
