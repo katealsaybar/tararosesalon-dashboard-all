@@ -163,7 +163,7 @@
     { key: 'page-access', via: 'dashboards', only: [5], dept: 'People', title: 'Page Access', href: '/hub/pageaccess', live: true, rule: 'var(--accent-mint)',
       blurb: 'Tick the reports each level can open: Team, Leadership, Executives and Accounts.' },
 
-    { key: 'uploads', dept: 'Tools', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
+    { key: 'uploads', dept: 'Tools', title: 'Upload Portal', href: '/upload/payslips', live: true, rule: 'var(--accent-mint)',
       blurb: 'Payslips, and the uploads that feed the dashboard.' },
     // Kate, 29 Oct 2026: payroll messages to staff on WhatsApp (Level 5 only, kb_sections 'staff-wa', migrations/staff_wa.sql).
     { key: 'staff-wa', dept: 'Tools', title: 'Staff Payroll WhatsApp', href: '/hub/staff-messages', live: true, rule: 'var(--accent-mint)',
