@@ -92,6 +92,11 @@
     var x = LIVE.blasts[b.id] || { n: 0, warm: 0, std: 0 }, n = x[key], t = fmtN(n);
     return (typeof TRSD !== 'undefined' && n > 0) ? TRSD.num(t, drillSpec(b, key === 'n' ? null : key)) : t;
   }
+  // What a blast costs to send (Kate, 30 Oct 2026): one marketing message per client at the rate measured on 19 Oct (about USD 0.046, AED 0.17, respond.io adds no markup).
+  // An estimate; the exact amount is on Meta's invoice. Her tap and our reply come inside her 24 hour window, so they are not counted.
+  var RATE_USD = 0.046, RATE_AED = 0.17;
+  function cnt(b) { if (LIVE && LIVE.blasts) return Number((LIVE.blasts[b.id] || {}).n) || 0; return liveErr ? Number(b.data.n) || 0 : null; }
+  function cost(n) { return n == null ? '…' : 'AED ' + fmtN(Math.round(n * RATE_AED)) + ' (USD ' + fmtN(Math.round(n * RATE_USD)) + ')'; }
   function liveNote() {
     if (LIVE && LIVE.asof) return '<span class="cbl-live">Counted from the till, ' + fd(String(LIVE.asof).slice(0, 10)) + '</span>';
     return '<span class="cbl-live">' + (liveErr ? 'Saved count, could not update' : 'Counting from the till…') + '</span>';
@@ -163,10 +168,13 @@
     var rows = ids.map(function (id) {
       var b = item(id);
       return '<div class="cbl-r" data-go="' + esc(id) + '"><a class="cbl-rl" href="?view=campaignblasts" data-go="' + esc(id) + '"><b>' + esc(b.data.title) + '</b></a><span class="cbl-chip ' + cls(b.review) + '">' + lab(b.review) + '</span>' +
-        '<small>' + fd(b.send_date) + ', ' + ft(b.send_time) + ' · ' + numHtml(b, 'n', b.data.n) + ' clients' + (b.locked ? ' · time locked' : '') + (b.comments.length ? ' · ' + b.comments.length + ' comments' : '') + '</small></div>';
+        '<small>' + fd(b.send_date) + ', ' + ft(b.send_time) + ' · ' + numHtml(b, 'n', b.data.n) + ' clients, est. ' + cost(cnt(b)) + (b.locked ? ' · time locked' : '') + (b.comments.length ? ' · ' + b.comments.length + ' comments' : '') + '</small></div>';
     }).join('');
+    var tot = LIVE && LIVE.blasts || liveErr ? ids.reduce(function (a, id) { return a + cnt(item(id)); }, 0) : null;
     return '<div><div class="cbl-eyebrow">Internal draft</div><h2>November</h2></div>' +
-      '<div class="cbl-sum"><span class="cbl-chip"><b>' + ap + ' of ' + ids.length + '</b> approved</span><span class="cbl-chip"><b>' + lk + ' of ' + ids.length + '</b> times locked</span></div>' +
+      '<div class="cbl-sum"><span class="cbl-chip"><b>' + ap + ' of ' + ids.length + '</b> approved</span><span class="cbl-chip"><b>' + lk + ' of ' + ids.length + '</b> times locked</span>' +
+      '<span class="cbl-chip"><b>' + (tot == null ? '…' : fmtN(tot)) + '</b> clients</span><span class="cbl-chip cbl-tot"><b>' + cost(tot) + '</b> est. to send all ' + ids.length + '</span></div>' +
+      '<p class="cbl-note">Estimate: one marketing message per client at about USD 0.046 (AED 0.17), the rate measured on 19 Oct. Her tap and our reply come inside her 24 hour window, so they should not add to it. The exact amount is on Meta’s invoice, and each client is counted once.</p>' +
       '<div class="cbl-card cbl-rows">' + rows + '</div>';
   }
   // The campaign's landing page, so Coach Emma can go back to what the client lands on. Only a path on this site is linked.
@@ -198,7 +206,7 @@
     var hasWhy = k === 'changes' && b.comments.some(function (c) { return c.by === b.review_by && b.review_at && new Date(c.at) >= new Date(new Date(b.review_at).getTime() - 60000); });
     return '<a class="cbl-back" href="?view=campaignblasts" data-go="all">‹ All blasts</a>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
-      '<div class="cbl-facts"><div class="cbl-fact cbl-card"><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b>' + liveNote() + '</div><div class="cbl-fact cbl-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cbl-fact cbl-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + '</div>' +
+      '<div class="cbl-facts"><div class="cbl-fact cbl-card"><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b><span class="cbl-est" title="One marketing message per client, about USD 0.046 (AED 0.17) each">Est. to send: ' + cost(cnt(b)) + '</span>' + liveNote() + '</div><div class="cbl-fact cbl-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cbl-fact cbl-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + '</div>' +
       '<div class="cbl-row2">' + pageCard(b) +
       '<div class="cbl-card cbl-when"><h3>When it goes out</h3>' +
       '<label class="cbl-fld">Date<input type="date" id="cblDate" value="' + b.send_date + '"></label>' +

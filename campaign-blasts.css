@@ -199,6 +199,8 @@
 .cbl-r b{font-weight:600}
 .cbl-r small{color:var(--muted);font-size:13.5px;grid-column:1}
 .cbl-sum{display:flex;flex-wrap:wrap;gap:10px}
+.cbl-chip.cbl-tot{border-color:var(--text);color:var(--text)}
+.cbl-est{font-size:13.5px;color:var(--muted)}
 
 @media (max-width:900px){
   .cbl-shell{grid-template-columns:minmax(0,1fr);gap:16px}
