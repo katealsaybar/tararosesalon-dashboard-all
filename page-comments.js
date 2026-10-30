@@ -100,16 +100,17 @@
   function tops() { return S.items.filter(function (c) { return !c.parent; }); }
   function repliesOf(id) { return S.items.filter(function (c) { return c.parent === id; }); }
   function byId(id) { return S.items.filter(function (c) { return c.id === id; })[0]; }
-  async function reload() {
-    try {
-      var d = await rpc('page_comments_get', { p_page: PAGE });
-      S.me = d.me; S.level = d.level; S.items = d.comments || [];
-    } catch (e) { S.err = 'Could not refresh: ' + e.message; }
-  }
-  async function act(fn) {
-    S.err = '';
-    try { await fn(); } catch (e) { S.err = 'Not saved: ' + e.message; }
-    await reload(); draw();
+  /* Every save used to wait for two round trips (the write, then a re-read of everything): 2 to 3 seconds. Now the screen changes first and the
+     write follows in the background; if the database refuses it, the change is taken back and the reason is shown. Other people's comments
+     are re-read when the tab comes back and when the list opens, never right after your own save. */
+  function tmpId() { return -Date.now() - Math.floor(Math.random() * 1000); }
+  async function refresh() {
+    if (S.draft || document.hidden || S.items.some(function (c) { return c.id < 0; })) return;
+    try { var d = await rpc('page_comments_get', { p_page: PAGE }); S.items = d.comments || []; } catch (e) { return; }
+    if (S.cur && !byId(S.cur)) S.cur = null;
+    drawPins(); drawBar(); drawPanel();
+    var rp = root.getElementById('rep');
+    if (!rp || !rp.value) drawCard();
   }
 
   /* ── shell ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -174,7 +175,7 @@
     '.btn{min-height:40px;border-radius:999px;border:1px solid rgba(45,46,55,.25);background:#fff;padding:0 16px;font-weight:600}',
     '.btn.pri{background:#1C7563;color:#fff;border-color:#1C7563}',
     '.btn.ok{background:#E1F5EE;color:#0F6E56;border-color:#0F6E56}',
-    '.err{color:#B3261E;margin:8px 0 0;font-size:13px}',
+    '.err{margin:8px 0 0;font-size:13px;background:#FAEEDA;color:#8A5A0C;border-radius:10px;padding:8px 10px}',
     '.ct{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px;font-weight:600}',
     '.x{border:0;background:transparent;font-size:20px;line-height:1;width:36px;height:36px;border-radius:50%}',
     '@media (max-width:640px){.bar{bottom:calc(86px + env(safe-area-inset-bottom))}.panel{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-width:none;max-height:72vh}.card{left:8px!important;right:8px;top:auto!important;bottom:8px;width:auto;max-width:none;max-height:72vh}}',
@@ -322,9 +323,18 @@
   async function post() {
     var ta = root.getElementById('txt'), text = ta ? ta.value.trim() : '';
     if (!text) { S.err = 'Write a comment first.'; drawCard(); return; }
-    var a = S.draft.anchor, newId = null;
-    await act(async function () { var r = await rpc('page_comment_add', { p_page: PAGE, p_anchor: a, p_body: text, p_parent: null }); newId = r && r.id; S.draft = null; });
-    if (!S.err && newId) { S.cur = newId; S.mode = false; setMode(false); } else draw();
+    var a = S.draft.anchor, draft = S.draft;
+    var tmp = { id: tmpId(), page: PAGE, parent: null, num: tops().reduce(function (m, c) { return Math.max(m, c.num || 0); }, 0) + 1, anchor: a, body: text, by: S.me, at: new Date().toISOString(), resolved: false, mine: true };
+    S.items.push(tmp); S.draft = null; S.cur = tmp.id; S.err = ''; setMode(false);
+    try {
+      var r = await rpc('page_comment_add', { p_page: PAGE, p_anchor: a, p_body: text, p_parent: null });
+      var i = S.items.indexOf(tmp); if (i >= 0) S.items[i] = r;
+      if (S.cur === tmp.id) S.cur = r.id;
+    } catch (e) {
+      S.items = S.items.filter(function (x) { return x !== tmp; }); if (S.cur === tmp.id) S.cur = null;
+      draft.text = text; S.draft = draft; S.err = 'Not saved: ' + e.message;
+    }
+    draw();
   }
   function open(id) {
     S.cur = id; S.reply = ''; S.draft = null; S.err = ''; if (innerWidth < 641) S.panel = false;
@@ -345,7 +355,7 @@
     var t = e.target.closest && e.target.closest('[data-a]'); if (!t) return;
     var a = t.getAttribute('data-a'), id = Number(t.getAttribute('data-id'));
     if (a === 'mode') setMode(!S.mode);
-    else if (a === 'panel') { S.panel = !S.panel; if (S.panel) { S.cur = null; S.draft = null; } if (S.panel && S.mode) setMode(false); else draw(); }
+    else if (a === 'panel') { S.panel = !S.panel; if (S.panel) { S.cur = null; S.draft = null; } if (S.panel && S.mode) setMode(false); else draw(); if (S.panel) refresh(); }
     else if (a === 'tab') { S.tab = t.getAttribute('data-t'); drawPanel(); }
     else if (a === 'show') { S.show = t.checked; drawPins(); }
     else if (a === 'open') open(id);
@@ -355,12 +365,24 @@
     else if (a === 'reply') {
       var ta = root.getElementById('rep'), text = ta ? ta.value.trim() : '';
       if (!text) { S.err = 'Write a reply first.'; drawCard(); return; }
-      act(async function () { await rpc('page_comment_add', { p_page: PAGE, p_anchor: null, p_body: text, p_parent: id }); S.reply = ''; });
+      if (id < 0) return;   // the pin is still being saved
+      var rt = { id: tmpId(), page: PAGE, parent: id, num: null, anchor: null, body: text, by: S.me, at: new Date().toISOString(), resolved: false, mine: true };
+      S.items.push(rt); S.reply = ''; S.err = ''; draw();
+      rpc('page_comment_add', { p_page: PAGE, p_anchor: null, p_body: text, p_parent: id }).then(function (r) {
+        var i = S.items.indexOf(rt); if (i >= 0) S.items[i] = r; draw();
+      }, function (e) { S.items = S.items.filter(function (x) { return x !== rt; }); S.reply = text; S.err = 'Not saved: ' + e.message; draw(); });
     }
-    else if (a === 'resolve') { var c = byId(id); act(function () { return rpc('page_comment_resolve', { p_id: id, p_resolved: !(c && c.resolved) }); }); }
+    else if (a === 'resolve') {
+      var c = byId(id); if (!c || id < 0) return;
+      var want = !c.resolved, old = { resolved: c.resolved, resolved_by: c.resolved_by, resolved_at: c.resolved_at };
+      c.resolved = want; c.resolved_by = want ? S.me : null; c.resolved_at = want ? new Date().toISOString() : null; S.err = ''; draw();
+      rpc('page_comment_resolve', { p_id: id, p_resolved: want }).catch(function (e) { Object.assign(c, old); S.err = 'Not saved: ' + e.message; draw(); });
+    }
     else if (a === 'del') {
-      if (!confirm('Delete this comment?')) return;
-      act(async function () { await rpc('page_comment_delete', { p_id: id }); if (!byId(S.cur) || S.cur === id) S.cur = null; });
+      if (id < 0 || !confirm('Delete this comment?')) return;
+      var snap = S.items.slice(), was = S.cur;
+      S.items = S.items.filter(function (x) { return x.id !== id && x.parent !== id; }); if (S.cur === id || !byId(S.cur)) S.cur = null; S.err = ''; draw();
+      rpc('page_comment_delete', { p_id: id }).catch(function (e) { S.items = snap; S.cur = was; S.err = 'Not saved: ' + e.message; draw(); });
     }
   }
 
@@ -387,6 +409,7 @@
     if (e.key !== 'Escape') return;
     if (S.draft) { S.draft = null; draw(); } else if (S.cur) { S.cur = null; draw(); } else if (S.mode) setMode(false); else if (S.panel) { S.panel = false; draw(); }
   });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && root) refresh(); });
   window.addEventListener('resize', relayout);
   window.addEventListener('scroll', function () { if (pins.some(function (p) { return p.fixed; })) relayout(); }, { passive: true });
 
