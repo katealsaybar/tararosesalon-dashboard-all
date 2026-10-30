@@ -171,7 +171,7 @@ button.tk-pill{cursor:pointer}
      Nothing in this file: the repo is public. -->
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
-  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <main id="kbMain"><p class="kb-msg">Opening…</p></main>
   <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -212,7 +212,9 @@ button.tk-pill{cursor:pointer}
   function notOpen() { main.innerHTML = '<p class="kb-msg">This complaint isn’t open to your account. <a href="/hub/complaint">Your complaints</a> · <a href="/hub/">Team Home</a></p>'; }
   function codeChip(code) { return code ? '<span class="cp-code">' + esc(code) + ' <button type="button" data-copy="' + esc(code) + '">Copy</button></span>' : ''; }
   function personDot(name) { var p = CP && CP.byEmailOrName(null, name); return p ? CP.dot(p) : ''; }
+  var navActive = '';
   function nav(active) {
+    navActive = active;
     var dot = badge && ((badge.waiting || 0) + (badge.tagged || 0)) > 0 ? '<i class="bd" title="Something is waiting for you" role="img" aria-label="Something is waiting for you"></i>' : '';
     return '<div class="cp-navrow"><div class="cp-nav"><a href="/hub/complaint" class="' + (active === 'list' ? 'on' : '') + '">My complaints' + dot + '</a>' +
       (badge && badge.board ? '<a href="/hub/complaint?view=board" class="' + (active === 'board' ? 'on' : '') + '">Pipeline</a>' : '') + '</div>' +
@@ -789,15 +791,20 @@ button.tk-pill{cursor:pointer}
   }
 
   KB.ready.then(async function () {
-    var b = await KB.client.rpc('cmp_my_badge');
-    badge = b && !b.error ? b.data : null;
-    if (CP) await CP.load();
+    // The page no longer waits for the dot on "My complaints" (it can take several seconds when the database is busy): everything the page needs is asked at
+    // the same time, and the navigation strip is filled in when the dot arrives (Kate, 30 Oct 2026: the record took too long to open).
+    KB.client.rpc('cmp_my_badge').then(function (b) {
+      badge = b && !b.error ? b.data : null;
+      var nr = document.querySelector('.cp-navrow'); if (nr) nr.outerHTML = nav(navActive);
+    });
+    var people = CP ? CP.load() : Promise.resolve();
     // the ticket code in the address (?c=CMP-SAA-20261028-04) opens the full record
     if (P.get('c') && !cid) {
       var fnd = await KB.client.rpc('cmp_find', { p_code: P.get('c') });
       cid = fnd && !fnd.error && fnd.data ? Number(fnd.data) : 0; forceTicket = true;
       if (!cid) return notOpen();
     }
+    await people;
     return cid ? one() : view === 'board' ? board() : list();
   });
 })();
