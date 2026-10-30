@@ -14,7 +14,8 @@
 --   blonde-2   same service rule, spent AED 1,000 to 1,999
 --   extensions an extension service (tape, rings, bonds, weft, removal or refit, not lashes or nails) in the last 12 months, spent AED 2,000 or more
 --   junior-1   a blow-dry, root colour, toner or treatment in the last 12 months, no blonde service, no extensions, spent AED 1,000 or more, two or more visits
---   junior-1b  the junior-1 clients with three or more blow-dry days (cut and blow-dry counts) in the last 12 months (they are also in junior-1)
+--   junior-1b  the junior-1 clients with two or more blow-dry days (cut and blow-dry counts) in the last 12 months (they are also in junior-1).
+--              Two, not three: two gives 234 on 27 Oct, the 232 the plan was checked on; three gives 121 (Kate, 30 Oct 2026)
 --   junior-2a  a blow-dry (not cut and blow-dry) in the last 12 months, no blonde, no extensions, spent under AED 1,000
 --   junior-2b  the rest of that group: a blow-dry, root colour, toner or treatment in the last 12 months but no plain blow-dry day (cut and blow-dry only counts here), no blonde, no extensions, spent under AED 1,000
 --   mette-b    a nail service and no blow-dry in the last 12 months, and in none of the blasts above
@@ -97,7 +98,7 @@ begin
     union all select 'blonde-2', b.* from base b where b.light and not b.ext and b.spend >= 1000 and b.spend < 2000
     union all select 'extensions', b.* from base b where b.ext and b.spend >= 2000
     union all select 'junior-1', b.* from base b where b.maint and not b.light and not b.ext and b.spend >= 1000 and b.visits >= 2
-    union all select 'junior-1b', b.* from base b where b.maint and not b.light and not b.ext and b.spend >= 1000 and b.visits >= 2 and b.bd_all >= 3
+    union all select 'junior-1b', b.* from base b where b.maint and not b.light and not b.ext and b.spend >= 1000 and b.visits >= 2 and b.bd_all >= 2
     union all select 'junior-2a', b.* from base b where b.bd_days >= 1 and not b.light and not b.ext and b.spend < 1000
     union all select 'junior-2b', b.* from base b where b.maint and b.bd_days = 0 and not b.light and not b.ext and b.spend < 1000
   )
