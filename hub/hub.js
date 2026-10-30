@@ -58,9 +58,10 @@
     { key: 'today-actuals', via: 'dashboards', min: 1, ic: 'today', dept: 'Targets', title: 'Actuals vs Targets', href: '/?view=ledgerActuals', rule: 'var(--accent-coral)',
       blurb: 'The month so far, against target.' },
     // Kate, 22 Oct 2026: the target method, for Level 3 and Level 5 only. The numbers behind both pages are served by target_calc_data() (migrations/target_calc.sql), not by the page code.
-    { key: 'targets-calc', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Tools', title: 'Target Calculator', href: '/targets/', rule: 'var(--accent-coral)',
+    { key: 'targets-calc', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Tools', title: 'Plan Stylist Targets', href: '/targets/', rule: 'var(--accent-coral)',
       words: 'targets target calculator plan planner monthly month november stylist person number season seasonal normal day days bottom-up adjust break-even net take floor aim service treatment retail clients average bill joiner',
-      blurb: 'Each stylist’s plan for the month, worked out from her own sales and the season.' },
+      // Kate, 30 Oct 2026 (adult-learning audit ALAD-5): rows in the Tools door are named by the job, and the old name stays in the line so it can still be found.
+      blurb: 'Work out each stylist’s plan for the month from her own sales and the season. This is the Target Calculator.' },
     { key: 'targets-how', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Targets', title: 'How a Target Is Made', href: '/targets/how/', rule: 'var(--accent-coral)',
       words: 'targets target training explain explainer why my number season number seasonal normal day busy quiet months multiplier steps quiz teach back stylist coordinators method how calculated',
       blurb: 'Step by step, so you can show any stylist why her number is her number.' },
@@ -99,8 +100,9 @@
       blurb: 'The complaints waiting for you, and the pipeline of every complaint by stage for leadership and coordinators.' },
     // Kate, 30 Oct 2026: the Pipeline also has its own door in Tools. Same rule as Log a Client Complaint (Levels 2 and up); the page and the database decide who is
     // leadership or a branch coordinator and tell anyone else so.
-    { key: 'complaints-pipeline', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Tools', title: 'Complaints Pipeline', href: '/hub/complaint?view=board', rule: 'var(--accent-lavender)',
-      blurb: 'Every complaint by stage, with your inbox and the colour of its priority. For leadership and the salon coordinators.' },
+    { key: 'complaints-pipeline', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Tools', title: 'Follow Up Complaints', href: '/hub/complaint?view=board', rule: 'var(--accent-lavender)',
+      words: 'complaints pipeline board stage priority inbox follow up chase resolved coordinator leadership',
+      blurb: 'For leadership and the salon coordinators: see where every complaint has got to, by stage and priority. Yours are in My Complaints, under Clients.' },
     // Kate, 21 Oct 2026: accounts (Level 4) no longer see the Business row, so these two are their way in (`only` = the levels that see the row).
     { key: 'numbers-financials', via: 'dashboards', only: [4], ic: 'dashboards', dept: 'Numbers', title: 'Financial Totals', href: '/?view=ledgerFinancials', rule: 'var(--accent-lavender)',
       blurb: 'Takings by branch: cash, card and other payments.' },
@@ -153,8 +155,8 @@
       blurb: 'Tell the team about a campaign on WhatsApp before it launches.' },
     // Kate, 30 Oct 2026: what each WhatsApp blast looks like on the phone, when it goes out, and Coach Emma's review
     // (a dashboard page, ?view=campaignblasts: it follows that page's own list in pages.js, so Executives & Marketing and Kate; migrations/campaign_blasts.sql).
-    { key: 'campaign-blasts', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Tools', title: 'Campaign Blasts', href: '/?view=campaignblasts', rule: 'var(--accent-butter)',
-      blurb: 'Each WhatsApp blast as the client sees it, the day and time it goes out, and Coach Emma’s review.' },
+    { key: 'campaign-blasts', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Tools', title: 'Review Campaign Blasts', href: '/?view=campaignblasts', rule: 'var(--accent-butter)',
+      blurb: 'See each WhatsApp blast as the client sees it, the day and time it goes out, and Coach Emma’s review. This is the Campaign Blasts page.' },
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
     // Kate, 28 Oct 2026: which dashboard pages each level opens, as tick boxes (Level 5 only; saved in public.page_access, defaults from pages.js).
@@ -543,7 +545,7 @@
         '<img class="kb-logo-light" src="/assets/mast-ink.png" alt="Tara Rose">' +
         '<img class="kb-logo-dark" src="/assets/mast-paper.png" alt="Tara Rose">' +
         '<span>Salons</span></a>' +
-      '<div class="kb-titles"><span class="kb-eyebrow">Knowledge Base</span><div class="kb-titlerow"><h1>' + titleHtml(h.dataset.title || 'Team Home') + '</h1>' +
+      '<div class="kb-titles"><span class="kb-eyebrow">' + esc(h.dataset.eyebrow || 'Knowledge Base') + '</span><div class="kb-titlerow"><h1>' + titleHtml(h.dataset.title || 'Team Home') + '</h1>' +
         // Kate, 8 Oct 2026: the second front door, the plain search page. On the title's line on a
         // desktop (the right side has no room), under it on a phone.
         '<a class="kb-searchpage" href="/search/">Search page &rarr;</a></div></div>' +
