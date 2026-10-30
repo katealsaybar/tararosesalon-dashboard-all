@@ -100,6 +100,12 @@
       '<div class="cb-sum"><span class="cb-chip"><b>' + ap + ' of ' + ids.length + '</b> approved</span><span class="cb-chip"><b>' + lk + ' of ' + ids.length + '</b> times locked</span></div>' +
       '<div class="cb-card cb-rows">' + rows + '</div>';
   }
+  // The campaign's landing page, so Coach Emma can go back to what the client lands on. Only a path on this site is linked.
+  function pageCard(b) {
+    var u = b.data.page_url;
+    if (!u || !/^\/[^\/]/.test(u)) return '';
+    return '<div class="cb-fact cb-card"><small>Landing page</small><a class="cb-pg" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(b.data.page_name || 'Open the page') + ' ↗</a></div>';
+  }
   function warns(b) {
     var w = [];
     if (parts(b.send_date).getDay() !== 1) w.push('Blasts go out on Mondays.');
@@ -120,7 +126,7 @@
     }).join('') : '<p class="cb-none">No comments yet.</p>';
     var hasWhy = k === 'changes' && b.comments.some(function (c) { return c.by === b.review_by && b.review_at && new Date(c.at) >= new Date(new Date(b.review_at).getTime() - 60000); });
     return '<div class="cb-head"><div><div class="cb-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cb-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
-      '<div class="cb-facts"><div class="cb-fact cb-card"><small>Clients</small><b>' + esc(b.data.n) + '</b></div><div class="cb-fact cb-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cb-fact cb-card"><small>She gets</small>' + esc(b.data.gets) + '</div></div>' +
+      '<div class="cb-facts"><div class="cb-fact cb-card"><small>Clients</small><b>' + esc(b.data.n) + '</b></div><div class="cb-fact cb-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cb-fact cb-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + pageCard(b) + '</div>' +
       '<div class="cb-phones">' + lane('Warm', b.data.warm, b.data.img) + lane('Standard', b.data.std, b.data.img) + '</div>' +
       '<div class="cb-card cb-when"><h3>When it goes out</h3>' +
       '<label class="cb-fld">Date<input type="date" id="cbDate" value="' + b.send_date + '"></label>' +

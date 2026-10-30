@@ -7,7 +7,8 @@
 --
 -- The blast content (messages, counts, who gets them) is NOT in this file. The repo is public, so the drafts were loaded straight into
 -- blast_plan_items on 30 Oct 2026 and stay out of the repo. Shape of blast_plan_items.data:
---   { title, n, who, gets, img, planned_date, planned_time, warm: {name, c, t}, std: {name, c, t} }
+--   { title, n, who, gets, img, page_url, page_name, planned_date, planned_time, warm: {name, c, t}, std: {name, c, t} }
+--   (page_url = the campaign's landing page, a path on this site, page_name = what the link says)
 --   (name = the respond.io template name, c = clients in that group, t = the message with {{1}} for the first name)
 
 create table if not exists public.blast_plan_items (

@@ -3775,6 +3775,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-subhead">2025</div>
     <div class="nav-sub" onclick="showView('glowclub', this)">Glow Club Performance</div>
     <div class="nav-subhead">2026</div>
+    <!-- Kate, 30 Oct 2026: Campaign Blasts is a Team Home page (hub/campaign-blasts); this row opens it. Executives & Marketing and Kate only, see tidyNav(). -->
+    <div class="nav-sub" data-cbl onclick="location.href='/hub/campaign-blasts'">Campaign Blasts, November</div>
     <div class="nav-sub" onclick="showView('lostlists', this)">Lost Client Blasts, October 2026</div>
     <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
     <div class="nav-sub lvl2" data-wvb="all" onclick="wvGoBlast('all', this)">Overall Blast performances</div>
@@ -4778,6 +4780,8 @@ function tidyNav(){
   const wvOpen = typeof trsPageOpen === 'function' && trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
   document.querySelectorAll('#sidebar .nav-sub[data-wvb]').forEach(el => { el.style.display = wvOpen ? '' : 'none'; });
   document.querySelectorAll('#sidebar .nav-sub.has-kids').forEach(p => { const b = p.querySelector('.nav-kids-btn'); if (b && p.nextElementSibling && p.nextElementSibling.hasAttribute('data-wvb')) b.style.display = wvOpen ? '' : 'none'; });
+  // Campaign Blasts (a Team Home page) is for Executives & Marketing and Kate; Accounts and the floor do not get the row.
+  document.querySelectorAll('#sidebar .nav-sub[data-cbl]').forEach(el => { el.style.display = (TRS_LEVEL === 3 || TRS_LEVEL === 5) ? '' : 'none'; });
   const open = el => el.style.display !== 'none' && /showView/.test(el.getAttribute('onclick') || '');
   document.querySelectorAll('#sidebar .nav-subhead').forEach(h => {
     let n = h.nextElementSibling, any = false;

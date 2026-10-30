@@ -62,6 +62,7 @@
 .cb-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
 .cb-fact{padding:12px 16px;font-size:15px;display:grid;gap:2px;align-content:start}
 .cb-fact small{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+.cb-pg{font-weight:600;color:var(--text);text-decoration:underline;text-underline-offset:3px;min-height:24px}
 .cb-fact b{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;line-height:1.1}
 
 .cb-when{padding:16px 18px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 18px}
