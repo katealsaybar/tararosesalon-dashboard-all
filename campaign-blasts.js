@@ -84,8 +84,8 @@
     for (;;) {
       var time = '11:0' + (min + step * 2), bs = node.b || [], pick = path[step], closing = false;
       h += bubbleHtml(node.t, time);
-      // Every button here already tried (the call centre one aside): the only ones left are Start over and Speak to a human.
-      if (bs.length && bs.every(function (x) { return x.to === 'help' || seen[x.to]; })) { bs = [{ l: 'Start over', to: '#start' }, { l: 'Speak to a human', to: 'help' }]; closing = true; }
+      // Every button here already tried (the call centre one aside): the only ones left are Start over and Help me out.
+      if (bs.length && bs.every(function (x) { return x.to === 'help' || seen[x.to]; })) { bs = [{ l: 'Start over', to: '#start' }, { l: 'Help me out', to: 'help' }]; closing = true; }
       h += bs.map(function (x, i) {
         if (x.to === '#start') return '<button type="button" class="cbl-fb" data-flow-reset="' + esc(r.key) + '">' + esc(x.l) + '</button>';
         return pick == null
