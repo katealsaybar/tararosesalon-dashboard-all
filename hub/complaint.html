@@ -129,6 +129,12 @@
   .cb-items,.cb-more{display:none}
 }
 /* one complaint as a ticket */
+.tk-files{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.tk-file{display:block;position:relative;aspect-ratio:1;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);color:inherit;text-decoration:none}
+.tk-file:hover{border-color:var(--muted)}
+.tk-file img{width:100%;height:100%;object-fit:cover;display:block}
+.tk-ft{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:var(--muted)}
+.tk-fn{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.58);color:#fff;font-size:11px;line-height:1.25;padding:3px 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .tk{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
 @media (min-width:980px){.tk{grid-template-columns:260px minmax(0,1fr) 290px}}
 .tk-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
@@ -545,12 +551,33 @@ button.tk-pill{cursor:pointer}
     h += '<div style="display:grid;gap:12px;align-content:start">' + (canAssign ? '<div id="tkAssignHold"' + (S.open === 'assign' ? '' : ' hidden') + '>' + assignCard() + '</div>' : '') +
       '<div id="tkTagHold"' + (S.open === 'tag' ? '' : ' hidden') + '>' + tagCard(c) + '</div>' +
       '<div class="cp-card"><h5>Possible duplicate</h5>' + ((c.dupes && c.dupes.length) ? c.dupes.map(function (d) { return '<p class="cp-sm" style="margin:0 0 6px"><b>' + esc(d.code || '') + '</b>' + (d.by_phone ? ', same mobile number' : '') + (d.holder ? ', ' + esc(d.holder) : '') + '<br>' + esc(d.text || '') + '</p>'; }).join('') + '<p class="cp-sm" style="margin:0">If it is the same complaint, link it as a duplicate on the dashboard.</p>' : '<p class="cp-sm" style="margin:0">None found for this client in the last 30 days.</p>') + '</div>' +
-      '<div class="cp-card"><h5>Files</h5><p class="cp-sm" style="margin:0">' + (c.file_count ? c.file_count + (c.file_count === 1 ? ' file' : ' files') + '. ' : 'No files. ') + '<a href="/?view=complaintlog&cid=' + c.id + '">Open on the dashboard</a> to see or add them.</p></div></div></div>';
+      '<div class="cp-card"><h5>Files' + (c.file_count ? ' (' + c.file_count + ')' : '') + '</h5>' +
+      (c.file_count ? '<div class="tk-files" id="tkFiles"><p class="cp-sm" style="margin:0;grid-column:1/-1">Loading…</p></div>' : '<p class="cp-sm" style="margin:0">No files yet.</p>') +
+      '<p class="cp-sm" style="margin:8px 0 0"><a href="/?view=complaintlog&cid=' + c.id + '" target="_blank" rel="noopener">Add files on the dashboard</a></p></div></div></div>';
     h += '</div>';
     main.innerHTML = h;
     var th = document.getElementById('tkTagHold'); if (th && !th.hidden) mountTag(c);
     var ah = document.getElementById('tkAssignHold'); if (ah && !ah.hidden) mountAssign(c);
     bindComposer(c);
+    loadFiles(c);
+  }
+
+  // the photos and files as small thumbnails, each opens in its own window (Kate, 30 Oct 2026). Only the people who may see the client get them.
+  async function loadFiles(c) {
+    var box = document.getElementById('tkFiles'); if (!box) return;
+    var none = function (t) { box.innerHTML = '<p class="cp-sm" style="margin:0;grid-column:1/-1">' + esc(t) + '</p>'; };
+    var r = await KB.client.rpc('cmp_files', { p_id: c.id });
+    var fs = r && !r.error && r.data ? r.data : [];
+    if (!fs.length) { none(c.revealed ? 'The files did not load. Refresh to try again.' : 'Files are shown to the person who took it.'); return; }
+    var sg = await KB.client.storage.from('complaint-files').createSignedUrls(fs.map(function (f) { return f.path; }), 3600);
+    var urls = {}; ((sg && sg.data) || []).forEach(function (u) { if (u && u.path && u.signedUrl) urls[u.path] = u.signedUrl; });
+    box.innerHTML = fs.map(function (f) {
+      var u = urls[f.path]; if (!u) return '';
+      var mime = f.mime || '', pic = /^image\//.test(mime) && !/heic/i.test(mime);
+      var inner = pic ? '<img loading="lazy" src="' + esc(u) + '" alt="' + esc(f.name) + '">' : '<span class="tk-ft">' + (/pdf/i.test(mime) ? 'PDF' : /^image\//.test(mime) ? 'Photo' : 'File') + '</span>';
+      return '<a class="tk-file" href="' + esc(u) + '" target="_blank" rel="noopener" title="' + esc(f.name + (f.by ? ', ' + f.by : '')) + '">' + inner + '<span class="tk-fn">' + esc(f.name) + '</span></a>';
+    }).join('') || '<p class="cp-sm" style="margin:0;grid-column:1/-1">The files did not open. Refresh to try again.</p>';
+    box.querySelectorAll('img').forEach(function (im) { im.addEventListener('error', function () { var a = im.parentNode; im.remove(); a.insertAdjacentHTML('afterbegin', '<span class="tk-ft">Photo</span>'); }); });
   }
 
   // ---------------------------------------------------------------- one complaint: take it, or it is yours, or the ticket
