@@ -1064,6 +1064,8 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
     mark(); render();
   });
   var aed=function(v){ return 'AED '+v.toLocaleString('en-US'); };
+  /* Make it a year adds AED 500 to 600 to the keratin price, so the estimate with it ticked is a range. */
+  var yrRange=function(b){ return aed(b+500)+' to '+(b+600).toLocaleString('en-US'); };
   var grp='svc', svcType='smooth', saved={svc:'smooth:0',blow:'bundle:0'}, savedT={smooth:'smooth:0',colour:'colour:0',treatment:'treatment:0'};
   var cur=function(){ var v=String(svcSel.value||'smooth:0').split(':'); key=v[0]; return SV[key].opts[Number(v[1])||0]; };
   var radios=function(n){ return [].slice.call(sheet.querySelectorAll('input[name="'+n+'"]')); };
@@ -1084,7 +1086,12 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
     else if(l<0){ priceEl.textContent='From '+aed(pr[0]); priceNote.textContent='Your salon checks your length and confirms your price before anything is booked.'; priceNote.hidden=false; }
     else if(out===null){ priceEl.textContent=aed(pr[l]); priceNote.textContent='Add how much hair you have, as thick hair can move you up a length.'; priceNote.hidden=false; }
     else { priceEl.textContent=aed(pr[out]); if(out!==l){ priceNote.textContent=(out>l?'Thicker hair takes more time and product, so we price your hair as ':'Finer hair takes less time, so we price your hair as ')+NM[out]+'.'; priceNote.hidden=false; } }
-    if(yr&&st.year){ priceNote.textContent=(priceNote.hidden?'':priceNote.textContent+' ')+'Plus AED 500 to 600 for the root touch-up visit. Your salon confirms the total.'; priceNote.hidden=false; }
+    if(yr&&st.year){
+      if(l===null||l<0) priceEl.textContent='From '+aed(pr[0]+500);
+      else if(out===null) priceEl.textContent=yrRange(pr[l]);
+      else priceEl.textContent=yrRange(pr[out]);
+      priceNote.textContent=(priceNote.hidden?'':priceNote.textContent+' ')+'Includes AED 500 to 600 for the root touch-up visit. Your salon confirms the total.'; priceNote.hidden=false;
+    }
     if(course){ var C3=[625,660,700,805], lv=(l!==null&&l>=0)?(out!==null?out:l):0; priceEl.textContent='From '+aed(st.course===2?1040:C3[lv]); priceNote.textContent=(st.course===2?'5 sessions, valid 6 months, paid once, same stylist tracks your result.':'3 sessions, valid 3 months, paid once, same stylist tracks your result.')+' Your salon confirms the final price.'; priceNote.hidden=false; }
     if(nx){ priceEl.textContent='Total confirmed by your salon'; priceNote.textContent='You have chosen '+(nx+1)+' treatments. Your salon confirms the total before anything is booked.'; priceNote.hidden=false; }
     if(out!==null){ window.hrDens=DN[d]; if(window.hrApplyLen) window.hrApplyLen(out); }
@@ -1107,7 +1114,7 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
     if(key==='treatment') bits.push('Booking: '+(st.course===1?'a course of three, valid 3 months, paid once':(st.course===2?'a course of five, valid 6 months, paid once':'a single visit')));
     if(key==='smooth'&&st.year) bits.push('Add-on: Make it a year, a root touch-up visit within 3 to 4 months (plus AED 500 to 600, total to be confirmed by the salon)');
     if(key==='treatment'&&(st.course>0||st.extra.length)) bits.push((st.extra.length?'Total':'Course price')+': to be confirmed by the salon');
-    else if(Array.isArray(pr)) bits.push('Guide price: '+(out!==null?aed(pr[out]):'from '+aed(pr[0])));
+    else if(Array.isArray(pr)){ var gp=(key==='smooth'&&st.year); bits.push('Guide price'+(gp?' with Make it a year':'')+': '+(out!==null?(gp?yrRange(pr[out]):aed(pr[out])):'from '+aed(pr[0]+(gp?500:0)))); }
     else if(typeof pr==='string') bits.push('Guide price: '+pr.replace('from','from AED'));
     var what=o[0]; if(key==='treatment'&&st.extra.length){ what=[o[0]].concat(st.extra.map(function(i){ return SV.treatment.opts[i][0]; })).join(', ').replace(/, ([^,]*)$/,' and $1'); }
     return 'Hi Tara Rose, I would like to book '+what+' from The Hair Rhythm at '+salon+'.\n'+bits.join('\n')+'\n(ref '+ref+')';
