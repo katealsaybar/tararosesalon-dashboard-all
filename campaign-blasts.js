@@ -12,6 +12,7 @@
   var D = null, cur = 'all', cal = null, drag = null, draft = {}, errMsg = '';
   var big = false, calMsg = '', cdrag = null, noClick = false;   // the bigger calendar, a note under it, a blast being dragged to another day
   var TODAY = dubaiToday();
+  var PC = null;   // comments left on the landing pages themselves (page_comments_get, migrations/page_comments.sql); null until read, and the page works without them
   var LIVE = null, liveErr = false;   // the audience counted from the till (blast_plan_audience); the numbers typed into the plan are only a fallback
   var BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
 
@@ -175,7 +176,29 @@
       '<div class="cbl-sum"><span class="cbl-chip"><b>' + ap + ' of ' + ids.length + '</b> approved</span><span class="cbl-chip"><b>' + lk + ' of ' + ids.length + '</b> times locked</span>' +
       '<span class="cbl-chip"><b>' + (tot == null ? '…' : fmtN(tot)) + '</b> clients</span><span class="cbl-chip cbl-tot"><b>' + cost(tot) + '</b> est. to send all ' + ids.length + '</span></div>' +
       '<p class="cbl-note">Estimate: one marketing message per client at about USD 0.046 (AED 0.17), the rate measured on 19 Oct. Her tap and our reply come inside her 24 hour window, so they should not add to it. The exact amount is on Meta’s invoice, and each client is counted once.</p>' +
-      '<div class="cbl-card cbl-rows">' + rows + '</div>';
+      '<div class="cbl-card cbl-rows">' + rows + '</div>' + pcAll();
+  }
+  /* comments left on the landing pages (page-comments.js); each links to its pin: the page opens on it */
+  function slugOf(u) { var m = /^\/campaigns\/([a-z0-9-]+)\/?$/.exec(u || ''); return m ? m[1] : null; }
+  function pcTops(slug) { return (PC || []).filter(function (c) { return !c.parent && (!slug || c.page === slug); }); }
+  function pcLink(c, u) { return '<a class="cbl-pci' + (/^emma/i.test(c.by) ? ' emma' : '') + '" href="' + esc(u + '?pc=' + c.id) + '" target="_blank" rel="noopener"><span class="cbl-pcn">' + c.num + '</span><span><strong>' + esc(c.by) + '</strong> ' + esc(fat(c.at)) + '<em>' + esc(c.body.length > 90 ? c.body.slice(0, 90) + '…' : c.body) + '</em></span></a>'; }
+  function pcBlock(b) {
+    var u = b.data.page_url, slug = slugOf(u);
+    if (!slug || !PC) return '';
+    var t = pcTops(slug), open = t.filter(function (c) { return !c.resolved; });
+    return '<div class="cbl-pc"><div class="cbl-pch"><strong>' + open.length + ' open</strong> · ' + (t.length - open.length) + ' resolved<span> comments on the page</span></div>' +
+      (open.length ? open.slice(0, 4).map(function (c) { return pcLink(c, u); }).join('') + (open.length > 4 ? '<small>and ' + (open.length - 4) + ' more, open the page to see them</small>' : '') : '<small>Open the page, tap “Add a comment”, then tap the spot.</small>') + '</div>';
+  }
+  function pcAll() {
+    if (!PC) return '';
+    var open = pcTops().filter(function (c) { return !c.resolved; }), names = {};
+    D.items.forEach(function (i) { var sl = slugOf(i.data.page_url); if (sl && !names[sl]) names[sl] = i.data.page_name || sl; });
+    var groups = {}; open.forEach(function (c) { (groups[c.page] = groups[c.page] || []).push(c); });
+    var body = Object.keys(groups).map(function (sl) {
+      var u = '/campaigns/' + sl + '/';
+      return '<div class="cbl-pcg"><h4>' + esc(names[sl] || sl) + ' <small>' + groups[sl].length + ' open</small></h4>' + groups[sl].map(function (c) { return pcLink(c, u); }).join('') + '</div>';
+    }).join('');
+    return '<div class="cbl-card cbl-pcall"><h3>Comments on the landing pages</h3>' + (body || '<p class="cbl-none">No open comments on the pages. Open a page while signed in, tap “Add a comment”, then tap the spot.</p>') + '</div>';
   }
   // The campaign's landing page, so Coach Emma can go back to what the client lands on. Only a path on this site is linked.
   function pageCard(b) {
@@ -183,7 +206,7 @@
     if (!u || !/^\/[^\/]/.test(u)) return '';
     // A small live look at the page's first screen (our own page, shown with clicks switched off), scaled to the card; fitPreviews() sets the scale.
     return '<div class="cbl-fact cbl-card cbl-pgc"><small>Landing page</small><a class="cbl-pg" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(b.data.page_name || 'Open the page') + ' ↗</a>' +
-      '<a class="cbl-prev" href="' + esc(u) + '" target="_blank" rel="noopener" aria-label="Open the landing page"><iframe src="' + esc(u) + '" loading="lazy" tabindex="-1" aria-hidden="true" title="Preview of the landing page"></iframe></a></div>';
+      '<a class="cbl-prev" href="' + esc(u) + '" target="_blank" rel="noopener" aria-label="Open the landing page"><iframe src="' + esc(u) + '" loading="lazy" tabindex="-1" aria-hidden="true" title="Preview of the landing page"></iframe></a>' + pcBlock(b) + '</div>';
   }
   function warns(b) {
     var w = [];
@@ -257,6 +280,9 @@
     cur = id; errMsg = ''; calMsg = ''; big = false;
     var b = item(id); if (b && !keepMonth) { var d = parts(b.send_date); cal = { y: d.getFullYear(), m: d.getMonth() }; }
     render(true);   // Kate, 30 Oct 2026: another blast opens where you already are, so the phones and the page line up with the one you had open
+  }
+  async function loadPC() {
+    try { PC = (await rpc('page_comments_get', { p_page: null })).comments || []; } catch (e) { PC = null; }   // not applied yet, or no access: the rest of the page carries on
   }
   async function loadLive() {
     try { LIVE = await rpc('blast_plan_audience'); liveErr = false; } catch (e) { console.error(e); liveErr = true; }
@@ -373,7 +399,7 @@
   document.addEventListener('visibilitychange', function () {   // come back to the tab and see what others wrote
     if (document.visibilityState !== 'visible' || !D || !main() || main().offsetParent === null) return;
     var ta = document.getElementById('cblCmt'); if (ta && document.activeElement === ta) return;
-    Promise.all([reload(), loadLive()]).then(function () { render(true); });
+    Promise.all([reload(), loadLive(), loadPC()]).then(function () { render(true); });
   });
 
   // Called by showView each time the page opens: read what the database says now, then draw.
@@ -385,6 +411,6 @@
     try { D = await rpc('blast_plan_get'); } catch (e) { console.error(e); notFound(); return; }
     if (cur !== 'all' && !item(cur)) cur = 'all';
     render();
-    loadLive().then(function () { if (main() && main().offsetParent !== null) render(true); });   // the counts come a moment after the page
+    Promise.all([loadLive(), loadPC()]).then(function () { if (main() && main().offsetParent !== null) render(true); });   // the counts and the page comments come a moment after the page
   };
 })();

@@ -227,3 +227,21 @@
 .cbl-fact .dn{border-bottom:1px dotted currentColor;cursor:pointer}
 .cbl-r{cursor:pointer}
 .cbl-rl{color:inherit;text-decoration:none;min-width:0}
+
+/* comments left on the landing pages (page-comments.js) */
+.cbl-pc{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border)}
+.cbl-pch{font-size:14px}
+.cbl-pch span{color:var(--muted2)}
+.cbl-pc small{font-size:12.5px;color:var(--muted2);text-transform:none;letter-spacing:0;font-weight:400}
+.cbl-pc strong,.cbl-pci strong{font-weight:600}
+.cbl-pci{display:flex;gap:10px;align-items:flex-start;text-decoration:none;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:8px 12px;background:var(--bg);font-size:13.5px;min-height:44px}
+.cbl-pci:hover{border-color:var(--text)}
+.cbl-pci.emma{border-left:4px solid var(--cb-amber)}
+.cbl-pci em{display:block;font-style:normal;color:var(--muted);overflow-wrap:anywhere}
+.cbl-pcn{flex:none;width:24px;height:24px;border-radius:50%;background:var(--cb-good);color:#fff;font-weight:700;font-size:12px;display:grid;place-items:center}
+[data-theme="dark"] .cbl-pcn{color:#1A1A1A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cbl-pcn{color:#1A1A1A}}
+.cbl-pcall{padding:18px;display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.cbl-pcg{display:flex;flex-direction:column;gap:6px}
+.cbl-pcg h4{margin:0;font:600 15px 'Inter',sans-serif}
+.cbl-pcg h4 small{font-weight:400;color:var(--muted2);margin-left:6px}
