@@ -24,7 +24,13 @@
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 <style>
   body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
-  body.sr-wait .sr-main{visibility:hidden}
+  /* Kate, 30 Oct 2026 (audit ALAD-1, finding 9): on a slow connection the page was a blank screen. The logo, the bar and Search now show at once;
+     only what is personal (greeting, doors, shortcuts, cards, the top buttons) waits for sign-in, keeping its space so nothing jumps. */
+  body.sr-wait .sr-hello,body.sr-wait .sr-doors,body.sr-wait .sr-hint,body.sr-wait .sr-key,body.sr-wait .sr-tiles,body.sr-wait .sr-fold,body.sr-wait .sr-top{visibility:hidden}
+  /* Muted small text, a step stronger so it reads on a phone in glare (audit finding 8): about 5.4:1 on the cream page, about 5.2:1 on the dark cards. */
+  body{--muted2:#6B645E}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body{--muted2:rgba(250,248,243,.62)}}
+  [data-theme="dark"] body{--muted2:rgba(250,248,243,.62)}
   .sr-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
     padding:0 20px 40px;text-align:center}
   /* Kate, 20 Oct 2026: "center the logo and search bar in the UI, then everything follows". The logo, greeting, bar and buttons sit
@@ -53,7 +59,7 @@
   /* inline-flex, so the label sits in the middle of the button whatever the button's height */
   .sr-btn{appearance:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;text-align:center;
     border:1px solid var(--border);background:var(--surface2);color:var(--text);
-    border-radius:8px;padding:10px 20px;font:500 14px/1 'Inter',system-ui,sans-serif;text-decoration:none;white-space:nowrap;
+    border-radius:8px;min-height:44px;padding:10px 20px;font:500 14px/1 'Inter',system-ui,sans-serif;text-decoration:none;white-space:nowrap;
     --glow:rgba(124,92,212,.38);
     transition:border-color .18s var(--ease),box-shadow .18s var(--ease),transform .18s var(--ease)}
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sr-btn{--glow:rgba(153,246,228,.5)}}
@@ -79,7 +85,9 @@
   .sr-door:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
   @media (prefers-reduced-motion:reduce){.sr-door:hover{transform:none}}
   @media (max-width:560px){.sr-doors{gap:10px}.sr-door{flex:1 1 calc(50% - 10px);max-width:none;padding:14px}}
-  .sr-hint{margin:22px 0 0;font-size:13px;color:var(--muted2)}
+  .sr-hint{margin:22px 0 0;font-size:14px;color:var(--muted2)}
+  .sr-key{margin:6px 0 0;font-size:13px;color:var(--muted2)}
+  .sr-key kbd{font:inherit;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:1px 6px;background:var(--surface)}
   .sr-hint kbd{font:inherit;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:1px 6px;background:var(--surface)}
   .sr-foot{padding:18px 20px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:13px;color:var(--muted2)}
   .sr-foot a{margin:0 8px}
@@ -89,7 +97,7 @@
   /* A starred pill wears the star Team Home's cards have, so you can tell it from one that is only often opened. */
   .sr-pstar{flex:none;display:grid;place-items:center;margin-left:-4px;color:#C9971A}
   .sr-pstar svg{width:14px;height:14px;fill:currentColor}
-  .sr-cap{margin:14px 0 0;font-size:12px;color:var(--muted2)}
+  .sr-cap{margin:14px 0 0;font-size:13px;color:var(--muted2)}
   /* Kate, 18 Oct 2026: "a separate listing of favourites and frequently visited, hanay 1 and hanay 2". */
   .sr-grp[hidden]{display:none}
   .sr-grp + .sr-grp{margin-top:22px}
@@ -111,18 +119,35 @@
   .sr-rec-row:hover,.sr-rec-row:focus-visible{background:var(--surface2);outline:0}
   .sr-rec-txt{flex:1;min-width:0}
   .sr-rec-t,.sr-rec-w{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sr-rec-t{font-weight:600;font-size:14.5px}
-  .sr-rec-w{font-size:12.5px;color:var(--muted);margin-top:1px}
-  .sr-rec-d{flex:none;font-size:12.5px;color:var(--muted2)}
-  .sr-news .sr-rec-t,.sr-news .sr-rec-w{white-space:normal;overflow:visible}
+  .sr-rec-t{font-weight:600;font-size:14.5px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+  .sr-rec-w{font-size:13px;color:var(--muted);margin-top:1px}
+  .sr-rec-d{flex:none;font-size:13px;color:var(--muted2)}
+  .sr-news .sr-rec-t,.sr-news .sr-rec-w{white-space:normal;overflow:visible;display:block}
   .sr-rec-more{appearance:none;display:block;width:100%;min-height:44px;border:0;border-top:1px solid var(--border2);background:none;cursor:pointer;
     font:500 13px/1 'Inter',system-ui,sans-serif;color:var(--muted)}
   .sr-rec-more:hover,.sr-rec-more:focus-visible{background:var(--surface2);color:var(--text);outline:0}
+  /* Audit ALAD-1, finding 3: one decision at a time. Recently updated and What's new fold behind one quiet line, and Frequently visited shows four with a
+     "Show more" pill. Nothing is removed, it is just not all on the screen at once. */
+  .sr-fold{width:100%;max-width:600px;margin-top:22px}
+  .sr-fold-btn{appearance:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;border:0;background:none;
+    font:500 14px/1.2 'Inter',system-ui,sans-serif;color:var(--muted)}
+  .sr-fold-btn:hover,.sr-fold-btn:focus-visible{color:var(--text);outline:0}
+  .sr-fold-btn:focus-visible{box-shadow:0 0 0 3px rgba(153,246,228,.6);border-radius:8px}
+  .sr-fold-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s var(--ease)}
+  .sr-fold-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+  .sr-fold-body .sr-recent:first-child{margin-top:8px}
+  .sr-pillmore{appearance:none;cursor:pointer;display:block;min-height:44px;border:0;background:none;padding:0 6px;font:500 14px/1 'Inter',system-ui,sans-serif;color:var(--muted);text-align:left}
+  .sr-pillmore:hover,.sr-pillmore:focus-visible{color:var(--text);outline:0;text-decoration:underline}
+  /* No page found: say so, ask, and point at the Suggestions Box (audit finding 1). */
+  .sr-sug .sr-none{padding:12px 14px;font-size:14px;line-height:1.45;color:var(--text)}
+  .sr-sug .sr-none a{display:inline-block;margin-top:4px;color:var(--text);font-weight:500;text-decoration:underline}
   .sr-top{position:fixed;top:14px;right:16px;z-index:5;display:flex;gap:8px}
   /* Narrow, the buttons would sit over the logo: they take a row of their own above it instead. */
   @media (max-width:760px){.sr-top{position:static;align-self:flex-end;padding:14px 16px 0}}
   .sr-theme{appearance:none;cursor:pointer;border:1px solid var(--border);background:var(--surface);
     color:var(--muted);border-radius:999px;padding:8px 16px;font:500 13px/1 'Inter',system-ui,sans-serif}
+  /* On a phone these two were about 29px tall and side by side: a wrong tap on Sign out. They are 44px now, with room between (audit finding 7). */
+  @media (max-width:760px){.sr-theme{min-height:44px;padding:0 18px;font-size:14px}.sr-top{gap:16px}}
   .sr-theme:hover{color:var(--text);border-color:var(--text)}
   @media (max-width:760px){
     /* Team Home lets its favourites swipe sideways on a phone; here they wrap and stay centred. */
@@ -217,15 +242,23 @@
     <a class="sr-door" data-d="hub" href="/hub/"><span class="sr-di" style="--c:var(--accent-mint)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><b>Team Home</b><span class="sr-dt">Favourites and every shortcut</span></a>
   </nav>
   <p class="sr-hint" id="srHint"></p>
+  <p class="sr-key" id="srKey" hidden>Press <kbd>/</kbd> to search from anywhere.</p>
   </div>
-  <nav class="sr-tiles hide" id="srTiles" aria-label="Your shortcuts"><div class="sr-grp" id="srFavGrp"><h2 class="sr-gh">Favourites</h2><div class="kb-fvs" id="srFavRow"></div><p class="sr-cap" id="srFavHint" hidden>Star a page on Team Home or in the dashboard, and it will wait here.</p></div><div class="sr-grp" id="srOftenGrp"><h2 class="sr-gh">Frequently visited</h2><div class="kb-fvs" id="srOftenRow"></div></div><p class="sr-cap" id="srCap"></p></nav>
-  <section class="sr-recent hide" id="srRecent" aria-labelledby="srRecentH"><h2 id="srRecentH">Recently updated</h2><div id="srRecentRows"></div></section>
-  <section class="sr-recent sr-news hide" id="srNews" aria-labelledby="srNewsH"><h2 id="srNewsH">What's new</h2><div id="srNewsRows"></div><button type="button" class="sr-rec-more hide" id="srNewsMore">See all</button></section>
+  <nav class="sr-tiles hide" id="srTiles" aria-label="Your shortcuts"><div class="sr-grp" id="srFavGrp"><h2 class="sr-gh">Favourites</h2><div class="kb-fvs" id="srFavRow"></div><p class="sr-cap" id="srFavHint" hidden>Tap the star on a Team Home page or a dashboard page, and it waits here.</p></div><div class="sr-grp" id="srOftenGrp"><h2 class="sr-gh">Frequently visited</h2><div class="kb-fvs" id="srOftenRow"></div><button type="button" class="sr-pillmore" id="srOftenMore" aria-expanded="false" hidden></button></div><p class="sr-cap" id="srCap"></p></nav>
+  <div class="sr-fold hide" id="srFoldWrap">
+    <button type="button" class="sr-fold-btn" id="srFold" aria-expanded="false" aria-controls="srFoldBody"><span id="srFoldT">What's new and recently updated</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="sr-fold-body" id="srFoldBody" hidden>
+      <section class="sr-recent hide" id="srRecent" aria-labelledby="srRecentH"><h2 id="srRecentH">Recently updated</h2><div id="srRecentRows"></div></section>
+      <section class="sr-recent sr-news hide" id="srNews" aria-labelledby="srNewsH"><h2 id="srNewsH">What's new</h2><div id="srNewsRows"></div><button type="button" class="sr-rec-more hide" id="srNewsMore">See all</button></section>
+    </div>
+  </div>
 </main>
 <div class="sr-fade" aria-hidden="true"></div>
 <button type="button" class="sr-more" id="srMore">Show more <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
 <footer class="sr-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 <script>
+// The bar shows before sign-in is checked (audit finding 9); until then Enter does nothing rather than reload the page.
+document.getElementById('srForm').addEventListener('submit', function (e) { e.preventDefault(); });
 // "Show more" under the hero: visible while there is more page below and the page is still at the top.
 (function () {
   var more = document.getElementById('srMore');
@@ -240,7 +273,8 @@
   update();
   more.addEventListener('click', function () {
     var t = document.getElementById('srTiles');
-    if (!t || t.classList.contains('hide')) t = document.getElementById('srRecent') || document.querySelector('.sr-foot');
+    if (!t || t.classList.contains('hide')) t = document.getElementById('srFoldWrap');
+    if (!t || t.classList.contains('hide')) t = document.querySelector('.sr-foot');
     t.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 })();
@@ -265,15 +299,29 @@
   var dash = !!role && !(me && me.scope) && KB.allowed.indexOf('dashboards') >= 0;
 
   var first = ((KB.name || (me && me.name)) || '').split(/[\s(]/)[0];
-  if (first) document.getElementById('srHello').textContent = 'Hello, ' + first;
+  // No first name on the record: plain "Hello", never a blank line (audit finding 11).
+  document.getElementById('srHello').textContent = first ? 'Hello, ' + first : 'Hello';
 
   var input = document.getElementById('srIn');
-  if (dash) {
-    input.placeholder = 'Find anything, or ask a question';
-    document.getElementById('srHint').textContent = 'Staff, branches, pages, clients, services and Team Home. Ask it the way you would say it.';
-  } else {
-    document.getElementById('srHint').textContent = 'Treatments, policies and how-tos.';
+  // Audit finding 2: start from the situation, not the subject. The placeholder walks through real moments on the floor while the bar is empty,
+  // and the line under it says what the bar is for in one sentence. The wording is situations, not policies: it names no page that might not exist.
+  var PH = dash
+    ? ['Find anything, or ask a question', 'Looking for a page, a person or a client? Type it here', 'Not sure where something lives? Ask it']
+    : ['Find a treatment, policy or how-to', 'A client asked about a treatment? Type it here', 'Not sure what to say to a client? Type it here', 'Forgot a step? Type what you are doing'];
+  input.placeholder = PH[0];
+  document.getElementById('srHint').textContent = dash
+    ? 'Ask it the way you would say it, and the answer is a tap away.'
+    : 'Type it the way you would say it, and find the answer in a few taps.';
+  if (PH.length > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var phI = 0;
+    setInterval(function () {
+      if (document.hidden || input.value) return;
+      phI = (phI + 1) % PH.length;
+      input.placeholder = PH[phI];
+    }, 4500);
   }
+  // The "/" key has always jumped to the bar; now it is said, on a laptop only (audit finding 10).
+  if (matchMedia('(hover: hover) and (pointer: fine)').matches) document.getElementById('srKey').hidden = false;
   // The four doors (Kate, 30 Oct 2026). A door shows only when this person has something behind it, by the same rule as Team Home's cards (KB.opens).
   // Knowledge Base and Tools open their own page (Team Home with ?door=kb or ?door=tools); Team Home is always there.
   var opened = KB.SECTIONS.filter(KB.opens);
@@ -404,16 +452,29 @@
     });
 
     var nav = document.getElementById('srTiles');
-    function pills(list) {
-      return list.map(function (t) {
-        return '<a class="kb-fv" href="' + esc(t.h) + '" title="' + esc(t.t) + (t.star ? ' (favourite)' : '') + '">' + t.ic + '<span>' + esc(t.t) + '</span></a>';
+    // Frequently visited shows four, then a "Show more" pill (audit finding 3); Favourites are the person's own choice, so all of them stay.
+    var OFTEN_SHOW = 4;
+    function pills(list, keep) {
+      return list.map(function (t, i) {
+        return '<a class="kb-fv' + (keep && i >= keep ? ' hide sr-x' : '') + '" href="' + esc(t.h) + '" title="' + esc(t.t) + (t.star ? ' (favourite)' : '') + '">' + t.ic + '<span>' + esc(t.t) + '</span></a>';
       }).join('');
     }
     document.getElementById('srFavRow').innerHTML = pills(favT);
     document.getElementById('srFavHint').hidden = favT.length > 0;
-    document.getElementById('srOftenRow').innerHTML = pills(oftenT);
+    document.getElementById('srOftenRow').innerHTML = pills(oftenT, OFTEN_SHOW);
     document.getElementById('srOftenGrp').hidden = !oftenT.length;
-    document.getElementById('srCap').textContent = oftenT.length ? '' : (favT.length ? 'The pages you open most will wait here too.' : '');
+    var oMore = document.getElementById('srOftenMore');
+    if (oftenT.length > OFTEN_SHOW) {
+      oMore.textContent = 'Show ' + (oftenT.length - OFTEN_SHOW) + ' more';
+      oMore.hidden = false;
+      oMore.onclick = function () {
+        var on = oMore.getAttribute('aria-expanded') !== 'true';
+        document.querySelectorAll('#srOftenRow .sr-x').forEach(function (a) { a.classList.toggle('hide', !on); });
+        oMore.setAttribute('aria-expanded', on ? 'true' : 'false');
+        oMore.textContent = on ? 'Show fewer' : 'Show ' + (oftenT.length - OFTEN_SHOW) + ' more';
+      };
+    }
+    document.getElementById('srCap').textContent = oftenT.length ? '' : (favT.length ? 'Pages you open most on this phone will show here.' : '');
     nav.classList.remove('hide');
   })();
 
@@ -427,6 +488,23 @@
     if (ago === 1) return 'Yesterday';
     return day.getDate() + ' ' + MONTHS[day.getMonth()];
   }
+
+  // "Updated today", "Updated 17 Oct": so an edit is not read as something new (audit finding 5).
+  function updated(iso) { var w = when(iso); return 'Updated ' + (w === 'Today' || w === 'Yesterday' ? w.toLowerCase() : w); }
+
+  // ── The fold (audit finding 3): one quiet line opens Recently updated and What's new. It says "3 new this week" when the news has something this week.
+  var fold = { recent: false, news: 0, newsAny: false };
+  function paintFold() {
+    if (!fold.recent && !fold.newsAny) return;
+    var t = fold.news ? fold.news + ' new this week' : (fold.recent && fold.newsAny ? 'What\u2019s new and recently updated' : (fold.newsAny ? 'What\u2019s new' : 'Recently updated'));
+    document.getElementById('srFoldT').textContent = t;
+    document.getElementById('srFoldWrap').classList.remove('hide');
+  }
+  document.getElementById('srFold').addEventListener('click', function () {
+    var b = this, open = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', open ? 'true' : 'false');
+    document.getElementById('srFoldBody').hidden = !open;
+  });
 
   // ── Recently updated, 18 Oct 2026: the five Team Home pages edited last. Drawn after the bar,
   // never waited for; no rows or any error and the card simply stays hidden.
@@ -455,9 +533,10 @@
         return '<a class="sr-rec-row" href="/hub/kb.html?p=' + encodeURIComponent(p.slug) + '">' +
           '<span class="sr-rec-txt"><span class="sr-rec-t">' + esc(p.title) + '</span>' +
           (where ? '<span class="sr-rec-w">' + esc(where) + '</span>' : '') + '</span>' +
-          '<span class="sr-rec-d">' + when(p.updated_at) + '</span></a>';
+          '<span class="sr-rec-d">' + updated(p.updated_at) + '</span></a>';
       }).join('');
       document.getElementById('srRecent').classList.remove('hide');
+      fold.recent = true; paintFold();
     } catch (e) { /* nothing to show; the page works without it */ }
   })();
 
@@ -493,6 +572,9 @@
       paint();
       if (rows.length > NEWS_SHOW) more.classList.remove('hide');
       document.getElementById('srNews').classList.remove('hide');
+      fold.newsAny = true;
+      fold.news = rows.filter(function (u) { return Date.now() - new Date(u.published_at).getTime() < 7 * 86400000; }).length;
+      paintFold();
     } catch (e) { /* nothing to show; the page works without it */ }
   })();
 
@@ -591,8 +673,10 @@
         items.push({ t: r.title, h: h, g: (sec ? sec.title + ' › ' : '') + (r.group_name || 'Page'), s: r.snippet ? '…' + r.snippet + '…' : '' });
       });
     }
+    // Audit finding 1: the Team Home search has answered and there is nothing, not even a "Did you mean". Say so, ask, and give the next step.
+    var nothing = kbFor === raw && !items.length;
     items.push({ all: true, t: 'See all results for “' + raw + '”' });
-    box.innerHTML = items.map(function (it, i) {
+    box.innerHTML = (nothing ? '<div class="sr-none" role="note">Nothing yet for “' + esc(raw) + '”. What were you looking for?<br><a href="/hub/suggestions">Tell us in the Suggestions Box, so the next person finds it.</a></div>' : '') + items.map(function (it, i) {
       if (it.fix) return '<a class="kb-result sr-fix' + (i === active ? ' active' : '') + '" role="option" href="#" data-i="' + i + '">Did you mean <b>' + esc(it.fix) + '</b>?</a>';
       if (it.all) return '<a class="kb-result sr-all' + (i === active ? ' active' : '') + '" role="option" href="#" data-i="' + i + '">' + esc(it.t) + '</a>';
       return '<a class="kb-result' + (i === active ? ' active' : '') + '" role="option" href="' + esc(it.h) + '" data-i="' + i + '">' +
