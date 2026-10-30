@@ -15,12 +15,20 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=d5913c31">
+<link rel="stylesheet" href="/hub/hub.css?v=dcfa22a4">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
 <body class="kb-wait">
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <script>
+    // Kate, 30 Oct 2026 (adult-learning audit ALAD-5): on a door (?door=kb or ?door=tools) the small label says where you are
+    // (Team Home) and the big title says which door, so nobody is told they are in the Knowledge Base on the Tools door.
+    (function () {
+      var d = new URLSearchParams(location.search).get('door'), T = { kb: 'Knowledge Base', tools: 'Tools' }, h = document.getElementById('kbHead');
+      if (T[d] && h) { h.dataset.title = T[d]; h.dataset.eyebrow = 'Team Home'; }
+    })();
+  </script>
   <main>
     <p class="kb-hello" id="kbHello"></p>
     <a class="kb-mylink" id="kbMyLink" hidden>My numbers &amp; payslip <span aria-hidden="true">→</span></a>
@@ -33,7 +41,7 @@
 <script src="/auth.js?v=3823f956"></script>
 <script src="/pages.js?v=790e04bf"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=2e8749c2"></script>
+<script src="/hub/hub.js?v=fa05c541"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
 KB.ready.then(async function () {
@@ -106,8 +114,10 @@ KB.ready.then(async function () {
     kb: { title: 'Knowledge Base', blurb: 'Read and learn: the Tara Rose Way, SOPs, inductions, onboarding, scripts, and the guides and forms we use.',
       lists: [{ title: 'The Tara Rose Way', dept: 'The Tara Rose Way' }, { title: 'Learn', dept: 'Learn' },
         { title: 'Guides and forms', keys: ['price-list', 'client-matching', 'marketing-optout', 'hr-forms', 'magazines'] }] },
-    tools: { title: 'Tools', blurb: 'Where you do something and the site remembers it: approve, schedule, send, record.',
-      lists: [{ title: 'Tools', dept: 'Tools' }] }
+    // Kate, 30 Oct 2026 (ALAD-5): the intro asks the question a person arrives with and promises nothing the rows do not do; the panel has no
+    // heading of its own (the page title already says Tools); the rows run in the order they are used, daily jobs first.
+    tools: { title: 'Tools', blurb: 'What do you need to do? Pick the job and it opens the right page.',
+      lists: [{ title: '', dept: 'Tools', order: ['log-complaint', 'complaints-pipeline', 'post-approvals', 'campaign-blasts', 'targets-calc'] }] }
   };
   var door = DOORS[new URLSearchParams(location.search).get('door')] || null;
   if (door) {
@@ -143,7 +153,7 @@ KB.ready.then(async function () {
     if (!list.length) return '';
     // Live first, then the ones still to come, each in KB.SECTIONS' order.
     list = list.filter(isLive).concat(list.filter(function (s) { return !isLive(s); }));
-    return '<section class="kb-dept"><h2 class="kb-dept-h">' + esc(title) + '</h2>' + list.map(row).join('') + '</section>';
+    return '<section class="kb-dept">' + (title ? '<h2 class="kb-dept-h">' + esc(title) + '</h2>' : '') + list.map(row).join('') + '</section>';
   }
   // Kate, 22 Oct 2026: "yung favorites gawin mo na ring boxes": a favourite is a square like the section squares, same size and same lift on hover,
   // with the section it belongs to underneath its name.
@@ -155,9 +165,18 @@ KB.ready.then(async function () {
     var html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a></p>', any = false;
     door.lists.forEach(function (l) {
       var list = shown.filter(function (s) { return l.keys ? l.keys.indexOf(s.key) >= 0 : s.dept === l.dept; });
-      if (list.length) { any = true; html += '<div class="kb-depts kb-depts-one">' + group(l.title, list) + '</div>'; }
+      if (l.order) list.sort(function (a, b) {   // named rows first, in that order; any other row after them, as before
+        var x = l.order.indexOf(a.key), y = l.order.indexOf(b.key);
+        return (x < 0 ? 99 : x) - (y < 0 ? 99 : y);
+      });
+      if (list.length) { any = true; html += '<div class="kb-depts kb-depts-one kb-door-list">' + group(l.title, list) + '</div>'; }
     });
-    document.getElementById('kbGrid').innerHTML = any ? html : html + '<p class="kb-msg">Nothing here for your account yet. <a href="/search/">Back to the front door</a></p>';
+    // Kate, 30 Oct 2026 (ALAD-5): an empty door says why and where to go, not just "nothing".
+    var none = door.title === 'Tools'
+      ? 'Nothing here for you yet. Tools are the pages leadership and executives use to log, follow up and approve things. Your own pages are on <a href="/hub/">Team Home</a>' +
+        (KB.myLink ? ', including <a href="' + esc(KB.myLink) + '">My numbers &amp; payslip</a>' : '') + ' and the <a href="/hub/suggestions">Suggestions Box</a>.'
+      : 'Nothing here for you yet. Your own pages are on <a href="/hub/">Team Home</a>.';
+    document.getElementById('kbGrid').innerHTML = any ? html : html + '<p class="kb-msg">' + none + ' <a href="/search/">Back to the front door</a></p>';
   }
   function paint() {
     if (door) { paintDoor(); return; }

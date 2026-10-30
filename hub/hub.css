@@ -674,3 +674,11 @@ body.kb-wait .wrap{visibility:hidden}
   .fm-switch button{flex:1 1 auto;min-width:0}
 }
 
+/* === ALAD-5 (Kate, 30 Oct 2026): the Knowledge Base and Tools doors. A row's line wraps instead of being cut with "...", because the
+   why is the part that was cut off on a phone. Only the door pages (.kb-door-list); Team Home's own rows are unchanged. === */
+.kb-door-list .kb-row-tx>span{white-space:normal;overflow:visible;text-overflow:clip}
+.kb-door-list .kb-row{align-items:flex-start;padding-top:14px;padding-bottom:14px}
+.kb-door-list .kb-row .kb-ic{margin-top:2px}
+.kb-door-list .kb-row .kb-star,.kb-door-list .kb-row .kb-go{align-self:center}
+.kb-msg a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+/* === end ALAD-5 === */
