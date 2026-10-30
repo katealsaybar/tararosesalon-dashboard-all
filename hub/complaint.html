@@ -531,7 +531,8 @@ button.tk-pill{cursor:pointer}
       '<div class="tk-prop"><span>Assigned to</span><b>' + assigned + '</b></div>' +
       '<div class="tk-prop"><span>Reply to client by</span><b>' + esc(day(c.reply_due)) + (c.first_response_at ? ' <span class="cp-pill green">done</span>' : '') + '</b></div>' +
       '<div class="tk-prop"><span>Close by</span><b>' + esc(day(c.close_due)) + '</b></div>' +
-      '<div class="tk-prop"><span>Client</span><b>' + (c.revealed ? esc(c.client || '') + (c.phone ? ' · ' + esc(c.phone) : '') : '<span class="cp-sm">Not shown to you</span>') + '</b></div>' +
+      '<div class="tk-prop"><span>Client name</span><b>' + (c.revealed ? esc(c.client || '') : '<span class="cp-sm">Not shown to you</span>') + '</b></div>' +
+      '<div class="tk-prop"><span>Contact details</span><b>' + (c.revealed ? (c.phone ? esc(c.phone) : '<span class="cp-sm">None recorded</span>') : '<span class="cp-sm">Not shown to you</span>') + '</b></div>' +
       (c.event_date ? '<div class="tk-prop"><span>Appointment</span><b>' + esc(day(c.event_date)) + '</b></div>' : '') +
       (c.services ? '<div class="tk-prop"><span>Service</span><b>' + esc(c.services) + '</b></div>' : '') +
       (c.stylists ? '<div class="tk-prop"><span>Stylist</span><b>' + esc(c.stylists) + '<br><span class="cp-sm">recorded, not messaged</span></b></div>' : '') +
@@ -563,7 +564,7 @@ button.tk-pill{cursor:pointer}
     var facts = '<div class="cp-card">' + row('Branch', esc(branch)) + row('About', esc(Kind)) + row('Code', codeChip(c.code)) +
       row('Logged by', esc(c.by || '') + (c.by_at ? ', ' + esc(clock(c.by_at)) : '')) +
       row('What happened', esc(c.detail || 'Not stated')) +
-      (c.revealed ? row('Client', esc(c.client || '')) + (c.phone ? row('Mobile', esc(c.phone)) : '') : row('Client', 'Shown once you take it')) + '</div>';
+      (c.revealed ? row('Client name', esc(c.client || '')) + (c.phone ? row('Contact details', esc(c.phone)) : '') : row('Client name', 'Shown once you take it') + row('Contact details', 'Shown once you take it')) + '</div>';
     var h = '<div class="cp">' + nav('') + '<a class="sub" href="/hub/complaint">← My complaints</a>';
     if (t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
     if (c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
