@@ -81,7 +81,10 @@
 .cb-in{border:1px solid var(--border);border-radius:14px;background:var(--surface);position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding-bottom:6px}
 .cb-in h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0;padding:12px 14px 6px;font-weight:600;font-family:inherit}
 .cb-g{border-top:1px solid var(--border);padding:6px 6px 8px}
-.cb-gh{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:7px 8px;cursor:pointer;font:inherit;font-weight:600;font-size:14px;color:var(--text)}
+.cb-ghr{display:flex;align-items:center;gap:2px}
+.cb-tg{flex:none;width:28px;height:30px;border:0;background:none;color:var(--muted);cursor:pointer;border-radius:8px;font-size:13px;line-height:1}
+.cb-tg:hover{background:var(--bg);color:var(--text)}
+.cb-gh{flex:1;min-width:0;display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:7px 8px;cursor:pointer;font:inherit;font-weight:600;font-size:14px;color:var(--text)}
 .cb-gh:hover{background:var(--bg)}
 .cb-gh.on{background:color-mix(in srgb,var(--accent,#3AA892) 20%,var(--surface));outline:1.5px solid var(--accent,#3AA892)}
 .cb-gh em{margin-left:auto;font-style:normal;font-size:12px;background:var(--bg);border-radius:999px;padding:1px 9px}
@@ -278,6 +281,15 @@ button.tk-pill{cursor:pointer}
     ['wait', 'Waiting to be taken', function (x) { return x.stage === 'waiting'; }],
     ['stk', 'Stuck, needs Kate', function (x) { return x.stage === 'stuck'; }, 'red']
   ];
+  // Which inbox groups are open (Kate, 30 Oct 2026): Assigned to you and Overdue are open, the rest folded away; remembered in this browser.
+  function inboxOpen() {
+    var B = S.board;
+    if (!B.open) {
+      B.open = { mine: true, over: true };
+      try { var v = JSON.parse(localStorage.getItem('cmp-inbox-open') || 'null'); if (v && typeof v === 'object') B.open = v; } catch (e) {}
+    }
+    return B.open;
+  }
   function mdy(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); return m ? m[2] + '/' + m[3] + '/' + m[1] : ''; }
   // the ticket name: MM/DD/YYYY | BRANCH CODE | CLIENT NAME | COMPLAINT CLASSIFICATION
   function tname(x) { return [mdy(x.date), x.branch || '', x.client || 'Client', cap(KIND[x.type] || 'client')].join(' | '); }
@@ -315,11 +327,13 @@ button.tk-pill{cursor:pointer}
     wideWrap(true);
     var B = S.board, cards = B.cards;
     var vis = cards.filter(function (x) { return (B.branch === 'all' || x.branch === B.branch) && (!B.serious || x.priority !== 'low') && inGroup(x); });
+    var open = inboxOpen();
     var inbox = '<h2>Your inbox</h2>' + GROUPS.map(function (g) {
-      var xs = cards.filter(g[2]);
-      return '<div class="cb-g"><button type="button" class="cb-gh ' + (g[3] || '') + (B.grp === g[0] ? ' on' : '') + '" data-g="' + g[0] + '" aria-pressed="' + (B.grp === g[0]) + '">' + esc(g[1]) + '<em>' + xs.length + '</em></button><div class="cb-items">' +
-        xs.slice(0, 3).map(function (x) { return '<a class="cb-rw" href="' + bhref(x) + '" target="_blank" rel="noopener"><b>' + esc(tname(x)) + '</b>' + esc(chipOf(x)[1]) + '</a>'; }).join('') +
-        (xs.length > 3 ? '<div class="cb-more">+' + (xs.length - 3) + ' more</div>' : '') + '</div></div>';
+      var xs = cards.filter(g[2]), op = !!open[g[0]];
+      return '<div class="cb-g"><div class="cb-ghr"><button type="button" class="cb-tg" data-tg="' + g[0] + '" aria-expanded="' + op + '" aria-label="' + (op ? 'Fold ' : 'Open ') + esc(g[1]) + '"><span aria-hidden="true">' + (op ? '&#9662;' : '&#9656;') + '</span></button>' +
+        '<button type="button" class="cb-gh ' + (g[3] || '') + (B.grp === g[0] ? ' on' : '') + '" data-g="' + g[0] + '" aria-pressed="' + (B.grp === g[0]) + '">' + esc(g[1]) + '<em>' + xs.length + '</em></button></div>' +
+        (op ? '<div class="cb-items">' + xs.slice(0, 3).map(function (x) { return '<a class="cb-rw" href="' + bhref(x) + '" target="_blank" rel="noopener"><b>' + esc(tname(x)) + '</b>' + esc(chipOf(x)[1]) + '</a>'; }).join('') +
+          (xs.length > 3 ? '<div class="cb-more">+' + (xs.length - 3) + ' more</div>' : '') + '</div>' : '') + '</div>';
     }).join('');
     var fil = '<div class="cp-fil" role="group" aria-label="Filters">' + [['all', 'All branches']].concat(Object.keys(BRANCH).map(function (k) { return [k, BRANCH[k]]; })).map(function (x) {
       return '<button type="button" data-f="branch" data-v="' + x[0] + '" class="' + (B.branch === x[0] ? 'on' : '') + '" aria-pressed="' + (B.branch === x[0]) + '">' + esc(x[1]) + '</button>';
@@ -713,6 +727,12 @@ button.tk-pill{cursor:pointer}
     if (f) {
       var b = S.board;
       if (f.dataset.f === 'branch') b.branch = f.dataset.v; else if (f.dataset.f === 'serious') b.serious = !b.serious;
+      drawBoard(); return;
+    }
+    var tg = e.target.closest('[data-tg]');
+    if (tg) {
+      var op2 = inboxOpen(); op2[tg.dataset.tg] = !op2[tg.dataset.tg];
+      try { localStorage.setItem('cmp-inbox-open', JSON.stringify(op2)); } catch (er) {}
       drawBoard(); return;
     }
     var gr = e.target.closest('[data-g]');
