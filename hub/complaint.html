@@ -129,6 +129,8 @@
   .cb-items,.cb-more{display:none}
 }
 /* one complaint as a ticket */
+.tk-att{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0 2px}
+.tk-att .tk-pill button{background:none;border:0;cursor:pointer;color:inherit;font:inherit;padding:0 0 0 4px}
 .tk-files{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
 .tk-file{display:block;position:relative;aspect-ratio:1;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg);color:inherit;text-decoration:none}
 .tk-file:hover{border-color:var(--muted)}
@@ -188,7 +190,7 @@ button.tk-pill{cursor:pointer}
   var P = new URLSearchParams(location.search);
   var cid = Number(P.get('cid')) || 0, view = P.get('view') || '', forceTicket = P.get('t') === '1';
   var timer = 0, badge = null;
-  var S = { c: null, tab: 'activity', mentions: {}, draft: '', open: '', tagKind: 'copied', board: { branch: 'all', serious: false, grp: '', cards: [], move: null, drag: null, toast: '', bad: false } };
+  var S = { c: null, tab: 'activity', mentions: {}, draft: '', open: '', tagKind: 'copied', board: { branch: 'all', serious: false, grp: '', cards: [], move: null, drag: null, toast: '', bad: false }, pick: [] };
   var cap = function (s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); };
 
   function day(d) { try { return new Date(d.length === 10 ? d + 'T00:00:00' : d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }); } catch (e) { return ''; } }
@@ -476,19 +478,51 @@ button.tk-pill{cursor:pointer}
     });
     ta.addEventListener('blur', function () { setTimeout(hide, 150); });
   }
+  // the files picked for the next note (Kate, 30 Oct 2026): photos, PDF or text, 10 MB each, 10 to a complaint, same rules as the dashboard
+  var FILE_OK = /^(image\/(jpeg|png|webp|gif|heic)|application\/pdf|text\/plain)$/;
+  function fileType(f) { return f.type || (/\.heic$/i.test(f.name) ? 'image/heic' : ''); }
+  function drawChosen() {
+    var el = document.getElementById('tkChosen'); if (!el) return;
+    el.innerHTML = S.pick.map(function (f, i) { return '<span class="tk-pill on">' + esc(f.name) + '<button type="button" data-rmf="' + i + '" aria-label="Remove ' + esc(f.name) + '">&times;</button></span>'; }).join('');
+  }
+  async function uploadPicked(id) {
+    var store = KB.client.storage.from('complaint-files'), names = [], fails = [];
+    for (var i = 0; i < S.pick.length; i++) {
+      var f = S.pick[i], type = fileType(f), safe = f.name.replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80) || 'file', path = id + '/' + Date.now() + '-' + i + '-' + safe;
+      try {
+        var up = await store.upload(path, f, { contentType: type, upsert: false }); if (up.error) throw up.error;
+        var rr = await KB.client.rpc('cmp_add_file', { p_id: id, p_path: path, p_name: f.name, p_size: f.size, p_mime: type });
+        if (rr.error || !rr.data || !rr.data.ok) throw new Error(rr.data && rr.data.why ? rr.data.why : 'did not save');
+        names.push(f.name);
+      } catch (e) { fails.push(f.name + ': ' + ((e && e.message) || 'did not upload')); }
+    }
+    return { names: names, fails: fails };
+  }
   async function sendNote() {
     var ta = document.getElementById('tkNote'), msg = document.getElementById('tkNoteMsg'), btn = document.getElementById('tkSend');
     var text = (ta && ta.value || '').trim();
-    if (text.length < 2) { if (msg) { msg.textContent = 'Write the note first.'; msg.className = 'cp-msg bad'; } return; }
-    var ments = Object.keys(S.mentions).filter(function (s) { return text.indexOf('@' + s) >= 0; }).map(function (s) { return S.mentions[s]; });
+    var say = function (t, bad) { if (msg) { msg.textContent = t; msg.className = 'cp-msg' + (bad ? ' bad' : ''); } };
+    if (text.length < 2 && !S.pick.length) { say('Write the note first.', true); return; }
     btn.disabled = true;
+    var up = { names: [], fails: [] };
+    if (S.pick.length) {
+      say('Uploading…');
+      up = await uploadPicked(cid);
+      if (!up.names.length) { btn.disabled = false; say('The files did not upload. ' + up.fails.join(' · '), true); return; }
+    }
+    if (up.names.length) text = (text ? text + '\n\n' : '') + 'Attached: ' + up.names.join(', ');
+    var ments = Object.keys(S.mentions).filter(function (s) { return text.indexOf('@' + s) >= 0; }).map(function (s) { return S.mentions[s]; });
     var r = await KB.client.rpc('cmp_note', { p_id: cid, p_text: text, p_mentions: ments });
     btn.disabled = false;
-    if (r.error || !r.data || !r.data.ok) { if (msg) { msg.textContent = (r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not save. Try again.'; msg.className = 'cp-msg bad'; } return; }
+    if (r.error || !r.data || !r.data.ok) { say((r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not save. Try again.', true); return; }
     var tagged = r.data.tagged || [];
-    S.draft = ''; S.mentions = {};
+    S.draft = ''; S.mentions = {}; S.pick = [];
     await reload();
-    var m2 = document.getElementById('tkNoteMsg'); if (m2) m2.textContent = tagged.length ? 'Saved. ' + tagged.join(', ') + (tagged.length === 1 ? ' is tagged and gets' : ' are tagged and get') + ' one message.' : 'Saved.';
+    var m2 = document.getElementById('tkNoteMsg');
+    if (m2) {
+      m2.textContent = 'Saved.' + (up.names.length ? ' ' + up.names.length + (up.names.length === 1 ? ' file' : ' files') + ' attached.' : '') + (tagged.length ? ' ' + tagged.join(', ') + (tagged.length === 1 ? ' is tagged and gets' : ' are tagged and get') + ' one message.' : '') + (up.fails.length ? ' Not attached: ' + up.fails.join(' · ') : '');
+      if (up.fails.length) m2.className = 'cp-msg bad';
+    }
   }
 
   // ---------------------------------------------------------------- the ticket name, priority and next step (Kate, 30 Oct 2026)
@@ -546,6 +580,7 @@ button.tk-pill{cursor:pointer}
       '<div style="margin-top:12px">' + peopleBlock(c) + '</div></div>';
     h += '<div>' + nextStep(c) + '<div class="tk-tabs" role="tablist">' + [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']].map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
       '<div class="tk-comp"><textarea class="cp-ta" id="tkNote" placeholder="Write a note. Type @ to tag someone." aria-label="Write a note">' + esc(S.draft) + '</textarea><div class="tk-menu" id="tkMenu" hidden></div></div>' +
+      (c.revealed ? '<div class="tk-att"><label class="cp-btn sub mini" style="cursor:pointer">Attach a photo or file<input type="file" id="tkFile" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/heic,application/pdf,text/plain" hidden></label><span id="tkChosen" class="tk-att"></span></div>' : '') +
       '<div class="cp-btnrow" style="grid-template-columns:auto 1fr;align-items:center"><button type="button" class="cp-btn pri mini" id="tkSend">Add note</button><div class="cp-msg" id="tkNoteMsg" aria-live="polite"></div></div>' +
       '<div id="tkTimeline">' + timelineHtml(c) + '</div></div>';
     h += '<div style="display:grid;gap:12px;align-content:start">' + (canAssign ? '<div id="tkAssignHold"' + (S.open === 'assign' ? '' : ' hidden') + '>' + assignCard() + '</div>' : '') +
@@ -560,6 +595,7 @@ button.tk-pill{cursor:pointer}
     var ah = document.getElementById('tkAssignHold'); if (ah && !ah.hidden) mountAssign(c);
     bindComposer(c);
     loadFiles(c);
+    drawChosen();
   }
 
   // the photos and files as small thumbnails, each opens in its own window (Kate, 30 Oct 2026). Only the people who may see the client get them.
@@ -651,10 +687,25 @@ button.tk-pill{cursor:pointer}
     var id = S.board.drag; S.board.drag = null; S.board.toast = ''; S.board.move = { id: id, to: c.dataset.stage }; drawBoard();
   });
 
+  main.addEventListener('change', function (e) {
+    if (!e.target || e.target.id !== 'tkFile') return;
+    var room = 10 - ((S.c && S.c.file_count) || 0) - S.pick.length, bad = [];
+    Array.prototype.forEach.call(e.target.files, function (f) {
+      if (!FILE_OK.test(fileType(f))) bad.push(f.name + ': only photos, PDF or text');
+      else if (f.size > 10 * 1024 * 1024) bad.push(f.name + ': over 10 MB');
+      else if (room-- <= 0) bad.push(f.name + ': a complaint holds 10 files');
+      else S.pick.push(f);
+    });
+    e.target.value = ''; drawChosen();
+    var m = document.getElementById('tkNoteMsg'); if (m) { m.textContent = bad.join(' · '); m.className = 'cp-msg' + (bad.length ? ' bad' : ''); }
+  });
+
   // ---------------------------------------------------------------- clicks
   main.addEventListener('click', async function (e) {
     var cp = e.target.closest('[data-copy]');
     if (cp) { copyText(cp); return; }
+    var rmf = e.target.closest('[data-rmf]');
+    if (rmf) { S.pick.splice(Number(rmf.dataset.rmf), 1); drawChosen(); return; }
     var f = e.target.closest('[data-f]');
     if (f) {
       var b = S.board;
