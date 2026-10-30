@@ -167,3 +167,6 @@
 .cbl-back{align-self:flex-start;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;padding:4px 2px}
 .cbl-back:hover{color:var(--text)}
 .cbl-tabs .cbl-tab+.cbl-hint{margin-top:8px}
+.cbl-pgc{display:flex;flex-direction:column;gap:6px}
+.cbl-prev{position:relative;display:block;width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:8px;border:1px solid var(--border);background:var(--surface2);margin-top:4px}
+.cbl-prev iframe{position:absolute;top:0;left:0;width:1280px;height:960px;border:0;transform-origin:0 0;transform:scale(var(--cbl-s,.15));pointer-events:none;background:#fff}
