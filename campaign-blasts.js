@@ -10,6 +10,10 @@
   var ORDER_KEY = 'trs-cbl-order';
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var D = null, cur = 'all', cal = null, drag = null, draft = {}, errMsg = '';
+  // The address names the blast (Kate, 30 Oct 2026): ?view=campaignblasts&blast=blonde-1, so a link opens that blast. index.html trSyncUrl() asks cblUrlParts().
+  var wantBlast = '', firstOpen = true;
+  function syncUrl() { try { if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'campaignblasts') trSyncUrl(null); } catch (e) { /* the page is fine without it */ } }
+  window.cblUrlParts = function () { var id = D ? cur : (wantBlast || 'all'); return id && id !== 'all' ? ['blast=' + encodeURIComponent(id)] : []; };
   var bigflow = false;   // the two phones of one blast, large
   var big = false, calMsg = '', cdrag = null, noClick = false;   // the bigger calendar, a note under it, a blast being dragged to another day
   var TODAY = dubaiToday();
@@ -345,6 +349,7 @@
   function go(id, keepMonth) {
     cur = id; errMsg = ''; calMsg = ''; big = false; bigflow = false;
     var b = item(id); if (b && !keepMonth) { var d = parts(b.send_date); cal = { y: d.getFullYear(), m: d.getMonth() }; }
+    syncUrl();
     render(true);   // Kate, 30 Oct 2026: another blast opens where you already are, so the phones and the page line up with the one you had open
   }
   async function loadPC() {
@@ -477,11 +482,15 @@
   window.renderCampaignBlasts = async function () {
     var el = main(); if (!el) return;
     if (typeof TRS_LEVEL === 'undefined' || (TRS_LEVEL !== 3 && TRS_LEVEL !== 5) && !(typeof TRS_EXTRA !== 'undefined' && TRS_EXTRA.indexOf('campaignblasts') >= 0)) { notFound(); return; }
-    cur = 'all'; cal = null; errMsg = '';   // the sidebar row is the way back to the overview
+    // A link with &blast= opens that blast, but only the first time this page opens; the sidebar row after that is the way back to the overview.
+    if (firstOpen) { firstOpen = false; try { wantBlast = new URLSearchParams(location.search).get('blast') || ''; } catch (e) { wantBlast = ''; } }
+    cur = 'all'; cal = null; errMsg = '';
     if (!D) el.innerHTML = '<section class="cbl-intro"><h2>Campaign Blasts</h2></section><p class="slv-muted">Loading…</p>';
     try { D = await rpc('blast_plan_get'); } catch (e) { console.error(e); notFound(); return; }
+    if (wantBlast) { if (item(wantBlast)) { cur = wantBlast; var wd = parts(item(cur).send_date); cal = { y: wd.getFullYear(), m: wd.getMonth() }; } wantBlast = ''; }
     if (cur !== 'all' && !item(cur)) cur = 'all';
     render();
+    syncUrl();
     Promise.all([loadLive(), loadPC()]).then(function () { if (main() && main().offsetParent !== null) render(true); });   // the counts and the page comments come a moment after the page
   };
 })();

@@ -3588,7 +3588,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['glow-club.js?v=84f11759'],
       // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
-      cbl: ['campaign-blasts.js?v=1b72d0e3'],
+      cbl: ['campaign-blasts.js?v=5fd64752'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'active-deals.js?v=442ed4c5'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -5549,6 +5549,11 @@ function trSyncUrl(sectionId){
   if (CURRENT_VIEW === 'dailyperf' && typeof dpUrlParts === 'function') parts.push(...dpUrlParts());
   // Lost Clients: which tab (groups, to-message, templates), Level 3+ only (lost-queue.js).
   if (CURRENT_VIEW === 'lostlists' && typeof lqUrlParts === 'function') parts.push(...lqUrlParts());
+  // Campaign Blasts: which blast is open (campaign-blasts.js). Until that script is loaded, keep a blast= the link brought.
+  if (CURRENT_VIEW === 'campaignblasts') {
+    if (typeof cblUrlParts === 'function') parts.push(...cblUrlParts());
+    else { const cb = new URLSearchParams(location.search).get('blast'); if (cb) parts.push('blast=' + encodeURIComponent(cb)); }
+  }
   const q = parts.length ? '?' + parts.join('&') : '';
   const slug = location.pathname + q + (sectionId ? '#' + sectionId : '');
   if (slug === TR_URL_SLUG) return;
