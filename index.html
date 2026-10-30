@@ -3812,6 +3812,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">Tools</div>
     <div class="nav-sub" onclick="showView('campaignblasts', this)">Campaign Blasts, November</div>
     <div class="nav-sub" onclick="showView('complaintlog', this)">Log a Client Complaint</div>
+    <div class="nav-sub" data-cmp-pipeline onclick="location.href='/hub/complaint?view=board'">Complaints Pipeline</div>
     <div class="nav-sub" data-tool-link onclick="location.href='/targets/'">Target Calculator</div>
     <div class="nav-sub" data-tool-link onclick="window.open('https://katealsaybar.github.io/smm_board_approvals/', '_blank', 'noopener')">Post Approvals</div>
   </div>
@@ -4801,6 +4802,10 @@ function tidyNav(){
   document.querySelectorAll('#sidebar .nav-sub.has-kids').forEach(p => { const b = p.querySelector('.nav-kids-btn'); if (b && p.nextElementSibling && p.nextElementSibling.hasAttribute('data-wvb')) b.style.display = wvOpen ? '' : 'none'; });
   // Tools' two links out (Target Calculator, Post Approvals) are for Levels 3 and 5 only, as their Team Home cards are (only: [3, 5]).
   document.querySelectorAll('#sidebar .nav-sub[data-tool-link]').forEach(el => { el.style.display = (TRS_LEVEL === 3 || TRS_LEVEL === 5) ? '' : 'none'; });
+  // Complaints Pipeline (Kate, 30 Oct 2026) is a Team Home page, so it is a link out. It shows to whoever sees Log a Client Complaint (Level 2 and up); the page and the
+  // database then decide whether you are leadership or a branch coordinator, and say so if you are not.
+  const cplOpen = typeof trsPageOpen === 'function' && trsPageOpen('complaintlog', TRS_LEVEL, TRS_EXTRA);
+  document.querySelectorAll('#sidebar .nav-sub[data-cmp-pipeline]').forEach(el => { el.style.display = cplOpen ? '' : 'none'; });
   const open = el => el.style.display !== 'none' && /showView/.test(el.getAttribute('onclick') || '');
   document.querySelectorAll('#sidebar .nav-subhead').forEach(h => {
     let n = h.nextElementSibling, any = false;
