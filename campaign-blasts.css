@@ -66,7 +66,7 @@
 .cbl-fact b{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;line-height:1.1}
 
 /* the top of a blast: the numbers and the date on the left, the landing page as a side panel (mockup A, Kate, 30 Oct 2026) */
-.cbl-top{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:12px;align-items:start}
+.cbl-top{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:12px;align-items:stretch}
 .cbl-top.noside{grid-template-columns:minmax(0,1fr)}
 .cbl-topl{display:grid;gap:12px;min-width:0}
 .cbl-nums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -263,7 +263,9 @@
 .cbl-tabs .cbl-tab+.cbl-hint{margin-top:8px}
 .cbl-pgc{display:flex;flex-direction:column;gap:6px}
 .cbl-prev{position:relative;display:block;width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:8px;border:1px solid var(--border);background:var(--surface2);margin-top:4px}
-.cbl-prev iframe{position:absolute;top:0;left:0;width:1280px;height:960px;border:0;transform-origin:0 0;transform:scale(var(--cbl-s,.15));pointer-events:none;background:#fff}
+/* Kate, 30 Oct 2026: the landing page card is as tall as the numbers and schedule beside it, so no blank space under it; the preview takes the spare height and shows more of the page */
+.cbl-pgc>.cbl-prev{flex:1 1 auto}
+.cbl-prev iframe{position:absolute;top:0;left:0;width:1280px;height:calc(100% / var(--cbl-s,.15));min-height:960px;border:0;transform-origin:0 0;transform:scale(var(--cbl-s,.15));pointer-events:none;background:#fff}
 .cbl-live{display:block;font-size:12px;color:var(--muted2);margin-top:2px}
 .cbl-fact .dn{border-bottom:1px dotted currentColor;cursor:pointer}
 .cbl-r{cursor:pointer}
