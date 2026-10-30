@@ -97,6 +97,10 @@
     // board from there (the page decides who sees that tab; the database decides who may read).
     { key: 'my-complaints', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Clients', title: 'My Complaints', href: '/hub/complaint', rule: 'var(--accent-lavender)',
       blurb: 'The complaints waiting for you, and the pipeline of every complaint by stage for leadership and coordinators.' },
+    // Kate, 30 Oct 2026: the Pipeline also has its own door in Tools. Same rule as Log a Client Complaint (Levels 2 and up); the page and the database decide who is
+    // leadership or a branch coordinator and tell anyone else so.
+    { key: 'complaints-pipeline', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Tools', title: 'Complaints Pipeline', href: '/hub/complaint?view=board', rule: 'var(--accent-lavender)',
+      blurb: 'Every complaint by stage, with your inbox and the colour of its priority. For leadership and the salon coordinators.' },
     // Kate, 21 Oct 2026: accounts (Level 4) no longer see the Business row, so these two are their way in (`only` = the levels that see the row).
     { key: 'numbers-financials', via: 'dashboards', only: [4], ic: 'dashboards', dept: 'Numbers', title: 'Financial Totals', href: '/?view=ledgerFinancials', rule: 'var(--accent-lavender)',
       blurb: 'Takings by branch: cash, card and other payments.' },
