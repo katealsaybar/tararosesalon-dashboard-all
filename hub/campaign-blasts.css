@@ -65,6 +65,9 @@
 .cb-pg{font-weight:600;color:var(--text);text-decoration:underline;text-underline-offset:3px;min-height:24px}
 .cb-fact b{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;line-height:1.1}
 
+.cb-row2{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.cb-row2>.cb-fact{flex:0 0 230px}
+.cb-row2>.cb-when{flex:1 1 380px}
 .cb-when{padding:16px 18px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 18px}
 .cb-when h3{flex-basis:100%}
 .cb-fld{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted2)}
@@ -129,8 +132,9 @@
 .cb-none{font-size:14px;color:var(--muted2);margin:0}
 .cb-rev textarea{width:100%;min-height:84px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);resize:vertical}
 .cb-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.cb-pill{font-size:14px;font-weight:600;padding:9px 20px;min-height:44px;border-radius:999px;border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer}
-.cb-pill:disabled{opacity:.45;cursor:default}
+/* .cb button sets color:inherit, so this needs the .cb in front to win (it was dark on dark, then light on light) */
+.cb .cb-pill{font-size:14px;font-weight:600;padding:9px 20px;min-height:44px;border-radius:999px;border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer}
+.cb .cb-pill:disabled{opacity:.45;cursor:default}
 .cb-ask{font-size:13.5px;color:var(--cb-warn);font-weight:600;margin:0}
 .cb-err{font-size:13.5px;color:#A32D2D;font-weight:600;margin:0}
 .cb-pager{display:flex;justify-content:space-between;gap:10px}

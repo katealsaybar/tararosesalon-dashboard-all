@@ -126,13 +126,14 @@
     }).join('') : '<p class="cb-none">No comments yet.</p>';
     var hasWhy = k === 'changes' && b.comments.some(function (c) { return c.by === b.review_by && b.review_at && new Date(c.at) >= new Date(new Date(b.review_at).getTime() - 60000); });
     return '<div class="cb-head"><div><div class="cb-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cb-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
-      '<div class="cb-facts"><div class="cb-fact cb-card"><small>Clients</small><b>' + esc(b.data.n) + '</b></div><div class="cb-fact cb-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cb-fact cb-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + pageCard(b) + '</div>' +
-      '<div class="cb-phones">' + lane('Warm', b.data.warm, b.data.img) + lane('Standard', b.data.std, b.data.img) + '</div>' +
+      '<div class="cb-facts"><div class="cb-fact cb-card"><small>Clients</small><b>' + esc(b.data.n) + '</b></div><div class="cb-fact cb-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cb-fact cb-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + '</div>' +
+      '<div class="cb-row2">' + pageCard(b) +
       '<div class="cb-card cb-when"><h3>When it goes out</h3>' +
       '<label class="cb-fld">Date<input type="date" id="cbDate" value="' + b.send_date + '"></label>' +
       '<label class="cb-fld">Time (Dubai)<select id="cbTime">' + times + '</select></label>' +
       '<label class="cb-sw"><input type="checkbox" id="cbLock"' + (b.locked ? ' checked' : '') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
-      (w.length ? '<p class="cb-note warn">' + w.join(' ') + '</p>' : '<p class="cb-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') + '</div>' +
+      (w.length ? '<p class="cb-note warn">' + w.join(' ') + '</p>' : '<p class="cb-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') + '</div>' + '</div>' +
+      '<div class="cb-phones">' + lane('Warm', b.data.warm, b.data.img) + lane('Standard', b.data.std, b.data.img) + '</div>' +
       '<div class="cb-card cb-rev"><div class="cb-rev-top"><h3>Review and comments</h3><div class="cb-seg" role="group" aria-label="Review">' +
       '<button type="button" data-st="ok" class="ok' + (k === 'ok' ? ' on' : '') + '">Approve</button><button type="button" data-st="changes" class="changes' + (k === 'changes' ? ' on' : '') + '">Needs changes</button></div></div>' +
       (k !== 'none' && b.review_by ? '<div class="cb-by">' + (k === 'ok' ? 'Approved' : 'Marked needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + '</div>' : '') +
