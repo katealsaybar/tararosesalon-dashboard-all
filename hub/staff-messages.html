@@ -79,17 +79,25 @@
   function render(body, params) { return params.reduce(function (s, p, i) { return s.split('{{' + (i + 1) + '}}').join(p); }, body); }
   function tpl() { return info.templates.filter(function (t) { return t.kind === 'payroll'; }); }
   function curT() { var k = document.getElementById('smT').value; return tpl().filter(function (t) { return t.key === k; })[0]; }
+  // Kate, 30 Oct 2026: "remove manual typing, this is set through email parameters". The payslip WhatsApp goes out by itself with each payslip email and
+  // takes its month from that email (payslip_sends.month), so there is no month box for it. Only the test to Kate needs a month, and uses this one.
+  function dubaiMonth() { return new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Dubai' }); }
+  function isAuto(t) { return !!t && t.key === 'payslip_ready'; }
   function varsNow() {
-    var v = {}; main.querySelectorAll('[data-var]').forEach(function (i) { v[i.dataset.var] = i.value.trim(); }); return v;
+    var v = {}; main.querySelectorAll('[data-var]').forEach(function (i) { v[i.dataset.var] = i.value.trim(); });
+    if (isAuto(curT()) && !v.month) v.month = dubaiMonth();
+    return v;
   }
   function labelOf(v) { return ({ month: 'Month, e.g. October 2026', item: 'What we need, e.g. your timesheet', deadline: 'By when, e.g. Friday 6 November', pay_date: 'Pay date, e.g. Monday 2 November' })[v] || v; }
 
   function drawFields() {
     var t = curT();
     if (!t) return;
-    document.getElementById('smFields').innerHTML = t.vars.filter(function (v) { return v !== 'first_name'; }).map(function (v) {
-      return '<label>' + esc(labelOf(v)) + '<input data-var="' + esc(v) + '" autocomplete="off" maxlength="120"></label>';
-    }).join('');
+    document.getElementById('smFields').innerHTML = isAuto(t)
+      ? '<p class="sm-note" style="margin:0">Goes out by itself with each payslip email. The month comes from that email, so there is nothing to type here. The preview shows this month as an example.</p>'
+      : t.vars.filter(function (v) { return v !== 'first_name'; }).map(function (v) {
+        return '<label>' + esc(labelOf(v)) + '<input data-var="' + esc(v) + '" autocomplete="off" maxlength="120"></label>';
+      }).join('');
     main.querySelectorAll('[data-var]').forEach(function (i) { i.addEventListener('input', drawPrev); });
     document.getElementById('smAppr').innerHTML = t.approved ? '' : '<p class="sm-warn">This message is waiting for Meta’s approval (template <b>' + esc(t.respond_name) + '</b> in respond.io, Backup number). Nothing can be sent with it until it is approved and switched on here.</p>';
     drawPrev(); drawCount();
@@ -154,9 +162,9 @@
     var n = savedN(), t = curT(), dirty = dirtyN();
     var b = document.getElementById('smSend');
     b.textContent = 'Queue for ' + n + (n === 1 ? ' person' : ' people') + ' on the list';
-    b.disabled = !n || !t || !t.approved || !info.enabled || !!dirty;
+    b.disabled = !n || !t || !t.approved || !info.enabled || !!dirty || isAuto(t);
     var h = document.getElementById('smSendHint');
-    h.textContent = dirty ? 'Save the list first.' : !info.enabled ? 'Sending is switched off. Switch it on above first.' : (t && !t.approved ? 'This message is not approved in Meta yet.' : '');
+    h.textContent = isAuto(t) ? 'The payslip WhatsApp goes out by itself with each payslip email, so there is nothing to queue.' : dirty ? 'Save the list first.' : !info.enabled ? 'Sending is switched off. Switch it on above first.' : (t && !t.approved ? 'This message is not approved in Meta yet.' : '');
   }
   function drawStatus() {
     var el = document.getElementById('smStatus');
