@@ -89,7 +89,7 @@
 
 /* WhatsApp phone, always the light WhatsApp look */
 .cbl-phone-wrap{display:flex;justify-content:center;flex:1}
-.cbl-phone{width:310px;max-width:100%;height:clamp(520px,78vh,680px);border-radius:42px;background:#11161A;padding:9px;box-shadow:0 14px 34px rgba(0,0,0,.3);display:flex}
+.cbl-phone{width:310px;max-width:100%;height:clamp(440px,calc(100vh - 330px),680px);border-radius:42px;background:#11161A;padding:9px;box-shadow:0 14px 34px rgba(0,0,0,.3);display:flex}
 .cbl-screen{flex:1;border-radius:34px;overflow:hidden;background:#ECE5DD;display:flex;flex-direction:column;color:#111B21;font-family:Roboto,"Segoe UI",Arial,sans-serif;line-height:1.4}
 .cbl-status{display:flex;justify-content:space-between;align-items:center;background:#075E54;color:#fff;font-size:12px;font-weight:600;padding:10px 20px 4px}
 .cbl-status .ic{display:flex;gap:5px;align-items:center;font-size:10px}
@@ -101,7 +101,7 @@
 .cbl-who{flex:1;min-width:0;font-size:15px;font-weight:600;line-height:1.2}
 .cbl-who small{display:block;font-size:11.5px;font-weight:400;opacity:.85}
 .cbl-dots{font-size:20px;line-height:1}
-.cbl-thread{flex:1;padding:12px 10px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:0;overflow-y:auto;scrollbar-width:thin;background:#ECE5DD}
+.cbl-thread{flex:1;padding:12px 10px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;background:#ECE5DD}
 .cbl-day{align-self:center;background:#E1F2FB;color:#4A6572;border-radius:8px;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:5px 10px;margin-bottom:8px}
 .cbl-bub{position:relative;max-width:92%;background:#fff;border-radius:0 9px 9px 9px;padding:3px 3px 5px;box-shadow:0 1px .5px rgba(11,20,26,.13);font-size:13.5px}
 .cbl-bub::before{content:"";position:absolute;top:0;left:-7px;border-right:7px solid #fff;border-bottom:7px solid transparent}
