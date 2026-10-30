@@ -708,25 +708,21 @@ function psWaHtml(ready, pending) {
   const w = PS_STATE.wa;
   if (!w) return '';
   const ok = w.enabled && w.approved;
+  const owner = window.TRS_ROLE === 'owner';
   // Only once WhatsApp has run for the month: before that (September and earlier) every email is "without", which says nothing.
   const without = (w.sent + w.queued + w.failed) > 0 ? w.without : 0;
-  const warn = !w.approved ? 'The payslip WhatsApp is not approved in Meta yet, so the emails will go without it.'
-    : !w.enabled ? 'WhatsApp is switched off, so the emails go without it, and it is not sent afterwards. Ask Kate to switch it on before the send.' : '';
-  const link = window.TRS_ROLE === 'owner' ? ' <a class="ps-link" href="/hub/staff-messages">Open Staff Payroll WhatsApp</a>' : '';
-  return `<div class="ps-send-sub">WhatsApp goes with each email</div>
-    <div class="ps-meta">When a payslip email goes out, a short WhatsApp goes to the same person: their payslip is ready and the email is on its way. No amounts. It comes from the Backup number between ${psEsc(w.hour_from)}:00 and ${psEsc(w.hour_to)}:00 Dubai time, so an email sent earlier waits until then.${link}</div>
-    <div class="ps-chips">
-      <span class="ps-chip${ok ? ' st-sent' : ''}">WhatsApp ${ok ? 'on' : 'off'}</span>
-      <span class="ps-chip">Sent ${w.sent}</span>
-      <span class="ps-chip">Waiting to send ${w.queued}</span>
-      ${w.failed ? `<span class="ps-chip st-check">Failed ${w.failed}</span>` : ''}
-      ${without ? `<span class="ps-chip">Emailed without WhatsApp ${without}</span>` : ''}
-    </div>
-    ${warn ? (pending || ready ? `<div class="ps-err">${psEsc(warn)}</div>` : `<div class="ps-meta">${psEsc(warn)}</div>`) : ''}
-    ${without ? '<div class="ps-meta">Emailed without WhatsApp: no number on file, or WhatsApp was off when the email went.</div>' : ''}`;
+  let msg;
+  if (ok) msg = `<b>WhatsApp is on.</b> After each email, that person gets a WhatsApp too, between ${psEsc(w.hour_from)}:00 and ${psEsc(w.hour_to)}:00 Dubai time.`;
+  else if (!w.approved) msg = '<b>WhatsApp is not ready.</b> Meta has not approved the message yet, so staff will get the email only.';
+  else msg = `<b>WhatsApp is off.</b> If you send now, staff get the email only, and the WhatsApp is not sent later. ${owner ? 'Switch it on in Staff Payroll WhatsApp first.' : 'Ask Kate to switch it on first.'}`;
+  const so = (w.sent || w.queued || w.failed || without)
+    ? `<div class="ps-meta">WhatsApp so far: ${w.sent} sent · ${w.queued} waiting${w.failed ? ` · ${w.failed} failed` : ''}${without ? ` · ${without} emailed without one (no number, or it was off)` : ''}</div>` : '';
+  const link = owner ? '<div class="ps-meta"><a class="ps-link" href="/hub/staff-messages">Open Staff Payroll WhatsApp</a></div>' : '';
+  return `<div class="ps-wa ${ok ? 'ok' : (pending || ready ? 'bad' : '')}">${msg}${so}${link}</div>`;
 }
 
 // Times are Dubai time whoever is looking (Accounts work from the Philippines).
+const psWhenPh = iso => new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Manila', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const psWhen = iso => new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 // 'YYYY-MM-DDTHH:MM' in Dubai, for the date-time box.
 function psDubaiLocal(iso) {
@@ -761,11 +757,12 @@ function psRenderSend() {
     ? S.people.filter(p => p.state === 'waiting' && psJoinedGroup(staffOf.get(String(p.id)) || {})).length : 0;
   const waiting = n('waiting') - notOnList;
   const sch = S.schedule, pending = sch && !sch.done_at;
+  const mName = psEsc(monthName.split(' ')[0]);
   let line;
-  if (pending) line = `<b>Goes out ${psEsc(psWhen(sch.send_at))}</b> (Dubai time). Set by ${psEsc(sch.set_by)}. ${ready} ${ready === 1 ? 'is' : 'are'} ready now; anyone uploaded before then goes too.`;
-  else if (sent && !ready) line = `<b>${sent} ${sent === 1 ? 'person has' : 'people have'} theirs.</b> Last sent ${psEsc(psWhen(S.last_sent))}.`;
-  else if (sent) line = `<b>${sent} ${sent === 1 ? 'person has' : 'people have'} theirs.</b> ${ready} more ${ready === 1 ? 'is' : 'are'} ready: send now, or pick a time below.`;
-  else line = `<b>No send time yet.</b> Pick when the ${psEsc(monthName.split(' ')[0])} emails go out, or send them now.`;
+  if (pending) line = `<b>All set.</b> The ${mName} emails go out <b>${psEsc(psWhen(sch.send_at))}</b> Dubai time (${psEsc(psWhenPh(sch.send_at))} in the Philippines). ${ready} ${ready === 1 ? 'payslip is' : 'payslips are'} ready now, and any you upload before then go too.`;
+  else if (ready) line = `<b>${ready} ${ready === 1 ? 'payslip is' : 'payslips are'} ready to send.</b>${sent ? ` ${sent} already sent.` : ''}`;
+  else if (sent) line = `<b>All sent.</b> ${sent} ${sent === 1 ? 'person has' : 'people have'} theirs. Last sent ${psEsc(psWhen(S.last_sent))}.${waiting > 0 ? ` ${waiting} still waiting for their payslip.` : ''}`;
+  else line = waiting > 0 ? `<b>Nothing is ready yet.</b> Upload the ${mName} payslips first, in the Upload tab.` : `<b>Nothing to send yet.</b>`;
   const opts = S.people.filter(p => p.state !== 'no_email' && p.state !== 'paused')
     .map(p => `<option value="${psEsc(p.id)}">${psEsc(p.name)}${p.state === 'waiting' ? ' (no payslip yet)' : ''}</option>`).join('');
   const busy = PS_STATE.sendBusy, dis = busy ? ' disabled' : '';
@@ -773,6 +770,7 @@ function psRenderSend() {
   el.innerHTML = `
     <div class="ps-send-hd">Email to staff · ${psEsc(monthName)}</div>
     <div class="ps-send-line">${line}</div>
+    <div class="ps-meta">Each person gets their payslip by email, then a WhatsApp telling them to look for it.</div>
     ${S.ready_to_send ? '' : `<div class="ps-err" style="margin-top:4px">The payroll@ email password isn’t saved in Supabase yet, so nothing can be sent. Ask Kate.</div>`}
     <div class="ps-chips">
       <span class="ps-chip st-sent">Emailed ${sent}</span>
@@ -783,28 +781,33 @@ function psRenderSend() {
       ${check ? `<span class="ps-chip st-check">Check Sent folder ${check}</span>` : ''}
     </div>
     ${psWaHtml(ready, pending)}
-    <div class="ps-send-sub">When it goes out</div>
-    <div class="ps-send-row">
-      <input type="datetime-local" id="psSendAt" value="${value}"${dis}>
-      <button class="btn${pending ? '-outline' : ''}" onclick="psSchedule()"${dis}>${pending ? 'Change time' : 'Set send time'}</button>
-      ${pending ? `<button class="btn-outline" onclick="psSendAct('unschedule')"${dis}>Cancel</button>` : ''}
+    <div class="ps-step">
+      <div class="ps-step-h"><span class="ps-num">1</span> Check one first</div>
+      <div class="ps-meta">Pick a person. Their email goes to ${psEsc(S.sender || 'payroll@')} only, so you can see how it looks. Staff get nothing.</div>
+      <div class="ps-send-row">
+        <select id="psTestWho"${dis}>${opts}</select>
+        <button class="btn-outline" onclick="psSendTest()"${dis}>Send a test to ${psEsc((S.sender || 'payroll@').split('@')[0])}@</button>
+      </div>
     </div>
-    <div class="ps-meta">Dubai time. 07:00 Dubai is 11:00 in the Philippines.</div>
-    <div class="ps-send-sub">Check one first</div>
-    <div class="ps-send-row">
-      <select id="psTestWho"${dis}>${opts}</select>
-      <button class="btn-outline" onclick="psSendTest()"${dis}>Send a test to ${psEsc((S.sender || 'payroll@').split('@')[0])}@</button>
+    <div class="ps-step">
+      <div class="ps-step-h"><span class="ps-num">2</span> Send</div>
+      <div class="ps-send-row">
+        <button class="btn" onclick="psSendAct('send')"${dis || (!ready ? ' disabled' : '')}>Send ${ready} now</button>
+        <a href="#" class="ps-link ps-refresh" onclick="PS_STATE.send=null;psRenderSend();psLoadSend();return false">Refresh</a>
+      </div>
+      <div class="ps-or">or pick a time</div>
+      <div class="ps-send-row">
+        <input type="datetime-local" id="psSendAt" value="${value}"${dis}>
+        <button class="btn-outline" onclick="psSchedule()"${dis}>${pending ? 'Change time' : 'Set send time'}</button>
+        ${pending ? `<button class="btn-outline" onclick="psSendAct('unschedule')"${dis}>Cancel</button>` : ''}
+      </div>
+      <div class="ps-meta">Dubai time. 07:00 Dubai is 11:00 in the Philippines.</div>
     </div>
-    <div class="ps-send-sub">Or now</div>
-    <div class="ps-send-row">
-      <button class="btn-outline" onclick="psSendAct('send')"${dis || (!ready ? ' disabled' : '')}>Send ${ready} ready now</button>
-      <a href="#" class="ps-link ps-refresh" onclick="PS_STATE.send=null;psRenderSend();psLoadSend();return false">Refresh</a>
-    </div>
-    ${psWelcomeHtml(S, dis)}
     ${busy ? `<div class="ps-meta">${psEsc(busy)}</div>` : ''}
     ${PS_STATE.sendMsg ? `<div class="ps-ok">${psEsc(PS_STATE.sendMsg)}</div>` : ''}
     ${PS_STATE.sendErr ? `<div class="ps-err">${psEsc(PS_STATE.sendErr)}</div>` : ''}
-    ${S.log && S.log.length ? `<div class="ps-send-log">${S.log.map(l => `<div>${psEsc(psWhen(l.at))} · ${psEsc(l.who)} · ${psEsc(l.what)}</div>`).join('')}</div>` : ''}`;
+    ${S.welcome ? `<details class="ps-more"><summary>Welcome email for new sign-ins (not part of the monthly send)</summary>${psWelcomeHtml(S, dis)}</details>` : ''}
+    ${S.log && S.log.length ? `<details class="ps-more"><summary>Recent activity</summary><div class="ps-send-log">${S.log.map(l => `<div>${psEsc(psWhen(l.at))} · ${psEsc(l.who)} · ${psEsc(l.what)}</div>`).join('')}</div></details>` : ''}`;
   psBadges();
 }
 
