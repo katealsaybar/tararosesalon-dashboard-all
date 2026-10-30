@@ -210,6 +210,7 @@
 
   function render(keep) {
     var y = window.scrollY, b = item(cur);
+    var sideEl = document.getElementById('cblSide'), sideY = sideEl ? sideEl.scrollTop : 0;   // the sidebar is drawn again each time; keep its place in the list
     if (!cal) {   // the month of this blast, else the month of the next blast to go
       var next = D.items.map(function (i) { return i.send_date; }).filter(function (s) { return s >= TODAY; }).sort()[0];
       var d = b ? parts(b.send_date) : next ? parts(next) : new Date(); cal = { y: d.getFullYear(), m: d.getMonth() };
@@ -225,6 +226,7 @@
     var ta = document.getElementById('cblCmt');
     if (ta) { ta.value = draft[cur] || ''; ta.oninput = function () { draft[cur] = ta.value; }; }
     fitPreviews();
+    var sideNew = document.getElementById('cblSide'); if (sideNew && sideY) sideNew.scrollTop = sideY;
     // The dashboard sets scroll-behavior:smooth, which turned this restore into a slow scroll back up from the top. Instant keeps you where you were.
     if (keep) window.scrollTo({ top: y, left: 0, behavior: 'instant' });
   }
@@ -237,7 +239,7 @@
   function go(id, keepMonth) {
     cur = id; errMsg = ''; calMsg = ''; big = false;
     var b = item(id); if (b && !keepMonth) { var d = parts(b.send_date); cal = { y: d.getFullYear(), m: d.getMonth() }; }
-    render(); toTop();
+    render(true); toTop();   // stay where you are; toTop only moves when the blast's top is above the screen
   }
   // Opening another blast: only move if its top is above the screen, and then jump, never glide.
   function toTop() {
