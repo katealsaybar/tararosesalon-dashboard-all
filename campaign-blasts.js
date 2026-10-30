@@ -48,7 +48,7 @@
   function cls(k) { return k === 'ok' || k === 'changes' ? k : ''; }
 
   /* the phone, as the client sees it */
-  function phone(m, img) {
+  function phone(m, img, reply) {
     var body = String(m.t).replace('{{1}}', 'Layla').replace(/\. /g, '.\n\n').replace(/: /g, ':\n');
     return '<div class="cbl-phone-wrap"><div class="cbl-phone"><div class="cbl-screen">' +
       '<div class="cbl-status"><span>11:02</span><span class="ic">5G <span class="cbl-batt"></span></span></div>' +
@@ -56,8 +56,15 @@
       '<div class="cbl-thread"><span class="cbl-day">Today</span><div class="cbl-bub">' +
       (img ? '<img class="cbl-hdr" src="' + esc(img) + '" alt="Header photo from the landing page">' : '') +
       '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-ftr">' + esc(FOOT) + '</div><div class="cbl-time">11:00</div></div>' +
-      '<div class="cbl-btn">Tell me more</div></div>' +
+      '<div class="cbl-btn">Tell me more</div>' + replyHtml(reply) + '</div>' +
       '<div class="cbl-compose"><span class="cbl-input">Message</span><span class="cbl-mic"></span></div></div></div></div>';
+  }
+  // What she gets after she taps Tell me more (Kate, 30 Oct 2026): her tap, then our reply, so Emma reads the whole exchange. Plain text in b.data.reply.
+  function replyHtml(t) {
+    if (!t) return '';
+    var body = esc(String(t).replace(/\{\{1\}\}/g, 'Layla')).replace(/(https?:\/\/[^\s]+)/g, '<span class="cbl-url">$1</span>');
+    return '<div class="cbl-out">Tell me more<span>11:03</span></div>' +
+      '<div class="cbl-bub cbl-rep"><div class="cbl-body">' + body + '</div><div class="cbl-time">11:03</div></div>';
   }
   function fmtN(n) { return Number(n || 0).toLocaleString('en-GB'); }
   // The clients behind a number (Kate, 30 Oct 2026: "client numbers should be clickable, and always updated"): the shared list window of drill.js.
@@ -89,7 +96,7 @@
   }
   function lane(label, m, img, b, grp) {
     return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + numHtml(b, grp, m.c) + ' clients</span></div>' +
-      '<div class="w">' + (label === 'Warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phone(m, img) +
+      '<div class="w">' + (label === 'Warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phone(m, img, b.data.reply) +
       '<div class="cbl-name">' + esc(m.name) + '</div></div>';
   }
 
