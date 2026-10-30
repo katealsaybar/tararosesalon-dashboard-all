@@ -30,6 +30,8 @@
     if (r.error) throw new Error(r.error.message);
     return r.data;
   }
+  // blast_plan_get says editor:false for someone who may only read and comment (opened for them one by one in dashboard_users.extra_pages)
+  function canEdit() { return !D || D.editor !== false; }
   function item(id) { return D.items.filter(function (i) { return i.id === id; })[0]; }
   function parts(iso) { var p = iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2], 12); }
   function fd(iso) { var d = parts(iso); return DN[d.getDay()] + ' ' + d.getDate() + ' ' + MN[d.getMonth()]; }
@@ -54,7 +56,7 @@
     return '<div class="cbl-phone-wrap"><div class="cbl-phone"><div class="cbl-screen">' +
       '<div class="cbl-status"><span>11:02</span><span class="ic">5G <span class="cbl-batt"></span></span></div>' +
       '<div class="cbl-chat-head"><span class="cbl-back">‹</span><span class="cbl-av"></span><span class="cbl-who">Tara Rose Salons<small>Business account</small></span><span class="cbl-dots">⋮</span></div>' +
-      '<div class="cbl-thread"><span class="cbl-day">Today</span><div class="cbl-bub">' +
+      '<div class="cbl-thread"' + (reply ? ' data-key="' + esc(reply.key) + '"' : '') + '><span class="cbl-day">Today</span><div class="cbl-bub">' +
       (img ? '<img class="cbl-hdr" src="' + esc(img) + '" alt="Header photo from the landing page">' : '') +
       '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-ftr">' + esc(FOOT) + '</div><div class="cbl-time">11:00</div></div>' +
       '<div class="cbl-btn' + (reply ? ' tapped' : '') + '">Tell me more</div>' + replyHtml(reply) + '</div>' +
@@ -65,7 +67,7 @@
   // The reply is plain text, or a small flow (Kate, 30 Oct 2026): a message with buttons, and what each button leads to.
   //   data.reply = { warm: text | {t, b:[{l, to}]}, std: ..., nodes: { id: {t, b:[{l, to}]} } }   (to = a node id, or 'help' = the call centre takes over)
   // The preview is clickable: tap a button to see what she gets next. The taps are only kept on this page (flow), never saved.
-  var flow = {}, HELP = 'Of course. I am passing this to our call centre team, and they will reply to you here.';
+  var flowScroll = null, flow = {}, HELP = 'Of course. I am passing this to our call centre team, and they will reply to you here.';
   function replyFor(b, grp) {
     var r = b.data.reply, root = r && typeof r === 'object' ? r[grp] : r;
     return root ? { root: root, nodes: r && r.nodes || {}, key: b.id + ':' + grp } : null;
@@ -78,19 +80,23 @@
   function replyHtml(r) {
     if (!r) return '';
     var node = typeof r.root === 'string' ? { t: r.root } : r.root, path = flow[r.key] || [], step = 0, min = 3;
-    var h = '<div class="cbl-after"><b>She taps Tell me more</b><span>and gets this</span></div>' + outHtml('Tell me more', '11:03');
+    var h = '<div class="cbl-after"><b>She taps Tell me more</b><span>and gets this</span></div>' + outHtml('Tell me more', '11:03'), seen = {};
     for (;;) {
-      var time = '11:0' + (min + step * 2), bs = node.b || [], pick = path[step];
+      var time = '11:0' + (min + step * 2), bs = node.b || [], pick = path[step], closing = false;
       h += bubbleHtml(node.t, time);
+      // Every button here already tried (the call centre one aside): the only ones left are Start over and Speak to a human.
+      if (bs.length && bs.every(function (x) { return x.to === 'help' || seen[x.to]; })) { bs = [{ l: 'Start over', to: '#start' }, { l: 'Speak to a human', to: 'help' }]; closing = true; }
       h += bs.map(function (x, i) {
+        if (x.to === '#start') return '<button type="button" class="cbl-fb" data-flow-reset="' + esc(r.key) + '">' + esc(x.l) + '</button>';
         return pick == null
-          ? '<button type="button" class="cbl-fb" data-flow="' + esc(r.key) + '" data-d="' + step + '" data-i="' + i + '">' + esc(x.l) + '</button>'
+          ? '<button type="button" class="cbl-fb" data-flow="' + esc(r.key) + '" data-d="' + step + '" data-i="' + i + '" data-c="' + (closing ? 1 : 0) + '">' + esc(x.l) + '</button>'
           : '<div class="cbl-fb ' + (pick === i ? 'tapped' : 'dim') + '">' + esc(x.l) + '</div>';
       }).join('');
       if (!bs.length || pick == null) break;
       var chosen = bs[pick]; if (!chosen) break;
       h += outHtml(chosen.l, '11:0' + (min + step * 2 + 1));
       if (chosen.to === 'help') { h += bubbleHtml(HELP, '11:0' + (min + step * 2 + 1)) + '<div class="cbl-notify">Call centre notified in respond.io</div>'; break; }
+      seen[chosen.to] = true;
       node = r.nodes[chosen.to]; if (!node) break;
       step++;
     }
@@ -119,7 +125,7 @@
   function numHtml(b, key, fallback) {
     if (!LIVE || !LIVE.blasts) return liveErr ? esc(fallback || '') : '…';
     var x = LIVE.blasts[b.id] || { n: 0, warm: 0, std: 0 }, n = x[key], t = fmtN(n);
-    return (typeof TRSD !== 'undefined' && n > 0) ? TRSD.num(t, drillSpec(b, key === 'n' ? null : key)) : t;
+    return (typeof TRSD !== 'undefined' && n > 0 && canEdit()) ? TRSD.num(t, drillSpec(b, key === 'n' ? null : key)) : t;
   }
   // What a blast costs to send (Kate, 30 Oct 2026): one marketing message per client at the rate measured on 19 Oct (about USD 0.046, AED 0.17, respond.io adds no markup).
   // An estimate; the exact amount is on Meta's invoice. Her tap and our reply come inside her 24 hour window, so they are not counted.
@@ -152,10 +158,10 @@
       var here = ord().filter(function (id) { return item(id).send_date === iso; });
       var dots = here.slice(0, 3).map(function (id) { return '<b class="' + (item(id).locked ? '' : 'plan') + '"></b>'; }).join('');
       h += '<button type="button" data-iso="' + iso + '" class="cbl-d' + (here.length ? ' has' : '') + (iso === TODAY ? ' today' : '') + (iso === curIso ? ' sel' : '') + '" ' +
-        (here.length ? 'data-day="' + iso + '" data-drag="' + (here.indexOf(cur) >= 0 ? cur : here[0]) + '" aria-label="' + fd(iso) + ', ' + here.length + ' blasts"' : 'tabindex="-1" disabled') + '>' + d + (dots ? '<i>' + dots + '</i>' : '') + '</button>';
+        (here.length ? 'data-day="' + iso + '"' + (canEdit() ? ' data-drag="' + (here.indexOf(cur) >= 0 ? cur : here[0]) + '"' : '') + ' aria-label=""' + fd(iso) + ', ' + here.length + ' blasts"' : 'tabindex="-1" disabled') + '>' + d + (dots ? '<i>' + dots + '</i>' : '') + '</button>';
     }
     return h + '</div><div class="cbl-leg"><span><b></b>Locked</span><span><b class="plan"></b>Planned</span></div>' +
-      '<p class="cbl-hint">Drag a date with a dot onto another day to move that blast.</p>' + (calMsg ? '<p class="cbl-err" role="alert">' + esc(calMsg) + '</p>' : '') +
+      (canEdit() ? '<p class="cbl-hint">Drag a date with a dot onto another day to move that blast.</p>' : '') + (calMsg ? '<p class="cbl-err" role="alert">' + esc(calMsg) + '</p>' : '') +
       '<button type="button" class="cbl-bigbtn" data-act="big">Bigger calendar</button></div>';
   }
   // The same month, large: every blast is a chip on its day. Drag a chip to another day to move it; click it to open it.
@@ -164,7 +170,7 @@
     var h = '<div class="cbl-modal" data-act="close"><div class="cbl-bigcal cbl-card" role="dialog" aria-modal="true" aria-label="Calendar of blasts"><div class="cbl-big-h">' +
       '<button type="button" data-act="prev" aria-label="Previous month">‹</button><b>' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m] + ' ' + y + '</b>' +
       '<button type="button" data-act="next" aria-label="Next month">›</button><button type="button" class="cbl-big-x" data-act="close">Close</button></div>' +
-      '<p class="cbl-hint">Drag a blast to another day to move it. Click it to open it. Mondays are shaded: that is when blasts go out.</p>' +
+      '<p class="cbl-hint">' + (canEdit() ? 'Drag a blast to another day to move it. ' : '') + 'Click it to open it. Mondays are shaded: that is when blasts go out.</p>' +
       (calMsg ? '<p class="cbl-err" role="alert">' + esc(calMsg) + '</p>' : '') + '<div class="cbl-big-g">';
     ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (d) { h += '<span class="hd">' + d + '</span>'; });
     for (var i = 0; i < off; i++) h += '<span class="pad"></span>';
@@ -173,7 +179,7 @@
       var dow = (off + d - 1) % 7;
       var chips = ord().filter(function (id) { return item(id).send_date === iso; }).map(function (id) {
         var b = item(id);
-        return '<a draggable="false" class="cbl-bc ' + cls(b.review) + (b.locked ? ' lk' : '') + '" href="?view=campaignblasts" data-go="' + esc(id) + '" data-drag="' + esc(id) + '" title="' + esc(b.data.title) + '"><span>' + esc(b.data.title) + '</span><small>' + ft(b.send_time) + (b.locked ? ' · locked' : '') + '</small></a>';
+        return '<a draggable="false" class="cbl-bc ' + cls(b.review) + (b.locked ? ' lk' : '') + '" href="?view=campaignblasts" data-go="' + esc(id) + '"' + (canEdit() ? ' data-drag="' + esc(id) + '"' : '') + ' title="' + esc(b.data.title) + '"><span>' + esc(b.data.title) + '</span><small>' + ft(b.send_time) + (b.locked ? ' · locked' : '') + '</small></a>';
       }).join('');
       h += '<div class="cbl-bd' + (dow === 0 ? ' mon' : '') + (iso === TODAY ? ' today' : '') + '" data-iso="' + iso + '"><b>' + d + '</b>' + chips + '</div>';
     }
@@ -264,13 +270,15 @@
       '<div class="cbl-facts"><div class="cbl-fact cbl-card"><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b><span class="cbl-est" title="One marketing message per client, about USD 0.046 (AED 0.17) each">Est. to send: ' + cost(cnt(b)) + '</span>' + liveNote() + '</div><div class="cbl-fact cbl-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cbl-fact cbl-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + '</div>' +
       '<div class="cbl-row2">' + pageCard(b) +
       '<div class="cbl-card cbl-when"><h3>When it goes out</h3>' +
-      '<label class="cbl-fld">Date<input type="date" id="cblDate" value="' + b.send_date + '"></label>' +
-      '<label class="cbl-fld">Time (Dubai)<select id="cblTime">' + times + '</select></label>' +
-      '<label class="cbl-sw"><input type="checkbox" id="cblLock"' + (b.locked ? ' checked' : '') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
+      '<label class="cbl-fld">Date<input type="date" id="cblDate" value="' + b.send_date + '"' + (canEdit() ? '' : ' disabled') + '></label>' +
+      '<label class="cbl-fld">Time (Dubai)<select id="cblTime"' + (canEdit() ? '' : ' disabled') + '>' + times + '</select></label>' +
+      '<label class="cbl-sw"><input type="checkbox" id="cblLock"' + (b.locked ? ' checked' : '') + (canEdit() ? '' : ' disabled') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
       (w.length ? '<p class="cbl-note warn">' + w.join(' ') + '</p>' : '<p class="cbl-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') + '</div>' + '</div>' +
       '<div class="cbl-phones">' + lane('Warm', b.data.warm, b.data.img, b, 'warm') + lane('Standard', b.data.std, b.data.img, b, 'std') + '</div>' +
-      '<div class="cbl-card cbl-rev"><div class="cbl-rev-top"><h3>Review and comments</h3><div class="cbl-seg" role="group" aria-label="Review">' +
-      '<button type="button" data-st="ok" class="ok' + (k === 'ok' ? ' on' : '') + '">Approve</button><button type="button" data-st="changes" class="changes' + (k === 'changes' ? ' on' : '') + '">Needs changes</button></div></div>' +
+      '<div class="cbl-card cbl-rev"><div class="cbl-rev-top"><h3>Review and comments</h3>' + (canEdit()
+        ? '<div class="cbl-seg" role="group" aria-label="Review"><button type="button" data-st="ok" class="ok' + (k === 'ok' ? ' on' : '') + '">Approve</button><button type="button" data-st="changes" class="changes' + (k === 'changes' ? ' on' : '') + '">Needs changes</button></div>'
+        : '<span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span>') + '</div>' +
+      (canEdit() ? '' : '<p class="cbl-note">You can read the blasts and leave comments. Approving and scheduling is for Coach Emma and Kate.</p>') +
       (k !== 'none' && b.review_by ? '<div class="cbl-by">' + (k === 'ok' ? 'Approved' : 'Marked needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + '</div>' : '') +
       '<div class="cbl-thr">' + thread + '</div>' +
       (k === 'changes' && !hasWhy ? '<p class="cbl-ask">Add a comment so we know what to change.</p>' : '') +
@@ -282,7 +290,8 @@
 
   function render(keep) {
     var y = window.scrollY, b = item(cur);
-    var sideEl = document.getElementById('cblSide'), sideY = sideEl ? sideEl.scrollTop : 0;   // the sidebar is drawn again each time; keep its place in the list
+    var sideEl = document.getElementById('cblSide'), sideY = sideEl ? sideEl.scrollTop : 0;
+    var threadY = {}; [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) { threadY[t.getAttribute('data-key')] = t.scrollTop; });   // the sidebar is drawn again each time; keep its place in the list
     if (!cal) {   // the month of this blast, else the month of the next blast to go
       var next = D.items.map(function (i) { return i.send_date; }).filter(function (s) { return s >= TODAY; }).sort()[0];
       var d = b ? parts(b.send_date) : next ? parts(next) : new Date(); cal = { y: d.getFullYear(), m: d.getMonth() };
@@ -299,6 +308,14 @@
     if (ta) { ta.value = draft[cur] || ''; ta.oninput = function () { draft[cur] = ta.value; }; }
     fitPreviews();
     var sideNew = document.getElementById('cblSide'); if (sideNew && sideY) sideNew.scrollTop = sideY;
+    [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
+      var k = t.getAttribute('data-key'); t.scrollTop = threadY[k] || 0;
+      if (flowScroll === k) {   // she just tapped: bring the newest answer to the top of the phone
+        var outs = t.querySelectorAll('.cbl-out'), last = outs[outs.length - 1];
+        if (last) t.scrollTop += last.getBoundingClientRect().top - t.getBoundingClientRect().top - 10;
+      }
+    });
+    flowScroll = null;
     // The dashboard sets scroll-behavior:smooth, which turned this restore into a slow scroll back up from the top. Instant keeps you where you were.
     if (keep) window.scrollTo({ top: y, left: 0, behavior: 'instant' });
   }
@@ -341,7 +358,7 @@
     var dd = t.closest && t.closest('[data-day]');
     if (dd) { var first = ord().filter(function (id) { return item(id).send_date === dd.getAttribute('data-day'); })[0]; if (first) go(first, true); return; }
     var fb = t.closest && t.closest('[data-flow]');
-    if (fb) { var k = fb.getAttribute('data-flow'); flow[k] = (flow[k] || []).slice(0, +fb.getAttribute('data-d')).concat(+fb.getAttribute('data-i')); render(true); return; }
+    if (fb) { var k = fb.getAttribute('data-flow'); flow[k] = (flow[k] || []).slice(0, +fb.getAttribute('data-d')).concat(+fb.getAttribute('data-i')); flowScroll = k; render(true); return; }
     var fr = t.closest && t.closest('[data-flow-reset]');
     if (fr) { delete flow[fr.getAttribute('data-flow-reset')]; render(true); return; }
     var st = t.closest && t.closest('[data-st]');
@@ -441,7 +458,7 @@
   // Called by showView each time the page opens: read what the database says now, then draw.
   window.renderCampaignBlasts = async function () {
     var el = main(); if (!el) return;
-    if (typeof TRS_LEVEL === 'undefined' || (TRS_LEVEL !== 3 && TRS_LEVEL !== 5)) { notFound(); return; }
+    if (typeof TRS_LEVEL === 'undefined' || (TRS_LEVEL !== 3 && TRS_LEVEL !== 5) && !(typeof TRS_EXTRA !== 'undefined' && TRS_EXTRA.indexOf('campaignblasts') >= 0)) { notFound(); return; }
     cur = 'all'; cal = null; errMsg = '';   // the sidebar row is the way back to the overview
     if (!D) el.innerHTML = '<section class="cbl-intro"><h2>Campaign Blasts</h2></section><p class="slv-muted">Loading…</p>';
     try { D = await rpc('blast_plan_get'); } catch (e) { console.error(e); notFound(); return; }
