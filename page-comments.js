@@ -103,6 +103,12 @@
   /* Every save used to wait for two round trips (the write, then a re-read of everything): 2 to 3 seconds. Now the screen changes first and the
      write follows in the background; if the database refuses it, the change is taken back and the reason is shown. Other people's comments
      are re-read when the tab comes back and when the list opens, never right after your own save. */
+  // The database id of a comment, waiting for its save to finish if it was only just written (so Delete, Reply and Resolve work at once).
+  function real(id, item) {
+    if (id >= 0) return Promise.resolve(id);
+    var c = item || byId(id);
+    return c && c.p ? c.p.then(function (r) { return r.id; }) : Promise.reject(new Error('That comment is no longer there'));
+  }
   function tmpId() { return -Date.now() - Math.floor(Math.random() * 1000); }
   async function refresh() {
     if (S.draft || document.hidden || S.items.some(function (c) { return c.id < 0; })) return;
@@ -326,13 +332,15 @@
     var a = S.draft.anchor, draft = S.draft;
     var tmp = { id: tmpId(), page: PAGE, parent: null, num: tops().reduce(function (m, c) { return Math.max(m, c.num || 0); }, 0) + 1, anchor: a, body: text, by: S.me, at: new Date().toISOString(), resolved: false, mine: true };
     S.items.push(tmp); S.draft = null; S.cur = tmp.id; S.err = ''; setMode(false);
+    tmp.p = rpc('page_comment_add', { p_page: PAGE, p_anchor: a, p_body: text, p_parent: null });
     try {
-      var r = await rpc('page_comment_add', { p_page: PAGE, p_anchor: a, p_body: text, p_parent: null });
+      var r = await tmp.p;
       var i = S.items.indexOf(tmp); if (i >= 0) S.items[i] = r;
+      S.items.forEach(function (c) { if (c.parent === tmp.id) c.parent = r.id; });   // replies written while the pin was still saving
       if (S.cur === tmp.id) S.cur = r.id;
     } catch (e) {
       S.items = S.items.filter(function (x) { return x !== tmp; }); if (S.cur === tmp.id) S.cur = null;
-      draft.text = text; S.draft = draft; S.err = 'Not saved: ' + e.message;
+      if (!tmp.gone) { draft.text = text; S.draft = draft; S.err = 'Not saved: ' + e.message; }
     }
     draw();
   }
@@ -365,24 +373,24 @@
     else if (a === 'reply') {
       var ta = root.getElementById('rep'), text = ta ? ta.value.trim() : '';
       if (!text) { S.err = 'Write a reply first.'; drawCard(); return; }
-      if (id < 0) return;   // the pin is still being saved
       var rt = { id: tmpId(), page: PAGE, parent: id, num: null, anchor: null, body: text, by: S.me, at: new Date().toISOString(), resolved: false, mine: true };
       S.items.push(rt); S.reply = ''; S.err = ''; draw();
-      rpc('page_comment_add', { p_page: PAGE, p_anchor: null, p_body: text, p_parent: id }).then(function (r) {
+      rt.p = real(id).then(function (pid) { return rpc('page_comment_add', { p_page: PAGE, p_anchor: null, p_body: text, p_parent: pid }); });
+      rt.p.then(function (r) {
         var i = S.items.indexOf(rt); if (i >= 0) S.items[i] = r; draw();
       }, function (e) { S.items = S.items.filter(function (x) { return x !== rt; }); S.reply = text; S.err = 'Not saved: ' + e.message; draw(); });
     }
     else if (a === 'resolve') {
-      var c = byId(id); if (!c || id < 0) return;
+      var c = byId(id); if (!c) return;
       var want = !c.resolved, old = { resolved: c.resolved, resolved_by: c.resolved_by, resolved_at: c.resolved_at };
       c.resolved = want; c.resolved_by = want ? S.me : null; c.resolved_at = want ? new Date().toISOString() : null; S.err = ''; draw();
-      rpc('page_comment_resolve', { p_id: id, p_resolved: want }).catch(function (e) { Object.assign(c, old); S.err = 'Not saved: ' + e.message; draw(); });
+      real(id).then(function (pid) { return rpc('page_comment_resolve', { p_id: pid, p_resolved: want }); }).catch(function (e) { Object.assign(c, old); S.err = 'Not saved: ' + e.message; draw(); });
     }
     else if (a === 'del') {
-      if (id < 0 || !confirm('Delete this comment?')) return;
-      var snap = S.items.slice(), was = S.cur;
+      if (!confirm('Delete this comment?')) return;
+      var snap = S.items.slice(), was = S.cur, item = byId(id); if (item) item.gone = true;
       S.items = S.items.filter(function (x) { return x.id !== id && x.parent !== id; }); if (S.cur === id || !byId(S.cur)) S.cur = null; S.err = ''; draw();
-      rpc('page_comment_delete', { p_id: id }).catch(function (e) { S.items = snap; S.cur = was; S.err = 'Not saved: ' + e.message; draw(); });
+      real(id, item).then(function (pid) { return rpc('page_comment_delete', { p_id: pid }); }).catch(function (e) { S.items = snap; S.cur = was; S.err = 'Not saved: ' + e.message; draw(); });
     }
   }
 
