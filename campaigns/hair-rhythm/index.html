@@ -243,6 +243,8 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .gsvc--row .gsvc__top{min-width:0}
 .gsvc--row .gsvc__lens{flex:0 0 auto;margin-top:0}
 .gsvc--row .gsvc__lens span{font-size:13px;color:var(--ink)}
+/* rows with a one-line description: on a phone the name and its line take the full width, the four prices sit under it, right-aligned to the length columns */
+@media (max-width:560px){.gsvc--desc{flex-wrap:wrap;row-gap:6px}.gsvc--desc .gsvc__top{flex:1 1 100%}.gsvc--desc .gsvc__lens{margin-left:auto}}
 .gsvc__lens span{font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .gcards{align-items:start}
 /* closed cards level: a small script gives each intro the height of the tallest, so opening one card grows only that card */
@@ -477,7 +479,7 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
       </div>
       <div class="bs-track bs-track--with">
         <p class="bs-track__lbl">The Hair Rhythm</p>
-        <ol class="bs-steps"><li class="bs-step"><b>Colour day</b><em class="bs-step__when">Week 1</em><span>Bright, even, finished.</span></li><li class="bs-step"><b>The Tone Reset</b><em class="bs-step__when">Week 4 to 5</em><span>Toner refreshed before the warmth comes back.</span><strong class="bs-step__price">From AED 200</strong></li><li class="bs-step"><b>A treatment or a blow-dry</b><em class="bs-step__when">Week 8</em><span>Your stylist picks what your hair needs to get its shine back.</span><strong class="bs-step__price">From AED 210</strong></li><li class="bs-step"><b>Colour again</b><em class="bs-step__when">Week 10</em><span>It still looks right, so there is less to fix on colour day.</span></li></ol>
+        <ol class="bs-steps"><li class="bs-step"><b>Colour day</b><em class="bs-step__when">Week 1</em><span>Bright, even, finished.</span></li><li class="bs-step"><b>The Tone Reset</b><em class="bs-step__when">Week 4 to 5</em><span>Toner refreshed before the warmth comes back.</span><strong class="bs-step__price">From AED 200</strong></li><li class="bs-step"><b>A treatment or a blow-dry</b><em class="bs-step__when">Week 8</em><span>Your stylist picks what your hair needs to get its shine back.</span><strong class="bs-step__price">From AED 100</strong></li><li class="bs-step"><b>Colour again</b><em class="bs-step__when">Week 10</em><span>It still looks right, so there is less to fix on colour day.</span></li></ol>
       </div>
     </div>
     <div class="gcta"><a class="pill pill--accent js-book" href="#book" data-book="The Tone Reset" data-svc="toner">Book your Tone Reset <span class="arr">&rarr;</span></a></div>
@@ -569,10 +571,10 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
             <div class="gcard__list">
               <div class="gcard__cols" aria-hidden="true"><span>Treatment</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
               <ul>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Scalp Health</span></div><div class="gsvc__lens" aria-label="Scalp Health by length: Short / Fine AED 260, Medium AED 275, Long / Thick AED 290, Extra Long AED 335"><span>260</span><span>275</span><span>290</span><span>335</span></div></li>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Strength</span></div><div class="gsvc__lens" aria-label="Strength by length: Short / Fine AED 260, Medium AED 325, Long / Thick AED 390, Extra Long AED 485"><span>260</span><span>325</span><span>390</span><span>485</span></div></li>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Colour Longevity</span></div><div class="gsvc__lens" aria-label="Colour Longevity by length: Short / Fine AED 260, Medium AED 325, Long / Thick AED 390, Extra Long AED 485"><span>260</span><span>325</span><span>390</span><span>485</span></div></li>
-            <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Hydration &amp; Frizz</span></div><div class="gsvc__lens" aria-label="Hydration & Frizz by length: Short / Fine AED 360, Medium AED 425, Long / Thick AED 490, Extra Long AED 585"><span>360</span><span>425</span><span>490</span><span>585</span></div></li>
+            <li class="gsvc gsvc--row gsvc--desc"><div class="gsvc__top"><span>Scalp Health<small>For a scalp that feels tight, dry or heavy</small></span></div><div class="gsvc__lens" aria-label="Scalp Health by length: Short / Fine AED 260, Medium AED 275, Long / Thick AED 290, Extra Long AED 335"><span>260</span><span>275</span><span>290</span><span>335</span></div></li>
+            <li class="gsvc gsvc--row gsvc--desc"><div class="gsvc__top"><span>Strength<small>For hair that snaps or feels weak</small></span></div><div class="gsvc__lens" aria-label="Strength by length: Short / Fine AED 260, Medium AED 325, Long / Thick AED 390, Extra Long AED 485"><span>260</span><span>325</span><span>390</span><span>485</span></div></li>
+            <li class="gsvc gsvc--row gsvc--desc"><div class="gsvc__top"><span>Colour Longevity<small>Helps your colour last between visits</small></span></div><div class="gsvc__lens" aria-label="Colour Longevity by length: Short / Fine AED 260, Medium AED 325, Long / Thick AED 390, Extra Long AED 485"><span>260</span><span>325</span><span>390</span><span>485</span></div></li>
+            <li class="gsvc gsvc--row gsvc--desc"><div class="gsvc__top"><span>Hydration &amp; Frizz<small>For dry, frizzy hair</small></span></div><div class="gsvc__lens" aria-label="Hydration & Frizz by length: Short / Fine AED 360, Medium AED 425, Long / Thick AED 490, Extra Long AED 585"><span>360</span><span>425</span><span>490</span><span>585</span></div></li>
               </ul>
               <p class="gcard__unit">In AED, per visit, blow-dry included.</p>
               <div class="gcard__course"><b>Make it a course.</b><ul><li>3 sessions: valid 3 months, from AED 625</li><li>5 sessions: valid 6 months, from AED 1,040</li><li>Paid once</li><li>Same stylist tracks your result</li></ul></div>
@@ -1016,7 +1018,7 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
       ['The Root Refresh (solid colour roots)','Solid colour roots: one colour, like a dark base or grey regrowth. Week 6 to 8. A toner after it is booked separately, at its regular price.',[310,335,375,470]],
       ['The Face Frame','Soft colour around your hairline. A toner is separate if you need one.','from 265']]},
     treatment:{title:'Book a treatment',opts:[
-            ['Scalp Health','For your scalp. A blow-dry to finish.',[260,275,290,335]],
+            ['Scalp Health','For a scalp that feels tight, dry or heavy. A blow-dry to finish.',[260,275,290,335]],
       ['Strength','For hair that snaps or feels weak. A blow-dry to finish.',[260,325,390,485]],
       ['Colour Longevity','Helps your colour last between visits. A blow-dry to finish.',[260,325,390,485]],
       ['Hydration & Frizz','For dry, frizzy hair. A blow-dry to finish.',[360,425,490,585]],
