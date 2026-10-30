@@ -73,7 +73,7 @@
     return root ? { root: root, nodes: r && r.nodes || {}, key: b.id + ':' + grp } : null;
   }
   function bubbleHtml(t, time) {
-    var body = esc(String(t).replace(/\{\{1\}\}/g, 'Layla')).replace(/(https?:\/\/[^\s]+)/g, '<span class="cbl-url">$1</span>');
+    var body = esc(String(t).replace(/\{\{1\}\}/g, 'Layla')).replace(/(https?:\/\/[^\s]+)/g, '<span class="cbl-url">$1</span>').replace(/\*([^*\n]+)\*/g, '<b>$1</b>');   // *bold* is WhatsApp's own markup
     return '<div class="cbl-bub cbl-rep"><div class="cbl-body">' + body + '</div><div class="cbl-time">' + time + '</div></div>';
   }
   function outHtml(t, time) { return '<div class="cbl-out">' + esc(t) + '<span>' + time + '</span></div>'; }

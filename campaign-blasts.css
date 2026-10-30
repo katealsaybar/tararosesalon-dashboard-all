@@ -65,10 +65,10 @@
 .cbl-pg{font-weight:600;color:var(--text);text-decoration:underline;text-underline-offset:3px;min-height:24px}
 .cbl-fact b{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;line-height:1.1}
 
-.cbl-row2{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.cbl-row2{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
 .cbl-row2>.cbl-fact{flex:0 0 230px}
 .cbl-row2>.cbl-when{flex:1 1 380px}
-.cbl-when{padding:16px 18px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 18px}
+.cbl-when{padding:16px 18px;display:flex;flex-wrap:wrap;align-items:flex-end;align-content:flex-start;gap:12px 18px}
 .cbl-when h3{flex-basis:100%}
 .cbl-fld{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted2)}
 .cbl-fld input,.cbl-fld select{font-size:15px;padding:9px 12px;min-height:44px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
