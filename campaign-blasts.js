@@ -62,13 +62,40 @@
   }
   // What she gets after she taps Tell me more (Kate, 30 Oct 2026): her tap, then our reply, so Emma reads the whole exchange. Plain text in b.data.reply.
   // data.reply is {warm, std} (Warm and Standard differ), or one plain text for both.
-  function replyFor(b, grp) { var r = b.data.reply; return r && typeof r === 'object' ? r[grp] : r; }
-  function replyHtml(t) {
-    if (!t) return '';
+  // The reply is plain text, or a small flow (Kate, 30 Oct 2026): a message with buttons, and what each button leads to.
+  //   data.reply = { warm: text | {t, b:[{l, to}]}, std: ..., nodes: { id: {t, b:[{l, to}]} } }   (to = a node id, or 'help' = the call centre takes over)
+  // The preview is clickable: tap a button to see what she gets next. The taps are only kept on this page (flow), never saved.
+  var flow = {}, HELP = 'Of course. I am passing this to our call centre team, and they will reply to you here.';
+  function replyFor(b, grp) {
+    var r = b.data.reply, root = r && typeof r === 'object' ? r[grp] : r;
+    return root ? { root: root, nodes: r && r.nodes || {}, key: b.id + ':' + grp } : null;
+  }
+  function bubbleHtml(t, time) {
     var body = esc(String(t).replace(/\{\{1\}\}/g, 'Layla')).replace(/(https?:\/\/[^\s]+)/g, '<span class="cbl-url">$1</span>');
-    return '<div class="cbl-after"><b>She taps Tell me more</b><span>and gets this</span></div>' +
-      '<div class="cbl-out">Tell me more<span>11:03</span></div>' +
-      '<div class="cbl-bub cbl-rep"><div class="cbl-body">' + body + '</div><div class="cbl-time">11:03</div></div>';
+    return '<div class="cbl-bub cbl-rep"><div class="cbl-body">' + body + '</div><div class="cbl-time">' + time + '</div></div>';
+  }
+  function outHtml(t, time) { return '<div class="cbl-out">' + esc(t) + '<span>' + time + '</span></div>'; }
+  function replyHtml(r) {
+    if (!r) return '';
+    var node = typeof r.root === 'string' ? { t: r.root } : r.root, path = flow[r.key] || [], step = 0, min = 3;
+    var h = '<div class="cbl-after"><b>She taps Tell me more</b><span>and gets this</span></div>' + outHtml('Tell me more', '11:03');
+    for (;;) {
+      var time = '11:0' + (min + step * 2), bs = node.b || [], pick = path[step];
+      h += bubbleHtml(node.t, time);
+      h += bs.map(function (x, i) {
+        return pick == null
+          ? '<button type="button" class="cbl-fb" data-flow="' + esc(r.key) + '" data-d="' + step + '" data-i="' + i + '">' + esc(x.l) + '</button>'
+          : '<div class="cbl-fb ' + (pick === i ? 'tapped' : 'dim') + '">' + esc(x.l) + '</div>';
+      }).join('');
+      if (!bs.length || pick == null) break;
+      var chosen = bs[pick]; if (!chosen) break;
+      h += outHtml(chosen.l, '11:0' + (min + step * 2 + 1));
+      if (chosen.to === 'help') { h += bubbleHtml(HELP, '11:0' + (min + step * 2 + 1)) + '<div class="cbl-notify">Call centre notified in respond.io</div>'; break; }
+      node = r.nodes[chosen.to]; if (!node) break;
+      step++;
+    }
+    if (path.length) h += '<button type="button" class="cbl-restart" data-flow-reset="' + esc(r.key) + '">Start again</button>';
+    return h;
   }
   function fmtN(n) { return Number(n || 0).toLocaleString('en-GB'); }
   // The clients behind a number (Kate, 30 Oct 2026: "client numbers should be clickable, and always updated"): the shared list window of drill.js.
@@ -106,7 +133,11 @@
   function lane(label, m, img, b, grp) {
     return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + numHtml(b, grp, m.c) + ' clients</span></div>' +
       '<div class="w">' + (label === 'Warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phone(m, img, replyFor(b, grp)) +
-      '<div class="cbl-name">' + esc(m.name) + '</div></div>';
+      '<div class="cbl-name">' + esc(m.name) + '</div>' + flowHint(replyFor(b, grp)) + '</div>';
+  }
+  function flowHint(r) {
+    var root = r && r.root; if (!root || typeof root === 'string' || !(root.b && root.b.length)) return '';
+    return '<p class="cbl-fhint">Tap a button to see what she gets next. If she types a question instead, it goes to the call centre.</p>';
   }
 
   /* sidebar: calendar and movable tabs */
@@ -309,6 +340,10 @@
     if (c) { var dm = c.getAttribute('data-act') === 'next' ? 1 : -1; cal.m += dm; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); return; }
     var dd = t.closest && t.closest('[data-day]');
     if (dd) { var first = ord().filter(function (id) { return item(id).send_date === dd.getAttribute('data-day'); })[0]; if (first) go(first, true); return; }
+    var fb = t.closest && t.closest('[data-flow]');
+    if (fb) { var k = fb.getAttribute('data-flow'); flow[k] = (flow[k] || []).slice(0, +fb.getAttribute('data-d')).concat(+fb.getAttribute('data-i')); render(true); return; }
+    var fr = t.closest && t.closest('[data-flow-reset]');
+    if (fr) { delete flow[fr.getAttribute('data-flow-reset')]; render(true); return; }
     var st = t.closest && t.closest('[data-st]');
     if (st) { var b = item(cur), v = st.getAttribute('data-st'); act(function () { return rpc('blast_plan_review', { p_id: cur, p_status: b.review === v ? 'none' : v }); }); return; }
     var del = t.closest && t.closest('[data-del]');
