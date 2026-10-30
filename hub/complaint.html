@@ -64,26 +64,70 @@
 .cp-code button{background:none;border:0;padding:0;font:inherit;font-size:12.5px;font-weight:500;color:inherit;opacity:.8;text-decoration:underline;cursor:pointer}
 .cp-sm{font-size:12.5px;color:var(--muted)}
 .cp-dotline{display:inline-flex;align-items:center}
-/* the pipeline */
-.cp-fil{display:flex;gap:8px;flex-wrap:wrap}
+/* the pipeline: inbox on the left, five stages side by side that scroll to the right (Kate, 30 Oct 2026) */
+.wrap.cb-wide{max-width:1760px}
+.cp.cb{max-width:none}
+.cp-navrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.cp-log{display:inline-flex;align-items:center;min-height:42px;padding:8px 18px;border-radius:999px;background:var(--text);color:var(--bg);font-weight:600;font-size:14.5px;text-decoration:none}
+.cp-fil{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .cp-fil button{font:inherit;font-size:13.5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;cursor:pointer}
 .cp-fil button.on{background:color-mix(in srgb,var(--accent,#3AA892) 18%,var(--surface));border-color:var(--accent,#3AA892);font-weight:600}
-.cp-board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;align-items:stretch}
-.cp-col{background:color-mix(in srgb,var(--border) 45%,var(--bg));border-radius:12px;padding:10px;min-width:0;min-height:160px}
-.cp-col h4{font-size:12px;line-height:1.3;min-height:2.6em;font-weight:600;display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin:2px 4px 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cp-legend{margin-left:auto;display:inline-flex;gap:12px;align-items:center;font-size:12.5px;color:var(--muted)}
+.cp-legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:-1px}
+.cp-legend .hi{background:#E0674F}.cp-legend .mid{background:#D9A441}.cp-legend .low{background:#8c8da1}
+.cp-showing{font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:3px 6px 3px 12px;display:inline-flex;gap:6px;align-items:center}
+.cp-showing button{padding:0;width:22px;height:22px;border-radius:50%;line-height:1}
+.cb-app{display:grid;grid-template-columns:270px minmax(0,1fr);gap:14px;align-items:start}
+.cb-in{border:1px solid var(--border);border-radius:14px;background:var(--surface);position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding-bottom:6px}
+.cb-in h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0;padding:12px 14px 6px;font-weight:600;font-family:inherit}
+.cb-g{border-top:1px solid var(--border);padding:6px 6px 8px}
+.cb-gh{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:7px 8px;cursor:pointer;font:inherit;font-weight:600;font-size:14px;color:var(--text)}
+.cb-gh:hover{background:var(--bg)}
+.cb-gh.on{background:color-mix(in srgb,var(--accent,#3AA892) 20%,var(--surface));outline:1.5px solid var(--accent,#3AA892)}
+.cb-gh em{margin-left:auto;font-style:normal;font-size:12px;background:var(--bg);border-radius:999px;padding:1px 9px}
+.cb-gh.red em{background:#F8E4DF;color:#B4412F}
+.cb-items{margin:2px 0 0 16px;padding-left:10px;border-left:2px solid var(--border)}
+.cb-rw{display:block;border-radius:6px;padding:6px 8px;font-size:12.5px;color:var(--muted);line-height:1.35;text-decoration:none}
+.cb-rw b{display:block;font-weight:500;color:var(--text);font-size:13px;overflow-wrap:anywhere}
+.cb-rw:hover{background:var(--bg)}
+.cb-more{font-size:12px;color:var(--muted);padding:2px 8px}
+.cb-main{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:12px 0 12px;min-width:0}
+.cb-main h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0;padding:0 14px 6px;font-weight:600;font-family:inherit}
+.cb-main .cp-fil{padding:0 14px 10px}
+.cp-board{display:grid;grid-template-columns:repeat(5,minmax(224px,1fr));gap:12px;padding:0 14px 10px;align-items:stretch;overflow-x:auto;scrollbar-width:thin}
+.cp-col{background:color-mix(in srgb,var(--border) 45%,var(--bg));border-radius:12px;padding:10px;min-width:0;min-height:260px}
+.cp-col h4{font-size:12px;line-height:1.3;min-height:2.6em;font-weight:600;display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin:2px 4px 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .cp-col h4 em{font-style:normal;flex:none;background:var(--surface);border-radius:999px;padding:1px 9px;color:var(--text);letter-spacing:0}
-.cp-col.stuck.has{background:#F8E4DF}
-.cp-col.stuck.has h4{color:#B4412F}
-.cp-tk{display:block;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:9px;font-size:13.5px;color:inherit;text-decoration:none}
+.cp-col.stuck.has{background:#F8E4DF}.cp-col.stuck.has h4{color:#B4412F}
+.cp-board.dragging .cp-col{opacity:.4}
+.cp-board.dragging .cp-col.ok{opacity:1;outline:2px dashed var(--accent,#3AA892);outline-offset:-2px}
+.cp-board.dragging .cp-col.ok.over{outline:2px solid var(--accent,#3AA892);background:color-mix(in srgb,var(--accent,#3AA892) 22%,var(--bg))}
+.cp-tk{display:block;position:relative;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:8px;font-size:13px;color:inherit;text-decoration:none;cursor:pointer}
 .cp-tk:hover{border-color:var(--muted)}
-.cp-tk b{display:block;font-size:14.5px;margin-bottom:2px}
-.cp-tk .m{color:var(--muted);font-size:12.5px;display:block}
-.cp-tk .cd{font-size:11.5px;color:var(--muted);letter-spacing:.02em;display:block;margin-bottom:2px}
-.cp-tk.red{border-left-color:#B4412F}.cp-tk.amber{border-left-color:#D9A441}.cp-tk.green{border-left-color:#2F7A4B}
-.cp-tk .cp-pill{margin-top:6px}
+.cp-tk b{display:block;font-size:13.5px;line-height:1.35;overflow-wrap:anywhere}
+.cp-tk .m{color:var(--muted);font-size:12px;display:block;margin-top:3px}
+.cp-tk.p-high{border-left-color:#E0674F;background:color-mix(in srgb,#C9503A 24%,var(--surface));border-color:color-mix(in srgb,#B4412F 50%,var(--border))}
+.cp-tk.p-mid{border-left-color:#D9A441;background:color-mix(in srgb,#E3B044 24%,var(--surface));border-color:color-mix(in srgb,#D9A441 45%,var(--border))}
+.cp-tk.p-low{border-left-color:#8c8da1;background:color-mix(in srgb,#8c8da1 14%,var(--surface))}
+.cp-tk .cp-pill{margin-top:6px;font-size:11.5px;padding:2px 9px}
+.cp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .cp-empty{font-size:13px;color:var(--muted);margin:4px}
-@media (max-width:1100px){.cp-board{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:760px){.cp-board{grid-template-columns:minmax(0,1fr)}.cp-col{min-height:0}.cp-col.stuck.has{order:-1}}
+.cp-mv{background:var(--surface);border:1.5px solid var(--accent,#3AA892);border-radius:10px;padding:10px;margin-bottom:9px;font-size:13.5px}
+.cp-mv h5{margin:0 0 4px;font-size:13.5px;letter-spacing:0;text-transform:none;color:var(--text)}
+.cp-mv small{display:block;color:var(--muted);font-size:12px;margin-bottom:8px;overflow-wrap:anywhere}
+.cp-mv .cp-ta{min-height:64px;font-size:14px}
+.cp-seq{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.cp-toast{margin:0 14px 10px;padding:9px 12px;border-radius:10px;background:#E1F1E6;color:#1f5a35;font-size:13.5px}
+.cp-toast.bad{background:#F8E4DF;color:#B4412F}
+.cp-guide{margin:4px 14px 0;font-size:13px;color:var(--muted)}
+@media (max-width:1180px){
+  .cb-app{grid-template-columns:minmax(0,1fr)}
+  .cb-in{position:static;max-height:none;display:flex;gap:8px;overflow:auto;padding:10px}
+  .cb-in h2{display:none}
+  .cb-g{border:0;padding:0;flex:none}
+  .cb-gh{border:1.5px solid var(--border);border-radius:999px;padding:6px 12px;white-space:nowrap}
+  .cb-items,.cb-more{display:none}
+}
 /* one complaint as a ticket */
 .tk{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
 @media (min-width:980px){.tk{grid-template-columns:260px minmax(0,1fr) 290px}}
@@ -138,7 +182,7 @@ button.tk-pill{cursor:pointer}
   var P = new URLSearchParams(location.search);
   var cid = Number(P.get('cid')) || 0, view = P.get('view') || '', forceTicket = P.get('t') === '1';
   var timer = 0, badge = null;
-  var S = { c: null, tab: 'activity', mentions: {}, draft: '', open: '', tagKind: 'copied', board: { branch: 'all', mine: false, serious: false } };
+  var S = { c: null, tab: 'activity', mentions: {}, draft: '', open: '', tagKind: 'copied', board: { branch: 'all', serious: false, grp: '', cards: [], move: null, drag: null, toast: '', bad: false } };
   var cap = function (s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); };
 
   function day(d) { try { return new Date(d.length === 10 ? d + 'T00:00:00' : d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }); } catch (e) { return ''; } }
@@ -162,8 +206,9 @@ button.tk-pill{cursor:pointer}
   function personDot(name) { var p = CP && CP.byEmailOrName(null, name); return p ? CP.dot(p) : ''; }
   function nav(active) {
     var dot = badge && ((badge.waiting || 0) + (badge.tagged || 0)) > 0 ? '<i class="bd" title="Something is waiting for you" role="img" aria-label="Something is waiting for you"></i>' : '';
-    return '<div class="cp-nav"><a href="/hub/complaint" class="' + (active === 'list' ? 'on' : '') + '">My complaints' + dot + '</a>' +
-      (badge && badge.board ? '<a href="/hub/complaint?view=board" class="' + (active === 'board' ? 'on' : '') + '">Pipeline</a>' : '') + '</div>';
+    return '<div class="cp-navrow"><div class="cp-nav"><a href="/hub/complaint" class="' + (active === 'list' ? 'on' : '') + '">My complaints' + dot + '</a>' +
+      (badge && badge.board ? '<a href="/hub/complaint?view=board" class="' + (active === 'board' ? 'on' : '') + '">Pipeline</a>' : '') + '</div>' +
+      '<a class="cp-log" href="/?view=complaintlog" target="_blank" rel="noopener">+ Log a complaint</a></div>';
   }
   async function copyText(btn) {
     var t = btn.dataset.copy || '';
@@ -184,6 +229,7 @@ button.tk-pill{cursor:pointer}
 
   // ---------------------------------------------------------------- my complaints
   async function list() {
+    wideWrap(false);
     document.title = 'My complaints · Team Home';
     var r = await KB.client.rpc('cmp_my_list');
     if (r.error) { main.innerHTML = '<p class="kb-msg">The list did not load. Refresh to try again.</p>'; return; }
@@ -210,35 +256,117 @@ button.tk-pill{cursor:pointer}
     main.innerHTML = h + '</div></div>';
   }
 
-  // ---------------------------------------------------------------- the pipeline
-  var STAGES = [['waiting', 'Waiting to be taken'], ['taken', 'Taken, reply due'], ['replied', 'Replied, client back?'], ['closed', 'Closed this week'], ['minor', 'Minor, daily summary'], ['stuck', 'Stuck']];
+  // ---------------------------------------------------------------- the pipeline (Kate, 30 Oct 2026: inbox on the left, five stages, colour = priority)
+  var BSTAGES = [['waiting', 'Waiting to be taken'], ['taken', 'Taken, reply due'], ['replied', 'Replied, client back?'], ['stuck', 'Stuck'], ['closed', 'Closed']];
+  // Where a card may be dropped. A drop never just moves it: it asks for the real thing (who takes it, what she said), and Closed opens the dashboard form for how it ended.
+  var VALID = { waiting: ['taken'], taken: ['replied', 'closed'], replied: ['closed'], stuck: ['taken'], closed: [] };
+  var GROUPS = [
+    ['mine', 'Assigned to you', function (x) { return x.assigned_me && x.stage !== 'closed'; }],
+    ['sub', 'You submitted', function (x) { return x.filed_me; }],
+    ['tag', 'Tagged you', function (x) { return x.tagged_me; }],
+    ['over', 'Overdue', function (x) { return x.flag === 'overdue' || x.stage === 'stuck'; }, 'red'],
+    ['wait', 'Waiting to be taken', function (x) { return x.stage === 'waiting'; }],
+    ['stk', 'Stuck, needs Kate', function (x) { return x.stage === 'stuck'; }, 'red']
+  ];
+  function mdy(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || '')); return m ? m[2] + '/' + m[3] + '/' + m[1] : ''; }
+  // the ticket name: MM/DD/YYYY | BRANCH CODE | CLIENT NAME | COMPLAINT CLASSIFICATION
+  function tname(x) { return [mdy(x.date), x.branch || '', x.client || 'Client', cap(KIND[x.type] || 'client')].join(' | '); }
+  function bst(x) { return x.stage === 'minor' ? 'waiting' : x.stage; }
+  function bhref(x) { return x.code ? '/hub/complaint?c=' + encodeURIComponent(x.code) : '/hub/complaint?cid=' + x.id + '&t=1'; }
+  function chipOf(x) {
+    if (x.stage === 'stuck') return ['red', 'Needs Kate now'];
+    if (x.stage === 'minor') return ['grey', 'No clock, daily summary'];
+    if (x.stage === 'waiting') return x.due_at && left(x.due_at) ? ['amber', left(x.due_at) + ' left'] : ['amber', 'Moving on now'];
+    if (x.stage === 'taken') return x.flag === 'overdue' ? ['red', 'Overdue'] : ['amber', 'Reply by ' + day(x.reply_due)];
+    if (x.stage === 'replied') return x.flag === 'overdue' ? ['red', 'Overdue'] : ['green', 'On track, close by ' + day(x.close_due)];
+    return ['grey', 'Closed ' + day(x.resolved_at)];
+  }
+  function whoOf(x) {
+    return x.stage === 'waiting' ? (x.holder ? cap(x.holder) : '') : x.stage === 'stuck' ? 'Everyone had it. Nobody took it' : x.stage === 'minor' ? 'No clock' : x.owner || '';
+  }
   function card(x) {
-    var cls = x.stage === 'stuck' || x.flag === 'overdue' ? 'red' : x.stage === 'replied' ? 'green' : x.stage === 'waiting' || x.stage === 'taken' ? 'amber' : '';
-    var who = x.stage === 'waiting' ? (x.holder ? esc(cap(x.holder)) : '') : x.stage === 'stuck' ? 'Everyone had it. Nobody took it' : x.stage === 'minor' ? 'No clock' : x.owner ? esc(x.owner) : '';
-    var chip = '';
-    if (x.stage === 'stuck') chip = '<span class="cp-pill red">Needs Kate now</span>';
-    else if (x.stage === 'waiting') chip = x.due_at && left(x.due_at) ? '<span class="cp-pill amber">' + esc(left(x.due_at)) + ' left</span>' : '<span class="cp-pill amber">Moving on now</span>';
-    else if (x.stage === 'taken') chip = x.flag === 'overdue' ? '<span class="cp-pill red">Overdue</span>' : '<span class="cp-pill amber">Reply by ' + esc(day(x.reply_due)) + '</span>';
-    else if (x.stage === 'replied') chip = x.flag === 'overdue' ? '<span class="cp-pill red">Overdue</span>' : '<span class="cp-pill green">On track, close by ' + esc(day(x.close_due)) + '</span>';
-    else if (x.stage === 'closed') chip = '<span class="cp-pill grey">Closed ' + esc(day(x.resolved_at)) + '</span>';
-    return '<a class="cp-tk ' + cls + '" href="/hub/complaint?cid=' + x.id + '&t=1"><span class="cd">' + esc(x.code || '') + '</span><b>' + esc(cap(KIND[x.type] || 'client')) + ' · ' + esc(BRANCH[x.branch] || x.branch || '') + '</b>' +
-      (who ? '<span class="m">' + who + (x.dry_run ? ' · dry run' : '') + '</span>' : '') + chip + '</a>';
+    var ch = chipOf(x), pr = x.priority || 'mid', who = whoOf(x);
+    return '<a class="cp-tk p-' + pr + '" href="' + bhref(x) + '" target="_blank" rel="noopener" draggable="true" data-id="' + x.id + '" title="' + esc(PRN[pr]) + ' priority">' +
+      '<span class="cp-sr">' + esc(PRN[pr]) + ' priority. </span><b>' + esc(tname(x)) + '</b>' + (who ? '<span class="m">' + esc(who) + (x.dry_run ? ' · dry run' : '') + '</span>' : '') +
+      '<span class="cp-pill ' + ch[0] + '">' + esc(ch[1]) + '</span></a>';
+  }
+  var PRN = { high: 'High', mid: 'Mid', low: 'Low' };
+  function inGroup(x) { var B = S.board; if (!B.grp) return true; var g = GROUPS.filter(function (y) { return y[0] === B.grp; })[0]; return !g || g[2](x); }
+  function moveForm(m) {
+    var x = S.board.cards.filter(function (y) { return y.id === m.id; })[0]; if (!x) return '';
+    var top = '<small>' + esc(tname(x)) + '</small>';
+    if (m.to === 'taken') return '<div class="cp-mv"><h5>Who takes it?</h5>' + top + '<div class="cp-seq"><button type="button" class="cp-btn pri mini" data-mv="take-me">Me</button><button type="button" class="cp-btn sub mini" data-mv="take-pick">Someone else</button></div>' +
+      (m.pick ? '<div id="mvPick" style="margin-top:8px"></div>' : '') + '<div class="cp-seq"><button type="button" class="cp-btn sub mini" data-mv="cancel">Cancel</button></div><div class="cp-msg" id="mvMsg" aria-live="polite"></div></div>';
+    if (m.to === 'replied') return '<div class="cp-mv"><h5>What did she say?</h5>' + top + '<textarea class="cp-ta" id="mvText" placeholder="What she said, what you noticed"></textarea><div class="cp-seq"><button type="button" class="cp-btn pri mini" data-mv="replied">Save and move</button><button type="button" class="cp-btn sub mini" data-mv="cancel">Cancel</button></div><div class="cp-msg" id="mvMsg" aria-live="polite"></div></div>';
+    return '<div class="cp-mv"><h5>How did it end?</h5>' + top + '<p class="cp-sm" style="margin:0 0 6px">Closing it records how it ended, so it opens on the dashboard.</p><div class="cp-seq"><a class="cp-btn pri mini" href="/?view=complaintlog&cid=' + x.id + '" target="_blank" rel="noopener" data-mv="cancel">Open the close form</a><button type="button" class="cp-btn sub mini" data-mv="cancel">Cancel</button></div></div>';
+  }
+  function wideWrap(on) { var w = document.querySelector('.wrap'); if (w) w.classList.toggle('cb-wide', !!on); }
+  function drawBoard() {
+    wideWrap(true);
+    var B = S.board, cards = B.cards;
+    var vis = cards.filter(function (x) { return (B.branch === 'all' || x.branch === B.branch) && (!B.serious || x.priority !== 'low') && inGroup(x); });
+    var inbox = '<h2>Your inbox</h2>' + GROUPS.map(function (g) {
+      var xs = cards.filter(g[2]);
+      return '<div class="cb-g"><button type="button" class="cb-gh ' + (g[3] || '') + (B.grp === g[0] ? ' on' : '') + '" data-g="' + g[0] + '" aria-pressed="' + (B.grp === g[0]) + '">' + esc(g[1]) + '<em>' + xs.length + '</em></button><div class="cb-items">' +
+        xs.slice(0, 3).map(function (x) { return '<a class="cb-rw" href="' + bhref(x) + '" target="_blank" rel="noopener"><b>' + esc(tname(x)) + '</b>' + esc(chipOf(x)[1]) + '</a>'; }).join('') +
+        (xs.length > 3 ? '<div class="cb-more">+' + (xs.length - 3) + ' more</div>' : '') + '</div></div>';
+    }).join('');
+    var fil = '<div class="cp-fil" role="group" aria-label="Filters">' + [['all', 'All branches']].concat(Object.keys(BRANCH).map(function (k) { return [k, BRANCH[k]]; })).map(function (x) {
+      return '<button type="button" data-f="branch" data-v="' + x[0] + '" class="' + (B.branch === x[0] ? 'on' : '') + '" aria-pressed="' + (B.branch === x[0]) + '">' + esc(x[1]) + '</button>';
+    }).join('') + '<button type="button" data-f="serious" class="' + (B.serious ? 'on' : '') + '" aria-pressed="' + B.serious + '">Serious only</button>' +
+      (B.grp ? '<span class="cp-showing">Showing: ' + esc(GROUPS.filter(function (g) { return g[0] === B.grp; })[0][1]) + ' <button type="button" data-g="' + B.grp + '" aria-label="Clear">&times;</button></span>' : '') +
+      '<span class="cp-legend" aria-label="Colour means priority"><span><i class="hi"></i>High</span><span><i class="mid"></i>Mid</span><span><i class="low"></i>Low</span></span></div>';
+    var cols = BSTAGES.map(function (s) {
+      var xs = vis.filter(function (x) { return bst(x) === s[0]; });
+      var ok = B.drag && VALID[bst(cards.filter(function (y) { return y.id === B.drag; })[0])].indexOf(s[0]) >= 0;
+      var mv = B.move && B.move.to === s[0] ? moveForm(B.move) : '';
+      return '<div class="cp-col' + (s[0] === 'stuck' ? ' stuck' + (xs.length ? ' has' : '') : '') + (ok ? ' ok' : '') + '" data-stage="' + s[0] + '"><h4>' + esc(s[1]) + ' <em>' + xs.length + '</em></h4>' + mv +
+        (xs.length ? xs.map(card).join('') : (mv ? '' : '<p class="cp-empty">Nothing here.</p>')) + '</div>';
+    }).join('');
+    main.innerHTML = '<div class="cp wide cb">' + nav('board') + '<div><h1>Complaints</h1></div><div class="cb-app"><nav class="cb-in" aria-label="Your complaints">' + inbox + '</nav>' +
+      '<section class="cb-main"><h2>Pipelines</h2>' + fil + (B.toast ? '<div class="cp-toast' + (B.bad ? ' bad' : '') + '" role="status">' + esc(B.toast) + '</div>' : '') +
+      '<div class="cp-board' + (B.drag ? ' dragging' : '') + '" id="cpBoard">' + cols + '</div>' +
+      '<p class="cp-guide">Click a card to open it in a new window. Drag a card to a stage and it asks for the real thing first. Colour is priority: red high, yellow mid, gray low.</p></section></div></div>';
+    document.title = 'Complaints · Team Home';
+    if (B.move && B.move.pick && CP) {
+      var el = document.getElementById('mvPick');
+      if (el) CP.mount(el, { lockBadged: true, onPick: function (p) { doMove('assign', p); } });
+    }
   }
   async function board() {
-    document.title = 'Pipeline · Team Home';
-    var b = S.board;
-    var r = await KB.client.rpc('cmp_board', { p_branch: b.branch, p_mine: b.mine, p_serious: b.serious });
+    var r = await KB.client.rpc('cmp_board', { p_branch: 'all', p_mine: false, p_serious: false });
     if (r.error) { main.innerHTML = '<p class="kb-msg">The pipeline did not load. Refresh to try again.</p>'; return; }
     if (r.data == null) { main.innerHTML = '<div class="cp">' + nav('board') + '<p class="kb-msg">The pipeline is for leadership and the salon coordinators.</p></div>'; return; }
-    var cards = r.data || [];
-    var fil = '<div class="cp-fil" role="group" aria-label="Filters">' + [['all', 'All branches']].concat(Object.keys(BRANCH).map(function (k) { return [k, BRANCH[k]]; })).map(function (x) {
-      return '<button type="button" data-f="branch" data-v="' + x[0] + '" class="' + (b.branch === x[0] ? 'on' : '') + '" aria-pressed="' + (b.branch === x[0]) + '">' + esc(x[1]) + '</button>';
-    }).join('') + '<button type="button" data-f="mine" class="' + (b.mine ? 'on' : '') + '" aria-pressed="' + b.mine + '">Mine only</button><button type="button" data-f="serious" class="' + (b.serious ? 'on' : '') + '" aria-pressed="' + b.serious + '">Serious only</button></div>';
-    var cols = STAGES.map(function (s) {
-      var xs = cards.filter(function (x) { return x.stage === s[0]; });
-      return '<div class="cp-col' + (s[0] === 'stuck' ? ' stuck' + (xs.length ? ' has' : '') : '') + '"><h4>' + esc(s[1]) + ' <em>' + xs.length + '</em></h4>' + (xs.length ? xs.map(card).join('') : '<p class="cp-empty">Nothing here.</p>') + '</div>';
-    }).join('');
-    main.innerHTML = '<div class="cp wide">' + nav('board') + '<div><h1>Complaints pipeline</h1><p class="sub">The same complaints, laid out by stage. A card moves when something real happens: someone takes it, replies to the client, or it is closed. Nobody drags a card, so the board cannot be tidied by hand. Serious means everything except the minor ones. Click a card to open it.</p></div>' + fil + '<div class="cp-board">' + cols + '</div></div>';
+    S.board.cards = r.data || [];
+    drawBoard();
+  }
+  async function myEmail() { try { var u = await KB.client.auth.getUser(); return u && u.data && u.data.user && u.data.user.email || ''; } catch (e) { return ''; } }
+  async function doMove(kind, who) {
+    var B = S.board, m = B.move; if (!m) return;
+    var x = B.cards.filter(function (y) { return y.id === m.id; })[0], msg = document.getElementById('mvMsg'), r, out = '';
+    function bad(t) { if (msg) { msg.textContent = t; msg.className = 'cp-msg bad'; } }
+    if (kind === 'assign') {
+      if (!window.confirm('Assign this complaint to ' + who.short + '? ' + who.short + ' gets a message and the clock stops.')) return;
+      r = await KB.client.rpc('cmp_assign', { p_id: m.id, p_email: who.email });
+      if (r.error || !r.data || !r.data.ok) return bad((r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not go through. Try again.');
+      out = 'taken by ' + who.short + '. The clock has stopped.';
+    } else if (kind === 'take-me') {
+      r = await KB.client.rpc('cmp_claim', { p_id: m.id });
+      if (r.error || !r.data || !r.data.ok) {
+        var em = await myEmail();
+        r = em ? await KB.client.rpc('cmp_assign', { p_id: m.id, p_email: em }) : r;
+        if (r.error || !r.data || !r.data.ok) return bad((r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not go through. Try again.');
+      }
+      out = 'taken by you. The clock has stopped.';
+    } else if (kind === 'replied') {
+      var note = (document.getElementById('mvText') || {}).value || '';
+      if (note.trim().length < 2) return bad('Write what she said first.');
+      r = await KB.client.rpc('cmp_replied', { p_id: m.id, p_note: note });
+      if (r.error || !r.data || !r.data.ok) return bad((r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not go through. Try again.');
+      out = 'saved. Waiting to hear if she is happy.';
+    }
+    B.move = null; B.bad = false; B.toast = tname(x) + ': ' + out;
+    await board();
   }
 
   // ---------------------------------------------------------------- tagging, in the action screen and the ticket
@@ -357,6 +485,29 @@ button.tk-pill{cursor:pointer}
     var m2 = document.getElementById('tkNoteMsg'); if (m2) m2.textContent = tagged.length ? 'Saved. ' + tagged.join(', ') + (tagged.length === 1 ? ' is tagged and gets' : ' are tagged and get') + ' one message.' : 'Saved.';
   }
 
+  // ---------------------------------------------------------------- the ticket name, priority and next step (Kate, 30 Oct 2026)
+  function cname(c) { return [mdy(c.complaint_date), c.branch || '', (c.revealed && c.client) ? c.client : 'Client', cap(kindOf(c))].join(' | '); }
+  function cprio(c) {
+    var t = c.triage;
+    if (c.status === 'resolved') return 'low';
+    var today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }), cd = c.complaint_date;
+    function plus(d, n) { var x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+    var overdue = c.status === 'open' && cd && (today > plus(cd, 7) || (!c.first_response_at && today > plus(cd, 2)));
+    if ((t && t.state === 'stuck') || c.type === 'skin_reaction_or_injury' || overdue) return 'high';
+    if (t && t.grp === 'minor') return 'low';
+    return 'mid';
+  }
+  function nextStep(c) {
+    var t = c.triage, h = '';
+    if (c.duplicate_of || c.status !== 'open') return '';
+    if (t && t.state === 'active' && t.can_claim) h = '<p style="margin:0 0 8px">Nobody has taken this yet.</p><button type="button" class="cp-btn pri mini" data-nx="claim">I have got this</button>';
+    else if (t && t.state === 'claimed' && t.i_claimed && !c.first_response_at) h = '<p style="margin:0 0 8px">Reply to her, then write what she said in the note box below and press the button.</p><button type="button" class="cp-btn pri mini" data-nx="reply">I have replied to her</button>';
+    else if (t && t.state === 'claimed' && c.first_response_at) h = '<p style="margin:0 0 8px">Waiting to hear if she is happy. Close it once she is.</p><a class="cp-btn pri mini" href="/?view=complaintlog&cid=' + c.id + '" target="_blank" rel="noopener">Close it, how did it end?</a>';
+    else if (t && (t.state === 'stuck' || t.state === 'minor') && c.can_manage) h = '<p style="margin:0 0 8px">' + (t.state === 'stuck' ? 'Everyone had it and nobody took it.' : 'A minor complaint, no clock.') + ' Give it to someone.</p><button type="button" class="cp-btn pri mini" data-open="assign">Assign it</button>';
+    if (!h) return '';
+    return '<div class="cp-card" style="border-color:var(--accent,#3AA892);margin-bottom:12px"><h5>Next step</h5>' + h + '<div class="cp-msg" id="nxMsg" aria-live="polite"></div></div>';
+  }
+
   // ---------------------------------------------------------------- one complaint as a ticket (three columns on a laptop)
   function ticket(c) {
     var t = c.triage, kind = kindOf(c), Kind = cap(kind), branch = BRANCH[c.branch] || c.branch || '';
@@ -364,12 +515,14 @@ button.tk-pill{cursor:pointer}
     var canAssign = c.can_manage && c.status === 'open' && !c.duplicate_of;
     var chipCls = c.duplicate_of ? 'grey' : c.status === 'resolved' ? 'grey' : (t && t.state === 'stuck') ? 'red' : (t && t.state === 'claimed' && c.first_response_at) ? 'green' : 'amber';
     var fromBoard = badge && badge.board && forceTicket;
+    document.title = cname(c);
+    var pr = cprio(c);
     var h = '<div class="cp wide">' + nav('') + '<a class="sub" href="' + (fromBoard ? '/hub/complaint?view=board' : '/hub/complaint') + '">← ' + (fromBoard ? 'Pipeline' : 'My complaints') + '</a>';
     if (t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
     if (c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
     if (c.duplicate_of) h += '<div class="cp-tagline">This is a duplicate of <b>' + esc(c.duplicate_code || 'another complaint') + '</b>. It stays on file and is not counted twice.</div>';
-    h += '<div class="tk-head"><div>' + codeChip(c.code) + '<h1 style="margin-top:8px">' + esc(Kind) + ' · ' + esc(branch) + '</h1><div class="sub">Logged by ' + esc(c.by || 'someone') + (c.by_at ? ', ' + esc(clock(c.by_at)) : '') + '</div></div>' +
-      '<div class="tk-acts"><span class="cp-pill ' + chipCls + '">' + esc(stageOf(c)) + '</span>' +
+    h += '<div class="tk-head"><div>' + codeChip(c.code) + '<h1 style="margin-top:8px">' + esc(cname(c)) + '</h1><div class="sub">Logged by ' + esc(c.by || 'someone') + (c.by_at ? ', ' + esc(clock(c.by_at)) : '') + '</div></div>' +
+      '<div class="tk-acts"><span class="cp-pill ' + chipCls + '">' + esc(stageOf(c)) + '</span><span class="cp-pill ' + (pr === 'high' ? 'red' : pr === 'mid' ? 'amber' : 'grey') + '">' + esc(PRN[pr]) + ' priority</span>' +
       (canAssign ? '<button type="button" class="cp-btn sub mini" data-open="assign">Assign</button>' : '') +
       '<button type="button" class="cp-btn sub mini" data-open="tag">Tag</button>' +
       (c.status === 'open' && !c.duplicate_of ? '<a class="cp-btn pri mini" href="/?view=complaintlog&cid=' + c.id + '">Close it</a>' : '') + '</div></div>';
@@ -384,7 +537,7 @@ button.tk-pill{cursor:pointer}
       (c.stylists ? '<div class="tk-prop"><span>Stylist</span><b>' + esc(c.stylists) + '<br><span class="cp-sm">recorded, not messaged</span></b></div>' : '') +
       '<div class="tk-prop"><span>What happened</span><b style="max-width:60%">' + esc(c.detail || 'Not stated') + '</b></div>' +
       '<div style="margin-top:12px">' + peopleBlock(c) + '</div></div>';
-    h += '<div><div class="tk-tabs" role="tablist">' + [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']].map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+    h += '<div>' + nextStep(c) + '<div class="tk-tabs" role="tablist">' + [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']].map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
       '<div class="tk-comp"><textarea class="cp-ta" id="tkNote" placeholder="Write a note. Type @ to tag someone." aria-label="Write a note">' + esc(S.draft) + '</textarea><div class="tk-menu" id="tkMenu" hidden></div></div>' +
       '<div class="cp-btnrow" style="grid-template-columns:auto 1fr;align-items:center"><button type="button" class="cp-btn pri mini" id="tkSend">Add note</button><div class="cp-msg" id="tkNoteMsg" aria-live="polite"></div></div>' +
       '<div id="tkTimeline">' + timelineHtml(c) + '</div></div>';
@@ -401,6 +554,7 @@ button.tk-pill{cursor:pointer}
 
   // ---------------------------------------------------------------- one complaint: take it, or it is yours, or the ticket
   function draw(c) {
+    wideWrap(false);
     var t = c.triage, kind = kindOf(c), branch = BRANCH[c.branch] || c.branch || '', Kind = cap(kind);
     document.title = Kind + ' complaint · Team Home';
     var canClaim = t && t.state === 'active' && t.can_claim, mine = t && t.i_claimed, urgent = t && t.grp === 'urgent';
@@ -453,6 +607,22 @@ button.tk-pill{cursor:pointer}
     if (canClaim && t.due_at) timer = setInterval(function () { var el = main.querySelector('.cp-timer'); if (!el) return; var tl2 = left(t.due_at); if (tl2) el.textContent = tl2 + ' before it moves on'; else { el.textContent = 'It is moving on now'; el.classList.add('late'); } }, 30000);
   }
 
+  // ---------------------------------------------------------------- dragging a card to a stage
+  main.addEventListener('dragstart', function (e) {
+    var t = e.target.closest && e.target.closest('.cp-tk'); if (!t || !S.board.cards.length) return;
+    var x = S.board.cards.filter(function (y) { return y.id === Number(t.dataset.id); })[0];
+    if (!x || !VALID[bst(x)].length) { e.preventDefault(); return; }
+    S.board.drag = x.id; try { e.dataTransfer.setData('text/plain', String(x.id)); e.dataTransfer.effectAllowed = 'move'; } catch (er) {}
+    setTimeout(drawBoard, 0);
+  });
+  main.addEventListener('dragend', function () { if (S.board.drag) { S.board.drag = null; drawBoard(); } });
+  main.addEventListener('dragover', function (e) { var c = e.target.closest('.cp-col.ok'); if (c) { e.preventDefault(); c.classList.add('over'); } });
+  main.addEventListener('dragleave', function (e) { var c = e.target.closest('.cp-col'); if (c && !c.contains(e.relatedTarget)) c.classList.remove('over'); });
+  main.addEventListener('drop', function (e) {
+    var c = e.target.closest('.cp-col.ok'); if (!c) return; e.preventDefault();
+    var id = S.board.drag; S.board.drag = null; S.board.toast = ''; S.board.move = { id: id, to: c.dataset.stage }; drawBoard();
+  });
+
   // ---------------------------------------------------------------- clicks
   main.addEventListener('click', async function (e) {
     var cp = e.target.closest('[data-copy]');
@@ -460,8 +630,17 @@ button.tk-pill{cursor:pointer}
     var f = e.target.closest('[data-f]');
     if (f) {
       var b = S.board;
-      if (f.dataset.f === 'branch') b.branch = f.dataset.v; else if (f.dataset.f === 'mine') b.mine = !b.mine; else if (f.dataset.f === 'serious') b.serious = !b.serious;
-      board(); return;
+      if (f.dataset.f === 'branch') b.branch = f.dataset.v; else if (f.dataset.f === 'serious') b.serious = !b.serious;
+      drawBoard(); return;
+    }
+    var gr = e.target.closest('[data-g]');
+    if (gr) { S.board.grp = S.board.grp === gr.dataset.g ? '' : gr.dataset.g; drawBoard(); return; }
+    var mv = e.target.closest('[data-mv]');
+    if (mv) {
+      var k = mv.dataset.mv;
+      if (k === 'cancel') { S.board.move = null; if (mv.tagName === 'A') { setTimeout(drawBoard, 0); return; } drawBoard(); return; }
+      if (k === 'take-pick') { S.board.move.pick = true; drawBoard(); return; }
+      mv.disabled = true; await doMove(k); mv.disabled = false; return;
     }
     var tab = e.target.closest('[data-tab]');
     if (tab) { S.tab = tab.dataset.tab; var tl = document.getElementById('tkTimeline'); if (tl && S.c) tl.innerHTML = timelineHtml(S.c); main.querySelectorAll('[data-tab]').forEach(function (x) { var on = x.dataset.tab === S.tab; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); }); return; }
@@ -478,6 +657,22 @@ button.tk-pill{cursor:pointer}
     var tk = e.target.closest('[data-tk]');
     if (tk) { S.tagKind = tk.dataset.tk; main.querySelectorAll('[data-tk]').forEach(function (x) { x.classList.toggle('on', x.dataset.tk === S.tagKind); }); if (document.getElementById('tkTagPick') && S.c) mountTag(S.c); return; }
     if (e.target.id === 'tkSend') { sendNote(); return; }
+    var nx = e.target.closest('[data-nx]');
+    if (nx) {
+      var nm = document.getElementById('nxMsg');
+      var nsay = function (t, bad) { if (nm) { nm.textContent = t; nm.className = 'cp-msg' + (bad ? ' bad' : ''); } };
+      var nres;
+      nx.disabled = true;
+      if (nx.dataset.nx === 'claim') nres = await KB.client.rpc('cmp_claim', { p_id: cid });
+      else {
+        var nnote = (document.getElementById('tkNote') || {}).value || '';
+        if (nnote.trim().length < 2) { nx.disabled = false; nsay('Write what she said in the note box first.', true); return; }
+        nres = await KB.client.rpc('cmp_replied', { p_id: cid, p_note: nnote }); S.draft = ''; S.mentions = {};
+      }
+      nx.disabled = false;
+      if (nres.error || !nres.data || !nres.data.ok) { nsay((nres.data && nres.data.why) ? cap(nres.data.why) + '.' : 'That did not go through. Try again.', true); return; }
+      await reload(); return;
+    }
     var bt = e.target.closest('button[data-a]');
     if (!bt) return;
     var a = bt.dataset.a, msg = document.getElementById('cpMsg');
@@ -518,6 +713,12 @@ button.tk-pill{cursor:pointer}
     var b = await KB.client.rpc('cmp_my_badge');
     badge = b && !b.error ? b.data : null;
     if (CP) await CP.load();
+    // the ticket code in the address (?c=CMP-SAA-20261028-04) opens the full record
+    if (P.get('c') && !cid) {
+      var fnd = await KB.client.rpc('cmp_find', { p_code: P.get('c') });
+      cid = fnd && !fnd.error && fnd.data ? Number(fnd.data) : 0; forceTicket = true;
+      if (!cid) return notOpen();
+    }
     return cid ? one() : view === 'board' ? board() : list();
   });
 })();
