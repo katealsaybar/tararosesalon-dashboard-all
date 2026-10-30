@@ -47,7 +47,7 @@
   var WIN_THEN = ['request_pct', 'retention_pct', 'conversion_pct', 'colour_pct', 'reputation', 'google_reviews', 'ncr'];
   var SUMS = { clients: 1, total_revenue: 1, google_reviews: 1, ncr: 1 };
 
-  function winLine(k, n, v, t, mid) {
+  function winLine(k, n, v, t, mid, own) {
     switch (k) {
       case 'rebooking_pct': return n.rebooked + ' of your ' + n.clients + ' clients booked their next visit before they left. That is ' + pct(v) + ' against an aim of ' + pct(t) + ', and it is how a column fills itself.';
       case 'avg_bill': return 'Your average bill is ' + aed(v) + ', above your aim of ' + aed(t) + '. Your clients trust you with the full service.';
@@ -56,7 +56,7 @@
       case 'column_fill_pct': return v >= 100 ? 'Your column was full this month. Every hour you had, a client had it.' : 'You were ' + pct(v) + ' booked, above your aim of ' + pct(t) + '.';
       case 'clients': return (mid ? 'You are on pace for ' + nf(v) : 'You saw ' + nf(v)) + ' clients this month, above your aim of ' + nf(t) + '.';
       case 'request_pct': return pct(v) + ' of your clients asked for you by name, above your aim of ' + pct(t) + '. People come back for you.';
-      case 'total_revenue': return (mid ? 'You are on pace for ' : 'You took ') + aed(v) + ' in services this month, above your aim of ' + aed(t) + '.';
+      case 'total_revenue': return (mid ? 'You are on pace for ' : 'You took ') + aed(v) + ' in services this month, above your ' + (own ? 'target' : 'aim') + ' of ' + aed(t) + '.';
       case 'retention_pct': return pct(v) + ' of your regulars keep coming back to you, above your aim of ' + pct(t) + '.';
       case 'conversion_pct': return pct(v) + ' of your new clients came back for a second visit, above your aim of ' + pct(t) + '.';
       case 'colour_pct': return pct(v) + ' of your clients had colour with you, above your aim of ' + pct(t) + '.';
@@ -77,23 +77,26 @@
 
   function win(d, sp) {
     var n = d.numbers || {}, b = d.benchmarks || {}, mid = sp.pace < 1;
+    // Kate, 30 Oct 2026: her own target for the month from the Target Calculator (perf_dashboard.month_target) is her money aim, for hair and beauty alike.
+    // The calculator already plans around her leave and her days, so it is not cut for them again (own).
+    if (num(d.month_target)) { b = Object.assign({}, b); b.total_revenue = { min: null, target: num(d.month_target), own: true }; }
     var pick = function (keys) {
       var best = null;
       keys.forEach(function (k) {
         var v = num(n[k]), t = b[k] && num(b[k].target);
         if (v === null || !t) return;
-        if (SUMS[k] && sp.share < 1) t = Math.max(1, k === 'total_revenue' ? Math.round(t * sp.share / 100) * 100 : Math.round(t * sp.share));
+        if (SUMS[k] && sp.share < 1 && !(b[k] && b[k].own)) t = Math.max(1, k === 'total_revenue' ? Math.round(t * sp.share / 100) * 100 : Math.round(t * sp.share));
         if (k === 'rebooking_pct' && !(n.clients > 0)) return;
         if (k === 'reputation' && !(n.reputation_n >= 3)) return;
         var jv = SUMS[k] && mid ? v / sp.pace : v;
         if (jv < t) return;
         var r = jv / t;
-        if (!best || r > best.r) best = { k: k, r: r, v: jv, t: t };
+        if (!best || r > best.r) best = { k: k, r: r, v: jv, t: t, own: !!(b[k] && b[k].own) };
       });
       return best;
     };
     var best = pick(WIN_FIRST) || pick(WIN_THEN);
-    if (best) return winLine(best.k, n, best.v, best.t, mid);
+    if (best) return winLine(best.k, n, best.v, best.t, mid, best.own);
 
     // Nothing at its aim yet: the biggest rise on last month.
     var prev = (d.history || []).slice(-1)[0];

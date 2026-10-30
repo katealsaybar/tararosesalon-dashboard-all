@@ -374,7 +374,7 @@ function prorate(bm, f) {
   const cut = (v, fm) => v === null || v === undefined ? v
     : fm === 'aed' ? Math.round(v * f / 100) * 100 : Math.max(v > 0 ? 1 : 0, Math.round(v * f));
   Object.entries(bm).forEach(([k, b]) => {
-    if (!KPI[k]?.sum || !b) return;
+    if (!KPI[k]?.sum || !b || b.own) return;   // own: her calculator target, already planned around her days
     b.target = cut(b.target, KPI[k].fmt);
     b.min = cut(b.min, KPI[k].fmt);
   });
@@ -653,6 +653,8 @@ async function renderStylist() {
       : d.staff_id ? await rpc('perf_tip_by_id', { p_admin: ADMIN, p_staff_id: d.staff_id, p_month: MONTH + '-01' }) : null;
   } catch (e) { d.ai_tip = null; }
   const started = startIn(d), share = workShare(d);
+  // Kate, 30 Oct 2026: her own target for the month from the Target Calculator is her total revenue aim when there is one (hair; beauty has no level aims yet).
+  if (d.month_target && d.benchmarks && d.benchmarks.total_revenue) d.benchmarks.total_revenue = { min: null, target: Number(d.month_target), own: true };
   d.benchmarks_full = d.benchmarks ? JSON.parse(JSON.stringify(d.benchmarks)) : d.benchmarks;
   if (share) { prorate(d.benchmarks, share.f); prorate(d.next_benchmarks, share.f); }
   const n = d.numbers, s = d.staff, pace = paceFactor(d);
