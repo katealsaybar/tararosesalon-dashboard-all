@@ -189,33 +189,24 @@ KB.ready.then(async function () {
     var html = starred.length
       ? '<h2 class="kb-section-title kb-fv-h">Your favourites</h2><div class="kb-gtiles">' + starred.map(pill).join('') + '</div>'
       : '<p class="kb-fav-hint">Tap the star on any section to keep it at the top.</p>';
-    // Staff have one department, so no headings beyond theirs; everyone else reads
-    // Team Home by department.
-    // Kate, 22 Oct 2026: "naka square square lang per main section", so it does not overwhelm: one square for each main section, and a
-    // click opens everything inside it (one section open at a time, kept in the address as #g=Learn). A person with only one section
-    // sees it open already.
-    var present = KB.GROUPS.filter(function (g) { return shown.some(function (s) { return s.dept === g; }); });
-    if (openG && present.indexOf(openG) < 0) openG = null;
-    if (!openG && present.length === 1) openG = present[0];
-    // Kate, 22 Oct 2026: "di mo naman hiniwalay yung informational sa dashboard stuff". What you read and learn from (the Tara Rose Way, Me, Learn)
-    // is one block of squares and the dashboard shortcuts and tools (Numbers, Clients, Targets, Campaigns, Content, People, Admin) another, each
-    // with a small heading. A person who has only one kind sees no heading.
-    var INFO_G = { 'The Tara Rose Way': 1, 'Me': 1, 'Learn': 1 };
-    function tile(g) {
-      var list = shown.filter(function (s) { return s.dept === g; }), n = list.filter(isLive).length;
-      var on = g === openG;
-      return '<button type="button" class="kb-gtile' + (on ? ' on' : '') + '" data-g="' + esc(g) + '" aria-expanded="' + on + '">' +
-        KB.icon(GROUP_IC[g] || 'dashboards', GROUP_COLOR[g] || 'var(--accent-mint)') +
-        '<span class="kb-gt-tx"><b>' + esc(g) + '</b><span>' + n + (n === 1 ? ' item' : ' items') + '</span></span></button>';
+    // Kate, 30 Oct 2026: "hub still shows almost everything tho?" The Hub is the front door's fourth door now, so it holds only what is yours: your favourites,
+    // and one shortcut to each of the other three doors (Dashboard, Knowledge Base, Tools). The full lists live behind those doors, once.
+    function countDoor(d) {
+      var seen = {};
+      d.lists.forEach(function (l) { shown.forEach(function (x) { if (l.keys ? l.keys.indexOf(x.key) >= 0 : x.dept === l.dept) seen[x.key] = 1; }); });
+      return Object.keys(seen).length;
     }
-    var infoG = present.filter(function (g) { return INFO_G[g]; }), dashG = present.filter(function (g) { return !INFO_G[g]; });
-    var heads = infoG.length && dashG.length;
-    function block(list, label) {
-      // Kate, 22 Oct 2026: the rows of the open square appear right under its own block, not after the last block of squares.
-      var opened = openG && list.indexOf(openG) >= 0 ? '<div class="kb-depts kb-depts-one" id="kbOpenG">' + group(openG, shown.filter(function (s) { return s.dept === openG; })) + '</div>' : '';
-      return list.length ? (heads ? '<h2 class="kb-section-title" style="margin:20px 0 10px">' + label + '</h2>' : '') + '<div class="kb-gtiles">' + list.map(tile).join('') + '</div>' + opened : '';
+    function doorTile(href, title, n, ic, color) {
+      return '<a class="kb-gtile" href="' + esc(href) + '">' + KB.icon(ic, color) +
+        '<span class="kb-gt-tx"><b>' + esc(title) + '</b><span>' + n + (n === 1 ? ' item' : ' items') + '</span></span></a>';
     }
-    html += block(infoG, 'Read and learn') + block(dashG, 'Dashboards and tools');
+    var dashN = shown.filter(function (x) { return ['Numbers', 'Clients', 'Targets', 'Campaigns', 'Content', 'People'].indexOf(x.dept) >= 0; }).length;
+    var kbN = countDoor(DOORS.kb), toolsN = countDoor(DOORS.tools);
+    var tiles = (dashN ? doorTile('/?view=dashboard', 'Dashboard', dashN, 'dashboards', 'var(--accent-lavender)') : '') +
+      (kbN ? doorTile('/hub/?door=kb', 'Knowledge Base', kbN, 'full-loop', 'var(--accent-mint)') : '') +
+      (toolsN ? doorTile('/hub/?door=tools', 'Tools', toolsN, 'approvals', 'var(--accent-butter)') : '');
+    html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a></p>' + html +
+      (tiles ? '<h2 class="kb-section-title" style="margin:20px 0 10px">Where to next</h2><div class="kb-gtiles">' + tiles + '</div>' : '');
     document.getElementById('kbGrid').innerHTML = html;
   }
   var GROUP_IC = { 'The Tara Rose Way': 'full-loop', 'Me': 'my-numbers', 'Learn': 'hair-induction', 'Numbers': 'dashboards', 'Clients': 'lost-clients', 'Targets': 'today',
