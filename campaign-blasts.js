@@ -107,7 +107,9 @@
   function pageCard(b) {
     var u = b.data.page_url;
     if (!u || !/^\/[^\/]/.test(u)) return '';
-    return '<div class="cbl-fact cbl-card"><small>Landing page</small><a class="cbl-pg" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(b.data.page_name || 'Open the page') + ' ↗</a></div>';
+    // A small live look at the page's first screen (our own page, shown with clicks switched off), scaled to the card; fitPreviews() sets the scale.
+    return '<div class="cbl-fact cbl-card cbl-pgc"><small>Landing page</small><a class="cbl-pg" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(b.data.page_name || 'Open the page') + ' ↗</a>' +
+      '<a class="cbl-prev" href="' + esc(u) + '" target="_blank" rel="noopener" aria-label="Open the landing page"><iframe src="' + esc(u) + '" loading="lazy" tabindex="-1" aria-hidden="true" title="Preview of the landing page"></iframe></a></div>';
   }
   function warns(b) {
     var w = [];
@@ -165,12 +167,26 @@
       '<div class="cbl-side-body">' + calHtml() + tabsHtml() + '</div></aside><div class="cbl-main" id="cblMain">' + (b ? blastHtml(b) : allHtml()) + '</div></div></div>';
     var ta = document.getElementById('cblCmt');
     if (ta) { ta.value = draft[cur] || ''; ta.oninput = function () { draft[cur] = ta.value; }; }
-    if (keep) window.scrollTo(0, y);
+    fitPreviews();
+    // The dashboard sets scroll-behavior:smooth, which turned this restore into a slow scroll back up from the top. Instant keeps you where you were.
+    if (keep) window.scrollTo({ top: y, left: 0, behavior: 'instant' });
   }
+  function fitPreviews() {   // the preview is drawn 1280 wide and shrunk to whatever width its card has
+    var el = main(); if (!el) return;
+    [].forEach.call(el.querySelectorAll('.cbl-prev'), function (p) { if (p.clientWidth) p.style.setProperty('--cbl-s', p.clientWidth / 1280); });
+  }
+  var fitTimer = null;
+  window.addEventListener('resize', function () { clearTimeout(fitTimer); fitTimer = setTimeout(fitPreviews, 120); });
   function go(id, keepMonth) {
     cur = id; errMsg = '';
     var b = item(id); if (b && !keepMonth) { var d = parts(b.send_date); cal = { y: d.getFullYear(), m: d.getMonth() }; }
-    render(); window.scrollTo(0, 0);
+    render(); toTop();
+  }
+  // Opening another blast: only move if its top is above the screen, and then jump, never glide.
+  function toTop() {
+    var el = document.getElementById('cblMain'); if (!el) return;
+    var r = el.getBoundingClientRect();
+    if (r.top < 60) window.scrollTo({ top: Math.max(0, window.scrollY + r.top - 140), left: 0, behavior: 'instant' });
   }
   async function reload() {
     try { var d = await rpc('blast_plan_get'); D = d; if (cur !== 'all' && !item(cur)) cur = 'all'; } catch (e) { errMsg = 'Could not refresh: ' + e.message; }
