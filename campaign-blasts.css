@@ -68,7 +68,6 @@
 /* the top of a blast: the numbers and the date on the left, the landing page as a side panel (mockup A, Kate, 30 Oct 2026) */
 .cbl-top{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:12px;align-items:stretch}
 .cbl-top.noside{grid-template-columns:minmax(0,1fr)}
-.cbl-topl{display:grid;gap:12px;min-width:0}
 .cbl-nums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 .cbl-nums>div{padding:14px 18px;font-size:15px;display:grid;gap:2px;align-content:start}
 .cbl-nums>div:nth-child(odd){border-right:1px solid var(--border)}
@@ -263,9 +262,7 @@
 .cbl-tabs .cbl-tab+.cbl-hint{margin-top:8px}
 .cbl-pgc{display:flex;flex-direction:column;gap:6px}
 .cbl-prev{position:relative;display:block;width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:8px;border:1px solid var(--border);background:var(--surface2);margin-top:4px}
-/* Kate, 30 Oct 2026: the landing page card is as tall as the numbers and schedule beside it, so no blank space under it; the preview takes the spare height and shows more of the page */
-.cbl-pgc>.cbl-prev{flex:1 1 auto}
-.cbl-prev iframe{position:absolute;top:0;left:0;width:1280px;height:calc(100% / var(--cbl-s,.15));min-height:960px;border:0;transform-origin:0 0;transform:scale(var(--cbl-s,.15));pointer-events:none;background:#fff}
+.cbl-prev iframe{position:absolute;top:0;left:0;width:1280px;height:960px;border:0;transform-origin:0 0;transform:scale(var(--cbl-s,.15));pointer-events:none;background:#fff}
 .cbl-live{display:block;font-size:12px;color:var(--muted2);margin-top:2px}
 .cbl-fact .dn{border-bottom:1px dotted currentColor;cursor:pointer}
 .cbl-r{cursor:pointer}
@@ -309,8 +306,12 @@
 .cbl-q{font-size:14px;font-weight:600;line-height:1.4}
 .cbl-where{margin:-6px 0 0;font-size:13px;line-height:1.4;color:var(--muted2)}
 .cbl-rev{border-left:4px solid var(--cb-green)}
+/* Kate, 30 Oct 2026: schedule is one slim strip under the numbers and landing page (both cards are the same height above it), so no blank space is left beside either */
 .cbl-kate{border-style:dashed}
-.cbl-kfor{flex-basis:100%;margin:-4px 0 0;font-size:13.5px;line-height:1.4;color:var(--muted)}
+.cbl-kate h3{flex:0 0 auto;margin:0}
+.cbl-kfor{flex:1 1 280px;margin:0;font-size:13.5px;line-height:1.4;color:var(--muted)}
+.cbl-kate .cbl-note{flex:1 1 240px;align-self:center}
+.cbl-kate .cbl-cost{flex:0 0 auto;align-self:center}
 .cbl-cost{flex-basis:100%;font-size:13.5px;color:var(--muted)}
 .cbl-cost summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
 .cbl-cost p{margin:4px 0 0;line-height:1.45}
