@@ -41,6 +41,9 @@
 .sm-ppl{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px 18px;margin:6px 0 0 26px}
 .sm-ppl label{display:flex;align-items:center;gap:8px;min-height:34px;font-size:14px;cursor:pointer}
 .sm-ppl label.off{opacity:.5}
+.sm-ppl label.chg span{font-weight:700}
+.sm-savenote{font-size:12.5px}
+.sm-gc{margin-left:4px}
 .sm-ppl input{width:18px;height:18px;flex:none}
 .sm-tog{margin-left:auto;font:inherit;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted2);cursor:pointer}
 .sm-log{width:100%;border-collapse:collapse;font-size:13.5px}
@@ -67,7 +70,7 @@
 <script src="/visits.js?v=1176426c"></script>
 <script>
 (function () {
-  var main = document.getElementById('kbMain'), esc = KB.esc, info = null, picked = {}, timer = null, TEAM_ORDER = ['Management & Office', 'Hair', 'Beauty', 'Receptionist', 'Assistant', 'Office/Admin', 'Call Centre', 'Other'];
+  var main = document.getElementById('kbMain'), esc = KB.esc, info = null, draft = {}, timer = null, TEAM_ORDER = ['Management & Office', 'Hair', 'Beauty', 'Receptionist', 'Assistant', 'Office/Admin', 'Call Centre', 'Other'];
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
   function notFound() {
     main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
@@ -97,30 +100,58 @@
     var params = t.vars.map(function (n) { return n === 'first_name' ? first : (v[n] || '[' + n + ']'); });
     document.getElementById('smPrev').textContent = render(t.body, params);
   }
+  // Kate, 30 Oct 2026: Bahrain is paid separately, so Bahrain staff (a +973 number) are not on this page at all and are never counted.
+  function staffL() { return info.staff.filter(function (p) { return !/^\+973/.test(p.phone || ''); }); }
   function peopleBy() {
     var g = {};
-    info.staff.forEach(function (p) { (g[p.team] = g[p.team] || []).push(p); });
+    staffL().forEach(function (p) { (g[p.team] = g[p.team] || []).push(p); });
     return Object.keys(g).sort(function (a, b) { var x = TEAM_ORDER.indexOf(a), y = TEAM_ORDER.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); }).map(function (k) { return [k, g[k]]; });
+  }
+  // Kate, 30 Oct 2026: the ticks ARE the payroll list. Ticked people get the payslip WhatsApp that goes with each payslip email and anything queued below.
+  // Nothing is kept until Save list (top or bottom); the list is replaced in one call (staff_wa_payroll_list_set).
+  function syncDraft(force) {
+    if (force || !dirtyN()) { draft = {}; staffL().forEach(function (p) { draft[p.id] = !!p.wa_payroll; }); }
+    else staffL().forEach(function (p) { if (!(p.id in draft)) draft[p.id] = !!p.wa_payroll; });
+  }
+  function dirtyN() { return staffL().filter(function (p) { return !!draft[p.id] !== !!p.wa_payroll; }).length; }
+  function savedN() { return staffL().filter(function (p) { return p.wa_payroll; }).length; }
+  function tickedN() { return staffL().filter(function (p) { return draft[p.id]; }).length; }
+  function drawSave() {
+    var n = dirtyN(), tot = staffL().length, note = tickedN() + ' of ' + tot + ' ticked · ' + (n ? n + ' unsaved ' + (n === 1 ? 'change' : 'changes') : 'saved');
+    main.querySelectorAll('.sm-savenote').forEach(function (e) { e.textContent = note; e.style.color = n ? '#B3261E' : ''; });
+    main.querySelectorAll('.sm-savebtn').forEach(function (b) { b.disabled = !n; });
+    var by = {}; peopleBy().forEach(function (g) { by[g[0]] = g[1]; });
+    main.querySelectorAll('.sm-gc').forEach(function (el) {
+      var l = by[el.dataset.g] || []; el.textContent = l.filter(function (p) { return draft[p.id]; }).length + ' of ' + l.length + ' ticked';
+    });
+  }
+  async function saveList() {
+    var n = dirtyN(); if (!n) return;
+    var ids = staffL().filter(function (p) { return draft[p.id]; }).map(function (p) { return p.id; });
+    if (!ids.length && !confirm('Nobody is ticked, so nobody will get payroll WhatsApp. Save anyway?')) return;
+    main.querySelectorAll('.sm-savebtn').forEach(function (b) { b.disabled = true; });
+    var r = await KB.client.rpc('staff_wa_payroll_list_set', { p_ids: ids });
+    if (r.error) { alert('Not saved: ' + r.error.message); drawSave(); return; }
+    await reload(true);
   }
   function drawPeople() {
     document.getElementById('smPeople').innerHTML = peopleBy().map(function (g) {
-      var ppl = g[1], ok = ppl.filter(function (p) { return p.wa_payroll; });
-      return '<details class="sm-grp" open data-g="' + esc(g[0]) + '"><summary>' + esc(g[0]) + ' <span class="sm-n">' + ppl.length + '</span>' +
+      var ppl = g[1];
+      return '<details class="sm-grp" open data-g="' + esc(g[0]) + '"><summary>' + esc(g[0]) + ' <span class="sm-n sm-gc" data-g="' + esc(g[0]) + '"></span>' +
         '<button type="button" class="sm-btn sm" data-all="' + esc(g[0]) + '" style="margin-left:auto">Tick all</button></summary><div class="sm-ppl">' +
         ppl.map(function (p) {
-          return '<label class="' + (p.wa_payroll ? '' : 'off') + '"><input type="checkbox" data-id="' + p.id + '"' + (picked[p.id] ? ' checked' : '') + (p.wa_payroll ? '' : ' disabled') + '>' +
-            '<span>' + esc(p.name) + (p.branch ? ' <span class="sm-n">' + esc(p.branch) + '</span>' : '') + '</span>' +
-            '<button type="button" class="sm-tog" data-tog="' + p.id + '" data-on="' + (p.wa_payroll ? 1 : 0) + '">' + (p.wa_payroll ? 'Leave out' : 'Include') + '</button></label>';
+          return '<label class="' + (draft[p.id] ? '' : 'off') + (!!draft[p.id] !== !!p.wa_payroll ? ' chg' : '') + '"><input type="checkbox" data-id="' + p.id + '"' + (draft[p.id] ? ' checked' : '') + '>' +
+            '<span>' + esc(p.name) + (p.branch ? ' <span class="sm-n">' + esc(p.branch) + '</span>' : '') + '</span></label>';
         }).join('') + '</div></details>';
     }).join('');
   }
   function drawCount() {
-    var n = Object.keys(picked).filter(function (k) { return picked[k]; }).length, t = curT();
+    var n = savedN(), t = curT(), dirty = dirtyN();
     var b = document.getElementById('smSend');
-    b.textContent = 'Queue for ' + n + (n === 1 ? ' person' : ' people');
-    b.disabled = !n || !t || !t.approved || !info.enabled;
+    b.textContent = 'Queue for ' + n + (n === 1 ? ' person' : ' people') + ' on the list';
+    b.disabled = !n || !t || !t.approved || !info.enabled || !!dirty;
     var h = document.getElementById('smSendHint');
-    h.textContent = !info.enabled ? 'Sending is switched off. Switch it on above first.' : (t && !t.approved ? 'This message is not approved in Meta yet.' : '');
+    h.textContent = dirty ? 'Save the list first.' : !info.enabled ? 'Sending is switched off. Switch it on above first.' : (t && !t.approved ? 'This message is not approved in Meta yet.' : '');
   }
   function drawStatus() {
     var el = document.getElementById('smStatus');
@@ -152,7 +183,7 @@
     clearTimeout(timer);
     if (busy) timer = setTimeout(drawLog, 8000);
   }
-  async function reload() { var r = await KB.client.rpc('staff_wa_info'); if (!r.error && r.data) { info = r.data; drawStatus(); drawPeople(); drawCount(); } }
+  async function reload(force) { var r = await KB.client.rpc('staff_wa_info'); if (!r.error && r.data) { info = r.data; syncDraft(force); drawStatus(); drawPeople(); drawSave(); drawCount(); } }
 
   KB.ready.then(async function () {
     if (KB.level !== 5 || KB.allowed.indexOf('staff-wa') < 0) { notFound(); return; }   // also "View as" below Level 5
@@ -165,7 +196,10 @@
       '<div class="sm-card" id="smStatus"></div>' +
       '<div class="sm-card"><h2>1 · The message</h2><label style="font-size:12px;color:var(--muted2)">Which message<select id="smT" class="sm-txt" aria-label="Which message"></select></label>' +
         '<div class="sm-fields" id="smFields"></div><div id="smAppr"></div><div class="sm-prev" id="smPrev"></div></div>' +
-      '<div class="sm-card"><h2>2 · Who</h2><div class="sm-row"><button type="button" class="sm-btn sm" id="smAll">Tick everyone</button><button type="button" class="sm-btn sm" id="smNone">Clear</button></div><div id="smPeople"></div></div>' +
+      '<div class="sm-card"><h2>2 · Who gets it</h2><p class="sm-note" style="margin:0 0 10px">The ticked people get the payslip WhatsApp that goes with each payslip email, and anything you queue below. Press Save list to keep your changes.</p>' +
+        '<div class="sm-row"><button type="button" class="sm-btn sm" id="smAll">Tick everyone</button><button type="button" class="sm-btn sm" id="smNone">Clear</button><span class="sm-n sm-savenote"></span><button type="button" class="sm-btn go sm-savebtn" style="margin-left:auto">Save list</button></div>' +
+        '<div id="smPeople"></div>' +
+        '<div class="sm-row" style="margin-top:12px"><button type="button" class="sm-btn go sm-savebtn">Save list</button><span class="sm-n sm-savenote"></span></div></div>' +
       '<div class="sm-card"><h2>3 · Send</h2><div class="sm-fields"><label>Name this send (so it is never sent twice)<input id="smBatch" maxlength="60" autocomplete="off"></label></div>' +
         '<div class="sm-row" style="margin-top:12px"><button type="button" class="sm-btn go" id="smSend">Queue</button><button type="button" class="sm-btn" id="smTest">Send a test to me</button><span class="sm-note" id="smSendHint" style="margin:0"></span></div>' +
         '<p class="sm-note" id="smMsg"></p>' +
@@ -179,36 +213,32 @@
     sel.innerHTML = tpl().map(function (t) { return '<option value="' + esc(t.key) + '">' + esc(t.label) + (t.approved ? '' : ' (waiting for Meta)') + '</option>'; }).join('');
     KB.pillDD(sel);
     sel.addEventListener('change', drawFields);
-    drawStatus(); drawFields(); drawPeople(); drawLog();
+    syncDraft(true); drawStatus(); drawFields(); drawPeople(); drawSave(); drawCount(); drawLog();
+    main.addEventListener('click', function (e) { if (e.target.closest('.sm-savebtn')) saveList(); });
+    window.addEventListener('beforeunload', function (e) { if (info && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
 
     document.getElementById('smPeople').addEventListener('change', function (e) {
       var c = e.target.closest('input[data-id]'); if (!c) return;
-      picked[c.dataset.id] = c.checked; drawCount();
+      var p = staffL().filter(function (x) { return String(x.id) === c.dataset.id; })[0];
+      draft[c.dataset.id] = c.checked;
+      var lb = c.closest('label'); lb.classList.toggle('off', !c.checked); lb.classList.toggle('chg', !!p && c.checked !== !!p.wa_payroll);
+      drawSave(); drawCount();
     });
     document.getElementById('smPeople').addEventListener('click', async function (e) {
       var a = e.target.closest('[data-all]');
       if (a) {
         e.preventDefault();
         var g = peopleBy().filter(function (x) { return x[0] === a.dataset.all; })[0];
-        var all = g[1].filter(function (p) { return p.wa_payroll; }), on = !all.every(function (p) { return picked[p.id]; });
-        all.forEach(function (p) { picked[p.id] = on; }); drawPeople(); drawCount(); return;
-      }
-      var t = e.target.closest('[data-tog]');
-      if (t) {
-        e.preventDefault();
-        var id = Number(t.dataset.tog), on = t.dataset.on === '1';
-        var who = info.staff.filter(function (p) { return p.id === id; })[0];
-        if (!confirm((on ? 'Leave ' : 'Include ') + who.name + (on ? ' out of' : ' in') + ' payroll messages?')) return;
-        var r2 = await KB.client.rpc('staff_wa_recipient_set', { p_id: id, p_payroll: !on, p_campaign: null });
-        if (r2.error) { alert('Not changed: ' + r2.error.message); return; }
-        picked[id] = false; await reload();
+        var all = g[1], on = !all.every(function (p) { return draft[p.id]; });
+        all.forEach(function (p) { draft[p.id] = on; }); drawPeople(); drawSave(); drawCount(); return;
       }
     });
-    document.getElementById('smAll').addEventListener('click', function () { info.staff.forEach(function (p) { if (p.wa_payroll) picked[p.id] = true; }); drawPeople(); drawCount(); });
-    document.getElementById('smNone').addEventListener('click', function () { picked = {}; drawPeople(); drawCount(); });
+
+    document.getElementById('smAll').addEventListener('click', function () { staffL().forEach(function (p) { draft[p.id] = true; }); drawPeople(); drawSave(); drawCount(); });
+    document.getElementById('smNone').addEventListener('click', function () { staffL().forEach(function (p) { draft[p.id] = false; }); drawPeople(); drawSave(); drawCount(); });
 
     document.getElementById('smSend').addEventListener('click', async function () {
-      var t = curT(), ids = Object.keys(picked).filter(function (k) { return picked[k]; }).map(Number), msg = document.getElementById('smMsg'), b = this;
+      var t = curT(), ids = staffL().filter(function (p) { return p.wa_payroll; }).map(function (p) { return p.id; }), msg = document.getElementById('smMsg'), b = this;
       var batch = document.getElementById('smBatch').value.trim();
       if (!t || !ids.length || !batch) return;
       if (!confirm('Queue "' + t.label + '" for ' + ids.length + ' people? They are sent at once (inside the send window).')) return;
@@ -217,7 +247,7 @@
       if (r2.error) { say(msg, r2.error.message, true); drawCount(); return; }
       var sk = r2.data.skipped || [];
       say(msg, 'Queued ' + r2.data.queued + '.' + (sk.length ? ' Not queued: ' + sk.slice(0, 6).map(function (s) { return s.name + ' (' + s.reason + ')'; }).join(', ') + (sk.length > 6 ? ' and ' + (sk.length - 6) + ' more' : '') + '.' : ''));
-      picked = {}; drawPeople(); drawCount(); kick(); setTimeout(drawLog, 2500); await reload();
+      drawPeople(); drawSave(); drawCount(); kick(); setTimeout(drawLog, 2500); await reload();
     });
     async function runTest(tk, text, btn) {
       var msg = document.getElementById('smMsg'); btn.disabled = true; say(msg, 'Sending a test to you…');
