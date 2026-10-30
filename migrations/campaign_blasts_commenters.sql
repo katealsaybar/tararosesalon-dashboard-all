@@ -81,3 +81,13 @@ begin
 end $$;
 
 revoke all on function public.blast_plan_guard_read() from public, anon, authenticated;
+
+-- blast_plan_members (internal, not granted to anyone) checked the strict guard too, which blocked the counts for a commenter.
+-- It now uses the read guard; the client lists (blast_plan_clients) still check the strict guard first, so names stay with Levels 3 and 5.
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.blast_plan_members(date)'::regprocedure);
+  d := replace(d, 'blast_plan_guard()', 'blast_plan_guard_read()');
+  execute d;
+end $$;
