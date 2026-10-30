@@ -375,6 +375,10 @@ function psPickView(v) {
 
 // Kate, 30 Oct 2026: "between upload and email to staff i need an email template shown", a toggle for each kind of person. The email is built by the
 // mailer itself (payslip-mailer, action preview), so what is shown here is what is sent. Example numbers; nothing is sent from this tab.
+const PS_PREV_NOTE = {
+  coordinator: 'Each salon coordinator also sees their own branch: Hair and Beauty against the target.',
+  call_centre: 'Ate Belle, the team lead, also sees all four branches: Hair and Beauty against the target.',
+};
 const PS_PREV_ROLES = [['stylist', 'Stylists'], ['beautician', 'Beauticians'], ['coordinator', 'Salon coordinators'], ['call_centre', 'Call centre team'], ['reception', 'Reception'], ['assistant', 'Assistants']];
 function psPrevKey() { return PS_STATE.month + '|' + (PS_STATE.prevWho || PS_STATE.prevRole || 'stylist'); }
 async function psLoadPrev(force) {
@@ -413,6 +417,7 @@ function psRenderPrev() {
     <div class="ps-send-hd">Email preview · ${psEsc(monthName)}</div>
     <div class="ps-send-line"><b>This is how the email looks when it is sent.</b> Pick who it is for.</div>
     <div class="ps-branches ps-prev-pills">${pills}</div>
+    ${!who && PS_PREV_NOTE[role] ? `<div class="ps-meta" style="margin-top:10px">${psEsc(PS_PREV_NOTE[role])}</div>` : ''}
     ${PS_STATE.prevErr && !d ? `<div class="ps-err" style="margin-top:10px">${psEsc(PS_STATE.prevErr)} <a href="#" class="ps-link" onclick="psLoadPrev(true);return false">Try again</a></div>` : ''}
     ${busy && !d ? '<div class="ps-meta" style="margin-top:10px">Getting the email…</div>' : ''}
     ${d ? `<div class="ps-meta" style="margin-top:10px">Subject: <b>${psEsc(d.subject)}</b>${d.example ? '' : ` · this is ${psEsc(d.name)}’s real email${d.has_payslip ? '' : ' (no payslip uploaded yet)'}`}</div>

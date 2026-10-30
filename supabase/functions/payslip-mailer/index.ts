@@ -41,6 +41,8 @@
 // team (perf_staff) get the payslip, their month target from the Target Calculator (perf_dashboard.month_target), the win and tip, the Podium place and the
 // sign-in. The others (payslip_staff) get the payslip only. The `preview` action returns any of the six exactly as it would be sent, with example numbers,
 // for the Upload Portal's Email preview tab; it sends nothing.
+// The salon coordinators' email also carries their branch's month, Hair and Beauty against the target, and Ate Belle (the call centre team lead) gets all four
+// branches (perf_branch_month, Kate 30 Oct 2026).
 // The October 2026 send also carries a welcome (WELCOME_MONTHS): the hair and beauty team are asked to sign in to see everything on their own page, and the
 // others to sign in to Team Home.
 //
@@ -147,7 +149,7 @@ type Role = "stylist" | "beautician" | "coordinator" | "call_centre" | "receptio
 const ROLE_LABEL: Record<Role, string> = {
   stylist: "Stylists", beautician: "Beauticians", coordinator: "Salon coordinators", call_centre: "Call centre team", reception: "Reception", assistant: "Assistants",
 };
-type Person = { id: string; name: string; branch: string; kind: "stylist" | "other"; role: Role; email: string | null; send_email: boolean; token: string;
+type Person = { id: string; name: string; branch: string; kind: "stylist" | "other"; role: Role; position: string; email: string | null; send_email: boolean; token: string;
   slip: { path: string; file_name: string } | null; sent: { status: string; sent_at: string } | null };
 
 async function people(month: string): Promise<Person[]> {
@@ -169,11 +171,11 @@ async function people(month: string): Promise<Person[]> {
     return /salon coordinator/i.test(pos) ? "coordinator" : /call centre/i.test(pos) ? "call_centre" : "reception";
   };
   const stylists: Person[] = (staff || []).map((s) => ({
-    id: s.id, name: s.display_name, branch: s.branch, kind: "stylist" as const, role: (s.dept === "Beauty" ? "beautician" : "stylist") as Role, email: (s.email || "").trim() || null, send_email: !!s.send_email,
+    id: s.id, name: s.display_name, branch: s.branch, kind: "stylist" as const, role: (s.dept === "Beauty" ? "beautician" : "stylist") as Role, position: "", email: (s.email || "").trim() || null, send_email: !!s.send_email,
     token: s.token, slip: slip[s.id] || null, sent: sent[s.id] || null,
   }));
   const others: Person[] = (asst || []).map((a) => ({
-    id: a.id, name: a.name, branch: a.grp, kind: "other" as const, role: roleOf(a.grp, a.email), email: (a.email || "").trim() || null, send_email: true,
+    id: a.id, name: a.name, branch: a.grp, kind: "other" as const, role: roleOf(a.grp, a.email), position: positionOf[String(a.email || "").toLowerCase()] || "", email: (a.email || "").trim() || null, send_email: true,
     token: "", slip: slip[a.id] || null, sent: sent[a.id] || null,
   }));
   return [...stylists, ...others];
@@ -223,8 +225,50 @@ const HUB_HAS: Record<string, string> = {
   assistant: "your induction and onboarding, the Hair SOPs and the HR forms",
 };
 
+// The branches a person's email reports on: a salon coordinator their own, the call centre team lead (Ate Belle) all four, nobody else any.
+const BRANCH_ORDER = ["KCA", "SAA", "MC", "AQ"];
+const BRANCH_NAME: Record<string, string> = { KCA: "Khalifa City", SAA: "Saadiyat", MC: "Motor City", AQ: "Al Quoz" };
+function branchesFor(role: Role, position: string): string[] {
+  if (role === "coordinator") {
+    const b = /al quoz/i.test(position) ? "AQ" : /khalifa/i.test(position) ? "KCA" : /motor city/i.test(position) ? "MC" : /saadiyat/i.test(position) ? "SAA" : null;
+    return b ? [b] : [];
+  }
+  return /team lead/i.test(position) ? BRANCH_ORDER : [];
+}
+type Perf = { actual: number | null; target: number | null };
+type BranchPerf = { branch: string; hair: Perf; beauty: Perf };
+// What the branch took in the month against its target, Hair and Beauty (services plus courses, no retail: the basis of the targets). A department with no
+// target (Motor City has no beauty team) is left out.
+function branchParts(perfs: BranchPerf[], mon: string): EmailParts | null {
+  const line = (name: string, x: Perf | undefined) => {
+    if (!x || !x.target || x.target <= 0) return null;
+    const a = Number(x.actual) || 0;
+    return `${name}: ${aed(a)} of ${aed(x.target)}, ${Math.round((a / x.target) * 100)}%`;
+  };
+  const blocks = perfs.map((b) => ({ name: BRANCH_NAME[b.branch] || b.branch, lines: [line("Hair", b.hair), line("Beauty", b.beauty)].filter(Boolean) as string[] })).filter((b) => b.lines.length);
+  if (!blocks.length) return null;
+  const many = blocks.length > 1;
+  const title = many ? `The four branches in ${mon}` : `Your branch in ${mon} · ${blocks[0].name}`;
+  const note = "Services with treatments and courses, no retail, against the Target Calculator's plan for the month.";
+  const html = `<p style="margin:14px 0;padding:10px 14px;background:#EAF1FB;border-radius:8px"><b style="color:#185FA5">${esc(title)}</b>${
+    blocks.map((b) => `<br>${many ? `<b>${esc(b.name)}</b><br>` : ""}${b.lines.map(esc).join("<br>")}${many ? "<br>" : ""}`).join("")
+  }<br><span style="color:#77706A">${esc(note)}</span></p>`;
+  const text = `${title}\n${blocks.map((b) => `${many ? b.name + "\n" : ""}${b.lines.join("\n")}`).join("\n")}\n${note}`;
+  return { html, text };
+}
+async function branchPerfs(branches: string[], month: string): Promise<BranchPerf[]> {
+  const out: BranchPerf[] = [];
+  for (const b of branches) {
+    try {
+      const { data } = await sb.rpc("perf_branch_month", { p_branch: b, p_month: `${month}-01` });
+      if (data) out.push({ branch: b, hair: data.hair, beauty: data.beauty });
+    } catch (_) { /* a branch that will not load is left out; the payslip still goes */ }
+  }
+  return out;
+}
+
 // An assistant, reception, call centre or salon coordinator email has no performance page, so it is the payslip, and in a welcome month the sign-in to Team Home.
-function plainParts(o: { first: string; mon: string; hasSlip: boolean; role: Role; welcome: boolean }): EmailParts {
+function plainParts(o: { first: string; mon: string; hasSlip: boolean; role: Role; welcome: boolean; branch?: EmailParts | null }): EmailParts {
   const has = HUB_HAS[o.role] || HUB_HAS.reception;
   const slipLine = o.hasSlip ? `Your ${o.mon} payslip is attached.` : `Your ${o.mon} payslip will follow.`;
   const welcomeBody = `Everything you need for your role is now in one place: ${has}. Please sign in once with this email address: Google, or an email link. This phone or computer remembers you after that.`;
@@ -232,6 +276,7 @@ function plainParts(o: { first: string; mon: string; hasSlip: boolean; role: Rol
     <p>Hi ${esc(o.first)},</p>
     <p>${esc(slipLine)}</p>
     ${o.welcome ? WELCOME_BOX("Welcome to Team Home", welcomeBody) + CTA(HUB_LINK, "Sign in to Team Home") : ""}
+    ${o.branch ? o.branch.html : ""}
     <p>${o.welcome ? "Questions about your payslip, or the sign-in doesn't take?" : "Questions about your payslip?"} Just reply to this email and we'll sort it with you.</p>
     <p>Tara Rose Salons Accounts</p>
     ${SIGN_OFF_LOGO}
@@ -243,7 +288,7 @@ ${slipLine}
 ${o.welcome ? `Welcome to Team Home. ${welcomeBody}
 Sign in to Team Home: ${HUB_LINK}
 
-` : ""}${o.welcome ? "Questions about your payslip, or the sign-in doesn't take?" : "Questions about your payslip?"} Just reply to this email and we'll sort it with you.
+` : ""}${o.branch ? o.branch.text + "\n\n" : ""}${o.welcome ? "Questions about your payslip, or the sign-in doesn't take?" : "Questions about your payslip?"} Just reply to this email and we'll sort it with you.
 
 Tara Rose Salons Accounts`;
   return { html, text };
@@ -331,7 +376,11 @@ Tara Rose Salons Accounts`;
 // The email as it reads, without the payslip PDF: used for the real send (emailFor adds the PDF) and for the preview of a real person.
 async function emailParts(p: Person, month: string): Promise<EmailParts> {
   const first = p.name.split(" ")[0], mon = label(month, { month: "long" }), welcome = WELCOME_MONTHS.has(month);
-  if (p.kind === "other") return plainParts({ first, mon, hasSlip: !!p.slip, role: p.role, welcome });
+  if (p.kind === "other") {
+    const bs = branchesFor(p.role, p.position);
+    const branch = bs.length ? branchParts(await branchPerfs(bs, month), mon) : null;
+    return plainParts({ first, mon, hasSlip: !!p.slip, role: p.role, welcome, branch });
+  }
   const { data: d } = await sb.rpc("perf_dashboard", { p_token: p.token, p_month: `${month}-01` });
   const hasNumbers = d && d.numbers && (d.numbers.total_revenue || d.numbers.clients);
   const wt = hasNumbers ? await winTip(d, p.token, month) : null;
@@ -363,7 +412,12 @@ function samplePreview(role: Role, month: string): EmailParts {
       target: { target: 40000, took: 44600 },
     });
   }
-  return plainParts({ first: "Sample", mon, hasSlip: true, role, welcome });
+  // Example branch numbers for the two kinds that report on branches: a coordinator sees her own, the call centre team lead all four.
+  const eg = (hA: number, hT: number, bA: number | null, bT: number | null): { hair: Perf; beauty: Perf } => ({ hair: { actual: hA, target: hT }, beauty: { actual: bA, target: bT } });
+  const sample: BranchPerf[] = role === "coordinator" ? [{ branch: "SAA", ...eg(118400, 125000, 21600, 25000) }]
+    : role === "call_centre" ? [{ branch: "KCA", ...eg(160200, 150000, 11900, 12000) }, { branch: "SAA", ...eg(118400, 125000, 21600, 25000) },
+      { branch: "MC", ...eg(64800, 70000, null, null) }, { branch: "AQ", ...eg(38200, 45000, 5200, 6000) }] : [];
+  return plainParts({ first: "Sample", mon, hasSlip: true, role, welcome, branch: sample.length ? branchParts(sample, mon) : null });
 }
 
 // ── the welcome email ──
