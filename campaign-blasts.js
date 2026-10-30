@@ -239,13 +239,7 @@
   function go(id, keepMonth) {
     cur = id; errMsg = ''; calMsg = ''; big = false;
     var b = item(id); if (b && !keepMonth) { var d = parts(b.send_date); cal = { y: d.getFullYear(), m: d.getMonth() }; }
-    render(true); toTop();   // stay where you are; toTop only moves when the blast's top is above the screen
-  }
-  // Opening another blast: only move if its top is above the screen, and then jump, never glide.
-  function toTop() {
-    var el = document.getElementById('cblMain'); if (!el) return;
-    var r = el.getBoundingClientRect();
-    if (r.top < 60) window.scrollTo({ top: Math.max(0, window.scrollY + r.top - 140), left: 0, behavior: 'instant' });
+    render(true);   // Kate, 30 Oct 2026: another blast opens where you already are, so the phones and the page line up with the one you had open
   }
   async function loadLive() {
     try { LIVE = await rpc('blast_plan_audience'); liveErr = false; } catch (e) { console.error(e); liveErr = true; }
