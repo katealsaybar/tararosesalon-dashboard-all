@@ -682,6 +682,8 @@ async function psSend(action, extra) {
 
 async function psLoadSend() {
   const month = PS_STATE.month;
+  PS_STATE.wa = null;
+  psLoadWa();
   try {
     const j = await psSend('status');
     if (PS_STATE.month !== month) return;
@@ -689,6 +691,39 @@ async function psLoadSend() {
   } catch (e) { PS_STATE.sendErr = e.message; }
   psRenderSend();
   psRenderViews();
+}
+
+// Kate, 30 Oct 2026: the WhatsApp that goes with each payslip email (queued by a trigger on payslip_sends, migrations/staff_wa_payslip.sql). This only
+// reads the counts (payslip_wa_status, Level 4 and up); if it cannot, the block is left out and the email panel works as before.
+async function psLoadWa() {
+  const month = PS_STATE.month;
+  let wa = null;
+  try { const r = await sb.rpc('payslip_wa_status', { p_month: month + '-01' }); wa = r.error ? null : r.data; } catch (e) { wa = null; }
+  if (PS_STATE.month !== month) return;
+  PS_STATE.wa = wa;
+  psRenderSend();
+}
+
+function psWaHtml(ready, pending) {
+  const w = PS_STATE.wa;
+  if (!w) return '';
+  const ok = w.enabled && w.approved;
+  // Only once WhatsApp has run for the month: before that (September and earlier) every email is "without", which says nothing.
+  const without = (w.sent + w.queued + w.failed) > 0 ? w.without : 0;
+  const warn = !w.approved ? 'The payslip WhatsApp is not approved in Meta yet, so the emails will go without it.'
+    : !w.enabled ? 'WhatsApp is switched off, so the emails go without it, and it is not sent afterwards. Ask Kate to switch it on before the send.' : '';
+  const link = window.TRS_ROLE === 'owner' ? ' <a class="ps-link" href="/hub/staff-messages">Open Staff Payroll WhatsApp</a>' : '';
+  return `<div class="ps-send-sub">WhatsApp goes with each email</div>
+    <div class="ps-meta">When a payslip email goes out, a short WhatsApp goes to the same person: their payslip is ready and the email is on its way. No amounts. It comes from the Backup number between ${psEsc(w.hour_from)}:00 and ${psEsc(w.hour_to)}:00 Dubai time, so an email sent earlier waits until then.${link}</div>
+    <div class="ps-chips">
+      <span class="ps-chip${ok ? ' st-sent' : ''}">WhatsApp ${ok ? 'on' : 'off'}</span>
+      <span class="ps-chip">Sent ${w.sent}</span>
+      <span class="ps-chip">Waiting to send ${w.queued}</span>
+      ${w.failed ? `<span class="ps-chip st-check">Failed ${w.failed}</span>` : ''}
+      ${without ? `<span class="ps-chip">Emailed without WhatsApp ${without}</span>` : ''}
+    </div>
+    ${warn ? (pending || ready ? `<div class="ps-err">${psEsc(warn)}</div>` : `<div class="ps-meta">${psEsc(warn)}</div>`) : ''}
+    ${without ? '<div class="ps-meta">Emailed without WhatsApp: no number on file, or WhatsApp was off when the email went.</div>' : ''}`;
 }
 
 // Times are Dubai time whoever is looking (Accounts work from the Philippines).
@@ -747,6 +782,7 @@ function psRenderSend() {
       ${noEmail ? `<span class="ps-chip">No email ${noEmail}</span>` : ''}
       ${check ? `<span class="ps-chip st-check">Check Sent folder ${check}</span>` : ''}
     </div>
+    ${psWaHtml(ready, pending)}
     <div class="ps-send-sub">When it goes out</div>
     <div class="ps-send-row">
       <input type="datetime-local" id="psSendAt" value="${value}"${dis}>
@@ -847,6 +883,7 @@ async function psSendAct(action, extra) {
     PS_STATE.send = j; PS_STATE.sendMsg = j.done || '';
   } catch (e) { PS_STATE.sendErr = e.message; }
   PS_STATE.sendBusy = ''; psRenderSend(); psRenderViews();
+  psLoadWa();
 }
 
 function psSchedule() {

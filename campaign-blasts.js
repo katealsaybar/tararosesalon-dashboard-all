@@ -342,20 +342,19 @@
       '<div class="cbl-pos"><a href="?view=campaignblasts" data-go="' + (p || 'all') + '"' + (p ? '' : ' class="off"') + ' aria-label="Previous blast">‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=campaignblasts" data-go="' + (n || 'all') + '"' + (n ? '' : ' class="off"') + ' aria-label="Next blast">Next ›</a></div>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
       stepsHtml(b) +
-      '<div class="cbl-top' + (pageCard(b) ? '' : ' noside') + '"><div class="cbl-topl">' +
+      '<div class="cbl-top' + (pageCard(b) ? '' : ' noside') + '">' +
       '<div class="cbl-card cbl-nums">' +
         '<div><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b>' + liveNote() +
           (hasClients ? '<span class="cbl-live">' + (canEdit() ? 'Tap the number to see the clients.' : 'The client lists are for Coach Emma and Kate.') + '</span>' : '') + '</div>' +
         '<div><small>Who</small>' + esc(b.data.who) + '</div>' +
         '<div><small>She gets</small>' + esc(b.data.gets) + '</div>' +
-      '</div>' +
+      '</div>' + pageCard(b) + '</div>' +
       '<div class="cbl-card cbl-when cbl-kate"><h3>Kate: schedule</h3><p class="cbl-kfor">Kate sets the day and time. Coach Emma, you can leave this part.</p>' +
       '<label class="cbl-fld">Date<input type="date" id="cblDate" value="' + b.send_date + '"' + (canEdit() ? '' : ' disabled') + '></label>' +
       '<label class="cbl-fld">Time (Dubai)<select id="cblTime"' + (canEdit() ? '' : ' disabled') + '>' + times + '</select></label>' +
       '<label class="cbl-sw" title="Stops the time being moved by accident"><input type="checkbox" id="cblLock"' + (b.locked ? ' checked' : '') + (canEdit() ? '' : ' disabled') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
       (w.length ? '<p class="cbl-note warn">' + w.join(' ') + '</p>' : '<p class="cbl-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') +
       '<details class="cbl-cost cbl-in"><summary>Cost estimate</summary><p><b>' + estAed(c0) + '</b>' + estUsd(c0) + ' to send. One marketing message per client at about USD 0.046 (AED 0.17). The exact amount is on Meta’s invoice.</p></details></div>' +
-      '</div>' + pageCard(b) + '</div>' +
       (replyFor(b, 'warm') ? '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-act="flowbig">See the flow bigger</button></div>' : '') +
       '<div class="cbl-phones" id="cblPhones">' + lane('Warm', b.data.warm, b.data.img, b, 'warm') + lane('Standard', b.data.std, b.data.img, b, 'std') + '</div>' +
       '<div class="cbl-card cbl-rev" id="cblReview"><div class="cbl-rev-top"><h3>Emma: review</h3>' + (canEdit()
