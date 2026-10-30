@@ -10,6 +10,7 @@
   var ORDER_KEY = 'trs-cbl-order';
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var D = null, cur = 'all', cal = null, drag = null, draft = {}, errMsg = '';
+  var big = false, calMsg = '', cdrag = null, noClick = false;   // the bigger calendar, a note under it, a blast being dragged to another day
   var TODAY = dubaiToday();
   var LIVE = null, liveErr = false;   // the audience counted from the till (blast_plan_audience); the numbers typed into the plan are only a fallback
   var BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
@@ -103,10 +104,36 @@
       var iso = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
       var here = ord().filter(function (id) { return item(id).send_date === iso; });
       var dots = here.slice(0, 3).map(function (id) { return '<b class="' + (item(id).locked ? '' : 'plan') + '"></b>'; }).join('');
-      h += '<button type="button" class="cbl-d' + (here.length ? ' has' : '') + (iso === TODAY ? ' today' : '') + (iso === curIso ? ' sel' : '') + '" ' +
-        (here.length ? 'data-day="' + iso + '" aria-label="' + fd(iso) + ', ' + here.length + ' blasts"' : 'tabindex="-1" disabled') + '>' + d + (dots ? '<i>' + dots + '</i>' : '') + '</button>';
+      h += '<button type="button" data-iso="' + iso + '" class="cbl-d' + (here.length ? ' has' : '') + (iso === TODAY ? ' today' : '') + (iso === curIso ? ' sel' : '') + '" ' +
+        (here.length ? 'data-day="' + iso + '" data-drag="' + (here.indexOf(cur) >= 0 ? cur : here[0]) + '" aria-label="' + fd(iso) + ', ' + here.length + ' blasts"' : 'tabindex="-1" disabled') + '>' + d + (dots ? '<i>' + dots + '</i>' : '') + '</button>';
     }
-    return h + '</div><div class="cbl-leg"><span><b></b>Locked</span><span><b class="plan"></b>Planned</span></div></div>';
+    return h + '</div><div class="cbl-leg"><span><b></b>Locked</span><span><b class="plan"></b>Planned</span></div>' +
+      '<p class="cbl-hint">Drag a date with a dot onto another day to move that blast.</p>' + (calMsg ? '<p class="cbl-err" role="alert">' + esc(calMsg) + '</p>' : '') +
+      '<button type="button" class="cbl-bigbtn" data-act="big">Bigger calendar</button></div>';
+  }
+  // The same month, large: every blast is a chip on its day. Drag a chip to another day to move it; click it to open it.
+  function bigCalHtml() {
+    var y = cal.y, m = cal.m, off = (new Date(y, m, 1).getDay() + 6) % 7, n = new Date(y, m + 1, 0).getDate();
+    var h = '<div class="cbl-modal" data-act="close"><div class="cbl-bigcal cbl-card" role="dialog" aria-modal="true" aria-label="Calendar of blasts"><div class="cbl-big-h">' +
+      '<button type="button" data-act="prev" aria-label="Previous month">‹</button><b>' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m] + ' ' + y + '</b>' +
+      '<button type="button" data-act="next" aria-label="Next month">›</button><button type="button" class="cbl-big-x" data-act="close">Close</button></div>' +
+      '<p class="cbl-hint">Drag a blast to another day to move it. Click it to open it. Mondays are shaded: that is when blasts go out.</p>' +
+      (calMsg ? '<p class="cbl-err" role="alert">' + esc(calMsg) + '</p>' : '') + '<div class="cbl-big-g">';
+    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (d) { h += '<span class="hd">' + d + '</span>'; });
+    for (var i = 0; i < off; i++) h += '<span class="pad"></span>';
+    for (var d = 1; d <= n; d++) {
+      var iso = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      var dow = (off + d - 1) % 7;
+      var chips = ord().filter(function (id) { return item(id).send_date === iso; }).map(function (id) {
+        var b = item(id);
+        return '<a draggable="false" class="cbl-bc ' + cls(b.review) + (b.locked ? ' lk' : '') + '" href="?view=campaignblasts" data-go="' + esc(id) + '" data-drag="' + esc(id) + '" title="' + esc(b.data.title) + '"><span>' + esc(b.data.title) + '</span><small>' + ft(b.send_time) + (b.locked ? ' · locked' : '') + '</small></a>';
+      }).join('');
+      h += '<div class="cbl-bd' + (dow === 0 ? ' mon' : '') + (iso === TODAY ? ' today' : '') + '" data-iso="' + iso + '"><b>' + d + '</b>' + chips + '</div>';
+    }
+    var pre = y + '-' + String(m + 1).padStart(2, '0'), inMonth = ord().filter(function (id) { return item(id).send_date.indexOf(pre) === 0; }).sort(function (a, b) { return item(a).send_date < item(b).send_date ? -1 : item(a).send_date > item(b).send_date ? 1 : 0; });
+    // On a phone the chips are too small for a name, so the same blasts are listed under the grid.
+    var list = inMonth.length ? '<div class="cbl-big-l">' + inMonth.map(function (id) { var b = item(id); return '<a href="?view=campaignblasts" data-go="' + esc(id) + '"><span class="cbl-chip ' + cls(b.review) + '">' + lab(b.review) + '</span> <b>' + esc(b.data.title) + '</b><small>' + fd(b.send_date) + ', ' + ft(b.send_time) + '</small></a>'; }).join('') + '</div>' : '';
+    return h + '</div>' + list + '</div></div>';
   }
   function tabsHtml() {
     var h = '<div class="cbl-tabs cbl-card"><h3>Blasts</h3>' +
@@ -178,7 +205,7 @@
       '<textarea id="cblCmt" maxlength="2000" placeholder="Leave a comment on this blast" aria-label="Comment"></textarea>' +
       (errMsg ? '<p class="cbl-err" role="alert">' + esc(errMsg) + '</p>' : '') +
       '<div class="cbl-row"><button type="button" class="cbl-pill" id="cblPost">Post comment</button><span class="cbl-chip">Posting as ' + esc(D.me) + '</span></div></div>' +
-      '<div class="cbl-pager"><a href="?view=campaignblasts" data-go="' + (p || 'all') + '" class="' + (p ? '' : 'off') + '">Back</a><a href="?view=campaignblasts" data-go="' + (n || 'all') + '">' + (n ? 'Next blast' : 'All blasts') + '</a></div>';
+      '<div class="cbl-pager"><a href="?view=campaignblasts" data-go="' + (p || 'all') + '">' + (p ? '‹ Previous blast' : '‹ All blasts') + '</a><a href="?view=campaignblasts" data-go="' + (n || 'all') + '">' + (n ? 'Next blast ›' : 'All blasts ›') + '</a></div>';
   }
 
   function render(keep) {
@@ -194,7 +221,7 @@
       '<p class="cbl-links"><a href="/campaigns/blonde-standard/" target="_blank" rel="noopener">Blonde Standard ↗</a><a href="/campaigns/hair-rhythm/" target="_blank" rel="noopener">The Hair Rhythm ↗</a><a href="/campaigns/hair-extension-plan/" target="_blank" rel="noopener">Hair Extension Plan ↗</a></p></section>' +
       '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="cblSide">' +
       '<button type="button" class="cbl-side-toggle" id="cblSideT" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calHtml() + tabsHtml() + '</div></aside><div class="cbl-main" id="cblMain">' + (b ? blastHtml(b) : allHtml()) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calHtml() + tabsHtml() + '</div></aside><div class="cbl-main" id="cblMain">' + (b ? blastHtml(b) : allHtml()) + '</div></div>' + (big ? bigCalHtml() : '') + '</div>';
     var ta = document.getElementById('cblCmt');
     if (ta) { ta.value = draft[cur] || ''; ta.oninput = function () { draft[cur] = ta.value; }; }
     fitPreviews();
@@ -208,7 +235,7 @@
   var fitTimer = null;
   window.addEventListener('resize', function () { clearTimeout(fitTimer); fitTimer = setTimeout(fitPreviews, 120); });
   function go(id, keepMonth) {
-    cur = id; errMsg = '';
+    cur = id; errMsg = ''; calMsg = ''; big = false;
     var b = item(id); if (b && !keepMonth) { var d = parts(b.send_date); cal = { y: d.getFullYear(), m: d.getMonth() }; }
     render(); toTop();
   }
@@ -237,6 +264,8 @@
     var a = t.closest && t.closest('[data-go]');
     if (a) { e.preventDefault(); go(a.getAttribute('data-go')); return; }
     var c = t.closest && t.closest('[data-act]');
+    if (c && c.getAttribute('data-act') === 'big') { big = true; calMsg = ''; render(true); return; }
+    if (c && c.getAttribute('data-act') === 'close') { if (c.classList.contains('cbl-modal') && t !== c) return; big = false; calMsg = ''; render(true); return; }
     if (c) { var dm = c.getAttribute('data-act') === 'next' ? 1 : -1; cal.m += dm; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); return; }
     var dd = t.closest && t.closest('[data-day]');
     if (dd) { var first = ord().filter(function (id) { return item(id).send_date === dd.getAttribute('data-day'); })[0]; if (first) go(first, true); return; }
@@ -262,6 +291,45 @@
     var d = parts(date); cal = { y: d.getFullYear(), m: d.getMonth() }; render(true);
     act(function () { return rpc('blast_plan_schedule', { p_id: cur, p_date: date, p_time: time, p_lock: lock }); });
   });
+
+  /* drag a blast to another day, on the small or the big calendar (pointer events, so it works on a phone) */
+  document.addEventListener('pointerdown', function (e) {
+    var s = e.target.closest && e.target.closest('[data-drag]'); if (!s || e.button || !main() || !main().contains(s)) return;
+    cdrag = { id: s.getAttribute('data-drag'), x: e.clientX, y: e.clientY, on: false, src: s, ghost: null, over: null };
+  });
+  function dayAt(x, y) { var el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('[data-iso]') : null; }
+  document.addEventListener('pointermove', function (e) {
+    if (!cdrag) return;
+    if (!cdrag.on) {
+      if (Math.abs(e.clientX - cdrag.x) + Math.abs(e.clientY - cdrag.y) < 8) return;
+      var b = item(cdrag.id); if (!b) { cdrag = null; return; }
+      cdrag.on = true; calMsg = ''; cdrag.src.classList.add('dragging');
+      cdrag.ghost = document.createElement('div'); cdrag.ghost.className = 'cbl-ghost'; cdrag.ghost.textContent = b.data.title; document.body.appendChild(cdrag.ghost);
+    }
+    cdrag.ghost.style.left = e.clientX + 12 + 'px'; cdrag.ghost.style.top = e.clientY + 12 + 'px';
+    var t = dayAt(e.clientX, e.clientY);
+    if (t !== cdrag.over) { if (cdrag.over) cdrag.over.classList.remove('over'); cdrag.over = t; if (t) t.classList.add('over'); }
+  });
+  function endCalDrag(e, cancel) {
+    if (!cdrag) return;
+    var c = cdrag; cdrag = null;
+    if (!c.on) return;   // a plain click: let it through
+    noClick = true; setTimeout(function () { noClick = false; }, 60);
+    if (c.ghost) c.ghost.remove();
+    if (c.over) c.over.classList.remove('over');
+    c.src.classList.remove('dragging');
+    var t = cancel ? null : dayAt(e.clientX, e.clientY), b = item(c.id);
+    if (!t || !b || !main()) return;
+    var iso = t.getAttribute('data-iso'); if (iso === b.send_date) return;
+    if (b.locked) { calMsg = b.data.title + ' has its time locked. Open it, switch the lock off, then move it.'; render(true); return; }
+    b.send_date = iso;   // show it at once; the database answer replaces it
+    render(true);
+    act(function () { return rpc('blast_plan_schedule', { p_id: b.id, p_date: iso, p_time: b.send_time, p_lock: b.locked }); });
+  }
+  document.addEventListener('pointerup', function (e) { endCalDrag(e, false); });
+  document.addEventListener('pointercancel', function (e) { endCalDrag(e, true); });
+  document.addEventListener('click', function (e) { if (noClick) { noClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && big && main()) { big = false; render(true); } });
 
   /* drag the tabs (pointer events, so it works on a phone) and arrow keys */
   document.addEventListener('pointerdown', function (e) {
