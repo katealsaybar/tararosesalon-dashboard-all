@@ -804,6 +804,14 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
   .mv-price small{display:block;font-size:12.5px;color:var(--ink-soft)}
   .mv-card .pill{width:100%;justify-content:center;text-align:center;margin-top:18px}
   .mv-note{max-width:62ch;margin:30px auto 0;text-align:center;font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.6;color:var(--ink-soft)}
+  /* One method on the rhythm (10 to 12 weeks): a lone 340px card left a tall photo floating in empty space, so it lies down, photo beside the details */
+  @media (min-width:621px){
+    .mv-grid--one{grid-template-columns:minmax(0,720px)}
+    .mv-grid--one .mv-card{flex-direction:row;align-items:stretch}
+    .mv-grid--one .mv-photo{flex:0 0 46%;position:relative}
+    .mv-grid--one .mv-photo img{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto}
+    .mv-grid--one .mv-body{justify-content:center;padding:30px 30px 32px}
+  }
   @media (max-width:620px){
     .mv-grid{grid-template-columns:minmax(0,1fr)}
     .mv-switch{width:100%;box-sizing:border-box;padding:4px;gap:2px}
@@ -879,7 +887,12 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
   (function(){
     var btns=[].slice.call(document.querySelectorAll('.mv-switch button'));
     var cards=[].slice.call(document.querySelectorAll('.mv-card'));
-    var show=function(g){ cards.forEach(function(c){ c.hidden=c.dataset.g!==g; }); };
+    var grid=document.querySelector('.mv-grid');
+    var show=function(g){
+      var n=0;
+      cards.forEach(function(c){ c.hidden=c.dataset.g!==g; if(!c.hidden) n++; });
+      grid.classList.toggle('mv-grid--one',n===1);
+    };
     btns.forEach(function(b){ b.addEventListener('click',function(){
       btns.forEach(function(o){ o.setAttribute('aria-checked',String(o===b)); });
       show(b.dataset.g);
