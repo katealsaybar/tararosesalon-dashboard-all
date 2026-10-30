@@ -111,6 +111,8 @@ function rbBoth(n) {
   return { ph, led };
 }
 const rbTxt = b => `Phorest ${b.ph == null ? 'n/a' : fmt(b.ph, 'pct')} · Branch sheet ${b.led == null ? 'n/a' : fmt(b.led, 'pct')}`;
+// The same two figures, each opening its own rows (the window is the month on the page, so only the page's own draw uses this one).
+const rbTxtDg = b => `Phorest ${b.ph == null ? 'n/a' : dg('rebooking_pct', fmt(b.ph, 'pct'), b.ph, { src: 'phorest' })} · Branch sheet ${b.led == null ? 'n/a' : dg('rebooking_pct', fmt(b.led, 'pct'), b.led, { src: 'ledger' })}`;
 function withSource(d) {
   if (SRC !== 'phorest') return d;
   const swap = n => {
@@ -196,6 +198,37 @@ const KPIS = [
     note: 'Days you worked this month on which you posted with @tararosesalon, were a collaborator on a salon post, or mentioned the salon in your story.' },
 ];
 const KPI = Object.fromEntries(KPIS.map(x => [x.k, x]));
+
+// Every figure opens its rows (Kate, 30 Oct 2026: "all values are supposed to be clickable"). my-drill.js does the window: a big pop-up on a laptop, another window on a
+// phone. This says WHAT each figure is made of. Rows are her own days, reviews and posts only. A figure with nothing behind it (a rate worked out from client
+// histories, a target, a projection) stays plain.
+let DG_D = null;   // the month on the page, set each time it is drawn
+const DG_KIND = { total_revenue: 'revenue', hair_services: 'hair', treatments: 'treat', treatments_pct: 'treatpct', retail: 'retail', retail_pct: 'retailpct', avg_bill: 'avgbill',
+  rebooking_pct: 'rebook', clients: 'clients', ncr: 'ncr', request_pct: 'request', column_fill_pct: 'fill', req: 'req', salon: 'salon', new_clients: 'newc' };
+function dgSpec(k, o) {
+  const d = DG_D, M = window.MyDrill; if (!d || !M || !M.on) return null;
+  const w = o.win || M.month(d.month), src = o.src || SRC;
+  if (k === 'reputation') { const to = w.to, from = M.addDays(to, -89); return M.reviews({ from, to, title: 'Your Google reviews', sub: `The reviews behind your star score: every Google review that counts for you in the 90 days to ${M.dText(to)}.` }); }
+  if (k === 'google_reviews') return M.reviews({ from: w.from, to: w.to, list: o.win ? null : d.numbers.review_list, title: 'Your Google reviews' });
+  if (k === 'social_feed') return M.posts({ from: w.from, to: w.to, list: o.win ? null : d.numbers.social_list, title: 'Your Instagram posts' });
+  return DG_KIND[k] ? M.days(DG_KIND[k], { from: w.from, to: w.to, src }) : null;
+}
+// html is the figure as drawn, v its value: nothing (or a zero count) has no rows to open.
+function dg(k, html, v, o) {
+  if (!window.MyDrill || !MyDrill.on || v === null || v === undefined || Number.isNaN(v)) return html;
+  if (v === 0 && !/_pct$/.test(k)) return html;
+  return MyDrill.fig(html, dgSpec(k, o || {}));
+}
+// "8 of 15 at or above target": opens the list of those numbers against the aims.
+function scoreDg(html, bm, d, title) {
+  const M = window.MyDrill; if (!M || !M.on || !bm) return html;
+  const n = d.numbers, pace = paceFactor(d), W = { good: 'At or above your aim', warn: 'Close', bad: 'Not there yet', '': '' };
+  const keys = KPIS.filter(x => !x.untracked && !x.unscored && bm[x.k] && n[x.k] !== null && n[x.k] !== undefined);
+  const rows = keys.map(x => ({ n: x.label, you: fmt(n[x.k], x.fmt), aim: fmt(bm[x.k].target, x.fmt), s: W[status(judged(x.k, n, pace), bm[x.k])] }));
+  const hit = rows.filter(r => r.s === W.good).length;
+  return M.fig(html, M.rows({ title, sk: 'score-' + title, cur: '', cols: [{ k: 'n', l: 'Number' }, { k: 'you', l: 'You', t: 'html', al: 'l' }, { k: 'aim', l: 'Aim', t: 'html', al: 'l' }, { k: 's', l: 'Where you are' }],
+    rows, foot: { n: 'At or above your aim', you: hit + ' of ' + rows.length, aim: '', s: '' }, sub: 'Each number this month against the aim for it. Money numbers are shown against the pace you need for the full month.' }));
+}
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nf = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 });
@@ -436,7 +469,7 @@ function tile(k, label, d, pace, extra = '') {
   const aim = b ? (b.min !== null && b.min !== undefined && b.min !== b.target
     ? `Minimum ${fmt(b.min, f)}, aim ${fmt(b.target, f)}` : `Aim ${fmt(b.target, f)}`) : '';
   return `<div class="tile ${st}"><div class="lbl"><span class="dot"></span>${tipLbl(k, label)}</div>
-    <div class="val">${fmt(d.numbers[k], f)}</div><div class="aim">${esc(aim)}${paceNote(k, d.numbers, pace, b?.target) ? '<br>' + esc(paceNote(k, d.numbers, pace, b?.target)) : ''}${extra}</div></div>`;
+    <div class="val">${dg(k, fmt(d.numbers[k], f), d.numbers[k])}</div><div class="aim">${esc(aim)}${paceNote(k, d.numbers, pace, b?.target) ? '<br>' + esc(paceNote(k, d.numbers, pace, b?.target)) : ''}${extra}</div></div>`;
 }
 
 // Kate, 30 Sep 2026 (Tara on the call): always start with the win, then one top tip to
@@ -478,7 +511,7 @@ function roadCard(d, next) {
     const f = KPI[x.k].fmt, w = Math.max(4, Math.min(100, Math.round(100 * x.now / x.aim)));
     return `<div class="road-row"><div class="road-top"><span>${esc(KPI[x.k].label.replace(/ %$/, ''))}</span><span class="road-worth">about ${fmt(x.aed, 'aed')} a month</span></div>
       <div class="road-bar" role="img" aria-label="${esc(fmt(x.now, f))} of ${esc(fmt(x.aim, f))}"><i style="width:${w}%"></i></div>
-      <div class="road-ends"><span>You: ${esc(fmt(x.now, f))}</span><span>${lvl}: ${esc(fmt(x.aim, f))}</span></div></div>`;
+      <div class="road-ends"><span>You: ${dg(x.k, esc(fmt(x.now, f)), x.now)}</span><span>${lvl}: ${esc(fmt(x.aim, f))}</span></div></div>`;
   };
   const a = LEVEL_PRICES[d.staff.level], b = LEVEL_PRICES[d.next_level];
   const up = a && b ? b.basket / a.basket - 1 : null;
@@ -486,7 +519,7 @@ function roadCard(d, next) {
     ? `<p class="road-price">At ${lvl} your prices go up too. A Cut &amp; Finish goes from AED ${a.cut} to AED ${b.cut}, and colour and balayage rise about ${Math.round(up * 100)}% on average. On this month's column that is about ${fmt(g.services * up, 'aed')} more a month, with the same clients.</p>` : '';
   return `<section class="card road">
       <div class="eyebrow">Your road to ${lvl}</div>
-      <h2>${next ? `${next.hit} of ${next.of} there.` : 'Your next step.'}</h2>
+      <h2>${next ? `${scoreDg(`${next.hit} of ${next.of}`, d.next_benchmarks, d, 'Your next step up')} there.` : 'Your next step.'}</h2>
       ${top.length ? `<p class="sub">The ${top.length === 1 ? 'number' : `${top.length} numbers`} that would move you most. Each bar runs from where you are now to the ${lvl} aim.</p>
         <div class="road-rows">${top.map(bar).join('')}</div>
         <p class="road-total">Close ${top.length === 1 ? 'it' : top.length === 2 ? 'both' : 'these three'} and you would take about <strong>${fmt(total, 'aed')} more a month</strong>.</p>`
@@ -555,7 +588,7 @@ function kpiRows(n, bm, pace, keys) {
     const st = x.unscored ? '' : status(judged(k, n, pace), b);
     const pn = paceNote(k, n, pace, b.target);
     const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${pn ? ' · ' + esc(pn.charAt(0).toLowerCase() + pn.slice(1)) : ''}</small>`;
-    return `<div class="row">${tipLbl(k, x.label)}<span class="r-val">${fmt(n[k], x.fmt)} <span class="r-tail">${tail}<span class="dot ${st}"></span></span></span>${note}</div>`;
+    return `<div class="row">${tipLbl(k, x.label)}<span class="r-val">${dg(k, fmt(n[k], x.fmt), n[k])} <span class="r-tail">${tail}<span class="dot ${st}"></span></span></span>${note}</div>`;
   }).join('');
 }
 
@@ -571,7 +604,7 @@ function socials(n) {
   const okAt = n.ig_sync_ok_at ? new Date(n.ig_sync_ok_at) : null;
   const stale = okAt && Date.now() - okAt > 36 * 36e5
     ? `<p class="muted"><b>Instagram counts are paused.</b> Nothing new has come in since ${esc(okAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }))}, so recent posts are missing here. We're fixing it, and they'll fill in once it's back.</p>` : '';
-  return `${stale}<p class="sub">${fmt(list.length, 'num')} ${list.length === 1 ? 'post' : 'posts'} with @tararosesalon this month and ${fmt(n.social_stories, 'num')} story ${n.social_stories === 1 ? 'mention' : 'mentions'}. ${handles}</p>
+  return `${stale}<p class="sub">${dg('social_feed', fmt(list.length, 'num'), list.length)} ${list.length === 1 ? 'post' : 'posts'} with @tararosesalon this month and ${fmt(n.social_stories, 'num')} story ${n.social_stories === 1 ? 'mention' : 'mentions'}. ${handles}</p>
     ${list.length ? list.map(p => `<div class="note">${p.via === 'collab' ? 'Collab on a salon post' : esc(IG_TYPE[p.type] || 'Post')}<div class="by">${esc(dayLabel(p.date))}${p.link ? `. <a class="rv-link" href="${esc(p.link)}" target="_blank" rel="noopener">View on Instagram ↗</a>` : ''}</div></div>`).join('')
       : `<p class="muted">Nothing tagged yet this month. Tag @tararosesalon on your posts and reels so they show here.</p>`}
     <p class="legend">Feed posts, reels and carousels update nightly. Story mentions count from 28 Sep 2026.</p>`;
@@ -580,7 +613,7 @@ function socials(n) {
 // Reputation on its own, no aim, for a page with no benchmarks yet (Beauty). Kate, 28 Sep 2026.
 function repRow(n) {
   const x = KPI.reputation, has = n.reputation !== null && n.reputation !== undefined;
-  return `<div class="row${has ? '' : ' untracked'}">${tipLbl('reputation', x.label)}<span class="r-val">${has ? fmt(n.reputation, x.fmt) : `<small>${esc(x.needs(n))}</small>`}</span><small class="r-note">${esc(x.note)}</small></div>`;
+  return `<div class="row${has ? '' : ' untracked'}">${tipLbl('reputation', x.label)}<span class="r-val">${has ? dg('reputation', fmt(n.reputation, x.fmt), n.reputation) : `<small>${esc(x.needs(n))}</small>`}</span><small class="r-note">${esc(x.note)}</small></div>`;
 }
 
 function scoreLine(n, bm, pace) {
@@ -666,6 +699,8 @@ async function renderStylist() {
   if (d.month_target && d.benchmarks && d.benchmarks.total_revenue) d.benchmarks.total_revenue = { min: null, target: Number(d.month_target), own: true };
   d.benchmarks_full = d.benchmarks ? JSON.parse(JSON.stringify(d.benchmarks)) : d.benchmarks;
   if (share) { prorate(d.benchmarks, share.f); prorate(d.next_benchmarks, share.f); }
+  if (window.MyDrill) MyDrill.init({ token: ADMIN ? null : TOKEN });
+  DG_D = d;
   const n = d.numbers, s = d.staff, pace = paceFactor(d);
   const isHair = s.dept === 'Hair';
   const midMonth = pace < 1;
@@ -674,22 +709,22 @@ async function renderStylist() {
 
   const six = [
     tile('avg_bill', isHair ? 'Average bill' : 'Beauty average bill', d, pace,
-      `<br>With retail: ${fmt(n.avg_bill_retail, 'aed')}`),
+      `<br>With retail: ${dg('avg_bill', fmt(n.avg_bill_retail, 'aed'), n.avg_bill_retail)}`),
     isHair ? tile('treatments_pct', 'Treatment %', d, pace) : tile('request_pct', 'Request rate', d, pace),
     tile('retail_pct', 'Retail %', d, pace),
     // Emma, 29 Sep 2026: the count under the rate, "10 of 20 clients rebooked".
     tile('rebooking_pct', 'Rebooking %', d, pace, (SRC === 'phorest' && n.rebooked == null ? '<br>Not in our Phorest feed for these dates yet.'
-      : n.clients > 0 ? `<br>${fmt(n.rebooked, 'num')} of ${fmt(n.rebook_visits ?? n.clients, 'num')} clients rebooked` : '')
-      + `<br><span class="rb2">${rbTxt(rbBoth(RAW.numbers))}</span>`),
+      : n.clients > 0 ? `<br>${dg('rebooking_pct', `${fmt(n.rebooked, 'num')} of ${fmt(n.rebook_visits ?? n.clients, 'num')} clients rebooked`, n.rebooked)}` : '')
+      + `<br><span class="rb2">${rbTxtDg(rbBoth(RAW.numbers))}</span>`),
     tile('clients', 'Total clients', d, pace),
-    tile('column_fill_pct', 'Column fill', d, pace, `<br>${fmt(n.booked_hours, 'num')} of ${fmt(n.available_hours, 'num')} hours booked`),
+    tile('column_fill_pct', 'Column fill', d, pace, `<br>${dg('column_fill_pct', `${fmt(n.booked_hours, 'num')} of ${fmt(n.available_hours, 'num')} hours booked`, n.booked_hours)}`),
   ].join('');
 
   const pct = v => n.clients > 0 ? ` · ${Math.round(100 * v / n.clients)}%` : '';
   // Phorest only splits out requests and new clients, so salon and NCR drop off there.
   const clientTiles = [['req', 'Request', n.req], ['salon', 'Salon', n.salon], ['new_clients', 'New', n.new_clients], ['ncr', 'New client request', n.ncr]]
     .filter(([, , v]) => SRC !== 'phorest' || v !== null)
-    .map(([k, l, v]) => `<div class="tile"><div class="lbl">${tipLbl(k, l)}</div><div class="val">${fmt(v, 'num')}</div><div class="aim">${fmt(v, 'num')} of ${fmt(n.clients, 'num')}${pct(v)}</div></div>`).join('');
+    .map(([k, l, v]) => `<div class="tile"><div class="lbl">${tipLbl(k, l)}</div><div class="val">${dg(k, fmt(v, 'num'), v)}</div><div class="aim">${dg(k, fmt(v, 'num'), v)} of ${dg('clients', fmt(n.clients, 'num'), n.clients)}${pct(v)}</div></div>`).join('');
 
   const allKeys = KPIS.map(x => x.k);
   const own = d.benchmarks ? scoreLine(n, d.benchmarks, pace) : null;
@@ -705,7 +740,7 @@ async function renderStylist() {
   // Kate, 28 Sep 2026: on a phone five columns with "AED" in two of them wrapped every
   // figure onto two lines. AED moves to a note under the title (so the headers stay one even row), the month shortens (Jun 2026),
   // and the figures never wrap; only the month column may.
-  const hist = (d.history || []).map(h => `<tr><td>${esc(monthLabel(h.month).replace(/^(\w{3})\w*/, '$1'))}</td><td>${fmt(h.numbers.total_revenue, 'num')}</td><td>${fmt(h.numbers.clients, 'num')}</td><td>${fmt(h.numbers.rebooking_pct, 'pct')}</td><td>${fmt(h.numbers.avg_bill, 'num')}</td></tr>`).join('');
+  const hist = (d.history || []).map(h => `<tr><td>${esc(monthLabel(h.month).replace(/^(\w{3})\w*/, '$1'))}</td><td>${dg('total_revenue', fmt(h.numbers.total_revenue, 'num'), h.numbers.total_revenue, { win: MyDrill.month(h.month) })}</td><td>${dg('clients', fmt(h.numbers.clients, 'num'), h.numbers.clients, { win: MyDrill.month(h.month) })}</td><td>${dg('rebooking_pct', fmt(h.numbers.rebooking_pct, 'pct'), h.numbers.rebooking_pct, { win: MyDrill.month(h.month) })}</td><td>${dg('avg_bill', fmt(h.numbers.avg_bill, 'num'), h.numbers.avg_bill, { win: MyDrill.month(h.month) })}</td></tr>`).join('');
 
   const cw = n.conversion_weeks || {};
   const notes = (d.notes || []).map(x => `<div class="note">${esc(x.note)}<div class="by">${esc(x.author)} · ${esc(noteStamp(x.at))}${canEdit() ? `<button data-del="${x.id}">remove</button>` : ''}</div></div>`).join('');
@@ -754,14 +789,14 @@ async function renderStylist() {
     ${d.benchmarks ? `<section class="card">
       <div class="eyebrow">Your level · ${esc(s.level)}</div>
       <h2>Holding your level</h2>
-      <p class="score">You're at or above target on <strong>${own.hit} of ${own.of}</strong>.</p>
+      <p class="score">You're at or above target on <strong>${scoreDg(`${own.hit} of ${own.of}`, d.benchmarks, d, 'Holding your level')}</strong>.</p>
       <div class="rows">${kpiRows(n, d.benchmarks, pace, allKeys)}</div>
     </section>` : ''}
 
     ${d.next_benchmarks ? `<section class="card">
       <div class="eyebrow">Ready for ${esc(d.next_level)}?</div>
       <h2>Your next step up</h2>
-      <p class="score">These are the aims for ${esc(d.next_level)}. You're there on <strong>${next.hit} of ${next.of}</strong>.</p>
+      <p class="score">These are the aims for ${esc(d.next_level)}. You're there on <strong>${scoreDg(`${next.hit} of ${next.of}`, d.next_benchmarks, d, 'Your next step up')}</strong>.</p>
       <div class="rows">${kpiRows(n, d.next_benchmarks, pace, allKeys)}</div>
     </section>` : ''}
 
@@ -772,7 +807,7 @@ async function renderStylist() {
 
     <section class="card">
       <div class="eyebrow">Your Google reviews</div>
-      ${(n.review_list || []).length ? `<p class="sub">${n.google_reviews} this month${n.review_stars ? ` · average ${n.review_stars} stars` : ''}.</p>
+      ${(n.review_list || []).length ? `<p class="sub">${dg('google_reviews', n.google_reviews, n.google_reviews)} this month${n.review_stars ? ` · average ${dg('google_reviews', n.review_stars, n.google_reviews)} stars` : ''}.</p>
         ${rvInit(n.review_list)}${n.review_list.map((r, i) => `<div class="note"><span class="stars">${'★'.repeat(r.stars || 0)}</span> <b class="rv-name">${esc(r.reviewer || 'Anonymous')}</b><div>${r.comment ? esc(r.comment) : '<i class="muted">Rating only, no written comment</i>'}</div>${reviewPhotos(r)}<div class="by">${esc(dayLabel(r.date))}${r.how === 'client' ? ' · from your client, who didn\'t name anyone' : ''}${rvLink(r, i)}</div></div>`).join('')}`
         : `<p class="muted">No Google reviews for you yet this month. Ask happy clients to mention you by name.</p>`}
     </section>
@@ -859,6 +894,14 @@ async function renderStylist() {
       },
       options: {
         maintainAspectRatio: false,
+        // Kate, 30 Oct 2026: a bar or point opens the rows behind it, the week's days or that one day (my-drill.js).
+        onClick: (ev, els) => {
+          if (!els.length || !window.MyDrill || !MyDrill.on || (ev.native && ev.native.pointerType === 'touch')) return;
+          const i = els[0].index, M = MyDrill.month(d.month);
+          const win = daily ? { from: days[i].date, to: days[i].date } : { from: MyDrill.addDays(weeks[i].week_start, 0) < M.from ? M.from : weeks[i].week_start, to: MyDrill.addDays(weeks[i].week_start, 6) > M.to ? M.to : MyDrill.addDays(weeks[i].week_start, 6) };
+          MyDrill.show(MyDrill.days('sheet', Object.assign({ src: SRC }, win)), null);
+        },
+        onHover: (ev, els) => { if (ev.native && ev.native.target) ev.native.target.style.cursor = els.length && window.MyDrill && MyDrill.on ? 'pointer' : 'default'; },
         interaction: { mode: 'index', intersect: false },
         plugins: { legend: { labels: { color: css.getPropertyValue('--muted'), usePointStyle: true, pointStyle: 'circle', boxHeight: 8 } } },
         scales: {

@@ -77,8 +77,9 @@ function paint() {
     return;
   }
   more.innerHTML = S.tab === 'year' ? yearTab() : S.tab === 'podium' ? podiumTab() : levelsTab();
-  if (S.tab === 'year') wireChart();
+  if (S.tab === 'year') { wireChart(); yearBarClicks(); }
   if (S.tab === 'podium') { const c = more.querySelector('.pod-chips'), on = c && c.querySelector('.on'); if (on) c.scrollLeft = on.offsetLeft - (c.clientWidth - on.offsetWidth) / 2; }
+  if (S.tab === 'podium') podFigures(more);
 }
 // The 1-to-1 line under the win and tip on This month. performance.js redraws #app now and then
 // (the Ledger | Phorest switch), so it is put back whenever the page changes under it.
@@ -135,6 +136,7 @@ addEventListener('resize', () => { if (Math.abs(innerWidth - lastW) > 40 && S.ta
 
 async function mount(token) {
   if (!token || !document.getElementById('perfTabs')) return;
+  if (window.MyDrill) MyDrill.init({ token });   // every figure opens its rows (my-drill.js)
   try {
     // The Podium is read apart: if it is slow or fails, the other tabs still open and this one is simply not there.
     // Kate, 23 Oct 2026: it now carries every board, so the tab bar no longer waits for it; the Podium tab simply appears when it lands.
@@ -195,22 +197,31 @@ function yearTab() {
 
   // Weeks 1 to 52 in one list, newest first (Kate, 7 Oct 2026: no quarters).
   const allWeeks = weeks.slice().reverse();
+  // Kate, 30 Oct 2026: every figure opens its rows (my-drill.js). The year's headline opens the weeks it is made of; a week's cells open that week's days.
+  const MD = window.MyDrill;
+  const ySpec = MD && MD.on ? MD.rows({ title: `Your ${y.year} week by week`, sk: 'year-weeks-' + y.year, cols: [{ k: 'wk', l: 'Week' }, { k: 'from', l: 'Week starting', t: 'date' }, { k: 'sales', l: 'Sales', t: 'aed' }, { k: 'aim', l: 'Your aim', t: 'aed' }, { k: 'at', l: 'Aim reached' }, { k: 'retail', l: 'Retail', t: 'aed' }, { k: 'cl', l: 'Clients', t: 'num' }, { k: 'rb', l: 'Rebooked', t: 'num' }],
+    rows: allWeeks.filter(w => !w.current && !onLeave(w) && !noData(w)).map(w => ({ wk: 'W' + w.week_no, from: w.week_start, sales: w.numbers.total_revenue || 0, aim: aimOf(w) || '', at: w.current ? '' : aimOf(w) > 0 ? (w.numbers.total_revenue >= aimOf(w) ? 'Reached' : 'Not yet') : '', retail: w.numbers.retail || 0, cl: w.numbers.clients || 0, rb: w.numbers.rebooked || 0 })),
+    foot: { wk: 'Total', from: '', sales: total, aim: '', at: atAim != null ? atAim + ' of ' + counted.length : '', retail: full.filter(w => !onLeave(w) && !noData(w)).reduce((a, w) => a + (w.numbers.retail || 0), 0), cl: full.filter(w => !onLeave(w) && !noData(w)).reduce((a, w) => a + (w.numbers.clients || 0), 0), rb: full.filter(w => !onLeave(w) && !noData(w)).reduce((a, w) => a + (w.numbers.rebooked || 0), 0) },
+    sub: 'Your sales for each week of the year from Phorest, with the aim for that week (less for leave) and whether you reached it. The week in progress is not counted until it ends. Clients and rebooked are the branch sheet\u2019s count.' }) : null;
+  const yfig = (html, v, sp) => MD && MD.on && sp && v ? MD.fig(html, sp) : html;
+  const today = new Date().toISOString().slice(0, 10);
+  const wfig = (html, v, kind, w) => { if (!MD || !MD.on || !(v > 0)) return html; const wk = MD.week(w.week_start), lo = y.year + '-01-01', hi = y.year + '-12-31'; return MD.fig(html, MD.days(kind, { from: wk.from < lo ? lo : wk.from, to: [wk.to, today, hi].sort()[0], src: 'ledger' })); };
   const rows = allWeeks.map(w => {
     const n = w.numbers || {};
     const hit = wkAim && !onLeave(w) && !noData(w) && aimOf(w) > 0 && n.total_revenue >= aimOf(w);
     if (onLeave(w) || noData(w)) return `<tr class="wk-off"><td><b>W${w.week_no}</b> <span class="wk-d">${dShort(w.week_start)}</span></td>
       <td colspan="3" class="wk-flag">${onLeave(w) ? 'On leave' : 'Not uploaded yet'}</td></tr>`;
     return `<tr><td><b>W${w.week_no}</b> <span class="wk-d">${w.current ? 'so far' : dShort(w.week_start)}${w.leave_days ? ` · ${w.leave_days}d leave` : ''}</span></td>
-      <td class="r">${Math.round(n.total_revenue || 0).toLocaleString('en-GB')}${hit ? '<span class="wk-hit" title="At or above your aim"> ✓</span>' : ''}</td>
-      <td class="r">${n.clients ? `${n.rebooked || 0}/${n.clients}` : '·'}</td>
-      <td class="r">${Math.round(n.retail || 0).toLocaleString('en-GB')}</td></tr>`;
+      <td class="r">${wfig(Math.round(n.total_revenue || 0).toLocaleString('en-GB'), n.total_revenue, 'revenue', w)}${hit ? '<span class="wk-hit" title="At or above your aim"> ✓</span>' : ''}</td>
+      <td class="r">${n.clients ? wfig(`${n.rebooked || 0}/${n.clients}`, n.clients, 'rebook', w) : '·'}</td>
+      <td class="r">${wfig(Math.round(n.retail || 0).toLocaleString('en-GB'), n.retail, 'retail', w)}</td></tr>`;
   }).join('');
 
   return `
     <section class="card">
       <div class="eyebrow">Your ${y.year}${(y.years || [])[0] > y.year ? '' : ' so far'}</div>
-      <div class="hero-n">${aed(total)}</div>
-      <div class="hero-s">${atAim != null ? `<b>${atAim} of ${counted.length}</b> weeks at or above your aim` : `${full.length} weeks`}${leaveWeeks ? `, ${leaveWeeks} on leave and not counted` : ''}</div>
+      <div class="hero-n">${yfig(aed(total), total, ySpec)}</div>
+      <div class="hero-s">${atAim != null ? `<b>${yfig(`${atAim} of ${counted.length}`, counted.length, ySpec)}</b> weeks at or above your aim` : `${full.length} weeks`}${leaveWeeks ? `, ${leaveWeeks} on leave and not counted` : ''}</div>
       ${step ? `<div class="step"><span class="k">Your next step</span>${step}</div>` : ''}
     </section>
     <section class="card">
@@ -265,6 +276,20 @@ function chartSvg(weeks, wkAim, aimOf) {
   return `<svg viewBox="0 0 ${W} ${H}" tabindex="0" role="img" aria-label="Weekly sales for ${S.year.year}${wkAim ? ', with your aim as a dashed line' : ''}. Slide along it, or use the arrow keys, to read each week. Every figure is also in the weeks list under Weeks 1 to 52.">${s}</svg>`;
 }
 
+// Kate, 30 Oct 2026: a click on a week's bar opens that week's days. A touch keeps showing the tooltip, as before; the weeks list below has the same figures.
+function yearBarClicks() {
+  const M = window.MyDrill, svg = document.querySelector('#pmChart svg');
+  if (!M || !M.on || !svg || !S.year) return;
+  let kind = 'mouse';
+  svg.addEventListener('pointerdown', e => { kind = e.pointerType; });
+  svg.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('.bar'); if (!b || kind === 'touch') return;
+    const w = (S.year.weeks || []).find(x => String(x.week_no) === b.dataset.w); if (!w || !(w.numbers && w.numbers.total_revenue > 0)) return;
+    const wk = M.week(w.week_start), today = new Date().toISOString().slice(0, 10), lo = S.year.year + '-01-01', hi = S.year.year + '-12-31';
+    M.show(M.days('sheet', { from: wk.from < lo ? lo : wk.from, to: [wk.to, today, hi].sort()[0], src: 'ledger' }), null);
+  });
+  svg.querySelectorAll('.bar').forEach(b => { b.style.cursor = 'pointer'; });
+}
 function wireChart() {
   const box = document.getElementById('pmChart'), tip = document.getElementById('pmTip');
   const svg = box && box.querySelector('svg');
@@ -485,6 +510,44 @@ function podAv(name, branch) {
   return src ? `<img class="pod-av" src="${src}" alt="" loading="lazy" decoding="async" onerror="this.outerHTML='<span class=&quot;pod-av pod-ini&quot;>${ini}</span>'">` : `<span class="pod-av pod-ini">${ini}</span>`;
 }
 const POD_TOP = 8;   // rows of the board shown before "Show all"
+// Kate, 30 Oct 2026: every figure on the Podium Race opens its rows (my-drill.js). Her place ("2nd of 12") opens the whole board for that stat, the same
+// names, salons and figures the board shows. HER figure opens her own days that make it up. Anyone else's figure has no rows of hers to show, so it stays plain.
+// Drawn after the tab, on what is on the page, so the markup above stays as it is.
+const POD_KIND = { sales: 'sales', services: 'services', retail: 'retail', treatments: 'treat', rebooking: 'rebook', ncr: 'ncr', clients: 'phclients' };
+function podFigures(root) {
+  const M = window.MyDrill; if (!M || !M.on || !S.pod) return;
+  const p = podScoped(S.pod), per = S.podPer, team = p.dept === 'Beauty' ? 'Beauty team' : 'Hair team';
+  const win = per === 'year' || per === 'all' ? { from: S.pod.from, to: S.pod.to } : M.month(p.month);
+  const when = per === 'month' ? monthName(p.month) + ' so far' : per === 'last' ? monthName(p.month) : per === 'year' ? 'this year' : 'all time';
+  const mineSpec = x => {
+    if (x.k === 'reviews') return M.reviews({ from: win.from, to: win.to, title: 'Your Google reviews', sub: 'The Google reviews that count for you, ' + when + '.' });
+    if (x.k === 'posts') return M.posts({ from: win.from, to: win.to, title: 'Your Instagram posts' });
+    return POD_KIND[x.k] ? M.days(POD_KIND[x.k], { from: win.from, to: win.to, src: x.k === 'rebooking' || x.k === 'clients' ? 'phorest' : 'ledger' }) : null;
+  };
+  const boardSpec = x => {
+    const s = p.stats[x.k], col = { k: 'v', l: x.unit === '%' ? 'Rebooking %' : x.name, t: x.f === 'aed' ? 'aed' : x.f === 'pct' ? 'pct' : 'num' };
+    return M.rows({ title: `${x.name}: the ${team}`, sk: `board-${x.k}-${per}-${S.podScope}`, cur: 'AED',
+      cols: [{ k: 'rank', l: 'Place', t: 'num' }, { k: 'name', l: 'Name' }, { k: 'br', l: 'Salon' }, col],
+      rows: s.board.map(r => ({ rank: r.rank, name: r.name + (r.me ? ' (you)' : ''), br: BRANCH[r.branch] || r.branch || '', v: r.value, _cls: r.me ? 'dr-me' : '' })), foot: null,
+      sub: `Everyone on the ${team}${p.scopeName ? ' at ' + p.scopeName : ''} who is ranked on ${x.name}, ${when}, in order. Names, salons and figures only.` });
+  };
+  root.querySelectorAll('.pr').forEach(btn => {
+    const m = /PerfTabs\.stat\('([a-z]+)'\)/.exec(btn.getAttribute('onclick') || ''), x = m && pstat(m[1]);
+    if (!x || !p.stats[x.k] || !p.stats[x.k].me) return;
+    const b = btn.querySelector('.pr-p b'), v = btn.querySelector('.pr-v'), sm = btn.querySelector('.pr-p small');
+    if (b) b.innerHTML = M.fig(b.innerHTML, boardSpec(x), 'See everyone ranked on ' + x.name);
+    if (sm) sm.innerHTML = M.fig(sm.innerHTML, boardSpec(x), 'See everyone ranked on ' + x.name);
+    if (v) v.innerHTML = M.fig(v.innerHTML, mineSpec(x));
+  });
+  const cur = pstat(S.podStat) && p.stats[S.podStat] ? pstat(S.podStat) : PALL.filter(x => pvisible(p, x))[0];
+  if (cur) {
+    root.querySelectorAll('#podBoard tr.me td.r').forEach(td => { td.innerHTML = M.fig(td.innerHTML, mineSpec(cur)); });
+    const sub = root.querySelector('#podBoard .sub');
+    if (sub) sub.innerHTML = sub.innerHTML.replace(/(\d+) (people|person)/, (t, n) => M.fig(t, boardSpec(cur), 'See everyone ranked on ' + cur.name));
+    const chance = root.querySelector('.pr-chance p b');
+    if (chance) chance.innerHTML = chance.innerHTML.replace(/(you are \d+(?:st|nd|rd|th) of \d+)/, t => { const x = PALL.filter(z => pvisible(p, z) && p.stats[z.k].me && p.stats[z.k].me.rank > 1).sort((a, c) => p.stats[a.k].me.rank - p.stats[c.k].me.rank)[0]; return x ? M.fig(t, boardSpec(x), 'See everyone ranked on ' + x.name) : t; });
+  }
+}
 const podGap = (x, g) => x.f === 'aed' ? 'AED ' + Math.round(g).toLocaleString('en-GB') : x.f === 'pct' ? Number(g).toFixed(1).replace(/\.0$/, '') + ' points' : Math.round(g).toLocaleString('en-GB');
 function podiumTab() {
   const p = podScoped(S.pod), per = S.podPer, base = p.dept === 'Beauty' ? 'Beauty team' : 'Hair team';

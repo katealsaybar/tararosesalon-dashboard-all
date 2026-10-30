@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your numbers · the rows behind a figure</title>
+<link rel="shortcut icon" href="../assets/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="performance.css?v=e5c9fd40">
+<link rel="stylesheet" href="/drill.css?v=148fcf81">
+<script>
+// The same Light / Dark choice as the My Numbers page (perf-theme), or the phone's own.
+(function () { try { var t = localStorage.getItem('perf-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {} })();
+</script>
+<style>
+/* Kate, 30 Oct 2026: on a phone a figure opens in its own window. The list fills it, so this reads as a page of its own, not a sheet over another page. */
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+.dr-modal{padding:0;align-items:stretch;background:var(--bg)}
+.dr-modal .dr-box{width:100%;max-height:100vh;height:100vh;border-radius:0;border:0;box-shadow:none}
+.fg-msg{padding:28px 18px;font-size:15px;line-height:1.5}
+.fg-msg a{color:inherit;font-weight:600}
+</style>
+</head>
+<body>
+<p class="fg-msg" id="msg" role="status">Getting your list…</p>
+<script>
+// Save as xlsx / csv loads the spreadsheet writer the first time it is pressed.
+(function () { var p = null; window.trsLazy = function (n) { return n !== 'lgx' ? Promise.resolve() : p || (p = new Promise(function (ok, no) { var s = document.createElement('script'); s.src = '/ledger-export.js?v=67737bd9'; s.onload = ok; s.onerror = function () { p = null; no(new Error('export')); }; document.head.appendChild(s); })); }; })();
+</script>
+<script src="/drill.js?v=d06a7092"></script>
+<script>
+(function () {
+  var msg = document.getElementById('msg'), id = new URLSearchParams(location.search).get('h'), key = 'mydrill:' + id, tries = 0, back = '/performance/';
+  function read() { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
+  function left() {
+    // The window the person tapped from opened this one, so it may close it. If the browser says no, point back to My Numbers instead.
+    try { window.close(); } catch (e) {}
+    setTimeout(function () { msg.hidden = false; msg.innerHTML = 'You can close this window now. <a href="' + back.replace(/"/g, '&quot;') + '">Back to My Numbers</a>'; }, 250);
+  }
+  function show(p) {
+    if (p.back) back = p.back;
+    if (p.error) { msg.textContent = p.error; return; }
+    msg.hidden = true;
+    var views = p.views.map(function (v, i) { return { id: 'v' + i, label: v.label, load: function () { return Promise.resolve(v.res); } }; });
+    TRSD.open({ title: p.title, cur: p.cur, views: views }, null);
+    // Closing the list (X, Esc, the phone's Back) closes this window.
+    new MutationObserver(function (_, mo) { if (!document.querySelector('.dr-modal')) { mo.disconnect(); left(); } }).observe(document.body, { childList: true });
+  }
+  if (!id) { msg.textContent = 'This list has expired. Open it again from My Numbers.'; return; }
+  (function poll() {
+    var p = read();
+    if (p) { show(p); return; }
+    if (++tries > 100) { msg.textContent = 'This list has expired. Open it again from My Numbers.'; return; }
+    setTimeout(poll, 300);
+  })();
+})();
+</script>
+</body>
+</html>

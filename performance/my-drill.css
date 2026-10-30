@@ -1,0 +1,5 @@
+/* My Numbers: the rows behind a figure (my-drill.js, Kate, 30 Oct 2026). The window itself is the shared one, /drill.css. */
+.dr-tbl tr.dr-me td{font-weight:700}
+.tile .val .dn,.hero-n .dn,.r-val .dn{border-bottom-width:2px}
+.tile .aim .dn,.road-ends .dn,.hist .dn,.wk .dn{border-bottom-width:1.5px}
+@media(max-width:619px){.dn{padding:6px 2px;margin:-6px -2px}}   /* a finger-sized target without moving the text */
