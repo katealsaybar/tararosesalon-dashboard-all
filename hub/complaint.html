@@ -72,11 +72,19 @@
 .cp-fil{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .cp-fil button{font:inherit;font-size:13.5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;cursor:pointer}
 .cp-fil button.on{background:color-mix(in srgb,var(--accent,#3AA892) 18%,var(--surface));border-color:var(--accent,#3AA892);font-weight:600}
-.cp-legend{margin-left:auto;display:inline-flex;gap:12px;align-items:center;font-size:12.5px;color:var(--muted)}
+.cp-legend{margin-left:auto;display:inline-flex;gap:6px 16px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .cp-legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:-1px}
 .cp-legend .hi{background:#E0674F}.cp-legend .mid{background:#D9A441}.cp-legend .low{background:#8c8da1}
+.cp-legend .lg{display:inline-flex;gap:10px;align-items:center}
 .cp-showing{font-size:13px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:3px 6px 3px 12px;display:inline-flex;gap:6px;align-items:center}
-.cp-showing button{padding:0;width:22px;height:22px;border-radius:50%;line-height:1}
+.cp-showing button{padding:0;width:40px;height:40px;margin:-8px -3px -8px 0;border-radius:50%;line-height:1}
+.cb-why{margin:0 0 2px}
+.cb-next{display:block;border:1.5px solid var(--accent,#3AA892);border-radius:12px;background:color-mix(in srgb,var(--accent,#3AA892) 10%,var(--surface));padding:10px 14px;margin:0 14px 10px;font-size:14.5px;color:var(--text);text-decoration:none}
+.cb-next b{font-weight:600;overflow-wrap:anywhere}
+.cb-steps{margin:0 14px 10px;border-radius:12px;background:color-mix(in srgb,var(--accent-butter,#F2E3B5) 45%,var(--surface));padding:12px 14px;font-size:14px}
+.cb-steps ol{margin:0 0 6px;padding-left:20px;display:grid;gap:3px}
+.cb-steps p{margin:0 0 8px;font-size:14px}
+.cb-help{font:inherit;font-size:13.5px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:40px;cursor:pointer}
 .cb-app{display:grid;grid-template-columns:270px minmax(0,1fr);gap:14px;align-items:start}
 .cb-in{border:1px solid var(--border);border-radius:14px;background:var(--surface);position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;padding-bottom:6px}
 .cb-in h2{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0;padding:12px 14px 6px;font-weight:600;font-family:inherit}
@@ -90,8 +98,8 @@
 .cb-gh em{margin-left:auto;font-style:normal;font-size:12px;background:var(--bg);border-radius:999px;padding:1px 9px}
 .cb-gh.red em{background:#F8E4DF;color:#B4412F}
 .cb-items{margin:2px 0 0 16px;padding-left:10px;border-left:2px solid var(--border)}
-.cb-rw{display:block;border-radius:6px;padding:6px 8px;font-size:12.5px;color:var(--muted);line-height:1.35;text-decoration:none}
-.cb-rw b{display:block;font-weight:500;color:var(--text);font-size:13px;overflow-wrap:anywhere}
+.cb-rw{display:block;border-radius:6px;padding:6px 8px;font-size:13px;color:var(--muted);line-height:1.35;text-decoration:none}
+.cb-rw b{display:block;font-weight:500;color:var(--text);font-size:14px;overflow-wrap:anywhere}
 .cb-rw:hover{background:var(--bg)}
 .cb-more{font-size:12px;color:var(--muted);padding:2px 8px}
 .cb-main{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:12px 0 12px;min-width:0}
@@ -99,30 +107,37 @@
 .cb-main .cp-fil{padding:0 14px 10px}
 .cp-board{display:grid;grid-template-columns:repeat(5,minmax(224px,1fr));gap:12px;padding:0 14px 10px;align-items:stretch;overflow-x:auto;scrollbar-width:thin}
 .cp-col{background:color-mix(in srgb,var(--border) 45%,var(--bg));border-radius:12px;padding:10px;min-width:0;min-height:260px}
-.cp-col h4{font-size:12px;line-height:1.3;min-height:2.6em;font-weight:600;display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin:2px 4px 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cp-col h4{font-size:12px;line-height:1.3;min-height:2.6em;font-weight:600;display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin:2px 4px 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cp-hint{font-size:13px;line-height:1.35;color:var(--muted);margin:0 4px 10px;min-height:3.9em}
+.cp-col.stuck.has .cp-hint{color:#6B2A1E}
 .cp-col h4 em{font-style:normal;flex:none;background:var(--surface);border-radius:999px;padding:1px 9px;color:var(--text);letter-spacing:0}
 .cp-col.stuck.has{background:#F8E4DF}.cp-col.stuck.has h4{color:#B4412F}
 .cp-board.dragging .cp-col{opacity:.4}
 .cp-board.dragging .cp-col.ok{opacity:1;outline:2px dashed var(--accent,#3AA892);outline-offset:-2px}
 .cp-board.dragging .cp-col.ok.over{outline:2px solid var(--accent,#3AA892);background:color-mix(in srgb,var(--accent,#3AA892) 22%,var(--bg))}
-.cp-tk{display:block;position:relative;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:8px;font-size:13px;color:inherit;text-decoration:none;cursor:pointer}
+.cp-tk{display:block;position:relative;background:var(--surface);border:1px solid var(--border);border-left:5px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:8px;font-size:14px;color:inherit;text-decoration:none;cursor:pointer}
 .cp-tk:hover{border-color:var(--muted)}
-.cp-tk b{display:block;font-size:13.5px;line-height:1.35;overflow-wrap:anywhere}
-.cp-tk .m{color:var(--muted);font-size:12px;display:block;margin-top:3px}
-.cp-tk.p-high{border-left-color:#E0674F;background:color-mix(in srgb,#C9503A 24%,var(--surface));border-color:color-mix(in srgb,#B4412F 50%,var(--border))}
-.cp-tk.p-mid{border-left-color:#D9A441;background:color-mix(in srgb,#E3B044 24%,var(--surface));border-color:color-mix(in srgb,#D9A441 45%,var(--border))}
-.cp-tk.p-low{border-left-color:#8c8da1;background:color-mix(in srgb,#8c8da1 14%,var(--surface))}
-.cp-tk .cp-pill{margin-top:6px;font-size:11.5px;padding:2px 9px}
+.cp-tk a.cp-tkl{display:block;color:inherit;text-decoration:none}
+.cp-tk b{display:block;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.cp-tk .m{color:var(--muted);font-size:13px;display:block;margin-top:3px}
+/* Priority is the card edge and a word on the card; the pill is the clock (30 Oct 2026 audit). The tint is lighter so the two do not fight. */
+.cp-tk.p-high{border-left-color:#E0674F;background:color-mix(in srgb,#C9503A 12%,var(--surface));border-color:color-mix(in srgb,#B4412F 35%,var(--border))}
+.cp-tk.p-mid{border-left-color:#D9A441;background:color-mix(in srgb,#E3B044 12%,var(--surface));border-color:color-mix(in srgb,#D9A441 35%,var(--border))}
+.cp-tk.p-low{border-left-color:#8c8da1;background:color-mix(in srgb,#8c8da1 8%,var(--surface))}
+.cp-tk .cp-prio{display:block;font-size:12.5px;font-weight:600;margin-top:3px;color:var(--text)}
+.cp-tk .cp-pill{margin-top:6px;font-size:13px;padding:2px 9px}
+.cp-tk .cp-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cp-tk .cp-acts .cp-btn{min-height:40px;font-size:14px;font-weight:600;padding:6px 14px;width:auto}
 .cp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.cp-empty{font-size:13px;color:var(--muted);margin:4px}
-.cp-mv{background:var(--surface);border:1.5px solid var(--accent,#3AA892);border-radius:10px;padding:10px;margin-bottom:9px;font-size:13.5px}
-.cp-mv h5{margin:0 0 4px;font-size:13.5px;letter-spacing:0;text-transform:none;color:var(--text)}
-.cp-mv small{display:block;color:var(--muted);font-size:12px;margin-bottom:8px;overflow-wrap:anywhere}
+.cp-empty{font-size:14px;color:var(--muted);margin:4px}
+.cp-mv{background:var(--surface);border:1.5px solid var(--accent,#3AA892);border-radius:10px;padding:10px;margin-bottom:9px;font-size:14px}
+.cp-mv h5{margin:0 0 4px;font-size:14px;letter-spacing:0;text-transform:none;color:var(--text)}
+.cp-mv small{display:block;color:var(--muted);font-size:13px;margin-bottom:8px;overflow-wrap:anywhere}
 .cp-mv .cp-ta{min-height:64px;font-size:14px}
 .cp-seq{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .cp-toast{margin:0 14px 10px;padding:9px 12px;border-radius:10px;background:#E1F1E6;color:#1f5a35;font-size:13.5px}
 .cp-toast.bad{background:#F8E4DF;color:#B4412F}
-.cp-guide{margin:4px 14px 0;font-size:13px;color:var(--muted)}
+.cp-guide{margin:4px 14px 0;font-size:14px;color:var(--muted)}
 @media (max-width:1180px){
   .cb-app{grid-template-columns:minmax(0,1fr)}
   .cb-in{position:static;max-height:none;display:flex;gap:8px;overflow:auto;padding:10px}
@@ -233,8 +248,8 @@ button.tk-pill{cursor:pointer}
     if (c.duplicate_of) return 'Duplicate of ' + (c.duplicate_code || 'another complaint');
     if (c.status === 'resolved') return 'Closed';
     if (!t) return 'Not under triage';
-    if (t.state === 'stuck') return 'Stuck, needs a person';
-    if (t.state === 'claimed') return c.first_response_at ? 'Replied, client back?' : 'Taken, reply due';
+    if (t.state === 'stuck') return 'Stuck, needs a leader';
+    if (t.state === 'claimed') return c.first_response_at ? 'Replied, waiting on the client' : 'Taken, reply due';
     if (t.state === 'minor') return 'Minor, daily summary';
     if (t.state === 'done') return 'Closed';
     return 'Waiting to be taken';
@@ -270,17 +285,30 @@ button.tk-pill{cursor:pointer}
   }
 
   // ---------------------------------------------------------------- the pipeline (Kate, 30 Oct 2026: inbox on the left, five stages, colour = priority)
-  var BSTAGES = [['waiting', 'Waiting to be taken'], ['taken', 'Taken, reply due'], ['replied', 'Replied, client back?'], ['stuck', 'Stuck'], ['closed', 'Closed']];
-  // Where a card may be dropped. A drop never just moves it: it asks for the real thing (who takes it, what she said), and Closed opens the dashboard form for how it ended.
+  // Stage names in plain words, with one line under each saying what it means and what happens next (30 Oct 2026 audit). The codes (waiting, taken ...) are unchanged.
+  var BSTAGES = [['waiting', 'Waiting to be taken'], ['taken', 'Taken, reply due'], ['replied', 'Replied, waiting on the client'], ['stuck', 'Stuck, needs a leader'], ['closed', 'Closed']];
+  var BHINT = {
+    waiting: 'Someone needs to take it before the clock runs out. If nobody does, it moves on to the next person.',
+    taken: 'Someone has it. They owe the client a reply by the date on the card.',
+    replied: 'The client has had a reply. Close it once the client is happy and you have written how it ended.',
+    stuck: 'Nobody took it in time. A leader needs to pick it up.',
+    closed: 'Done, with how it ended written down.'
+  };
+  var BEMPTY = { waiting: 'Nothing waiting. Good.', taken: 'No replies owed.', replied: 'Nobody is waiting on the client.', stuck: 'Nothing stuck. Good.', closed: 'Nothing closed yet.' };
+  // Where a card may be moved, by drag or by the button on the card. Either way it never just moves: it asks for the real thing (who takes it, what the client said), and Closed opens the dashboard form for how it ended.
   var VALID = { waiting: ['taken'], taken: ['replied', 'closed'], replied: ['closed'], stuck: ['taken'], closed: [] };
+  var STEP = { taken: 'Take it', replied: 'Log the reply', closed: 'Close it' };
   var GROUPS = [
     ['mine', 'Assigned to you', function (x) { return x.assigned_me && x.stage !== 'closed'; }],
     ['sub', 'You submitted', function (x) { return x.filed_me; }],
     ['tag', 'Tagged you', function (x) { return x.tagged_me; }],
     ['over', 'Overdue', function (x) { return x.flag === 'overdue' || x.stage === 'stuck'; }, 'red'],
     ['wait', 'Waiting to be taken', function (x) { return x.stage === 'waiting'; }],
-    ['stk', 'Stuck, needs Kate', function (x) { return x.stage === 'stuck'; }, 'red']
+    ['stk', 'Stuck, needs a leader', function (x) { return x.stage === 'stuck'; }, 'red']
   ];
+  // Remembered in this browser, like the folded inbox: the branch filter and whether the three-step guide has been read.
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   // Which inbox groups are open (Kate, 30 Oct 2026): Assigned to you and Overdue are open, the rest folded away; remembered in this browser.
   function inboxOpen() {
     var B = S.board;
@@ -296,9 +324,9 @@ button.tk-pill{cursor:pointer}
   function bst(x) { return x.stage === 'minor' ? 'waiting' : x.stage; }
   function bhref(x) { return x.code ? '/hub/complaint?c=' + encodeURIComponent(x.code) : '/hub/complaint?cid=' + x.id + '&t=1'; }
   function chipOf(x) {
-    if (x.stage === 'stuck') return ['red', 'Needs Kate now'];
+    if (x.stage === 'stuck') return ['red', 'Needs a leader now'];
     if (x.stage === 'minor') return ['grey', 'No clock, daily summary'];
-    if (x.stage === 'waiting') return x.due_at && left(x.due_at) ? ['amber', left(x.due_at) + ' left'] : ['amber', 'Moving on now'];
+    if (x.stage === 'waiting') return x.due_at && left(x.due_at) ? ['amber', left(x.due_at) + ' before it moves on'] : ['amber', 'Moving on now'];
     if (x.stage === 'taken') return x.flag === 'overdue' ? ['red', 'Overdue'] : ['amber', 'Reply by ' + day(x.reply_due)];
     if (x.stage === 'replied') return x.flag === 'overdue' ? ['red', 'Overdue'] : ['green', 'On track, close by ' + day(x.close_due)];
     return ['grey', 'Closed ' + day(x.resolved_at)];
@@ -307,10 +335,16 @@ button.tk-pill{cursor:pointer}
     return x.stage === 'waiting' ? (x.holder ? cap(x.holder) : '') : x.stage === 'stuck' ? 'Everyone had it. Nobody took it' : x.stage === 'minor' ? 'No clock' : x.owner || '';
   }
   function card(x) {
-    var ch = chipOf(x), pr = x.priority || 'mid', who = whoOf(x);
-    return '<a class="cp-tk p-' + pr + '" href="' + bhref(x) + '" target="_blank" rel="noopener" draggable="true" data-id="' + x.id + '" title="' + esc(PRN[pr]) + ' priority">' +
-      '<span class="cp-sr">' + esc(PRN[pr]) + ' priority. </span><b>' + esc(tname(x)) + '</b>' + (who ? '<span class="m">' + esc(who) + (x.dry_run ? ' · dry run' : '') + '</span>' : '') +
-      '<span class="cp-pill ' + ch[0] + '">' + esc(ch[1]) + '</span></a>';
+    var ch = chipOf(x), pr = x.priority || 'mid', who = whoOf(x), st = bst(x), nx = VALID[st] || [];
+    // The title opens the ticket; the buttons below it are the tap and keyboard way to move the card, the same move a drag makes.
+    // "Opens in a new window" is said once in the guide, not on every card.
+    var acts = nx.length ? '<div class="cp-acts">' + nx.map(function (to, i) {
+      return '<button type="button" class="cp-btn ' + (i === 0 ? 'pri' : 'sub') + ' mini" data-step="' + to + '" data-id="' + x.id + '">' + esc(STEP[to]) + '</button>';
+    }).join('') + '</div>' : '';
+    return '<div class="cp-tk p-' + pr + '"' + (nx.length ? ' draggable="true"' : '') + ' data-id="' + x.id + '">' +
+      '<a class="cp-tkl" href="' + bhref(x) + '" target="_blank" rel="noopener"><b>' + esc(tname(x)) + '</b>' +
+      '<span class="cp-prio">' + esc(PRN[pr]) + ' priority</span>' + (who ? '<span class="m">' + esc(who) + (x.dry_run ? ' · dry run' : '') + '</span>' : '') +
+      '<span class="cp-pill ' + ch[0] + '">' + esc(ch[1]) + '</span></a>' + acts + '</div>';
   }
   var PRN = { high: 'High', mid: 'Mid', low: 'Low' };
   function inGroup(x) { var B = S.board; if (!B.grp) return true; var g = GROUPS.filter(function (y) { return y[0] === B.grp; })[0]; return !g || g[2](x); }
@@ -319,10 +353,26 @@ button.tk-pill{cursor:pointer}
     var top = '<small>' + esc(tname(x)) + '</small>';
     if (m.to === 'taken') return '<div class="cp-mv"><h5>Who takes it?</h5>' + top + '<div class="cp-seq"><button type="button" class="cp-btn pri mini" data-mv="take-me">Me</button><button type="button" class="cp-btn sub mini" data-mv="take-pick">Someone else</button></div>' +
       (m.pick ? '<div id="mvPick" style="margin-top:8px"></div>' : '') + '<div class="cp-seq"><button type="button" class="cp-btn sub mini" data-mv="cancel">Cancel</button></div><div class="cp-msg" id="mvMsg" aria-live="polite"></div></div>';
-    if (m.to === 'replied') return '<div class="cp-mv"><h5>What did she say?</h5>' + top + '<textarea class="cp-ta" id="mvText" placeholder="What she said, what you noticed"></textarea><div class="cp-seq"><button type="button" class="cp-btn pri mini" data-mv="replied">Save and move</button><button type="button" class="cp-btn sub mini" data-mv="cancel">Cancel</button></div><div class="cp-msg" id="mvMsg" aria-live="polite"></div></div>';
+    if (m.to === 'replied') return '<div class="cp-mv"><h5>What did the client say?</h5>' + top + '<textarea class="cp-ta" id="mvText" placeholder="What the client said, what you noticed"></textarea><div class="cp-seq"><button type="button" class="cp-btn pri mini" data-mv="replied">Save and move</button><button type="button" class="cp-btn sub mini" data-mv="cancel">Cancel</button></div><div class="cp-msg" id="mvMsg" aria-live="polite"></div></div>';
     return '<div class="cp-mv"><h5>How did it end?</h5>' + top + '<p class="cp-sm" style="margin:0 0 6px">Closing it records how it ended, so it opens on the dashboard.</p><div class="cp-seq"><a class="cp-btn pri mini" href="/?view=complaintlog&cid=' + x.id + '" target="_blank" rel="noopener" data-mv="cancel">Open the close form</a><button type="button" class="cp-btn sub mini" data-mv="cancel">Cancel</button></div></div>';
   }
   function wideWrap(on) { var w = document.querySelector('.wrap'); if (w) w.classList.toggle('cb-wide', !!on); }
+  // The three-step guide shows until it has been read once in this browser; "How this works" opens it again.
+  function guideOpen() { var B = S.board; return B.guide == null ? lsGet('cmp-board-guide') !== 'seen' : !!B.guide; }
+  // The one complaint assigned to this person that is due first, with the plain line for it ("reply by Thu, 29 Oct").
+  function nextOne(cards) {
+    var rows = [];
+    cards.forEach(function (x) {
+      if (!x.assigned_me) return;
+      var st = bst(x), at = st === 'waiting' ? x.due_at : st === 'taken' ? x.reply_due : st === 'replied' ? x.close_due : null, ms = at ? new Date(at.length === 10 ? at + 'T00:00:00' : at).getTime() : NaN;
+      if (st === 'closed' || x.stage === 'minor') return;
+      var line = st === 'waiting' ? 'Take it, ' + (x.due_at && left(x.due_at) ? left(x.due_at) + ' before it moves on' : 'it is moving on now')
+        : st === 'taken' ? 'Reply by ' + day(x.reply_due) : st === 'replied' ? 'Close by ' + day(x.close_due) : 'Needs a leader now';
+      rows.push([x, line, isNaN(ms) ? Infinity : ms]);
+    });
+    rows.sort(function (a, b) { return a[2] - b[2]; });
+    return rows[0] || null;
+  }
   function drawBoard() {
     wideWrap(true);
     var B = S.board, cards = B.cards;
@@ -338,19 +388,36 @@ button.tk-pill{cursor:pointer}
     var fil = '<div class="cp-fil" role="group" aria-label="Filters">' + [['all', 'All branches']].concat(Object.keys(BRANCH).map(function (k) { return [k, BRANCH[k]]; })).map(function (x) {
       return '<button type="button" data-f="branch" data-v="' + x[0] + '" class="' + (B.branch === x[0] ? 'on' : '') + '" aria-pressed="' + (B.branch === x[0]) + '">' + esc(x[1]) + '</button>';
     }).join('') + '<button type="button" data-f="serious" class="' + (B.serious ? 'on' : '') + '" aria-pressed="' + B.serious + '">Serious only</button>' +
+      '<button type="button" class="cb-help" data-help="toggle" aria-expanded="' + guideOpen() + '">How this works</button>' +
       (B.grp ? '<span class="cp-showing">Showing: ' + esc(GROUPS.filter(function (g) { return g[0] === B.grp; })[0][1]) + ' <button type="button" data-g="' + B.grp + '" aria-label="Clear">&times;</button></span>' : '') +
-      '<span class="cp-legend" aria-label="Colour means priority"><span><i class="hi"></i>High</span><span><i class="mid"></i>Mid</span><span><i class="low"></i>Low</span></span></div>';
+      '<span class="cp-legend"><span class="lg">Card edge is priority: <span><i class="hi"></i>High</span><span><i class="mid"></i>Mid</span><span><i class="low"></i>Low</span></span>' +
+      '<span class="lg">The pill is the clock: red overdue, amber due soon, green on track</span></span></div>';
     var cols = BSTAGES.map(function (s) {
       var xs = vis.filter(function (x) { return bst(x) === s[0]; });
       var ok = B.drag && VALID[bst(cards.filter(function (y) { return y.id === B.drag; })[0])].indexOf(s[0]) >= 0;
       var mv = B.move && B.move.to === s[0] ? moveForm(B.move) : '';
-      return '<div class="cp-col' + (s[0] === 'stuck' ? ' stuck' + (xs.length ? ' has' : '') : '') + (ok ? ' ok' : '') + '" data-stage="' + s[0] + '"><h4>' + esc(s[1]) + ' <em>' + xs.length + '</em></h4>' + mv +
-        (xs.length ? xs.map(card).join('') : (mv ? '' : '<p class="cp-empty">Nothing here.</p>')) + '</div>';
+      return '<div class="cp-col' + (s[0] === 'stuck' ? ' stuck' + (xs.length ? ' has' : '') : '') + (ok ? ' ok' : '') + '" data-stage="' + s[0] + '"><h4>' + esc(s[1]) + ' <em>' + xs.length + '</em></h4><p class="cp-hint">' + esc(BHINT[s[0]]) + '</p>' + mv +
+        (xs.length ? xs.map(card).join('') : (mv ? '' : '<p class="cp-empty">' + esc(BEMPTY[s[0]]) + '</p>')) + '</div>';
     }).join('');
-    main.innerHTML = '<div class="cp wide cb">' + nav('board') + '<div><h1>Complaints</h1></div><div class="cb-app"><nav class="cb-in" aria-label="Your complaints">' + inbox + '</nav>' +
-      '<section class="cb-main"><h2>Pipelines</h2>' + fil + (B.toast ? '<div class="cp-toast' + (B.bad ? ' bad' : '') + '" role="status">' + esc(B.toast) + '</div>' : '') +
-      '<div class="cp-board' + (B.drag ? ' dragging' : '') + '" id="cpBoard">' + cols + '</div>' +
-      '<p class="cp-guide">Click a card to open it in a new window. Drag a card to a stage and it asks for the real thing first. Colour is priority: red high, yellow mid, gray low.</p></section></div></div>';
+    // The opening says what needs the person, then why the board exists (the why wall: why this, why the clocks, what the client feels if we do nothing).
+    var need = cards.filter(function (x) { return x.stage === 'stuck' || (x.assigned_me && x.stage !== 'closed'); }).length;
+    var nWait = cards.filter(function (x) { return bst(x) === 'waiting'; }).length, nStuck = cards.filter(function (x) { return x.stage === 'stuck'; }).length;
+    var nOver = cards.filter(function (x) { return x.flag === 'overdue' && x.stage !== 'closed' && x.stage !== 'stuck'; }).length;
+    var parts = [nWait ? nWait + ' waiting to be taken' : '', nStuck ? nStuck + ' stuck' : '', nOver ? nOver + ' overdue' : ''].filter(Boolean);
+    var nOpen = cards.filter(function (x) { return x.stage !== 'closed'; }).length;
+    var head = '<div><h1>' + (need ? (need === 1 ? 'One needs you today' : need + ' need you today') : 'Nothing is waiting for you') + '</h1>' +
+      '<p class="sub">' + (parts.length ? 'Across the pipeline: ' + parts.join(', ') + '.' : (nOpen ? 'Everything open is with someone and on track.' : 'No open complaints right now.')) + '</p></div>' +
+      '<div class="cp-why cb-why"><p><b>Why this board.</b> Each complaint is a client who told us something went wrong, and how fast we answer decides whether the client stays.</p>' +
+      '<p><b>Why the clocks.</b> A complaint nobody takes moves on to the next person, and one nobody takes at all lands in Stuck for a leader.</p>' +
+      '<p><b>If we do nothing.</b> The client waits for an answer, and a problem we could have fixed becomes a client we lost.</p></div>';
+    var nx = nextOne(cards);
+    var next = nx ? '<a class="cb-next" href="' + bhref(nx[0]) + '" target="_blank" rel="noopener">Your next one: <b>' + esc(tname(nx[0])) + '</b>. ' + esc(nx[1]) + '.</a>' : '';
+    var steps = guideOpen() ? '<div class="cb-steps" role="region" aria-label="How this works"><ol><li>Open a card, or tap its button to take it.</li><li>Tell us what the client said.</li><li>Close it and say how it ended.</li></ol>' +
+      '<p>A card title opens the complaint in a new window. A card only moves forward, one step at a time. On a laptop you can also drag a card to the next stage.</p>' +
+      '<button type="button" class="cp-btn sub mini" data-help="seen">Got it</button></div>' : '';
+    main.innerHTML = '<div class="cp wide cb">' + nav('board') + head + '<div class="cb-app"><nav class="cb-in" aria-label="Your complaints">' + inbox + '</nav>' +
+      '<section class="cb-main"><h2>Pipelines</h2>' + steps + next + fil + (B.toast ? '<div class="cp-toast' + (B.bad ? ' bad' : '') + '" role="status">' + esc(B.toast) + '</div>' : '') +
+      '<div class="cp-board' + (B.drag ? ' dragging' : '') + '" id="cpBoard">' + cols + '</div></section></div></div>';
     document.title = 'Complaints · Team Home';
     if (B.move && B.move.pick && CP) {
       var el = document.getElementById('mvPick');
@@ -362,6 +429,7 @@ button.tk-pill{cursor:pointer}
     if (r.error) { main.innerHTML = '<p class="kb-msg">The pipeline did not load. Refresh to try again.</p>'; return; }
     if (r.data == null) { main.innerHTML = '<div class="cp">' + nav('board') + '<p class="kb-msg">The pipeline is for leadership and the salon coordinators.</p></div>'; return; }
     S.board.cards = r.data || [];
+    if (!S.board.branchInit) { S.board.branchInit = true; var kb = lsGet('cmp-board-branch'); if (kb && (kb === 'all' || BRANCH[kb])) S.board.branch = kb; }
     drawBoard();
   }
   async function myEmail() { try { var u = await KB.client.auth.getUser(); return u && u.data && u.data.user && u.data.user.email || ''; } catch (e) { return ''; } }
@@ -384,10 +452,10 @@ button.tk-pill{cursor:pointer}
       out = 'taken by you. The clock has stopped.';
     } else if (kind === 'replied') {
       var note = (document.getElementById('mvText') || {}).value || '';
-      if (note.trim().length < 2) return bad('Write what she said first.');
+      if (note.trim().length < 2) return bad('Write what the client said first.');
       r = await KB.client.rpc('cmp_replied', { p_id: m.id, p_note: note });
       if (r.error || !r.data || !r.data.ok) return bad((r.data && r.data.why) ? cap(r.data.why) + '.' : 'That did not go through. Try again.');
-      out = 'saved. Waiting to hear if she is happy.';
+      out = 'saved. Waiting to hear if the client is happy.';
     }
     B.move = null; B.bad = false; B.toast = tname(x) + ': ' + out;
     await board();
@@ -696,8 +764,30 @@ button.tk-pill{cursor:pointer}
     S.board.drag = x.id; try { e.dataTransfer.setData('text/plain', String(x.id)); e.dataTransfer.effectAllowed = 'move'; } catch (er) {}
     setTimeout(drawBoard, 0);
   });
-  main.addEventListener('dragend', function () { if (S.board.drag) { S.board.drag = null; drawBoard(); } });
-  main.addEventListener('dragover', function (e) { var c = e.target.closest('.cp-col.ok'); if (c) { e.preventDefault(); c.classList.add('over'); } });
+  // A drop on a stage the card may not go to used to do nothing and say nothing. Now the board says why (30 Oct 2026 audit).
+  function refusedWhy(fromStage, toStage) {
+    var label = function (k) { return BSTAGES.filter(function (s) { return s[0] === k; })[0][1].split(',')[0]; };
+    var ok = VALID[fromStage] || [];
+    if (!ok.length) return 'A closed complaint stays closed.';
+    return 'A card can only move forward. ' + label(fromStage) + ' goes to ' + ok.map(label).join(' or ') + '.';
+  }
+  main.addEventListener('dragend', function () {
+    var B = S.board, hover = B.hover; B.hover = '';
+    if (!B.drag) return;
+    var x = B.cards.filter(function (y) { return y.id === B.drag; })[0], from = x ? bst(x) : '';
+    B.drag = null;
+    if (x && hover && hover !== from && (VALID[from] || []).indexOf(hover) < 0) { B.bad = true; B.toast = refusedWhy(from, hover); }
+    drawBoard();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden || !S.board.closing) return;
+    S.board.closing = false; S.board.toast = ''; S.board.bad = false;
+    board();
+  });
+  main.addEventListener('dragover', function (e) {
+    var any = e.target.closest && e.target.closest('.cp-col'); if (any) S.board.hover = any.dataset.stage;
+    var c = e.target.closest('.cp-col.ok'); if (c) { e.preventDefault(); c.classList.add('over'); }
+  });
   main.addEventListener('dragleave', function (e) { var c = e.target.closest('.cp-col'); if (c && !c.contains(e.relatedTarget)) c.classList.remove('over'); });
   main.addEventListener('drop', function (e) {
     var c = e.target.closest('.cp-col.ok'); if (!c) return; e.preventDefault();
@@ -726,8 +816,23 @@ button.tk-pill{cursor:pointer}
     var f = e.target.closest('[data-f]');
     if (f) {
       var b = S.board;
-      if (f.dataset.f === 'branch') b.branch = f.dataset.v; else if (f.dataset.f === 'serious') b.serious = !b.serious;
+      if (f.dataset.f === 'branch') { b.branch = f.dataset.v; lsSet('cmp-board-branch', b.branch); } else if (f.dataset.f === 'serious') b.serious = !b.serious;
       drawBoard(); return;
+    }
+    var hp = e.target.closest('[data-help]');
+    if (hp) {
+      if (hp.dataset.help === 'seen') { S.board.guide = false; lsSet('cmp-board-guide', 'seen'); } else S.board.guide = !guideOpen();
+      drawBoard(); return;
+    }
+    // The button on a card: the same move a drag and drop makes (same rules, same questions asked first), for phones and keyboards.
+    var sp = e.target.closest('[data-step]');
+    if (sp) {
+      var sx = S.board.cards.filter(function (y) { return y.id === Number(sp.dataset.id); })[0], to = sp.dataset.step;
+      if (!sx || (VALID[bst(sx)] || []).indexOf(to) < 0) return;
+      S.board.toast = ''; S.board.drag = null; S.board.move = { id: sx.id, to: to }; drawBoard();
+      var mvEl = main.querySelector('.cp-mv');
+      if (mvEl) { try { mvEl.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' }); } catch (er) {} var fe = mvEl.querySelector('textarea,button,a'); if (fe) fe.focus({ preventScroll: true }); }
+      return;
     }
     var tg = e.target.closest('[data-tg]');
     if (tg) {
@@ -740,7 +845,14 @@ button.tk-pill{cursor:pointer}
     var mv = e.target.closest('[data-mv]');
     if (mv) {
       var k = mv.dataset.mv;
-      if (k === 'cancel') { S.board.move = null; if (mv.tagName === 'A') { setTimeout(drawBoard, 0); return; } drawBoard(); return; }
+      if (k === 'cancel') {
+        var closing = S.board.move && S.board.move.to === 'closed' && mv.tagName === 'A';
+        S.board.move = null;
+        // The close form opens in another tab: say so, and reload the board when the person comes back, so the card is in its new stage.
+        if (closing) { S.board.closing = true; S.board.bad = false; S.board.toast = 'Finish in the other tab, then come back. This card moves when you save.'; }
+        if (mv.tagName === 'A') { setTimeout(drawBoard, 0); return; }
+        drawBoard(); return;
+      }
       if (k === 'take-pick') { S.board.move.pick = true; drawBoard(); return; }
       mv.disabled = true; await doMove(k); mv.disabled = false; return;
     }
