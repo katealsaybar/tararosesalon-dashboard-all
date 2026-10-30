@@ -568,7 +568,7 @@ async function cqDupUnlink(id) {
 }
 function cqDupBlock(r) {
   if (!r.by) return '';
-  const ticket = `<a class="cq-link" href="/hub/complaint?cid=${r.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open the ticket</a> <span class="cq-muted">(people, assign, notes)</span>`;
+  const ticket = `<a class="cq-link" href="/hub/complaint?cid=${r.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open the complaint page</a> <span class="cq-muted">(people, assign, notes)</span>`;
   if (r.duplicate_of) return `<div class="cq-eye" style="margin-top:10px">Duplicate</div>
     <p class="cq-kv">Linked as a duplicate of <b>${cqEsc(r.duplicate_code || 'another complaint')}</b>. It stays on file and is not counted twice. <button type="button" class="cq-btn" data-unlink="${r.id}">Unlink</button> <span id="cqu-dupmsg" class="cq-msg err" aria-live="polite"></span></p>
     <p class="cq-kv">${ticket}</p>`;
@@ -691,16 +691,16 @@ function cqPaintList() {
   const log = cqMode === 'log';
   // Log a Complaint (Belle, 26 Oct 2026): the dates in their own columns (appointment, complaint, resolved), the resolution beside them, and what is
   // overdue or pending first. Client Complaints keeps the columns it had.
-  const tr = rows.map(r => log ? `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
+  const tr = rows.map(r => log ? `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint in a new tab" data-i="${r.id}">
       <td class="hm" style="white-space:nowrap">${cqEsc(cqDay(r.date))}</td>
       <td class="hm" style="white-space:nowrap">${cqEsc(cqDay(r.complaint_date))}</td>
       <td><b>${cqEsc(r.client || 'No name')}</b><div style="margin-top:3px">${cqCodeChip(r)}</div><div class="cq-sub2">${cqEsc(cqBr(r.branch))}${r.phone ? ' · ' + cqEsc(r.phone) : ''}</div>
         <div class="cq-sub2 sm">Appointment ${cqEsc(cqDay(r.date))}<br>Complaint ${cqEsc(cqDay(r.complaint_date))}</div></td>
       <td>${cqEsc(r.detail || 'Not stated')}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
       <td>${r.duplicate_of ? `<span class="cq-pill">Duplicate of ${cqEsc(r.duplicate_code || 'another')}</span>` : r.status === 'open' ? cqFlagPill(r) : '<span class="cq-pill">Resolved</span>'}
-        <div class="cq-sub2${r.flag === 'overdue' ? ' late' : ''}">${cqEsc(cqDaysText(r))}${r.status === 'open' && !r.first_response_at ? ' · no reply yet' : ''}</div>
+        <div class="cq-sub2${r.flag === 'overdue' ? ' late' : ''}">${cqEsc(cqDaysText(r))}${r.status === 'open' && !r.first_response_at ? (r.flag === 'overdue' ? ' · reply to her today' : ' · waiting for a first reply') : ''}</div>
         ${r.holder ? `<div class="cq-sub2">${cqEsc(r.holder.charAt(0).toUpperCase() + r.holder.slice(1))}</div>` : ''}
-        ${r.status === 'open' && !r.duplicate_of ? `<div class="cq-sub2">${r.responsible ? 'Responsible: ' + cqEsc(r.responsible) : 'Nobody responsible yet'}${r.pending_reason ? ' · ' + cqEsc(r.pending_reason) : (r.flag ? ' · no reason written' : '')}</div>` : ''}</td>
+        ${r.status === 'open' && !r.duplicate_of ? `<div class="cq-sub2">${r.responsible ? 'Replying: ' + cqEsc(r.responsible) : 'Who will reply? Add a name on the complaint page'}${r.pending_reason ? ' · ' + cqEsc(r.pending_reason) : (r.flag ? ' · why is it waiting? Add a reason' : '')}</div>` : ''}</td>
       <td class="hm" style="white-space:nowrap">${r.resolved_at ? cqEsc(cqDubai(r.resolved_at)) : '<span class="cq-muted">Open</span>'}</td>
       <td class="hm">${r.status === 'open' ? '<span class="cq-muted">Not yet</span>' : cqEsc(CQ_RES[r.resolution] || '')}${r.revisit_date ? `<div class="cq-sub2">${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}</div>` : ''}</td>
     </tr>` : `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
