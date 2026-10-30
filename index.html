@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=a2cf3c50"></script>
+<script src="pages.js?v=790e04bf"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3755,7 +3755,6 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('clientmix', this)">Client Mix</div>
     <div class="nav-sub" onclick="showView('clientbook', this)">Client Book</div>
     <div class="nav-sub" onclick="showView('complaints', this)">Client Complaints</div>
-    <div class="nav-sub" onclick="showView('complaintlog', this)">Log a Client Complaint</div>
     <div class="nav-sub" onclick="showView('lostclients', this)">Client’s Last Visit</div>
     <div class="nav-sub" onclick="showView('reviews', this)">Google Reviews</div>
     <div class="nav-subhead">Sales &amp; Stock</div>
@@ -3778,8 +3777,6 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-subhead">2025</div>
     <div class="nav-sub" onclick="showView('glowclub', this)">Glow Club Performance</div>
     <div class="nav-subhead">2026</div>
-    <!-- Kate, 30 Oct 2026: Campaign Blasts, Executives & Marketing and Kate (pages.js lv [] and min 3). -->
-    <div class="nav-sub" onclick="showView('campaignblasts', this)">Campaign Blasts, November</div>
     <div class="nav-sub" onclick="showView('lostlists', this)">Lost Client Blasts, October 2026</div>
     <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
     <div class="nav-sub lvl2" data-wvb="all" onclick="wvGoBlast('all', this)">Overall Blast performances</div>
@@ -3805,6 +3802,18 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">People</div>
     <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
     <div class="nav-sub" onclick="showView('orgchart', this)">Org Chart</div>
+  </div>
+
+  <!-- TOOLS (Kate, 30 Oct 2026): pages where someone does something and the site remembers it (docs/SITE-MAP-PLAN-30OCT2026.md). Campaign Blasts
+       (Executives & Marketing and Kate) and Log a Client Complaint (Level 2 and up) are dashboard pages, so they keep their addresses and their
+       pages.js rules. Target Calculator and Post Approvals are links out; they show to Levels 3 and 5 only (tidyNav), the rule of their Team Home
+       cards. Tool Spend stays under Content: it is software subscriptions, not a tool to use. -->
+  <div class="nav-group" id="navTools">
+    <div class="nav-title">Tools</div>
+    <div class="nav-sub" onclick="showView('campaignblasts', this)">Campaign Blasts, November</div>
+    <div class="nav-sub" onclick="showView('complaintlog', this)">Log a Client Complaint</div>
+    <div class="nav-sub" data-tool-link onclick="location.href='/targets/'">Target Calculator</div>
+    <div class="nav-sub" data-tool-link onclick="window.open('https://katealsaybar.github.io/smm_board_approvals/', '_blank', 'noopener')">Post Approvals</div>
   </div>
 
   <!-- Logout button -->
@@ -4790,6 +4799,8 @@ function tidyNav(){
   const wvOpen = typeof trsPageOpen === 'function' && trsPageOpen('wvblast', TRS_LEVEL, TRS_EXTRA);
   document.querySelectorAll('#sidebar .nav-sub[data-wvb]').forEach(el => { el.style.display = wvOpen ? '' : 'none'; });
   document.querySelectorAll('#sidebar .nav-sub.has-kids').forEach(p => { const b = p.querySelector('.nav-kids-btn'); if (b && p.nextElementSibling && p.nextElementSibling.hasAttribute('data-wvb')) b.style.display = wvOpen ? '' : 'none'; });
+  // Tools' two links out (Target Calculator, Post Approvals) are for Levels 3 and 5 only, as their Team Home cards are (only: [3, 5]).
+  document.querySelectorAll('#sidebar .nav-sub[data-tool-link]').forEach(el => { el.style.display = (TRS_LEVEL === 3 || TRS_LEVEL === 5) ? '' : 'none'; });
   const open = el => el.style.display !== 'none' && /showView/.test(el.getAttribute('onclick') || '');
   document.querySelectorAll('#sidebar .nav-subhead').forEach(h => {
     let n = h.nextElementSibling, any = false;

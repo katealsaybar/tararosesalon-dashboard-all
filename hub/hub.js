@@ -22,7 +22,7 @@
   // shortcuts (`via: 'dashboards'`), shown to whoever may open the dashboard and is at
   // `min` level or above. They hold no data; the dashboard and the database still
   // decide what each person can read.
-  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Numbers', 'Clients', 'Targets', 'Campaigns', 'Content', 'People', 'Admin'];
+  KB.GROUPS = ['The Tara Rose Way', 'Me', 'Learn', 'Numbers', 'Clients', 'Targets', 'Campaigns', 'Content', 'People', 'Tools', 'Admin'];
   KB.SECTIONS = [
     // Kate, 5 Oct 2026: Tara's Full Loop handover site (kb_sections min_level 3).
     // 6 Oct 2026: its own group again, at the top, Level 3 and up.
@@ -58,7 +58,7 @@
     { key: 'today-actuals', via: 'dashboards', min: 1, ic: 'today', dept: 'Targets', title: 'Actuals vs Targets', href: '/?view=ledgerActuals', rule: 'var(--accent-coral)',
       blurb: 'The month so far, against target.' },
     // Kate, 22 Oct 2026: the target method, for Level 3 and Level 5 only. The numbers behind both pages are served by target_calc_data() (migrations/target_calc.sql), not by the page code.
-    { key: 'targets-calc', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Targets', title: 'Target Calculator', href: '/targets/', rule: 'var(--accent-coral)',
+    { key: 'targets-calc', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Tools', title: 'Target Calculator', href: '/targets/', rule: 'var(--accent-coral)',
       words: 'targets target calculator plan planner monthly month november stylist person number season seasonal normal day days bottom-up adjust break-even net take floor aim service treatment retail clients average bill joiner',
       blurb: 'Each stylist’s plan for the month, worked out from her own sales and the season.' },
     { key: 'targets-how', via: 'dashboards', min: 3, only: [3, 5], ic: 'today', dept: 'Targets', title: 'How a Target Is Made', href: '/targets/how/', rule: 'var(--accent-coral)',
@@ -91,7 +91,7 @@
     // Complaints and Log a Client Complaint pages (Levels 2 and up, by those pages' own entries in pages.js); the pages and the database decide who may read or log.
     { key: 'clients-complaints', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Clients', title: 'Client Complaints', href: '/?view=complaints', rule: 'var(--accent-lavender)',
       blurb: 'Complaints by branch, year, kind and how each was resolved.' },
-    { key: 'log-complaint', via: 'dashboards', min: 2, ic: 'suggestions', dept: 'Clients', title: 'Log a Client Complaint', href: '/?view=complaintlog', rule: 'var(--accent-lavender)',
+    { key: 'log-complaint', via: 'dashboards', min: 2, ic: 'suggestions', dept: 'Tools', title: 'Log a Client Complaint', href: '/?view=complaintlog', rule: 'var(--accent-lavender)',
       blurb: 'Write down a client complaint, follow it up and mark it resolved, so it is not left in WhatsApp.' },
     // Kate, 31 Oct 2026: the complaints that are with you, that you logged or that you are copied on. Leadership and the salon coordinators also get the Pipeline
     // board from there (the page decides who sees that tab; the database decides who may read).
@@ -109,7 +109,7 @@
     // Kate, 14 Oct 2026: the 2022 ROSES magazine issues, in a private Storage bucket (kb_magazines.sql), Level 2 and up.
     { key: 'magazines', dept: 'Content', title: 'ROSES Magazine', href: '/hub/magazines', live: true, rule: 'var(--accent-coral)',
       blurb: 'Our ROSES magazine, 2021 to 2023, to read or download.' },
-    { key: 'post-approvals', via: 'dashboards', min: 3, only: [3, 5], ic: 'approvals', dept: 'Content', title: 'Post Approvals', href: 'https://katealsaybar.github.io/smm_board_approvals/', rule: 'var(--accent-coral)',
+    { key: 'post-approvals', via: 'dashboards', min: 3, only: [3, 5], ic: 'approvals', dept: 'Tools', title: 'Post Approvals', href: 'https://katealsaybar.github.io/smm_board_approvals/', rule: 'var(--accent-coral)',
       blurb: 'Posts waiting for a yes, with comments.' },
     // Kate, 6 Oct 2026: named as in the dashboard sidebar (Marketing & Campaigns).
     { key: 'content-ads', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Google Ads', href: '/?view=googleads', rule: 'var(--accent-coral)',
@@ -149,7 +149,7 @@
       blurb: 'Tell the team about a campaign on WhatsApp before it launches.' },
     // Kate, 30 Oct 2026: what each WhatsApp blast looks like on the phone, when it goes out, and Coach Emma's review
     // (a dashboard page, ?view=campaignblasts: it follows that page's own list in pages.js, so Executives & Marketing and Kate; migrations/campaign_blasts.sql).
-    { key: 'campaign-blasts', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Marketing', title: 'Campaign Blasts', href: '/?view=campaignblasts', rule: 'var(--accent-butter)',
+    { key: 'campaign-blasts', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Tools', title: 'Campaign Blasts', href: '/?view=campaignblasts', rule: 'var(--accent-butter)',
       blurb: 'Each WhatsApp blast as the client sees it, the day and time it goes out, and Coach Emma’s review.' },
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
