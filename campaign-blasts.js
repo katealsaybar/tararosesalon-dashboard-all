@@ -10,6 +10,7 @@
   var ORDER_KEY = 'trs-cbl-order';
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var D = null, cur = 'all', cal = null, drag = null, draft = {}, errMsg = '';
+  var bigflow = false;   // the two phones of one blast, large
   var big = false, calMsg = '', cdrag = null, noClick = false;   // the bigger calendar, a note under it, a blast being dragged to another day
   var TODAY = dubaiToday();
   var PC = null;   // comments left on the landing pages themselves (page_comments_get, migrations/page_comments.sql); null until read, and the page works without them
@@ -131,6 +132,8 @@
   // An estimate; the exact amount is on Meta's invoice. Her tap and our reply come inside her 24 hour window, so they are not counted.
   var RATE_USD = 0.046, RATE_AED = 0.17;
   function cnt(b) { if (LIVE && LIVE.blasts) return Number((LIVE.blasts[b.id] || {}).n) || 0; return liveErr ? Number(b.data.n) || 0 : null; }
+  function estAed(n) { return n == null ? '…' : 'AED ' + fmtN(Math.round(n * RATE_AED)); }
+  function estUsd(n) { return n == null ? '' : ' (USD ' + fmtN(Math.round(n * RATE_USD)) + ')'; }
   function cost(n) { return n == null ? '…' : 'AED ' + fmtN(Math.round(n * RATE_AED)) + ' (USD ' + fmtN(Math.round(n * RATE_USD)) + ')'; }
   function liveNote() {
     if (LIVE && LIVE.asof) return '<span class="cbl-live">Counted from the till, ' + fd(String(LIVE.asof).slice(0, 10)) + '</span>';
@@ -165,6 +168,13 @@
       '<button type="button" class="cbl-bigbtn" data-act="big">Bigger calendar</button></div>';
   }
   // The same month, large: every blast is a chip on its day. Drag a chip to another day to move it; click it to open it.
+  // Both phones large, so a whole flow can be read without scrolling the page (Kate, 30 Oct 2026). Same taps as on the page, the state is shared.
+  function flowBigHtml(b) {
+    return '<div class="cbl-modal" data-act="close"><div class="cbl-flowbig cbl-card" role="dialog" aria-modal="true" aria-label="The flow, large"><div class="cbl-big-h">' +
+      '<b>' + esc(b.data.title) + '</b><button type="button" class="cbl-big-x" data-act="close">Close</button></div>' +
+      '<p class="cbl-hint">Tap a button to see what she gets next. If she types a question instead, it goes to the call centre.</p>' +
+      '<div class="cbl-fm-phones">' + lane('Warm', b.data.warm, b.data.img, b, 'warm') + lane('Standard', b.data.std, b.data.img, b, 'std') + '</div></div></div>';
+  }
   function bigCalHtml() {
     var y = cal.y, m = cal.m, off = (new Date(y, m, 1).getDay() + 6) % 7, n = new Date(y, m + 1, 0).getDate();
     var h = '<div class="cbl-modal" data-act="close"><div class="cbl-bigcal cbl-card" role="dialog" aria-modal="true" aria-label="Calendar of blasts"><div class="cbl-big-h">' +
@@ -267,13 +277,20 @@
     var hasWhy = k === 'changes' && b.comments.some(function (c) { return c.by === b.review_by && b.review_at && new Date(c.at) >= new Date(new Date(b.review_at).getTime() - 60000); });
     return '<a class="cbl-back" href="?view=campaignblasts" data-go="all">‹ All blasts</a>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
-      '<div class="cbl-facts"><div class="cbl-fact cbl-card"><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b><span class="cbl-est" title="One marketing message per client, about USD 0.046 (AED 0.17) each">Est. to send: ' + cost(cnt(b)) + '</span>' + liveNote() + '</div><div class="cbl-fact cbl-card"><small>Who</small>' + esc(b.data.who) + '</div><div class="cbl-fact cbl-card"><small>She gets</small>' + esc(b.data.gets) + '</div>' + '</div>' +
-      '<div class="cbl-row2">' + pageCard(b) +
+      '<div class="cbl-top' + (pageCard(b) ? '' : ' noside') + '"><div class="cbl-topl">' +
+      '<div class="cbl-card cbl-nums">' +
+        '<div><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b>' + liveNote() + '</div>' +
+        '<div title="One marketing message per client, about USD 0.046 (AED 0.17) each"><small>Est. to send</small><span><b>' + estAed(cnt(b)) + '</b><span class="cbl-est">' + estUsd(cnt(b)) + '</span></span></div>' +
+        '<div><small>Who</small>' + esc(b.data.who) + '</div>' +
+        '<div><small>She gets</small>' + esc(b.data.gets) + '</div>' +
+      '</div>' +
       '<div class="cbl-card cbl-when"><h3>When it goes out</h3>' +
       '<label class="cbl-fld">Date<input type="date" id="cblDate" value="' + b.send_date + '"' + (canEdit() ? '' : ' disabled') + '></label>' +
       '<label class="cbl-fld">Time (Dubai)<select id="cblTime"' + (canEdit() ? '' : ' disabled') + '>' + times + '</select></label>' +
       '<label class="cbl-sw"><input type="checkbox" id="cblLock"' + (b.locked ? ' checked' : '') + (canEdit() ? '' : ' disabled') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
-      (w.length ? '<p class="cbl-note warn">' + w.join(' ') + '</p>' : '<p class="cbl-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') + '</div>' + '</div>' +
+      (w.length ? '<p class="cbl-note warn">' + w.join(' ') + '</p>' : '<p class="cbl-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') + '</div>' +
+      '</div>' + pageCard(b) + '</div>' +
+      (replyFor(b, 'warm') ? '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-act="flowbig">See the flow bigger</button></div>' : '') +
       '<div class="cbl-phones">' + lane('Warm', b.data.warm, b.data.img, b, 'warm') + lane('Standard', b.data.std, b.data.img, b, 'std') + '</div>' +
       '<div class="cbl-card cbl-rev"><div class="cbl-rev-top"><h3>Review and comments</h3>' + (canEdit()
         ? '<div class="cbl-seg" role="group" aria-label="Review"><button type="button" data-st="ok" class="ok' + (k === 'ok' ? ' on' : '') + '">Approve</button><button type="button" data-st="changes" class="changes' + (k === 'changes' ? ' on' : '') + '">Needs changes</button></div>'
@@ -303,7 +320,7 @@
       '<p class="cbl-links"><a href="/campaigns/blonde-standard/" target="_blank" rel="noopener">Blonde Standard ↗</a><a href="/campaigns/hair-rhythm/" target="_blank" rel="noopener">The Hair Rhythm ↗</a><a href="/campaigns/hair-extension-plan/" target="_blank" rel="noopener">Hair Extension Plan ↗</a></p></section>' +
       '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="cblSide">' +
       '<button type="button" class="cbl-side-toggle" id="cblSideT" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calHtml() + tabsHtml() + '</div></aside><div class="cbl-main" id="cblMain">' + (b ? blastHtml(b) : allHtml()) + '</div></div>' + (big ? bigCalHtml() : '') + '</div>';
+      '<div class="cbl-side-body">' + calHtml() + tabsHtml() + '</div></aside><div class="cbl-main" id="cblMain">' + (b ? blastHtml(b) : allHtml()) + '</div></div>' + (big ? bigCalHtml() : '') + (bigflow && item(cur) ? flowBigHtml(item(cur)) : '') + '</div>';
     var ta = document.getElementById('cblCmt');
     if (ta) { ta.value = draft[cur] || ''; ta.oninput = function () { draft[cur] = ta.value; }; }
     fitPreviews();
@@ -326,7 +343,7 @@
   var fitTimer = null;
   window.addEventListener('resize', function () { clearTimeout(fitTimer); fitTimer = setTimeout(fitPreviews, 120); });
   function go(id, keepMonth) {
-    cur = id; errMsg = ''; calMsg = ''; big = false;
+    cur = id; errMsg = ''; calMsg = ''; big = false; bigflow = false;
     var b = item(id); if (b && !keepMonth) { var d = parts(b.send_date); cal = { y: d.getFullYear(), m: d.getMonth() }; }
     render(true);   // Kate, 30 Oct 2026: another blast opens where you already are, so the phones and the page line up with the one you had open
   }
@@ -351,16 +368,17 @@
     if (t.closest && t.closest('.dn')) { e.preventDefault(); return; }   // a client number: drill.js opens its list
     var a = t.closest && t.closest('[data-go]');
     if (a) { e.preventDefault(); go(a.getAttribute('data-go')); return; }
-    var c = t.closest && t.closest('[data-act]');
-    if (c && c.getAttribute('data-act') === 'big') { big = true; calMsg = ''; render(true); return; }
-    if (c && c.getAttribute('data-act') === 'close') { if (c.classList.contains('cbl-modal') && t !== c) return; big = false; calMsg = ''; render(true); return; }
-    if (c) { var dm = c.getAttribute('data-act') === 'next' ? 1 : -1; cal.m += dm; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); return; }
-    var dd = t.closest && t.closest('[data-day]');
-    if (dd) { var first = ord().filter(function (id) { return item(id).send_date === dd.getAttribute('data-day'); })[0]; if (first) go(first, true); return; }
     var fb = t.closest && t.closest('[data-flow]');
     if (fb) { var k = fb.getAttribute('data-flow'); flow[k] = (flow[k] || []).slice(0, +fb.getAttribute('data-d')).concat(+fb.getAttribute('data-i')); flowScroll = k; render(true); return; }
     var fr = t.closest && t.closest('[data-flow-reset]');
     if (fr) { delete flow[fr.getAttribute('data-flow-reset')]; render(true); return; }
+    var c = t.closest && t.closest('[data-act]');
+    if (c && c.getAttribute('data-act') === 'flowbig') { bigflow = true; render(true); return; }
+    if (c && c.getAttribute('data-act') === 'big') { big = true; calMsg = ''; render(true); return; }
+    if (c && c.getAttribute('data-act') === 'close') { if (c.classList.contains('cbl-modal') && t !== c) return; big = false; bigflow = false; calMsg = ''; render(true); return; }
+    if (c) { var dm = c.getAttribute('data-act') === 'next' ? 1 : -1; cal.m += dm; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); return; }
+    var dd = t.closest && t.closest('[data-day]');
+    if (dd) { var first = ord().filter(function (id) { return item(id).send_date === dd.getAttribute('data-day'); })[0]; if (first) go(first, true); return; }
     var st = t.closest && t.closest('[data-st]');
     if (st) { var b = item(cur), v = st.getAttribute('data-st'); act(function () { return rpc('blast_plan_review', { p_id: cur, p_status: b.review === v ? 'none' : v }); }); return; }
     var del = t.closest && t.closest('[data-del]');
@@ -421,7 +439,7 @@
   document.addEventListener('pointerup', function (e) { endCalDrag(e, false); });
   document.addEventListener('pointercancel', function (e) { endCalDrag(e, true); });
   document.addEventListener('click', function (e) { if (noClick) { noClick = false; e.preventDefault(); e.stopPropagation(); } }, true);
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && big && main()) { big = false; render(true); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && (big || bigflow) && main()) { big = false; bigflow = false; render(true); } });
 
   /* drag the tabs (pointer events, so it works on a phone) and arrow keys */
   document.addEventListener('pointerdown', function (e) {

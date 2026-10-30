@@ -65,6 +65,24 @@
 .cbl-pg{font-weight:600;color:var(--text);text-decoration:underline;text-underline-offset:3px;min-height:24px}
 .cbl-fact b{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;line-height:1.1}
 
+/* the top of a blast: the numbers and the date on the left, the landing page as a side panel (mockup A, Kate, 30 Oct 2026) */
+.cbl-top{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:12px;align-items:start}
+.cbl-top.noside{grid-template-columns:minmax(0,1fr)}
+.cbl-topl{display:grid;gap:12px;min-width:0}
+.cbl-nums{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.cbl-nums>div{padding:14px 18px;font-size:15px;display:grid;gap:2px;align-content:start}
+.cbl-nums>div:nth-child(odd){border-right:1px solid var(--border)}
+.cbl-nums>div:nth-child(n+3){border-top:1px solid var(--border)}
+.cbl-nums small{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+.cbl-nums b{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;line-height:1.1}
+.cbl-nums .dn{border-bottom:1px dotted currentColor;cursor:pointer}
+.cbl-top>.cbl-pgc{width:auto}
+@media (max-width:820px){
+  .cbl-top{grid-template-columns:minmax(0,1fr)}
+  .cbl-nums{grid-template-columns:minmax(0,1fr)}
+  .cbl-nums>div:nth-child(odd){border-right:0}
+  .cbl-nums>div+div{border-top:1px solid var(--border)}
+}
 .cbl-row2{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
 .cbl-row2>.cbl-fact{flex:0 0 230px}
 .cbl-row2>.cbl-when{flex:1 1 380px}
@@ -168,6 +186,16 @@
 .cbl .cbl-bigbtn{margin-top:12px;width:100%;min-height:40px;border-radius:999px;border:1px solid var(--border);background:transparent;font-size:13.5px;font-weight:600;cursor:pointer}
 .cbl .cbl-bigbtn:hover{background:var(--surface2)}
 .cbl-cal .cbl-hint{margin:10px 0 0}
+
+/* the flow, large */
+.cbl-flowbar{display:flex;justify-content:flex-end;margin-top:4px}
+.cbl .cbl-flowbar .cbl-bigbtn{width:auto;margin:0;padding:0 18px}
+.cbl-flowbig{width:min(980px,100%);padding:16px 20px 20px}
+.cbl-flowbig .cbl-big-h b{text-align:left;min-width:0;font-size:22px}
+.cbl-fm-phones{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cbl-flowbig .cbl-lane{background:var(--bg)}
+.cbl-flowbig .cbl-phone{width:330px;height:clamp(480px,calc(100vh - 300px),800px)}
+@media (max-width:760px){.cbl-fm-phones{grid-template-columns:1fr}}
 
 /* the bigger calendar */
 .cbl-modal{position:fixed;inset:0;z-index:2000;background:rgba(10,12,16,.62);display:flex;align-items:flex-start;justify-content:center;padding:84px 16px 24px;overflow-y:auto;overscroll-behavior:contain}
