@@ -520,9 +520,10 @@ function podiumTab() {
   // 3. her places, one list
   const row = x => {
     const s = p.stats[x.k], me = s.me, top = me && me.rank <= 3;
-    const pos = me && s.ranked > 1 ? (me.rank - 1) / (s.ranked - 1) * 100 : 0;
+    const lead = Math.max(0, ...s.board.map(r => Number(r.value) || 0));   // the leader's figure is the full bar
+    const pos = me && lead > 0 ? Math.min(100, Math.max(0, Number(me.value) / lead * 100)) : 0;
     const body = me
-      ? `<span class="pr-p"><b>${ord(me.rank)}</b><small>of ${s.ranked}</small></span><span class="pr-v">${esc(pvalFull(x, me.value))}</span><span class="pr-track"><i style="left:${pos}%"></i></span>`
+      ? `<span class="pr-p"><b>${ord(me.rank)}</b><small>of ${s.ranked}</small></span><span class="pr-v">${esc(pvalFull(x, me.value))}</span><span class="pr-track"><b style="width:${pos}%"></b><i style="left:${pos}%"></i></span>`
       : `<span class="pr-p none"><b>Not yet</b></span><span class="pr-v">${esc(noneOf(x))}</span>`;
     return `<button type="button" class="pr${top ? ' podtop' : ''}${me ? '' : ' none'}${x.k === cur.k ? ' sel' : ''}" onclick="PerfTabs.stat('${x.k}')"
       aria-label="${esc(x.name)}: ${me ? `you are ${ord(me.rank)} of ${s.ranked}` : 'not ranked yet'}. Show the whole team for it.">

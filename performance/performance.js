@@ -105,7 +105,7 @@ function rbBoth(n) {
   const led = n && n.rebooking_pct != null ? n.rebooking_pct : null;
   return { ph, led };
 }
-const rbTxt = b => `Phorest ${b.ph == null ? 'n/a' : fmt(b.ph, 'pct')} · Ledger ${b.led == null ? 'n/a' : fmt(b.led, 'pct')}`;
+const rbTxt = b => `Phorest ${b.ph == null ? 'n/a' : fmt(b.ph, 'pct')} · Branch sheet ${b.led == null ? 'n/a' : fmt(b.led, 'pct')}`;
 function withSource(d) {
   if (SRC !== 'phorest') return d;
   const swap = n => {
@@ -718,10 +718,10 @@ async function renderStylist() {
 
     <section class="card">
       <div class="eyebrow">${midMonth ? 'This month so far' : 'Your month'}</div>
-      <div class="card-head"><h2>The six numbers.</h2><div class="dept-seg chart-seg" id="srcSeg" role="group" aria-label="Where the client numbers come from"><button type="button" data-src="ledger"${SRC === 'ledger' ? ' class="on"' : ''}>Ledger</button><button type="button" data-src="phorest"${SRC === 'phorest' ? ' class="on"' : ''}>Phorest</button></div></div>
+      <div class="card-head"><h2>The six numbers.</h2><div class="dept-seg chart-seg" id="srcSeg" role="group" aria-label="Where the client numbers come from"><button type="button" data-src="ledger"${SRC === 'ledger' ? ' class="on"' : ''}>Branch sheet</button><button type="button" data-src="phorest"${SRC === 'phorest' ? ' class="on"' : ''}>Phorest</button></div></div>
       <p class="sub">${SRC === 'phorest'
-        ? 'Clients, requests, new clients, rebooking and average bill are Phorest’s own counts. Sales are from Phorest either way.'
-        : 'Clients, requests, new clients and rebooking are from the branch ledger reception fills in, counted per staff. Average bill is your Phorest sales divided by the ledger’s client count. Sales are from Phorest either way.'}</p>
+        ? 'Clients are counted at the door: each visit Phorest rang up under your name. Requests, new clients, rebooking and average bill are Phorest’s own counts too. Sales are from Phorest either way.'
+        : 'Clients are counted at your chair: the clients you handled, from the branch sheet reception fills in. Requests, new clients and rebooking come from the same sheet. Average bill is your Phorest sales divided by that client count. Sales are from Phorest either way.'}</p>
       ${midMonth ? `<p class="sub">Money numbers are judged on pace for the full month, with data up to ${esc(dayLabel(n.data_to || n.last_date))}.</p>` : ''}
       ${started && !(share && share.off) ? `<p class="sub">You started on ${esc(dayLabel(n.start_date))}, so this month's totals are aimed at the ${started.left} days since.</p>` : ''}
       ${share && share.off ? `<p class="sub">${started ? `You started on ${esc(dayLabel(n.start_date))} and` : 'You'} were away ${(n.leave || []).map(x => x.from === x.to ? esc(dayLabel(x.from)) : `${esc(dayLabel(x.from))} to ${esc(dayLabel(x.to))}`).join(' and ')}, so this month's totals are aimed at the ${share.left} days you were here.</p>` : ''}
