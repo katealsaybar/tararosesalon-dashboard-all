@@ -37,6 +37,13 @@
 // Secrets (Supabase → Edge Functions → Secrets): SMTP_USER = payroll@tararosesalon.com,
 // SMTP_PASS = that account's Google App Password. Supabase blocks port 587, so it's 465.
 //
+// Six kinds of email (Kate, 30 Oct 2026): stylists, beauticians, salon coordinators, the call centre team, reception and assistants. The hair and beauty
+// team (perf_staff) get the payslip, their month target from the Target Calculator (perf_dashboard.month_target), the win and tip, the Podium place and the
+// sign-in. The others (payslip_staff) get the payslip only. The `preview` action returns any of the six exactly as it would be sent, with example numbers,
+// for the Upload Portal's Email preview tab; it sends nothing.
+// The October 2026 send also carries a welcome (WELCOME_MONTHS): the hair and beauty team are asked to sign in to see everything on their own page, and the
+// others to sign in to Team Home.
+//
 // Deploy: supabase functions deploy payslip-mailer --no-verify-jwt --project-ref gvijxenafoowajqktqvd
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -54,6 +61,10 @@ const PAGE = "https://trk-salon-os.com/performance/";
 // Transparent PNG in a mid warm grey (Kate, 19 Oct 2026: the old logo was a flat white box on dark-mode emails). 4.3:1 on white and on near-black.
 const LOGO = "https://trk-salon-os.com/assets/email-logo-tp.png";
 const PORTAL = "trk-salon-os.com/upload/";
+// The months whose payslip email also welcomes people and asks them to sign in (Kate, 30 Oct 2026: "for October 2026 send tho").
+const WELCOME_MONTHS = new Set(["2026-10"]);
+// Team Home, for the people who have no My Numbers page: assistants, reception, the call centre team and the salon coordinators.
+const HUB_LINK = `${SITE}?next=${encodeURIComponent("/hub/")}`;
 const BUDGET_MS = 100_000;   // stop starting new emails here; the rest go on the next run or press
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -132,26 +143,37 @@ async function log(who: string, what: string) { await sb.from("payslip_mailer_lo
 // ── who gets what ──
 // kind 'other' = an assistant or reception team member from payslip_staff (Kate, 19 and 21 Oct 2026): payslip only, no performance page, so no
 // token and no numbers.
-type Person = { id: string; name: string; branch: string; kind: "stylist" | "other"; email: string | null; send_email: boolean; token: string;
+type Role = "stylist" | "beautician" | "coordinator" | "call_centre" | "reception" | "assistant";
+const ROLE_LABEL: Record<Role, string> = {
+  stylist: "Stylists", beautician: "Beauticians", coordinator: "Salon coordinators", call_centre: "Call centre team", reception: "Reception", assistant: "Assistants",
+};
+type Person = { id: string; name: string; branch: string; kind: "stylist" | "other"; role: Role; email: string | null; send_email: boolean; token: string;
   slip: { path: string; file_name: string } | null; sent: { status: string; sent_at: string } | null };
 
 async function people(month: string): Promise<Person[]> {
   const m = `${month}-01`;
-  const [{ data: staff, error: e1 }, { data: slips, error: e2 }, { data: sends, error: e3 }, { data: asst, error: e4 }] = await Promise.all([
-    sb.from("perf_staff").select("id, display_name, branch, email, send_email, token").eq("active", true).order("branch").order("display_name"),
+  const [{ data: staff, error: e1 }, { data: slips, error: e2 }, { data: sends, error: e3 }, { data: asst, error: e4 }, { data: positions }] = await Promise.all([
+    sb.from("perf_staff").select("id, display_name, branch, dept, email, send_email, token").eq("active", true).order("branch").order("display_name"),
     sb.from("payslips").select("staff_id, path, file_name").eq("month", m),
     sb.from("payslip_sends").select("staff_id, status, sent_at").eq("month", m),
     sb.from("payslip_staff").select("id, name, grp, email").eq("active", true).order("grp").order("name"),
+    sb.from("kb_positions").select("email, position"),
   ]);
   if (e1 || e2 || e3 || e4) throw e1 || e2 || e3 || e4;
   const slip = Object.fromEntries((slips || []).map((p) => [p.staff_id, p]));
   const sent = Object.fromEntries((sends || []).map((p) => [p.staff_id, p]));
+  const positionOf = Object.fromEntries((positions || []).map((x: { email: string | null; position: string | null }) => [String(x.email || "").toLowerCase(), String(x.position || "")]));
+  const roleOf = (grp: string, email: string | null): Role => {
+    if (grp === "ASST") return "assistant";
+    const pos = positionOf[String(email || "").toLowerCase()] || "";
+    return /salon coordinator/i.test(pos) ? "coordinator" : /call centre/i.test(pos) ? "call_centre" : "reception";
+  };
   const stylists: Person[] = (staff || []).map((s) => ({
-    id: s.id, name: s.display_name, branch: s.branch, kind: "stylist" as const, email: (s.email || "").trim() || null, send_email: !!s.send_email,
+    id: s.id, name: s.display_name, branch: s.branch, kind: "stylist" as const, role: (s.dept === "Beauty" ? "beautician" : "stylist") as Role, email: (s.email || "").trim() || null, send_email: !!s.send_email,
     token: s.token, slip: slip[s.id] || null, sent: sent[s.id] || null,
   }));
   const others: Person[] = (asst || []).map((a) => ({
-    id: a.id, name: a.name, branch: a.grp, kind: "other" as const, email: (a.email || "").trim() || null, send_email: true,
+    id: a.id, name: a.name, branch: a.grp, kind: "other" as const, role: roleOf(a.grp, a.email), email: (a.email || "").trim() || null, send_email: true,
     token: "", slip: slip[a.id] || null, sent: sent[a.id] || null,
   }));
   return [...stylists, ...others];
@@ -187,29 +209,50 @@ function winTipHtml(wt: { win?: string; tip?: string; how?: string } | null) {
   return (wt.win ? `<p style="margin:14px 0 8px;padding:10px 14px;background:#E1F5EE;border-radius:8px"><b style="color:#0F6E56">Your win</b><br>${esc(wt.win)}</p>` : "")
     + (wt.tip ? `<p style="margin:8px 0 14px;padding:10px 14px;background:#FAEEDA;border-radius:8px"><b style="color:#BA7517">Top tip for next month</b><br>${esc(wt.tip)}${wt.how ? `<br><span style="color:#77706A">${esc(wt.how)}</span>` : ""}</p>` : "");
 }
-// An assistant or reception team member has no performance page, so the email is the payslip and nothing else.
-async function plainEmailFor(p: Person, month: string) {
-  const first = p.name.split(" ")[0], mon = label(month, { month: "long" });
+type EmailParts = { html: string; text: string };
+const aed = (v: number) => "AED " + Math.round(v).toLocaleString("en-GB");
+const SIGN_OFF_LOGO = `<p style="margin-top:22px"><img src="${LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>`;
+const CTA = (href: string, text: string) => `<p><a href="${href}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">${esc(text)}</a></p>`;
+const WELCOME_BOX = (title: string, body: string) => `<p style="margin:14px 0;padding:10px 14px;background:#E1F5EE;border-radius:8px"><b style="color:#0F6E56">${esc(title)}</b><br>${esc(body)}</p>`;
+
+// What Team Home holds for each role, in plain words, for the welcome. Everyone who is not on the hair and beauty team signs in to Team Home.
+const HUB_HAS: Record<string, string> = {
+  coordinator: "the guides and SOPs for your role, the price list, the HR forms, and your salon's daily target sheet",
+  call_centre: "the call and WhatsApp scripts, booking follow-ups and lead handling, the price list and the HR forms",
+  reception: "the front desk guides and scripts, the price list, the client to stylist matching sheet and the HR forms",
+  assistant: "your induction and onboarding, the Hair SOPs and the HR forms",
+};
+
+// An assistant, reception, call centre or salon coordinator email has no performance page, so it is the payslip, and in a welcome month the sign-in to Team Home.
+function plainParts(o: { first: string; mon: string; hasSlip: boolean; role: Role; welcome: boolean }): EmailParts {
+  const has = HUB_HAS[o.role] || HUB_HAS.reception;
+  const slipLine = o.hasSlip ? `Your ${o.mon} payslip is attached.` : `Your ${o.mon} payslip will follow.`;
+  const welcomeBody = `Everything you need for your role is now in one place: ${has}. Please sign in once with this email address: Google, or an email link. This phone or computer remembers you after that.`;
   const html = `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
-    <p>Hi ${esc(first)},</p>
-    <p>${p.slip ? `Your ${esc(mon)} payslip is attached.` : `Your ${esc(mon)} payslip will follow.`}</p>
-    <p>Questions about your payslip? Just reply to this email and we'll sort it with you.</p>
+    <p>Hi ${esc(o.first)},</p>
+    <p>${esc(slipLine)}</p>
+    ${o.welcome ? WELCOME_BOX("Welcome to Team Home", welcomeBody) + CTA(HUB_LINK, "Sign in to Team Home") : ""}
+    <p>${o.welcome ? "Questions about your payslip, or the sign-in doesn't take?" : "Questions about your payslip?"} Just reply to this email and we'll sort it with you.</p>
     <p>Tara Rose Salons Accounts</p>
-    <p style="margin-top:22px"><img src="${LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>
+    ${SIGN_OFF_LOGO}
   </div>`;
-  let pdf = null;
-  if (p.slip) {
-    const { data: blob, error } = await sb.storage.from("payslips").download(p.slip.path);
-    if (error || !blob) throw new Error(`Couldn't read ${p.name}'s payslip file.`);
-    pdf = { name: p.slip.file_name || `${p.name} payslip ${month}.pdf`, bytes: new Uint8Array(await blob.arrayBuffer()) };
-  }
-  return { html, pdf, text: `Hi ${first},
+  const text = `Hi ${o.first},
 
-${p.slip ? `Your ${mon} payslip is attached.` : `Your ${mon} payslip will follow.`}
+${slipLine}
 
-Questions about your payslip? Just reply to this email and we'll sort it with you.
+${o.welcome ? `Welcome to Team Home. ${welcomeBody}
+Sign in to Team Home: ${HUB_LINK}
 
-Tara Rose Salons Accounts` };
+` : ""}${o.welcome ? "Questions about your payslip, or the sign-in doesn't take?" : "Questions about your payslip?"} Just reply to this email and we'll sort it with you.
+
+Tara Rose Salons Accounts`;
+  return { html, text };
+}
+async function loadPdf(p: Person, month: string) {
+  if (!p.slip) return null;
+  const { data: blob, error } = await sb.storage.from("payslips").download(p.slip.path);
+  if (error || !blob) throw new Error(`Couldn't read ${p.name}'s payslip file.`);
+  return { name: p.slip.file_name || `${p.name} payslip ${month}.pdf`, bytes: new Uint8Array(await blob.arrayBuffer()) };
 }
 // "3rd", "21st". Same helper as the staff page's Podium tab.
 const ord = (n: number) => { const v = n % 100, t = ["th", "st", "nd", "rd"]; return n + (t[(v - 20) % 10] || t[v] || t[0]); };
@@ -228,47 +271,99 @@ async function podiumLine(token: string, month: string): Promise<{ text: string;
 // The sign-in on the site, which brings her back to her own page (index.html ?next=). Google, or an email link, once.
 const signInLink = (token: string, month?: string) => `${SITE}?next=${encodeURIComponent(`/performance/?t=${token}${month ? `&m=${month}` : ""}`)}`;
 
-async function emailFor(p: Person, month: string) {
-  if (p.kind === "other") return plainEmailFor(p, month);
+type StylistOpts = {
+  first: string; mon: string; hasSlip: boolean; welcome: boolean; link: string; nextLevel: string | null;
+  wt: { win?: string; tip?: string; how?: string } | null; pod: { text: string; first: boolean } | null; target: { target: number; took: number | null } | null;
+};
+// The hair and beauty team's email: the payslip, her month target (the Target Calculator's, from perf_dashboard.month_target), her win and tip, her Podium place
+// and the sign-in to her own page. In a welcome month it opens with the welcome that asks her to sign in to see everything.
+function stylistParts(o: StylistOpts): EmailParts {
+  const slipLine = o.hasSlip ? `Your ${o.mon} payslip is attached.` : `Here is your ${o.mon} in short. Your payslip will follow.`;
+  const podHtml = o.pod ? `<p style="margin:14px 0;padding:10px 14px;background:#FBEAF0;border-radius:8px"><b style="color:#993556">Your Podium Race place</b><br>${esc(o.pod.text)}${o.pod.first ? " Lovely work." : ""}<br><span style="color:#77706A">${o.pod.first ? "The race starts fresh every month." : "A race is a moment, not a verdict, and a new month starts fresh for everyone."}</span></p>` : "";
+  let targetLine = "";
+  if (o.target) {
+    const t = o.target;
+    targetLine = t.took !== null
+      ? `${aed(t.target)}. You took ${aed(t.took)} in services, ${Math.round((t.took / t.target) * 100)}% of it.${t.took >= t.target ? " You reached it." : ""}`
+      : `${aed(t.target)}.`;
+  }
+  const targetHtml = o.target ? `<p style="margin:14px 0;padding:10px 14px;background:#EAF1FB;border-radius:8px"><b style="color:#185FA5">Your ${esc(o.mon)} target</b><br>${esc(targetLine)}<br><span style="color:#77706A">It is built from your own last three months and the season.</span></p>` : "";
+  const next = o.nextLevel ? `, how close you are to ${o.nextLevel}` : "";
+  const welcomeBody = `It is private to you and it holds your numbers for the month against your target, your reviews${next}, where you stand on the Podium Race, and your payslip. Please sign in once to see everything: Google, or an email link, with this email address. This phone remembers you after that.`;
+  const more = `There is more waiting on your own page: your numbers against your aims, your reviews${next}, and the whole Podium Race for your team.`;
+  const moreAsk = `It is private to you, so please sign in once with this email address: Google, or an email link. This phone remembers you after that.`;
+  const html = `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
+    <p>Hi ${esc(o.first)},</p>
+    <p>${esc(slipLine)}</p>
+    ${o.welcome ? WELCOME_BOX("Welcome to your Tara Rose page", welcomeBody) : ""}
+    ${targetHtml}
+    ${winTipHtml(o.wt)}
+    ${podHtml}
+    ${o.welcome ? "" : `<p>${esc(more)} ${esc(moreAsk)}</p>`}
+    ${CTA(o.link, o.welcome ? "Sign in to my page" : "Sign in to see my month")}
+    <p>${o.welcome ? "Questions about your payslip, or the sign-in doesn't take?" : "Questions about your payslip?"} Just reply to this email. Questions about your numbers? Your salon manager can walk you through them.</p>
+    <p style="font-size:12px;color:#9a8a87">This link is yours only, so please keep it to yourself.</p>
+    ${SIGN_OFF_LOGO}
+  </div>`;
+  const text = `Hi ${o.first},
+
+${slipLine}
+
+${o.welcome ? `Welcome to your Tara Rose page. ${welcomeBody}
+
+` : ""}${o.target ? `Your ${o.mon} target: ${targetLine} It is built from your own last three months and the season.
+
+` : ""}${o.wt && o.wt.win ? `Your win: ${o.wt.win}
+
+` : ""}${o.wt && o.wt.tip ? `Top tip for next month: ${o.wt.tip}${o.wt.how ? " " + o.wt.how : ""}
+
+` : ""}${o.pod ? `Your Podium Race place: ${o.pod.text}
+
+` : ""}${o.welcome ? "" : `${more} ${moreAsk}
+`}${o.welcome ? "Sign in to my page" : "Sign in to see my month"}: ${o.link}
+
+${o.welcome ? "Questions about your payslip, or the sign-in doesn't take?" : "Questions about your payslip?"} Just reply to this email.
+
+Tara Rose Salons Accounts`;
+  return { html, text };
+}
+
+// The email as it reads, without the payslip PDF: used for the real send (emailFor adds the PDF) and for the preview of a real person.
+async function emailParts(p: Person, month: string): Promise<EmailParts> {
+  const first = p.name.split(" ")[0], mon = label(month, { month: "long" }), welcome = WELCOME_MONTHS.has(month);
+  if (p.kind === "other") return plainParts({ first, mon, hasSlip: !!p.slip, role: p.role, welcome });
   const { data: d } = await sb.rpc("perf_dashboard", { p_token: p.token, p_month: `${month}-01` });
   const hasNumbers = d && d.numbers && (d.numbers.total_revenue || d.numbers.clients);
   const wt = hasNumbers ? await winTip(d, p.token, month) : null;
   const pod = await podiumLine(p.token, month);
-  const first = p.name.split(" ")[0];
-  const link = signInLink(p.token, month);
-  const mon = label(month, { month: "long" });
-  const podHtml = pod ? `<p style="margin:14px 0;padding:10px 14px;background:#FBEAF0;border-radius:8px"><b style="color:#993556">Your Podium Race place</b><br>${esc(pod.text)}${pod.first ? " Lovely work." : ""}<br><span style="color:#77706A">${pod.first ? "The race starts fresh every month." : "A race is a moment, not a verdict, and a new month starts fresh for everyone."}</span></p>` : "";
-  const more = `There is more waiting on your own page: your numbers against your aims, your reviews${d && d.next_level ? `, how close you are to ${d.next_level}` : ""}, and the whole Podium Race for your team.`;
-  const html = `<div style="font-family:Arial,sans-serif;color:#5C5557;max-width:560px;line-height:1.5">
-    <p>Hi ${esc(first)},</p>
-    <p>${p.slip ? `Your ${esc(mon)} payslip is attached.` : `Here is your ${esc(mon)} in short. Your payslip will follow.`}</p>
-    ${winTipHtml(wt)}
-    ${podHtml}
-    <p>${esc(more)} It is private to you, so please sign in once with this email address: Google, or an email link. This phone remembers you after that.</p>
-    <p><a href="${link}" style="display:inline-block;background:#5C5557;color:#F9E8DF;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700">Sign in to see my month</a></p>
-    <p>Questions about your payslip? Just reply to this email. Questions about your numbers? Your salon manager can walk you through them.</p>
-    <p style="font-size:12px;color:#9a8a87">This link is yours only, so please keep it to yourself.</p>
-    <p style="margin-top:22px"><img src="${LOGO}" alt="Tara Rose Salons" width="100" style="display:block;width:100px;height:auto;border:0"></p>
-  </div>`;
-  let pdf = null;
-  if (p.slip) {
-    const { data: blob, error } = await sb.storage.from("payslips").download(p.slip.path);
-    if (error || !blob) throw new Error(`Couldn't read ${p.name}'s payslip file.`);
-    pdf = { name: p.slip.file_name || `${p.name} payslip ${month}.pdf`, bytes: new Uint8Array(await blob.arrayBuffer()) };
+  const took = d && d.numbers && Number(d.numbers.total_revenue) > 0 ? Number(d.numbers.total_revenue) : null;
+  const target = d && Number(d.month_target) > 0 ? { target: Number(d.month_target), took } : null;
+  return stylistParts({ first, mon, hasSlip: !!p.slip, welcome, link: signInLink(p.token, month), nextLevel: d && d.next_level ? String(d.next_level) : null, wt, pod, target });
+}
+async function emailFor(p: Person, month: string) {
+  const e = await emailParts(p, month);
+  return { html: e.html, text: e.text, pdf: await loadPdf(p, month) };
+}
+
+// The preview for the Upload Portal: one of the six kinds, exactly as it would be sent, with example numbers (or a real person's, when `staff` is given).
+function samplePreview(role: Role, month: string): EmailParts {
+  const mon = label(month, { month: "long" }), welcome = WELCOME_MONTHS.has(month);
+  if (role === "stylist" || role === "beautician") {
+    const hair = role === "stylist";
+    return stylistParts({
+      first: "Sample", mon, hasSlip: true, welcome, link: signInLink("00000000-0000-0000-0000-000000000000", month), nextLevel: hair ? "Senior Stylist" : null,
+      wt: {
+        win: `You took ${aed(44600)} in services this month, above your target of ${aed(40000)}.`,
+        tip: hair
+          ? "Rebook 2 more clients a week before they leave. That takes your rebooking from 52% to 60%, worth about AED 1,900 a month."
+          : "Rebook 2 more clients a week before they leave. That takes your rebooking from 48% to 55%, worth about AED 1,100 a month.",
+        how: hair ? "Before they get up from the chair, suggest the date their hair will need you next and book it with them." : "Before they leave, suggest when their next treatment is due and book it with them.",
+      },
+      pod: { text: `3rd of 12 on the ${hair ? "Hair" : "Beauty"} team for ${mon}.`, first: false },
+      target: { target: 40000, took: 44600 },
+    });
   }
-  const text = `Hi ${first},
-
-${p.slip ? `Your ${mon} payslip is attached.` : `Here is your ${mon} in short. Your payslip will follow.`}
-
-${pod ? `Your Podium Race place: ${pod.text}
-
-` : ""}${more} It is private to you, so please sign in once with this email address: Google, or an email link.
-Sign in to see my month: ${link}
-
-Questions about your payslip? Just reply to this email.
-
-Tara Rose Salons Accounts`;
-  return { html, pdf, text };
+  return plainParts({ first: "Sample", mon, hasSlip: true, role, welcome });
 }
 
 // ── the welcome email ──
@@ -444,6 +539,24 @@ Deno.serve(async (req) => {
     const nice = label(month, { month: "long", year: "numeric" });
 
     if (action === "status") return json(await status(month));
+
+    // The email exactly as it would be sent, for the Upload Portal's Email preview tab. Sends nothing, needs no email password.
+    // `role` picks one of the six with example numbers; `staff` (a person's id) shows that person's real email instead.
+    if (action === "preview") {
+      const welcome = WELCOME_MONTHS.has(month);
+      if (body.staff) {
+        const id = String(body.staff);
+        if (!UUID.test(id)) throw new Oops("Pick a person.");
+        const p = (await people(month)).find((x) => x.id === id);
+        if (!p) throw new Oops("Couldn't find that person.");
+        const e = await emailParts(p, month);
+        return json({ role: p.role, label: ROLE_LABEL[p.role], subject: subject(month), welcome, example: false, name: p.name, html: e.html, text: e.text, has_payslip: !!p.slip });
+      }
+      const role = String(body.role || "stylist") as Role;
+      if (!(role in ROLE_LABEL)) throw new Oops("Pick one of the six kinds of email.");
+      const e = samplePreview(role, month);
+      return json({ role, label: ROLE_LABEL[role], subject: subject(month), welcome, example: true, html: e.html, text: e.text });
+    }
 
     if (action === "schedule") {
       const at = new Date(String(body.send_at || ""));

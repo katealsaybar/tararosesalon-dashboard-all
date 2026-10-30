@@ -113,7 +113,7 @@ function upViewOnly() {
 <script src="targets.js?v=0bab250a"></script>
 <script src="team-roster.js?v=e7f88a3a"></script>
 <script src="/payslip/open.js?v=bffa94ab"></script>
-<script src="payslips.js?v=6d800059"></script>
+<script src="payslips.js?v=d49595c6"></script>
 <!-- Last: reads the table names and progress refreshers the three tab files above declare. -->
 <script src="data-watch.js?v=94e1d202"></script>
 
@@ -608,6 +608,16 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 #psSendPanel .ps-refresh,#psSendPanel .ps-link{font-size:14.5px}
 #psSendPanel .btn,#psSendPanel .btn-outline{font-size:14px}
 #psSendPanel .ps-send-row select,#psSendPanel .ps-send-row input[type=datetime-local]{font-size:15px}
+/* Email preview tab (Kate, 30 Oct 2026): the same larger text as the Email to staff panel. */
+#psPrevPanel .ps-send-hd{font-size:14px}
+#psPrevPanel .ps-send-line{font-size:17px;line-height:1.45}
+#psPrevPanel .ps-meta{font-size:15px;line-height:1.5}
+#psPrevPanel .ps-wa{font-size:16px;line-height:1.5}
+#psPrevPanel .ps-step-h{font-size:17px}
+#psPrevPanel .ps-link,#psPrevPanel .btn-outline{font-size:14.5px}
+#psPrevPanel .ps-send-row select{font-size:15px}
+.ps-prev-pills{margin-top:12px}
+.ps-prev-frame{display:block;width:100%;min-height:320px;margin:12px 0 8px;border:1px solid var(--border2);border-radius:12px;background:#fff}
 .ps-send-row input[type=datetime-local]{font:inherit;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color-scheme:light dark}
 .ps-tpl summary{cursor:pointer;margin-bottom:0}
 .ps-tpl[open] summary{margin-bottom:6px}

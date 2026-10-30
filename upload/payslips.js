@@ -309,6 +309,7 @@ function psRender() {
       <a href="#" class="ps-key" onclick="psForgetKey();return false">Signed in as ${psEsc(PS_STATE.admin)}. Change key</a>
     </div>
     <div class="ps-branches ps-views" id="psViews"></div>
+    <div class="ps-view" data-view="preview" hidden><div class="ps-send" id="psPrevPanel"></div></div>
     <div class="ps-view" data-view="email" hidden><div class="ps-send" id="psSendPanel"></div></div>
     <div class="ps-view" data-view="tpl" hidden><div class="ps-send ps-tpl" id="psTplPanel"></div></div>
     <div class="ps-view" data-view="upload" hidden>
@@ -343,6 +344,7 @@ function psRender() {
   psRenderViews();
   psRenderSend();
   psRenderTpl();
+  psRenderPrev();
   if (!PS_STATE.send) psLoadSend();
 }
 
@@ -356,17 +358,81 @@ function psRenderViews() {
   const ready = S ? S.people.filter(p => p.state === 'ready').length : 0;
   const views = [
     ['upload', `Upload · ${done}/${PS_STATE.staff.length}`],
+    ['preview', 'Email preview'],
     ['email', 'Email to staff' + (S ? (ready ? ` · ${ready} ready` : ` · ${sent} emailed`) : '')],
     ['tpl', 'Revised payslip'],
   ];
   if (!views.some(v => v[0] === PS_STATE.view)) PS_STATE.view = 'upload';
   el.innerHTML = views.map(([v, t]) => `<button type="button" class="ps-bpill${PS_STATE.view === v ? ' on' : ''}" onclick="psPickView('${v}')">${psEsc(t)}</button>`).join('');
   document.querySelectorAll('#payslipHost .ps-view').forEach(x => { x.hidden = x.dataset.view !== PS_STATE.view; });
+  if (PS_STATE.view === 'preview') psLoadPrev();
 }
 function psPickView(v) {
   PS_STATE.view = v;
   try { localStorage.setItem('trs-ps-view', v); } catch (e) {}
   psRenderViews();
+}
+
+// Kate, 30 Oct 2026: "between upload and email to staff i need an email template shown", a toggle for each kind of person. The email is built by the
+// mailer itself (payslip-mailer, action preview), so what is shown here is what is sent. Example numbers; nothing is sent from this tab.
+const PS_PREV_ROLES = [['stylist', 'Stylists'], ['beautician', 'Beauticians'], ['coordinator', 'Salon coordinators'], ['call_centre', 'Call centre team'], ['reception', 'Reception'], ['assistant', 'Assistants']];
+function psPrevKey() { return PS_STATE.month + '|' + (PS_STATE.prevWho || PS_STATE.prevRole || 'stylist'); }
+async function psLoadPrev(force) {
+  const key = psPrevKey();
+  PS_STATE.prevCache = PS_STATE.prevCache || {};
+  if (PS_STATE.prevCache[key] || PS_STATE.prevBusy === key) { psRenderPrev(); return; }
+  if (!force && PS_STATE.prevFail === key) return;
+  PS_STATE.prevBusy = key; PS_STATE.prevErr = ''; psRenderPrev();
+  try {
+    PS_STATE.prevCache[key] = await psSend('preview', PS_STATE.prevWho ? { staff: PS_STATE.prevWho } : { role: PS_STATE.prevRole || 'stylist' });
+    PS_STATE.prevFail = '';
+  } catch (e) { PS_STATE.prevErr = e.message; PS_STATE.prevFail = key; }
+  if (PS_STATE.prevBusy === key) PS_STATE.prevBusy = '';
+  psRenderPrev();
+}
+function psPrevPick(role) { PS_STATE.prevRole = role; PS_STATE.prevWho = ''; psLoadPrev(true); }
+function psPrevPerson() {
+  const sel = document.getElementById('psPrevWho');
+  if (!sel || !sel.value) return;
+  PS_STATE.prevWho = sel.value; psLoadPrev(true);
+}
+function psPrevExamples() { PS_STATE.prevWho = ''; psLoadPrev(true); }
+function psRenderPrev() {
+  const el = document.getElementById('psPrevPanel');
+  if (!el) return;
+  const monthName = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const role = PS_STATE.prevRole || 'stylist', who = PS_STATE.prevWho || '';
+  const key = psPrevKey(), d = (PS_STATE.prevCache || {})[key];
+  const busy = PS_STATE.prevBusy === key;
+  const S = PS_STATE.send;
+  const pills = PS_PREV_ROLES.map(([r, t]) => `<button type="button" class="ps-bpill${!who && role === r ? ' on' : ''}" onclick="psPrevPick('${r}')">${psEsc(t)}</button>`).join('');
+  const opts = S ? S.people.filter(p => p.state !== 'no_email' && p.state !== 'paused')
+    .map(p => `<option value="${psEsc(p.id)}"${p.id === who ? ' selected' : ''}>${psEsc(p.name)}</option>`).join('') : '';
+  const pageKind = d && (d.role === 'stylist' || d.role === 'beautician');
+  el.innerHTML = `
+    <div class="ps-send-hd">Email preview · ${psEsc(monthName)}</div>
+    <div class="ps-send-line"><b>This is how the email looks when it is sent.</b> Pick who it is for.</div>
+    <div class="ps-branches ps-prev-pills">${pills}</div>
+    ${PS_STATE.prevErr && !d ? `<div class="ps-err" style="margin-top:10px">${psEsc(PS_STATE.prevErr)} <a href="#" class="ps-link" onclick="psLoadPrev(true);return false">Try again</a></div>` : ''}
+    ${busy && !d ? '<div class="ps-meta" style="margin-top:10px">Getting the email…</div>' : ''}
+    ${d ? `<div class="ps-meta" style="margin-top:10px">Subject: <b>${psEsc(d.subject)}</b>${d.example ? '' : ` · this is ${psEsc(d.name)}’s real email${d.has_payslip ? '' : ' (no payslip uploaded yet)'}`}</div>
+      ${d.welcome ? `<div class="ps-wa ok">This month’s email also welcomes them and asks them to sign in ${pageKind ? 'to their own page, to see everything' : 'to Team Home'}.</div>` : ''}
+      <iframe class="ps-prev-frame" id="psPrevFrame" title="Email preview" sandbox="allow-same-origin"></iframe>
+      <div class="ps-meta">${d.example ? 'The numbers here are examples. Each person gets their own.' : 'These are the real numbers for this person.'} The buttons do not work in the preview. Nothing is sent from this tab.</div>` : ''}
+    <div class="ps-step">
+      <div class="ps-step-h">${d && !d.example ? 'Showing a real person' : 'Check one real person'}</div>
+      <div class="ps-meta">To see an actual email, with that person’s own target and numbers. Nothing is sent.</div>
+      <div class="ps-send-row">
+        <select id="psPrevWho">${opts}</select>
+        <button class="btn-outline" onclick="psPrevPerson()"${S ? '' : ' disabled'}>Show their email</button>
+        ${who ? '<a href="#" class="ps-link" onclick="psPrevExamples();return false">Back to the examples</a>' : ''}
+      </div>
+    </div>`;
+  const fr = document.getElementById('psPrevFrame');
+  if (fr && d) {
+    fr.addEventListener('load', () => { try { fr.style.height = (fr.contentDocument.documentElement.scrollHeight + 6) + 'px'; } catch (e) {} });
+    fr.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><base target="_blank"></head><body style="margin:0;padding:18px;background:#fff">' + d.html + '</body></html>';
+  }
 }
 
 // Revised payslip email (Kate, 5 Oct 2026). When a payslip is corrected, Accounts reply
@@ -692,6 +758,7 @@ async function psLoadSend() {
   } catch (e) { PS_STATE.sendErr = e.message; }
   psRenderSend();
   psRenderViews();
+  psRenderPrev();
 }
 
 // Kate, 30 Oct 2026: the WhatsApp that goes with each payslip email (queued by a trigger on payslip_sends, migrations/staff_wa_payslip.sql). This only
