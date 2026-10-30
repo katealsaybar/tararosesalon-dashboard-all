@@ -66,11 +66,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=108ce632"></script>
+<script src="/hub/hub.js?v=d5212426"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
 (function () {
-  var main = document.getElementById('kbMain'), esc = KB.esc, info = null, draft = {}, timer = null, TEAM_ORDER = ['Management & Office', 'Hair', 'Beauty', 'Receptionist', 'Assistant', 'Office/Admin', 'Call Centre', 'Other'];
+  var main = document.getElementById('kbMain'), esc = KB.esc, info = null, draft = {}, grp = {}, timer = null, TEAM_ORDER = ['Management & Office', 'Hair', 'Beauty', 'Receptionist', 'Assistant', 'Office/Admin', 'Call Centre', 'LID', 'Other'];
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
   function notFound() {
     main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a></p><p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
@@ -79,17 +79,25 @@
   function render(body, params) { return params.reduce(function (s, p, i) { return s.split('{{' + (i + 1) + '}}').join(p); }, body); }
   function tpl() { return info.templates.filter(function (t) { return t.kind === 'payroll'; }); }
   function curT() { var k = document.getElementById('smT').value; return tpl().filter(function (t) { return t.key === k; })[0]; }
+  // Kate, 30 Oct 2026: "remove manual typing, this is set through email parameters". The payslip WhatsApp goes out by itself with each payslip email and
+  // takes its month from that email (payslip_sends.month), so there is no month box for it. Only the test to Kate needs a month, and uses this one.
+  function dubaiMonth() { return new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Dubai' }); }
+  function isAuto(t) { return !!t && t.key === 'payslip_ready'; }
   function varsNow() {
-    var v = {}; main.querySelectorAll('[data-var]').forEach(function (i) { v[i.dataset.var] = i.value.trim(); }); return v;
+    var v = {}; main.querySelectorAll('[data-var]').forEach(function (i) { v[i.dataset.var] = i.value.trim(); });
+    if (isAuto(curT()) && !v.month) v.month = dubaiMonth();
+    return v;
   }
   function labelOf(v) { return ({ month: 'Month, e.g. October 2026', item: 'What we need, e.g. your timesheet', deadline: 'By when, e.g. Friday 6 November', pay_date: 'Pay date, e.g. Monday 2 November' })[v] || v; }
 
   function drawFields() {
     var t = curT();
     if (!t) return;
-    document.getElementById('smFields').innerHTML = t.vars.filter(function (v) { return v !== 'first_name'; }).map(function (v) {
-      return '<label>' + esc(labelOf(v)) + '<input data-var="' + esc(v) + '" autocomplete="off" maxlength="120"></label>';
-    }).join('');
+    document.getElementById('smFields').innerHTML = isAuto(t)
+      ? '<p class="sm-note" style="margin:0">Goes out by itself with each payslip email. The month comes from that email, so there is nothing to type here. The preview shows this month as an example.</p>'
+      : t.vars.filter(function (v) { return v !== 'first_name'; }).map(function (v) {
+        return '<label>' + esc(labelOf(v)) + '<input data-var="' + esc(v) + '" autocomplete="off" maxlength="120"></label>';
+      }).join('');
     main.querySelectorAll('[data-var]').forEach(function (i) { i.addEventListener('input', drawPrev); });
     document.getElementById('smAppr').innerHTML = t.approved ? '' : '<p class="sm-warn">This message is waiting for Meta’s approval (template <b>' + esc(t.respond_name) + '</b> in respond.io, Backup number). Nothing can be sent with it until it is approved and switched on here.</p>';
     drawPrev(); drawCount();
@@ -101,10 +109,15 @@
     document.getElementById('smPrev').textContent = render(t.body, params);
   }
   // Kate, 30 Oct 2026: Bahrain is paid separately, so Bahrain staff (a +973 number) are not on this page at all and are never counted.
+  // Kate, 30 Oct 2026: staff_phones.wa_group, when set, is the heading a person sits under instead of their team (the LID agency people sit together).
+  async function loadGroups() {
+    var r = await KB.client.from('staff_phones').select('id,wa_group');
+    if (!r.error) { grp = {}; (r.data || []).forEach(function (x) { if (x.wa_group) grp[x.id] = x.wa_group; }); }
+  }
   function staffL() { return info.staff.filter(function (p) { return !/^\+973/.test(p.phone || ''); }); }
   function peopleBy() {
     var g = {};
-    staffL().forEach(function (p) { (g[p.team] = g[p.team] || []).push(p); });
+    staffL().forEach(function (p) { var t = grp[p.id] || p.team; (g[t] = g[t] || []).push(p); });
     return Object.keys(g).sort(function (a, b) { var x = TEAM_ORDER.indexOf(a), y = TEAM_ORDER.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); }).map(function (k) { return [k, g[k]]; });
   }
   // Kate, 30 Oct 2026: the ticks ARE the payroll list. Ticked people get the payslip WhatsApp that goes with each payslip email and anything queued below.
@@ -149,9 +162,9 @@
     var n = savedN(), t = curT(), dirty = dirtyN();
     var b = document.getElementById('smSend');
     b.textContent = 'Queue for ' + n + (n === 1 ? ' person' : ' people') + ' on the list';
-    b.disabled = !n || !t || !t.approved || !info.enabled || !!dirty;
+    b.disabled = !n || !t || !t.approved || !info.enabled || !!dirty || isAuto(t);
     var h = document.getElementById('smSendHint');
-    h.textContent = dirty ? 'Save the list first.' : !info.enabled ? 'Sending is switched off. Switch it on above first.' : (t && !t.approved ? 'This message is not approved in Meta yet.' : '');
+    h.textContent = isAuto(t) ? 'The payslip WhatsApp goes out by itself with each payslip email, so there is nothing to queue.' : dirty ? 'Save the list first.' : !info.enabled ? 'Sending is switched off. Switch it on above first.' : (t && !t.approved ? 'This message is not approved in Meta yet.' : '');
   }
   function drawStatus() {
     var el = document.getElementById('smStatus');
@@ -183,7 +196,7 @@
     clearTimeout(timer);
     if (busy) timer = setTimeout(drawLog, 8000);
   }
-  async function reload(force) { var r = await KB.client.rpc('staff_wa_info'); if (!r.error && r.data) { info = r.data; syncDraft(force); drawStatus(); drawPeople(); drawSave(); drawCount(); } }
+  async function reload(force) { var r = await KB.client.rpc('staff_wa_info'); if (!r.error && r.data) { info = r.data; await loadGroups(); syncDraft(force); drawStatus(); drawPeople(); drawSave(); drawCount(); } }
 
   KB.ready.then(async function () {
     if (KB.level !== 5 || KB.allowed.indexOf('staff-wa') < 0) { notFound(); return; }   // also "View as" below Level 5
@@ -191,10 +204,11 @@
     if (r.error || !r.data) { notFound(); return; }
     info = r.data;
     main.innerHTML = '<p class="kb-crumbs"><a href="/hub/">Team Home</a> › Staff Payroll WhatsApp</p>' +
+      '<p style="margin:0 0 8px"><a class="sm-btn sm" href="/upload/payslips" style="text-decoration:none;display:inline-flex;align-items:center">← Back to Payslips</a></p>' +
       '<h1 style="font-family:\'Playfair Display\',serif;font-weight:500;margin:6px 0 4px">Staff Payroll WhatsApp</h1>' +
       '<p class="sm-note" style="margin:0 0 6px">Payroll messages to the team on WhatsApp, from the Backup number. Only approved messages can go. No amounts are ever in the message.</p>' +
       '<div class="sm-card" id="smStatus"></div>' +
-      '<div class="sm-card"><h2>1 · The message</h2><label style="font-size:12px;color:var(--muted2)">Which message<select id="smT" class="sm-txt" aria-label="Which message"></select></label>' +
+      '<div class="sm-card"><h2>1 · The message</h2><label style="font-size:12px;color:var(--muted2);display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px">Which message<select id="smT" class="sm-txt" aria-label="Which message"></select></label>' +
         '<div class="sm-fields" id="smFields"></div><div id="smAppr"></div><div class="sm-prev" id="smPrev"></div></div>' +
       '<div class="sm-card"><h2>2 · Who gets it</h2><p class="sm-note" style="margin:0 0 10px">The ticked people get the payslip WhatsApp that goes with each payslip email, and anything you queue below. Press Save list to keep your changes.</p>' +
         '<div class="sm-row"><button type="button" class="sm-btn sm" id="smAll">Tick everyone</button><button type="button" class="sm-btn sm" id="smNone">Clear</button><span class="sm-n sm-savenote"></span><button type="button" class="sm-btn go sm-savebtn" style="margin-left:auto">Save list</button></div>' +
@@ -213,7 +227,7 @@
     sel.innerHTML = tpl().map(function (t) { return '<option value="' + esc(t.key) + '">' + esc(t.label) + (t.approved ? '' : ' (waiting for Meta)') + '</option>'; }).join('');
     KB.pillDD(sel);
     sel.addEventListener('change', drawFields);
-    syncDraft(true); drawStatus(); drawFields(); drawPeople(); drawSave(); drawCount(); drawLog();
+    await loadGroups(); syncDraft(true); drawStatus(); drawFields(); drawPeople(); drawSave(); drawCount(); drawLog();
     main.addEventListener('click', function (e) { if (e.target.closest('.sm-savebtn')) saveList(); });
     window.addEventListener('beforeunload', function (e) { if (info && dirtyN()) { e.preventDefault(); e.returnValue = ''; } });
 
