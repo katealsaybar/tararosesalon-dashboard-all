@@ -9,7 +9,7 @@
   var FOOT = 'If you’d rather not hear from us, reply STOP';
   var ORDER_KEY = 'trs-cbl-order';
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  var D = null, cur = 'all', cal = null, drag = null, draft = {}, errMsg = '';
+  var D = null, cur = 'all', cal = null, drag = null, draft = {}, errMsg = '', focusCmt = false, jumpIo = null;
   // The address names the blast (Kate, 30 Oct 2026): ?view=campaignblasts&blast=blonde-1, so a link opens that blast. index.html trSyncUrl() asks cblUrlParts().
   var wantBlast = '', firstOpen = true;
   function syncUrl() { try { if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'campaignblasts') trSyncUrl(null); } catch (e) { /* the page is fine without it */ } }
@@ -28,7 +28,7 @@
     } catch (e) { var n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'); }
   }
   function notFound() {
-    var el = main(); if (el) el.innerHTML = '<p class="slv-muted">This page isn’t open to your account.</p>';
+    var el = main(); if (el) el.innerHTML = '<p class="slv-muted">This page isn’t open to your account yet. Ask Kate to open Campaign Blasts for you.</p>';
   }
   async function rpc(name, args) {
     var r = await sb.rpc(name, args || {});
@@ -47,24 +47,31 @@
   }
   function lab(k) { return k === 'ok' ? 'Approved' : k === 'changes' ? 'Needs changes' : 'Waiting for review'; }
   function saved() { try { return JSON.parse(localStorage.getItem(ORDER_KEY)) || []; } catch (e) { return []; } }
+  function byDate(a, b) { return a.send_date < b.send_date ? -1 : a.send_date > b.send_date ? 1 : (a.send_time < b.send_time ? -1 : a.send_time > b.send_time ? 1 : 0); }
   function ord() {
-    var s = saved(), ids = D.items.map(function (i) { return i.id; });
+    var s = saved(), ids = D.items.slice().sort(byDate).map(function (i) { return i.id; });   // send date first (ALAD-4, 30 Oct 2026); her own drag order still wins
     var first = s.filter(function (id) { return ids.indexOf(id) >= 0; });
     return first.concat(ids.filter(function (id) { return first.indexOf(id) < 0; }));
   }
   function setOrd(a) { try { localStorage.setItem(ORDER_KEY, JSON.stringify(a)); } catch (e) { /* private window */ } }
   function cls(k) { return k === 'ok' || k === 'changes' ? k : ''; }
+  function pl(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+  // The clock in the phone follows the time the blast is set to go out (ALAD-4, 30 Oct 2026): t is '14:00', add is minutes, suffix adds am or pm.
+  function tm(t, add, suffix) {
+    var p = String(t || '11:00').split(':'), tot = (+p[0] || 0) * 60 + (+p[1] || 0) + (add || 0), h = Math.floor(tot / 60) % 24, m = tot % 60;
+    return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + (suffix ? ' ' + (h >= 12 ? 'pm' : 'am') : '');
+  }
 
   /* the phone, as the client sees it */
-  function phone(m, img, reply) {
+  function phone(m, img, reply, t0) {
     var body = String(m.t).replace('{{1}}', 'Layla').replace(/\. /g, '.\n\n').replace(/: /g, ':\n');
     return '<div class="cbl-phone-wrap"><div class="cbl-phone"><div class="cbl-screen">' +
-      '<div class="cbl-status"><span>11:02</span><span class="ic">5G <span class="cbl-batt"></span></span></div>' +
+      '<div class="cbl-status"><span>' + tm(t0, 2) + '</span><span class="ic">5G <span class="cbl-batt"></span></span></div>' +
       '<div class="cbl-chat-head"><span class="cbl-back">‹</span><span class="cbl-av"></span><span class="cbl-who">Tara Rose Salons<small>Business account</small></span><span class="cbl-dots">⋮</span></div>' +
       '<div class="cbl-thread"' + (reply ? ' data-key="' + esc(reply.key) + '"' : '') + '><span class="cbl-day">Today</span><div class="cbl-bub">' +
       (img ? '<img class="cbl-hdr" src="' + esc(img) + '" alt="Header photo from the landing page">' : '') +
-      '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-ftr">' + esc(FOOT) + '</div><div class="cbl-time">11:00</div></div>' +
-      '<div class="cbl-btn' + (reply ? ' tapped' : '') + '">Tell me more</div>' + replyHtml(reply) + '</div>' +
+      '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-ftr">' + esc(FOOT) + '</div><div class="cbl-time">' + tm(t0, 0, true) + '</div></div>' +
+      '<div class="cbl-btn' + (reply ? ' tapped' : '') + '">Tell me more</div>' + replyHtml(reply, t0) + '</div>' +
       '<div class="cbl-compose"><span class="cbl-input">Message</span><span class="cbl-mic"></span></div></div></div></div>';
   }
   // What she gets after she taps Tell me more (Kate, 30 Oct 2026): her tap, then our reply, so Emma reads the whole exchange. Plain text in b.data.reply.
@@ -82,12 +89,12 @@
     return '<div class="cbl-bub cbl-rep"><div class="cbl-body">' + body + '</div><div class="cbl-time">' + time + '</div></div>';
   }
   function outHtml(t, time) { return '<div class="cbl-out">' + esc(t) + '<span>' + time + '</span></div>'; }
-  function replyHtml(r) {
+  function replyHtml(r, t0) {
     if (!r) return '';
     var node = typeof r.root === 'string' ? { t: r.root } : r.root, path = flow[r.key] || [], step = 0, min = 3;
-    var h = '<div class="cbl-after"><b>She taps Tell me more</b><span>and gets this</span></div>' + outHtml('Tell me more', '11:03'), seen = {};
+    var h = '<div class="cbl-after"><b>She taps Tell me more</b><span>and gets this</span></div>' + outHtml('Tell me more', tm(t0, 3, true)), seen = {};
     for (;;) {
-      var time = '11:0' + (min + step * 2), bs = node.b || [], pick = path[step], closing = false;
+      var time = tm(t0, min + step * 2, true), bs = node.b || [], pick = path[step], closing = false;
       h += bubbleHtml(node.t, time);
       // Every button here already tried (the call centre one aside): the only ones left are Start over and Help me out.
       if (bs.length && bs.every(function (x) { return x.to === 'help' || seen[x.to]; })) { bs = [{ l: 'Start over', to: '#start' }, { l: 'Help me out', to: 'help' }]; closing = true; }
@@ -99,8 +106,8 @@
       }).join('');
       if (!bs.length || pick == null) break;
       var chosen = bs[pick]; if (!chosen) break;
-      h += outHtml(chosen.l, '11:0' + (min + step * 2 + 1));
-      if (chosen.to === 'help') { h += bubbleHtml(HELP, '11:0' + (min + step * 2 + 1)) + '<div class="cbl-notify">Call centre notified in respond.io</div>'; break; }
+      h += outHtml(chosen.l, tm(t0, min + step * 2 + 1, true));
+      if (chosen.to === 'help') { h += bubbleHtml(HELP, tm(t0, min + step * 2 + 1, true)) + '<div class="cbl-notify">Call centre notified in respond.io</div>'; break; }
       seen[chosen.to] = true;
       node = r.nodes[chosen.to]; if (!node) break;
       step++;
@@ -114,7 +121,7 @@
     var what = grp === 'warm' ? 'warm' : grp === 'std' ? 'standard' : 'all';
     return {
       title: b.data.title + ', ' + what + ' clients', cur: 'AED',
-      sub: 'Who is in this blast right now, counted from the till.' + (grp ? '' : ' Warm and standard together.'),
+      sub: 'Who is in this blast right now, counted from our sales records.' + (grp ? '' : ' Warm and standard together.'),
       views: [{ id: 'clients', label: 'Clients', load: async function () {
         var r = await rpc('blast_plan_clients', { p_blast: b.id, p_group: grp || null });
         var rows = (r.rows || []).map(function (x) { return { c: x.c, b: BR[x.b] || x.b, g: x.g === 'warm' ? 'Warm' : 'Standard', lv: x.lv, s: x.s, v: x.v }; });
@@ -140,17 +147,17 @@
   function estUsd(n) { return n == null ? '' : ' (USD ' + fmtN(Math.round(n * RATE_USD)) + ')'; }
   function cost(n) { return n == null ? '…' : 'AED ' + fmtN(Math.round(n * RATE_AED)) + ' (USD ' + fmtN(Math.round(n * RATE_USD)) + ')'; }
   function liveNote() {
-    if (LIVE && LIVE.asof) return '<span class="cbl-live">Counted from the till, ' + fd(String(LIVE.asof).slice(0, 10)) + '</span>';
-    return '<span class="cbl-live">' + (liveErr ? 'Saved count, could not update' : 'Counting from the till…') + '</span>';
+    if (LIVE && LIVE.asof) return '<span class="cbl-live">Counted from our sales records, ' + fd(String(LIVE.asof).slice(0, 10)) + '</span>';
+    return '<span class="cbl-live">' + (liveErr ? 'Saved count, could not update' : 'Counting the clients…') + '</span>';
   }
   function lane(label, m, img, b, grp) {
     return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + numHtml(b, grp, m.c) + ' clients</span></div>' +
-      '<div class="w">' + (label === 'Warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phone(m, img, replyFor(b, grp)) +
+      '<div class="w">' + (label === 'Warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phone(m, img, replyFor(b, grp), b.send_time) +
       '<div class="cbl-name">' + esc(m.name) + '</div>' + flowHint(replyFor(b, grp)) + '</div>';
   }
   function flowHint(r) {
     var root = r && r.root; if (!root || typeof root === 'string' || !(root.b && root.b.length)) return '';
-    return '<p class="cbl-fhint">Tap a button to see what she gets next. If she types a question instead, it goes to the call centre.</p>';
+    return '<p class="cbl-fhint">Scroll inside the phone to read all of it. Tap a button to see what she gets next. If she types a question instead, it goes to the call centre.</p>';
   }
 
   /* sidebar: calendar and movable tabs */
@@ -165,7 +172,7 @@
       var here = ord().filter(function (id) { return item(id).send_date === iso; });
       var dots = here.slice(0, 3).map(function (id) { return '<b class="' + (item(id).locked ? '' : 'plan') + '"></b>'; }).join('');
       h += '<button type="button" data-iso="' + iso + '" class="cbl-d' + (here.length ? ' has' : '') + (iso === TODAY ? ' today' : '') + (iso === curIso ? ' sel' : '') + '" ' +
-        (here.length ? 'data-day="' + iso + '"' + (canEdit() ? ' data-drag="' + (here.indexOf(cur) >= 0 ? cur : here[0]) + '"' : '') + ' aria-label=""' + fd(iso) + ', ' + here.length + ' blasts"' : 'tabindex="-1" disabled') + '>' + d + (dots ? '<i>' + dots + '</i>' : '') + '</button>';
+        (here.length ? 'data-day="' + iso + '"' + (canEdit() ? ' data-drag="' + (here.indexOf(cur) >= 0 ? cur : here[0]) + '"' : '') + ' aria-label="' + fd(iso) + ', ' + pl(here.length, 'blast', 'blasts') + '"' : 'tabindex="-1" disabled') + '>' + d + (dots ? '<i>' + dots + '</i>' : '') + '</button>';
     }
     return h + '</div><div class="cbl-leg"><span><b></b>Locked</span><span><b class="plan"></b>Planned</span></div>' +
       (canEdit() ? '<p class="cbl-hint">Drag a date with a dot onto another day to move that blast.</p>' : '') + (calMsg ? '<p class="cbl-err" role="alert">' + esc(calMsg) + '</p>' : '') +
@@ -203,32 +210,74 @@
     return h + '</div>' + list + '</div></div>';
   }
   function tabsHtml() {
+    var reviewed = D.items.filter(function (i) { return i.review === 'ok' || i.review === 'changes'; }).length;
     var h = '<div class="cbl-tabs cbl-card"><h3>Blasts</h3>' +
       '<div class="cbl-tab' + (cur === 'all' ? ' on' : '') + '"><a href="?view=campaignblasts" data-go="all" style="padding-left:12px"><span>All blasts</span></a></div>' +
-      '<p class="cbl-hint">Drag the dots to reorder.</p><div id="cblTabs">';
+      '<div id="cblTabs">';
     ord().forEach(function (id) {
       var b = item(id), n = b.comments.length;
       h += '<div class="cbl-tab' + (cur === id ? ' on' : '') + '" data-id="' + esc(id) + '"><button type="button" class="cbl-grip" aria-label="Move ' + esc(b.data.title) + '. Use arrow up and down."></button>' +
         '<a href="?view=campaignblasts" data-go="' + esc(id) + '"><span>' + esc(b.data.title) + '</span><small>' + fd(b.send_date) + ', ' + ft(b.send_time) + '</small></a>' +
-        (n ? '<span class="cbl-cc" title="' + n + ' comments">' + n + '</span>' : '') + '<span class="cbl-dot ' + cls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
+        (n ? '<span class="cbl-cc" title="' + pl(n, 'comment', 'comments') + '">' + n + '</span>' : '') + '<span class="cbl-dot ' + cls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     });
-    return h + '</div></div>';
+    return h + '</div><p class="cbl-hint cbl-prog"><b>' + reviewed + ' of ' + D.items.length + '</b> reviewed</p><p class="cbl-hint">They start in send order. Drag the dots to put them in your own.</p></div>';
   }
 
   /* pages */
+  // The next blast to go that still needs a look (ALAD-4, 30 Oct 2026); null when there are none.
+  function firstGo() {
+    var all = D.items.slice().sort(byDate), up = all.filter(function (i) { return i.send_date >= TODAY; });
+    var open = (up.length ? up : all).filter(function (i) { return i.review !== 'ok'; });
+    return open[0] || null;
+  }
+  function keyHtml(short) {
+    return '<p class="cbl-key">' + (short ? '' : 'A blast is one WhatsApp message sent to a group of clients. ') +
+      '<b>Warm</b> = last visit in the last 90 days. <b>Standard</b> = last visit 91 days to 6 months ago.' +
+      (short ? ' Scheduling and the cost are Kate’s job, you can leave them.' : ' Left out: anyone who opted out or is marked do not contact, and anyone already messaged in the Lost Client or Wellness Voucher blasts.') + '</p>';
+  }
+  function whyHtml(n) {
+    var f = firstGo();
+    return '<section class="cbl-why cbl-card" aria-label="Why these blasts, and your job"><h3>Why you are looking at these</h3><ol class="cbl-why-l">' +
+      '<li><b>Why these ' + n + '.</b> Each one is the WhatsApp a client who is due back gets from us about a campaign.</li>' +
+      '<li><b>Why now.</b> They go out on Mondays, 11 am to 4 pm, so each one has to be checked before its day.</li>' +
+      '<li><b>If we do nothing.</b> A client who is due back hears nothing from us, or hears something nobody read as she would.</li></ol>' +
+      '<p class="cbl-job"><b>Your job:</b> for each blast, read it as the client would, tap through her reply, look at the landing page, then ' +
+      (canEdit() ? 'approve it or tell us what to change.' : 'leave a comment on what you noticed. Approving is for Coach Emma and Kate.') +
+      (f ? ' <b>The first one goes out ' + fd(f.send_date) + ', ' + ft(f.send_time) + ', so start with ' + esc(f.data.title) + '.</b>' : '') + '</p>' + keyHtml(false) + '</section>';
+  }
+  // One live line for what happens next, who does it and by when (the 2% rule), so the page never ends on a number.
+  function nextHtml() {
+    var its = D.items.slice().sort(byDate), N = its.length;
+    var wait = its.filter(function (i) { return i.review !== 'ok' && i.review !== 'changes'; }), chg = its.filter(function (i) { return i.review === 'changes'; });
+    var f = its.filter(function (i) { return i.send_date >= TODAY; })[0] || its[0], msg;
+    if (wait.length) {
+      var w = wait.filter(function (i) { return i.send_date >= TODAY; })[0] || wait[0];
+      msg = '<b>' + wait.length + ' still waiting for review.</b> Next: review <a href="?view=campaignblasts" data-go="' + esc(w.id) + '">' + esc(w.data.title) + '</a>, it goes out ' + fd(w.send_date) + ', ' + ft(w.send_time) + '.' +
+        (chg.length ? ' ' + pl(chg.length, 'needs', 'need') + ' changes, Kate fixes ' + (chg.length === 1 ? 'that one' : 'those') + '.' : '');
+    } else if (chg.length) {
+      msg = '<b>' + pl(chg.length, 'blast needs', 'blasts need') + ' changes.</b> Next: Kate fixes ' + (chg.length === 1 ? 'it' : 'them') + ', then Coach Emma looks again' + (f ? ' before ' + fd(f.send_date) : '') + '.';
+    } else {
+      msg = '<b>' + N + ' of ' + N + ' approved.</b> Next: Kate launches each one from respond.io on its day' + (f ? ', the first is ' + fd(f.send_date) + ', ' + ft(f.send_time) : '') + '.';
+    }
+    return '<p class="cbl-next" role="status">' + msg + '</p>';
+  }
+  function costHtml(tot, n) {
+    return '<details class="cbl-cost"><summary>Cost estimate, for Kate</summary><p><b>' + cost(tot) + '</b> to send all ' + n + '. Estimate: one marketing message per client at about USD 0.046 (AED 0.17), the rate measured on 19 Oct. ' +
+      'The client’s tap and our reply come inside the 24 hours after she answers, so they are not counted. The exact amount is on Meta’s invoice, and each client is counted once.</p></details>';
+  }
   function allHtml() {
     var ids = ord(), ap = ids.filter(function (id) { return item(id).review === 'ok'; }).length, lk = ids.filter(function (id) { return item(id).locked; }).length;
     var rows = ids.map(function (id) {
       var b = item(id);
       return '<div class="cbl-r" data-go="' + esc(id) + '"><a class="cbl-rl" href="?view=campaignblasts" data-go="' + esc(id) + '"><b>' + esc(b.data.title) + '</b></a><span class="cbl-chip ' + cls(b.review) + '">' + lab(b.review) + '</span>' +
-        '<small>' + fd(b.send_date) + ', ' + ft(b.send_time) + ' · ' + numHtml(b, 'n', b.data.n) + ' clients, est. ' + cost(cnt(b)) + (b.locked ? ' · time locked' : '') + (b.comments.length ? ' · ' + b.comments.length + ' comments' : '') + '</small></div>';
+        '<small>' + fd(b.send_date) + ', ' + ft(b.send_time) + ' · ' + numHtml(b, 'n', b.data.n) + ' clients' + (b.locked ? ' · time locked' : '') + (b.comments.length ? ' · ' + pl(b.comments.length, 'comment', 'comments') : '') + '</small></div>';
     }).join('');
     var tot = LIVE && LIVE.blasts || liveErr ? ids.reduce(function (a, id) { return a + cnt(item(id)); }, 0) : null;
-    return '<div><div class="cbl-eyebrow">Internal draft</div><h2>November</h2></div>' +
+    return '<div><div class="cbl-eyebrow">Internal draft</div><h2>November</h2><p class="cbl-sub">' + ids.length + ' blasts, going out on Mondays, 11 am to 4 pm. Tap a client number to see who is behind it.</p></div>' +
+      whyHtml(ids.length) +
       '<div class="cbl-sum"><span class="cbl-chip"><b>' + ap + ' of ' + ids.length + '</b> approved</span><span class="cbl-chip"><b>' + lk + ' of ' + ids.length + '</b> times locked</span>' +
-      '<span class="cbl-chip"><b>' + (tot == null ? '…' : fmtN(tot)) + '</b> clients</span><span class="cbl-chip cbl-tot"><b>' + cost(tot) + '</b> est. to send all ' + ids.length + '</span></div>' +
-      '<p class="cbl-note">Estimate: one marketing message per client at about USD 0.046 (AED 0.17), the rate measured on 19 Oct. Her tap and our reply come inside her 24 hour window, so they should not add to it. The exact amount is on Meta’s invoice, and each client is counted once.</p>' +
-      '<div class="cbl-card cbl-rows">' + rows + '</div>' + pcAll();
+      '<span class="cbl-chip"><b>' + (tot == null ? '…' : fmtN(tot)) + '</b> clients</span></div>' + nextHtml() +
+      '<div class="cbl-card cbl-rows">' + rows + '</div>' + costHtml(tot, ids.length) + pcAll();
   }
   /* comments left on the landing pages (page-comments.js); each links to its pin: the page opens on it */
   function slugOf(u) { var m = /^\/campaigns\/([a-z0-9-]+)\/?$/.exec(u || ''); return m ? m[1] : null; }
@@ -257,7 +306,7 @@
     var u = b.data.page_url;
     if (!u || !/^\/[^\/]/.test(u)) return '';
     // A small live look at the page's first screen (our own page, shown with clicks switched off), scaled to the card; fitPreviews() sets the scale.
-    return '<div class="cbl-fact cbl-card cbl-pgc"><small>Landing page</small><a class="cbl-pg" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(b.data.page_name || 'Open the page') + ' ↗</a>' +
+    return '<div class="cbl-fact cbl-card cbl-pgc" id="cblPage"><small>Landing page</small><a class="cbl-pg" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(b.data.page_name || 'Open the page') + ' ↗</a>' +
       '<a class="cbl-prev" href="' + esc(u) + '" target="_blank" rel="noopener" aria-label="Open the landing page"><iframe src="' + esc(u) + '" loading="lazy" tabindex="-1" aria-hidden="true" title="Preview of the landing page"></iframe></a>' + pcBlock(b) + '</div>';
   }
   function warns(b) {
@@ -265,6 +314,15 @@
     if (parts(b.send_date).getDay() !== 1) w.push('Blasts go out on Mondays.');
     if (b.send_time < '11:00' || b.send_time > '16:00') w.push('Send between 11 am and 4 pm.');
     return w;
+  }
+  // The four steps of a review, each one a jump to where it happens (ALAD-4, 30 Oct 2026): she should never have to hunt for the review box.
+  function stepsHtml(b) {
+    var st = [['cblPhones', 'Read both messages as the client would'], ['cblPhones', 'Tap through her reply']];
+    if (pageCard(b)) st.push(['cblPage', 'Look at the landing page']);
+    st.push(['cblReview', canEdit() ? 'Decide: approve it, or say what to change' : 'Leave a comment on what you noticed']);
+    return '<nav class="cbl-steps" aria-label="Your review, step by step"><ol>' + st.map(function (x, i) {
+      return '<li><button type="button" class="cbl-step" data-jump="' + x[0] + '"><span class="n">' + (i + 1) + '</span><span>' + x[1] + '</span></button></li>';
+    }).join('') + '</ol>' + keyHtml(true) + '</nav>';
   }
   function blastHtml(b) {
     var ids = ord(), i = ids.indexOf(b.id), p = ids[i - 1], n = ids[i + 1], w = warns(b), k = b.review;
@@ -277,36 +335,44 @@
     var thread = b.comments.length ? b.comments.map(function (c) {
       return '<div class="cbl-cm' + (/^emma/i.test(c.by) ? ' emma' : '') + '"><div class="cbl-cm-h"><b>' + esc(c.by) + '</b><span>' + esc(fat(c.at)) +
         (c.mine || D.level === 5 ? ' <button type="button" data-del="' + c.id + '">Delete</button>' : '') + '</span></div><p>' + esc(c.body) + '</p></div>';
-    }).join('') : '<p class="cbl-none">No comments yet.</p>';
+    }).join('') : '<p class="cbl-none">No comments yet. Say what you noticed.</p>';
     var hasWhy = k === 'changes' && b.comments.some(function (c) { return c.by === b.review_by && b.review_at && new Date(c.at) >= new Date(new Date(b.review_at).getTime() - 60000); });
+    var c0 = cnt(b), hasClients = LIVE && LIVE.blasts;
     return '<a class="cbl-back" href="?view=campaignblasts" data-go="all">‹ All blasts</a>' +
+      '<div class="cbl-pos"><a href="?view=campaignblasts" data-go="' + (p || 'all') + '"' + (p ? '' : ' class="off"') + ' aria-label="Previous blast">‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=campaignblasts" data-go="' + (n || 'all') + '"' + (n ? '' : ' class="off"') + ' aria-label="Next blast">Next ›</a></div>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + fd(b.send_date) + ', ' + ft(b.send_time) + '</div><h2>' + esc(b.data.title) + '</h2></div><span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span></div>' +
+      stepsHtml(b) +
       '<div class="cbl-top' + (pageCard(b) ? '' : ' noside') + '"><div class="cbl-topl">' +
       '<div class="cbl-card cbl-nums">' +
-        '<div><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b>' + liveNote() + '</div>' +
-        '<div title="One marketing message per client, about USD 0.046 (AED 0.17) each"><small>Est. to send</small><span><b>' + estAed(cnt(b)) + '</b><span class="cbl-est">' + estUsd(cnt(b)) + '</span></span></div>' +
+        '<div><small>Clients</small><b>' + numHtml(b, 'n', b.data.n) + '</b>' + liveNote() +
+          (hasClients ? '<span class="cbl-live">' + (canEdit() ? 'Tap the number to see the clients.' : 'The client lists are for Coach Emma and Kate.') + '</span>' : '') + '</div>' +
         '<div><small>Who</small>' + esc(b.data.who) + '</div>' +
         '<div><small>She gets</small>' + esc(b.data.gets) + '</div>' +
       '</div>' +
-      '<div class="cbl-card cbl-when"><h3>When it goes out</h3>' +
+      '<div class="cbl-card cbl-when cbl-kate"><h3>Kate: schedule</h3><p class="cbl-kfor">Kate sets the day and time. Coach Emma, you can leave this part.</p>' +
       '<label class="cbl-fld">Date<input type="date" id="cblDate" value="' + b.send_date + '"' + (canEdit() ? '' : ' disabled') + '></label>' +
       '<label class="cbl-fld">Time (Dubai)<select id="cblTime"' + (canEdit() ? '' : ' disabled') + '>' + times + '</select></label>' +
-      '<label class="cbl-sw"><input type="checkbox" id="cblLock"' + (b.locked ? ' checked' : '') + (canEdit() ? '' : ' disabled') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
-      (w.length ? '<p class="cbl-note warn">' + w.join(' ') + '</p>' : '<p class="cbl-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') + '</div>' +
+      '<label class="cbl-sw" title="Stops the time being moved by accident"><input type="checkbox" id="cblLock"' + (b.locked ? ' checked' : '') + (canEdit() ? '' : ' disabled') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
+      (w.length ? '<p class="cbl-note warn">' + w.join(' ') + '</p>' : '<p class="cbl-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') +
+      '<details class="cbl-cost cbl-in"><summary>Cost estimate</summary><p><b>' + estAed(c0) + '</b>' + estUsd(c0) + ' to send. One marketing message per client at about USD 0.046 (AED 0.17). The exact amount is on Meta’s invoice.</p></details></div>' +
       '</div>' + pageCard(b) + '</div>' +
       (replyFor(b, 'warm') ? '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-act="flowbig">See the flow bigger</button></div>' : '') +
-      '<div class="cbl-phones">' + lane('Warm', b.data.warm, b.data.img, b, 'warm') + lane('Standard', b.data.std, b.data.img, b, 'std') + '</div>' +
-      '<div class="cbl-card cbl-rev"><div class="cbl-rev-top"><h3>Review and comments</h3>' + (canEdit()
+      '<div class="cbl-phones" id="cblPhones">' + lane('Warm', b.data.warm, b.data.img, b, 'warm') + lane('Standard', b.data.std, b.data.img, b, 'std') + '</div>' +
+      '<div class="cbl-card cbl-rev" id="cblReview"><div class="cbl-rev-top"><h3>Emma: review</h3>' + (canEdit()
         ? '<div class="cbl-seg" role="group" aria-label="Review"><button type="button" data-st="ok" class="ok' + (k === 'ok' ? ' on' : '') + '">Approve</button><button type="button" data-st="changes" class="changes' + (k === 'changes' ? ' on' : '') + '">Needs changes</button></div>'
         : '<span class="cbl-chip ' + cls(k) + '">' + lab(k) + '</span>') + '</div>' +
       (canEdit() ? '' : '<p class="cbl-note">You can read the blasts and leave comments. Approving and scheduling is for Coach Emma and Kate.</p>') +
-      (k !== 'none' && b.review_by ? '<div class="cbl-by">' + (k === 'ok' ? 'Approved' : 'Marked needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + '</div>' : '') +
+      (k !== 'none' && b.review_by ? '<div class="cbl-by">' + (k === 'ok' ? 'Approved' : 'Marked needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + (canEdit() ? '. Tap the same button again to undo.' : '') + '</div>' : '') +
       '<div class="cbl-thr">' + thread + '</div>' +
-      (k === 'changes' && !hasWhy ? '<p class="cbl-ask">Add a comment so we know what to change.</p>' : '') +
-      '<textarea id="cblCmt" maxlength="2000" placeholder="Leave a comment on this blast" aria-label="Comment"></textarea>' +
+      (k === 'changes' && !hasWhy ? '<p class="cbl-ask">What would you change, and why? One line is plenty.</p>' : '') +
+      '<label class="cbl-q" for="cblCmt">What did you notice? Would this make you reply? What would you change, and why?</label>' +
+      '<textarea id="cblCmt" maxlength="2000" placeholder="Write what you noticed"></textarea>' +
+      '<p class="cbl-where">Words in the message: comment here. Something on the landing page: open the page and pin it to the spot.</p>' +
       (errMsg ? '<p class="cbl-err" role="alert">' + esc(errMsg) + '</p>' : '') +
       '<div class="cbl-row"><button type="button" class="cbl-pill" id="cblPost">Post comment</button><span class="cbl-chip">Posting as ' + esc(D.me) + '</span></div></div>' +
-      '<div class="cbl-pager"><a href="?view=campaignblasts" data-go="' + (p || 'all') + '">' + (p ? '‹ Previous blast' : '‹ All blasts') + '</a><a href="?view=campaignblasts" data-go="' + (n || 'all') + '">' + (n ? 'Next blast ›' : 'All blasts ›') + '</a></div>';
+      nextHtml() +
+      '<div class="cbl-pager"><a href="?view=campaignblasts" data-go="' + (p || 'all') + '">' + (p ? '‹ Previous blast' : '‹ All blasts') + '</a><a href="?view=campaignblasts" data-go="' + (n || 'all') + '">' + (n ? 'Next blast ›' : 'All blasts ›') + '</a></div>' +
+      '<div class="cbl-jump" id="cblJump"><span>' + esc(b.data.title) + ', ' + lab(k).toLowerCase() + '</span><button type="button" class="cbl-pill" data-jump="cblReview">' + (canEdit() ? 'Go to your review' : 'Go to comments') + '</button></div>';
   }
 
   function render(keep) {
@@ -328,6 +394,12 @@
     var ta = document.getElementById('cblCmt');
     if (ta) { ta.value = draft[cur] || ''; ta.oninput = function () { draft[cur] = ta.value; }; }
     fitPreviews();
+    if (jumpIo) { jumpIo.disconnect(); jumpIo = null; }
+    var rv = document.getElementById('cblReview'), jb = document.getElementById('cblJump');   // the pinned bar goes away while the review card is on screen
+    if (rv && jb && 'IntersectionObserver' in window) {
+      jumpIo = new IntersectionObserver(function (es) { jb.classList.toggle('hide', es[0].isIntersecting && es[0].intersectionRatio >= 0.1); }, { threshold: [0, 0.1, 0.25] });
+      jumpIo.observe(rv);
+    }
     var sideNew = document.getElementById('cblSide'); if (sideNew && sideY) sideNew.scrollTop = sideY;
     [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
       var k = t.getAttribute('data-key'); t.scrollTop = threadY[k] || 0;
@@ -339,6 +411,10 @@
     flowScroll = null;
     // The dashboard sets scroll-behavior:smooth, which turned this restore into a slow scroll back up from the top. Instant keeps you where you were.
     if (keep) window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+    if (focusCmt) {   // she just marked it Needs changes: the box is open and waiting, so she can say why straight away
+      focusCmt = false;
+      if (ta) { try { ta.focus({ preventScroll: true }); ta.scrollIntoView({ block: 'center', behavior: 'instant' }); } catch (e) { /* the box is still there */ } }
+    }
   }
   function fitPreviews() {   // the preview is drawn 1280 wide and shrunk to whatever width its card has
     var el = main(); if (!el) return;
@@ -384,8 +460,10 @@
     if (c) { var dm = c.getAttribute('data-act') === 'next' ? 1 : -1; cal.m += dm; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); return; }
     var dd = t.closest && t.closest('[data-day]');
     if (dd) { var first = ord().filter(function (id) { return item(id).send_date === dd.getAttribute('data-day'); })[0]; if (first) go(first, true); return; }
+    var jp = t.closest && t.closest('[data-jump]');
+    if (jp) { var jt = document.getElementById(jp.getAttribute('data-jump')); if (jt) jt.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     var st = t.closest && t.closest('[data-st]');
-    if (st) { var b = item(cur), v = st.getAttribute('data-st'); act(function () { return rpc('blast_plan_review', { p_id: cur, p_status: b.review === v ? 'none' : v }); }); return; }
+    if (st) { var b = item(cur), v = st.getAttribute('data-st'); if (v === 'changes' && b.review !== 'changes') focusCmt = true; act(function () { return rpc('blast_plan_review', { p_id: cur, p_status: b.review === v ? 'none' : v }); }); return; }
     var del = t.closest && t.closest('[data-del]');
     if (del) { if (!confirm('Delete this comment?')) return; act(function () { return rpc('blast_plan_comment_delete', { p_comment_id: Number(del.getAttribute('data-del')) }); }); return; }
     if (t.id === 'cblPost') {
