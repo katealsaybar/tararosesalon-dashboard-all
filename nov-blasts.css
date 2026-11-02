@@ -10,7 +10,7 @@
 .nvb h3{font-size:19px;font-weight:600}
 .nvb button{font:inherit;color:inherit;cursor:pointer}
 .nvb button:disabled{cursor:default}
-.nvb .eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+.nvb .eyebrow{display:block;margin:0;gap:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}   /* the site's own .eyebrow is a flex row with a 48px top margin, which pushed every header down inside the cards */
 .nvb .chip{display:inline-block;font-size:12.5px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px 11px}
 .nvb .chip.good{background:var(--nv-good-bg);color:var(--nv-good);border-color:transparent}
 .nvb .chip.warn{background:var(--nv-warn-bg);color:var(--nv-warn);border-color:transparent}
@@ -66,6 +66,7 @@
 
 .nvb-det-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .nvb-det-head h2{font-size:30px}
+.nvb-det-head .eyebrow{margin-bottom:4px}
 .nvb-det{display:grid;grid-template-columns:370px minmax(0,1fr);gap:12px;align-items:start}
 .nvb-phone{padding:16px;display:grid;gap:12px}
 .nvb-tog{display:flex;gap:6px;flex-wrap:wrap}
