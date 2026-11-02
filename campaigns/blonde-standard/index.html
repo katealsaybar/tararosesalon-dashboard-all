@@ -1157,7 +1157,7 @@ html.lb-open{overflow:hidden}
         </div>
       </article>
       <article class="plancard gcard" id="menu-balayage">
-        <figure class="plancard__photo"><img src="assets/img/menu-balayage-c.jpg" alt="Blended balayage, deep roots melting into light golden-blonde lengths" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 22%"></figure>
+        <figure class="plancard__photo"><img src="assets/img/menu-balayage-hd.jpg" alt="Blended balayage, deep roots melting into light golden-blonde lengths" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 22%"></figure>
         <div class="plancard__body">
           <span class="plancard__label">Hand-painted</span>
           <h3>Balayage</h3>
@@ -1183,7 +1183,7 @@ html.lb-open{overflow:hidden}
         </div>
       </article>
       <article class="plancard gcard" id="menu-colour">
-        <figure class="plancard__photo"><img src="assets/img/menu-correction-c.jpg" alt="A colour change from deep brown to dimensional ash-gold blonde" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 35%"></figure>
+        <figure class="plancard__photo"><img src="assets/img/menu-correction-hd.jpg" alt="A colour change from deep brown to dimensional ash-gold blonde" loading="lazy" decoding="async" width="1080" height="1350" style="object-position:50% 35%"></figure>
         <div class="plancard__body">
           <span class="plancard__label">Tailored to you</span>
           <h3>Colour and add-ons</h3>
@@ -1450,11 +1450,13 @@ html.lb-open{overflow:hidden}
 </footer>
 
 <script>
-/* Level the Blonde Menu cards: intros get the height of the tallest when the cards sit side by side. */
+/* Level the Blonde Menu cards: intros, lists and price blocks get the height of the tallest when the cards sit side by side, so the heads, buttons and card bottoms line up. */
 (function(){
   var ps=[].slice.call(document.querySelectorAll('.gcards .plancard__body>p'));
   if(!ps.length) return;
-  var groups=[ps,[].slice.call(document.querySelectorAll('.gcards .incl'))];
+  var prices=[].slice.call(document.querySelectorAll('.gcards .plancard__price'));
+  prices.forEach(function(p){ p.style.boxSizing='border-box'; });
+  var groups=[ps,[].slice.call(document.querySelectorAll('.gcards .incl')),prices];
   var level=function(){
     var cards=document.querySelectorAll('.gcards .gcard');
     var row=cards.length>1&&cards[0].getBoundingClientRect().top===cards[1].getBoundingClientRect().top;
