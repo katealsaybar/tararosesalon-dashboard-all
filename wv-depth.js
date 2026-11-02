@@ -10,6 +10,8 @@ async function wvDepthLoad() {
   try {
     const r = await sb.rpc('wv_blast_depth');
     wvDepth = (!r.error && r.data && r.data.b3) ? r.data : null;
+    // Blast 4's reply check (who pressed Tell me more, Reserve mine, Not for me, STOP), Level 3 and 5 only: the function refuses Level 4 and the rows just say so.
+    try { const r2 = await sb.rpc('wv_last_replies_get'); wvLr = (!r2.error && r2.data && Array.isArray(r2.data.rows)) ? r2.data : null; } catch (e) { wvLr = null; }
     if (r.error) console.warn('wv_blast_depth', r.error);
   } catch (e) { console.error(e); wvDepth = null; }
 }
@@ -75,7 +77,104 @@ function wvBuyersHtml(k) {
     ${early ? `<p class="slv-note">These are the till's voucher sales in the 7 days after the send. We cannot tell who of them got the message: it went from GoHighLevel and the list of who got it is not kept here.</p>` : ''}</div>`;
 }
 
-// Which group did best (Blasts 3 and 4): sent, seen, wrote back, bought.
+// Warm against Standard (Blast 4) and Short against Long (Blast 3), laid out like the Lost Clients Performance page (Kate, 2 Nov 2026): a row per question, one column per side,
+// the verdict on top. The two pages share one definition (agreed with the Lost Clients session): Warm and Standard are told apart by the AUDIENCE, and the text each side got is always
+// shown beside it. Blast 4: Warm = the 20 who asked about the voucher on Blast 3 and had not bought, Standard = the 292 clean list. Blast 3 has no warm/standard split (all 600 had
+// written to us in the last 12 months, so every one is warm): its only split is the short message against the long one, and it says so. "Bought" is a voucher bought (the till,
+// matched by name), not an appointment booked. A comparison with fewer than 5 buyers on a side is "too few to call", the same rule as the Lost Clients page.
+let wvLr = null;   // Blast 4's reply check (wv_last_replies_get, Level 3 and 5 only): who pressed what, per list
+const wvLrReplied = r => r.tell_me_more || r.reserve_mine || r.not_for_me || r.stop || r.other;
+const wvLrSay = r => r.reserve_mine ? 'Reserve mine' : r.tell_me_more ? 'Tell me more' : r.not_for_me ? 'Not for me' : r.stop ? 'STOP' : 'Wrote something else';
+function wvBoughtSpec(title, list) {
+  if (typeof TRSD === 'undefined' || !list || !list.length) return null;
+  const l = list.slice().sort((a, b) => String(a.date) < String(b.date) ? -1 : 1);
+  return { title, cur: 'AED', views: [{ id: 'b', label: 'Who bought', load: async () => ({
+    sub: l.length + (l.length === 1 ? ' voucher' : ' vouchers') + ' bought by clients we messaged.',
+    cols: [{ k: 'who', l: 'Client' }, { k: 'br', l: 'Branch' }, { k: 'date', l: 'Bought', t: 'date' }, { k: 'aed', l: 'Paid', t: 'aed' }, { k: 'v', l: 'Voucher' }, { k: 'pay', l: 'Paid via' }],
+    rows: l.map(b => ({ who: b.who || 'A client', br: WV_BR[b.br] || b.br || '', date: String(b.date || '').slice(0, 10), aed: +b.aed || 0, v: wvTierName(b.serial), pay: wvPayName(b.pay) })),
+    foot: { who: 'Total', aed: l.reduce((a, b) => a + (+b.aed || 0), 0) } }) }] };
+}
+function wvLrSpec(title, rows) {
+  if (typeof TRSD === 'undefined' || !rows || !rows.length) return null;
+  return { title, views: [{ id: 'r', label: 'Who wrote back', load: async () => ({
+    sub: rows.length + (rows.length === 1 ? ' client' : ' clients') + '. From the reply check on the blast channel.',
+    cols: [{ k: 'who', l: 'Client' }, { k: 'br', l: 'Branch' }, { k: 'said', l: 'Said' }, { k: 'at', l: 'Last reply', t: 'date' }],
+    rows: rows.map(r => ({ who: r.client, br: WV_BR[r.branch] || r.branch || '', said: wvLrSay(r), at: String(r.last_reply_at || '').slice(0, 10) })) }) }] };
+}
+function wvMsgSpec(title, rows) {
+  if (typeof TRSD === 'undefined' || !rows || !rows.length) return null;
+  return { title, cur: 'AED', views: [{ id: 'm', label: 'Clients messaged', load: async () => ({
+    sub: rows.length + ' clients on the list.',
+    cols: [{ k: 'who', l: 'Client' }, { k: 'br', l: 'Branch' }, { k: 'sp', l: '2026 spend', t: 'aed' }, { k: 'lv', l: 'Last visit', t: 'date' }],
+    rows: rows.map(r => ({ who: r.client, br: WV_BR[r.branch] || r.branch || '', sp: +r.spend || 0, lv: String(r.last_visit || '').slice(0, 10) })) }) }] };
+}
+function wvCompareHtml(k) {
+  const dp = wvDp(k); if (!dp || (k !== 'b3' && k !== 'b4')) return '';
+  const b4 = k === 'b4', dim = b4 ? 'g1' : 'g2', keys = b4 ? ['warm', 'clean'] : ['A', 'B'];
+  const C = keys.map(x => (dp.cuts || []).find(c => c.dim === dim && c.k === x)); if (!C[0] || !C[1]) return '';
+  const d = dp.delivery, known = d && d.unknown < d.sent;
+  const rate = b4 ? WV_RATE : WV_GHL_RATE, usdRate = b4 ? 0.046 : 0.0524;
+  const lr = b4 && wvLr && Array.isArray(wvLr.rows) ? wvLr : null;
+  const nm = ['Warm', 'Standard'], nmB3 = ['A: short', 'B: long'], name = i => (b4 ? nm : nmB3)[i];
+  const aed2 = n => 'AED ' + (Math.round(n * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const num = (txt, sp) => sp && typeof TRSD !== 'undefined' ? TRSD.num(txt, sp) : txt;
+  const sm = x => `<span class="slv-note">${x}</span>`;
+  const who = i => b4 ? name(i) : 'the ' + (i ? 'long' : 'short') + ' message';
+  const S = C.map((c, i) => {
+    const rr = lr ? lr.rows.filter(r => r.seg === keys[i] && wvLrReplied(r)) : null;
+    return { c, reached: known ? c.seen + c.delivered : null, sp: c.sent * rate, rr,
+      tm: rr ? rr.filter(r => r.tell_me_more || r.reserve_mine) : null, nf: rr ? rr.filter(r => r.not_for_me || r.stop) : null,
+      bl: (dp.buyers || []).filter(b => b[dim] === c.k), list: b4 && typeof wvLpRows !== 'undefined' && wvLpRows ? wvLpRows.filter(r => r.seg === c.k) : null };
+  });
+  const per100 = (b, sent) => sent ? (100 * b / sent).toFixed(1) : '0.0';
+  const none = '<span class="slv-muted">not recorded</span>', lvl = '<span class="slv-muted">Level 3 and 5 only</span>';
+  const R = [];   // [label, cell for side 1, cell for side 2, class]
+  R.push(['Who it went to', ...S.map((s, i) => b4 ? (i ? 'Top spenders (AED 2,000+ in 2026) we had not messaged before' : 'Asked about the voucher on Blast 3 and had not bought') : `${lcNum(s.c.sent)} clients, the "${i ? 'b' : 'a'}" half of each wave. All had written to us in the last 12 months`)]);
+  R.push(['The text they got', ...(b4 ? ['<code>wellness_voucher_last_push_warm</code>', '<code>wellness_voucher_last_push_new</code>'] : ['Picture caption, no name in it', 'Longer text with her first name'])]);
+  R.push(['Clients messaged', ...S.map((s, i) => num(lcNum(s.c.sent), s.list && wvMsgSpec(name(i) + ': clients messaged', s.list)))]);
+  R.push(['Reached (delivered or seen)', ...S.map(s => known ? `${lcNum(s.reached)} ${sm(wvDpPc(s.reached, s.c.sent))}` : none)]);
+  if (b4) {
+    R.push(['Replied to the message <small>of reached</small>', ...S.map((s, i) => s.rr ? `${num(lcNum(s.rr.length), wvLrSpec(name(i) + ': replied to the message', s.rr))} ${sm(wvDpPc(s.rr.length, s.reached))}` : lvl)]);
+    R.push(['Pressed Tell me more or Reserve mine', ...S.map((s, i) => s.tm ? num(lcNum(s.tm.length), wvLrSpec(name(i) + ': Tell me more or Reserve mine', s.tm)) : lvl)]);
+    R.push(['Not for me / STOP', ...S.map((s, i) => s.nf ? `${num(lcNum(s.nf.filter(r => r.not_for_me).length), wvLrSpec(name(i) + ': Not for me or STOP', s.nf))} / ${lcNum(s.nf.filter(r => r.stop).length)}` : lvl)]);
+  } else R.push(['STOP', none, none]);
+  R.push(['Any message after the blast <small>includes ordinary chat</small>', ...S.map(s => `${lcNum(s.c.replied)} ${sm(wvDpPc(s.c.replied, s.c.sent) + (b4 ? '' : ' of messaged'))}`)]);
+  R.push(['Bought a voucher <small>per 100 messaged</small>', ...S.map((s, i) => `${num(lcNum(s.c.bought), wvBoughtSpec(name(i) + ': who bought', s.bl))} ${sm(per100(s.c.bought, s.c.sent))}`), 'key']);
+  R.push(['Spent on messages <small>every message sent</small>', ...S.map(s => `${aed2(s.sp)} ${sm('USD ' + (s.c.sent * usdRate).toFixed(2))}`)]);
+  R.push(['If only delivered are charged', ...S.map(s => known ? aed2(s.reached * rate) : none)]);
+  R.push(['Cost per client who bought', ...S.map(s => s.c.bought ? wvAed(s.sp / s.c.bought) : '<span class="slv-muted">none yet</span>')]);
+  R.push(['Paid at the till since', ...S.map((s, i) => s.c.aed ? num(wvAed(s.c.aed), wvBoughtSpec(name(i) + ': who bought', s.bl)) : 'AED 0')]);
+  R.push(['AED back per AED 1 spent', ...S.map(s => s.c.aed && s.sp ? 'AED ' + Math.round(s.c.aed / s.sp) : '<span class="slv-muted">none yet</span>')]);
+  // The verdict, on top. Same rule as Lost Clients: no winner when a side has fewer than 5 buyers.
+  const bA = C[0].bought, bB = C[1].bought, tot = bA + bB, back = s => s.sp ? s.c.aed / s.sp : 0;
+  let head, body = [];
+  if (!tot) { head = 'Too few to call.'; body.push('Nobody has bought from either side yet.'); }
+  else if (Math.min(bA, bB) < 5) {
+    head = 'Too few to call.'; body.push(`${bA} and ${bB} ${tot === 1 ? 'buyer' : 'buyers'}.`);
+    if (S[0].c.aed !== S[1].c.aed) { const w = S[0].c.aed > S[1].c.aed ? 0 : 1; body.push(`For what it is worth, ${who(w)} brought in more per dirham spent (AED ${Math.round(back(S[w]))} back for each AED 1 against ${Math.round(back(S[1 - w]))}).`); }
+  } else {
+    const p0 = C[0].sent ? bA / C[0].sent : 0, p1 = C[1].sent ? bB / C[1].sent : 0, w = p0 >= p1 ? 0 : 1, hi = Math.max(p0, p1), lo = Math.min(p0, p1);
+    head = `${name(w)} wins.`; body.push(`Per 100 clients messaged, ${(100 * hi).toFixed(1)} bought against ${(100 * lo).toFixed(1)}${lo ? ` (${(hi / lo).toFixed(1)} times as many)` : ''}.`);
+  }
+  if (S[0].rr && S[1].rr && S[0].reached && S[1].reached) {
+    const a = Math.round(100 * S[0].rr.length / S[0].reached), b = Math.round(100 * S[1].rr.length / S[1].reached);
+    body.push(a === b ? `Replies to the message are level (${a}% of the clients it reached).` : `Replies to the message are ${a}% of the clients it reached on ${name(0)} against ${b}% on ${name(1)}.`);
+    body.push(`${S[0].tm.length} pressed Tell me more or Reserve mine on ${name(0)} against ${S[1].tm.length} on ${name(1)}.`);
+  } else if (!b4 && C[0].replied !== C[1].replied) {
+    const w = C[0].replied / C[0].sent > C[1].replied / C[1].sent ? 0 : 1;
+    body.push(`${who(w)[0].toUpperCase() + who(w).slice(1)} got more messages after (${wvDpPc(C[w].replied, C[w].sent)} against ${wvDpPc(C[1 - w].replied, C[1 - w].sent)}), mostly ordinary chat.`);
+  }
+  const care = b4
+    ? `Warm here means "asked before", not a different text, so the two sides differ in audience and in text. Spent is an estimate: messages sent × AED ${rate} (respond.io bills USD 0.046 a message, at 3.81). Bought means a voucher bought, matched by name from the till, so a sale not in the till yet is missing here.`
+    : `Both sides are the same audience (all 600 had written to us in the last 12 months), so Blast 3 has no warm or standard split: this compares the two messages. Spent is an estimate at GoHighLevel's rate: messages sent × AED ${rate} (USD 0.0524). Delivered and seen were not recorded for this blast. "Any message after the blast" is mostly ordinary chat, not only a reply to the buttons.`;
+  const tr = R.map(r => `<tr${r[3] ? ' class="wv-key"' : ''}><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+  return `<div class="wv-pbox wv-pwide wv-cmp"><h4>${b4 ? 'Warm list against clean list' : 'Short against long message'} <span class="slv-note">${b4 ? '' : 'no warm or standard split'}</span></h4>
+    <div class="wv-verdict"><b>${lcEsc(head)}</b> ${body.map(lcEsc).join(' ')}</div>
+    <div class="wv-pscroll"><table class="slv-table wv-ptbl wv-cmp-t"><thead><tr><th></th><th>${lcEsc(name(0))}</th><th>${lcEsc(name(1))}</th></tr></thead><tbody>${tr}</tbody></table></div>
+    <p class="slv-note"><b>Read this with care.</b> ${care}</p></div>`;
+}
+
+// Which group did best, the old small tables: by wave (Blast 3) and by branch.
 function wvCutsHtml(k) {
   const dp = wvDp(k); if (!dp || !(dp.cuts || []).length) return '';
   const d = dp.delivery, known = d && d.unknown < d.sent;
@@ -85,7 +184,7 @@ function wvCutsHtml(k) {
         <td>${lcNum(c.replied)}<div class="slv-note">${wvDpPc(c.replied, c.sent)}</div></td><td>${lcNum(c.bought)}<div class="slv-note">${c.aed ? wvAed(c.aed) : wvPct(c.bought, c.sent) + ' bought'}</div></td></tr>`).join('');
     return `<div class="wv-pbox"><h4>${title}</h4><div class="wv-pscroll"><table class="slv-table wv-ptbl"><thead><tr><th></th><th>Sent</th><th>Wrote back</th><th>Bought</th></tr></thead><tbody>${tr}</tbody></table></div></div>`;
   };
-  return (k === 'b3' ? box('By wave', 'g1') + box('By message', 'g2') : box('By list', 'g1')) + box('By branch', 'branch');
+  return (k === 'b3' ? box('By wave', 'g1') : '') + box('By branch', 'branch');
 }
 
 // What they bought: tier, tender and the average voucher.
@@ -130,7 +229,7 @@ function wvEconHtml(k) {
 
 function wvDepthHtml(k) {
   if (!wvDp(k)) return '';
-  const parts = [wvFunnelHtml(k), wvEmailHtml(k), wvEconHtml(k), wvWhenHtml(k), wvWhatHtml(k), wvCutsHtml(k)].join('');
+  const parts = [wvFunnelHtml(k), wvEmailHtml(k), wvEconHtml(k), wvWhenHtml(k), wvWhatHtml(k), wvCompareHtml(k), wvCutsHtml(k)].join('');
   return `<details class="wv-how wv-more wv-depth" open><summary>Full performance of this blast</summary>
     <div class="wv-pgrid">${parts}</div>${wvBuyersHtml(k)}</details>`;
 }

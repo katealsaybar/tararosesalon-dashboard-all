@@ -143,6 +143,9 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 .funnel .v{font-family:var(--serif);font-size:22px;font-weight:600}
 .funnel .l{font-size:12px;color:var(--muted)}
 .empty{color:var(--muted);font-size:13px;padding:8px 0}
+/* A figure that opens the vouchers behind it (Kate, 2 Nov 2026). Dotted underline, same look as the dashboard's own figures. */
+.dn{cursor:pointer;border-bottom:1px dotted currentColor}
+.dn:hover,.dn:focus-visible{color:var(--series);outline:0}
 .state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
 .foot{color:var(--muted);font-size:12px;margin-top:18px}
 #report{display:none}
@@ -180,6 +183,22 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
   </section>
 
   <div class="tiles" id="tiles"></div>
+
+  <!-- Month by month (Kate, 2 Nov 2026: Emma-Louise asked for Month 1, Month 2 and Month 3 of the voucher). -->
+  <section class="card" id="wv-months">
+    <h2>Month by month</h2>
+    <p class="sub">What each month of the campaign brought in: Month 1, Month 2 and Month 3, by the day each voucher was bought.</p>
+    <details class="more"><summary>How this is counted</summary><p class="sub">Calendar months. Month 1 starts at the first sale, so it is a part month. A voucher counts in the month it was bought, and Redeemed so far is what the vouchers bought that month have spent to date, not what was spent in that month.</p></details>
+    <div id="monthTable"></div>
+  </section>
+
+  <!-- Sold by each person, month by month (Kate, 2 Nov 2026). -->
+  <section class="card" id="wv-staff">
+    <h2>Sold by each person, month by month</h2>
+    <p class="sub">How many vouchers each person sold in Month 1, Month 2 and Month 3, with the cash under each count. Use it to thank the people selling.</p>
+    <details class="more"><summary>How this is counted</summary><p class="sub">The name is whatever was typed in Your name on the till page when the voucher was issued, grouped ignoring case and spacing. The Phorest till cannot do this: almost every voucher sale there is rung as BUSINESS (unassigned). A voucher counts in the month it was bought. A Stripe sale is paid by the client on a link and logged at the till by whoever handled it, so it counts for that person.</p></details>
+    <div id="staffTable"></div>
+  </section>
 
   <!-- 2. Running total vs the straight line to the target -->
   <section class="card" id="wv-target">
@@ -277,6 +296,39 @@ var TARGET = 150000, TARGET_DATE = day('2026-10-31');
    tier 2 = Season of You, tier 3 = All-In VIP Year. */
 var UNIT_TARGETS = { D:15, S:20, V:10 }, UNIT_TARGET = 45;
 var DAY = 86400000;
+/* Clickable figures (Kate, 2 Nov 2026: "anything with numbers should be clickable"). A figure opens the vouchers (or the redemption lines) behind it in the
+   dashboard's own list window (drill.js, TRSD). This report holds no client names, so a list shows the voucher, not the client: names stay in the voucher log.
+   Opened on its own, outside the dashboard, there is no list window, so the figures stay plain there. A figure with nothing behind it (zero) stays plain too. */
+var TD = null; try { if (window.parent !== window && window.parent.TRSD) TD = window.parent.TRSD; } catch (e) {}
+var DR = {}, drSeq = 0;
+function dn(html, sp){ if (!TD || !sp) return html; var id = 'x' + (++drSeq); DR[id] = sp; return '<span class="dn" role="button" tabindex="0" data-dn="' + id + '" title="' + (sp.tip || 'See the vouchers') + '">' + html + '</span>'; }
+function sumOf(rows, k){ return rows.reduce(function(a, r){ return a + (Number(r[k]) || 0); }, 0); }
+var SRCNAME = { blast:'1st and 2nd blasts', blast3:'3rd blast', blast4:'4th blast', nurtured:'Nurtured by her', direct:'Direct on Stripe' };
+function srcOf(r){ return SRCNAME[r.sold_via] || (r.payment_method === 'Stripe' ? 'Stripe, not sorted yet' : 'At the salon'); }
+function brName(c){ for (var i = 0; i < BR.length; i++) if (BR[i][0] === c) return BR[i][1]; return c || ''; }
+function tierName(c){ for (var i = 0; i < TIERS.length; i++) if (TIERS[i][0] === c) return TIERS[i][1]; return c || ''; }
+function vSpec(title, rows, tip){
+  if (!rows || !rows.length) return null;
+  var l = rows.slice().sort(function(a, b){ var x = String(a.purchase_date), y = String(b.purchase_date); return x < y ? -1 : x > y ? 1 : 0; });
+  return { title:title, cur:'AED', tip:tip || 'See the vouchers', views:[{ id:'v', label:'Vouchers', load: async function(){
+    return { sub: l.length + (l.length === 1 ? ' voucher' : ' vouchers') + '. No client names here, they stay in the voucher log.',
+      cols:[{k:'d',l:'Bought',t:'date'},{k:'b',l:'Branch'},{k:'t',l:'Voucher'},{k:'p',l:'Paid',t:'aed'},{k:'c',l:'Credit',t:'aed'},{k:'r',l:'Spent',t:'aed'},{k:'x',l:'Left',t:'aed'},{k:'m',l:'Paid via'},{k:'i',l:'Issued by'},{k:'s',l:'Source'}],
+      rows: l.map(function(r){ return { d:String(r.purchase_date).slice(0,10), b:brName(r.branch), t:tierName(r.tier), p:num(r.paid_aed), c:num(r.credit_aed), r:num(r.redeemed_aed), x:num(r.remaining_aed), m:r.payment_method || '', i:r.issued_by || '', s:srcOf(r) }; }),
+      foot:{ d:'Total', p:sumOf(l, 'paid_aed'), c:sumOf(l, 'credit_aed'), r:sumOf(l, 'redeemed_aed'), x:sumOf(l, 'remaining_aed') } };
+  } }] };
+}
+function rSpec(title, lines){
+  if (!lines || !lines.length) return null;
+  var l = lines.slice().sort(function(a, b){ var x = String(a.redeemed_on), y = String(b.redeemed_on); return x < y ? -1 : x > y ? 1 : 0; });
+  return { title:title, cur:'AED', tip:'See the lines', views:[{ id:'r', label:'Redemptions', load: async function(){
+    return { sub: l.length + (l.length === 1 ? ' line' : ' lines') + ' of credit spent. No client names here, they stay in the voucher log.',
+      cols:[{k:'d',l:'Spent on',t:'date'},{k:'b',l:'Branch'},{k:'t',l:'Voucher'},{k:'w',l:'Bought',t:'date'},{k:'a',l:'Amount',t:'aed'}],
+      rows: l.map(function(u){ var v = (DATA && DATA.byId[u.issue_id]) || {}; return { d:String(u.redeemed_on).slice(0,10), b:brName(v.branch), t:tierName(v.tier), w:String(v.purchase_date || '').slice(0,10), a:num(u.amount_aed) }; }),
+      foot:{ d:'Total', a:sumOf(l, 'amount_aed') } };
+  } }] };
+}
+document.addEventListener('click', function(e){ var n = e.target.closest && e.target.closest('.dn'); if (n && TD && DR[n.dataset.dn]) TD.open(DR[n.dataset.dn], n); });
+document.addEventListener('keydown', function(e){ if (e.key !== 'Enter' && e.key !== ' ') return; var n = e.target.closest && e.target.closest('.dn'); if (n && TD && DR[n.dataset.dn]){ e.preventDefault(); TD.open(DR[n.dataset.dn], n); } });
 var BR = [['SAA','Saadiyat'],['KCA','Khalifa City A'],['MC','Motor City'],['AQ','Al Quoz']];
 var TIERS = [['D','Dip Your Toes'],['S','Season of You'],['V','All-In VIP Year']];
 var PAY = [['Stripe','var(--c1)'],['Salon Payment','var(--c2)'],['Tabby','var(--c3)']];
@@ -381,7 +433,9 @@ function render(){
   var collected = live.reduce(function(a, r){ return a + num(r.paid_aed); }, 0);
   var placed = live.reduce(function(a, r){ return a + num(r.credit_aed); }, 0);
   var spent = live.reduce(function(a, r){ return a + num(r.redeemed_aed); }, 0);
-  var daysIn = Math.round((today - launch) / DAY) + 1;
+  // The campaign closed on 31 Oct (Kate, 2 Nov 2026): after that "days left", "needed a day" and "where the pace lands" mean nothing, so the headline reads as a final result.
+  var closed = today > TARGET_DATE;
+  var daysIn = Math.round(((closed ? TARGET_DATE : today) - launch) / DAY) + 1;
   var daysLeft = Math.max(0, Math.round((TARGET_DATE - today) / DAY));
   var perDay = collected / daysIn;
   var still = Math.max(0, TARGET - collected);
@@ -391,51 +445,91 @@ function render(){
   M = { today: today, launch: launch, collected: collected, placed: placed, spent: spent };
 
   el('asof').textContent = 'As of ' + DATA.at.toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'}) +
-    ', ' + DATA.at.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) + '. First sale ' + fmtD(launch) + ', day ' + daysIn + '.';
-  el('hCollected').innerHTML = aed(collected) + ' <small>of ' + aed(TARGET) + '</small>';
+    ', ' + DATA.at.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) + '. First sale ' + fmtD(launch) + (closed ? ', campaign closed ' + fmtD(TARGET_DATE) + ' after ' + daysIn + ' days.' : ', day ' + daysIn + '.');
+  el('hCollected').innerHTML = dn(aed(collected), vSpec('Cash collected', live)) + ' <small>of ' + aed(TARGET) + '</small>';
   el('hFill').style.width = Math.min(100, collected / TARGET * 100) + '%';
-  el('hCap').textContent = pc(collected, TARGET) + ' of the target, ' + daysLeft + (daysLeft === 1 ? ' day' : ' days') + ' left to ' + fmtD(TARGET_DATE);
+  el('hCap').textContent = closed ? pc(collected, TARGET) + ' of the target. The campaign closed on ' + fmtD(TARGET_DATE) + '.'
+    : pc(collected, TARGET) + ' of the target, ' + daysLeft + (daysLeft === 1 ? ' day' : ' days') + ' left to ' + fmtD(TARGET_DATE);
 
   var st = collected >= TARGET ? ['good','&#10003;','Target reached']
+         : closed ? ['bad','&#9660;','Closed short of the target']
          : projected >= TARGET ? ['good','&#10003;','On pace']
          : projected >= TARGET * .85 ? ['warn','!','Slightly behind'] : ['bad','&#9660;','Behind pace'];
   el('pace').innerHTML =
-    '<div class="status ' + st[0] + '"><span aria-hidden="true">' + st[1] + '</span>' + st[2] + '</div>' +
-    '<div class="row"><span>Averaging so far</span><b>' + aed(perDay) + ' a day</b></div>' +
-    '<div class="row"><span>Needed from today to hit ' + kfmt(TARGET) + '</span><b>' + aed(needDay) + ' a day</b></div>' +
-    '<div class="row"><span>Where the current pace lands on ' + fmtD(TARGET_DATE) + '</span><b>' + aed(projected) + '</b></div>' +
-    '<div class="row"><span>Still to collect</span><b>' + aed(still) + '</b></div>';
+    '<div class="status ' + st[0] + '"><span aria-hidden="true">' + st[1] + '</span>' + st[2] + '</div>' + (closed
+      ? '<div class="row"><span>The campaign ran</span><b>' + daysIn + ' days, ' + fmtD(launch) + ' to ' + fmtD(TARGET_DATE) + '</b></div>' +
+        '<div class="row"><span>Averaged over those days</span><b>' + aed(perDay) + ' a day</b></div>' +
+        '<div class="row"><span>Vouchers sold</span><b>' + dn(live.length, vSpec('Vouchers sold', live)) + ' of ' + UNIT_TARGET + '</b></div>' +
+        '<div class="row"><span>Short of the target</span><b>' + aed(still) + '</b></div>'
+      : '<div class="row"><span>Averaging so far</span><b>' + aed(perDay) + ' a day</b></div>' +
+        '<div class="row"><span>Needed from today to hit ' + kfmt(TARGET) + '</span><b>' + aed(needDay) + ' a day</b></div>' +
+        '<div class="row"><span>Where the current pace lands on ' + fmtD(TARGET_DATE) + '</span><b>' + aed(projected) + '</b></div>' +
+        '<div class="row"><span>Still to collect</span><b>' + aed(still) + '</b></div>');
 
   el('tiles').innerHTML = [
-    ['Vouchers sold', live.length + ' <small style="font-family:var(--sans);font-size:13px;color:var(--muted);font-weight:500">of ' + UNIT_TARGET + '</small>', pc(live.length, UNIT_TARGET) + ' of the unit target'],
-    ['Cash collected', aed(collected), 'what clients paid'],
-    ['Credit placed', aed(placed), 'what we owe in services'],
-    ['Redeemed so far', aed(spent), pc(spent, placed) + ' of credit used'],
-    ['Credit still open', aed(placed - spent), 'services still to deliver']
+    ['Vouchers sold', dn(live.length, vSpec('Vouchers sold', live)) + ' <small style="font-family:var(--sans);font-size:13px;color:var(--muted);font-weight:500">of ' + UNIT_TARGET + '</small>', pc(live.length, UNIT_TARGET) + ' of the unit target'],
+    ['Cash collected', dn(aed(collected), vSpec('Cash collected', live)), 'what clients paid'],
+    ['Credit placed', dn(aed(placed), vSpec('Credit placed', live)), 'what we owe in services'],
+    ['Redeemed so far', dn(aed(spent), rSpec('Redeemed so far', reds.filter(function(u){ return DATA.byId[u.issue_id]; }))), pc(spent, placed) + ' of credit used'],
+    ['Credit still open', dn(aed(placed - spent), vSpec('Credit still open', live.filter(function(r){ return num(r.remaining_aed) > 0; }))), 'services still to deliver']
   ].map(function(t){ return '<div class="tile"><div class="l">' + t[0] + '</div><div class="v">' + t[1] + '</div><div class="h">' + t[2] + '</div></div>'; }).join('');
   el('cumSub').textContent = 'Running total of cash collected by purchase date, against a straight line from the first sale to ' + aed(TARGET) + ' on ' + fmtD(TARGET_DATE) + '.';
 
   /* branches */
   M.byBr = BR.map(function(b){
     var vs = live.filter(function(r){ return r.branch === b[0]; });
-    return { name:b[1], units:vs.length, paid:vs.reduce(function(a,r){ return a + num(r.paid_aed); }, 0),
+    return { name:b[1], rows:vs, units:vs.length, paid:vs.reduce(function(a,r){ return a + num(r.paid_aed); }, 0),
              red:vs.reduce(function(a,r){ return a + num(r.redeemed_aed); }, 0) };
   });
+  function redOf(rows){ var ids = {}; rows.forEach(function(r){ ids[r.id] = 1; }); return reds.filter(function(u){ return ids[u.issue_id]; }); }
   el('brTable').innerHTML = '<table><thead><tr><th>Branch</th><th class="n">Sold</th><th class="n">Collected</th><th class="n">Share</th><th class="n">Redeemed</th></tr></thead><tbody>' +
-    M.byBr.map(function(r){ return '<tr><td>' + r.name + '</td><td class="n">' + r.units + '</td><td class="n">' + aed(r.paid) + '</td><td class="n">' + pc(r.paid, collected) + '</td><td class="n">' + aed(r.red) + '</td></tr>'; }).join('') +
-    '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td class="n">100%</td><td class="n">' + aed(spent) + '</td></tr></tbody></table>';
+    M.byBr.map(function(r){ var sp = vSpec(r.name + ': vouchers sold', r.rows); return '<tr><td>' + r.name + '</td><td class="n">' + dn(r.units, sp) + '</td><td class="n">' + dn(aed(r.paid), sp) + '</td><td class="n">' + pc(r.paid, collected) + '</td><td class="n">' + dn(aed(r.red), rSpec(r.name + ': credit redeemed', redOf(r.rows))) + '</td></tr>'; }).join('') +
+    '<tr class="tot"><td>Total</td><td class="n">' + dn(live.length, vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(collected), vSpec('All vouchers', live)) + '</td><td class="n">100%</td><td class="n">' + dn(aed(spent), rSpec('Redeemed so far', redOf(live))) + '</td></tr></tbody></table>';
 
   /* tiers */
   function mini(n, of){ return '<span class="mini" aria-hidden="true"><i style="width:' + Math.min(100, of ? n / of * 100 : 0) + '%"></i></span>' + pc(n, of); }
   M.tiers = TIERS.map(function(t){
     var vs = live.filter(function(r){ return r.tier === t[0]; });
-    return { name:t[1], n:vs.length, target:UNIT_TARGETS[t[0]], paid:vs.reduce(function(a,r){ return a + num(r.paid_aed); }, 0) };
+    return { name:t[1], rows:vs, n:vs.length, target:UNIT_TARGETS[t[0]], paid:vs.reduce(function(a,r){ return a + num(r.paid_aed); }, 0) };
   });
   el('tierTable').innerHTML = '<table><thead><tr><th>Tier</th><th class="n">Sold</th><th class="n">Target</th><th>Progress</th><th class="n">Collected</th></tr></thead><tbody>' +
-    M.tiers.map(function(t, i){
-      return '<tr><td><span class="dot" style="background:var(--c' + (i+1) + ')"></span>' + t.name + '</td><td class="n">' + t.n + '</td><td class="n">' + t.target + '</td><td>' + mini(t.n, t.target) + '</td><td class="n">' + aed(t.paid) + '</td></tr>';
+    M.tiers.map(function(t, i){ var sp = vSpec(t.name + ': vouchers sold', t.rows);
+      return '<tr><td><span class="dot" style="background:var(--c' + (i+1) + ')"></span>' + t.name + '</td><td class="n">' + dn(t.n, sp) + '</td><td class="n">' + t.target + '</td><td>' + mini(t.n, t.target) + '</td><td class="n">' + dn(aed(t.paid), sp) + '</td></tr>';
     }).join('') +
-    '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + UNIT_TARGET + '</td><td>' + mini(live.length, UNIT_TARGET) + '</td><td class="n">' + aed(collected) + '</td></tr></tbody></table>';
+    '<tr class="tot"><td>Total</td><td class="n">' + dn(live.length, vSpec('All vouchers', live)) + '</td><td class="n">' + UNIT_TARGET + '</td><td>' + mini(live.length, UNIT_TARGET) + '</td><td class="n">' + dn(aed(collected), vSpec('All vouchers', live)) + '</td></tr></tbody></table>';
+
+  /* month by month (Kate, 2 Nov 2026: Emma-Louise asked for Month 1, Month 2 and Month 3): calendar months by the day each voucher was bought; Month 1 starts at the first sale. */
+  var mBy = {};
+  live.forEach(function(r){ var k = String(r.purchase_date).slice(0, 7); (mBy[k] = mBy[k] || []).push(r); });
+  var mEnd = closed ? TARGET_DATE : today;
+  M.months = Object.keys(mBy).sort().map(function(k, i){
+    var rows = mBy[k], first = day(k + '-01'), last = new Date(first.getFullYear(), first.getMonth() + 1, 0), a = first < launch ? launch : first, b = last > mEnd ? mEnd : last;
+    return { n:i + 1, name:first.toLocaleDateString('en-GB', {month:'long'}), span:fmtD(a) + ' to ' + fmtD(b), rows:rows, units:rows.length, paid:sumOf(rows, 'paid_aed'), credit:sumOf(rows, 'credit_aed'), red:sumOf(rows, 'redeemed_aed') };
+  });
+  el('monthTable').innerHTML = '<table><thead><tr><th>Month</th><th class="n">Sold</th><th class="n">Cash collected</th><th class="n">Share of cash</th><th class="n">Credit placed</th><th class="n">Redeemed so far</th></tr></thead><tbody>' +
+    M.months.map(function(m){ var sp = vSpec('Month ' + m.n + ', ' + m.name + ': vouchers sold', m.rows);
+      return '<tr><td>Month ' + m.n + ' · ' + m.name + '<br><small style="color:var(--muted)">' + m.span + '</small></td><td class="n">' + dn(m.units, sp) + '</td><td class="n">' + dn(aed(m.paid), sp) + '</td><td class="n">' + pc(m.paid, collected) + '</td><td class="n">' + dn(aed(m.credit), sp) + '</td><td class="n">' + dn(aed(m.red), sp) + '</td></tr>';
+    }).join('') +
+    '<tr class="tot"><td>Total</td><td class="n">' + dn(live.length, vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(collected), vSpec('All vouchers', live)) + '</td><td class="n">100%</td><td class="n">' + dn(aed(placed), vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(spent), vSpec('All vouchers', live)) + '</td></tr></tbody></table>';
+
+  /* sold per person per month (Kate, 2 Nov 2026): the till page's "Your name" on each voucher, by purchase month. A voucher with no name gets its own row so the totals still match the headline. */
+  var mKeys = Object.keys(mBy).sort(), pmap = {}; M.mKeys = mKeys;
+  live.forEach(function(r){
+    var raw = String(r.issued_by || '').replace(/\s+/g, ' ').trim(), pk = raw.toLowerCase() || '\u0000';
+    var p = pmap[pk] = pmap[pk] || { name: raw ? raw.replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); }) : 'Not recorded', rows:[], by:{} };
+    p.rows.push(r); var k = String(r.purchase_date).slice(0, 7); (p.by[k] = p.by[k] || []).push(r);
+  });
+  M.staff = Object.keys(pmap).map(function(k){ return pmap[k]; }).sort(function(a, b){
+    return (a.name === 'Not recorded') - (b.name === 'Not recorded') || sumOf(b.rows, 'paid_aed') - sumOf(a.rows, 'paid_aed') || (a.name < b.name ? -1 : 1);
+  });
+  function sc(rows, ttl){ return rows && rows.length ? dn('<b>' + rows.length + '</b>', vSpec(ttl, rows)) + '<br><small style="color:var(--muted)">' + aed(sumOf(rows, 'paid_aed')) + '</small>' : '<span class="zero">–</span>'; }
+  el('staffTable').innerHTML = '<table><thead><tr><th>Person</th>' + M.months.map(function(m){ return '<th class="n">Month ' + m.n + '<br><small>' + m.name + '</small></th>'; }).join('') + '<th class="n">Sold</th><th class="n">Collected</th><th class="n">Share</th></tr></thead><tbody>' +
+    M.staff.map(function(p){
+      return '<tr><td>' + esc(p.name) + '</td>' + mKeys.map(function(k, i){ return '<td class="n">' + sc(p.by[k], p.name + ', Month ' + (i + 1) + ': vouchers sold') + '</td>'; }).join('') +
+        '<td class="n"><b>' + dn(p.rows.length, vSpec(p.name + ': vouchers sold', p.rows)) + '</b></td><td class="n">' + dn(aed(sumOf(p.rows, 'paid_aed')), vSpec(p.name + ': vouchers sold', p.rows)) + '</td><td class="n">' + pc(sumOf(p.rows, 'paid_aed'), collected) + '</td></tr>';
+    }).join('') +
+    '<tr class="tot"><td>Total</td>' + M.months.map(function(m, i){ return '<td class="n">' + sc(m.rows, 'Month ' + m.n + ': all vouchers sold') + '</td>'; }).join('') +
+    '<td class="n">' + dn(live.length, vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(collected), vSpec('All vouchers', live)) + '</td><td class="n">100%</td></tr></tbody></table>';
 
   /* who sold them: the till's "Your name", grouped ignoring case and spacing. Blank gets its own
      row so the total always matches the headline. */
@@ -448,7 +542,7 @@ function render(){
     var via = !viaSeen || !raw ? '' : (VIA[r.sold_via] ? r.sold_via : (r.payment_method === 'Stripe' ? 'unsorted' : '')), k = pk + '|' + via;
     var nm = raw ? raw.replace(/\b([a-z])/g, function(c){ return c.toUpperCase(); }) : 'Not recorded';
     var w = whoMap[k] = whoMap[k] || { name: nm, srcName: via ? VIA[via][0] : (viaSeen ? 'At the salon' : ''), who:nm, pk:pk, via:via, n:0, paid:0, br:{} };
-    w.n++; w.paid += num(r.paid_aed); w.br[r.branch] = (w.br[r.branch] || 0) + 1;
+    w.n++; w.paid += num(r.paid_aed); w.br[r.branch] = (w.br[r.branch] || 0) + 1; (w.rows = w.rows || []).push(r);
   });
   var perPerson = {};
   Object.keys(whoMap).forEach(function(k){ var w = whoMap[k]; perPerson[w.pk] = (perPerson[w.pk] || 0) + w.paid; });
@@ -463,8 +557,9 @@ function render(){
   el('byWho').innerHTML = !whoSeen
     ? '<div class="empty">Not showing yet. The report database needs the one SQL update in migrations/voucher_performance_open.sql, then press Refresh.</div>'
     : '<table><thead><tr><th>Issued by</th><th>Came from</th>' + BR.map(function(b){ return '<th class="n">' + b[1] + '</th>'; }).join('') + '<th class="n">Sold</th><th class="n">Collected</th><th>Share</th></tr></thead><tbody>' +
-      M.who.map(function(w){ return '<tr><td>' + esc(w.name) + '</td><td>' + (w.srcName ? esc(w.srcName) : '') + '</td>' + BR.map(function(b){ return '<td class="n">' + bc(w.br[b[0]]) + '</td>'; }).join('') + '<td class="n"><b>' + w.n + '</b></td><td class="n">' + aed(w.paid) + '</td><td>' + mini(w.paid, collected) + '</td></tr>'; }).join('') +
-      '<tr class="tot"><td>Total</td><td></td>' + BR.map(function(b){ return '<td class="n">' + bc(brTot[b[0]]) + '</td>'; }).join('') + '<td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
+      M.who.map(function(w){ var ttl = w.name + (w.srcName ? ' (' + w.srcName + ')' : ''), sp = vSpec(ttl + ': vouchers sold', w.rows);
+        return '<tr><td>' + esc(w.name) + '</td><td>' + (w.srcName ? esc(w.srcName) : '') + '</td>' + BR.map(function(b){ return '<td class="n">' + dn(bc(w.br[b[0]]), vSpec(ttl + ' at ' + b[1], w.rows.filter(function(r){ return r.branch === b[0]; }))) + '</td>'; }).join('') + '<td class="n"><b>' + dn(w.n, sp) + '</b></td><td class="n">' + dn(aed(w.paid), sp) + '</td><td>' + mini(w.paid, collected) + '</td></tr>'; }).join('') +
+      '<tr class="tot"><td>Total</td><td></td>' + BR.map(function(b){ return '<td class="n">' + dn(bc(brTot[b[0]]), vSpec(b[1] + ': vouchers sold', live.filter(function(r){ return r.branch === b[0]; }))) + '</td>'; }).join('') + '<td class="n">' + dn(live.length, vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(collected), vSpec('All vouchers', live)) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
 
   /* payment methods; anything unrecorded gets its own grey slice rather than vanishing */
   M.pay = PAY.map(function(p){ return { name:p[0], color:p[1], rows: live.filter(function(r){ return r.payment_method === p[0]; }) }; });
@@ -478,14 +573,14 @@ function render(){
      send queue (the 3rd blast from 15 Oct, the 4th and last push on Mon 26 Oct); the first sale was 21 Aug. */
   var SRC = [['blast','1st and 2nd blasts'], ['blast3','3rd blast'], ['blast4','4th blast'], ['nurtured','Nurtured by her'], ['direct','Direct on Stripe']];
   function sum(l){ return l.reduce(function(a,r){ return a + num(r.paid_aed); }, 0); }
-  var srcRows = SRC.map(function(x){ var l = live.filter(function(r){ return r.sold_via === x[0]; }); return { name:x[1], n:l.length, paid:sum(l) }; });
+  var srcRows = SRC.map(function(x){ var l = live.filter(function(r){ return r.sold_via === x[0]; }); return { name:x[1], rows:l, n:l.length, paid:sum(l) }; });
   var untagged = live.filter(function(r){ return !SRC.some(function(x){ return x[0] === r.sold_via; }); });
-  srcRows.push({ name:'No source recorded yet', n:untagged.length, paid:sum(untagged), grey:true });
+  srcRows.push({ name:'No source recorded yet', rows:untagged, n:untagged.length, paid:sum(untagged), grey:true });
   el('srcTable').innerHTML = !viaSeen
     ? '<div class="empty">Not showing yet: the report database does not send the source tag.</div>'
     : '<table><thead><tr><th>Source</th><th class="n">Sold</th><th class="n">Collected</th><th>Share</th></tr></thead><tbody>' +
-      srcRows.map(function(x){ return '<tr><td>' + esc(x.name) + '</td><td class="n">' + x.n + '</td><td class="n">' + aed(x.paid) + '</td><td>' + mini(x.paid, collected) + '</td></tr>'; }).join('') +
-      '<tr class="tot"><td>Total</td><td class="n">' + live.length + '</td><td class="n">' + aed(collected) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
+      srcRows.map(function(x){ var sp = vSpec(x.name + ': vouchers sold', x.rows); return '<tr><td>' + esc(x.name) + '</td><td class="n">' + dn(x.n, sp) + '</td><td class="n">' + dn(aed(x.paid), sp) + '</td><td>' + mini(x.paid, collected) + '</td></tr>'; }).join('') +
+      '<tr class="tot"><td>Total</td><td class="n">' + dn(live.length, vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(collected), vSpec('All vouchers', live)) + '</td><td>' + mini(collected, collected) + '</td></tr></tbody></table>';
   var dayOf = function(r){ return String(r.purchase_date || '').slice(0, 10); };
   var BLASTS = [['1st blast: WhatsApp 21 Aug, email 22 Aug', 'the 7 days from 21 Aug', '2026-08-21', '2026-08-27'],
                 ['2nd blast: reminder 28 Aug', 'the 7 days from 28 Aug', '2026-08-28', '2026-09-03'],
@@ -496,7 +591,8 @@ function render(){
     BLASTS.map(function(b){
       var l = live.filter(function(r){ return dayOf(r) >= b[2] && dayOf(r) <= b[3]; });
       var tagged = l.filter(function(r){ return r.sold_via === 'blast' || r.sold_via === 'blast3' || r.sold_via === 'blast4'; }).length;
-      return '<tr><td>' + esc(b[0]) + '</td><td>' + esc(b[1]) + '</td><td class="n">' + l.length + '</td><td class="n">' + aed(sum(l)) + '</td><td class="n">' + bc(tagged) + '</td></tr>';
+      var sp = vSpec(b[0] + ': vouchers sold', l), tg = l.filter(function(r){ return r.sold_via === 'blast' || r.sold_via === 'blast3' || r.sold_via === 'blast4'; });
+      return '<tr><td>' + esc(b[0]) + '</td><td>' + esc(b[1]) + '</td><td class="n">' + dn(l.length, sp) + '</td><td class="n">' + dn(aed(sum(l)), sp) + '</td><td class="n">' + dn(bc(tagged), vSpec(b[0] + ': tagged to a blast', tg)) + '</td></tr>';
     }).join('') + '</tbody></table>';
 
   /* referrals */
@@ -504,20 +600,20 @@ function render(){
   var withFriend = live.filter(function(r){ return num(r.friends_so_far) > 0; }).length;
   var earned = live.filter(function(r){ return r.referral_earned; }).length;
   el('funnel').innerHTML =
-    '<div><div class="v">' + friends + '</div><div class="l">' + (friends === 1 ? 'friend has' : 'friends have') + ' come in on a Gift card</div></div>' +
-    '<div><div class="v">' + withFriend + ' of ' + live.length + '</div><div class="l">holders have brought at least one friend</div></div>' +
-    '<div><div class="v">' + earned + '</div><div class="l">' + (earned === 1 ? 'holder has' : 'holders have') + ' reached three and earned the AED 50</div></div>';
+    '<div><div class="v">' + dn(friends, vSpec('Vouchers whose holder brought a friend', live.filter(function(r){ return num(r.friends_so_far) > 0; }))) + '</div><div class="l">' + (friends === 1 ? 'friend has' : 'friends have') + ' come in on a Gift card</div></div>' +
+    '<div><div class="v">' + dn(withFriend, vSpec('Vouchers whose holder brought a friend', live.filter(function(r){ return num(r.friends_so_far) > 0; }))) + ' of ' + live.length + '</div><div class="l">holders have brought at least one friend</div></div>' +
+    '<div><div class="v">' + dn(earned, vSpec('Holders who earned the AED 50', live.filter(function(r){ return r.referral_earned; }))) + '</div><div class="l">' + (earned === 1 ? 'holder has' : 'holders have') + ' reached three and earned the AED 50</div></div>';
 
   /* running total by day */
-  var byDay = {}; live.forEach(function(r){ byDay[r.purchase_date] = (byDay[r.purchase_date] || 0) + num(r.paid_aed); });
+  var byDay = {}, dayRows = {}; live.forEach(function(r){ byDay[r.purchase_date] = (byDay[r.purchase_date] || 0) + num(r.paid_aed); (dayRows[r.purchase_date] = dayRows[r.purchase_date] || []).push(r); });
   M.days = []; var run = 0;
   for (var t = launch.getTime(); t <= today.getTime(); t += DAY){
     var dd = new Date(t); dd = day(iso(dd)); var k = iso(dd); run += byDay[k] || 0;
-    M.days.push({ d:dd, v:run, add:byDay[k] || 0 });
+    M.days.push({ d:dd, v:run, add:byDay[k] || 0, rows:dayRows[k] || [] });
     t = dd.getTime();
   }
   el('cumTable').innerHTML = '<table><thead><tr><th>Date</th><th class="n">Sold that day</th><th class="n">Running total</th><th class="n">Target line</th></tr></thead><tbody>' +
-    M.days.filter(function(p){ return p.add; }).map(function(p){ return '<tr><td>' + fmtD(p.d) + '</td><td class="n">' + aed(p.add) + '</td><td class="n">' + aed(p.v) + '</td><td class="n">' + aed(targetAt(p.d)) + '</td></tr>'; }).join('') + '</tbody></table>';
+    M.days.filter(function(p){ return p.add; }).map(function(p){ return '<tr><td>' + fmtD(p.d) + '</td><td class="n">' + dn(aed(p.add), vSpec(fmtD(p.d) + ': vouchers sold', p.rows)) + '</td><td class="n">' + aed(p.v) + '</td><td class="n">' + aed(targetAt(p.d)) + '</td></tr>'; }).join('') + '</tbody></table>';
 
   /* redemptions per week, Monday start */
   var start = new Date(launch); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
@@ -525,20 +621,20 @@ function render(){
   for (var w = new Date(start); w <= today; w = new Date(w.getFullYear(), w.getMonth(), w.getDate() + 7)){
     var end = new Date(w.getFullYear(), w.getMonth(), w.getDate() + 7);
     var rs = reds.filter(function(u){ var x = day(u.redeemed_on); return x >= w && x < end; });
-    M.weeks.push({ w:new Date(w), amt:rs.reduce(function(a,u){ return a + num(u.amount_aed); }, 0), n:rs.length });
+    M.weeks.push({ w:new Date(w), amt:rs.reduce(function(a,u){ return a + num(u.amount_aed); }, 0), n:rs.length, rs:rs });
   }
   el('redTable').innerHTML = '<table><thead><tr><th>Week of</th><th class="n">Lines</th><th class="n">Spent</th></tr></thead><tbody>' +
-    M.weeks.map(function(x){ return '<tr><td>' + fmtD(x.w) + '</td><td class="n">' + x.n + '</td><td class="n">' + aed(x.amt) + '</td></tr>'; }).join('') + '</tbody></table>';
+    M.weeks.map(function(x){ return '<tr><td>' + fmtD(x.w) + '</td><td class="n">' + dn(x.n, rSpec('Week of ' + fmtD(x.w) + ': credit spent', x.rs)) + '</td><td class="n">' + dn(aed(x.amt), rSpec('Week of ' + fmtD(x.w) + ': credit spent', x.rs)) + '</td></tr>'; }).join('') + '</tbody></table>';
 
   /* credit left by expiry month */
   var expBy = {};
   live.forEach(function(r){
     var left = num(r.remaining_aed); if (left <= 0 || !r.main_expires_on) return;
-    var k = r.main_expires_on.slice(0,7); expBy[k] = expBy[k] || {n:0, amt:0}; expBy[k].n++; expBy[k].amt += left;
+    var k = r.main_expires_on.slice(0,7); expBy[k] = expBy[k] || {n:0, amt:0, rows:[]}; expBy[k].n++; expBy[k].amt += left; expBy[k].rows.push(r);
   });
   var ks = Object.keys(expBy).sort();
   el('expTable').innerHTML = ks.length ? '<table><thead><tr><th>Expires in</th><th class="n">Vouchers</th><th class="n">Credit left</th></tr></thead><tbody>' +
-    ks.map(function(k){ return '<tr><td>' + day(k + '-01').toLocaleDateString('en-GB',{month:'long', year:'numeric'}) + '</td><td class="n">' + expBy[k].n + '</td><td class="n">' + aed(expBy[k].amt) + '</td></tr>'; }).join('') + '</tbody></table>'
+    ks.map(function(k){ return '<tr><td>' + day(k + '-01').toLocaleDateString('en-GB',{month:'long', year:'numeric'}) + '</td><td class="n">' + dn(expBy[k].n, vSpec('Expiring in ' + day(k + '-01').toLocaleDateString('en-GB',{month:'long', year:'numeric'}) + ': credit left', expBy[k].rows)) + '</td><td class="n">' + dn(aed(expBy[k].amt), vSpec('Expiring in ' + day(k + '-01').toLocaleDateString('en-GB',{month:'long', year:'numeric'}) + ': credit left', expBy[k].rows)) + '</td></tr>'; }).join('') + '</tbody></table>'
     : '<div class="empty">Every live voucher is fully used.</div>';
 
   drawAll();
@@ -619,8 +715,8 @@ function drawPay(){
   // Units per payment option (Kate, 21 Oct 2026): the bar is cash, so the count of vouchers sits in a small table under it.
   var tot = parts.reduce(function(a, p){ return a + p.n; }, 0);
   el('payTable').innerHTML = '<table><thead><tr><th>Paid via</th><th class="n">Units sold</th><th class="n">Collected</th><th class="n">Share of cash</th></tr></thead><tbody>' +
-    parts.map(function(p){ return '<tr><td><span class="dot" style="background:' + p.color + '"></span>' + p.name + '</td><td class="n">' + p.n + '</td><td class="n">' + aed(p.amt) + '</td><td class="n">' + pc(p.amt, M.collected) + '</td></tr>'; }).join('') +
-    '<tr class="tot"><td>Total</td><td class="n">' + tot + '</td><td class="n">' + aed(M.collected) + '</td><td class="n">100%</td></tr></tbody></table>';
+    parts.map(function(p){ return '<tr><td><span class="dot" style="background:' + p.color + '"></span>' + p.name + '</td><td class="n">' + dn(p.n, vSpec(p.name + ': vouchers sold', p.rows)) + '</td><td class="n">' + dn(aed(p.amt), vSpec(p.name + ': vouchers sold', p.rows)) + '</td><td class="n">' + pc(p.amt, M.collected) + '</td></tr>'; }).join('') +
+    '<tr class="tot"><td>Total</td><td class="n">' + dn(tot, vSpec('All vouchers', DATA.live)) + '</td><td class="n">' + dn(aed(M.collected), vSpec('All vouchers', DATA.live)) + '</td><td class="n">100%</td></tr></tbody></table>';
 }
 function drawRed(){
   var host = el('redChart'), weeks = M.weeks, W = Math.max(300, host.clientWidth), H = 200, L = 40, R = 8, T = 10, B = 26;
@@ -651,7 +747,7 @@ function tellHeight(){
   } catch (e) {} });
 }
 /* ---------- On this page rail (standalone) ---------- */
-var RAIL = [['wv-headline','Headline'],['wv-target','Target line'],['wv-branch','By branch'],['wv-sold','Who sold them'],['wv-tier','Tier and payment'],['wv-source','How they were sold'],['wv-referrals','Referrals'],['wv-redeem','Redemptions']];
+var RAIL = [['wv-headline','Headline'],['wv-months','Month by month'],['wv-staff','Sold by month'],['wv-target','Target line'],['wv-branch','By branch'],['wv-sold','Who sold them'],['wv-tier','Tier and payment'],['wv-source','How they were sold'],['wv-referrals','Referrals'],['wv-redeem','Redemptions']];
 function railBuild(){
   var nav = el('railNav'); if (!nav || nav.firstChild) return;
   nav.innerHTML = '<div class="k">On this page</div>' + RAIL.map(function(r){ return '<a href="#' + r[0] + '" data-r="' + r[0] + '">' + r[1] + '</a>'; }).join('');
@@ -741,6 +837,10 @@ function exportXlsx(){
                ['Live vouchers', DATA.live.length], ['Unit target', UNIT_TARGET], ['', ''],
                ['Tier', 'Sold', 'Target', 'Collected (AED)']);
       M.tiers.forEach(function(t){ sum.push([t.name, t.n, t.target, t.paid]); });
+      sum.push(['', ''], ['Month', 'Dates', 'Sold', 'Collected (AED)', 'Credit placed (AED)', 'Redeemed so far (AED)']);
+      M.months.forEach(function(m){ sum.push(['Month ' + m.n + ' ' + m.name, m.span, m.units, m.paid, m.credit, m.red]); });
+      sum.push(['', ''], ['Sold by person', 'Month 1 sold', 'Month 2 sold', 'Month 3 sold', 'Total sold', 'Collected (AED)']);
+      M.staff.forEach(function(p){ var ks = M.mKeys; sum.push([p.name].concat(ks.map(function(k){ return (p.by[k] || []).length; }), [p.rows.length, sumOf(p.rows, 'paid_aed')])); });
       sum.push(['', ''], ['Branch', 'Sold', 'Collected (AED)', 'Redeemed (AED)']);
       M.byBr.forEach(function(b){ sum.push([b.name, b.units, b.paid, b.red]); });
       if (M.who && M.who.length){
