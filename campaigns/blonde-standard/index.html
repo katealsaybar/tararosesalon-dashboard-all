@@ -145,6 +145,13 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .plancard .pill{width:100%;justify-content:center;text-align:center;line-height:1.3;margin-top:18px;padding-inline:16px;letter-spacing:.06em}
 .plans-foot{max-width:860px;margin:22px auto 0}
 .plans-foot .short-note{margin-top:14px}
+.goodknow{margin:26px auto 0;max-width:920px;padding:clamp(22px,3.2vw,34px) clamp(20px,3.4vw,38px);border-radius:var(--r-md,14px);background:linear-gradient(135deg,#2a2321 0%,#4a3632 100%);color:#fff;box-shadow:0 22px 44px -28px rgba(42,35,33,.7)}
+.goodknow__title{margin:0 0 18px;font-family:var(--fd);font-weight:500;font-size:clamp(22px,2.6vw,28px);line-height:1.15;color:#fff}
+.goodknow__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px clamp(24px,4vw,48px);margin:0}
+.goodknow__grid>div{border-top:1px solid rgba(255,255,255,.18);padding-top:12px}
+.goodknow dt{margin:0 0 6px;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.goodknow dd{margin:0;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.6;color:rgba(255,255,255,.88)}
+@media (max-width:720px){.goodknow__grid{grid-template-columns:minmax(0,1fr)}}
 
 .lentable{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
 .lentable summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;cursor:pointer;list-style:none;font-family:var(--fb);font-size:13.5px;font-weight:500;color:var(--accent-text)}
@@ -1120,7 +1127,17 @@ html.lb-open{overflow:hidden}
       </article>
     </div>
     <div class="plans-foot">
-      <p class="short-note">Plan prices are for a Stylist at Visit 1, in AED, VAT included, not for a Senior Stylist or a Style Director, who are available at their own prices. Visits 2 and 3 are with our Junior Stylists. Your stylist level and your length are confirmed on WhatsApp before you book. You pay once for all three visits, by card or split with Tabby. A first highlights, balayage or colour change may need a deposit, which comes off your price on the day. Visits cannot be booked in December or on public holidays, and those days do not count towards your visit weeks.</p>
+      <div class="goodknow" role="note" aria-labelledby="gk-title">
+        <h3 id="gk-title" class="goodknow__title">Good to know</h3>
+        <dl class="goodknow__grid">
+          <div><dt>Price</dt><dd>Plan prices are for a Stylist at Visit 1, in AED, VAT included, not for a Senior Stylist or a Style Director, who are available at their own prices.</dd></div>
+          <div><dt>Your visits</dt><dd>Visits 2 and 3 are with our Junior Stylists.</dd></div>
+          <div><dt>Before you book</dt><dd>Your stylist level and your length are confirmed on WhatsApp before you book.</dd></div>
+          <div><dt>Paying</dt><dd>You pay once for all three visits, by card or split with Tabby.</dd></div>
+          <div><dt>Deposit</dt><dd>A first highlights, balayage or colour change may need a deposit, which comes off your price on the day.</dd></div>
+          <div><dt>December and public holidays</dt><dd>Visits cannot be booked in December or on public holidays, and those days do not count towards your visit weeks.</dd></div>
+        </dl>
+      </div>
     </div>
   </div>
 </section>
