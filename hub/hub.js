@@ -120,6 +120,9 @@
     // Kate, 6 Oct 2026: named as in the dashboard sidebar (Marketing & Campaigns).
     { key: 'content-ads', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Google Ads', href: '/?view=googleads', rule: 'var(--accent-coral)',
       blurb: 'Spend, clicks and leads from Google Ads.' },
+    // Kate, 2 Nov 2026: its own page for Meta, after Google Ads.
+    { key: 'content-meta', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Meta Ads', href: '/?view=metaads', rule: 'var(--accent-coral)',
+      blurb: 'Spend, clicks and results from Facebook and Instagram ads.' },
     // Kate, 23 Oct 2026: Google and Meta spend by month and what it comes to per new client.
     { key: 'content-spend', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Marketing Spend', href: '/?view=marketingspend', rule: 'var(--accent-coral)',
       blurb: 'Google and Meta spend each month, and the cost of a new client.' },

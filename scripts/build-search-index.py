@@ -50,7 +50,7 @@ OUT = ROOT / 'search-index.js'
 
 # One page script, one page. A file that draws several pages is handled below.
 FILE_VIEWS = {
-    'compare.js': 'compare', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'marketing-spend.js': 'marketingspend', 'tool-spend.js': 'toolspend', 'website.js': 'website',
+    'compare.js': 'compare', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'meta-ads.js': 'metaads', 'marketing-spend.js': 'marketingspend', 'tool-spend.js': 'toolspend', 'website.js': 'website',
     'social.js': 'social', 'products.js': 'products', 'spend.js': 'supplierspend', 'org-chart.js': 'orgchart',
     'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'one2ones.js': 'one2ones', 'attrition.js': 'attrition', 'client-book.js': 'clientbook', 'complaints.js': 'complaints', 'complaint-log.js': 'complaintlog',
     'top-clients.js': 'clients',
@@ -119,6 +119,7 @@ PAGE_ANCHORS = {
     'wvblast': ['Everyone on the list', 'Blast 4: the last push'],
     'products': ['Retail stock bought against retail sold'],
     'googleads': ['Every campaign that ran'],
+    'metaads': ['Each campaign, biggest spend first'],
     'marketingspend': ['What is and is not in these numbers', 'Invoices to download'],
     'toolspend': ['Totals by year, and what is and is not in these numbers'],
     'website': ['Where visits came from'],

@@ -39,7 +39,7 @@ VIEWS = ['dashboard', 'dashboard-open', 'dailyperf', 'compare', 'team', 'staffpe
          'stylists', 'orgchart', 'ledgerFinancials', 'ledgerTargets', 'ledgerActuals',
          'ledgerStylist', 'services', 'clients', 'reviews',
          # added 15 Oct 2026: every view built since the 25 Sep audit
-         'clientmix', 'dailyperf', 'googleads', 'lostclients', 'lostlists', 'overyears',
+         'clientmix', 'dailyperf', 'googleads', 'metaads', 'lostclients', 'lostlists', 'overyears',
          'products', 'social', 'stafflevels', 'staffweeks', 'teamquad', 'website',
          'wvblast', 'wvperf']
 SIZES = [(320, 640), (375, 667), (390, 844), (430, 932), (844, 390), (1440, 900)]

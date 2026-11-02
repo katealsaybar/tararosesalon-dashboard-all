@@ -91,6 +91,7 @@ const JN_PAGES = {
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },
   supplierspend:  { sel: 'h2.s', shadow: '#spendContent', full: true, labels: ['Weekly spend by family', 'Every supplier', 'What Accounts paid'] },
   googleads:      { sel: 'h3' },
+  metaads:        { sel: 'h3' },
   website:        { sel: 'h3' },
   social:         { sel: 'h3' },
 };

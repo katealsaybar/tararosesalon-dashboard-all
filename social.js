@@ -171,7 +171,7 @@ function socPaint(el) {
     </div>
     ${stale ? `<p class="slv-muted" style="color:#b42318">Social numbers are paused${s && s.last_error ? ': ' + mkEsc(s.last_error) : ''}. Last good update: ${synced ? mkEsc(synced) : 'never'}.</p>` : ''}
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
-    <p class="slv-muted">From Metricool, updated nightly${synced ? ', last ' + mkEsc(synced) : ''}. Numbers start when each account was connected to Metricool. Facebook Ads are left out for now; Google Ads has its own page.</p>`;
+    <p class="slv-muted">From Metricool, updated nightly${synced ? ', last ' + mkEsc(synced) : ''}. Numbers start when each account was connected to Metricool. Facebook Ads are not here; Google Ads and Meta Ads each have their own page.</p>`;
   if (socTab === 'overview') socDrawOverview(T); else socDrawPlatform(socTab, T);
 }
 
