@@ -145,13 +145,6 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .plancard .pill{width:100%;justify-content:center;text-align:center;line-height:1.3;margin-top:18px;padding-inline:16px;letter-spacing:.06em}
 .plans-foot{max-width:860px;margin:22px auto 0}
 .plans-foot .short-note{margin-top:14px}
-.goodknow{margin:26px auto 0;max-width:920px;padding:clamp(22px,3.2vw,34px) clamp(20px,3.4vw,38px);border-radius:var(--r-md,14px);background:linear-gradient(135deg,#2a2321 0%,#4a3632 100%);color:#fff;box-shadow:0 22px 44px -28px rgba(42,35,33,.7)}
-.goodknow__title{margin:0 0 18px;font-family:var(--fd);font-weight:500;font-size:clamp(22px,2.6vw,28px);line-height:1.15;color:#fff}
-.goodknow__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px clamp(24px,4vw,48px);margin:0}
-.goodknow__grid>div{border-top:1px solid rgba(255,255,255,.18);padding-top:12px}
-.goodknow dt{margin:0 0 6px;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
-.goodknow dd{margin:0;font-family:var(--fb);font-size:14.5px;font-weight:300;line-height:1.6;color:rgba(255,255,255,.88)}
-@media (max-width:720px){.goodknow__grid{grid-template-columns:minmax(0,1fr)}}
 
 .lentable{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
 .lentable summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;cursor:pointer;list-style:none;font-family:var(--fb);font-size:13.5px;font-weight:500;color:var(--accent-text)}
@@ -212,8 +205,13 @@ a.terms--link:hover .tarr{transform:translateX(6px)}
 .plangrid:not(:has(.gcard__more:not([open]))) .gcard__more{flex:1;display:flex;flex-direction:column}
 .plangrid:not(:has(.gcard__more:not([open]))) .gcard__more::details-content{flex:1;display:flex;flex-direction:column}
 .plangrid:not(:has(.gcard__more:not([open]))) .gcard__more .gcard__list{flex:1;display:flex;flex-direction:column}
-/* with every list open, the footnote sits at the foot of its card so the three line up */
-.plangrid:not(:has(.gcard__more:not([open]))) .gcard__more .gcard__unit{margin-top:auto;padding-top:14px}
+.gcard__course{margin:14px 0 2px;padding:12px 14px;background:var(--stone-soft);border-radius:var(--r-sm,8px);font-family:var(--fb);font-size:13px;font-weight:300;line-height:1.5;color:var(--ink)}
+.gcard__course b{font-weight:600}
+.gcard__course ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.gcard__course li{position:relative;padding-left:16px}
+.gcard__course li::before{content:"";position:absolute;left:2px;top:.6em;width:5px;height:5px;border-radius:50%;background:#1C7563}
+/* with every list open, the Good to know box sits at the foot of its card so the three line up */
+.plangrid:not(:has(.gcard__more:not([open]))) .gcard__course{margin-top:auto}
 }
 .sec-menu .short-note{margin-top:26px}
 
@@ -1071,6 +1069,7 @@ html.lb-open{overflow:hidden}
               <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
               <ul><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 1<small>Stylist, haircut and finish</small></span></div><div class="gsvc__lens" aria-label="Visit 1 by length: Short / Fine AED 995, Medium AED 1,095, Long / Thick AED 1,245, Extra Long priced at your consultation"><span>995</span><span>1,095</span><span>1,245</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 2<small>Junior Stylist, blow-dry free</small></span></div><div class="gsvc__lens" aria-label="Visit 2 by length: Short / Fine AED 290, Medium AED 395, Long / Thick AED 500, Extra Long priced at your consultation"><span>290</span><span>395</span><span>500</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 3<small>Junior Stylist, blow-dry free</small></span></div><div class="gsvc__lens" aria-label="Visit 3 by length: Short / Fine AED 290, Medium AED 395, Long / Thick AED 500, Extra Long priced at your consultation"><span>290</span><span>395</span><span>500</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Plan by length: Short / Fine AED 1,575, Medium AED 1,885, Long / Thick AED 2,245, Extra Long priced at your consultation"><span>1,575</span><span>1,885</span><span>2,245</span><span>*</span></div></li></ul>
               <p class="gcard__unit">In AED, for a Stylist at Visit 1, VAT included. * Extra Long is priced at your consultation.</p>
+              <div class="gcard__course"><b>Good to know.</b><ul><li>Plan prices are for a Stylist at Visit 1, in AED, VAT included, not for a Senior Stylist or a Style Director, who are available at their own prices</li><li>Your stylist level and your length are confirmed on WhatsApp before you book</li><li>You pay once for all three visits, by card or split with Tabby</li><li>A first highlights, balayage or colour change may need a deposit, which comes off your price on the day</li><li>Visits cannot be booked in December or on public holidays, and those days do not count towards your visit weeks</li></ul></div>
             </div>
           </details>
         </div>
@@ -1096,6 +1095,7 @@ html.lb-open{overflow:hidden}
               <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
               <ul><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 1<small>Stylist, haircut and finish</small></span></div><div class="gsvc__lens" aria-label="Visit 1 by length: Short / Fine AED 1,140, Medium AED 1,260, Long / Thick AED 1,385, Extra Long priced at your consultation"><span>1,140</span><span>1,260</span><span>1,385</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 2<small>Junior Stylist, blow-dry free</small></span></div><div class="gsvc__lens" aria-label="Visit 2 by length: Short / Fine AED 290, Medium AED 395, Long / Thick AED 500, Extra Long priced at your consultation"><span>290</span><span>395</span><span>500</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 3<small>Junior Stylist, blow-dry free</small></span></div><div class="gsvc__lens" aria-label="Visit 3 by length: Short / Fine AED 290, Medium AED 395, Long / Thick AED 500, Extra Long priced at your consultation"><span>290</span><span>395</span><span>500</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Plan by length: Short / Fine AED 1,720, Medium AED 2,050, Long / Thick AED 2,385, Extra Long priced at your consultation"><span>1,720</span><span>2,050</span><span>2,385</span><span>*</span></div></li></ul>
               <p class="gcard__unit">In AED, for a Stylist at Visit 1, VAT included. * Extra Long is priced at your consultation.</p>
+              <div class="gcard__course"><b>Good to know.</b><ul><li>Plan prices are for a Stylist at Visit 1, in AED, VAT included, not for a Senior Stylist or a Style Director, who are available at their own prices</li><li>Your stylist level and your length are confirmed on WhatsApp before you book</li><li>You pay once for all three visits, by card or split with Tabby</li><li>A first highlights, balayage or colour change may need a deposit, which comes off your price on the day</li><li>Visits cannot be booked in December or on public holidays, and those days do not count towards your visit weeks</li></ul></div>
             </div>
           </details>
         </div>
@@ -1121,23 +1121,11 @@ html.lb-open{overflow:hidden}
               <div class="gcard__cols" aria-hidden="true"><span>Price</span><div><span>Short</span><span>Medium</span><span>Long</span><span>X-Long</span></div></div>
               <ul><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 1<small>Stylist, haircut and finish</small></span></div><div class="gsvc__lens" aria-label="Visit 1 by length: Short / Fine AED 1,495, Medium AED 1,615, Long / Thick AED 1,740, Extra Long priced at your consultation"><span>1,495</span><span>1,615</span><span>1,740</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 2<small>Junior Stylist, blow-dry free</small></span></div><div class="gsvc__lens" aria-label="Visit 2 by length: Short / Fine AED 290, Medium AED 395, Long / Thick AED 500, Extra Long priced at your consultation"><span>290</span><span>395</span><span>500</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Visit 3<small>Junior Stylist, blow-dry free</small></span></div><div class="gsvc__lens" aria-label="Visit 3 by length: Short / Fine AED 290, Medium AED 395, Long / Thick AED 500, Extra Long priced at your consultation"><span>290</span><span>395</span><span>500</span><span>*</span></div></li><li class="gsvc gsvc--row"><div class="gsvc__top"><span>Plan<small>all 3 visits</small></span></div><div class="gsvc__lens" aria-label="Plan by length: Short / Fine AED 2,075, Medium AED 2,405, Long / Thick AED 2,740, Extra Long priced at your consultation"><span>2,075</span><span>2,405</span><span>2,740</span><span>*</span></div></li></ul>
               <p class="gcard__unit">In AED, for a Stylist at Visit 1, VAT included. * Extra Long is priced at your consultation.</p>
+              <div class="gcard__course"><b>Good to know.</b><ul><li>Plan prices are for a Stylist at Visit 1, in AED, VAT included, not for a Senior Stylist or a Style Director, who are available at their own prices</li><li>Your stylist level and your length are confirmed on WhatsApp before you book</li><li>You pay once for all three visits, by card or split with Tabby</li><li>A first highlights, balayage or colour change may need a deposit, which comes off your price on the day</li><li>Visits cannot be booked in December or on public holidays, and those days do not count towards your visit weeks</li></ul></div>
             </div>
           </details>
         </div>
       </article>
-    </div>
-    <div class="plans-foot">
-      <div class="goodknow" role="note" aria-labelledby="gk-title">
-        <h3 id="gk-title" class="goodknow__title">Good to know</h3>
-        <dl class="goodknow__grid">
-          <div><dt>Price</dt><dd>Plan prices are for a Stylist at Visit 1, in AED, VAT included, not for a Senior Stylist or a Style Director, who are available at their own prices.</dd></div>
-          <div><dt>Your visits</dt><dd>Visits 2 and 3 are with our Junior Stylists.</dd></div>
-          <div><dt>Before you book</dt><dd>Your stylist level and your length are confirmed on WhatsApp before you book.</dd></div>
-          <div><dt>Paying</dt><dd>You pay once for all three visits, by card or split with Tabby.</dd></div>
-          <div><dt>Deposit</dt><dd>A first highlights, balayage or colour change may need a deposit, which comes off your price on the day.</dd></div>
-          <div><dt>December and public holidays</dt><dd>Visits cannot be booked in December or on public holidays, and those days do not count towards your visit weeks.</dd></div>
-        </dl>
-      </div>
     </div>
   </div>
 </section>
@@ -1170,7 +1158,8 @@ html.lb-open{overflow:hidden}
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Full Blonde Coverage</span></div><div class="gsvc__lens" aria-label="Full Blonde Coverage by length: Short / Fine AED 695, Medium AED 710, Long / Thick AED 730, Extra Long AED 840"><span>695</span><span>710</span><span>730</span><span>840</span></div><p class="gsvc__desc">Full-head highlights for a luminous, all-over blonde look.</p></li>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>High Impact Blonde</span></div><div class="gsvc__lens" aria-label="High Impact Blonde by length: Short / Fine AED 999, Medium AED 1,020, Long / Thick AED 1,040, Extra Long AED 1,150"><span>999</span><span>1,020</span><span>1,040</span><span>1,150</span></div><p class="gsvc__desc">Maximum foil coverage for when you want a brighter, bolder blonde with a refined tone.</p></li>
               </ul>
-              <p class="gcard__unit">In AED, for a Senior Stylist. Stylist and Style Director are also available at their own prices.</p>
+              <p class="gcard__unit">In AED, for a Senior Stylist.</p>
+              <div class="gcard__course"><b>Good to know.</b><ul><li>Prices start from short hair, and you pick your length when you book</li><li>Stylist and Style Director are also available at their own prices</li></ul></div>
             </div>
           </details>
         </div>
@@ -1196,7 +1185,8 @@ html.lb-open{overflow:hidden}
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Full Balayage</span></div><div class="gsvc__lens" aria-label="Full Balayage by length: Short / Fine AED 810, Medium AED 840, Long / Thick AED 860, Extra Long AED 970"><span>810</span><span>840</span><span>860</span><span>970</span></div><p class="gsvc__desc">Our most-requested look: balayage throughout the full head, for a luminous, blended colour with depth and movement.</p></li>
             <li class="gsvc gsvc--row"><div class="gsvc__top"><span>Balayage Transformation</span></div><div class="gsvc__lens" aria-label="Balayage Transformation by length: Short / Fine AED 950, Medium AED 970, Long / Thick AED 990, Extra Long AED 1,010"><span>950</span><span>970</span><span>990</span><span>1,010</span></div><p class="gsvc__desc">For dramatic changes, colour corrections, or a full colour change. Includes full balayage and root-to-tip blending.</p></li>
               </ul>
-              <p class="gcard__unit">In AED, for a Senior Stylist. Stylist and Style Director are also available at their own prices.</p>
+              <p class="gcard__unit">In AED, for a Senior Stylist.</p>
+              <div class="gcard__course"><b>Good to know.</b><ul><li>Prices start from short hair, and you pick your length when you book</li><li>Stylist and Style Director are also available at their own prices</li></ul></div>
             </div>
           </details>
         </div>
@@ -1221,7 +1211,8 @@ html.lb-open{overflow:hidden}
             <li class="gsvc gsvc--flat"><div class="gsvc__top"><span>Ammonia-Free Colour</span><b>Adds AED 100</b></div><p class="gsvc__desc">A gentler colour formula: a kinder option if you have a sensitive scalp, or simply prefer to go ammonia-free.</p></li>
             <li class="gsvc gsvc--flat"><div class="gsvc__top"><span>Ammonia-Free Bleach</span><b>Adds AED 100</b></div><p class="gsvc__desc">A gentler way to go lighter, kinder to your hair and scalp.</p></li>
               </ul>
-              <p class="gcard__unit">In AED, for a Senior Stylist. Stylist and Style Director are also available at their own prices.</p>
+              <p class="gcard__unit">In AED, for a Senior Stylist.</p>
+              <div class="gcard__course"><b>Good to know.</b><ul><li>Prices start from short hair, and you pick your length when you book</li><li>Stylist and Style Director are also available at their own prices</li><li>Colour Correction is quoted for you</li></ul></div>
             </div>
           </details>
         </div>
