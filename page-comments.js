@@ -69,6 +69,19 @@
     for (var n = el; n && n.nodeType === 1; n = n.parentElement) { var p = getComputedStyle(n).position; if (p === 'fixed' || p === 'sticky') return true; }
     return false;
   }
+  /* A spot inside a closed <details> (the "See prices by length" lists) has no box on screen, but the browser still reports a size for it, so the pin
+     used to float in the wrong place. Those pins are now held back until the list is open. */
+  function closedAncestors(el) {
+    var out = [];
+    for (var n = el; n && n.nodeType === 1; n = n.parentElement) {
+      if (n.tagName === 'DETAILS' && !n.open) {
+        var sm = null, k;
+        for (k = n.firstElementChild; k; k = k.nextElementSibling) if (k.tagName === 'SUMMARY') { sm = k; break; }
+        if (!(sm && sm.contains(el))) out.push(n);
+      }
+    }
+    return out;
+  }
   function byText(tx) {
     var best = null, len = 1e9, all = document.body.querySelectorAll('h1,h2,h3,h4,h5,p,li,a,button,label,span,div,small,strong,em,td,th,summary,figcaption,dt,dd');
     for (var i = 0; i < all.length; i++) {
@@ -223,7 +236,7 @@
     var shown = all.filter(function (t) { return S.tab === 'open' ? !t.resolved : t.resolved; });
     var rows = shown.map(function (t) {
       var rs = repliesOf(t.id), p = pins.filter(function (x) { return x.c.id === t.id; })[0];
-      var warn = p && p.st === 'hidden' ? '<span class="chip warn">not on this screen size</span>' : p && p.st === 'approx' ? '<span class="chip warn">spot may have moved</span>' : '';
+      var warn = p && p.st === 'closed' ? '<span class="chip warn">in a closed list, tap to open</span>' : p && p.st === 'hidden' ? '<span class="chip warn">not on this screen size</span>' : p && p.st === 'approx' ? '<span class="chip warn">spot may have moved</span>' : '';
       return '<button type="button" class="it' + (t.resolved ? ' done' : '') + (isEmma(t) ? ' emma' : '') + '" data-a="open" data-id="' + t.id + '"><span class="n">' + (t.resolved ? '✓' : t.num) + '</span><span><span class="meta"><b>' + esc(t.by) + '</b> · ' + esc(fat(t.at)) +
         (rs.length ? ' · ' + rs.length + (rs.length === 1 ? ' reply' : ' replies') : '') + warn + '</span><p>' + esc(t.body) + '</p></span></button>';
     }).join('');
@@ -279,7 +292,11 @@
     pins.forEach(function (p) {
       var a = p.c.anchor || {}, el = locate(a), d = document.documentElement;
       p.el = el; p.st = 'ok'; p.ok = false;
-      if (el) {
+      if (el && closedAncestors(el).length) {
+        p.st = 'closed';
+      } else if (el && el.checkVisibility && !el.checkVisibility()) {
+        p.st = 'hidden';
+      } else if (el) {
         var r = el.getBoundingClientRect();
         if (r.width > 0 && r.height > 0 && el.getClientRects().length) {
           var x = r.left + clamp(a.x) * r.width, y = r.top + clamp(a.y) * r.height;
@@ -347,6 +364,11 @@
   function open(id) {
     S.cur = id; S.reply = ''; S.draft = null; S.err = ''; if (innerWidth < 641) S.panel = false;
     var p = pins.filter(function (x) { return x.c.id === id; })[0];
+    if (p && p.st === 'closed' && p.el) {
+      closedAncestors(p.el).forEach(function (dt) { dt.open = true; });
+      drawPins();
+      p = pins.filter(function (x) { return x.c.id === id; })[0];
+    }
     if (p && p.ok && !p.fixed) {
       var top = p.py - innerHeight / 2;
       var off = function () { return p.py < scrollY + 60 || p.py > scrollY + innerHeight - 60; };
@@ -419,6 +441,7 @@
   });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && root) refresh(); });
   window.addEventListener('resize', relayout);
+  document.addEventListener('toggle', relayout, true);   // a "See prices by length" list opens or closes
   window.addEventListener('scroll', function () { if (pins.some(function (p) { return p.fixed; })) relayout(); }, { passive: true });
 
   /* ── start: only draws anything after the database has said yes to this person ─────────────────────────────────────── */
