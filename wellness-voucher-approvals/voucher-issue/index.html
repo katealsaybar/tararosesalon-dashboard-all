@@ -309,6 +309,8 @@ var NL = String.fromCharCode(10);      // a newline for confirm(), which cannot 
 var C = window.TRSCard;
 var BRANCHES = C.BRANCHES, TIERS = C.TIERS;
 var fmt = C.fmt, addMonths = C.addMonths, parseDate = C.parseDate, today = C.today, iso = C.iso;
+// The last purchase date the till accepts: the close, or the end of the catch-up window once it has passed.
+function lastSale(){ return iso(today()) > C.CAMPAIGN.closes && iso(today()) <= C.CAMPAIGN.issuesUntil ? C.CAMPAIGN.issuesUntil : C.CAMPAIGN.closes; }
 var money = C.money, esc = C.esc, pad4 = C.pad4;
 var buildSet = C.buildSet, renderCard = C.render;
 
@@ -596,9 +598,9 @@ el('issue').addEventListener('click', function(){
 
   // The campaign's own dates, checked here so a mistyped year costs a sentence rather than a
   // round trip. issue_voucher() refuses the same two, which is the check that counts.
-  if (d > C.CAMPAIGN.closes){
+  if (d > lastSale()){
     clearCards();
-    setDbState('refused', 'Purchases closed on ' + fmt(C.CAMPAIGN.closes) + '. ' + fmt(d) +
+    setDbState('refused', 'Purchases closed on ' + fmt(lastSale()) + '. ' + fmt(d) +
       ' is after that, so no card can be issued against it.');
     return;
   }
@@ -773,14 +775,21 @@ if (savedWho) { el('who').value = savedWho; }
 el('branch').addEventListener('change', function(){ store.set('trs-wv-branch', this.value); });
 el('who').addEventListener('change', function(){ store.set('trs-wv-who', this.value.trim()); });
 
+var afterClose = iso(today()) > C.CAMPAIGN.closes;
+var catchUp = afterClose && iso(today()) <= C.CAMPAIGN.issuesUntil;
 el('pdate').value = iso(today());
 // The database refuses all three of these, and now the picker does too, one step earlier and
 // without spending a round trip on a mistyped year.
 el('pdate').min = C.CAMPAIGN.opens;
-el('pdate').max = iso(today()) < C.CAMPAIGN.closes ? iso(today()) : C.CAMPAIGN.closes;
+el('pdate').max = (iso(today()) < C.CAMPAIGN.closes || catchUp) ? iso(today()) : C.CAMPAIGN.closes;
 
 // Purchases close, and the day after they close this page still worked. It says so now.
-if (iso(today()) > C.CAMPAIGN.closes){
+// A catch-up window after the close lets reception issue cards for late sales.
+if (catchUp){
+  document.querySelector('.stamp').innerHTML = 'Purchases closed <b>' + fmt(C.CAMPAIGN.closes) +
+    '</b>. Late sales can still be issued until <b>' + fmt(C.CAMPAIGN.issuesUntil) + '</b>';
+}
+else if (afterClose){
   el('issue').disabled = true;
   el('issue').textContent = 'Purchases are closed';
   var shut = el('counter');

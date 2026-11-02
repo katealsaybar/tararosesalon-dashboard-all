@@ -19,7 +19,9 @@
   // afterwards. closes is the real one and it is stated on the till page too, so if it ever
   // moves it moves in both. issue_voucher() in sql/voucher_issues_setup.sql holds the same
   // two dates and is the one that actually refuses.
-  T.CAMPAIGN = { opens:'2026-01-01', closes:'2026-10-31' };
+  // issuesUntil is a catch-up window after the close, for late sales. Purchase dates may run up
+  // to it, so issue_voucher() holds the same date (sql/voucher_catchup_window.sql, 2 Nov 2026).
+  T.CAMPAIGN = { opens:'2026-01-01', closes:'2026-10-31', issuesUntil:'2026-11-09' };
 
   T.BRANCHES = {
     SAA:{name:'Mamsha al Saadiyat', emirate:'Abu Dhabi'},
