@@ -604,7 +604,7 @@ function lrWSCard(key, g, maxRate, winner) {
   const row = (l, v) => `<div class="ws-r"><span>${l}</span><b>${v}</b></div>`, small = t => ` <small>${t}</small>`;
   const back = g.spent_sent > 0 && g.actual > 0 ? 'AED ' + lcNum(Math.round(g.actual / g.spent_sent)) : '–';
   const backD = g.spent_delivered > 0 && g.actual > 0 ? 'AED ' + lcNum(Math.round(g.actual / g.spent_delivered)) : '';
-  return `<div class="ws-card${winner === true ? ' win' : winner === false ? ' lose' : ''}"><div class="ws-hd"><h4>${nm}</h4>${winner === true ? '<span class="ws-win">Winner</span>' : ''}</div>
+  return `<div class="ws-card${winner === true ? ' ws-won' : winner === false ? ' ws-lost' : ''}"><div class="ws-hd"><h4>${nm}</h4>${winner === true ? '<span class="ws-win">Winner</span>' : ''}</div>
     <div class="ws-who">${who}</div>
     <div class="ws-big">${lrNum(g.since, 'ws_since', G)}</div><div class="ws-bigl">booked or came in, of ${lrNum(g.clients, 'ws_clients', G)} clients messaged (${lrPer100(g.since, g.clients)} per 100)</div>
     <div class="ws-bar"><i style="width:${bar}%"></i></div>
