@@ -146,6 +146,11 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
 /* A figure that opens the vouchers behind it (Kate, 2 Nov 2026). Dotted underline, same look as the dashboard's own figures. */
 .dn{cursor:pointer;border-bottom:1px dotted currentColor}
 .dn:hover,.dn:focus-visible{color:var(--series);outline:0}
+/* The chart view switch (Kate, 2 Nov 2026: per month or per day, to explain it quickly). */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--sand);margin:2px 0 12px}
+.seg button{border:0;background:transparent;color:var(--ink2);font:inherit;font-size:12.5px;padding:5px 13px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--paper);color:var(--ink);font-weight:600;box-shadow:0 0 0 1px var(--line)}
+.seg button:focus-visible{outline:2px solid var(--series);outline-offset:1px}
 .state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
 .foot{color:var(--muted);font-size:12px;margin-top:18px}
 #report{display:none}
@@ -204,8 +209,10 @@ details{margin-top:10px} summary{cursor:pointer;color:var(--muted);font-size:12p
   <section class="card" id="wv-target">
     <h2>Collected vs the target line</h2>
     <p class="sub" id="cumSub"></p>
+    <div class="seg" id="cumSeg" role="group" aria-label="Chart view"><button type="button" data-v="run" aria-pressed="true">Running total</button><button type="button" data-v="day" aria-pressed="false">Per day</button><button type="button" data-v="month" aria-pressed="false">Per month</button></div>
     <div class="chart" id="cumChart"></div>
-    <div class="legend"><span><i style="background:var(--series)"></i>Collected</span><span><i class="dash"></i>Target line</span></div>
+    <div class="legend" id="cumLegend"><span><i style="background:var(--series)"></i>Collected</span><span><i class="dash"></i>Target line</span></div>
+    <div id="cumMonths" style="margin-top:14px"></div>
     <details><summary>Show as table</summary><div id="cumTable"></div></details>
   </section>
 
@@ -512,6 +519,12 @@ function render(){
     }).join('') +
     '<tr class="tot"><td>Total</td><td class="n">' + dn(live.length, vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(collected), vSpec('All vouchers', live)) + '</td><td class="n">100%</td><td class="n">' + dn(aed(placed), vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(spent), vSpec('All vouchers', live)) + '</td></tr></tbody></table>';
 
+  /* the months under the chart (Kate, 2 Nov 2026), so the graph can be explained with its numbers right below it */
+  el('cumMonths').innerHTML = '<table><thead><tr><th>Month</th><th class="n">Sold</th><th class="n">Cash collected</th></tr></thead><tbody>' +
+    M.months.map(function(m){ var sp = vSpec('Month ' + m.n + ', ' + m.name + ': vouchers sold', m.rows);
+      return '<tr><td>Month ' + m.n + ', ' + m.name + ' <small style="color:var(--muted)">(' + m.span + ')</small></td><td class="n">' + dn(m.units, sp) + '</td><td class="n">' + dn(aed(m.paid), sp) + '</td></tr>'; }).join('') +
+    '<tr class="tot"><td>Total</td><td class="n">' + dn(live.length, vSpec('All vouchers', live)) + '</td><td class="n">' + dn(aed(collected), vSpec('All vouchers', live)) + '</td></tr></tbody></table>';
+
   /* sold per person per month (Kate, 2 Nov 2026): the till page's "Your name" on each voucher, by purchase month. A voucher with no name gets its own row so the totals still match the headline. */
   var mKeys = Object.keys(mBy).sort(), pmap = {}; M.mKeys = mKeys;
   live.forEach(function(r){
@@ -642,7 +655,41 @@ function render(){
 function targetAt(d){ var a = M.launch.getTime(), b = TARGET_DATE.getTime(); return b > a ? TARGET * Math.min(1, Math.max(0, (d - a) / (b - a))) : TARGET; }
 
 /* ---------- charts ---------- */
+var CUMV = 'run'; try { var svv = localStorage.getItem('wv-cum-view'); if (svv === 'day' || svv === 'month') CUMV = svv; } catch (e) {}
+function cumSet(){
+  var run = CUMV === 'run';
+  el('cumSub').textContent = run ? 'Running total of cash collected by purchase date, against a straight line from the first sale to ' + aed(TARGET) + ' on ' + fmtD(TARGET_DATE) + '.'
+    : CUMV === 'day' ? 'Cash collected on each day, by the day the voucher was bought.'
+    : 'Cash collected in each month of the campaign. Month 1 starts at the first sale, so it is a part month.';
+  el('cumLegend').innerHTML = run ? '<span><i style="background:var(--series)"></i>Collected</span><span><i class="dash"></i>Target line</span>'
+    : '<span><i style="background:var(--series)"></i>' + (CUMV === 'day' ? 'Collected that day' : 'Collected that month') + '</span>';
+  document.querySelectorAll('#cumSeg button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.v === CUMV ? 'true' : 'false'); });
+}
+function drawCumBars(){
+  var host = el('cumChart'), W = Math.max(300, host.clientWidth), H = 260, L = 44, R = 12, T = 26, B = 36, month = CUMV === 'month';
+  var items = month ? M.months.map(function(m){ return { label:'Month ' + m.n + ' · ' + m.name, sub:m.span, v:m.paid, n:m.units }; })
+                    : M.days.map(function(p){ return { label:fmtD(p.d), v:p.add, n:p.rows.length }; });
+  var ymax = niceMax(Math.max.apply(null, items.map(function(x){ return x.v; }).concat([1]))), bw = (W - L - R) / Math.max(1, items.length);
+  function Y(v){ return T + (1 - v / ymax) * (H - T - B); }
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + (month ? 'Cash collected per month' : 'Cash collected per day') + '">';
+  for (var g = 0; g <= ymax + 1; g += ymax / 4) s += '<line class="gl" x1="' + L + '" x2="' + (W-R) + '" y1="' + Y(g) + '" y2="' + Y(g) + '"/><text class="ax" x="' + (L-8) + '" y="' + (Y(g)+4) + '" text-anchor="end">' + kfmt(g) + '</text>';
+  var every = month ? 1 : Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor((W - L) / 56))));
+  items.forEach(function(x, i){
+    var bwi = month ? Math.min(120, bw * 0.55) : Math.max(1.5, bw - 2), bx = L + i * bw + (bw - bwi) / 2, h = Y(0) - Y(x.v), rr = Math.min(4, h, bwi / 2);
+    if (x.v) s += '<path d="M' + bx + ' ' + Y(0) + ' v' + (-(h - rr)) + ' q0 -' + rr + ' ' + rr + ' -' + rr + ' h' + (bwi - 2 * rr) + ' q' + rr + ' 0 ' + rr + ' ' + rr + ' v' + (h - rr) + 'Z" fill="var(--series)"/>';
+    if (month){
+      s += '<text class="ax" x="' + (bx + bwi / 2) + '" y="' + (Y(x.v) - 8) + '" text-anchor="middle" style="fill:var(--ink);font-size:12px;font-weight:600">' + aed(x.v) + '</text>';
+      s += '<text class="ax" x="' + (bx + bwi / 2) + '" y="' + (H - 18) + '" text-anchor="middle" style="fill:var(--ink2)">' + esc(x.label) + '</text>';
+      s += '<text class="ax" x="' + (bx + bwi / 2) + '" y="' + (H - 4) + '" text-anchor="middle">' + x.n + (x.n === 1 ? ' sold' : ' sold') + '</text>';
+    } else if (i % every === 0) s += '<text class="ax" x="' + (bx + bwi / 2) + '" y="' + (H - 12) + '" text-anchor="middle">' + x.label + '</text>';
+    s += '<rect x="' + (L + i * bw) + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '" fill="transparent" data-i="' + i + '"/>';
+  });
+  host.innerHTML = s + '</svg>';
+  hover(host, 'rect[data-i]', function(i){ var x = items[i]; return '<b>' + esc(x.label) + '</b>' + (x.sub ? '<br>' + esc(x.sub) : '') + '<br>' + x.n + (x.n === 1 ? ' voucher · ' : ' vouchers · ') + aed(x.v) + ' collected'; });
+}
 function drawCum(){
+  cumSet();
+  if (CUMV !== 'run'){ drawCumBars(); return; }
   var host = el('cumChart'), W = Math.max(300, host.clientWidth), H = 260, L = 44, R = 12, T = 10, B = 26;
   var days = M.days, x0 = M.launch.getTime(), x1 = Math.max(TARGET_DATE.getTime(), M.today.getTime()), ymax = niceMax(Math.max(TARGET, M.collected));
   function X(d){ return L + (d - x0) / Math.max(1, x1 - x0) * (W - L - R); }
@@ -770,6 +817,11 @@ window.addEventListener('scroll', railSpy, { passive:true });
 document.addEventListener('toggle', tellHeight, true);
 var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(drawAll, 120); });
 el('refresh').onclick = load;
+el('cumSeg').addEventListener('click', function(e){
+  var b = e.target.closest && e.target.closest('button[data-v]'); if (!b) return;
+  CUMV = b.dataset.v; try { localStorage.setItem('wv-cum-view', CUMV); } catch (x) {}
+  if (DATA && DATA.live.length){ hideTip(); drawCum(); tellHeight(); }
+});
 
 /* ---------- Save as xlsx (Kate, 29 Sep 2026, for the accounts team) ----------
    The same columns and the same Redemptions sheet as the log's own "Save as xlsx", plus a
