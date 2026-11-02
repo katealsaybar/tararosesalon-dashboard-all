@@ -11,7 +11,9 @@
 --
 -- Counts come from the till (nov_blast_members), kept in a snapshot (nov_blast_snap) that is rebuilt when it is more than 60 minutes old, or when an
 -- editor taps Count again, because counting takes about 18 seconds. Rules, UAE branches SAA KCA MC AQ, walk-in and staff names left out:
---   active   last visit within 183 days (the rule the October lost list used) and spent something this year, with a valid mobile
+--   active   last visit within 183 days (the rule the October lost list used) and spent something this year, with a number that can have WhatsApp
+--            (a UAE mobile, +9715 and 8 digits, or a number outside the UAE; UAE landlines are SMS-only and left out; a client whose numbers were all
+--            checked in respond.io and are invalid or have no contact there is left out too, the Lost Clients page's 'text only'; wa says found or unchecked)
 --   left out opted out (lost_optout_map rules, inline), blocked, or marked Do not contact; already sent a Lost Clients or Wellness Voucher blast 3 or 4
 --            by name; any number a Lost or WV message went to (even under another name); anyone we wrote to on WhatsApp since 9 Oct 2026
 --   D smoothing  blow-dry or cut and blow-dry in the last 12 months, no keratin in the last 12 months
@@ -41,7 +43,7 @@ create table if not exists public.nov_blast_review (
 );
 create table if not exists public.nov_blast_snap (
   blast_id text not null, k text not null, client text, branch text, last_visit date, spend numeric, grp text,
-  ext boolean, blonde boolean, colour boolean,
+  ext boolean, blonde boolean, colour boolean, wa text,
   primary key (blast_id, k)
 );
 create table if not exists public.nov_blast_snap_meta (id int primary key, at timestamptz not null);
@@ -55,7 +57,7 @@ revoke all on public.nov_blast_items, public.nov_blast_decisions, public.nov_bla
 
 -- ── the clients in each blast (names, so internal: wrappers below check the level) ─────────────────────────────
 create or replace function public.nov_blast_members(p_asof date default null)
-returns table (blast_id text, k text, client text, branch text, last_visit date, spend numeric, grp text, ext boolean, blonde boolean, colour boolean)
+returns table (blast_id text, k text, client text, branch text, last_visit date, spend numeric, grp text, ext boolean, blonde boolean, colour boolean, wa text)
 language plpgsql stable security definer
 set search_path = public
 set statement_timeout = '60s'
@@ -93,15 +95,24 @@ begin
       max(ln.maxd) filter (where (ln.li ~ '(hair extension|ext\. removal|extension removal|rings ext|bonds ext|weft ext|tape ext|tape-?in|nano|beaded|fusion)' and ln.li !~ '(nail|lash)')) as ext_last,
       max(ln.maxd) filter (where (ln.li ~ '(blow ?dry|root|toner|treatment)' and ln.li !~ '(callus|paraffin|nail|foot|facial|eye|lash|brow)')) as maint_last
     from ln group by ln.k
-  ), ph as (
+  ), phall as (
+    -- every number on file, for matching opt-outs and earlier sends
     select public.stl_key_fold(c.client_key) as k, btrim(x) as phone
     from client_contacts c, unnest(string_to_array(c.mobile, ' / ')) x
     where coalesce(c.mobile, '') <> '' and btrim(x) ~ '^\+\d{9,15}$'
-  ), phk as (select distinct ph.k from ph),
+  ), ph as (
+    -- numbers that can have WhatsApp: a UAE mobile (+9715 and 8 digits) or a number outside the UAE. UAE landlines and anything else are SMS-only: left out
+    select a.k, a.phone from phall a where a.phone ~ '^(\+9715\d{8}|\+(?!971)\d{9,15})$'
+  ), wa as (
+    -- a client is kept unless every WhatsApp-capable number of hers was checked in respond.io and is invalid or has no contact there (the Lost Clients page's 'text only')
+    select ph.k, coalesce(bool_or(w.found), false) as found,
+           coalesce(bool_and(w.checked_at is not null and (not w.found or w.err ilike 'contact 400%')), false) as all_bad
+    from ph left join lost_wa_status w on w.phone = ph.phone group by ph.k
+  ), phk as (select wa.k, wa.found from wa where not wa.all_bad),
   oo as (
-    select ph.k from ph join lost_send_optout o on o.phone = ph.phone
-    union select ph.k from ph join lost_wa_status w on w.phone = ph.phone and (w.opted_out or w.is_blocked)
-    union select public.stl_key_fold(e.client_key) from lost_excluded e where e.reason = 'Do not contact'
+    select ph.k from phall ph join lost_send_optout o on o.phone = ph.phone
+    union select ph.k from phall ph join lost_wa_status w on w.phone = ph.phone and (w.opted_out or w.is_blocked)
+    union select public.stl_key_fold(e.client_key) from lost_excluded e where e.reason in ('Do not contact', 'Wrong number')
   ), done as (
     select public.stl_key_fold(x.client_key) as k from lost_messaged x
     union select public.stl_key_fold(x.client_key) from lost_send_jobs x where x.status = 'sent' and not x.is_test
@@ -109,13 +120,13 @@ begin
     union select public.stl_key_fold(x.client_key) from wv_send_jobs x where x.status = 'sent'
     union select public.stl_key_fold(x.client_key) from wv_last_jobs x where x.status = 'sent' and not x.is_test
     -- by phone number: a number a Lost or WV message went to, even under another name
-    union select ph.k from ph where exists (select 1 from lost_send_jobs j where j.phone = ph.phone and j.status = 'sent' and not j.is_test)
+    union select ph.k from phall ph where exists (select 1 from lost_send_jobs j where j.phone = ph.phone and j.status = 'sent' and not j.is_test)
         or exists (select 1 from wv_send_jobs j where j.phone = ph.phone) or exists (select 1 from wv_last_jobs j where j.phone = ph.phone and not j.is_test)
     -- anyone we wrote to on WhatsApp since 9 Oct: hand messages, chats in progress, sends under another key
-    union select ph.k from ph join lost_wa_status w on w.phone = ph.phone where w.last_out >= since
+    union select ph.k from phall ph join lost_wa_status w on w.phone = ph.phone where w.last_out >= since
   ), bk as (select distinct public.stl_key_fold(b.client_key) as k from client_bookings b where b.date >= asof),
   e as (
-    select cl.* from cl join phk on phk.k = cl.k
+    select cl.*, phk.found as wa_found from cl join phk on phk.k = cl.k
     where not exists (select 1 from oo where oo.k = cl.k) and not exists (select 1 from done where done.k = cl.k)
   ), s as (
     select e.*,
@@ -128,11 +139,13 @@ begin
   )
   select (case when s.sd then 'D' when s.sb then 'B' when s.sc then 'C' else 'A' end)::text, s.k, s.cn, s.branch, s.last_visit, s.spend_y,
          (case when s.last_visit >= d90 then 'warm' else 'std' end)::text,
-         coalesce(s.ext_last >= m12, false), coalesce(s.light_last >= m12, false), coalesce(s.colour_last >= m12, false)
+         coalesce(s.ext_last >= m12, false), coalesce(s.light_last >= m12, false), coalesce(s.colour_last >= m12, false),
+         (case when s.wa_found then 'found' else 'unchecked' end)::text
   from s where s.sa or s.sb or s.sc or s.sd
   union all
   select 'E'::text, s.k, s.cn, s.branch, s.last_visit, s.spend_y, 'std'::text,
-         coalesce(s.ext_last >= m12, false), coalesce(s.light_last >= m12, false), coalesce(s.colour_last >= m12, false)
+         coalesce(s.ext_last >= m12, false), coalesce(s.light_last >= m12, false), coalesce(s.colour_last >= m12, false),
+         (case when s.wa_found then 'found' else 'unchecked' end)::text
   from s where s.newlost;
 end $$;
 
@@ -145,7 +158,8 @@ begin
   if not p_force and t is not null and t > now() - interval '60 minutes' then return t; end if;
   if not pg_try_advisory_xact_lock(727001) then return t; end if;   -- someone else is counting: use what is there
   delete from public.nov_blast_snap;
-  insert into public.nov_blast_snap select m.blast_id, m.k, m.client, m.branch, m.last_visit, m.spend, m.grp, m.ext, m.blonde, m.colour from public.nov_blast_members() m;
+  insert into public.nov_blast_snap (blast_id, k, client, branch, last_visit, spend, grp, ext, blonde, colour, wa)
+    select m.blast_id, m.k, m.client, m.branch, m.last_visit, m.spend, m.grp, m.ext, m.blonde, m.colour, m.wa from public.nov_blast_members() m;
   insert into public.nov_blast_snap_meta (id, at) values (1, now()) on conflict (id) do update set at = excluded.at;
   return now();
 end $$;
@@ -160,12 +174,12 @@ begin
   at := public.nov_blast_snap_refresh(p_recount);
   select jsonb_build_object('asof', (now() at time zone 'Asia/Dubai')::date, 'at', at,
     'blasts', coalesce(jsonb_object_agg(t.blast_id, jsonb_build_object('n', t.n, 'warm', t.warm, 'std', t.std,
-              'SAA', t.saa, 'KCA', t.kca, 'MC', t.mc, 'AQ', t.aq, 'ext', t.ext, 'blonde', t.blonde, 'colour', t.colour)), '{}'::jsonb))
+              'SAA', t.saa, 'KCA', t.kca, 'MC', t.mc, 'AQ', t.aq, 'ext', t.ext, 'blonde', t.blonde, 'colour', t.colour, 'unchecked', t.unchecked)), '{}'::jsonb))
   into out
   from (select m.blast_id, count(*) as n, count(*) filter (where m.grp = 'warm') as warm, count(*) filter (where m.grp = 'std') as std,
                count(*) filter (where m.branch = 'SAA') as saa, count(*) filter (where m.branch = 'KCA') as kca,
                count(*) filter (where m.branch = 'MC') as mc, count(*) filter (where m.branch = 'AQ') as aq,
-               count(*) filter (where m.ext) as ext, count(*) filter (where m.blonde) as blonde, count(*) filter (where m.colour) as colour
+               count(*) filter (where m.ext) as ext, count(*) filter (where m.blonde) as blonde, count(*) filter (where m.colour) as colour, count(*) filter (where m.wa = 'unchecked') as unchecked
         from public.nov_blast_snap m group by m.blast_id) t;
   return out;
 end $$;
@@ -235,3 +249,28 @@ revoke all on function public.nov_blast_members(date), public.nov_blast_snap_ref
   public.nov_blast_get(), public.nov_blast_decide(int, int), public.nov_blast_review(text, text) from public, anon, authenticated;
 grant execute on function public.nov_blast_audience(boolean), public.nov_blast_clients(text, text, text, text), public.nov_blast_get(),
   public.nov_blast_decide(int, int), public.nov_blast_review(text, text) to authenticated;
+
+-- ── the overnight WhatsApp check also covers the November clients (2 Nov 2026) ──────────────────────────────
+-- respond-status-sync reads lost_wa_queue(): the numbers it has not looked up yet come first. This adds every WhatsApp-capable number of the clients in the
+-- November snapshot, so by the next morning nov_blast_members knows which of them respond.io has (found), which it cannot find (SMS-only, left out) and which
+-- are invalid. Run it once more when the snapshot changes a lot. The rest of the function is unchanged.
+create or replace function public.lost_wa_queue(p_limit integer default 400, p_stale interval default '20:00:00'::interval)
+ returns text[]
+ language sql
+ security definer
+ set search_path to 'public'
+as $function$
+  select coalesce(array_agg(phone), '{}') from (
+    select p.phone from (
+      select distinct btrim(x) as phone from lost_lists_base b, unnest(string_to_array(b.phones, ' / ')) x where b.phones is not null
+      union select j.phone from wv_send_jobs j where j.status = 'sent' and coalesce(j.phone, '') <> ''
+      union select w.phone from wv_lastpush w where coalesce(w.phone, '') <> ''
+      union select j.phone from wv_last_jobs j where not j.is_test and coalesce(j.phone, '') <> ''
+      union select btrim(x) from nov_blast_snap s
+        join client_contacts c on public.stl_key_fold(c.client_key) = s.k, unnest(string_to_array(c.mobile, ' / ')) x
+        where btrim(x) ~ '^(\+9715\d{8}|\+(?!971)\d{9,15})$'
+    ) p
+    left join lost_wa_status w on w.phone = p.phone
+    where w.phone is null or w.checked_at < now() - p_stale
+    order by w.checked_at nulls first limit p_limit) q
+$function$;
