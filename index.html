@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=790e04bf"></script>
+<script src="pages.js?v=9702d9ce"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3527,6 +3527,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="target-links.css?v=20377623">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
 <link rel="stylesheet" href="campaign-blasts.css?v=cc8fd57c">
+<link rel="stylesheet" href="nov-blasts.css?v=7924a07c">
 <link rel="stylesheet" href="active-deals.css?v=f6158902">
 <link rel="stylesheet" href="discounts-vouchers.css?v=ef15eb90">
 <link rel="stylesheet" href="tool-spend.css?v=d72f64aa">
@@ -3589,6 +3590,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       gc:  ['glow-club.js?v=84f11759'],
       // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
       cbl: ['campaign-blasts.js?v=cd5119d1'],
+      // November Blasts (2 Nov 2026): one file, only that page needs it.
+      nvb: ['nov-blasts.js?v=1df0775f'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'active-deals.js?v=442ed4c5'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -3811,6 +3814,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="nav-group" id="navTools">
     <div class="nav-title">Tools</div>
     <div class="nav-sub" onclick="showView('campaignblasts', this)">Campaign Blasts, November</div>
+    <div class="nav-sub" onclick="showView('novblasts', this)">Database Blasts, November</div>
     <div class="nav-sub" onclick="showView('complaintlog', this)">Log a Client Complaint</div>
     <div class="nav-sub" data-cmp-pipeline onclick="location.href='/hub/complaint?view=board'">Complaints Pipeline</div>
     <div class="nav-sub" data-tool-link onclick="location.href='/targets/'">Target Calculator</div>
@@ -4416,6 +4420,12 @@ table.tp-cmp td.bad{color:var(--bad)}
        campaign-blasts.js draws it. Nothing is sent from here. -->
   <div id="view-campaignblasts" style="display:none">
     <main id="campaignBlastsContent" style="max-width:1240px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+  <!-- November Blasts (Kate, 2 Nov 2026): the database blasts for November, planned from the 2 Nov Zoom with Coach Emma. Same people as Campaign Blasts
+       (old Levels 3 and 5 edit, a person opened for Campaign Blasts reads); nov_blast_* check the level again (migrations/nov_blasts.sql).
+       nov-blasts.js draws it. Nothing is sent from here. -->
+  <div id="view-novblasts" style="display:none">
+    <main id="novBlastsContent" style="max-width:1240px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
   <!-- ACTIVE DEALS PERFORMANCE (Kate, 23 Oct 2026): how many times each deal on the active deals brochure was bought at the till, in the Wellness
@@ -5106,10 +5116,10 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
-  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts');
+  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'novblasts');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
   document.body.classList.toggle('toolspend-chrome', view === 'toolspend');
@@ -5145,6 +5155,7 @@ function showView(view, el){
   if (view === 'wvblast') renderWvBlast();
   if (view === 'glowclub') renderGlowClub();
   if (view === 'campaignblasts') renderCampaignBlasts();
+  if (view === 'novblasts') renderNovBlasts();
   if (view === 'dealsperf') renderDealsPerf();
   if (view === 'discountsvouchers') renderDiscountsVouchers();
   if (view === 'googleads') renderGoogleAds();
@@ -5563,6 +5574,11 @@ function trSyncUrl(sectionId){
   if (CURRENT_VIEW === 'campaignblasts') {
     if (typeof cblUrlParts === 'function') parts.push(...cblUrlParts());
     else { const cb = new URLSearchParams(location.search).get('blast'); if (cb) parts.push('blast=' + encodeURIComponent(cb)); }
+  }
+  // November Blasts: which blast is open (nov-blasts.js). Until that script is loaded, keep a blast= the link brought.
+  if (CURRENT_VIEW === 'novblasts') {
+    if (typeof nvbUrlParts === 'function') parts.push(...nvbUrlParts());
+    else { const nb = new URLSearchParams(location.search).get('blast'); if (nb) parts.push('blast=' + encodeURIComponent(nb)); }
   }
   const q = parts.length ? '?' + parts.join('&') : '';
   const slug = location.pathname + q + (sectionId ? '#' + sectionId : '');
