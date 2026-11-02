@@ -180,7 +180,7 @@
     var el = main(); if (!el) return;
     var y = window.scrollY;
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
-      '<div class="nvb-chipsrow"><span class="chip warn">Draft, nothing sent</span><span class="chip">Every message ends 30 November</span><span class="chip">UAE salons, Mondays, 11 am to 4 pm</span></div>' +
+      '<div class="nvb-chipsrow"><span class="chip warn">Draft, nothing sent</span><span class="chip">Every message ends 30 November</span><span class="chip">UAE salons, 11:30 am to 4 pm</span></div>' +
       '<p>Database blasts, not campaign promotions: who we have not spoken to yet, and what they might want next. Each client gets one message in November.</p>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
       (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' +
