@@ -901,6 +901,30 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
 {"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://www.tararosesalon.com/#organization", "name": "Tara Rose Salon", "url": "https://www.tararosesalon.com"}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I know which plan is mine?", "acceptedAnswer": {"@type": "Answer", "text": "You do not have to know. Soft Blonde is brightness with lower upkeep, Signature Blonde is blonde that stays right and Transformation Blonde is a big change or a correction. Message your salon on WhatsApp and a colourist works it out with you."}}, {"@type": "Question", "name": "How often will I need to come in?", "acceptedAnswer": {"@type": "Answer", "text": "Visit 2 sits at week four to six, and visit 3 at week eight to twelve. Your stylist names your exact weeks in the chair, and you leave with the next two visits booked."}}, {"@type": "Question", "name": "Will lightening damage my hair?", "acceptedAnswer": {"@type": "Answer", "text": "Lightening does put stress on hair, so protection is built in from the start. Bond protection is part of every blonde plan, before, during and after your colour, and your plan keeps it topped up between visits."}}, {"@type": "Question", "name": "What does it cost?", "acceptedAnswer": {"@type": "Answer", "text": "Plans start from AED 1,550 for all three visits, VAT included. Your price depends on your plan, your hair length and thickness, and your stylist level. You see a guide price when you book, and your salon confirms it after checking your hair."}}, {"@type": "Question", "name": "How do deposits and the Confidence Promise work?", "acceptedAnswer": {"@type": "Answer", "text": "A first highlights, balayage or colour change, or any appointment over two hours, may need a deposit to hold your time. It is never added on top: it comes off your price on the day. You can move your appointment up to two times with at least 48 hours’ notice and the deposit moves with you. With less notice it is not refundable, and same-day bookings never need one. Every colour and treatment service is covered by the Confidence Promise, set out just above the booking section."}}]}]}
 </script>
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
+<style>
+/* Checkout summary: what the client gets, right above the price */
+.bk-get{margin:22px 0 0;padding:14px 14px 4px;border:1px solid var(--hair);border-radius:12px;background:#fff}
+.bk-get[hidden]{display:none}
+.bk-get__t{margin:0 0 10px;font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.bk-get .incl{margin:0 0 10px}
+.bk-get__n{margin:0 0 12px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-get__n[hidden]{display:none}
+.bk-get+.bk-price{margin-top:14px}
+
+/* Hair length photo guide: tap to enlarge */
+.lf__pic[role=button]{cursor:zoom-in}
+.lf__pic[role=button]:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.lf__zoom{position:absolute;right:5px;bottom:5px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.94);box-shadow:0 1px 4px rgba(0,0,0,.3);display:grid;place-items:center;color:#161512;pointer-events:none}
+.lf__zoom svg{width:14px;height:14px}
+html.lb-open{overflow:hidden}
+.lb{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(22,21,18,.86)}
+.lb[hidden]{display:none}
+.lb__box{position:relative;box-sizing:border-box;width:min(100%,320px);width:min(100%,320px,calc((100dvh - 150px)*.568));min-width:220px;max-height:100%;overflow:auto;background:#fff;border-radius:16px;padding:14px 14px 12px;text-align:center}
+.lb__x{position:absolute;top:8px;right:8px;z-index:2;width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.95);color:#161512;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.lb .lf__pic{width:100%;margin:0 auto;cursor:default}
+.lb .lf__band{font-size:12px;padding:2px 10px;left:8px}
+.lb__cap{margin:10px 4px 0;font-family:var(--fb);font-size:13px;line-height:1.45;color:var(--ink-soft)}
+</style>
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
@@ -1357,7 +1381,7 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
 
     <fieldset class="bk-f" id="bkLenF">
       <legend class="bk-l">Where does your hair fall?</legend>
-      <p class="bk-help">Check from the back, with your hair dry and brushed straight. Our short may be shorter than you think.</p>
+      <p class="bk-help">Check from the back, with your hair dry and brushed straight. Our short may be shorter than you think. Tap the photo to enlarge it.</p>
       <div class="lf__len bk-lenwrap"><img src="assets/img/len-hair.jpg" alt="Long straight hair seen from the back, with lines marking the chin, the shoulders and the armpits" width="250" height="440"><div class="bk-opts"><label class="bk-r"><input type="radio" name="bkLen" value="0"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Short</b><small>To the chin</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Medium</b><small>Chin to above the shoulders</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="2"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Long</b><small>Shoulders to the armpits</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="3"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Extra long</b><small>Below the armpits</small></span><em class="bk-r__p"></em></label></div></div>
       <label class="bk-r bk-r--plain"><input type="radio" name="bkLen" value="-1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>I am not sure. Ask my salon to check.</b></span></label>
     </fieldset>
@@ -1372,6 +1396,8 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
       <label class="bk-l" for="bkSalon">Which salon would you like to visit?</label>
       <div class="bk-sel"><select id="bkSalon"><option value="">Choose a salon</option><option value="971502811494">Khalifa City A &middot; Abu Dhabi</option><option value="971501968720">Mamsha Al Saadiyat &middot; Abu Dhabi</option><option value="971556245520">Al Quoz &middot; Dubai</option><option value="971524960903">Motor City &middot; Dubai</option></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
+
+    <div class="bk-get" id="bkGet" aria-live="polite" hidden><p class="bk-get__t">What you get</p><ul class="incl incl--visits" id="bkGetList"></ul><p class="bk-get__n" id="bkGetNote" hidden></p></div>
 
     <div class="bk-price" aria-live="polite"><span>Estimated service price</span><b id="bkPrice">&ndash;</b></div>
     <p class="bk-price__note" id="bkPriceNote" hidden></p>
@@ -1517,8 +1543,39 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
     else { priceEl.textContent=aed(pr[out]); if(out!==l){ priceNote.textContent=(out>l?'Thicker hair takes more time and product, so we price your hair as ':'Finer hair takes less time, so we price your hair as ')+NM[out]+'.'; priceNote.hidden=false; } }
     if(out!==null){ window.hrDens=DN[d]; if(window.hrApplyLen) window.hrApplyLen(out); }
     var fl=document.getElementById('hairlen'), fd=document.getElementById('hairthick'); if(fl&&l!==null) fl.value=l<0?'unsure':['short','medium','long','extra-long'][l]; if(fd&&d!==null) fd.value=['fine','medium','thick','extra-thick'][d]; if(window.bsFormSync) window.bsFormSync();
+    getBox(o);
     update();
   };
+  function setGet(items,note){
+    var box=document.getElementById('bkGet'), ul=document.getElementById('bkGetList'), nt=document.getElementById('bkGetNote');
+    ul.innerHTML='';
+    items.forEach(function(it){
+      var li=document.createElement('li');
+      if(typeof it==='string'){ li.textContent=it; }
+      else {
+        var b=document.createElement('b'); b.textContent=it.b; li.appendChild(b);
+        if(it.e){ var e=document.createElement('em'); e.textContent=it.e; li.appendChild(e); }
+        if(it.s){ var s=document.createElement('span'); s.textContent=it.s; li.appendChild(s); }
+      }
+      ul.appendChild(li);
+    });
+    nt.textContent=note||''; nt.hidden=!note; box.hidden=!items.length;
+    return items.length>0;
+  }
+  function getBox(o){
+    var items=[], note='', r=ref2();
+    if(r[0]==='plan'){
+      var card=document.getElementById(['plan-soft','plan-signature','plan-transformation'][r[1]]);
+      if(card) [].slice.call(card.querySelectorAll('.incl--visits li')).forEach(function(li){
+        var b=li.querySelector('b'), e=li.querySelector('em'), s=li.querySelector('span');
+        items.push({b:b?b.textContent:'',e:e?e.textContent:'',s:s?s.textContent:''});
+      });
+      if(items.length) note='All three visits are booked and paid as one. Blow-dry is not included, add one at the regular price.';
+    } else if(o[2]!==null){
+      items.push({b:(o[3]||o[0]).replace(' (solid colour roots)',''),s:o[1]});
+    }
+    if(setGet(items,note)&&r[0]!=='plan') desc.textContent='';
+  }
   var missing=function(){
     var o=cur(), bs=o[2]==='bs', m=[];
     if(!bs&&st.len===null) m.push(['your hair length',lenF]);
@@ -1752,6 +1809,38 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
     img.parentNode.insertBefore(pic,img); pic.appendChild(img);
     Z.forEach(function(z){ var t=document.createElement('span'); t.className='lf__band'; t.style.top=((z[0]+z[1])/2)+'%'; t.textContent=z[2]; pic.appendChild(t); });
   });
+})();
+</script>
+<script>
+/* Hair length photo guide: tap the photo to see it larger. */
+(function(){
+  var pics=[].slice.call(document.querySelectorAll('.lf__len .lf__pic')); if(!pics.length) return;
+  var lb=document.createElement('div'); lb.className='lb'; lb.hidden=true; lb.setAttribute('role','dialog'); lb.setAttribute('aria-modal','true'); lb.setAttribute('aria-label','Hair length guide');
+  lb.innerHTML='<div class="lb__box"><button class="lb__x" type="button" aria-label="Close the photo">&times;</button><div class="lb__pic"></div><p class="lb__cap">Check from the back, with your hair dry and brushed straight.</p></div>';
+  document.body.appendChild(lb);
+  var slot=lb.querySelector('.lb__pic'), x=lb.querySelector('.lb__x'), from=null;
+  function open(p){
+    from=p; slot.innerHTML='';
+    var c=p.cloneNode(true); ['role','tabindex','aria-label'].forEach(function(a){ c.removeAttribute(a); });
+    var z=c.querySelector('.lf__zoom'); if(z) z.parentNode.removeChild(z);
+    slot.appendChild(c); lb.hidden=false; document.documentElement.classList.add('lb-open'); x.focus();
+  }
+  function close(){ lb.hidden=true; slot.innerHTML=''; document.documentElement.classList.remove('lb-open'); if(from&&from.focus) from.focus(); }
+  pics.forEach(function(p){
+    p.setAttribute('role','button'); p.setAttribute('tabindex','0'); p.setAttribute('aria-label','Enlarge the hair length guide');
+    var z=document.createElement('span'); z.className='lf__zoom'; z.setAttribute('aria-hidden','true');
+    z.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 8v5M8 10.5h5"/></svg>';
+    p.appendChild(z);
+    p.addEventListener('click',function(){ open(p); });
+    p.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(p); } });
+  });
+  x.addEventListener('click',close);
+  lb.addEventListener('click',function(e){ if(e.target===lb) close(); });
+  document.addEventListener('keydown',function(e){
+    if(lb.hidden) return;
+    if(e.key==='Escape'){ e.stopImmediatePropagation(); close(); }
+    else if(e.key==='Tab'){ e.preventDefault(); x.focus(); }
+  },true);
 })();
 </script>
 <script src="js/nav-scroll.js?v=c5ff7a5d" defer></script>

@@ -402,6 +402,30 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
 @media (max-width:400px){body .offer-nav .offer-nav__row{gap:3px}body .offer-nav .ochip{padding:0 6px}}
 @media (max-width:380px){body .offer-nav .ochip{letter-spacing:.12em}}
 </style>
+<style>
+/* Checkout summary: what the client gets, right above the price */
+.bk-get{margin:22px 0 0;padding:14px 14px 4px;border:1px solid var(--hair);border-radius:12px;background:#fff}
+.bk-get[hidden]{display:none}
+.bk-get__t{margin:0 0 10px;font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.bk-get .incl{margin:0 0 10px}
+.bk-get__n{margin:0 0 12px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-get__n[hidden]{display:none}
+.bk-get+.bk-price{margin-top:14px}
+
+/* Hair length photo guide: tap to enlarge */
+.lf__pic[role=button]{cursor:zoom-in}
+.lf__pic[role=button]:focus-visible{outline:2px solid var(--accent-text);outline-offset:2px}
+.lf__zoom{position:absolute;right:5px;bottom:5px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.94);box-shadow:0 1px 4px rgba(0,0,0,.3);display:grid;place-items:center;color:#161512;pointer-events:none}
+.lf__zoom svg{width:14px;height:14px}
+html.lb-open{overflow:hidden}
+.lb{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(22,21,18,.86)}
+.lb[hidden]{display:none}
+.lb__box{position:relative;box-sizing:border-box;width:min(100%,320px);width:min(100%,320px,calc((100dvh - 150px)*.568));min-width:220px;max-height:100%;overflow:auto;background:#fff;border-radius:16px;padding:14px 14px 12px;text-align:center}
+.lb__x{position:absolute;top:8px;right:8px;z-index:2;width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.95);color:#161512;font-size:24px;line-height:1;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.lb .lf__pic{width:100%;margin:0 auto;cursor:default}
+.lb .lf__band{font-size:12px;padding:2px 10px;left:8px}
+.lb__cap{margin:10px 4px 0;font-family:var(--fb);font-size:13px;line-height:1.45;color:var(--ink-soft)}
+</style>
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
@@ -872,7 +896,7 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
 
     <fieldset class="bk-f" id="bkLenF">
       <legend class="bk-l">Where does your hair fall?</legend>
-      <p class="bk-help">Check from the back, with your hair dry and brushed straight. Our short may be shorter than you think.</p>
+      <p class="bk-help">Check from the back, with your hair dry and brushed straight. Our short may be shorter than you think. Tap the photo to enlarge it.</p>
       <div class="lf__len bk-lenwrap"><img src="assets/img/len-hair.jpg" alt="Long straight hair seen from the back, with lines marking the chin, the shoulders and the armpits" width="250" height="440"><div class="bk-opts"><label class="bk-r"><input type="radio" name="bkLen" value="0"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Short</b><small>To the chin</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Medium</b><small>Chin to above the shoulders</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="2"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Long</b><small>Shoulders to the armpits</small></span><em class="bk-r__p"></em></label><label class="bk-r"><input type="radio" name="bkLen" value="3"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>Extra long</b><small>Below the armpits</small></span><em class="bk-r__p"></em></label></div></div>
       <label class="bk-r bk-r--plain"><input type="radio" name="bkLen" value="-1"><span class="bk-r__dot" aria-hidden="true"></span><span class="bk-r__t"><b>I am not sure. Ask my salon to check.</b></span></label>
     </fieldset>
@@ -887,6 +911,8 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
       <label class="bk-l" for="bkSalon">Which salon would you like to visit?</label>
       <div class="bk-sel"><select id="bkSalon"><option value="">Choose a salon</option><option value="971502811494">Khalifa City A &middot; Abu Dhabi</option><option value="971501968720">Mamsha Al Saadiyat &middot; Abu Dhabi</option><option value="971556245520">Al Quoz &middot; Dubai</option><option value="971524960903">Motor City &middot; Dubai</option></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
+
+    <div class="bk-get" id="bkGet" aria-live="polite" hidden><p class="bk-get__t">What you get</p><ul class="incl incl--visits" id="bkGetList"></ul><p class="bk-get__n" id="bkGetNote" hidden></p></div>
 
     <div class="bk-price" aria-live="polite"><span>Estimated service price</span><b id="bkPrice">&ndash;</b></div>
     <p class="bk-price__note" id="bkPriceNote" hidden></p>
@@ -1095,8 +1121,44 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
     if(course){ var C3=[625,660,700,805], lv=(l!==null&&l>=0)?(out!==null?out:l):0; priceEl.textContent='From '+aed(st.course===2?1040:C3[lv]); priceNote.textContent=(st.course===2?'5 sessions, valid 6 months, paid once, same stylist tracks your result.':'3 sessions, valid 3 months, paid once, same stylist tracks your result.')+' Your salon confirms the final price.'; priceNote.hidden=false; }
     if(nx){ priceEl.textContent='Total confirmed by your salon'; priceNote.textContent='You have chosen '+(nx+1)+' treatments. Your salon confirms the total before anything is booked.'; priceNote.hidden=false; }
     if(out!==null){ window.hrDens=DN[d]; if(window.hrApplyLen) window.hrApplyLen(out); }
+    getBox(o);
     update();
   };
+  function setGet(items,note){
+    var box=document.getElementById('bkGet'), ul=document.getElementById('bkGetList'), nt=document.getElementById('bkGetNote');
+    ul.innerHTML='';
+    items.forEach(function(it){
+      var li=document.createElement('li');
+      if(typeof it==='string'){ li.textContent=it; }
+      else {
+        var b=document.createElement('b'); b.textContent=it.b; li.appendChild(b);
+        if(it.e){ var e=document.createElement('em'); e.textContent=it.e; li.appendChild(e); }
+        if(it.s){ var s=document.createElement('span'); s.textContent=it.s; li.appendChild(s); }
+      }
+      ul.appendChild(li);
+    });
+    nt.textContent=note||''; nt.hidden=!note; box.hidden=!items.length;
+    return items.length>0;
+  }
+  function getBox(o){
+    var items=[], pr=o[2], plan='Worked through your 8-Step Hair Plan', nm=(o[3]||o[0]).replace(' (solid colour roots)','');
+    if(key==='bundle'){
+      var BD={'The Blow-dry Edit':['Three blow-dries, paid once','Booked whenever you need them','The same stylist wherever we can','Valid 3 months from purchase'],
+        'The Blow-dry Series':['Five blow-dries, paid once','Booked whenever you need them','The same stylist wherever we can','Valid 3 months from purchase'],
+        'Four Weeks of Blow-dries':['Eight blow-dries, two a week','Your slots held in advance','Valid 6 weeks from your first booking']};
+      items=(BD[o[0]]||[]).slice();
+    } else if(key==='treatment'){
+      [o].concat(st.extra.map(function(i){ return SV.treatment.opts[i]; })).forEach(function(x){ items.push({b:x[3]||x[0],s:x[1]}); });
+      if(st.course>0) items.push({b:st.course===2?'A course of five':'A course of three',s:(st.course===2?'5 sessions, valid 6 months, paid once.':'3 sessions, valid 3 months, paid once.')+' The same stylist tracks your result.'});
+      items.push(plan);
+    } else if(pr!==null){
+      items.push({b:nm,s:o[1]});
+      if(key==='colour') items.push('A blow-dry to finish');
+      items.push(plan);
+      if(key==='smooth'&&st.year) items.push({b:'Make it a year',s:'A root touch-up visit within 3 to 4 months'});
+    }
+    if(setGet(items,'')) desc.textContent='';
+  }
   var missing=function(){
     var o=cur(), bs=o[2]==='bs', m=[];
     if(!bs&&st.len===null) m.push(['your hair length',lenF]);
@@ -1503,6 +1565,38 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
 .wa-row:active .wa-row__go{transform:scale(.94)}
 @media (prefers-reduced-motion:reduce){.wa-row,.wa-row__go{transition:none}}
 </style>
+<script>
+/* Hair length photo guide: tap the photo to see it larger. */
+(function(){
+  var pics=[].slice.call(document.querySelectorAll('.lf__len .lf__pic')); if(!pics.length) return;
+  var lb=document.createElement('div'); lb.className='lb'; lb.hidden=true; lb.setAttribute('role','dialog'); lb.setAttribute('aria-modal','true'); lb.setAttribute('aria-label','Hair length guide');
+  lb.innerHTML='<div class="lb__box"><button class="lb__x" type="button" aria-label="Close the photo">&times;</button><div class="lb__pic"></div><p class="lb__cap">Check from the back, with your hair dry and brushed straight.</p></div>';
+  document.body.appendChild(lb);
+  var slot=lb.querySelector('.lb__pic'), x=lb.querySelector('.lb__x'), from=null;
+  function open(p){
+    from=p; slot.innerHTML='';
+    var c=p.cloneNode(true); ['role','tabindex','aria-label'].forEach(function(a){ c.removeAttribute(a); });
+    var z=c.querySelector('.lf__zoom'); if(z) z.parentNode.removeChild(z);
+    slot.appendChild(c); lb.hidden=false; document.documentElement.classList.add('lb-open'); x.focus();
+  }
+  function close(){ lb.hidden=true; slot.innerHTML=''; document.documentElement.classList.remove('lb-open'); if(from&&from.focus) from.focus(); }
+  pics.forEach(function(p){
+    p.setAttribute('role','button'); p.setAttribute('tabindex','0'); p.setAttribute('aria-label','Enlarge the hair length guide');
+    var z=document.createElement('span'); z.className='lf__zoom'; z.setAttribute('aria-hidden','true');
+    z.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M10.5 8v5M8 10.5h5"/></svg>';
+    p.appendChild(z);
+    p.addEventListener('click',function(){ open(p); });
+    p.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(p); } });
+  });
+  x.addEventListener('click',close);
+  lb.addEventListener('click',function(e){ if(e.target===lb) close(); });
+  document.addEventListener('keydown',function(e){
+    if(lb.hidden) return;
+    if(e.key==='Escape'){ e.stopImmediatePropagation(); close(); }
+    else if(e.key==='Tab'){ e.preventDefault(); x.focus(); }
+  },true);
+})();
+</script>
 <script src="js/nav-scroll.js?v=c5ff7a5d" defer></script>
 <script src="js/tracking.js?v=e684f8d0" defer></script>
 <script src="js/submit-guard.js?v=e161ed18" defer></script>

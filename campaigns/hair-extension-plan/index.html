@@ -654,6 +654,16 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
 @media (max-width:380px){body .offer-nav .ochip{letter-spacing:.12em}}
 </style>
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
+<style>
+/* Checkout summary: what the client gets, right above the price */
+.bk-get{margin:22px 0 0;padding:14px 14px 4px;border:1px solid var(--hair);border-radius:12px;background:#fff}
+.bk-get[hidden]{display:none}
+.bk-get__t{margin:0 0 10px;font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.bk-get .incl{margin:0 0 10px}
+.bk-get__n{margin:0 0 12px;font-family:var(--fb);font-size:12.5px;font-weight:300;line-height:1.45;color:var(--ink-soft)}
+.bk-get__n[hidden]{display:none}
+.bk-get+.bk-price{margin-top:14px}
+</style>
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
@@ -1125,6 +1135,8 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
       <div class="bk-sel"><select id="bkSalon"><option value="">Choose a salon</option><option value="971502811494">Khalifa City A &middot; Abu Dhabi</option><option value="971501968720">Mamsha Al Saadiyat &middot; Abu Dhabi</option><option value="971556245520">Al Quoz &middot; Dubai</option><option value="971524960903">Motor City &middot; Dubai</option></select><svg class="bk-sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
 
+    <div class="bk-get" id="bkGet" aria-live="polite" hidden><p class="bk-get__t">What you get</p><ul class="incl incl--visits" id="bkGetList"></ul><p class="bk-get__n" id="bkGetNote" hidden></p></div>
+
     <div class="bk-price" aria-live="polite"><span id="bkPriceLbl">You pay</span><b id="bkPrice">&ndash;</b></div>
     <p class="bk-price__note" id="bkPriceNote" hidden></p>
 
@@ -1301,8 +1313,43 @@ body main section[id],body .plancard{scroll-margin-top:calc(var(--sticky-h,120px
     pf.hidden=!pm;
     if(pm){ $('bkPackL').textContent=pm.l; [0,1].forEach(function(i){ var v=i?'3':'1'; $('bkPackN'+v).textContent=pm.n[i]; $('bkPackP'+v).textContent=pm.p[i]; sheet.querySelector('input[name="bkPack"][value="'+v+'"]').checked=(pk===v); }); }
     var p=priceFor(); priceLbl.textContent=p[0]+(pm?' ('+pm.n[pk==='3'?1:0]+')':''); priceEl.textContent=p[1]; note.textContent=p[2]; note.hidden=!p[2];
+    getBox(o);
     update();
   };
+  function setGet(items,note){
+    var box=document.getElementById('bkGet'), ul=document.getElementById('bkGetList'), nt=document.getElementById('bkGetNote');
+    ul.innerHTML='';
+    items.forEach(function(it){
+      var li=document.createElement('li');
+      if(typeof it==='string'){ li.textContent=it; }
+      else {
+        var b=document.createElement('b'); b.textContent=it.b; li.appendChild(b);
+        if(it.e){ var e=document.createElement('em'); e.textContent=it.e; li.appendChild(e); }
+        if(it.s){ var s=document.createElement('span'); s.textContent=it.s; li.appendChild(s); }
+      }
+      ul.appendChild(li);
+    });
+    nt.textContent=note||''; nt.hidden=!note; box.hidden=!items.length;
+    return items.length>0;
+  }
+  function getBox(o){
+    var items=[], note='', spend='haircuts, blow-dries, toning and treatments', m=(meth&&meth!=='unsure')?meth:null;
+    if(o.k==='essentials'){
+      items=[{b:'AED 1,800 to spend',s:'You pay AED 1,500 and get AED 300 extra credit. Valid 6 months from the day your payment is confirmed.'},{b:'Spend it on',s:'Haircuts, blow-dries, toning and treatments'}];
+      note='Extension-related services only.';
+    } else if(o.k==='plus'){
+      items=[{b:'AED 3,600 to spend',s:'You pay AED 3,000 and get AED 600 extra credit. Valid 9 months from the day your payment is confirmed.'},{b:'Spend it on',s:'Haircuts, blow-dries, toning and treatments'},'Priority last-minute slots'];
+      note='Extension-related services only.';
+    } else if(o.k==='bundle'){
+      items=[{b:'AED 4,250 to spend',s:'You pay AED 3,300 and get AED 950 extra credit. Valid 12 months from the day your payment is confirmed.'},{b:'Spend it on',s:'Your full application '+(m?'in '+MN[m]:'in the method you choose')+', '+spend},'Priority last-minute slots'];
+      note=(m==='keratin'?'Keratin and Fusion are quoted based on your Confidence Mapping. ':'')+'Extension-related services only.';
+    } else if(o.k==='moveup'&&m&&MU[m]){
+      items=[{b:MN[m]+' move-up',s:PK[m]?PK[m].n[pk==='3'?1:0]+', '+PK[m].p[pk==='3'?1:0]:MU[m]}];
+      note='Booked and paid separately from a plan.';
+    }
+    if(setGet(items,note)) desc.textContent='';
+  }
+
   var missing=function(){ var m=[]; if(!meth) m.push(['your method',methF]); if(!salSel.value) m.push(['your salon',$('bkSalonF')]); return m; };
   var message=function(){
     var o=cur(), p=priceFor(), salon=salSel.options[salSel.selectedIndex].text.replace(/\s·.*/,'');
