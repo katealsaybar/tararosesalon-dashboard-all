@@ -337,3 +337,38 @@ body.lr-modal-open{overflow:hidden}
   #lostListsContent .lr-grow{grid-template-columns:minmax(0,1fr);gap:4px}
   #lostListsContent .lr-gline{grid-template-columns:minmax(0,1fr) 96px}
 }
+/* Warm or standard? (Kate, 2 Nov 2026, Option B): verdict banner and one card per side on the Lost Performance report. */
+#lostListsContent .ws-verdict{margin:12px 0 14px;padding:14px 16px;border-radius:12px;background:var(--good-bg);border:1px solid var(--good)}
+#lostListsContent .ws-vh{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--good);margin:0 0 10px}
+#lostListsContent .ws-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+#lostListsContent .ws-stat{background:var(--surface);border-radius:10px;padding:10px 12px;border:1px solid var(--border)}
+#lostListsContent .ws-stat .k{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+#lostListsContent .ws-stat .v{font-size:19px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+#lostListsContent .ws-stat .v s{text-decoration:none;color:var(--muted);font-weight:500;font-size:15px}
+#lostListsContent .ws-stat .x{font-size:12px;color:var(--good);font-weight:600}
+#lostListsContent .ws-caution{margin:10px 0 0;font-size:12.5px;color:var(--muted)}
+#lostListsContent .ws-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#lostListsContent .ws-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-card);padding:14px 16px}
+#lostListsContent .ws-card.win{border-color:var(--good);box-shadow:var(--shadow-card)}
+#lostListsContent .ws-hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+#lostListsContent .ws-hd h4{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+#lostListsContent .ws-win{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--good);background:var(--good-bg);border-radius:20px;padding:3px 10px}
+#lostListsContent .ws-who{font-size:12.5px;color:var(--muted);margin:2px 0 10px}
+#lostListsContent .ws-big{font-size:40px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+#lostListsContent .ws-bigl{font-size:13px;color:var(--muted);margin:4px 0 8px}
+#lostListsContent .ws-bar{height:10px;border-radius:6px;background:var(--surface2);overflow:hidden;margin:3px 0 12px}
+#lostListsContent .ws-bar i{display:block;height:100%;background:var(--good);border-radius:6px}
+#lostListsContent .ws-card.lose .ws-bar i{background:var(--muted2)}
+#lostListsContent .ws-r{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--border2);font-size:14px;font-variant-numeric:tabular-nums}
+#lostListsContent .ws-r span:first-child{color:var(--muted)}
+#lostListsContent .ws-r b{font-weight:600;text-align:right}
+#lostListsContent .ws-r small{color:var(--muted);font-weight:400;font-size:12px}
+#lostListsContent .ws-txt{font-size:12.5px;color:var(--muted);margin:10px 0 0;padding-top:8px;border-top:1px solid var(--border2)}
+@media(max-width:760px){#lostListsContent .ws-cols,#lostListsContent .ws-stats{grid-template-columns:1fr}}
+#lostListsContent .ws-flat{background:var(--surface2);border-color:var(--border)}
+#lostListsContent .ws-flat .ws-vh{color:var(--text)}
+#lostListsContent .ws-card .lr-num{cursor:pointer}
+#lostListsContent .ws-stat,#lostListsContent .ws-card{min-width:0}
+#lostListsContent .ws-stat .v{overflow-wrap:anywhere}
+#lostListsContent .ws-r{flex-wrap:wrap}
+#lostListsContent .ws-card:not(.win):not(.lose) .ws-bar i{background:var(--muted2)}

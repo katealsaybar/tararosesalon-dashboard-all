@@ -24,6 +24,12 @@ let lrDel = null, lrDelView = 'visual';
 try { if (localStorage.getItem('lr-del-view') === 'table') lrDelView = 'table'; } catch (e) {}
 // The money, by the same rule: null until lost_campaign_money is live (or for Level 2), the Spent card and the section stay out.
 let lrMoney = null, lrMoneyView = 'visual';
+// The money one message at a time (Kate, 2 Nov 2026, from the meeting with Coach Emma): Colour, Due and Smoothing side by side in one table, each its own
+// lost_campaign_money(p_type) call. Only drawn on All; fetched after the report is up so it never holds the page back. Null until it lands.
+let lrMoneyBy = null, lrMoneyByTok = 0;
+// Warm or standard? (Kate, 2 Nov 2026, from the meeting with Coach Emma): lost_warm_standard (migrations/lost_warm_standard.sql, Level 3 and above). Null until the
+// function is live, then the section draws; it follows All only (the function counts every message type).
+let lrWS = null, lrWSTok = 0;
 // What it took to get a booking, day by day (Kate, 26 Oct 2026; lost_blast_record_get, migrations/lost_blast_record.sql, Level 3 and above). Null until the function is live.
 let lrRec = null;
 try { if (localStorage.getItem('lr-money-view') === 'table') lrMoneyView = 'table'; } catch (e) {}
@@ -105,7 +111,7 @@ async function lrRetry(fn, tries) {
 }
 async function lrLoad() {
   if (lrBusy) return;
-  lrBusy = true; lrErr = '';
+  lrBusy = true; lrErr = ''; lrMoneyBy = null; lrMoneyByTok++; lrWS = null; lrWSTok++;
   try {
     const [s, l] = await Promise.all([lrRetry(() => sb.rpc('lost_send_report_get', lrArgs()), 3), lrRetry(() => lrFetchPage(), 3)]);
     if (s.error || !s.data) throw s.error || new Error('no report');
@@ -129,6 +135,32 @@ async function lrLoad() {
     if (!lrMoney && mo.error && !/Level 3/.test(mo.error.message || '')) { lrBusy = false; lrLoadMoney(); return; }
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
   lrBusy = false;
+  if (lrMoney && lrType === 'all') lrLoadMoneyBy();
+  if (lrType === 'all') lrLoadWS();
+}
+// Warm or standard, after the report is up (one call, about 2 s). A Level 2 reader or a database without the function simply gets no section.
+async function lrLoadWS() {
+  const tok = ++lrWSTok;
+  const r = await lrRetry(() => sb.rpc('lost_warm_standard'), 2);
+  if (tok !== lrWSTok || lrType !== 'all') return;
+  if (r.error || !r.data || !r.data.groups || !r.data.groups.warm || !r.data.groups.standard) { if (r.error && !/Level 3/.test(r.error.message || '')) console.warn('lost_warm_standard', r.error); return; }
+  lrWS = r.data;
+  if (lrBusy || !lrSum || typeof lqSel === 'undefined' || lqSel.tab !== 'perf') return;
+  const el = document.getElementById('lr-warm'), html = lrWSInner();
+  if (el) el.innerHTML = html;
+  else { const t = document.getElementById('lr-totals'); if (t) { t.insertAdjacentHTML('afterend', `<section class="lr-sec" id="lr-warm">${html}</section>`); lrRailSubs(); } }
+}
+// The three messages' money, one call each, run together; a failed one just leaves its row out. Repaints the money section in place when they land.
+async function lrLoadMoneyBy() {
+  const tok = ++lrMoneyByTok;
+  const rs = await Promise.all(LR_TYPES.map(([k]) => lrRetry(() => sb.rpc('lost_campaign_money', { p_type: k }), 2)));
+  if (tok !== lrMoneyByTok || lrType !== 'all') return;   // another load started, or a message was picked meanwhile
+  const by = {};
+  LR_TYPES.forEach(([k], i) => { const r = rs[i]; if (!r.error && r.data && r.data.cost) by[k] = r.data; });
+  if (!Object.keys(by).length) return;
+  lrMoneyBy = by;
+  const el = document.getElementById('lr-money');
+  if (el && typeof lqSel !== 'undefined' && lqSel.tab === 'perf') el.innerHTML = lrMoneyInner();
 }
 // The money (Kate, 29 Oct 2026): if it did not come with the report it goes again on its own, three tries, and the page repaints in place when it lands.
 let lrMoneyTok = 0;
@@ -181,7 +213,7 @@ function lrNum(n, metric, ctx, fmt) {
   const v = (fmt || lcNum)(n);
   if (!metric || !(+n > 0)) return v;
   const c = ctx || {};
-  return `<span class="lr-num" role="button" tabindex="0" data-dm="${metric}"${['w', 'b', 't', 'd', 'y'].map(k => c[k] != null ? ` data-d${k}="${lcEsc(String(c[k]))}"` : '').join('')} title="See who">${v}</span>`;
+  return `<span class="lr-num" role="button" tabindex="0" data-dm="${metric}"${['w', 'b', 't', 'd', 'y', 'g'].map(k => c[k] != null ? ` data-d${k}="${lcEsc(String(c[k]))}"` : '').join('')} title="See who">${v}</span>`;
 }
 function lrRow(label, m, ctx) {
   return `<tr><td>${label}</td><td>${lrNum(m.sent, 'sent', ctx)}</td><td>${lrNum(m.replied, 'replied', ctx)}</td><td>${lrPct(m.replied, m.sent)}</td><td>${lrNum(m.booked, 'booked', ctx)}</td>
@@ -191,8 +223,12 @@ function lrTable(first, rows) {
   if (!rows.length) return '<p class="slv-muted">Nothing sent yet.</p>';
   return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>${first}</th>${LR_COLS.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 }
+// What the messages would cost if only the ones WhatsApp delivered (seen, or delivered and not read) are charged, which is how Meta bills (Kate, 2 Nov 2026: the
+// estimate below counts every message respond.io called sent, and a third of the first sends were never delivered). The count comes from the delivery report
+// already on the page, so it follows the message picked. Null until that report is in. The invoice has the exact figure.
+const lrBillable = () => lrDel && lrDel.total && lrDel.total.sent ? (lrDel.total.seen || 0) + (lrDel.total.delivered || 0) : null;
 function lrTiles(t) {
-  const card = (n, ti, d, cls, met) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${typeof n === 'string' ? n : lrNum(n, met)}</div><div class="ll-d">${d}</div></div>`;
+  const card =(n, ti, d, cls, met) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${typeof n === 'string' ? n : lrNum(n, met)}</div><div class="ll-d">${d}</div></div>`;
   const m = lrMoney, perBooked = m && m.booked && m.booked.clients ? ` (${lrAed(m.cost.aed / m.booked.clients)} per client booked)` : '';
   return `<div class="ll-cards lr-cards">
     ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet', '', 'sent')}
@@ -204,7 +240,7 @@ function lrTiles(t) {
     ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} asked us to stop. Aim to stay under 2%.`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '', 'stop')}
     ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of the messages we tried to send did not go through. Aim to stay under 5%.`, t.failed ? 'lr-warn' : '', 'failed')}
     ${card(t.queued, 'Still queued', 'waiting for the next send window', '', 'queued')}
-    ${m ? card(lrAed(m.cost.aed), 'Spent (estimate)', `${lcNum(m.cost.sent)} messages at AED ${(+m.rate).toFixed(2)} each${perBooked}. Meta's invoice has the exact figure.`) : ''}
+    ${m ? card(lrAed(m.cost.aed), 'Spent (estimate)', `${lrNum(m.cost.sent, 'sent')} messages at AED ${(+m.rate).toFixed(2)} each${perBooked}. ${lrBillable() != null ? `Only ${lcNum(lrBillable())} of them were delivered, which is about ${lrAed(lrBillable() * m.rate)} if only those are charged. ` : ''}Meta's invoice has the exact figure.`) : ''}
   </div>${lrDep ? '<p class="slv-note">These are clients we messaged who have an appointment from today on. She may have booked before our message or at the chair; Phorest does not record that.</p>' : ''}`;
 }
 // Booked, by deposit (Kate, 18 Oct 2026): of the clients who booked after our message, who has paid a deposit, who has not, and who
@@ -364,17 +400,19 @@ function lrMoneyVisual(m) {
   const mx = Math.max(1, b.proj, a.total, spent), bmx = Math.max(1, ...by.map(x => Math.max(x.proj, x.actual)));
   const split = lrSplitRows(a);
   const ratio = spent > 0 && a.total > 0 ? a.total / spent : 0;
+  const bill = lrBillable(), billAed = bill != null ? bill * m.rate : 0, billRatio = billAed > 0 && a.total > 0 ? a.total / billAed : 0;
   const key = '<div class="lr-dkey"><span><i class="d-unpaid"></i>Projected (booked from today on)</span><span><i class="d-paid"></i>Actual (spent since our message)</span></div>';
   return `<div class="lr-dcard lr-gpanel"><h4>What we spent, and what it is worth</h4>
       <p class="slv-note">All on one scale. AED, VAT included.</p>
-      ${lrGRow('Spent on messages', `${lcNum(m.cost.sent)} sent at AED ${(+m.rate).toFixed(2)} (estimate)`, lrGLine('d-spent', 'Spent on messages (estimate)', spent, mx))}
-      ${lrGRow('Projected', `${lcNum(b.clients)} clients booked, ${lcNum(b.appts)} appointments from today on`, lrGLine('d-unpaid', 'Projected spend', b.proj, mx))}
+      ${lrGRow('Spent on messages', `${lrNum(m.cost.sent, 'sent')} sent at AED ${(+m.rate).toFixed(2)} (estimate)`, lrGLine('d-spent', 'Spent on messages (estimate)', spent, mx))}
+      ${bill != null ? lrGRow('If only delivered are charged', `${lcNum(bill)} were delivered or seen, at AED ${(+m.rate).toFixed(2)}`, lrGLine('d-spent', 'Spent if only delivered messages are charged (estimate)', billAed, mx)) : ''}
+      ${lrGRow('Projected', `${lrNum(b.clients, 'booked')} clients booked, ${lrNum(b.appts, 'appts')} appointments from today on`, lrGLine('d-unpaid', 'Projected spend', b.proj, mx))}
       ${lrGRow('Actual so far', `${lcNum(a.visited)} of the ${lcNum(a.messaged)} we messaged have paid`, lrGLine('d-paid', 'Actual spend so far', a.total, mx))}
-      <p class="lr-gcall">${ratio ? `For every <b>AED 1</b> the messages cost, the clients we messaged have spent <b>AED ${lcNum(Math.round(ratio))}</b> since. ` : ''}Average projected per client <b>${lrAed(b.clients ? b.proj / b.clients : 0)}</b> (${lrAed(b.appts ? b.proj / b.appts : 0)} per appointment).<span class="lr-gnote">Some of them may have come in anyway, so read it as a ceiling, not proof the message did it.</span></p>
+      <p class="lr-gcall">${ratio ? `For every <b>AED 1</b> the messages cost, the clients we messaged have spent <b>AED ${lcNum(Math.round(ratio))}</b> since${billRatio ? ` (<b>AED ${lcNum(Math.round(billRatio))}</b> if only the delivered messages are charged)` : ''}. ` : ''}Average projected per client <b>${lrAed(b.clients ? b.proj / b.clients : 0)}</b> (${lrAed(b.appts ? b.proj / b.appts : 0)} per appointment).<span class="lr-gnote">Some of them may have come in anyway, so read it as a ceiling, not proof the message did it.</span></p>
     </div>
     <div class="lr-dcard lr-gpanel"><h4>By branch: projected and actual</h4>
       <p class="slv-note">Biggest actual first.</p>
-      ${by.map(x => lrGRow(lcEsc(LC_BRANCH[x.k] || x.k), `${lcNum(x.booked)} booked, ${lcNum(x.visited)} came in`, lrGLine('d-unpaid', 'Projected', x.proj, bmx) + lrGLine('d-paid', 'Actual', x.actual, bmx))).join('') || '<p class="slv-muted">Nobody yet.</p>'}
+      ${by.map(x => lrGRow(lcEsc(LC_BRANCH[x.k] || x.k), `${lrNum(x.booked, 'booked', { b: x.k })} booked, ${lcNum(x.visited)} came in`, lrGLine('d-unpaid', 'Projected', x.proj, bmx) + lrGLine('d-paid', 'Actual', x.actual, bmx))).join('') || '<p class="slv-muted">Nobody yet.</p>'}
       ${key}
     </div>
     <div class="lr-dcard lr-gpanel"><h4>Actual spend, by what they bought</h4>
@@ -385,14 +423,29 @@ function lrMoneyVisual(m) {
 }
 function lrMoneyTable(m) {
   const b = m.booked, a = m.actual, by = m.by_branch || [];
-  const row = (label, x, bold) => { const f = v => bold ? `<b>${v}</b>` : v; return `<tr><td>${f(label)}</td><td>${f(lcNum(x.sent))}</td><td>${f(lrAed(x.cost))}</td><td>${f(lcNum(x.booked))}</td><td>${f(lcNum(x.appts))}</td><td>${f(lrAed(x.proj))}</td><td>${f(x.booked ? lrAed(x.proj / x.booked) : '–')}</td><td>${f(lcNum(x.visited))}</td><td>${f(lrAed(x.actual))}</td></tr>`; };
+  const row = (label, x, bold, c) => { const f = v => bold ? `<b>${v}</b>` : v; return `<tr><td>${f(label)}</td><td>${f(lrNum(x.sent, 'sent', c))}</td><td>${f(lrAed(x.cost))}</td><td>${f(lrNum(x.booked, 'booked', c))}</td><td>${f(lrNum(x.appts, 'appts', c))}</td><td>${f(lrAed(x.proj))}</td><td>${f(x.booked ? lrAed(x.proj / x.booked) : '–')}</td><td>${f(lcNum(x.visited))}</td><td>${f(lrAed(x.actual))}</td></tr>`; };
   const all = { sent: m.cost.sent, cost: m.cost.aed, booked: b.clients, appts: b.appts, proj: b.proj, visited: a.visited, actual: a.total };
   return `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Branch</th><th>Sent</th><th>Spent (estimate)</th><th>Clients booked</th><th>Appointments</th><th>Projected spend</th><th>Projected per client</th><th>Came in</th><th>Actual spend</th></tr></thead><tbody>
-      ${by.map(x => row(lcEsc(LC_BRANCH[x.k] || x.k), x)).join('')}${row('All', all, true)}</tbody></table></div>
+      ${by.map(x => row(lcEsc(LC_BRANCH[x.k] || x.k), x, false, { b: x.k })).join('')}${row('All', all, true)}</tbody></table></div>
     <h4 class="lr-dh">Actual spend, by what they bought</h4>
     <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>What</th><th>Actual spend</th><th>Share</th></tr></thead><tbody>
       ${lrSplitRows(a).map(([k, l]) => `<tr><td>${l}</td><td>${lrAed(a[k])}</td><td>${lrPct(a[k], a.total)}</td></tr>`).join('')}
       <tr><td><b>All</b></td><td><b>${lrAed(a.total)}</b></td><td><b>${a.total ? '100.0%' : '–'}</b></td></tr></tbody></table></div>`;
+}
+// The money one message at a time (Kate, 2 Nov 2026): the same columns as the table above, a row each for Colour, Due and Smoothing, and what each AED 1 spent on
+// that message brought back. Only on All, and only once lrLoadMoneyBy has the three answers. Sent, booked and appointments open their clients, narrowed to that message.
+function lrMoneyByInner() {
+  if (lrType !== 'all' || !lrMoneyBy) return '';
+  const rows = LR_TYPES.map(([k, l]) => ({ k, l, m: lrMoneyBy[k] })).filter(x => x.m);
+  if (!rows.length) return '';
+  const line = ({ k, l, m }) => {
+    const sp = m.cost.aed, ac = m.actual.total;
+    return `<tr><td><b>${lcEsc(l)}</b></td><td>${lrNum(m.cost.sent, 'sent', { y: k })}</td><td>${lrAed(sp)}</td><td>${lrNum(m.booked.clients, 'booked', { y: k })}</td><td>${lrNum(m.booked.appts, 'appts', { y: k })}</td>
+      <td>${lrAed(m.booked.proj)}</td><td>${lcNum(m.actual.visited)}</td><td>${lrAed(ac)}</td><td>${sp > 0 && ac > 0 ? 'AED ' + lcNum(Math.round(ac / sp)) : '–'}</td></tr>`;
+  };
+  return `<h4 class="lr-dh">One message at a time</h4>
+    <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Message</th><th>Sent</th><th>Spent (estimate)</th><th>Clients booked</th><th>Appointments</th><th>Projected spend</th><th>Came in</th><th>Actual spend</th><th title="Actual spend for every AED 1 the messages cost">AED back per AED 1</th></tr></thead><tbody>${rows.map(line).join('')}</tbody></table></div>
+    <p class="slv-note">A client is counted under the message she was sent. Spent is the estimate on every message sent, so the last column is the cautious one.</p>`;
 }
 function lrMoneyInner() {
   const m = lrMoney;
@@ -401,10 +454,12 @@ function lrMoneyInner() {
   return `<div class="lr-dhd"><h3>Money from the bookings</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrMoneySet('visual')">Graph</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrMoneySet('table')">Table</button></div></div>
     ${tbl ? lrMoneyTable(m) : lrMoneyVisual(m)}
+    ${lrMoneyByInner()}
     ${lrRecInner()}
     <p class="slv-note">What the bookings are worth, and what the messages cost.</p>
     <p class="slv-note"><b>Projected</b> is what the booked appointments should bring in. <b>Actual</b> is what the clients we messaged have paid so far. <b>Spent</b> is what the messages cost, an estimate at AED ${(+m.rate).toFixed(2)} each.</p>
     <p class="slv-note">A booking or a visit may not be because of our message: she may have booked before it, or been coming anyway.</p>
+    <p class="slv-note">Clients booked, appointments and sent open their clients. Came in and the AED figures have no list behind them: they add up paid visits and what was bought. For the clients who came in with nothing booked ahead, open Already came in under Bookings and deposits.</p>
     <details class="lr-fold"><summary>How these are worked out</summary>
       <p class="slv-note"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that service charged in the last 120 days, VAT included. ${unp ? `${lcNum(unp)} of the ${lcNum(b.svcs)} booked services have no price yet (a package or a free item) and count as 0, so it runs low.` : ''}</p>
       <p class="slv-note"><b>Actual</b> is everything the clients we messaged have paid since their first message, VAT included, refunds taken off, without deposits, vouchers and courses sold. It also counts clients who came in and have no booking left. Sales arrive with the nightly upload, so today shows tomorrow.</p>
@@ -507,11 +562,94 @@ function lrSlots(slots) {
   }).join('');
 }
 
+// ── Warm or standard? (Kate, 2 Nov 2026) ─────────────────────────────────────────────────────────────────────────────────────────────
+// Kate's three questions from the meeting with Coach Emma: which is more effective, what each cost in AED (respond.io bills in USD), and how many clients booked from each.
+// One definition, shared with the Wellness Voucher blasts page: the AUDIENCE decides. Warm = her first message went out in wave 1 or 2 (she had written to us in the last
+// 12 months, plus the 15 Oct pilot); Standard = wave 3 or 4 (replied 12 to 18 months ago, or no reply seen). The text each side received is listed under it. Counted per
+// client from her first message. Booked = booked ahead or already came in since the message, the same count as Booked since the message above.
+const lrAed2 = n => 'AED ' + (+n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const lrPer100 = (a, b) => b > 0 ? (100 * a / b).toFixed(1) : '–';
+const LR_WS_USD = 0.046;   // USD a marketing message on respond.io, shown beside the AED figures
+// The verdict banner (Option B, approved by Kate 2 Nov 2026): who wins on bookings per client messaged, and the three numbers Coach Emma asked for side by side.
+// Fewer than 5 clients on a side is too few to name a winner (the rule the Wellness Voucher page uses too). Returns { win, html }.
+function lrWSBanner(w, s) {
+  const r = (g, k) => (g[k] || 0);
+  if (!(r(w, 'since') > 0 || r(s, 'since') > 0)) return { win: '', html: '<div class="ws-verdict ws-flat"><div class="ws-vh">Nothing to compare yet.</div><p class="ws-caution">Nobody has booked or come in from either side.</p></div>' };
+  if (r(w, 'since') < 5 || r(s, 'since') < 5) return { win: '', html: `<div class="ws-verdict ws-flat"><div class="ws-vh">Too few to call.</div><p class="ws-caution">${lcNum(r(w, 'since'))} booked or came in from warm and ${lcNum(r(s, 'since'))} from standard. Under 5 on a side is not enough to say which wins.</p></div>` };
+  const bw = w.clients ? r(w, 'since') / w.clients : 0, bs = s.clients ? r(s, 'since') / s.clients : 0;
+  const win = bw >= bs ? 'warm' : 'standard', Win = win === 'warm' ? 'Warm' : 'Standard';
+  const times = (a, b) => Math.min(a, b) > 0 ? `${(Math.max(a, b) / Math.min(a, b)).toFixed(1)} times as many` : '';
+  const rw = w.reached ? r(w, 'replied') / w.reached : 0, rs = s.reached ? r(s, 'replied') / s.reached : 0;
+  const cpw = r(w, 'since') ? r(w, 'spent_sent') / r(w, 'since') : 0, cps = r(s, 'since') ? r(s, 'spent_sent') / r(s, 'since') : 0;
+  const headline = Math.min(bw, bs) > 0 ? `${Win} wins: ${(Math.max(bw, bs) / Math.min(bw, bs)).toFixed(1)} times the bookings per client messaged.` : `${Win} wins: it booked clients and the other side none.`;
+  const costX = cpw && cps ? (cpw <= cps ? `warm costs ${Math.round(100 * cpw / cps)}% as much` : `standard costs ${Math.round(100 * cps / cpw)}% as much`) : '';
+  const stat = (k, v, x) => `<div class="ws-stat"><div class="k">${k}</div><div class="v">${v}</div><div class="x">${x}</div></div>`;
+  return { win, html: `<div class="ws-verdict"><div class="ws-vh">${headline}</div><div class="ws-stats">
+      ${stat('Booked or came in, per 100 messaged', `${lrPer100(r(w, 'since'), w.clients)} <s>warm against</s> ${lrPer100(r(s, 'since'), s.clients)} <s>standard</s>`, (bw >= bs ? 'warm: ' : 'standard: ') + times(bw, bs))}
+      ${stat('Wrote back, of delivered', `${(100 * rw).toFixed(1)}% <s>warm against</s> ${(100 * rs).toFixed(1)}% <s>standard</s>`, times(rw, rs) ? (rw >= rs ? 'warm: ' : 'standard: ') + times(rw, rs) : '')}
+      ${stat('Cost per client who booked or came in', `${cpw ? lrAed2(cpw) : '–'} <s>warm against</s> ${cps ? lrAed2(cps) : '–'} <s>standard</s>`, costX ? costX + ' per booking' : '')}
+    </div><p class="ws-caution">The two went to different clients as well as with different texts (the STOP-line text only went to the standard side), so read this as a strong hint, not proof that the text did it.</p></div>` };
+}
+function lrWSTexts(grp) {
+  const t = (lrWS.templates || []).filter(x => x.grp === grp), by = {};
+  t.forEach(x => { const m = lrMsg(x.tkey), k = m.nm + ', ' + m.arm; by[k] = (by[k] || 0) + (+x.n || 0); });
+  const rows = Object.keys(by).sort((a, b) => by[b] - by[a]).map(k => `${lcEsc(k)} ${lcNum(by[k])}`);
+  return rows.length ? rows.join(' · ') : '–';
+}
+// One side as a card: the booked-or-came-in number big, a bar against the other side (per 100 messaged), then the rest as rows. Every figure with a list behind it opens it.
+function lrWSCard(key, g, maxRate, winner) {
+  const G = { g: key }, nm = key === 'warm' ? 'Warm' : 'Standard';
+  const who = key === 'warm' ? 'Wrote to us in the last 12 months, plus the 15 Oct pilot (waves 1 and 2)' : 'Replied 12 to 18 months ago, or no reply seen (waves 3 and 4)';
+  const rate = g.clients ? g.since / g.clients : 0, bar = maxRate > 0 ? Math.max(2, Math.round(100 * rate / maxRate)) : 0;
+  const row = (l, v) => `<div class="ws-r"><span>${l}</span><b>${v}</b></div>`, small = t => ` <small>${t}</small>`;
+  const back = g.spent_sent > 0 && g.actual > 0 ? 'AED ' + lcNum(Math.round(g.actual / g.spent_sent)) : '–';
+  const backD = g.spent_delivered > 0 && g.actual > 0 ? 'AED ' + lcNum(Math.round(g.actual / g.spent_delivered)) : '';
+  return `<div class="ws-card${winner === true ? ' win' : winner === false ? ' lose' : ''}"><div class="ws-hd"><h4>${nm}</h4>${winner === true ? '<span class="ws-win">Winner</span>' : ''}</div>
+    <div class="ws-who">${who}</div>
+    <div class="ws-big">${lrNum(g.since, 'ws_since', G)}</div><div class="ws-bigl">booked or came in, of ${lrNum(g.clients, 'ws_clients', G)} clients messaged (${lrPer100(g.since, g.clients)} per 100)</div>
+    <div class="ws-bar"><i style="width:${bar}%"></i></div>
+    ${row('Delivered', lrNum(g.reached, 'ws_reached', G) + small(lrPct(g.reached, g.clients)))}
+    ${row('Wrote back', lrNum(g.replied, 'ws_replied', G) + small(lrPct(g.replied, g.reached) + ' of delivered'))}
+    ${row('STOP', lrNum(g.stop, 'ws_stop', G) + small(lrPct(g.stop, g.clients)))}
+    ${row('Booked ahead', lrNum(g.ahead, 'ws_ahead', G) + small(lcNum(g.appts) + ' appointments'))}
+    ${row('Already came in', lrNum(g.done, 'ws_done', G))}
+    ${row('Spent on messages', lrAed(g.spent_sent) + small('USD ' + lcNum(Math.round(g.msgs * LR_WS_USD))))}
+    ${row('If only delivered are charged', lrAed(g.spent_delivered))}
+    ${row('Paid at the till since', lrAed(g.actual) + small(lcNum(g.visited) + ' clients'))}
+    ${row('AED back per AED 1 spent', back + (backD ? small(backD + ' delivered only') : ''))}
+    <div class="ws-txt"><b>Text they got:</b> ${lrWSTexts(key)}</div></div>`;
+}
+function lrWSInner() {
+  const g = lrWS && lrWS.groups, w = g && g.warm, s = g && g.standard;
+  if (!w || !s) return '';
+  const rate = +lrWS.rate || 0.17, ban = lrWSBanner(w, s);
+  const maxRate = Math.max(w.clients ? w.since / w.clients : 0, s.clients ? s.since / s.clients : 0);
+  const types = (lrWS.by_type || []).slice().sort((a, b) => (a.qtype > b.qtype ? 1 : a.qtype < b.qtype ? -1 : a.grp === 'warm' ? -1 : 1));
+  const qn = q => (typeof LQ_TYPES !== 'undefined' && LQ_TYPES[q]) ? LQ_TYPES[q][0] : q;
+  const story = (lrWS.templates || []).filter(x => /_story$/.test(x.tkey)).reduce((a, x) => a + (+x.n || 0), 0);
+  const plainStd = (lrWS.templates || []).filter(x => x.grp === 'standard' && !/_(story|v2_stop)$/.test(x.tkey)).reduce((a, x) => a + (+x.n || 0), 0);
+  const flags = [];
+  if (story) flags.push(`<b>Story</b> (${lcNum(story)} clients, the 15 Oct pilot): it went to the warm side, but nobody has said whether its text counts as a warm template, so it sits with Warm by audience.`);
+  if (plainStd) flags.push(`${lcNum(plainStd)} client${plainStd === 1 ? '' : 's'} on the standard side got the plain Standard text with no STOP line, counted as Standard by audience.`);
+  return `<div class="lr-dhd"><h3>Warm or standard?</h3></div>
+    <p class="slv-note">Which was more effective, what each cost, and how many clients booked. Warm went to clients who had written to us in the last 12 months, Standard to the colder ones. Spend is in AED at AED ${rate.toFixed(2)} a message (about USD ${LR_WS_USD}).</p>
+    ${ban.html}
+    <div class="ws-cols">${lrWSCard('warm', w, maxRate, ban.win ? ban.win === 'warm' : null)}${lrWSCard('standard', s, maxRate, ban.win ? ban.win === 'standard' : null)}</div>
+    <details class="lr-fold"><summary>By message: Colour, Due and Smoothing inside each side</summary>
+      <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Message</th><th>Side</th><th>Clients</th><th>Delivered</th><th>Wrote back</th><th>STOP</th><th>Booked or came in</th><th>Paid at the till</th></tr></thead><tbody>
+        ${types.map(x => { const G = { g: x.grp, y: x.qtype }; return `<tr><td>${lcEsc(qn(x.qtype))}</td><td>${x.grp === 'warm' ? 'Warm' : 'Standard'}</td><td>${lrNum(x.clients, 'ws_clients', G)}</td><td>${lrNum(x.reached, 'ws_reached', G)}</td><td>${lrNum(x.replied, 'ws_replied', G)}</td><td>${lrNum(x.stop, 'ws_stop', G)}</td><td>${lrNum(x.since, 'ws_since', G)}</td><td>${lrAed(x.actual)}</td></tr>`; }).join('')}
+      </tbody></table></div></details>
+    ${flags.length ? `<p class="slv-note"><b>Not clear-cut:</b> ${flags.join(' ')}</p>` : ''}
+    <details class="lr-fold"><summary>How this is worked out</summary>
+      <p class="slv-note">A client is Warm when her first message went out in wave 1 or 2 and Standard when it went out in wave 3 or 4, the wave rule from the To message tab. A resend queued later does not move her. Booked or came in is the same count as Booked since the message. Spent on messages is every message respond.io called sent at AED ${rate.toFixed(2)}; the delivered-only line counts the messages WhatsApp delivered, the likelier invoice. Paid at the till is everything she has paid since her first message, deposits, vouchers and courses left out, and some of those clients may have come anyway. The Wellness Voucher blasts page uses the same warm and standard idea for the 3rd and 4th blast.</p>
+    </details>`;
+}
+
 // Sub-entries under Performance report in the "On this page" rail (Kate, 21 Oct 2026): the report runs for several screens, so each of its
 // sections gets a link under the Performance report entry. Drawn only in the sidebar rail (lost-queue.css shows them from 1400px; below
 // that the rail is a row of chips), removed when another tab opens (lqShowTab) and redrawn on every paint, so a section that is not
 // there (no delivery or deposit data yet) has no link. The lit entry follows the scroll.
-const LR_SUBS = [['lr-type', 'Which message'], ['lr-totals', 'The campaign so far'], ['lr-delivery', 'Did the message arrive?'], ['lr-deposits', 'Bookings and deposits'], ['lr-money', 'Money from the bookings'],
+const LR_SUBS = [['lr-type', 'Which message'], ['lr-totals', 'The campaign so far'], ['lr-warm', 'Warm or standard?'], ['lr-delivery', 'Did the message arrive?'], ['lr-deposits', 'Bookings and deposits'], ['lr-money', 'Money from the bookings'],
   ['lr-waves', 'By wave'], ['lr-messages', 'By message'], ['lr-branches', 'By branch'], ['lr-days', 'By day'], ['lr-slots', 'Send times'], ['lr-log', 'Send log']];
 let lrSpy = null;
 function lrRailClear() {
@@ -587,11 +725,13 @@ function lrPaint() {
         : `<p class="slv-note">Showing <b>${lcEsc(lrTypeName())}</b> only, everything below. Pick All to see the three together.</p>`}
     </section>
     <section class="lr-sec" id="lr-totals"><h3>The campaign so far${lrType === 'all' ? '' : `: ${lcEsc(lrTypeName())}`}</h3><p class="slv-note">How many we sent and what came back.</p>${lrTiles(t)}</section>
-    ${lrDel ? `<section class="lr-sec" id="lr-delivery">${lrDelInner()}</section>` : ''}
+    ${lrWS && lrType === 'all' ? `<section class="lr-sec" id="lr-warm">${lrWSInner()}</section>` : ''}
+    ${lrDel ?`<section class="lr-sec" id="lr-delivery">${lrDelInner()}</section>` : ''}
     ${lrDep ? `<section class="lr-sec" id="lr-deposits">${lrDepInner()}</section>` : ''}
     ${lrMoney ? `<section class="lr-sec" id="lr-money">${lrMoneyInner()}</section>` : ''}
     <section class="lr-sec" id="lr-waves"><h3>By wave</h3>${lrTable('Wave', waveRows)}</section>
-    <section class="lr-sec" id="lr-messages"><h3>By message</h3>${lrTable('Message', msgRows)}</section>
+    <section class="lr-sec" id="lr-messages"><h3>By message</h3>${lrTable('Message', msgRows)}
+      <p class="slv-note">The versions were not split at random: each went out in its own stretch of time (see First sent and Last sent), and the STOP line went only to waves 3 and 4, the colder clients, so the text and the audience move together (Warm or standard? above). Reply rate here is replies over messages sent, and a message that was never delivered cannot be answered, so read the gap between versions as a hint, not proof. Story and Standard were split evenly only in the 50-client pilot.</p></section>
     <section class="lr-sec" id="lr-branches"><h3>By branch</h3>${lrTable('Branch', brRows)}</section>
     <section class="lr-sec" id="lr-days"><h3>By day</h3>${lrTable('Day', dayRows)}</section>
     <section class="lr-sec" id="lr-slots"><h3>Send times</h3><p class="slv-note">When the messages went out, in half hours (Dubai time). To change the pace, use Pace on the To message tab.</p>${lrSlots(s.by_slot || [])}</section>
@@ -719,7 +859,8 @@ const LR_DRILL = { sent: 'Sent', replied: 'Replied', booked: 'Clients booked', a
   skipped: 'Skipped', blocked: 'Blocked', seen: 'Seen', delivered: 'Delivered, not read yet', sent_only: 'Not delivered yet', paid: 'Deposit paid',
   need: 'Deposit likely needed, not paid', none: 'No deposit needed, short service', today: 'Booked for today', nodep: 'No deposit needed', unpaid: 'Not paid yet',
   since: 'Booked since the message', ahead: 'Booked ahead', done: 'Already came in',
-  late_offer: 'Booked after 31 Oct, offer not used (Colour / Smoothing)', late_due: 'Booked after 31 Oct (Due only)' };
+  late_offer: 'Booked after 31 Oct, offer not used (Colour / Smoothing)', late_due: 'Booked after 31 Oct (Due only)',
+  ws_clients: 'Clients messaged', ws_reached: 'Delivered or seen', ws_replied: 'Wrote back', ws_stop: 'STOP', ws_since: 'Booked or came in since the message', ws_ahead: 'Booked ahead', ws_done: 'Already came in' };
 let lrDrillEl = null, lrDrillFrom = null;
 function lrDrillClose() {
   if (lrDrillEl) lrDrillEl.remove();
@@ -729,6 +870,7 @@ function lrDrillClose() {
 }
 function lrDrillTitle(d) {
   const bits = [LR_DRILL[d.dm] || d.dm];
+  if (d.dg) bits.push(d.dg === 'warm' ? 'Warm' : 'Standard');
   if (d.dw != null) bits.push(+d.dw ? 'Wave ' + d.dw : 'No wave');
   if (d.db) bits.push(LC_BRANCH[d.db] || d.db);
   if (d.dt) { const x = lrMsg(d.dt); bits.push(x.nm + ', ' + x.arm); }
@@ -755,7 +897,9 @@ async function lrDrillOpen(el) {
   lrDrillEl = box;
   const closeBtn = box.querySelector('[data-lr-close]'); if (closeBtn) closeBtn.focus();
   const ty = d.dy || (lrType !== 'all' ? lrType : null);
-  const { data, error } = await sb.rpc('lost_drill', { p_metric: d.dm, p_wave: d.dw != null ? +d.dw : null, p_branch: d.db || 'all', p_tkey: d.dt || null, p_day: d.dd || null, p_type: ty });
+  // A figure on the Warm or standard? table carries its side (data-dg): lost_ws_drill answers with the same row shape (migrations/lost_warm_standard.sql).
+  const { data, error } = d.dg ? await sb.rpc('lost_ws_drill', { p_metric: String(d.dm).replace(/^ws_/, ''), p_grp: d.dg, p_type: d.dy || null })
+    : await sb.rpc('lost_drill', { p_metric: d.dm, p_wave: d.dw != null ? +d.dw : null, p_branch: d.db || 'all', p_tkey: d.dt || null, p_day: d.dd || null, p_type: ty });
   if (lrDrillEl !== box) return;   // closed, or another one opened, while it loaded
   const sub = box.querySelector('#lrDrillSub'), bd = box.querySelector('#lrDrillBody');
   if (error || !data) { console.error(error); sub.textContent = 'The list did not load. Close this and try again.'; return; }
