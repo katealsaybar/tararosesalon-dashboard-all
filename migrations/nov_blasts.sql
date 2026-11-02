@@ -113,6 +113,9 @@ begin
     select ph.k from phall ph join lost_send_optout o on o.phone = ph.phone
     union select ph.k from phall ph join lost_wa_status w on w.phone = ph.phone and (w.opted_out or w.is_blocked)
     union select public.stl_key_fold(e.client_key) from lost_excluded e where e.reason in ('Do not contact', 'Wrong number')
+    -- respond.io tags: the opt-out tags (David's migration of the coordinators' list and STOP replies)
+    union select ph.k from phall ph join lost_wa_status w on w.phone = ph.phone
+      where exists (select 1 from unnest(coalesce(w.tags, '{}'::text[])) t where lower(t) in ('dnd', 'do not contact', 'lost-optout'))
   ), done as (
     select public.stl_key_fold(x.client_key) as k from lost_messaged x
     union select public.stl_key_fold(x.client_key) from lost_send_jobs x where x.status = 'sent' and not x.is_test
@@ -124,6 +127,9 @@ begin
         or exists (select 1 from wv_send_jobs j where j.phone = ph.phone) or exists (select 1 from wv_last_jobs j where j.phone = ph.phone and not j.is_test)
     -- anyone we wrote to on WhatsApp since 9 Oct: hand messages, chats in progress, sends under another key
     union select ph.k from phall ph join lost_wa_status w on w.phone = ph.phone where w.last_out >= since
+    -- respond.io tag campaign-wv: the Wellness Voucher recipients David migrated from GoHighLevel (blasts 1 and 2, August)
+    union select ph.k from phall ph join lost_wa_status w on w.phone = ph.phone
+      where exists (select 1 from unnest(coalesce(w.tags, '{}'::text[])) t where lower(t) in ('campaign-wv', 'wv-last-push', 'wv-last-push-clean', 'wv-last-push-warm'))
   ), bk as (select distinct public.stl_key_fold(b.client_key) as k from client_bookings b where b.date >= asof),
   e as (
     select cl.*, phk.found as wa_found from cl join phk on phk.k = cl.k

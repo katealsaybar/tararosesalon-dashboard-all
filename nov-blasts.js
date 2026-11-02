@@ -131,7 +131,7 @@
   function waHtml(b) {
     var d = b.data, lenOk = !!d.short_msg, useShort = lenOk && len === 'short', src = useShort ? d.short_msg : d.msg, m = d.versions ? src[ver] : src, c = lv(b.id), hasWarm = c ? c.warm > 0 : !!m.warm;
     var a = (aud === 'warm' && hasWarm && m.warm) ? 'warm' : 'std';
-    var t = esc(m[a] || m.std || m.warm).replace(/\{\{1\}\}/g, '<mark>Layla</mark>').replace(/\{\{2\}\}/g, '<mark>Saadiyat</mark>');
+    var t = esc(m[a] || m.std || m.warm).replace(/\{\{1\}\}/g, '<mark>Layla</mark>').replace(/\{\{2\}\}/g, '<mark>Saadiyat</mark>').replace(/\{\{3\}\}/g, '<mark>' + esc(d.end || '30 November 2026') + '</mark>');
     return '<div class="nvb-card nvb-phone">' +
       (d.versions ? '<div class="nvb-tog" aria-label="Wording">' + Object.keys(d.versions).map(function (k) { return '<button type="button" class="' + (ver === k ? 'on' : '') + '" data-nvb="ver:' + k + '">' + esc(d.versions[k]) + '</button>'; }).join('') + '</div>' : '') +
       (lenOk ? '<div class="nvb-tog" aria-label="Length"><button type="button" class="' + (!useShort ? 'on' : '') + '" data-nvb="len:long">Long</button><button type="button" class="' + (useShort ? 'on' : '') + '" data-nvb="len:short">Short</button></div>' : '') +
