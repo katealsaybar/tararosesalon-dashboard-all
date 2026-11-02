@@ -254,7 +254,7 @@
       else if (k === 'go') { dec = +v; render(true); }
       else if (k === 'pick') { if (!canEdit()) return; act(function () { return rpc('nov_blast_decide', { p_idx: dec + 1, p_pick: +v }); }); }
       else if (k === 'clear') { act(function () { return rpc('nov_blast_decide', { p_idx: dec + 1, p_pick: null }); }); }
-      else if (k === 'sel') { cur = v; rb = v; render(true); syncUrl(); var s = document.getElementById('nvb-detail'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'start', behavior: 'instant' }); }
+      else if (k === 'sel') { cur = v; rb = v; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
       else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
       else if (k === 'aud') { aud = v; render(true); }
       else if (k === 'len') { len = v; render(true); }
