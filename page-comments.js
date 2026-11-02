@@ -17,7 +17,17 @@
 
   var m = location.pathname.match(/^\/campaigns\/([a-z0-9-]+)\/?(?:index\.html)?$/);
   if (!m) return;
-  var PAGE = m[1];
+  var PAGE = m[1].replace(/-r\d+$/, '');   // /campaigns/hair-rhythm-r1/ shares the comments of /campaigns/hair-rhythm/
+  /* Revisions: a page that has more than one version lists them in <meta name="pcm-revisions"> (JSON), says which one this is in
+     <meta name="pcm-revision">, and lists the comment numbers whose spot no longer exists here in <meta name="pcm-removed">. */
+  var REVS = [], REV = '', REMOVED = {};
+  try {
+    var mr = document.querySelector('meta[name="pcm-revisions"]'); if (mr) REVS = JSON.parse(mr.content) || [];
+    var mc = document.querySelector('meta[name="pcm-revision"]'); if (mc) REV = mc.content;
+    var mm = document.querySelector('meta[name="pcm-removed"]');
+    if (mm) mm.content.split(',').forEach(function (n) { n = parseInt(n, 10); if (n) REMOVED[n] = true; });
+  } catch (e) { REVS = []; REMOVED = {}; }
+  function revLabel(id) { var r = REVS.filter(function (x) { return x.id === id; })[0]; return r ? r.label : id; }
   var signed = false;
   try { signed = !!localStorage.getItem(STORE); } catch (e) { /* blocked storage: public view */ }
   if (!signed) return;
@@ -29,7 +39,7 @@
     document.head.appendChild(s);
   }
 
-  var sb = null, S = { me: '', level: 0, items: [], panel: false, mode: false, show: true, tab: 'open', cur: null, draft: null, err: '' };
+  var sb = null, S = { me: '', level: 0, items: [], revs: false, panel: false, mode: false, show: true, tab: 'open', cur: null, draft: null, err: '' };
   var root, host, absL, fixL, hover, card, panelEl, bar, fab, hint;
   var pins = [], raf = 0;
 
@@ -105,7 +115,7 @@
       sel: cssPath(el), tx: txt(el).slice(0, 60),
       x: r.width ? clamp((x - r.left) / r.width) : 0.5, y: r.height ? clamp((y - r.top) / r.height) : 0.5,
       pxf: clamp((x + scrollX) / Math.max(d.scrollWidth, innerWidth)), pyf: clamp((y + scrollY) / Math.max(d.scrollHeight, document.body.scrollHeight)),
-      vw: innerWidth, ph: innerWidth < 700
+      vw: innerWidth, ph: innerWidth < 700, rev: REV || undefined
     };
   }
 
@@ -155,6 +165,13 @@
     '.fab{min-height:44px;border:0;border-radius:999px;padding:0 18px;font-weight:600;background:#1C1B18;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px}',
     '.fab.go{background:#1C7563}',
     '.fab.on{background:#99F6E4;color:#1C1B18}',
+    '.fab.rev{background:#fff;color:#1C1B18;border:1px solid rgba(45,46,55,.22)}',
+    '.revmenu{background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:250px}',
+    '.revopt{border:0;background:none;text-align:left;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;color:#1C1B18}',
+    '.revopt:hover{background:#F1ECE3}',
+    '.revopt.cur{background:#EEF3C7}',
+    '.revopt b{font-weight:600;font-size:14px}',
+    '.revopt small{font-size:12px;color:#5b5b63}',
     '.fab b{background:#fff;color:#1C1B18;border-radius:999px;min-width:22px;height:22px;display:inline-grid;place-items:center;font-size:12px;padding:0 6px}',
     '.hint{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:2147483003;background:#1C1B18;color:#fff;border-radius:999px;padding:6px 8px 6px 18px;box-shadow:0 4px 14px rgba(0,0,0,.35);width:max-content;max-width:calc(100vw - 20px);display:flex;align-items:center;gap:10px}',
     '.hint button{border:1px solid #fff;background:transparent;color:#fff;border-radius:999px;padding:4px 12px;min-height:32px}',
@@ -225,7 +242,14 @@
 
   function drawBar() {
     var n = counts().open;
-    bar.innerHTML = '<button type="button" class="fab ' + (S.mode ? 'on' : 'go') + '" data-a="mode" aria-pressed="' + S.mode + '">' + (S.mode ? 'Stop commenting' : '+ Add a comment') + '</button>' +
+    var rv = '';
+    if (REVS.length > 1) {
+      rv = (S.revs ? '<div class="revmenu" role="menu">' + REVS.map(function (r) {
+        return '<button type="button" class="revopt' + (r.id === REV ? ' cur' : '') + '" data-a="rev" data-r="' + esc(r.id) + '" role="menuitem"><b>' + esc(r.label) + (r.id === REV ? ' (you are here)' : '') + '</b><small>' + esc(r.note || '') + '</small></button>';
+      }).join('') + '</div>' : '') +
+        '<button type="button" class="fab rev" data-a="revs" aria-expanded="' + S.revs + '">Revisions' + (REV ? ': ' + esc(revLabel(REV)) : '') + '</button>';
+    }
+    bar.innerHTML = rv + '<button type="button" class="fab ' + (S.mode ? 'on' : 'go') + '" data-a="mode" aria-pressed="' + S.mode + '">' + (S.mode ? 'Stop commenting' : '+ Add a comment') + '</button>' +
       '<button type="button" class="fab" data-a="panel" aria-expanded="' + S.panel + '">Comments' + (n ? ' <b>' + n + '</b>' : '') + '</button>';
     hint.hidden = !S.mode;
     if (S.mode) hint.innerHTML = '<span>' + (innerWidth < 641 ? 'Tap where to comment' : 'Click the spot you want to comment on') + '</span><button type="button" data-a="mode">Done</button>';
@@ -236,7 +260,7 @@
     var shown = all.filter(function (t) { return S.tab === 'open' ? !t.resolved : t.resolved; });
     var rows = shown.map(function (t) {
       var rs = repliesOf(t.id), p = pins.filter(function (x) { return x.c.id === t.id; })[0];
-      var warn = p && p.st === 'closed' ? '<span class="chip warn">in a closed list, tap to open</span>' : p && p.st === 'hidden' ? '<span class="chip warn">not on this screen size</span>' : p && p.st === 'approx' ? '<span class="chip warn">spot may have moved</span>' : '';
+      var warn = p && p.st === 'removed' ? '<span class="chip warn">not on this revision</span>' : p && p.st === 'closed' ? '<span class="chip warn">in a closed list, tap to open</span>' : p && p.st === 'hidden' ? '<span class="chip warn">not on this screen size</span>' : p && p.st === 'approx' ? '<span class="chip warn">spot may have moved</span>' : '';
       return '<button type="button" class="it' + (t.resolved ? ' done' : '') + (isEmma(t) ? ' emma' : '') + '" data-a="open" data-id="' + t.id + '"><span class="n">' + (t.resolved ? '✓' : t.num) + '</span><span><span class="meta"><b>' + esc(t.by) + '</b> · ' + esc(fat(t.at)) +
         (rs.length ? ' · ' + rs.length + (rs.length === 1 ? ' reply' : ' replies') : '') + warn + '</span><p>' + esc(t.body) + '</p></span></button>';
     }).join('');
@@ -251,7 +275,7 @@
 
   function thread(t) {
     var rs = repliesOf(t.id), a = t.anchor || {}, here = innerWidth < 700;
-    var h = '<div class="ct"><span>Comment ' + t.num + (t.resolved ? ' <span class="chip">Resolved</span>' : '') + (a.ph !== undefined && a.ph !== here ? '<span class="chip warn">placed on ' + (a.ph ? 'a phone' : 'desktop') + '</span>' : '') + '</span><button type="button" class="x" data-a="close" aria-label="Close">×</button></div>';
+    var h = '<div class="ct"><span>Comment ' + t.num + (t.resolved ? ' <span class="chip">Resolved</span>' : '') + (a.ph !== undefined && a.ph !== here ? '<span class="chip warn">placed on ' + (a.ph ? 'a phone' : 'desktop') + '</span>' : '') + (a.rev && REV && a.rev !== REV ? '<span class="chip warn">placed on ' + esc(revLabel(a.rev)) + '</span>' : '') + (REMOVED[t.num] ? '<span class="chip warn">this spot is not on this revision</span>' : '') + '</span><button type="button" class="x" data-a="close" aria-label="Close">×</button></div>';
     [t].concat(rs).forEach(function (c) {
       h += '<div class="cm' + (isEmma(c) ? ' emma' : '') + '"><div class="cmh"><b>' + esc(c.by) + '</b><span>' + esc(fat(c.at)) +
         (c.mine || S.level === 5 ? ' <button type="button" class="lnk" data-a="del" data-id="' + c.id + '">Delete</button>' : '') + '</span></div><p>' + esc(c.body) + '</p></div>';
@@ -290,7 +314,9 @@
 
   function measure() {
     pins.forEach(function (p) {
-      var a = p.c.anchor || {}, el = locate(a), d = document.documentElement;
+      var a = p.c.anchor || {}, d = document.documentElement;
+      if (REMOVED[p.c.num]) { p.el = null; p.st = 'removed'; p.ok = false; return; }   // the thing this comment is about is not on this revision
+      var el = locate(a);
       p.el = el; p.st = 'ok'; p.ok = false;
       if (el && closedAncestors(el).length) {
         p.st = 'closed';
@@ -361,6 +387,14 @@
     }
     draw();
   }
+  // Go to the other revision at the same place on the page.
+  function switchRev(id) {
+    var r = REVS.filter(function (x) { return x.id === id; })[0];
+    S.revs = false;
+    if (!r || id === REV) { drawBar(); return; }
+    try { sessionStorage.setItem('pcm-scroll', String(scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight))); } catch (e) { /* no storage: it just opens at the top */ }
+    location.href = r.path;
+  }
   function open(id) {
     S.cur = id; S.reply = ''; S.draft = null; S.err = ''; if (innerWidth < 641) S.panel = false;
     var p = pins.filter(function (x) { return x.c.id === id; })[0];
@@ -388,6 +422,8 @@
     else if (a === 'panel') { S.panel = !S.panel; if (S.panel) { S.cur = null; S.draft = null; } if (S.panel && S.mode) setMode(false); else draw(); if (S.panel) refresh(); }
     else if (a === 'tab') { S.tab = t.getAttribute('data-t'); drawPanel(); }
     else if (a === 'show') { S.show = t.checked; drawPins(); }
+    else if (a === 'revs') { S.revs = !S.revs; drawBar(); }
+    else if (a === 'rev') { switchRev(t.getAttribute('data-r')); }
     else if (a === 'open') open(id);
     else if (a === 'close') { S.cur = null; S.err = ''; draw(); }
     else if (a === 'cancel') { S.draft = null; S.err = ''; draw(); }
@@ -437,6 +473,7 @@
   }, true);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
+    if (S.revs) { S.revs = false; drawBar(); return; }
     if (S.draft) { S.draft = null; draw(); } else if (S.cur) { S.cur = null; draw(); } else if (S.mode) setMode(false); else if (S.panel) { S.panel = false; draw(); }
   });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && root) refresh(); });
@@ -452,6 +489,14 @@
       S.me = d.me; S.level = d.level; S.items = d.comments || [];
     } catch (e) { return; }   // signed out, or not Level 3 or 5: the page stays exactly as the public sees it
     build(); draw();
+    try {
+      var sf = sessionStorage.getItem('pcm-scroll');
+      if (sf !== null) {
+        sessionStorage.removeItem('pcm-scroll');
+        var land = function () { window.scrollTo({ top: Number(sf) * Math.max(0, document.documentElement.scrollHeight - innerHeight), behavior: 'instant' }); };   // 'instant': the page's own smooth scrolling would crawl
+        land(); setTimeout(land, 500); setTimeout(land, 1600);
+      }
+    } catch (e) { /* ignore */ }
     if (window.ResizeObserver) new ResizeObserver(relayout).observe(document.body);
     window.addEventListener('load', relayout);
     [600, 1800, 4000].forEach(function (ms) { setTimeout(relayout, ms); });
