@@ -88,3 +88,9 @@ body.dr-open{overflow:hidden}
 .dr-ext:hover{text-decoration-thickness:2px}
 .dr-shared{color:var(--muted);font-style:italic;font-size:12.5px}
 @media(max-width:760px){.dr-nt{padding:5px 10px;font-size:12px}.dr-hx{flex-wrap:wrap;justify-content:flex-end}}
+
+.dr-pg{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 2px 14px;font-size:12.5px;color:var(--muted)}
+.dr-pg .dr-pgn{margin-right:auto}
+.dr-pg select{margin-left:6px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:5px 8px;font:inherit}
+.dr-pg button{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font:inherit;min-height:34px}
+.dr-pg button:disabled{opacity:.4;cursor:default}

@@ -88,6 +88,11 @@
   // headers should be sticky"). Each header has a filter button: sort, filter by condition (contains, greater than, between, a date range) and filter by values
   // (a checklist with search). The state is kept per view; the figures, the saved file and the total row follow what is on screen.
   let fst = [], pop = null;
+  // Rows per page (Kate, 2 Nov 2026: "default 10 rows shown lang, may choice na lang 20 / 50 / 100"). A list of 10 or fewer has no pager. The choice is
+  // remembered for the next window; Save as xlsx and csv still carry every row of the filtered view, not just the page on screen.
+  const PG_SIZES = [10, 20, 50, 100];
+  let pgSize = 10;
+  try { const v = +localStorage.getItem('trsd.pgsize'); if (PG_SIZES.indexOf(v) >= 0) pgSize = v; } catch (e) {}
   const NUMT = c => c.t === 'num' || c.t === 'aed' || c.t === 'pct';
   const rawOf = (c, r) => { const v = r[c.k]; if (c.t === 'html') return plain(v); if (NUMT(c)) return v === '' || v == null || !isFinite(v) ? null : +v; if (c.t === 'date') return v || ''; return v == null ? '' : String(v); };
   const dispOf = (c, r) => { const v = r[c.k]; if (c.t === 'html') return plain(v); const f = FMT[c.t]; return f ? plain(f(v, spec && spec.cur)) : (v == null ? '' : plain(v)); };
@@ -133,14 +138,17 @@
   function drawTable(res) {
     const body = box.querySelector('.dr-body'), st = fst[cur] || (fst[cur] = { f: {}, sort: null }), cols = res.cols, vw = viewOf(res);
     const top = body.scrollTop, left = body.scrollLeft;
+    const pages = Math.max(1, Math.ceil(vw.rows.length / pgSize));
+    st.pg = Math.min(Math.max(0, st.pg || 0), pages - 1);
+    const from0 = st.pg * pgSize, shownRows = vw.rows.length > PG_SIZES[0] ? vw.rows.slice(from0, from0 + pgSize) : vw.rows;
     const cls = c => c.al === 'l' ? 'nw' : NUMT(c) ? 'r' : c.t === 'date' ? 'nw' : /^branch$/i.test(c.l) ? 'br' : '';   // al: 'l' keeps a number column on the left (Reputation stars)
     const head = cols.map(c => {
       const sorted = st.sort && st.sort.k === c.k, on = sorted || !!st.f[c.k];
       return `<th class="${cls(c)}"><span class="dr-th"><span class="dr-tl">${esc(c.l)}${sorted ? (st.sort.dir > 0 ? ' ↑' : ' ↓') : ''}</span><button type="button" class="dr-fb${on ? ' on' : ''}" data-fc="${esc(c.k)}" aria-label="Filter ${esc(c.l)}" aria-haspopup="true"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button></span></th>`;
     }).join('');
     const line = (r, tag) => `<tr class="${r._cls || ''}">${cols.map(c => `<${tag} class="${cls(c)}">${cell(c, r)}</${tag}>`).join('')}</tr>`;
-    const rowsHtml = vw.rows.length ? vw.rows.map(r => line(r, 'td')).join('') : `<tr><td colspan="${cols.length}" class="dr-empty">No rows match these filters.</td></tr>`;
-    body.innerHTML = `<div class="dr-scroll"><table class="dr-tbl"><thead><tr>${head}</tr></thead><tbody>${rowsHtml}</tbody>${vw.foot ? `<tfoot>${line(vw.foot, 'td')}</tfoot>` : ''}</table></div>${res.note ? `<p class="dr-note">${res.note}</p>` : ''}`;
+    const rowsHtml = vw.rows.length ? shownRows.map(r => line(r, 'td')).join('') : `<tr><td colspan="${cols.length}" class="dr-empty">No rows match these filters.</td></tr>`;
+    body.innerHTML = `<div class="dr-scroll"><table class="dr-tbl"><thead><tr>${head}</tr></thead><tbody>${rowsHtml}</tbody>${vw.foot ? `<tfoot>${line(vw.foot, 'td')}</tfoot>` : ''}</table></div>${vw.rows.length > PG_SIZES[0] ? `<div class="dr-pg"><span class="dr-pgn">${(from0 + 1).toLocaleString('en-GB')} to ${Math.min(from0 + pgSize, vw.rows.length).toLocaleString('en-GB')} of ${vw.rows.length.toLocaleString('en-GB')}</span><label class="dr-pgs">Rows <select data-pgs aria-label="Rows per page">${PG_SIZES.map(n => `<option value="${n}"${n === pgSize ? ' selected' : ''}>${n}</option>`).join('')}</select></label><button type="button" data-pgn="-1"${st.pg === 0 ? ' disabled' : ''}>‹ Previous</button><button type="button" data-pgn="1"${st.pg >= pages - 1 ? ' disabled' : ''}>Next ›</button></div>` : ''}${res.note ? `<p class="dr-note">${res.note}</p>` : ''}`;
     body.scrollTop = top; body.scrollLeft = left;
     const fb = box.querySelector('.dr-fbar');
     if (fb) { fb.hidden = !vw.active; fb.querySelector('.dr-fcount').textContent = vw.filtered ? 'Showing ' + vw.rows.length.toLocaleString('en-GB') + ' of ' + vw.total.toLocaleString('en-GB') + ' rows' : 'Sorted'; }
@@ -212,7 +220,7 @@
     qEl.addEventListener('input', drawList);
     pop.addEventListener('change', e => { const cb = e.target.closest && e.target.closest('input[data-v]'); if (cb) { if (cb.checked) sel.add(cb.dataset.v); else sel.delete(cb.dataset.v); } });
     pop.addEventListener('click', e => {
-      const t = e.target;
+      const t = e.target; st.pg = 0;   // a new filter or sort starts again at the first page
       const ps = t.closest('[data-ps]'); if (ps) { st.sort = { k: key, dir: +ps.dataset.ps }; closePop(); drawTable(res); return; }
       const pa = t.closest('[data-pa]'); if (pa) { const q = qEl.value.trim().toLowerCase(); list.forEach(x => { if (!q || x.d.toLowerCase().indexOf(q) >= 0) { if (pa.dataset.pa === '1') sel.add(x.d); else sel.delete(x.d); } }); drawList(); return; }
       if (t.closest('[data-pr]')) { delete st.f[key]; if (st.sort && st.sort.k === key) st.sort = null; closePop(); drawTable(res); return; }
@@ -301,10 +309,18 @@
     box.className = 'dr-modal' + (sp.panel ? ' dr-win' : ''); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', sp.title);
     const tabs = sp.views.length > 1 ? `<div class="dr-tabs" role="group" aria-label="View">${sp.views.map((v, i) => `<button type="button" data-dv="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`).join('')}</div>` : '<div></div>';
     box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><div class="dr-hx">${sp.panel ? `<a class="dr-nt" href="${esc(location.origin + rUrl(chain))}" target="_blank" rel="noopener" title="Open this window on its own page">Open in new tab</a>` : ''}<button type="button" class="dr-x" data-dx>Close</button></div></div><div class="dr-bar">${tabs}<div class="dr-fbar" hidden><span class="dr-fcount"></span><button type="button" class="dr-fclear" data-fclear>Clear filters</button></div><div class="dr-save"><span class="dr-saved" role="status"></span><button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div><div class="dr-body"></div></div>`;
+    box.addEventListener('change', e => {
+      const sz = e.target.closest && e.target.closest('[data-pgs]'); if (!sz) return;
+      pgSize = +sz.value; try { localStorage.setItem('trsd.pgsize', String(pgSize)); } catch (x) {}
+      const sx = fst[cur] || (fst[cur] = { f: {}, sort: null }); sx.pg = 0;
+      if (cache && cache[cur]) { drawTable(cache[cur]); const bd = box.querySelector('.dr-body'); if (bd) bd.scrollTop = 0; }
+    });
     box.addEventListener('scroll', e => { if (pop && !pop.contains(e.target)) closePop(); }, true);
     box.addEventListener('click', e => {
       const fbn = e.target.closest('[data-fc]'); if (fbn) { openPop(fbn, fbn.dataset.fc); return; }
       if (pop && !e.target.closest('.dr-pop')) closePop();
+      const pn = e.target.closest('[data-pgn]');
+      if (pn && !pn.disabled && cache && cache[cur]) { const sx = fst[cur] || (fst[cur] = { f: {}, sort: null }); sx.pg = (sx.pg || 0) + +pn.dataset.pgn; drawTable(cache[cur]); const bd = box.querySelector('.dr-body'); if (bd) bd.scrollTop = 0; return; }
       if (e.target.closest('[data-fclear]')) { fst[cur] = { f: {}, sort: null }; if (cache && cache[cur]) drawTable(cache[cur]); return; }
       if (e.target === box || e.target.closest('[data-dx]')) { if (spec && spec.panel && under.length) { goBack(); return; } close(); return; }   // a window closes itself, back to the list under it
       if (e.target.closest('[data-db]')) { goBack(); return; }   // Kate, 27 Oct 2026: a way back up when a list was opened from another list
