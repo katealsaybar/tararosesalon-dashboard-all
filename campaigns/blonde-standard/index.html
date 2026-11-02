@@ -1138,7 +1138,7 @@ html.lb-open{overflow:hidden}
           <h3>Highlighting</h3>
           <p>Brightness with foils, from a refresh to a big change.</p>
           <ul class="incl" aria-label="What is included"><li>Root touch-ups, the grow-out blended</li><li>Partial or half-head highlights</li><li>Full-head highlights</li></ul>
-          <div class="plancard__price" data-price="menu-highlighting" aria-live="polite"><span>5 services, from</span><strong>AED 380</strong><small>Root touch from AED 380. Foil highlights from AED 410.</small></div>
+          <div class="plancard__price" data-price="menu-highlighting" aria-live="polite"><span>Choose 1 of 5 services</span><strong>Starting AED 380</strong><small>Root touch from AED 380. Foil highlights from AED 410.</small></div>
           <a class="pill pill--accent js-book" href="#book" data-book="highlights" data-svc="highlighting">Book now <span class="arr">&rarr;</span></a>
           <details class="gcard__more">
             <summary>See all prices</summary>
@@ -1163,7 +1163,7 @@ html.lb-open{overflow:hidden}
           <h3>Balayage</h3>
           <p>Hand-painted, with a soft grow-out.</p>
           <ul class="incl" aria-label="What is included"><li>Face frame, brightness around your face</li><li>Balayage Refresh, between full visits</li><li>Classic or full-head balayage</li><li>A full colour change, hand-painted</li></ul>
-          <div class="plancard__price" data-price="menu-balayage" aria-live="polite"><span>6 services, from</span><strong>AED 380</strong><small>Face frame from AED 380. Balayage from AED 705.</small></div>
+          <div class="plancard__price" data-price="menu-balayage" aria-live="polite"><span>Choose 1 of 6 services</span><strong>Starting AED 380</strong><small>Face frame from AED 380. Balayage from AED 705.</small></div>
           <a class="pill pill--accent js-book" href="#book" data-book="balayage" data-svc="balayage">Book now <span class="arr">&rarr;</span></a>
           <details class="gcard__more">
             <summary>See all prices</summary>
@@ -1189,7 +1189,7 @@ html.lb-open{overflow:hidden}
           <h3>Colour and add-ons</h3>
           <p>Correction, base colour, and gentler formulas for any colour service.</p>
           <ul class="incl" aria-label="What is included"><li>Colour correction, quoted for you</li><li>Root colour, with your foils</li><li>An all-over base colour</li><li>Ammonia-free option, adds AED 100</li></ul>
-          <div class="plancard__price" data-price="menu-colour" aria-live="polite"><span>5 services, from</span><strong>AED 380</strong><small>Root colour from AED 380. All-over colour from AED 575.</small></div>
+          <div class="plancard__price" data-price="menu-colour" aria-live="polite"><span>Choose 1 of 5 services</span><strong>Starting AED 380</strong><small>Root colour from AED 380. All-over colour from AED 575.</small></div>
           <a class="pill pill--accent js-book" href="#book" data-book="a colour service" data-svc="colour">Book now <span class="arr">&rarr;</span></a>
           <details class="gcard__more">
             <summary>See all prices</summary>
@@ -1734,7 +1734,7 @@ html.lb-open{overflow:hidden}
 /* Length switch: one choice sets every price on the page, and Book now carries her length (and, for plans, the price) to reception. */
 (function(){
   var NAMES=['short','medium','long','extra long'];
-  var P={"plan-soft": {"label": "3 visits", "exact": [1575, 1885, 2245, null], "v1": [995, 1095, 1245, null], "v2": [290, 395, 500, null]}, "plan-signature": {"label": "3 visits", "exact": [1720, 2050, 2385, null], "v1": [1140, 1260, 1385, null], "v2": [290, 395, 500, null]}, "plan-transformation": {"label": "3 visits", "exact": [2075, 2405, 2740, null], "v1": [1495, 1615, 1740, null], "v2": [290, 395, 500, null]}, "menu-highlighting": {"label": "5 services", "from": [380, 400, 430, 540]}, "menu-balayage": {"label": "6 services", "from": [380, 400, 420, 520]}, "menu-colour": {"label": "5 services", "from": [380, 400, 430, 540]}};
+  var P={"plan-soft": {"label": "3 visits", "exact": [1575, 1885, 2245, null], "v1": [995, 1095, 1245, null], "v2": [290, 395, 500, null]}, "plan-signature": {"label": "3 visits", "exact": [1720, 2050, 2385, null], "v1": [1140, 1260, 1385, null], "v2": [290, 395, 500, null]}, "plan-transformation": {"label": "3 visits", "exact": [2075, 2405, 2740, null], "v1": [1495, 1615, 1740, null], "v2": [290, 395, 500, null]}, "menu-highlighting": {"label": "Choose 1 of 5 services", "from": [380, 400, 430, 540]}, "menu-balayage": {"label": "Choose 1 of 6 services", "from": [380, 400, 420, 520]}, "menu-colour": {"label": "Choose 1 of 5 services", "from": [380, 400, 430, 540]}};
   var fmt=function(v){ return typeof v==='number'?'AED '+v.toLocaleString('en-US'):'Priced at your consultation'; };
   var boxes=[].slice.call(document.querySelectorAll('[data-price]'));
   if(!boxes.length) return;
@@ -1751,7 +1751,7 @@ html.lb-open{overflow:hidden}
       if(i<0){ b.innerHTML=orig[id]; return; }
       var hair=NAMES[i]+' hair';
       if(d.exact){ b.querySelector('span').textContent=d.label+', '+hair; b.querySelector('strong').textContent=fmt(d.exact[i]); b.querySelector('small').innerHTML=(d.exact[i]===null)?'Your stylist confirms it before you book':'Visit 1: '+fmt(d.v1[i])+'<br>Visit 2: '+fmt(d.v2[i])+'<br>Visit 3: '+fmt(d.v2[i]); }
-      else{ b.querySelector('span').textContent=d.label+', '+hair+', from'; b.querySelector('strong').textContent=fmt(d.from[i]); b.querySelector('small').textContent='Your stylist confirms it before you book'; }
+      else{ b.querySelector('span').textContent=d.label+', '+hair; b.querySelector('strong').textContent=(typeof d.from[i]==='number'?'Starting ':'')+fmt(d.from[i]); b.querySelector('small').textContent='Your stylist confirms it before you book'; }
     });
     document.querySelectorAll('.gcard__cols>div, .gsvc__lens').forEach(function(row){
       [].slice.call(row.children).forEach(function(c,k){ c.classList.toggle('is-len',k===i); });
