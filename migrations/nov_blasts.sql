@@ -19,7 +19,7 @@
 --   D smoothing  blow-dry or cut and blow-dry in the last 12 months, no keratin in the last 12 months
 --   B beauty to hair  a beauty or nail service, never a hair service
 --   C Junior  blow-dry, root, toner or treatment in the last 12 months, no blonde service, no extensions
---   A hair to beauty  hair services only, never beauty or nails, Motor City out (no beauty or nail team there)
+--   A hair to beauty  hair services only, never beauty or nails, Motor City out (no beauty or nail team there) and Al Quoz out (its beauty menu is not confirmed)
 --   one blast per client, in this order: D, B, C, A. E (newly due) is last visit 17 Apr 2026 to 183 days ago, nothing booked: never in A to D.
 --   warm = last visit within 90 days, standard = older. E is always standard.
 -- Not covered: Wellness Voucher blasts 1 and 2 (Aug 2026), their recipients live in GoHighLevel only.
@@ -136,7 +136,7 @@ begin
     where not exists (select 1 from oo where oo.k = cl.k) and not exists (select 1 from done where done.k = cl.k)
   ), s as (
     select e.*,
-      coalesce(e.hair_ever and not e.beauty_ever and e.branch <> 'MC' and e.last_visit >= m6 and e.spend_y > 0, false) as sa,
+      coalesce(e.hair_ever and not e.beauty_ever and e.branch not in ('MC', 'AQ') and e.last_visit >= m6 and e.spend_y > 0, false) as sa,
       coalesce(e.beauty_ever and not e.hair_ever and e.last_visit >= m6 and e.spend_y > 0, false) as sb,
       coalesce(e.last_visit >= m6 and e.spend_y > 0 and e.maint_last >= m12 and (e.light_last is null or e.light_last < m12) and (e.ext_last is null or e.ext_last < m12), false) as sc,
       coalesce(e.last_visit >= m6 and e.spend_y > 0 and e.bd_last >= m12 and (e.keratin_last is null or e.keratin_last < m12), false) as sd,
