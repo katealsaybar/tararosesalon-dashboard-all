@@ -17,6 +17,8 @@ let tsTool = 'ghl';
 try { const s = localStorage.getItem('ts-tool'); if (s === 'ghl' || s === 'respond' || s === 'phorest') tsTool = s; } catch (e) {}
 
 const TS_SUM_KINDS = new Set(['paid', 'invoiced', 'overdue']);
+const TS_EUR_AED = 4.12;   // the Oct 2026 rate: only for the euro columns of lines Phorest billed in AED
+const tsU = l => (l.cur === 'AED' ? (Number(l.a) || 0) / TS_EUR_AED : Number(l.u) || 0);
 const TS_COL = { teal: '#3AA892', coral: '#E07A5F', slate: '#94A3B8', violet: '#A78BFA', gold: '#D9A441' };
 const TS_TOOLS = {
   ghl: {
@@ -53,19 +55,21 @@ const TS_TOOLS = {
   },
   phorest: {
     name: 'Phorest', sub: 'Salon booking and till system', cur: 'EUR',
-    series: [['Saadiyat', 'Saadiyat', TS_COL.teal], ['Khalifa City A', 'Khalifa City A', TS_COL.violet], ['Al Quoz', 'Al Quoz', TS_COL.coral], ['Marasy (closed)', 'Marasy (closed)', TS_COL.slate]],
+    series: [['Saadiyat', 'Saadiyat', TS_COL.teal], ['Khalifa City A', 'Khalifa City A', TS_COL.violet], ['Al Quoz', 'Al Quoz', TS_COL.coral], ['Motor City', 'Motor City', TS_COL.gold], ['Marasy (closed)', 'Marasy (closed)', TS_COL.slate]],
     keyOf: l => l.b,
     why: [
       ['What it is', 'What Phorest invoiced each branch from May 2021: the monthly fee per location, and SMS.'],
       ['Why it matters', 'We are moving to Zenoti. This is the cost we are leaving and the bill still open.'],
       ['What it changes', 'We decide on the overdue invoices and the exit date with the whole cost in front of us.'],
     ],
-    ask: ['What do we still need Phorest for after the move, and for how long?', 'Which months are missing, and who can get them from the Invoice Portal?'],
+    ask: ['What do we still need Phorest for after the move, and for how long?', 'Were the October invoices paid, and what do the card statements show?'],
     left: [
       '<b>Invoiced is not paid.</b> These are Phorest’s invoices. Only the company card statements can prove a payment was taken.',
-      '<b>Not in these numbers.</b> Motor City, whose invoices are not in the inbox; the months with no invoice email, listed below; Technology People, the old Shortcuts reseller, for SMS and software in 2021; and the app developer fee, which was paid outside Phorest.',
+      '<b>Source.</b> Every invoice is from the Phorest Invoice Portal: all five accounts, May 2021 to Nov 2026. From Aug 2021 to Sep 2022, and for Motor City, a month is one line, fee and SMS together.',
+      '<b>Not in these numbers.</b> Fratelli, whose account is not on the Invoice Portal; Technology People, the old Shortcuts reseller, for SMS and software in 2021; and the app developer fee, which was paid outside Phorest.',
       '<b>Contract.</b> Free setup and training, a 12 month minimum, then auto renew. The length of the notice period was not found.',
-      '<b>Dirhams.</b> Each invoice is converted at the euro rate on its invoice date, so the same monthly fee is a different dirham figure each month.',
+      '<b>Dirhams.</b> Each euro invoice is converted at the euro rate on its invoice date, so the same monthly fee is a different dirham figure each month.',
+      '<b>Euros and dirhams.</b> Phorest billed in euros until Oct 2026. Motor City has always been billed in dirhams, and from Nov 2026 every branch is AED 750 a month. Those lines are shown in euros at AED ' + TS_EUR_AED + ' to the euro (the Oct 2026 rate) so the euro columns still add up. The dirham figures are exact.',
     ],
   },
 };
@@ -138,12 +142,12 @@ function tsMonths(tool, w) {
     const key = l.mo.slice(0, 10);
     const m = by.get(key) || { mo: key, aed: 0, u: 0, s: {}, overdue: 0, items: {} };
     const sk = T.keyOf(l) || 'other';
-    m.aed += Number(l.a) || 0; m.u += Number(l.u) || 0;
+    m.aed += Number(l.a) || 0; m.u += tsU(l);
     m.s[sk] = m.s[sk] || { aed: 0, u: 0 };
-    m.s[sk].aed += Number(l.a) || 0; m.s[sk].u += Number(l.u) || 0;
-    if (l.k === 'overdue') m.overdue += Number(l.u) || 0;
+    m.s[sk].aed += Number(l.a) || 0; m.s[sk].u += tsU(l);
+    if (l.k === 'overdue') m.overdue += tsU(l);
     const it = (l.i || '').replace(/^Plan: /, '');
-    m.items[it] = (m.items[it] || 0) + (Number(l.u) || 0);
+    m.items[it] = (m.items[it] || 0) + tsU(l);
     by.set(key, m);
   }
   return [...by.values()].sort((a, b) => (a.mo < b.mo ? -1 : 1));
@@ -179,7 +183,7 @@ function tsPaint(el) {
         <div class="ts-stat"><div class="ts-stat-l">Grand total</div><div class="ts-stat-v">${tsAed(grand)}</div><div class="ts-stat-n">All three tools</div></div>
         ${parts.map(x => `<div class="ts-stat"><div class="ts-stat-l">${tsEsc(TS_TOOLS[x.k].name)}</div><div class="ts-stat-v">${tsAed(x.aed)}</div><div class="ts-stat-n">${pctOf(x.aed)}% of the total</div></div>`).join('')}
       </div>
-      <p class="ts-sub" style="margin:10px 0 0">GoHighLevel and respond.io are what was paid. Phorest is what it invoiced, so that part is a floor: Motor City and the months with no invoice are not in it. The three tabs below show each one.</p>
+      <p class="ts-sub" style="margin:10px 0 0">GoHighLevel and respond.io are what was paid. Phorest is what it invoiced, not what the card was charged. The three tabs below show each one.</p>
     </section>` : '';
   const head = `<section class="slv-intro">
       <h2>Tool Spend</h2>
@@ -213,13 +217,13 @@ function tsPaint(el) {
       ['Unused in the balances', bal.length ? num(balA, tsAed(balA)) : '–', bal.length ? tsNat('USD', balU) + ', as of ' + tsDay(bal[0].d || bal[0].mo) : '']];
   } else {
     const od = all.filter(l => l.k === 'overdue'), odU = od.reduce((a, l) => a + (Number(l.u) || 0), 0), odA = od.reduce((a, l) => a + (Number(l.a) || 0), 0);
-    const fee = all.filter(l => l.c === 'fee' && TS_SUM_KINDS.has(l.k) && Number(l.u) >= 100).pop();
+    const fee = all.filter(l => l.c === 'fee' && l.n && TS_SUM_KINDS.has(l.k) && Number(l.a) >= 100).pop();
     const unk = new Set(all.filter(l => l.k === 'unknown').map(l => l.mo + '|' + l.b)).size;
-    answer = `Phorest has invoiced <b>${tsNat('EUR', spendU)}</b>, about <b>${tsAed(spendAed)}</b>, in these dates. That is a floor, not the whole bill: Motor City and the months with no invoice are not in it.`;
+    answer = `Phorest has invoiced <b>${tsNat('EUR', spendU)}</b>, about <b>${tsAed(spendAed)}</b>, in these dates. That is what Phorest invoiced, not what was taken from the card.`;
     stats = [['Invoiced', num(spendAed, tsAed(spendAed)), tsNat('EUR', spendU) + ' in ' + plural(nMonths, 'month')],
       ['Overdue now', od.length ? num(odA, tsAed(odA)) : '–', od.length ? tsNat('EUR', odU) + ', ' + plural(od.filter(l => l.c === 'fee').length, 'invoice') : 'Nothing overdue'],
-      ['Fee per location', fee ? num(Number(fee.a), tsAed(fee.a)) : '–', fee ? tsNat('EUR', fee.u) + ' a month, at the ' + tsMonth(fee.mo) + ' rate' : ''],
-      ['Months with no invoice', unk ? num(unk, tsNum(unk)) : '0', unk ? 'branch months the inbox does not hold' : '']];
+      ['Fee per location', fee ? num(Number(fee.a), tsAed(fee.a)) : '–', fee ? (fee.cur === 'AED' ? 'AED ' + tsNum(fee.u) + ' a month, billed in dirhams from ' + tsMonth(fee.mo) : tsNat('EUR', fee.u) + ' a month, at the ' + tsMonth(fee.mo) + ' rate') : ''],
+      ['Months with no invoice', unk ? num(unk, tsNum(unk)) : '0', unk ? 'branch months the Invoice Portal does not hold' : 'every invoice on the Invoice Portal is in']];
   }
   const answerCard = `<section class="slv-card">
       <div class="ts-eyebrow">The answer</div>
@@ -248,12 +252,15 @@ function tsPaint(el) {
       <p class="ts-sub">Messages are extra: each one we send is paid for from a top-up.</p>`;
   } else {
     const m = rows.filter(r => r.mo >= '2022-07-01').pop() || last;
+    // From Nov 2026 Phorest bills every branch in dirhams (Motor City always was), so that month reads in dirhams.
+    const inAed = all.some(l => l.n && l.cur === 'AED' && l.b !== 'Motor City' && l.mo.slice(0, 10) === m.mo);
     const locs = Object.keys(m.s).filter(k => m.s[k].u >= 100);
     const per = locs.length ? m.s[locs[0]].u : 0, perA = locs.length ? m.s[locs[0]].aed : 0;
+    const money = k => (inAed ? tsAed(m.s[k].aed) : tsNat('EUR', m.s[k].u));
     example = `<h3 class="ts-h">One location, one month</h3>
-      <p class="ts-sub">Every location pays the same monthly fee, plus a little SMS. In ${tsMonth(m.mo)} it was <b>${tsNat('EUR', per)}</b> each, about <b>${tsAed(perA)}</b>:</p>
-      ${eq(locs.map(k => chip(tsNat('EUR', m.s[k].u), k)))}
-      <p class="ts-sub">${locs.length} locations pay it now, so about ${tsNat('EUR', per * locs.length)} a month, ${tsNat('EUR', per * locs.length * 12)} a year, about ${tsAed(perA * locs.length * 12)}.</p>`;
+      <p class="ts-sub">Every location pays the same monthly fee, plus a little SMS. In ${tsMonth(m.mo)} it was <b>${inAed ? tsAed(perA) : tsNat('EUR', per)}</b> each${inAed ? '' : ', about <b>' + tsAed(perA) + '</b>'}:</p>
+      ${eq(locs.map(k => chip(money(k), k)))}
+      <p class="ts-sub">${locs.length} locations pay it now, so about ${inAed ? tsAed(perA * locs.length) : tsNat('EUR', per * locs.length)} a month, ${inAed ? tsAed(perA * locs.length * 12) + ' a year' : tsNat('EUR', per * locs.length * 12) + ' a year, about ' + tsAed(perA * locs.length * 12)}.</p>`;
   }
   const exampleCard = `<section class="slv-card ts-sec">${example}</section>`;
 
