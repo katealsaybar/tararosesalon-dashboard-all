@@ -40,6 +40,17 @@
   function fat(iso) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)); } catch (e) { return iso; } }
   function aqDate(b) { return b.data.aq_date || b.data.date; }
   function fmtClock(mins) { var h = Math.floor(mins / 60), m = mins % 60; return (h > 12 ? h - 12 : h) + ':' + String(m).padStart(2, '0') + (h >= 12 ? ' pm' : ' am'); }
+  // Why the audience is split in two (Kate, 2 Nov 2026: "is it indicated naman doon kung bakit ganon yung split?"). A recent visit gets the warmer wording. The cutoff
+  // moves a day every day, so the line says which date it was on when the clients were counted.
+  var WHY_SPLIT = 'A recent visit gets the warmer wording: in October, clients who had written to us replied about 8% and colder clients about 3%.';
+  function warmSince() {
+    if (!LIVE || !LIVE.at) return '';
+    try {
+      var dub = new Date(LIVE.at).toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }), p = dub.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+      d.setUTCDate(d.getUTCDate() - 90);
+      return ' (since ' + d.getUTCDate() + ' ' + MN[d.getUTCMonth()] + ' at the last count; it moves a day every day)';
+    } catch (e) { return ''; }
+  }
   function lv(id) { return LIVE && LIVE.blasts ? (LIVE.blasts[id] || { n: 0, warm: 0, std: 0, SAA: 0, KCA: 0, MC: 0, AQ: 0, ext: 0, blonde: 0, colour: 0 }) : null; }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
 
@@ -183,7 +194,7 @@
       (lenOk ? '<div class="nvb-tog" aria-label="Length"><button type="button" class="' + (!useShort ? 'on' : '') + '" data-nvb="len:long">Long</button><button type="button" class="' + (useShort ? 'on' : '') + '" data-nvb="len:short">Short</button></div>' : '') +
       '<div class="nvb-tog" aria-label="Audience">' + (hasWarm ? '<button type="button" class="' + (a === 'warm' ? 'on' : '') + '" data-nvb="aud:warm">Warm</button>' : '') + '<button type="button" class="' + (a === 'std' ? 'on' : '') + '" data-nvb="aud:std">Standard</button></div>' +
       '<div class="nvb-wa"><div class="nvb-wa-top"><i>TR</i>Tara Rose Salons</div><div class="nvb-wa-body"><div class="nvb-bub">' + sub(m[a] || m.std || m.warm, d.end) + '<span class="ft">' + esc(d.footer) + '</span><span class="tm">11:02</span></div></div></div>' +
-      '<p class="nvb-small">' + (a === 'warm' ? 'Warm: last visit in the last 90 days.' : 'Standard: last visit 91 days to 6 months' + (b.id === 'E' ? ' (nobody here is warmer).' : '.')) + '</p>' +
+      '<p class="nvb-small">' + (a === 'warm' ? 'Warm: last visit in the last 90 days' + warmSince() + '.' : 'Standard: last visit 91 days to 6 months' + (b.id === 'E' ? ' (nobody here is warmer).' : '.')) + ' ' + WHY_SPLIT + '</p>' +
       '<div class="nvb-after">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') + '<button type="button" class="nvb-btn" data-nvb="reply:' + esc(b.id) + '">If she replies</button></div>' +
       '<div class="nvb-after"><button type="button" class="nvb-btn' + (rv === 'ok' ? ' pri' : '') + '"' + (ed ? ' data-nvb="rev:ok"' : ' disabled') + '>Approve</button><button type="button" class="nvb-btn' + (rv === 'changes' ? ' pri' : '') + '"' + (ed ? ' data-nvb="rev:changes"' : ' disabled') + '>Needs changes</button></div></div>' +
       '<div class="nvb-info"><div class="nvb-card nvb-split"><div><div class="big">' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</div><div class="lab">clients get this</div></div><div><div class="big">' + warmStd + '</div><div class="lab">' + (c && c.warm > 0 ? 'warm / standard' : 'all standard') + '</div></div></div>' +
