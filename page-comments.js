@@ -165,6 +165,8 @@
     '.fab{min-height:44px;border:0;border-radius:999px;padding:0 18px;font-weight:600;background:#1C1B18;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px}',
     '.fab.go{background:#1C7563}',
     '.fab.on{background:#99F6E4;color:#1C1B18}',
+    '.pin.ghost{opacity:.4;border-style:dashed}',
+    '.pin.ghost:hover,.pin.ghost.sel{opacity:.95}',
     '.fab.rev{background:#fff;color:#1C1B18;border:1px solid rgba(45,46,55,.22)}',
     '.revmenu{background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:250px}',
     '.revopt{border:0;background:none;text-align:left;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;color:#1C1B18}',
@@ -313,13 +315,32 @@
   function drawPanel() { panelEl.hidden = !S.panel; if (S.panel) { var y = (panelEl.querySelector('.list') || {}).scrollTop || 0; panelEl.innerHTML = listHtml(); var l = panelEl.querySelector('.list'); if (l) l.scrollTop = y; } }
 
   function measure() {
+    var ghostSlots = [];
     pins.forEach(function (p) {
       var a = p.c.anchor || {}, d = document.documentElement;
-      if (REMOVED[p.c.num]) { p.el = null; p.st = 'removed'; p.ok = false; return; }   // the thing this comment is about is not on this revision
+      if (REMOVED[p.c.num]) {   // the thing this comment is about is not on this revision: a faded pin where it was first placed
+        p.el = null; p.st = 'removed'; p.ok = false; p.ghost = true;
+        if (typeof a.pyf === 'number') {
+          p.fixed = false; p.px = clamp(a.pxf) * Math.max(d.scrollWidth, innerWidth); p.py = clamp(a.pyf) * Math.max(d.scrollHeight, document.body.scrollHeight); p.ok = true;
+        }
+        return;
+      }
+      p.ghost = false;
       var el = locate(a);
       p.el = el; p.st = 'ok'; p.ok = false;
       if (el && closedAncestors(el).length) {
         p.st = 'closed';
+        var cds = closedAncestors(el), outer = cds[cds.length - 1], sm = null, kk;
+        for (kk = outer.firstElementChild; kk; kk = kk.nextElementSibling) if (kk.tagName === 'SUMMARY') { sm = kk; break; }
+        var sr = sm && sm.getBoundingClientRect();
+        if (sr && sr.width > 0 && sr.height > 0) {   // a faded pin on the summary row, so you can see there is a comment in there
+          var slot = 0, gi;
+          for (gi = 0; gi < ghostSlots.length; gi++) if (ghostSlots[gi].el === sm) { slot = ghostSlots[gi].n++; break; }
+          if (gi === ghostSlots.length) ghostSlots.push({ el: sm, n: 1 });
+          var gx = sr.left + 26 + slot * 34, gy = sr.top + sr.height / 2;
+          if (dyn(sm)) { p.fixed = true; p.vx = gx; p.vy = gy; } else { p.fixed = false; p.px = gx + scrollX; p.py = gy + scrollY; }
+          p.ok = true; p.ghost = true;
+        }
       } else if (el && el.checkVisibility && !el.checkVisibility()) {
         p.st = 'hidden';
       } else if (el) {
@@ -343,7 +364,7 @@
     pins.forEach(function (p) {
       if (!p.ok || !S.show) return;
       var b = document.createElement('button');
-      b.type = 'button'; b.className = 'pin' + (p.c.resolved ? ' done' : isEmma(p.c) ? ' emma' : '') + (S.cur === p.c.id ? ' sel' : '');
+      b.type = 'button'; b.className = 'pin' + (p.ghost ? ' ghost' : '') + (p.c.resolved ? ' done' : isEmma(p.c) ? ' emma' : '') + (S.cur === p.c.id ? ' sel' : '');
       b.setAttribute('data-a', 'open'); b.setAttribute('data-id', p.c.id);
       b.setAttribute('aria-label', 'Comment ' + p.c.num + ' by ' + p.c.by + (p.c.resolved ? ', resolved' : ''));
       b.innerHTML = '<span>' + (p.c.resolved ? '✓' : p.c.num) + '</span>';
@@ -403,7 +424,7 @@
       drawPins();
       p = pins.filter(function (x) { return x.c.id === id; })[0];
     }
-    if (p && p.ok && !p.fixed) {
+    if (p && p.ok && !p.fixed && p.st !== 'removed') {
       var top = p.py - innerHeight / 2;
       var off = function () { return p.py < scrollY + 60 || p.py > scrollY + innerHeight - 60; };
       if (off()) {
