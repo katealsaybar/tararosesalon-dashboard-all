@@ -14,7 +14,7 @@
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var TABS = ['messages', 'before', 'replies'];
   var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
-  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false;
+  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false;
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   window.nvbUrlParts = function () {
     var p = [], first = D && D.items.filter(isBlast)[0], b = D ? cur : wantBlast, t = D ? tab : (wantTab || 'messages');
@@ -166,7 +166,28 @@
       h += '<button type="button" class="cbl-d' + (here.length ? ' has' : '') + (iso === today ? ' today' : '') + (iso === curIso ? ' sel' : '') + '" ' + (here.length ? 'data-nvb="day:' + iso + '" aria-label="' + esc(fdate(iso)) + ', ' + plural(here.length, 'blast', 'blasts') + '"' : 'tabindex="-1" disabled') + '>' + d +
         (here.length ? '<i>' + here.slice(0, 3).map(function () { return '<b class="plan"></b>'; }).join('') + '</i>' : '') + '</button>';
     }
-    return h + '</div><div class="cbl-leg"><span><b class="plan"></b>Planned</span></div><p class="cbl-hint">Pick a day with a dot to open its blast. To move one, use Change day or time on the blast.</p></div>';
+    return h + '</div><div class="cbl-leg"><span><b class="plan"></b>Planned</span></div><p class="cbl-hint">Pick a day with a dot to open its blast. To move one, use Change day or time on the blast.</p><button type="button" class="cbl-bigbtn" data-nvb="big">Bigger calendar</button></div>';
+  }
+  // The same month, large, in a pop-up (Kate, 3 Nov 2026: "I should be able to view the calendar bigger"): every blast is a chip on its day, click it to open it.
+  function bigCalHtml() {
+    var y = cal.y, mo = cal.m, off = (new Date(y, mo, 1).getDay() + 6) % 7, n = new Date(y, mo + 1, 0).getDate(), today = dubaiToday(), bs = sorted();
+    var h = '<div class="cbl"><div class="cbl-modal" data-nvb="close"><div class="cbl-bigcal cbl-card" role="dialog" aria-modal="true" aria-label="Calendar of blasts"><div class="cbl-big-h">' +
+      '<button type="button" data-nvb="cal:prev" aria-label="Previous month">‹</button><b>' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][mo] + ' ' + y + '</b>' +
+      '<button type="button" data-nvb="cal:next" aria-label="Next month">›</button><button type="button" class="cbl-big-x" data-nvb="close">Close</button></div>' +
+      '<p class="cbl-hint">Click a blast to open it. To move one to another day, use Change day or time on the blast.</p><div class="cbl-big-g">';
+    ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (d) { h += '<span class="hd">' + d + '</span>'; });
+    for (var i = 0; i < off; i++) h += '<span class="pad"></span>';
+    for (var d = 1; d <= n; d++) {
+      var iso = y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      var chips = bs.filter(function (x) { return x.data.date === iso || aqDate(x) === iso; }).map(function (x) {
+        return '<a class="cbl-bc ' + rcls(x.review) + '" href="?view=novblasts" data-nvb="sel:' + esc(x.id) + '" title="' + esc(x.data.title) + '"><span>' + esc(x.data.short || x.data.title) + '</span><small>' + esc(fmtClock(clockMins(x))) + '</small></a>';
+      }).join('');
+      h += '<div class="cbl-bd' + (iso === today ? ' today' : '') + '"><b>' + d + '</b>' + chips + '</div>';
+    }
+    var pre = y + '-' + String(mo + 1).padStart(2, '0'), inMonth = bs.filter(function (x) { return x.data.date.indexOf(pre) === 0; });
+    // On a phone the chips are too small for a name, so the same blasts are listed under the grid.
+    var list = inMonth.length ? '<div class="cbl-big-l">' + inMonth.map(function (x) { return '<a href="?view=novblasts" data-nvb="sel:' + esc(x.id) + '"><span class="cbl-chip ' + rcls(x.review) + '">' + lab(x.review) + '</span> <b>' + esc(x.data.title) + '</b><small>' + esc(fdate(x.data.date)) + ', ' + esc(fmtClock(clockMins(x))) + '</small></a>'; }).join('') + '</div>' : '';
+    return h + '</div>' + list + '</div></div></div>';
   }
   function listSide() {
     var bs = sorted(), rev = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length;
@@ -313,7 +334,7 @@
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
       '<div class="nvb-chipsrow"><span class="chip warn">Draft, nothing sent</span><span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
-      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + '</div>';
+      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + '</div>';
     if (keep) window.scrollTo({ top: y, behavior: 'instant' });   // the dashboard sets smooth scrolling, which would glide the page up
   }
   function toTop() { window.scrollTo({ top: 0, behavior: 'instant' }); }
@@ -339,7 +360,9 @@
       else if (k === 'cal') { if (!cal) return; cal.m += v === 'next' ? 1 : -1; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); }
       else if (k === 'day') { var hit = sorted().filter(function (x) { return x.data.date === v || aqDate(x) === v; }); if (!hit.length) return; var at = hit.map(function (x) { return x.id; }).indexOf(cur); cur = hit[(at + 1) % hit.length].id; rb = cur; render(true); syncUrl(); }
       else if (k === 'side') { sideOpen = !sideOpen; render(true); }
-      else if (k === 'sel') { cur = v; rb = v; var sb2 = blast(v); if (sb2) { var cd2 = parts(sb2.data.date); cal = { y: cd2.getFullYear(), m: cd2.getMonth() }; } sideOpen = false; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
+      else if (k === 'big') { big = true; render(true); }
+      else if (k === 'close') { if (t.classList.contains('cbl-modal') && e.target !== t) return; big = false; render(true); }
+      else if (k === 'sel') { cur = v; rb = v; var sb2 = blast(v); if (sb2) { var cd2 = parts(sb2.data.date); cal = { y: cd2.getFullYear(), m: cd2.getMonth() }; } sideOpen = false; big = false; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
       else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
       else if (k === 'sched') {
         if (!canEdit()) return;
@@ -367,6 +390,7 @@
       }
     });
   }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && big && main() && main().offsetParent !== null) { big = false; render(true); } });
   document.addEventListener('visibilitychange', function () {   // come back to the tab and see what others chose
     if (document.visibilityState !== 'visible' || !D || !main() || main().offsetParent === null) return;
     Promise.all([reload(), loadLive()]).then(function () { render(true); }).catch(function () { /* keep what is on screen */ });
