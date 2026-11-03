@@ -189,6 +189,20 @@
     var list = inMonth.length ? '<div class="cbl-big-l">' + inMonth.map(function (x) { return '<a href="?view=novblasts" data-nvb="sel:' + esc(x.id) + '"><span class="cbl-chip ' + rcls(x.review) + '">' + lab(x.review) + '</span> <b>' + esc(x.data.title) + '</b><small>' + esc(fdate(x.data.date)) + ', ' + esc(fmtClock(clockMins(x))) + '</small></a>'; }).join('') + '</div>' : '';
     return h + '</div>' + list + '</div></div></div>';
   }
+  /* The total across all the blasts (Kate, 3 Nov 2026: "wala tayong total blast count"), between the calendar and the list: clients in all blasts, how many blasts, each blast's count,
+     the most it can cost and how long the sending takes at the page's pace. Live, from the same counts as each blast, so it moves when a count changes. */
+  var RATE_USD = 0.058;   // roughly one delivered marketing message in the UAE (see the Before sending top-up task)
+  function totalSide() {
+    var bs = sorted(), tot = 0, slots = 0, rows = '';
+    bs.forEach(function (b) {
+      var c = lv(b.id), n = c ? (c.n || 0) : null; if (n != null) { tot += n; slots += Math.ceil(n / PACE); }
+      rows += '<div><span>' + esc(b.data.short || b.data.title) + '</span><b>' + (c ? num(n, (b.data.short || b.data.title) + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b></div>';
+    });
+    var ready = !!(LIVE && LIVE.blasts), hrs = slots / 2;
+    return '<div class="cbl-tabs cbl-card nvb-tot"><h3>All blasts</h3><div class="nvb-tot-big"><b>' + (ready ? num(tot, 'November blasts, every client', {}, true) : (liveErr ? '?' : '…')) + '</b><span>clients in ' + plural(bs.length, 'blast', 'blasts') + '</span></div>' +
+      '<div class="nvb-tot-rows">' + rows + '</div>' +
+      (ready ? '<p class="cbl-hint">At most <b>AED ' + fmtN(Math.round(tot * RATE_AED)) + '</b> (about USD ' + fmtN(Math.round(tot * RATE_USD)) + '). About <b>' + (hrs % 1 ? hrs.toFixed(1) : hrs) + ' hours</b> of sending at ' + PACE + ' every 30 minutes.</p>' : '') + '</div>';
+  }
   function listSide() {
     var bs = sorted(), rev = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length;
     return '<div class="cbl-tabs cbl-card"><h3>Blasts</h3><div>' + bs.map(function (b) {
@@ -325,7 +339,7 @@
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + blastMain(b) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + blastMain(b) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }

@@ -274,3 +274,13 @@
 
 /* the finished header images are 4:5 (1080 by 1350): show the whole picture, never cropped */
 .nvb .cbl-hdr{aspect-ratio:4/5;object-fit:contain;object-position:center}
+
+/* All blasts total (between the calendar and the list) */
+.nvb .nvb-tot h3{margin:0 0 6px}
+.nvb .nvb-tot-big{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.nvb .nvb-tot-big b{font-size:28px;font-weight:700;line-height:1.1}
+.nvb .nvb-tot-big span{font-size:13px;color:var(--muted2)}
+.nvb .nvb-tot-rows{display:grid;gap:2px;margin:4px 0 6px}
+.nvb .nvb-tot-rows div{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:3px 0;border-top:1px solid var(--border)}
+.nvb .nvb-tot-rows div:first-child{border-top:0}
+.nvb .nvb-tot-rows b{font-variant-numeric:tabular-nums}
