@@ -14,7 +14,7 @@
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var TABS = ['messages', 'before', 'replies'];
   var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
-  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null;
+  var D = null, LIVE = null, LEFT = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null;
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   window.nvbUrlParts = function () {
     var p = [], first = D && D.items.filter(isBlast)[0], b = D ? cur : wantBlast, t = D ? tab : (wantTab || 'messages');
@@ -239,6 +239,26 @@
     return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + cnt + ' clients</span></div>' +
       '<div class="w">' + (grp === 'warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phoneHtml(m, d, b, grp) + '</div>';
   }
+  /* Who was left out of this blast, and why (Kate, 3 Nov 2026: "add mo rin dito alin yung ni exclude natin sa blasts"). Counted with the clients (nov_blast_leftout); each number opens the clients. */
+  var LEFTWHY = [['nophone', 'No mobile number on file'], ['notwa', 'A number WhatsApp cannot reach (landline, invalid or not found)'], ['optout', 'Opted out or marked do not contact'],
+    ['done', 'Already messaged (October blasts, or written to on WhatsApp since 9 Oct)'], ['booked', 'Already booked in'], ['dup', 'Shares a number with another client who gets it']];
+  function leftSpec(b, reason, label) {
+    return { title: (b.data.short || b.data.title) + ', left out: ' + label.toLowerCase(), cur: 'AED', sub: 'Clients who fit this blast but are not sent it, and why.',
+      views: [{ id: 'clients', label: 'Clients', load: async function () {
+        var r = await rpc('nov_blast_leftout_clients', { p_blast: b.id, p_reason: reason });
+        var rows = (r.rows || []).map(function (x) { return { c: x.c, b: BR[x.b] || x.b, lv: x.lv, s: x.s }; });
+        return { cols: [{ k: 'c', l: 'Client' }, { k: 'b', l: 'Salon' }, { k: 'lv', l: 'Last visit', t: 'date' }, { k: 's', l: 'Spent this year', t: 'aed' }], rows: rows, empty: 'Nobody.', note: r.total > rows.length ? 'Showing the ' + fmtN(rows.length) + ' who spent most, of ' + fmtN(r.total) + '.' : '' };
+      } }] };
+  }
+  function leftHtml(b) {
+    var r = LEFT && LEFT.blasts && LEFT.blasts[b.id]; if (!r) return '';
+    var fit = 0, out = 0; Object.keys(r).forEach(function (k) { fit += r[k]; if (k !== 'in') out += r[k]; });
+    var rows = LEFTWHY.filter(function (x) { return r[x[0]]; }).map(function (x) {
+      var n = fmtN(r[x[0]]);
+      return '<div class="nvb-lf"><span>' + esc(x[1]) + '</span><b>' + ((typeof TRSD !== 'undefined' && canEdit()) ? TRSD.num(n, leftSpec(b, x[0], x[1])) : n) + '</b></div>';
+    }).join('');
+    return '<div class="nvb-left"><span class="nvb-lefth"><b>Left out: ' + fmtN(out) + '</b> of the ' + fmtN(fit) + ' who fit this blast</span>' + rows + '<span class="nvb-small">Counted ' + esc(fat(LEFT.at)) + ', Dubai time.</span></div>';
+  }
   function blastMain(b) {
     var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = sorted().map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
     var showWarm = c ? c.warm > 0 : true, lanes = (showWarm ? laneHtml('Warm', 'warm', b, c) : '') + laneHtml('Standard', 'std', b, c);
@@ -249,7 +269,7 @@
     var facts = '<div class="nvb-facts"><div><b>Cost, at most</b>' + (c ? 'AED ' + fmtN(Math.round(c.n * RATE_AED)) : '…') + '</div><div><b>Target by 30 Nov</b>' + esc(d.gold) + '</div><div><b>Message test</b>' + esc(d.arms) + '</div><div><b>Valid until</b>' + esc(d.valid || '30 November 2026') + '</div></div>';
     return '<div class="cbl-pos"><a href="?view=novblasts" data-nvb="sel:' + esc(pv || b.id) + '"' + (pv ? '' : ' class="off"') + '>‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=novblasts" data-nvb="sel:' + esc(nx || b.id) + '"' + (nx ? '' : ' class="off"') + '>Next ›</a></div>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdate(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdate(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>' +
-      '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (ed ? 'Tap the number to see the clients.' : '') + '</span></div>' +
+      '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
       '<div><small>Who</small>' + esc(d.who) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
       '<div class="cbl-card cbl-when cbl-kate"><h3>Kate: schedule</h3><div class="nvb-schrow">' + (schedHtml(b) || '<p class="nvb-small">Kate sets the day and time.</p>') + '</div></div>' +
       '<div class="cbl-phones" id="nvbPhones">' + lanes + '</div>' +
@@ -371,7 +391,10 @@
   }
   function toTop() { window.scrollTo({ top: 0, behavior: 'instant' }); }
   async function reload() { D = await rpc('nov_blast_get'); }
-  async function loadLive() { try { LIVE = await rpc('nov_blast_audience'); liveErr = false; } catch (e) { console.error(e); liveErr = true; } }
+  async function loadLive() {
+    try { LIVE = await rpc('nov_blast_audience'); liveErr = false; } catch (e) { console.error(e); liveErr = true; }
+    try { LEFT = await rpc('nov_blast_leftout'); } catch (e) { LEFT = null; }   // who was left out and why; the page works without it
+  }
   async function act(fn) {
     errMsg = '';
     try { await fn(); await reload(); } catch (e) { console.error(e); errMsg = 'That did not save: ' + (e.message || 'try again'); }
@@ -397,7 +420,7 @@
       else if (k === 'big') { big = true; render(true); }
       else if (k === 'close') { if (t.classList.contains('cbl-modal') && e.target !== t) return; big = false; render(true); }
       else if (k === 'sel') { cur = v; rb = v; var sb2 = blast(v); if (sb2) { var cd2 = parts(sb2.data.date); cal = { y: cd2.getFullYear(), m: cd2.getMonth() }; } sideOpen = false; big = false; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
-      else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
+      else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; return rpc('nov_blast_leftout', { p_recount: true }).then(function (l) { LEFT = l; }).catch(function (e) { console.error(e); }); }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
       else if (k === 'sched') {
         if (!canEdit()) return;
         if (v === 'open') { sched = true; render(true); }
