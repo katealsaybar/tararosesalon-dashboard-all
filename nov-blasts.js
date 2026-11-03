@@ -196,6 +196,18 @@
         '<span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     }).join('') + '</div><p class="cbl-hint cbl-prog"><b>' + rev + ' of ' + bs.length + '</b> reviewed</p></div>';
   }
+  /* The template of each blast in respond.io and where it has got to (Kate, 3 Nov 2026). The names and the status live in the database (nov_blast_items data.tpl, one entry per
+     group: n the template name, s todo | filled | submitted | approved | rejected), so a status change is a data edit, not a deploy. */
+  var TPL_ST = { todo: 'Not made yet', filled: 'Filled in, waiting for Submit', submitted: 'Submitted to Meta', approved: 'Approved by Meta', rejected: 'Rejected by Meta' };
+  function tplHtml(b) {
+    var t = b.data.tpl; if (!t) return '';
+    var pre = item('pre'), snd = pre && pre.data && pre.data.sender, rows = ['warm', 'std'].filter(function (g) { return t[g]; }).map(function (g) {
+      var x = t[g], st = TPL_ST[x.s] ? x.s : 'todo';
+      return '<div class="nvb-tp"><span class="g">' + (g === 'warm' ? 'Warm' : 'Standard') + '</span><code>' + esc(x.n) + '</code><span class="nvb-tps ' + st + '">' + esc(TPL_ST[st]) + '</span></div>';
+    }).join('');
+    return '<div class="cbl-card cbl-when nvb-tpl"><h3>Template in respond.io</h3>' + rows +
+      (snd ? '<p class="nvb-small">Account: ' + esc(snd.waba) + (snd.channel ? ', channel ' + esc(snd.channel) : '') + '. Sent from the call centre number' + (snd.number ? ' ' + esc(snd.number) : '') + '.</p>' : '') + '</div>';
+  }
   /* The template buttons and what follows a tap (Kate, 3 Nov 2026): Tell me more sends the offer and the Terms and Conditions picture, then Book now and Help me out. The
      call centre only takes over on Book now or Help me out (or if she types). The same tap-through as Campaign Blasts. The words live in the database (nov_blast_items data.flow). */
   function repBub(b, node, min) {
@@ -298,6 +310,7 @@
       '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
       '<div><small>Who</small>' + esc(d.who) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
       '<div class="cbl-card cbl-when cbl-kate"><h3>Kate: schedule</h3><div class="nvb-schrow">' + (schedHtml(b) || '<p class="nvb-small">Kate sets the day and time.</p>') + '</div></div>' +
+      tplHtml(b) +
       '<div class="cbl-phones" id="nvbPhones">' + lanes + '</div>' +
       '<div class="nvb-after nvb-afterrow">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') +
       '<button type="button" class="nvb-btn' + (sim[b.id] ? ' pri' : '') + '" data-nvb="sim:' + esc(b.id) + '" aria-pressed="' + (sim[b.id] ? 'true' : 'false') + '">If she replies</button></div>' +
@@ -333,7 +346,7 @@
   var PACE = 200;
   function planHtml() {
     if (!LIVE || !LIVE.blasts) return '';
-    var byDay = {};
+    var byDay = {}, pre2 = item('pre'), snd2 = pre2 && pre2.data && pre2.data.sender;
     sorted().forEach(function (b) { var c = lv(b.id); (byDay[b.data.date] = byDay[b.data.date] || []).push({ b: b, n: c ? c.n : 0 }); });
     var rows = '<div class="nvb-pl-r nvb-pl3 h"><span>Blast</span><span>Clients</span><span>Sent between</span></div>';
     Object.keys(byDay).sort().forEach(function (iso) {
@@ -346,7 +359,7 @@
       });
       if (t != null) { var over = t > 21 * 60; rows += '<div class="nvb-pl-r nvb-pl3"><span><b>All done</b></span><span><b>' + fmtN(tot) + '</b></span><span class="' + (over ? 'over' : '') + '"><b>' + esc(fmtClock(t)) + '</b>' + (over ? ', too late for replies' : '') + '</span></div>'; }
     });
-    return fold('plan', 'Sending plan', 'one number, about ' + PACE + ' every 30 minutes', rows + '<p>The call centre sends every blast from the call centre WhatsApp number, one after the other, from the time set on the first blast of the day (noon unless moved), and answers the replies. At 100 every 30 minutes it would take twice as long. Press Count again before sending: it takes in any STOP replies and the opt-out sheet.</p>');
+    return fold('plan', 'Sending plan', 'one number, about ' + PACE + ' every 30 minutes', rows + '<p>The call centre sends every blast from the call centre WhatsApp number' + (snd2 && snd2.number ? ' (' + esc(snd2.number) + (snd2.channel ? ', channel ' + esc(snd2.channel) : '') + ')' : '') + ', one after the other, from the time set on the first blast of the day (noon unless moved), and answers the replies. At 100 every 30 minutes it would take twice as long. Press Count again before sending: it takes in any STOP replies and the opt-out sheet.</p>');
   }
   function octHtml() {
     var o = item('oct'); if (!o) return '';   // the figures live in the database (nov_blast_items 'oct'), not in this public file
