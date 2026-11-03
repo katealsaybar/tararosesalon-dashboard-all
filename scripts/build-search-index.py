@@ -55,7 +55,7 @@ FILE_VIEWS = {
     'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'one2ones.js': 'one2ones', 'attrition.js': 'attrition', 'client-book.js': 'clientbook', 'complaints.js': 'complaints', 'complaint-log.js': 'complaintlog',
     'top-clients.js': 'clients',
     # Added 14 Oct 2026: these pages had no entry here, so their text was not in the index at all.
-    'over-the-years.js': 'overyears', 'client-mix.js': 'clientmix', 'service-rankings.js': 'services',
+    'over-the-years.js': 'overyears', 'client-mix.js': 'clientmix', 'retention.js': 'retention', 'service-rankings.js': 'services',
     'lost-consults.js': 'lostlists', 'lost-waves.js': 'lostlists', 'lost-review-file.js': 'lostlists',
     'lost-clients.js': 'lostclients', 'lost-lists.js': 'lostlists', 'lost-queue.js': 'lostlists', 'pulse-narrative.js': 'dashboard',
     'branch-narrative.js': 'branchperf', 'ledger-targets.js': 'ledgerTargets',

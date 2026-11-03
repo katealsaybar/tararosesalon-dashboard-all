@@ -1169,5 +1169,5 @@ const PD = (() => {
     return null;
   }
 
-  return { snap, spec, branchCtx, snapSide, metric, ledgerSpec };
+  return { snap, spec, branchCtx, snapSide, metric, ledgerSpec, clientHistory: clientHistorySpec };   // clientHistory: Retention (3 Nov 2026) opens a client's own window from its lists
 })();

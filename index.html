@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=1882021e"></script>
+<script src="pages.js?v=05245a6a"></script>
 <script src="page-status.js?v=17c47659"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
@@ -3609,6 +3609,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],
       sp:  ['spend.js?v=60c3b654'],
+      // Retention (3 Nov 2026): one file, reads retention_report and drill_retention_clients.
+      rt:  ['retention.js?v=e84296eb'],
       sc:  ['stylist-cards.js?v=fe5a89a4'],
       oc:  ['org-chart.js?v=37a5bbdf'],
       tp:  ['team-performance.js?v=2da5bdb1']
@@ -3760,6 +3762,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-subhead">Clients</div>
     <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
     <div class="nav-sub" onclick="showView('clientmix', this)">Client Mix</div>
+    <div class="nav-sub" onclick="showView('retention', this)">Retention</div>
     <div class="nav-sub" onclick="showView('clientbook', this)">Client Book</div>
     <div class="nav-sub" onclick="showView('complaints', this)">Client Complaints</div>
     <div class="nav-sub" onclick="showView('lostclients', this)">Client’s Last Visit</div>
@@ -4410,6 +4413,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="clientMixContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- RETENTION (Kate, 3 Nov 2026): who came in during the Period and how many came back in the 2 months after, per salon and per stylist or
+       beautician, from retention_report and drill_retention_clients (migrations/retention_report.sql). retention.js draws it. The header's Branch and Period drive it. Level 3 and up. -->
+  <div id="view-retention" style="display:none">
+    <main id="retentionContent"></main>
+  </div>
+
   <!-- CLIENT BOOK (Kate, 22 Oct 2026): the Phorest client list with phone, email, client notes and visit notes, copied on 21 Oct 2026
        for the Zenoti move. From client_book_search and client_book_card (migrations/client_book.sql), Level 5 only, enforced in both
        functions. client-book.js draws it. Own controls, so the masthead filters are hidden, as on Client Mix. -->
@@ -4632,8 +4641,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=7b4719d6"></script>
-<script src="pulse-drill.js?v=142d8dba"></script>
-<script src="dashboard.js?v=b6174370"></script>
+<script src="pulse-drill.js?v=8ac5abf4"></script>
+<script src="dashboard.js?v=0b0a14e6"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5169,6 +5178,7 @@ function showView(view, el){
   if (view === 'services') initSvcView();
   if (view === 'clients') initCliView();
   if (view === 'clientmix') renderClientMix();
+  if (view === 'retention') renderRetention();
   if (view === 'clientbook') renderClientBook();
   if (view === 'complaints') renderComplaints();
   if (view === 'complaintlog') renderComplaintLog();
