@@ -40,6 +40,7 @@ const cmLead = () => CM.fams[0];
 const CM_FAMS = [
   { k: 'colour', name: 'Colour', color: '#7C5CD4' },
   { k: 'treat', name: 'Hair treatments', color: '#0F8F7A' },
+  { k: 'keratin', name: 'Keratin & Smoothing', color: '#7E9A2B' },   // Kate, 3 Nov 2026: Phorest's KERATIN category on its own, out of Hair treatments (migrations/client_mix_keratin_family.sql)
   { k: 'cut', name: 'Cut & style', color: '#2F7DB5' },
   { k: 'nails', name: 'Nails', color: '#D9822B' },
   { k: 'beauty', name: 'Beauty', color: '#C2416A' },
