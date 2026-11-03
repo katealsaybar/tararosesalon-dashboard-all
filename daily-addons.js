@@ -355,6 +355,7 @@ function daPersonSpec(g, code, side, st, col) {
   if (!daCan() || !C) return null;
   const who = (typeof lgPersonNamePlain === 'function') ? lgPersonNamePlain(st.name) : st.name;
   const days = Math.round((new Date(g.to) - new Date(g.from)) / 864e5) + 1, byDay = days <= 92;
+  if (days < 2) return null;   // Kate, 3 Nov 2026: one day's list would be her figure again
   return { title: `${who} · ${C.title}`, cur: 'AED', views: [{ id: 'days', label: byDay ? 'By day' : 'By month', load: async () => {
     const key = staffMapKey(st.name), bk = new Map(), kf = r => { const d = String(r.date).slice(0, 10); return byDay ? d : d.slice(0, 7); };
     const at = k => bk.get(k) || (bk.set(k, { L: [], P: [] }), bk.get(k));
@@ -388,7 +389,7 @@ function daPersonSpec(g, code, side, st, col) {
 }
 const k_isDerived = (C, k) => { const probe = C.der({}); return Object.prototype.hasOwnProperty.call(probe, k); };
 function daPersonDn(g, code, side, st, what) {
-  if (!daCan()) return null;
+  if (!daCan() || g.from === g.to) return null;   // one day's list would be her figure again
   const ctx = daCtx(g, [code]);
   return ctx ? PD.spec('person', ctx, { name: st.name, dept: side, what, card: { net: st.netSalonTake, total: st.total, req: st.req, newC: st.newC } }) : null;
 }

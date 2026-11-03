@@ -908,6 +908,9 @@ const DP_PD = { sales: ['net', {}], hair: ['field', { key: 'hairSvc' }], beauty:
   hairretail: ['field', { key: 'hairRetail' }], beautyretail: ['field', { key: 'beautyRetail' }], treat: ['field', { key: 'treatments' }],
   clients: ['clients', {}], hairclients: ['clients', { dept: 'hair' }], beautyclients: ['clients', { dept: 'beauty' }], newc: ['field', { key: 'newc' }],
   ncr: ['bench', { name: 'NCR' }], rebookn: ['field', { key: 'rebooked' }] };
+// A rate over one day is one pooled ratio, so its staff list adds up to the figure; over several days it is the average of the days, which a staff list would not match.
+const DP_PD1 = { rebook: ['bench', { name: 'Rebooking %' }], treatp: ['bench', { name: 'Treatment %', dept: 'hair' }], retailp: ['bench', { name: 'Retail %', dept: 'hair' }],
+  hairbill: ['avg', { dept: 'hair' }], beautybill: ['avg', { dept: 'beauty' }] };
 const dpColType = M => /^AED/.test(M.fmt(1234)) ? 'aed' : /%$/.test(M.fmt(50)) ? 'pct' : 'num';
 const dpDaysOf = i => i >= DP_BK ? DPD.bk[i - DP_BK].members : [i];
 function dpSpecFor(mk, code, idxs) {
@@ -926,7 +929,7 @@ function dpSpecFor(mk, code, idxs) {
       sub: `${TRSD.esc(label)}. ${TRSD.esc(M.label)}, day by day. ${vol ? 'The figure is the total of the open days' : 'The figure is the average of the open days'}; a day the branch was shut, or with no figures, is greyed and left out.`,
       note: M.util ? 'Utilisation is read against a band, not a floor: 85 to 100 is on target, under 60 or over 100 is red.' : '' };
   } }];
-  const pd = DP_PD[mk];
+  const pd = DP_PD[mk] || (ds.length === 1 ? DP_PD1[mk] : null);
   if (pd && typeof PD !== 'undefined') views.push({ id: 'staff', label: 'By staff', load: async () => {
     // Only the days that count towards the figure (open, with figures): a day the branch was shut is left out of it, so it is left out here. The
     // figure it must add up to is the total of those days' own summaries, which is what the tile adds; the one thing that can still differ is how
@@ -944,6 +947,9 @@ function dpSpecFor(mk, code, idxs) {
     if (!sp) return { cols: [], rows: [], empty: 'No staff rows for this selection.' };
     return sp.views[0].load();
   } });
+  // Kate, 3 Nov 2026: "napaka redundant if same values lang din mag pop up". One day's By day list is the figure again, so one day opens only what the figure is
+  // made of (its staff), and a figure with nothing behind it stays plain.
+  if (ds.length === 1) { const rest = views.filter(v => v.id !== 'days'); return rest.length ? { title: `${M.label} · ${dpName(code)}`, cur: 'AED', views: rest } : null; }
   return { title: `${M.label} · ${dpName(code)}`, cur: 'AED', views };
 }
 // The figure as a clickable span, or as it was when the page has nothing behind it (no days, or drill.js not here).
@@ -973,6 +979,7 @@ function dpMultiSpec(mk, codes, i) {
 // The Strengths card (the radar): a measure's window average for one branch, day by day, ending on the figures the card shows. Each is the mean of the days it lists,
 // so it adds up by construction. v = { avg, t, p } as the radar worked them out; peer = no targets, read against the average of the branches.
 function dpRadarSpec(mk, code, idxs, v, peer) {
+  if (idxs.length < 2) return null;
   const M = DP_M[mk], t = dpColType(M);
   return { title: `${M.label} · ${dpName(code)}`, cur: 'AED', views: [{ id: 'days', label: 'By day', load: async () => {
     const rows = idxs.map(i => ({ i, c: dpCell(mk, code, i) })).filter(x => x.c.state === 'ok' && (peer || x.c.p != null)).map(x => ({ w: dpDayLabel(DPD.days[x.i]), v: x.c.v, t: peer ? null : x.c.t, p: peer ? null : x.c.p }));
@@ -996,6 +1003,7 @@ function dpGrowthSpec(mk, code, g) {
 // Services as the tile's "Made of" line has it (hair with treatments and courses, plus beauty: net take less retail), day by day. It has no single Measure of its own
 // (the Services measure takes treatments and courses out), so it opens its days.
 function dpServicesSpec(code, ids) {
+  if (ids.length < 2) return null;   // one day's list would be the figure again
   const first = DPD.days[ids[0]], last = DPD.days[ids[ids.length - 1]];
   return { title: `Services, hair with treatments and courses, and beauty · ${dpName(code)}`, cur: 'AED', views: [{ id: 'days', label: 'By day', load: async () => {
     const rows = ids.map(i => ({ i, a: dpCell('sales', code, i), r: dpCell('retail', code, i) })).filter(x => x.a.state === 'ok' && x.r.state === 'ok').map(x => ({ w: dpDayLabel(DPD.days[x.i]), v: x.a.v - x.r.v, t: x.a.t != null && x.r.t != null ? x.a.t - x.r.t : null }));
@@ -1384,7 +1392,7 @@ function dpRadar(host, idxs, codesIn) {
   if (n < 3) return { title, html: `<p class="dp-why" style="margin:20px 0">${sel.length < 3 ? 'Tick at least three measures under Customise to draw a shape.' : 'Fewer than three of the ticked measures have figures at every selected branch, so there is no shape to draw. Tick more under Customise or take a branch off.'}</p>`, list: '', legend: '' };
   // Kate, 3 Nov 2026: a point, a figure and a % on this card open the measure's days for that branch, ending on the figure the card shows (dpRadarSpec).
   const canDn = typeof TRSD !== 'undefined' && !dpL2();
-  const rdn = (h, v, code) => canDn ? TRSD.num(h, dpRadarSpec(v.mk, code, idxs, v, peer)) : h;
+  const rdn = (h, v, code) => canDn ? TRSD.num(h, dpRadarSpec(v.mk, code, idxs, v, peer)) : h;   // plain when the window has one day: the list would be the figure again
   const ang = i => -Math.PI / 2 + i * 2 * Math.PI / n;
   const pt = (i, p) => [cx + Math.cos(ang(i)) * R * Math.min(p, max) / max, cy + Math.sin(ang(i)) * R * Math.min(p, max) / max];
   const poly = arr => arr.map((p, i) => pt(i, p).join(',')).join(' ');
@@ -1408,7 +1416,7 @@ function dpRadar(host, idxs, codesIn) {
     codes.forEach((code, bi) => {
       const v = mineAll[bi][k], q = pt(i, v.p);
       const tip = `<b>${dpEsc(lab)}</b><div class="r"><span>${dpEsc(code)}, window average</span><span>${DP_M[v.mk].fmt(v.avg)}</span></div>${peer ? `<div class="r"><span>All-branch average</span><span>${DP_M[v.mk].fmt(v.t)}</span></div><div class="r"><span>vs the average</span><span>${Math.round(v.p)}%</span></div>` : `<div class="r"><span>Target</span><span>${DP_M[v.mk].fmt(v.t)}</span></div><div class="r"><span>vs target</span><span>${Math.round(v.p)}%</span></div><div class="r"><span>All-branch average</span><span>${Math.round(grp[i])}%</span></div>`}`;
-      g += `<circle cx="${q[0]}" cy="${q[1]}" r="${multi ? 3.5 : 4.5}" fill="${dpCol(code)}" stroke="var(--surface)" stroke-width="2"/><circle cx="${q[0]}" cy="${q[1]}" r="${multi ? 10 : 14}" fill="transparent" data-tip="${dpEsc(tip)}"${canDn ? ` data-dn="${TRSD.reg(dpRadarSpec(v.mk, code, idxs, v, peer))}" class="dn-cell" role="button"` : ''}/>`;
+      g += `<circle cx="${q[0]}" cy="${q[1]}" r="${multi ? 3.5 : 4.5}" fill="${dpCol(code)}" stroke="var(--surface)" stroke-width="2"/><circle cx="${q[0]}" cy="${q[1]}" r="${multi ? 10 : 14}" fill="transparent" data-tip="${dpEsc(tip)}"${canDn && idxs.length > 1 ? ` data-dn="${TRSD.reg(dpRadarSpec(v.mk, code, idxs, v, peer))}" class="dn-cell" role="button"` : ''}/>`;
     });
   });
   const legend = codes.map(c => `<span><i class="dot" style="background:${dpCol(c)}"></i>${dpEsc(dpName(c))}</span>`).join('')
