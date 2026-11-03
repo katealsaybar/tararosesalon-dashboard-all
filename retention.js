@@ -140,10 +140,10 @@ function retCss() {
 #retentionContent{max-width:1100px;margin:0 auto;padding:10px 28px 48px}
 @media(max-width:760px){#retentionContent{padding:10px 10px 40px!important}}
 #retentionContent .rt-q{margin:4px 0 16px;color:var(--muted);font-size:15px}
-.rt-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:20px 24px;display:grid;grid-template-columns:auto 1fr;gap:6px 24px;align-items:center;margin-bottom:12px}
+.rt-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:22px 24px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 32px;text-align:center;margin-bottom:12px}
 .rt-big{font-family:'Playfair Display',serif;font-size:clamp(52px,9vw,80px);line-height:1;letter-spacing:-.02em}
 .rt-big small{font-size:.42em;margin-left:2px}
-.rt-hero p{margin:0;font-size:17px;line-height:1.4}
+.rt-hero p{margin:0;font-size:17px;line-height:1.4;max-width:640px}
 .rt-hero p .s{display:block;color:var(--muted);font-size:13.5px;margin-top:4px}
 .rt-note{background:var(--warn-bg);border:1px solid var(--border);border-radius:var(--radius-card);padding:12px 16px;margin-bottom:12px;font-size:14.5px;line-height:1.5}
 .rt-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
@@ -163,6 +163,8 @@ function retCss() {
 .rt-sep{color:var(--muted)}
 .rt-mini{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:5px;line-height:1.5}
 .rt-mini input{margin:0;accent-color:var(--accent)}
+.rt-save{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin:-4px 0 12px}
+.rt-saved{font-size:12px;color:var(--muted);margin-right:4px}
 .rt-rows{display:flex;flex-direction:column;gap:2px}
 .rt-row{display:grid;grid-template-columns:46px minmax(170px,300px) 1fr 66px;gap:12px;align-items:center;padding:6px 10px;border-radius:10px;cursor:pointer}
 .rt-row.np{grid-template-columns:minmax(170px,300px) 1fr 66px;cursor:default}
@@ -202,7 +204,7 @@ function retCss() {
 .rt-empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:20px 22px;font-size:15px;line-height:1.55}
 @media(max-width:640px){
   .rt-trio{grid-template-columns:1fr}
-  .rt-hero{grid-template-columns:1fr;padding:16px 14px}
+  .rt-hero{flex-direction:column;padding:16px 14px}
   .rt-row{grid-template-columns:46px 1fr 60px;gap:4px 10px}
   .rt-row.np{grid-template-columns:1fr 60px}
   .rt-row .rt-bars,.rt-row>.rt-trk{grid-column:1/-1;order:3}
@@ -251,6 +253,7 @@ function retPaint() {
   const per = `${retDay(s.from)} to ${retDay(s.to)}`;
   const ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
   let h = `<p class="rt-q">Clients who came in during the Period (${retEsc(per)}), and how many came back in the 2 months after (${retEsc(ret)}).</p>`;
+  h += '<div class="rt-save"><span class="rt-saved" id="retSaved"></span><button type="button" class="rt-mini" data-save="xlsx" title="Both lists: by salon and by stylist">Save as xlsx</button><button type="button" class="rt-mini" data-save="csv" title="The by-stylist list, as filtered">Save as csv</button></div>';
   h += `<div class="rt-hero" data-jn="The answer"><div class="rt-big">${retNum(Math.round(retP(t.back, t.cohort)) + '<small>%</small>', one('clients who came in, then came back', {}, t.back, t.cohort))}</div>
     <p><b>${retNum(retN(t.back), retSpec(`${w}: clients who came back`, {}, t.back, t.cohort, 'back'))} of ${retNum(retN(t.cohort), retAllSpec(`${w}: clients who came in`, {}, t.cohort))}</b> clients who came in ${retEsc(per)} came back by ${retEsc(retDay(s.ret_to))} (${retEsc(w)}).
     <span class="s">Same salon only. A client who tried a different salon counts as not back here.${s.partial ? ' The 2 months are not over yet, so this will still rise.' : ''}</span></p></div>`;
@@ -335,10 +338,52 @@ function retMore(row) {
   row.after(d);
 }
 
+// ── SAVE AS XLSX / CSV (Kate, 3 Nov 2026: the data on the page can be downloaded too) ─────────────────────────────
+// The same spreadsheet writer as every list window (ledger-export.js, loaded the first time a button is pressed). The xlsx carries both
+// lists, by salon and by stylist or beautician; the csv carries the by-stylist list, exactly as filtered and sorted on the page, every row (not just the first 8).
+function retSavedNote(t) { const el = document.getElementById('retSaved'); if (el) el.textContent = t; }
+async function retDownload(kind) {
+  const s = retData;
+  if (!s || !s.ok) return;
+  retSavedNote('Getting the file ready…');
+  try { if (typeof lgxBuild !== 'function') await window.trsLazy('lgx'); } catch (e) { console.error(e); retSavedNote('The file could not be made. Try again.'); return; }
+  if (typeof lgxBuild !== 'function') { retSavedNote('The file could not be made. Try again.'); return; }
+  const w = retScope(), per = `${retDay(s.from)} to ${retDay(s.to)}`, ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
+  const basis = `Clients who came in ${per}, and whether they came back in the 2 months after (${ret}${s.partial ? ', not over yet, so figures so far' : ''}). A client counts once, at the salon she came to; a visit is a paid day with real spend (no deposits, vouchers, staff bookings or BUSINESS TRS). Percentages are out of the clients who came in.`;
+  const pf = (b, c) => c ? retP(b, c) : null;
+  // by salon
+  const bl = (s.branches || []).slice().sort((a, b) => retName(a.branch).localeCompare(retName(b.branch)));
+  const bRow = (name, b, total) => ({ total: !!total, cells: [name, b.cohort, b.back, pf(b.back, b.cohort), b.new_c, b.new_b, pf(b.new_b, b.new_c), b.old_c, b.old_b, pf(b.old_b, b.old_c), b.once_c, b.once_b, pf(b.once_b, b.once_c), b.rep_c, b.rep_b, pf(b.rep_b, b.rep_c)] });
+  const bRows = bl.map(b => bRow(retName(b.branch), b));
+  if (bl.length > 1) bRows.push(bRow(w, retSum(bl), true));
+  const bCols = [['Salon', 'text'], ['Clients who came in', 'num'], ['Came back', 'num'], ['Retention %', 'pct'], ['New clients', 'num'], ['New, came back', 'num'], ['New retention %', 'pct'], ['Clients we already knew', 'num'], ['Known, came back', 'num'], ['Known retention %', 'pct'],
+    ['Came once', 'num'], ['Came once, back', 'num'], ['Came once retention %', 'pct'], ['Came 2+ times', 'num'], ['2+ times, back', 'num'], ['2+ times retention %', 'pct']];
+  const salonSheet = { name: 'By salon', title: `Retention, ${w}`, subtitle: basis, blocks: [{ note: '', cols: bCols.map(c => ({ label: c[0], fmt: c[1] })), rows: bRows }] };
+  // by stylist or beautician: the picks on the page (team, resigned), sorted the way the page is sorted
+  const list = retStaffRows().filter(r => RET.team === 'A' || r.team === RET.team).filter(r => RET.res || !r.res).map(r => ({ r, pa: retP(r.any, r.clients), ps: retP(r.same, r.clients) }));
+  const key = x => RET.rank === 'any' ? x.pa : x.ps;
+  list.sort((a, b) => (RET.order === 'low' ? key(a) - key(b) : key(b) - key(a)) || a.r.e.localeCompare(b.r.e));
+  const sRows = list.map(x => { const r = x.r; return { cells: [retName(r.b), r.e, r.team === 'B' ? 'Beauty' : r.team === 'H' ? 'Hair' : '', r.role || '', r.res ? 'Resigned' : 'Current', r.clients, r.visits, r.clients ? Math.round(100 * r.visits / r.clients) / 100 : null, r.c1, r.c2, r.c3, r.any, x.pa, r.same, x.ps] }; });
+  const sCols = [['Salon', 'text'], ['Stylist or beautician', 'text'], ['Team', 'text'], ['Role', 'text'], ['Status', 'text'], ['Clients handled', 'num'], ['Visits', 'num'], ['Visits per client', 'aed2'], ['Came once', 'num'], ['Came twice', 'num'], ['Came 3+ times', 'num'],
+    ['Back to the salon', 'num'], ['Back to the salon %', 'pct'], ['Back to the same stylist or beautician', 'num'], ['Back to the same stylist or beautician %', 'pct']];
+  const filt = `Team: ${RET.team === 'A' ? 'all' : RET.team === 'H' ? 'Hair' : 'Beauty'}; ${RET.res ? 'resigned staff included' : 'current staff only'}; ranked by ${RET.rank === 'any' ? 'return to the salon' : 'return to the same stylist or beautician'}, ${RET.order === 'low' ? 'lowest' : 'highest'} first. Stylists and beauticians with under ${RET_MIN_CLIENTS} clients are left out. A client seen by two of them is in both rows.`;
+  const stylistSheet = { name: 'By stylist', title: `Retention by stylist or beautician, ${w}`, subtitle: basis + ' ' + filt, blocks: [{ note: '', cols: sCols.map(c => ({ label: c[0], fmt: c[1] })), rows: sRows }] };
+  const name = ['retention', w.toLowerCase().replace(/[^a-z0-9]+/g, '-'), s.from, 'to', s.to, new Date().toISOString().slice(0, 10)].join('-');
+  if (kind === 'xlsx') {
+    lgxSave(lgxXlsxBlob(lgxBuild({ sheets: [salonSheet, stylistSheet] })), name + '.xlsx');
+    retSavedNote(`Saved ${retN(bRows.length)} salon rows and ${retN(sRows.length)} stylist rows as XLSX`);
+  } else {
+    const first = sRows.length ? stylistSheet : salonSheet;
+    lgxSave(new Blob(['\ufeff' + lgxCsv(lgxBuild({ sheets: [first] })[0])], { type: 'text/csv;charset=utf-8' }), name + (sRows.length ? '-by-stylist' : '') + '.csv');
+    retSavedNote(`Saved ${retN(first === stylistSheet ? sRows.length : bRows.length)} rows as CSV`);
+  }
+}
+
 document.addEventListener('click', e => {
   const host = e.target.closest && e.target.closest('#retentionContent');
   if (!host) return;
   if (e.target.closest('.dn')) return;   // a figure: drill.js opens its list
+  const sv = e.target.closest('[data-save]'); if (sv) { retDownload(sv.dataset.save); return; }
   const t = e.target.closest('[data-team]'); if (t) { RET.team = t.dataset.team; RET.all = false; retSave(); retStylists(); return; }
   const k = e.target.closest('[data-rank]'); if (k) { RET.rank = k.dataset.rank; retSave(); retStylists(); return; }
   if (e.target.id === 'retRes') { RET.res = e.target.checked ? 1 : 0; RET.all = false; retSave(); retStylists(); return; }
