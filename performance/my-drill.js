@@ -136,6 +136,9 @@
     const k = K[kind]; if (!k) return null;
     o = Object.assign({ src: 'ledger' }, o);
     const w = who(o); if (!w) return null;                                 // nobody to read rows for: the figure stays plain
+    // Kate, 3 Nov 2026: a click must show WHY the figure is its value, not say it again. One day, or a window with a single day of figures (o.nd, counted by the page),
+    // would open one row that repeats the figure, so the figure stays plain.
+    if (o.from === o.to || (o.nd != null && o.nd < 2)) return null;
     o.window = winText(o);
     const long = (new Date(o.to) - new Date(o.from)) / 864e5 > 14;
     const load = view => async () => {

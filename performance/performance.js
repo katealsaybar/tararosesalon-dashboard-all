@@ -211,7 +211,9 @@ function dgSpec(k, o) {
   if (k === 'reputation') { const to = w.to, from = M.addDays(to, -89); return M.reviews({ from, to, title: 'Your Google reviews', sub: `The reviews behind your star score: every Google review that counts for you in the 90 days to ${M.dText(to)}.` }); }
   if (k === 'google_reviews') return M.reviews({ from: w.from, to: w.to, list: o.win ? null : d.numbers.review_list, title: 'Your Google reviews' });
   if (k === 'social_feed') return M.posts({ from: w.from, to: w.to, list: o.win ? null : d.numbers.social_list, title: 'Your Instagram posts' });
-  return DG_KIND[k] ? M.days(DG_KIND[k], { from: w.from, to: w.to, src, free: FREE }) : null;
+  // nd: the days of the month on the page that have figures; a month with one day so far has nothing to break down (my-drill.js keeps that figure plain).
+  const nd = o.win ? null : (d.days || []).filter(x => x.date >= w.from && x.date <= w.to && (x.clients > 0 || x.total_revenue > 0)).length;
+  return DG_KIND[k] ? M.days(DG_KIND[k], { from: w.from, to: w.to, src, free: FREE, nd }) : null;
 }
 // html is the figure as drawn, v its value: nothing (or a zero count) has no rows to open.
 function dg(k, html, v, o) {
@@ -466,7 +468,8 @@ function tile(k, label, d, pace, extra = '') {
   const b = d.benchmarks?.[k];
   const st = status(judged(k, d.numbers, pace), b);
   const f = KPI[k].fmt;
-  const aim = b ? (b.min !== null && b.min !== undefined && b.min !== b.target
+  // Kate, 3 Nov 2026: a target from the Target Calculator says which month's it is.
+  const aim = b ? (b.own ? `Your ${monthLabel(d.month).replace(/ \d{4}$/, '')} target ${fmt(b.target, f)}` : b.min !== null && b.min !== undefined && b.min !== b.target
     ? `Minimum ${fmt(b.min, f)}, aim ${fmt(b.target, f)}` : `Aim ${fmt(b.target, f)}`) : '';
   return `<div class="tile ${st}"><div class="lbl"><span class="dot"></span>${tipLbl(k, label)}</div>
     <div class="val">${dg(k, fmt(d.numbers[k], f), d.numbers[k])}</div><div class="aim">${esc(aim)}${paceNote(k, d.numbers, pace, b?.target) ? '<br>' + esc(paceNote(k, d.numbers, pace, b?.target)) : ''}${extra}</div></div>`;
@@ -587,7 +590,7 @@ function kpiRows(n, bm, pace, keys) {
     if (x.untracked || (x.needs && (n[k] === null || n[k] === undefined))) return `<div class="row untracked">${tipLbl(k, x.label)}<span class="r-val"><small>${x.untracked ? 'Not tracked yet' : esc(needs)}, aim ${fmt(b.target, x.fmt)}</small></span>${note}</div>`;
     const st = x.unscored ? '' : status(judged(k, n, pace), b);
     const pn = paceNote(k, n, pace, b.target);
-    const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${pn ? ' · ' + esc(pn.charAt(0).toLowerCase() + pn.slice(1)) : ''}</small>`;
+    const tail = x.unscored ? `<small>${esc(x.unscored)}</small>` : `<small>/ ${fmt(b.target, x.fmt)}${b.own && DG_D ? ' ' + esc(monthLabel(DG_D.month).replace(/ \d{4}$/, '')) + ' target' : ''}${pn ? ' · ' + esc(pn.charAt(0).toLowerCase() + pn.slice(1)) : ''}</small>`;
     return `<div class="row">${tipLbl(k, x.label)}<span class="r-val">${dg(k, fmt(n[k], x.fmt), n[k])} <span class="r-tail">${tail}<span class="dot ${st}"></span></span></span>${note}</div>`;
   }).join('');
 }

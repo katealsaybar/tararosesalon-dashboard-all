@@ -194,10 +194,10 @@ const W13_KIND = {
   'Phorest rebooked': ['rebook', 'phorest'], 'Phorest rebooking %': ['rebook', 'phorest'], 'Column fill %': ['fill'], 'Hours booked': ['fill'], 'Hours available': ['fill'],
 };
 // html is the figure as drawn; win { from, to } its dates; who { id, name } her. A dash or a zero has no rows, so it stays plain.
-function w13Fig(html, label, win, who) {
+function w13Fig(html, label, win, who, nd) {
   const M = window.MyDrill;
   if (!M || !M.on || !win || !who || html === '–' || html === '0' || html === '0%') return html;
-  const o = { sid: who.id, from: win.from, to: win.to, title: who.name + ' · ' + String(label).replace(/ \(.*\)$/, '') };
+  const o = { sid: who.id, from: win.from, to: win.to, nd, title: who.name + ' · ' + String(label).replace(/ \(.*\)$/, '') };
   if (label === 'Google reviews') return M.fig(html, M.reviews(o));
   const k = W13_KIND[label];
   return k ? M.fig(html, M.days(k[0], Object.assign({ src: k[1] || 'ledger' }, o))) : html;
@@ -363,16 +363,16 @@ async function renderStaffWeeks() {
   const figHead = l => l.replace(/ \(.*\)$/, '');
   const head = `<tr class="w13-gh"><th></th>${groups.map(g => `<th colspan="${g[1]}">${w13Esc(g[0])}</th>`).join('')}</tr>
     <tr><th>Week</th>${figs.map(r => `<th title="${w13Esc(r[0])}"${w13Mean(r[0]) ? ` class="w13-hd" tabindex="0" role="button" onclick="w13Say(this)" data-l="${w13Esc(r[0])}"` : ''}>${w13Esc(figHead(r[0]))}</th>`).join('')}</tr>`;
-  const cells = (n, win) => figs.map(r => `<td>${w13Fig(r[1](n), r[0], win, s)}</td>`).join('');
+  const cells = (n, win, nd) => figs.map(r => `<td>${w13Fig(r[1](n), r[0], win, s, nd)}</td>`).join('');
   const wkWin = w => MyDrill.week(String(w.week_start).slice(0, 10));
   const yrWin = weeks.length && window.MyDrill ? { from: String(d.from).slice(0, 10), to: wkWin(weeks[weeks.length - 1]).to } : null;   // the complete weeks, as the totals are
   const rows = weeks.map(w => {
     const n = w.numbers, off = !(n.total_revenue > 0 || n.clients > 0);
     const why = !off ? '' : w13NoData(d.staff.branch, String(w.week_start).slice(0, 10)) ? 'not uploaded yet' : (w13Cov ? 'leave or days off' : '');
-    return `<tr class="w13-wk${off ? ' w13-off' : ''}"><td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>${cells(n, window.MyDrill && wkWin(w))}</tr>`;
+    return `<tr class="w13-wk${off ? ' w13-off' : ''}"><td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>${cells(n, window.MyDrill && wkWin(w), w.phorest_days)}</tr>`;
   }).join('');
   const totRow = `<tr class="w13-tot"><td>${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</td>${cells(yr, yrWin)}</tr>`;
-  const curRow = curWk ? `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b><div class="slv-note">so far · ${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} – ${w13Esc(w13Day(d.data_through))}`}</div></td>${cells(curWk.numbers, window.MyDrill && wkWin(curWk))}</tr>` : '';
+  const curRow = curWk ? `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b><div class="slv-note">so far · ${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} – ${w13Esc(w13Day(d.data_through))}`}</div></td>${cells(curWk.numbers, window.MyDrill && wkWin(curWk), curWk.phorest_days)}</tr>` : '';
   el.innerHTML = `
     <section class="slv-intro">
       <h2>Staff&rsquo;s 13 Week</h2>
