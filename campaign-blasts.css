@@ -189,13 +189,18 @@
 
 /* the flow, large */
 .cbl-flowbar{display:flex;justify-content:flex-end;margin-top:4px}
-.cbl .cbl-flowbar .cbl-bigbtn{width:auto;margin:0;padding:0 18px}
+.cbl-flowbar{margin:6px 0 10px}
+.cbl .cbl-flowbar .cbl-bigbtn{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:auto;margin:0;min-height:46px;padding:0 24px;font-size:15.5px;font-weight:700;border:1.5px solid var(--text);background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--text)}
+.cbl .cbl-flowbar .cbl-bigbtn svg{width:19px;height:19px;flex:none}
+.cbl .cbl-flowbar .cbl-bigbtn:hover,.cbl .cbl-flowbar .cbl-bigbtn:focus-visible{background:var(--text);color:var(--bg)}
+@media (max-width:560px){.cbl-flowbar{justify-content:stretch}.cbl .cbl-flowbar .cbl-bigbtn{width:100%}}
 .cbl-flowbig{width:min(980px,100%);padding:16px 20px 20px}
 .cbl-flowbig .cbl-big-h b{text-align:left;min-width:0;font-size:22px}
 .cbl-fm-phones{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .cbl-flowbig .cbl-lane{background:var(--bg)}
 .cbl-flowbig .cbl-phone{width:330px;height:clamp(480px,calc(100vh - 300px),800px)}
 @media (max-width:760px){.cbl-fm-phones{grid-template-columns:1fr}}
+@media (max-width:420px){.cbl-flowbig{padding:12px 10px 14px}.cbl-flowbig .cbl-phone{width:100%;max-width:330px}}
 
 /* the bigger calendar */
 .cbl-modal{position:fixed;inset:0;z-index:2000;background:rgba(10,12,16,.62);display:flex;align-items:flex-start;justify-content:center;padding:84px 16px 24px;overflow-y:auto;overscroll-behavior:contain}

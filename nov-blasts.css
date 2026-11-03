@@ -330,3 +330,9 @@
   .nvb .nvb-ab-r>span:nth-child(6){grid-column:1/-1;order:6}
   .nvb .nvb-ab-r.h>span:nth-child(2),.nvb .nvb-ab-r.h>span:nth-child(6){display:none}
 }
+
+/* the Who box as short bullets (Kate, 3 Nov 2026) */
+.nvb .nvb-wl{margin:2px 0 0;padding-left:18px;display:grid;gap:3px;font-size:14px;line-height:1.35}
+.nvb .nvb-wl li{padding-left:2px}
+/* a blast with one phone in the large flow */
+.cbl-fm-phones.nvb-onephone{grid-template-columns:minmax(0,420px);justify-content:center}

@@ -209,6 +209,8 @@
   function calcNum(t, kind, only) { return (typeof TRSD !== 'undefined' && canEdit() && LIVE && LIVE.blasts) ? TRSD.num(t, calcSpec(kind, only)) : t; }
   /* The total across all the blasts (Kate, 3 Nov 2026: "wala tayong total blast count"), between the calendar and the list: clients in all blasts, how many blasts, each blast's count,
      the most it can cost and how long the sending takes at the page's pace. Live, from the same counts as each blast, so it moves when a count changes. */
+  var bigflow = false;   // the phones of one blast, large (Kate, 3 Nov 2026, the same See the flow bigger as Campaign Blasts)
+  var FLOWICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
   var ALLID = 'ALL';   // the All blasts view (Kate, 3 Nov 2026): picking the All blasts card opens the whole picture in the main panel, like picking a blast
   var RATE_USD = 0.058;   // roughly one delivered marketing message in the UAE (see the Before sending top-up task)
   function totalSide() {
@@ -337,7 +339,7 @@
   function blastMain(b) {
     var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = sorted().map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
     var showWarm = c ? c.warm > 0 : true, lanes = (showWarm ? laneHtml('Warm', 'warm', b, c) : '') + laneHtml('Standard', 'std', b, c);
-    var who = '<p>' + esc(d.who) + '</p>' +
+    var who = (d.who_b && d.who_b.length ? whoHtml(d) : '<p>' + esc(d.who) + '</p>') +
       (b.id === 'E' && c ? '<p>Had colour in the last 12 months: <b>' + num(c.colour, tl + ', had colour', { p_blast: b.id, p_flag: 'colour' }) + '</b> · The rest: <b>' + fmtN(c.n - c.colour) + '</b></p>' : '') +
       (c && c.unchecked ? '<p class="nvb-wa-note"><b>WhatsApp check:</b> ' + fmtN(c.unchecked) + ' of these ' + fmtN(c.n) + ' have not been checked in respond.io yet. The overnight check does it; Count again tomorrow morning. Numbers that are landlines, invalid, or not found there are left out (SMS-only).</p>' : '') +
       '<p><b>No repeats.</b> Left out: anyone messaged in October’s Lost Clients blasts or Wellness Voucher blasts 3 and 4, by name and by phone number, anyone we wrote to on WhatsApp since 9 Oct, and every opt-out. Not checked: Wellness Voucher blasts 1 and 2 (August), their recipients are only in GHL.</p>';
@@ -345,9 +347,10 @@
     return '<div class="cbl-pos"><a href="?view=novblasts" data-nvb="sel:' + esc(pv || b.id) + '"' + (pv ? '' : ' class="off"') + '>‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=novblasts" data-nvb="sel:' + esc(nx || b.id) + '"' + (nx ? '' : ' class="off"') + '>Next ›</a></div>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdate(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdate(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>' +
       '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
-      '<div><small>Who</small>' + esc(d.who) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
+      '<div><small>Who</small>' + whoHtml(d) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
       '<div class="cbl-card cbl-when cbl-kate"><h3>Kate: schedule</h3><div class="nvb-schrow">' + (schedHtml(b) || '<p class="nvb-small">Kate sets the day and time.</p>') + '</div></div>' +
       tplHtml(b) +
+      '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-nvb="flowbig">' + FLOWICON + 'See the flow bigger</button></div>' +
       '<div class="cbl-phones" id="nvbPhones">' + lanes + '</div>' +
       '<div class="nvb-after nvb-afterrow">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') +
       '<button type="button" class="nvb-btn' + (sim[b.id] ? ' pri' : '') + '" data-nvb="sim:' + esc(b.id) + '" aria-pressed="' + (sim[b.id] ? 'true' : 'false') + '">If she replies</button></div>' +
@@ -398,6 +401,18 @@
       '<div><small>Sending time</small><b>' + (ready ? calcNum((hours % 1 ? hours.toFixed(1) : hours) + ' hours', 'time') : '…') + '</b><span class="cbl-live">' + PACE + ' every 30 minutes, one number</span></div></div>' +
       '<div class="cbl-card nvb-allcard"><h3>By blast</h3><div class="nvb-ab">' + rows + '</div></div>' + leftAllHtml() +
       '<div class="nvb-stack">' + planHtml() + '</div>';
+  }
+  // The two phones of one blast, large, in an overlay (Kate, 3 Nov 2026: the same as Campaign Blasts): both phones side by side, a Close button, and the hint. The taps play the same flow as the page.
+  function flowBigHtml(b) {
+    var c = lv(b.id), showWarm = c ? c.warm > 0 : true, lanes = (showWarm ? laneHtml('Warm', 'warm', b, c) : '') + laneHtml('Standard', 'std', b, c);
+    return '<div class="cbl"><div class="cbl-modal" data-nvb="flowx"><div class="cbl-flowbig cbl-card" role="dialog" aria-modal="true" aria-label="The flow, large"><div class="cbl-big-h">' +
+      '<b>' + esc(b.data.title) + '</b><button type="button" class="cbl-big-x" data-nvb="flowx">Close</button></div>' +
+      '<p class="cbl-hint">Tap a button to see what she gets next. If she types a question instead, it goes to the call centre.</p>' +
+      '<div class="cbl-fm-phones' + (showWarm ? '' : ' nvb-onephone') + '">' + lanes + '</div></div></div></div>';
+  }
+  function whoHtml(d) {
+    if (d.who_b && d.who_b.length) return '<ul class="nvb-wl">' + d.who_b.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+    return esc(d.who);
   }
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
@@ -486,7 +501,7 @@
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
       '<div class="nvb-chipsrow"><span class="chip warn">Draft, nothing sent</span><span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
-      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + '</div>';
+      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + '</div>';
     var cta = document.getElementById('nvbCmt'); if (cta) { cta.value = draft[cur] || ''; cta.oninput = function () { draft[cur] = cta.value; }; }
     [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
       var k = t.getAttribute('data-key'); t.scrollTop = thY[k] || 0;
@@ -525,8 +540,9 @@
       else if (k === 'flowreset') { delete fl[v]; render(true); }
       else if (k === 'side') { sideOpen = !sideOpen; render(true); }
       else if (k === 'big') { big = true; render(true); }
-      else if (k === 'close' || k === 'termsx') { if (t.classList.contains('cbl-modal') && e.target !== t) return; big = false; termsFor = ''; render(true); }
-      else if (k === 'sel') { cur = v; rb = v; var sb2 = blast(v); if (sb2) { var cd2 = parts(sb2.data.date); cal = { y: cd2.getFullYear(), m: cd2.getMonth() }; } sideOpen = false; big = false; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
+      else if (k === 'flowbig') { bigflow = true; render(true); }
+      else if (k === 'close' || k === 'termsx' || k === 'flowx') { if (t.classList.contains('cbl-modal') && e.target !== t) return; big = false; bigflow = false; termsFor = ''; render(true); }
+      else if (k === 'sel') { cur = v; rb = v; var sb2 = blast(v); if (sb2) { var cd2 = parts(sb2.data.date); cal = { y: cd2.getFullYear(), m: cd2.getMonth() }; } sideOpen = false; big = false; bigflow = false; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
       else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; return rpc('nov_blast_leftout', { p_recount: true }).then(function (l) { LEFT = l; }).catch(function (e) { console.error(e); }); }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
       else if (k === 'sched') {
         if (!canEdit()) return;
@@ -555,7 +571,7 @@
       }
     });
   }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && (big || termsFor) && main() && main().offsetParent !== null) { big = false; termsFor = ''; render(true); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && (big || bigflow || termsFor) && main() && main().offsetParent !== null) { big = false; bigflow = false; termsFor = ''; render(true); } });
   document.addEventListener('visibilitychange', function () {   // come back to the tab and see what others chose
     if (document.visibilityState !== 'visible' || !D || !main() || main().offsetParent === null) return;
     Promise.all([reload(), loadLive()]).then(function () { render(true); }).catch(function () { /* keep what is on screen */ });
