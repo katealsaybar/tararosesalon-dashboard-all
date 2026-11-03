@@ -228,6 +228,9 @@
       h += '<div class="cbl-out">' + esc(ch.l) + '<span>' + tclock(b.data.time, 3 + step * 2, true) + '</span></div>';
       var node = f.nodes && f.nodes[ch.to]; if (!node) break;
       h += repBub(b, node, 4 + step * 2);
+      // Book now asks for a day and time: she types it (shown as an example), and if she has not answered in an hour the follow-up goes on its own (node.ask, node.fu).
+      if (node.ask) h += '<div class="cbl-after"><b>She types a day and time</b><span>for example</span></div><div class="cbl-out">' + esc(node.ask) + '<span>' + tclock(b.data.time, 6 + step * 2, true) + '</span></div>';
+      if (node.fu) h += '<div class="cbl-after"><b>No answer after 1 hour</b><span>sent on its own</span></div>' + repBub(b, { t: node.fu }, 66 + step * 2);
       if (node.call) { h += '<div class="cbl-notify">Call centre notified in respond.io</div>'; break; }
       btns = node.b || []; step++;
       if (!btns.length) break;
