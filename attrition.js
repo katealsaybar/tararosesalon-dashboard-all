@@ -98,10 +98,12 @@ function atCompute() {
     b.hc = all.filter(p => atHere(p, b.b > to ? to : b.b)).length;
   });
   const T = [['Under 3 months', 0, 3], ['3 to 6 months', 3, 6], ['6 to 12 months', 6, 12], ['1 to 2 years', 12, 24], ['2 years or more', 24, 9999]];
-  const tb = T.map(([l, a, b]) => ({ l, n: tenures.filter(t => t >= a && t < b).length }));
+  const ten = p => (p.e - p.s) / atDay / 30.44;
+  const tb = T.map(([l, a, b]) => ({ l, n: tenures.filter(t => t >= a && t < b).length, ps: leavers.filter(p => p.first_exact && ten(p) >= a && ten(p) < b) }));
   const nodate = leavers.filter(p => !p.first_exact).length;
   buckets.splice(0, buckets.length, ...buckets.slice(buckets.findIndex(b => b.n || b.hc)));
-  return { from, to, days, long, all, leavers, closures, joined, hc, rate: rate(leavers.length, hc), medianT,
+  const present = all.filter(p => p.s <= to && (!p.e || p.e >= from));   // anyone on the floor at some point in the window: the headcount the rate is over
+  return { from, to, days, long, all, leavers, closures, joined, hc, present, rate: rate(leavers.length, hc), medianT,
     avgT: tenures.length ? tenures.reduce((a, b) => a + b, 0) / tenures.length : null,
     buckets, tb, nodate, byBranch: rows(p => p.last_branch), byDept: rows(p => p.dept),
     nowHere: all.filter(p => p.status === 'active').length };
@@ -163,6 +165,23 @@ function atPick(k, v) {
   if (el) { el.innerHTML = atShell(); atPaint(); }
 }
 
+// Kate, 3 Nov 2026: every figure opens the people behind it (the shared list window, drill.js). The people are already on the page, so a list is built from
+// them and nothing new is read; the page is Level 3 and up and the names are already in The leavers table below.
+const AT_STATUS = { left: 'Left', stopped: 'Stopped selling', active: 'Selling now', closure: 'Branch closed' };
+const atRow = p => ({ name: p.name, team: p.dept === 'Hair' ? 'Stylist' : 'Beautician', pos: p.position || '', branch: AT_BRANCH[p.last_branch] || p.last_branch || '',
+  start: p.first_exact ? p.start : '', last: p.status === 'active' ? '' : p.last, stay: p.e ? Math.round((p.e - p.s) / atDay / 30.44 * 10) / 10 : '', st: AT_STATUS[p.status] || p.status || '' });
+const AT_COLS = [{ k: 'name', l: 'Name' }, { k: 'team', l: 'Team' }, { k: 'pos', l: 'Position' }, { k: 'branch', l: 'Last branch' }, { k: 'start', l: 'Started', t: 'date' },
+  { k: 'last', l: 'Last day', t: 'date' }, { k: 'stay', l: 'Stayed (months)', t: 'num' }, { k: 'st', l: 'Status' }];
+// views: [{ label, people, sub? }]; the figure stays plain when the first list is empty.
+function atSpec(title, views, sub) {
+  if (!views.length || !views[0].people.length) return null;
+  return { title, sk: title, views: views.map((v, i) => ({ id: 'v' + i, label: v.label, load: async () => ({ cols: AT_COLS,
+    rows: v.people.map(atRow), foot: { name: 'Total', team: v.people.length + (v.people.length === 1 ? ' person' : ' people') }, sub: v.sub || sub || '',
+    note: v.people.some(p => !p.first_exact) ? 'A blank Started means the first day is before Dec 2020 or not on file.' : '', empty: 'No one here.' }) })) };
+}
+const atFig = (html, spec) => (spec && window.TRSD) ? TRSD.num(html, spec) : html;
+const atByLast = (a, b) => (b.e || 0) - (a.e || 0);
+
 function atPaint() {
   const body = document.getElementById('atBody');
   if (!body || !atData) return;
@@ -171,24 +190,26 @@ function atPaint() {
   const plain = c.hc ? atPct(100 * c.leavers.length / c.hc) : null;
   const yearly = !c.long && Math.abs(c.days - 365) > 10 && c.days > 30 && c.rate != null ? atPct(c.rate * 365 / c.days) : null;
   const max = Math.max(1, ...c.buckets.map(b => b.n));
-  const kpi = (v, l) => `<div class="at-kpi"><b>${v}</b><span>${l}</span></div>`;
-  const branchRows = c.byBranch.map(r => `<tr><td>${atEsc(AT_BRANCH[r.k] || r.k)}</td><td class="r">${r.n}</td><td class="r">${Math.round(r.hc * 10) / 10}</td><td class="r">${r.rate == null ? '' : atPct(r.rate)}</td></tr>`).join('');
-  const deptRows = c.byDept.map(r => `<tr><td>${r.k === 'Hair' ? 'Stylists' : 'Beauticians'}</td><td class="r">${r.n}</td><td class="r">${Math.round(r.hc * 10) / 10}</td><td class="r">${r.rate == null ? '' : atPct(r.rate)}</td></tr>`).join('');
+  const kpi = (v, l, sp) => `<div class="at-kpi"><b>${atFig(v, sp)}</b><span>${l}</span></div>`;
+  const Lv = c.leavers.slice().sort(atByLast), perT = atEsc(per);
+  const rateSub = `Attrition is leavers divided by the average headcount (${Math.round(c.hc * 10) / 10} on the floor over the window).`;
+  const branchRows = c.byBranch.map(r => { const ps = c.present.filter(p => p.last_branch === r.k), lv = Lv.filter(p => p.last_branch === r.k), bn = AT_BRANCH[r.k] || r.k; return `<tr><td>${atEsc(bn)}</td><td class="r">${atFig(r.n, atSpec('Left, ' + bn, [{ label: 'Who left', people: lv }]))}</td><td class="r">${atFig(Math.round(r.hc * 10) / 10, atSpec('On the floor, ' + bn, [{ label: 'On the floor', people: ps, sub: 'Everyone on the floor at some point in the window; the average headcount is over the days.' }]))}</td><td class="r">${r.rate == null ? '' : atFig(atPct(r.rate), atSpec('Attrition, ' + bn, [{ label: 'Who left', people: lv, sub: 'Leavers over average headcount.' }, { label: 'On the floor', people: ps }]))}</td></tr>`; }).join('');
+  const deptRows = c.byDept.map(r => { const ps = c.present.filter(p => p.dept === r.k), lv = Lv.filter(p => p.dept === r.k), dn = r.k === 'Hair' ? 'Stylists' : 'Beauticians'; return `<tr><td>${dn}</td><td class="r">${atFig(r.n, atSpec('Left, ' + dn, [{ label: 'Who left', people: lv }]))}</td><td class="r">${atFig(Math.round(r.hc * 10) / 10, atSpec('On the floor, ' + dn, [{ label: 'On the floor', people: ps, sub: 'Everyone on the floor at some point in the window; the average headcount is over the days.' }]))}</td><td class="r">${r.rate == null ? '' : atFig(atPct(r.rate), atSpec('Attrition, ' + dn, [{ label: 'Who left', people: lv, sub: 'Leavers over average headcount.' }, { label: 'On the floor', people: ps }]))}</td></tr>`; }).join('');
   const tmax = Math.max(1, ...c.tb.map(t => t.n));
   const list = c.leavers.slice().sort((a, b) => b.e - a.e);
   const nosales = (atData.people || []).filter(p => p.status === 'nosales' && (AT.dept === 'all' || p.dept === AT.dept));
   body.innerHTML = `
     <div class="at-kpis">
-      ${kpi(c.leavers.length, `left in ${atEsc(per)}`)}
-      ${kpi(c.rate == null ? '–' : atPct(c.rate), c.long ? `attrition a year: ${c.leavers.length} leavers on an average of ${Math.round(c.hc * 10) / 10} on the floor, per year (${plain} over the whole window)` : `attrition: leavers ÷ average headcount (${Math.round(c.hc * 10) / 10})${yearly ? `<br>${yearly} a year at this pace` : ''}`)}
-      ${kpi(c.medianT == null ? '–' : atTenure(c.medianT), `median time with us before leaving${c.avgT == null ? '' : ` (average ${atTenure(c.avgT)})`}`)}
-      ${kpi(c.joined.length, `joined in ${atEsc(per)}`)}
-      ${kpi(c.nowHere, `selling now (last sale within 60 days)`)}
+      ${kpi(c.leavers.length, `left in ${atEsc(per)}`, atSpec('People who left, ' + per, [{ label: 'Who left', people: Lv }], 'Counted by the last day they sold. Most recent first.'))}
+      ${kpi(c.rate == null ? '–' : atPct(c.rate), c.long ? `attrition a year: ${c.leavers.length} leavers on an average of ${Math.round(c.hc * 10) / 10} on the floor, per year (${plain} over the whole window)` : `attrition: leavers ÷ average headcount (${Math.round(c.hc * 10) / 10})${yearly ? `<br>${yearly} a year at this pace` : ''}`, atSpec('Attrition, ' + per, [{ label: 'Who left', people: Lv, sub: rateSub }, { label: 'On the floor', people: c.present, sub: 'Everyone on the floor at some point in the window: the headcount behind the rate. ' + rateSub }]))}
+      ${kpi(c.medianT == null ? '–' : atTenure(c.medianT), `median time with us before leaving${c.avgT == null ? '' : ` (average ${atTenure(c.avgT)})`}`, atSpec('Time with us before leaving', [{ label: 'Leavers', people: c.leavers.filter(p => p.first_exact).sort((a, b) => (a.e - a.s) - (b.e - b.s)), sub: 'Time from first sale to last sale, shortest first, for the leavers whose first day is on file. The median is the middle one.' }]))}
+      ${kpi(c.joined.length, `joined in ${atEsc(per)}`, atSpec('People who joined, ' + per, [{ label: 'Who joined', people: c.joined.slice().sort((a, b) => b.s - a.s), sub: 'Counted by first sale, for the people whose first day is on file.' }]))}
+      ${kpi(c.nowHere, `selling now (last sale within 60 days)`, atSpec('Selling now', [{ label: 'Selling now', people: c.all.filter(p => p.status === 'active').sort((a, b) => a.s - b.s), sub: 'Last sale within 60 days.' }]))}
     </div>
     <div class="at-card"><h2>Who left, ${c.days > 800 ? 'by year' : 'by month'}</h2>
       <p class="n">Number of leavers in each ${c.days > 800 ? 'year' : 'month'}; the small figure under each bar is how many were on the floor at its end.</p>
-      <div class="at-cols">${c.buckets.map(b => `<div class="at-col" title="${atEsc(b.l)}: ${b.n} left, ${b.hc} on the floor"><em>${b.n || ''}</em><i style="height:${Math.round(100 * b.n / max)}%"></i></div>`).join('')}</div>
-      <div class="at-labs">${c.buckets.map(b => `<div>${atEsc(b.l)}<small>${b.hc}</small></div>`).join('')}</div>
+      <div class="at-cols">${c.buckets.map(b => `<div class="at-col" title="${atEsc(b.l)}: ${b.n} left, ${b.hc} on the floor"><em>${b.n ? atFig(b.n, atSpec('People who left, ' + b.l, [{ label: 'Who left', people: Lv.filter(p => p.e >= b.a && p.e <= b.b) }], 'Counted by the last day they sold.')) : ''}</em><i style="height:${Math.round(100 * b.n / max)}%"></i></div>`).join('')}</div>
+      <div class="at-labs">${c.buckets.map(b => `<div>${atEsc(b.l)}<small>${b.hc ? atFig(b.hc, atSpec('On the floor at the end of ' + b.l, [{ label: 'On the floor', people: c.all.filter(p => atHere(p, b.b > c.to ? c.to : b.b)).sort((a, b2) => a.s - b2.s) }], 'Everyone selling on the last day of the period.')) : b.hc}</small></div>`).join('')}</div>
     </div>
     <div class="at-two">
       <div class="at-card"><h2>By branch</h2><p class="n">A person counts at the branch where she last sold.</p>
@@ -197,7 +218,7 @@ function atPaint() {
         <table class="at-t"><tr><th>Team</th><th class="r">Left</th><th class="r">Avg headcount</th><th class="r">${c.long ? 'Rate a year' : 'Rate'}</th></tr>${deptRows || '<tr><td colspan="4">No one in this view.</td></tr>'}</table></div>
     </div>
     <div class="at-card"><h2>How long they stayed</h2><p class="n">Time from first sale to last sale, for the ${c.leavers.length - c.nodate} leaver${c.leavers.length - c.nodate === 1 ? '' : 's'} whose first day is on file.${c.nodate ? ` ${c.nodate} more were already here when the ledger starts (Dec 2020), so their stay is longer than we can show.` : ''}</p>
-      <div class="at-bars">${c.tb.map(t => `<div><span>${t.l}</span><i style="width:${Math.round(100 * t.n / tmax)}%"></i><b>${t.n}</b></div>`).join('')}</div></div>
+      <div class="at-bars">${c.tb.map(t => `<div><span>${t.l}</span><i style="width:${Math.round(100 * t.n / tmax)}%"></i><b>${t.n ? atFig(t.n, atSpec('Stayed ' + t.l.toLowerCase(), [{ label: 'Leavers', people: t.ps.slice().sort((a, b) => (a.e - a.s) - (b.e - b.s)), sub: 'Time from first sale to last sale.' }])) : t.n}</b></div>`).join('')}</div></div>
     <div class="at-card"><h2>The leavers</h2><p class="n">Most recent first. "Stopped selling" means still on the Phorest roster but no sales for 60+ days: confirm with the branch.</p>
       <div style="overflow-x:auto"><table class="at-t"><tr><th>Name</th><th class="hm">Team</th><th>Last branch</th><th class="hm">Started</th><th>Last day</th><th>Stayed</th><th></th></tr>
       ${list.map(p => `<tr><td>${atEsc(p.name)}<div class="at-note" style="margin:0">${atEsc(p.position)}</div></td><td class="hm"><span class="at-pill ${p.dept === 'Hair' ? 'hair' : 'beauty'}">${p.dept === 'Hair' ? 'Stylist' : 'Beautician'}</span></td><td>${atEsc(AT_BRANCH[p.last_branch] || p.last_branch || '')}</td><td class="hm">${p.first_exact ? atFmt(p.start) : 'before Dec 2020'}</td><td>${atFmt(p.last)}</td><td>${p.first_exact ? atTenure((p.e - p.s) / atDay / 30.44) : atTenure((p.e - p.s) / atDay / 30.44).replace(/^/, 'over ')}</td><td>${p.status === 'stopped' ? '<span class="at-pill warn">Stopped selling</span>' : ''}</td></tr>`).join('') || '<tr><td colspan="7">No one left in this view.</td></tr>'}</table></div>
