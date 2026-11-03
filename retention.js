@@ -12,7 +12,7 @@
 // Needs from dashboard.js (shared script scope): sb, sel, dateFrom, dateTo, dateToIso, BH_BRANCHES, UAE_ACTIVE, BRANCH_INFO, TRS_LEVEL,
 // STAFF_PROFILES (staff-profiles.js), TRSD (drill.js) and PD (pulse-drill.js, for the client's own window).
 const RET_STORE = 'trs-retention';
-const RET = { team: 'A', res: 0, rank: 'any', order: 'low', all: false };
+const RET = { team: 'A', res: 0, rank: 'any', order: 'low', all: false, basis: 'period' };
 try {
   const s = JSON.parse(localStorage.getItem(RET_STORE) || '{}');
   if (['A', 'H', 'B'].includes(s.team)) RET.team = s.team;
@@ -21,7 +21,7 @@ try {
   if (s.order === 'high') RET.order = 'high';
 } catch (e) {}
 // The address carries the list's picks (Kate, 3 Nov 2026: whatever filter is on the page shows in the url slug), beside the header's branch and period:
-// ?view=retention&branch=KCA&period=month:2026-09&team=beauty&resigned=1&rank=same&order=highest&list=all . A pick in the address wins over the remembered one.
+// ?view=retention&branch=KCA&period=month:2026-09&team=beauty&resigned=1&rank=same&order=highest&list=all&basis=staff-kpi . A pick in the address wins over the remembered one.
 try {
   const q = new URLSearchParams(location.search);
   if (q.has('team')) RET.team = { hair: 'H', beauty: 'B' }[q.get('team')] || 'A';
@@ -29,6 +29,7 @@ try {
   if (q.has('rank')) RET.rank = q.get('rank') === 'same' ? 'same' : 'any';
   if (q.has('order')) RET.order = q.get('order') === 'highest' ? 'high' : 'low';
   if (q.get('list') === 'all') RET.all = true;
+  if (q.get('basis') === 'staff-kpi') { RET.basis = 'kpi'; if (!q.has('rank')) RET.rank = 'same'; }
 } catch (e) {}
 function retUrlParts() {   // index.html trSyncUrl() calls this on this page; defaults stay out of the address
   const p = [];
@@ -37,6 +38,7 @@ function retUrlParts() {   // index.html trSyncUrl() calls this on this page; de
   if (RET.rank === 'same') p.push('rank=same');
   if (RET.order === 'high') p.push('order=highest');
   if (RET.all) p.push('list=all');
+  if (RET.basis === 'kpi') p.push('basis=staff-kpi');
   return p;
 }
 const retSync = () => { try { if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'retention') trSyncUrl(null); } catch (e) {} };
@@ -76,7 +78,10 @@ function retCall(name, args) {
   p.catch(() => { if (retCache[key] && retCache[key].p === p) delete retCache[key]; });
   return p;
 }
-const retArgs = () => { const [a, b] = retRange(); return { p_from: a, p_to: b, p_branch: retBranchArg() }; };
+const retArgs = () => {
+  if (RET.basis === 'kpi') { const t = dateToIso(new Date()); return { p_from: t, p_to: t, p_branch: retBranchArg(), p_kpi: true }; }   // the server reads its own window: 180 to 90 days before the latest sales, back in the last 90
+  const [a, b] = retRange(); return { p_from: a, p_to: b, p_branch: retBranchArg() };
+};
 
 // ── STAFF: team, photo, resigned (staff-profiles.js, the same cutouts Staff Cards uses) ────────────
 const RET_ALIAS = { 'MARY JOY': 'MJ', 'TAMRYN': 'TAMMY', 'KIMBERLY': 'KIM', 'PRINCESS AREANNE': 'AREANNE' };   // the ledger's name for them is not Phorest's
@@ -104,11 +109,13 @@ const retTeamOf = p => !p ? '' : (/Beauty|Nail/.test(p.role || '') ? 'B' : 'H');
 function retListView(id, label, extra) {
   return { id, label, load: async () => {
     const s = retData, multi = !retCodes() || retCodes().length > 1;
-    const d = await retCall('drill_retention_clients', Object.assign({ p_from: s.from, p_to: s.to, p_branch: retBranchArg(), p_seg: 'all', p_ret: 'all', p_emp: null, p_eb: null, p_same: false, p_bucket: null }, extra));
+    const d = await retCall('drill_retention_clients', Object.assign({ p_from: s.from, p_to: s.to, p_branch: retBranchArg(), p_seg: 'all', p_ret: 'all', p_emp: null, p_eb: null, p_same: false, p_bucket: null }, RET.basis === 'kpi' ? { p_kpi: true, p_regulars: true } : {}, extra));
     const rows = d.rows || [], back = extra.p_ret === 'back', notback = extra.p_ret === 'notback';
     const tail = notback ? { k: 'days', l: 'Days since last visit', t: 'num' } : { k: 'back', l: 'First visit back', t: 'date' };
     const ctx = { cur: 'AED', label: 'Retention' };
-    let sub = `${retEsc(retScope())}, clients who came in ${retDay(s.from)} to ${retDay(s.to)}, and whether they came back by ${retDay(s.ret_to)}. A client counts once, at the salon she came to; a visit is a paid day with real spend (no deposits, vouchers, staff bookings or BUSINESS TRS).`;
+    let sub = RET.basis === 'kpi'
+      ? `${retEsc(retScope())}, the Staff KPI: regulars seen ${retDay(s.from)} to ${retDay(s.to)} (clients who had been before), and whether they came back to the same stylist or beautician by ${retDay(s.ret_to)}. Counted per stylist or beautician, so a client who saw two of them is on the list for each. A visit is a paid day with real spend (no deposits, vouchers, staff bookings or BUSINESS TRS).`
+      : `${retEsc(retScope())}, clients who came in ${retDay(s.from)} to ${retDay(s.to)}, and whether they came back by ${retDay(s.ret_to)}. A client counts once, at the salon she came to; a visit is a paid day with real spend (no deposits, vouchers, staff bookings or BUSINESS TRS).`;
     if (s.partial) sub += ` The 2 months after the Period are not over: figures so far, to ${retDay(s.ret_to)}.`;
     if (d.total > rows.length) sub += ` The first ${retN(rows.length)} of ${retN(d.total)} are shown.`;
     return {
@@ -238,7 +245,7 @@ async function renderRetention() {
   retData = d;
   if (!d || !d.ok) {
     const days = d && d.days ? d.days : 0;
-    el.innerHTML = `<p class="rt-q">Clients who came in during the Period, and how many came back in the 2 months after.</p><div class="rt-empty"><b>Retention looks forward from the Period.</b><br>It needs a Period that ended at least 30 days ago (${days ? retN(days) + ' days of follow-up so far' : 'this one has none yet'}). Pick Month, Last month or Custom with dates from earlier, for example 1 May to 31 Jul.</div>`;
+    el.innerHTML = retBasisRow() + `<p class="rt-q">Clients who came in during the Period, and how many came back in the 2 months after.</p><div class="rt-empty"><b>Retention looks forward from the Period.</b><br>It needs a Period that ended at least 30 days ago (${days ? retN(days) + ' days of follow-up so far' : 'this one has none yet'}). Pick Month, Last month or Custom with dates from earlier, for example 1 May to 31 Jul, or read the Staff KPI, which needs no Period.</div>`;
     return;
   }
   retPaint();
@@ -253,13 +260,14 @@ const retCard = (l, n, d) => `<div class="rt-card"><div class="l">${l}</div><div
 const retBar = (p, avg, cls, tip) => `<div class="rt-trk ${cls || ''}"${tip ? ` data-tip="${retEsc(tip)}"` : ''}><div class="rt-fill" style="width:${p}%"></div>${avg != null ? `<div class="rt-avg" style="left:${avg}%"></div>` : ''}</div>`;
 
 function retPaint() {
+  if (RET.basis === 'kpi') { retPaintKpi(); return; }
   const el = document.getElementById('retentionContent'), s = retData, w = retScope();
   const t = retSum(s.branches || []), nw = retP(t.new_b, t.new_c), ol = retP(t.old_b, t.old_c);
   const one = (title, extra, back, total) => retSpec(`${w}: ${title}`, extra, back, total);
   const pct = (v, spec) => retNum(Math.round(v) + '%', spec);
   const per = `${retDay(s.from)} to ${retDay(s.to)}`;
   const ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
-  let h = `<p class="rt-q">Clients who came in during the Period (${retEsc(per)}), and how many came back in the 2 months after (${retEsc(ret)}).</p>`;
+  let h = retBasisRow() + `<p class="rt-q">Clients who came in during the Period (${retEsc(per)}), and how many came back in the 2 months after (${retEsc(ret)}).</p>`;
   h += '<div class="rt-save"><span class="rt-saved" id="retSaved"></span><button type="button" class="rt-mini" data-save="xlsx" title="Both lists: by salon and by stylist">Save as xlsx</button><button type="button" class="rt-mini" data-save="csv" title="The by-stylist list, as filtered">Save as csv</button></div>';
   h += `<div class="rt-hero" data-jn="The answer"><div class="rt-big">${retNum(Math.round(retP(t.back, t.cohort)) + '<small>%</small>', one('clients who came in, then came back', {}, t.back, t.cohort))}</div>
     <p><b>${retNum(retN(t.back), retSpec(`${w}: clients who came back`, {}, t.back, t.cohort, 'back'))} of ${retNum(retN(t.cohort), retAllSpec(`${w}: clients who came in`, {}, t.cohort))}</b> clients who came in ${retEsc(per)} came back by ${retEsc(retDay(s.ret_to))} (${retEsc(w)}).
@@ -281,22 +289,38 @@ function retPaint() {
     }).join('')}</div></div>`;
   }
   h += '<div class="rt-sec" id="retStylists"></div>';
-  h += `<div class="rt-foot">One client counts once a day: a paid sale, spend above AED 0, no staff bookings, no BUSINESS TRS. Counted per salon: a client who moves salon shows as not back at the first one. Stylists and beauticians with under ${RET_MIN_CLIENTS} clients are left out of the list. Anyone with no staff profile yet shows under All teams only, without a photo. Every number opens the clients behind it.</div>`;
+  h += `<div class="rt-foot">One client counts once a day: a paid sale, spend above AED 0, no staff bookings, no BUSINESS TRS. Counted per salon: a client who moves salon shows as not back at the first one. Stylists and beauticians with under ${RET_MIN_CLIENTS} clients are left out of the list. Anyone with no staff profile yet shows under All teams only, without a photo. Retention % on Staff Dashboards, Stylist’s Benchmarks, the 1-to-1s and the Pulse is a different, rolling measure: pick Staff KPI above to read it here. Every number opens the clients behind it.</div>`;
   el.innerHTML = h;
   retStylists();
 }
 
+// The people rows. By Period: one row per salon and person, everyone they saw in the Period. Staff KPI: the REGULARS only (rn / rsame / rany), one row per person
+// across the salons they work at, because the stylist KPI counts a person once however many salons they work at.
 function retStaffRows() {
-  const s = retData;
-  return (s.staff || []).filter(r => +r.clients >= RET_MIN_CLIENTS).map(r => {
-    const p = retProfile(r.e, r.b);
-    return Object.assign({}, r, { p, team: retTeamOf(p), res: !!(p && p.resigned), role: p ? p.role : '', photo: retPhoto(p) });
+  const s = retData, kpi = RET.basis === 'kpi';
+  const dress = (r, b, extra) => {
+    const p = retProfile(r.e, b);
+    return Object.assign({}, r, extra, { p, team: retTeamOf(p), res: !!(p && p.resigned), role: p ? p.role : '', photo: retPhoto(p) });
+  };
+  if (!kpi) {
+    return (s.staff || []).filter(r => +r.clients >= RET_MIN_CLIENTS).map(r => dress(r, r.b, { eb: r.b, bc: r.b, bn: retName(r.b) }));
+  }
+  const by = new Map();
+  (s.staff || []).forEach(r => { const x = by.get(r.e) || []; x.push(r); by.set(r.e, x); });
+  const out = [];
+  by.forEach((list, e) => {
+    list.sort((a, b) => b.rn - a.rn);
+    const sum = k => list.reduce((a, r) => a + (+r[k] || 0), 0);
+    const one = list.length === 1;
+    out.push(dress({ e }, list[0].b, { clients: sum('rn'), same: sum('rsame'), any: sum('rany'), visits: 0, c1: 0, c2: 0, c3: 0, b: list[0].b, eb: one ? list[0].b : null,
+      bc: list.map(r => r.b).join('/'), bn: list.map(r => retName(r.b)).join(' + ') }));
   });
+  return out.filter(r => r.clients >= 10);   // as the 1-to-1s and the to-do list: a figure needs at least 10 regulars
 }
 function retStylists() {
   const box = document.getElementById('retStylists');
   if (!box) return;
-  const s = retData, w = retScope(), multi = !retCodes() || retCodes().length > 1;
+  const s = retData, kpi = RET.basis === 'kpi', noun = kpi ? 'regulars' : 'clients', multi = !retCodes() || retCodes().length > 1;
   const base = retStaffRows().filter(r => RET.team === 'A' || r.team === RET.team);
   const nres = base.filter(r => r.res).length;
   let rows = base.filter(r => RET.res || !r.res).map(r => ({ r, pa: retP(r.any, r.clients), ps: retP(r.same, r.clients) }));
@@ -312,19 +336,19 @@ function retStylists() {
     <button class="rt-mini" id="retSort" type="button">${RET.order === 'low' ? 'Lowest' : 'Highest'} first &#8645;</button></div>
     <div class="rt-fl"><span class="rt-lbl">Team</span>${chip('data-team', 'A', 'All', RET.team === 'A')}${sep}${chip('data-team', 'H', 'Hair', RET.team === 'H')}${sep}${chip('data-team', 'B', 'Beauty', RET.team === 'B')}
       <span class="rt-lbl rk">Rank by</span>${chip('data-rank', 'any', 'Salon return', RET.rank === 'any')}${sep}${chip('data-rank', 'same', 'Same stylist', RET.rank === 'same')}</div>`;
-  h += `<div class="rt-key"><span data-tip="Back to the salon: the client came back to any stylist or beautician at the same salon."><i class="rt-sw k1"></i>Back to the salon</span><span data-tip="Back to the same stylist or beautician: the client came back to the same person. Always the lower of the two."><i class="rt-sw k2"></i>Back to the same stylist or beautician</span><span data-tip="The line on each bar is the average for the people shown."><i class="rt-ln"></i>Average</span></div>`;
+  h += `<div class="rt-key"><span data-tip="Back to the salon: the ${kpi ? 'regular' : 'client'} came back to any stylist or beautician at the same salon."><i class="rt-sw k1"></i>Back to the salon</span><span data-tip="Back to the same stylist or beautician: the ${kpi ? 'regular' : 'client'} came back to the same person.${kpi ? ' This is Retention % on Staff Dashboards.' : ' Always the lower of the two.'}"><i class="rt-sw k2"></i>Back to the same stylist or beautician${kpi ? ' (Retention %)' : ''}</span><span data-tip="The line on each bar is the average for the people shown."><i class="rt-ln"></i>Average</span></div>`;
   h += '<div class="rt-rows">' + shown.map((x, i) => {
-    const r = x.r, who = `${r.e} (${retName(r.b)})`, ex = { p_emp: r.e, p_eb: r.b };
+    const r = x.r, who = `${r.e} (${r.bn})`, ex = { p_emp: r.e, p_eb: r.eb };
     const img = r.photo ? `<div class="rt-pho"><img alt="" src="${retEsc(r.photo)}" onerror="this.remove()"></div>` : '<div class="rt-pho"></div>';
     const tag = r.team ? `<span class="rt-tag ${r.team}">${r.team === 'B' ? 'Beauty' : 'Hair'}</span>` : '';
     const worker = r.team === 'B' ? 'beautician' : 'stylist';
-    return `<div class="rt-row${r.res ? ' res' : ''}" data-i="${i}">${img}<span class="rt-nm">${retEsc(r.e)}${tag}${r.res ? '<span class="rt-tag res">Resigned</span>' : ''}<span class="l2"><em>${r.role ? retEsc(r.role) + ', ' : ''}${multi ? r.b + ', ' : ''}${retNum(retN(r.clients), retAllSpec(`${who}: clients handled`, ex, r.clients))} clients</em></span></span>
-      <div class="rt-bars">${retBar(x.pa, avgA, '', `Back to the salon: ${retN(r.any)} of ${r.e}'s ${retN(r.clients)} clients (${Math.round(x.pa)}%) came back to any stylist or beautician at ${retName(r.b)}. The line is the average for the people shown, ${Math.round(avgA)}%.`)}${retBar(x.ps, avgS, 't2', `Back to the same ${worker}: ${retN(r.same)} of ${r.e}'s ${retN(r.clients)} clients (${Math.round(x.ps)}%) came back to ${r.e}. The line is the average for the people shown, ${Math.round(avgS)}%.`)}</div>
-      <span class="rt-pc"><b class="k1">${retNum(Math.round(x.pa) + '%', retSpec(`${who}: clients, back to the salon`, ex, r.any, r.clients))}</b><b class="k2">${retNum(Math.round(x.ps) + '%', retSpec(`${who}: clients, back to the same ${worker}`, Object.assign({ p_same: true }, ex), r.same, r.clients))}</b></span></div>`;
+    return `<div class="rt-row${r.res ? ' res' : ''}" data-i="${i}">${img}<span class="rt-nm">${retEsc(r.e)}${tag}${r.res ? '<span class="rt-tag res">Resigned</span>' : ''}<span class="l2"><em>${r.role ? retEsc(r.role) + ', ' : ''}${multi ? r.bc + ', ' : ''}${retNum(retN(r.clients), retAllSpec(`${who}: ${noun} seen`, ex, r.clients))} ${noun}</em></span></span>
+      <div class="rt-bars">${retBar(x.pa, avgA, '', `Back to the salon: ${retN(r.any)} of ${r.e}'s ${retN(r.clients)} ${noun} (${Math.round(x.pa)}%) came back to any stylist or beautician at ${r.bn}. The line is the average for the people shown, ${Math.round(avgA)}%.`)}${retBar(x.ps, avgS, 't2', `Back to the same ${worker}: ${retN(r.same)} of ${r.e}'s ${retN(r.clients)} ${noun} (${Math.round(x.ps)}%) came back to ${r.e}.${kpi ? ' This is Retention % on Staff Dashboards.' : ''} The line is the average for the people shown, ${Math.round(avgS)}%.`)}</div>
+      <span class="rt-pc"><b class="k1">${retNum(Math.round(x.pa) + '%', retSpec(`${who}: ${noun}, back to the salon`, ex, r.any, r.clients))}</b><b class="k2">${retNum(Math.round(x.ps) + '%', retSpec(`${who}: ${noun}, back to the same ${worker}`, Object.assign({ p_same: true }, ex), r.same, r.clients))}</b></span></div>`;
   }).join('') + '</div>';
   if (rows.length > 8) h += `<button class="rt-btn" id="retMore" type="button">${RET.all ? 'Show fewer' : 'Show all ' + rows.length + ' stylists'}</button>`;
   h += `<div class="rt-legend"><div class="rt-lh">How to read this</div><div><span class="rt-sw k1"></span><b>Back to the salon</b>: counts a return to any stylist or beautician at the salon. Average ${Math.round(avgA)}%.</div>
-    <div><span class="rt-sw k2"></span><b>Back to the same stylist or beautician</b>: counts only a return to the same person. Average ${Math.round(avgS)}%.</div>
+    <div><span class="rt-sw k2"></span><b>Back to the same stylist or beautician</b>: counts only a return to the same person. Average ${Math.round(avgS)}%.${kpi ? ' This is the Retention % shown on Staff Dashboards, Stylist’s Benchmarks, the 1-to-1s and the Pulse.' : ''}</div>
     <div><i></i>The line on each bar is that average for the people shown.${RET.res ? ' Resigned staff are included, in grey.' : ''}</div></div>`;
   box.innerHTML = h;
 }
@@ -336,14 +360,51 @@ function retMore(row) {
   const open = row.nextElementSibling && row.nextElementSibling.classList.contains('rt-more');
   document.querySelectorAll('#retStylists .rt-more').forEach(n => n.remove());
   if (open) return;
-  const r = x.r, who = `${r.e} (${retName(r.b)})`, ex = { p_emp: r.e, p_eb: r.b }, worker = r.team === 'B' ? 'beautician' : 'stylist';
+  const kpi = RET.basis === 'kpi', noun = kpi ? 'regulars' : 'clients';
+  const r = x.r, who = `${r.e} (${r.bn})`, ex = { p_emp: r.e, p_eb: r.eb }, worker = r.team === 'B' ? 'beautician' : 'stylist';
   const d = document.createElement('div'); d.className = 'rt-more' + (r.res ? ' res' : '');
   const list = (title, extra, n) => retNum(retN(n), retAllSpec(`${who}: ${title}`, Object.assign({}, ex, extra), n));
-  d.innerHTML = (r.photo ? `<img alt="" src="${retEsc(r.photo)}" onerror="this.remove()">` : '') + `<div>
-    <span><b>${list('clients handled', {}, r.clients)}</b> clients, <b>${list('clients handled', {}, r.visits)}</b> visits (${(Math.round(100 * r.visits / r.clients) / 100).toFixed(2)} each)</span>
-    <span>Came once <b>${list('clients who came once', { p_bucket: 1 }, r.c1)}</b>, twice <b>${list('clients who came twice', { p_bucket: 2 }, r.c2)}</b>, 3+ <b>${list('clients who came 3+ times', { p_bucket: 3 }, r.c3)}</b></span>
+  const lines = kpi
+    ? `<span><b>${list(`${noun} seen`, {}, r.clients)}</b> regulars seen 3 to 6 months ago (clients who had been before)</span>`
+    : `<span><b>${list('clients handled', {}, r.clients)}</b> clients, <b>${list('clients handled', {}, r.visits)}</b> visits (${(Math.round(100 * r.visits / r.clients) / 100).toFixed(2)} each)</span>
+    <span>Came once <b>${list('clients who came once', { p_bucket: 1 }, r.c1)}</b>, twice <b>${list('clients who came twice', { p_bucket: 2 }, r.c2)}</b>, 3+ <b>${list('clients who came 3+ times', { p_bucket: 3 }, r.c3)}</b></span>`;
+  d.innerHTML = (r.photo ? `<img alt="" src="${retEsc(r.photo)}" onerror="this.remove()">` : '') + `<div>${lines}
     <span>Back to the same ${worker} <b>${retNum(retN(r.same), retSpec(`${who}: back to the same ${worker}`, Object.assign({ p_same: true }, ex), r.same, r.clients))}</b>, back to the salon <b>${retNum(retN(r.any), retSpec(`${who}: back to the salon`, ex, r.any, r.clients))}</b></span></div>`;
   row.after(d);
+}
+
+// Basis: the Period the header says, or the stylist KPI's own rolling window (Kate, 3 Nov 2026: this page must match the other dashboards that show Retention %).
+function retBasisRow() {
+  const on = k => RET.basis === k;
+  return `<div class="rt-fl"><span class="rt-lbl">Basis</span><button class="rt-chip" type="button" data-basis="period" aria-pressed="${on('period')}" title="Clients who came in during the Period at the top, and who came back in the 2 months after.">By Period</button><span class="rt-sep">·</span><button class="rt-chip" type="button" data-basis="kpi" aria-pressed="${on('kpi')}" title="The measure behind Retention % on Staff Dashboards, Stylist’s Benchmarks, the 1-to-1s and the Pulse: regulars seen 3 to 6 months ago who came back to the same stylist in the last 3 months. The Period at the top is not used.">Staff KPI (Retention %)</button></div>`;
+}
+function retPaintKpi() {
+  const el = document.getElementById('retentionContent'), s = retData, w = retScope(), kpiRows = retStaffRows();
+  const all = (s.staff || []);
+  const sum = (list, k) => list.reduce((a, r) => a + (+r[k] || 0), 0);
+  const n = sum(all, 'rn'), back = sum(all, 'rsame'), backAny = sum(all, 'rany');
+  const per = `${retDay(s.from)} to ${retDay(s.to)}`, ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
+  const one = (title, extra, b, t) => retSpec(`${w}: ${title}`, extra, b, t);
+  let h = retBasisRow();
+  h += `<p class="rt-q">The measure behind <b>Retention %</b> on Staff Dashboards, Stylist’s Benchmarks, the 1-to-1s and the Pulse: regulars a stylist or beautician saw 3 to 6 months ago (${retEsc(per)}) who came back to the same person in the last 3 months (${retEsc(ret)}). It looks back from the latest data, so the Period at the top is not used here; the Branch is.</p>`;
+  h += '<div class="rt-save"><span class="rt-saved" id="retSaved"></span><button type="button" class="rt-mini" data-save="xlsx" title="Both lists: by salon and by stylist">Save as xlsx</button><button type="button" class="rt-mini" data-save="csv" title="The by-stylist list, as filtered">Save as csv</button></div>';
+  h += `<div class="rt-hero" data-jn="The answer"><div class="rt-big">${retNum(Math.round(retP(back, n)) + '<small>%</small>', one('regulars, back to the same stylist or beautician', {}, back, n))}</div>
+    <p><b>${retNum(retN(back), retSpec(`${w}: regulars who came back to the same stylist or beautician`, {}, back, n, 'back'))} of ${retNum(retN(n), retAllSpec(`${w}: regulars seen 3 to 6 months ago`, {}, n))}</b> regulars seen ${retEsc(per)} came back to the same stylist or beautician (${retEsc(w)}).
+    <span class="s">Counted per stylist or beautician: a client who saw two of them counts for each. A regular is a client who had been before; a first visit does not count. Back to any stylist at the salon: ${Math.round(retP(backAny, n))}%.</span></p></div>`;
+  const byB = new Map();
+  all.forEach(r => { const x = byB.get(r.b) || { b: r.b, n: 0, back: 0 }; x.n += +r.rn || 0; x.back += +r.rsame || 0; byB.set(r.b, x); });
+  const bl = [...byB.values()].sort((a, b) => retP(b.back, b.n) - retP(a.back, a.n) || a.b.localeCompare(b.b));
+  if (bl.length > 1) {
+    const avg = retP(back, n);
+    h += `<div class="rt-sec"><h3 class="rt-h" data-jn="By salon" style="margin-bottom:10px">By salon</h3><div class="rt-rows">${bl.map(b => {
+      const p = retP(b.back, b.n), nm = retName(b.b);
+      return `<div class="rt-row np"><span class="rt-nm">${retEsc(nm)} <em>${retNum(retN(b.n), retAllSpec(`${nm}: regulars seen`, { p_branch: b.b }, b.n))} regulars</em></span>${retBar(p, avg, '', `${nm}: ${retN(b.back)} of ${retN(b.n)} regulars (${Math.round(p)}%) came back to the same stylist or beautician. The line is the average for the salons shown, ${Math.round(avg)}%.`)}<span class="rt-pc"><b>${retNum(Math.round(p) + '%', retSpec(`${nm}: regulars, back to the same stylist or beautician`, { p_branch: b.b }, b.back, b.n))}</b></span></div>`;
+    }).join('')}</div></div>`;
+  }
+  h += '<div class="rt-sec" id="retStylists"></div>';
+  h += `<div class="rt-foot">Same measure as Retention % elsewhere on the dashboard, now read from the same day tables as this page, by Phorest client id: regulars seen 180 to 90 days before the latest sales, on a visit that was not their first, and how many came back to the same stylist or beautician in the last 90 days. One client counts once a day (a paid sale, spend above AED 0, no staff bookings, no BUSINESS TRS). Stylists and beauticians with under 10 regulars are left out of the list, not out of the totals. Every number opens the clients behind it.</div>`;
+  el.innerHTML = h;
+  retStylists();
 }
 
 // ── SAVE AS XLSX / CSV (Kate, 3 Nov 2026: the data on the page can be downloaded too) ─────────────────────────────
@@ -356,6 +417,7 @@ async function retDownload(kind) {
   retSavedNote('Getting the file ready…');
   try { if (typeof lgxBuild !== 'function') await window.trsLazy('lgx'); } catch (e) { console.error(e); retSavedNote('The file could not be made. Try again.'); return; }
   if (typeof lgxBuild !== 'function') { retSavedNote('The file could not be made. Try again.'); return; }
+  if (RET.basis === 'kpi') return retDownloadKpi(kind);
   const w = retScope(), per = `${retDay(s.from)} to ${retDay(s.to)}`, ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
   const basis = `Clients who came in ${per}, and whether they came back in the 2 months after (${ret}${s.partial ? ', not over yet, so figures so far' : ''}). A client counts once, at the salon she came to; a visit is a paid day with real spend (no deposits, vouchers, staff bookings or BUSINESS TRS). Percentages are out of the clients who came in.`;
   const pf = (b, c) => c ? retP(b, c) : null;
@@ -406,6 +468,35 @@ document.addEventListener('mouseover', e => { const t = e.target.closest && e.ta
 document.addEventListener('mouseout', e => { const t = e.target.closest && e.target.closest('#retentionContent [data-tip]'); if (t && window.matchMedia('(hover:hover)').matches) retTipHide(); });
 window.addEventListener('scroll', retTipHide, { passive: true });
 
+function retDownloadKpi(kind) {
+  const s = retData, w = retScope(), per = `${retDay(s.from)} to ${retDay(s.to)}`, ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
+  const basis = `Staff KPI: the Retention % on Staff Dashboards, Stylist’s Benchmarks, the 1-to-1s and the Pulse. Regulars seen ${per} (clients who had been before) and how many came back to the same stylist or beautician in ${ret}. Counted per stylist or beautician, so a client who saw two of them counts for each. Percentages are out of the regulars seen.`;
+  const all = s.staff || [], pf = (b, c) => c ? retP(b, c) : null;
+  const byB = new Map();
+  all.forEach(r => { const x = byB.get(r.b) || { n: 0, back: 0, any: 0 }; x.n += +r.rn || 0; x.back += +r.rsame || 0; x.any += +r.rany || 0; byB.set(r.b, x); });
+  const bRow = (name, x, total) => ({ total: !!total, cells: [name, x.n, x.back, pf(x.back, x.n), x.any, pf(x.any, x.n)] });
+  const bRows = [...byB.entries()].sort((a, b) => retName(a[0]).localeCompare(retName(b[0]))).map(([c, x]) => bRow(retName(c), x));
+  if (bRows.length > 1) { const t = { n: 0, back: 0, any: 0 }; byB.forEach(x => { t.n += x.n; t.back += x.back; t.any += x.any; }); bRows.push(bRow(w, t, true)); }
+  const bCols = [['Salon', 'text'], ['Regulars seen', 'num'], ['Back to the same stylist or beautician', 'num'], ['Retention %', 'pct'], ['Back to the salon', 'num'], ['Back to the salon %', 'pct']];
+  const salonSheet = { name: 'By salon', title: `Retention, Staff KPI, ${w}`, subtitle: basis, blocks: [{ note: '', cols: bCols.map(c => ({ label: c[0], fmt: c[1] })), rows: bRows }] };
+  const list = retStaffRows().filter(r => RET.team === 'A' || r.team === RET.team).filter(r => RET.res || !r.res).map(r => ({ r, pa: retP(r.any, r.clients), ps: retP(r.same, r.clients) }));
+  const key = x => RET.rank === 'any' ? x.pa : x.ps;
+  list.sort((a, b) => (RET.order === 'low' ? key(a) - key(b) : key(b) - key(a)) || a.r.e.localeCompare(b.r.e));
+  const sRows = list.map(x => { const r = x.r; return { cells: [r.bn, r.e, r.team === 'B' ? 'Beauty' : r.team === 'H' ? 'Hair' : '', r.role || '', r.res ? 'Resigned' : 'Current', r.clients, r.same, x.ps, r.any, x.pa] }; });
+  const sCols = [['Salon', 'text'], ['Stylist or beautician', 'text'], ['Team', 'text'], ['Role', 'text'], ['Status', 'text'], ['Regulars seen', 'num'], ['Back to the same stylist or beautician', 'num'], ['Retention %', 'pct'], ['Back to the salon', 'num'], ['Back to the salon %', 'pct']];
+  const filt = `Team: ${RET.team === 'A' ? 'all' : RET.team === 'H' ? 'Hair' : 'Beauty'}; ${RET.res ? 'resigned staff included' : 'current staff only'}; ranked by ${RET.rank === 'any' ? 'return to the salon' : 'return to the same stylist or beautician'}, ${RET.order === 'low' ? 'lowest' : 'highest'} first. Stylists and beauticians with under 10 regulars are left out.`;
+  const stylistSheet = { name: 'By stylist', title: `Retention % by stylist or beautician, Staff KPI, ${w}`, subtitle: basis + ' ' + filt, blocks: [{ note: '', cols: sCols.map(c => ({ label: c[0], fmt: c[1] })), rows: sRows }] };
+  const name = ['retention-staff-kpi', w.toLowerCase().replace(/[^a-z0-9]+/g, '-'), s.from, 'to', s.ret_to, new Date().toISOString().slice(0, 10)].join('-');
+  if (kind === 'xlsx') {
+    lgxSave(lgxXlsxBlob(lgxBuild({ sheets: [salonSheet, stylistSheet] })), name + '.xlsx');
+    retSavedNote(`Saved ${retN(bRows.length)} salon rows and ${retN(sRows.length)} stylist rows as XLSX`);
+  } else {
+    const first = sRows.length ? stylistSheet : salonSheet;
+    lgxSave(new Blob(['\ufeff' + lgxCsv(lgxBuild({ sheets: [first] })[0])], { type: 'text/csv;charset=utf-8' }), name + (sRows.length ? '-by-stylist' : '') + '.csv');
+    retSavedNote(`Saved ${retN(first === stylistSheet ? sRows.length : bRows.length)} rows as CSV`);
+  }
+}
+
 document.addEventListener('click', e => {
   const host = e.target.closest && e.target.closest('#retentionContent');
   const tipEl = e.target.closest && e.target.closest('#retentionContent [data-tip]');
@@ -414,6 +505,7 @@ document.addEventListener('click', e => {
   if (!host) return;
   if (e.target.closest('.dn')) return;   // a figure: drill.js opens its list
   const sv = e.target.closest('[data-save]'); if (sv) { retDownload(sv.dataset.save); return; }
+  const bs = e.target.closest('[data-basis]'); if (bs) { const k = bs.dataset.basis === 'kpi' ? 'kpi' : 'period'; if (k !== RET.basis) { RET.basis = k; RET.all = false; if (k === 'kpi') RET.rank = 'same'; retSave(); renderRetention(); } return; }
   const t = e.target.closest('[data-team]'); if (t) { RET.team = t.dataset.team; RET.all = false; retSave(); retStylists(); return; }
   const k = e.target.closest('[data-rank]'); if (k) { RET.rank = k.dataset.rank; retSave(); retStylists(); return; }
   if (e.target.id === 'retRes') { RET.res = e.target.checked ? 1 : 0; RET.all = false; retSave(); retStylists(); return; }
