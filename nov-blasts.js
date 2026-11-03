@@ -12,9 +12,9 @@
   function fmtN(n) { return Number(n || 0).toLocaleString('en-GB'); }
   var BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' }, BKEYS = ['SAA', 'KCA', 'MC', 'AQ'];
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  var TABS = ['messages', 'before', 'replies'];
+  var TABS = ['messages', 'before'];
   var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
-  var D = null, LIVE = null, LEFT = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null;
+  var D = null, LIVE = null, LEFT = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null, termsFor = '', draft = {};
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   window.nvbUrlParts = function () {
     var p = [], first = D && D.items.filter(isBlast)[0], b = D ? cur : wantBlast, t = D ? tab : (wantTab || 'messages');
@@ -109,7 +109,7 @@
     return '<p class="nvb-small nvb-counted">Clients counted ' + esc(fat(LIVE.at)) + ', Dubai time, from our sales records. ' + (canEdit() ? '<button type="button" class="nvb-link" data-nvb="recount">Count again</button>' : '') + '</p>';
   }
   function tabsHtml() {
-    var t = [['decide', 'Decisions', 'Coach Emma', openDecs().length], ['messages', 'Messages', 'Everyone', 0], ['before', 'Before sending', 'Kate', openTasks().length], ['replies', 'Replies', 'Call centre', 0]].filter(function (x) { return x[0] !== 'decide' || decs().length; });
+    var t = [['decide', 'Decisions', 'Coach Emma', openDecs().length], ['messages', 'Messages', 'Everyone', 0], ['before', 'Before sending', 'Kate', openTasks().length]].filter(function (x) { return x[0] !== 'decide' || decs().length; });
     return '<div class="nvb-tabs" role="tablist">' + t.map(function (x) {
       return '<button type="button" role="tab" class="' + (tab === x[0] ? 'on' : '') + '" data-nvb="tab:' + x[0] + '" aria-selected="' + (tab === x[0]) + '"><b>' + x[1] + '</b><span>' + x[2] + '</span>' + (x[3] ? '<i class="dot" aria-label="' + x[3] + ' open">' + x[3] + '</i>' : '') + '</button>';
     }).join('') + '</div>';
@@ -259,6 +259,32 @@
     }).join('');
     return '<div class="nvb-left"><span class="nvb-lefth"><b>Left out: ' + fmtN(out) + '</b> of the ' + fmtN(fit) + ' who fit this blast</span>' + rows + '<span class="nvb-small">Counted ' + esc(fat(LEFT.at)) + ', Dubai time.</span></div>';
   }
+  /* Review and comments (Kate, 3 Nov 2026: "anyone can leave a comment"): anyone who can open this page can comment; Approve and Needs changes stay with the editors. Same as Campaign Blasts. */
+  function reviewHtml(b, rv, ed) {
+    var cm = (D.comments || []).filter(function (c) { return c.blast === b.id; }), lv5 = D.level === 5;
+    var thread = cm.length ? cm.map(function (c) {
+      return '<div class="cbl-cm' + (/^emma/i.test(c.by) ? ' emma' : '') + '"><div class="cbl-cm-h"><b>' + esc(c.by) + '</b><span>' + esc(fat(c.at)) + ((c.mine || lv5) ? ' <button type="button" data-nvb="cdel:' + c.id + '">Delete</button>' : '') + '</span></div><p>' + esc(c.body) + '</p></div>';
+    }).join('') : '<p class="cbl-none">No comments yet. Say what you noticed.</p>';
+    return '<div class="cbl-card cbl-rev" id="nvbReview"><div class="cbl-rev-top"><h3>Review and comments</h3>' + (ed
+        ? '<div class="cbl-seg" role="group" aria-label="Review"><button type="button" data-nvb="rev:ok" class="ok' + (rv === 'ok' ? ' on' : '') + '">Approve</button><button type="button" data-nvb="rev:changes" class="changes' + (rv === 'changes' ? ' on' : '') + '">Needs changes</button></div>'
+        : '<span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span>') + '</div>' +
+      (ed ? '' : '<p class="cbl-note">You can read the messages and leave comments. Approving is for Coach Emma and Kate.</p>') +
+      (rv !== 'none' && b.review_by ? '<div class="cbl-by">' + (rv === 'ok' ? 'Approved' : 'Marked needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + (ed ? '. Tap the same button again to undo.' : '') + '</div>' : '') +
+      '<div class="cbl-thr">' + thread + '</div>' +
+      '<label class="cbl-q" for="nvbCmt">What did you notice? Would this make you reply? What would you change, and why?</label>' +
+      '<textarea id="nvbCmt" maxlength="2000" placeholder="Write what you noticed"></textarea>' +
+      (errMsg ? '<p class="cbl-err" role="alert">' + esc(errMsg) + '</p>' : '') +
+      '<div class="cbl-row"><button type="button" class="cbl-pill" data-nvb="post">Post comment</button><span class="cbl-chip">Posting as ' + esc(D.me) + '</span></div></div>';
+  }
+  function knowHtml() {
+    return fold('know', 'For the call centre: three things to know', '', '<div class="nvb-rules"><div><b>She writes STOP.</b> Honour it at once. Do not reply with an offer.</div><div><b>Never resend inside 24 hours.</b> A message Meta held back is not charged and is not to be sent again.</div><div><b>Al Quoz is shut Sundays and Mondays.</b> Its end date is Sat 28 Nov.</div></div>');
+  }
+  // The Terms and Conditions of a blast, in a pop-up (they used to sit in a Replies lane, which the phones made redundant).
+  function termsModalHtml() {
+    var b = item(termsFor), tm = item('terms'), t = b && b.data.tkey && tm && tm.data ? tm.data[b.data.tkey] : null; if (!t) return '';
+    return '<div class="cbl"><div class="cbl-modal" data-nvb="termsx"><div class="cbl-bigcal cbl-card nvb-tcm" role="dialog" aria-modal="true" aria-label="' + esc(t.title) + '"><div class="cbl-big-h"><b>' + esc(t.title) + '</b><button type="button" class="cbl-big-x" data-nvb="termsx">Close</button></div>' +
+      '<p class="cbl-hint">' + esc(t.intro) + '</p><ol class="nvb-tcl">' + (t.pts || []).map(function (p) { return '<li><b>' + esc(p[0]) + '</b> ' + esc(p[1]) + '</li>'; }).join('') + '</ol></div></div></div>';
+  }
   function blastMain(b) {
     var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = sorted().map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
     var showWarm = c ? c.warm > 0 : true, lanes = (showWarm ? laneHtml('Warm', 'warm', b, c) : '') + laneHtml('Standard', 'std', b, c);
@@ -275,13 +301,9 @@
       '<div class="cbl-phones" id="nvbPhones">' + lanes + '</div>' +
       '<div class="nvb-after nvb-afterrow">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') +
       '<button type="button" class="nvb-btn' + (sim[b.id] ? ' pri' : '') + '" data-nvb="sim:' + esc(b.id) + '" aria-pressed="' + (sim[b.id] ? 'true' : 'false') + '">If she replies</button></div>' +
-      (sim[b.id] ? '<p class="nvb-small nvb-afterrow">What the call centre says, and the terms, are in <button type="button" class="nvb-lnk" data-nvb="reply:' + esc(b.id) + '">Replies</button>.</p>' : '') +
       '<p class="nvb-small nvb-afterrow">Warm: last visit in the last 90 days' + warmSince() + '. ' + WHY_SPLIT + '</p>' +
-      '<div class="cbl-card cbl-rev" id="nvbReview"><div class="cbl-rev-top"><h3>Emma: review</h3>' + (ed
-        ? '<div class="cbl-seg" role="group" aria-label="Review"><button type="button" data-nvb="rev:ok" class="ok' + (rv === 'ok' ? ' on' : '') + '">Approve</button><button type="button" data-nvb="rev:changes" class="changes' + (rv === 'changes' ? ' on' : '') + '">Needs changes</button></div>'
-        : '<span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span>') + '</div>' +
-      (rv !== 'none' && b.review_by ? '<div class="cbl-by">' + (rv === 'ok' ? 'Approved' : 'Marked needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + (ed ? '. Tap the same button again to undo.' : '') + '</div>' : '') + '</div>' +
-      '<div class="nvb-stack">' + fold('who', 'Who gets it, and who is left out', '', who) + fold('facts', 'Cost, target and test', '', facts) + planHtml() + octHtml() + '</div>';
+      reviewHtml(b, rv, ed) +
+      '<div class="nvb-stack">' + fold('who', 'Who gets it, and who is left out', '', who) + fold('facts', 'Cost, target and test', '', facts) + planHtml() + octHtml() + knowHtml() + '</div>';
   }
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
@@ -351,7 +373,6 @@
       (rules.length ? '<div class="nvb-stack">' + fold('rules', 'Already settled', plural(rules.length, 'rule', 'rules') + ', nothing to do', '<div class="nvb-rules">' + rules.map(function (r) { return '<div><b>' + esc(r[0]) + '.</b> ' + esc(r[1]) + '</div>'; }).join('') + '</div>') + '</div>' : '') + '</div>';
   }
 
-  /* ---------- lane 4: Replies, the call centre ---------- */
   // The simulation inside the phone (Kate, 3 Nov 2026, the same idea as Campaign Blasts): she types a reply, the call centre is told, and the script she gets back. The tap is only kept on this page.
   function simHtml(b) {
     if (!sim[b.id]) return '';
@@ -361,27 +382,15 @@
       '<div class="cbl-notify">Call centre notified in respond.io</div>' +
       (script ? '' : '<p class="nvb-small nvb-simnote">No reply script written yet for this blast. The call centre answers in the salon’s own warm words.</p>');
   }
-  function repliesHtml() {
-    var bs = blasts(), b = blast(rb), d = b.data, rp = item('reply'), tm = item('terms'), script = rp && rp.data ? rp.data[b.id] : null, terms = tm && d.tkey && tm.data ? tm.data[d.tkey] : null;
-    var pick = '<div class="nvb-pick" role="group" aria-label="Which message did she get?">' + bs.map(function (x) { return '<button type="button" class="' + (b.id === x.id ? 'on' : '') + '" data-nvb="rb:' + esc(x.id) + '">' + esc(x.data.short || x.data.title) + '</button>'; }).join('') + '</div>';
-    var say = script ? '<div class="nvb-card nvb-say"><span class="eyebrow">Say this, inside her 24 hours</span><div class="script">' + esc(script).replace(/\{\{1\}\}/g, '<mark>[first name]</mark>').replace(/\{\{2\}\}/g, '<mark>' + esc(BR.SAA) + '</mark>').replace(/\{\{3\}\}/g, '<mark>' + esc(d.end || '30 November 2026') + '</mark>') + '</div>' +
-        '<div class="row"><button type="button" class="nvb-btn pri" data-nvb="copy">' + (copied ? 'Copied' : 'Copy reply') + '</button>' + (rp.data.note ? '<span class="nvb-small">' + esc(rp.data.note) + '</span>' : '') + '</div></div>'
-      : '<div class="nvb-card nvb-gap"><b>No reply script written yet for ' + esc((d.short || d.title).toLowerCase()) + '.</b><br>Until there is one, answer in the salon’s own warm words, keep to what the message said, and ask for the days that suit her. Kate or Emma to write it.</div>';
-    var know = '<div class="nvb-card nvb-box"><h3>Three things to know</h3><div class="nvb-rules"><div><b>She writes STOP.</b> Honour it at once. Do not reply with an offer.</div><div><b>Never resend inside 24 hours.</b> A message Meta held back is not charged and is not to be sent again.</div><div><b>Al Quoz is shut Sundays and Mondays.</b> Its clients go on Tuesday.</div></div></div>';
-    var tx = terms ? '<details class="nvb-fold nvb-terms" data-fold="terms"' + (opened.terms ? ' open' : '') + '><summary><span>' + esc(terms.title) + ' <small>' + plural((terms.pts || []).length, 'point', 'points') + '</small></span></summary><div class="in"><p>' + esc(terms.intro) + '</p><ol>' +
-        (terms.pts || []).map(function (p) { return '<li><b>' + esc(p[0]) + '</b> ' + esc(p[1]) + '</li>'; }).join('') + '</ol></div></details>'
-      : '<div class="nvb-card nvb-gap">' + (d.tkey ? 'The terms are not loaded yet.' : 'No terms for this message: there is no offer in it.') + '</div>';
-    return '<div class="nvb-pane"><h2>Replies</h2><p class="lead">For the call centre team. She wrote back: pick the message she got, say the reply, keep the terms to hand.</p>' + pick + '<div class="nvb-stack">' + say + tx + know + '</div></div>';
-  }
-
   function render(keep) {
     var el = main(); if (!el) return;
     var y = window.scrollY, thY = {}; [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) { thY[t.getAttribute('data-key')] = t.scrollTop; });
-    var body = tab === 'decide' && decs().length ? decideHtml() : tab === 'before' ? beforeHtml() : tab === 'replies' ? repliesHtml() : messagesHtml();
+    var body = tab === 'decide' && decs().length ? decideHtml() : tab === 'before' ? beforeHtml() : messagesHtml();
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
       '<div class="nvb-chipsrow"><span class="chip warn">Draft, nothing sent</span><span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
-      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + '</div>';
+      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + '</div>';
+    var cta = document.getElementById('nvbCmt'); if (cta) { cta.value = draft[cur] || ''; cta.oninput = function () { draft[cur] = cta.value; }; }
     [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
       var k = t.getAttribute('data-key'); t.scrollTop = thY[k] || 0;
       if (flowScroll === k) { var outs = t.querySelectorAll('.cbl-out'), last = outs[outs.length - 1]; if (last) t.scrollTop += last.getBoundingClientRect().top - t.getBoundingClientRect().top - 10; }
@@ -418,7 +427,7 @@
       else if (k === 'flowreset') { delete fl[v]; render(true); }
       else if (k === 'side') { sideOpen = !sideOpen; render(true); }
       else if (k === 'big') { big = true; render(true); }
-      else if (k === 'close') { if (t.classList.contains('cbl-modal') && e.target !== t) return; big = false; render(true); }
+      else if (k === 'close' || k === 'termsx') { if (t.classList.contains('cbl-modal') && e.target !== t) return; big = false; termsFor = ''; render(true); }
       else if (k === 'sel') { cur = v; rb = v; var sb2 = blast(v); if (sb2) { var cd2 = parts(sb2.data.date); cal = { y: cd2.getFullYear(), m: cd2.getMonth() }; } sideOpen = false; big = false; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
       else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; return rpc('nov_blast_leftout', { p_recount: true }).then(function (l) { LEFT = l; }).catch(function (e) { console.error(e); }); }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
       else if (k === 'sched') {
@@ -435,8 +444,9 @@
       else if (k === 'aud') { aud = v; render(true); }
       else if (k === 'len') { len = v; render(true); }
       else if (k === 'rev') { var b = blast(cur); if (!b || !canEdit()) return; act(function () { return rpc('nov_blast_review', { p_id: b.id, p_review: b.review === v ? 'none' : v }); }); }
-      else if (k === 'reply') { rb = v; cur = v; opened.terms = false; tab = 'replies'; render(); toTop(); syncUrl(); }
-      else if (k === 'terms') { rb = v; cur = v; opened.terms = true; tab = 'replies'; render(); toTop(); syncUrl(); }
+      else if (k === 'terms') { termsFor = v; render(true); }
+      else if (k === 'post') { var ta = document.getElementById('nvbCmt'), body = ta ? ta.value : '', bid = cur; if (!String(body).trim()) { errMsg = 'Write a comment first'; render(true); return; } draft[bid] = ''; act(function () { return rpc('nov_blast_comment', { p_id: bid, p_body: body }); }); }
+      else if (k === 'cdel') { act(function () { return rpc('nov_blast_comment_delete', { p_comment_id: +v }); }); }
       else if (k === 'rb') { rb = v; cur = v; opened.terms = false; copied = false; render(true); syncUrl(); }
       else if (k === 'more') { more = more === v ? '' : v; render(true); }
       else if (k === 'done') { if (!canEdit()) return; var was = isDone(v); act(function () { return rpc('nov_blast_check', { p_id: v, p_done: !was }); }); }
@@ -447,7 +457,7 @@
       }
     });
   }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && big && main() && main().offsetParent !== null) { big = false; render(true); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && (big || termsFor) && main() && main().offsetParent !== null) { big = false; termsFor = ''; render(true); } });
   document.addEventListener('visibilitychange', function () {   // come back to the tab and see what others chose
     if (document.visibilityState !== 'visible' || !D || !main() || main().offsetParent === null) return;
     Promise.all([reload(), loadLive()]).then(function () { render(true); }).catch(function () { /* keep what is on screen */ });

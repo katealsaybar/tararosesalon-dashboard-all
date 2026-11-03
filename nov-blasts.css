@@ -254,3 +254,7 @@
 .nvb .nvb-lf b{font-family:inherit;font-size:15px;font-weight:600;color:var(--text);white-space:nowrap}
 .nvb .cbl-nums .nvb-left b{font-family:'Inter',sans-serif;font-size:15px;font-weight:600;line-height:1.3}
 .nvb .cbl-nums .nvb-left .nvb-small{font-size:12.5px}
+/* the Terms and Conditions pop-up */
+.nvb .nvb-tcm{width:min(760px,100%)}
+.nvb .nvb-tcl{margin:8px 0 0;padding-left:22px;display:grid;gap:11px;font-size:15px;line-height:1.5}
+.nvb .nvb-tcl li b{font-family:inherit;font-size:inherit;font-weight:600}
