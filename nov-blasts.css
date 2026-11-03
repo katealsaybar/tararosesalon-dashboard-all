@@ -258,3 +258,5 @@
 .nvb .nvb-tcm{width:min(760px,100%)}
 .nvb .nvb-tcl{margin:8px 0 0;padding-left:22px;display:grid;gap:11px;font-size:15px;line-height:1.5}
 .nvb .nvb-tcl li b{font-family:inherit;font-size:inherit;font-weight:600}
+.nvb-pl-r.nvb-pl3{grid-template-columns:minmax(0,1.7fr) 70px minmax(0,1.3fr)}
+@media (max-width:640px){.nvb-pl-r.nvb-pl3{grid-template-columns:minmax(0,1.5fr) 56px minmax(0,1.3fr)}}

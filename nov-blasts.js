@@ -328,22 +328,25 @@
       '<button type="button" class="nvb-btn pri" data-nvb="sched:save">Save</button><button type="button" class="nvb-btn" data-nvb="sched:close">Cancel</button>' +
       '<p class="nvb-small">Al Quoz is closed Sundays and Mondays, so its clients move to Tuesday on their own. No Fridays. Nothing is sent from here.</p></div>';
   }
-  // The pace is the one October used: about 100 messages every 30 minutes from each salon's number, from 11:30 am. Past 4 pm is flagged.
+  // One number sends everything (Belle, 3 Nov 2026: "samin i-send, kami din sasagot": the call centre sends and answers), so this is a queue on one number, blast after blast,
+  // at about 200 every 30 minutes (Kate, 3 Nov). Past 9 pm is flagged: the call centre has to answer the replies that day.
+  var PACE = 200;
   function planHtml() {
     if (!LIVE || !LIVE.blasts) return '';
-    var days = {};
-    var st = {};
-    blasts().forEach(function (b) { var c = lv(b.id); BKEYS.forEach(function (k) { var iso = k === 'AQ' ? aqDate(b) : b.data.date; (days[iso] = days[iso] || {})[k] = ((days[iso] || {})[k] || 0) + (c[k] || 0); if (c[k]) st[iso + k] = Math.min(st[iso + k] || 1e9, clockMins(b)); }); });
-    var keys = Object.keys(days).sort();
-    var head = '<div class="nvb-pl-r h"><span>Salon</span>' + keys.map(function (iso) { return '<span>' + esc(fdate(iso)) + '</span>'; }).join('') + '</div>';
-    var rows = BKEYS.map(function (k) {
-      return '<div class="nvb-pl-r"><span>' + BR[k] + '</span>' + keys.map(function (iso) {
-        var n = days[iso][k] || 0; if (!n) return '<span class="z">none</span>';
-        var end = (st[iso + k] || 11 * 60 + 30) + Math.ceil(n / 100) * 30, over = end > 16 * 60;
-        return '<span class="' + (over ? 'over' : '') + '"><b>' + fmtN(n) + '</b> by ' + fmtClock(end) + (over ? ', too late' : '') + '</span>';
-      }).join('') + '</div>';
-    }).join('');
-    return fold('plan', 'Sending plan', 'about 100 every 30 minutes per salon, all done by 4 pm', head + rows + '<p>Each salon sends from its own number from the time set on its blast (11:30 am unless moved). Press Count again each morning before sending: it takes in any STOP replies and the opt-out sheet.</p>');
+    var byDay = {};
+    sorted().forEach(function (b) { var c = lv(b.id); (byDay[b.data.date] = byDay[b.data.date] || []).push({ b: b, n: c ? c.n : 0 }); });
+    var rows = '<div class="nvb-pl-r nvb-pl3 h"><span>Blast</span><span>Clients</span><span>Sent between</span></div>';
+    Object.keys(byDay).sort().forEach(function (iso) {
+      var t = null, tot = 0;
+      byDay[iso].forEach(function (x) {
+        if (!x.n) return;
+        var start = t == null ? clockMins(x.b) : t, end = start + Math.ceil(x.n / PACE) * 30;
+        t = end; tot += x.n;
+        rows += '<div class="nvb-pl-r nvb-pl3"><span>' + esc(fdate(iso)) + ', ' + esc(x.b.data.short || x.b.data.title) + '</span><span><b>' + fmtN(x.n) + '</b></span><span>' + esc(fmtClock(start)) + ' to ' + esc(fmtClock(end)) + '</span></div>';
+      });
+      if (t != null) { var over = t > 21 * 60; rows += '<div class="nvb-pl-r nvb-pl3"><span><b>All done</b></span><span><b>' + fmtN(tot) + '</b></span><span class="' + (over ? 'over' : '') + '"><b>' + esc(fmtClock(t)) + '</b>' + (over ? ', too late for replies' : '') + '</span></div>'; }
+    });
+    return fold('plan', 'Sending plan', 'one number, about ' + PACE + ' every 30 minutes', rows + '<p>The call centre sends every blast from the call centre WhatsApp number, one after the other, from the time set on the first blast of the day (noon unless moved), and answers the replies. At 100 every 30 minutes it would take twice as long. Press Count again before sending: it takes in any STOP replies and the opt-out sheet.</p>');
   }
   function octHtml() {
     var o = item('oct'); if (!o) return '';   // the figures live in the database (nov_blast_items 'oct'), not in this public file
