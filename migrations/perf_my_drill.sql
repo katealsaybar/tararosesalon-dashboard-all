@@ -52,7 +52,7 @@ begin
            'rb_visits', r.rb_visits, 'rb_n', r.rb_n,
            'clients', coalesce(l.clients, 0), 'req', coalesce(l.req, 0), 'salon', coalesce(l.salon, 0), 'newc', coalesce(l.newc, 0),
            'ncr', coalesce(l.ncr, 0), 'lreb', coalesce(l.lreb, 0), 'treat', round(coalesce(l.treat, 0), 2),
-           'uh', round(u.uh, 1), 'ah', round(u.ah, 1)) order by x.d), '[]'::jsonb)
+           'uh', round(u.uh, 4), 'ah', round(u.ah, 4)) order by x.d), '[]'::jsonb)
     into out
     from days x left join p on p.d = x.d left join r on r.d = x.d left join l on l.d = x.d left join u on u.d = x.d;
   return out;

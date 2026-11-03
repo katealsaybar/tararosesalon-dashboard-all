@@ -211,7 +211,7 @@ function dgSpec(k, o) {
   if (k === 'reputation') { const to = w.to, from = M.addDays(to, -89); return M.reviews({ from, to, title: 'Your Google reviews', sub: `The reviews behind your star score: every Google review that counts for you in the 90 days to ${M.dText(to)}.` }); }
   if (k === 'google_reviews') return M.reviews({ from: w.from, to: w.to, list: o.win ? null : d.numbers.review_list, title: 'Your Google reviews' });
   if (k === 'social_feed') return M.posts({ from: w.from, to: w.to, list: o.win ? null : d.numbers.social_list, title: 'Your Instagram posts' });
-  return DG_KIND[k] ? M.days(DG_KIND[k], { from: w.from, to: w.to, src }) : null;
+  return DG_KIND[k] ? M.days(DG_KIND[k], { from: w.from, to: w.to, src, free: FREE }) : null;
 }
 // html is the figure as drawn, v its value: nothing (or a zero count) has no rows to open.
 function dg(k, html, v, o) {
@@ -717,7 +717,7 @@ async function renderStylist() {
       : n.clients > 0 ? `<br>${dg('rebooking_pct', `${fmt(n.rebooked, 'num')} of ${fmt(n.rebook_visits ?? n.clients, 'num')} clients rebooked`, n.rebooked)}` : '')
       + `<br><span class="rb2">${rbTxtDg(rbBoth(RAW.numbers))}</span>`),
     tile('clients', 'Total clients', d, pace),
-    tile('column_fill_pct', 'Column fill', d, pace, `<br>${dg('column_fill_pct', `${fmt(n.booked_hours, 'num')} of ${fmt(n.available_hours, 'num')} hours booked`, n.booked_hours)}`),
+    tile('column_fill_pct', 'Column fill', d, pace, `<br>${dg('column_fill_pct', `${fmt(n.booked_hours, 'num')} of ${fmt(n.available_hours, 'num')} hours booked`, n.booked_hours > 0 ? n.booked_hours : null)}`),
   ].join('');
 
   const pct = v => n.clients > 0 ? ` · ${Math.round(100 * v / n.clients)}%` : '';

@@ -204,8 +204,7 @@ function yearTab() {
     foot: { wk: 'Total', from: '', sales: total, aim: '', at: atAim != null ? atAim + ' of ' + counted.length : '', retail: full.filter(w => !onLeave(w) && !noData(w)).reduce((a, w) => a + (w.numbers.retail || 0), 0), cl: full.filter(w => !onLeave(w) && !noData(w)).reduce((a, w) => a + (w.numbers.clients || 0), 0), rb: full.filter(w => !onLeave(w) && !noData(w)).reduce((a, w) => a + (w.numbers.rebooked || 0), 0) },
     sub: 'Your sales for each week of the year from Phorest, with the aim for that week (less for leave) and whether you reached it. The week in progress is not counted until it ends. Clients and rebooked are the branch sheet\u2019s count.' }) : null;
   const yfig = (html, v, sp) => MD && MD.on && sp && v ? MD.fig(html, sp) : html;
-  const today = new Date().toISOString().slice(0, 10);
-  const wfig = (html, v, kind, w) => { if (!MD || !MD.on || !(v > 0)) return html; const wk = MD.week(w.week_start), lo = y.year + '-01-01', hi = y.year + '-12-31'; return MD.fig(html, MD.days(kind, { from: wk.from < lo ? lo : wk.from, to: [wk.to, today, hi].sort()[0], src: 'ledger' })); };
+  const wfig = (html, v, kind, w) => { if (!MD || !MD.on || !(v > 0)) return html; const wk = MD.week(w.week_start), lo = y.year + '-01-01', hi = y.year + '-12-31'; return MD.fig(html, MD.days(kind, { from: wk.from < lo ? lo : wk.from, to: [wk.to, hi].sort()[0], src: 'ledger' })); };
   const rows = allWeeks.map(w => {
     const n = w.numbers || {};
     const hit = wkAim && !onLeave(w) && !noData(w) && aimOf(w) > 0 && n.total_revenue >= aimOf(w);
@@ -285,8 +284,8 @@ function yearBarClicks() {
   svg.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('.bar'); if (!b || kind === 'touch') return;
     const w = (S.year.weeks || []).find(x => String(x.week_no) === b.dataset.w); if (!w || !(w.numbers && w.numbers.total_revenue > 0)) return;
-    const wk = M.week(w.week_start), today = new Date().toISOString().slice(0, 10), lo = S.year.year + '-01-01', hi = S.year.year + '-12-31';
-    M.show(M.days('sheet', { from: wk.from < lo ? lo : wk.from, to: [wk.to, today, hi].sort()[0], src: 'ledger' }), null);
+    const wk = M.week(w.week_start), lo = S.year.year + '-01-01', hi = S.year.year + '-12-31';
+    M.show(M.days('sheet', { from: wk.from < lo ? lo : wk.from, to: [wk.to, hi].sort()[0], src: 'ledger' }), null);
   });
   svg.querySelectorAll('.bar').forEach(b => { b.style.cursor = 'pointer'; });
 }

@@ -60,6 +60,9 @@
   // ── What each figure is made of ──────────────────────────────
   // c: columns (source-aware), f: the cells of one record (a day, a week or the whole window: they are all sums of days), keep: whether a day belongs on the list.
   const AED = 'aed', NUM = 'num', PCT = 'pct';
+  // Kate, 30 Oct 2026: the Phorest clients count is PAID visits (redos, consultations and AED 0 services left out); the page's switch brings them back. ALL says which one this list is in.
+  let ALL = false;
+  const VIS = r => ALL ? r.visits : r.pvisits;
   const SRC_NOTE = { ledger: 'counted per staff from the branch sheet reception fills in', phorest: 'Phorest’s own count' };
   const K = {
     revenue:  { t: 'Total revenue', c: () => [['svc', 'Services', AED]], f: r => ({ svc: r.svc }), keep: r => r.svc > 0,
@@ -79,38 +82,40 @@
     retailpct:{ t: 'Retail %', c: () => [['retail', 'Retail', AED], ['svc', 'Services', AED], ['p', 'Retail %', PCT]], f: r => ({ retail: r.retail, svc: r.svc, p: pc(r.retail, r.svc) }), keep: r => r.retail > 0 || r.svc > 0,
       s: () => 'Retail as a share of your services. The total row is the figure on your page.' },
     avgbill:  { t: 'Average bill', c: () => [['svc', 'Services', AED], ['cl', 'Clients', NUM], ['avg', 'Average bill', AED], ['avgr', 'With retail', AED]],
-      f: (r, src) => { const cl = src === 'phorest' ? r.visits : r.clients; return { svc: r.svc, cl, avg: cl > 0 ? r.svc / cl : null, avgr: cl > 0 ? (r.svc + r.retail) / cl : null }; }, keep: (r, src) => r.svc > 0 || (src === 'phorest' ? r.visits : r.clients) > 0,
+      f: (r, src) => { const cl = src === 'phorest' ? VIS(r) : r.clients; return { svc: r.svc, cl, avg: cl > 0 ? r.svc / cl : null, avgr: cl > 0 ? (r.svc + r.retail) / cl : null }; }, keep: (r, src) => r.svc > 0 || (src === 'phorest' ? VIS(r) : r.clients) > 0,
       s: src => `Your services before VAT divided by your clients (${SRC_NOTE[src]}). The total row is the figure on your page.` },
-    clients:  { t: 'Clients', c: () => [['cl', 'Clients (branch sheet)', NUM], ['vi', 'Visits (Phorest)', NUM]], f: r => ({ cl: r.clients, vi: r.visits }), keep: r => r.clients > 0 || r.visits > 0,
-      s: () => 'The branch sheet counts clients per staff, so a client with two stylists is counted once for each. Phorest counts visits. Each has its own column.' },
+    clients:  { t: 'Clients', c: () => [['cl', 'Clients (branch sheet)', NUM], ['vi', ALL ? 'Visits (Phorest, all)' : 'Paid visits (Phorest)', NUM]].concat(ALL ? [] : [['al', 'All visits (Phorest)', NUM]]),
+      f: r => ({ cl: r.clients, vi: VIS(r), al: r.visits }), keep: r => r.clients > 0 || r.visits > 0 || r.pvisits > 0,
+      s: () => 'The branch sheet counts clients per staff, so a client with two stylists is counted once for each. Phorest counts visits' + (ALL ? ': every visit it rang up under your name, redos, consultations and AED 0 services included.' : ': one paid visit per client per day; redos, consultations and AED 0 services are left out (the last column counts every visit).') },
     rebook:   { t: 'Rebooking', c: src => [['cl', src === 'phorest' ? 'Clients counted' : 'Clients', NUM], ['rb', 'Rebooked', NUM], ['p', 'Rebooking %', PCT]],
       f: (r, src) => { const cl = src === 'phorest' ? r.rb_visits : r.clients, rb = src === 'phorest' ? r.rb_n : r.lreb; return { cl, rb, p: pc(rb, cl) }; }, keep: (r, src) => (src === 'phorest' ? r.rb_visits : r.clients) > 0,
       s: src => `Clients who booked their next visit before leaving (${SRC_NOTE[src]}). The total row is the figure on your page.` },
-    request:  { t: 'Request rate', c: src => src === 'phorest' ? [['rq', 'Asked for you', NUM], ['cl', 'Visits', NUM], ['p', 'Request rate', PCT]] : [['rq', 'Asked for you', NUM], ['nr', 'New client requests', NUM], ['cl', 'Clients', NUM], ['p', 'Request rate', PCT]],
-      f: (r, src) => src === 'phorest' ? { rq: r.rqs, cl: r.visits, p: pc(r.rqs, r.visits) } : { rq: r.req, nr: r.ncr, cl: r.clients, p: pc(r.req + r.ncr, r.clients) }, keep: (r, src) => (src === 'phorest' ? r.visits : r.clients) > 0,
+    request:  { t: 'Request rate', c: src => src === 'phorest' ? [['rq', 'Asked for you', NUM], ['cl', ALL ? 'Visits' : 'Paid visits', NUM], ['p', 'Request rate', PCT]] : [['rq', 'Asked for you', NUM], ['nr', 'New client requests', NUM], ['cl', 'Clients', NUM], ['p', 'Request rate', PCT]],
+      f: (r, src) => src === 'phorest' ? { rq: r.rqs, cl: VIS(r), p: pc(r.rqs, VIS(r)) } : { rq: r.req, nr: r.ncr, cl: r.clients, p: pc(r.req + r.ncr, r.clients) }, keep: (r, src) => (src === 'phorest' ? VIS(r) : r.clients) > 0,
       s: src => src === 'phorest' ? 'Visits where the client asked for you by name, from Phorest.' : 'Clients who asked for you by name, plus the new clients who asked for you, over all your clients (branch sheet).' },
-    req:      { t: 'Request', c: () => [['n', 'Asked for you', NUM], ['cl', 'Clients', NUM]], f: (r, src) => src === 'phorest' ? { n: r.rqs, cl: r.visits } : { n: r.req, cl: r.clients }, keep: (r, src) => (src === 'phorest' ? r.rqs : r.req) > 0,
+    req:      { t: 'Request', c: () => [['n', 'Asked for you', NUM], ['cl', 'Clients', NUM]], f: (r, src) => src === 'phorest' ? { n: r.rqs, cl: VIS(r) } : { n: r.req, cl: r.clients }, keep: (r, src) => (src === 'phorest' ? r.rqs : r.req) > 0,
       s: src => `Clients who asked for you by name (${SRC_NOTE[src]}).` },
     salon:    { t: 'Salon clients', c: () => [['n', 'Salon', NUM], ['cl', 'Clients', NUM]], f: r => ({ n: r.salon, cl: r.clients }), keep: r => r.salon > 0,
       s: () => 'Clients the salon gave you, from the branch sheet.' },
-    newc:     { t: 'New clients', c: () => [['n', 'New', NUM], ['cl', 'Clients', NUM]], f: (r, src) => src === 'phorest' ? { n: r.pnew, cl: r.visits } : { n: r.newc, cl: r.clients }, keep: (r, src) => (src === 'phorest' ? r.pnew : r.newc) > 0,
+    newc:     { t: 'New clients', c: () => [['n', 'New', NUM], ['cl', 'Clients', NUM]], f: (r, src) => src === 'phorest' ? { n: r.pnew, cl: VIS(r) } : { n: r.newc, cl: r.clients }, keep: (r, src) => (src === 'phorest' ? r.pnew : r.newc) > 0,
       s: src => `New clients (${SRC_NOTE[src]}).` },
     ncr:      { t: 'New client requests', c: () => [['n', 'New client requests', NUM], ['cl', 'Clients', NUM]], f: r => ({ n: r.ncr, cl: r.clients }), keep: r => r.ncr > 0,
       s: () => 'New clients who asked for you by name, from the branch sheet.' },
     fill:     { t: 'Column fill', c: () => [['uh', 'Hours booked', NUM], ['ah', 'Hours available', NUM], ['p', 'Column fill', PCT]], f: r => ({ uh: r.uh, ah: r.ah, p: pc(r.uh, r.ah) }), keep: r => r.ah > 0 || r.uh > 0,
       s: () => 'Hours you had a client, out of the hours you had available, from Phorest. The total row is the figure on your page.' },
     sheet:    { t: 'Your numbers', c: () => [['svc', 'Services', AED], ['retail', 'Retail', AED], ['cl', 'Clients', NUM], ['rb', 'Rebooked', NUM]],
-      f: (r, src) => ({ svc: r.svc, retail: r.retail, cl: src === 'phorest' ? r.visits : r.clients, rb: src === 'phorest' ? r.rb_n : r.lreb }), keep: r => r.svc > 0 || r.retail > 0 || r.clients > 0 || r.visits > 0,
+      f: (r, src) => ({ svc: r.svc, retail: r.retail, cl: src === 'phorest' ? VIS(r) : r.clients, rb: src === 'phorest' ? r.rb_n : r.lreb }), keep: r => r.svc > 0 || r.retail > 0 || r.clients > 0 || r.visits > 0,
       s: src => `Your sales from Phorest and your clients and rebooked (${SRC_NOTE[src]}).` },
-    phclients:{ t: 'Clients', c: () => [['vi', 'Visits (Phorest)', NUM]], f: r => ({ vi: r.visits }), keep: r => r.visits > 0, s: () => 'The visits you looked after, from Phorest.' },
+    phclients:{ t: 'Clients', c: () => [['vi', ALL ? 'Visits (Phorest, all)' : 'Paid visits (Phorest)', NUM]], f: r => ({ vi: VIS(r) }), keep: r => VIS(r) > 0, s: () => 'The visits you looked after, from Phorest.' },
   };
-  const SUMF = ['svc', 'retail', 'visits', 'rqs', 'pnew', 'rb_visits', 'rb_n', 'clients', 'req', 'salon', 'newc', 'ncr', 'lreb', 'treat', 'uh', 'ah'];
+  const SUMF = ['svc', 'retail', 'visits', 'pvisits', 'rqs', 'pnew', 'rb_visits', 'rb_n', 'clients', 'req', 'salon', 'newc', 'ncr', 'lreb', 'treat', 'uh', 'ah'];
   const blank = () => Object.fromEntries(SUMF.map(k => [k, 0]));
   const add = (a, d) => { SUMF.forEach(k => { a[k] += A(d[k]); }); return a; };
   const nice = v => Math.round(v * 10) / 10;
 
   function build(kind, days, o, view) {
     const k = K[kind], src = o.src === 'phorest' ? 'phorest' : 'ledger';
+    ALL = src === 'phorest' && !!o.free;
     const cols = [{ k: 'date', l: view === 'week' ? 'Week starting' : 'Date', t: 'date' }].concat(k.c(src).map(([key, l, t]) => ({ k: key, l, t })));
     const recs = view === 'week'
       ? [...days.reduce((m, d) => { const w = mondayOf(d.date); m.set(w, add(m.get(w) || blank(), d)); return m; }, new Map())].map(([date, r]) => Object.assign(r, { date }))
@@ -132,7 +137,7 @@
     };
     const views = [{ id: 'day', label: 'By day', load: load('day') }];
     if (long) views.push({ id: 'week', label: 'By week', load: load('week') });
-    return { title: (o.title || k.t) + ' by day', sk: `${kind}-${o.src}-${o.from}-${o.to}`, cur: 'AED', views };
+    return { title: (o.title || k.t) + ' by day', sk: `${kind}-${o.src}-${o.free ? 'all' : 'paid'}-${o.from}-${o.to}`, cur: 'AED', views };
   }
 
   // ── Reviews, posts and fixed lists ───────────────────────────
@@ -163,10 +168,10 @@
   function rows(o) {
     return { title: o.title, sk: o.sk, cur: o.cur || 'AED', views: [{ id: 'r', label: o.label || 'List', load: async () => ({ cols: o.cols, rows: o.rows, foot: o.foot || null, sub: esc(o.sub || ''), note: o.note || '', empty: o.empty || 'Nothing here yet.' }) }] };
   }
-  // Month text 'YYYY-MM' (or an ISO first of month) to its first and last day, the last one held at today for the month in progress.
+  // Month text 'YYYY-MM' (or an ISO first of month) to its first and last day.
   function month(m) {
-    const s = String(m).slice(0, 7), a = s + '-01', d = new Date(a + 'T00:00:00'), z = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)), today = iso(new Date());
-    return { from: a, to: z > today && a <= today ? today : z };
+    const s = String(m).slice(0, 7), a = s + '-01', d = new Date(a + 'T00:00:00'), z = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    return { from: a, to: z };       // the whole month, as perf_dashboard reads it: a day reception has filled in ahead counts in the figure, so it is on the list
   }
   const week = start => ({ from: start, to: addDays(start, 6) });
 
