@@ -546,7 +546,7 @@ function tpRings(st) {
   const r = 20, c = 2 * Math.PI * r;
   return tpTargets(st).map(m => {
     const v = Number(m.v) || 0, frac = m.t ? Math.min(1, v / m.t) : 0;
-    return `<div class="tp-ring" title="${m.l}: ${m.f(v)}${m.t == null ? ', no target set' : ` against ${m.f(m.t)}`}">
+    return `<div class="tp-ring dn-cell"${tpDnAttr(st)} title="${m.l}: ${m.f(v)}${m.t == null ? ', no target set' : ` against ${m.f(m.t)}`}">
       <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
         <circle cx="24" cy="24" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="5"/>
         <circle class="${tpBand(v, m.t)}" cx="24" cy="24" r="${r}" fill="none" stroke-width="5" stroke-linecap="round"
@@ -562,7 +562,8 @@ function tpAim(m) {
 }
 // Ranks 4-10: the same four targets as small tinted tiles.
 function tpTiles(st) {
-  return tpTargets(st).map(m => `<div class="tp-tile ${tpBand(m.v, m.t)}" title="${m.t == null ? 'no target set' : `target ${m.f(m.t)}`}">
+  const dn = tpDnAttr(st);
+  return tpTargets(st).map(m => `<div class="tp-tile dn-cell ${tpBand(m.v, m.t)}"${dn} title="${m.t == null ? 'no target set' : `target ${m.f(m.t)}`}">
     <span>${m.l}</span><b class="tabular">${m.f(m.v)}</b>${tpAim(m)}</div>`).join('');
 }
 
@@ -750,8 +751,74 @@ function tpAddBtn(st) {
 function tpBar(st, lead, cls) {
   const lg = tpLg(), v = lg.get(st);
   const w = lead ? Math.max(18, v / lead * 100) : 18;
-  return `<div class="tp-trk ${cls || ''}"><div class="tp-fill tabular" style="width:${Math.min(100, w)}%;background:${st.branchColor}">${lg.f(v)}</div></div>`;
+  return `<div class="tp-trk ${cls || ''}"><div class="tp-fill tabular" style="width:${Math.min(100, w)}%;background:${st.branchColor}">${tpFig(lg.f(v), st)}</div></div>`;
 }
+// ── EVERY FIGURE OPENS HER DAYS (Kate, 3 Nov 2026) ─────────────────────────────
+// A figure on a person's card or row opens the days she is made of: net take, services, retail, treatments, clients (ledger), rebooked, requests,
+// new clients, and Phorest's visits (and the tracker's rebooked and visits), one row a day (a month when the window is over 92 days). The rows come from
+// the same ledger and Phorest rows the page was built from (window._cachedDailyJoin) run through the same aggregator (aggDailyData) one branch and one
+// day at a time, and the person is picked with the same key the roster merges on, so the days add up to the card. The total row is the card's own
+// figure; where the card works the window out in one go and the days come out a little different, a grey last line says by how much. A rate (rebooking,
+// treatment, retail, avg bill) opens the same list: its parts are the columns, and the total row is what the rate is worked out from.
+function tpRowKey(name, code) {
+  let n = (typeof canonicalStaffName === 'function' ? canonicalStaffName(name) : null) || name;
+  const full = TP_SPLIT_FULL[tpMergeKey(n) + '|' + code];
+  if (full) n = full;
+  const canon = tpMergeKey(n);
+  return TP_SPLIT_NAMES.has(canon) ? canon + '|' + code : canon;
+}
+const TP_DAY_VIEW_MAX = 92;
+const tpDayTxt = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+function tpDaysSpec(st) {
+  const J = window._cachedDailyJoin;
+  if (!window.TRSD || !J || !st || !st.mergeKey || typeof dateFrom === 'undefined' || !dateFrom || !dateTo) return null;
+  if (tpLg().counts) return null;                        // Instagram posts and Google reviews are counted from their own lists, not from days
+  const from = dateToIso(dateFrom), to = dateToIso(dateTo), days = Math.round((dateTo - dateFrom) / 86400000) + 1;
+  if (days < 2) return null;                             // one day: the list would be one row saying what the figure says
+  const codes = (st.branches || [{ code: st.branchCode }]).map(b => b.code);
+  const byDay = days <= TP_DAY_VIEW_MAX, key = d => byDay ? String(d).slice(0, 10) : String(d).slice(0, 7);
+  return { title: `${tpTitle(st.name)} · her ${byDay ? 'days' : 'months'}`, sk: 'podium-' + st.mergeKey + '-' + from + '-' + to, cur: 'AED', views: [{ id: 'days', label: byDay ? 'By day' : 'By month', load: async () => {
+    const M = new Map(), at = (k, c) => { const m = M.get(k) || M.set(k, {}).get(k); return m[c] || (m[c] = { L: [], P: [], R: [] }); };
+    (J.branchStaffRows || []).forEach(r => { if (codes.includes(r.branch) && r.date >= from && r.date <= to) at(key(r.date), r.branch).L.push(r); });
+    (J.phorestStaffRows || []).forEach(r => { if (codes.includes(r.branch) && r.date >= from && r.date <= to) at(key(r.date), r.branch).P.push(r); });
+    (J.rebookRows || []).forEach(r => { if (codes.includes(r.branch) && r.date >= from && r.date <= to) at(key(r.date), r.branch).R.push(r); });
+    const rows = [];
+    [...M.keys()].sort().forEach(k => {
+      const t = { net: 0, svc: 0, retail: 0, tr: 0, cl: 0, rb: 0, rq: 0, nw: 0, pv: 0, rbv: 0, rbr: 0 }; let hit = false;
+      Object.keys(M.get(k)).forEach(code => {
+        const g = M.get(k)[code], d = aggDailyData([], g.L, g.P, g.R); if (!d) return;
+        [].concat(st.isBeauty ? (d.beautyStaff || []) : [], (d.hairStaff || [])).filter(p => tpRowKey(p.name, code) === st.mergeKey).forEach(p => {
+          hit = true;
+          t.net += p.netSalonTake || 0; t.svc += (st.isBeauty ? (p.beautySales || p.hairSalesNet) : p.hairSalesNet) || 0; t.retail += +p.retail || 0; t.tr += p.treatments || 0;
+          t.cl += p.total || 0; t.rb += p.rebooked || 0; t.rq += p.req || 0; t.nw += p.newC || 0;
+          if (p.ph) { t.pv += p.ph.t || 0; t.rbv += p.ph.rbV || 0; t.rbr += p.ph.rbR || 0; }
+        });
+      });
+      if (hit && (t.net || t.cl || t.pv)) rows.push(Object.assign({ k, w: byDay ? tpDayTxt(k) : new Date(k + '-01T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) }, t));
+    });
+    if (!rows.length) return { cols: [], rows: [], empty: 'No days to show for her in this window.' };
+    rows.sort((a, b) => b.k.localeCompare(a.k));
+    const sum = f => rows.reduce((a, r) => a + (+r[f] || 0), 0);
+    const svcCard = (st.isBeauty ? st.beautySales : st.hairSalesNet) || 0, ph = st.ph || {};
+    const card = { net: st.net || 0, svc: svcCard, retail: st.retail || 0, tr: st.treatments || 0, cl: st.total || 0, rb: st.rebooked || 0, rq: st.req || 0, nw: st.newC || 0, pv: ph.t || 0, rbv: ph.rbV || 0, rbr: ph.rbR || 0 };
+    const off = Object.keys(card).some(f => Math.abs(sum(f) - card[f]) >= 0.5);
+    if (off) rows.push(Object.assign({ k: '', w: 'Not matched to a day', _cls: 'dr-muted' }, Object.fromEntries(Object.keys(card).map(f => [f, card[f] - sum(f)]))));
+    const trk = card.rbv > 0 || sum('rbv') > 0;
+    const cols = [{ k: 'w', l: byDay ? 'Day' : 'Month' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'retail', l: 'Retail', t: 'aed' }]
+      .concat(st.isBeauty ? [] : [{ k: 'tr', l: 'Treatments', t: 'aed' }])
+      .concat([{ k: 'cl', l: 'Clients (ledger)', t: 'num' }, { k: 'rb', l: 'Rebooked (ledger)', t: 'num' }, { k: 'rq', l: 'Requests', t: 'num' }, { k: 'nw', l: 'New clients', t: 'num' }, { k: 'pv', l: 'Visits (Phorest)', t: 'num' }])
+      .concat(trk ? [{ k: 'rbr', l: 'Rebooked (tracker)', t: 'num' }, { k: 'rbv', l: 'Visits (tracker)', t: 'num' }] : []);
+    return { cols, rows, foot: Object.assign({ w: 'Total' }, card),
+      sub: `${tpTitle(st.name)}, ${tpDayTxt(from)} to ${tpDayTxt(to)}. What her card on the Podium Race is made of, ${byDay ? 'a day' : 'a month'} at a time: the ledger rows reception typed (clients, rebooked, requests and new clients have no client names behind them) and Phorest's own rows. A rate on the card (rebooking, treatment, retail, average bill) is worked out from the total row.`,
+      note: off ? 'The grey last line is the difference between her card, which works the whole window out in one go, and the rows above, which work it out one ' + (byDay ? 'day' : 'month') + ' at a time.' : '' };
+  } }] };
+}
+// The figure as a clickable span, or the plain html.
+const tpSafeSpec = st => { try { return tpDaysSpec(st); } catch (e) { return null; } };
+const tpFig = (html, st) => { const sp = tpSafeSpec(st); return sp ? TRSD.num(html, sp) : html; };
+// For an element that is not a span (a ring, a tile, a block): the attributes that make the whole element the figure.
+const tpDnAttr = st => { const sp = tpSafeSpec(st); return sp ? ` data-dn="${TRSD.reg(sp)}" role="button" tabindex="0"` : ''; };
+
 // Phorest's own count for her, beside the ledger's (Kate, 8 Oct 2026: both computations).
 // Visits are Phorest's Staff Daily per employee; the average bill is her Phorest services over them.
 function tpPhLine(st) {
@@ -760,7 +827,7 @@ function tpPhLine(st) {
   // Visits in Phorest and no ledger rows at all: usually a different spelling of her name in the ledger.
   const flag = (st.noLedger && st.ph.t > 0 && !(typeof isBahrainView === 'function' && isBahrainView()))
     ? ' · <b title="Phorest has visits for her but the ledger has no rows. Check how her name is spelled in the ledger.">no ledger rows</b>' : '';
-  return `<div class="tp-ph tabular">Phorest: ${tpNum(st.ph.t)} visits${avg}${flag}</div>`
+  return `<div class="tp-ph tabular">Phorest: ${tpFig(tpNum(st.ph.t), st)} visits${avg}${flag}</div>`
     + (tpNoLedger(st) && st.rebookPhorest == null ? '' : `<div class="tp-ph tabular" title="Rebooking from Phorest\u2019s tracker and from the branch ledger. The bold one is the one in force (switch it in the bar).">Rebooking: ${tpRbBoth(st)}</div>`);
 }
 function tpRoleBranch(st) {
@@ -778,8 +845,8 @@ function tpPodiumCard(st, i) {
     <div class="tp-pod-nm">${tpName(st, true)}</div>
     <div class="tp-role">${escapeHtml(tpRole(st))}</div>
     <div class="tp-branch">${tpBranchTag(st)}</div>
-    <div class="tp-pod-v tabular">${tpLg().f(tpLg().get(st))}</div>
-    <div class="tp-pod-s tabular">${tpLeagueKey() === 'net' ? '' : tpAed(st.net) + ' take · '}${tpNum(st.total)} clients by staff${tpNoLedger(st) ? '' : ` · ${tpNum(st.rebooked)} rebooked`}</div>
+    <div class="tp-pod-v tabular">${tpFig(tpLg().f(tpLg().get(st)), st)}</div>
+    <div class="tp-pod-s tabular">${tpLeagueKey() === 'net' ? '' : tpFig(tpAed(st.net), st) + ' take · '}${tpFig(tpNum(st.total), st)} clients by staff${tpNoLedger(st) ? '' : ` · ${tpFig(tpNum(st.rebooked), st)} rebooked`}</div>
     ${tpPhLine(st)}
     <div class="tp-rings">${tpRings(st)}</div>
   </div>`;
@@ -818,7 +885,7 @@ function tpRaceRow(st, rank, lead) {
     </div>
     ${tpBar(st, lead)}
     ${tpNoLedger(st) ? '<div class="tp-rb tabular"><b>—</b>rebook</div>'
-      : `<div class="tp-rb tabular ${tpBand(st.rebookPct, TARGETS.rebookPct)}"><b>${tpPct(st.rebookPct)}</b>rebook${tpAim({ t: TARGETS.rebookPct, f: tpPct })}</div>`}
+      : `<div class="tp-rb tabular dn-cell ${tpBand(st.rebookPct, TARGETS.rebookPct)}"${tpDnAttr(st)}><b>${tpPct(st.rebookPct)}</b>rebook${tpAim({ t: TARGETS.rebookPct, f: tpPct })}</div>`}
     ${tpAddBtn(st)}
   </div>`;
 }
@@ -1124,20 +1191,33 @@ function tpQuadrant(roster) {
     ${leaders}${faces}</svg>`;
 
   const chip = st => `<span class="tp-q-chip" data-k="${escapeHtml(tpKey(st))}" onmouseenter="tpQHl(this,true)" onmouseleave="tpQHl(this,false)" onclick="tpQHl(this,true)">${tpAvatar(st.name, 'xs')}<span class="tp-q-cn">${escapeHtml(tpTitle(st.name))}</span></span>`;
+  // Kate, 3 Nov 2026: the number beside each group's name opens the people in it, with the two figures she was placed by.
+  const axisName = t => String(t).replace(/\s*\u2192\s*$/, '');
+  const qList = (title, ps, sub, simple) => {
+    if (!window.TRSD || !ps.length) return null;
+    const share = byLevel || addon;
+    const rows = ps.map(st => ({ n: tpTitle(st.name), b: st.branchName || '', x: vx(st), y: vy(st), net: st.net || 0, rb: st.rebookPct || 0 })).sort((a, b) => b.net - a.net);
+    const cols = simple ? [{ k: 'n', l: 'Name' }, { k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }]
+      : [{ k: 'n', l: 'Name' }, { k: 'b', l: 'Branch' }, { k: 'x', l: axisName(L.xT), t: share ? 'pct' : 'aed' }, { k: 'y', l: axisName(L.yT), t: 'pct' }]
+        .concat(share ? [{ k: 'net', l: 'Net take', t: 'aed' }, { k: 'rb', l: 'Rebooking %', t: 'pct' }] : []);
+    return { title, sk: 'quadrant-' + title, cur: 'AED', views: [{ id: 'q', label: 'People', load: async () => ({ cols, rows,
+      foot: { n: 'Total', b: ps.length + (ps.length === 1 ? ' person' : ' people') }, sub: sub || '' }) }] };
+  };
+  const qNum = (n, sp) => sp ? TRSD.num(n, sp) : n;
   const side = ['leak', 'focus', 'star', 'grow'].map(g => {
     const ps = pts.filter(st => group(st) === g);
     if (!ps.length) return '';
     return `<div class="tp-q-grp">
-      <div class="tp-q-h ${QUAD[g].cls}">${QUAD[g].t} · ${ps.length}</div>
+      <div class="tp-q-h ${QUAD[g].cls}">${QUAD[g].t} · ${qNum(ps.length, qList(QUAD[g].t, ps, QUAD[g].d + ' Placed by ' + axisName(L.xT) + ' and ' + axisName(L.yT) + '.'))}</div>
       <p>${QUAD[g].d}</p>
       <div class="tp-q-chips">${ps.map(chip).join('')}</div>
     </div>`;
   }).join('') + (noRows.length ? `<div class="tp-q-grp">
-      <div class="tp-q-h">No ledger rows · ${noRows.length}</div>
+      <div class="tp-q-h">No ledger rows · ${qNum(noRows.length, qList('No ledger rows', noRows, 'In Phorest this period, with nothing in the branch ledger to read a rebooking or an add-on figure from.', true))}</div>
       <p>In Phorest this period, with nothing in the branch ledger to read a rebooking or an add-on figure from, so they are left off the chart.</p>
       <div class="tp-q-chips">${noRows.map(chip).join('')}</div>
     </div>` : '') + (noAim.length ? `<div class="tp-q-grp">
-      <div class="tp-q-h">No level aim · ${noAim.length}</div>
+      <div class="tp-q-h">No level aim · ${qNum(noAim.length, qList('No level aim', noAim, 'On the bench, but with no level aim to read her against.', true))}</div>
       <p>Positions Stylist’s Benchmarks does not set aims for yet, so they are left off this chart. Switch to Bench to see them.</p>
       <div class="tp-q-chips">${noAim.map(chip).join('')}</div>
     </div>` : '') + (owners.length ? `<div class="tp-q-grp">
