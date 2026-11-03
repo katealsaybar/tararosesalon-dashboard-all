@@ -228,7 +228,7 @@
 .nvb .cbl-lane h3{font-size:20px}
 .nvb .cbl-tab a{text-align:left}
 .nvb .nvb-afterrow{margin:0}
-.nvb .nvb-artph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;aspect-ratio:1200/628;margin-bottom:5px;border-radius:7px;border:1.5px dashed #9FB3AE;background:repeating-linear-gradient(135deg,#EAF3F0 0 10px,#F2F8F6 10px 20px);color:#4A6572;text-align:center;padding:6px}
+.nvb .nvb-artph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;aspect-ratio:1080/1350;margin-bottom:5px;border-radius:7px;border:1.5px dashed #9FB3AE;background:repeating-linear-gradient(135deg,#EAF3F0 0 10px,#F2F8F6 10px 20px);color:#4A6572;text-align:center;padding:6px}
 .nvb .nvb-artph b{font-size:12.5px;font-weight:700;letter-spacing:.02em;color:#2D2E37}
 .nvb .nvb-artph span{font-size:10.5px}
 /* the Terms and Conditions picture inside the reply, drawn small (the real image is a PNG with the logo, sent by respond.io) */
@@ -271,3 +271,6 @@
 .nvb .nvb-tps.filled{color:var(--text)}
 .nvb .nvb-tps.approved{border-color:var(--ok,#2f7d4f);color:var(--ok,#2f7d4f)}
 .nvb .nvb-tps.rejected{border-color:var(--bad,#b3402f);color:var(--bad,#b3402f)}
+
+/* the finished header images are 4:5 (1080 by 1350): show the whole picture, never cropped */
+.nvb .cbl-hdr{aspect-ratio:4/5;object-fit:contain;object-position:center}
