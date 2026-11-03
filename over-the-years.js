@@ -124,6 +124,8 @@ function otyCss() {
   .oty .oty-sp,.oty .mo-swipe{display:none}
   .oty .oty-sm{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:0 32px;margin-top:6px}
   .oty .oty-sm .oty-hint{grid-column:1 / -1;margin:0 0 6px}
+  .oty .mo-c .dn{border-bottom-color:transparent}
+  .oty .mo-c:hover .dn,.oty .mo-c .dn:focus-visible{border-bottom-color:currentColor}
   .oty .sm-blk{padding:12px 0;border-top:1px solid var(--border)}
   .oty .sm-blk:first-of-type{border-top:0}
   .oty .sm-t{font-size:15px;font-weight:700;margin:0 0 6px}.oty .sm-t small{font-size:11.5px;font-weight:500;color:var(--muted2)}
@@ -652,12 +654,12 @@ function otyTiles(rows) {
   const part = y => y === 2021 ? 'from 1 Jul' : y === 2022 ? 'to 24 Dec' : 'Phorest data';
   const label = r => hist ? part(r.y) : (r.partial || same) ? `1 Jan – ${c}` : 'full year';
   const vs = r => hist ? 'part year, so not set against the other' : r.y === years[0] ? '' : (r.partial || same) ? `on the same days of ${r.y - 1}` : `on the full year ${r.y - 1}`;
-  const chg = r => r.big ? '<span class="oty-chg flat">new</span>' : otyChg(r.growth);
+  const chg = r => otyGr(r.big ? '<span class="oty-chg flat">new</span>' : otyChg(r.growth), r);
   const tiles = rows.filter(r => r.net > 0).slice().reverse().map(r => `<div class="oty-card oty-tile${OTY.sel === r.i ? ' sel' : ''}" role="button" tabindex="0" aria-pressed="${OTY.sel === r.i}" onclick="otyPick(${r.i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();otyPick(${r.i})}">
-      <div class="k">${r.y} · ${label(r)}</div><div class="v">${otyM(r.net)}</div><div class="s">${otySetLabel(set)}</div>${hist ? '' : chg(r)}<div class="s" style="margin-top:6px">${vs(r)}</div></div>`).join('');
+      <div class="k">${r.y} · ${label(r)}</div><div class="v">${otyDn(otyM(r.net), 'net', r)}</div><div class="s">${otySetLabel(set)}</div>${hist ? '' : chg(r)}<div class="s" style="margin-top:6px">${vs(r)}</div></div>`).join('');
   // A phone gets one row per year instead of the sideways tiles (Kate, 15 Oct 2026: no containers, no album scrolling); the
   // CSS shows one or the other. Same figures, same tap.
-  const rowOf = r => `<div class="oty-row${OTY.sel === r.i ? ' sel' : ''}" role="button" tabindex="0" aria-pressed="${OTY.sel === r.i}" onclick="otyPick(${r.i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();otyPick(${r.i})}"><span class="y"><b>${r.y}</b><small>${label(r)}</small></span><span class="v">${otyM(r.net)}</span><span class="g">${hist ? '' : (chg(r) || '<small>first year</small>')}</span></div>`;
+  const rowOf = r => `<div class="oty-row${OTY.sel === r.i ? ' sel' : ''}" role="button" tabindex="0" aria-pressed="${OTY.sel === r.i}" onclick="otyPick(${r.i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();otyPick(${r.i})}"><span class="y"><b>${r.y}</b><small>${label(r)}</small></span><span class="v">${otyDn(otyM(r.net), 'net', r)}</span><span class="g">${hist ? '' : (chg(r) || '<small>first year</small>')}</span></div>`;
   const rowsHtml = rows.filter(r => r.net > 0).slice().reverse().map(rowOf).join('');
   const list = `<div class="oty-rows" role="group" aria-label="Net take for each year"><p class="oty-rcap">${otySetLabel(set)}</p><div class="oty-rh"><span>Year</span><span>Net take</span><span>${hist ? '' : 'vs year before'}</span></div>${rowsHtml}</div>`;
   const tail = `${cy} is part-way, so it is always set against the same days of ${cy - 1}.`;
@@ -711,7 +713,7 @@ function otyChartBlock(rows) {
       const h = (H - T - B) * p.v / maxNet, y = yb(acc + p.v); acc += p.v;
       g += `<rect class="seg" x="${x0}" y="${y}" width="${bar}" height="${h}" fill="${set.length === 1 ? 'var(--hair)' : OTY_COL[p.b]}" opacity="${r.partial ? .5 : .92}" ${r.partial ? 'stroke="var(--text)" stroke-opacity=".6" stroke-dasharray="3 2"' : ''}${otyTT(p.b, r.y, otyM(p.v) + ' net take', r.net ? p.v / r.net * 100 : 0, `of the ${otyM(r.net)} ${r.y}${r.partial ? '*' : ''} total`, otySame() || r.partial ? `1 Jan – ${otyCutLabel()}` : otyHist() ? 'Phorest data held' : 'full year')}/>`;
     });
-    g += `<text class="tv" x="${cx}" y="${yb(r.net) - 5}" text-anchor="middle" font-size="9.5">${r.net ? otyMs(r.net) : '·'}</text>`;
+    g += `<text${otyCell(r.net ? otySpec('net', r) : null, 'tv')} x="${cx}" y="${yb(r.net) - 5}" text-anchor="middle" font-size="9.5">${r.net ? otyMs(r.net) : '·'}</text>`;
     g += `<text x="${cx}" y="${H - 10}" text-anchor="middle" font-size="10.5" style="${i === sel ? 'fill:var(--accent);font-weight:700' : ''}">${r.y}${r.partial ? '*' : ''}</text>`;
   });
   const pts = rows.map((r, i) => ({ i, v: vals[i] })).filter(p => p.v != null && (p.v !== 0 || LN === 'growth'));
@@ -721,7 +723,8 @@ function otyChartBlock(rows) {
     stf: 'Clients per staff', vis: 'Clients per visit' }[LN];
   // Kate, 13 Oct 2026: the points are hoverable (and tappable) too: a bigger invisible circle on each one says what it is.
   const fv = v => LN === 'growth' ? (v > 0 ? '+' : '') + v.toFixed(1) + '%' : isAvg ? otyAed(v) : otyNum(v);
-  pts.forEach(p => g += `<circle class="hit" cx="${L + bw * p.i + bw / 2}" cy="${yl(p.v)}" r="11" fill="transparent"${otyTTh(`<div class="h"><b>${rows[p.i].y}${rows[p.i].partial ? '*' : ''}</b></div><div class="v">${fv(p.v)}</div><div class="s">${lineName}</div><div class="s">Net take <b>${otyM(rows[p.i].net)}</b></div>`)}/>`);
+  const lineSpec = r => LN === 'growth' ? otyGrowthSpec(r) : otySpec(LN, r);
+  pts.forEach(p => g += `<circle${otyCell(lineSpec(rows[p.i]), 'hit')} cx="${L + bw * p.i + bw / 2}" cy="${yl(p.v)}" r="11" fill="transparent"${otyTTh(`<div class="h"><b>${rows[p.i].y}${rows[p.i].partial ? '*' : ''}</b></div><div class="v">${fv(p.v)}</div><div class="s">${lineName}</div><div class="s">Net take <b>${otyM(rows[p.i].net)}</b></div>`)}/>`);
   const legend = (set.length > 1 ? set.map(b => `<span><i style="background:${OTY_COL[b]}"></i>${OTY_NAME[b]}</span>`).join('') : `<span><i style="background:var(--hair)"></i>${OTY_NAME[set[0]]}</span>`)
     + `<span><i class="ln" style="background:var(--warn)"></i>${lineName}</span>`;
   const r = rows[sel], lab = otySame() || r.partial ? `1 Jan – ${otyCutLabel()}` : otyHist() ? (r.y === 2021 ? 'from 1 Jul 2021' : r.y === 2022 ? 'to 24 Dec 2022' : 'no Phorest data') : 'full year';
@@ -732,14 +735,14 @@ function otyChartBlock(rows) {
   const gTxt = r.growth == null ? '·' : otyTxt(r.growth);
   const tile = (k, v, s) => `<div class="oty-rs"><div class="k">${k}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ''}</div>`;
   const branchRow = p => { const sh = r.net ? p.v / r.net * 100 : 0;
-    return `<div class="oty-rbr"><div class="m"><b><i class="oty-bdot" style="background:${OTY_COL[p.b]}"></i>${OTY_NAME[p.b]}</b><span>${otyM(p.v)} <em>${Math.round(sh)}%</em></span></div>
+    return `<div class="oty-rbr"><div class="m"><b><i class="oty-bdot" style="background:${OTY_COL[p.b]}"></i>${OTY_NAME[p.b]}</b><span>${otyDn(otyM(p.v), 'net', r, [p.b])} <em>${otyDn(Math.round(sh) + '%', 'net', r)}</em></span></div>
       <div class="tr"><i style="width:${Math.max(2, sh).toFixed(1)}%;background:${OTY_COL[p.b]}"></i></div></div>`; };
   const readout = `<div class="oty-rh"><b>${r.y}</b><span>${lab}</span></div>
     <div class="oty-rt">
-      ${tile('Net take', otyM(r.net), '')}
-      ${tile(otyWhy('Clients · per visit'), r.vis ? otyNum(r.vis) : '·', r.stf ? `Per staff ${otyNum(r.stf)}` : '')}
-      ${tile(otyWhy('Avg bill · per visit'), r.avgV ? otyAed(r.avgV) : '·', r.avg ? `Per staff ${otyAed(r.avg)}` : '')}
-      ${tile('Growth', gTxt, r.y > otyD.years[0] ? `vs ${r.y - 1}` : '')}
+      ${tile('Net take', otyDn(otyM(r.net), 'net', r), '')}
+      ${tile(otyWhy('Clients · per visit'), r.vis ? otyDn(otyNum(r.vis), 'vis', r) : '·', r.stf ? `Per staff ${otyDn(otyNum(r.stf), 'stf', r)}` : '')}
+      ${tile(otyWhy('Avg bill · per visit'), r.avgV ? otyDn(otyAed(r.avgV), 'avgV', r) : '·', r.avg ? `Per staff ${otyDn(otyAed(r.avg), 'avg', r)}` : '')}
+      ${tile('Growth', otyGr(gTxt, r), r.y > otyD.years[0] ? `vs ${r.y - 1}` : '')}
     </div>
     ${set.length > 1 ? `<div class="oty-rb">${r.per.filter(p => p.v).map(branchRow).join('')}</div>` : ''}`;
   const pills = '<span class="oty-lab" style="margin:0 2px 0 0;align-self:center">Line</span>'
@@ -778,41 +781,274 @@ function otyTapChart(ev, n, L, R, W) {
   const r = ev.currentTarget.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W, bw = (W - L - R) / n;
   otyPick(Math.max(0, Math.min(n - 1, Math.floor((px - L) / bw))));
 }
-// Kate, 27 Oct 2026: a year's figures open the branches (and, for net take, the months) they are made of (drill.js). This page holds only the cached
-// totals per year and branch, so those are the lists: the branches add up to the year by construction. Net take by month comes from the month feed,
-// which is a separate cache, and says so in bold if its months do not add to the year. Years before the sales lines have no day or client rows to go deeper.
-function otySpec(kind, r) {
-  const { D } = otyD, set = otyCodes(), same = otySame(), w = same ? 'ytd' : 'full', i = r.i, c = otyCutLabel();
+// Kate, 27 Oct 2026: a year's figures open the branches (and, for net take, the months) they are made of (drill.js).
+// Kate, 3 Nov 2026: "ituloy natin yung all clickable values". Every figure on this page with a value opens the rows behind it: the year tiles, the
+// readout under the chart (and the bar labels and line points), the years table incl. Growth, the season bars and their pills, the month by month
+// detail, shape and compare figures, the reviews and the Instagram counts. The year-level lists are By branch (the cached totals, they add up by
+// construction), By month and By day (over_the_years_days(), the real days; they add up to the year table: 2025 AQ, KCA, MC and SAA tie on net take,
+// clients per visit and clients per staff). The old By month came from the month feed, which leaves out Fratelli and Marasy and the May and June
+// 2021 launch days, which is why it never matched the year; By month now comes from the days themselves.
+const otyOn = () => typeof TRSD !== 'undefined' && !!otyD && !(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 2);
+const otyDnS = (html, spec) => (spec && otyOn()) ? TRSD.num(html, spec) : html;
+// For an SVG shape (a bar label, a line point): the class and attributes that make it open the spec. A press on it does not also pick the year.
+const otyCell = (spec, base) => (spec && otyOn()) ? ` class="${base} dn-cell" data-dn="${TRSD.reg(spec)}" role="button" tabindex="0" onpointerdown="event.stopPropagation()"` : ` class="${base}"`;
+const otyPad = n => String(n).padStart(2, '0');
+const otyIso = (y, m, d) => `${y}-${otyPad(m)}-${otyPad(d)}`;
+// the same calendar day in another year (29 Feb becomes 28 Feb), as oty_same_day() does
+const otySameDayIso = y => { const m = +otyD.cut.slice(5, 7), d = +otyD.cut.slice(8, 10), dim = new Date(y, m, 0).getDate(); return otyIso(y, m, Math.min(d, dim)); };
+const otyMoLab = k => `${k.slice(5, 7)} ${OTY_MON[+k.slice(5, 7) - 1]}`;   // "03 Mar": sorts in month order
+const otyDaysMemo = new Map();
+async function otyDays(from, to, codes) {
+  const k = [from, to, codes.slice().sort().join(',')].join('|');
+  if (!otyDaysMemo.has(k)) {
+    const { data, error } = await sb.rpc('over_the_years_days', { p_from: from, p_to: to, p_codes: codes });
+    if (error) throw error;
+    otyDaysMemo.set(k, data || []);
+  }
+  return otyDaysMemo.get(k);
+}
+// By month and By day for any window, from the real days. kind says which measures the figure is made of; want is what the figure shows, so a gap says so in bold.
+function otyDayViews(o) {
+  const { from, to, codes, kind, who, when, want } = o, multi = codes.length > 1;
+  const net = kind === 'net' || kind === 'avgV' || kind === 'avg', vis = kind === 'vis' || kind === 'avgV', stf = kind === 'stf' || kind === 'avg', avg = kind === 'avgV' || kind === 'avg', den = kind === 'avgV' ? 'vis' : 'stf';
+  const cols = [...(net ? [{ k: 'net', l: 'Net take', t: 'aed' }] : []), ...(vis ? [{ k: 'vis', l: 'Clients per visit', t: 'num' }] : []), ...(stf ? [{ k: 'stf', l: 'Clients per staff', t: 'num' }] : []), ...(avg ? [{ k: 'a', l: 'Avg bill', t: 'aed' }] : [])];
+  const fin = x => { if (avg) x.a = x[den] ? x.net / x[den] : null; return x; };
+  const keep = x => (net && x.net) || (vis && x.vis) || (stf && x.stf);
+  const gap = t => {
+    const bad = [];
+    if (net && want.net != null && Math.abs(t.net - want.net) > codes.length * .5 + .5) bad.push(`Net take: the days add to ${otyNum(t.net)}, the figure shows ${otyNum(want.net)}`);
+    if (vis && want.vis != null && t.vis !== want.vis) bad.push(`Clients per visit: the days add to ${otyNum(t.vis)}, the figure shows ${otyNum(want.vis)}`);
+    if (stf && want.stf != null && t.stf !== want.stf) bad.push(`Clients per staff: the days add to ${otyNum(t.stf)}, the figure shows ${otyNum(want.stf)}`);
+    return bad.length ? ` <b>${bad.join('; ')}. The year table is refreshed hourly, so a change in the last hour can show as a small gap.</b>` : '';
+  };
+  const sub = (txt, t) => { const g = gap(t); return `${TRSD.esc(who)}, ${TRSD.esc(when)}. ${txt}${g || (net && want.net != null && Math.abs(t.net - want.net) > .01 ? ' The year table rounds each branch to the dirham, so the days can differ from it by an AED or two.' : '')}`; };
+  const sum = rows => rows.reduce((a, x) => ({ net: a.net + (+x.net || 0), vis: a.vis + (+x.vis || 0), stf: a.stf + (+x.stf || 0) }), { net: 0, vis: 0, stf: 0 });
+  return [{ id: 'mo', label: 'By month', load: async () => {
+    const days = await otyDays(from, to, codes), g = new Map();
+    days.forEach(d => { const k = String(d.d).slice(0, 7), x = g.get(k) || { k, net: 0, vis: 0, stf: 0 }; x.net += +d.net || 0; x.vis += +d.vis || 0; x.stf += +d.stf || 0; g.set(k, x); });
+    const rows = [...g.values()].sort((a, b) => a.k < b.k ? -1 : 1).map(x => fin({ m: otyMoLab(x.k), net: x.net, vis: x.vis, stf: x.stf })).filter(keep), t = sum(rows);
+    return { cols: [{ k: 'm', l: 'Month' }, ...cols], rows, foot: fin({ m: 'Total', ...t }), sub: sub('The days of the window, added up month by month.', t) };
+  } }, { id: 'day', label: 'By day', load: async () => {
+    const days = await otyDays(from, to, codes);
+    const rows = days.map(d => fin({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net || 0, vis: +d.vis || 0, stf: +d.stf || 0 })).filter(keep), t = sum(rows);
+    return { cols: [{ k: 'd', l: 'Date', t: 'date' }, ...(multi ? [{ k: 'b', l: 'Branch' }] : []), ...cols], rows, foot: fin({ d: '', b: 'Total', ...t }), sub: sub('One row per branch and day.', t) };
+  } }];
+}
+function otySpec(kind, r, codes) {
+  const { D } = otyD, all = otyCodes(), set = codes || all, same = otySame(), w = same ? 'ytd' : 'full', i = r.i, c = otyCutLabel();
   const when = (same || r.partial) ? `${r.y}, 1 Jan to ${c}` : `${r.y}, full year`, who = otySetLabel(set);
   const T = { net: 'Net take', vis: 'Clients per visit', stf: 'Clients per staff', avgV: 'Avg bill per visit', avg: 'Avg bill per staff' }[kind];
-  const per = set.map(b => ({ b: OTY_NAME[b] || b, net: +D[b].net[w][i] || 0, vis: +D[b].vis[w][i] || 0, stf: +D[b].stf[w][i] || 0 })).filter(x => x.net || x.vis || x.stf);
-  const wantOf = { net: r.net, vis: r.vis, stf: r.stf };
-  const views = [{ id: 'br', label: 'By branch', load: async () => {
+  const sumK = k => set.reduce((a, b) => a + (+D[b][k][w][i] || 0), 0);
+  const per = set.map(b => ({ code: b, b: OTY_NAME[b] || b, net: +D[b].net[w][i] || 0, vis: +D[b].vis[w][i] || 0, stf: +D[b].stf[w][i] || 0 })).filter(x => x.net || x.vis || x.stf);
+  const wantOf = codes ? { net: sumK('net'), vis: sumK('vis'), stf: sumK('stf') } : { net: r.net, vis: r.vis, stf: r.stf };
+  const views = [];
+  if (set.length > 1) views.push({ id: 'br', label: 'By branch', load: async () => {
     if (kind === 'avgV' || kind === 'avg') {
       const den = kind === 'avgV' ? 'vis' : 'stf', rows = per.filter(x => x.net && x[den]).map(x => ({ b: x.b, net: x.net, d: x[den], a: x.net / x[den] }));
       const net = rows.reduce((a, x) => a + x.net, 0), d = rows.reduce((a, x) => a + x.d, 0);
       return { cols: [{ k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'd', l: kind === 'avgV' ? 'Clients per visit' : 'Clients per staff', t: 'num' }, { k: 'a', l: 'Avg bill', t: 'aed' }], rows,
         foot: { b: 'Total', net, d, a: d ? net / d : null }, sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Net take over ${kind === 'avgV' ? 'clients through the door (each client once a day)' : 'clients counted per staff (a client seen by two staff counts twice)'}.` };
     }
-    const rows = per.filter(x => x[kind]).map(x => ({ b: x.b, v: x[kind] })).sort((a, b) => b.v - a.v), sum = rows.reduce((a, x) => a + x.v, 0), want = wantOf[kind];
-    if (Math.abs(sum - want) >= 0.5) rows.push({ b: 'Not matched to a branch', v: want - sum, _cls: 'dr-muted' });
-    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'v', l: T, t: kind === 'net' ? 'aed' : 'num' }], rows, foot: { b: 'Total', v: want },
-      sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. ${kind === 'net' ? 'Everything the salon billed, ex VAT.' : kind === 'vis' ? 'Each client once a day, through the door.' : 'Counted once for each staff member who served her.'} Held as a total per year and branch, so this is as far down as it goes.` };
-  } }];
-  if (kind === 'net' && !same && !r.partial && otyMoRaw) views.push({ id: 'mo', label: 'By month', load: async () => {
-    const M = otyMoModel(), MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const rows = MON.map((m, k) => ({ m: m + ' ' + r.y, v: set.reduce((a, b) => { const x = M.MO[b] && M.MO[b][r.y] && M.MO[b][r.y][k]; return a + (x && +x.net > 0 ? +x.net : 0); }, 0) })).filter(x => x.v);
-    const sum = rows.reduce((a, x) => a + x.v, 0), off = Math.abs(sum - r.net) >= 1;
-    return { cols: [{ k: 'm', l: 'Month' }, { k: 'v', l: 'Net take', t: 'aed' }], rows, foot: { m: 'Total of the months', v: sum },
-      sub: `${TRSD.esc(who)}, ${r.y}. The month by month feed.${off ? ` <b>These months add to ${Math.round(sum).toLocaleString('en-GB')}, the year shows ${Math.round(r.net).toLocaleString('en-GB')}: the two are cached separately and do not agree to the dirham.</b>` : ''}` };
+    const rows = per.filter(x => x[kind]).map(x => ({ b: x.b, v: x[kind], sh: wantOf[kind] ? x[kind] / wantOf[kind] * 100 : null })).sort((a, b) => b.v - a.v), sum = rows.reduce((a, x) => a + x.v, 0), want = wantOf[kind];
+    if (Math.abs(sum - want) >= 0.5) rows.push({ b: 'Not matched to a branch', v: want - sum, sh: want ? (want - sum) / want * 100 : null, _cls: 'dr-muted' });
+    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'v', l: T, t: kind === 'net' ? 'aed' : 'num' }, { k: 'sh', l: 'Share', t: 'pct' }], rows, foot: { b: 'Total', v: want, sh: 100 },
+      sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. ${kind === 'net' ? 'Everything the salon billed, ex VAT.' : kind === 'vis' ? 'Each client once a day, through the door.' : 'Counted once for each staff member who served her.'} The year's total per branch; By month and By day go down to the days.` };
   } });
-  return { title: `${T} · ${r.y}`, cur: 'AED', views };
+  views.push(...otyDayViews({ from: `${r.y}-01-01`, to: same ? otySameDayIso(r.y) : `${r.y}-12-31`, codes: set, kind, who, when, want: wantOf }));
+  return { title: `${T} · ${r.y}${codes ? ' · ' + who : ''}`, cur: 'AED', views };
 }
-const otyDn = (html, kind, r) => (typeof TRSD !== 'undefined' && otyD && !(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 2)) ? TRSD.num(html, otySpec(kind, r)) : html;
+const otyDn = (html, kind, r, codes) => otyDnS(html, otySpec(kind, r, codes));
+// Growth: the year's net take against the year before, on the same basis the table uses (same days, or full years with the year in progress on the same days).
+function otyGrowthSpec(r) {
+  if (!otyD || r.i < 1 || (r.growth == null && !r.big)) return null;
+  const { D } = otyD, set = otyCodes(), same = otySame(), i = r.i, y = r.y, gw = same || r.partial ? 'ytd' : 'full', who = otySetLabel(set);
+  const when = gw === 'ytd' ? `${y} against ${y - 1}, 1 Jan to ${otyCutLabel()} of each` : `${y} against ${y - 1}, full years`;
+  const pc = (a, b) => b > 0 ? (a / b - 1) * 100 : null;
+  const cols = [{ k: 'b', l: 'Branch' }, { k: 'cur', l: String(y), t: 'aed' }, { k: 'prev', l: String(y - 1), t: 'aed' }, { k: 'g', l: 'Change', t: 'pct' }];
+  const cur = set.reduce((a, b) => a + (+D[b].net[gw][i] || 0), 0), prev = set.reduce((a, b) => a + (+D[b].net[gw][i - 1] || 0), 0);
+  const note = r.big ? ` <b>Over 100%: a year new branches opened in, so the table says "new".</b>` : '';
+  return { title: `Growth · ${y}`, cur: 'AED', views: [{ id: 'br', label: 'By branch', load: async () => {
+    const rows = set.map(b => { const a = +D[b].net[gw][i] || 0, p = +D[b].net[gw][i - 1] || 0; return { b: OTY_NAME[b] || b, cur: a, prev: p, g: pc(a, p) }; }).filter(x => x.cur || x.prev);
+    return { cols, rows, foot: { b: 'Total', cur, prev, g: pc(cur, prev) }, sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Net take, ex VAT.${note}` };
+  } }, { id: 'mo', label: 'By month', load: async () => {
+    const win = yy => ({ from: `${yy}-01-01`, to: gw === 'ytd' ? otySameDayIso(yy) : `${yy}-12-31` });
+    const [a, b] = await Promise.all([otyDays(win(y).from, win(y).to, set), otyDays(win(y - 1).from, win(y - 1).to, set)]);
+    const g = new Map(), add = (days, k) => days.forEach(d => { const m = String(d.d).slice(5, 7), x = g.get(m) || { m: otyMoLab('0000-' + m), cur: 0, prev: 0 }; x[k] += +d.net || 0; g.set(m, x); });
+    add(a, 'cur'); add(b, 'prev');
+    const rows = [...g.entries()].sort((p, q) => p[0] < q[0] ? -1 : 1).map(([, x]) => ({ m: x.m, cur: x.cur, prev: x.prev, g: pc(x.cur, x.prev) })).filter(x => x.cur || x.prev);
+    const tc = rows.reduce((s, x) => s + x.cur, 0), tp = rows.reduce((s, x) => s + x.prev, 0);
+    return { cols: [{ k: 'm', l: 'Month' }, ...cols.slice(1)], rows, foot: { m: 'Total', cur: tc, prev: tp, g: pc(tc, tp) },
+      sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. The real days added up month by month.${Math.abs(tc - cur) > set.length * .5 + .5 || Math.abs(tp - prev) > set.length * .5 + .5 ? ` <b>The days add to ${otyNum(tc)} and ${otyNum(tp)}; the table shows ${otyNum(cur)} and ${otyNum(prev)}.</b>` : ''}` };
+  } }] };
+}
+const otyGr = (html, r) => otyDnS(html, otyGrowthSpec(r));
+
+// ── LISTS BEHIND THE SEASON, MONTH, REVIEW AND INSTAGRAM FIGURES (Kate, 3 Nov 2026) ──────────────────────────────────────────────────────
+// A season bar: the branches' season totals over the open days (season_br, and By day from the real days). Per open day is the season total over the
+// longest any branch traded, so each branch's share of it adds to the bar; Marasy, added per its own open days, shows that way.
+function otySeasonSpec(key, nm, c) {
+  if (!c || !c.open) return null;
+  const M = otySeasonModel(), bs = M.regions[key] || [], opt = OTY_REGION_OPT[key] || [], br = otyRaw.season_br || [], full = c.per != null;
+  const who = OTY_REGION_NAME[key] || OTY_NAME[key] || key, live = M.state(c) === 'live', to = live && c.end_date > otyD.cut ? otyD.cut : c.end_date;
+  const row = b => br.find(r => r.b === b && r.season === nm && r.y === c.y && +r.tot > 0);
+  const list = bs.map(b => ({ b, r: row(b), mry: opt.includes(b) })).filter(x => x.r || !x.mry);
+  const when = `${nm} ${c.y}, ${otyFullDay(c.start_date)} to ${otyFullDay(to)}${live ? ' (still running)' : ''}`;
+  const T = full ? c.tot : list.reduce((a, x) => a + (x.r && !x.mry ? +x.r.tot : 0), 0);
+  return { title: `Per open day · ${nm} ${c.y}`, cur: 'AED', views: [{ id: 'br', label: 'By branch', load: async () => {
+    const rows = list.map(x => { const t = x.r ? +x.r.tot : null, d = x.r ? +x.r.days : null;
+      return { b: OTY_NAME[x.b] || x.b, tot: t, days: d, per: !x.r ? null : x.mry ? t / d : (c.days ? t / c.days : null), _cls: x.r ? '' : 'dr-muted' }; });
+    return { cols: [{ k: 'b', l: 'Branch' }, { k: 'tot', l: 'Season total', t: 'aed' }, { k: 'days', l: 'Open days', t: 'num' }, { k: 'per', l: 'Per open day', t: 'aed' }], rows,
+      foot: { b: 'Total', tot: T, days: c.days, per: full ? c.per : c.partPer },
+      sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Net take, ex VAT. Per open day is the branch's season total over the longest any branch traded (${c.days} days), so the branches add to the bar${c.mryPer ? "; Marasy is added per its own open days" : ''}.${full ? '' : ` <b>Only ${c.open} of ${c.of} branches traded it, so there is no bar: one branch against ${c.of} is not like for like.</b>`}` };
+  } }, { id: 'day', label: 'By day', load: async () => {
+    const codes = list.filter(x => x.r).map(x => x.b), days = await otyDays(c.start_date, to, codes);
+    const rows = days.filter(d => +d.net).map(d => ({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net })), t = rows.reduce((a, x) => a + x.net, 0);
+    return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }], rows, foot: { d: '', b: 'Total', net: t },
+      sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. One row per branch and day.${Math.abs(t - T) > codes.length * .5 + .5 ? ` <b>The days add to ${otyNum(t)}, the bar's season total is ${otyNum(T)}.</b>` : ''}` };
+  } }] };
+}
+// The pill over a season: this year against the same season last year (the same days when it is still running).
+function otySeasonChgSpec(key, s) {
+  const cur = s.cur, prev = cur && s.cells.find(x => x.y === cur.y - 1);
+  if (!cur || !prev || s.chg == null || cur.per == null) return null;
+  const live = s.state === 'live', br = otyRaw.season_br || [], opt = OTY_REGION_OPT[key] || [], need = (otySeasonModel().regions[key] || []).filter(b => !opt.includes(b));
+  const pr = need.map(b => br.find(r => r.b === b && r.season === s.nm && r.y === prev.y && +r.tot > 0)).filter(Boolean);
+  const pTot = live ? pr.reduce((a, r) => a + (+r.tot_w || 0), 0) : prev.tot, pDays = live ? Math.max(...pr.map(r => +r.days_w || 0)) : prev.days, pPer = live ? prev.perW : prev.per;
+  const who = OTY_REGION_NAME[key] || OTY_NAME[key] || key;
+  return { title: `${s.nm} ${cur.y} against ${prev.y}`, cur: 'AED', views: [{ id: 'cmp', label: 'The two years', load: async () => ({
+    cols: [{ k: 'y', l: 'Year' }, { k: 'tot', l: 'Season total', t: 'aed' }, { k: 'days', l: 'Open days', t: 'num' }, { k: 'per', l: 'Per open day', t: 'aed' }],
+    rows: [{ y: live ? `${cur.y} so far` : String(cur.y), tot: cur.tot, days: cur.days, per: cur.per, _dn: { tot: otySeasonSpec(key, s.nm, cur) } },
+      { y: live ? `${prev.y}, the same ${cur.days} days` : String(prev.y), tot: pTot, days: pDays, per: pPer, _dn: live ? null : { tot: otySeasonSpec(key, s.nm, prev) } }],
+    foot: { y: `Change: ${s.chg > 0 ? '+' : ''}${s.chg.toFixed(1)}%`, tot: '', days: '', per: cur.per - s.base },
+    sub: `${TRSD.esc(who)}. Net take per open day, ex VAT. ${live ? `The season is still running, so ${cur.y} is set against the same days of ${prev.y}, not all of its season. ` : ''}Tap a season total for the branches and days behind it.` }) }] };
+}
+
+// Month by month. Every figure follows the Branch filter's region (X.reg). A month's figure is the branches' own month rows (oty_month_branch) and, under By day, the real days.
+const otyMoT = X => X.met === 'clients' ? 'num' : 'aed';
+function otyMoCellSpec(X, y, m) {
+  const c = X.cell(y, m); if (!c || !X.ok(c)) return null;
+  const MO = X.M.MO, live = c.state === 'live', name = `${OTY_MON[m]} ${y}`;
+  const rs = X.M.regions[X.reg].map(b => [b, MO[b] && MO[b][y] && MO[b][y][m]]).filter(([, r]) => r && (+r.net > 0 || (r.src === 'ledger' && +r.stf > 0)) && (live || +r.days >= 10));
+  const who = otyEsc(otyMoName(X.reg));
+  const views = [{ id: 'br', label: 'By branch', load: async () => ({
+    cols: [{ k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'days', l: 'Open days', t: 'num' }, { k: 'stf', l: 'Clients per staff', t: 'num' }, { k: 'a', l: 'Avg bill per staff', t: 'aed' }],
+    rows: rs.map(([b, r]) => ({ b: OTY_NAME[b] || b, net: +r.net > 0 ? +r.net : null, days: +r.days, stf: +r.stf > 0 ? +r.stf : null, a: +r.net > 0 && +r.stf > 0 ? r.net / r.stf : null })),
+    foot: { b: 'Total', net: c.tot == null ? null : c.tot, days: c.days, stf: c.stf == null ? null : c.stf, a: c.avg == null ? null : c.avg },
+    sub: `${who}, ${name}${live ? ` (${c.days} open days so far)` : ''}. The branches' month rows, net of VAT. Open days are days with takings.${c.est ? ' <b>Estimated from the ledger: Phorest has no full data for this month, so there is no takings figure.</b>' : ''}` }) }];
+  if (!c.est) {
+    const dim = otyMoDim(y, m), codes = rs.map(([b]) => b), want = { net: c.tot, stf: c.stf };
+    views.push({ id: 'day', label: 'By day', load: async () => {
+      const days = await otyDays(otyIso(y, m + 1, 1), otyIso(y, m + 1, dim), codes);
+      const rows = days.map(d => ({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net || 0, stf: +d.stf || 0 })).filter(x => x.net || x.stf), t = rows.reduce((a, x) => ({ net: a.net + x.net, stf: a.stf + x.stf }), { net: 0, stf: 0 });
+      const off = (want.net != null && Math.abs(t.net - want.net) > codes.length * .5 + .5) || (want.stf != null && t.stf !== want.stf);
+      return { cols: [{ k: 'd', l: 'Date', t: 'date' }, ...(codes.length > 1 ? [{ k: 'b', l: 'Branch' }] : []), { k: 'net', l: 'Net take', t: 'aed' }, { k: 'stf', l: 'Clients per staff', t: 'num' }], rows,
+        foot: { d: '', b: 'Total', net: t.net, stf: t.stf }, sub: `${who}, ${name}. One row per branch and day.${off ? ` <b>The days add to ${otyNum(t.net)} and ${otyNum(t.stf)}; the month shows ${otyNum(want.net)} and ${otyNum(want.stf)}.</b>` : ''}` };
+    } });
+  }
+  return { title: `${otyMoMetName[X.met]} · ${name}`, cur: 'AED', views };
+}
+// a year's Total in Actual or Change: the finished months it adds up (each month opens its branches and days)
+function otyMoYearSpec(X, y) {
+  const B = X.mths(y), t = X.tot(y); if (!B.length || t == null) return null;
+  const cur = y === X.curYear, lab = cur ? `Jan to ${OTY_MON[B[B.length - 1]]} ${y}` : `Full year ${y}`;
+  return { title: `${otyMoMetName[X.met]} · ${lab}`, cur: 'AED', views: [{ id: 'mo', label: 'By month', load: async () => {
+    const cs = B.map(m => [m, X.cell(y, m)]), rows = cs.map(([m, c]) => { const sp = otyMoCellSpec(X, y, m);
+      return { m: `${otyPad(m + 1)} ${OTY_MON[m]}`, net: c.tot == null ? null : c.tot, days: c.days, stf: c.stf == null ? null : c.stf, a: c.avg == null ? null : c.avg, _dn: sp ? { net: sp, stf: sp, a: sp } : null }; });
+    const net = cs.reduce((a, [, c]) => a + (c.tot || 0), 0), stf = cs.reduce((a, [, c]) => a + (c.stf || 0), 0);
+    return { cols: [{ k: 'm', l: 'Month' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'days', l: 'Open days', t: 'num' }, { k: 'stf', l: 'Clients per staff', t: 'num' }, { k: 'a', l: 'Avg bill per staff', t: 'aed' }], rows,
+      foot: { m: 'Total', net: net || null, days: cs.reduce((a, [, c]) => a + (c.days || 0), 0), stf: stf || null, a: net && stf ? net / stf : null },
+      sub: `${TRSD.esc(otyMoName(X.reg))}, ${TRSD.esc(lab)}. The finished months of the year, added up. Tap a month for its branches and days.` };
+  } }] };
+}
+// the index behind a month's number: that year's months, per open day, against the year's own average
+function otyMoIdxSpec(X, y) {
+  const ix = X.idx(y); if (!ix) return null;
+  const B = X.baseMonths(y), pd = B.reduce((t, m) => t + X.pd(X.cell(y, m)), 0) / B.length;
+  return { title: `Shape of ${y} · ${otyMoMetName[X.met]}`, cur: 'AED', views: [{ id: 'ix', label: 'Month by month', load: async () => {
+    const rows = ix.map((x, m) => { const c = X.cell(y, m); if (x == null || !c) return null; const sp = otyMoCellSpec(X, y, m);
+      return { m: `${otyPad(m + 1)} ${OTY_MON[m]}`, v: X.val(c), days: c.days, pd: X.pd(c), inb: B.includes(m) ? 'Yes' : c.state === 'live' ? 'No, still running' : 'No', ix: x, _dn: sp ? { v: sp } : null }; }).filter(Boolean);
+    return { cols: [{ k: 'm', l: 'Month' }, { k: 'v', l: otyMoMetName[X.met], t: otyMoT(X) }, { k: 'days', l: 'Open days', t: 'num' }, { k: 'pd', l: X.met === 'bill' ? 'Avg bill' : 'Per open day', t: otyMoT(X) }, { k: 'inb', l: 'In the average' }, { k: 'ix', l: 'Index', t: 'num' }], rows,
+      foot: { m: 'Average of the months it counts', v: '', days: '', pd: pd, inb: `${B.length} months`, ix: 100 },
+      sub: `${TRSD.esc(otyMoName(X.reg))}, ${y}. ${TRSD.esc(otyMoStatLine(X))}. The index is the month over ${y}'s own average (${TRSD.esc(X.baseLabel(OTY.mbase))}), times 100, so the average is 100.` };
+  } }] };
+}
+// one month across the years: each year's index for that month, with their average or how far apart they are (the Avg and Spread rows, the other years, the steady and the wide months)
+function otyMoAcrossSpec(X, m, mode, skipY) {
+  const S = X.stats(), ys = X.years.filter(y => y !== skipY && S.idx[y] && otyMoState(X.M, y, m) === 'done' && S.idx[y][m] != null);
+  if (!ys.length) return null;
+  const xs = ys.map(y => S.idx[y][m]), avg = xs.reduce((a, b) => a + b, 0) / xs.length, spr = Math.max(...xs) - Math.min(...xs);
+  return { title: `${OTY_MON[m]} across the years · ${otyMoMetName[X.met]}`, cur: 'AED', views: [{ id: 'yrs', label: 'Year by year', load: async () => ({
+    cols: [{ k: 'y', l: 'Year' }, { k: 'ix', l: 'Index', t: 'num' }],
+    rows: ys.map(y => { const sp = otyMoIdxSpec(X, y); return { y: String(y), ix: S.idx[y][m], _dn: sp ? { ix: sp } : null }; }),
+    foot: mode === 'spr' ? { y: 'Spread (highest minus lowest, points)', ix: spr } : { y: skipY ? 'Average of the other years' : 'Average of the years', ix: avg },
+    sub: `${TRSD.esc(otyMoName(X.reg))}, ${OTY_MON[m]}. The month's index (100 = that year's own average month) in every finished year${skipY ? ` except ${skipY}` : ''}. Tap an index for that year's months.` }) }] };
+}
+// a month against the same month a year earlier (the pill over a pair, the change chip), or a whole year's months against the year before
+function otyMoCmpSpec(X, y, m, py) {
+  py = py || y - 1; const c = X.cell(y, m), p = X.cell(py, m), k = X.cmp(y, m, py); if (!k || k.none) return null;
+  const a = otyMoCellSpec(X, y, m), b = otyMoCellSpec(X, py, m), T = otyMoT(X);
+  return { title: `${OTY_MON[m]} ${y} against ${py} · ${otyMoMetName[X.met]}`, cur: 'AED', views: [{ id: 'cmp', label: 'The two months', load: async () => ({
+    cols: [{ k: 'y', l: 'Year' }, { k: 'v', l: otyMoMetName[X.met], t: T }, { k: 'days', l: 'Open days', t: 'num' }, { k: 'w', l: X.met === 'bill' ? 'Compared' : 'On the same open days', t: T }],
+    rows: [{ y: String(y), v: X.val(c), days: c.days, w: k.cur, _dn: a ? { v: a } : null }, { y: String(py), v: X.val(p), days: p.days, w: k.prevW, _dn: b ? { v: b } : null }],
+    foot: { y: `Change: ${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}`, v: '', days: '', w: k.diff },
+    sub: `${TRSD.esc(otyMoName(X.reg))}. ${X.met === 'bill' ? 'An average, so the two months are set side by side as they are.' : `${py} is scaled to the same number of open days as ${y} (${c.days}), so a month in progress reads fairly.`} Tap a figure for its branches and days.` }) }] };
+}
+function otyMoYearCmpSpec(X, y) {
+  const tc = X.totChg(y); if (!tc) return null;
+  const B = X.mths(y), T = otyMoT(X);
+  return { title: `${otyMoMetName[X.met]} · ${y} against ${y - 1}`, cur: 'AED', views: [{ id: 'mo', label: 'By month', load: async () => {
+    const rows = B.map(m => { const k = X.cmp(y, m), sp = otyMoCmpSpec(X, y, m); return { m: `${otyPad(m + 1)} ${OTY_MON[m]}`, cur: k.cur, prev: k.prevW, d: k.diff, pc: k.big ? null : k.pct, _dn: sp ? { cur: sp, prev: sp } : null }; });
+    return { cols: [{ k: 'm', l: 'Month' }, { k: 'cur', l: String(y), t: T }, { k: 'prev', l: `${y - 1}, same open days`, t: T }, { k: 'd', l: 'Difference', t: T }, { k: 'pc', l: 'Change', t: 'pct' }], rows,
+      foot: { m: 'Total', cur: tc.cur, prev: tc.prevW, d: tc.diff, pc: tc.big ? null : tc.pct },
+      sub: `${TRSD.esc(otyMoName(X.reg))}, ${y === X.curYear ? `Jan to ${OTY_MON[B[B.length - 1]]} ${y}` : `full year ${y}`} against the same months of ${y - 1}, month by month.` };
+  } }] };
+}
+
+// Google reviews: the branches (the cached counts and stars) and the reviews themselves (google_reviews, as the Pulse lists them).
+const OTY_REV_BR = { SAA: 'Saadiyat, Abu Dhabi', KCA: 'Khalifa City A, Abu Dhabi', MC: 'Motor City, Dubai', AQ: 'Al Quoz, Dubai', MRY: 'Marasy, Abu Dhabi' };
+function otyRevSpec(i, same, codes) {
+  if (!otyD) return null;
+  const { D, years } = otyD, set = (codes || otyCodes()).filter(b => OTY_REV_BR[b]), y = years[i], to = same ? otySameDayIso(y) : `${y}-12-31`, who = otySetLabel(codes || otyCodes());
+  const when = same ? `${y}, 1 Jan to ${otyDay(to)}` : `${y}, full year`;
+  const n = b => +((same ? D[b].rev.ny : D[b].rev.n)[i]) || 0, st = b => +((same ? D[b].rev.sy : D[b].rev.s)[i]) || 0;
+  const tot = set.reduce((a, b) => a + n(b), 0); if (!tot) return null;
+  const avg = set.reduce((a, b) => a + n(b) * st(b), 0) / tot;
+  return { title: `Google reviews · ${y}`, views: [{ id: 'br', label: 'By branch', load: async () => ({
+    cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Reviews', t: 'num' }, { k: 's', l: 'Average stars', t: 'num' }],
+    rows: set.filter(b => n(b)).map(b => ({ b: OTY_NAME[b], n: n(b), s: st(b) })), foot: { b: 'Total', n: tot, s: avg },
+    sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. The stars are an average of every review in the window, so a branch with more reviews counts for more. The next tab lists the reviews.` }) },
+  { id: 'rv', label: 'The reviews', load: async () => {
+    const data = [];   // 1,000 rows is all one request returns, so it is read a page at a time
+    for (let at = 0; at < 20000; at += 1000) {
+      const { data: pg, error } = await sb.from('google_reviews').select('review_id,branch,stars,reviewer,comment,review_date,url').gte('review_date', `${y}-01-01`).lte('review_date', to).in('branch', set.map(b => OTY_REV_BR[b])).order('review_date', { ascending: false }).order('review_id').range(at, at + 999);
+      if (error) throw error;
+      data.push(...(pg || []));
+      if (!pg || pg.length < 1000) break;
+    }
+    const code = br => Object.keys(OTY_REV_BR).find(k => OTY_REV_BR[k] === br), rows = data.map(r => ({ d: r.review_date, b: OTY_NAME[code(r.branch)] || r.branch, st: r.stars, rv: r.reviewer || '', cm: String(r.comment || '').replace(/\s+/g, ' ').slice(0, 160), _ext: r.url ? { st: r.url } : null }));
+    const stars = rows.reduce((a, r) => a + (+r.st || 0), 0);
+    return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'st', l: 'Stars', t: 'num', al: 'l' }, { k: 'rv', l: 'Reviewer' }, { k: 'cm', l: 'What she wrote' }], rows,
+      foot: { d: '', b: rows.length + ' review' + (rows.length === 1 ? '' : 's'), st: rows.length ? stars / rows.length : null, rv: '', cm: rows.length ? 'average stars' : '' },
+      sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Google reviews dated in the window.${rows.length !== tot ? ` <b>${rows.length} listed against ${tot} on the page: the page counts are refreshed hourly.</b>` : ''} Dates are approximate before 2026.` };
+  } }] };
+}
+
+// Instagram: the posts behind a month's counts. kind: own (our posts and reels), collab, tag, story.
+function otyIgSpec(month, kind, want) {
+  if (!want) return null;
+  const NAME = { own: 'Our posts and reels', collab: 'Collab posts', tag: 'Client tags', story: 'Stories' }[kind];
+  return { title: `${NAME} · ${OTY_MON[+month.slice(5) - 1]} ${month.slice(0, 4)}`, views: [{ id: 'p', label: 'The posts', load: async () => {
+    const { data, error } = await sb.rpc('over_the_years_ig_posts', { p_month: month });
+    if (error) throw error;
+    const rows = (data || []).filter(r => r.kind === kind).map(r => ({ d: String(r.posted).slice(0, 10), sub: r.sub ? String(r.sub) : '', tx: r.txt ? String(r.txt).replace(/\s+/g, ' ') : '', ln: r.url ? `<a href="${otyEsc(r.url)}" target="_blank" rel="noopener" style="color:inherit">Open</a>` : '' }));
+    return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'sub', l: 'Type' }, { k: 'tx', l: kind === 'own' || kind === 'story' ? 'Caption' : 'Account' }, { k: 'ln', l: 'Link', t: 'html' }], rows, foot: { d: '', sub: rows.length + (rows.length === 1 ? ' post' : ' posts'), tx: '', ln: '' },
+      sub: `The salon accounts together, not by branch.${rows.length !== want ? ` <b>${rows.length} listed against ${want} on the page.</b>` : ''}` };
+  } }] };
+}
 function otyTable(rows) {
   let h = '<tr class="oty-th"><th>Year</th><th>Net take</th><th>Clients per visit</th><th>Clients per staff</th><th>Avg bill per visit</th><th>Avg bill per staff</th><th>Growth</th></tr>';
   rows.slice().reverse().forEach(r => {
-    h += `<tr><td class="yr">${r.y}${r.partial ? '*' : ''}</td><td class="nt" data-l="Net take">${otyDn(otyM(r.net), 'net', r)}</td><td class="m" data-l="Clients per visit">${r.vis ? otyDn(otyNum(r.vis), 'vis', r) : '·'}</td><td class="m" data-l="Clients per staff">${r.stf ? otyDn(otyNum(r.stf), 'stf', r) : otyNum(r.stf)}</td><td class="m" data-l="Avg bill per visit">${r.avgV ? otyDn(Math.round(r.avgV), 'avgV', r) : '·'}</td><td class="m" data-l="Avg bill per staff">${r.avg ? otyDn(Math.round(r.avg), 'avg', r) : '·'}</td><td data-l="Growth" class="${r.growth == null ? 'm' : r.growth > 0 ? 'oty-up' : 'oty-dn'}">${r.growth == null ? (r.big ? 'new' : '·') : (r.growth > 0 ? '+' : '') + r.growth.toFixed(1) + '%'}</td></tr>`;
+    h += `<tr><td class="yr">${r.y}${r.partial ? '*' : ''}</td><td class="nt" data-l="Net take">${otyDn(otyM(r.net), 'net', r)}</td><td class="m" data-l="Clients per visit">${r.vis ? otyDn(otyNum(r.vis), 'vis', r) : '·'}</td><td class="m" data-l="Clients per staff">${r.stf ? otyDn(otyNum(r.stf), 'stf', r) : otyNum(r.stf)}</td><td class="m" data-l="Avg bill per visit">${r.avgV ? otyDn(Math.round(r.avgV), 'avgV', r) : '·'}</td><td class="m" data-l="Avg bill per staff">${r.avg ? otyDn(Math.round(r.avg), 'avg', r) : '·'}</td><td data-l="Growth" class="${r.growth == null ? 'm' : r.growth > 0 ? 'oty-up' : 'oty-dn'}">${otyGr(r.growth == null ? (r.big ? 'new' : '·') : (r.growth > 0 ? '+' : '') + r.growth.toFixed(1) + '%', r)}</td></tr>`;
   });
   return `<div class="oty-eb"><i style="background:var(--warn)"></i>${otyWhy('The years, side by side')}</div>
     <div class="oty-card"><table class="oty-yt">${h}</table></div>`;
@@ -971,11 +1207,11 @@ function otySeasonChart(key, M, shown, H) {
   const mkBars = (s, Hh) => s.cells.filter(c => hist || shown.has(c.y)).map(c => {
     const none = c.per == null, isCur = c.y === topY, live = isCur && s.state === 'live';
     const lab = none ? (c.open ? `${c.open} of ${c.of} open` : (c.start_date <= cut ? 'no data' : '')) : otyK(c.per);
-    return `<div class="oty-bar ${isCur ? 'cur' : ''} ${none ? 'void' : ''} ${live ? 'part' : ''}" tabindex="0" data-k="${key}" data-s="${otyEsc(s.nm)}" data-y="${c.y}"><span class="vl">${lab}</span><div class="b" style="height:${none ? 3 : Math.max(4, c.per / MAXV * Hh)}px;background:${otyAge(c.y)}">${c.mryPer && !none ? `<i class="mseg" style="height:${(c.mryPer / c.per * 100).toFixed(1)}%"></i>` : ''}</div></div>`;
+    return `<div class="oty-bar ${isCur ? 'cur' : ''} ${none ? 'void' : ''} ${live ? 'part' : ''}" tabindex="0" data-k="${key}" data-s="${otyEsc(s.nm)}" data-y="${c.y}"><span class="vl">${otyDnS(lab, otySeasonSpec(key, s.nm, c))}</span><div class="b" style="height:${none ? 3 : Math.max(4, c.per / MAXV * Hh)}px;background:${otyAge(c.y)}">${c.mryPer && !none ? `<i class="mseg" style="height:${(c.mryPer / c.per * 100).toFixed(1)}%"></i>` : ''}</div></div>`;
   }).join('');
   const groups = seasons.map(s => {
     const pill = s.chg == null ? `<span class="oty-dp flat">${s.state === 'ahead' ? 'not started' : 'n/a'}</span>`
-      : `<span class="oty-dp ${Math.abs(s.chg) < .5 ? 'flat' : s.chg > 0 ? 'up' : 'dn'}">${s.chg > 0 ? '+' : ''}${s.chg.toFixed(1)}%</span>`;
+      : `<span class="oty-dp ${Math.abs(s.chg) < .5 ? 'flat' : s.chg > 0 ? 'up' : 'dn'}">${otyDnS((s.chg > 0 ? '+' : '') + s.chg.toFixed(1) + '%', otySeasonChgSpec(key, s))}</span>`;
     const cy = hist && s.cur ? s.cur.y : curYear;
     const small = s.state === 'live' ? `${curYear} so far, vs same days of ${curYear - 1}` : s.state === 'ahead' ? 'opens ' + otyDay(s.cur.start_date) : `${cy} vs ${cy - 1}`;
     const bars = mkBars(s, H);
@@ -1245,11 +1481,11 @@ function otyMonths() {
     const lab = y === curYear ? `Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]} ${y}` : `Full year ${y}`;
     if (v === 'chg') {
       const k = X.totChg(y);
-      return k ? `<button class="mo-c tot${sel.y === y && sel.m == null ? ' sel' : ''}" style="grid-column:span 2;background-color:${k.big ? '' : otyMoHeat(k.pct, 25)}" title="${lab}, against the same months of ${y - 1}. Tap for the detail" onclick="otyMoYear(${y})">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'}</button>`
+      return k ? `<button class="mo-c tot${sel.y === y && sel.m == null ? ' sel' : ''}" style="grid-column:span 2;background-color:${k.big ? '' : otyMoHeat(k.pct, 25)}" title="${lab}, against the same months of ${y - 1}. Tap for the detail" onclick="otyMoYear(${y})">${otyDnS(k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%', otyMoYearCmpSpec(X, y))}</button>`
         : '<div class="mo-c none tot" style="grid-column:span 2" title="Not every month has a figure to set against last year">·</div>';
     }
     const t = X.tot(y);
-    return t != null ? `<button class="mo-c tot${sel.y === y && sel.m == null ? ' sel' : ''}" style="grid-column:span 2" title="${lab}. Tap for the detail" onclick="otyMoYear(${y})">${X.fv(t)}</button>`
+    return t != null ? `<button class="mo-c tot${sel.y === y && sel.m == null ? ' sel' : ''}" style="grid-column:span 2" title="${lab}. Tap for the detail" onclick="otyMoYear(${y})">${otyDnS(X.fv(t), otyMoYearSpec(X, y))}</button>`
       : '<div class="mo-c none tot" style="grid-column:span 2" title="Not every month has a figure, so there is no total">·</div>';
   };
   for (const y of years.slice().reverse()) {
@@ -1266,20 +1502,21 @@ function otyMonths() {
       }
       let txt = '', bg = '', cls = 'mo-c' + (st === 'live' ? ' live' : '') + (sel.y === y && sel.m === m ? ' sel' : '') + (c.mry ? ' mry' : '') + (c.est ? ' est' : '');
       const x = ix && ix[m];
-      if (v === 'index') { txt = Math.round(x); bg = otyMoHeat(x - 100, 35); if (S.peak[y] === m) cls += ' pk'; if (S.low[y] === m) cls += ' lo'; }
-      else if (v === 'act') { txt = X.fv(X.val(c)); bg = x != null ? otyMoHeat(x - 100, 35) : ''; }
+      let sp = null;   // what the figure in the cell opens (the rest of the cell picks the month for the detail below)
+      if (v === 'index') { txt = Math.round(x); sp = otyMoIdxSpec(X, y); bg = otyMoHeat(x - 100, 35); if (S.peak[y] === m) cls += ' pk'; if (S.low[y] === m) cls += ' lo'; }
+      else if (v === 'act') { txt = X.fv(X.val(c)); sp = otyMoCellSpec(X, y, m); bg = x != null ? otyMoHeat(x - 100, 35) : ''; }
       else {
         const k = X.cmp(y, m);
         if (k.none) { g += `<div class="mo-c none">·</div>`; continue; }
-        txt = k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'; bg = k.big ? '' : otyMoHeat(k.pct, 25); if (X.llf(y, m)) cls += ' llf'; if (k.brk) cls += ' brk';
+        txt = k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'; sp = otyMoCmpSpec(X, y, m); bg = k.big ? '' : otyMoHeat(k.pct, 25); if (X.llf(y, m)) cls += ' llf'; if (k.brk) cls += ' brk';
       }
-      g += `<button class="${cls}" style="background-color:${bg}" data-y="${y}" data-m="${m}" onclick="otyMoSel(${y},${m})">${txt}${moon}</button>`;
+      g += `<button class="${cls}" style="background-color:${bg}" data-y="${y}" data-m="${m}" onclick="otyMoSel(${y},${m})">${otyDnS(txt, sp)}${moon}</button>`;
     }
     g += v === 'index' ? `<div class="pl">${S.peak[y] != null ? OTY_MON[S.peak[y]] : ''}</div><div class="pl">${S.low[y] != null ? OTY_MON[S.low[y]] : ''}</div>` : totCell(y);
   }
   if (v === 'index') {
-    g += '<div class="sec"></div><div class="sl">Avg</div>' + S.avg.map(a => `<div class="mo-c avg">${a == null ? '' : Math.round(a)}</div>`).join('') + '<div></div><div></div>';
-    g += '<div class="sl">Spread</div>' + S.spr.map(a => `<div class="mo-c spr">${a == null ? '' : Math.round(a) + ' pts'}</div>`).join('') + '<div></div><div></div>';
+    g += '<div class="sec"></div><div class="sl">Avg</div>' + S.avg.map((a, m) => `<div class="mo-c avg">${a == null ? '' : otyDnS(Math.round(a), otyMoAcrossSpec(X, m, 'avg'))}</div>`).join('') + '<div></div><div></div>';
+    g += '<div class="sl">Spread</div>' + S.spr.map((a, m) => `<div class="mo-c spr">${a == null ? '' : otyDnS(Math.round(a) + ' pts', otyMoAcrossSpec(X, m, 'spr'))}</div>`).join('') + '<div></div><div></div>';
   }
   const hasRam = !!otyRam(curYear);
   const totNote = v === 'index' ? '' : `<span class="sw">Total is the year's finished months (${curYear}: Jan to ${OTY_MON[Math.max(X.doneN - 1, 0)]})${v === 'chg' ? ', against the same months a year earlier' : ''}. A dot means a month is missing, so there is no total</span>`;
@@ -1339,15 +1576,15 @@ function otyMoYearDetail(X, y) {
   const B = X.mths(y), t = X.tot(y), cur = y === X.curYear, last = B.length ? OTY_MON[B[B.length - 1]] : '', lab = cur ? `Jan to ${last} ${y}` : `Full year ${y}`;
   if (t == null) return `<div class="oty-rh"><b>${lab}</b></div><div class="oty-note">Not every month of ${y} has a figure here, so there is no total.</div>`;
   const k = X.totChg(y), pre = X.met === 'net' ? 'AED ' : '';
-  const pc = k ? `<span class="oty-chg ${k.big || Math.abs(k.pct) < .5 ? 'flat' : k.pct > 0 ? 'up' : 'dn'}" style="margin:0">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</span>` : '';
+  const pc = k ? `<span class="oty-chg ${k.big || Math.abs(k.pct) < .5 ? 'flat' : k.pct > 0 ? 'up' : 'dn'}" style="margin:0">${otyDnS(k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%', otyMoYearCmpSpec(X, y))}</span>` : '';
   const ranked = B.map(m => [m, X.val(X.cell(y, m))]).sort((a, b) => b[1] - a[1]), hi = ranked[0], lo = ranked[ranked.length - 1];
-  const vs = k ? `${X.fd(k.diff)} on the same months of ${y - 1}` : y > X.years[0] ? `Not like for like with ${y - 1}, so no comparison` : 'No year before to set against';
+  const vs = k ? `${otyDnS(X.fd(k.diff), otyMoYearCmpSpec(X, y))} on the same months of ${y - 1}` : y > X.years[0] ? `Not like for like with ${y - 1}, so no comparison` : 'No year before to set against';
   return `<div class="oty-rh"><b>${lab}</b><span>${y > X.years[0] && k ? `against the same months of ${y - 1}` : 'the finished months of the year, added up'}</span>${pc}</div>
     <div class="mo-dt">
-      <div><div class="k">${otyMoMetName[X.met]}</div><div class="v">${pre}${X.fv(t)}</div><div class="s">${vs}</div></div>
-      <div><div class="k">Months counted</div><div class="v">${B.length} <small>of 12</small></div><div class="s">${cur ? `${OTY_MON[B[0]]} to ${last}, the months ${y} has finished` : 'Every month of the year'}</div></div>
-      <div><div class="k">Strongest month</div><div class="v">${OTY_MON[hi[0]]}</div><div class="s">${pre}${X.fv(hi[1])}</div></div>
-      <div><div class="k">Weakest month</div><div class="v">${OTY_MON[lo[0]]}</div><div class="s">${pre}${X.fv(lo[1])}</div></div>
+      <div><div class="k">${otyMoMetName[X.met]}</div><div class="v">${otyDnS(pre + X.fv(t), otyMoYearSpec(X, y))}</div><div class="s">${vs}</div></div>
+      <div><div class="k">Months counted</div><div class="v">${otyDnS(B.length, otyMoYearSpec(X, y))} <small>of 12</small></div><div class="s">${cur ? `${OTY_MON[B[0]]} to ${last}, the months ${y} has finished` : 'Every month of the year'}</div></div>
+      <div><div class="k">Strongest month</div><div class="v">${OTY_MON[hi[0]]}</div><div class="s">${otyDnS(pre + X.fv(hi[1]), otyMoCellSpec(X, y, hi[0]))}</div></div>
+      <div><div class="k">Weakest month</div><div class="v">${OTY_MON[lo[0]]}</div><div class="s">${otyDnS(pre + X.fv(lo[1]), otyMoCellSpec(X, y, lo[0]))}</div></div>
     </div>`;
 }
 function otyMoDetail(X, S, sel) {
@@ -1359,14 +1596,14 @@ function otyMoDetail(X, S, sel) {
   const rank = ix && done(m) ? ixs.slice().sort((a, b) => b[0] - a[0]).findIndex(a => a[1] === m) + 1 : null;
   const others = X.years.filter(o => o !== y).map(o => { const r = X.idx(o); return r && otyMoState(X.M, o, m) === 'done' ? r[m] : null; }).filter(x => x != null);
   const oavg = others.length ? others.reduce((a, b) => a + b, 0) / others.length : null;
-  const pc = k && !k.none ? `<span class="oty-chg ${k.big ? 'flat' : Math.abs(k.pct) < .5 ? 'flat' : k.pct > 0 ? 'up' : 'dn'}" style="margin:0">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%'}</span>` : '';
+  const pc = k && !k.none ? `<span class="oty-chg ${k.big ? 'flat' : Math.abs(k.pct) < .5 ? 'flat' : k.pct > 0 ? 'up' : 'dn'}" style="margin:0">${otyDnS(k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(1) + '%', otyMoCmpSpec(X, y, m))}</span>` : '';
   const ram = rd || rp ? `${rd} of ${c.dim} days in ${y}${p ? `, ${rp} of ${p.dim} in ${y - 1}` : ''}${p && Math.abs(rd - rp) >= 10 ? '. Not like for like, read it with the shape view.' : ''}` : 'Not touched in either year';
   const estNote = c.est ? `<div class="oty-note" style="margin-top:10px"><b>Estimated from the ledger.</b> Phorest has no full data for this month (its data starts in July 2021, the salon was open), so the clients come from the weekly ledgers, scaled to Phorest's count (×${c.k.length ? [...new Set(c.k)].map(x => x.toFixed(2)).join(' / ') : '1'} by branch, from Jul to Dec ${y}). Use it for the shape and the direction, not the exact count. The ledger has no takings, so Net take and Average bill are empty.</div>` : '';
   return `<div class="oty-rh"><b>${OTY_MON[m]} ${y}</b><span>${live ? `1 to ${c.days} open days, against the same number of open days in ${y - 1}` : y > X.years[0] ? `against ${OTY_MON[m]} ${y - 1}` : 'first year held'}</span>${pc}</div>
     <div class="mo-dt">
-      <div><div class="k">${otyMoMetName[X.met]}</div><div class="v">${X.met === 'net' ? 'AED ' : ''}${X.fv(X.val(c))}</div><div class="s">${k && !k.none ? `${X.fd(k.diff)} on the same open days of ${y - 1}` : 'No year before to set against'}</div></div>
-      <div><div class="k">Index · 100 = average month</div><div class="v">${ix && ix[m] != null ? Math.round(ix[m]) : '·'}</div><div class="s">${rank ? `${otyMoOrd(rank)} strongest of ${ixs.length} finished months in ${y}` : ix ? 'Month still running' : 'Not enough months for a shape'}</div></div>
-      <div><div class="k">Same month, other years</div><div class="v">${oavg != null ? Math.round(oavg) : '·'}</div><div class="s">${oavg != null && ix && ix[m] != null ? `${y} is ${Math.abs(ix[m] - oavg).toFixed(0)} pts ${ix[m] >= oavg ? 'above' : 'below'} the average of the other years` : 'Average index across the other years'}</div></div>
+      <div><div class="k">${otyMoMetName[X.met]}</div><div class="v">${otyDnS((X.met === 'net' ? 'AED ' : '') + X.fv(X.val(c)), otyMoCellSpec(X, y, m))}</div><div class="s">${k && !k.none ? `${otyDnS(X.fd(k.diff), otyMoCmpSpec(X, y, m))} on the same open days of ${y - 1}` : 'No year before to set against'}</div></div>
+      <div><div class="k">Index · 100 = average month</div><div class="v">${ix && ix[m] != null ? otyDnS(Math.round(ix[m]), otyMoIdxSpec(X, y)) : '·'}</div><div class="s">${rank ? `${otyMoOrd(rank)} strongest of ${ixs.length} finished months in ${y}` : ix ? 'Month still running' : 'Not enough months for a shape'}</div></div>
+      <div><div class="k">Same month, other years</div><div class="v">${oavg != null ? otyDnS(Math.round(oavg), otyMoAcrossSpec(X, m, 'avg', y)) : '·'}</div><div class="s">${oavg != null && ix && ix[m] != null ? `${y} is ${Math.abs(ix[m] - oavg).toFixed(0)} pts ${ix[m] >= oavg ? 'above' : 'below'} the average of the other years` : 'Average index across the other years'}</div></div>
       <div><div class="k">Ramadan and Eid</div><div class="v">${rd} <small>of ${c.dim} days</small></div><div class="s">${ram}</div></div>
     </div>${estNote}`;
 }
@@ -1421,7 +1658,7 @@ function otyMoLines(X, S) {
       const mo = `<i class="sm-m">${OTY_MON[m][0]}${y && otyRamIn(y, m) >= 10 ? '<span class="sm-r">&#9790;</span>' : ''}</i>`;
       if (v == null) return `<div class="sm-c"><em class="sm-v" style="top:${((ymax - 100) / rng * SH - 6).toFixed(1)}px">·</em>${mo}</div>`;
       const top = (ymax - Math.max(v, 100)) / rng * SH, h = Math.max(2, Math.abs(v - 100) / rng * SH), up = v >= 100;
-      return `<div class="sm-c"><div class="sm-b ${up ? 'up' : 'dn'}" style="top:${top.toFixed(1)}px;height:${h.toFixed(1)}px"></div><em class="sm-v" style="top:${(up ? top - 13 : top + h + 1).toFixed(1)}px">${Math.round(v)}</em>${mo}</div>`;
+      return `<div class="sm-c"><div class="sm-b ${up ? 'up' : 'dn'}" style="top:${top.toFixed(1)}px;height:${h.toFixed(1)}px"></div><em class="sm-v" style="top:${(up ? top - 13 : top + h + 1).toFixed(1)}px">${otyDnS(Math.round(v), y ? otyMoIdxSpec(X, y) : otyMoAcrossSpec(X, m, 'avg'))}</em>${mo}</div>`;
     }).join('');
     return `<div class="sm-blk"><div class="sm-t">${title}</div><div class="sm-g" style="--SH:${SH}px;--base:${((ymax - 100) / rng * SH).toFixed(1)}px">${cols}</div></div>`;
   };
@@ -1456,7 +1693,7 @@ function otyMoPairs(X) {
   const cols = rows.map(r => {
     if (!r.k || r.k.none) return `<div class="mo-pr"><div class="dp">${r.c && r.c.state === 'ahead' ? '' : '<span class="mo-dpp fl">·</span>'}</div><div class="bars"></div><div class="m">${OTY_MON[r.m]}</div></div>`;
     const k = r.k, cl = k.big || Math.abs(k.pct) < .5 ? 'fl' : k.pct > 0 ? 'up' : 'dn';
-    return `<div class="mo-pr hit" data-by="${y}" data-bp="${py}" data-bm="${r.m}"><div class="dp"><span class="mo-dpp ${cl}">${k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%'}</span></div>
+    return `<div class="mo-pr hit" data-by="${y}" data-bp="${py}" data-bm="${r.m}"><div class="dp"><span class="mo-dpp ${cl}">${otyDnS(k.big ? 'new' : otyMoSign(k.pct) + Math.abs(k.pct).toFixed(0) + '%', otyMoCmpSpec(X, y, r.m, py))}</span></div>
       <div class="bars"><div class="mo-b ${live(r) ? 'live' : ''}" data-bw="p" style="height:${Math.max(2, k.prevW / mx * 100)}%;background-color:var(--hair)"></div><div class="mo-b ${live(r) ? 'live' : ''}" data-bw="c" style="height:${Math.max(2, k.cur / mx * 100)}%;background-color:var(--good)"></div></div>
       <div class="m">${OTY_MON[r.m]}${otyRamIn(y, r.m) >= 10 ? ' ☾' : ''}</div></div>`;
   }).join('');
@@ -1482,7 +1719,7 @@ function otyMoStands(X, S) {
   const sprBars = OTY_MON.map((mn, m) => { const v = S.spr[m];
     if (v == null) return `<div class="st-b"><div class="st-t"></div><i>${mn}</i></div>`;
     const cls = tightM.has(m) ? 'ok' : wideM.has(m) ? 'wd' : '';
-    return `<div class="st-b ${cls}"><div class="st-t"><div class="st-f" style="height:${Math.max(4, v / mxS * 100)}%">${cls ? `<em>${Math.round(v)}</em>` : ''}</div></div><i>${mn}</i></div>`; }).join('');
+    return `<div class="st-b ${cls}"><div class="st-t"><div class="st-f" style="height:${Math.max(4, v / mxS * 100)}%">${cls ? `<em>${otyDnS(Math.round(v), otyMoAcrossSpec(X, m, 'spr'))}</em>` : ''}</div></div><i>${mn}</i></div>`; }).join('');
   const yrChips = ys.slice().reverse().map(y => `<div class="st-y"><b>${y}${y === X.curYear ? '*' : ''}</b><span class="st-c hi">&#9650; ${OTY_MON[S.peak[y]]}</span><span class="st-c lo">&#9660; ${OTY_MON[S.low[y]]}</span></div>`).join('');
   return `<div class="oty-eb" style="margin-top:26px"><i style="background:var(--warn)"></i>What stands out</div>
     <div class="oty-card oty-flag">
@@ -1569,11 +1806,11 @@ function otyReviews() {
     const cx = L + bw * i + bw / 2, x0 = cx - bar / 2; let acc = 0;
     r.per.forEach(p => { if (!p.v) return; const h = (H - T - B) * p.v / maxN, y = yb(acc + p.v); acc += p.v;
       g += `<rect class="seg" x="${x0}" y="${y}" width="${bar}" height="${h}" fill="${set.length === 1 ? 'var(--hair)' : OTY_COL[p.b]}" opacity="${r.partial ? .5 : .92}" ${r.partial ? 'stroke="var(--text)" stroke-opacity=".6" stroke-dasharray="3 2"' : ''}${otyTT(p.b, r.y, `${p.v} reviews${p.s ? `, ${p.s.toFixed(2)} stars` : ''}`, r.n ? p.v / r.n * 100 : 0, `of the ${r.n} ${r.y}${r.partial ? '*' : ''} reviews`, same || r.partial ? `1 Jan – ${otyCutLabel()}` : 'full year')}/>`; });
-    g += `<text class="tv" x="${cx}" y="${yb(r.n) - 5}" text-anchor="middle" font-size="9.5">${r.n || '·'}</text><text x="${cx}" y="${H - 9}" text-anchor="middle" font-size="10.5">${r.y}${r.partial ? '*' : ''}</text>`;
+    g += `<text${otyCell(r.n ? otyRevSpec(r.i, same, null) : null, 'tv')} x="${cx}" y="${yb(r.n) - 5}" text-anchor="middle" font-size="9.5">${r.n || '·'}</text><text x="${cx}" y="${H - 9}" text-anchor="middle" font-size="10.5">${r.y}${r.partial ? '*' : ''}</text>`;
   });
   const pts = rows.filter(r => r.n);
   if (pts.length) g += `<path d="${pts.map((r, k) => (k ? 'L' : 'M') + (L + bw * r.i + bw / 2).toFixed(1) + ' ' + yl(r.stars).toFixed(1)).join(' ')}" fill="none" stroke="var(--warn)" stroke-width="2.4" stroke-linejoin="round"/>`;
-  pts.forEach(r => g += `<circle cx="${L + bw * r.i + bw / 2}" cy="${yl(r.stars)}" r="3.6" fill="var(--warn)"/><circle class="hit" cx="${L + bw * r.i + bw / 2}" cy="${yl(r.stars)}" r="11" fill="transparent"${otyTTh(`<div class="h"><b>${r.y}${r.partial ? '*' : ''}</b></div><div class="v">${r.stars.toFixed(2)} stars</div><div class="s">average of ${r.n} reviews</div>`)}/>`);
+  pts.forEach(r => g += `<circle cx="${L + bw * r.i + bw / 2}" cy="${yl(r.stars)}" r="3.6" fill="var(--warn)"/><circle${otyCell(otyRevSpec(r.i, same, null), 'hit')} cx="${L + bw * r.i + bw / 2}" cy="${yl(r.stars)}" r="11" fill="transparent"${otyTTh(`<div class="h"><b>${r.y}${r.partial ? '*' : ''}</b></div><div class="v">${r.stars.toFixed(2)} stars</div><div class="s">average of ${r.n} reviews</div>`)}/>`);
   const legend = (set.length > 1 ? set.map(b => `<span><i style="background:${OTY_COL[b]}"></i>${OTY_NAME[b]}</span>`).join('') : `<span><i style="background:var(--hair)"></i>${OTY_NAME[set[0]]}</span>`) + `<span><i class="ln" style="background:var(--warn)"></i>Average stars (right scale)</span>`;
   const a = rows[n - 1];
   const n25 = set.reduce((t, b) => t + (D[b].rev.ny[n - 2] || 0), 0), n26 = set.reduce((t, b) => t + (D[b].rev.ny[n - 1] || 0), 0);
@@ -1582,8 +1819,8 @@ function otyReviews() {
   return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div>
     <div class="oty-card"><div class="oty-legend">${legend}</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Google reviews by year, bars, with average stars as a line">${g}</svg>
-    <div class="oty-read"><b>${otyD.curYear}</b> · ${same ? `1 Jan – ${otyCutLabel()}` : 'so far'}<div class="oty-ro"><span>Reviews <b>${a.n}</b></span><span>Average <b>${a.stars ? a.stars.toFixed(2) : '·'} stars</b></span><span>${otyD.curYear - 1}, same days <b>${n25}</b></span><span>${otyD.curYear - 1} average <b>${s25 ? s25.toFixed(2) : '·'}</b></span></div></div></div>
-    <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Check before reading ${d == null ? 'it' : d.toFixed(0) + '%'} as a drop.</b> ${n26} reviews so far in ${otyD.curYear} against ${n25} on the same days of ${otyD.curYear - 1}. A fall that steep may be the review sync, not the salons: new reviews are still pulled by hand while the Google approval is pending, and older dates are approximate ("2 years ago"), so the years are solid and the days are not.</p><p><b>The stars</b> are a review-weighted average of every review in the window, so a branch with more reviews counts for more.</p>${set.includes('MRY') ? `<p><b>Marasy is in these figures.</b> ${otyEsc(OTY_MRY_REV)}</p>` : ''}</div></div>`;
+    <div class="oty-read"><b>${otyD.curYear}</b> · ${same ? `1 Jan – ${otyCutLabel()}` : 'so far'}<div class="oty-ro"><span>Reviews <b>${otyDnS(a.n, otyRevSpec(a.i, same, null))}</b></span><span>Average <b>${a.stars ? otyDnS(a.stars.toFixed(2), otyRevSpec(a.i, same, null)) : '·'} stars</b></span><span>${otyD.curYear - 1}, same days <b>${otyDnS(n25, otyRevSpec(n - 2, true, null))}</b></span><span>${otyD.curYear - 1} average <b>${s25 ? otyDnS(s25.toFixed(2), otyRevSpec(n - 2, true, null)) : '·'}</b></span></div></div></div>
+    <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Check before reading ${d == null ? 'it' : d.toFixed(0) + '%'} as a drop.</b> ${otyDnS(n26, otyRevSpec(n - 1, true, null))} reviews so far in ${otyD.curYear} against ${otyDnS(n25, otyRevSpec(n - 2, true, null))} on the same days of ${otyD.curYear - 1}. A fall that steep may be the review sync, not the salons: new reviews are still pulled by hand while the Google approval is pending, and older dates are approximate ("2 years ago"), so the years are solid and the days are not.</p><p><b>The stars</b> are a review-weighted average of every review in the window, so a branch with more reviews counts for more.</p>${set.includes('MRY') ? `<p><b>Marasy is in these figures.</b> ${otyEsc(OTY_MRY_REV)}</p>` : ''}</div></div>`;
 }
 
 // ── INSTAGRAM (UNDER CONSTRUCTION) ───────────────────────────────────────
@@ -1623,12 +1860,12 @@ function otyInstagram() {
   // Kate, 13 Oct 2026: hover (or tap) a month for all three figures; the column is invisible and sits on top.
   const nc = v => v == null ? '<span style="opacity:.6">not captured</span>' : `<b>${v}</b>`;
   ms.forEach((r, i) => { g += `<rect class="hit" x="${L + bw * i}" y="${T - 6}" width="${bw}" height="${H - T - B + 6}" fill="transparent"${otyTTh(`<div class="h"><b>${OTY_MON[+r.m.slice(5) - 1]} ${r.m.slice(0, 4)}</b></div><div class="s">Client tags ${nc(tag[i])}</div><div class="s">Our posts and reels ${nc(own[i])}</div><div class="s">Collab posts ${nc(col[i])}</div>`)}/>`; });
-  const sel = OTY.ig, f = v => v == null ? '<span style="opacity:.6">not captured</span>' : `<b>${v}</b>`;
+  const sel = OTY.ig, f = (v, k) => v == null ? '<span style="opacity:.6">not captured</span>' : `<b>${otyDnS(v, otyIgSpec(ms[sel].m, k, v))}</b>`;
   const mn = OTY_MON[+ms[sel].m.slice(5) - 1] + ' ' + ms[sel].m.slice(0, 4);
   const stories = (otyIgRaw.stories || []).find(s => s.m === ms[sel].m);
   return head + `<div class="oty-card"><div class="oty-legend"><span><i style="background:var(--hair)"></i>Client tags (left scale)</span><span><i class="ln" style="background:var(--warn)"></i>Our posts and reels</span><span><i class="ln" style="background:var(--good)"></i>Collab posts</span></div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Instagram by month" onpointerdown="otyTapIg(event,${n},${L},${R},${W})">${g}</svg>
-    <div class="oty-read"><b>${mn}</b>${ms[sel].m === ms[n - 1].m ? ' · so far' : ''}<div class="oty-ro"><span>Client tags ${f(tag[sel])}</span><span>Our posts and reels ${f(own[sel])}</span><span>Collab posts ${f(col[sel])}</span>${stories ? `<span>Stories <b>${stories.n}</b></span>` : ''}</div></div></div>
+    <div class="oty-read"><b>${mn}</b>${ms[sel].m === ms[n - 1].m ? ' · so far' : ''}<div class="oty-ro"><span>Client tags ${f(tag[sel], 'tag')}</span><span>Our posts and reels ${f(own[sel], 'own')}</span><span>Collab posts ${f(col[sel], 'collab')}</span>${stories ? `<span>Stories <b>${otyDnS(stories.n, otyIgSpec(ms[sel].m, 'story', +stories.n))}</b></span>` : ''}</div></div></div>
     <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Why only ${n} months.</b> Our own posts and reels are captured from ${otyMonLabel(st.own)}, collab posts from ${otyMonLabel(st.collab)} and client tags from ${otyMonLabel(st.tags)}. Stories only from Jul 2026, so they are left off the lines. Months before a feed starts show as not captured, not zero.</p><p><b>Not by branch.</b> These are the salon accounts together. Per-branch tags need the tagged account matched to a branch, which is not there yet.</p></div></div>`;
 }
 const otyMonLabel = m => m ? OTY_MON[+m.slice(5) - 1] + ' ' + m.slice(0, 4) : '';
