@@ -24,7 +24,7 @@
   function notFound() { var el = main(); if (el) el.innerHTML = '<p class="slv-muted">This page isn’t open to your account yet. Ask Kate to open it for you.</p>'; }
   async function rpc(name, args) { var r = await sb.rpc(name, args || {}); if (r.error) throw new Error(r.error.message); return r.data; }
   function canEdit() { return !D || D.editor !== false; }
-  function isBlast(i) { return i.id.indexOf('dec') !== 0 && ['oct', 'pre', 'reply', 'terms'].indexOf(i.id) < 0; }
+  function isBlast(i) { return i.id.indexOf('dec') !== 0 && ['oct', 'pre', 'reply', 'terms', 'diff'].indexOf(i.id) < 0; }
   function blasts() { return D.items.filter(isBlast); }
   function decs() { return D.items.filter(function (i) { return i.id.indexOf('dec') === 0; }); }
   function item(id) { return D.items.filter(function (i) { return i.id === id; })[0]; }
@@ -197,6 +197,14 @@
     var d = o.data;
     return fold('oct', esc(d.title), esc(d.lead), '<div class="nvb-oct">' + (d.cards || []).map(function (c) { return '<div><span class="eyebrow">' + esc(c.k) + '</span><span class="big">' + esc(c.big) + '</span><p>' + esc(c.p) + '</p></div>'; }).join('') + '</div><p>' + esc(d.foot) + '</p>');
   }
+  // How the November blasts differ from Campaign Blasts (Kate, 3 Nov 2026): the words live in the database (nov_blast_items 'diff'), not in this public file.
+  function diffHtml() {
+    var o = item('diff'); if (!o || !o.data) return '';
+    var d = o.data;
+    function rows(r) { return '<div class="nvb-dl">' + (r || []).map(function (x) { return '<div><b>' + esc(x[0]) + '</b><span>' + esc(x[1]) + '</span></div>'; }).join('') + '</div>'; }
+    function col(c) { return c ? '<div class="nvb-diffcol"><h3>' + esc(c.head) + '</h3><p>' + esc(c.intro) + '</p>' + rows(c.rows) + '</div>' : ''; }
+    return fold('diff', esc(d.title), esc(d.lead), '<div class="nvb-diff">' + col(d.camp) + col(d.nov) + '</div>' + (d.why ? '<div class="nvb-diffwhy"><h3>' + esc(d.why.head) + '</h3><p>' + esc(d.why.intro) + '</p>' + rows(d.why.rows) + '</div>' : '') + '<p class="nvb-small">' + esc(d.foot) + '</p>');
+  }
   function detailHtml() {
     var b = blast(cur); if (!b) return '';
     var d = b.data, c = lv(b.id), tl = d.title, mx = c ? Math.max(c.SAA, c.KCA, c.MC, c.AQ, 1) : 1, rv = b.review, ed = canEdit();
@@ -229,7 +237,7 @@
       fold('who', 'Who gets it, and who is left out', '', who) + fold('facts', 'Cost, target and test', '', facts) + '</div></div>';
   }
   function messagesHtml() {
-    return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">Pick a blast to see the message as the client reads it. Emma approves here.</p>' + calHtml() + detailHtml() + '<div class="nvb-stack">' + planHtml() + octHtml() + '</div></div>';
+    return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">Pick a blast to see the message as the client reads it. Emma approves here.</p>' + calHtml() + detailHtml() + '<div class="nvb-stack">' + planHtml() + diffHtml() + octHtml() + '</div></div>';
   }
 
   /* ---------- lane 3: Before sending, Kate ---------- */

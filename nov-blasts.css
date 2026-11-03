@@ -145,6 +145,15 @@
 .nvb-pl-r.h{border-top:0;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
 .nvb-pl-r .z{color:var(--muted2)}
 .nvb-pl-r .over{color:var(--nv-bad)}
+.nvb-diff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.nvb-diffcol,.nvb-diffwhy{display:grid;gap:8px;align-content:start}
+.nvb-diffcol h3,.nvb-diffwhy h3{font-size:17px;margin:0}
+.nvb-diffcol p,.nvb-diffwhy p{margin:0;font-size:14.5px}
+.nvb-dl{display:grid;gap:6px}
+.nvb-dl>div{display:grid;gap:2px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);font-size:14px}
+.nvb-dl b{font-size:14.5px}
+.nvb-dl span{color:var(--muted)}
+.nvb-diffwhy{margin-top:16px}
 .nvb-oct{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .nvb-oct>div{padding:14px 16px;display:grid;gap:4px;align-content:start;border:1px solid var(--border);border-radius:12px;background:var(--bg)}
 .nvb-oct .big{font-size:26px;color:var(--text)}
@@ -186,7 +195,7 @@
 .nvb-terms li::marker{color:var(--muted2)}
 
 /* a figure that opens its clients keeps the shared drill look; nothing extra here */
-@media (max-width:900px){.nvb-det{grid-template-columns:1fr}.nvb-oct{grid-template-columns:1fr}}
+@media (max-width:900px){.nvb-det{grid-template-columns:1fr}.nvb-oct,.nvb-diff{grid-template-columns:1fr}}
 @media (max-width:640px){
   .nvb h1{font-size:30px}
   .nvb-next{grid-template-columns:1fr;padding:16px}
