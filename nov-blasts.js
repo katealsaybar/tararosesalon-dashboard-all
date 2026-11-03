@@ -14,7 +14,7 @@
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var TABS = ['messages', 'before', 'replies'];
   var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
-  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false;
+  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null;
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   window.nvbUrlParts = function () {
     var p = [], first = D && D.items.filter(isBlast)[0], b = D ? cur : wantBlast, t = D ? tab : (wantTab || 'messages');
@@ -196,13 +196,40 @@
         '<span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     }).join('') + '</div><p class="cbl-hint cbl-prog"><b>' + rev + ' of ' + bs.length + '</b> reviewed</p></div>';
   }
-  function phoneHtml(text, d, b) {
+  /* The template buttons and what follows a tap (Kate, 3 Nov 2026): Tell me more sends the offer and the Terms and Conditions picture, then Book now and Help me out. The
+     call centre only takes over on Book now or Help me out (or if she types). The same tap-through as Campaign Blasts. The words live in the database (nov_blast_items data.flow). */
+  function repBub(b, node, min) {
+    var d = b.data, body = String(node.t).replace(/\{\{1\}\}/g, 'Layla').replace(/\{\{2\}\}/g, 'Saadiyat').replace(/\{\{3\}\}/g, d.end || '30 November 2026').replace(/\. /g, '.\n\n').replace(/: /g, ':\n');
+    var img = node.img ? '<div class="nvb-tcimg" role="img" aria-label="' + esc(node.img) + '"><span class="lg">TARA ROSE</span><span class="sl">SALONS</span><b>' + esc(String(node.img).split(': ')[1] || node.img) + '</b><span class="ln"></span><span class="ln"></span><span class="ln s"></span><span class="ln"></span><span class="ln s"></span><em>Terms picture, sent with this message</em></div>' : '';
+    return '<div class="cbl-bub cbl-rep">' + img + '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-time">' + tclock(d.time, min, true) + '</div></div>';
+  }
+  function flowHtml(b, grp) {
+    var f = b.data.flow; if (!f || !f.root) return '';
+    var key = b.id + ':' + grp, path = fl[key] || [], btns = f.root, step = 0, h = '';
+    for (;;) {
+      var pick = path[step], at = step;
+      h += btns.map(function (x, i) {
+        return pick == null ? '<button type="button" class="cbl-fb" data-nvb="flow:' + esc(key) + ':' + at + ':' + i + '">' + esc(x.l) + '</button>' : '<div class="cbl-fb ' + (pick === i ? 'tapped' : 'dim') + '">' + esc(x.l) + '</div>';
+      }).join('');
+      if (pick == null) break;
+      var ch = btns[pick]; if (!ch) break;
+      h += '<div class="cbl-out">' + esc(ch.l) + '<span>' + tclock(b.data.time, 3 + step * 2, true) + '</span></div>';
+      var node = f.nodes && f.nodes[ch.to]; if (!node) break;
+      h += repBub(b, node, 4 + step * 2);
+      if (node.call) { h += '<div class="cbl-notify">Call centre notified in respond.io</div>'; break; }
+      btns = node.b || []; step++;
+      if (!btns.length) break;
+    }
+    if (path.length) h += '<button type="button" class="cbl-restart" data-nvb="flowreset:' + esc(key) + '">Start again</button>';
+    return h;
+  }
+  function phoneHtml(text, d, b, grp) {
     var body = String(text).replace(/\{\{1\}\}/g, 'Layla').replace(/\{\{2\}\}/g, 'Saadiyat').replace(/\{\{3\}\}/g, d.end || '30 November 2026').replace(/\. /g, '.\n\n').replace(/: /g, ':\n');
     return '<div class="cbl-phone-wrap"><div class="cbl-phone"><div class="cbl-screen">' +
       '<div class="cbl-status"><span>' + tclock(d.time, 2) + '</span><span class="ic">5G <span class="cbl-batt"></span></span></div>' +
       '<div class="cbl-chat-head"><span class="cbl-back">‹</span><span class="cbl-av"></span><span class="cbl-who">Tara Rose Salons<small>Business account</small></span><span class="cbl-dots">⋮</span></div>' +
-      '<div class="cbl-thread"><span class="cbl-day">Today</span><div class="cbl-bub">' + (d.img ? '<img class="cbl-hdr" src="' + esc(d.img) + '" alt="Header image">' : (d.tkey ? '<div class="nvb-artph" role="img" aria-label="Artwork goes here"><b>Artwork goes here</b><span>Hanneh’s image, 1200 by 628 pixels</span></div>' : '')) +
-      '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-ftr">' + esc(d.footer) + '</div><div class="cbl-time">' + tclock(d.time, 0, true) + '</div></div>' + simHtml(b) + '</div>' +
+      '<div class="cbl-thread" data-key="' + esc(b.id + ':' + grp) + '"><span class="cbl-day">Today</span><div class="cbl-bub">' + (d.img ? '<img class="cbl-hdr" src="' + esc(d.img) + '" alt="Header image">' : (d.tkey ? '<div class="nvb-artph" role="img" aria-label="Artwork goes here"><b>Artwork goes here</b><span>Hanneh’s image, 1200 by 628 pixels</span></div>' : '')) +
+      '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-ftr">' + esc(d.footer) + '</div><div class="cbl-time">' + tclock(d.time, 0, true) + '</div></div>' + flowHtml(b, grp) + simHtml(b) + '</div>' +
       '<div class="cbl-compose"><span class="cbl-input">Message</span><span class="cbl-mic"></span></div></div></div></div>';
   }
   function laneHtml(label, grp, b, c) {
@@ -210,7 +237,7 @@
     var n = c ? (grp === 'warm' ? c.warm : c.std) : null;
     var cnt = c ? num(n, d.title + ', ' + label.toLowerCase() + ' clients', { p_blast: b.id, p_group: grp }) : (liveErr ? '?' : '…');
     return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + cnt + ' clients</span></div>' +
-      '<div class="w">' + (grp === 'warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phoneHtml(m, d, b) + '</div>';
+      '<div class="w">' + (grp === 'warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phoneHtml(m, d, b, grp) + '</div>';
   }
   function blastMain(b) {
     var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = sorted().map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
@@ -329,12 +356,17 @@
 
   function render(keep) {
     var el = main(); if (!el) return;
-    var y = window.scrollY;
+    var y = window.scrollY, thY = {}; [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) { thY[t.getAttribute('data-key')] = t.scrollTop; });
     var body = tab === 'decide' && decs().length ? decideHtml() : tab === 'before' ? beforeHtml() : tab === 'replies' ? repliesHtml() : messagesHtml();
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
       '<div class="nvb-chipsrow"><span class="chip warn">Draft, nothing sent</span><span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
       (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + '</div>';
+    [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
+      var k = t.getAttribute('data-key'); t.scrollTop = thY[k] || 0;
+      if (flowScroll === k) { var outs = t.querySelectorAll('.cbl-out'), last = outs[outs.length - 1]; if (last) t.scrollTop += last.getBoundingClientRect().top - t.getBoundingClientRect().top - 10; }
+    });
+    flowScroll = null;
     if (keep) window.scrollTo({ top: y, behavior: 'instant' });   // the dashboard sets smooth scrolling, which would glide the page up
   }
   function toTop() { window.scrollTo({ top: 0, behavior: 'instant' }); }
@@ -359,6 +391,8 @@
       else if (k === 'clear') { act(function () { return rpc('nov_blast_decide', { p_idx: dec + 1, p_pick: null }); }); }
       else if (k === 'cal') { if (!cal) return; cal.m += v === 'next' ? 1 : -1; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); }
       else if (k === 'day') { var hit = sorted().filter(function (x) { return x.data.date === v || aqDate(x) === v; }); if (!hit.length) return; var at = hit.map(function (x) { return x.id; }).indexOf(cur); cur = hit[(at + 1) % hit.length].id; rb = cur; render(true); syncUrl(); }
+      else if (k === 'flow') { var fp = v.split(':'), fk = fp[0] + ':' + fp[1], fs = +fp[2], fi = +fp[3], pp = (fl[fk] || []).slice(0, fs); pp[fs] = fi; fl[fk] = pp; flowScroll = fk; render(true); }
+      else if (k === 'flowreset') { delete fl[v]; render(true); }
       else if (k === 'side') { sideOpen = !sideOpen; render(true); }
       else if (k === 'big') { big = true; render(true); }
       else if (k === 'close') { if (t.classList.contains('cbl-modal') && e.target !== t) return; big = false; render(true); }
