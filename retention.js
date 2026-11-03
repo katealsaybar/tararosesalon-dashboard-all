@@ -79,7 +79,7 @@ function retCall(name, args) {
 const retArgs = () => { const [a, b] = retRange(); return { p_from: a, p_to: b, p_branch: retBranchArg() }; };
 
 // ── STAFF: team, photo, resigned (staff-profiles.js, the same cutouts Staff Cards uses) ────────────
-const RET_ALIAS = { 'MARY JOY': 'MJ', 'TAMRYN': 'TAMMY', 'KIMBERLY': 'KIM', 'PRINCESS AREANNE': 'AREANNE' };   // the ledger's name for her is not Phorest's
+const RET_ALIAS = { 'MARY JOY': 'MJ', 'TAMRYN': 'TAMMY', 'KIMBERLY': 'KIM', 'PRINCESS AREANNE': 'AREANNE' };   // the ledger's name for them is not Phorest's
 const RET_CROSS = ['IBRAHIM', 'ZANDRI', 'ROBYN', 'ELISE', 'CLARISSA'];   // one person who works at more than one salon
 function retProfile(emp, branch) {
   if (typeof STAFF_PROFILES === 'undefined') return null;
@@ -127,9 +127,10 @@ function retSpec(title, extra, backN, totalN, only) {
   const views = [];
   if (only !== 'notback') views.push(retListView('back', `Came back (${retN(backN)})`, Object.assign({}, extra, { p_ret: 'back' })));
   if (only !== 'back') views.push(retListView('notback', `Did not come back (${retN(totalN - backN)})`, Object.assign({}, extra, { p_ret: 'notback' })));
-  return { title, views };
+  const tip = only === 'back' ? `${retN(backN)} came back. Click or tap to see who.` : `${retN(backN)} of ${retN(totalN)} came back. Click or tap to see who did and who did not.`;
+  return { title, tip, views };
 }
-function retAllSpec(title, extra, n) { return { title, views: [retListView('all', `Clients (${retN(n)})`, Object.assign({}, extra, { p_ret: 'all' }))] }; }
+function retAllSpec(title, extra, n) { return { title, tip: `${retN(n)} clients. Click or tap to see who.`, views: [retListView('all', `Clients (${retN(n)})`, Object.assign({}, extra, { p_ret: 'all' }))] }; }
 const retNum = (html, spec) => (typeof TRSD !== 'undefined' && spec) ? TRSD.num(html, spec) : html;
 
 // ── THE PAGE ────────────────────────────────────────────────────────────────────────────
@@ -197,6 +198,12 @@ function retCss() {
 .rt-more div{display:flex;flex-direction:column;gap:3px}
 .rt-more b{color:var(--text)}
 .rt-btn{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:8px 16px;font:inherit;font-size:14px;cursor:pointer;margin-top:8px;color:var(--text)}
+.rt-key{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;font-size:12.5px;color:var(--muted);margin:2px 0 8px;padding:0 10px}
+.rt-key span{display:inline-flex;align-items:center;cursor:help}
+.rt-ln{display:inline-block;width:2px;height:12px;background:var(--text);opacity:.55;margin-right:7px}
+.rt-lh{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.rt-tip{position:fixed;z-index:400;max-width:290px;background:var(--text);color:var(--bg);padding:8px 11px;border-radius:8px;font-size:12.5px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.28);pointer-events:none}
+.rt-trk[data-tip]{cursor:help}
 .rt-legend{font-size:12px;color:var(--muted);margin-top:10px;display:flex;flex-direction:column;gap:4px}
 .rt-legend b{color:var(--text)}
 .rt-legend i{display:inline-block;width:2px;height:11px;background:var(--text);opacity:.55;margin-right:8px;vertical-align:-1px}
@@ -243,7 +250,7 @@ function retSum(list) {
   return t;
 }
 const retCard = (l, n, d) => `<div class="rt-card"><div class="l">${l}</div><div class="n">${n}</div><div class="d">${d}</div></div>`;
-const retBar = (p, avg, cls) => `<div class="rt-trk ${cls || ''}"><div class="rt-fill" style="width:${p}%"></div>${avg != null ? `<div class="rt-avg" style="left:${avg}%"></div>` : ''}</div>`;
+const retBar = (p, avg, cls, tip) => `<div class="rt-trk ${cls || ''}"${tip ? ` data-tip="${retEsc(tip)}"` : ''}><div class="rt-fill" style="width:${p}%"></div>${avg != null ? `<div class="rt-avg" style="left:${avg}%"></div>` : ''}</div>`;
 
 function retPaint() {
   const el = document.getElementById('retentionContent'), s = retData, w = retScope();
@@ -270,7 +277,7 @@ function retPaint() {
     const avg = retP(t.back, t.cohort);
     h += `<div class="rt-sec"><h3 class="rt-h" data-jn="By salon" style="margin-bottom:10px">By salon</h3><div class="rt-rows">${bl.map(b => {
       const p = retP(b.back, b.cohort), nm = retName(b.branch);
-      return `<div class="rt-row np"><span class="rt-nm">${retEsc(nm)} <em>${retNum(retN(b.cohort), retAllSpec(`${nm}: clients who came in`, { p_branch: b.branch }, b.cohort))} clients</em></span>${retBar(p, avg)}<span class="rt-pc"><b>${retNum(Math.round(p) + '%', retSpec(`${nm}: clients who came in, then came back`, { p_branch: b.branch }, b.back, b.cohort))}</b></span></div>`;
+      return `<div class="rt-row np"><span class="rt-nm">${retEsc(nm)} <em>${retNum(retN(b.cohort), retAllSpec(`${nm}: clients who came in`, { p_branch: b.branch }, b.cohort))} clients</em></span>${retBar(p, avg, '', `${nm}: ${retN(b.back)} of ${retN(b.cohort)} clients who came in (${Math.round(p)}%) came back to ${nm} in the 2 months after. The line is the average for the salons shown, ${Math.round(avg)}%.`)}<span class="rt-pc"><b>${retNum(Math.round(p) + '%', retSpec(`${nm}: clients who came in, then came back`, { p_branch: b.branch }, b.back, b.cohort))}</b></span></div>`;
     }).join('')}</div></div>`;
   }
   h += '<div class="rt-sec" id="retStylists"></div>';
@@ -305,23 +312,24 @@ function retStylists() {
     <button class="rt-mini" id="retSort" type="button">${RET.order === 'low' ? 'Lowest' : 'Highest'} first &#8645;</button></div>
     <div class="rt-fl"><span class="rt-lbl">Team</span>${chip('data-team', 'A', 'All', RET.team === 'A')}${sep}${chip('data-team', 'H', 'Hair', RET.team === 'H')}${sep}${chip('data-team', 'B', 'Beauty', RET.team === 'B')}
       <span class="rt-lbl rk">Rank by</span>${chip('data-rank', 'any', 'Salon return', RET.rank === 'any')}${sep}${chip('data-rank', 'same', 'Same stylist', RET.rank === 'same')}</div>`;
+  h += `<div class="rt-key"><span data-tip="Back to the salon: the client came back to any stylist or beautician at the same salon."><i class="rt-sw k1"></i>Back to the salon</span><span data-tip="Back to the same stylist or beautician: the client came back to the same person. Always the lower of the two."><i class="rt-sw k2"></i>Back to the same stylist or beautician</span><span data-tip="The line on each bar is the average for the people shown."><i class="rt-ln"></i>Average</span></div>`;
   h += '<div class="rt-rows">' + shown.map((x, i) => {
     const r = x.r, who = `${r.e} (${retName(r.b)})`, ex = { p_emp: r.e, p_eb: r.b };
     const img = r.photo ? `<div class="rt-pho"><img alt="" src="${retEsc(r.photo)}" onerror="this.remove()"></div>` : '<div class="rt-pho"></div>';
     const tag = r.team ? `<span class="rt-tag ${r.team}">${r.team === 'B' ? 'Beauty' : 'Hair'}</span>` : '';
     const worker = r.team === 'B' ? 'beautician' : 'stylist';
     return `<div class="rt-row${r.res ? ' res' : ''}" data-i="${i}">${img}<span class="rt-nm">${retEsc(r.e)}${tag}${r.res ? '<span class="rt-tag res">Resigned</span>' : ''}<span class="l2"><em>${r.role ? retEsc(r.role) + ', ' : ''}${multi ? r.b + ', ' : ''}${retNum(retN(r.clients), retAllSpec(`${who}: clients handled`, ex, r.clients))} clients</em></span></span>
-      <div class="rt-bars">${retBar(x.pa, avgA)}${retBar(x.ps, avgS, 't2')}</div>
-      <span class="rt-pc"><b class="k1">${retNum(Math.round(x.pa) + '%', retSpec(`${who}: her clients, back to the salon`, ex, r.any, r.clients))}</b><b class="k2">${retNum(Math.round(x.ps) + '%', retSpec(`${who}: her clients, back to the same ${worker}`, Object.assign({ p_same: true }, ex), r.same, r.clients))}</b></span></div>`;
+      <div class="rt-bars">${retBar(x.pa, avgA, '', `Back to the salon: ${retN(r.any)} of ${r.e}'s ${retN(r.clients)} clients (${Math.round(x.pa)}%) came back to any stylist or beautician at ${retName(r.b)}. The line is the average for the people shown, ${Math.round(avgA)}%.`)}${retBar(x.ps, avgS, 't2', `Back to the same ${worker}: ${retN(r.same)} of ${r.e}'s ${retN(r.clients)} clients (${Math.round(x.ps)}%) came back to ${r.e}. The line is the average for the people shown, ${Math.round(avgS)}%.`)}</div>
+      <span class="rt-pc"><b class="k1">${retNum(Math.round(x.pa) + '%', retSpec(`${who}: clients, back to the salon`, ex, r.any, r.clients))}</b><b class="k2">${retNum(Math.round(x.ps) + '%', retSpec(`${who}: clients, back to the same ${worker}`, Object.assign({ p_same: true }, ex), r.same, r.clients))}</b></span></div>`;
   }).join('') + '</div>';
   if (rows.length > 8) h += `<button class="rt-btn" id="retMore" type="button">${RET.all ? 'Show fewer' : 'Show all ' + rows.length + ' stylists'}</button>`;
-  h += `<div class="rt-legend"><div><span class="rt-sw k1"></span><b>Back to the salon</b>: counts a return to any stylist or beautician at the salon. Average ${Math.round(avgA)}%.</div>
+  h += `<div class="rt-legend"><div class="rt-lh">How to read this</div><div><span class="rt-sw k1"></span><b>Back to the salon</b>: counts a return to any stylist or beautician at the salon. Average ${Math.round(avgA)}%.</div>
     <div><span class="rt-sw k2"></span><b>Back to the same stylist or beautician</b>: counts only a return to the same person. Average ${Math.round(avgS)}%.</div>
     <div><i></i>The line on each bar is that average for the people shown.${RET.res ? ' Resigned staff are included, in grey.' : ''}</div></div>`;
   box.innerHTML = h;
 }
 
-// the detail under a row: her photo at the staff-card size (96px) and every number behind her percentages
+// the detail under a row: the photo at the staff-card size (96px) and every number behind the percentages
 function retMore(row) {
   const i = +row.dataset.i, x = retRows[i];
   if (!x) return;
@@ -379,8 +387,30 @@ async function retDownload(kind) {
   }
 }
 
+// ── WHAT IS THIS? (Kate, 3 Nov 2026: say what the data is on hover, and on a tap on a phone) ─────────────────────────
+// A bar, a key chip or any element with data-tip: a small box beside it. A mouse shows it on hover; a finger shows it on a tap and the next tap elsewhere puts it away.
+let retTipEl = null, retTipT = 0;
+function retTipHide() { if (retTipEl) { retTipEl.remove(); retTipEl = null; } clearTimeout(retTipT); }
+function retTipShow(el) {
+  retTipHide();
+  const t = el.getAttribute('data-tip'); if (!t) return;
+  retTipEl = document.createElement('div'); retTipEl.className = 'rt-tip'; retTipEl.textContent = t;
+  document.body.appendChild(retTipEl);
+  const r = el.getBoundingClientRect(), b = retTipEl.getBoundingClientRect();
+  let x = Math.min(Math.max(8, r.left + r.width / 2 - b.width / 2), window.innerWidth - b.width - 8);
+  let y = r.top - b.height - 8; if (y < 8) y = r.bottom + 8;
+  retTipEl.style.left = x + 'px'; retTipEl.style.top = y + 'px';
+  retTipT = setTimeout(retTipHide, 6000);
+}
+document.addEventListener('mouseover', e => { const t = e.target.closest && e.target.closest('#retentionContent [data-tip]'); if (t && window.matchMedia('(hover:hover)').matches) retTipShow(t); });
+document.addEventListener('mouseout', e => { const t = e.target.closest && e.target.closest('#retentionContent [data-tip]'); if (t && window.matchMedia('(hover:hover)').matches) retTipHide(); });
+window.addEventListener('scroll', retTipHide, { passive: true });
+
 document.addEventListener('click', e => {
   const host = e.target.closest && e.target.closest('#retentionContent');
+  const tipEl = e.target.closest && e.target.closest('#retentionContent [data-tip]');
+  if (tipEl && !e.target.closest('.dn')) { retTipShow(tipEl); return; }   // a bar or a key chip: it explains itself instead of opening the row
+  if (!tipEl) retTipHide();
   if (!host) return;
   if (e.target.closest('.dn')) return;   // a figure: drill.js opens its list
   const sv = e.target.closest('[data-save]'); if (sv) { retDownload(sv.dataset.save); return; }
