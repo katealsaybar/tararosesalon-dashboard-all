@@ -20,7 +20,27 @@ try {
   if (s.rank === 'same') RET.rank = 'same';
   if (s.order === 'high') RET.order = 'high';
 } catch (e) {}
-const retSave = () => { try { localStorage.setItem(RET_STORE, JSON.stringify({ team: RET.team, res: RET.res, rank: RET.rank, order: RET.order })); } catch (e) {} };
+// The address carries the list's picks (Kate, 3 Nov 2026: whatever filter is on the page shows in the url slug), beside the header's branch and period:
+// ?view=retention&branch=KCA&period=month:2026-09&team=beauty&resigned=1&rank=same&order=highest&list=all . A pick in the address wins over the remembered one.
+try {
+  const q = new URLSearchParams(location.search);
+  if (q.has('team')) RET.team = { hair: 'H', beauty: 'B' }[q.get('team')] || 'A';
+  if (q.has('resigned')) RET.res = q.get('resigned') === '1' ? 1 : 0;
+  if (q.has('rank')) RET.rank = q.get('rank') === 'same' ? 'same' : 'any';
+  if (q.has('order')) RET.order = q.get('order') === 'highest' ? 'high' : 'low';
+  if (q.get('list') === 'all') RET.all = true;
+} catch (e) {}
+function retUrlParts() {   // index.html trSyncUrl() calls this on this page; defaults stay out of the address
+  const p = [];
+  if (RET.team !== 'A') p.push('team=' + (RET.team === 'H' ? 'hair' : 'beauty'));
+  if (RET.res) p.push('resigned=1');
+  if (RET.rank === 'same') p.push('rank=same');
+  if (RET.order === 'high') p.push('order=highest');
+  if (RET.all) p.push('list=all');
+  return p;
+}
+const retSync = () => { try { if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'retention') trSyncUrl(null); } catch (e) {} };
+const retSave = () => { try { localStorage.setItem(RET_STORE, JSON.stringify({ team: RET.team, res: RET.res, rank: RET.rank, order: RET.order })); } catch (e) {} retSync(); };
 const RET_MIN_CLIENTS = 20;   // stylists with fewer clients in the Period are left out of the list
 let retData = null, retSeq = 0, retRows = [];
 const retCache = {};
@@ -323,6 +343,6 @@ document.addEventListener('click', e => {
   const k = e.target.closest('[data-rank]'); if (k) { RET.rank = k.dataset.rank; retSave(); retStylists(); return; }
   if (e.target.id === 'retRes') { RET.res = e.target.checked ? 1 : 0; RET.all = false; retSave(); retStylists(); return; }
   if (e.target.closest('#retSort')) { RET.order = RET.order === 'low' ? 'high' : 'low'; retSave(); retStylists(); return; }
-  if (e.target.id === 'retMore') { RET.all = !RET.all; retStylists(); return; }
+  if (e.target.id === 'retMore') { RET.all = !RET.all; retSync(); retStylists(); return; }
   const row = e.target.closest('.rt-row:not(.np)'); if (row) retMore(row);
 });
