@@ -71,8 +71,10 @@ function dpFitDept() {
   if (d) DP.dept = d; else { DP.dept = 'all'; DP.measure = 'sales'; }
 }
 const DP_M = {
-  sales:    { def: 'Total net take is everything sold, ex VAT: all services (hair with treatments and courses inside, and beauty) and retail. Services, Treatments and Retail on this menu are parts of it, so nothing here is counted twice.', label: 'Total net take',  noun: 'total net take',          kind: 'vol',   fmt: dpMoney, monthly: () => LG_TOTAL_TARGET,    pick: s => lgTotalRevenue(s) },
-  services: { def: 'Services: hair services with treatments and courses taken out, plus beauty services. No retail. Ex VAT.', label: 'Services',        noun: 'services revenue',     kind: 'vol',   fmt: dpMoney, monthly: () => LG_SERVICES_TARGET, pick: s => lgServicesTotal(s) },
+  sales:    { def: 'Total net take is everything sold, ex VAT: all services (hair with treatments and courses inside, and beauty) and retail. Services and Retail on this menu are the two parts of it, and Treatments is a part of Services, so nothing here is counted twice.', label: 'Total net take',  noun: 'total net take',          kind: 'vol',   fmt: dpMoney, monthly: () => LG_TOTAL_TARGET,    pick: s => lgTotalRevenue(s) },
+  // Kate, 3 Nov 2026: "ang susundin po lagi across all dashboards that needs a target should use the calculator". The Target Calculator's Target is hair services with treatments and
+  // courses inside, plus beauty, so Services is read on that basis here (it took the hair treatments out before, against a target that took only the hair treatment target out).
+  services: { def: 'Services: hair services with treatments and courses included, plus beauty services. No retail. Ex VAT. The target is the Target Calculator’s Target, on the same basis.', label: 'Services',        noun: 'services revenue',     kind: 'vol',   fmt: dpMoney, monthly: () => ['servicesTotal'], pick: s => (s.hairServicesIncl == null && s.beautyServicesTotal == null) ? null : (s.hairServicesIncl || 0) + (s.beautyServicesTotal || 0) },
   retail:   { def: 'Retail: hair and beauty retail sales together. Ex VAT.', label: 'Retail',          noun: 'retail revenue',       kind: 'vol',   fmt: dpMoney, monthly: () => ['retailTotal'],   pick: s => s.retailTotal },
   hair:     { def: 'Hair services, ex VAT, with treatments and courses included. No retail.', label: 'Hair services',   noun: 'hair services',        kind: 'vol',   fmt: dpMoney, monthly: () => ['hairRevenue'],   pick: s => s.hairServicesIncl },
   beauty:   { def: 'Beauty services, ex VAT. No retail.', label: 'Beauty services', noun: 'beauty services',      kind: 'vol',   fmt: dpMoney, monthly: () => ['beautyServices'], pick: s => s.beautyServicesTotal, beauty: true },
@@ -889,7 +891,7 @@ function dpSplit(code, ids) {
   // Kate, 3 Nov 2026: Retail opens its own Retail list (days, staff); Services has no Measure of its own (the Services measure takes treatments and courses out), so it opens its days.
   const row = (name, v, t, mt) => {
     const p = t != null && t > 0 ? v / t * 100 : null, st = p != null ? dpStatus(p, 80) : null, shown = mt != null ? mt : t;
-    const w = h => typeof TRSD === 'undefined' || dpL2() ? h : TRSD.num(h, name === 'Retail' ? dpSpecFor('retail', code, ids.slice().sort((a, b) => a - b)) : dpServicesSpec(code, ids.slice().sort((a, b) => a - b)));
+    const w = h => typeof TRSD === 'undefined' || dpL2() ? h : TRSD.num(h, dpSpecFor(name === 'Retail' ? 'retail' : 'services', code, ids.slice().sort((a, b) => a - b)));
     return `<div class="dp-sr"><span class="dp-sk">${name}</span><b>${w(dpMoney(v))}</b>${st ? `<span class="dp-chip ${st[0]}" title="Against the target to date, ${dpMoney(t)}">${w(Math.round(p) + '%')}</span>` : ''}<span class="dp-sx">${shown != null ? 'of ' + dpMoney(shown) + (mt != null ? ' this month' : '') : 'no target'}</span></div>`;
   };
   const svT = tot.t != null && ret.t != null ? tot.t - ret.t : null;
@@ -906,7 +908,7 @@ function dpSplit(code, ids) {
 //             not one pooled ratio, so a staff list for it would not add up to the figure and is not offered.
 const DP_PD = { sales: ['net', {}], hair: ['field', { key: 'hairSvc' }], beauty: ['field', { key: 'beautySvc' }], retail: ['field', { key: 'retail' }],
   hairretail: ['field', { key: 'hairRetail' }], beautyretail: ['field', { key: 'beautyRetail' }], treat: ['field', { key: 'treatments' }],
-  clients: ['clients', {}], hairclients: ['clients', { dept: 'hair' }], beautyclients: ['clients', { dept: 'beauty' }], newc: ['field', { key: 'newc' }],
+  services: ['field', { key: 'servicesIncl' }], clients: ['clients', {}], hairclients: ['clients', { dept: 'hair' }], beautyclients: ['clients', { dept: 'beauty' }], newc: ['field', { key: 'newc' }],
   ncr: ['bench', { name: 'NCR' }], rebookn: ['field', { key: 'rebooked' }] };
 // A rate over one day is one pooled ratio, so its staff list adds up to the figure; over several days it is the average of the days, which a staff list would not match.
 const DP_PD1 = { rebook: ['bench', { name: 'Rebooking %' }], treatp: ['bench', { name: 'Treatment %', dept: 'hair' }], retailp: ['bench', { name: 'Retail %', dept: 'hair' }],
@@ -998,18 +1000,6 @@ function dpGrowthSpec(mk, code, g) {
     return { cols: [{ k: 'w', l: 'Period' }, { k: 'n', l: 'Open days', t: 'num' }, { k: 'v', l: vol ? 'Total' : 'Average', t }, { k: 'a', l: vol ? 'A day on average' : '', t }], rows: [A, B],
       foot: { w: 'Change', n: g.a.n - g.b.n, v: g.a.v - g.b.v, a: vol ? A.a - B.a : null },
       sub: `${TRSD.esc(g.label)} The chip says ${TRSD.esc(g.text.toLowerCase())}${g.pts ? ' (points of the rate)' : ' (the change as a % of the earlier figure)'}. A period is only compared when the earlier one has at least 60% as many open days.` };
-  } }] };
-}
-// Services as the tile's "Made of" line has it (hair with treatments and courses, plus beauty: net take less retail), day by day. It has no single Measure of its own
-// (the Services measure takes treatments and courses out), so it opens its days.
-function dpServicesSpec(code, ids) {
-  if (ids.length < 2) return null;   // one day's list would be the figure again
-  const first = DPD.days[ids[0]], last = DPD.days[ids[ids.length - 1]];
-  return { title: `Services, hair with treatments and courses, and beauty · ${dpName(code)}`, cur: 'AED', views: [{ id: 'days', label: 'By day', load: async () => {
-    const rows = ids.map(i => ({ i, a: dpCell('sales', code, i), r: dpCell('retail', code, i) })).filter(x => x.a.state === 'ok' && x.r.state === 'ok').map(x => ({ w: dpDayLabel(DPD.days[x.i]), v: x.a.v - x.r.v, t: x.a.t != null && x.r.t != null ? x.a.t - x.r.t : null }));
-    const sum = k => rows.reduce((a, r) => a + (+r[k] || 0), 0), tt = rows.filter(r => r.t != null);
-    return { cols: [{ k: 'w', l: 'Day' }, { k: 'v', l: 'Services', t: 'aed' }, { k: 't', l: 'Day target', t: 'aed' }], rows, foot: { w: 'Total', v: sum('v'), t: tt.length ? tt.reduce((a, r) => a + r.t, 0) : null },
-      sub: `${TRSD.esc(dpName(code))}, ${TRSD.esc(dpDayLabel(first))} to ${TRSD.esc(dpDayLabel(last))}. Net take less retail, day by day, the way the Made of line adds them. Days the branch was shut, or with no figures, are left out.` };
   } }] };
 }
 // A heatmap square or table cell carries data-dpk ("measure|branch|index"), a Trend or Bars column data-dpm ("measure|index", every branch showing); one handler opens

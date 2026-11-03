@@ -172,7 +172,7 @@ function daBranchSpec(g, codes, idxs, o) {
   } }] };
 }
 // What each line of the Revenue mix opens (the same lists the Comparison rows and the Pulse figures open).
-const DA_SPEC = { total: ['net', {}], services: ['field', { key: 'servicesTotal' }], retail: ['field', { key: 'retail' }], hair: ['field', { key: 'hairSvc' }], hairEx: ['field', { key: 'hairSvcEx' }],
+const DA_SPEC = { total: ['net', {}], services: ['field', { key: 'servicesIncl' }], retail: ['field', { key: 'retail' }], hair: ['field', { key: 'hairSvc' }], hairEx: ['field', { key: 'hairSvcEx' }],
   treat: ['field', { key: 'treatments' }], treatUnits: ['field', { key: 'treatUnits' }], courses: ['field', { key: 'hairCourses' }], hairRetail: ['field', { key: 'hairRetail' }],
   hairRetailUnits: ['field', { key: 'hairRetailUnitsH' }], beauty: ['field', { key: 'beautySvc' }], beautyRetail: ['field', { key: 'beautyRetail' }], beautyRetailUnits: ['field', { key: 'beautyRetailUnitsB' }] };
 
@@ -181,7 +181,7 @@ const DA_SPEC = { total: ['net', {}], services: ['field', { key: 'servicesTotal'
 // rates, utilisation) are not made of parts, so this card is only drawn for these six.
 const DA_LINES = {
   total: [() => LG_TOTAL_LABEL, 'sales', s => lgTotalRevenue(s), 0, 1],
-  services: [() => LG_SERVICES_LABEL, 'services', s => lgServicesTotal(s)],
+  services: ['Services Total (hair with treatments and courses + beauty, no retail)', 'services', s => (Number(s.hairServicesIncl) || 0) + (Number(s.beautyServicesTotal) || 0)],
   retail: [() => LG_RETAIL_LABEL, 'retail', s => s.retailTotal],
   hair: ['Hair revenue (incl. treatments and courses)', 'hair', s => s.hairServicesIncl],
   hairEx: ['Hair services (excl. treatments and courses)', null, s => s.hairServicesExcl],
@@ -195,7 +195,7 @@ const DA_LINES = {
   beautyRetailUnits: ['# beauty retail sold', null, s => s.beautyRetailUnits, 1],
 };
 const DA_PART = {
-  hairEx: ['Hair services', '#C4B5FD', s => s.hairServicesExcl], treat: ['Treatments', '#99F6E4', s => s.treatmentSales], courses: ['Hair courses', '#FDBA74', s => s.hairCourses],
+  hairInc: ['Hair services (with treatments and courses)', '#C4B5FD', s => s.hairServicesIncl], hairEx: ['Hair services', '#C4B5FD', s => s.hairServicesExcl], treat: ['Treatments', '#99F6E4', s => s.treatmentSales], courses: ['Hair courses', '#FDBA74', s => s.hairCourses],
   beauty: ['Beauty services', '#FFD4D9', s => s.beautyServicesTotal], retail: ['Retail', '#EEF3C7', s => s.retailTotal],
   hairRetail: ['Hair retail', '#C4B5FD', s => s.hairRetailOnly], beautyRetail: ['Beauty retail', '#FFD4D9', s => s.beautyRetailOnly],
 };
@@ -203,7 +203,7 @@ const DA_MIX = {
   sales: { title: 'Revenue mix: where the money came from', why: 'What each branch\u2019s net take was made of, so you can see whether a good period was hair, beauty or retail. Hover a band for the figure.',
     parts: ['hairEx', 'treat', 'courses', 'beauty', 'retail'], lines: ['total', 'services', 'retail', 'hair', 'hairEx', 'treat', 'treatUnits', 'courses', 'hairRetail', 'hairRetailUnits', 'beauty', 'beautyRetail', 'beautyRetailUnits'] },
   services: { title: 'Services: hair against beauty', why: 'How each branch\u2019s services revenue splits between hair (treatments and courses taken out) and beauty. No retail.',
-    parts: ['hairEx', 'beauty'], lines: ['services', 'hairEx', 'beauty'] },
+    parts: ['hairInc', 'beauty'], lines: ['services', 'hair', 'hairEx', 'treat', 'courses', 'beauty'] },
   retail: { title: 'Retail: hair against beauty', why: 'Where each branch\u2019s retail was sold, in the hair chair or in the beauty room.',
     parts: ['hairRetail', 'beautyRetail'], lines: ['retail', 'hairRetail', 'hairRetailUnits', 'beautyRetail', 'beautyRetailUnits'] },
   hair: { title: 'Hair revenue: services, treatments and courses', why: 'What each branch\u2019s hair revenue was made of.',
@@ -313,7 +313,7 @@ const daN = v => Number(v) || 0;
 const daRatio = (a, b) => b ? a / b : null;
 const DA_STAFF = {
   sales:   { dept: 'both', hair: st => daN(st.netSalonTake), hhl: [4], beauty: st => daN(st.netSalonTake), bhl: [3] },
-  services: { dept: 'both', hair: st => daN(st.hairServicesExcl), hhl: [1], beauty: st => daN(st.beautySales), bhl: [1] },
+  services: { dept: 'both', hair: st => st.hairSalesNet != null ? daN(st.hairSalesNet) : daN(st.hairServicesExcl) + daN(st.treatments), hhl: [1, 2], beauty: st => daN(st.beautySales), bhl: [1] },
   retail:  { dept: 'both', hair: st => daN(st.retail), hhl: [3], beauty: st => daN(st.retail), bhl: [2] },
   hair:    { dept: 'hair', hair: st => st.hairSalesNet != null ? daN(st.hairSalesNet) : daN(st.hairServicesExcl) + daN(st.treatments), hhl: [1, 2] },
   beauty:  { dept: 'beauty', beauty: st => daN(st.beautySales), bhl: [1] },
