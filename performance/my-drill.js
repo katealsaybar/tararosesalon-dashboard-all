@@ -25,7 +25,7 @@
   const mondayOf = s => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); };
   const A = v => +v || 0;
   const pc = (a, b) => b > 0 ? 100 * a / b : null;
-  const st = { on: false, token: null, sid: null, admin: null, embed: false };
+  const st = { on: false, token: null, sid: null, admin: null, embed: false, inline: false };
   const REG = new Map();
   let seq = 0;
   const PHONE = () => matchMedia('(max-width:619px)').matches;
@@ -33,6 +33,7 @@
   function init(o) {
     let embed = false; try { embed = new URLSearchParams(location.search).get('embed') === '1'; } catch (e) {}
     if (o && ('token' in o || 'sid' in o)) { st.token = o.token || null; st.sid = o.sid || null; }   // a page for one person: her own, never the one before
+    st.inline = st.inline || !!(o && o.inline);                   // inside the dashboard itself: always the shared window over the page, never another browser window
     st.admin = o && o.admin || st.admin || null;                 // a leader's team key: it reads one person's rows by her staff id (perf_my_*_by_id)
     st.embed = embed && window.parent !== window;
     st.on = (!!st.token || !!st.admin) && typeof window.TRSD === 'object';
@@ -222,7 +223,7 @@
     } catch (e) { out = { title: sp.title || 'Your numbers', cur: '', sk: '', views: [{ id: 'e', label: 'List', res: { cols: [], rows: [], empty: e && e.message || 'The list did not load.' } }] }; }
     parent.postMessage({ type: 'perf-drill', spec: out }, location.origin);
   }
-  function show(sp, el) { if (!st.on || !sp) return; if (st.embed) toParent(sp); else if (PHONE()) openWindow(sp, el); else TRSD.open(sp, el); }
+  function show(sp, el) { if (!st.on || !sp) return; if (st.embed) toParent(sp); else if (PHONE() && !st.inline) openWindow(sp, el); else TRSD.open(sp, el); }
   function open(id, el) { show(REG.get(id), el); }
   document.addEventListener('click', e => { const n = e.target.closest && e.target.closest('[data-md]'); if (!n) return; e.stopPropagation(); e.preventDefault(); open(n.dataset.md, n); }, true);
   document.addEventListener('keydown', e => { const n = e.target.closest && e.target.closest('[data-md]'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(n.dataset.md, n); } });

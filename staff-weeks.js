@@ -185,6 +185,23 @@ const W13_ROWS = [
   ['g', 'Reviews'],
   ['Google reviews', n => w13Num(n.google_reviews)],
 ];
+// Kate, 3 Nov 2026: every figure in a person's weeks opens the rows behind it (performance/my-drill.js on the shared list window, read by her staff id with the
+// team key: perf_my_days_by_id). A column says which list it is; a week's row, the year's total and the week in progress say the dates.
+const W13_KIND = {
+  'Service sales (AED)': ['revenue'], 'Hair services (AED)': ['hair'], 'Treatments (AED)': ['treat'], 'Retail (AED)': ['retail'],
+  'Average bill (AED, Phorest sales per ledger client)': ['avgbill'], 'Clients (ledger)': ['clients'], 'Salon clients': ['salon'], 'Requests': ['req'],
+  'New clients': ['newc'], 'New client requests': ['ncr'], 'Request %': ['request'], 'Rebooked (ledger)': ['rebook'], 'Rebooking % (ledger)': ['rebook'],
+  'Phorest rebooked': ['rebook', 'phorest'], 'Phorest rebooking %': ['rebook', 'phorest'], 'Column fill %': ['fill'], 'Hours booked': ['fill'], 'Hours available': ['fill'],
+};
+// html is the figure as drawn; win { from, to } its dates; who { id, name } her. A dash or a zero has no rows, so it stays plain.
+function w13Fig(html, label, win, who) {
+  const M = window.MyDrill;
+  if (!M || !M.on || !win || !who || html === '–' || html === '0' || html === '0%') return html;
+  const o = { sid: who.id, from: win.from, to: win.to, title: who.name + ' · ' + String(label).replace(/ \(.*\)$/, '') };
+  if (label === 'Google reviews') return M.fig(html, M.reviews(o));
+  const k = W13_KIND[label];
+  return k ? M.fig(html, M.days(k[0], Object.assign({ src: k[1] || 'ledger' }, o))) : html;
+}
 // What a column means, on a tap (a phone has no hover for the title). The words are metric-glossary.js's; the few columns that are
 // not a staff metric (hours, the ledger and Phorest rebooked counts) carry their own line here. A card at the foot of the screen says
 // it, so it is read wherever the table is scrolled to.
@@ -295,6 +312,7 @@ function w13Spark(weekly, cur, dept, o) {
 
 async function renderStaffWeeks() {
   const el = document.getElementById('staffWeeksContent');
+  if (window.MyDrill && typeof spfGet === 'function') MyDrill.init({ admin: spfGet(), inline: true });   // Kate, 3 Nov 2026: the figures open their rows (my-drill.js)
   w13SeedBranch();
   // A link that names a stylist opens straight on her report.
   if (!w13Pick && w13WantSlug) {
@@ -345,14 +363,16 @@ async function renderStaffWeeks() {
   const figHead = l => l.replace(/ \(.*\)$/, '');
   const head = `<tr class="w13-gh"><th></th>${groups.map(g => `<th colspan="${g[1]}">${w13Esc(g[0])}</th>`).join('')}</tr>
     <tr><th>Week</th>${figs.map(r => `<th title="${w13Esc(r[0])}"${w13Mean(r[0]) ? ` class="w13-hd" tabindex="0" role="button" onclick="w13Say(this)" data-l="${w13Esc(r[0])}"` : ''}>${w13Esc(figHead(r[0]))}</th>`).join('')}</tr>`;
-  const cells = n => figs.map(r => `<td>${r[1](n)}</td>`).join('');
+  const cells = (n, win) => figs.map(r => `<td>${w13Fig(r[1](n), r[0], win, s)}</td>`).join('');
+  const wkWin = w => MyDrill.week(String(w.week_start).slice(0, 10));
+  const yrWin = weeks.length && window.MyDrill ? { from: String(d.from).slice(0, 10), to: wkWin(weeks[weeks.length - 1]).to } : null;   // the complete weeks, as the totals are
   const rows = weeks.map(w => {
     const n = w.numbers, off = !(n.total_revenue > 0 || n.clients > 0);
     const why = !off ? '' : w13NoData(d.staff.branch, String(w.week_start).slice(0, 10)) ? 'not uploaded yet' : (w13Cov ? 'leave or days off' : '');
-    return `<tr class="w13-wk${off ? ' w13-off' : ''}"><td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>${cells(n)}</tr>`;
+    return `<tr class="w13-wk${off ? ' w13-off' : ''}"><td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>${cells(n, window.MyDrill && wkWin(w))}</tr>`;
   }).join('');
-  const totRow = `<tr class="w13-tot"><td>${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</td>${cells(yr)}</tr>`;
-  const curRow = curWk ? `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b><div class="slv-note">so far · ${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} – ${w13Esc(w13Day(d.data_through))}`}</div></td>${cells(curWk.numbers)}</tr>` : '';
+  const totRow = `<tr class="w13-tot"><td>${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</td>${cells(yr, yrWin)}</tr>`;
+  const curRow = curWk ? `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b><div class="slv-note">so far · ${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} – ${w13Esc(w13Day(d.data_through))}`}</div></td>${cells(curWk.numbers, window.MyDrill && wkWin(curWk))}</tr>` : '';
   el.innerHTML = `
     <section class="slv-intro">
       <h2>Staff&rsquo;s 13 Week</h2>
@@ -370,10 +390,10 @@ async function renderStaffWeeks() {
       ${(d.branches || []).length > 1 ? `<div class="w13-branches"><span class="slv-eyebrow">Worked at</span> ${d.branches.map(x =>
         `<span class="w13-br"><b>${w13Esc(W13_BRANCH[x.branch] || x.branch)}</b> ${w13Aed(x.sales)} · ${w13Num(x.clients)} clients</span>`).join('')}<div class="slv-note">Every branch is counted in the totals below, including cover days away from ${w13Esc(W13_BRANCH[s.branch] || s.branch)}.</div></div>` : ''}
       <div class="w13-tiles">
-        <div class="w13-tile"><div class="slv-eyebrow">Service sales (ex retail)</div><div class="w13-val">${w13Aed(tot.sales)}</div><div class="slv-note">${worked ? w13Aed(tot.sales / worked) + ' a week worked' : ''}</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">Clients (ledger)</div><div class="w13-val">${w13Num(tot.clients)}</div><div class="slv-note">${tot.clients ? 'Average bill ' + w13Aed(tot.sales / tot.clients) + ', Phorest sales per ledger client' : ''}</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">Rebooking</div><div class="w13-val">${yr.phorest.rebook_visits > 0 ? Math.round(100 * yr.phorest.rebooked / yr.phorest.rebook_visits) + '%' : (tot.clients ? Math.round(100 * tot.rebooked / tot.clients) + '%' : '–')}</div><div class="slv-note">Phorest ${yr.phorest.rebook_visits > 0 ? `${w13Num(yr.phorest.rebooked)} of ${w13Num(yr.phorest.rebook_visits)} visits, the weeks it has` : 'n/a'}<br>Ledger ${tot.clients ? `${Math.round(100 * tot.rebooked / tot.clients)}%, ${w13Num(tot.rebooked)} of ${w13Num(tot.clients)} clients` : 'n/a'}</div></div>
-        <div class="w13-tile"><div class="slv-eyebrow">Column fill</div><div class="w13-val">${totFill}</div><div class="slv-note">${tot.ah ? `${w13Num(tot.uh)} of ${w13Num(tot.ah)} hours booked` : ''}</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Service sales (ex retail)</div><div class="w13-val">${w13Fig(w13Aed(tot.sales), 'Service sales (AED)', yrWin, s)}</div><div class="slv-note">${worked ? w13Aed(tot.sales / worked) + ' a week worked' : ''}</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Clients (ledger)</div><div class="w13-val">${w13Fig(w13Num(tot.clients), 'Clients (ledger)', yrWin, s)}</div><div class="slv-note">${tot.clients ? 'Average bill ' + w13Fig(w13Aed(tot.sales / tot.clients), 'Average bill (AED, Phorest sales per ledger client)', yrWin, s) + ', Phorest sales per ledger client' : ''}</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Rebooking</div><div class="w13-val">${yr.phorest.rebook_visits > 0 ? w13Fig(Math.round(100 * yr.phorest.rebooked / yr.phorest.rebook_visits) + '%', 'Phorest rebooking %', yrWin, s) : (tot.clients ? w13Fig(Math.round(100 * tot.rebooked / tot.clients) + '%', 'Rebooking % (ledger)', yrWin, s) : '–')}</div><div class="slv-note">Phorest ${yr.phorest.rebook_visits > 0 ? `${w13Fig(`${w13Num(yr.phorest.rebooked)} of ${w13Num(yr.phorest.rebook_visits)}`, 'Phorest rebooked', yrWin, s)} visits, the weeks it has` : 'n/a'}<br>Ledger ${tot.clients ? `${w13Fig(Math.round(100 * tot.rebooked / tot.clients) + '%, ' + w13Num(tot.rebooked) + ' of ' + w13Num(tot.clients), 'Rebooked (ledger)', yrWin, s)} clients` : 'n/a'}</div></div>
+        <div class="w13-tile"><div class="slv-eyebrow">Column fill</div><div class="w13-val">${w13Fig(totFill, 'Column fill %', yrWin, s)}</div><div class="slv-note">${tot.ah ? `${w13Fig(`${w13Num(tot.uh)} of ${w13Num(tot.ah)}`, 'Hours booked', yrWin, s)} hours booked` : ''}</div></div>
       </div>
       <div class="w13-chart-head">
         <div class="slv-eyebrow" id="w13ChartTitle">${w13ChartTitleText()}</div>
@@ -409,6 +429,7 @@ async function w13RenderTeam(el) {
     catch (e) { el.innerHTML = '<p class="slv-muted">Staff’s 13 Week didn\'t load. Refresh to try again.</p>'; return; }
   }
   const t = w13Team;
+  const tw = window.MyDrill ? { from: String(t.from).slice(0, 10), to: String(t.to).slice(0, 10) } : null;   // the window her card's figures are over
   [w13Aims] = await Promise.all([w13LoadAims(), w13LoadCoverage(t.from, t.to)]);
   const list = t.roster.filter(r => (w13Dept === 'all' || r.dept === w13Dept) && (!w13Branch || w13Branch.includes(r.branch)));
   const flip = w13Rev ? -1 : 1;
@@ -422,8 +443,8 @@ async function w13RenderTeam(el) {
         ${ph ? `<img src="${ph}" alt="" loading="lazy" onerror="this.remove()">` : ''}
         <div><div class="w13-card-name">${w13Esc(r.name)}</div><div class="slv-note">${w13Esc(r.level || r.dept)}${w13Sort === 'branch' ? '' : ' · ' + w13Esc(W13_BRANCH[r.branch] || r.branch)}</div></div>
       </div>
-      <div class="w13-card-val">${w13Aed(n.total_revenue)}</div>
-      <div class="slv-note">${w13Num(n.clients)} clients · ${n.clients ? `${w13Num(n.rebooked)} of ${w13Num(n.clients)} rebooked (ledger)` : 'no clients'}${(n.phorest && n.phorest.rebook_visits > 0) ? ` · Phorest ${Math.round(100 * n.phorest.rebooked / n.phorest.rebook_visits)}%` : ''}</div>
+      <div class="w13-card-val">${w13Fig(w13Aed(n.total_revenue), 'Service sales (AED)', tw, r)}</div>
+      <div class="slv-note">${w13Fig(w13Num(n.clients), 'Clients (ledger)', tw, r)} clients · ${n.clients ? `${w13Fig(`${w13Num(n.rebooked)} of ${w13Num(n.clients)}`, 'Rebooked (ledger)', tw, r)} rebooked (ledger)` : 'no clients'}${(n.phorest && n.phorest.rebook_visits > 0) ? ` · Phorest ${w13Fig(Math.round(100 * n.phorest.rebooked / n.phorest.rebook_visits) + '%', 'Phorest rebooking %', tw, r)}` : ''}</div>
       ${w13Spark(r.weekly, r.current, r.dept, { branch: r.branch, from: t.from, aim: w13WeekAim(w13Aims, r.level) })}
     </button>`;
   };

@@ -44,6 +44,16 @@ const SLV_ACT = [
 ];
 const SLV_SUM = new Set(['total_revenue', 'hair_services', 'treatments', 'retail', 'clients', 'ncr',
   'google_reviews', 'social_feed', 'social_workdays']);
+// Kate, 3 Nov 2026: each figure in At this level opens her days for the month (performance/my-drill.js, read by her staff id with the team key).
+// The window is the month on the page, to its last day. A dash has no rows, so it stays plain; Phorest's rebooking under the ledger one opens its own list.
+const SLV_KIND = { total_revenue: ['revenue', 'Revenue'], clients: ['clients', 'Clients'], avg_bill: ['avgbill', 'Average bill'], treatments_pct: ['treatpct', 'Treatments %'],
+  retail_pct: ['retailpct', 'Retail %'], rebooking_pct: ['rebook', 'Rebooking'] };
+function slvFig(k, html, s, src) {
+  const M = window.MyDrill, kd = SLV_KIND[k];
+  if (!M || !M.on || !kd || !s || !s.id || html === '–') return html;
+  const w = M.month(slvMonth);
+  return M.fig(html, M.days(kd[0], { sid: s.id, from: w.from, to: w.to, src: src || 'ledger', title: s.name + ' · ' + kd[1] + (src === 'phorest' ? ' (Phorest)' : k === 'rebooking_pct' ? ' (branch sheet)' : '') }));
+}
 let slvTeam = null, slvTeamMonth = null;
 // The month offered by default: the last complete one.
 const slvMonths = () => {
@@ -89,7 +99,7 @@ function slvAtLevel(cur, next) {
       if (v === null || v === undefined) return '<td>–</td>';
       const min = slvCut(b.min, k, f, share), aim = slvCut(b.target, k, f, share);
       const cls = aim != null && v >= aim ? 'slv-a-good' : min != null && v < min ? 'slv-a-bad' : 'slv-a-mid';
-      return `<td class="${cls}" title="Minimum ${slvFmt(min, f)}, aim ${slvFmt(aim, f)}">${slvFmt(v, f)}${slvPhRb(k, n)}</td>`;
+      return `<td class="${cls}" title="Minimum ${slvFmt(min, f)}, aim ${slvFmt(aim, f)}">${slvFig(k, slvFmt(v, f), s)}${slvPhRb(k, n, false, s)}</td>`;
     }).join('');
     let hit = 0, of = 0;
     nextKeys.forEach(k => { const v = n[k]; if (v === null || v === undefined) return; of++;
@@ -115,7 +125,7 @@ function slvAtCards(people, cols, cur, next, nextKeys) {
       if (v === null || v === undefined) return `<div class="slv-mt"><span>${slvEsc(l)}</span><b>–</b></div>`;
       const min = slvCut(b.min, k, f, share), aim = slvCut(b.target, k, f, share);
       const cls = aim != null && v >= aim ? 'good' : min != null && v < min ? 'bad' : 'mid';
-      return `<div class="slv-mt ${cls}"><span>${slvEsc(l)}</span><b>${fm(v, f)}</b><small>aim ${fm(aim, f)}${slvPhRb(k, n, true)}</small></div>`;
+      return `<div class="slv-mt ${cls}"><span>${slvEsc(l)}</span><b>${slvFig(k, fm(v, f), s)}</b><small>aim ${fm(aim, f)}${slvPhRb(k, n, true, s)}</small></div>`;
     }).join('');
     let hit = 0, of = 0;
     nextKeys.forEach(k => { const v = n[k]; if (v === null || v === undefined) return; of++;
@@ -137,12 +147,13 @@ try { slvPick = localStorage.getItem('slv-level'); } catch (e) {}
 
 // Rebooking: the cell is the ledger's, as the aims were written on it; Phorest's tracker figure sits under it (Kate's ruling, 17 Oct 2026:
 // both, wherever a manager reads it). Nothing under it where the tracker has no visits for her in the month (it starts 1 Jul 2026).
-function slvPhRb(k, n, inline) {
+function slvPhRb(k, n, inline, s) {
   if (k !== 'rebooking_pct') return '';
   const p = n && n.phorest;
   if (!p || !(p.rebook_visits > 0)) return '';
   const v = p.rebooking_pct != null ? p.rebooking_pct : 100 * p.rebooked / p.rebook_visits;
-  return inline ? ` · Phorest ${Math.round(v * 10) / 10}%` : `<div class="slv-note">Phorest ${Math.round(v * 10) / 10}%</div>`;
+  const ph = slvFig(k, Math.round(v * 10) / 10 + '%', s, 'phorest');
+  return inline ? ` · Phorest ${ph}` : `<div class="slv-note">Phorest ${ph}</div>`;
 }
 function slvFmt(v, f) {
   if (v === null || v === undefined || v === '') return '–';
@@ -159,6 +170,7 @@ const slvWho = s => (typeof staffWho === 'function')
 
 async function renderStylistLevels() {
   const el = document.getElementById('stylistLevelsContent');
+  if (window.MyDrill && typeof spfGet === 'function') MyDrill.init({ admin: spfGet(), inline: true });   // Kate, 3 Nov 2026: the figures in At this level open her rows
   if (typeof trSyncUrl === 'function') trSyncUrl(null);   // month and level ride in the address (slvUrlParts)
   if (!slvData) {
     el.innerHTML = '<p class="slv-muted">Loading the levels…</p>';
