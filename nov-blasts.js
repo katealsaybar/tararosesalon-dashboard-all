@@ -209,6 +209,7 @@
   function calcNum(t, kind, only) { return (typeof TRSD !== 'undefined' && canEdit() && LIVE && LIVE.blasts) ? TRSD.num(t, calcSpec(kind, only)) : t; }
   /* The total across all the blasts (Kate, 3 Nov 2026: "wala tayong total blast count"), between the calendar and the list: clients in all blasts, how many blasts, each blast's count,
      the most it can cost and how long the sending takes at the page's pace. Live, from the same counts as each blast, so it moves when a count changes. */
+  var ALLID = 'ALL';   // the All blasts view (Kate, 3 Nov 2026): picking the All blasts card opens the whole picture in the main panel, like picking a blast
   var RATE_USD = 0.058;   // roughly one delivered marketing message in the UAE (see the Before sending top-up task)
   function totalSide() {
     var bs = sorted(), tot = 0, slots = 0, rows = '';
@@ -217,7 +218,7 @@
       rows += '<div><span>' + esc(b.data.short || b.data.title) + '</span><b>' + (c ? num(n, (b.data.short || b.data.title) + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b></div>';
     });
     var ready = !!(LIVE && LIVE.blasts), hrs = slots / 2;
-    return '<div class="cbl-tabs cbl-card nvb-tot"><h3>All blasts</h3><div class="nvb-tot-big"><b>' + (ready ? num(tot, 'November blasts, every client', {}, true) : (liveErr ? '?' : '…')) + '</b><span>clients in ' + plural(bs.length, 'blast', 'blasts') + '</span></div>' +
+    return '<div class="cbl-tabs cbl-card nvb-tot' + (cur === ALLID ? ' on' : '') + '" data-nvb="sel:' + ALLID + '" title="Open the whole picture across the blasts"><h3><a href="?view=novblasts&blast=' + ALLID + '" data-nvb="sel:' + ALLID + '">All blasts</a></h3><div class="nvb-tot-big"><b>' + (ready ? num(tot, 'November blasts, every client', {}, true) : (liveErr ? '?' : '…')) + '</b><span>clients in ' + plural(bs.length, 'blast', 'blasts') + '</span></div>' +
       '<div class="nvb-tot-rows">' + rows + '</div>' +
       (ready ? '<p class="cbl-hint">At most <b>' + calcNum('AED ' + fmtN(Math.round(tot * RATE_AED)), 'cost') + '</b> (about ' + calcNum('USD ' + fmtN(Math.round(tot * RATE_USD)), 'cost') + '). About <b>' + calcNum((hrs % 1 ? hrs.toFixed(1) : hrs) + ' hours', 'time') + '</b> of sending at ' + PACE + ' every 30 minutes.</p>' : '') + '</div>';
   }
@@ -354,10 +355,54 @@
       reviewHtml(b, rv, ed) +
       '<div class="nvb-stack">' + fold('who', 'Who gets it, and who is left out', '', who) + fold('facts', 'Cost, target and test', '', facts) + planHtml() + octHtml() + knowHtml() + '</div>';
   }
+  /* The All blasts view (Kate, 3 Nov 2026): the whole picture across the blasts in the main panel. Numbers, one row per blast (day, time, clients, review), what was left out in total and by
+     reason, cost and sending time, the sending plan, and every client who gets a blast with the blast she is in. Every figure opens its rows. */
+  function leftTotals() {
+    if (!LEFT || !LEFT.blasts) return null;
+    var tot = {}; blasts().forEach(function (b) { var r = LEFT.blasts[b.id] || {}; Object.keys(r).forEach(function (k) { tot[k] = (tot[k] || 0) + r[k]; }); });
+    return tot;
+  }
+  function leftAllSpec(reason, label) {
+    return { title: 'All blasts, left out: ' + label.toLowerCase(), cur: 'AED', sub: 'Clients who fit a blast but are not sent it, and why, across every blast.',
+      views: [{ id: 'clients', label: 'Clients', load: async function () {
+        var bs = blasts(), names = {}; bs.forEach(function (b) { names[b.id] = b.data.short || b.data.title; });
+        var rs = await Promise.all(bs.map(function (b) { return rpc('nov_blast_leftout_clients', { p_blast: b.id, p_reason: reason }); })), rows = [], total = 0;
+        rs.forEach(function (r, i) { total += r.total || 0; (r.rows || []).forEach(function (x) { rows.push({ c: x.c, b: BR[x.b] || x.b, k: names[bs[i].id], lv: x.lv, s: x.s }); }); });
+        rows.sort(function (a, b) { return (b.s || 0) - (a.s || 0); });
+        return { cols: [{ k: 'c', l: 'Client' }, { k: 'b', l: 'Salon' }, { k: 'k', l: 'Blast' }, { k: 'lv', l: 'Last visit', t: 'date' }, { k: 's', l: 'Spent this year', t: 'aed' }], rows: rows, empty: 'Nobody.', note: total > rows.length ? 'Showing the ' + fmtN(rows.length) + ' who spent most, of ' + fmtN(total) + '.' : '' };
+      } }] };
+  }
+  function leftAllHtml() {
+    var r = leftTotals(); if (!r) return '';
+    var fit = 0, out = 0; Object.keys(r).forEach(function (k) { fit += r[k]; if (k !== 'in') out += r[k]; });
+    var rows = LEFTWHY.filter(function (x) { return r[x[0]]; }).map(function (x) {
+      var n = fmtN(r[x[0]]);
+      return '<div class="nvb-lf"><span>' + esc(x[1]) + '</span><b>' + ((typeof TRSD !== 'undefined' && canEdit()) ? TRSD.num(n, leftAllSpec(x[0], x[1])) : n) + '</b></div>';
+    }).join('');
+    return '<div class="cbl-card nvb-allcard"><h3>Left out</h3><div class="nvb-left"><span class="nvb-lefth"><b>Left out: ' + fmtN(out) + '</b> of the ' + fmtN(fit) + ' who fit a blast</span>' + rows + '<span class="nvb-small">Counted ' + esc(fat(LEFT.at)) + ', Dubai time.</span></div></div>';
+  }
+  function allMain() {
+    var bs = sorted(), ready = !!(LIVE && LIVE.blasts), tot = 0, dates = [];
+    bs.forEach(function (b) { var c = lv(b.id); tot += c ? (c.n || 0) : 0; dates.push(b.data.date, aqDate(b)); });
+    dates.sort();
+    var last = calcRows().slice(-1)[0], hours = last ? last.hrs : 0, ph = '…';
+    var totHtml = ready ? num(tot, 'November blasts, every client', {}, true) : (liveErr ? '?' : '…');
+    var rows = '<div class="nvb-ab-r h"><span>Blast</span><span>Day</span><span>Clients</span><span>Warm</span><span>Standard</span><span>Review</span></div>' + bs.map(function (b) {
+      var c = lv(b.id), t = b.data.short || b.data.title;
+      return '<div class="nvb-ab-r"><span><a href="?view=novblasts&blast=' + esc(b.id) + '" data-nvb="sel:' + esc(b.id) + '">' + esc(t) + '</a></span><span>' + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== b.data.date ? '<small>Al Quoz: ' + esc(fdate(aqDate(b))) + '</small>' : '') + '</span>' +
+        '<span><b>' + (c ? num(c.n, t + ', every client', { p_blast: b.id }) : ph) + '</b></span><span>' + (c ? num(c.warm, t + ', warm clients', { p_blast: b.id, p_group: 'warm' }) : ph) + '</span><span>' + (c ? num(c.std, t + ', standard clients', { p_blast: b.id, p_group: 'std' }) : ph) + '</span><span><i class="cbl-chip ' + rcls(b.review) + '">' + lab(b.review) + '</i></span></div>';
+    }).join('');
+    return '<div class="cbl-head"><div><div class="cbl-eyebrow">' + (dates.length ? esc(fdate(dates[0])) + (dates[dates.length - 1] !== dates[0] ? ' to ' + esc(fdate(dates[dates.length - 1])) : '') : '') + '</div><h2>All blasts</h2></div><span class="cbl-chip ' + (approved() === bs.length && bs.length ? 'ok' : '') + '">' + approved() + ' of ' + bs.length + ' reviewed</span></div>' +
+      '<div class="cbl-card nvb-allnums"><div><small>Clients</small><b>' + totHtml + '</b><span class="cbl-live">in ' + plural(bs.length, 'blast', 'blasts') + ', one message each. Tap a number to see the clients.</span></div>' +
+      '<div><small>Cost, at most</small><b>' + (ready ? calcNum('AED ' + fmtN(Math.round(tot * RATE_AED)), 'cost') : '…') + '</b><span class="cbl-live">' + (ready ? 'about ' + calcNum('USD ' + fmtN(Math.round(tot * RATE_USD)), 'cost') : '') + '</span></div>' +
+      '<div><small>Sending time</small><b>' + (ready ? calcNum((hours % 1 ? hours.toFixed(1) : hours) + ' hours', 'time') : '…') + '</b><span class="cbl-live">' + PACE + ' every 30 minutes, one number</span></div></div>' +
+      '<div class="cbl-card nvb-allcard"><h3>By blast</h3><div class="nvb-ab">' + rows + '</div></div>' + leftAllHtml() +
+      '<div class="nvb-stack">' + planHtml() + '</div>';
+  }
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + blastMain(b) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
@@ -465,6 +510,7 @@
     var el = main(); if (!el || bound) return; bound = true;
     el.addEventListener('toggle', function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute('data-fold')) opened[t.getAttribute('data-fold')] = t.open; }, true);   // a fold stays as she left it when the page redraws
     el.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.dn')) return;   // a figure opens its own rows (drill.js), not the card it sits in
       var t = e.target.closest && e.target.closest('[data-nvb]'); if (!t || t.disabled || !D) return;
       if (t.tagName === 'A') e.preventDefault();
       var a = t.getAttribute('data-nvb').split(':'), k = a[0], v = a.slice(1).join(':');
@@ -523,9 +569,9 @@
     errMsg = '';
     if (!D) el.innerHTML = '<div class="nvb"><header class="nvb-head"><h1>November blasts</h1></header><p class="slv-muted">Loading…</p></div>';
     try { await reload(); } catch (e) { console.error(e); notFound(); return; }
-    if (wantBlast) { if (item(wantBlast) && isBlast(item(wantBlast))) { cur = wantBlast; rb = wantBlast; } wantBlast = ''; }
+    if (wantBlast) { if (wantBlast === ALLID || (item(wantBlast) && isBlast(item(wantBlast)))) { cur = wantBlast; rb = wantBlast; } wantBlast = ''; }
     if (wantTab) { if (TABS.indexOf(wantTab) >= 0) tab = wantTab; wantTab = ''; }
-    if (!item(cur) || !isBlast(item(cur))) { cur = sorted()[0] ? sorted()[0].id : ''; rb = cur; }
+    if (cur !== ALLID && (!item(cur) || !isBlast(item(cur)))) { cur = sorted()[0] ? sorted()[0].id : ''; rb = cur; }
     bind(); render(); syncUrl();
     loadLive().then(function () { if (main() && main().offsetParent !== null) render(true); });   // the counts come a moment after the page
   };
