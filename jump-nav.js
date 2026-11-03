@@ -86,6 +86,7 @@ const JN_PAGES = {
   stafflevels:    { sel: '#stylistLevelsContent > section.slv-card', labels: ['The level', 'At this level'] },
   clients:        { sel: 'h3' },
   clientmix:      { sel: '#cmCards, .cm-two, #cmListTitle', labels: ['The mix', 'By item', 'The clients'] },
+  retention:      { sel: '#retentionContent [data-jn]' },   // The answer, By salon (more than one salon picked), By stylist: each carries data-jn
   lostclients:    { sel: '#lcBody > section.slv-card', labels: ['The totals', 'The client list'] },
   services:       { sel: '#srBody .w13-tiles, #srBody h3', labels: ['The numbers', 'Top services'] },
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },

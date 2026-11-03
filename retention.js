@@ -231,7 +231,7 @@ function retPaint() {
   const per = `${retDay(s.from)} to ${retDay(s.to)}`;
   const ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
   let h = `<p class="rt-q">Clients who came in during the Period (${retEsc(per)}), and how many came back in the 2 months after (${retEsc(ret)}).</p>`;
-  h += `<div class="rt-hero"><div class="rt-big">${retNum(Math.round(retP(t.back, t.cohort)) + '<small>%</small>', one('clients who came in, then came back', {}, t.back, t.cohort))}</div>
+  h += `<div class="rt-hero" data-jn="The answer"><div class="rt-big">${retNum(Math.round(retP(t.back, t.cohort)) + '<small>%</small>', one('clients who came in, then came back', {}, t.back, t.cohort))}</div>
     <p><b>${retNum(retN(t.back), retSpec(`${w}: clients who came back`, {}, t.back, t.cohort, 'back'))} of ${retNum(retN(t.cohort), retAllSpec(`${w}: clients who came in`, {}, t.cohort))}</b> clients who came in ${retEsc(per)} came back by ${retEsc(retDay(s.ret_to))} (${retEsc(w)}).
     <span class="s">Same salon only. A client who tried a different salon counts as not back here.${s.partial ? ' The 2 months are not over yet, so this will still rise.' : ''}</span></p></div>`;
   h += nw < ol - 5
@@ -245,7 +245,7 @@ function retPaint() {
   const bl = (s.branches || []).slice().sort((a, b) => retP(b.back, b.cohort) - retP(a.back, a.cohort) || a.branch.localeCompare(b.branch));
   if (bl.length > 1) {
     const avg = retP(t.back, t.cohort);
-    h += `<div class="rt-sec"><h3 class="rt-h" style="margin-bottom:10px">By salon</h3><div class="rt-rows">${bl.map(b => {
+    h += `<div class="rt-sec"><h3 class="rt-h" data-jn="By salon" style="margin-bottom:10px">By salon</h3><div class="rt-rows">${bl.map(b => {
       const p = retP(b.back, b.cohort), nm = retName(b.branch);
       return `<div class="rt-row np"><span class="rt-nm">${retEsc(nm)} <em>${retNum(retN(b.cohort), retAllSpec(`${nm}: clients who came in`, { p_branch: b.branch }, b.cohort))} clients</em></span>${retBar(p, avg)}<span class="rt-pc"><b>${retNum(Math.round(p) + '%', retSpec(`${nm}: clients who came in, then came back`, { p_branch: b.branch }, b.back, b.cohort))}</b></span></div>`;
     }).join('')}</div></div>`;
@@ -277,7 +277,7 @@ function retStylists() {
   retRows = shown;
   const chip = (attr, val, label, on) => `<button class="rt-chip" type="button" ${attr}="${val}" aria-pressed="${on}">${label}</button>`;
   const sep = '<span class="rt-sep">·</span>';
-  let h = `<div class="rt-bar"><h3 class="rt-h">By stylist (${rows.length})</h3>
+  let h = `<div class="rt-bar"><h3 class="rt-h" data-jn="By stylist">By stylist (${rows.length})</h3>
     <label class="rt-mini"><input type="checkbox" id="retRes"${RET.res ? ' checked' : ''}> Resigned${nres ? ' (+' + nres + ')' : ''}</label>
     <button class="rt-mini" id="retSort" type="button">${RET.order === 'low' ? 'Lowest' : 'Highest'} first &#8645;</button></div>
     <div class="rt-fl"><span class="rt-lbl">Team</span>${chip('data-team', 'A', 'All', RET.team === 'A')}${sep}${chip('data-team', 'H', 'Hair', RET.team === 'H')}${sep}${chip('data-team', 'B', 'Beauty', RET.team === 'B')}
