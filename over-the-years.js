@@ -842,7 +842,7 @@ function otySpec(kind, r, codes) {
   const per = set.map(b => ({ code: b, b: OTY_NAME[b] || b, net: +D[b].net[w][i] || 0, vis: +D[b].vis[w][i] || 0, stf: +D[b].stf[w][i] || 0 })).filter(x => x.net || x.vis || x.stf);
   const wantOf = codes ? { net: sumK('net'), vis: sumK('vis'), stf: sumK('stf') } : { net: r.net, vis: r.vis, stf: r.stf };
   const views = [];
-  if (set.length > 1) views.push({ id: 'br', label: 'By branch', load: async () => {
+  if (per.length > 1) views.push({ id: 'br', label: 'By branch', load: async () => {
     if (kind === 'avgV' || kind === 'avg') {
       const den = kind === 'avgV' ? 'vis' : 'stf', rows = per.filter(x => x.net && x[den]).map(x => ({ b: x.b, net: x.net, d: x[den], a: x.net / x[den] }));
       const net = rows.reduce((a, x) => a + x.net, 0), d = rows.reduce((a, x) => a + x.d, 0);
@@ -879,7 +879,7 @@ function otyGrowthSpec(r) {
     const tc = rows.reduce((s, x) => s + x.cur, 0), tp = rows.reduce((s, x) => s + x.prev, 0);
     return { cols: [{ k: 'm', l: 'Month' }, ...cols.slice(1)], rows, foot: { m: 'Total', cur: tc, prev: tp, g: pc(tc, tp) },
       sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. The real days added up month by month.${Math.abs(tc - cur) > set.length * .5 + .5 || Math.abs(tp - prev) > set.length * .5 + .5 ? ` <b>The days add to ${otyNum(tc)} and ${otyNum(tp)}; the table shows ${otyNum(cur)} and ${otyNum(prev)}.</b>` : ''}` };
-  } }] };
+  } }].filter(v => v.id !== 'br' || set.length > 1) };
 }
 const otyGr = (html, r) => otyDnS(html, otyGrowthSpec(r));
 
@@ -905,7 +905,7 @@ function otySeasonSpec(key, nm, c) {
     const rows = days.filter(d => +d.net).map(d => ({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net })), t = rows.reduce((a, x) => a + x.net, 0);
     return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }], rows, foot: { d: '', b: 'Total', net: t },
       sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. One row per branch and day.${Math.abs(t - T) > codes.length * .5 + .5 ? ` <b>The days add to ${otyNum(t)}, the bar's season total is ${otyNum(T)}.</b>` : ''}` };
-  } }] };
+  } }].filter(v => v.id !== 'br' || list.length > 1) };
 }
 // The pill over a season: this year against the same season last year (the same days when it is still running).
 function otySeasonChgSpec(key, s) {
@@ -945,11 +945,12 @@ function otyMoCellSpec(X, y, m) {
         foot: { d: '', b: 'Total', net: t.net, stf: t.stf }, sub: `${who}, ${name}. One row per branch and day.${off ? ` <b>The days add to ${otyNum(t.net)} and ${otyNum(t.stf)}; the month shows ${otyNum(want.net)} and ${otyNum(want.stf)}.</b>` : ''}` };
     } });
   }
-  return { title: `${otyMoMetName[X.met]} · ${name}`, cur: 'AED', views };
+  const kept = views.filter(v => v.id !== 'br' || rs.length > 1);   // one branch: By branch would repeat the figure
+  return kept.length ? { title: `${otyMoMetName[X.met]} · ${name}`, cur: 'AED', views: kept } : null;
 }
 // a year's Total in Actual or Change: the finished months it adds up (each month opens its branches and days)
 function otyMoYearSpec(X, y) {
-  const B = X.mths(y), t = X.tot(y); if (!B.length || t == null) return null;
+  const B = X.mths(y), t = X.tot(y); if (B.length < 2 || t == null) return null;
   const cur = y === X.curYear, lab = cur ? `Jan to ${OTY_MON[B[B.length - 1]]} ${y}` : `Full year ${y}`;
   return { title: `${otyMoMetName[X.met]} · ${lab}`, cur: 'AED', views: [{ id: 'mo', label: 'By month', load: async () => {
     const cs = B.map(m => [m, X.cell(y, m)]), rows = cs.map(([m, c]) => { const sp = otyMoCellSpec(X, y, m);
@@ -975,7 +976,7 @@ function otyMoIdxSpec(X, y) {
 // one month across the years: each year's index for that month, with their average or how far apart they are (the Avg and Spread rows, the other years, the steady and the wide months)
 function otyMoAcrossSpec(X, m, mode, skipY) {
   const S = X.stats(), ys = X.years.filter(y => y !== skipY && S.idx[y] && otyMoState(X.M, y, m) === 'done' && S.idx[y][m] != null);
-  if (!ys.length) return null;
+  if (ys.length < 2) return null;
   const xs = ys.map(y => S.idx[y][m]), avg = xs.reduce((a, b) => a + b, 0) / xs.length, spr = Math.max(...xs) - Math.min(...xs);
   return { title: `${OTY_MON[m]} across the years · ${otyMoMetName[X.met]}`, cur: 'AED', views: [{ id: 'yrs', label: 'Year by year', load: async () => ({
     cols: [{ k: 'y', l: 'Year' }, { k: 'ix', l: 'Index', t: 'num' }],
@@ -994,7 +995,7 @@ function otyMoCmpSpec(X, y, m, py) {
     sub: `${TRSD.esc(otyMoName(X.reg))}. ${X.met === 'bill' ? 'An average, so the two months are set side by side as they are.' : `${py} is scaled to the same number of open days as ${y} (${c.days}), so a month in progress reads fairly.`} Tap a figure for its branches and days.` }) }] };
 }
 function otyMoYearCmpSpec(X, y) {
-  const tc = X.totChg(y); if (!tc) return null;
+  const tc = X.totChg(y); if (!tc || X.mths(y).length < 2) return null;
   const B = X.mths(y), T = otyMoT(X);
   return { title: `${otyMoMetName[X.met]} · ${y} against ${y - 1}`, cur: 'AED', views: [{ id: 'mo', label: 'By month', load: async () => {
     const rows = B.map(m => { const k = X.cmp(y, m), sp = otyMoCmpSpec(X, y, m); return { m: `${otyPad(m + 1)} ${OTY_MON[m]}`, cur: k.cur, prev: k.prevW, d: k.diff, pc: k.big ? null : k.pct, _dn: sp ? { cur: sp, prev: sp } : null }; });
@@ -1030,7 +1031,7 @@ function otyRevSpec(i, same, codes) {
     return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'st', l: 'Stars', t: 'num', al: 'l' }, { k: 'rv', l: 'Reviewer' }, { k: 'cm', l: 'What she wrote' }], rows,
       foot: { d: '', b: rows.length + ' review' + (rows.length === 1 ? '' : 's'), st: rows.length ? stars / rows.length : null, rv: '', cm: rows.length ? 'average stars' : '' },
       sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Google reviews dated in the window.${rows.length !== tot ? ` <b>${rows.length} listed against ${tot} on the page: the page counts are refreshed hourly.</b>` : ''} Dates are approximate before 2026.` };
-  } }] };
+  } }].filter(v => v.id !== 'br' || set.filter(b => n(b)).length > 1) };
 }
 
 // Instagram: the posts behind a month's counts. kind: own (our posts and reels), collab, tag, story.
