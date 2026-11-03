@@ -258,3 +258,60 @@ begin
   nd := left(d, i1 - 1) || blk || substr(d, i2);
   execute nd;
 end $do$;
+
+-- ── Matching the Pulse to the person (3 Nov 2026, later): guarded patches, each a no-op when already applied ────────────────
+-- 1. perf_clients says how many came back (retention_back) and refresh_perf_client_cache stores that count, not one rebuilt from a rounded percentage.
+-- 2. retention_report: a 'perf' flag on each stylist row (an active perf_staff row, the people the Pulse adds up), and person-level regulars across salons
+--    (rn_e / rsame_e / rany_e: one client counted once per person however many salons, back = any visit to that person in the return window).
+--    KPI totals add rn_e / rsame_e over the perf people: 4,928 regulars, 1,988 back on 3 Nov 2026, the Pulse tile exactly.
+-- 3. drill_retention_clients in KPI mode lists those same (person, client) pairs for perf people only, so every figure equals its list.
+do $do$
+declare d text; a text; b text;
+begin
+  select pg_get_functiondef(p.oid) into d from pg_proc p where p.proname = 'perf_clients';
+  if d not like '%''retention_back''%' then
+    a := '''retention_n'',      ret.n,'; b := '''retention_n'',      ret.n,' || E'\n    ''retention_back'',   ret.back,';
+    if position(a in d) = 0 then raise exception 'perf_clients: retention_n line not found'; end if;
+    execute replace(d, a, b);
+  end if;
+  select pg_get_functiondef(p.oid) into d from pg_proc p where p.proname = 'refresh_perf_client_cache';
+  if d not like '%retention_back%' then
+    a := 'rn, round(coalesce((j->>''retention_pct'')::numeric, 0) * rn / 100)::int, now())';
+    b := 'rn, coalesce((j->>''retention_back'')::int, round(coalesce((j->>''retention_pct'')::numeric, 0) * rn / 100)::int), now())';
+    if position(a in d) = 0 then raise exception 'refresh_perf_client_cache: pattern not found'; end if;
+    execute replace(d, a, b);
+  end if;
+end $do$;
+
+do $do$
+declare d text; i1 int; i2 int;
+begin
+  select pg_get_functiondef(p.oid) into d from pg_proc p where p.proname = 'retention_report';
+  if d like '%bool_or(sb.v_known > 0) k%' then return; end if;
+  -- perf flag
+  d := replace(d, E'left join b on b.branch = sb.branch and b.ck = sb.ck\n    group by sb.branch, sb.emp', E'left join b on b.branch = sb.branch and b.ck = sb.ck\n    left join (select distinct phorest_name as pn from perf_staff where active) pn on pn.pn = sb.emp\n    group by sb.branch, sb.emp');
+  d := replace(d, E'rany\n    from public.retention_staff_base', E'rany,\n      bool_or(pn.pn is not null) perf\n    from public.retention_staff_base');
+  -- person-level regulars across salons
+  d := replace(d, E'    group by sb.branch, sb.emp\n  )\n  select jsonb_build_object(', E'    group by sb.branch, sb.emp\n  ), se as (\n    select emp, count(*) filter (where k) rn_e, count(*) filter (where k and sm) rsame_e, count(*) filter (where k and am) rany_e\n    from (\n      select sb.emp, sb.ck, bool_or(sb.v_known > 0) k,\n             bool_or(sb.v_same > 0 or exists (select 1 from retention_staff_days r2 where r2.emp = sb.emp and r2.cn = sb.ck and r2.date > p_to and r2.date <= ret_to)) sm,\n             bool_or(coalesce(b.v_back, 0) > 0) am\n      from public.retention_staff_base(p_from, p_to, ret_to, br) sb\n      left join b on b.branch = sb.branch and b.ck = sb.ck\n      group by sb.emp, sb.ck\n    ) x\n    group by emp\n  )\n  select jsonb_build_object(');
+  d := replace(d, '''rany'', rany) order by branch, emp) from s)', '''rany'', rany, ''perf'', perf, ''rn_e'', rn_e, ''rsame_e'', rsame_e, ''rany_e'', rany_e) order by branch, emp) from s join se using (emp))');
+  if d not like '%rsame_e%' or d not like '%''perf'', perf%' then raise exception 'retention_report patch did not apply'; end if;
+  execute d;
+end $do$;
+
+do $do$
+declare d text; i1 int; i2 int; blk text;
+begin
+  select pg_get_functiondef(p.oid) into d from pg_proc p where p.proname = 'drill_retention_clients';
+  if d like '%perf_staff where active%' then return; end if;
+  i1 := strpos(d, E'  ), pairs as (');
+  i2 := strpos(d, E'  ), pick as (');
+  if i1 = 0 or i2 = 0 or i2 < i1 then raise exception 'pairs block not found'; end if;
+  blk := E'  ), pairs as (\n'
+      || E'    select (array_agg(sb.branch order by sb.v desc))[1] as branch, sb.ck, min(b.client) as client, sum(sb.v)::int as v_in, max(b.last_in) as last_in, min(b.first_back) as first_back, sb.emp as st,\n'
+      || E'           bool_or(sb.v_same > 0 or exists (select 1 from retention_staff_days r2 where r2.emp = sb.emp and r2.cn = sb.ck and r2.date > p_to and r2.date <= ret_to)) as is_back\n'
+      || E'    from sb join b on b.branch = sb.branch and b.ck = sb.ck\n'
+      || E'    where p_kpi and p_emp is null and sb.emp in (select phorest_name from perf_staff where active)\n'
+      || E'    group by sb.emp, sb.ck\n'
+      || E'    having bool_or(sb.v_known > 0)\n';
+  execute left(d, i1 - 1) || blk || substr(d, i2);
+end $do$;
