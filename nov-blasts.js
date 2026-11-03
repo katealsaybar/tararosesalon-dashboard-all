@@ -12,7 +12,7 @@
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var TABS = ['decide', 'messages', 'before', 'replies'];
   var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
-  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'decide', cur = 'D', rb = 'D', len = 'long', aud = 'warm', dec = null, more = '', opened = {}, copied = false;
+  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'decide', cur = 'D', rb = 'D', len = 'long', aud = 'warm', dec = null, more = '', opened = {}, copied = false, sched = false;
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   window.nvbUrlParts = function () {
     var p = [], b = D ? cur : (wantBlast || 'D'), t = D ? tab : (wantTab || 'decide');
@@ -146,28 +146,51 @@
       (days[b.data.date] = days[b.data.date] || { main: [], aq: [] }).main.push({ b: b, n: c ? (same ? c.n : c.n - c.AQ) : null, na: !same });
       if (!same) (days[aqDate(b)] = days[aqDate(b)] || { main: [], aq: [] }).aq.push({ b: b, n: c ? c.AQ : null });
     });
+    function nm(b) { return esc(b.data.short || b.data.title); }
+    function cnt(n) { return n == null ? (liveErr ? '?' : '…') : fmtN(n); }
     return '<div class="nvb-days">' + Object.keys(days).sort().map(function (iso) {
-      var dn = parts(iso), o = days[iso];
+      var dn = parts(iso), o = days[iso], moved = o.main.filter(function (x) { return x.na; });
       return '<div class="nvb-card nvb-day"><div class="d"><small>' + (dn.getDay() === 1 ? 'Monday' : dn.getDay() === 2 ? 'Tuesday' : DN[dn.getDay()]) + '</small>' + dn.getDate() + ' ' + MN[dn.getMonth()] + '</div>' +
-        o.main.map(function (x) { return '<button type="button" class="nvb-bl' + (cur === x.b.id ? ' sel' : '') + '" data-nvb="sel:' + esc(x.b.id) + '"><b>' + esc(x.b.data.short || x.b.data.title) + '</b><span class="n">' + (x.n == null ? (liveErr ? '?' : '…') : fmtN(x.n)) + ' clients' + (x.na ? ', not Al Quoz' : '') + '</span></button>'; }).join('') +
-        (o.aq.length ? '<div class="nvb-aqnote"><b>Al Quoz</b>, ' + o.aq.map(function (x) { return esc(x.b.data.short || x.b.data.title).toLowerCase(); }).join(', ') + ': ' + fmtN(o.aq.reduce(function (a, x) { return a + (x.n || 0); }, 0)) + ' clients. Closed Mondays, so these wait for Tuesday.</div>' : '') + '</div>';
+        o.main.map(function (x) { return '<button type="button" class="nvb-bl' + (cur === x.b.id ? ' sel' : '') + '" data-nvb="sel:' + esc(x.b.id) + '"><b>' + nm(x.b) + '</b><span class="n">' + cnt(x.n) + ' clients' + (x.na ? ', not Al Quoz' : '') + ' · ' + esc(fmtClock(clockMins(x.b))) + '</span></button>'; }).join('') +
+        (moved.length ? '<div class="nvb-aqnote"><b>Al Quoz clients are not in ' + (moved.length > 1 ? 'these' : 'this') + '.</b> The salon is closed on ' + dayWord(iso) + ', so they get ' + (moved.length > 1 ? 'these blasts' : 'this blast') + ' on ' + esc(fdate(aqDate(moved[0].b))) + '.</div>' : '') +
+        (o.aq.length ? '<div class="nvb-aqbox"><div class="nvb-aqh"><b>Al Quoz only</b>, ' + o.aq.reduce(function (a, x) { return a + (x.n || 0); }, 0 ) .toLocaleString('en-GB') + ' clients. These are ' + o.aq.map(function (x) { return esc(fdate(x.b.data.date)); }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join(' and ') + '’s blasts, held for Al Quoz because the salon is closed on ' + dayWord(o.aq[0].b.data.date) + '.</div>' +
+          o.aq.map(function (x) { return '<button type="button" class="nvb-bl nvb-bl-aq' + (cur === x.b.id ? ' sel' : '') + '" data-nvb="sel:' + esc(x.b.id) + '"><b>' + nm(x.b) + '</b><span class="n">' + cnt(x.n) + ' Al Quoz clients · ' + esc(fmtClock(clockMins(x.b))) + '</span></button>'; }).join('') + '</div>' : '') + '</div>';
     }).join('') + '</div>';
+  }
+  function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
+  function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
+  /* Move a blast: the day and the start time. Al Quoz follows on its own (shut Sundays and Mondays, so it waits for Tuesday); never a Friday (Kate, 21 Oct). Saved through nov_blast_schedule. */
+  function fromIso(iso, plus) { var d = parts(iso); d.setDate(d.getDate() + plus); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function schedHtml(b) {
+    if (!canEdit()) return '';
+    if (!sched) return '<button type="button" class="nvb-btn nvb-sch-open" data-nvb="sched:open">Change day or time</button>';
+    var d = b.data, days = '', times = '', i, iso, g, t, lab;
+    for (i = 0; i < 25; i++) {
+      iso = fromIso('2026-11-03', i + 1); g = parts(iso).getDay(); if (g === 5) continue;
+      days += '<option value="' + iso + '"' + (iso === d.date ? ' selected' : '') + '>' + esc(fdate(iso)) + '</option>';
+    }
+    if (days.indexOf('value="' + d.date + '"') < 0) days = '<option value="' + esc(d.date) + '" selected>' + esc(fdate(d.date)) + '</option>' + days;
+    for (t = 9 * 60; t <= 15 * 60 + 30; t += 30) { lab = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); times += '<option value="' + lab + '"' + (lab === d.time ? ' selected' : '') + '>' + esc(fmtClock(t)) + '</option>'; }
+    return '<div class="nvb-sch"><label>Day<select id="nvbSchDay">' + days + '</select></label><label>Starts<select id="nvbSchTime">' + times + '</select></label>' +
+      '<button type="button" class="nvb-btn pri" data-nvb="sched:save">Save</button><button type="button" class="nvb-btn" data-nvb="sched:close">Cancel</button>' +
+      '<p class="nvb-small">Al Quoz is closed Sundays and Mondays, so its clients move to Tuesday on their own. No Fridays. Nothing is sent from here.</p></div>';
   }
   // The pace is the one October used: about 100 messages every 30 minutes from each salon's number, from 11:30 am. Past 4 pm is flagged.
   function planHtml() {
     if (!LIVE || !LIVE.blasts) return '';
     var days = {};
-    blasts().forEach(function (b) { var c = lv(b.id); BKEYS.forEach(function (k) { var iso = k === 'AQ' ? aqDate(b) : b.data.date; (days[iso] = days[iso] || {})[k] = ((days[iso] || {})[k] || 0) + (c[k] || 0); }); });
+    var st = {};
+    blasts().forEach(function (b) { var c = lv(b.id); BKEYS.forEach(function (k) { var iso = k === 'AQ' ? aqDate(b) : b.data.date; (days[iso] = days[iso] || {})[k] = ((days[iso] || {})[k] || 0) + (c[k] || 0); if (c[k]) st[iso + k] = Math.min(st[iso + k] || 1e9, clockMins(b)); }); });
     var keys = Object.keys(days).sort();
     var head = '<div class="nvb-pl-r h"><span>Salon</span>' + keys.map(function (iso) { return '<span>' + esc(fdate(iso)) + '</span>'; }).join('') + '</div>';
     var rows = BKEYS.map(function (k) {
       return '<div class="nvb-pl-r"><span>' + BR[k] + '</span>' + keys.map(function (iso) {
         var n = days[iso][k] || 0; if (!n) return '<span class="z">none</span>';
-        var end = 11 * 60 + 30 + Math.ceil(n / 100) * 30, over = end > 16 * 60;
+        var end = (st[iso + k] || 11 * 60 + 30) + Math.ceil(n / 100) * 30, over = end > 16 * 60;
         return '<span class="' + (over ? 'over' : '') + '"><b>' + fmtN(n) + '</b> by ' + fmtClock(end) + (over ? ', too late' : '') + '</span>';
       }).join('') + '</div>';
     }).join('');
-    return fold('plan', 'Sending plan', 'about 100 every 30 minutes per salon, all done by 4 pm', head + rows + '<p>Each salon sends from its own number from 11:30 am. Press Count again each morning before sending: it takes in any STOP replies and the opt-out sheet.</p>');
+    return fold('plan', 'Sending plan', 'about 100 every 30 minutes per salon, all done by 4 pm', head + rows + '<p>Each salon sends from its own number from the time set on its blast (11:30 am unless moved). Press Count again each morning before sending: it takes in any STOP replies and the opt-out sheet.</p>');
   }
   function octHtml() {
     var o = item('oct'); if (!o) return '';   // the figures live in the database (nov_blast_items 'oct'), not in this public file
@@ -189,7 +212,7 @@
       '<p><b>No repeats.</b> Left out: anyone messaged in October’s Lost Clients blasts or Wellness Voucher blasts 3 and 4, by name and by phone number, anyone we wrote to on WhatsApp since 9 Oct, and every opt-out. Not checked: Wellness Voucher blasts 1 and 2 (August), their recipients are only in GHL.</p>';
     var facts = '<div class="nvb-facts"><div><b>Cost, at most</b>' + cost + '</div><div><b>Target by 30 Nov</b>' + esc(d.gold) + '</div><div><b>Message test</b>' + esc(d.arms) + '</div><div><b>Valid until</b>' + esc(d.valid || '30 November 2026') + '</div></div>';
     var rvChip = rv === 'ok' || rv === 'changes' ? '<span class="chip ' + (rv === 'ok' ? 'good' : 'warn') + '">' + (rv === 'ok' ? 'Approved' : 'Needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + '</span>' : '<span class="chip">Not reviewed yet</span>';
-    return '<div class="nvb-det-head" id="nvb-detail"><div><span class="eyebrow">' + esc(fdate(d.date)) + ', from ' + esc(fmtClock(+d.time.split(':')[0] * 60 + +d.time.split(':')[1])) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdate(aqDate(b))) : '') + '</span><h2>' + esc(d.title) + '</h2></div>' + rvChip + '</div>' +
+    return '<div class="nvb-det-head" id="nvb-detail"><div><span class="eyebrow">' + esc(fdate(d.date)) + ', from ' + esc(fmtClock(+d.time.split(':')[0] * 60 + +d.time.split(':')[1])) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdate(aqDate(b))) : '') + '</span><h2>' + esc(d.title) + '</h2></div>' + rvChip + '</div>' + '<div class="nvb-schrow">' + schedHtml(b) + '</div>' +
       '<div class="nvb-det"><div class="nvb-card nvb-phone">' +
       (lenOk ? '<div class="nvb-tog" aria-label="Length"><button type="button" class="' + (!useShort ? 'on' : '') + '" data-nvb="len:long">Long</button><button type="button" class="' + (useShort ? 'on' : '') + '" data-nvb="len:short">Short</button></div>' : '') +
       '<div class="nvb-tog" aria-label="Audience">' + (hasWarm ? '<button type="button" class="' + (a === 'warm' ? 'on' : '') + '" data-nvb="aud:warm">Warm</button>' : '') + '<button type="button" class="' + (a === 'std' ? 'on' : '') + '" data-nvb="aud:std">Standard</button></div>' +
@@ -267,6 +290,16 @@
       else if (k === 'clear') { act(function () { return rpc('nov_blast_decide', { p_idx: dec + 1, p_pick: null }); }); }
       else if (k === 'sel') { cur = v; rb = v; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
       else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
+      else if (k === 'sched') {
+        if (!canEdit()) return;
+        if (v === 'open') { sched = true; render(true); }
+        else if (v === 'close') { sched = false; render(true); }
+        else if (v === 'save') {
+          var bs = blast(cur), dd = document.getElementById('nvbSchDay'), tt = document.getElementById('nvbSchTime'); if (!bs || !dd || !tt) return;
+          sched = false;
+          act(function () { return rpc('nov_blast_schedule', { p_id: bs.id, p_date: dd.value, p_time: tt.value }); });
+        }
+      }
       else if (k === 'aud') { aud = v; render(true); }
       else if (k === 'len') { len = v; render(true); }
       else if (k === 'rev') { var b = blast(cur); if (!b || !canEdit()) return; act(function () { return rpc('nov_blast_review', { p_id: b.id, p_review: b.review === v ? 'none' : v }); }); }

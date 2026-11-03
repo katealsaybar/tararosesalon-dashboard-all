@@ -82,6 +82,14 @@
 .nvb-bl .n{font-size:13px;color:var(--muted);white-space:nowrap}
 .nvb-bl.sel{border-color:var(--text);box-shadow:0 0 0 2px var(--text) inset;background:var(--surface)}
 .nvb-aqnote{font-size:13px;color:var(--muted);border:1px dashed var(--border);border-radius:10px;padding:8px 12px}
+.nvb-aqbox{display:grid;gap:8px;border:1px dashed var(--text);border-radius:10px;padding:10px;background:var(--surface)}
+.nvb-aqh{font-size:13px;color:var(--muted)}
+.nvb-aqh b{color:var(--text)}
+.nvb-schrow{margin:0 0 12px}
+.nvb-sch{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.nvb-sch label{display:grid;gap:4px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2)}
+.nvb-sch select{font-size:15px;padding:9px 12px;min-height:40px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text)}
+.nvb-sch .nvb-small{flex-basis:100%}
 .nvb-det-head{scroll-margin-top:calc(var(--topbar-cond-h,104px) + 90px);display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:22px 0 12px}
 .nvb-det-head h2{font-size:30px;margin-top:4px}
 .nvb-det{display:grid;grid-template-columns:370px minmax(0,1fr);gap:12px;align-items:start}
