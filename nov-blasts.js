@@ -12,7 +12,7 @@
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var TABS = ['decide', 'messages', 'before', 'replies'];
   var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
-  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'decide', cur = 'D', rb = 'D', len = 'long', aud = 'warm', dec = null, more = '', opened = {}, copied = false, sched = false;
+  var D = null, LIVE = null, liveErr = false, counting = false, tab = 'decide', cur = 'D', rb = 'D', len = 'long', aud = 'warm', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {};
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   window.nvbUrlParts = function () {
     var p = [], b = D ? cur : (wantBlast || 'D'), t = D ? tab : (wantTab || 'decide');
@@ -209,16 +209,17 @@
     var cost = c ? 'AED ' + fmtN(Math.round(c.n * RATE_AED)) : '…';
     var who = '<p>' + esc(d.who) + '</p>' + extra +
       (c && c.unchecked ? '<p class="nvb-wa-note"><b>WhatsApp check:</b> ' + fmtN(c.unchecked) + ' of these ' + fmtN(c.n) + ' have not been checked in respond.io yet. The overnight check does it; Count again tomorrow morning. Numbers that are landlines, invalid, or not found there are left out (SMS-only).</p>' : '') +
-      '<p><b>No repeats.</b> Left out: anyone messaged in October’s Lost Clients blasts or Wellness Voucher blasts 3 and 4, by name and by phone number, anyone we wrote to on WhatsApp since 9 Oct, and every opt-out. Not checked: Wellness Voucher blasts 1 and 2 (August), their recipients are only in GHL.</p>';
+      '<p><b>No repeats.</b> Left out: anyone in a Campaign Blasts audience (Blonde Standard, Junior and Mette B, so nobody hears from two campaigns), by name and by phone number, anyone messaged in October’s Lost Clients blasts or Wellness Voucher blasts 3 and 4, by name and by phone number, anyone we wrote to on WhatsApp since 9 Oct, and every opt-out. Not checked: Wellness Voucher blasts 1 and 2 (August), their recipients are only in GHL.</p>';
     var facts = '<div class="nvb-facts"><div><b>Cost, at most</b>' + cost + '</div><div><b>Target by 30 Nov</b>' + esc(d.gold) + '</div><div><b>Message test</b>' + esc(d.arms) + '</div><div><b>Valid until</b>' + esc(d.valid || '30 November 2026') + '</div></div>';
     var rvChip = rv === 'ok' || rv === 'changes' ? '<span class="chip ' + (rv === 'ok' ? 'good' : 'warn') + '">' + (rv === 'ok' ? 'Approved' : 'Needs changes') + ' by ' + esc(b.review_by) + ', ' + esc(fat(b.review_at)) + '</span>' : '<span class="chip">Not reviewed yet</span>';
     return '<div class="nvb-det-head" id="nvb-detail"><div><span class="eyebrow">' + esc(fdate(d.date)) + ', from ' + esc(fmtClock(+d.time.split(':')[0] * 60 + +d.time.split(':')[1])) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdate(aqDate(b))) : '') + '</span><h2>' + esc(d.title) + '</h2></div>' + rvChip + '</div>' + '<div class="nvb-schrow">' + schedHtml(b) + '</div>' +
       '<div class="nvb-det"><div class="nvb-card nvb-phone">' +
       (lenOk ? '<div class="nvb-tog" aria-label="Length"><button type="button" class="' + (!useShort ? 'on' : '') + '" data-nvb="len:long">Long</button><button type="button" class="' + (useShort ? 'on' : '') + '" data-nvb="len:short">Short</button></div>' : '') +
       '<div class="nvb-tog" aria-label="Audience">' + (hasWarm ? '<button type="button" class="' + (a === 'warm' ? 'on' : '') + '" data-nvb="aud:warm">Warm</button>' : '') + '<button type="button" class="' + (a === 'std' ? 'on' : '') + '" data-nvb="aud:std">Standard</button></div>' +
-      '<div class="nvb-wa"><div class="nvb-wa-top"><i>TR</i>Tara Rose Salons</div><div class="nvb-wa-body"><div class="nvb-bub">' + sub(m[a] || m.std || m.warm, d.end) + '<span class="ft">' + esc(d.footer) + '</span><span class="tm">11:02</span></div></div></div>' +
+      '<div class="nvb-wa"><div class="nvb-wa-top"><i>TR</i>Tara Rose Salons</div><div class="nvb-wa-body"><div class="nvb-bub">' + sub(m[a] || m.std || m.warm, d.end) + '<span class="ft">' + esc(d.footer) + '</span><span class="tm">11:02</span></div>' + simHtml(b) + '</div></div>' +
       '<p class="nvb-small">' + (a === 'warm' ? 'Warm: last visit in the last 90 days' + warmSince() + '.' : 'Standard: last visit 91 days to 6 months' + (b.id === 'E' ? ' (nobody here is warmer).' : '.')) + ' ' + WHY_SPLIT + '</p>' +
-      '<div class="nvb-after">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') + '<button type="button" class="nvb-btn" data-nvb="reply:' + esc(b.id) + '">If she replies</button></div>' +
+      '<div class="nvb-after">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') + '<button type="button" class="nvb-btn' + (sim[b.id] ? ' pri' : '') + '" data-nvb="sim:' + esc(b.id) + '" aria-pressed="' + (sim[b.id] ? 'true' : 'false') + '">If she replies</button></div>' +
+      (sim[b.id] ? '<p class="nvb-small">What the call centre says, and the terms, are in <button type="button" class="nvb-lnk" data-nvb="reply:' + esc(b.id) + '">Replies</button>.</p>' : '') +
       '<div class="nvb-after"><button type="button" class="nvb-btn' + (rv === 'ok' ? ' pri' : '') + '"' + (ed ? ' data-nvb="rev:ok"' : ' disabled') + '>Approve</button><button type="button" class="nvb-btn' + (rv === 'changes' ? ' pri' : '') + '"' + (ed ? ' data-nvb="rev:changes"' : ' disabled') + '>Needs changes</button></div></div>' +
       '<div class="nvb-info"><div class="nvb-card nvb-split"><div><div class="big">' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</div><div class="lab">clients get this</div></div><div><div class="big">' + warmStd + '</div><div class="lab">' + (c && c.warm > 0 ? 'warm / standard' : 'all standard') + '</div></div></div>' +
       '<div class="nvb-card nvb-box"><h3>By salon</h3>' + BKEYS.map(function (k) {
@@ -246,6 +247,15 @@
   }
 
   /* ---------- lane 4: Replies, the call centre ---------- */
+  // The simulation inside the phone (Kate, 3 Nov 2026, the same idea as Campaign Blasts): she types a reply, the call centre is told, and the script she gets back. The tap is only kept on this page.
+  function simHtml(b) {
+    if (!sim[b.id]) return '';
+    var rp = item('reply'), script = rp && rp.data ? rp.data[b.id] : null, end = b.data.end || '30 November 2026';
+    return '<div class="nvb-aftlbl"><b>She replies</b><span>for example</span></div><div class="nvb-out">Yes please, what times do you have this week?<span>11:09</span></div>' +
+      (script ? '<div class="nvb-bub">' + esc(script).replace(/\{\{1\}\}/g, 'Layla').replace(/\{\{2\}\}/g, 'Saadiyat').replace(/\{\{3\}\}/g, esc(end)) + '<span class="tm">11:10</span></div>' : '') +
+      '<div class="nvb-notify">Call centre notified in respond.io</div>' +
+      (script ? '' : '<p class="nvb-small nvb-simnote">No reply script written yet for this blast. The call centre answers in the salon’s own warm words.</p>');
+  }
   function repliesHtml() {
     var bs = blasts(), b = blast(rb), d = b.data, rp = item('reply'), tm = item('terms'), script = rp && rp.data ? rp.data[b.id] : null, terms = tm && d.tkey && tm.data ? tm.data[d.tkey] : null;
     var pick = '<div class="nvb-pick" role="group" aria-label="Which message did she get?">' + bs.map(function (x) { return '<button type="button" class="' + (b.id === x.id ? 'on' : '') + '" data-nvb="rb:' + esc(x.id) + '">' + esc(x.data.short || x.data.title) + '</button>'; }).join('') + '</div>';
@@ -300,6 +310,7 @@
           act(function () { return rpc('nov_blast_schedule', { p_id: bs.id, p_date: dd.value, p_time: tt.value }); });
         }
       }
+      else if (k === 'sim') { sim[v] = !sim[v]; render(true); }
       else if (k === 'aud') { aud = v; render(true); }
       else if (k === 'len') { len = v; render(true); }
       else if (k === 'rev') { var b = blast(cur); if (!b || !canEdit()) return; act(function () { return rpc('nov_blast_review', { p_id: b.id, p_review: b.review === v ? 'none' : v }); }); }

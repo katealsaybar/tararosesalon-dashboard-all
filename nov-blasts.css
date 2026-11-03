@@ -108,6 +108,13 @@
 .nvb-bub .tm{display:block;text-align:right;font-size:11px;color:#8a8a8a;margin-top:2px}
 .nvb-bub mark,.nvb-say .script mark{background:#DDF7F1;color:#1A1A1A;border-radius:3px;padding:0 2px}
 .nvb-after{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.nvb-out{justify-self:end;background:#D9FDD3;color:#1A1A1A;border-radius:14px 4px 14px 14px;padding:8px 12px 6px;font-size:14.5px;line-height:1.45;max-width:88%;box-shadow:0 1px 1px rgba(0,0,0,.12)}
+.nvb-out span{display:block;text-align:right;font-size:11px;color:#6b8a63;margin-top:2px}
+.nvb-aftlbl{text-align:center;font-size:12px;color:var(--muted);margin-top:6px}
+.nvb-aftlbl b{color:var(--text);margin-right:4px}
+.nvb-notify{justify-self:center;font-size:12px;font-weight:600;background:#DDF7F1;color:#0F6B5C;border-radius:999px;padding:4px 12px}
+.nvb-simnote{margin-top:4px}
+.nvb-lnk{background:none;border:0;padding:0;font:inherit;font-weight:600;color:inherit;text-decoration:underline;cursor:pointer}
 .nvb-noterms{align-self:center}
 .nvb-info{display:grid;gap:12px}
 .nvb-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
