@@ -34,6 +34,11 @@
 .ps-row:hover{background:color-mix(in srgb,var(--text) 5%,var(--surface))}
 .ps-name{flex:1 1 220px;min-width:0;font-weight:600;font-size:14px}
 .ps-note{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:2px}
+.ps-name a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.ps-name a:hover{text-decoration:underline;text-underline-offset:3px}
+.ps-name a:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:4px}
+.ps-name a svg{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+.ps-name a:hover svg{opacity:1}
 .ps-seg{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;flex:0 0 auto}
 .ps-seg label{position:relative;cursor:pointer;font-size:13px;font-weight:600;padding:8px 14px;min-height:38px;display:flex;align-items:center;color:var(--muted);white-space:nowrap}
 .ps-seg label+label{border-left:1px solid var(--border)}
@@ -69,6 +74,7 @@
 (function () {
   var main = document.getElementById('kbMain');
   var q = '', statusTimer = null;
+  var OPEN_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function say(t, err) {
     var el = document.getElementById('psStatus'); if (!el) return;
@@ -91,7 +97,7 @@
       return '<label class="' + cls + '"><input type="radio" name="' + esc(name) + '" value="' + v + '"' + (st === v ? ' checked' : '') + ' aria-label="' + esc(p.label) + ': ' + label + '">' + label + '</label>';
     }
     return '<div class="ps-row' + (st === 'construction' ? ' ps-isCon' : '') + '" data-id="' + esc(p.id) + '">' +
-      '<div class="ps-name">' + esc(p.label) + (p.inside ? '<span class="ps-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</div>' +
+      '<div class="ps-name"><a href="/?view=' + encodeURIComponent(trsSlugOf(p.id)) + '" target="_blank" rel="noopener" title="Open this page in a new window" aria-label="' + esc(p.label) + ' (opens in a new window)">' + esc(p.label) + OPEN_ICON + '</a>' + (p.inside ? '<span class="ps-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</div>' +
       '<div class="ps-seg" role="radiogroup" aria-label="' + esc(p.label) + '">' + opt('live', 'ps-live', 'Live') + opt('construction', 'ps-con', 'Under construction') + opt('hidden', 'ps-hid', 'Hidden') + '</div>' +
       '<div class="ps-msg"><input type="text" maxlength="200" placeholder="Optional note shown on the page, e.g. Numbers are being checked" value="' + esc(noteOf(p.id)) + '" aria-label="Note for ' + esc(p.label) + '"></div></div>';
   }
