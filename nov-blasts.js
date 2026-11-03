@@ -99,7 +99,7 @@
     var days = {}; blasts().forEach(function (b) { days[b.data.date] = 1; days[aqDate(b)] = 1; });
     var dl = Object.keys(days).sort().map(fdate);
     var tot = total == null ? (liveErr ? '?' : '…') : num(total, 'November blasts, every client', {}, true);
-    var cost = total == null ? '…' : 'AED ' + fmtN(Math.round(total * RATE_AED));
+    var cost = total == null ? '…' : calcNum('AED ' + fmtN(Math.round(total * RATE_AED)), 'cost');
     return '<p class="nvb-small nvb-lines"><b>' + tot + '</b> messages in ' + blasts().length + ' blasts, one per client, on ' + esc(dl.join(' and ')) + '. At most <b>' + cost + '</b>: a message that is not delivered is not charged.</p>' + countedHtml();
   }
   // When the clients were counted (the count is kept for up to an hour because counting takes about 20 seconds), and a way to count again.
@@ -189,6 +189,24 @@
     var list = inMonth.length ? '<div class="cbl-big-l">' + inMonth.map(function (x) { return '<a href="?view=novblasts" data-nvb="sel:' + esc(x.id) + '"><span class="cbl-chip ' + rcls(x.review) + '">' + lab(x.review) + '</span> <b>' + esc(x.data.title) + '</b><small>' + esc(fdate(x.data.date)) + ', ' + esc(fmtClock(clockMins(x))) + '</small></a>'; }).join('') + '</div>' : '';
     return h + '</div>' + list + '</div></div></div>';
   }
+  /* What the cost and the sending time are worked out from (Kate, 3 Nov 2026: every figure explains itself on tap): one row per blast, then the total.
+     only = one blast id, or nothing for all of them. Same window as the client lists. */
+  function calcRows(only) {
+    var bs = sorted().filter(function (b) { return !only || b.id === only; }), rows = [], tn = 0, ts = 0;
+    bs.forEach(function (b) { var c = lv(b.id), n = c ? (c.n || 0) : 0, sl = Math.ceil(n / PACE); tn += n; ts += sl; rows.push({ b: b.data.short || b.data.title, n: n, aed: n * RATE_AED, usd: n * RATE_USD, sl: sl, mins: sl * 30, hrs: sl / 2 }); });
+    if (bs.length > 1) rows.push({ b: 'All blasts', n: tn, aed: tn * RATE_AED, usd: tn * RATE_USD, sl: ts, mins: ts * 30, hrs: ts / 2 });
+    return rows;
+  }
+  function calcSpec(kind, only) {
+    var cost = kind === 'cost';
+    return { title: cost ? 'Cost, at most' : 'Sending time', cur: 'AED', sub: cost ? 'Clients x AED ' + RATE_AED + ' (about USD ' + RATE_USD + ') a delivered message. A message that is not delivered is not charged, so this is the most it can cost.' : 'Clients sent in lots of ' + PACE + ' every 30 minutes from the one call centre number, blast after blast.',
+      views: [{ id: 'calc', label: 'How it is worked out', load: async function () {
+        var rows = calcRows(only);
+        return { cols: cost ? [{ k: 'b', l: 'Blast' }, { k: 'n', l: 'Clients', t: 'num' }, { k: 'aed', l: 'At AED ' + RATE_AED, t: 'aed' }, { k: 'usd', l: 'About USD ' + RATE_USD, t: 'num' }]
+          : [{ k: 'b', l: 'Blast' }, { k: 'n', l: 'Clients', t: 'num' }, { k: 'sl', l: 'Lots of ' + PACE, t: 'num' }, { k: 'mins', l: 'Minutes', t: 'num' }, { k: 'hrs', l: 'Hours', t: 'num' }], rows: rows, empty: 'Nothing to work out yet.', note: '' };
+      } }] };
+  }
+  function calcNum(t, kind, only) { return (typeof TRSD !== 'undefined' && canEdit() && LIVE && LIVE.blasts) ? TRSD.num(t, calcSpec(kind, only)) : t; }
   /* The total across all the blasts (Kate, 3 Nov 2026: "wala tayong total blast count"), between the calendar and the list: clients in all blasts, how many blasts, each blast's count,
      the most it can cost and how long the sending takes at the page's pace. Live, from the same counts as each blast, so it moves when a count changes. */
   var RATE_USD = 0.058;   // roughly one delivered marketing message in the UAE (see the Before sending top-up task)
@@ -201,7 +219,7 @@
     var ready = !!(LIVE && LIVE.blasts), hrs = slots / 2;
     return '<div class="cbl-tabs cbl-card nvb-tot"><h3>All blasts</h3><div class="nvb-tot-big"><b>' + (ready ? num(tot, 'November blasts, every client', {}, true) : (liveErr ? '?' : '…')) + '</b><span>clients in ' + plural(bs.length, 'blast', 'blasts') + '</span></div>' +
       '<div class="nvb-tot-rows">' + rows + '</div>' +
-      (ready ? '<p class="cbl-hint">At most <b>AED ' + fmtN(Math.round(tot * RATE_AED)) + '</b> (about USD ' + fmtN(Math.round(tot * RATE_USD)) + '). About <b>' + (hrs % 1 ? hrs.toFixed(1) : hrs) + ' hours</b> of sending at ' + PACE + ' every 30 minutes.</p>' : '') + '</div>';
+      (ready ? '<p class="cbl-hint">At most <b>' + calcNum('AED ' + fmtN(Math.round(tot * RATE_AED)), 'cost') + '</b> (about ' + calcNum('USD ' + fmtN(Math.round(tot * RATE_USD)), 'cost') + '). About <b>' + calcNum((hrs % 1 ? hrs.toFixed(1) : hrs) + ' hours', 'time') + '</b> of sending at ' + PACE + ' every 30 minutes.</p>' : '') + '</div>';
   }
   function listSide() {
     var bs = sorted(), rev = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length;
@@ -322,7 +340,7 @@
       (b.id === 'E' && c ? '<p>Had colour in the last 12 months: <b>' + num(c.colour, tl + ', had colour', { p_blast: b.id, p_flag: 'colour' }) + '</b> · The rest: <b>' + fmtN(c.n - c.colour) + '</b></p>' : '') +
       (c && c.unchecked ? '<p class="nvb-wa-note"><b>WhatsApp check:</b> ' + fmtN(c.unchecked) + ' of these ' + fmtN(c.n) + ' have not been checked in respond.io yet. The overnight check does it; Count again tomorrow morning. Numbers that are landlines, invalid, or not found there are left out (SMS-only).</p>' : '') +
       '<p><b>No repeats.</b> Left out: anyone messaged in October’s Lost Clients blasts or Wellness Voucher blasts 3 and 4, by name and by phone number, anyone we wrote to on WhatsApp since 9 Oct, and every opt-out. Not checked: Wellness Voucher blasts 1 and 2 (August), their recipients are only in GHL.</p>';
-    var facts = '<div class="nvb-facts"><div><b>Cost, at most</b>' + (c ? 'AED ' + fmtN(Math.round(c.n * RATE_AED)) : '…') + '</div><div><b>Target by 30 Nov</b>' + esc(d.gold) + '</div><div><b>Message test</b>' + esc(d.arms) + '</div><div><b>Valid until</b>' + esc(d.valid || '30 November 2026') + '</div></div>';
+    var facts = '<div class="nvb-facts"><div><b>Cost, at most</b>' + (c ? calcNum('AED ' + fmtN(Math.round(c.n * RATE_AED)), 'cost', b.id) : '…') + '</div><div><b>Target by 30 Nov</b>' + esc(d.gold) + '</div><div><b>Message test</b>' + esc(d.arms) + '</div><div><b>Valid until</b>' + esc(d.valid || '30 November 2026') + '</div></div>';
     return '<div class="cbl-pos"><a href="?view=novblasts" data-nvb="sel:' + esc(pv || b.id) + '"' + (pv ? '' : ' class="off"') + '>‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=novblasts" data-nvb="sel:' + esc(nx || b.id) + '"' + (nx ? '' : ' class="off"') + '>Next ›</a></div>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdate(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdate(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>' +
       '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
@@ -373,7 +391,7 @@
         if (!x.n) return;
         var start = t == null ? clockMins(x.b) : t, end = start + Math.ceil(x.n / PACE) * 30;
         t = end; tot += x.n;
-        rows += '<div class="nvb-pl-r nvb-pl3"><span>' + esc(fdate(iso)) + ', ' + esc(x.b.data.short || x.b.data.title) + '</span><span><b>' + fmtN(x.n) + '</b></span><span>' + esc(fmtClock(start)) + ' to ' + esc(fmtClock(end)) + '</span></div>';
+        rows += '<div class="nvb-pl-r nvb-pl3"><span>' + esc(fdate(iso)) + ', ' + esc(x.b.data.short || x.b.data.title) + '</span><span><b>' + num(x.n, (x.b.data.short || x.b.data.title) + ', every client', { p_blast: x.b.id }) + '</b></span><span>' + esc(fmtClock(start)) + ' to ' + esc(fmtClock(end)) + '</span></div>';
       });
       if (t != null) { var over = t > 21 * 60; rows += '<div class="nvb-pl-r nvb-pl3"><span><b>All done</b></span><span><b>' + fmtN(tot) + '</b></span><span class="' + (over ? 'over' : '') + '"><b>' + esc(fmtClock(t)) + '</b>' + (over ? ', too late for replies' : '') + '</span></div>'; }
     });
