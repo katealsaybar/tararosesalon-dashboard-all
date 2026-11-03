@@ -226,7 +226,7 @@
      call centre only takes over on Book now or Help me out (or if she types). The same tap-through as Campaign Blasts. The words live in the database (nov_blast_items data.flow). */
   function repBub(b, node, min) {
     var d = b.data, body = String(node.t).replace(/\{\{1\}\}/g, 'Layla').replace(/\{\{2\}\}/g, 'Saadiyat').replace(/\{\{3\}\}/g, d.end || '30 November 2026').replace(/\. /g, '.\n\n').replace(/: /g, ':\n');
-    var img = node.img ? '<div class="nvb-tcimg" role="img" aria-label="' + esc(node.img) + '"><span class="lg">TARA ROSE</span><span class="sl">SALONS</span><b>' + esc(String(node.img).split(': ')[1] || node.img) + '</b><span class="ln"></span><span class="ln"></span><span class="ln s"></span><span class="ln"></span><span class="ln s"></span><em>Terms picture, sent with this message</em></div>' : '';
+    var img = node.src ? '<a class="nvb-tcpic" href="' + esc(node.src) + '" target="_blank" rel="noopener" title="Open the picture full size"><img src="' + esc(node.src) + '" alt="' + esc(node.img || 'Terms and Conditions') + '"><span>Tap to open full size</span></a>' : node.img ? '<div class="nvb-tcimg" role="img" aria-label="' + esc(node.img) + '"><span class="lg">TARA ROSE</span><span class="sl">SALONS</span><b>' + esc(String(node.img).split(': ')[1] || node.img) + '</b><span class="ln"></span><span class="ln"></span><span class="ln s"></span><span class="ln"></span><span class="ln s"></span><em>Terms picture, sent with this message</em></div>' : '';
     return '<div class="cbl-bub cbl-rep">' + img + '<div class="cbl-body">' + esc(body) + '</div><div class="cbl-time">' + tclock(d.time, min, true) + '</div></div>';
   }
   function flowHtml(b, grp) {
