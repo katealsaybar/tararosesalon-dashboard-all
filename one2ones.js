@@ -57,6 +57,18 @@ const o2Pills = (key, vals, label) => `<span class="o2-pills"><span class="o2-k"
   `<button type="button" class="o2-pill" data-${key}="${o2Esc(v)}" aria-pressed="${O2[key] === v}">${o2Esc(t)}</button>`).join('')}</span>`;
 const o2Link = p => `/performance/?s=${encodeURIComponent(p.slug)}&tab=one`;
 
+// Kate, 3 Nov 2026: every tile figure opens the people behind it (the shared list window, drill.js). The people are already on the page (statuses and dates only,
+// never what was written), so the list is built from them.
+const o2Lab = (rec) => { const st = o2State(rec); return st === 'signed' && rec && rec.status === 'filed' ? O2_LAB.filed : O2_LAB[st]; };
+const o2At = rec => rec ? (rec.signed_at || rec.submitted_at || rec.updated_at || '') : '';
+function o2Spec(title, people, sub) {
+  if (!people.length || !window.TRSD) return null;
+  const rows = people.map(p => ({ name: p.name, branch: p.branch || '', pos: p.level || (p.dept ? p.dept + ' team' : ''), oto: o2Lab(p.monthly), otod: o2At(p.monthly) ? String(o2At(p.monthly)).slice(0, 10) : '',
+    prep: p.prep ? 'Sent' : '', goals: o2Lab(p.goals), goalsd: o2At(p.goals) ? String(o2At(p.goals)).slice(0, 10) : '' }));
+  return { title, sk: title, views: [{ id: 'p', label: 'People', load: async () => ({ cols: [{ k: 'name', l: 'Name' }, { k: 'branch', l: 'Branch' }, { k: 'pos', l: 'Level' }, { k: 'oto', l: '1-to-1' }, { k: 'otod', l: '1-to-1 date', t: 'date' },
+    { k: 'prep', l: 'Their part' }, { k: 'goals', l: 'Goals' }, { k: 'goalsd', l: 'Goals date', t: 'date' }], rows, foot: { name: 'Total', branch: people.length + (people.length === 1 ? ' person' : ' people') }, sub, empty: 'No one here.' }) }] };
+}
+
 function o2Draw() {
   const host = document.getElementById('one2onesContent');
   if (!host) return;
@@ -64,12 +76,13 @@ function o2Draw() {
   if (!o2Data) { host.innerHTML = head + `<p class="o2-empty">${o2Esc(o2Msg || 'Loading…')}</p>`; return; }
   const all = o2Staff(), month = o2Data.month, year = String(o2Data.year || '').slice(0, 4);
   const n = f => all.filter(f).length;
+  const tl = (label, f, hint) => [label, n(f), hint, o2Spec(label, all.filter(f), hint)];
   const tiles = [
-    ['Signed this month', n(p => o2Done(p.monthly) && String(p.monthly.period).slice(0, 7) === String(month).slice(0, 7)), '1-to-1s written up and signed'],
-    ['Drafts', n(p => o2State(p.monthly) === 'draft' || o2State(p.goals) === 'draft'), 'started, not signed yet'],
-    ['Staff have sent', n(p => !!p.prep || o2State(p.goals) === 'sent' || o2State(p.monthly) === 'sent'), 'their part, waiting for you'],
-    ['No 1-to-1 yet', n(p => !p.monthly), 'nothing written up'],
-    ['Goals set', `${n(p => o2Done(p.goals))} of ${all.length}`, `signed for ${year}`]
+    tl('Signed this month', p => o2Done(p.monthly) && String(p.monthly.period).slice(0, 7) === String(month).slice(0, 7), '1-to-1s written up and signed'),
+    tl('Drafts', p => o2State(p.monthly) === 'draft' || o2State(p.goals) === 'draft', 'started, not signed yet'),
+    tl('Staff have sent', p => !!p.prep || o2State(p.goals) === 'sent' || o2State(p.monthly) === 'sent', 'their part, waiting for you'),
+    tl('No 1-to-1 yet', p => !p.monthly, 'nothing written up'),
+    (g => ['Goals set', `${g.length} of ${all.length}`, `signed for ${year}`, o2Spec('Goals set, ' + year, g, 'Goals signed for ' + year + '.')])(all.filter(p => o2Done(p.goals)))
   ];
   const branches = [...new Set(all.map(p => p.branch).filter(Boolean))];
   const teams = [...new Set(all.map(p => p.dept).filter(Boolean))];
@@ -83,7 +96,7 @@ function o2Draw() {
     <div class="o2-two"><div><div class="o2-lab">1-to-1</div>${o2Chip(p.monthly, month)}</div><div><div class="o2-lab">Goals ${o2Esc(year)}</div>${o2Chip(p.goals, month)}</div></div>
     <div><a class="o2-open" href="${o2Link(p)}" target="_blank" rel="noopener">Open</a></div></div>`).join('');
   host.innerHTML = head +
-    `<div class="o2-tiles">${tiles.map(t => `<div class="o2-tile"><div class="o2-l">${t[0]}</div><div class="o2-v">${t[1]}</div><div class="o2-h">${t[2]}</div></div>`).join('')}</div>` +
+    `<div class="o2-tiles">${tiles.map(t => `<div class="o2-tile"><div class="o2-l">${t[0]}</div><div class="o2-v">${t[3] && window.TRSD ? TRSD.num(t[1], t[3]) : t[1]}</div><div class="o2-h">${t[2]}</div></div>`).join('')}</div>` +
     `<div class="o2-bar">${o2Pills('branch', [['all', 'All'], ...branches.map(b => [b, b])], 'Branch')}${o2Pills('team', [['all', 'All'], ...teams.map(t => [t, t])], 'Team')}
       <span class="o2-pills"><button type="button" class="o2-pill" data-need="1" aria-pressed="${O2.need}">Needs attention</button></span></div>` +
     (l.length ? `<div class="o2-card"><table><thead><tr><th><button type="button" data-sort="name">Name</button></th><th><button type="button" data-sort="oto">1-to-1</button></th><th>Their part</th><th><button type="button" data-sort="goals">Goals ${o2Esc(year)}</button></th><th></th></tr></thead><tbody>${rows}</tbody></table><div class="o2-cards">${cards}</div></div>`
