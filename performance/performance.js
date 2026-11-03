@@ -699,7 +699,7 @@ async function renderStylist() {
   if (d.month_target && d.benchmarks && d.benchmarks.total_revenue) d.benchmarks.total_revenue = { min: null, target: Number(d.month_target), own: true };
   d.benchmarks_full = d.benchmarks ? JSON.parse(JSON.stringify(d.benchmarks)) : d.benchmarks;
   if (share) { prorate(d.benchmarks, share.f); prorate(d.next_benchmarks, share.f); }
-  if (window.MyDrill) MyDrill.init({ token: ADMIN ? null : TOKEN });
+  if (window.MyDrill) MyDrill.init({ token: TOKEN, sid: SID, admin: ADMIN });   // a leader opening a stylist's page reads the same rows (the sign-in lock lets leaders through)
   DG_D = d;
   const n = d.numbers, s = d.staff, pace = paceFactor(d);
   const isHair = s.dept === 'Hair';
@@ -1050,6 +1050,11 @@ async function renderTeam() {
   };
   if (!SORTS[SORT]) SORT = 'branch';
   const flip = SORT_REV ? -1 : 1;
+  // Kate, 3 Nov 2026: the figures on each person's card open her rows too (a leader reads them through the same token-only function, the lock lets leaders through).
+  if (window.MyDrill) MyDrill.init({ admin: ADMIN });
+  const TM = window.MyDrill && MyDrill.on ? MyDrill.month(d.month) : null;
+  const tfig = (s, kind, html, v, o) => !TM || !(s.token || s.id) || !(v > 0) ? html : MyDrill.fig(html, MyDrill.days(kind, Object.assign({ token: s.token, sid: s.id, from: TM.from, to: TM.to, title: s.name + ' · ' + o.t }, o)));
+  const tRb = s => { const b = rbBoth(s.numbers); return `Phorest ${b.ph == null ? 'n/a' : tfig(s, 'rebook', fmt(b.ph, 'pct'), b.ph, { src: 'phorest', t: 'Rebooking (Phorest)' })} · Branch sheet ${b.led == null ? 'n/a' : tfig(s, 'rebook', fmt(b.led, 'pct'), b.led, { src: 'ledger', t: 'Rebooking (branch sheet)' })}`; };
   const card = s => `
         <a class="member" href="?${s.token ? 't=' + encodeURIComponent(s.token) : 'sid=' + encodeURIComponent(s.id)}&admin=${encodeURIComponent(ADMIN)}&m=${MONTH}${keep}&dept=${DEPT}&staff=${slugOf(s.name)}">
           ${photoFor(s.keys)
@@ -1057,7 +1062,7 @@ async function renderTeam() {
             : `<div class="ini">${esc(initials(s.name))}</div>`}
           <div class="nm">${esc(s.name)}</div>
           <div class="lv">${esc(s.level || s.dept)}${SORT === 'branch' ? '' : ` · ${esc(BR[s.branch] || s.branch)}`}</div>
-          <div class="mini">${fmt(s.numbers.total_revenue, 'aed')} · ${fmt(s.numbers.clients, 'num')} clients<br>Rebook ${rbTxt(rbBoth(s.numbers))}</div>
+          <div class="mini">${tfig(s, 'revenue', fmt(s.numbers.total_revenue, 'aed'), s.numbers.total_revenue, { t: 'Service sales' })} · ${tfig(s, 'clients', fmt(s.numbers.clients, 'num'), s.numbers.clients, { t: 'Clients' })} clients<br>Rebook ${tRb(s)}</div>
           ${s.notes ? `<div class="lv">${s.notes} note${s.notes > 1 ? 's' : ''}</div>` : ''}
           ${!s.has_email ? `<div class="flag">No email on file</div>` : (!s.send_email ? `<div class="flag">Email paused</div>` : '')}
         </a>`;

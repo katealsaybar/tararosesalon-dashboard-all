@@ -8,7 +8,8 @@
    (migrations/perf_my_drill.sql: perf_my_days, perf_my_reviews, perf_my_socials); the Podium board shows the names, salons and figures the
    board already shows. No ids, tokens, emails or client names. A figure with nothing behind it stays plain.
 
-     MyDrill.init({ token })        turns it on for a token link (not in the dashboard frame)
+     MyDrill.init({ token, sid, admin }) turns it on for a token link, and for a leader's team key (admin) with the person's staff id (sid) or token
+     In the dashboard's frame (embed=1) the list is read here and handed to the dashboard, which opens it over the whole page (type 'perf-drill').
      MyDrill.fig(html, spec)        the figure as tappable html (the plain html when spec is null)
      MyDrill.days(kind, opts)       a spec for her days in a window: kind below, opts { from, to, src, label }
      MyDrill.reviews / posts / rows more specs; MyDrill.month('2026-10') gives { from, to }
@@ -24,24 +25,28 @@
   const mondayOf = s => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); };
   const A = v => +v || 0;
   const pc = (a, b) => b > 0 ? 100 * a / b : null;
-  const st = { on: false, token: null };
+  const st = { on: false, token: null, sid: null, admin: null, embed: false };
   const REG = new Map();
   let seq = 0;
   const PHONE = () => matchMedia('(max-width:619px)').matches;
 
   function init(o) {
     let embed = false; try { embed = new URLSearchParams(location.search).get('embed') === '1'; } catch (e) {}
-    st.token = o && o.token || null;
-    st.on = !!st.token && !embed && typeof window.TRSD === 'object';
+    if (o && ('token' in o || 'sid' in o)) { st.token = o.token || null; st.sid = o.sid || null; }   // a page for one person: her own, never the one before
+    st.admin = o && o.admin || st.admin || null;                 // a leader's team key: it reads one person's rows by her staff id (perf_my_*_by_id)
+    st.embed = embed && window.parent !== window;
+    st.on = (!!st.token || !!st.admin) && typeof window.TRSD === 'object';
   }
 
   // ── Her days, read once per window ───────────────────────────
   const CACHE = new Map();
-  async function rpcList(fn, from, to) {
-    const key = fn + '|' + from + '|' + to;
+  // Whose rows: her own token, or (a leader's key) a staff id. Nothing else ever reaches a list.
+  const who = o => o && o.token ? { token: o.token } : o && o.sid && st.admin ? { sid: o.sid } : st.token ? { token: st.token } : st.sid && st.admin ? { sid: st.sid } : null;
+  async function rpcList(fn, from, to, w) {
+    const key = fn + '|' + (w.token || w.sid) + '|' + from + '|' + to;
     if (CACHE.has(key)) return CACHE.get(key);
     const p = (async () => {
-      const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, { method: 'POST', headers: await PerfAuth.headers(), body: JSON.stringify({ p_token: st.token, p_from: from, p_to: to }) });
+      const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${w.sid ? fn + '_by_id' : fn}`, { method: 'POST', headers: await PerfAuth.headers(), body: JSON.stringify(w.sid ? { p_admin: st.admin, p_staff_id: w.sid, p_from: from, p_to: to } : { p_token: w.token, p_from: from, p_to: to }) });
       if (r.status === 404) return null;                 // the functions are not installed yet (migrations/perf_my_drill.sql)
       if (!r.ok) { const t = await r.text(); if (/sign_in_required/.test(t)) throw new Error('Please sign in again to see this list.'); throw new Error(fn + ' ' + r.status); }
       return r.json();
@@ -129,15 +134,16 @@
   function days(kind, o) {
     const k = K[kind]; if (!k) return null;
     o = Object.assign({ src: 'ledger' }, o);
+    const w = who(o); if (!w) return null;                                 // nobody to read rows for: the figure stays plain
     o.window = winText(o);
     const long = (new Date(o.to) - new Date(o.from)) / 864e5 > 14;
     const load = view => async () => {
-      const d = await rpcList('perf_my_days', o.from, o.to);
+      const d = await rpcList('perf_my_days', o.from, o.to, w);
       return d == null ? NOTREADY : build(kind, d, o, view);
     };
     const views = [{ id: 'day', label: 'By day', load: load('day') }];
     if (long) views.push({ id: 'week', label: 'By week', load: load('week') });
-    return { title: (o.title || k.t) + ' by day', sk: `${kind}-${o.src}-${o.free ? 'all' : 'paid'}-${o.from}-${o.to}`, cur: 'AED', views };
+    return { title: (o.title || k.t) + ' by day', sk: `${kind}-${o.src}-${o.free ? 'all' : 'paid'}-${(w.token || w.sid).slice(0, 8)}-${o.from}-${o.to}`, cur: 'AED', views };
   }
 
   // ── Reviews, posts and fixed lists ───────────────────────────
@@ -149,15 +155,17 @@
       rows, foot: rows.length ? { date: 'Total', stars: avg == null ? '' : 'Average ' + avg.toFixed(1), who: rows.length + (rows.length === 1 ? ' review' : ' reviews'), comment: '' } : null, sub: esc(sub), empty: 'No Google reviews for you in these dates yet.' };
   }
   function reviews(o) {
+    if (!(o.list || who(o))) return null;
     return { title: o.title || 'Your Google reviews', sk: `reviews-${o.from}-${o.to}`, views: [{ id: 'rv', label: 'Reviews', load: async () => {
-      const list = o.list || await rpcList('perf_my_reviews', o.from, o.to);
+      const list = o.list || await rpcList('perf_my_reviews', o.from, o.to, who(o));
       return list == null ? NOTREADY : reviewRes(list, o.sub || `The Google reviews that count for you, ${winText(o)}`);
     } }] };
   }
   function posts(o) {
+    if (!(o.list || who(o))) return null;
     const TYPE = { VIDEO: 'Reel', CAROUSEL_ALBUM: 'Carousel', IMAGE: 'Post' };
     return { title: o.title || 'Your Instagram posts', sk: `posts-${o.from}-${o.to}`, views: [{ id: 'ig', label: 'Posts', load: async () => {
-      const list = o.list || await rpcList('perf_my_socials', o.from, o.to);
+      const list = o.list || await rpcList('perf_my_socials', o.from, o.to, who(o));
       if (list == null) return NOTREADY;
       const rows = list.map(p => ({ date: p.date, kind: p.via === 'collab' ? 'Collab on a salon post' : (TYPE[p.type] || 'Post'), link: p.link ? `<a class="dr-ext" href="${esc(p.link)}" target="_blank" rel="noopener">View on Instagram<span class="dr-ar" aria-hidden="true">&#8599;</span></a>` : '' }));
       return { cols: [{ k: 'date', l: 'Date', t: 'date' }, { k: 'kind', l: 'What' }, { k: 'link', l: 'Link', t: 'html' }], rows, foot: rows.length ? { date: 'Total', kind: rows.length + (rows.length === 1 ? ' post' : ' posts'), link: '' } : null,
@@ -204,7 +212,17 @@
       try { localStorage.setItem('mydrill:' + id, JSON.stringify(out)); } catch (e) { try { w.close(); } catch (x) {} TRSD.open(sp, el); }
     })();
   }
-  function show(sp, el) { if (!st.on || !sp) return; if (PHONE()) openWindow(sp, el); else TRSD.open(sp, el); }
+  // In the dashboard's frame the list is read here and the dashboard opens it (a window inside a frame sized to its page would sit off screen).
+  async function toParent(sp) {
+    let out;
+    try {
+      const views = [];
+      for (const v of sp.views) views.push({ id: v.id, label: v.label, res: await v.load() });
+      out = { title: sp.title, cur: sp.cur || '', sk: sp.sk || '', views };
+    } catch (e) { out = { title: sp.title || 'Your numbers', cur: '', sk: '', views: [{ id: 'e', label: 'List', res: { cols: [], rows: [], empty: e && e.message || 'The list did not load.' } }] }; }
+    parent.postMessage({ type: 'perf-drill', spec: out }, location.origin);
+  }
+  function show(sp, el) { if (!st.on || !sp) return; if (st.embed) toParent(sp); else if (PHONE()) openWindow(sp, el); else TRSD.open(sp, el); }
   function open(id, el) { show(REG.get(id), el); }
   document.addEventListener('click', e => { const n = e.target.closest && e.target.closest('[data-md]'); if (!n) return; e.stopPropagation(); e.preventDefault(); open(n.dataset.md, n); }, true);
   document.addEventListener('keydown', e => { const n = e.target.closest && e.target.closest('[data-md]'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(n.dataset.md, n); } });

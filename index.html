@@ -4329,6 +4329,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     if (e.data && e.data.type === 'perf-height') {
       document.getElementById('spfFrame').style.height = Math.max(400, e.data.h) + 'px';
     }
+    // Kate, 3 Nov 2026: a figure on the framed Staff Dashboards opens its rows over the whole dashboard. The frame reads the rows (my-drill.js, her own token-only
+    // function) and hands over the finished list; a window inside a frame sized to its page would sit off screen.
+    if (e.data && e.data.type === 'perf-drill' && e.origin === location.origin && e.data.spec && window.TRSD) {
+      const sp = e.data.spec;
+      window.TRSD.open({ title: String(sp.title || ''), cur: sp.cur || '', sk: sp.sk || '', views: (sp.views || []).map(v => ({ id: v.id, label: v.label, load: async () => v.res })) });
+    }
   });
   // Kate, 28 Sep 2026: the grid took ~2s to appear because the frame only started
   // loading on the click. Load it quietly a moment after the dashboard settles, so
