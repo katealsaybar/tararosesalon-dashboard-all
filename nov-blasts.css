@@ -240,9 +240,9 @@
 .nvb .nvb-tcimg .ln.s{width:70%;align-self:flex-start}
 .nvb .nvb-tcimg em{font-style:normal;font-size:10px;color:#74747B;margin-top:4px}
 /* the schedule card: heading on the left, the button on the right, both centred on the same line (Kate, 3 Nov 2026: "center text") */
-.nvb .cbl-when{flex-wrap:nowrap;align-items:center;align-content:center;justify-content:space-between;gap:12px 18px}
-.nvb .cbl-when h3{flex:0 0 auto;margin:0;line-height:1.2}
-.nvb .cbl-when .nvb-schrow{flex:0 1 auto;margin-left:auto;display:flex;align-items:center}
+.nvb .cbl-when{flex-wrap:wrap;align-items:center;align-content:center;justify-content:center;gap:12px 22px}
+.nvb .cbl-when h3{flex:0 0 auto;flex-basis:auto;margin:0;line-height:1.2;text-align:center}
+.nvb .cbl-when .nvb-schrow{flex:0 1 auto;margin:0;display:flex;align-items:center;justify-content:center}
 .nvb .cbl-when .nvb-sch-open{margin:0}
 .nvb .cbl-when .nvb-sch{margin:0}
-@media (max-width:640px){.nvb .cbl-when{flex-wrap:wrap}.nvb .cbl-when .nvb-schrow{margin-left:0}}
+
