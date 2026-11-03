@@ -1,7 +1,7 @@
 /* November Blasts (Kate, 2 Nov 2026), redesigned the same day: four lanes (Decisions, Messages, Before sending, Replies) under a next-action card.
    Uses the dashboard tokens, so it reads like Campaign Blasts. Class prefix nvb- (cbl- is Campaign Blasts, cb- the Client Book). Every rule is scoped under .nvb or an nvb- class,
    because the site's own CSS has bare-ish rules for .dot, .bar, .meta and .more inside other components. */
-.nvb{--nv-mint:#99F6E4;--nv-good:#3E7A5E;--nv-good-bg:#E4F1EA;--nv-warn:#8A5F12;--nv-warn-bg:#FBF3E2;--nv-bad:#A03C3C;--nv-bad-bg:#F7E9E9;max-width:1080px;margin:0 auto}
+.nvb{--nv-mint:#99F6E4;--nv-good:#3E7A5E;--nv-good-bg:#E4F1EA;--nv-warn:#8A5F12;--nv-warn-bg:#FBF3E2;--nv-bad:#A03C3C;--nv-bad-bg:#F7E9E9;max-width:1240px;margin:0 auto}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .nvb{--nv-good:#99F6E4;--nv-good-bg:rgba(153,246,228,.12);--nv-warn:#EEF3C7;--nv-warn-bg:rgba(238,243,199,.12);--nv-bad:#FF9B9B;--nv-bad-bg:rgba(255,155,155,.12)}}
 [data-theme="dark"] .nvb{--nv-good:#99F6E4;--nv-good-bg:rgba(153,246,228,.12);--nv-warn:#EEF3C7;--nv-warn-bg:rgba(238,243,199,.12);--nv-bad:#FF9B9B;--nv-bad-bg:rgba(255,155,155,.12)}
 .nvb *{box-sizing:border-box}
@@ -39,7 +39,7 @@
 .nvb-next .go{justify-self:end}
 
 /* four lanes, one per reader */
-.nvb-tabs{margin-top:20px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;position:sticky;top:var(--topbar-cond-h,104px);z-index:20;background:var(--bg);padding:8px 0}
+.nvb-tabs{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;padding:8px 0}   /* not sticky since 3 Nov: the calendar and blast list on the left are, and the two would sit on top of each other */
 .nvb-tabs button{position:relative;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:9px 12px;text-align:left;display:grid;gap:1px;min-height:56px;align-content:start}
 .nvb-tabs button b{font-size:15px;line-height:1.2}
 .nvb-tabs button span{font-size:12.5px;color:var(--muted)}
@@ -219,3 +219,15 @@
   .nvb-row>.more{padding-left:16px}
   .nvb-det-head h2{font-size:26px}
 }
+
+/* Messages laid out like Campaign Blasts (Kate, 3 Nov 2026): the cbl- classes come from campaign-blasts.css, these only fit them into this page */
+.nvb .cbl{--cb-good:#0F6E56;--cb-good-bg:#E1F5EE;--cb-warn:#8A5A0C;--cb-warn-bg:#FAEEDA;--cb-amber:#E0A43A;--cb-green:#2F9E7B}
+.nvb .cbl-d.has{cursor:pointer}
+.nvb .cbl-main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.nvb .cbl-head h2{font-size:26px}
+.nvb .cbl-lane h3{font-size:20px}
+.nvb .cbl-tab a{text-align:left}
+.nvb .nvb-afterrow{margin:0}
+.nvb .nvb-artph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:100%;aspect-ratio:1200/628;margin-bottom:5px;border-radius:7px;border:1.5px dashed #9FB3AE;background:repeating-linear-gradient(135deg,#EAF3F0 0 10px,#F2F8F6 10px 20px);color:#4A6572;text-align:center;padding:6px}
+.nvb .nvb-artph b{font-size:12.5px;font-weight:700;letter-spacing:.02em;color:#2D2E37}
+.nvb .nvb-artph span{font-size:10.5px}
