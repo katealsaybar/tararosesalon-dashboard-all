@@ -252,10 +252,11 @@
     var n = c ? (grp === 'warm' ? c.warm : c.std) : null;
     var cnt = c ? num(n, d.title + ', ' + label.toLowerCase() + ' clients', { p_blast: b.id, p_group: grp }) : (liveErr ? '?' : '…');
     return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + cnt + ' clients</span></div>' +
-      '<div class="w">' + (grp === 'warm' ? 'Last visit within 90 days' : 'Last visit 91 days to 6 months ago') + '</div>' + phoneHtml(m, d, b, grp) + '</div>';
+      '<div class="w">' + (grp === 'warm' ? 'Last visit within 90 days' : (b.id === 'E' || b.id === 'E2') ? 'Last visit from 17 April to about 6 months ago' : 'Last visit more than 90 days ago, back to 1 Jan 2026') + '</div>' + phoneHtml(m, d, b, grp) + '</div>';
   }
   /* Who was left out of this blast, and why (Kate, 3 Nov 2026: "add mo rin dito alin yung ni exclude natin sa blasts"). Counted with the clients (nov_blast_leftout); each number opens the clients. */
   var LEFTWHY = [['nophone', 'No mobile number on file'], ['notwa', 'A number WhatsApp cannot reach (landline, invalid or not found)'], ['optout', 'Opted out or marked do not contact'],
+    ['nochat', 'No chat with us on record in respond.io'],
     ['done', 'Already messaged (October blasts, or written to on WhatsApp since 9 Oct)'], ['booked', 'Already booked in'], ['dup', 'Shares a number with another client who gets it']];
   function leftSpec(b, reason, label) {
     return { title: (b.data.short || b.data.title) + ', left out: ' + label.toLowerCase(), cur: 'AED', sub: 'Clients who fit this blast but are not sent it, and why.',
