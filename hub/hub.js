@@ -166,6 +166,10 @@
     { key: 'page-access', via: 'dashboards', only: [5], dept: 'People', title: 'Page Access', href: '/hub/pageaccess', live: true, rule: 'var(--accent-mint)',
       blurb: 'Tick the reports each level can open: Team, Leadership, Executives and Accounts.' },
 
+    // Kate, 3 Nov 2026: hide a dashboard page from everyone but Kate, or label it Under construction (Level 5 only; saved in public.page_status, migrations/page_status.sql).
+    { key: 'page-status', via: 'dashboards', only: [5], dept: 'Tools', title: 'Hide Pages & Under Construction', href: '/hub/pagestatus', live: true, rule: 'var(--accent-butter)',
+      blurb: 'Switch a page off for everyone but you, or label it Under construction while you build it.' },
+
     { key: 'uploads', dept: 'Tools', title: 'Upload Portal', href: '/upload/', live: true, rule: 'var(--accent-mint)',
       blurb: 'The files and sheets that feed the dashboard: ledgers, Phorest reports, targets and products.' },
     // Kate, 30 Oct 2026: "separate dapat yung upload portal from payslip portal, may whatsapp na sya". Payslips is its own entry (the Payslips tab of the
@@ -275,6 +279,8 @@
     'marketing-optout': '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
     // Kate, 28 Oct 2026: a tick-list sheet, for Page Access (it showed the initials PA).
     'page-access': '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="m8 8.2 1.4 1.4L12 7"/><path d="M14.5 8.5H17"/><path d="m8 14.2 1.4 1.4L12 13"/><path d="M14.5 14.5H17"/>',
+    // Kate, 3 Nov 2026: an eye with a line through it, for Hide Pages & Under Construction.
+    'page-status': '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/>',
     'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP,
     // Kate, 6 Oct 2026: one icon per kind of page, for the page lists inside a section
     // (KB.pageIcon picks one from the title and chapter).

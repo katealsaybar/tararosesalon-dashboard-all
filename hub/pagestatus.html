@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hide Pages &amp; Under Construction · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=dcfa22a4">
+<link rel="stylesheet" href="/scrollbars.css?v=a903788b">
+<style>
+/* Kate, 3 Nov 2026: Hide Pages & Under Construction, Level 5 only. One row per dashboard page with three choices: Live, Under construction, Hidden (only you
+   can open it). A change is saved the moment it is clicked (public.page_status). */
+.ps-col{max-width:880px;margin:0 auto}
+.ps-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0 8px}
+.ps-bar .kb-search{flex:1 1 260px;max-width:420px}
+.ps-btn{font:inherit;font-size:13px;font-weight:600;padding:8px 16px;min-height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+.ps-btn:hover{border-color:var(--text)}
+.ps-btn:disabled{opacity:.5;cursor:default}
+.ps-status{min-height:22px;font-size:13px;color:var(--muted);margin:2px 0 10px}
+.ps-status.err{color:#B3402A;font-weight:600}
+.ps-wrap{border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+.ps-grp{margin:0;padding:14px 14px 8px;background:var(--bg);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ps-grp:not(:first-child){border-top:1px solid var(--border)}
+.ps-row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 14px;border-top:1px solid var(--border)}
+.ps-row:hover{background:color-mix(in srgb,var(--text) 5%,var(--surface))}
+.ps-name{flex:1 1 220px;min-width:0;font-weight:600;font-size:14px}
+.ps-note{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:2px}
+.ps-seg{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;flex:0 0 auto}
+.ps-seg label{position:relative;cursor:pointer;font-size:13px;font-weight:600;padding:8px 14px;min-height:38px;display:flex;align-items:center;color:var(--muted);white-space:nowrap}
+.ps-seg label+label{border-left:1px solid var(--border)}
+.ps-seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.ps-seg label:has(input:checked){color:var(--text)}
+.ps-seg label.ps-live:has(input:checked){background:rgba(70,160,110,.20)}
+.ps-seg label.ps-con:has(input:checked){background:rgba(214,158,46,.26)}
+.ps-seg label.ps-hid:has(input:checked){background:color-mix(in srgb,var(--text) 16%,transparent)}
+.ps-seg label:has(input:focus-visible){outline:2px solid var(--text);outline-offset:-2px}
+.ps-msg{flex:1 1 100%;display:none}
+.ps-row.ps-isCon .ps-msg{display:block}
+.ps-msg input{font:inherit;font-size:13px;width:100%;max-width:520px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
+.ps-hint{font-size:13px;color:var(--muted);margin:10px 0 0;max-width:760px}
+@media(max-width:700px){
+  .ps-seg{width:100%}
+  .ps-seg label{flex:1 1 0;justify-content:center;padding:8px 6px;font-size:12.5px}
+  .ps-bar .kb-search{flex:1 1 100%;max-width:none}
+  .ps-btn{flex:1 1 auto}
+}
+</style>
+</head>
+<body class="kb-wait">
+<header class="kb-head" id="kbHead" data-title="Team Home"></header>
+<main id="kbMain"><p class="kb-msg">Loading…</p></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=3823f956"></script>
+<script src="/assets/theme-fade.js"></script>
+<script src="/pages.js?v=1882021e"></script>
+<script src="/hub/hub.js?v=22b1878c"></script>
+<script src="/visits.js?v=1176426c"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain');
+  var q = '', statusTimer = null;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function say(t, err) {
+    var el = document.getElementById('psStatus'); if (!el) return;
+    el.textContent = t; el.className = 'ps-status' + (err ? ' err' : '');
+    clearTimeout(statusTimer);
+    if (!err) statusTimer = setTimeout(function () { el.textContent = ''; }, 4000);
+  }
+  function cur(id) { var s = (window.TRS_STATUS || {})[id]; return s ? s.status : 'live'; }
+  function noteOf(id) { var s = (window.TRS_STATUS || {})[id]; return s ? (s.note || '') : ''; }
+  function pages() { return TRS_PAGES.filter(function (p) { return !p.retired; }); }
+  function countOff() { return pages().filter(function (p) { return cur(p.id) !== 'live'; }).length; }
+  function paintCount() {
+    var b = document.getElementById('psReset'); if (!b) return;
+    var n = countOff();
+    b.disabled = !n; b.textContent = n ? 'Put all ' + n + ' back to Live' : 'Every page is Live';
+  }
+  function row(p) {
+    var st = cur(p.id), name = 'st-' + p.id;
+    function opt(v, cls, label) {
+      return '<label class="' + cls + '"><input type="radio" name="' + esc(name) + '" value="' + v + '"' + (st === v ? ' checked' : '') + ' aria-label="' + esc(p.label) + ': ' + label + '">' + label + '</label>';
+    }
+    return '<div class="ps-row' + (st === 'construction' ? ' ps-isCon' : '') + '" data-id="' + esc(p.id) + '">' +
+      '<div class="ps-name">' + esc(p.label) + (p.inside ? '<span class="ps-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</div>' +
+      '<div class="ps-seg" role="radiogroup" aria-label="' + esc(p.label) + '">' + opt('live', 'ps-live', 'Live') + opt('construction', 'ps-con', 'Under construction') + opt('hidden', 'ps-hid', 'Hidden') + '</div>' +
+      '<div class="ps-msg"><input type="text" maxlength="200" placeholder="Optional note shown on the page, e.g. Numbers are being checked" value="' + esc(noteOf(p.id)) + '" aria-label="Note for ' + esc(p.label) + '"></div></div>';
+  }
+  function draw() {
+    var needle = q.trim().toLowerCase(), groups = [], by = {};
+    pages().forEach(function (p) {
+      if (needle && (p.label + ' ' + (p.group || '') + ' ' + (p.sub || '')).toLowerCase().indexOf(needle) < 0) return;
+      var g = p.group || 'Other';
+      if (!by[g]) { by[g] = []; groups.push(g); }
+      by[g].push(p);
+    });
+    document.getElementById('psBody').innerHTML = groups.length
+      ? groups.map(function (g) { return '<div class="ps-grp">' + esc(g) + '</div>' + by[g].map(row).join(''); }).join('')
+      : '<div class="ps-row">Nothing matches that search.</div>';
+    paintCount();
+  }
+  async function save(id, status, note, rowEl) {
+    var p = pages().filter(function (x) { return x.id === id; })[0], label = p ? p.label : id;
+    var r = await KB.client.rpc('page_status_set', { p_page: id, p_status: status === 'live' ? null : status, p_note: status === 'construction' ? (note || null) : null });
+    if (r.error) { say('Not saved: ' + (r.error.message || 'try again') + '.', true); draw(); return false; }
+    if (status === 'live') delete window.TRS_STATUS[id]; else window.TRS_STATUS[id] = { status: status, note: status === 'construction' ? (note || '') : '' };
+    if (rowEl) rowEl.classList.toggle('ps-isCon', status === 'construction');
+    say(label + (status === 'live' ? ' is Live again.' : status === 'hidden' ? ' is Hidden: only you can open it.' : ' is labelled Under construction.'));
+    paintCount();
+    return true;
+  }
+  async function resetAll() {
+    var ids = pages().filter(function (p) { return cur(p.id) !== 'live'; }).map(function (p) { return p.id; });
+    if (!ids.length) return;
+    if (!confirm('Put ' + ids.length + ' page' + (ids.length > 1 ? 's' : '') + ' back to Live? Hidden pages will show again for the people who may open them.')) return;
+    for (var i = 0; i < ids.length; i++) {
+      var r = await KB.client.rpc('page_status_set', { p_page: ids[i], p_status: null, p_note: null });
+      if (r.error) { say('Stopped at ' + trsPageLabel(ids[i]) + ': ' + (r.error.message || 'try again') + '.', true); draw(); return; }
+      delete window.TRS_STATUS[ids[i]];
+    }
+    say('Every page is Live.');
+    draw();
+  }
+  KB.ready.then(async function () {
+    // Level 5 only, and not while "View as" is on: previewing another level must not let that level change the pages.
+    if (KB.realLevel !== 5 || KB.viewAs) {
+      main.innerHTML = '<p class="kb-msg">This page is for Kate only' + (KB.viewAs ? ' (switch View as back to Level 6)' : '') + '.</p>';
+      return;
+    }
+    main.innerHTML =
+      KB.titleIcon('page-status', 'Hide Pages & Under Construction') +
+      '<p class="kb-meta">Choose what each dashboard page shows. A change is saved as soon as you click it and takes effect the next time someone opens or refreshes the dashboard.</p>' +
+      '<div class="ps-col"><div class="ps-bar"><div class="kb-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
+        '<input type="search" id="psFilter" placeholder="Search pages" autocomplete="off" aria-label="Search pages"></div>' +
+        '<button type="button" class="ps-btn" id="psReset"></button></div>' +
+      '<div class="ps-status" id="psStatus" role="status" aria-live="polite"></div>' +
+      '<div class="ps-wrap" id="psBody"></div>' +
+      '<p class="ps-hint"><b>Live</b>: the page works as normal. <b>Under construction</b>: the page still opens for whoever may open it, with an Under construction tag in the menu and a notice at the top, plus your note if you type one. <b>Hidden</b>: the page leaves the menu, Team Home, search and direct links for everyone except you; you still see it, tagged Hidden. Use View as to check what another level sees. Hiding removes the page from view; the numbers behind it are still protected by the database as before. Page Access (People) decides who may open a page; this page decides whether it is switched on at all.</p></div>';
+    draw();
+    document.getElementById('psFilter').addEventListener('input', function (e) { q = e.target.value; draw(); });
+    document.getElementById('psReset').addEventListener('click', resetAll);
+    var body = document.getElementById('psBody');
+    body.addEventListener('change', function (e) {
+      var inp = e.target; if (!inp) return;
+      var rowEl = inp.closest && inp.closest('.ps-row'); if (!rowEl) return;
+      var note = rowEl.querySelector('.ps-msg input');
+      if (inp.type === 'radio') {
+        save(rowEl.getAttribute('data-id'), inp.value, note ? note.value.trim() : '', rowEl);
+      } else if (inp.type === 'text') {
+        // The note saves when the box is left or Enter is pressed; it only exists while the page is Under construction.
+        save(rowEl.getAttribute('data-id'), 'construction', inp.value.trim(), rowEl);
+      }
+    });
+    body.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target && e.target.type === 'text') e.target.blur(); });
+  });
+})();
+</script>
+</body>
+</html>

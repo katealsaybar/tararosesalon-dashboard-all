@@ -21,7 +21,8 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=76a17f17"></script>
+<script src="pages.js?v=1882021e"></script>
+<script src="page-status.js?v=1f8aefaf"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3535,7 +3536,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="tool-spend.css?v=d72f64aa">
 <link rel="stylesheet" href="marketing-spend.css?v=3af355da">
 <link rel="stylesheet" href="mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
-<link rel="stylesheet" href="nav-style.css?v=63c6b002">
+<link rel="stylesheet" href="nav-style.css?v=f805efb5">
 <link rel="stylesheet" href="drill.css?v=547da3fe">   <!-- the figure that opens the list behind it (drill.js) -->
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
@@ -3830,6 +3831,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" data-tool-min="4" onclick="location.href='/upload/payslips'">Payslips</div>
     <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/staff-messages'">Staff Payroll WhatsApp</div>
     <div class="nav-sub" data-tool-min="5" onclick="location.href='/upload/team-roster'">Team Roster</div>
+    <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/pagestatus'">Hide Pages &amp; Under Construction</div>
   </div>
 
   <!-- Logout button -->
@@ -4897,6 +4899,8 @@ async function enterDashboard(role, meAsk){
   // (client names and numbers, ad spend). A page the level does not reach leaves the menu; the page and its data refuse it too.
   // Kate, 21 Oct 2026: coordinators (Level 2) and accounts (Level 4) each get their own list (lv in pages.js), not every page below their level.
   TRS_PAGES.forEach(p => { if (!trsPageOpen(p.id, TRS_LEVEL, TRS_EXTRA)) hideNav(p.id); });
+  // Kate, 3 Nov 2026: the Under construction / Hidden tags in the menu (page-status.js; the status itself loads with trsAccessLoad above).
+  if (typeof trsStatusNav === 'function') trsStatusNav();
   tidyNav();
   {
     const first = ((me && me.name) || '').split(/[\s(]/)[0].replace(/[<>&"]/g, '');
@@ -5063,6 +5067,8 @@ function showView(view, el){
   // with height:100% because they lived inside an inner scroll area that no longer
   // exists — in a document-scrolled page that collapsed them to nothing.
   target.style.display = 'block';
+  // Kate, 3 Nov 2026: the Under construction / Hidden notice above the page (page-status.js).
+  if (typeof trsStatusBanner === 'function') trsStatusBanner(view);
   // Google Reviews sizes its iframe to its content; ask again now it's visible.
   if (view === 'reviews' && typeof postReviewsTheme === 'function') postReviewsTheme();
   if (view === 'reviews' && typeof postReviewsBranch === 'function') postReviewsBranch();

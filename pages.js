@@ -94,11 +94,20 @@ window.TRS_PAGES = /*PAGES*/[
   // signed-in person, trsAccessLoad() puts them in TRS_ACCESS ({ pageId: { "2": true, "4": false } }) and they win over the defaults below. No tick saved
   // for a page and level means the default from lv/min, which is what the boxes show checked from the start. Level 5 is never changed by it.
   window.TRS_ACCESS = window.TRS_ACCESS || {};
+  // Kate, 3 Nov 2026: Hide Pages & Under Construction (Team Home > Tools, Level 5). TRS_STATUS holds { pageId: { status: 'hidden' | 'construction', note } } from
+  // page_status_get(); a page with no entry is live. A hidden page opens for Level 5 only (trsPageOpen), an under-construction page opens as before but is labelled
+  // (page-status.js). It loads with the access ticks, so every place that already calls trsAccessLoad (the dashboard, Team Home, search) follows it.
+  window.TRS_STATUS = window.TRS_STATUS || {};
+  window.trsPageStatus = function (id) { var s = window.TRS_STATUS[window.trsLive(id)]; return s ? s.status : ''; };
   window.trsAccessLoad = async function (client) {
     try {
       var r = await client.rpc('page_access_get');
       window.TRS_ACCESS = (!r.error && r.data && typeof r.data === 'object') ? r.data : {};
     } catch (e) { window.TRS_ACCESS = {}; }
+    try {
+      var st = await client.rpc('page_status_get');
+      window.TRS_STATUS = (!st.error && st.data && typeof st.data === 'object') ? st.data : {};
+    } catch (e) { window.TRS_STATUS = {}; }
   };
   // The built-in rule, with no saved ticks and no extras: what the Page Access page shows as checked from the start.
   window.trsPageDefault = function (id, level) {
@@ -113,6 +122,8 @@ window.TRS_PAGES = /*PAGES*/[
   window.trsPageOpen = function (id, level, extras) {
     var p = by[window.trsLive(id)];
     if (!p) return true;
+    // Kate, 3 Nov 2026: a hidden page opens for Level 5 (Kate) only, whatever else says; this includes View as, which acts as the level it previews.
+    if ((!level || level < 5) && window.trsPageStatus(p.id) === 'hidden') return false;
     if (!level) return (p.min || 1) <= 1;
     if (level >= 5) return true;
     if ((level === 2 || level === 4) && extras && extras.indexOf(p.id) >= 0) return true;
