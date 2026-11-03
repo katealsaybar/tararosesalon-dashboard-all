@@ -87,12 +87,16 @@ aside.sidebar .nav-phone .nt-light{display:none}
 
 /* Kate, 3 Nov 2026: Hide Pages & Under Construction (page-status.js). A small tag after a page's name in the menu, and a notice above the page. Amber for
    Under construction (the same amber as a changed tick on Page Access), a quiet grey for Hidden (only Kate sees that one). */
-aside.sidebar .nav-sub .nav-flag{display:block;width:fit-content;max-width:100%;margin:4px 0 0;padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.02em;line-height:1.5;
+/* Kate, 3 Nov 2026: menu rows are flex rows (name, then the star at the right). A tagged row wraps: the name takes the first line beside the star, and the tag is a
+   full-width item on its own second line, with the pill drawn inside it (the words are the data-label, so the row's text and the star's name stay clean). */
+aside.sidebar .nav-sub:has(> .nav-flag){flex-wrap:wrap;align-content:center}
+aside.sidebar .nav-sub .nav-name{flex:1 1 0;min-width:0}
+aside.sidebar .nav-sub .nav-flag{order:3;flex:0 0 100%;display:block;margin:0;padding:0;line-height:0;font-size:0}
+aside.sidebar .nav-sub .nav-flag::before{content:attr(data-label);display:inline-block;padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.02em;line-height:1.5;
   white-space:nowrap;border:1px solid transparent}
-/* Phone: mobile.css makes every menu row a centred flex row, which would put the tag beside the name and push it off the edge, so a tagged row stays a plain block. */
-aside.sidebar .nav-sub:not(.has-kids):has(> .nav-flag){display:block}
-aside.sidebar .nav-sub .nav-flag-construction{background:rgba(214,158,46,.18);border-color:rgba(214,158,46,.55);color:var(--text)}
-aside.sidebar .nav-sub .nav-flag-hidden{background:color-mix(in srgb,var(--text) 8%,transparent);border-color:var(--border);color:var(--muted)}
+/* Amber for Under construction (the same amber as a changed tick on Page Access), a quiet grey for Hidden (only Kate sees that one). */
+aside.sidebar .nav-sub .nav-flag-construction::before{background:rgba(214,158,46,.18);border-color:rgba(214,158,46,.55);color:var(--text)}
+aside.sidebar .nav-sub .nav-flag-hidden::before{background:color-mix(in srgb,var(--text) 8%,transparent);border-color:var(--border);color:var(--muted)}
 .pg-status{margin:0 0 14px;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.45;border:1px solid var(--border);color:var(--text)}
 .pg-status-construction{background:rgba(214,158,46,.14);border-color:rgba(214,158,46,.55)}
 .pg-status-hidden{background:color-mix(in srgb,var(--text) 6%,transparent)}

@@ -16,9 +16,17 @@
       if (!st || p.retired) return;
       var nav = document.querySelector('#sidebar .nav-sub[onclick*="showView(\'' + p.id + '\'"]');
       if (!nav) return;
+      // The name goes in its own span so it can share the first line with the star while the tag takes the second (nav-style.css). The tag's words are drawn
+      // from data-label, so the row's text, and the star's name that nav-stars.js builds from it, stay just the page name.
+      if (!nav.querySelector(':scope > .nav-name')) {
+        var nm = document.createElement('span'), t = null, kids = Array.prototype.slice.call(nav.childNodes);
+        nm.className = 'nav-name';
+        kids.forEach(function (k) { if (k.nodeType === 3) { if (!t) { t = k; nav.insertBefore(nm, k); } nm.appendChild(k); } });
+        if (!t) nm = null;
+      }
       var tag = document.createElement('span');
       tag.className = 'nav-flag nav-flag-' + st;
-      tag.textContent = WORD[st];
+      tag.setAttribute('data-label', WORD[st]);
       nav.appendChild(tag);
     });
   };
