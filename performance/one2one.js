@@ -145,7 +145,9 @@ const winLine = snap => snap && snap.from ? `${spanOf(snap)}, ${dShort(snap.from
 function numbersRows(snap, notes) {
   return NUM_ROWS.map(([k, label]) => {
     const r = numRow(snap, k), n = notes && notes[k];
-    return `<div class="row"><span>${label}</span><span class="r-val">${esc(r.a)}<span class="r-tail">${r.t ? `<small>aim ${esc(r.t)}</small>` : ''}<i class="dot ${r.st}"></i></span></span>${has(n) ? `<span class="r-note">${esc(n)}</span>` : ''}</div>`;
+    // Retention and conversion look back 180 days from the day the numbers were worked out, not over the review window above (Kate, 4 Nov 2026)
+    const own = k === 'ret' && snap && snap.to ? `Retention and new clients look back 180 days from ${dShort(snap.to)}, not over the ${spanOf(snap)} above.` : '';
+    return `<div class="row"><span>${label}</span><span class="r-val">${esc(r.a)}<span class="r-tail">${r.t ? `<small>aim ${esc(r.t)}</small>` : ''}<i class="dot ${r.st}"></i></span></span>${has(n) ? `<span class="r-note">${esc(n)}</span>` : ''}${own ? `<span class="r-note">${esc(own)}</span>` : ''}</div>`;
   }).join('');
 }
 

@@ -315,3 +315,32 @@ begin
       || E'    having bool_or(sb.v_known > 0)\n';
   execute left(d, i1 - 1) || blk || substr(d, i2);
 end $do$;
+
+-- ── The Staff KPI by home salon, as the Pulse does (Kate, 4 Nov 2026) ────────────────────────────────────────────────
+-- With p_kpi both functions read every salon (the Branch no longer narrows the data). retention_report adds 'home' to each stylist row (their active perf_staff salon),
+-- and drill_retention_clients takes p_home (a comma list of home salons) to pick the people. Totals by home salon equal the Pulse by branch exactly on 4 Nov 2026:
+-- AQ 361 / 210, KCA 2,077 / 775, MC 499 / 249, SAA 1,991 / 754, and every list has the same count.
+do $do$
+declare d text; a text;
+begin
+  select pg_get_functiondef(p.oid) into d from pg_proc p where p.proname = 'retention_report';
+  if d not like '%''home''%' then
+    a := 'p_to := asof - 90; p_from := asof - 179; p_return_days := 90;';
+    if position(a in d) = 0 or position('''perf'', perf,' in d) = 0 then raise exception 'retention_report: patterns not found'; end if;
+    d := replace(d, a, a || ' br := array[''AQ'', ''KCA'', ''MC'', ''SAA''];');
+    d := replace(d, '''perf'', perf,', '''perf'', perf, ''home'', (select ps.branch from perf_staff ps where ps.active and ps.phorest_name = emp limit 1),');
+    execute d;
+  end if;
+  select pg_get_functiondef(p.oid) into d from pg_proc p where p.proname = 'drill_retention_clients';
+  if d not like '%p_home%' then
+    a := 'p_kpi boolean DEFAULT false)';
+    if position(a in d) = 0 or position('p_to := asof - 90; p_from := asof - 179; p_return_days := 90; p_regulars := true;' in d) = 0
+       or position('sb.emp in (select phorest_name from perf_staff where active)' in d) = 0 then raise exception 'drill_retention_clients: patterns not found'; end if;
+    d := replace(d, a, 'p_kpi boolean DEFAULT false, p_home text DEFAULT NULL::text)');
+    d := replace(d, 'p_to := asof - 90; p_from := asof - 179; p_return_days := 90; p_regulars := true;', 'p_to := asof - 90; p_from := asof - 179; p_return_days := 90; p_regulars := true; br := array[''AQ'', ''KCA'', ''MC'', ''SAA''];');
+    d := replace(d, 'sb.emp in (select phorest_name from perf_staff where active)', 'sb.emp in (select phorest_name from perf_staff where active and (p_home is null or branch = any(string_to_array(p_home, '','')))) ');
+    execute 'drop function public.drill_retention_clients(date, date, text, text, text, text, text, boolean, int, int, boolean, boolean)';
+    execute d;
+    execute 'grant execute on function public.drill_retention_clients(date, date, text, text, text, text, text, boolean, int, int, boolean, boolean, text) to authenticated';
+  end if;
+end $do$;
