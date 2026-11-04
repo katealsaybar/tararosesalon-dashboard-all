@@ -423,3 +423,9 @@
 .nvb .nvb-schbox .nvb-schrow{margin:0;width:100%}
 .nvb .nvb-schbox .nvb-sch{margin:0}
 .nvb .nvb-schbox .nvb-small{margin:0;font-size:13px}
+
+/* the Template in respond.io box sits under the Who list, in the blank space beside Left out (4 Nov 2026) */
+.nvb .nvb-tplbox{margin-top:16px;padding-top:12px;border-top:1px solid var(--border);display:grid;gap:6px;justify-items:stretch}
+.nvb .nvb-tplbox .nvb-tp:first-of-type{border-top:0;padding-top:2px}
+.nvb .nvb-tplbox .nvb-small{margin:2px 0 0;font-size:13px}
+.nvb .nvb-tplbox .nvb-tps{margin-left:0}

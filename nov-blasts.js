@@ -222,7 +222,7 @@
       h += '<button type="button" class="cbl-d' + (here.length ? ' has' : '') + (iso === today ? ' today' : '') + (iso === curIso ? ' sel' : '') + '" ' + (here.length ? 'data-nvb="day:' + iso + '" aria-label="' + esc(fdate(iso)) + ', ' + plural(here.length, 'blast', 'blasts') + '"' : 'tabindex="-1" disabled') + '>' + d +
         (here.length ? '<i>' + here.slice(0, 3).map(function () { return '<b class="plan"></b>'; }).join('') + '</i>' : '') + '</button>';
     }
-    return h + '</div><div class="cbl-leg"><span><b class="plan"></b>Planned</span></div><p class="cbl-hint">Pick a day with a dot to open its blast. To move one, use Change day or time on the blast.</p><button type="button" class="cbl-bigbtn" data-nvb="big">Bigger calendar</button></div>';
+    return h + '</div><div class="cbl-leg"><span><b class="plan"></b>Planned</span></div><p class="cbl-hint">Pick a day with a dot to open its blast.</p><button type="button" class="cbl-bigbtn" data-nvb="big">Bigger calendar</button></div>';
   }
   // The same month, large, in a pop-up (Kate, 3 Nov 2026: "I should be able to view the calendar bigger"): every blast is a chip on its day, click it to open it.
   function bigCalHtml() {
@@ -230,7 +230,7 @@
     var h = '<div class="cbl"><div class="cbl-modal" data-nvb="close"><div class="cbl-bigcal cbl-card" role="dialog" aria-modal="true" aria-label="Calendar of blasts"><div class="cbl-big-h">' +
       '<button type="button" data-nvb="cal:prev" aria-label="Previous month">‹</button><b>' + ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][mo] + ' ' + y + '</b>' +
       '<button type="button" data-nvb="cal:next" aria-label="Next month">›</button><button type="button" class="cbl-big-x" data-nvb="close">Close</button></div>' +
-      '<p class="cbl-hint">Click a blast to open it. To move one to another day, use Change day or time on the blast.</p><div class="cbl-big-g">';
+      '<p class="cbl-hint">Click a blast to open it.</p><div class="cbl-big-g">';
     ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (d) { h += '<span class="hd">' + d + '</span>'; });
     for (var i = 0; i < off; i++) h += '<span class="pad"></span>';
     for (var d = 1; d <= n; d++) {
@@ -293,13 +293,14 @@
   /* The template of each blast in respond.io and where it has got to (Kate, 3 Nov 2026). The names and the status live in the database (nov_blast_items data.tpl, one entry per
      group: n the template name, s todo | filled | submitted | approved | rejected), so a status change is a data edit, not a deploy. */
   var TPL_ST = { todo: 'Not made yet', filled: 'Filled in, waiting for Submit', submitted: 'Submitted to Meta', approved: 'Approved by Meta', rejected: 'Rejected by Meta' };
+  /* Sits under the Who list (Kate, 4 Nov 2026: the red rectangle goes into that blank space); it used to be a full width card between the Clients box and the Send card. */
   function tplHtml(b) {
     var t = b.data.tpl; if (!t) return '';
     var pre = item('pre'), snd = pre && pre.data && pre.data.sender, gs = ['warm', 'std'].filter(function (g) { return t[g]; }), rows = gs.map(function (g) {
       var x = t[g], st = TPL_ST[x.s] ? x.s : 'todo';
       return '<div class="nvb-tp">' + (gs.length > 1 ? '<span class="g">' + (g === 'warm' ? 'Warm' : 'Standard') + '</span>' : '') + '<code>' + esc(x.n) + '</code><span class="nvb-tps ' + st + '">' + esc(TPL_ST[st]) + '</span></div>';
     }).join('');
-    return '<div class="cbl-card cbl-when nvb-tpl"><h3>Template in respond.io</h3>' + rows +
+    return '<div class="nvb-tplbox"><small>Template in respond.io</small>' + rows +
       (snd ? '<p class="nvb-small">Account: ' + esc(snd.waba) + (snd.channel ? ', channel ' + esc(snd.channel) : '') + '. Sent from the call centre number' + (snd.number ? ' ' + esc(snd.number) : '') + '.</p>' : '') + '</div>';
   }
   /* The template buttons and what follows a tap (Kate, 3 Nov 2026): Tell me more sends the offer and the Terms and Conditions picture, then Book now and Help me out. The
@@ -402,8 +403,7 @@
     return '<div class="cbl"><div class="cbl-modal" data-nvb="termsx"><div class="cbl-bigcal cbl-card nvb-tcm" role="dialog" aria-modal="true" aria-label="' + esc(t.title) + '"><div class="cbl-big-h"><b>' + esc(t.title) + '</b><button type="button" class="cbl-big-x" data-nvb="termsx">Close</button></div>' +
       '<p class="cbl-hint">' + esc(t.intro) + '</p><ol class="nvb-tcl">' + (t.pts || []).map(function (p) { return '<li><b>' + esc(p[0]) + '</b> ' + esc(p[1]) + '</li>'; }).join('') + '</ol></div></div></div>';
   }
-  /* The day and time control sits under the Who list (Kate, 4 Nov 2026: "move, sayang space"), in the blank space beside the Left out list, on every blast page. Same control as before. */
-  function schedBox(b) { return '<div class="nvb-schbox"><small>Kate: schedule</small><div class="nvb-schrow">' + (schedHtml(b) || '<p class="nvb-small">Kate sets the day and time.</p>') + '</div></div>'; }
+  /* The Kate: schedule card (Change day or time) is gone from the blast pages (Kate, 4 Nov 2026); schedHtml and the sched: handler stay unused, nov_blast_schedule and the data are untouched. */
   function blastMain(b) {
     var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = sorted().map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
     var ln = lanesOf(b, c);
@@ -415,8 +415,7 @@
     return '<div class="cbl-pos"><a href="?view=novblasts" data-nvb="sel:' + esc(pv || b.id) + '"' + (pv ? '' : ' class="off"') + '>‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=novblasts" data-nvb="sel:' + esc(nx || b.id) + '"' + (nx ? '' : ' class="off"') + '>Next ›</a></div>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdateY(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdateY(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>' +
       '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
-      '<div><small>Who</small>' + whoHtml(d) + schedBox(b) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
-      tplHtml(b) +
+      '<div><small>Who</small>' + whoHtml(d) + tplHtml(b) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
       sendCardHtml(b) +
       '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-nvb="flowbig">' + FLOWICON + 'See the flow bigger</button></div>' +
       '<div class="cbl-phones' + (ln.one ? ' nvb-onephone' : '') + '" id="nvbPhones">' + ln.html + '</div>' +
