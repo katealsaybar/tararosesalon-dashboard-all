@@ -522,15 +522,15 @@
     return '<div class="nvb-rs-bar"><span>' + esc(r.name) + '</span><div class="nvb-rs-track" role="img" aria-label="' + esc(r.name) + ': ' + d + ' delivered or read, ' + f + ' failed, ' + u + ' not confirmed yet, of ' + n + ' accepted"><i class="d" style="width:' + w(d) + '%"></i><i class="x" style="width:' + w(f) + '%"></i><i class="w" style="width:' + w(u) + '%"></i></div><span>' + fmtN(n) + ' accepted</span></div>';
   }
   function resultsMain() {
-    if (!RES) return '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November</div><h2>Results</h2></div></div><p class="slv-muted">' + (resErr ? 'The results could not be read just now. Open the page again in a minute.' : 'Loading…') + '</p>';
+    if (!RES) return '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026</div><h2>Results</h2></div></div><p class="slv-muted">' + (resErr ? 'The results could not be read just now. Open the page again in a minute.' : 'Loading…') + '</p>';
     var a = RA(), rows = resRows(), st = resState(), r1 = RES.rates.oct, r2 = RES.rates.nov;
-    if (!a) return '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November</div><h2>Results</h2></div></div><p class="slv-muted">Nothing has been sent yet.</p>';
+    if (!a) return '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026</div><h2>Results</h2></div></div><p class="slv-muted">Nothing has been sent yet.</p>';
     var reached = a.read + a.delivered, aud = 0, checked = reached + a.failed; rows.forEach(function (x) { aud += x.audience || 0; });
     var qd = RES.still_queued, fin = qd === 0;
     var chips = '<span class="cbl-chip ok">As of ' + esc(fat(RES.at)) + '</span>' + (fin ? '<span class="cbl-chip ok">Sending finished ' + esc(fat(RES.last_send)) + '</span>' : '<span class="cbl-chip warn">Still sending: ' + fmtN(qd) + ' queued</span>') +
       (a.never_checked > 0 ? '<span class="cbl-chip warn">Delivery statuses still arriving: ' + fmtN(a.never_checked) + ' not checked yet</span>' : '') +
       (RES.gate && RES.gate.paused ? '<span class="cbl-chip bad">Paused by the gate</span>' : '') + '<span class="cbl-chip">Sales in to ' + esc(fdate(RES.sales_to)) + '</span><span class="cbl-chip">Offers run to 30 November</span>';
-    var out = '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November · Results</div><h2>How the November blasts did</h2></div></div><div class="nvb-rs-chips">' + chips + '</div>';
+    var out = '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026 · Results</div><h2>How the November blasts did</h2></div></div><div class="nvb-rs-chips">' + chips + '</div>';
     out += '<p class="nvb-rs-intro">Same shape as the October Lost Clients report. One message per client. Read live from the database and it moves while delivery statuses and sales come in. Counts only, no client names.</p>';
 
     // 1 headline
