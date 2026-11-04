@@ -174,6 +174,29 @@ function errCode(it: any): string | null {
   return m ? m[1] : null;
 }
 
+// v4 (4 Nov 2026, evening): why a delivery failed, in Meta's code and plain words, so the page can list it under 'Why some did not go'.
+// Every string inside the status and error parts of one message item (never the message text), minus the bare status words.
+function strsIn(o: any, out: string[], depth = 0) {
+  if (o == null || depth > 6) return;
+  if (typeof o === 'string') { out.push(o.replace(/\s+/g, ' ').trim()); return; }
+  if (Array.isArray(o)) { o.forEach((x) => strsIn(x, out, depth + 1)); return; }
+  if (typeof o === 'object') for (const k of Object.keys(o)) strsIn(o[k], out, depth + 1);
+}
+const STATUS_WORDS = new Set(['failed', 'sent', 'delivered', 'read', 'pending', 'queued', 'accepted', 'undelivered', 'error', 'seen']);
+function failReason(it: any): string {
+  const parts: string[] = [];
+  for (const p of [it?.status, it?.message?.status, it?.error, it?.message?.error, it?.failedReason, it?.message?.failedReason, it?.failure, it?.message?.failure]) strsIn(p, parts);
+  const words = [...new Set(parts.filter((s) => s && !STATUS_WORDS.has(s.toLowerCase())))];
+  const text = words.join(' | ');
+  const raw = JSON.stringify([it?.status, it?.message?.status, it?.error, it?.message?.error, it?.failedReason, it?.message?.failedReason, it?.failure, it?.message?.failure]);
+  const code = (/\b(13\d{4})\b/.exec(raw) || /"code"\s*:\s*"?(\d{3,6})"?/.exec(raw) || [])[1] || '';
+  if (/ecosystem engagement/i.test(text) || code === '131049') return '131049: Meta limit on marketing messages to this client (not delivered, not charged)';
+  if (/part of an experiment/i.test(text) || code === '130472') return "130472: Meta held it back, this client's number is part of an experiment (not charged)";
+  if (text) return ((code ? code + ': ' : '') + text).slice(0, 160);
+  if (code) return code + ': failed after respond.io accepted it';
+  return ('Failed after respond.io accepted it, no reason in the message data: ' + JSON.stringify(it?.status ?? it?.message?.status ?? null)).slice(0, 160);
+}
+
 async function checkOne(sb: ReturnType<typeof createClient>, t: { id: number; contact_id: number; message_id: string | null; sent_at: string }): Promise<void> {
   const m = await rio('GET', `/contact/id:${t.contact_id}/message/list?limit=30`);
   if (!m.ok) return;   // not counted as a look: it is tried again on the next run
@@ -185,7 +208,7 @@ async function checkOne(sb: ReturnType<typeof createClient>, t: { id: number; co
     out = items.filter((it) => it.traffic === 'outgoing' && Number(it.messageId) >= sentUs - 60_000_000).sort((a, b) => Number(a.messageId) - Number(b.messageId))[0] || null;
   }
   const delivery = out ? deliveryOf(out) : null;
-  const code = out && delivery === 'failed' ? errCode(out) : null;
+  const code = out && delivery === 'failed' ? (failReason(out) || errCode(out)) : null;
   const after = out ? Number(out.messageId) : sentUs;
   const stop = items.some((it) => it.traffic === 'incoming' && Number(it.messageId) > after && isOptOut(msgText(it)));
   await sb.rpc('nov_send_status_save', { p_id: t.id, p_delivery: delivery, p_err_code: code, p_stop: stop });
@@ -197,7 +220,7 @@ Deno.serve(async (req) => {
   if (!TOK) return json({ error: 'no token' }, 500);
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const until = Date.now() + BUDGET_MS;
-  const n = { claimed: 0, sent: 0, retry: 0, failed: 0, skipped: 0, looked: 0 };
+  const n = { claimed: 0, sent: 0, retry: 0, failed: 0, skipped: 0, looked: 0, reasons: 0 };
 
   const { data: jobs, error } = await sb.rpc('nov_send_claim', {});
   if (error) return json({ error: error.message }, 500);
@@ -217,7 +240,16 @@ Deno.serve(async (req) => {
     await sleep(300);
   }
 
-  if (n.claimed || n.looked) {
+  // v4: failed deliveries that have no reason saved yet, 25 a run (read only on respond.io, then one database save each)
+  const { data: redo } = await sb.from('nov_send_jobs').select('id, contact_id, message_id, sent_at')
+    .eq('delivery', 'failed').is('err_code', null).not('contact_id', 'is', null).eq('is_test', false).order('id').limit(25);
+  for (const t of (redo || []) as { id: number; contact_id: number; message_id: string | null; sent_at: string }[]) {
+    if (Date.now() > until) break;
+    try { await checkOne(sb, t); n.reasons++; } catch (_) { /* tried again next run */ }
+    await sleep(300);
+  }
+
+  if (n.claimed || n.looked || n.reasons) {
     const now = new Date().toISOString();
     await sb.from('sync_health').upsert({ name: 'nov-send-worker', last_run_at: now, last_ok_at: n.failed ? undefined : now, last_error: n.failed ? `${n.failed} failed` : null }, { onConflict: 'name' }).then(() => {}, () => {});
   }
