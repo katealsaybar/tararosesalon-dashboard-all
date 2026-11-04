@@ -403,3 +403,17 @@
 .nvb .nvb-pill .pt+svg{margin-left:auto}
 .nvb .nvb-pill.open svg{transform:rotate(180deg)}
 @media (prefers-reduced-motion:reduce){.nvb .nvb-pill svg{transition:none}}
+
+/* Sending progress in the All blasts card: sent / total, a thin bar, failed in a muted note (4 Nov 2026) */
+.nvb .nvb-tot-rows div{flex-wrap:wrap}
+.nvb .nvb-trp{flex:0 0 100%;display:block;padding-bottom:4px}
+.nvb .nvb-trt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px;color:var(--muted2);font-variant-numeric:tabular-nums}
+.nvb .nvb-trt span,.nvb .nvb-trt em{white-space:nowrap}
+.nvb .nvb-trt b{font-weight:700;color:var(--text)}
+.nvb .nvb-trt em{font-style:normal;color:var(--muted2)}
+.nvb .nvb-prog.sm{display:block;height:5px;margin-top:4px}
+.nvb .nvb-ovp{margin:2px 0 8px}
+.nvb .nvb-ovp .nvb-trt{font-size:13.5px}
+.nvb .nvb-ovp .nvb-prog.sm{height:7px;margin-top:5px}
+.nvb .nvb-pill .pp{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--nv-good)}
+.nvb .nvb-pill .pp+.ps{margin-left:8px}
