@@ -47,7 +47,7 @@
     const key = fn + '|' + (w.token || w.sid) + '|' + from + '|' + to;
     if (CACHE.has(key)) return CACHE.get(key);
     const p = (async () => {
-      const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${w.sid ? fn + '_by_id' : fn}`, { method: 'POST', headers: await PerfAuth.headers(), body: JSON.stringify(w.sid ? { p_admin: st.admin, p_staff_id: w.sid, p_from: from, p_to: to } : { p_token: w.token, p_from: from, p_to: to }) });
+      const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${w.sid ? fn + '_by_id' : fn}`, { method: 'POST', headers: await PerfAuth.headers(), body: JSON.stringify(Object.assign(w.sid ? { p_admin: st.admin, p_staff_id: w.sid } : { p_token: w.token }, fn === 'perf_my_day' ? { p_date: from } : { p_from: from, p_to: to })) });
       if (r.status === 404) return null;                 // the functions are not installed yet (migrations/perf_my_drill.sql)
       if (!r.ok) { const t = await r.text(); if (/sign_in_required/.test(t)) throw new Error('Please sign in again to see this list.'); throw new Error(fn + ' ' + r.status); }
       return r.json();
@@ -119,7 +119,88 @@
   const add = (a, d) => { SUMF.forEach(k => { a[k] += A(d[k]); }); return a; };
   const nice = v => Math.round(v * 10) / 10;
 
-  function build(kind, days, o, view) {
+  // ── One day: the rows behind a day's figure (Kate, 4 Nov 2026) ───
+  // perf_my_day (migrations/perf_my_day.sql) gives, for one day, the till lines (grouped into visits, no client names), Phorest's day row, its rebooking row, the
+  // branch sheet row and the utilisation hours, per branch: the same sources perf_my_days adds up, so the rows add up to the figure on the list.
+  const BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', BAH: 'Bahrain' };
+  const brn = b => BR[b] || b;
+  const LINES = ['revenue', 'services', 'sales', 'hair', 'retail', 'retailpct', 'avgbill'];
+  const sumOf = (list, k) => (list || []).reduce((a, x) => a + A(x[k]), 0);
+  const aed0 = v => 'AED ' + Math.round(v).toLocaleString('en-GB');
+  // The lines that are retail on a day: the ones the till marks as products (a size in the name), when they add to Phorest's retail figure to the cent.
+  // { ok, retail, svc }; ok is false otherwise and the day's lines are shown whole, with Phorest's own split in the heading.
+  function splitRetail(L, target) {
+    const cents = x => Math.round(A(x) * 100), t = cents(target);
+    if (t <= 0) return { ok: true, retail: [], svc: L };
+    const prod = L.filter(x => x.kind === 'product'), rest = L.filter(x => x.kind !== 'product');
+    if (Math.abs(t - prod.reduce((a, x) => a + cents(x.net), 0)) <= 2) return { ok: true, retail: prod, svc: rest };
+    return { ok: false };                                         // the till does not mark them all as products: not guessed, the day's lines are shown whole
+  }
+  function dayRes(kind, d, o, date) {
+    const src = o.src === 'phorest' ? 'phorest' : 'ledger', day = dText(date);
+    const one = (cols, rows, foot, sub, note) => ({ cols, rows, foot: rows.length > 1 ? foot : null, sub: esc(sub), note: note || '', empty: 'No rows for this day.' });
+    const multi = rows => new Set(rows.map(x => x.branch)).size > 1;
+    const bc = rows => multi(rows) ? [{ k: 'br', l: 'Branch' }] : [];
+    if (LINES.includes(kind)) {
+      const all = d.lines || [], ph = d.phorest || [], svc = sumOf(ph, 'svc'), rt = sumOf(ph, 'retail');
+      // Phorest's day report splits the day into services and retail, the till lines do not say which is which. Home care with a size in its name is marked a product,
+      // and those are used when they add to Phorest's retail figure to the cent. Otherwise the day's lines are all shown, and it says so.
+      if (!all.length && ph.length) {                       // the till lines for this day are not loaded: Phorest's own day row is what there is
+        const rows = ph.map(x => ({ br: brn(x.branch), svc: x.svc, rt: x.retail, vi: x.visits }));
+        return one(bc(ph).concat([{ k: 'svc', l: 'Services', t: 'aed' }, { k: 'rt', l: 'Retail', t: 'aed' }, { k: 'vi', l: 'Visits', t: 'num' }]), rows, { br: 'Total', svc, rt, vi: sumOf(ph, 'visits') },
+          `Phorest’s day report for you on ${day}, before VAT. The till lines for this day are not loaded, so there is no list of items.`);
+      }
+      const sp = splitRetail(all, rt);
+      const retailList = ['retail', 'retailpct'].includes(kind), svcList = ['revenue', 'services', 'hair', 'avgbill'].includes(kind);
+      const L = !sp.ok ? all : retailList ? sp.retail : svcList ? sp.svc : all;
+      const want = !sp.ok ? svc + rt : retailList ? rt : svcList ? svc : svc + rt, sum = sumOf(L, 'net');
+      const cols = [{ k: 'visit', l: 'Visit' }].concat(bc(L), [{ k: 'item', l: 'What' }, { k: 'net', l: 'Amount', t: 'aed' }]);
+      const rows = L.map(x => ({ visit: 'Visit ' + x.visit, br: brn(x.branch), item: x.item, net: x.net }));
+      const tr = sumOf(d.sheet, 'treat');
+      let sub = !sp.ok ? `Everything you rang up on ${day}, before VAT, grouped by visit, from Phorest. Phorest’s day report puts ${aed0(svc)} of it in services and ${aed0(rt)} in retail; the till lines do not say which is which on this day.`
+        : retailList ? `The home care you sold on ${day}, before VAT, grouped by visit, from Phorest.`
+        : svcList ? `Your services on ${day}, before VAT, grouped by visit, from Phorest.`
+        : `Everything you rang up on ${day}, before VAT, grouped by visit, from Phorest.`;
+      if (kind === 'hair' && tr) sub += ` Hair services are these services less the ${aed0(tr)} of treatments on the branch sheet.`;
+      if (kind === 'avgbill') sub += ' The average bill is these services divided by your clients.';
+      const gap = Math.abs(sum - want) > 1 ? `Not matched: these lines add to ${aed0(sum)} and Phorest’s day report to ${aed0(want)}.` : '';
+      return one(cols, rows, { visit: 'Total', net: sum }, sub, gap);
+    }
+    if (kind === 'fill') {
+      const U = d.util || [];
+      const rows = U.map(x => ({ br: brn(x.branch), uh: x.booked, ah: x.available, p: A(x.available) > 0 ? 100 * A(x.booked) / A(x.available) : null }));
+      const uh = sumOf(U, 'booked'), ah = sumOf(U, 'available');
+      return one(bc(U).concat([{ k: 'uh', l: 'Hours booked', t: 'num' }, { k: 'ah', l: 'Hours available', t: 'num' }, { k: 'p', l: 'Column fill', t: 'pct' }]), rows,
+        { br: 'Total', uh, ah, p: ah > 0 ? 100 * uh / ah : null }, `The hours you had a client, out of the hours you had available on ${day}, from Phorest.`);
+    }
+    if (kind === 'rebook' && src === 'phorest') {
+      const R = d.rebook || [], rows = R.map(x => ({ br: brn(x.branch), v: x.visits, rb: x.rebooked, p: A(x.visits) > 0 ? 100 * A(x.rebooked) / A(x.visits) : null }));
+      const v = sumOf(R, 'visits'), rb = sumOf(R, 'rebooked');
+      return one(bc(R).concat([{ k: 'v', l: 'Clients counted', t: 'num' }, { k: 'rb', l: 'Rebooked', t: 'num' }, { k: 'p', l: 'Rebooking %', t: 'pct' }]), rows,
+        { br: 'Total', v, rb, p: v > 0 ? 100 * rb / v : null }, `Clients who booked their next visit before leaving on ${day}, from Phorest’s own count.`);
+    }
+    if (src === 'phorest' && ['newc', 'request', 'req', 'clients', 'phclients'].includes(kind)) {
+      const P = d.phorest || [];
+      const rows = P.map(x => ({ br: brn(x.branch), v: x.visits, rq: x.rqs, nw: x.new }));
+      const cols = bc(P).concat([{ k: 'v', l: 'Visits', t: 'num' }, { k: 'rq', l: 'Asked for you', t: 'num' }, { k: 'nw', l: 'New clients', t: 'num' }]);
+      return one(cols, rows, { br: 'Total', v: sumOf(P, 'visits'), rq: sumOf(P, 'rqs'), nw: sumOf(P, 'new') }, `Phorest’s own count for you on ${day}.`);
+    }
+    // everything else counted per staff from the branch sheet reception fills in; a branch where she did not work stays off the list
+    const S = (d.sheet || []).filter(x => ['clients', 'req', 'salon', 'new', 'ncr', 'rebooked', 'treat'].some(k => A(x[k]) !== 0));
+    const rows = S.map(x => ({ br: brn(x.branch), cl: x.clients, rq: x.req, sa: x.salon, nw: x.new, nr: x.ncr, rb: x.rebooked, tr: x.treat }));
+    const cols = bc(S).concat([{ k: 'cl', l: 'Clients', t: 'num' }, { k: 'rq', l: 'Asked for you', t: 'num' }, { k: 'sa', l: 'Salon', t: 'num' }, { k: 'nw', l: 'New', t: 'num' },
+      { k: 'nr', l: 'New client requests', t: 'num' }, { k: 'rb', l: 'Rebooked', t: 'num' }, { k: 'tr', l: 'Treatments', t: 'aed' }]);
+    const foot = { br: 'Total', cl: sumOf(S, 'clients'), rq: sumOf(S, 'req'), sa: sumOf(S, 'salon'), nw: sumOf(S, 'new'), nr: sumOf(S, 'ncr'), rb: sumOf(S, 'rebooked'), tr: sumOf(S, 'treat') };
+    if (!multi(S)) foot.br = '';
+    return one(cols, rows, foot, `Your row on the branch sheet reception fills in for ${day}.`);
+  }
+  function daySpec(kind, o, w, date) {
+    if (!K[kind] || !date) return null;
+    return { title: (o.title || K[kind].t) + ' · ' + dText(date), sk: `${kind}-day-${o.src === 'phorest' ? 'ph' : 'ld'}-${(w.token || w.sid).slice(0, 8)}-${date}`, cur: 'AED',
+      views: [{ id: 'dd', label: 'That day', load: async () => { const d = await rpcList('perf_my_day', date, date, w); return d == null ? NOTREADY : dayRes(kind, d, o, date); } }] };
+  }
+
+  function build(kind, days, o, view, w) {
     const k = K[kind], src = o.src === 'phorest' ? 'phorest' : 'ledger';
     ALL = src === 'phorest' && !!o.free;
     const cols = [{ k: 'date', l: view === 'week' ? 'Week starting' : 'Date', t: 'date' }].concat(k.c(src).map(([key, l, t]) => ({ k: key, l, t })));
@@ -127,23 +208,35 @@
       ? [...days.reduce((m, d) => { const w = mondayOf(d.date); m.set(w, add(m.get(w) || blank(), d)); return m; }, new Map())].map(([date, r]) => Object.assign(r, { date }))
       : days.map(d => { const r = add(blank(), d); r.date = d.date; return r; });
     const rows = recs.filter(r => k.keep(r, src)).map(r => Object.assign({ date: r.date }, k.f(r, src)));
+    // Kate, 4 Nov 2026 ("also not clickable"): a day's figure opens that day's rows (the till lines, the branch sheet row, Phorest's and the utilisation rows
+    // behind it), a week's figure opens that week's days.
+    if (w) rows.forEach(r => {
+      const sp = view === 'week' ? days_(kind, Object.assign({}, o, { from: r.date < o.from ? o.from : r.date, to: addDays(r.date, 6) > o.to ? o.to : addDays(r.date, 6), window: '' }), w) : daySpec(kind, o, w, r.date);
+      if (!sp) return;
+      r._dn = {};
+      cols.forEach(c => { if (c.k !== 'date' && r[c.k] != null && r[c.k] !== '' && +r[c.k] !== 0) r._dn[c.k] = sp; });
+    });
     const tot = recs.reduce((a, r) => add(a, r), blank());
     const foot = Object.assign({ date: 'Total' }, k.f(tot, src));
     return { cols, rows, foot, sub: `${esc(k.s(src))} ${esc(o.window || '')}`.trim(), empty: 'Nothing here for these dates yet.' };
   }
   const winText = o => o.from === o.to ? `${dText(o.from)}.` : `${dText(o.from)} to ${dText(o.to)}.`;
   function days(kind, o) {
+    const w = who(o); if (!w) return null;
+    return days_(kind, o, w);
+  }
+  function days_(kind, o, w) {
     const k = K[kind]; if (!k) return null;
-    o = Object.assign({ src: 'ledger' }, o);
-    const w = who(o); if (!w) return null;                                 // nobody to read rows for: the figure stays plain
+    o = Object.assign({ src: 'ledger' }, o);                                 // nobody to read rows for: the figure stays plain
     // Kate, 3 Nov 2026: a click must show WHY the figure is its value, not say it again. One day, or a window with a single day of figures (o.nd, counted by the page),
     // would open one row that repeats the figure, so the figure stays plain.
-    if (o.from === o.to || (o.nd != null && o.nd < 2)) return null;
+    if (o.from === o.to) return daySpec(kind, o, w, o.from);                  // one day: its own rows (4 Nov 2026), not the same figure twice
+    if (o.nd != null && o.nd < 2) return null;
     o.window = winText(o);
     const long = (new Date(o.to) - new Date(o.from)) / 864e5 > 14;
     const load = view => async () => {
       const d = await rpcList('perf_my_days', o.from, o.to, w);
-      return d == null ? NOTREADY : build(kind, d, o, view);
+      return d == null ? NOTREADY : build(kind, d, o, view, w);
     };
     const views = [{ id: 'day', label: 'By day', load: load('day') }];
     if (long) views.push({ id: 'week', label: 'By week', load: load('week') });

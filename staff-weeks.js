@@ -362,14 +362,14 @@ async function renderStaffWeeks() {
   W13_ROWS.forEach(r => { if (r[0] === 'g') groups.push([r[1], 0]); else groups[groups.length - 1][1]++; });
   const figHead = l => l.replace(/ \(.*\)$/, '');
   const head = `<tr class="w13-gh"><th></th>${groups.map(g => `<th colspan="${g[1]}">${w13Esc(g[0])}</th>`).join('')}</tr>
-    <tr><th>Week</th>${figs.map(r => `<th title="${w13Esc(r[0])}"${w13Mean(r[0]) ? ` class="w13-hd" tabindex="0" role="button" onclick="w13Say(this)" data-l="${w13Esc(r[0])}"` : ''}>${w13Esc(figHead(r[0]))}</th>`).join('')}</tr>`;
+    <tr><th>Week${w13FltBtn(0, 'Week')}</th>${figs.map((r, i) => `<th title="${w13Esc(r[0])}"${w13Mean(r[0]) ? ` class="w13-hd" tabindex="0" role="button" onclick="w13Say(this)" data-l="${w13Esc(r[0])}"` : ''}>${w13Esc(figHead(r[0]))}${w13FltBtn(i + 1, figHead(r[0]))}</th>`).join('')}</tr>`;
   const cells = (n, win, nd) => figs.map(r => `<td>${w13Fig(r[1](n), r[0], win, s, nd)}</td>`).join('');
   const wkWin = w => MyDrill.week(String(w.week_start).slice(0, 10));
   const yrWin = weeks.length && window.MyDrill ? { from: String(d.from).slice(0, 10), to: wkWin(weeks[weeks.length - 1]).to } : null;   // the complete weeks, as the totals are
-  const rows = weeks.map(w => {
+  const rows = weeks.map((w, wi) => {
     const n = w.numbers, off = !(n.total_revenue > 0 || n.clients > 0);
     const why = !off ? '' : w13NoData(d.staff.branch, String(w.week_start).slice(0, 10)) ? 'not uploaded yet' : (w13Cov ? 'leave or days off' : '');
-    return `<tr class="w13-wk${off ? ' w13-off' : ''}"><td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>${cells(n, window.MyDrill && wkWin(w), w.phorest_days)}</tr>`;
+    return `<tr class="w13-wk${off ? ' w13-off' : ''}" data-i="${wi}"><td><b>${w13Wk(w.week_no)}</b><div class="slv-note">${w13Esc(w13Range(w.week_start))}${why ? ' · ' + why : ''}</div></td>${cells(n, window.MyDrill && wkWin(w), w.phorest_days)}</tr>`;
   }).join('');
   const totRow = `<tr class="w13-tot"><td>${w13Esc(`${d.year} · Weeks 1–${weeks.length ? weeks[weeks.length - 1].week_no : 0}`)}</td>${cells(yr, yrWin)}</tr>`;
   const curRow = curWk ? `<tr class="w13-cur"><td><b>${w13Wk(curWk.week_no)}</b><div class="slv-note">so far · ${curWk.week_start === d.data_through ? w13Esc(w13Day(d.data_through)) : `${w13Esc(w13Day(curWk.week_start))} – ${w13Esc(w13Day(d.data_through))}`}</div></td>${cells(curWk.numbers, window.MyDrill && wkWin(curWk), curWk.phorest_days)}</tr>` : '';
@@ -411,12 +411,14 @@ async function renderStaffWeeks() {
         <thead>${head}</thead>
         <tbody>${rows}${totRow}${curRow}</tbody>
       </table></div>
+      <div class="slv-note w13-fnote" id="w13FNote" hidden></div>
       <p class="slv-muted">Sales to ${w13Esc(w13Day(d.data_through))}. The totals are the complete weeks only; the week still being traded joins them once Sunday closes. Weeks with no clients stay in as zeros so the gaps show (leave, days off, or a week not uploaded yet).</p>
     </section>
     ${whyFoot()}`;
   if (typeof spfDD === 'function') spfDD(document.getElementById('w13Year'));
   // The latest weeks are the ones read first: open at the bottom, with the headings and the Week column pinned.
   const wrap = document.getElementById('w13Wrap');
+  w13FltApply(s.id);
   if (wrap) wrap.scrollTop = wrap.scrollHeight;
   w13Draw();
 }
@@ -603,6 +605,173 @@ function w13SetMode(m) {
   const t = document.getElementById('w13ChartTitle');
   if (t) t.textContent = w13ChartTitleText();
   w13Draw();
+}
+// Sort and filter on the column headings, the way a Google Sheets filter row works (Kate, 4 Nov 2026: "sticky header should follow Google Sheets filter logic"):
+// a small funnel on every heading opens Sort smallest to largest / largest to smallest, Filter by condition (at least, at most, equal to, between) and Filter by
+// values (a searchable tick list). A column with a sort or a filter on it shows its funnel lit. The heading rows and the Week column stay pinned while the weeks
+// scroll; the year's total and the week in progress stay under the list and are never sorted or filtered away, and a line says how many weeks are showing.
+// What is picked is kept while she moves between months and years for the same person; another person starts clean.
+let w13Flt = { sid: null, sort: null, f: {} };      // sort: { c, dir }; f[c]: { cond, a, b, vals: Set of displayed values, or none = all }
+const W13_FUNNEL = '<svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 1.5h10L7 6.4V10.5L5 9.5V6.4z" fill="currentColor"/></svg>';
+function w13FltBtn(c, label) {
+  return `<button type="button" class="w13-fb" data-c="${c}" title="Sort and filter ${w13Esc(label)}" aria-label="Sort and filter ${w13Esc(label)}" aria-haspopup="dialog" onclick="w13Menu(event,this)">${W13_FUNNEL}</button>`;
+}
+// What a cell says to sort by: the first number in it ("5 of 8" sorts as 5, "42%" as 42, a dash as nothing); the Week column by its place in the year.
+function w13CellText(tr, c) {
+  const td = tr.children[c];
+  if (!td) return '';
+  if (c === 0) { const b = td.querySelector('b'); return (b ? b.textContent : td.textContent).trim(); }
+  return td.textContent.replace(/\s+/g, ' ').trim();
+}
+function w13CellNum(tr, c) {
+  if (c === 0) return +tr.dataset.i;
+  const m = /-?\d[\d,]*\.?\d*/.exec(w13CellText(tr, c));
+  return m ? parseFloat(m[0].replace(/,/g, '')) : null;
+}
+function w13FltOn(c) { const f = w13Flt.f[c]; return !!(f && (f.vals || f.cond)) || !!(w13Flt.sort && w13Flt.sort.c === c); }
+function w13FltApply(sid) {
+  if (sid != null && w13Flt.sid !== sid) w13Flt = { sid, sort: null, f: {} };
+  const tb = document.querySelector('#w13Wrap tbody');
+  if (!tb) return;
+  const rows = [...tb.querySelectorAll('tr.w13-wk')];
+  const anchor = tb.querySelector('tr.w13-tot');
+  const so = w13Flt.sort;
+  const order = rows.slice().sort((a, b) => {
+    if (!so) return (+a.dataset.i) - (+b.dataset.i);
+    const x = w13CellNum(a, so.c), y = w13CellNum(b, so.c);
+    if (x == null && y == null) return (+a.dataset.i) - (+b.dataset.i);
+    if (x == null) return 1;
+    if (y == null) return -1;                                                // empty cells go last whichever way it sorts, as in Sheets
+    return (x - y) * so.dir || (+a.dataset.i) - (+b.dataset.i);
+  });
+  order.forEach(r => tb.insertBefore(r, anchor));
+  let shown = 0;
+  rows.forEach(r => {
+    let ok = true;
+    Object.keys(w13Flt.f).forEach(c => {
+      const f = w13Flt.f[c]; if (!f || !ok) return;
+      if (f.vals && !f.vals.has(w13CellText(r, +c))) ok = false;
+      if (ok && f.cond) {
+        const v = w13CellNum(r, +c);
+        if (v == null) ok = false;
+        else if (f.cond === 'ge') ok = v >= f.a;
+        else if (f.cond === 'le') ok = v <= f.a;
+        else if (f.cond === 'eq') ok = v === f.a;
+        else if (f.cond === 'bt') ok = v >= Math.min(f.a, f.b) && v <= Math.max(f.a, f.b);
+      }
+    });
+    r.hidden = !ok;
+    if (ok) shown++;
+  });
+  document.querySelectorAll('#w13Wrap .w13-fb').forEach(b => b.classList.toggle('on', w13FltOn(+b.dataset.c)));
+  const note = document.getElementById('w13FNote');
+  if (note) {
+    const active = !!so || Object.keys(w13Flt.f).some(c => w13FltOn(+c));
+    note.hidden = !active;
+    note.innerHTML = active ? `Showing ${shown} of ${rows.length} weeks${shown < rows.length ? ', filtered' : ''}${so ? ', sorted' : ''}. The total row and the week in progress stay as they are. <button type="button" class="w13-flink" onclick="w13FltClear()">Clear all</button>` : '';
+  }
+  w13Pin();
+}
+// The second heading row sits right under the first, whatever height the first one turns out to be on this screen.
+function w13Pin() {
+  const wrap = document.getElementById('w13Wrap'), gh = wrap && wrap.querySelector('thead tr.w13-gh');
+  if (gh) wrap.style.setProperty('--w13-gh', gh.getBoundingClientRect().height + 'px');
+}
+window.addEventListener('resize', () => w13Pin());
+function w13FltClear() { w13Flt = { sid: w13Flt.sid, sort: null, f: {} }; w13FltApply(); w13MenuClose(); }
+
+let w13Pop = null;
+function w13MenuClose() { if (w13Pop) { w13Pop.remove(); w13Pop = null; } document.removeEventListener('mousedown', w13PopAway, true); document.removeEventListener('keydown', w13PopKey, true); }
+function w13PopAway(e) { if (w13Pop && !w13Pop.contains(e.target) && !(e.target.closest && e.target.closest('.w13-fb'))) w13MenuClose(); }
+function w13PopKey(e) { if (e.key === 'Escape') { e.stopPropagation(); w13MenuClose(); } }
+function w13Menu(ev, btn) {
+  ev.stopPropagation(); ev.preventDefault();
+  const c = +btn.dataset.c;
+  if (w13Pop && w13Pop.dataset.c === String(c)) { w13MenuClose(); return; }
+  w13MenuClose();
+  const tb = document.querySelector('#w13Wrap tbody');
+  const rows = [...tb.querySelectorAll('tr.w13-wk')];
+  // the distinct values as written, smallest first (the Week column in week order); a dash is one of them
+  const seen = new Map();
+  rows.forEach(r => { const t = w13CellText(r, c); if (!seen.has(t)) seen.set(t, w13CellNum(r, c)); });
+  const vals = [...seen.entries()].sort((a, b) => ((a[1] == null) - (b[1] == null)) || (a[1] - b[1]) || String(a[0]).localeCompare(b[0]));
+  const f = w13Flt.f[c] || {}, so = w13Flt.sort && w13Flt.sort.c === c ? w13Flt.sort.dir : 0;
+  const pick = f.vals || new Set(vals.map(v => v[0]));
+  const wk = c === 0;
+  const pop = document.createElement('div');
+  pop.className = 'w13-pop'; pop.dataset.c = c; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Sort and filter');
+  pop.innerHTML = `
+    <button type="button" class="w13-po${so === 1 ? ' on' : ''}" data-s="1">${wk ? 'Oldest week first' : 'Sort smallest to largest'}</button>
+    <button type="button" class="w13-po${so === -1 ? ' on' : ''}" data-s="-1">${wk ? 'Newest week first' : 'Sort largest to smallest'}</button>
+    ${wk ? '' : `<div class="w13-ph">Filter by condition</div>
+    <div class="w13-cond"><select class="w13-sel" aria-label="Condition"><option value="">None</option><option value="ge"${f.cond === 'ge' ? ' selected' : ''}>At least</option><option value="le"${f.cond === 'le' ? ' selected' : ''}>At most</option><option value="eq"${f.cond === 'eq' ? ' selected' : ''}>Equal to</option><option value="bt"${f.cond === 'bt' ? ' selected' : ''}>Between</option></select>
+    <input class="w13-in" data-k="a" inputmode="decimal" placeholder="Value" value="${f.cond ? f.a : ''}"><input class="w13-in" data-k="b" inputmode="decimal" placeholder="and" value="${f.cond === 'bt' ? f.b : ''}"${f.cond === 'bt' ? '' : ' hidden'}></div>`}
+    <div class="w13-ph">Filter by values <span class="w13-pl"><button type="button" class="w13-flink" data-all="1">Select all</button> · <button type="button" class="w13-flink" data-all="0">Clear</button></span></div>
+    <input class="w13-in w13-find" type="search" placeholder="Search" aria-label="Search the values">
+    <div class="w13-vals">${vals.map(([t]) => `<label><input type="checkbox" value="${w13Esc(t)}"${pick.has(t) ? ' checked' : ''}> <span>${w13Esc(t)}</span></label>`).join('')}</div>
+    <div class="w13-pb"><button type="button" class="w13-flink" data-clear="1">Clear this column</button><span><button type="button" class="sc-btn" data-cancel="1">Cancel</button> <button type="button" class="sc-btn w13-ok" data-ok="1">OK</button></span></div>`;
+  document.body.appendChild(pop);
+  w13Pop = pop;
+  const r = btn.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  pop.style.left = Math.max(8, Math.min(innerWidth - pw - 8, r.right - pw)) + 'px';
+  pop.style.top = Math.max(8, Math.min(innerHeight - ph - 8, r.bottom + 6)) + 'px';
+  const q = k => pop.querySelector(k);
+  let sortNow = so;
+  pop.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { sortNow = sortNow === +b.dataset.s ? 0 : +b.dataset.s; pop.querySelectorAll('[data-s]').forEach(x => x.classList.toggle('on', +x.dataset.s === sortNow)); });
+  const sel = q('.w13-sel');
+  if (sel) sel.onchange = () => { q('[data-k="b"]').hidden = sel.value !== 'bt'; };
+  q('.w13-find').oninput = e => { const t = e.target.value.toLowerCase(); pop.querySelectorAll('.w13-vals label').forEach(l => { l.hidden = !!t && !l.textContent.toLowerCase().includes(t); }); };
+  pop.querySelectorAll('[data-all]').forEach(b => b.onclick = () => pop.querySelectorAll('.w13-vals label:not([hidden]) input').forEach(i => { i.checked = b.dataset.all === '1'; }));
+  q('[data-cancel]').onclick = w13MenuClose;
+  q('[data-clear]').onclick = () => { delete w13Flt.f[c]; if (w13Flt.sort && w13Flt.sort.c === c) w13Flt.sort = null; w13FltApply(); w13MenuClose(); };
+  q('[data-ok]').onclick = () => {
+    w13Flt.sort = sortNow ? { c, dir: sortNow } : (w13Flt.sort && w13Flt.sort.c === c ? null : w13Flt.sort);
+    const next = {};
+    if (sel && sel.value) {
+      const a = parseFloat(String(q('[data-k="a"]').value).replace(/,/g, '')), b = parseFloat(String(q('[data-k="b"]').value).replace(/,/g, ''));
+      if (isFinite(a) && (sel.value !== 'bt' || isFinite(b))) { next.cond = sel.value; next.a = a; next.b = b; }
+    }
+    const ticks = [...pop.querySelectorAll('.w13-vals input')], on = ticks.filter(i => i.checked).map(i => i.value);
+    if (on.length < ticks.length) next.vals = new Set(on);
+    if (next.cond || next.vals) w13Flt.f[c] = next; else delete w13Flt.f[c];
+    w13FltApply(); w13MenuClose();
+    const wr = document.getElementById('w13Wrap');                  // a new sort or filter starts at the top of the list it makes
+    if (wr) wr.scrollTop = sortNow || next.cond || next.vals ? 0 : wr.scrollTop;
+  };
+  document.addEventListener('mousedown', w13PopAway, true);
+  document.addEventListener('keydown', w13PopKey, true);
+  q('.w13-find').focus();
+}
+// The styles live here so the one file carries the whole feature (the page's own sheet is index.html).
+if (!document.getElementById('w13-flt-css')) {
+  const st = document.createElement('style'); st.id = 'w13-flt-css';
+  st.textContent = `
+.w13-down thead tr:nth-child(2) th{top:var(--w13-gh,28px)}
+.w13-down thead tr.w13-gh th{height:28px;box-sizing:border-box;vertical-align:middle}
+.w13-fb{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:4px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--muted2);cursor:pointer;vertical-align:middle;text-decoration:none}
+.w13-fb:hover,.w13-fb:focus-visible{background:var(--surface2);color:var(--text)}
+.w13-fb.on{background:var(--accent);color:var(--accent-fg)}
+.w13-pop{position:fixed;z-index:9000;width:272px;max-height:min(520px,calc(100vh - 16px));overflow:auto;box-sizing:border-box;padding:10px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-card-hover,0 12px 32px rgba(0,0,0,.35));font-size:13px;text-align:left}
+.w13-po{display:block;width:100%;padding:8px 10px;border:0;border-radius:6px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.w13-po:hover{background:var(--surface2)}
+.w13-po.on{background:var(--accent);color:var(--accent-fg)}
+.w13-ph{margin:10px 0 6px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.w13-pl{text-transform:none;letter-spacing:0;white-space:nowrap}
+.w13-cond{display:flex;gap:6px;flex-wrap:wrap}
+.w13-sel,.w13-in{box-sizing:border-box;padding:7px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font:inherit;min-width:0}
+.w13-sel{flex:1 1 100%}
+.w13-cond .w13-in{flex:1 1 0}
+.w13-find{width:100%}
+.w13-vals{max-height:180px;overflow:auto;margin-top:6px}
+.w13-vals label{display:flex;gap:8px;align-items:center;padding:4px 2px;cursor:pointer}
+.w13-vals label[hidden]{display:none}
+.w13-pb{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)}
+.w13-ok{background:var(--accent);color:var(--accent-fg)}
+.w13-flink{padding:0;border:0;background:none;color:var(--text);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.w13-fnote{margin-top:8px}
+@media(max-width:619px){.w13-pop{left:8px!important;right:8px;width:auto}.w13-fb{width:26px;height:26px}}
+`;
+  document.head.appendChild(st);
 }
 function w13Set(id) {
   w13Pick = id || null;
