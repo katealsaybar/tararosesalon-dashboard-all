@@ -100,6 +100,11 @@ window.TRS_PAGES = /*PAGES*/[
   // (page-status.js). It loads with the access ticks, so every place that already calls trsAccessLoad (the dashboard, Team Home, search) follows it.
   window.TRS_STATUS = window.TRS_STATUS || {};
   window.trsPageStatus = function (id) { var s = window.TRS_STATUS[window.trsLive(id)]; return s ? s.status : ''; };
+  // Kate, 4 Nov 2026: Tools that are not dashboard pages (the menu links out to a Team Home page) can be switched on the same Hide Pages & Under Construction page.
+  // Each has an id of its own for page_status, the menu row carries data-status-id, and a Team Home card names it as statusId. Today: the Complaints Pipeline.
+  window.TRS_LINKS = [{ id: 'complaintspipeline', label: 'Complaints Pipeline', group: 'Tools', href: '/hub/complaint?view=board' }];
+  // A hidden tool opens for Level 5 only, like a hidden page.
+  window.trsToolOpen = function (id, level) { return !((!level || level < 5) && window.trsPageStatus(id) === 'hidden'); };
   window.trsAccessLoad = async function (client) {
     try {
       var r = await client.rpc('page_access_get');

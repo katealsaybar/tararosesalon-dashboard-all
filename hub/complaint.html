@@ -195,7 +195,9 @@ button.tk-pill{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=22b1878c"></script>
+<script src="/pages.js?v=8364834a"></script>
+<script src="/page-status.js?v=71fc15ef"></script>
+<script src="/hub/hub.js?v=28cc3ad0"></script>
 <script src="/cmp-people.js?v=fbeafe2a"></script>
 <script>
 (function () {
@@ -938,7 +940,19 @@ button.tk-pill{cursor:pointer}
       if (!cid) return notOpen();
     }
     await people;
-    return cid ? one() : view === 'board' ? board() : list();
+    // Kate, 4 Nov 2026: the Pipeline can be hidden or labelled Under construction from Hide Pages & Under Construction (pages.js trsToolOpen, page-status.js).
+    // Hidden: only Kate opens it; a single complaint (cid) is never blocked, only the board. The notice sits above the page so a redraw of the board keeps it.
+    if (!cid && view === 'board') {
+      if (typeof trsToolOpen === 'function' && !trsToolOpen('complaintspipeline', KB.level)) {
+        main.innerHTML = '<p class="kb-msg">This page is switched off for now. <a href="/hub/">Team Home</a></p>';
+        return;
+      }
+      await board();
+      var nt = typeof trsStatusNotice === 'function' ? trsStatusNotice('complaintspipeline') : null;
+      if (nt) { nt.style.cssText = 'max-width:880px;margin:14px auto 0;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.45;border:1px solid rgba(214,158,46,.55);background:rgba(214,158,46,.14)'; main.parentNode.insertBefore(nt, main); }
+      return;
+    }
+    return cid ? one() : list();
   });
 })();
 </script>

@@ -11,11 +11,14 @@
   window.trsStatusNav = function () {
     Array.prototype.forEach.call(document.querySelectorAll('#sidebar .nav-flag'), function (n) { n.parentNode.removeChild(n); });
     if (!window.TRS_PAGES || typeof trsPageStatus !== 'function') return;
-    TRS_PAGES.forEach(function (p) {
+    // Dashboard pages find their row by showView; the link-out tools (TRS_LINKS) by data-status-id.
+    var all = TRS_PAGES.filter(function (p) { return !p.retired; }).map(function (p) { return { id: p.id, sel: '#sidebar .nav-sub[onclick*="showView(\'' + p.id + '\'"]' }; })
+      .concat((window.TRS_LINKS || []).map(function (l) { return { id: l.id, sel: '#sidebar .nav-sub[data-status-id="' + l.id + '"]' }; }));
+    all.forEach(function (p) {
       var st = trsPageStatus(p.id);
-      if (!st || p.retired) return;
-      var nav = document.querySelector('#sidebar .nav-sub[onclick*="showView(\'' + p.id + '\'"]');
-      if (!nav) return;
+      if (!st) return;
+      var nav = document.querySelector(p.sel);
+      if (!nav || nav.style.display === 'none') return;
       // The name goes in its own span so it can share the first line with the star while the tag takes the second (nav-style.css). The tag's words are drawn
       // from data-label, so the row's text, and the star's name that nav-stars.js builds from it, stay just the page name.
       if (!nav.querySelector(':scope > .nav-name')) {
@@ -37,13 +40,19 @@
     if (typeof trsPageStatus !== 'function') return;
     var st = trsPageStatus(view), target = document.getElementById('view-' + view);
     if (!st || !target || !target.parentNode) return;
-    var info = (window.TRS_STATUS || {})[trsLive(view)] || {};
+    target.parentNode.insertBefore(window.trsStatusNotice(view), target);
+  };
+  // The notice itself, for a page that is not a dashboard view (the Complaints Pipeline page puts it above its own content); null when the id is live.
+  window.trsStatusNotice = function (id) {
+    var st = typeof trsPageStatus === 'function' ? trsPageStatus(id) : '';
+    if (!st) return null;
+    var info = (window.TRS_STATUS || {})[typeof trsLive === 'function' ? trsLive(id) : id] || {};
     var box = document.createElement('div');
     box.className = 'pg-status pg-status-' + st;
     box.setAttribute('role', 'note');
     box.innerHTML = st === 'hidden'
       ? '<b>Hidden.</b> Only you can see this page. Everyone else has it removed from the menu, Team Home and search.'
       : '<b>Under construction.</b> This page is still being built, so the numbers or layout may change.' + (info.note ? ' ' + esc(info.note) : '');
-    target.parentNode.insertBefore(box, target);
+    return box;
   };
 })();

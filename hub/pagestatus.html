@@ -67,8 +67,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/pages.js?v=05245a6a"></script>
-<script src="/hub/hub.js?v=22b1878c"></script>
+<script src="/pages.js?v=8364834a"></script>
+<script src="/hub/hub.js?v=28cc3ad0"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
 (function () {
@@ -84,7 +84,8 @@
   }
   function cur(id) { var s = (window.TRS_STATUS || {})[id]; return s ? s.status : 'live'; }
   function noteOf(id) { var s = (window.TRS_STATUS || {})[id]; return s ? (s.note || '') : ''; }
-  function pages() { return TRS_PAGES.filter(function (p) { return !p.retired; }); }
+  // The dashboard pages, then the Tools the menu links out to (TRS_LINKS in pages.js, today the Complaints Pipeline); a link-out opens its own address.
+  function pages() { return TRS_PAGES.filter(function (p) { return !p.retired; }).concat((window.TRS_LINKS || []).map(function (l) { return { id: l.id, label: l.label, group: l.group, href: l.href }; })); }
   function countOff() { return pages().filter(function (p) { return cur(p.id) !== 'live'; }).length; }
   function paintCount() {
     var b = document.getElementById('psReset'); if (!b) return;
@@ -97,7 +98,7 @@
       return '<label class="' + cls + '"><input type="radio" name="' + esc(name) + '" value="' + v + '"' + (st === v ? ' checked' : '') + ' aria-label="' + esc(p.label) + ': ' + label + '">' + label + '</label>';
     }
     return '<div class="ps-row' + (st === 'construction' ? ' ps-isCon' : '') + '" data-id="' + esc(p.id) + '">' +
-      '<div class="ps-name"><a href="/?view=' + encodeURIComponent(trsSlugOf(p.id)) + '" target="_blank" rel="noopener" title="Open this page in a new window" aria-label="' + esc(p.label) + ' (opens in a new window)">' + esc(p.label) + OPEN_ICON + '</a>' + (p.inside ? '<span class="ps-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</div>' +
+      '<div class="ps-name"><a href="' + esc(p.href || '/?view=' + encodeURIComponent(trsSlugOf(p.id))) + '" target="_blank" rel="noopener" title="Open this page in a new window" aria-label="' + esc(p.label) + ' (opens in a new window)">' + esc(p.label) + OPEN_ICON + '</a>' + (p.inside ? '<span class="ps-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</div>' +
       '<div class="ps-seg" role="radiogroup" aria-label="' + esc(p.label) + '">' + opt('live', 'ps-live', 'Live') + opt('construction', 'ps-con', 'Under construction') + opt('hidden', 'ps-hid', 'Hidden') + '</div>' +
       '<div class="ps-msg"><input type="text" maxlength="200" placeholder="Optional note shown on the page, e.g. Numbers are being checked" value="' + esc(noteOf(p.id)) + '" aria-label="Note for ' + esc(p.label) + '"></div></div>';
   }

@@ -100,7 +100,7 @@
       blurb: 'The complaints waiting for you, and the pipeline of every complaint by stage for leadership and coordinators.' },
     // Kate, 30 Oct 2026: the Pipeline also has its own door in Tools. Same rule as Log a Client Complaint (Levels 2 and up); the page and the database decide who is
     // leadership or a branch coordinator and tell anyone else so.
-    { key: 'complaints-pipeline', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Tools', title: 'Follow Up Complaints', href: '/hub/complaint?view=board', rule: 'var(--accent-lavender)',
+    { key: 'complaints-pipeline', statusId: 'complaintspipeline', via: 'dashboards', min: 2, ic: 'pg-alert', dept: 'Tools', title: 'Follow Up Complaints', href: '/hub/complaint?view=board', rule: 'var(--accent-lavender)',
       words: 'complaints pipeline board stage priority inbox follow up chase resolved coordinator leadership',
       blurb: 'For leadership and the salon coordinators: see where every complaint has got to, by stage and priority. Yours are in My Complaints, under Clients.' },
     // Kate, 21 Oct 2026: accounts (Level 4) no longer see the Business row, so these two are their way in (`only` = the levels that see the row).
@@ -189,6 +189,8 @@
   // its `min` level; every other row when kb_access() opened its own key.
   KB.opens = function (s) {
     if (s.only && s.only.indexOf(KB.level) < 0) return false;
+    // Kate, 4 Nov 2026: a card for a tool that Hide Pages & Under Construction can switch off (statusId, pages.js trsToolOpen).
+    if (s.statusId && typeof trsToolOpen === 'function' && !trsToolOpen(s.statusId, KB.level)) return false;
     // Kate, 22 Oct 2026: Level 1 opens Wellness Voucher Performance; it is its own page (KB.ready points the row at it), not a dashboard view.
     if (s.key === 'campaigns' && KB.level === 1) return KB.allowed.indexOf('campaigns') >= 0;
     // Kate, 21 Oct 2026: a row that opens a dashboard page (/?view=...) follows that page's own list in pages.js (lv, and this
