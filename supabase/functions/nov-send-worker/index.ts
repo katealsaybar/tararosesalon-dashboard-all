@@ -13,10 +13,9 @@
 //
 // Cron (not scheduled yet, see the bottom of migrations/nov_send.sql): every minute 05:00 to 17:59 UTC = 09:00 to 21:59 Dubai. The page's Run now button calls it too (Level 5).
 //
-// VERIFIED by the first real test (4 Nov 2026, one message to Kate's own number): the POST answer's messageId is the id in the message list; a failure shows in the list as
-// status [{value:'failed', message:'WhatsApp Business: Meta Error (#132012): ...'}] within a second, which deliveryOf() and errCode() read. The image header must be sent the way respond.io's
-// own 'Copy API Payload' writes it: header component with format image and examples [{type:'image', image:{link}}]. The first attempt used a top-level link, which respond.io ignored,
-// and Meta refused the message (#132012, header format mismatch, nothing delivered). The fixed shape has NOT been sent yet (a second test needs Kate's go).
+// Header shape (4 Nov 2026): v1 sent a top-level link and v2 sent examples; Meta refused both with #132012 (header Format mismatch, nothing delivered). respond.io's API docs (Send a message, example
+// 'WhatsApp Template') show the header as parameters [{type image, image {link}}], which is what v3 sends. The POST answer's messageId is the id in the message list, and a failure shows in the list as
+// status [{value:'failed', message:'WhatsApp Business: Meta Error (#132012): ...'}] within a second, which deliveryOf() and errCode() read.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const TOK = Deno.env.get('RESPOND_TOKEN') || '';
@@ -60,7 +59,7 @@ function buildPayload(j: Job) {
         name: j.tpl,
         languageCode: j.language,
         components: [
-          ...(j.image_url ? [{ type: 'header', format: 'image', examples: [{ type: 'image', image: { link: j.image_url } }] }] : []),
+          ...(j.image_url ? [{ type: 'header', format: 'image', parameters: [{ type: 'image', image: { link: j.image_url } }] }] : []),
           { type: 'body', text: j.body_text, parameters: j.params.map((p) => ({ type: 'text', text: p })) },
         ],
       },
