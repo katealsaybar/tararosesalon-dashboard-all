@@ -13,8 +13,10 @@
 //
 // Cron (not scheduled yet, see the bottom of migrations/nov_send.sql): every minute 05:00 to 17:59 UTC = 09:00 to 21:59 Dubai. The page's Run now button calls it too (Level 5).
 //
-// UNVERIFIED until the first real test send: the image header component shape (copied from staff-campaign-worker, which has not sent a template with a header yet), and how respond.io words a
-// failed status and its error code (status_shape of respond-status-sync dry_run shows the status words; the code is read with a pattern, see errCode()).
+// VERIFIED by the first real test (4 Nov 2026, one message to Kate's own number): the POST answer's messageId is the id in the message list; a failure shows in the list as
+// status [{value:'failed', message:'WhatsApp Business: Meta Error (#132012): ...'}] within a second, which deliveryOf() and errCode() read. The image header must be sent the way respond.io's
+// own 'Copy API Payload' writes it: header component with format image and examples [{type:'image', image:{link}}]. The first attempt used a top-level link, which respond.io ignored,
+// and Meta refused the message (#132012, header format mismatch, nothing delivered). The fixed shape has NOT been sent yet (a second test needs Kate's go).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const TOK = Deno.env.get('RESPOND_TOKEN') || '';
@@ -58,7 +60,7 @@ function buildPayload(j: Job) {
         name: j.tpl,
         languageCode: j.language,
         components: [
-          ...(j.image_url ? [{ type: 'header', format: 'image', link: j.image_url }] : []),
+          ...(j.image_url ? [{ type: 'header', format: 'image', examples: [{ type: 'image', image: { link: j.image_url } }] }] : []),
           { type: 'body', text: j.body_text, parameters: j.params.map((p) => ({ type: 'text', text: p })) },
         ],
       },
