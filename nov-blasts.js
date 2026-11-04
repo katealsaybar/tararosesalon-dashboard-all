@@ -81,6 +81,7 @@
   function openTasks() { return tasks().filter(function (t) { return !isDone(t.id); }); }
   function approved() { return blasts().filter(function (b) { return b.review === 'ok'; }).length; }
   function parts(iso) { var p = iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2], 12); }
+  function fdateY(iso) { return fdate(iso) + ' ' + parts(iso).getFullYear(); }   // the label above a blast or section title carries the year (Kate, 4 Nov 2026)
   function fdate(iso) { var d = parts(iso); return DN[d.getDay()] + ' ' + d.getDate() + ' ' + MN[d.getMonth()]; }
   function fat(iso) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)); } catch (e) { return iso; } }
   function aqDate(b) { return b.data.aq_date || b.data.date; }
@@ -134,6 +135,7 @@
   function sub(t, end) { return esc(t).replace(/\{\{1\}\}/g, '<mark>Layla</mark>').replace(/\{\{2\}\}/g, '<mark>Saadiyat</mark>').replace(/\{\{3\}\}/g, '<mark>' + esc(end || '30 November 2026') + '</mark>'); }
 
   /* ---------- the top of the page ---------- */
+  /* No longer drawn (Kate, 4 Nov 2026: "remove na"). The data (nov_blast_items 'pre' next) stays in the database. */
   function nextHtml() {
     var od = openDecs(), pre = item('pre'), nx = (pre && pre.data && pre.data.next) || {}, h, ot = openTasks()[0], unrev = blasts().length - approved();
     if (od.length) h = { t: 'Settle the ' + plural(od.length, 'open decision', 'open decisions') + ' with Coach Emma.', o: (nx.decide || {}).owner || 'Kate, with Coach Emma', by: (nx.decide || {}).by, btn: 'Start with decision ' + (od[0] + 1), go: 'decide:' + od[0] };
@@ -411,7 +413,7 @@
       '<p><b>No repeats.</b> Left out: anyone messaged in October’s Lost Clients blasts or Wellness Voucher blasts 3 and 4, by name and by phone number, anyone we wrote to on WhatsApp since 9 Oct, and every opt-out. Not checked: Wellness Voucher blasts 1 and 2 (August), their recipients are only in GHL.</p>';
     var facts = '<div class="nvb-facts"><div><b>Cost, at most</b>' + (c ? calcNum('AED ' + fmtN(Math.round(c.n * RATE_AED)), 'cost', b.id) : '…') + '</div><div><b>Target by 30 Nov</b>' + esc(d.gold) + '</div><div><b>Message test</b>' + esc(d.arms) + '</div><div><b>Valid until</b>' + esc(d.valid || '30 November 2026') + '</div></div>';
     return '<div class="cbl-pos"><a href="?view=novblasts" data-nvb="sel:' + esc(pv || b.id) + '"' + (pv ? '' : ' class="off"') + '>‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=novblasts" data-nvb="sel:' + esc(nx || b.id) + '"' + (nx ? '' : ' class="off"') + '>Next ›</a></div>' +
-      '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdate(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdate(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>' +
+      '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdateY(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdateY(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>' +
       '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
       '<div><small>Who</small>' + whoHtml(d) + schedBox(b) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
       tplHtml(b) +
@@ -462,7 +464,7 @@
       return '<div class="nvb-ab-r' + (sp ? '' : ' one') + '"><span><a href="?view=novblasts&blast=' + esc(b.id) + '" data-nvb="sel:' + esc(b.id) + '">' + esc(t) + '</a></span><span>' + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== b.data.date ? '<small>Al Quoz: ' + esc(fdate(aqDate(b))) + '</small>' : '') + '</span>' +
         '<span><b>' + (c ? num(c.n, t + ', every client', { p_blast: b.id }) : ph) + '</b></span>' + (sp ? '<span>' + (bsp ? (c ? num(c.warm, t + ', warm clients', { p_blast: b.id, p_group: 'warm' }) : ph) : '') + '</span><span>' + (bsp ? (c ? num(c.std, t + ', standard clients', { p_blast: b.id, p_group: 'std' }) : ph) : '') + '</span>' : '') + '<span><i class="cbl-chip ' + rcls(b.review) + '">' + lab(b.review) + '</i></span></div>';
     }).join('');
-    return '<div class="cbl-head"><div><div class="cbl-eyebrow">' + (dates.length ? esc(fdate(dates[0])) + (dates[dates.length - 1] !== dates[0] ? ' to ' + esc(fdate(dates[dates.length - 1])) : '') : '') + '</div><h2>All blasts</h2></div><span class="cbl-chip ' + (approved() === bs.length && bs.length ? 'ok' : '') + '">' + approved() + ' of ' + bs.length + ' reviewed</span></div>' +
+    return '<div class="cbl-head"><div><div class="cbl-eyebrow">' + (dates.length ? (dates[dates.length - 1] !== dates[0] ? esc(fdate(dates[0])) + ' to ' + esc(fdateY(dates[dates.length - 1])) : esc(fdateY(dates[0]))) : '') + '</div><h2>All blasts</h2></div><span class="cbl-chip ' + (approved() === bs.length && bs.length ? 'ok' : '') + '">' + approved() + ' of ' + bs.length + ' reviewed</span></div>' +
       '<div class="cbl-card nvb-allnums"><div><small>Clients</small><b>' + totHtml + '</b><span class="cbl-live">in ' + plural(bs.length, 'blast', 'blasts') + ', one message each. Tap a number to see the clients.</span></div>' +
       '<div><small>Cost, at most</small><b>' + (ready ? calcNum('AED ' + fmtN(Math.round(tot * RATE_AED)), 'cost') : '…') + '</b><span class="cbl-live">' + (ready ? 'about ' + calcNum('USD ' + fmtN(Math.round(tot * RATE_USD)), 'cost') : '') + '</span></div>' +
       '<div><small>Sending time</small><b>' + (ready ? calcNum((hours % 1 ? hours.toFixed(1) : hours) + ' hours', 'time') : '…') + '</b><span class="cbl-live">' + PACE + ' every 30 minutes, one number</span></div></div>' +
@@ -744,7 +746,7 @@
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
       '<div class="nvb-chipsrow">' + (isL5() && SND && SND.enabled && !SND.dry_run ? '<span class="chip bad">Live sending is on</span>' : '<span class="chip warn">Draft, nothing sent</span>') + '<span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
-      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
+      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
     sndBindInputs();
     var cta = document.getElementById('nvbCmt'); if (cta) { cta.value = draft[cur] || ''; cta.oninput = function () { draft[cur] = cta.value; }; }
     [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
