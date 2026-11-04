@@ -76,7 +76,7 @@ function lgJump(e, id) {
    label: (el) => the chip's text, labels: names by position for sections that carry no heading of their own,
    alt: a second selector to try when the first finds fewer than two, below: a selector for a bar the page pins at its top (Team Home's
    header), so the row pins under it instead of under the dashboard masthead, top: a fixed pin offset in px for a page with no bar (0), shadow: a selector for a host whose sections live in its
-   shadow root }. A page outside the dashboard registers itself with jnAdd(key, cfg) after this file loads. A heading may also carry data-jn="Short name". */
+   shadow root }. A page outside the dashboard registers itself with jnAdd(key, cfg) after this file loads. A heading may also carry data-jn="Short name", and data-jn-slug="Name" to keep its #jn-… address when the label changes. */
 const JN_PAGES = {
   compare:        { sel: '.cmp-ans-k0, .cmp-h', full: true },
   marketingspend: { sel: '.ms-eyebrow' },
@@ -181,7 +181,7 @@ function jnBuild(key) {
   const used = {};
   secs.forEach(s => {
     if (!s.el.id || /^jn-/.test(s.el.id)) {
-      let k = 'jn-' + key + '-' + jnSlug(s.label); used[k] = (used[k] || 0) + 1;
+      let k = 'jn-' + key + '-' + jnSlug(s.el.getAttribute('data-jn-slug') || s.label); used[k] = (used[k] || 0) + 1;
       if (used[k] > 1) k += '-' + used[k];
       s.el.id = k;
     }
