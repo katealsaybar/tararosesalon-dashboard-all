@@ -341,3 +341,50 @@
 .nvb .nvb-wl li{padding-left:2px}
 /* a blast with one phone in the large flow */
 .cbl-phones.nvb-onephone,.cbl-fm-phones.nvb-onephone{grid-template-columns:minmax(0,420px);justify-content:center}
+
+/* Send from the site (Kate, 4 Nov 2026), Level 5 only: the sending bar above the blast, the Send card on each blast, and the confirm pop-up. Dry run is the default. */
+.nvb .nvb-sbar,.nvb .nvb-send{padding:16px 18px;display:grid;gap:10px;margin-top:12px}
+.nvb .nvb-sbar-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nvb .nvb-sbar-top h3{margin-right:4px}
+.nvb .nvb-sbar p{max-width:78ch}
+.nvb .nvb-gate b{color:var(--text)}
+.nvb .nvb-sbtns{display:flex;flex-wrap:wrap;gap:8px}
+.nvb .nvb-sstate{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nvb .nvb-prog{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;border:1px solid var(--border)}
+.nvb .nvb-prog i{display:block;height:100%;background:var(--nv-good);border-radius:99px;transition:width .4s}
+.nvb .nvb-sc{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.nvb .nvb-sc>div{background:var(--surface2);border-radius:10px;padding:10px 12px;display:grid;gap:2px;min-width:0}
+.nvb .nvb-sc>div b{font-family:'Playfair Display',serif;font-size:24px;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums}
+.nvb .nvb-sc>div span{font-size:12.5px;color:var(--muted);line-height:1.25}
+.nvb .nvb-sc>div.bad{background:var(--nv-bad-bg)}
+.nvb .nvb-sc>div.bad b{color:var(--nv-bad)}
+.nvb .nvb-sk{margin:0}
+.nvb .nvb-sk .in{display:grid;gap:4px}
+.nvb .nvb-send details.nvb-fold>summary{font-size:14px}
+.cbl .nvb-sm{width:min(640px,100%)}
+.nvb-sm .nvb-sbody{display:grid;gap:12px;font-size:15px}
+.nvb-sm .nvb-sbody p{margin:0;line-height:1.45}
+.nvb-sm code{font-size:13px;background:var(--surface2);padding:1px 6px;border-radius:6px;word-break:break-all}
+.nvb-sm .nvb-sbanner{border-radius:10px;padding:10px 14px;font-weight:600;font-size:14.5px}
+.nvb-sm .nvb-sbanner.warn{background:var(--nv-warn-bg,#FBF3E2);color:var(--nv-warn,#8A5F12)}
+.nvb-sm .nvb-sbanner.bad{background:var(--nv-bad-bg,#F7E9E9);color:var(--nv-bad,#A03C3C)}
+.nvb-sm .nvb-srows{display:grid;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.nvb-sm .nvb-sr{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 14px;padding:9px 14px;border-top:1px solid var(--border);align-items:baseline}
+.nvb-sm .nvb-sr:first-child{border-top:0}
+.nvb-sm .nvb-sr>span{font-size:13px;color:var(--muted)}
+.nvb-sm .nvb-sr>b{font-weight:600;font-size:14.5px;min-width:0;overflow-wrap:anywhere}
+.nvb-sm .nvb-sr small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.nvb-sm select,.nvb-sm input[type=text],.nvb-sm input[type=tel]{font:inherit;font-size:15px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 10px;width:100%;min-height:40px}
+.nvb-sm .nvb-sl{font-size:13.5px;font-weight:600}
+.nvb-sm .nvb-sfoot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:16px}
+.nvb-sm .nvb-btn{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:9px 18px;font-weight:600;font-size:14.5px;min-height:40px;font:inherit;font-weight:600;color:var(--text);cursor:pointer}
+.nvb-sm .nvb-btn.pri{background:var(--text);color:var(--bg);border-color:var(--text)}
+.nvb-sm .nvb-btn:disabled{opacity:.4;cursor:default}
+.nvb-sm .nvb-err{color:var(--nv-bad,#A03C3C)}
+@media (max-width:640px){
+  .nvb .nvb-sbar,.nvb .nvb-send{padding:14px 14px}
+  .nvb .nvb-sc{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .nvb .nvb-sbtns .nvb-btn{flex:1 1 calc(50% - 8px);padding:9px 10px}
+  .nvb-sm .nvb-sr{grid-template-columns:minmax(0,1fr)}
+  .nvb-sm .nvb-sfoot .nvb-btn{flex:1 1 100%}
+}

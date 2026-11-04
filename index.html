@@ -3530,7 +3530,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="target-links.css?v=20377623">
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
 <link rel="stylesheet" href="campaign-blasts.css?v=7bbeafe7">
-<link rel="stylesheet" href="nov-blasts.css?v=f0aba072">
+<link rel="stylesheet" href="nov-blasts.css?v=a4d06bf2">
 <link rel="stylesheet" href="active-deals.css?v=f6158902">
 <link rel="stylesheet" href="discounts-vouchers.css?v=ef15eb90">
 <link rel="stylesheet" href="tool-spend.css?v=d72f64aa">
@@ -3595,7 +3595,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
       cbl: ['campaign-blasts.js?v=876d8d2e'],
       // November Blasts (2 Nov 2026): one file, only that page needs it.
-      nvb: ['nov-blasts.js?v=5bb29674'],
+      nvb: ['nov-blasts.js?v=1dd6b644'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'active-deals.js?v=442ed4c5'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -4444,7 +4444,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   </div>
   <!-- November Blasts (Kate, 2 Nov 2026): the database blasts for November, planned from the 2 Nov Zoom with Coach Emma. Same people as Campaign Blasts
        (old Levels 3 and 5 edit, a person opened for Campaign Blasts reads); nov_blast_* check the level again (migrations/nov_blasts.sql).
-       nov-blasts.js draws it. Nothing is sent from here. -->
+       nov-blasts.js draws it. Level 5 (Kate) can queue a send from here (nov_send_*, migrations/nov_send.sql); dry run is the default. -->
   <div id="view-novblasts" style="display:none">
     <main id="novBlastsContent" style="max-width:1240px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>

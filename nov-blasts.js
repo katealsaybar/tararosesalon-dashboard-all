@@ -6,8 +6,11 @@
    4 Nov 2026 (Coach Emma): no warm and standard split, one message per blast for everyone. A blast whose data.msg carries one key draws ONE phone and ONE template with no
    Warm or Standard label, no 90 day wording and no sub-count (isSplit below); a row that still carries both keys draws the old two phones.
    Reads and writes only through nov_blast_* (migrations/nov_blasts.sql and nov_blasts_v2.sql), which check the level again (old Levels 3 and 5 edit; a person opened
-   for Campaign Blasts reads). Counts are LIVE from the till. All words (messages, decisions, checklist, replies, terms) live in the database, none here. Nothing here
-   sends a message. Needs only sb (the Supabase client), TRS_LEVEL, TRSD. */
+   for Campaign Blasts reads). Counts are LIVE from the till. All words (messages, decisions, checklist, replies, terms) live in the database, none here.
+   4 Nov 2026 (Kate: "sa site pls, similar to what we did for oct 2026 blast"): Level 5 (Kate only) gets a Send control per blast whose template is approved, a sending bar with the
+   switches and the gate, a confirm that shows the numbers and asks for a typed word, a Test to one number, and live counts on the blast (queued, sent, delivered, failed, STOP).
+   It queues through nov_send_* (migrations/nov_send.sql); the nov-send-worker edge function posts to respond.io. Dry run is the default: nothing reaches a client until Kate
+   turns Live on. No tags are written to respond.io from here. Needs only sb (the Supabase client), TRS_LEVEL, TRSD. */
 (function () {
   function main() { return document.getElementById('novBlastsContent'); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -18,6 +21,7 @@
   var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
   var D = null, LIVE = null, LEFT = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null, termsFor = '', draft = {};
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
+  var SND = null, sndM = null, sndTyped = '', sndImg = '', sndPhone = '', sndPrev = null, sndTest = null, sndErr = '', sndBusy = false, sndTimer = null;   // the send control (Level 5)
   window.nvbUrlParts = function () {
     var p = [], first = D && D.items.filter(isBlast)[0], b = D ? cur : wantBlast, t = D ? tab : (wantTab || 'messages');
     if (t && t !== 'messages') p.push('tab=' + encodeURIComponent(t));
@@ -365,6 +369,7 @@
       '<div><small>Who</small>' + whoHtml(d) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
       '<div class="cbl-card cbl-when cbl-kate"><h3>Kate: schedule</h3><div class="nvb-schrow">' + (schedHtml(b) || '<p class="nvb-small">Kate sets the day and time.</p>') + '</div></div>' +
       tplHtml(b) +
+      sendCardHtml(b) +
       '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-nvb="flowbig">' + FLOWICON + 'See the flow bigger</button></div>' +
       '<div class="cbl-phones' + (ln.one ? ' nvb-onephone' : '') + '" id="nvbPhones">' + ln.html + '</div>' +
       '<div class="nvb-after nvb-afterrow">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') +
@@ -433,7 +438,7 @@
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + sendBarHtml() + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
@@ -487,6 +492,182 @@
     return fold('diff', esc(d.title), esc(d.lead), '<div class="nvb-diff">' + col(d.camp) + col(d.nov) + '</div>' + (d.why ? '<div class="nvb-diffwhy"><h3>' + esc(d.why.head) + '</h3><p>' + esc(d.why.intro) + '</p>' + rows(d.why.rows) + '</div>' : '') + '<p class="nvb-small">' + esc(d.foot) + '</p>');
   }
 
+  /* ---------- Send from the site (Level 5, Kate only; migrations/nov_send.sql, supabase/functions/nov-send-worker) ----------
+     One number, about 200 every 30 minutes, blast after blast. Dry run is the default: a dry run goes through the whole queue and pace and is counted, but nothing is posted to respond.io.
+     Everything that decides who is sent to (the booked and opt-out re-check, 24 hours, no retry of a failed message, the gate) is in the database; this is the control and the counts. */
+  function isL5() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 5; }
+  var IMGS = [['', 'No header image'], ['assets/nov-blasts/nov-hair-to-beauty-4x5.png', 'Hair to beauty artwork, 4:5'], ['assets/nov-blasts/nov-beauty-to-hair-4x5.png', 'Beauty to hair artwork, 4:5']];
+  function tplOf(b) { var t = b.data.tpl || {}, g = ['warm', 'std'].filter(function (x) { return t[x] && t[x].n; })[0]; return g ? { n: t[g].n, s: t[g].s || 'todo' } : null; }
+  function sendOf(b) { return SND && SND.blasts ? (SND.blasts[b.id] || null) : null; }
+  function defImg(b) { var im = b && b.data.img || ''; return IMGS.some(function (x) { return x[0] === im; }) ? im : ''; }
+  function activeRun(x) { return !!x && (x.state === 'running' || x.state === 'paused') && !!x.counts && x.counts.queued > 0; }
+  function pctOf(a, n) { return n ? (Math.round(a * 1000 / n) / 10) + '%' : '0%'; }
+  function showSend(b) { var t = tplOf(b); return isL5() && !!SND && ((t && t.s === 'approved') || !!sendOf(b)); }
+  function kick() { try { var r = sb.functions.invoke('nov-send-worker', { body: {} }); if (r && r.then) r.then(function () {}, function () {}); } catch (e) { /* the cron picks it up */ } }
+  async function loadSend() { if (!isL5()) return; try { SND = await rpc('nov_send_info'); } catch (e) { console.error(e); SND = null; } }
+  function sndOk() {
+    if (!sndM || !SND) return false;
+    if (sndM.kind === 'live') return sndTyped.trim().toUpperCase() === 'LIVE';
+    if (sndM.kind === 'test') return sndPhone.replace(/\D/g, '').length >= 9 && !(sndTest && sndTest.busy);
+    var live = !SND.dry_run;
+    return !!sndPrev && !sndPrev.err && sndPrev.ok > 0 && (!live || sndTyped.trim().toUpperCase() === 'SEND ' + sndM.id.toUpperCase()) && !sndBusy;
+  }
+  function imgSelect() { return '<select id="nvbSndImg">' + IMGS.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === sndImg ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('') + '</select>'; }
+  function sendBarHtml() {
+    if (!isL5() || !SND) return '';
+    var g = SND.gate || {}, d = g.sent || 0, f = g.failed || 0, so = g.stop || 0;
+    var st = SND.paused ? ['bad', 'Paused'] : !SND.enabled ? ['', 'Sending is off'] : SND.dry_run ? ['warn', 'On, dry run'] : ['good', 'On, live'];
+    return '<div class="cbl-card nvb-sbar"><div class="nvb-sbar-top"><h3>Sending from the site</h3><span class="chip ' + st[0] + '">' + st[1] + '</span>' +
+      (SND.dry_run ? '<span class="chip warn">Dry run: nothing goes to any client</span>' : '<span class="chip bad">Live: real messages</span>') + '</div>' +
+      '<p class="nvb-small">One number: ' + esc(SND.channel) + '. About ' + SND.slot_cap + ' every ' + SND.slot_minutes + ' minutes, ' + esc(fmtClock(SND.hour_from * 60)) + ' to ' + esc(fmtClock(SND.hour_to * 60)) +
+      ' Dubai time, blast after blast in the order they were queued. A failed message is never retried and nobody is written to twice inside 24 hours.</p>' +
+      '<p class="nvb-small nvb-gate">The gate pauses everything if STOP replies pass ' + SND.stop_pct + '% or failed messages pass ' + SND.fail_pct + '% of what has been sent (judged once ' + SND.gate_min + ' have gone). So far: <b>' +
+      fmtN(d) + '</b> sent, <b>' + fmtN(f) + '</b> failed (' + pctOf(f, d) + '), <b>' + fmtN(so) + '</b> STOP (' + pctOf(so, d) + ').</p>' +
+      (SND.paused ? '<p class="nvb-err nvb-small" role="alert"><b>' + esc(SND.paused_reason || 'Paused') + '.</b> Look at the STOP and failed counts before you resume.</p>' : '') +
+      (sndErr && !sndM ? '<p class="nvb-err nvb-small" role="alert">' + esc(sndErr) + '</p>' : '') +
+      '<div class="nvb-sbtns"><button type="button" class="nvb-btn" data-nvb="snd:onoff"' + (sndBusy ? ' disabled' : '') + '>' + (SND.enabled ? 'Switch sending off' : 'Switch sending on') + '</button>' +
+      (SND.dry_run ? '<button type="button" class="nvb-btn" data-nvb="snd:golive">Go live…</button>' : '<button type="button" class="nvb-btn" data-nvb="snd:dry">Back to dry run</button>') +
+      (SND.paused ? '<button type="button" class="nvb-btn pri" data-nvb="snd:resume">Resume all</button>' : '<button type="button" class="nvb-btn" data-nvb="snd:pause">Pause all</button>') +
+      '<button type="button" class="nvb-btn" data-nvb="snd:run">Run now</button></div></div>';
+  }
+  var SKIPWHY = { 'Has an appointment booked': 'Booked since the list was made' };
+  function sendCardHtml(b) {
+    if (!showSend(b)) return '';
+    var t = tplOf(b), x = sendOf(b), c = x && x.counts || {}, h = '<div class="cbl-card cbl-when nvb-send"><h3>Send from the site</h3>', act = activeRun(x);
+    if (!x) h += '<p class="nvb-small">Not queued yet. The template is approved in respond.io, so this blast can be sent.</p>';
+    else {
+      var total = x.queued_n || 0, done = (c.sent || 0) + (c.failed || 0) + (c.skipped || 0), skipN = 0, sk = x.skip || {}, er = x.errors || [];
+      Object.keys(sk).forEach(function (k) { skipN += sk[k]; });
+      var stLab = { running: 'Running', paused: 'Paused', cancelled: 'Cancelled' }[x.state] || x.state, sent = (c.sent || 0) + (c.failed || 0);
+      h += '<div class="nvb-sstate"><span class="chip ' + (x.state === 'running' ? 'good' : x.state === 'paused' ? 'warn' : '') + '">' + esc(stLab) + '</span><span class="chip ' + (x.dry ? 'warn' : 'bad') + '">' + (x.dry ? 'Dry run' : 'Live') + '</span>' +
+        '<span class="nvb-small">Queued ' + esc(fat(x.at)) + ' by ' + esc(x.by) + (x.image ? ', with the artwork' : ', no header image') + '</span></div>' +
+        '<div class="nvb-prog" role="img" aria-label="' + done + ' of ' + total + ' done"><i style="width:' + (total ? Math.min(100, Math.round(done * 100 / total)) : 0) + '%"></i></div>' +
+        '<div class="nvb-sc"><div><b>' + fmtN(c.queued || 0) + '</b><span>Queued</span></div><div><b>' + fmtN(c.sent || 0) + '</b><span>Sent</span></div>' +
+        '<div><b>' + (x.dry ? '–' : fmtN(c.delivered || 0)) + '</b><span>Delivered or read</span></div><div class="' + (c.failed ? 'bad' : '') + '"><b>' + fmtN(c.failed || 0) + '</b><span>Failed' + (sent ? ' · ' + pctOf(c.failed || 0, sent) : '') + '</span></div>' +
+        '<div class="' + (c.stop ? 'bad' : '') + '"><b>' + (x.dry ? '–' : fmtN(c.stop || 0)) + '</b><span>STOP' + (!x.dry && sent ? ' · ' + pctOf(c.stop || 0, sent) : '') + '</span></div></div>' +
+        (x.dry ? '<p class="nvb-small">A dry run: the messages went through the queue and the pace, but nothing was posted, so delivered and STOP stay empty.</p>' : '<p class="nvb-small">Delivered and STOP come from respond.io a few minutes after each send, then again at 30 minutes, 2, 8 and 24 hours.</p>') +
+        (skipN || c.skipped ? '<details class="nvb-fold nvb-sk"><summary><span>Left out when it was queued <small>' + fmtN(skipN) + '</small>' + (c.skipped ? ' · skipped since ' + fmtN(c.skipped) : '') + '</span></summary><div class="in">' +
+          Object.keys(sk).map(function (k) { return '<div class="nvb-lf"><span>' + esc(SKIPWHY[k] || k) + '</span><b>' + fmtN(sk[k]) + '</b></div>'; }).join('') + '</div></details>' : '') +
+        (er.length ? '<details class="nvb-fold nvb-sk" open><summary><span>Why some did not go</span></summary><div class="in">' + er.map(function (e) { return '<div class="nvb-lf"><span>' + esc(e.e) + '</span><b>' + fmtN(e.n) + '</b></div>'; }).join('') + '</div></details>' : '');
+    }
+    h += '<div class="nvb-sbtns"><button type="button" class="nvb-btn pri" data-nvb="snd:open:' + esc(b.id) + '"' + ((t && t.s === 'approved' && !act && !sndBusy) ? '' : ' disabled') + '>' + (x && !act ? 'Send again…' : 'Send…') + '</button>' +
+      (x && x.state === 'running' && act ? '<button type="button" class="nvb-btn" data-nvb="snd:bpause:' + esc(b.id) + '">Pause this blast</button>' : '') +
+      (x && x.state === 'paused' && act ? '<button type="button" class="nvb-btn" data-nvb="snd:bresume:' + esc(b.id) + '">Resume this blast</button>' : '') +
+      (x && act ? '<button type="button" class="nvb-btn" data-nvb="snd:cancel:' + esc(b.id) + '">Cancel the rest</button>' : '') +
+      (t && t.s === 'approved' ? '<button type="button" class="nvb-btn" data-nvb="snd:test:' + esc(b.id) + '">Test to one number…</button>' : '') + '</div></div>';
+    return h;
+  }
+  function sndRow(l, v) { return '<div class="nvb-sr"><span>' + l + '</span><b>' + v + '</b></div>'; }
+  function sndModalHtml() {
+    if (!sndM || !SND) return '';
+    var m = sndM, head, body, foot;
+    if (m.kind === 'live') {
+      head = 'Go live?';
+      body = '<p>Right now every message sent from here is a <b>dry run</b>: nothing reaches a client. Going live means the next blast you queue sends real WhatsApp messages to real clients, from ' + esc(SND.channel) + '.</p>' +
+        '<label class="nvb-sl" for="nvbSndTyped">Type <b>LIVE</b> to go live</label><input id="nvbSndTyped" type="text" autocomplete="off" autocapitalize="characters">' +
+        '<p class="nvb-small">Sending also has to be switched on, and each blast still asks for its own typed confirmation.</p>';
+      foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:golive2"' + (sndOk() ? '' : ' disabled') + '>Go live</button>';
+    } else if (m.kind === 'test') {
+      var tb = item(m.id), tt = tplOf(tb), r = sndTest && sndTest.r;
+      head = 'Test ' + esc(tb.data.short || tb.data.title) + ' to one number';
+      body = '<p>Sends <b>one</b> message, the real template <code>' + esc(tt.n) + '</code>, to the number you type, from ' + esc(SND.channel) + '. ' + (SND.dry_run ? 'Dry run is on, so nothing is sent: it only goes through the queue.' : '<b>Dry run is off: this really sends.</b>') + '</p>' +
+        '<label class="nvb-sl" for="nvbSndPhone">Number, with country code</label><input id="nvbSndPhone" type="tel" inputmode="tel" placeholder="+971 50 000 0000" autocomplete="off">' +
+        '<label class="nvb-sl" for="nvbSndImg">Header image</label>' + imgSelect() +
+        (sndTest ? '<p class="nvb-small nvb-tres">' + (sndTest.err ? '<span class="nvb-err">' + esc(sndTest.err) + '</span>' : sndTest.busy ? 'Queued, waiting for the worker…' : r ? 'Status: <b>' + esc(r.status) + '</b>' + (r.dry ? ' (dry run, nothing was posted)' : '') + (r.delivery ? ', ' + esc(r.delivery) : '') + (r.error ? '. ' + esc(r.error) : '') : '') + '</p>' : '');
+      foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:dotest"' + (sndOk() ? '' : ' disabled') + '>Send the test</button>';
+    } else {
+      var b = item(m.id), c = lv(b.id), tp = tplOf(b), pv = sndPrev, live = !SND.dry_run, n = pv && !pv.err ? pv.ok : (c ? c.n : null), hasEnd = /\{\{3\}\}/.test(((b.data.msg || {}).warm || (b.data.msg || {}).std || ''));
+      var ahead = 0; Object.keys(SND.blasts || {}).forEach(function (k) { var z = SND.blasts[k]; if (k !== b.id && activeRun(z)) ahead += z.counts.queued; });
+      var lots = n == null ? null : Math.ceil((n + ahead) / SND.slot_cap), mins = lots == null ? null : lots * SND.slot_minutes, hrs = mins == null ? '…' : (mins >= 120 ? (Math.round(mins / 6) / 10) + ' hours' : mins + ' minutes');
+      var dropped = '';
+      if (pv && !pv.err) { var dk = Object.keys(pv.skip || {}); dropped = dk.length ? ' · dropped now: ' + dk.map(function (k) { return pv.skip[k] + ' ' + esc((SKIPWHY[k] || k).toLowerCase()); }).join(', ') : ' · nobody dropped'; }
+      head = 'Send ' + esc(b.data.short || b.data.title);
+      body = '<div class="nvb-sbanner ' + (live ? 'bad' : 'warn') + '">' + (live ? 'LIVE: this sends real WhatsApp messages to real clients.' : 'Dry run: nothing goes to any client. It only runs the queue and the pace.') + '</div>' +
+        '<div class="nvb-srows">' + sndRow('Blast', esc(b.data.title)) +
+        sndRow('Clients on the page', c ? fmtN(c.n) : '…') +
+        sndRow('After the re-check', pv ? (pv.err ? '<span class="nvb-err">Could not check: ' + esc(pv.err) + '</span>' : fmtN(pv.ok) + ' will be queued' + '<small>' + dropped + '</small>') : 'Checking appointments from today and the opt-out lists…') +
+        sndRow('Template', '<code>' + esc(tp.n) + '</code>') +
+        (hasEnd ? sndRow('End date {{3}}', esc((pv && pv.end) || b.data.end || '30 November 2026') + '<small> · Al Quoz clients: ' + esc((pv && pv.aq_end) || SND.aq_end) + '</small>') : '') +
+        sndRow('Header image', imgSelect()) +
+        sndRow('Cost, at most', n == null ? '…' : 'AED ' + fmtN(Math.round(n * RATE_AED)) + '<small> · about USD ' + fmtN(Math.round(n * RATE_USD)) + '; an undelivered message is not charged</small>') +
+        sndRow('Sending time', n == null ? '…' : esc(hrs) + '<small> · ' + SND.slot_cap + ' every ' + SND.slot_minutes + ' minutes' + (ahead ? ', after the ' + fmtN(ahead) + ' already queued' : '') + '</small>') +
+        sndRow('From', esc(SND.channel)) + '</div>' +
+        (live ? '<label class="nvb-sl" for="nvbSndTyped">Type <b>SEND ' + esc(b.id) + '</b> to confirm</label><input id="nvbSndTyped" type="text" autocomplete="off" autocapitalize="characters">' : '') +
+        '<p class="nvb-small">Anyone with an appointment booked from today on, on an opt-out list, written to in the last 24 hours, or whose last message failed, is dropped again at queue time and once more just before their message goes.</p>' +
+        (sndErr ? '<p class="nvb-err nvb-small" role="alert">' + esc(sndErr) + '</p>' : '');
+      foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:go"' + (sndOk() ? '' : ' disabled') + '>' + (live ? 'Send ' : 'Dry run ') + (n == null ? '' : fmtN(n) + ' messages') + '</button>';
+    }
+    return '<div class="cbl"><div class="cbl-modal" data-nvb="sndx"><div class="cbl-bigcal cbl-card nvb-sm" role="dialog" aria-modal="true" aria-label="' + esc(head) + '"><div class="cbl-big-h"><b>' + head + '</b><button type="button" class="cbl-big-x" data-nvb="sndx">Close</button></div>' +
+      '<div class="nvb-sbody">' + body + '</div><div class="nvb-sfoot"><button type="button" class="nvb-btn" data-nvb="sndx">Cancel</button>' + foot + '</div></div></div></div>';
+  }
+  function sndBindInputs() {
+    var ti = document.getElementById('nvbSndTyped'), si = document.getElementById('nvbSndImg'), pi = document.getElementById('nvbSndPhone');
+    function gate() { var bt = document.getElementById('nvbSndGo'); if (bt) bt.disabled = !sndOk(); }
+    if (ti) { ti.value = sndTyped; ti.oninput = function () { sndTyped = ti.value; gate(); }; }
+    if (si) { si.value = sndImg; si.onchange = function () { sndImg = si.value; }; }
+    if (pi) { pi.value = sndPhone; pi.oninput = function () { sndPhone = pi.value; gate(); }; }
+  }
+  // a call that changes the sending state: draw busy, run it, take the new state from the answer (or read it again), draw
+  async function sndCall(fn, args, after) {
+    sndErr = ''; sndBusy = true; render(true);
+    try { var r = await rpc(fn, args); if (r && r.blasts && r.dry_run != null) SND = r; else await loadSend(); if (after) after(r); }
+    catch (e) { console.error(e); sndErr = e.message || 'That did not work, try again'; }
+    sndBusy = false; render(true);
+  }
+  function sndAfterQueue() { kick(); setTimeout(function () { loadSend().then(function () { if (main() && main().offsetParent !== null && !sndM) render(true); }); }, 4000); }
+  async function sndDoTest() {
+    var id = sndM && sndM.id; if (!id) return;
+    sndTest = { busy: true }; render(true);
+    try {
+      var jid = await rpc('nov_send_test', { p_blast: id, p_phone: sndPhone, p_image: sndImg || null, p_first: null });
+      kick();
+      for (var i = 0; i < 8; i++) {
+        await new Promise(function (r) { setTimeout(r, 3000); });
+        if (!sndM || sndM.kind !== 'test') return;
+        var r = await rpc('nov_send_test_get', { p_id: jid });
+        sndTest = { id: jid, r: r }; render(true);
+        if (r && r.status !== 'queued' && r.status !== 'sending') return;
+        kick();
+      }
+    } catch (e) { console.error(e); sndTest = { err: e.message || 'The test did not go' }; }
+    render(true);
+  }
+  function sndAct(v) {
+    if (!isL5() || !SND) return;
+    var a = v.split(':'), w = a[0], id = a[1], b = id ? item(id) : null;
+    if (w === 'open') {
+      if (!b) return;
+      sndM = { kind: 'send', id: id }; sndTyped = ''; sndImg = defImg(b); sndPrev = null; sndErr = ''; render(true);
+      rpc('nov_send_preview', { p_blast: id }).then(function (r) { if (sndM && sndM.id === id) { sndPrev = r; render(true); } }).catch(function (e) { console.error(e); if (sndM && sndM.id === id) { sndPrev = { err: e.message || 'try again' }; render(true); } });
+    }
+    else if (w === 'test') { if (!b) return; sndM = { kind: 'test', id: id }; sndImg = defImg(b); sndTest = null; render(true); }
+    else if (w === 'golive') { sndM = { kind: 'live' }; sndTyped = ''; render(true); }
+    else if (w === 'golive2') { if (!sndOk()) return; sndM = null; sndTyped = ''; sndCall('nov_send_config_set', { p_patch: { dry_run: false } }); }
+    else if (w === 'dry') { sndCall('nov_send_config_set', { p_patch: { dry_run: true } }); }
+    else if (w === 'onoff') { sndCall('nov_send_config_set', { p_patch: { enabled: !SND.enabled } }); }
+    else if (w === 'pause') { sndCall('nov_send_pause', { p_blast: null }); }
+    else if (w === 'resume') { if (confirm('Resume sending? The gate starts counting again from now, so look at the STOP and failed counts first.')) sndCall('nov_send_resume', { p_blast: null }); }
+    else if (w === 'bpause') { sndCall('nov_send_pause', { p_blast: id }); }
+    else if (w === 'bresume') { sndCall('nov_send_resume', { p_blast: id }); }
+    else if (w === 'cancel') { if (confirm('Cancel the messages of this blast that have not gone yet? The ones already sent stay sent.')) sndCall('nov_send_cancel', { p_blast: id }); }
+    else if (w === 'run') { kick(); setTimeout(function () { loadSend().then(function () { if (main() && !sndM) render(true); }); }, 2500); }
+    else if (w === 'dotest') { if (sndOk()) sndDoTest(); }
+    else if (w === 'go') {
+      if (!sndOk()) return;
+      var bid = sndM.id, img = sndImg, typ = sndTyped; sndM = null; sndTyped = '';
+      sndCall('nov_send_enqueue', { p_blast: bid, p_image: img || null, p_confirm: typ }, sndAfterQueue);
+    }
+  }
+  // the counts move while a blast goes out: read them again every 15 seconds while one is queued and this page is open and no pop-up is up
+  function sndStartPoll() {
+    if (sndTimer || !isL5()) return;
+    sndTimer = setInterval(function () {
+      if (!SND || sndM || sndBusy || !main() || main().offsetParent === null || document.visibilityState !== 'visible') return;
+      var live = Object.keys(SND.blasts || {}).some(function (k) { return activeRun(SND.blasts[k]); });
+      if (live) loadSend().then(function () { if (!sndM) render(true); });
+    }, 15000);
+  }
+
   /* ---------- lane 3: Before sending, Kate ---------- */
   function beforeHtml() {
     var all = tasks(), open = all.filter(function (t) { return !isDone(t.id); }), dn = all.filter(function (t) { return isDone(t.id); }), pre = item('pre'), rules = (pre && pre.data.rules) || [], ed = canEdit();
@@ -515,9 +696,10 @@
     var y = window.scrollY, thY = {}; [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) { thY[t.getAttribute('data-key')] = t.scrollTop; });
     var body = tab === 'decide' && decs().length ? decideHtml() : tab === 'before' ? beforeHtml() : messagesHtml();
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
-      '<div class="nvb-chipsrow"><span class="chip warn">Draft, nothing sent</span><span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
+      '<div class="nvb-chipsrow">' + (isL5() && SND && SND.enabled && !SND.dry_run ? '<span class="chip bad">Live sending is on</span>' : '<span class="chip warn">Draft, nothing sent</span>') + '<span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
-      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + '</div>';
+      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + nextHtml() + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
+    sndBindInputs();
     var cta = document.getElementById('nvbCmt'); if (cta) { cta.value = draft[cur] || ''; cta.oninput = function () { draft[cur] = cta.value; }; }
     [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
       var k = t.getAttribute('data-key'); t.scrollTop = thY[k] || 0;
@@ -557,7 +739,8 @@
       else if (k === 'side') { sideOpen = !sideOpen; render(true); }
       else if (k === 'big') { big = true; render(true); }
       else if (k === 'flowbig') { bigflow = true; render(true); }
-      else if (k === 'close' || k === 'termsx' || k === 'flowx') { if (t.classList.contains('cbl-modal') && e.target !== t) return; big = false; bigflow = false; termsFor = ''; render(true); }
+      else if (k === 'close' || k === 'termsx' || k === 'flowx' || k === 'sndx') { if (t.classList.contains('cbl-modal') && e.target !== t) return; if (k === 'sndx' && sndBusy) return; big = false; bigflow = false; termsFor = ''; sndM = null; sndTest = null; render(true); }
+      else if (k === 'snd') { sndAct(v); }
       else if (k === 'sel') { cur = v; rb = v; var sb2 = blast(v); if (sb2) { var cd2 = parts(sb2.data.date); cal = { y: cd2.getFullYear(), m: cd2.getMonth() }; } sideOpen = false; big = false; bigflow = false; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
       else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; return rpc('nov_blast_leftout', { p_recount: true }).then(function (l) { LEFT = l; }).catch(function (e) { console.error(e); }); }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
       else if (k === 'sched') {
@@ -587,10 +770,10 @@
       }
     });
   }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && (big || bigflow || termsFor) && main() && main().offsetParent !== null) { big = false; bigflow = false; termsFor = ''; render(true); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && (big || bigflow || termsFor || sndM) && main() && main().offsetParent !== null) { big = false; bigflow = false; termsFor = ''; sndM = null; sndTest = null; render(true); } });
   document.addEventListener('visibilitychange', function () {   // come back to the tab and see what others chose
     if (document.visibilityState !== 'visible' || !D || !main() || main().offsetParent === null) return;
-    Promise.all([reload(), loadLive()]).then(function () { render(true); }).catch(function () { /* keep what is on screen */ });
+    Promise.all([reload(), loadLive(), loadSend()]).then(function () { if (!sndM) render(true); }).catch(function () { /* keep what is on screen */ });
   });
 
   // Called by showView each time the page opens: read what the database says now, then draw.
@@ -606,5 +789,6 @@
     if (cur !== ALLID && (!item(cur) || !isBlast(item(cur)))) { cur = sorted()[0] ? sorted()[0].id : ''; rb = cur; }
     bind(); render(); syncUrl();
     loadLive().then(function () { if (main() && main().offsetParent !== null) render(true); });   // the counts come a moment after the page
+    if (isL5()) { loadSend().then(function () { if (main() && main().offsetParent !== null && !sndM) render(true); }); sndStartPoll(); }   // the send control (Level 5) reads its own state
   };
 })();
