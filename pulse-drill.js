@@ -1169,5 +1169,14 @@ const PD = (() => {
     return null;
   }
 
-  return { snap, spec, branchCtx, snapSide, metric, ledgerSpec, clientHistory: clientHistorySpec };   // clientHistory: Retention (3 Nov 2026) opens a client's own window from its lists
+  // One branch's one day, for a page that has no staff rows of its own (Over the Years, 4 Nov 2026: "not clickable"): the sales lines behind the day's
+  // Net take, the clients each staff handled, or the clients through the door. Same readers and same rules as the Pulse lists (drill_staff_net,
+  // drill_staff_clients, drill_door_clients with no one named, so the whole day); Level 3 and above, the lists say so themselves.
+  function dayList(kind, o) {
+    const ctx = { cur: 'AED', label: (kind === 'door' ? o.when : o.label) || '', from: o.date, to: o.date, door: { codes: [o.branch], count: o.count == null ? null : o.count }, card: { net: o.net } };
+    if (kind === 'door') return specInner('door', ctx, { perVisit: !!o.perVisit });
+    const w = { from: o.date, to: o.date, branches: [o.branch], employees: null, when: o.when || '' };
+    return kind === 'net' ? staffServicesSpec(ctx, Object.assign(w, { kind: 'net' })) : staffClientsSpec(ctx, Object.assign(w, o.count == null ? {} : { ledger: o.count }));
+  }
+  return { snap, spec, branchCtx, snapSide, metric, ledgerSpec, dayList, clientHistory: clientHistorySpec };   // clientHistory: Retention (3 Nov 2026) opens a client's own window from its lists
 })();

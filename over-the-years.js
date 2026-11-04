@@ -807,13 +807,64 @@ async function otyDays(from, to, codes) {
   }
   return otyDaysMemo.get(k);
 }
-// By month and By day for any window, from the real days. kind says which measures the figure is made of; want is what the figure shows, so a gap says so in bold.
-function otyDayViews(o) {
-  const { from, to, codes, kind, who, when, want } = o, multi = codes.length > 1;
+// Kate, 4 Nov 2026: "not clickable" on the Net take pop-up (By branch, By month, By day). A figure in these lists now opens what it is made of, one level down and
+// never itself again: a branch opens its months and days, a month opens its branches and days, a day opens that branch's sales lines (Net take), the clients
+// each staff handled (Clients per staff) or the clients through the door (Clients per visit and the avg bills), by the same readers the Pulse lists use
+// (PD.dayList, pulse-drill.js). Share, Change and Open days stay plain: they are worked out from the figures beside them, not made of rows of their own.
+const otyL3 = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
+// which measures a kind of figure is made of, and how its rows are totalled
+function otyKindOf(kind) {
   const net = kind === 'net' || kind === 'avgV' || kind === 'avg', vis = kind === 'vis' || kind === 'avgV', stf = kind === 'stf' || kind === 'avg', avg = kind === 'avgV' || kind === 'avg', den = kind === 'avgV' ? 'vis' : 'stf';
   const cols = [...(net ? [{ k: 'net', l: 'Net take', t: 'aed' }] : []), ...(vis ? [{ k: 'vis', l: 'Clients per visit', t: 'num' }] : []), ...(stf ? [{ k: 'stf', l: 'Clients per staff', t: 'num' }] : []), ...(avg ? [{ k: 'a', l: 'Avg bill', t: 'aed' }] : [])];
   const fin = x => { if (avg) x.a = x[den] ? x.net / x[den] : null; return x; };
   const keep = x => (net && x.net) || (vis && x.vis) || (stf && x.stf);
+  const sum = rows => rows.reduce((a, x) => ({ net: a.net + (+x.net || 0), vis: a.vis + (+x.vis || 0), stf: a.stf + (+x.stf || 0) }), { net: 0, vis: 0, stf: 0 });
+  return { net, vis, stf, avg, den, cols, fin, keep, sum };
+}
+// A day of one branch: its sales lines, or its clients. Level 3 and above (names and lines), as everywhere else.
+function otyDayDn(kind, bc, iso, x) {
+  if (!otyL3() || typeof PD === 'undefined' || !PD.dayList || !bc || !iso) return null;
+  const K = otyKindOf(kind), nm = OTY_NAME[bc] || bc, when = `${nm}, ${otyFullDay(iso)}`, base = { branch: bc, date: iso, label: 'Over the Years', when, net: x.net };
+  const door = () => PD.dayList('door', Object.assign({ count: x.vis, perVisit: kind === 'avgV' }, base)), stf = () => PD.dayList('stf', Object.assign({ count: x.stf }, base));
+  const m = {};
+  if (K.net && x.net) m.net = PD.dayList('net', base);
+  if (K.vis && x.vis) m.vis = door();
+  if (K.stf && x.stf) m.stf = stf();
+  if (K.avg && x.a) m.a = kind === 'avgV' ? door() : stf();
+  Object.keys(m).forEach(k => { if (!m[k]) delete m[k]; });
+  return Object.keys(m).length ? m : null;
+}
+// The same one spec behind every value column of a row.
+const otyRowDn = (K, x, sp) => { if (!sp) return null; const m = {}; K.cols.forEach(c => { if (x[c.k]) m[c.k] = sp; }); return Object.keys(m).length ? m : null; };
+// The days of a month, clipped to the window the figure covers.
+const otyMonthWin = (k, from, to) => { const y = +k.slice(0, 4), m = +k.slice(5, 7), a = otyIso(y, m, 1), b = otyIso(y, m, new Date(y, m, 0).getDate()); return { from: a < from ? from : a, to: b > to ? to : b, clip: a < from || b > to }; };
+// A window's lists. ids say which of By branch, By month and By day it keeps; By branch is dropped for one branch and By month for one month, because they would be the figure again.
+function otyWinSpec(o, ids) {
+  const oneBr = o.codes.length < 2, oneMo = o.from.slice(0, 7) === o.to.slice(0, 7);
+  const views = [...(ids.includes('br') && !oneBr ? [otyBrView(o)] : []), ...otyDayViews(o).filter(v => ids.includes(v.id) && !(v.id === 'mo' && oneMo))];
+  if (!views.length) return null;
+  return { title: `${o.T || 'Net take'} · ${o.label}${oneBr ? ' · ' + o.who : ''}`, cur: 'AED', views };
+}
+// One month of a window (the row of a By month list): its branches and days.
+function otyMonthSpec(o, k, want) {
+  const w = otyMonthWin(k, o.from, o.to), lab = `${OTY_MON[+k.slice(5, 7) - 1]} ${k.slice(0, 4)}`;
+  return otyWinSpec(Object.assign({}, o, { from: w.from, to: w.to, label: lab, when: w.clip ? `${lab}, ${otyFullDay(w.from)} to ${otyFullDay(w.to)}` : lab, want }), ['br', 'day']);
+}
+// By branch from the real days, for a month or any window that has more than one branch.
+function otyBrView(o) {
+  const { from, to, codes, kind, who, when } = o, K = otyKindOf(kind);
+  return { id: 'br', label: 'By branch', load: async () => {
+    const days = await otyDays(from, to, codes), g = new Map();
+    days.forEach(d => { const x = g.get(d.b) || { bc: d.b, net: 0, vis: 0, stf: 0 }; x.net += +d.net || 0; x.vis += +d.vis || 0; x.stf += +d.stf || 0; g.set(d.b, x); });
+    const rows = [...g.values()].map(x => K.fin({ bc: x.bc, b: OTY_NAME[x.bc] || x.bc, net: x.net, vis: x.vis, stf: x.stf })).filter(K.keep).sort((p, q) => (q.net - p.net) || (q.stf - p.stf));
+    rows.forEach(x => { x._dn = otyRowDn(K, x, otyWinSpec(Object.assign({}, o, { codes: [x.bc], who: OTY_NAME[x.bc] || x.bc, want: { net: x.net, vis: x.vis, stf: x.stf } }), ['mo', 'day'])); });
+    const t = K.sum(rows);
+    return { cols: [{ k: 'b', l: 'Branch' }, ...K.cols], rows, foot: K.fin({ b: 'Total', ...t }), sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. The real days added up branch by branch.` };
+  } };
+}
+// By month and By day for any window, from the real days. kind says which measures the figure is made of; want is what the figure shows, so a gap says so in bold.
+function otyDayViews(o) {
+  const { from, to, codes, kind, who, when, want } = o, multi = codes.length > 1, K = otyKindOf(kind), { net, vis, stf, cols, fin, keep, sum } = K;
   const gap = t => {
     const bad = [];
     if (net && want.net != null && Math.abs(t.net - want.net) > codes.length * .5 + .5) bad.push(`Net take: the days add to ${otyNum(t.net)}, the figure shows ${otyNum(want.net)}`);
@@ -822,15 +873,16 @@ function otyDayViews(o) {
     return bad.length ? ` <b>${bad.join('; ')}. The year table is refreshed hourly, so a change in the last hour can show as a small gap.</b>` : '';
   };
   const sub = (txt, t) => { const g = gap(t); return `${TRSD.esc(who)}, ${TRSD.esc(when)}. ${txt}${g || (net && want.net != null && Math.abs(t.net - want.net) > .01 ? ' The year table rounds each branch to the dirham, so the days can differ from it by an AED or two.' : '')}`; };
-  const sum = rows => rows.reduce((a, x) => ({ net: a.net + (+x.net || 0), vis: a.vis + (+x.vis || 0), stf: a.stf + (+x.stf || 0) }), { net: 0, vis: 0, stf: 0 });
   return [{ id: 'mo', label: 'By month', load: async () => {
     const days = await otyDays(from, to, codes), g = new Map();
     days.forEach(d => { const k = String(d.d).slice(0, 7), x = g.get(k) || { k, net: 0, vis: 0, stf: 0 }; x.net += +d.net || 0; x.vis += +d.vis || 0; x.stf += +d.stf || 0; g.set(k, x); });
-    const rows = [...g.values()].sort((a, b) => a.k < b.k ? -1 : 1).map(x => fin({ m: otyMoLab(x.k), net: x.net, vis: x.vis, stf: x.stf })).filter(keep), t = sum(rows);
+    const rows = [...g.values()].sort((a, b) => a.k < b.k ? -1 : 1).map(x => fin({ m: otyMoLab(x.k), net: x.net, vis: x.vis, stf: x.stf, _k: x.k })).filter(keep), t = sum(rows);
+    rows.forEach(x => { x._dn = otyRowDn(K, x, otyMonthSpec(o, x._k, { net: x.net, vis: x.vis, stf: x.stf })); });
     return { cols: [{ k: 'm', l: 'Month' }, ...cols], rows, foot: fin({ m: 'Total', ...t }), sub: sub('The days of the window, added up month by month.', t) };
   } }, { id: 'day', label: 'By day', load: async () => {
     const days = await otyDays(from, to, codes);
-    const rows = days.map(d => fin({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net || 0, vis: +d.vis || 0, stf: +d.stf || 0 })).filter(keep), t = sum(rows);
+    const rows = days.map(d => fin({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net || 0, vis: +d.vis || 0, stf: +d.stf || 0, _bc: d.b })).filter(keep), t = sum(rows);
+    rows.forEach(x => { x._dn = otyDayDn(kind, x._bc, x.d.slice(0, 10), x); });
     return { cols: [{ k: 'd', l: 'Date', t: 'date' }, ...(multi ? [{ k: 'b', l: 'Branch' }] : []), ...cols], rows, foot: fin({ d: '', b: 'Total', ...t }), sub: sub('One row per branch and day.', t) };
   } }];
 }
@@ -842,19 +894,20 @@ function otySpec(kind, r, codes) {
   const per = set.map(b => ({ code: b, b: OTY_NAME[b] || b, net: +D[b].net[w][i] || 0, vis: +D[b].vis[w][i] || 0, stf: +D[b].stf[w][i] || 0 })).filter(x => x.net || x.vis || x.stf);
   const wantOf = codes ? { net: sumK('net'), vis: sumK('vis'), stf: sumK('stf') } : { net: r.net, vis: r.vis, stf: r.stf };
   const views = [];
+  const one = x => { const sp = per.length > 1 ? otySpec(kind, r, [x.code]) : null; return sp ? { sp } : null; };   // a branch's own year: its months and days
   if (per.length > 1) views.push({ id: 'br', label: 'By branch', load: async () => {
     if (kind === 'avgV' || kind === 'avg') {
-      const den = kind === 'avgV' ? 'vis' : 'stf', rows = per.filter(x => x.net && x[den]).map(x => ({ b: x.b, net: x.net, d: x[den], a: x.net / x[den] }));
+      const den = kind === 'avgV' ? 'vis' : 'stf', rows = per.filter(x => x.net && x[den]).map(x => { const o = one(x); return { b: x.b, net: x.net, d: x[den], a: x.net / x[den], _dn: o ? { net: o.sp, d: o.sp, a: o.sp } : null }; });
       const net = rows.reduce((a, x) => a + x.net, 0), d = rows.reduce((a, x) => a + x.d, 0);
       return { cols: [{ k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'd', l: kind === 'avgV' ? 'Clients per visit' : 'Clients per staff', t: 'num' }, { k: 'a', l: 'Avg bill', t: 'aed' }], rows,
         foot: { b: 'Total', net, d, a: d ? net / d : null }, sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Net take over ${kind === 'avgV' ? 'clients through the door (each client once a day)' : 'clients counted per staff (a client seen by two staff counts twice)'}.` };
     }
-    const rows = per.filter(x => x[kind]).map(x => ({ b: x.b, v: x[kind], sh: wantOf[kind] ? x[kind] / wantOf[kind] * 100 : null })).sort((a, b) => b.v - a.v), sum = rows.reduce((a, x) => a + x.v, 0), want = wantOf[kind];
+    const rows = per.filter(x => x[kind]).map(x => { const o = one(x); return { b: x.b, v: x[kind], sh: wantOf[kind] ? x[kind] / wantOf[kind] * 100 : null, _dn: o ? { v: o.sp } : null }; }).sort((a, b) => b.v - a.v), sum = rows.reduce((a, x) => a + x.v, 0), want = wantOf[kind];
     if (Math.abs(sum - want) >= 0.5) rows.push({ b: 'Not matched to a branch', v: want - sum, sh: want ? (want - sum) / want * 100 : null, _cls: 'dr-muted' });
     return { cols: [{ k: 'b', l: 'Branch' }, { k: 'v', l: T, t: kind === 'net' ? 'aed' : 'num' }, { k: 'sh', l: 'Share', t: 'pct' }], rows, foot: { b: 'Total', v: want, sh: 100 },
       sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. ${kind === 'net' ? 'Everything the salon billed, ex VAT.' : kind === 'vis' ? 'Each client once a day, through the door.' : 'Counted once for each staff member who served her.'} The year's total per branch; By month and By day go down to the days.` };
   } });
-  views.push(...otyDayViews({ from: `${r.y}-01-01`, to: same ? otySameDayIso(r.y) : `${r.y}-12-31`, codes: set, kind, who, when, want: wantOf }));
+  views.push(...otyDayViews({ from: `${r.y}-01-01`, to: same ? otySameDayIso(r.y) : `${r.y}-12-31`, codes: set, kind, who, when, want: wantOf, T }));
   return { title: `${T} · ${r.y}${codes ? ' · ' + who : ''}`, cur: 'AED', views };
 }
 const otyDn = (html, kind, r, codes) => otyDnS(html, otySpec(kind, r, codes));
@@ -864,18 +917,22 @@ function otyGrowthSpec(r) {
   const { D } = otyD, set = otyCodes(), same = otySame(), i = r.i, y = r.y, gw = same || r.partial ? 'ytd' : 'full', who = otySetLabel(set);
   const when = gw === 'ytd' ? `${y} against ${y - 1}, 1 Jan to ${otyCutLabel()} of each` : `${y} against ${y - 1}, full years`;
   const pc = (a, b) => b > 0 ? (a / b - 1) * 100 : null;
+  // Kate, 4 Nov 2026: the figures in these lists open their months and days too (the window of each year is the one the table uses).
+  const gwin = yy => ({ from: `${yy}-01-01`, to: gw === 'ytd' ? otySameDayIso(yy) : `${yy}-12-31` });
+  const gbase = (yy, codes, want) => Object.assign(gwin(yy), { codes, kind: 'net', T: 'Net take', who: otySetLabel(codes), when: gw === 'ytd' ? `${yy}, 1 Jan to ${otyCutLabel()}` : `${yy}, full year`, label: String(yy), want: { net: want } });
+  const gdn = (a, b) => { const m = {}; if (a) m.cur = a; if (b) m.prev = b; return Object.keys(m).length ? m : null; };
   const cols = [{ k: 'b', l: 'Branch' }, { k: 'cur', l: String(y), t: 'aed' }, { k: 'prev', l: String(y - 1), t: 'aed' }, { k: 'g', l: 'Change', t: 'pct' }];
   const cur = set.reduce((a, b) => a + (+D[b].net[gw][i] || 0), 0), prev = set.reduce((a, b) => a + (+D[b].net[gw][i - 1] || 0), 0);
   const note = r.big ? ` <b>Over 100%: a year new branches opened in, so the table says "new".</b>` : '';
   return { title: `Growth · ${y}`, cur: 'AED', views: [{ id: 'br', label: 'By branch', load: async () => {
-    const rows = set.map(b => { const a = +D[b].net[gw][i] || 0, p = +D[b].net[gw][i - 1] || 0; return { b: OTY_NAME[b] || b, cur: a, prev: p, g: pc(a, p) }; }).filter(x => x.cur || x.prev);
+    const rows = set.map(b => { const a = +D[b].net[gw][i] || 0, p = +D[b].net[gw][i - 1] || 0; return { b: OTY_NAME[b] || b, cur: a, prev: p, g: pc(a, p), _dn: set.length > 1 ? gdn(a ? otyWinSpec(gbase(y, [b], a), ['mo', 'day']) : null, p ? otyWinSpec(gbase(y - 1, [b], p), ['mo', 'day']) : null) : null }; }).filter(x => x.cur || x.prev);
     return { cols, rows, foot: { b: 'Total', cur, prev, g: pc(cur, prev) }, sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Net take, ex VAT.${note}` };
   } }, { id: 'mo', label: 'By month', load: async () => {
     const win = yy => ({ from: `${yy}-01-01`, to: gw === 'ytd' ? otySameDayIso(yy) : `${yy}-12-31` });
     const [a, b] = await Promise.all([otyDays(win(y).from, win(y).to, set), otyDays(win(y - 1).from, win(y - 1).to, set)]);
     const g = new Map(), add = (days, k) => days.forEach(d => { const m = String(d.d).slice(5, 7), x = g.get(m) || { m: otyMoLab('0000-' + m), cur: 0, prev: 0 }; x[k] += +d.net || 0; g.set(m, x); });
     add(a, 'cur'); add(b, 'prev');
-    const rows = [...g.entries()].sort((p, q) => p[0] < q[0] ? -1 : 1).map(([, x]) => ({ m: x.m, cur: x.cur, prev: x.prev, g: pc(x.cur, x.prev) })).filter(x => x.cur || x.prev);
+    const rows = [...g.entries()].sort((p, q) => p[0] < q[0] ? -1 : 1).map(([mm, x]) => ({ m: x.m, cur: x.cur, prev: x.prev, g: pc(x.cur, x.prev), _dn: gdn(x.cur ? otyMonthSpec(gbase(y, set, x.cur), `${y}-${mm}`, { net: x.cur }) : null, x.prev ? otyMonthSpec(gbase(y - 1, set, x.prev), `${y - 1}-${mm}`, { net: x.prev }) : null) })).filter(x => x.cur || x.prev);
     const tc = rows.reduce((s, x) => s + x.cur, 0), tp = rows.reduce((s, x) => s + x.prev, 0);
     return { cols: [{ k: 'm', l: 'Month' }, ...cols.slice(1)], rows, foot: { m: 'Total', cur: tc, prev: tp, g: pc(tc, tp) },
       sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. The real days added up month by month.${Math.abs(tc - cur) > set.length * .5 + .5 || Math.abs(tp - prev) > set.length * .5 + .5 ? ` <b>The days add to ${otyNum(tc)} and ${otyNum(tp)}; the table shows ${otyNum(cur)} and ${otyNum(prev)}.</b>` : ''}` };
@@ -896,13 +953,13 @@ function otySeasonSpec(key, nm, c) {
   const T = full ? c.tot : list.reduce((a, x) => a + (x.r && !x.mry ? +x.r.tot : 0), 0);
   return { title: `Per open day · ${nm} ${c.y}`, cur: 'AED', views: [{ id: 'br', label: 'By branch', load: async () => {
     const rows = list.map(x => { const t = x.r ? +x.r.tot : null, d = x.r ? +x.r.days : null;
-      return { b: OTY_NAME[x.b] || x.b, tot: t, days: d, per: !x.r ? null : x.mry ? t / d : (c.days ? t / c.days : null), _cls: x.r ? '' : 'dr-muted' }; });
+      return { b: OTY_NAME[x.b] || x.b, tot: t, days: d, per: !x.r ? null : x.mry ? t / d : (c.days ? t / c.days : null), _cls: x.r ? '' : 'dr-muted', _dn: x.r && list.length > 1 ? (sp => sp ? { tot: sp, per: sp } : null)(otyWinSpec({ from: c.start_date, to, codes: [x.b], kind: 'net', T: 'Net take', who: OTY_NAME[x.b] || x.b, when, label: `${nm} ${c.y}`, want: { net: t } }, ['mo', 'day'])) : null }; });
     return { cols: [{ k: 'b', l: 'Branch' }, { k: 'tot', l: 'Season total', t: 'aed' }, { k: 'days', l: 'Open days', t: 'num' }, { k: 'per', l: 'Per open day', t: 'aed' }], rows,
       foot: { b: 'Total', tot: T, days: c.days, per: full ? c.per : c.partPer },
       sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. Net take, ex VAT. Per open day is the branch's season total over the longest any branch traded (${c.days} days), so the branches add to the bar${c.mryPer ? "; Marasy is added per its own open days" : ''}.${full ? '' : ` <b>Only ${c.open} of ${c.of} branches traded it, so there is no bar: one branch against ${c.of} is not like for like.</b>`}` };
   } }, { id: 'day', label: 'By day', load: async () => {
     const codes = list.filter(x => x.r).map(x => x.b), days = await otyDays(c.start_date, to, codes);
-    const rows = days.filter(d => +d.net).map(d => ({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net })), t = rows.reduce((a, x) => a + x.net, 0);
+    const rows = days.filter(d => +d.net).map(d => ({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net, _dn: otyDayDn('net', d.b, String(d.d).slice(0, 10), { net: +d.net }) })), t = rows.reduce((a, x) => a + x.net, 0);
     return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }], rows, foot: { d: '', b: 'Total', net: t },
       sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. One row per branch and day.${Math.abs(t - T) > codes.length * .5 + .5 ? ` <b>The days add to ${otyNum(t)}, the bar's season total is ${otyNum(T)}.</b>` : ''}` };
   } }].filter(v => v.id !== 'br' || list.length > 1) };
@@ -932,14 +989,14 @@ function otyMoCellSpec(X, y, m) {
   const who = otyEsc(otyMoName(X.reg));
   const views = [{ id: 'br', label: 'By branch', load: async () => ({
     cols: [{ k: 'b', l: 'Branch' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'days', l: 'Open days', t: 'num' }, { k: 'stf', l: 'Clients per staff', t: 'num' }, { k: 'a', l: 'Avg bill per staff', t: 'aed' }],
-    rows: rs.map(([b, r]) => ({ b: OTY_NAME[b] || b, net: +r.net > 0 ? +r.net : null, days: +r.days, stf: +r.stf > 0 ? +r.stf : null, a: +r.net > 0 && +r.stf > 0 ? r.net / r.stf : null })),
+    rows: rs.map(([b, r]) => ({ b: OTY_NAME[b] || b, net: +r.net > 0 ? +r.net : null, days: +r.days, stf: +r.stf > 0 ? +r.stf : null, a: +r.net > 0 && +r.stf > 0 ? r.net / r.stf : null, _dn: (sp => sp ? { net: sp, stf: sp, a: sp } : null)(!c.est && rs.length > 1 && +r.net > 0 ? otyWinSpec({ from: otyIso(y, m + 1, 1), to: otyIso(y, m + 1, otyMoDim(y, m)), codes: [b], kind: 'avg', T: otyMoMetName[X.met], who: OTY_NAME[b] || b, when: name, label: name, want: { net: +r.net, stf: +r.stf } }, ['day']) : null) })),
     foot: { b: 'Total', net: c.tot == null ? null : c.tot, days: c.days, stf: c.stf == null ? null : c.stf, a: c.avg == null ? null : c.avg },
     sub: `${who}, ${name}${live ? ` (${c.days} open days so far)` : ''}. The branches' month rows, net of VAT. Open days are days with takings.${c.est ? ' <b>Estimated from the ledger: Phorest has no full data for this month, so there is no takings figure.</b>' : ''}` }) }];
   if (!c.est) {
     const dim = otyMoDim(y, m), codes = rs.map(([b]) => b), want = { net: c.tot, stf: c.stf };
     views.push({ id: 'day', label: 'By day', load: async () => {
       const days = await otyDays(otyIso(y, m + 1, 1), otyIso(y, m + 1, dim), codes);
-      const rows = days.map(d => ({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net || 0, stf: +d.stf || 0 })).filter(x => x.net || x.stf), t = rows.reduce((a, x) => ({ net: a.net + x.net, stf: a.stf + x.stf }), { net: 0, stf: 0 });
+      const rows = days.map(d => ({ d: String(d.d), b: OTY_NAME[d.b] || d.b, net: +d.net || 0, stf: +d.stf || 0, _dn: otyDayDn('avg', d.b, String(d.d).slice(0, 10), { net: +d.net || 0, stf: +d.stf || 0 }) })).filter(x => x.net || x.stf), t = rows.reduce((a, x) => ({ net: a.net + x.net, stf: a.stf + x.stf }), { net: 0, stf: 0 });
       const off = (want.net != null && Math.abs(t.net - want.net) > codes.length * .5 + .5) || (want.stf != null && t.stf !== want.stf);
       return { cols: [{ k: 'd', l: 'Date', t: 'date' }, ...(codes.length > 1 ? [{ k: 'b', l: 'Branch' }] : []), { k: 'net', l: 'Net take', t: 'aed' }, { k: 'stf', l: 'Clients per staff', t: 'num' }], rows,
         foot: { d: '', b: 'Total', net: t.net, stf: t.stf }, sub: `${who}, ${name}. One row per branch and day.${off ? ` <b>The days add to ${otyNum(t.net)} and ${otyNum(t.stf)}; the month shows ${otyNum(want.net)} and ${otyNum(want.stf)}.</b>` : ''}` };
@@ -1016,7 +1073,7 @@ function otyRevSpec(i, same, codes) {
   const avg = set.reduce((a, b) => a + n(b) * st(b), 0) / tot;
   return { title: `Google reviews · ${y}`, views: [{ id: 'br', label: 'By branch', load: async () => ({
     cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Reviews', t: 'num' }, { k: 's', l: 'Average stars', t: 'num' }],
-    rows: set.filter(b => n(b)).map(b => ({ b: OTY_NAME[b], n: n(b), s: st(b) })), foot: { b: 'Total', n: tot, s: avg },
+    rows: set.filter(b => n(b)).map(b => ({ b: OTY_NAME[b], n: n(b), s: st(b), _dn: set.filter(q => n(q)).length > 1 ? (sp => sp ? { n: sp, s: sp } : null)(otyRevSpec(i, same, [b])) : null })), foot: { b: 'Total', n: tot, s: avg },
     sub: `${TRSD.esc(who)}, ${TRSD.esc(when)}. The stars are an average of every review in the window, so a branch with more reviews counts for more. The next tab lists the reviews.` }) },
   { id: 'rv', label: 'The reviews', load: async () => {
     const data = [];   // 1,000 rows is all one request returns, so it is read a page at a time
