@@ -3,6 +3,8 @@
    what to say when she writes back, and the terms). A next-action card sits above them. Redesigned 2 Nov 2026 (docs/mockups/nov-blasts-redesign.html in the cowork repo).
    3 Nov 2026 (Kate): Decisions are gone (Emma and Kate met), and Messages is laid out like Campaign Blasts: calendar and blast list on the left, the Warm and the Standard
    phone side by side. It reuses the cbl- classes of campaign-blasts.css, which index.html loads for every page.
+   4 Nov 2026 (Coach Emma): no warm and standard split, one message per blast for everyone. A blast whose data.msg carries one key draws ONE phone and ONE template with no
+   Warm or Standard label, no 90 day wording and no sub-count (isSplit below); a row that still carries both keys draws the old two phones.
    Reads and writes only through nov_blast_* (migrations/nov_blasts.sql and nov_blasts_v2.sql), which check the level again (old Levels 3 and 5 edit; a person opened
    for Campaign Blasts reads). Counts are LIVE from the till. All words (messages, decisions, checklist, replies, terms) live in the database, none here. Nothing here
    sends a message. Needs only sb (the Supabase client), TRS_LEVEL, TRSD. */
@@ -55,6 +57,10 @@
   }
   function lv(id) { return LIVE && LIVE.blasts ? (LIVE.blasts[id] || { n: 0, warm: 0, std: 0, SAA: 0, KCA: 0, MC: 0, AQ: 0, ext: 0, blonde: 0, colour: 0 }) : null; }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+  // One message for everyone (Coach Emma, 4 Nov 2026): a blast is "split" only when its data.msg carries both a warm and a std message. Otherwise it has one phone, no group labels.
+  function msgKeys(b) { var m = b && b.data && b.data.msg || {}; return ['warm', 'std'].filter(function (g) { return m[g]; }); }
+  function isSplit(b) { return msgKeys(b).length > 1; }
+  function anySplit() { return blasts().some(isSplit); }
 
   /* the clients behind a number (Kate's rule, 27 Oct: every figure with a value opens its rows), the shared list window of drill.js */
   function drillSpec(title, args, showBlast) {
@@ -63,10 +69,12 @@
       views: [{ id: 'clients', label: 'Clients', load: async function () {
         var r = await rpc('nov_blast_clients', args);
         var names = {}; blasts().forEach(function (b) { names[b.id] = b.data.short || b.data.title; });
-        var rows = (r.rows || []).map(function (x) { return { c: x.c, b: BR[x.b] || x.b, k: names[x.k] || x.k, g: x.g === 'warm' ? 'Warm' : 'Standard', lv: x.lv, s: x.s }; });
+        var showGroup = args && args.p_blast ? isSplit(item(args.p_blast)) : anySplit();
+        var rows = (r.rows || []).map(function (x) { return { c: x.c, b: BR[x.b] || x.b, k: names[x.k] || x.k, g: isSplit(item(x.k)) ? (x.g === 'warm' ? 'Warm' : 'Standard') : '', lv: x.lv, s: x.s }; });
         var cols = [{ k: 'c', l: 'Client' }, { k: 'b', l: 'Salon' }];
         if (showBlast) cols.push({ k: 'k', l: 'Blast' });
-        cols.push({ k: 'g', l: 'Group' }, { k: 'lv', l: 'Last visit', t: 'date' }, { k: 's', l: 'Spent this year', t: 'aed' });
+        if (showGroup) cols.push({ k: 'g', l: 'Group' });
+        cols.push({ k: 'lv', l: 'Last visit', t: 'date' }, { k: 's', l: 'Spent this year', t: 'aed' });
         return { cols: cols, rows: rows, empty: 'Nobody is in this group right now.', note: r.total > rows.length ? 'Showing the first ' + fmtN(rows.length) + ' of ' + fmtN(r.total) + '.' : '' };
       } }]
     };
@@ -236,9 +244,9 @@
   var TPL_ST = { todo: 'Not made yet', filled: 'Filled in, waiting for Submit', submitted: 'Submitted to Meta', approved: 'Approved by Meta', rejected: 'Rejected by Meta' };
   function tplHtml(b) {
     var t = b.data.tpl; if (!t) return '';
-    var pre = item('pre'), snd = pre && pre.data && pre.data.sender, rows = ['warm', 'std'].filter(function (g) { return t[g]; }).map(function (g) {
+    var pre = item('pre'), snd = pre && pre.data && pre.data.sender, gs = ['warm', 'std'].filter(function (g) { return t[g]; }), rows = gs.map(function (g) {
       var x = t[g], st = TPL_ST[x.s] ? x.s : 'todo';
-      return '<div class="nvb-tp"><span class="g">' + (g === 'warm' ? 'Warm' : 'Standard') + '</span><code>' + esc(x.n) + '</code><span class="nvb-tps ' + st + '">' + esc(TPL_ST[st]) + '</span></div>';
+      return '<div class="nvb-tp">' + (gs.length > 1 ? '<span class="g">' + (g === 'warm' ? 'Warm' : 'Standard') + '</span>' : '') + '<code>' + esc(x.n) + '</code><span class="nvb-tps ' + st + '">' + esc(TPL_ST[st]) + '</span></div>';
     }).join('');
     return '<div class="cbl-card cbl-when nvb-tpl"><h3>Template in respond.io</h3>' + rows +
       (snd ? '<p class="nvb-small">Account: ' + esc(snd.waba) + (snd.channel ? ', channel ' + esc(snd.channel) : '') + '. Sent from the call centre number' + (snd.number ? ' ' + esc(snd.number) : '') + '.</p>' : '') + '</div>';
@@ -284,10 +292,17 @@
   }
   function laneHtml(label, grp, b, c) {
     var d = b.data, m = d.msg && d.msg[grp]; if (!m) return '';
+    if (!isSplit(b)) return '<div class="cbl-lane">' + phoneHtml(m, d, b, grp) + '</div>';   // one message for everyone: one phone, no label, no group count
     var n = c ? (grp === 'warm' ? c.warm : c.std) : null;
     var cnt = c ? num(n, d.title + ', ' + label.toLowerCase() + ' clients', { p_blast: b.id, p_group: grp }) : (liveErr ? '?' : '…');
     return '<div class="cbl-lane"><div class="cbl-lane-top"><h3>' + label + '</h3><span>' + cnt + ' clients</span></div>' +
       '<div class="w">' + (grp === 'warm' ? 'Last visit within 90 days' : (b.id === 'E' || b.id === 'E2') ? 'Last visit from 17 April to about 6 months ago' : 'Last visit more than 90 days ago, back to 1 Jan 2026') + '</div>' + phoneHtml(m, d, b, grp) + '</div>';
+  }
+  // The phones of a blast: one for a one-message blast, the old Warm and Standard pair when a row still carries both. one = a single phone is drawn.
+  function lanesOf(b, c) {
+    if (!isSplit(b)) { var g = msgKeys(b)[0]; return { html: g ? laneHtml('', g, b, c) : '', one: true }; }
+    var showWarm = c ? c.warm > 0 : true;
+    return { html: (showWarm ? laneHtml('Warm', 'warm', b, c) : '') + laneHtml('Standard', 'std', b, c), one: !showWarm };
   }
   /* Who was left out of this blast, and why (Kate, 3 Nov 2026: "add mo rin dito alin yung ni exclude natin sa blasts"). Counted with the clients (nov_blast_leftout); each number opens the clients. */
   var LEFTWHY = [['nophone', 'No mobile number on file'], ['notwa', 'A number WhatsApp cannot reach (landline, invalid or not found)'], ['optout', 'Opted out or marked do not contact'],
@@ -338,7 +353,7 @@
   }
   function blastMain(b) {
     var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = sorted().map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
-    var showWarm = c ? c.warm > 0 : true, lanes = (showWarm ? laneHtml('Warm', 'warm', b, c) : '') + laneHtml('Standard', 'std', b, c);
+    var ln = lanesOf(b, c);
     var who = (d.who_b && d.who_b.length ? whoHtml(d) : '<p>' + esc(d.who) + '</p>') +
       (b.id === 'E' && c ? '<p>Had colour in the last 12 months: <b>' + num(c.colour, tl + ', had colour', { p_blast: b.id, p_flag: 'colour' }) + '</b> · The rest: <b>' + fmtN(c.n - c.colour) + '</b></p>' : '') +
       (c && c.unchecked ? '<p class="nvb-wa-note"><b>WhatsApp check:</b> ' + fmtN(c.unchecked) + ' of these ' + fmtN(c.n) + ' have not been checked in respond.io yet. The overnight check does it; Count again tomorrow morning. Numbers that are landlines, invalid, or not found there are left out (SMS-only).</p>' : '') +
@@ -351,10 +366,10 @@
       '<div class="cbl-card cbl-when cbl-kate"><h3>Kate: schedule</h3><div class="nvb-schrow">' + (schedHtml(b) || '<p class="nvb-small">Kate sets the day and time.</p>') + '</div></div>' +
       tplHtml(b) +
       '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-nvb="flowbig">' + FLOWICON + 'See the flow bigger</button></div>' +
-      '<div class="cbl-phones" id="nvbPhones">' + lanes + '</div>' +
+      '<div class="cbl-phones' + (ln.one ? ' nvb-onephone' : '') + '" id="nvbPhones">' + ln.html + '</div>' +
       '<div class="nvb-after nvb-afterrow">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') +
       '<button type="button" class="nvb-btn' + (sim[b.id] ? ' pri' : '') + '" data-nvb="sim:' + esc(b.id) + '" aria-pressed="' + (sim[b.id] ? 'true' : 'false') + '">If she replies</button></div>' +
-      '<p class="nvb-small nvb-afterrow">Warm: last visit in the last 90 days' + warmSince() + '. ' + WHY_SPLIT + '</p>' +
+      (isSplit(b) ? '<p class="nvb-small nvb-afterrow">Warm: last visit in the last 90 days' + warmSince() + '. ' + WHY_SPLIT + '</p>' : '') +
       reviewHtml(b, rv, ed) +
       '<div class="nvb-stack">' + fold('who', 'Who gets it, and who is left out', '', who) + fold('facts', 'Cost, target and test', '', facts) + planHtml() + octHtml() + knowHtml() + '</div>';
   }
@@ -390,10 +405,11 @@
     dates.sort();
     var last = calcRows().slice(-1)[0], hours = last ? last.hrs : 0, ph = '…';
     var totHtml = ready ? num(tot, 'November blasts, every client', {}, true) : (liveErr ? '?' : '…');
-    var rows = '<div class="nvb-ab-r h"><span>Blast</span><span>Day</span><span>Clients</span><span>Warm</span><span>Standard</span><span>Review</span></div>' + bs.map(function (b) {
-      var c = lv(b.id), t = b.data.short || b.data.title;
-      return '<div class="nvb-ab-r"><span><a href="?view=novblasts&blast=' + esc(b.id) + '" data-nvb="sel:' + esc(b.id) + '">' + esc(t) + '</a></span><span>' + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== b.data.date ? '<small>Al Quoz: ' + esc(fdate(aqDate(b))) + '</small>' : '') + '</span>' +
-        '<span><b>' + (c ? num(c.n, t + ', every client', { p_blast: b.id }) : ph) + '</b></span><span>' + (c ? num(c.warm, t + ', warm clients', { p_blast: b.id, p_group: 'warm' }) : ph) + '</span><span>' + (c ? num(c.std, t + ', standard clients', { p_blast: b.id, p_group: 'std' }) : ph) + '</span><span><i class="cbl-chip ' + rcls(b.review) + '">' + lab(b.review) + '</i></span></div>';
+    var sp = anySplit();   // the Warm and Standard columns only while some blast still carries two messages
+    var rows = '<div class="nvb-ab-r h' + (sp ? '' : ' one') + '"><span>Blast</span><span>Day</span><span>Clients</span>' + (sp ? '<span>Warm</span><span>Standard</span>' : '') + '<span>Review</span></div>' + bs.map(function (b) {
+      var c = lv(b.id), t = b.data.short || b.data.title, bsp = isSplit(b);
+      return '<div class="nvb-ab-r' + (sp ? '' : ' one') + '"><span><a href="?view=novblasts&blast=' + esc(b.id) + '" data-nvb="sel:' + esc(b.id) + '">' + esc(t) + '</a></span><span>' + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== b.data.date ? '<small>Al Quoz: ' + esc(fdate(aqDate(b))) + '</small>' : '') + '</span>' +
+        '<span><b>' + (c ? num(c.n, t + ', every client', { p_blast: b.id }) : ph) + '</b></span>' + (sp ? '<span>' + (bsp ? (c ? num(c.warm, t + ', warm clients', { p_blast: b.id, p_group: 'warm' }) : ph) : '') + '</span><span>' + (bsp ? (c ? num(c.std, t + ', standard clients', { p_blast: b.id, p_group: 'std' }) : ph) : '') + '</span>' : '') + '<span><i class="cbl-chip ' + rcls(b.review) + '">' + lab(b.review) + '</i></span></div>';
     }).join('');
     return '<div class="cbl-head"><div><div class="cbl-eyebrow">' + (dates.length ? esc(fdate(dates[0])) + (dates[dates.length - 1] !== dates[0] ? ' to ' + esc(fdate(dates[dates.length - 1])) : '') : '') + '</div><h2>All blasts</h2></div><span class="cbl-chip ' + (approved() === bs.length && bs.length ? 'ok' : '') + '">' + approved() + ' of ' + bs.length + ' reviewed</span></div>' +
       '<div class="cbl-card nvb-allnums"><div><small>Clients</small><b>' + totHtml + '</b><span class="cbl-live">in ' + plural(bs.length, 'blast', 'blasts') + ', one message each. Tap a number to see the clients.</span></div>' +
@@ -404,11 +420,11 @@
   }
   // The two phones of one blast, large, in an overlay (Kate, 3 Nov 2026: the same as Campaign Blasts): both phones side by side, a Close button, and the hint. The taps play the same flow as the page.
   function flowBigHtml(b) {
-    var c = lv(b.id), showWarm = c ? c.warm > 0 : true, lanes = (showWarm ? laneHtml('Warm', 'warm', b, c) : '') + laneHtml('Standard', 'std', b, c);
+    var c = lv(b.id), ln = lanesOf(b, c);
     return '<div class="cbl"><div class="cbl-modal" data-nvb="flowx"><div class="cbl-flowbig cbl-card" role="dialog" aria-modal="true" aria-label="The flow, large"><div class="cbl-big-h">' +
       '<b>' + esc(b.data.title) + '</b><button type="button" class="cbl-big-x" data-nvb="flowx">Close</button></div>' +
       '<p class="cbl-hint">Tap a button to see what she gets next. If she types a question instead, it goes to the call centre.</p>' +
-      '<div class="cbl-fm-phones' + (showWarm ? '' : ' nvb-onephone') + '">' + lanes + '</div></div></div></div>';
+      '<div class="cbl-fm-phones' + (ln.one ? ' nvb-onephone' : '') + '">' + ln.html + '</div></div></div></div>';
   }
   function whoHtml(d) {
     if (d.who_b && d.who_b.length) return '<ul class="nvb-wl">' + d.who_b.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';

@@ -321,6 +321,8 @@
 .nvb .nvb-ab-r a{color:var(--text);text-decoration:none;font-weight:600}
 .nvb .nvb-ab-r small{display:block;font-size:11.5px;color:var(--muted2)}
 .nvb .nvb-ab-r .cbl-chip{font-style:normal}
+.nvb .nvb-ab-r.one{grid-template-columns:minmax(0,1.6fr) minmax(0,1.3fr) 64px minmax(0,1fr)}
+.nvb .nvb-ab-r.one>span:nth-child(4){text-align:left;font-variant-numeric:normal}
 @media (max-width:820px){
   .nvb .nvb-allnums{grid-template-columns:minmax(0,1fr)}
   .nvb .nvb-allnums>div{border-right:0;border-bottom:1px solid var(--border)}
@@ -329,10 +331,13 @@
   .nvb .nvb-ab-r>span:nth-child(2){grid-column:1/-1;order:5;font-size:12.5px;color:var(--muted)}
   .nvb .nvb-ab-r>span:nth-child(6){grid-column:1/-1;order:6}
   .nvb .nvb-ab-r.h>span:nth-child(2),.nvb .nvb-ab-r.h>span:nth-child(6){display:none}
+  .nvb .nvb-ab-r.one{grid-template-columns:minmax(0,1fr) 64px}
+  .nvb .nvb-ab-r.one>span:nth-child(4){grid-column:1/-1;order:6}
+  .nvb .nvb-ab-r.one.h>span:nth-child(4){display:none}
 }
 
 /* the Who box as short bullets (Kate, 3 Nov 2026) */
 .nvb .nvb-wl{margin:2px 0 0;padding-left:18px;display:grid;gap:3px;font-size:14px;line-height:1.35}
 .nvb .nvb-wl li{padding-left:2px}
 /* a blast with one phone in the large flow */
-.cbl-fm-phones.nvb-onephone{grid-template-columns:minmax(0,420px);justify-content:center}
+.cbl-phones.nvb-onephone,.cbl-fm-phones.nvb-onephone{grid-template-columns:minmax(0,420px);justify-content:center}
