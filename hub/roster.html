@@ -24,6 +24,14 @@
 .rs-send{font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
 .rs-send:hover{border-color:var(--text)}
 .rs-send:disabled{cursor:default;opacity:.6;border-color:var(--border)}
+/* Kate, 4 Nov 2026: the mass invite bar, Level 5 only. */
+.rs-bulk{margin:10px 0 4px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);font-size:14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.rs-bulk[hidden]{display:none}
+.rs-bulk .rs-bn{flex:1 1 260px;color:var(--muted)}
+.rs-bulk .rs-bn b{color:var(--text)}
+.rs-bulk .rs-bgo{font:inherit;font-size:13px;font-weight:600;padding:8px 16px;min-height:36px;border-radius:999px;border:1px solid var(--text);background:var(--text);color:var(--bg);cursor:pointer}
+.rs-bulk .rs-bgo:disabled{cursor:default;opacity:.6}
+.rs-bulk .rs-bfail{flex:1 1 100%;margin:0;padding:0;list-style:none;font-size:12.5px;color:#B3261E;display:grid;gap:2px}
 /* Kate, 15 Oct 2026: Add person and Change level, Level 5 only. */
 /* The My Numbers lock strip (audit 18 Oct 2026, P7-01). */
 .rs-lock{margin:14px 0 4px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);font-size:14px}
@@ -101,7 +109,9 @@
      (migrations/kb_roster.sql), which answers Level 3 and up only; nothing of it is
      in this file, the repo is public.
      Kate, 6 Oct 2026: Level 5 also gets a Send invite button on anyone from the
-     dashboard list who has never signed in (kb_send_invite(), migrations/kb_roster_invite.sql). -->
+     dashboard list who has never signed in (kb_send_invite(), migrations/kb_roster_invite.sql).
+     Kate, 4 Nov 2026: that button now shows for everyone on the roster, and a bar above the list sends the invite to everyone who has never
+     signed in, following the filters (kb_send_invite_bulk(), migrations/kb_roster_mass_invite.sql). -->
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Team Home"></header>
   <main id="kbMain"><p class="kb-msg">Loading…</p></main>
@@ -142,7 +152,12 @@
   // Kate, 6 Oct 2026: Level 5 (not on "View as") can send the dashboard invite to
   // anyone on the dashboard list who has never signed in. Resends too, if they
   // were invited before and never accepted.
-  function canInvite(p) { return byLevel && p.team === 'Management & Office' && !p.last_sign_in; }
+  // Kate, 4 Nov 2026: and anyone else on the roster (stylists, beauticians, front desk, call centre), one by one here and all at once from the bar
+  // above the list (kb_send_invite_bulk(), migrations/kb_roster_mass_invite.sql).
+  function canInvite(p) { return byLevel && !p.last_sign_in; }
+  // Who the mass button would email now: on the list as filtered, never signed in, not invited in the last 3 days. The database checks it all again.
+  var BULK_MAX = 80, RECENT = 3 * 24 * 3600 * 1000;
+  function needsInvite(p) { return !p.last_sign_in && !(p.invited && Date.now() - new Date(p.invited).getTime() < RECENT); }
   // Kate, 15 Oct 2026: Level 5 can change a dashboard-list person's level (2 to 4); the
   // owner row and Level 1 staff have no dropdown. The database refuses anything else.
   function canSetLevel(p) { return byLevel && p.team === 'Management & Office' && p.level >= 2 && p.level <= 4; }
@@ -249,6 +264,65 @@
         : '<section class="kb-group"><h2>' + title + '</h2>' + body + '</section>';
     }).join('') : '<p class="kb-msg">Nobody matches those filters.</p>';
     drawRevoked();
+    drawBulk();
+  }
+
+  // Kate, 4 Nov 2026: the mass invite bar. It follows the filters (pick a branch or a team and it counts only them), asks once with the number,
+  // then shows progress while the edge function sends one email a second, and lists anyone it could not reach.
+  var bulkRun = null;   // { batch, total } while sending, then { done: true, ... } until the next redraw after Kate clears it
+  function drawBulk() {
+    var box = document.getElementById('rsBulk');
+    if (!box || !data) return;
+    var targets = data.people.filter(function (p) { return match(p) && needsInvite(p); });
+    var never = data.people.filter(function (p) { return match(p) && !p.last_sign_in; }).length;
+    if (bulkRun) {
+      box.hidden = false;
+      if (bulkRun.msg) {
+        box.innerHTML = '<span class="rs-bn">' + bulkRun.msg + '</span>' +
+          (bulkRun.errors && bulkRun.errors.length ? '<ul class="rs-bfail">' + bulkRun.errors.map(function (x) { return '<li>' + esc(x.email) + ': ' + esc(x.error || '') + '</li>'; }).join('') + '</ul>' : '') +
+          (bulkRun.done ? '<button type="button" class="rs-bgo" id="rsBulkOk">OK</button>' : '');
+        var ok = document.getElementById('rsBulkOk');
+        if (ok) ok.onclick = function () { bulkRun = null; drawBulk(); };
+      }
+      return;
+    }
+    if (!never) { box.hidden = true; return; }
+    box.hidden = false;
+    var left = never - targets.length;
+    box.innerHTML = '<span class="rs-bn"><b>' + never + '</b> on this list ' + (never === 1 ? 'has' : 'have') + ' never signed in' +
+      (left ? ' (' + left + ' invited in the last 3 days, left out)' : '') + '.' +
+      (targets.length > BULK_MAX ? ' Sends ' + BULK_MAX + ' at a time.' : '') + '</span>' +
+      (targets.length ? '<button type="button" class="rs-bgo" id="rsBulkGo">Send invite to ' + Math.min(targets.length, BULK_MAX) + (targets.length === 1 ? ' person' : ' people') + '</button>' : '');
+    var go = document.getElementById('rsBulkGo');
+    if (go) go.onclick = function () { sendBulk(targets.slice(0, BULK_MAX)); };
+  }
+  async function sendBulk(list) {
+    if (!confirm('Send the Team Home invite email to ' + list.length + (list.length === 1 ? ' person' : ' people') + '?\n\nThey are the people on this list who have never signed in and were not invited in the last 3 days. The emails go out one a second.')) return;
+    bulkRun = { msg: 'Starting…' }; drawBulk();
+    var s = await KB.client.rpc('kb_send_invite_bulk', { p_emails: list.map(function (p) { return p.email; }) });
+    if (s.error || !s.data) {
+      bulkRun = { done: true, msg: 'The invites didn’t go: ' + esc(s.error ? s.error.message : 'no answer') }; drawBulk();
+      return;
+    }
+    var batch = s.data.batch, total = s.data.queued, st = null;
+    for (var i = 0; i < 100; i++) {   // up to about 5 minutes
+      await new Promise(function (r) { setTimeout(r, 3000); });
+      var q = await KB.client.rpc('kb_invite_status', { p_batch: batch });
+      if (q.error || !q.data) continue;
+      st = q.data;
+      bulkRun = { batch: batch, msg: 'Sending… ' + (st.total - st.queued) + ' of ' + st.total + ' done.' }; drawBulk();
+      if (!st.queued) break;
+    }
+    var r = await KB.client.rpc('kb_roster');
+    if (r.data) { data = r.data; }
+    if (!st) { bulkRun = { done: true, msg: 'Sent to the invite service, but the progress could not be read. Reload the page in a minute to see who was invited.' }; draw(); return; }
+    bulkRun = {
+      done: true, errors: st.errors,
+      msg: st.queued
+        ? 'Still sending: ' + st.invited + ' invited so far, ' + st.queued + ' to go. Reload the page in a few minutes.'
+        : '<b>' + st.invited + '</b> invited' + (st.skipped ? ', ' + st.skipped + ' already had an account' : '') + (st.failed ? ', <b>' + st.failed + ' failed</b>' : '') + '. Press the button again to retry any that failed.'
+    };
+    draw();
   }
 
   KB.ready.then(async function () {
@@ -290,6 +364,7 @@
         '</div>' +
       '</div>' +
       '<div class="rs-status"><span id="rsCount"></span><button type="button" id="rsClear" hidden>Clear filters</button></div>' +
+      (byLevel ? '<div class="rs-bulk" id="rsBulk" hidden></div>' : '') +
       '<div class="rs-tbl' + (byLevel ? ' rs-lvl' : '') + '" id="rsTbl">' +
         '<div class="rs-cols" aria-hidden="true">' + (byLevel ? '<span>Level</span>' : '') +
           '<span>Name</span><span>Job title</span><span>Email</span><span>Sign-in</span><span>Last login</span>' + (byLevel ? '<span></span>' : '') + '</div>' +
