@@ -16,6 +16,16 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fmtN(n) { return Number(n || 0).toLocaleString('en-GB'); }
   var BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' }, BKEYS = ['SAA', 'KCA', 'MC', 'AQ'];
+  /* Calendar and All blasts fold into pills (Kate, 4 Nov 2026: "calendar and all blasts, minimise to pills", "expandable, hideable when clicked"). Closed by default so the Blasts
+     list sits high; what she opens is remembered in this browser only (localStorage, in try/catch: the page works with storage blocked). Front end only, no data touched. */
+  var PILL_KEY = 'nvb-pills-v1', pills = { cal: false, all: false };
+  try { var ps0 = JSON.parse(localStorage.getItem(PILL_KEY) || '{}'); pills.cal = ps0.cal === true; pills.all = ps0.all === true; } catch (e) {}
+  function savePills() { try { localStorage.setItem(PILL_KEY, JSON.stringify(pills)); } catch (e) {} }
+  var CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  function pillBtn(key, title, sub, open, subCls, on) {
+    return '<button type="button" class="nvb-pill' + (open ? ' open' : '') + (on ? ' on' : '') + '" data-nvb="pill:' + key + '" aria-expanded="' + (open ? 'true' : 'false') + '" title="' + (open ? 'Hide ' : 'Show ') + esc(title) + '">' +
+      '<span class="pt">' + esc(title) + '</span>' + (sub ? '<span class="ps' + (subCls ? ' ' + subCls : '') + '">' + esc(sub) + '</span>' : '') + CHEV + '</button>';
+  }
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var TABS = ['messages', 'before'];
   var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
@@ -166,6 +176,11 @@
     return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + (suffix ? ' ' + (h >= 12 ? 'pm' : 'am') : '');
   }
   function calSide() {
+    var b = blast(cur), o = pills.cal;
+    if (!cal) { var cd0 = b ? parts(b.data.date) : new Date(); cal = { y: cd0.getFullYear(), m: cd0.getMonth() }; }
+    return '<div class="nvb-pwrap">' + pillBtn('cal', 'Calendar', MN[cal.m] + ' ' + cal.y, o) + (o ? calCard() : '') + '</div>';
+  }
+  function calCard() {
     var bs = blasts(), b = blast(cur);
     if (!cal) { var cd = b ? parts(b.data.date) : new Date(); cal = { y: cd.getFullYear(), m: cd.getMonth() }; }
     var y = cal.y, mo = cal.m, off = (new Date(y, mo, 1).getDay() + 6) % 7, n = new Date(y, mo + 1, 0).getDate(), curIso = b ? b.data.date : '', today = dubaiToday(), byDay = {};
@@ -232,9 +247,11 @@
       rows += '<div><span>' + esc(b.data.short || b.data.title) + '</span><b>' + (c ? num(n, (b.data.short || b.data.title) + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b></div>';
     });
     var ready = !!(LIVE && LIVE.blasts), hrs = slots / 2;
-    return '<div class="cbl-tabs cbl-card nvb-tot' + (cur === ALLID ? ' on' : '') + '" data-nvb="sel:' + ALLID + '" title="Open the whole picture across the blasts"><h3><a href="?view=novblasts&blast=' + ALLID + '" data-nvb="sel:' + ALLID + '">All blasts</a></h3><div class="nvb-tot-big"><b>' + (ready ? num(tot, 'November blasts, every client', {}, true) : (liveErr ? '?' : '…')) + '</b><span>clients in ' + plural(bs.length, 'blast', 'blasts') + '</span></div>' +
+    var card = '<div class="cbl-tabs cbl-card nvb-tot' + (cur === ALLID ? ' on' : '') + '" data-nvb="sel:' + ALLID + '" title="Open the whole picture across the blasts"><h3><a href="?view=novblasts&blast=' + ALLID + '" data-nvb="sel:' + ALLID + '">Open the whole picture</a></h3><div class="nvb-tot-big"><b>' + (ready ? num(tot, 'November blasts, every client', {}, true) : (liveErr ? '?' : '…')) + '</b><span>clients in ' + plural(bs.length, 'blast', 'blasts') + '</span></div>' +
       '<div class="nvb-tot-rows">' + rows + '</div>' +
       (ready ? '<p class="cbl-hint">At most <b>' + calcNum('AED ' + fmtN(Math.round(tot * RATE_AED)), 'cost') + '</b> (about ' + calcNum('USD ' + fmtN(Math.round(tot * RATE_USD)), 'cost') + '). About <b>' + calcNum((hrs % 1 ? hrs.toFixed(1) : hrs) + ' hours', 'time') + '</b> of sending at ' + PACE + ' every 30 minutes.</p>' : '') + '</div>';
+    var o = pills.all;
+    return '<div class="nvb-pwrap">' + pillBtn('all', 'All blasts', ready ? fmtN(tot) : (liveErr ? '?' : '…'), o, 'num', cur === ALLID) + (o ? card : '') + '</div>';
   }
   function listSide() {
     var bs = sorted(), rev = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length;
@@ -732,6 +749,7 @@
       else if (k === 'go') { dec = +v; render(true); }
       else if (k === 'pick') { if (!canEdit()) return; act(function () { return rpc('nov_blast_decide', { p_idx: dec + 1, p_pick: +v }); }); }
       else if (k === 'clear') { act(function () { return rpc('nov_blast_decide', { p_idx: dec + 1, p_pick: null }); }); }
+      else if (k === 'pill') { if (!(v in pills)) return; pills[v] = !pills[v]; savePills(); render(true); }
       else if (k === 'cal') { if (!cal) return; cal.m += v === 'next' ? 1 : -1; if (cal.m > 11) { cal.m = 0; cal.y++; } if (cal.m < 0) { cal.m = 11; cal.y--; } render(true); }
       else if (k === 'day') { var hit = sorted().filter(function (x) { return x.data.date === v || aqDate(x) === v; }); if (!hit.length) return; var at = hit.map(function (x) { return x.id; }).indexOf(cur); cur = hit[(at + 1) % hit.length].id; rb = cur; render(true); syncUrl(); }
       else if (k === 'flow') { var fp = v.split(':'), fk = fp[0] + ':' + fp[1], fs = +fp[2], fi = +fp[3], pp = (fl[fk] || []).slice(0, fs); pp[fs] = fi; fl[fk] = pp; flowScroll = fk; render(true); }

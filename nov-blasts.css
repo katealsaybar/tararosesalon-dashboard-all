@@ -388,3 +388,18 @@
   .nvb-sm .nvb-sr{grid-template-columns:minmax(0,1fr)}
   .nvb-sm .nvb-sfoot .nvb-btn{flex:1 1 100%}
 }
+
+/* Calendar and All blasts as pills (4 Nov 2026): a pill is title, a small figure and a chevron; click it to open the card under it, click again to hide it */
+.nvb .nvb-pwrap{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.nvb .nvb-pill{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:0 14px 0 18px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font:inherit;font-size:14.5px;font-weight:600;text-align:left;cursor:pointer;box-shadow:var(--shadow)}
+.nvb .nvb-pill:hover{border-color:var(--muted2)}
+.nvb .nvb-pill:focus-visible{outline:2px solid #3AA892;outline-offset:2px}
+.nvb .nvb-pill.on{border-color:var(--muted2);box-shadow:inset 3px 0 0 #3AA892}
+.nvb .nvb-pill .pt{flex:none}
+.nvb .nvb-pill .ps{margin-left:auto;font-size:13px;font-weight:500;color:var(--muted2);font-variant-numeric:tabular-nums}
+.nvb .nvb-pill .ps.num{font-size:15px;font-weight:700;color:var(--text)}
+.nvb .nvb-pill svg{width:16px;height:16px;flex:none;color:var(--muted2);transition:transform .15s}
+.nvb .nvb-pill .ps+svg{margin-left:2px}
+.nvb .nvb-pill .pt+svg{margin-left:auto}
+.nvb .nvb-pill.open svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.nvb .nvb-pill svg{transition:none}}
