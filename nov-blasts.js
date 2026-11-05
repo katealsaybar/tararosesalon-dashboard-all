@@ -729,6 +729,7 @@
     if (!sndM || !SND) return false;
     if (sndM.kind === 'live') return sndTyped.trim().toUpperCase() === 'LIVE';
     if (sndM.kind === 'test') return sndPhone.replace(/\D/g, '').length >= 9 && !(sndTest && sndTest.busy);
+    if (sndM.kind === 'resend') return !!sndPrev && !sndPrev.err && sndPrev.ok > 0 && !SND.dry_run && !!SND.enabled && sndTyped.trim().toUpperCase() === 'RESEND ' + sndM.id.toUpperCase() && !sndBusy;
     var live = !SND.dry_run;
     return !!sndPrev && !sndPrev.err && sndPrev.ok > 0 && (!live || sndTyped.trim().toUpperCase() === 'SEND ' + sndM.id.toUpperCase()) && !sndBusy;
   }
@@ -766,11 +767,13 @@
         '<div><b>' + (x.dry ? '–' : fmtN(c.delivered || 0)) + '</b><span>Delivered or read</span></div><div class="' + (c.failed ? 'bad' : '') + '"><b>' + fmtN(c.failed || 0) + '</b><span>Failed' + (sent ? ' · ' + pctOf(c.failed || 0, sent) : '') + '</span></div>' +
         '<div class="' + (c.stop ? 'bad' : '') + '"><b>' + (x.dry ? '–' : fmtN(c.stop || 0)) + '</b><span>STOP' + (!x.dry && sent ? ' · ' + pctOf(c.stop || 0, sent) : '') + '</span></div></div>' +
         (x.dry ? '<p class="nvb-small">A dry run: the messages went through the queue and the pace, but nothing was posted, so delivered and STOP stay empty.</p>' : '<p class="nvb-small">Delivered and STOP come from respond.io a few minutes after each send, then again at 30 minutes, 2, 8 and 24 hours.</p>') +
+        (c.again ? '<p class="nvb-small nvb-again"><b>Sent again: ' + fmtN(c.again) + '</b> · ' + fmtN(c.again_delivered || 0) + ' delivered or read, ' + fmtN(c.again_failed || 0) + ' failed, ' + fmtN(c.again_queued || 0) + ' still to go. A client Meta refused is sent once more after 24 hours, never a third time; the Failed number above no longer counts the ones sent again.</p>' : '') +
         (skipN || c.skipped ? '<details class="nvb-fold nvb-sk"><summary><span>Left out when it was queued <small>' + fmtN(skipN) + '</small>' + (c.skipped ? ' · skipped since ' + fmtN(c.skipped) : '') + '</span></summary><div class="in">' +
           Object.keys(sk).map(function (k) { return '<div class="nvb-lf"><span>' + esc(SKIPWHY[k] || k) + '</span><b>' + fmtN(sk[k]) + '</b></div>'; }).join('') + '</div></details>' : '') +
         (er.length ? '<details class="nvb-fold nvb-sk" open><summary><span>Why some did not go</span></summary><div class="in">' + er.map(function (e) { return '<div class="nvb-lf"><span>' + esc(e.e) + '</span><b>' + fmtN(e.n) + '</b></div>'; }).join('') + '</div></details>' : '');
     }
-    h += '<div class="nvb-sbtns"><button type="button" class="nvb-btn pri" data-nvb="snd:open:' + esc(b.id) + '"' + ((t && t.s === 'approved' && !act && !sndBusy) ? '' : ' disabled') + '>' + (x && !act ? 'Send again…' : 'Send…') + '</button>' +
+    h += '<div class="nvb-sbtns"><button type="button" class="nvb-btn pri" data-nvb="snd:open:' + esc(b.id) + '"' + ((t && t.s === 'approved' && !act && !sndBusy) ? '' : ' disabled') + '>' + (x && !act ? 'Send to anyone not sent yet…' : 'Send…') + '</button>' +
+      (x && !act && c.failed > 0 && t && t.s === 'approved' ? '<button type="button" class="nvb-btn" data-nvb="snd:resend:' + esc(b.id) + '"' + (sndBusy ? ' disabled' : '') + '>Resend failed…</button>' : '') +
       (x && x.state === 'running' && act ? '<button type="button" class="nvb-btn" data-nvb="snd:bpause:' + esc(b.id) + '">Pause this blast</button>' : '') +
       (x && x.state === 'paused' && act ? '<button type="button" class="nvb-btn" data-nvb="snd:bresume:' + esc(b.id) + '">Resume this blast</button>' : '') +
       (x && act ? '<button type="button" class="nvb-btn" data-nvb="snd:cancel:' + esc(b.id) + '">Cancel the rest</button>' : '') +
@@ -795,6 +798,27 @@
         '<label class="nvb-sl" for="nvbSndImg">Header image</label>' + imgSelect() +
         (sndTest ? '<p class="nvb-small nvb-tres">' + (sndTest.err ? '<span class="nvb-err">' + esc(sndTest.err) + '</span>' : sndTest.busy ? 'Queued, waiting for the worker…' : r ? 'Status: <b>' + esc(r.status) + '</b>' + (r.dry ? ' (dry run, nothing was posted)' : '') + (r.delivery ? ', ' + esc(r.delivery) : '') + (r.error ? '. ' + esc(r.error) : '') : '') + '</p>' : '');
       foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:dotest"' + (sndOk() ? '' : ' disabled') + '>Send the test</button>';
+    } else if (m.kind === 'resend') {
+      var rb2 = item(m.id), rp = sndPrev, rsk = rp && !rp.err ? (rp.skip || {}) : {}, rn = rp && !rp.err ? rp.ok : null, rlive = !SND.dry_run && !!SND.enabled;
+      var rwait = rsk['Waiting: 24 hours have not passed yet'] || 0, rother = 0;
+      Object.keys(rsk).forEach(function (k) { if (k.indexOf('Waiting') !== 0) rother += rsk[k]; });
+      var rcodes = rp && !rp.err ? rp.codes || {} : {}, rcl = Object.keys(rcodes).map(function (k) { return rcodes[k] + ' × ' + (k === '131049' ? 'Meta marketing limit (131049)' : k === '130472' ? 'held out of an experiment (130472)' : esc(k)); }).join(', ');
+      var rlots = rn == null ? null : Math.ceil(rn / SND.slot_cap), rmins = rlots == null ? null : rlots * SND.slot_minutes;
+      head = 'Resend failed · ' + esc(rb2.data.short || rb2.data.title);
+      body = '<div class="nvb-sbanner ' + (rlive ? 'bad' : 'warn') + '">' + (SND.dry_run ? 'Dry run is on. Resend works on a live send only: go live first.' : !SND.enabled ? 'Sending is switched off. Switch sending on first, then come back.' : 'LIVE: this sends real WhatsApp messages to real clients.') + '</div>' +
+        '<div class="nvb-srows">' + sndRow('Blast', esc(rb2.data.title)) +
+        sndRow('Failed in the first send', rp ? (rp.err ? '<span class="nvb-err">Could not check: ' + esc(rp.err) + '</span>' : fmtN(rp.total)) : 'Checking…') +
+        sndRow('Ready to send again', rn == null ? '…' : '<b>' + fmtN(rn) + '</b>' + (rcl ? '<small> · ' + rcl + '</small>' : '')) +
+        sndRow('Not yet, 24 hours have not passed', rp && !rp.err ? fmtN(rwait) + (rwait && rp.next_ready ? '<small> · the first is ready ' + esc(fat(rp.next_ready)) + ' Dubai time</small>' : '') : '…') +
+        sndRow('Left out', rp && !rp.err ? fmtN(rother) + (rother ? '<small> · ' + Object.keys(rsk).filter(function (k) { return k.indexOf('Waiting') !== 0; }).map(function (k) { return rsk[k] + ' ' + esc(k.toLowerCase()); }).join(', ') + '</small>' : '') : '…') +
+        sndRow('Same message', 'The same words, template and artwork as the first send, to the number she has now.') +
+        sndRow('Cost, at most', rn == null ? '…' : 'AED ' + fmtN(Math.round(rn * RATE_AED)) + '<small> · an undelivered message is not charged</small>') +
+        sndRow('Sending time', rn == null ? '…' : (rmins >= 120 ? (Math.round(rmins / 6) / 10) + ' hours' : rmins + ' minutes') + '<small> · ' + SND.slot_cap + ' every ' + SND.slot_minutes + ' minutes, inside the send window</small>') +
+        sndRow('From', esc(SND.channel)) + '</div>' +
+        (rlive ? '<label class="nvb-sl" for="nvbSndTyped">Type <b>RESEND ' + esc(m.id) + '</b> to confirm</label><input id="nvbSndTyped" type="text" autocomplete="off" autocapitalize="characters">' : '') +
+        '<p class="nvb-small">Only a message Meta refused with its marketing limit or an experiment hold, after 24 hours, and never a third time. Not sent: a number WhatsApp cannot reach, STOP, an opt-out, an appointment from today on, a reply since, or another message already queued or sent. The limit can refuse again, and a refused message is not charged. The gate watches this resend on its own numbers.</p>' +
+        (sndErr ? '<p class="nvb-err nvb-small" role="alert">' + esc(sndErr) + '</p>' : '');
+      foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:resendgo"' + (sndOk() ? '' : ' disabled') + '>Resend ' + (rn == null ? '' : fmtN(rn) + ' messages') + '</button>';
     } else {
       var b = item(m.id), c = lv(b.id), tp = tplOf(b), pv = sndPrev, live = !SND.dry_run, n = pv && !pv.err ? pv.ok : (c ? c.n : null), hasEnd = /\{\{3\}\}/.test(((b.data.msg || {}).warm || (b.data.msg || {}).std || ''));
       var ahead = 0; Object.keys(SND.blasts || {}).forEach(function (k) { var z = SND.blasts[k]; if (k !== b.id && activeRun(z)) ahead += z.counts.queued; });
@@ -859,6 +883,16 @@
       if (!b) return;
       sndM = { kind: 'send', id: id }; sndTyped = ''; sndImg = defImg(b); sndPrev = null; sndErr = ''; render(true);
       rpc('nov_send_preview', { p_blast: id }).then(function (r) { if (sndM && sndM.id === id) { sndPrev = r; render(true); } }).catch(function (e) { console.error(e); if (sndM && sndM.id === id) { sndPrev = { err: e.message || 'try again' }; render(true); } });
+    }
+    else if (w === 'resend') {
+      if (!b) return;
+      sndM = { kind: 'resend', id: id }; sndTyped = ''; sndPrev = null; sndErr = ''; render(true);
+      rpc('nov_send_resend_preview', { p_blast: id }).then(function (r) { if (sndM && sndM.id === id && sndM.kind === 'resend') { sndPrev = r; render(true); } }).catch(function (e) { console.error(e); if (sndM && sndM.id === id) { sndPrev = { err: e.message || 'try again' }; render(true); } });
+    }
+    else if (w === 'resendgo') {
+      if (!sndOk()) return;
+      var rid = sndM.id, rtyp = sndTyped; sndM = null; sndTyped = '';
+      sndCall('nov_send_resend', { p_blast: rid, p_confirm: rtyp }, sndAfterQueue);
     }
     else if (w === 'test') { if (!b) return; sndM = { kind: 'test', id: id }; sndImg = defImg(b); sndTest = null; render(true); }
     else if (w === 'golive') { sndM = { kind: 'live' }; sndTyped = ''; render(true); }
