@@ -526,7 +526,8 @@
   try { if (localStorage.getItem('nvb-money-view') === 'table') rsV.money = 'table'; if (localStorage.getItem('nvb-del-view') === 'table') rsV.del = 'table'; } catch (e) { /* fine without storage */ }
   var NV_DRILL = { sent: 'Accepted by respond.io', reached: 'Delivered or read', read: 'Read', delivered: 'Delivered, not read yet', unconfirmed: 'Not confirmed yet', failed: 'Failed', checked: 'Status-checked',
     never_checked: 'Not status-checked yet', stop: 'STOP', replied: 'Wrote back', queued: 'Still queued', ahead: 'Booked ahead', appts: 'Booked ahead, with their appointments', came_in: 'Already came in, nothing booked',
-    paid: 'Paid at the till since the message', since: 'Booked ahead or came in' };
+    paid: 'Paid at the till since the message', since: 'Booked ahead or came in',
+    sent_ok: 'Sent', failed_any: 'Failed', skipped: 'Dropped just before sending', notgone: 'Did not go', again: 'Sent again', again_delivered: 'Sent again, delivered or read', again_failed: 'Sent again, failed', again_queued: 'Sent again, still to go' };
   var NV_BUCKET = { '1': 'Wrote to us in the last 30 days', '2': 'Wrote to us 31 to 90 days ago', '3': 'Wrote to us 91 to 180 days ago', '4': 'Wrote to us over 180 days ago', '5': 'Never wrote to us' };
   var NV_SPLIT = [['hair_services', 'Hair services (colour, cut, extensions)'], ['hair_treat', 'Hair treatments'], ['beauty_services', 'Beauty and nails'], ['retail_hair', 'Retail, hair'], ['retail_beauty', 'Retail, beauty'], ['other', 'Other']];
   var DM = null, DMFrom = null, logQT = null;
@@ -687,7 +688,7 @@
   }
   document.addEventListener('click', function (e) {
     var t = e.target; if (!t || !t.closest) return;
-    var n = t.closest('.nvb-num'); if (n) { dmOpen(n); return; }
+    var n = t.closest('.nvb-num'); if (n) { e.preventDefault(); dmOpen(n); return; }
     var c = t.closest('.nvb-copy'); if (c) { e.preventDefault(); nvCopy(c); return; }
     var x = t.closest('[data-nvr]'); if (x && (x.closest('#novBlastsContent') || x.closest('.nvb-md'))) { rsAct(x.getAttribute('data-nvr'), x); return; }
     if (DM && t === DM) dmClose();
@@ -1067,14 +1068,14 @@
       h += '<div class="nvb-sstate"><span class="chip ' + (x.state === 'running' ? 'good' : x.state === 'paused' ? 'warn' : '') + '">' + esc(stLab) + '</span><span class="chip ' + (x.dry ? 'warn' : 'bad') + '">' + (x.dry ? 'Dry run' : 'Live') + '</span>' +
         '<span class="nvb-small">Queued ' + esc(fat(x.at)) + ' by ' + esc(x.by) + (x.image ? ', with the artwork' : ', no header image') + '</span></div>' +
         '<div class="nvb-prog" role="img" aria-label="' + done + ' of ' + total + ' done"><i style="width:' + (total ? Math.min(100, Math.round(done * 100 / total)) : 0) + '%"></i></div>' +
-        '<div class="nvb-sc"><div><b>' + fmtN(c.queued || 0) + '</b><span>Queued</span></div><div><b>' + fmtN(c.sent || 0) + '</b><span>Sent</span></div>' +
-        '<div><b>' + (x.dry ? '–' : fmtN(c.delivered || 0)) + '</b><span>Delivered or read</span></div><div class="' + (c.failed ? 'bad' : '') + '"><b>' + fmtN(c.failed || 0) + '</b><span>Failed' + (sent ? ' · ' + pctOf(c.failed || 0, sent) : '') + '</span></div>' +
-        '<div class="' + (c.stop ? 'bad' : '') + '"><b>' + (x.dry ? '–' : fmtN(c.stop || 0)) + '</b><span>STOP' + (!x.dry && sent ? ' · ' + pctOf(c.stop || 0, sent) : '') + '</span></div></div>' +
+        '<div class="nvb-sc"><div><b>' + nn(c.queued || 0, 'queued', { b: b.id }) + '</b><span>Queued</span></div><div><b>' + nn(c.sent || 0, 'sent_ok', { b: b.id }) + '</b><span>Sent</span></div>' +
+        '<div><b>' + (x.dry ? '–' : nn(c.delivered || 0, 'reached', { b: b.id })) + '</b><span>Delivered or read</span></div><div class="' + (c.failed ? 'bad' : '') + '"><b>' + nn(c.failed || 0, 'failed_any', { b: b.id }) + '</b><span>Failed' + (sent ? ' · ' + pctOf(c.failed || 0, sent) : '') + '</span></div>' +
+        '<div class="' + (c.stop ? 'bad' : '') + '"><b>' + (x.dry ? '–' : nn(c.stop || 0, 'stop', { b: b.id })) + '</b><span>STOP' + (!x.dry && sent ? ' · ' + pctOf(c.stop || 0, sent) : '') + '</span></div></div>' +
         (x.dry ? '<p class="nvb-small">A dry run: the messages went through the queue and the pace, but nothing was posted, so delivered and STOP stay empty.</p>' : '<p class="nvb-small">Delivered and STOP come from respond.io a few minutes after each send, then again at 30 minutes, 2, 8 and 24 hours.</p>') +
-        (c.again ? '<p class="nvb-small nvb-again"><b>Sent again: ' + fmtN(c.again) + '</b> · ' + fmtN(c.again_delivered || 0) + ' delivered or read, ' + fmtN(c.again_failed || 0) + ' failed, ' + fmtN(c.again_queued || 0) + ' still to go' + (RWHEN[b.id] ? ', scheduled: the rest go from ' + esc(fat(RWHEN[b.id])) + ' Dubai time' : '') + '. A client Meta refused is sent once more after 24 hours, never a third time; the Failed number above no longer counts the ones sent again.</p>' : '') +
-        (skipN || c.skipped ? '<details class="nvb-fold nvb-sk"><summary><span>Left out when it was queued <small>' + fmtN(skipN) + '</small>' + (c.skipped ? ' · skipped since ' + fmtN(c.skipped) : '') + '</span></summary><div class="in">' +
+        (c.again ? '<p class="nvb-small nvb-again"><b>Sent again: ' + nn(c.again, 'again', { b: b.id }) + '</b> · ' + nn(c.again_delivered || 0, 'again_delivered', { b: b.id }) + ' delivered or read, ' + nn(c.again_failed || 0, 'again_failed', { b: b.id }) + ' failed, ' + nn(c.again_queued || 0, 'again_queued', { b: b.id }) + ' still to go' + (RWHEN[b.id] ? ', scheduled: the rest go from ' + esc(fat(RWHEN[b.id])) + ' Dubai time' : '') + '. A client Meta refused is sent once more after 24 hours, never a third time; the Failed number above no longer counts the ones sent again.</p>' : '') +
+        (skipN || c.skipped ? '<details class="nvb-fold nvb-sk"><summary><span>Left out when it was queued <small>' + fmtN(skipN) + '</small>' + (c.skipped ? ' · skipped since ' + nn(c.skipped, 'skipped', { b: b.id }) : '') + '</span></summary><div class="in">' +
           Object.keys(sk).map(function (k) { return '<div class="nvb-lf"><span>' + esc(SKIPWHY[k] || k) + '</span><b>' + fmtN(sk[k]) + '</b></div>'; }).join('') + '</div></details>' : '') +
-        (er.length ? '<details class="nvb-fold nvb-sk" open><summary><span>Why some did not go</span></summary><div class="in">' + er.map(function (e) { return '<div class="nvb-lf"><span>' + esc(e.e) + '</span><b>' + fmtN(e.n) + '</b></div>'; }).join('') + '</div></details>' : '');
+        (er.length ? '<details class="nvb-fold nvb-sk" open><summary><span>Why some did not go</span></summary><div class="in">' + er.map(function (e) { return '<div class="nvb-lf"><span>' + esc(e.e) + '</span><b>' + nn(e.n, 'notgone', { b: b.id, r: String(e.e).replace(/\+?\d{8,}/g, '[number]') }) + '</b></div>'; }).join('') + '</div></details>' : '');
     }
     h += '<div class="nvb-sbtns"><button type="button" class="nvb-btn pri" data-nvb="snd:open:' + esc(b.id) + '"' + ((t && t.s === 'approved' && !act && !sndBusy) ? '' : ' disabled') + '>' + (x && !act ? 'Send to anyone not sent yet…' : 'Send…') + '</button>' +
       (x && !act && c.failed > 0 && t && t.s === 'approved' ? '<button type="button" class="nvb-btn" data-nvb="snd:resend:' + esc(b.id) + '"' + (sndBusy ? ' disabled' : '') + '>Resend failed…</button>' : '') +
