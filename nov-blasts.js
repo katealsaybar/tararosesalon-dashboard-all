@@ -516,119 +516,407 @@
       rows.map(function (r) { return '<tr' + (r.t ? ' class="tot"' : '') + '>' + r.c.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
   }
   function rsSec(title, lead, inner, note) { return '<div class="cbl-card nvb-rs-sec"><h3>' + esc(title) + '</h3>' + (lead ? '<p class="nvb-rs-lead">' + esc(lead) + '</p>' : '') + inner + (note ? '<p class="nvb-small nvb-rs-note">' + note + '</p>' : '') + '</div>'; }
-  function rsBar(r) {
+  /* 5 Nov 2026 (Kate: "saan clickable values? lalo na tong 7 clients booked ahead", "walang projected spend vs actual spend", "kung anong meron sa oct blasts na info dapat meron din dito sa nov blasts", "except warm vs standard"):
+     the Results view carries what October's Lost Client Blasts Performance page has. Every count opens the clients behind it (nov_drill, migrations/nov_results_parity.sql, the same shape as
+     October's lost_drill: name and number copy on click, a Chat link to respond.io), Money from the bookings is projected vs actual spend (nov_campaign_money), delivery by blast, branch and
+     day, by day, and a send log with filters and XLSX / CSV (nov_send_log_get). Results count a client's LATEST message only (a resent message replaces the first). No deposit section: none of
+     the November offers asks for a deposit (buy one get one beauty, 25% off a first hair visit, two reminders). */
+  var MON = null, monBusy = false, monErr = false, rsV = { money: 'visual', del: 'visual' };
+  var LOG = { rows: [], total: 0, loaded: false, busy: false, err: false, sel: { blast: '', branch: 'all', status: 'all', outcome: 'all', q: '', page: 1, per: 10 }, open: {} };
+  try { if (localStorage.getItem('nvb-money-view') === 'table') rsV.money = 'table'; if (localStorage.getItem('nvb-del-view') === 'table') rsV.del = 'table'; } catch (e) { /* fine without storage */ }
+  var NV_DRILL = { sent: 'Accepted by respond.io', reached: 'Delivered or read', read: 'Read', delivered: 'Delivered, not read yet', unconfirmed: 'Not confirmed yet', failed: 'Failed', checked: 'Status-checked',
+    never_checked: 'Not status-checked yet', stop: 'STOP', replied: 'Wrote back', queued: 'Still queued', ahead: 'Booked ahead', appts: 'Booked ahead, with their appointments', came_in: 'Already came in, nothing booked',
+    paid: 'Paid at the till since the message', since: 'Booked ahead or came in' };
+  var NV_BUCKET = { '1': 'Wrote to us in the last 30 days', '2': 'Wrote to us 31 to 90 days ago', '3': 'Wrote to us 91 to 180 days ago', '4': 'Wrote to us over 180 days ago', '5': 'Never wrote to us' };
+  var NV_SPLIT = [['hair_services', 'Hair services (colour, cut, extensions)'], ['hair_treat', 'Hair treatments'], ['beauty_services', 'Beauty and nails'], ['retail_hair', 'Retail, hair'], ['retail_beauty', 'Retail, beauty'], ['other', 'Other']];
+  var DM = null, DMFrom = null, logQT = null;
+  // A number that opens the clients behind it. ctx keys: b blast, br branch, d day or half-hour slot, r failed reason ('~none' = none saved yet), k how recently she wrote to us (1 to 5). Zero stays plain text.
+  function nn(n, metric, ctx, fmt) {
+    var v = (fmt || fmtN)(n);
+    if (!metric || !(+n > 0)) return v;
+    var c = ctx || {};
+    return '<span class="nvb-num" role="button" tabindex="0" data-nm="' + metric + '"' + (c.b && c.b !== 'ALL' ? ' data-nb="' + esc(c.b) + '"' : '') + (c.br ? ' data-nbr="' + esc(c.br) + '"' : '') + (c.d ? ' data-nd="' + esc(c.d) + '"' : '') +
+      (c.r != null ? ' data-nr="' + esc(c.r) + '"' : '') + (c.k ? ' data-nk="' + esc(c.k) + '"' : '') + ' title="See who">' + v + '</span>';
+  }
+  function blastName(id) { var r = RES && RES.blasts ? RES.blasts.filter(function (x) { return x.id === id; })[0] : null; return r ? r.name : id; }
+  function nvDay(d) { try { return d && d.length === 10 ? fdate(d) : (d ? fdate(d.slice(0, 10)) + ' ' + d.slice(11) : ''); } catch (e) { return d; } }
+  function dmTitle(d) {
+    var bits = [NV_DRILL[d.nm] || d.nm];
+    if (d.nb) bits.push(blastName(d.nb));
+    if (d.nbr) bits.push(BR[d.nbr] || d.nbr);
+    if (d.nd) bits.push(nvDay(d.nd));
+    if (d.nr != null) bits.push(d.nr === '~none' ? 'no reason saved yet' : d.nr);
+    if (d.nk) bits.push(NV_BUCKET[d.nk] || '');
+    return bits.join(' · ');
+  }
+  function nvWho(r) {
+    return '<span class="lr-copy nvb-copy" role="button" tabindex="0" data-copy="' + esc(r.client) + '" title="Click to copy the name">' + esc(r.client) + '</span> <span class="lr-copy nvb-copy nvb-ph" role="button" tabindex="0" data-copy="' + esc(r.phone || '') + '" title="Click to copy the number">' + esc(r.phone || ('…' + r.last4)) + '</span>' +
+      (r.cid ? ' <a class="nvb-chat" href="https://app.respond.io/space/250275/inbox/' + (+r.cid) + '" target="_blank" rel="noopener" title="Open her chat in respond.io">Chat ↗</a>' : '');
+  }
+  function nvStatus(r) {
+    if (r.status === 'queued' || r.status === 'sending') return '<span class="nvb-tag">Queued</span>';
+    if (r.status !== 'sent') return '<span class="nvb-tag bad">' + esc(r.status) + '</span>';
+    if (r.delivery === 'read') return '<span class="nvb-tag good">Read</span>';
+    if (r.delivery === 'delivered') return '<span class="nvb-tag good">Delivered</span>';
+    if (r.delivery === 'failed') return '<span class="nvb-tag bad" title="' + esc(r.reason || 'Meta did not deliver it') + '">Failed</span>';
+    return '<span class="nvb-tag">Not confirmed</span>';
+  }
+  function nvOut(r) {
+    var o = r.outcome;
+    if (!o) return '<span class="slv-muted">–</span>';
+    if (o === 'stop') return '<span class="nvb-tag bad">STOP / opt out</span>';
+    if (o === 'booked') return '<span class="nvb-tag good">Booked ahead</span>';
+    return '<span class="nvb-tag good">Came in</span>' + (r.spent ? ' <span class="slv-note">AED ' + money0(r.spent) + '</span>' : '');
+  }
+  function nvNext(r) { return r.next ? esc(fdate(r.next)) + (r.svc ? ' <span class="slv-note">' + esc(r.svc) + '</span>' : '') : '<span class="slv-muted">–</span>'; }
+  function nvSent(r) { return r.d ? esc(fdate(r.d)) + ' <span class="nvb-t">' + esc(r.t) + '</span>' : '<span class="slv-note">not sent yet</span>'; }
+  var NV_HEAD = '<th>Branch</th><th>Client</th><th>Blast</th><th>Status</th><th>Outcome</th><th>Wrote back</th><th>Sent</th><th>Next appointment</th>';
+  function nvCells(r) {
+    return '<td>' + esc(BR[r.branch] || r.branch || '') + '</td><td>' + nvWho(r) + '</td><td>' + esc(blastName(r.blast)) + '</td><td>' + nvStatus(r) + '</td><td>' + nvOut(r) + '</td><td>' + (r.replied ? '<span class="nvb-tag good">Yes</span>' : '<span class="slv-muted">–</span>') + '</td><td>' + nvSent(r) + '</td><td>' + nvNext(r) + '</td>';
+  }
+  function dmClose() {
+    if (DM) DM.remove();
+    DM = null; document.body.classList.remove('lr-modal-open');
+    if (DMFrom && document.contains(DMFrom)) DMFrom.focus();
+    DMFrom = null;
+  }
+  async function dmOpen(el) {
+    var d = el.dataset;
+    dmClose(); DMFrom = el;
+    var box = document.createElement('div');
+    box.className = 'lr-modal nvb-md'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', dmTitle(d));
+    box.innerHTML = '<div class="lr-modal-box"><div class="lr-modal-hd"><div><h3>' + esc(dmTitle(d)) + '</h3><p class="slv-note" id="nvDmSub">Loading…</p></div><button type="button" class="tglr lc-btn" data-nvr="dmx">Close</button></div><div class="lr-modal-body" id="nvDmBody"></div></div>';
+    document.body.appendChild(box); document.body.classList.add('lr-modal-open');
+    DM = box;
+    var cb = box.querySelector('[data-nvr="dmx"]'); if (cb) cb.focus();
+    var data = null, bad = false;
+    try { data = await rpc('nov_drill', { p_metric: d.nm, p_blast: d.nb || null, p_branch: d.nbr || 'all', p_day: d.nd || null, p_reason: d.nr != null ? d.nr : null, p_bucket: d.nk || null }); } catch (e) { console.error(e); bad = true; }
+    if (DM !== box) return;   // closed, or another one opened, while it loaded
+    var sub = box.querySelector('#nvDmSub'), bd = box.querySelector('#nvDmBody');
+    if (bad || !data) { sub.textContent = 'The list did not load. Close this and try again.'; return; }
+    var n = data.total || 0, rows = data.rows || [];
+    sub.textContent = fmtN(n) + (data.per_client ? ' client' : ' message') + (n === 1 ? '' : 's') + (n > rows.length ? ', the first ' + fmtN(rows.length) + ' shown' : '') + '. Click a name or number to copy it.';
+    bd.innerHTML = rows.length ? '<div class="nvb-dw"><table class="nvb-dt"><thead><tr>' + NV_HEAD + '</tr></thead><tbody>' + rows.map(function (r) { return '<tr>' + nvCells(r) + '</tr>'; }).join('') + '</tbody></table></div>' : '<p class="slv-muted">Nobody to show.</p>';
+  }
+  async function nvCopy(el) {
+    var txt = el.getAttribute('data-copy') || '';
+    if (!txt) return;
+    var ok = false;
+    try { var ta = document.createElement('textarea'); ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (y) { /* try the clipboard API */ }
+    if (!ok) { try { await Promise.race([navigator.clipboard.writeText(txt), new Promise(function (_, no) { setTimeout(no, 800); })]); ok = true; } catch (x) { /* shown below */ } }
+    var tip = document.createElement('div');
+    tip.className = 'lr-tip'; tip.setAttribute('role', 'status'); tip.textContent = ok ? 'Copied: ' + txt : 'Could not copy';
+    document.body.appendChild(tip);
+    var r = el.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, r.left)) + 'px';
+    tip.style.top = Math.max(8, r.top - tip.offsetHeight - 6) + 'px';
+    setTimeout(function () { tip.remove(); }, 1300);
+  }
+  /* The send log (Kate, 5 Nov 2026): every real message, latest per client, with the filters October's log has (blast, branch, status, outcome, search) and XLSX / CSV of whatever the filters show. */
+  function logArgs(off, lim) { var s = LOG.sel; return { p_blast: s.blast || null, p_branch: s.branch, p_status: s.status, p_outcome: s.outcome, p_q: s.q.trim(), p_offset: off, p_limit: lim }; }
+  async function loadLog() {
+    if (LOG.busy) return;
+    LOG.busy = true;
+    try { var d = await rpc('nov_send_log_get', logArgs((LOG.sel.page - 1) * LOG.sel.per, LOG.sel.per)); LOG.rows = d.rows || []; LOG.total = d.total || 0; LOG.loaded = true; LOG.err = false; } catch (e) { console.error(e); LOG.err = true; }
+    LOG.busy = false; paintLog();
+  }
+  function paintLog() { var el = document.getElementById('nvLog'); if (el) el.innerHTML = logInner(); }
+  function logSet(k, v) { LOG.sel[k] = k === 'per' ? ([10, 20, 50, 100].indexOf(+v) >= 0 ? +v : 10) : v; LOG.sel.page = 1; LOG.open = {}; loadLog(); }
+  function logInner() {
+    if (LOG.err && !LOG.loaded) return '<p class="slv-muted">The log did not load. Open the page again in a minute.</p>';
+    if (!LOG.loaded) return '<p class="slv-muted">Loading the log…</p>';
+    var s = LOG.sel, per = s.per, pages = Math.max(1, Math.ceil(LOG.total / per)), p = Math.min(s.page, pages);
+    var rows = LOG.rows.map(function (r) {
+      var open = !!LOG.open[r.id];
+      return '<tr class="nvb-lrow' + (open ? ' open' : '') + '" data-nvr="logrow:' + r.id + '">' + nvCells(r) + '</tr>' +
+        (open ? '<tr class="nvb-ltext"><td colspan="8"><div class="lq-bubble">' + esc(r.text || '') + '</div>' + (r.reason ? '<div class="slv-note nvb-lbad">Failed: ' + esc(r.reason) + '</div>' : '') +
+          '<div class="slv-note">' + (r.svc ? 'Booked for ' + esc(r.svc) + ' · ' : '') + 'queued by ' + esc(r.by || '–') + (r.message_id ? ' · respond.io message ' + esc(r.message_id) : '') + '</div></td></tr>' : '');
+    }).join('');
+    var perSel = LOG.total > 10 ? '<select class="nvb-sel" aria-label="Rows a page" data-nlg="per">' + [10, 20, 50, 100].map(function (n) { return '<option value="' + n + '"' + (per === n ? ' selected' : '') + '>' + n + ' rows</option>'; }).join('') + '</select>' : '';
+    var pager = LOG.total > 10 ? '<div class="nvb-pager">' + (pages > 1 ? '<button type="button" class="tglr lc-btn" ' + (p <= 1 ? 'disabled ' : '') + 'data-nvr="logpage:' + (p - 1) + '">‹ Prev</button><span class="slv-note">Page ' + fmtN(p) + ' of ' + fmtN(pages) + '</span><button type="button" class="tglr lc-btn" ' + (p >= pages ? 'disabled ' : '') + 'data-nvr="logpage:' + (p + 1) + '">Next ›</button>' : '') + perSel + '</div>' : '';
+    return '<p class="slv-note">' + fmtN(LOG.total) + ' message' + (LOG.total === 1 ? '' : 's') + (LOG.total ? ', newest first. Click a row to read what she was sent.' : '') + '</p>' +
+      (LOG.total ? '<div class="nvb-dw"><table class="nvb-dt nvb-lt"><thead><tr>' + NV_HEAD + '</tr></thead><tbody>' + rows + '</tbody></table></div>' + pager : '<p class="slv-muted">Nothing matches these filters.</p>');
+  }
+  function logSec(rows) {
+    var s = LOG.sel, sel = function (key, label, opts) { return '<select class="nvb-sel" aria-label="' + label + '" data-nlg="' + key + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (String(s[key]) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>'; };
+    var bar = '<div class="nvb-tools">' + sel('blast', 'Blast', [['', 'All blasts']].concat(rows.map(function (x) { return [x.id, x.name]; }))) + sel('branch', 'Branch', [['all', 'All branches']].concat(BKEYS.map(function (b) { return [b, BR[b]]; }))) +
+      sel('status', 'Status', [['all', 'Every status'], ['reached', 'Delivered or read'], ['read', 'Read'], ['delivered', 'Delivered, not read'], ['unconfirmed', 'Not confirmed yet'], ['failed', 'Failed'], ['queued', 'Queued']]) +
+      sel('outcome', 'Outcome', [['all', 'Any outcome'], ['booked', 'Booked ahead'], ['done', 'Came in'], ['replied', 'Wrote back'], ['stop', 'STOP'], ['none', 'No outcome yet']]) +
+      '<input type="search" class="nvb-q" id="nvLogQ" data-nlg="q" placeholder="Search name or last 4 digits" value="' + esc(s.q) + '">' +
+      '<span class="nvb-spacer"></span><button type="button" class="tglr lc-btn" data-nvr="logsave:xlsx" title="Download the log for these filters, with the message for each">XLSX</button><button type="button" class="tglr lc-btn" data-nvr="logsave:csv" title="Download the log for these filters, with the message for each">CSV</button><span id="nvLogNote" class="slv-note"></span></div>';
+    return rsSec('11. Send log', 'Every real message, her latest one if she was sent more than one. Name and number copy on click; Chat opens her conversation in respond.io.', bar + '<div id="nvLog">' + logInner() + '</div>');
+  }
+  async function logSave(kind) {
+    var note = document.getElementById('nvLogNote'), say = function (t) { if (note) note.textContent = t; };
+    if (typeof lgxBuild !== 'function') { say('The spreadsheet writer is not loaded yet. Reload the page.'); return; }
+    say('Getting the log…');
+    var out = [];
+    for (var off = 0; ; off += 500) {
+      var d; try { d = await rpc('nov_send_log_get', logArgs(off, 500)); } catch (e) { console.error(e); say('The log did not download. Try again.'); return; }
+      out = out.concat(d.rows || []); say('Getting the log… ' + fmtN(out.length) + ' of ' + fmtN(d.total));
+      if (!d.rows || d.rows.length < 500 || out.length >= d.total) break;
+    }
+    var head = ['Date sent', 'Time sent (Dubai)', 'Blast', 'Branch', 'Client', 'Phone', 'Status', 'Delivery', 'Failed reason', 'Outcome', 'Wrote back', 'STOP', 'Next appointment', 'Booked for', 'Message sent', 'Queued by', 'respond.io message', 'respond.io chat'];
+    var dl = { read: 'Read', delivered: 'Delivered', sent: 'Not confirmed yet', failed: 'Failed' }, oc = { stop: 'STOP', booked: 'Booked ahead', done: 'Came in' }, yn = function (v) { return v ? 'Yes' : 'No'; };
+    var lines = out.map(function (r) { return [r.d || '', r.t || '', blastName(r.blast), BR[r.branch] || r.branch, r.client, r.phone || r.last4, r.status, dl[r.delivery] || '', r.reason || '', oc[r.outcome] || '', yn(r.replied), yn(r.stop), r.next || '', r.svc || '', r.text || '', r.by || '', r.message_id || '', r.cid ? 'https://app.respond.io/space/250275/inbox/' + r.cid : '']; });
+    var built = lgxBuild({ sheets: [{ name: 'Send log', blocks: [{ cols: head.map(function (h) { return { label: h, fmt: 'text' }; }), rows: lines.map(function (l) { return { cells: l }; }) }] }] });
+    var s = LOG.sel, slug = function (t) { return String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); };
+    var name = ['november-blasts-send-log', s.blast ? slug(blastName(s.blast)) : '', s.branch !== 'all' ? slug(BR[s.branch] || s.branch) : '', s.status !== 'all' ? s.status : '', s.outcome !== 'all' ? s.outcome : '', s.q.trim() ? 'search' : '', new Date().toISOString().slice(0, 10)].filter(Boolean).join('-');
+    if (kind === 'xlsx') lgxSave(lgxXlsxBlob(built), name + '.xlsx');
+    else lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
+    say('Saved ' + fmtN(lines.length) + ' rows as ' + kind.toUpperCase());
+  }
+  async function loadMoney() {
+    if (monBusy) return;
+    monBusy = true;
+    for (var i = 0; i < 2; i++) {
+      try { MON = await rpc('nov_campaign_money'); monErr = false; break; } catch (e) { console.error(e); monErr = true; await new Promise(function (res) { setTimeout(res, 900); }); }
+    }
+    monBusy = false;
+    if (cur === RESID && main() && main().offsetParent !== null && !sndM && !typing()) render(true);
+  }
+  function typing() { var a = document.activeElement; return !!(a && a.id === 'nvLogQ'); }
+  function rsAct(v, t) {
+    var a = v.split(':'), k = a[0], x = a.slice(1).join(':');
+    if (k === 'dmx') dmClose();
+    else if (k === 'money') { rsV.money = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-money-view', rsV.money); } catch (e) { /* fine */ } render(true); }
+    else if (k === 'del') { rsV.del = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-del-view', rsV.del); } catch (e) { /* fine */ } render(true); }
+    else if (k === 'logrow') { LOG.open[x] = !LOG.open[x]; paintLog(); }
+    else if (k === 'logpage') { LOG.sel.page = Math.max(1, +x || 1); LOG.open = {}; loadLog(); }
+    else if (k === 'logsave') logSave(x);
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target; if (!t || !t.closest) return;
+    var n = t.closest('.nvb-num'); if (n) { dmOpen(n); return; }
+    var c = t.closest('.nvb-copy'); if (c) { e.preventDefault(); nvCopy(c); return; }
+    var x = t.closest('[data-nvr]'); if (x && (x.closest('#novBlastsContent') || x.closest('.nvb-md'))) { rsAct(x.getAttribute('data-nvr'), x); return; }
+    if (DM && t === DM) dmClose();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && DM) { dmClose(); return; }
+    var t = e.target; if (!t || !t.closest || (e.key !== 'Enter' && e.key !== ' ')) return;
+    var n = t.closest('.nvb-num'); if (n) { e.preventDefault(); dmOpen(n); return; }
+    var c = t.closest('.nvb-copy'); if (c) { e.preventDefault(); nvCopy(c); }
+  });
+  document.addEventListener('change', function (e) {
+    var t = e.target; if (!t || !t.getAttribute) return;
+    var k = t.getAttribute('data-nlg'); if (!k || k === 'q' || !t.closest('#novBlastsContent')) return;
+    logSet(k, t.value);
+  });
+  document.addEventListener('input', function (e) {
+    var t = e.target; if (!t || !t.getAttribute || t.getAttribute('data-nlg') !== 'q' || !t.closest('#novBlastsContent')) return;
+    clearTimeout(logQT); logQT = setTimeout(function () { logSet('q', t.value); }, 350);
+  });
+
+  function rsBar(r, ctx) {
     var n = r.sent || 0, d = (r.read || 0) + (r.delivered || 0), f = r.failed || 0, u = r.unconfirmed || 0;
     var w = function (x) { return n ? (Math.round(x * 1000 / n) / 10) : 0; };
-    return '<div class="nvb-rs-bar"><span>' + esc(r.name) + '</span><div class="nvb-rs-track" role="img" aria-label="' + esc(r.name) + ': ' + d + ' delivered or read, ' + f + ' failed, ' + u + ' not confirmed yet, of ' + n + ' accepted"><i class="d" style="width:' + w(d) + '%"></i><i class="x" style="width:' + w(f) + '%"></i><i class="w" style="width:' + w(u) + '%"></i></div><span>' + fmtN(n) + ' accepted</span></div>';
+    return '<div class="nvb-rs-bar"><span>' + esc(r.name) + '</span><div class="nvb-rs-track" role="img" aria-label="' + esc(r.name) + ': ' + d + ' delivered or read, ' + f + ' failed, ' + u + ' not confirmed yet, of ' + n + ' accepted"><i class="d" style="width:' + w(d) + '%"></i><i class="x" style="width:' + w(f) + '%"></i><i class="w" style="width:' + w(u) + '%"></i></div><span>' + (ctx ? nn(n, 'sent', ctx) : fmtN(n)) + ' accepted</span></div>';
+  }
+  var BAR_LEG = '<div class="nvb-rs-leg"><span><b class="d"></b>Delivered or read</span><span><b class="x"></b>Failed</span><span><b class="w"></b>Not confirmed yet</span></div>';
+  function gline(cls, label, v, max) { var w = max > 0 ? Math.max(v > 0 ? 1 : 0, Math.round(1000 * v / max) / 10) : 0; return '<div class="nvb-gl"><div class="nvb-gt" role="img" aria-label="' + esc(label) + ': AED ' + money0(v) + '"><i class="' + cls + '" style="width:' + w + '%"></i></div><b>AED ' + money0(v) + '</b></div>'; }
+  function grow(label, sub, lines) { return '<div class="nvb-gr"><div class="nvb-glab">' + label + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="nvb-gls">' + lines + '</div></div>'; }
+  // Money from the bookings (Kate, 5 Nov 2026): what the messages cost, what the booked appointments should bring in (projected) and what the clients we messaged have paid since (actual).
+  function rt(x) { return x >= 10 ? money0(x) : money2(x); }
+  function moneySec(st, a, bkok, slok, r2) {
+    var lead = 'What the bookings are worth, and what the messages cost. Same method as October: projected prices each booked service at the median of what it charged in the last 120 days, actual is what the clients we messaged have paid since their first message.';
+    if (!MON) return rsSec('7. Money from the bookings', lead, '<p class="slv-muted">' + (monErr ? 'The money could not be read just now. It tries again in a minute.' : 'Loading…') + '</p>');
+    var al = MON.all || {}, by = MON.by_branch || [], bb = MON.by_blast || [], sp = (al.sent || 0) * r2, spD = (al.reached || 0) * r2, tbl = rsV.money === 'table';
+    var toggle = '<div class="tp-seg nvb-seg" role="group" aria-label="View"><button type="button" class="' + (tbl ? '' : 'on') + '" data-nvr="money:visual">Graph</button><button type="button" class="' + (tbl ? 'on' : '') + '" data-nvr="money:table">Table</button></div>';
+    var waitP = '<span class="nvb-rs-dash">Not readable yet</span>', body;
+    if (tbl) {
+      var line = function (label, x, ctx, bold) {
+        var f = function (v) { return bold ? '<b>' + v + '</b>' : v; }, cost = (x.sent || 0) * r2;
+        return { t: !!bold, c: [esc(label), nn(x.sent, 'sent', ctx), money2(cost), bkok ? nn(x.ahead, 'ahead', ctx) : 'Not yet', bkok ? nn(x.appts, 'appts', ctx) : 'Not yet', bkok ? money2(x.proj) : 'Not yet', bkok && x.ahead ? money2(x.proj / x.ahead) : '–',
+          slok ? nn(x.visited, 'paid', ctx) : 'Not yet', slok ? money2(x.actual) : 'Not yet', slok && cost > 0 && x.actual > 0 ? 'AED ' + rt(x.actual / cost) : '–'] };
+      };
+      var heads = [['', ''], ['Accepted by respond.io', 'n'], ['Spent, estimate at ' + r2, 'n'], ['Clients booked ahead', 'n'], ['Appointments', 'n'], ['Projected spend', 'n'], ['Projected per client', 'n'], ['Came in and paid', 'n'], ['Actual spend', 'n'], ['AED back per AED 1', 'n']];
+      var h1 = heads.slice(); h1[0] = ['Blast', ''];
+      var h2 = heads.slice(); h2[0] = ['Branch', ''];
+      body = rsTable(h1, bb.map(function (x) { return line(blastName(x.k), x, { b: x.k }); }).concat([line('All', al, {}, true)])) +
+        '<h4 class="nvb-h4">By branch</h4>' + rsTable(h2, by.map(function (x) { return line(BR[x.k] || x.k, x, { br: x.k }); }).concat([line('All', al, {}, true)])) +
+        '<h4 class="nvb-h4">Actual spend, by what they bought</h4>' + rsTable([['What', ''], ['Actual spend', 'n'], ['Share', 'n']], NV_SPLIT.map(function (p) { return { c: [esc(p[1]), money2(al[p[0]]), al.actual ? pc1(al[p[0]], al.actual) : '–'] }; }).concat([{ t: true, c: ['All', money2(al.actual), al.actual ? '100.0%' : '–'] }]));
+    } else {
+      var mx = Math.max(1, al.proj || 0, al.actual || 0, sp), bmx = Math.max(1, Math.max.apply(null, by.concat(bb).map(function (x) { return Math.max(x.proj || 0, x.actual || 0); })));
+      var ratio = sp > 0 && al.actual > 0 ? al.actual / sp : 0, ratioD = spD > 0 && al.actual > 0 ? al.actual / spD : 0;
+      var key = '<div class="nvb-rs-leg"><span><b class="p"></b>Projected (booked ahead)</span><span><b class="d"></b>Actual (paid since our message)</span></div>';
+      var panel1 = '<div class="nvb-gp"><h4 class="nvb-h4">What we spent, and what it is worth</h4><p class="nvb-small">All on one scale. AED, VAT included.</p>' +
+        grow('Spent on messages', nn(al.sent, 'sent') + ' accepted at AED ' + r2 + ' (estimate)', gline('s', 'Spent on messages', sp, mx)) +
+        grow('If only delivered are charged', nn(al.reached, 'reached') + ' delivered or read, at AED ' + r2, gline('s', 'Spent if only delivered messages are charged', spD, mx)) +
+        grow('Projected', bkok ? nn(al.ahead, 'ahead') + ' clients booked ahead, ' + nn(al.appts, 'appts') + ' appointments from today on' : 'Bookings not readable yet', bkok ? gline('p', 'Projected spend', al.proj || 0, mx) : waitP) +
+        grow('Actual so far', slok ? nn(al.visited, 'paid') + ' of the ' + fmtN(al.sent) + ' we messaged have paid' : 'Sales not readable yet', slok ? gline('d', 'Actual spend so far', al.actual || 0, mx) : waitP) +
+        '<p class="nvb-gcall">' + (ratio ? 'For every <b>AED 1</b> the messages cost, the clients we messaged have spent <b>AED ' + rt(ratio) + '</b> since' + (ratioD ? ' (<b>AED ' + rt(ratioD) + '</b> if only the delivered messages are charged)' : '') + '. ' : '') +
+        (bkok && al.ahead ? 'Average projected per booked client <b>AED ' + money0(al.proj / al.ahead) + '</b> (AED ' + money0(al.appts ? al.proj / al.appts : 0) + ' per appointment). Cost per booked client <b>AED ' + money2(sp / al.ahead) + '</b>, or AED ' + money2(spD / al.ahead) + ' if only delivered are charged. ' : '') +
+        '<span class="nvb-gnote">Some of them may have booked before our message or been coming anyway, so read it as a ceiling, not proof the message did it.</span></p></div>';
+      var split = function (list, key2) {
+        return list.slice().sort(function (p, q) { return (q.actual || 0) - (p.actual || 0) || (q.proj || 0) - (p.proj || 0); }).map(function (x) {
+          var ctx = key2 === 'b' ? { b: x.k } : { br: x.k };
+          return grow(esc(key2 === 'b' ? blastName(x.k) : (BR[x.k] || x.k)), (bkok ? nn(x.ahead, 'ahead', ctx) + ' booked' : 'bookings not readable yet') + (slok ? ', ' + nn(x.visited, 'paid', ctx) + ' came in and paid' : ''),
+            (bkok ? gline('p', 'Projected', x.proj || 0, bmx) : '') + (slok ? gline('d', 'Actual', x.actual || 0, bmx) : ''));
+        }).join('') || '<p class="slv-muted">Nobody yet.</p>';
+      };
+      var panel2 = '<div class="nvb-gp"><h4 class="nvb-h4">By branch: projected and actual</h4><p class="nvb-small">Biggest actual first, then biggest projected.</p>' + split(by, 'br') + key + '</div>';
+      var panel3 = '<div class="nvb-gp"><h4 class="nvb-h4">By blast: projected and actual</h4><p class="nvb-small">Same scale as the branches.</p>' + split(bb, 'b') + key + '</div>';
+      var panel4 = '<div class="nvb-gp"><h4 class="nvb-h4">Actual spend, by what they bought</h4>' + (slok && al.actual > 0 ? '<p class="nvb-small">AED ' + money0(al.actual) + ' in all.</p>' + NV_SPLIT.filter(function (p) { return al[p[0]] > 0; }).map(function (p) {
+        return grow(esc(p[1]), '', '<div class="nvb-gl"><div class="nvb-gt"><i class="d" style="width:' + Math.max(1, Math.round(1000 * al[p[0]] / al.actual) / 10) + '%"></i></div><b>AED ' + money0(al[p[0]]) + ' <em>' + pc1(al[p[0]], al.actual) + '</em></b></div>'); }).join('') : '<p class="slv-muted">' + (slok ? 'Nobody we messaged has paid at the till since the message yet.' : 'Sales after the message are not readable yet.') + '</p>') + '</div>';
+      body = '<div class="nvb-g2">' + panel1 + panel2 + '</div><div class="nvb-g2">' + panel3 + panel4 + '</div>';
+    }
+    var unp = al.unpriced || 0;
+    return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>7. Money from the bookings</h3>' + toggle + '</div><p class="nvb-rs-lead">' + esc(lead) + '</p>' + body +
+      '<p class="nvb-small nvb-rs-note"><b>Projected</b> is what the booked appointments should bring in. <b>Actual</b> is what the clients we messaged have paid so far. <b>Spent</b> is what the messages cost, an estimate at AED ' + r2 + ' each (the sender has no billing data). Booked ahead, appointments, accepted, delivered and came in and paid open their clients; the AED figures add up services and have no list behind them.</p>' +
+      '<details class="nvb-fold" data-fold="money-how"' + (opened['money-how'] ? ' open' : '') + '><summary>How these are worked out</summary><p class="nvb-small"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that exact service charged in the last 120 days, VAT included. ' +
+      (unp ? fmtN(unp) + ' of the ' + fmtN(al.svcs) + ' booked services have no price yet (a package or a new name) and count as 0, so it runs low. ' : '') + 'The booking list has no booked-on date, so a booking made before our message cannot be told apart. <b>Actual</b> is everything the clients we messaged have paid since the day of their first message, VAT included, refunds taken off, without deposits, vouchers sold and prepaid courses, the same lines as Paid at the till in the headline. Sales arrive with the daily upload, so today shows tomorrow.</p></details></div>';
+  }
+  function delSec(rows, all2, a, st) {
+    var tbl = rsV.del === 'table', bar = (RES.branches || []).map(function (x) { return { name: BR[x.branch] || x.branch || 'Unknown', sent: x.sent, read: x.reached, delivered: 0, failed: x.failed, unconfirmed: x.unconfirmed, k: x.branch }; });
+    var days = (RES.days || []).map(function (x) { return { name: fdate(x.d), sent: x.sent, read: x.reached, delivered: 0, failed: x.failed, unconfirmed: x.unconfirmed, k: x.d }; });
+    var toggle = '<div class="tp-seg nvb-seg" role="group" aria-label="View"><button type="button" class="' + (tbl ? '' : 'on') + '" data-nvr="del:visual">Visual</button><button type="button" class="' + (tbl ? 'on' : '') + '" data-nvr="del:table">Table</button></div>';
+    var cards = '<div class="nvb-rs-nums">' + rsCell('Read', nn(a.read, 'read'), pc1(a.read, a.sent) + ' of accepted') + rsCell('Delivered, not read yet', nn(a.delivered, 'delivered'), pc1(a.delivered, a.sent) + ' arrived') +
+      rsCell('Not confirmed yet', nn(a.unconfirmed, 'unconfirmed'), 'accepted, no delivery report yet') + rsCell('Failed', '<span class="f">' + nn(a.failed, 'failed') + '</span>', pc1(a.failed, a.sent) + ' of accepted, never counted as delivered') + '</div>';
+    var inner;
+    if (tbl) {
+      var head = function (first) { return [[first, ''], ['Accepted', 'n'], ['Read', 'n'], ['Delivered only', 'n'], ['Not confirmed', 'n'], ['Failed', 'n']]; };
+      var row = function (label, x, ctx, tot) { return { t: !!tot, c: [esc(label), nn(x.sent, 'sent', ctx), nn(x.read, 'read', ctx), nn(x.delivered, 'delivered', ctx), nn(x.unconfirmed, 'unconfirmed', ctx), '<span class="f">' + nn(x.failed, 'failed', ctx) + '</span>'] }; };
+      inner = rsTable(head('Blast'), all2.map(function (x) { return row(x.id === 'ALL' ? 'All' : x.name, x, { b: x.id }, x.id === 'ALL'); })) +
+        '<h4 class="nvb-h4">By branch</h4>' + rsTable(head('Branch'), (RES.branches || []).map(function (x) { return row(BR[x.branch] || x.branch, { sent: x.sent, read: x.reached, delivered: 0, unconfirmed: x.unconfirmed, failed: x.failed }, { br: x.branch }); }).concat([row('All', a, {}, true)])) +
+        '<h4 class="nvb-h4">By day sent</h4>' + rsTable(head('Day'), (RES.days || []).map(function (x) { return row(fdate(x.d), x, { d: x.d }); }));
+    } else {
+      inner = '<div class="nvb-rs-two"><div><h4>By branch</h4><div class="nvb-rs-bars">' + bar.map(function (x) { return rsBar(x, { br: x.k }); }).join('') + '</div></div><div><h4>By day sent</h4><div class="nvb-rs-bars">' + days.map(function (x) { return rsBar(x, { d: x.k }); }).join('') + '</div></div></div>' + BAR_LEG;
+    }
+    return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>3. Did the message arrive?</h3>' + toggle + '</div><p class="nvb-rs-lead">Whether the messages reached the phones: read, delivered, not confirmed yet, or failed. The by-blast bars are under section 2.</p>' + cards + inner +
+      '<p class="nvb-small nvb-rs-note">From respond.io\'s delivery report for each message, read again every few minutes while the statuses arrive; Meta keeps updating a status for 24 hours. A client who wrote back still counts by what happened to the message.</p></div>';
   }
   function resultsMain() {
     if (!RES) return '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026</div><h2>Results</h2></div></div><p class="slv-muted">' + (resErr ? 'The results could not be read just now. Open the page again in a minute.' : 'Loading…') + '</p>';
     var a = RA(), rows = resRows(), st = resState(), r1 = RES.rates.oct, r2 = RES.rates.nov;
     if (!a) return '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026</div><h2>Results</h2></div></div><p class="slv-muted">Nothing has been sent yet.</p>';
+    if (!MON && !monBusy && !monErr) setTimeout(loadMoney, 0);
+    if (!LOG.loaded && !LOG.busy && !LOG.err) setTimeout(loadLog, 0);
     var reached = a.read + a.delivered, aud = 0, checked = reached + a.failed; rows.forEach(function (x) { aud += x.audience || 0; });
     var qd = RES.still_queued, fin = qd === 0;
     var chips = '<span class="cbl-chip ok">As of ' + esc(fat(RES.at)) + '</span>' + (fin ? '<span class="cbl-chip ok">Sending finished ' + esc(fat(RES.last_send)) + '</span>' : '<span class="cbl-chip warn">Still sending: ' + fmtN(qd) + ' queued</span>') +
-      (a.never_checked > 0 ? '<span class="cbl-chip warn">Delivery statuses still arriving: ' + fmtN(a.never_checked) + ' not checked yet</span>' : '') +
+      (a.never_checked > 0 ? '<span class="cbl-chip warn">Delivery statuses still arriving: ' + nn(a.never_checked, 'never_checked') + ' not checked yet</span>' : '') +
       (RES.gate && RES.gate.paused ? '<span class="cbl-chip bad">Paused by the gate</span>' : '') + '<span class="cbl-chip">Sales in to ' + esc(fdate(RES.sales_to)) + '</span><span class="cbl-chip">Offers run to 30 November</span>';
     var out = '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026 · Results</div><h2>How the November blasts did</h2></div></div><div class="nvb-rs-chips">' + chips + '</div>';
-    out += '<p class="nvb-rs-intro">Same shape as the October Lost Clients report. One message per client. Read live from the database and it moves while delivery statuses and sales come in. Counts only, no client names.</p>';
+    out += '<p class="nvb-rs-intro">Same shape as the October Lost Clients report. One message per client, and a client counts once, by her latest message. Read live from the database and it moves while delivery statuses and sales come in. Every count opens the clients behind it: click a figure with a dotted underline.</p>';
 
     // 1 headline
-    var repl = st.replies === 'ok' ? rsCell('Wrote back', fmtN(a.replied), pc1(a.replied, reached) + ' of the ' + fmtN(reached) + ' reached') : st.replies === 'part' ? rsCell('Wrote back', fmtN(a.replied), 'so far, the check has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' accepted') : rsWait('Wrote back', whyReplies());
-    var m = a.money || {}, bkok = st.bookings, slok = st.sales;
-    var ahead = bkok ? rsCell('Booked ahead', fmtN(m.ahead), fmtN(m.appts) + ' appointments') : rsWait('Booked ahead', whyBookings(st));
-    var paid = slok ? rsCell('Paid at the till since the message', 'AED ' + money0(m.paid_aed), fmtN(m.paid_clients) + ' clients. A ceiling, not proof the message caused it') : rsWait('Paid at the till since the message', whySales(st));
-    var cpb = (bkok && slok && m.booked_or_in > 0) ? rsCell('Cost per booking', 'AED ' + money2(reached * r2 / m.booked_or_in), 'delivered messages at ' + r2 + ' divided by ' + fmtN(m.booked_or_in) + ' booked or came in') : rsWait('Cost per booking', (bkok && slok) ? 'Nobody has booked or come in yet.' : 'Needs bookings and sales after the message, see Booked ahead and Paid.');
+    var repl = st.replies === 'ok' ? rsCell('Wrote back', nn(a.replied, 'replied'), pc1(a.replied, reached) + ' of the ' + fmtN(reached) + ' reached') : st.replies === 'part' ? rsCell('Wrote back', nn(a.replied, 'replied'), 'so far, the check has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' accepted') : rsWait('Wrote back', whyReplies());
+    var m = a.money || {}, bkok = st.bookings, slok = st.sales, al = MON && MON.all ? MON.all : null;
+    var ahead = bkok ? rsCell('Booked ahead', nn(m.ahead, 'ahead'), nn(m.appts, 'appts') + ' appointments, from today on') : rsWait('Booked ahead', whyBookings(st));
+    var paid = slok ? rsCell('Paid at the till since the message', 'AED ' + money0(m.paid_aed), nn(m.paid_clients, 'paid') + ' clients. A ceiling, not proof the message caused it') : rsWait('Paid at the till since the message', whySales(st));
+    var cpb = (bkok && slok && m.booked_or_in > 0) ? rsCell('Cost per booking', 'AED ' + money2(reached * r2 / m.booked_or_in), 'delivered messages at ' + r2 + ' divided by ' + nn(m.booked_or_in, 'since') + ' booked or came in') : rsWait('Cost per booking', (bkok && slok) ? 'Nobody has booked or come in yet.' : 'Needs bookings and sales after the message, see Booked ahead and Paid.');
+    var proj = !bkok ? rsWait('Projected spend', whyBookings(st)) : al ? rsCell('Projected spend', 'AED ' + money0(al.proj), 'what the ' + fmtN(al.ahead) + ' booked clients\' appointments should bring in. Section 7') : rsWait('Projected spend', monErr ? 'Could not be read just now.' : 'Loading…');
+    var projPer = !bkok ? rsWait('Projected per booked client', whyBookings(st)) : al ? rsCell('Projected per booked client', al.ahead ? 'AED ' + money0(al.proj / al.ahead) : '–', al.ahead ? 'AED ' + money0(al.appts ? al.proj / al.appts : 0) + ' per appointment' : 'nobody booked ahead yet') : rsWait('Projected per booked client', 'Loading…');
     out += rsSec('1. The headline', 'What can be read now is shown. What cannot says why.',
       '<div class="nvb-rs-nums">' +
-      rsCell('Accepted by respond.io', fmtN(a.sent), 'of ' + fmtN(aud) + ' clients' + (qd ? ', ' + fmtN(qd) + ' still queued' : '') + (aud > a.sent + qd ? ', ' + fmtN(aud - a.sent - qd) + ' skipped (already booked when queued)' : '')) +
-      rsCell('Delivered or read', fmtN(reached), pc1(reached, a.sent) + ' of accepted. ' + fmtN(a.read) + ' read') +
-      rsCell('Failed, Meta did not deliver', '<span class="f">' + fmtN(a.failed) + '</span>', pc1(a.failed, a.sent) + ' of accepted, ' + pc1(a.failed, checked) + ' of the ' + fmtN(checked) + ' checked') +
-      rsCell('Not confirmed yet', fmtN(a.unconfirmed), fmtN(a.never_checked) + ' of them not status-checked yet') +
+      rsCell('Accepted by respond.io', nn(a.sent, 'sent'), 'of ' + fmtN(aud) + ' clients' + (qd ? ', ' + nn(qd, 'queued') + ' still queued' : '') + (aud > a.sent + qd ? ', ' + fmtN(aud - a.sent - qd) + ' skipped (already booked when queued)' : '')) +
+      rsCell('Delivered or read', nn(reached, 'reached'), pc1(reached, a.sent) + ' of accepted. ' + nn(a.read, 'read') + ' read') +
+      rsCell('Failed, Meta did not deliver', '<span class="f">' + nn(a.failed, 'failed') + '</span>', pc1(a.failed, a.sent) + ' of accepted, ' + pc1(a.failed, checked) + ' of the ' + nn(checked, 'checked') + ' checked') +
+      rsCell('Not confirmed yet', nn(a.unconfirmed, 'unconfirmed'), nn(a.never_checked, 'never_checked') + ' of them not status-checked yet') +
       rsCell('Spent, delivered or read only', 'AED ' + money0(reached * r2), fmtN(reached) + ' x ' + r2 + '. AED ' + money0(reached * r1) + ' at ' + r1) +
       rsCell('Spent, every message accepted', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' x ' + r2 + '. AED ' + money0(a.sent * r1) + ' at ' + r1) +
       rsCell('Upper bound', 'AED ' + money0((reached + a.unconfirmed) * r2), 'delivered plus not confirmed, at ' + r2) +
-      rsCell('STOP', fmtN(a.stop), pc1(a.stop, a.sent) + ' of accepted. Limit ' + (RES.gate ? RES.gate.stop_pct : 2) + '%' + (a.never_checked ? '. Partial, not every message is checked yet' : '')) +
-      repl + ahead + paid + cpb + '</div>',
+      rsCell('STOP', nn(a.stop, 'stop'), pc1(a.stop, a.sent) + ' of accepted. Limit ' + (RES.gate ? RES.gate.stop_pct : 2) + '%' + (a.never_checked ? '. Partial, not every message is checked yet' : '')) +
+      repl + ahead + paid + cpb + proj + projPer + '</div>',
       'Rate: October used AED ' + r1 + ' a message (about USD 0.046, measured). The page assumes AED ' + r2 + ' (about USD 0.058, one vendor source). Both are shown until the Meta invoice or the respond.io usage report replaces them. WhatsApp does not charge failed messages, so delivered only is the likelier bill.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, cost AED 1,068 on every message accepted.');
 
     // 2 by blast
     var head2 = [['Blast', ''], ['Audience', 'n'], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['Failed % of checked', 'n'], ['STOP', 'n'], ['Wrote back', 'n']];
     var all2 = rows.concat([a]);
     var body2 = all2.map(function (x) {
-      var rd = x.read + x.delivered, ck = rd + x.failed, tot = x.id === 'ALL';
-      return { t: tot, c: [esc(tot ? 'All' : x.name), tot ? fmtN(aud) : fmtN(x.audience), fmtN(x.sent), fmtN(rd), fmtN(x.read), fmtN(x.unconfirmed), '<span class="f">' + fmtN(x.failed) + '</span>', pc1(x.failed, x.sent), ck ? pc1(x.failed, ck) : 'none checked', fmtN(x.stop), st.replies === 'no' ? '<span class="nvb-rs-dash" title="Not readable yet">Not yet</span>' : fmtN(x.replied)] };
+      var rd = x.read + x.delivered, ck = rd + x.failed, tot = x.id === 'ALL', cx = { b: x.id };
+      return { t: tot, c: [esc(tot ? 'All' : x.name), tot ? fmtN(aud) : fmtN(x.audience), nn(x.sent, 'sent', cx), nn(rd, 'reached', cx), nn(x.read, 'read', cx), nn(x.unconfirmed, 'unconfirmed', cx), '<span class="f">' + nn(x.failed, 'failed', cx) + '</span>', pc1(x.failed, x.sent), ck ? pc1(x.failed, ck) : 'none checked', nn(x.stop, 'stop', cx), st.replies === 'no' ? '<span class="nvb-rs-dash" title="Not readable yet">Not yet</span>' : nn(x.replied, 'replied', cx)] };
     });
-    var bars = '<div class="nvb-rs-bars">' + rows.map(rsBar).join('') + '</div><div class="nvb-rs-leg"><span><b class="d"></b>Delivered or read</span><span><b class="x"></b>Failed</span><span><b class="w"></b>Not confirmed yet</span></div>';
+    var bars = '<div class="nvb-rs-bars">' + rows.map(function (x) { return rsBar(x, { b: x.id }); }).join('') + '</div>' + BAR_LEG;
     var head3 = [['AED spent', ''], ['Every message accepted, ' + r1, 'n'], ['Every message accepted, ' + r2, 'n'], ['Delivered or read, ' + r1, 'n'], ['Delivered or read, ' + r2, 'n']].concat(bkok && slok ? [['Booked or came in', 'n'], ['Cost per booking, delivered ' + r2, 'n']] : []);
     var body3 = all2.map(function (x) {
       var rd = x.read + x.delivered, tot = x.id === 'ALL', mm = x.money || {};
-      return { t: tot, c: [esc(tot ? 'All' : x.name), money2(x.sent * r1), money2(x.sent * r2), money2(rd * r1), money2(rd * r2)].concat(bkok && slok ? [fmtN(mm.booked_or_in), mm.booked_or_in > 0 ? money2(rd * r2 / mm.booked_or_in) : 'none yet'] : []) };
+      return { t: tot, c: [esc(tot ? 'All' : x.name), money2(x.sent * r1), money2(x.sent * r2), money2(rd * r1), money2(rd * r2)].concat(bkok && slok ? [nn(mm.booked_or_in, 'since', { b: x.id }), mm.booked_or_in > 0 ? money2(rd * r2 / mm.booked_or_in) : 'none yet'] : []) };
     });
     out += rsSec('2. By blast', 'One message per client, so clients and messages are the same number. Failed is shown on its own, never counted as delivered.', rsTable(head2, body2) +
-      '<p class="nvb-small nvb-rs-note">Not confirmed means respond.io took it and nothing more has been read yet (' + fmtN(a.never_checked) + ' of ' + fmtN(a.unconfirmed) + ' have never been status-checked). ' + (st.replies === 'no' ? 'Wrote back is not readable yet, see section 4.' : '') + '</p>' + bars) +
+      '<p class="nvb-small nvb-rs-note">Not confirmed means respond.io took it and nothing more has been read yet (' + fmtN(a.never_checked) + ' of ' + fmtN(a.unconfirmed) + ' have never been status-checked). ' + (st.replies === 'no' ? 'Wrote back is not readable yet, see section 5.' : '') + '</p>' + bars) +
       rsSec('Cost by blast, AED', 'Every message accepted is the page\'s own cost basis. Delivered or read is the likelier bill. Low delivered figures on a blast mostly mean its messages are not status-checked yet.', rsTable(head3, body3));
 
-    // 3 failed
-    var rs = RES.reasons || [], names = [], byR = {};
+    // 3 did the message arrive
+    out += delSec(rows, all2, a, st);
+
+    // 4 failed
+    var rs = RES.reasons || [], byR = {};
     rs.forEach(function (x) { var k = x.reason || ''; byR[k] = byR[k] || { all: 0 }; byR[k][x.blast_id] = (byR[k][x.blast_id] || 0) + x.n; byR[k].all += x.n; });
     var ks = Object.keys(byR).sort(function (p, q) { if (!p) return 1; if (!q) return -1; return byR[q].all - byR[p].all; });
     var withReason = 0; ks.forEach(function (k) { if (k) withReason += byR[k].all; });
-    var head4 = [['Reason on the failed message', '']].concat(rows.filter(function (x) { return x.failed > 0; }).map(function (x) { return [x.name, 'n']; }), [['All', 'n']]);
     var fr = rows.filter(function (x) { return x.failed > 0; });
-    var body4 = ks.map(function (k) { return { c: [k ? esc(k) : 'Reason not saved yet'].concat(fr.map(function (x) { return fmtN(byR[k][x.id] || 0); }), [fmtN(byR[k].all)]) }; });
-    body4.push({ t: true, c: ['Failed'].concat(fr.map(function (x) { return fmtN(x.failed); }), [fmtN(a.failed)]) });
+    var head4 = [['Reason on the failed message', '']].concat(fr.map(function (x) { return [x.name, 'n']; }), [['All', 'n']]);
+    var body4 = ks.map(function (k) { var rk = k || '~none'; return { c: [k ? esc(k) : 'Reason not saved yet'].concat(fr.map(function (x) { return nn(byR[k][x.id] || 0, 'failed', { b: x.id, r: rk }); }), [nn(byR[k].all, 'failed', { r: rk })]) }; });
+    body4.push({ t: true, c: ['Failed'].concat(fr.map(function (x) { return nn(x.failed, 'failed', { b: x.id }); }), [nn(a.failed, 'failed')]) });
     var pend = a.failed - withReason;
     var reasonBox = pend > 0 ? '<div class="nvb-rs-callout"><b>Reasons are still being filled in.</b> The sender saves Meta\'s reason on each failed message. ' + fmtN(withReason) + ' of the ' + fmtN(a.failed) + ' have one so far, the rest are filled in as the sender gets to them, so the table below changes.</div>' : '';
-    var grp = RES.groups || [], gAgg = {}; grp.forEach(function (g) { if (!g.grp) return; var o2 = gAgg[g.grp] = gAgg[g.grp] || { sent: 0, reached: 0, unconfirmed: 0, failed: 0 }; o2.sent += g.sent; o2.reached += g.reached; o2.unconfirmed += g.unconfirmed; o2.failed += g.failed; });
     var head5 = [['Last wrote to us', ''], ['Checked', 'n'], ['Failed', 'n'], ['Failed % of checked', 'n']];
-    var body5 = (RES.recency || []).map(function (x) { var lb = x.b.slice(2); return { c: [esc(lb === 'never' ? 'Never' : lb), fmtN(x.checked), fmtN(x.failed), pc1(x.failed, x.checked)] }; });
+    var body5 = (RES.recency || []).map(function (x) { var lb = x.b.slice(2), bk = x.b.charAt(0); return { c: [esc(lb === 'never' ? 'Never' : lb), nn(x.checked, 'checked', { k: bk }), nn(x.failed, 'failed', { k: bk }), pc1(x.failed, x.checked)] }; });
     var head6 = [['Branch', ''], ['Accepted by respond.io', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n']];
-    var body6 = (RES.branches || []).map(function (x) { return { c: [esc(BR[x.branch] || x.branch || 'Unknown'), fmtN(x.sent), fmtN(x.failed), pc1(x.failed, x.sent)] }; });
-    body6.push({ t: true, c: ['All', fmtN(a.sent), fmtN(a.failed), pc1(a.failed, a.sent)] });
-    out += rsSec('3. Failed sends, on their own', 'Respond.io took them, Meta did not deliver them. Meta\'s per-user marketing limit (131049) means no charge: wait 24 hours, never resend within 24 hours. The sender does not retry a failed client.',
+    var body6 = (RES.branches || []).map(function (x) { return { c: [esc(BR[x.branch] || x.branch || 'Unknown'), nn(x.sent, 'sent', { br: x.branch }), nn(x.failed, 'failed', { br: x.branch }), pc1(x.failed, x.sent)] }; });
+    body6.push({ t: true, c: ['All', nn(a.sent, 'sent'), nn(a.failed, 'failed'), pc1(a.failed, a.sent)] });
+    out += rsSec('4. Failed sends, on their own', 'Respond.io took them, Meta did not deliver them. Meta\'s per-user marketing limit (131049) means no charge: wait 24 hours, never resend within 24 hours. The Resend failed button on the send card retries them once, after 24 hours; a client who is sent again is counted by her new message only.',
       reasonBox + rsTable(head4, body4) +
       '<p class="nvb-small nvb-rs-note">The failed count can still rise: ' + fmtN(a.never_checked) + ' messages have not been status-checked yet, and a failure shows the first time a message is checked. The share of checked messages (' + pc1(a.failed, checked) + ') is the better guide than the share of accepted (' + pc1(a.failed, a.sent) + ') until they are.</p>' +
       '<div class="nvb-rs-two"><div><h4>By how recently she wrote to us</h4>' + rsTable(head5, body5) + '</div><div><h4>By branch</h4>' + rsTable(head6, body6) + '</div></div>');
 
-    // 4 replies and STOP
+    // 5 replies and STOP
     var head7 = [['Blast', ''], ['Reached', 'n'], ['Wrote back', 'n'], ['Of reached', 'n'], ['STOP', 'n'], ['STOP of accepted', 'n']];
-    var body7 = all2.map(function (x) { var rd = x.read + x.delivered, tot = x.id === 'ALL'; return { t: tot, c: [esc(tot ? 'All' : x.name), fmtN(rd), st.replies === 'no' ? 'Not yet' : fmtN(x.replied), st.replies === 'no' ? 'Not yet' : pc1(x.replied, rd), fmtN(x.stop), pc1(x.stop, x.sent)] }; });
-    out += rsSec('4. Replies and STOP', st.replies === 'no' ? 'Replies cannot be read yet. ' + whyReplies() + ' STOP is what the sender has seen so far.' : 'Wrote back = a WhatsApp message from her after our message, from the status check' + (st.replies === 'part' ? ' (it has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' sent so far)' : '') + '.', rsTable(head7, body7),
+    var body7 = all2.map(function (x) { var rd = x.read + x.delivered, tot = x.id === 'ALL', cx = { b: x.id }; return { t: tot, c: [esc(tot ? 'All' : x.name), nn(rd, 'reached', cx), st.replies === 'no' ? 'Not yet' : nn(x.replied, 'replied', cx), st.replies === 'no' ? 'Not yet' : pc1(x.replied, rd), nn(x.stop, 'stop', cx), pc1(x.stop, x.sent)] }; });
+    out += rsSec('5. Replies and STOP', st.replies === 'no' ? 'Replies cannot be read yet. ' + whyReplies() + ' STOP is what the sender has seen so far.' : 'Wrote back = a WhatsApp message from her after our message, from the status check' + (st.replies === 'part' ? ' (it has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' sent so far)' : '') + '.', rsTable(head7, body7),
       'October: 179 wrote back (4.9% of reached, warm 8.7%, standard 2.3%), 77 STOP (1.5%). STOP opt-outs written to the do-not-contact list by these blasts: ' + fmtN(RES.stop_optouts) + '. The gate pauses sending above ' + (RES.gate ? RES.gate.stop_pct : 2) + '% STOP.');
 
-    // 5 bookings and money
+    // 6 bookings
     var sec5;
     if (!bkok && !slok) sec5 = '<div class="nvb-rs-wait"><b>Not readable yet.</b> ' + esc(whySales(st)) + '<br>' + esc(whyBookings(st)) + '<br>It fills in on its own once sales after the send day load (the daily upload) and a bookings list from a later day is pulled. Bookings and visits take days, and the offers run to 30 November.</div>';
     else {
       var head8 = [['Blast', ''], ['Clients messaged', 'n']].concat(bkok ? [['Booked ahead', 'n'], ['Appointments', 'n']] : [], slok ? [['Already came in', 'n'], ['Paid clients', 'n'], ['Paid AED', 'n'], ['AED back per AED 1 (every message accepted, ' + r2 + ')', 'n']] : [], bkok && slok ? [['Booked or came in', 'n']] : []);
-      var body8 = all2.map(function (x) { var mm = x.money || {}, tot = x.id === 'ALL'; return { t: tot, c: [esc(tot ? 'All' : x.name), fmtN(mm.clients)].concat(bkok ? [fmtN(mm.ahead), fmtN(mm.appts)] : [], slok ? [fmtN(mm.came_in), fmtN(mm.paid_clients), money0(mm.paid_aed), x.sent ? Math.round(mm.paid_aed / (x.sent * r2)) : '0'] : [], bkok && slok ? [fmtN(mm.booked_or_in)] : []) }; });
+      var body8 = all2.map(function (x) { var mm = x.money || {}, tot = x.id === 'ALL', cx = { b: x.id }; return { t: tot, c: [esc(tot ? 'All' : x.name), nn(mm.clients, 'sent', cx)].concat(bkok ? [nn(mm.ahead, 'ahead', cx), nn(mm.appts, 'appts', cx)] : [], slok ? [nn(mm.came_in, 'came_in', cx), nn(mm.paid_clients, 'paid', cx), money0(mm.paid_aed), x.sent ? Math.round(mm.paid_aed / (x.sent * r2)) : '0'] : [], bkok && slok ? [nn(mm.booked_or_in, 'since', cx)] : []) }; });
       sec5 = rsTable(head8, body8) + (!bkok ? '<div class="nvb-rs-wait"><b>Booked ahead is not readable yet.</b> ' + esc(whyBookings(st)) + '</div>' : '') + (!slok ? '<div class="nvb-rs-wait"><b>Paid is not readable yet.</b> ' + esc(whySales(st)) + '</div>' : '');
     }
-    out += rsSec('5. Booked, came in, paid', 'Paid = every till sale since her first message, a ceiling and not proof the message caused it. Matched by client name key, like October (the send jobs carry no Phorest client id), so two clients with one name could be mixed up.', sec5);
+    out += rsSec('6. Booked, came in, paid', 'Paid = every till sale since her first message, a ceiling and not proof the message caused it. Matched by client name key, like October (the send jobs carry no Phorest client id), so two clients with one name could be mixed up. Clients who already had an appointment from today on were left out when the blast was queued, so a booking now was made after that.', sec5);
 
-    // 7 branch
-    var head9 = [['Branch', ''], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['STOP', 'n']];
-    var body9 = (RES.branches || []).map(function (x) { return { c: [esc(BR[x.branch] || x.branch || 'Unknown'), fmtN(x.sent), fmtN(x.reached), fmtN(x.unconfirmed), fmtN(x.failed), pc1(x.failed, x.sent), fmtN(x.stop)] }; });
-    body9.push({ t: true, c: ['All', fmtN(a.sent), fmtN(reached), fmtN(a.unconfirmed), fmtN(a.failed), pc1(a.failed, a.sent), fmtN(a.stop)] });
-    out += rsSec('6. By branch', '', rsTable(head9, body9), 'Motor City only gets Due, hair. Al Quoz offers end 28 November. Wrote back and booked by branch fill in with sections 4 and 5.');
+    // 7 money
+    out += moneySec(st, a, bkok, slok, r2);
 
-    // 8 pace
+    // 8 branch
+    var head9 = [['Branch', ''], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['STOP', 'n'], ['Wrote back', 'n']].concat(bkok ? [['Booked ahead', 'n']] : [], slok ? [['Came in', 'n'], ['Paid clients', 'n'], ['Paid AED', 'n']] : []);
+    var brRow = function (x, bx) {
+      var cx = bx ? { br: bx } : {}, tot = !bx, mm = tot ? (a.money || {}) : x;
+      return { t: tot, c: [esc(tot ? 'All' : (BR[x.branch] || x.branch || 'Unknown')), nn(x.sent, 'sent', cx), nn(tot ? reached : x.reached, 'reached', cx), nn(x.unconfirmed, 'unconfirmed', cx), '<span class="f">' + nn(x.failed, 'failed', cx) + '</span>', pc1(x.failed, x.sent), nn(x.stop, 'stop', cx), st.replies === 'no' ? 'Not yet' : nn(x.replied, 'replied', cx)]
+        .concat(bkok ? [nn(mm.ahead, 'ahead', cx)] : [], slok ? [nn(mm.came_in, 'came_in', cx), nn(mm.paid_clients, 'paid', cx), money0(mm.paid_aed)] : []) };
+    };
+    var body9 = (RES.branches || []).map(function (x) { return brRow(x, x.branch); });
+    body9.push(brRow(a, ''));
+    out += rsSec('8. By branch', '', rsTable(head9, body9), 'Motor City only gets Due, hair. Al Quoz offers end 28 November.');
+
+    // 9 by day
+    var head12 = [['Day sent', ''], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['STOP', 'n'], ['Wrote back', 'n'], ['First', 'n'], ['Last', 'n']];
+    var body12 = (RES.days || []).map(function (x) { var cx = { d: x.d }; return { c: [esc(fdate(x.d)), nn(x.sent, 'sent', cx), nn(x.reached, 'reached', cx), nn(x.unconfirmed, 'unconfirmed', cx), '<span class="f">' + nn(x.failed, 'failed', cx) + '</span>', nn(x.stop, 'stop', cx), st.replies === 'no' ? 'Not yet' : nn(x.replied, 'replied', cx), esc(dubaiHm(x.first_at)), esc(dubaiHm(x.last_at))] }; });
+    out += rsSec('9. By day', 'One row for each day messages went out (Dubai time). A blast moved to another day shows up here as a new row.', rsTable(head12, body12));
+
+    // 10 pace
     var head10 = [['Half-hour (Dubai)', ''], ['Accepted by respond.io', 'n'], ['Status-checked', 'n'], ['Failed of checked', 'n']];
-    var body10 = (RES.pace || []).map(function (x) { var d0 = x.slot.slice(0, 10), t0 = x.slot.slice(11); return { c: [esc(fdate(d0) + ' ' + t0), fmtN(x.sent), fmtN(x.checked), x.checked ? pc1(x.failed, x.checked) : 'not checked yet'] }; });
+    var body10 = (RES.pace || []).map(function (x) { var d0 = x.slot.slice(0, 10), t0 = x.slot.slice(11); return { c: [esc(fdate(d0) + ' ' + t0), nn(x.sent, 'sent', { d: x.slot }), nn(x.checked, 'checked', { d: x.slot }), x.checked ? nn(x.failed, 'failed', { d: x.slot }) + ' (' + pc1(x.failed, x.checked) + ')' : 'not checked yet'] }; });
     var wins = rows.map(function (x) { return esc(x.name) + ' ' + esc(dubaiHm(x.first)) + (x.last && dubaiHm(x.last) !== dubaiHm(x.first) ? ' to ' + esc(dubaiHm(x.last)) : ''); }).join(', ');
-    out += rsSec('7. Send day and pace', '', rsTable(head10, body10), 'Send windows (Dubai time): ' + wins + '. October ran about 400 messages per half-hour; a failed share that stays level across the half-hours points to the client, not the pace.');
+    out += rsSec('10. Send times', 'When the messages went out, in half hours (Dubai time).', rsTable(head10, body10), 'Send windows (Dubai time): ' + wins + '. October ran about 400 messages per half-hour; a failed share that stays level across the half-hours points to the client, not the pace.');
 
-    // 9 not verified
-    out += rsSec('8. Numbers that could not be fully verified', '', '<ol class="nvb-rs-ol"><li>Cost is an estimate (AED ' + r1 + ' or ' + r2 + ' a message). No billing data is in the database. The Meta invoice or respond.io usage report decides.</li>' +
+    // 11 log
+    out += logSec(rows);
+
+    // 12 not verified
+    out += rsSec('12. Numbers that could not be fully verified', '', '<ol class="nvb-rs-ol"><li>Cost is an estimate (AED ' + r1 + ' or ' + r2 + ' a message). No billing data is in the database. The Meta invoice or respond.io usage report decides.</li>' +
       '<li>Delivery status is partial while messages are still being status-checked (' + fmtN(checked) + ' of ' + fmtN(a.sent) + ' checked now). Meta statuses keep updating for 24 hours.</li>' +
       '<li>The failed reason is saved on ' + fmtN(withReason) + ' of ' + fmtN(a.failed) + ' failed messages so far.</li>' +
       '<li>Replies cannot be read until the WhatsApp status check runs again after the send. STOP shows only what the sender has read.</li>' +
-      '<li>Bookings have no booked-on date, and revenue needs sales after the send day. Both fill in later.</li>' +
+      '<li>Bookings have no booked-on date, and revenue needs sales after the send day. Both fill in later. Projected spend leaves out a booked service that has no price yet.</li>' +
       '<li>Sales are matched by client name key, so two clients with one name could be mixed up.</li>' +
-      '<li>The page\'s Clients figure counts from a snapshot that shrinks as people are messaged, so it will not match this view after the send.</li></ol>');
+      '<li>The page\'s Clients figure counts from a snapshot that shrinks as people are messaged, so it will not match this view after the send.</li>' +
+      '<li>No deposit section like October\'s: none of the November offers asks for a deposit.</li></ol>');
 
-    // 10 when
+    // 13 when
     var head11 = [['When', ''], ['What it settles', '']];
     var body11 = [['Wed 4 Nov evening and Thu 5 Nov morning', 'Delivery and failed for the whole send, and the failed reasons. Meta statuses update for 24 hours.'],
       ['Thu 5 Nov, after the WhatsApp status check runs again', 'First honest replies and STOP rate.'],
@@ -636,14 +924,17 @@
       ['Mon 9, 16 and 23 Nov', 'Weekly bookings, paid AED, cost per booking and return.'],
       ['Tue 1 Dec, after the 30 Nov sales upload', 'Final results for the November offers.'],
       ['When the Meta invoice is in', 'Replace the AED ' + r1 + ' and ' + r2 + ' estimates with the real cost.']].map(function (r) { return { c: [esc(r[0]), esc(r[1])] }; });
-    out += rsSec('9. When each part fills in', 'This view reads the database again every minute while it is open, so nothing needs re-running by hand. The SQL behind it is docs/NOV-2026-BLASTS-RESULTS.sql in the cowork repo.', rsTable(head11, body11).replace('class="nvb-rs-t"', 'class="nvb-rs-t txt"'));
+    out += rsSec('13. When each part fills in', 'This view reads the database again every minute while it is open, so nothing needs re-running by hand. The SQL behind it is docs/NOV-2026-BLASTS-RESULTS.sql in the cowork repo and migrations/nov_results_parity.sql here.', rsTable(head11, body11).replace('class="nvb-rs-t"', 'class="nvb-rs-t txt"'));
     return '<div class="nvb-rs">' + out + '</div>';
   }
-  async function loadResults() { try { RES = await rpc('nov_results'); resErr = false; } catch (e) { console.error(e); resErr = true; } }
+  async function loadResults() {
+    try { RES = await rpc('nov_results'); resErr = false; } catch (e) { console.error(e); resErr = true; }
+    if (cur === RESID) { if (!monBusy) loadMoney(); if (!LOG.busy) loadLog(); }   // read the money and the log again with the numbers
+  }
   function resPoll() {   // while Results is open and the tab is showing: read it again every minute (delivery statuses and sales keep arriving)
     if (resTimer) return;
     resTimer = setInterval(function () {
-      if (cur !== RESID || !main() || main().offsetParent === null || document.visibilityState !== 'visible' || sndM || sndBusy) return;
+      if (cur !== RESID || !main() || main().offsetParent === null || document.visibilityState !== 'visible' || sndM || sndBusy || DM || typing()) return;
       loadResults().then(function () { if (cur === RESID && !sndM) render(true); });
     }, 60000);
   }
