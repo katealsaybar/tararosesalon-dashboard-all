@@ -539,3 +539,9 @@
 .nvb .nvb-gcall{margin:10px 0 0;font-size:14px;color:var(--muted);line-height:1.5}
 .nvb .nvb-gnote{display:block;margin-top:4px;font-size:12.5px}
 @media (max-width:900px){.nvb .nvb-g2{grid-template-columns:minmax(0,1fr)}.nvb .nvb-gr{grid-template-columns:minmax(0,1fr)}}
+
+/* Resend failed at a set time (Kate, 5 Nov 2026) */
+.nvb-sm .nvb-sch{display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:600}
+.nvb-sm .nvb-sch input{width:18px;height:18px;margin:0}
+.nvb-sm .nvb-schat{margin:8px 0 4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.nvb-sm .nvb-schat input{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}

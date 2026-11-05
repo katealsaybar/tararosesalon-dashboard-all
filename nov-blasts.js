@@ -60,7 +60,7 @@
   var D = null, LIVE = null, LEFT = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null, termsFor = '', draft = {};
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   var RESID = 'RESULTS', RES = null, resErr = false, resTimer = null;   // the Results view (Kate, 4 Nov 2026): how the blasts did, read live from nov_results()
-  var SND = null, sndM = null, sndTyped = '', sndImg = '', sndPhone = '', sndPrev = null, sndTest = null, sndErr = '', sndBusy = false, sndTimer = null;   // the send control (Level 5)
+  var SND = null, sndM = null, sndTyped = '', sndImg = '', sndPhone = '', sndPrev = null, sndTest = null, sndErr = '', sndBusy = false, sndTimer = null, sndAt = { on: false, v: '' }, sndPrevTok = 0, RWHEN = {};   // the send control (Level 5); sndAt = the Resend failed time (Dubai, 'YYYY-MM-DDTHH:MM'), RWHEN = when a scheduled resend goes, per blast
   window.nvbUrlParts = function () {
     var p = [], first = D && D.items.filter(isBlast)[0], b = D ? cur : wantBlast, t = D ? tab : (wantTab || 'messages');
     if (t && t !== 'messages') p.push('tab=' + encodeURIComponent(t));
@@ -1007,12 +1007,33 @@
   function pctOf(a, n) { return n ? (Math.round(a * 1000 / n) / 10) + '%' : '0%'; }
   function showSend(b) { var t = tplOf(b); return isL5() && !!SND && ((t && t.s === 'approved') || !!sendOf(b)); }
   function kick() { try { var r = sb.functions.invoke('nov-send-worker', { body: {} }); if (r && r.then) r.then(function () {}, function () {}); } catch (e) { /* the cron picks it up */ } }
-  async function loadSend() { if (!isL5()) return; try { SND = await rpc('nov_send_info'); } catch (e) { console.error(e); SND = null; } }
+  async function loadSend() { if (!isL5()) return; try { SND = await rpc('nov_send_info'); } catch (e) { console.error(e); SND = null; } try { RWHEN = (await rpc('nov_send_resend_when')) || {}; } catch (e) { RWHEN = {}; } }
+  /* Resend failed at a set time (Kate, 5 Nov 2026: "scheduled time toggle to send this out"). The time is Dubai time, typed in a datetime-local box; the database queues the messages now with that time as
+     their turn (migrations/nov_send_resend_schedule.sql), and the worker only takes them once it comes, inside the send window. Cancel on the card stops them like any queued message. */
+  function sndAtIso() { if (!sndAt.on || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(sndAt.v)) return null; var d = new Date(sndAt.v + ':00+04:00'); return isNaN(d.getTime()) ? null : d.toISOString(); }
+  function sndAtLocal(d) { return dubaiDay(d.toISOString()) + 'T' + dubaiHm(d.toISOString()); }
+  function sndAtOk() { var iso = sndAtIso(); if (!iso) return false; var t = new Date(iso).getTime(); return t >= Date.now() - 60000 && t <= Date.now() + 3 * 864e5; }
+  function sndAtDefault(prev) {   // the first time any of them is ready, or in 30 minutes, to the next 5 minutes, and not before the window opens
+    var t = Date.now() + 30 * 60000;
+    if (prev && prev.next_ready) t = Math.max(t, new Date(prev.next_ready).getTime() + 5 * 60000);
+    t = Math.ceil(t / 300000) * 300000;
+    var d = new Date(t), h = +dubaiHm(d.toISOString()).slice(0, 2), from = SND && SND.hour_from != null ? SND.hour_from : 9;
+    if (h < from) d = new Date(new Date(dubaiDay(d.toISOString()) + 'T' + String(from).padStart(2, '0') + ':00:00+04:00').getTime());
+    return sndAtLocal(d);
+  }
+  function sndRsPreview() {   // read what a Resend would do at the time chosen (or right now)
+    if (!sndM || sndM.kind !== 'resend') return;
+    var id = sndM.id, tok = ++sndPrevTok, at = sndAtIso();
+    if (sndAt.on && !sndAtOk()) { sndPrev = null; render(true); return; }
+    sndPrev = null; render(true);
+    rpc('nov_send_resend_preview', at ? { p_blast: id, p_at: at } : { p_blast: id }).then(function (r) { if (tok === sndPrevTok && sndM && sndM.id === id && sndM.kind === 'resend') { sndPrev = r; if (sndAt.on && !sndAt.v) sndAt.v = sndAtDefault(r); render(true); } })
+      .catch(function (e) { console.error(e); if (tok === sndPrevTok && sndM && sndM.id === id) { sndPrev = { err: e.message || 'try again' }; render(true); } });
+  }
   function sndOk() {
     if (!sndM || !SND) return false;
     if (sndM.kind === 'live') return sndTyped.trim().toUpperCase() === 'LIVE';
     if (sndM.kind === 'test') return sndPhone.replace(/\D/g, '').length >= 9 && !(sndTest && sndTest.busy);
-    if (sndM.kind === 'resend') return !!sndPrev && !sndPrev.err && sndPrev.ok > 0 && !SND.dry_run && !!SND.enabled && sndTyped.trim().toUpperCase() === 'RESEND ' + sndM.id.toUpperCase() && !sndBusy;
+    if (sndM.kind === 'resend') return (!sndAt.on || sndAtOk()) && !!sndPrev && !sndPrev.err && sndPrev.ok > 0 && !SND.dry_run && !!SND.enabled && sndTyped.trim().toUpperCase() === 'RESEND ' + sndM.id.toUpperCase() && !sndBusy;
     var live = !SND.dry_run;
     return !!sndPrev && !sndPrev.err && sndPrev.ok > 0 && (!live || sndTyped.trim().toUpperCase() === 'SEND ' + sndM.id.toUpperCase()) && !sndBusy;
   }
@@ -1050,7 +1071,7 @@
         '<div><b>' + (x.dry ? '–' : fmtN(c.delivered || 0)) + '</b><span>Delivered or read</span></div><div class="' + (c.failed ? 'bad' : '') + '"><b>' + fmtN(c.failed || 0) + '</b><span>Failed' + (sent ? ' · ' + pctOf(c.failed || 0, sent) : '') + '</span></div>' +
         '<div class="' + (c.stop ? 'bad' : '') + '"><b>' + (x.dry ? '–' : fmtN(c.stop || 0)) + '</b><span>STOP' + (!x.dry && sent ? ' · ' + pctOf(c.stop || 0, sent) : '') + '</span></div></div>' +
         (x.dry ? '<p class="nvb-small">A dry run: the messages went through the queue and the pace, but nothing was posted, so delivered and STOP stay empty.</p>' : '<p class="nvb-small">Delivered and STOP come from respond.io a few minutes after each send, then again at 30 minutes, 2, 8 and 24 hours.</p>') +
-        (c.again ? '<p class="nvb-small nvb-again"><b>Sent again: ' + fmtN(c.again) + '</b> · ' + fmtN(c.again_delivered || 0) + ' delivered or read, ' + fmtN(c.again_failed || 0) + ' failed, ' + fmtN(c.again_queued || 0) + ' still to go. A client Meta refused is sent once more after 24 hours, never a third time; the Failed number above no longer counts the ones sent again.</p>' : '') +
+        (c.again ? '<p class="nvb-small nvb-again"><b>Sent again: ' + fmtN(c.again) + '</b> · ' + fmtN(c.again_delivered || 0) + ' delivered or read, ' + fmtN(c.again_failed || 0) + ' failed, ' + fmtN(c.again_queued || 0) + ' still to go' + (RWHEN[b.id] ? ', scheduled: the rest go from ' + esc(fat(RWHEN[b.id])) + ' Dubai time' : '') + '. A client Meta refused is sent once more after 24 hours, never a third time; the Failed number above no longer counts the ones sent again.</p>' : '') +
         (skipN || c.skipped ? '<details class="nvb-fold nvb-sk"><summary><span>Left out when it was queued <small>' + fmtN(skipN) + '</small>' + (c.skipped ? ' · skipped since ' + fmtN(c.skipped) : '') + '</span></summary><div class="in">' +
           Object.keys(sk).map(function (k) { return '<div class="nvb-lf"><span>' + esc(SKIPWHY[k] || k) + '</span><b>' + fmtN(sk[k]) + '</b></div>'; }).join('') + '</div></details>' : '') +
         (er.length ? '<details class="nvb-fold nvb-sk" open><summary><span>Why some did not go</span></summary><div class="in">' + er.map(function (e) { return '<div class="nvb-lf"><span>' + esc(e.e) + '</span><b>' + fmtN(e.n) + '</b></div>'; }).join('') + '</div></details>' : '');
@@ -1092,16 +1113,21 @@
         '<div class="nvb-srows">' + sndRow('Blast', esc(rb2.data.title)) +
         sndRow('Failed in the first send', rp ? (rp.err ? '<span class="nvb-err">Could not check: ' + esc(rp.err) + '</span>' : fmtN(rp.total)) : 'Checking…') +
         sndRow('Ready to send again', rn == null ? '…' : '<b>' + fmtN(rn) + '</b>' + (rcl ? '<small> · ' + rcl + '</small>' : '')) +
-        sndRow('Not yet, 24 hours have not passed', rp && !rp.err ? fmtN(rwait) + (rwait && rp.next_ready ? '<small> · the first is ready ' + esc(fat(rp.next_ready)) + ' Dubai time</small>' : '') : '…') +
+        sndRow(sndAt.on ? 'Not yet, 24 hours will not have passed' : 'Not yet, 24 hours have not passed', rp && !rp.err ? fmtN(rwait) + (rwait && rp.next_ready ? '<small> · the first is ready ' + esc(fat(rp.next_ready)) + ' Dubai time</small>' : '') : '…') +
         sndRow('Left out', rp && !rp.err ? fmtN(rother) + (rother ? '<small> · ' + Object.keys(rsk).filter(function (k) { return k.indexOf('Waiting') !== 0; }).map(function (k) { return rsk[k] + ' ' + esc(k.toLowerCase()); }).join(', ') + '</small>' : '') : '…') +
         sndRow('Same message', 'The same words, template and artwork as the first send, to the number she has now.') +
         sndRow('Cost, at most', rn == null ? '…' : 'AED ' + fmtN(Math.round(rn * RATE_AED)) + '<small> · an undelivered message is not charged</small>') +
         sndRow('Sending time', rn == null ? '…' : (rmins >= 120 ? (Math.round(rmins / 6) / 10) + ' hours' : rmins + ' minutes') + '<small> · ' + SND.slot_cap + ' every ' + SND.slot_minutes + ' minutes, inside the send window</small>') +
+        sndRow('Send at', '<label class="nvb-sch"><input type="checkbox" id="nvbSchOn"' + (sndAt.on ? ' checked' : '') + '> Send at a set time instead of now</label>' +
+          (sndAt.on ? '<div class="nvb-schat"><input type="datetime-local" id="nvbSchAt" step="300" min="' + sndAtLocal(new Date()) + '" max="' + sndAtLocal(new Date(Date.now() + 3 * 864e5)) + '"> <small>Dubai time. Up to 3 days ahead.</small></div>' +
+            (sndAt.v && !sndAtOk() ? '<small class="nvb-err">Pick a time from now to 3 days ahead.</small>' : '') +
+            (sndAtOk() && SND.hour_from != null && (+sndAt.v.slice(11, 13) < SND.hour_from || +sndAt.v.slice(11, 13) >= SND.hour_to) ? '<small>Outside the send window (' + SND.hour_from + ':00 to ' + SND.hour_to + ':00 Dubai time): they wait for it to open.</small>' : '') +
+            '<small>The messages are queued now and held until then. Cancel on the card stops them. Anyone who books, writes back or opts out before then is still left out.</small>' : '<small>Off: they go as soon as you confirm.</small>')) +
         sndRow('From', esc(SND.channel)) + '</div>' +
         (rlive ? '<label class="nvb-sl" for="nvbSndTyped">Type <b>RESEND ' + esc(m.id) + '</b> to confirm</label><input id="nvbSndTyped" type="text" autocomplete="off" autocapitalize="characters">' : '') +
         '<p class="nvb-small">Only a message Meta refused with its marketing limit or an experiment hold, after 24 hours, and never a third time. Not sent: a number WhatsApp cannot reach, STOP, an opt-out, an appointment from today on, a reply since, or another message already queued or sent. The limit can refuse again, and a refused message is not charged. The gate watches this resend on its own numbers.</p>' +
         (sndErr ? '<p class="nvb-err nvb-small" role="alert">' + esc(sndErr) + '</p>' : '');
-      foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:resendgo"' + (sndOk() ? '' : ' disabled') + '>Resend ' + (rn == null ? '' : fmtN(rn) + ' messages') + '</button>';
+      foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:resendgo"' + (sndOk() ? '' : ' disabled') + '>' + (sndAt.on ? 'Schedule ' : 'Resend ') + (rn == null ? '' : fmtN(rn) + ' messages') + (sndAt.on && sndAtOk() ? ' for ' + esc(nvDay(sndAt.v.replace('T', ' '))) : '') + '</button>';
     } else {
       var b = item(m.id), c = lv(b.id), tp = tplOf(b), pv = sndPrev, live = !SND.dry_run, n = pv && !pv.err ? pv.ok : (c ? c.n : null), hasEnd = /\{\{3\}\}/.test(((b.data.msg || {}).warm || (b.data.msg || {}).std || ''));
       var ahead = 0; Object.keys(SND.blasts || {}).forEach(function (k) { var z = SND.blasts[k]; if (k !== b.id && activeRun(z)) ahead += z.counts.queued; });
@@ -1133,6 +1159,9 @@
     if (ti) { ti.value = sndTyped; ti.oninput = function () { sndTyped = ti.value; gate(); }; }
     if (si) { si.value = sndImg; si.onchange = function () { sndImg = si.value; }; }
     if (pi) { pi.value = sndPhone; pi.oninput = function () { sndPhone = pi.value; gate(); }; }
+    var so = document.getElementById('nvbSchOn'), sa = document.getElementById('nvbSchAt');
+    if (so) so.onchange = function () { sndAt.on = so.checked; if (so.checked && !sndAt.v) sndAt.v = sndAtDefault(sndPrev); sndRsPreview(); };
+    if (sa) { sa.value = sndAt.v; sa.onchange = function () { sndAt.v = sa.value; sndRsPreview(); }; }
   }
   // a call that changes the sending state: draw busy, run it, take the new state from the answer (or read it again), draw
   async function sndCall(fn, args, after) {
@@ -1169,13 +1198,13 @@
     }
     else if (w === 'resend') {
       if (!b) return;
-      sndM = { kind: 'resend', id: id }; sndTyped = ''; sndPrev = null; sndErr = ''; render(true);
-      rpc('nov_send_resend_preview', { p_blast: id }).then(function (r) { if (sndM && sndM.id === id && sndM.kind === 'resend') { sndPrev = r; render(true); } }).catch(function (e) { console.error(e); if (sndM && sndM.id === id) { sndPrev = { err: e.message || 'try again' }; render(true); } });
+      sndM = { kind: 'resend', id: id }; sndTyped = ''; sndPrev = null; sndErr = ''; sndAt = { on: false, v: '' }; ++sndPrevTok; render(true);
+      sndRsPreview();
     }
     else if (w === 'resendgo') {
       if (!sndOk()) return;
-      var rid = sndM.id, rtyp = sndTyped; sndM = null; sndTyped = '';
-      sndCall('nov_send_resend', { p_blast: rid, p_confirm: rtyp }, sndAfterQueue);
+      var rid = sndM.id, rtyp = sndTyped, rat = sndAtIso(); sndM = null; sndTyped = '';
+      sndCall('nov_send_resend', rat ? { p_blast: rid, p_confirm: rtyp, p_at: rat } : { p_blast: rid, p_confirm: rtyp }, sndAfterQueue);
     }
     else if (w === 'test') { if (!b) return; sndM = { kind: 'test', id: id }; sndImg = defImg(b); sndTest = null; render(true); }
     else if (w === 'golive') { sndM = { kind: 'live' }; sndTyped = ''; render(true); }
