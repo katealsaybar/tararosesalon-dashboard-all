@@ -367,11 +367,11 @@
     return { html: (showWarm ? laneHtml('Warm', 'warm', b, c) : '') + laneHtml('Standard', 'std', b, c), one: !showWarm };
   }
   /* Who was left out of this blast, and why (Kate, 3 Nov 2026: "add mo rin dito alin yung ni exclude natin sa blasts"). Counted with the clients (nov_blast_leftout); each number opens the clients. */
-  var LEFTWHY = [['nophone', 'No mobile number on file'], ['notwa', 'A number WhatsApp cannot reach (landline, invalid or not found)'], ['optout', 'Opted out or marked do not contact'],
+  var LEFTWHY = [['sent', 'Already sent this blast (not left out)'], ['nophone', 'No mobile number on file'], ['notwa', 'A number WhatsApp cannot reach (landline, invalid or not found)'], ['optout', 'Opted out or marked do not contact'],
     ['nochat', 'No chat with us on record in respond.io'],
     ['done', 'Already messaged (October blasts, or written to on WhatsApp since 9 Oct)'], ['booked', 'Already booked in'], ['dup', 'Shares a number with another client who gets it']];
   function leftSpec(b, reason, label) {
-    return { title: (b.data.short || b.data.title) + ', left out: ' + label.toLowerCase(), cur: 'AED', sub: 'Clients who fit this blast but are not sent it, and why.',
+    return { title: (b.data.short || b.data.title) + (reason === 'sent' ? ', already sent' : ', left out: ' + label.toLowerCase()), cur: 'AED', sub: 'Clients who fit this blast but are not sent it, and why.',
       views: [{ id: 'clients', label: 'Clients', load: async function () {
         var r = await rpc('nov_blast_leftout_clients', { p_blast: b.id, p_reason: reason });
         var rows = (r.rows || []).map(function (x) { return { c: x.c, b: BR[x.b] || x.b, lv: x.lv, s: x.s }; });
@@ -380,7 +380,7 @@
   }
   function leftHtml(b) {
     var r = LEFT && LEFT.blasts && LEFT.blasts[b.id]; if (!r) return '';
-    var fit = 0, out = 0; Object.keys(r).forEach(function (k) { fit += r[k]; if (k !== 'in') out += r[k]; });
+    var fit = 0, out = 0; Object.keys(r).forEach(function (k) { fit += r[k]; if (k !== 'in' && k !== 'sent') out += r[k]; });
     var rows = LEFTWHY.filter(function (x) { return r[x[0]]; }).map(function (x) {
       var n = fmtN(r[x[0]]);
       return '<div class="nvb-lf"><span>' + esc(x[1]) + '</span><b>' + ((typeof TRSD !== 'undefined' && canEdit()) ? TRSD.num(n, leftSpec(b, x[0], x[1])) : n) + '</b></div>';
@@ -424,7 +424,7 @@
     var facts = '<div class="nvb-facts"><div><b>Cost, at most</b>' + (c ? calcNum('AED ' + fmtN(Math.round(c.n * RATE_AED)), 'cost', b.id) : '…') + '</div><div><b>Target by 30 Nov</b>' + esc(d.gold) + '</div><div><b>Message test</b>' + esc(d.arms) + '</div><div><b>Valid until</b>' + esc(d.valid || '30 November 2026') + '</div></div>';
     return '<div class="cbl-pos"><a href="?view=novblasts" data-nvb="sel:' + esc(pv || b.id) + '"' + (pv ? '' : ' class="off"') + '>‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=novblasts" data-nvb="sel:' + esc(nx || b.id) + '"' + (nx ? '' : ' class="off"') + '>Next ›</a></div>' +
       '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdateY(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdateY(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>' +
-      '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
+      '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (c && c.sent_already ? 'Not sent yet. ' + fmtN(c.sent_already) + ' already got this blast and are not counted. ' : '') + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
       '<div><small>Who</small>' + whoHtml(d) + tplHtml(b) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
       sendCardHtml(b) +
       '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-nvb="flowbig">' + FLOWICON + 'See the flow bigger</button></div>' +
@@ -443,7 +443,7 @@
     return tot;
   }
   function leftAllSpec(reason, label) {
-    return { title: 'All blasts, left out: ' + label.toLowerCase(), cur: 'AED', sub: 'Clients who fit a blast but are not sent it, and why, across every blast.',
+    return { title: reason === 'sent' ? 'All blasts, already sent' : 'All blasts, left out: ' + label.toLowerCase(), cur: 'AED', sub: 'Clients who fit a blast but are not sent it, and why, across every blast.',
       views: [{ id: 'clients', label: 'Clients', load: async function () {
         var bs = blasts(), names = {}; bs.forEach(function (b) { names[b.id] = b.data.short || b.data.title; });
         var rs = await Promise.all(bs.map(function (b) { return rpc('nov_blast_leftout_clients', { p_blast: b.id, p_reason: reason }); })), rows = [], total = 0;
@@ -454,7 +454,7 @@
   }
   function leftAllHtml() {
     var r = leftTotals(); if (!r) return '';
-    var fit = 0, out = 0; Object.keys(r).forEach(function (k) { fit += r[k]; if (k !== 'in') out += r[k]; });
+    var fit = 0, out = 0; Object.keys(r).forEach(function (k) { fit += r[k]; if (k !== 'in' && k !== 'sent') out += r[k]; });
     var rows = LEFTWHY.filter(function (x) { return r[x[0]]; }).map(function (x) {
       var n = fmtN(r[x[0]]);
       return '<div class="nvb-lf"><span>' + esc(x[1]) + '</span><b>' + ((typeof TRSD !== 'undefined' && canEdit()) ? TRSD.num(n, leftAllSpec(x[0], x[1])) : n) + '</b></div>';
