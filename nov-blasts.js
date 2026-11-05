@@ -1013,7 +1013,7 @@
      their turn (migrations/nov_send_resend_schedule.sql), and the worker only takes them once it comes, inside the send window. Cancel on the card stops them like any queued message. */
   function sndAtIso() { if (!sndAt.on || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(sndAt.v)) return null; var d = new Date(sndAt.v + ':00+04:00'); return isNaN(d.getTime()) ? null : d.toISOString(); }
   function sndAtLocal(d) { return dubaiDay(d.toISOString()) + 'T' + dubaiHm(d.toISOString()); }
-  function sndAtOk() { var iso = sndAtIso(); if (!iso) return false; var t = new Date(iso).getTime(); return t >= Date.now() - 60000 && t <= Date.now() + 3 * 864e5; }
+  function sndAtOk() { var iso = sndAtIso(); if (!iso) return false; var t = new Date(iso).getTime(); return t >= Date.now() - 60000 && t <= Date.now() + 7 * 864e5; }
   function sndAtDefault(prev) {   // the first time any of them is ready, or in 30 minutes, to the next 5 minutes, and not before the window opens
     var t = Date.now() + 30 * 60000;
     if (prev && prev.next_ready) t = Math.max(t, new Date(prev.next_ready).getTime() + 5 * 60000);
@@ -1120,8 +1120,8 @@
         sndRow('Cost, at most', rn == null ? '…' : 'AED ' + fmtN(Math.round(rn * RATE_AED)) + '<small> · an undelivered message is not charged</small>') +
         sndRow('Sending time', rn == null ? '…' : (rmins >= 120 ? (Math.round(rmins / 6) / 10) + ' hours' : rmins + ' minutes') + '<small> · ' + SND.slot_cap + ' every ' + SND.slot_minutes + ' minutes, inside the send window</small>') +
         sndRow('Send at', '<label class="nvb-sch"><input type="checkbox" id="nvbSchOn"' + (sndAt.on ? ' checked' : '') + '> Send at a set time instead of now</label>' +
-          (sndAt.on ? '<div class="nvb-schat"><input type="datetime-local" id="nvbSchAt" step="300" min="' + sndAtLocal(new Date()) + '" max="' + sndAtLocal(new Date(Date.now() + 3 * 864e5)) + '"> <small>Dubai time. Up to 3 days ahead.</small></div>' +
-            (sndAt.v && !sndAtOk() ? '<small class="nvb-err">Pick a time from now to 3 days ahead.</small>' : '') +
+          (sndAt.on ? '<div class="nvb-schat"><input type="datetime-local" id="nvbSchAt" step="300" min="' + sndAtLocal(new Date()) + '" max="' + sndAtLocal(new Date(Date.now() + 7 * 864e5)) + '"> <small>Dubai time. Up to 7 days ahead.</small></div>' +
+            (sndAt.v && !sndAtOk() ? '<small class="nvb-err">Pick a time from now to 7 days ahead.</small>' : '') +
             (sndAtOk() && SND.hour_from != null && (+sndAt.v.slice(11, 13) < SND.hour_from || +sndAt.v.slice(11, 13) >= SND.hour_to) ? '<small>Outside the send window (' + SND.hour_from + ':00 to ' + SND.hour_to + ':00 Dubai time): they wait for it to open.</small>' : '') +
             '<small>The messages are queued now and held until then. Cancel on the card stops them. Anyone who books, writes back or opts out before then is still left out.</small>' : '<small>Off: they go as soon as you confirm.</small>')) +
         sndRow('From', esc(SND.channel)) + '</div>' +

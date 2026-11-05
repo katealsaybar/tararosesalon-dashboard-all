@@ -5,7 +5,7 @@
 --   nov_send_resend_pool(blast, at)      at = when it would go (default now). The 24 hours Meta asks for are counted to that time, so a client whose 24 hours end before it is
 --                                        eligible now; the reason 'Waiting: 24 hours have not passed yet' only names the ones still inside the 24 hours at that time.
 --   nov_send_resend_preview(blast, at)   the same preview, for that time.
---   nov_send_resend(blast, confirm, at)  queues them with next_try_at = at (live mode only, sending on, typed RESEND <blast>, as before). A time in the past is refused; at most 3 days ahead.
+--   nov_send_resend(blast, confirm, at)  queues them with next_try_at = at (live mode only, sending on, typed RESEND <blast>, as before). A time in the past is refused; at most 7 days ahead.
 --   nov_send_resend_when()               per blast, when the next scheduled resend goes (null when none is waiting), for the card.
 -- The three old two-argument signatures are dropped and replaced by the same functions with one more argument that defaults to now, so a caller that does not send it behaves as before.
 -- Stop a scheduled resend with Cancel on the card (nov_send_cancel), as for any queued message. Every UPDATE has a WHERE (the API role loads safeupdate).
@@ -51,7 +51,7 @@ declare tot int; ok int; sk jsonb; nxt timestamptz; codes jsonb;
 begin
   perform nov_send_guard();
   if p_at is not null and p_at < now() - interval '1 minute' then raise exception 'Pick a time that has not passed'; end if;
-  if p_at is not null and p_at > now() + interval '3 days' then raise exception 'Pick a time within the next 3 days'; end if;
+  if p_at is not null and p_at > now() + interval '7 days' then raise exception 'Pick a time within the next 7 days'; end if;
   perform 1 from nov_send_blasts where blast_id = p_blast;
   if not found then raise exception 'That blast has not been sent'; end if;
   with c as materialized (select * from nov_send_resend_pool(p_blast, p_at))
@@ -74,7 +74,7 @@ begin
   if not cfg.enabled then raise exception 'Sending from the site is switched off'; end if;
   if upper(btrim(coalesce(p_confirm, ''))) <> 'RESEND ' || upper(p_blast) then raise exception 'Type RESEND % to confirm', upper(p_blast); end if;
   if p_at is not null and p_at < now() - interval '1 minute' then raise exception 'Pick a time that has not passed'; end if;
-  if p_at is not null and p_at > now() + interval '3 days' then raise exception 'Pick a time within the next 3 days'; end if;
+  if p_at is not null and p_at > now() + interval '7 days' then raise exception 'Pick a time within the next 7 days'; end if;
   go_at := greatest(coalesce(p_at, now()), now());
   select * into b from nov_send_blasts where blast_id = p_blast;
   if not found then raise exception 'That blast has not been sent'; end if;
