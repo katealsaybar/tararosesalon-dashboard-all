@@ -298,6 +298,7 @@ function psRender() {
       <div class="ps-actions">
         ${p ? `<button class="btn-dl" onclick="psView('${s.id}')">View</button>` : ''}
         <label class="btn-outline ps-pick">${p ? 'Replace' : 'Upload PDF'}<input type="file" accept="application/pdf,.pdf" hidden onchange="psUploadOne('${s.id}', this.files[0]); this.value=''"></label>
+        ${p ? `<button class="btn-outline ps-resend" hidden onclick="psResend('${s.id}', this)">Resend</button>` : ''}
         ${p ? `<button class="btn-outline ps-rev" hidden onclick="psRevFor('${s.id}')">Send revised</button>` : ''}
         ${p ? `<button class="btn-danger" onclick="psRemove('${s.id}')">Remove</button>` : ''}
       </div></div>`;
@@ -940,7 +941,29 @@ function psBadges() {
     b.textContent = (PS_STATE_LABEL[st] || '') + (st === 'sent' && n ? ` · revised${n > 1 ? ' ×' + n : ''}` : '');
     const rb = r.querySelector('.ps-rev');
     if (rb) rb.hidden = st !== 'sent';   // a revised payslip only goes to someone who already had the original
+    const rs = r.querySelector('.ps-resend');
+    if (rs) rs.hidden = st !== 'sent';   // so does a resend: the same email again, for someone who lost it
   });
+}
+
+// Resend (Kate, 5 Nov 2026): the same payslip email and PDF again to one person who already had it. Not the "revised" note.
+async function psResend(id, btn) {
+  const person = PS_STATE.staff.find(s => String(s.id) === String(id));
+  if (!person) return;
+  const month = new Date(PS_STATE.month + '-15').toLocaleDateString('en-GB', { month: 'long' });
+  if (!confirm(`Resend ${person.name}'s ${month} payslip email now? She gets the same email and PDF again.`)) return;
+  const label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    const j = await psSend('resend', { staff: person.id });
+    PS_STATE.send = j;
+    if (btn) { btn.textContent = 'Resent ✓'; btn.title = j.done || ''; }
+    alert(j.done || 'Resent.');   // says which email it went to, so a changed address can be checked
+    setTimeout(() => { if (btn) { btn.textContent = label; btn.disabled = false; } }, 2000);
+  } catch (e) {
+    if (btn) { btn.textContent = label; btn.disabled = false; }
+    alert(e.message);
+  }
 }
 
 const PS_CONFIRM = {

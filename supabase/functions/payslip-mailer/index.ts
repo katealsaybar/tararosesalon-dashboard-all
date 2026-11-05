@@ -716,6 +716,25 @@ Deno.serve(async (req) => {
       return json({ done: `Sent ${p.name} her revised ${label(month, { month: "long" })} payslip.`, ...(await status(month)) });
     }
 
+    // Resend (Kate, 5 Nov 2026): the same original email and the payslip now stored for the month, sent again to one person
+    // who already had it (lost it, deleted it, wrong inbox, email on file corrected). Not the "Revised" note. Nothing recorded in
+    // payslip_sends; the log and a note to payroll@ keep the trail. Goes to the email on file at the moment of the press.
+    if (action === "resend") {
+      mailer();
+      const id = String(body.staff || "");
+      if (!UUID.test(id)) throw new Oops("Pick who to resend the payslip to.");
+      const p = (await people(month)).find((x) => x.id === id);
+      if (!p) throw new Oops("Couldn't find that person.");
+      if (stateOf(p) !== "sent") throw new Oops(`${p.name} hasn't been emailed her ${nice} payslip yet. Use Send ready now instead.`);
+      if (!p.slip) throw new Oops(`${p.name} has no payslip saved for ${nice}.`);
+      if (!p.email) throw new Oops(`${p.name} has no email on file.`);
+      const e = await emailFor(p, month);
+      await mail({ to: p.email, subject: subject(month), html: e.html, text: e.text, pdf: e.pdf });
+      await log(admin.name, `Resent ${nice} payslip to ${p.name} (${p.email})`);
+      await note(`Payslip resent · ${p.name} · ${month}`, `<p>${esc(admin.name)} resent ${esc(p.name)} her ${esc(nice)} payslip from the Upload Portal, to ${esc(p.email)} (the email on file now).</p>`).catch(() => {});
+      return json({ done: `Resent ${p.name} her ${label(month, { month: "long" })} payslip to ${p.email}.`, ...(await status(month)) });
+    }
+
     return json({ error: "Unknown action." }, 400);
   } catch (e) {
     console.error(e);
