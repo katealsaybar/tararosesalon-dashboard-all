@@ -607,28 +607,20 @@
     }
     out += rsSec('5. Booked, came in, paid', 'Paid = every till sale since her first message, a ceiling and not proof the message caused it. Matched by client name key, like October (the send jobs carry no Phorest client id), so two clients with one name could be mixed up.', sec5);
 
-    // 6 warm or standard
-    var wsRows = ['warm', 'std'].filter(function (g) { return gAgg[g]; }).map(function (g) { var o3 = gAgg[g]; return { c: [g === 'warm' ? 'Warm' : 'Standard', fmtN(o3.sent), fmtN(o3.reached), fmtN(o3.unconfirmed), fmtN(o3.failed), pc1(o3.failed, o3.sent)] }; });
-    var wsBlast = {}; grp.forEach(function (g) { if (!g.grp) return; wsBlast[g.blast_id] = wsBlast[g.blast_id] || {}; wsBlast[g.blast_id][g.grp] = g; });
-    var wsLines = rows.filter(function (x) { return wsBlast[x.id] && wsBlast[x.id].warm && wsBlast[x.id].std; }).map(function (x) { var w = wsBlast[x.id].warm, s2 = wsBlast[x.id].std; return esc(x.name) + ': warm ' + fmtN(w.sent) + ' accepted, ' + pc1(w.failed, w.sent) + ' failed; standard ' + fmtN(s2.sent) + ' accepted, ' + pc1(s2.failed, s2.sent) + ' failed.'; });
-    out += rsSec('6. Warm or standard', 'The audience group each client was in when the blast was built (warm = visited in the last 90 days, standard = older). Every blast sends one message, so this compares clients, not texts. Due, hair and Due, beauty only have a standard group.',
-      rsTable([['', ''], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n']], wsRows),
-      'Inside each blast: ' + wsLines.join(' ') + ' Bookings and replies by group fill in with sections 4 and 5 when readable; this table does not split them yet.');
-
     // 7 branch
     var head9 = [['Branch', ''], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['STOP', 'n']];
     var body9 = (RES.branches || []).map(function (x) { return { c: [esc(BR[x.branch] || x.branch || 'Unknown'), fmtN(x.sent), fmtN(x.reached), fmtN(x.unconfirmed), fmtN(x.failed), pc1(x.failed, x.sent), fmtN(x.stop)] }; });
     body9.push({ t: true, c: ['All', fmtN(a.sent), fmtN(reached), fmtN(a.unconfirmed), fmtN(a.failed), pc1(a.failed, a.sent), fmtN(a.stop)] });
-    out += rsSec('7. By branch', '', rsTable(head9, body9), 'Motor City only gets Due, hair. Al Quoz offers end 28 November. Wrote back and booked by branch fill in with sections 4 and 5.');
+    out += rsSec('6. By branch', '', rsTable(head9, body9), 'Motor City only gets Due, hair. Al Quoz offers end 28 November. Wrote back and booked by branch fill in with sections 4 and 5.');
 
     // 8 pace
     var head10 = [['Half-hour (Dubai)', ''], ['Accepted by respond.io', 'n'], ['Status-checked', 'n'], ['Failed of checked', 'n']];
     var body10 = (RES.pace || []).map(function (x) { var d0 = x.slot.slice(0, 10), t0 = x.slot.slice(11); return { c: [esc(fdate(d0) + ' ' + t0), fmtN(x.sent), fmtN(x.checked), x.checked ? pc1(x.failed, x.checked) : 'not checked yet'] }; });
     var wins = rows.map(function (x) { return esc(x.name) + ' ' + esc(dubaiHm(x.first)) + (x.last && dubaiHm(x.last) !== dubaiHm(x.first) ? ' to ' + esc(dubaiHm(x.last)) : ''); }).join(', ');
-    out += rsSec('8. Send day and pace', '', rsTable(head10, body10), 'Send windows (Dubai time): ' + wins + '. October ran about 400 messages per half-hour; a failed share that stays level across the half-hours points to the client, not the pace.');
+    out += rsSec('7. Send day and pace', '', rsTable(head10, body10), 'Send windows (Dubai time): ' + wins + '. October ran about 400 messages per half-hour; a failed share that stays level across the half-hours points to the client, not the pace.');
 
     // 9 not verified
-    out += rsSec('9. Numbers that could not be fully verified', '', '<ol class="nvb-rs-ol"><li>Cost is an estimate (AED ' + r1 + ' or ' + r2 + ' a message). No billing data is in the database. The Meta invoice or respond.io usage report decides.</li>' +
+    out += rsSec('8. Numbers that could not be fully verified', '', '<ol class="nvb-rs-ol"><li>Cost is an estimate (AED ' + r1 + ' or ' + r2 + ' a message). No billing data is in the database. The Meta invoice or respond.io usage report decides.</li>' +
       '<li>Delivery status is partial while messages are still being status-checked (' + fmtN(checked) + ' of ' + fmtN(a.sent) + ' checked now). Meta statuses keep updating for 24 hours.</li>' +
       '<li>The failed reason is saved on ' + fmtN(withReason) + ' of ' + fmtN(a.failed) + ' failed messages so far.</li>' +
       '<li>Replies cannot be read until the WhatsApp status check runs again after the send. STOP shows only what the sender has read.</li>' +
@@ -644,7 +636,7 @@
       ['Mon 9, 16 and 23 Nov', 'Weekly bookings, paid AED, cost per booking and return.'],
       ['Tue 1 Dec, after the 30 Nov sales upload', 'Final results for the November offers.'],
       ['When the Meta invoice is in', 'Replace the AED ' + r1 + ' and ' + r2 + ' estimates with the real cost.']].map(function (r) { return { c: [esc(r[0]), esc(r[1])] }; });
-    out += rsSec('10. When each part fills in', 'This view reads the database again every minute while it is open, so nothing needs re-running by hand. The SQL behind it is docs/NOV-2026-BLASTS-RESULTS.sql in the cowork repo.', rsTable(head11, body11).replace('class="nvb-rs-t"', 'class="nvb-rs-t txt"'));
+    out += rsSec('9. When each part fills in', 'This view reads the database again every minute while it is open, so nothing needs re-running by hand. The SQL behind it is docs/NOV-2026-BLASTS-RESULTS.sql in the cowork repo.', rsTable(head11, body11).replace('class="nvb-rs-t"', 'class="nvb-rs-t txt"'));
     return '<div class="nvb-rs">' + out + '</div>';
   }
   async function loadResults() { try { RES = await rpc('nov_results'); resErr = false; } catch (e) { console.error(e); resErr = true; } }
