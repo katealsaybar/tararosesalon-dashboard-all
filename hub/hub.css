@@ -223,7 +223,41 @@ body.kb-wait .wrap{visibility:hidden}
 .kb-menu-lvl{display:block;font-style:normal;font-size:11.5px;letter-spacing:.06em;color:var(--muted);margin-top:4px}
 
 /* ── Section list + page ────────────────────────────────────── */
-.kb-crumbs{font-size:13.5px;color:var(--muted);margin:20px 0 6px}
+.kb-crumbs{font-size:13.5px;color:var(--muted);margin:20px 0 6px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* Kate, 9 Nov 2026: the List / Grid toggle, drawn like Google Drive's (a pill of two buttons, a tick on the one in use). KB.view in hub.js. */
+.kb-vt{display:inline-flex;flex:none;border:1px solid var(--border);border-radius:999px;overflow:hidden;background:var(--surface)}
+.kb-vt button{appearance:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:46px;height:40px;padding:0 12px;border:0;background:none;color:var(--muted);font:inherit}
+.kb-vt button+button{border-left:1px solid var(--border)}
+.kb-vt button:hover{background:var(--surface2);color:var(--text)}
+.kb-vt button:focus-visible{outline:2px solid var(--text);outline-offset:-3px}
+.kb-vt button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent-mint) 35%,var(--surface));color:var(--text)}
+.kb-vt svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.kb-vt .kb-vt-ck{display:none;width:16px;height:16px;stroke-width:2.2}
+.kb-vt button[aria-pressed="true"] .kb-vt-ck{display:block}
+/* Grid layout of a door's lists (Knowledge Base, Tools): each row becomes a square-ish card, the department name above its cards. */
+body[data-kb-view="grid"] .kb-door-list .kb-dept{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;padding:0 16px 18px}
+body[data-kb-view="grid"] .kb-door-list .kb-dept-h{grid-column:1/-1;padding:16px 4px 0}
+body[data-kb-view="grid"] .kb-door-list .kb-row{flex-direction:column;align-items:flex-start;gap:12px;min-height:150px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface);transition:box-shadow .18s var(--ease),transform .18s var(--ease),border-color .18s var(--ease)}
+body[data-kb-view="grid"] .kb-door-list .kb-row:has(.kb-row-link):hover{background:var(--surface);box-shadow:var(--shadow-hover);transform:translateY(-4px);border-color:var(--muted2)}
+body[data-kb-view="grid"] .kb-door-list .kb-row .kb-ic{margin-top:0}
+body[data-kb-view="grid"] .kb-door-list .kb-row-tx{flex:none;width:100%}
+body[data-kb-view="grid"] .kb-door-list .kb-row-tx>span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;white-space:normal}
+body[data-kb-view="grid"] .kb-door-list .kb-go{display:none}
+body[data-kb-view="grid"] .kb-door-list .kb-row .kb-star{position:absolute;top:8px;right:8px;align-self:auto}
+body[data-kb-view="grid"] .kb-door-list .kb-row-n{display:block}
+@media (prefers-reduced-motion:reduce){body[data-kb-view="grid"] .kb-door-list .kb-row{transition:none}body[data-kb-view="grid"] .kb-door-list .kb-row:has(.kb-row-link):hover{transform:none}}
+@media (max-width:560px){body[data-kb-view="grid"] .kb-door-list .kb-dept{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 12px 14px}
+  body[data-kb-view="grid"] .kb-door-list .kb-row{min-height:130px;padding:14px}
+  body[data-kb-view="grid"] .kb-door-list .kb-row-n{display:none}}
+/* List layout of Team Home's squares (favourites, Where to next): one panel of rows, like the door lists. */
+body[data-kb-view="list"] .kb-gtiles{grid-template-columns:1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+body[data-kb-view="list"] .kb-gtiles>*+*{border-top:1px solid var(--border2)}
+body[data-kb-view="list"] .kb-gtiles .kb-gtile{aspect-ratio:auto;min-height:68px;flex-direction:row;align-items:center;justify-content:flex-start;gap:14px;padding:12px 60px 12px 20px;border:0;border-radius:0;background:none;box-shadow:none;transform:none}
+body[data-kb-view="list"] .kb-gtiles .kb-gtile:hover{background:var(--surface2)}
+body[data-kb-view="list"] .kb-gtiles .kb-fvwrap{aspect-ratio:auto;min-height:0}
+body[data-kb-view="list"] .kb-gtiles .kb-fvwrap:hover{transform:none}
+body[data-kb-view="list"] .kb-gtiles .kb-fvwrap .kb-star{top:50%;right:10px;margin-top:-20px}
+body[data-kb-view="list"] .kb-gtiles .kb-gt-tx{flex:1;min-width:0}
 .kb-crumbs a{text-decoration:none;border-bottom:1px solid var(--border)}
 .kb-crumbs a:hover{border-color:var(--text)}
 .kb-page-title{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:34px;line-height:1.2;margin:0 0 6px}

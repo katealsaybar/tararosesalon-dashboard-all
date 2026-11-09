@@ -425,6 +425,59 @@
     return wrap;
   };
 
+  // ── List / Grid layout (Kate, 9 Nov 2026): the toggle Google Drive has, on the front door's pages (Team Home, Knowledge Base, Tools).
+  // One choice for all of them, kept in this browser (trs-hub-view); until she picks, a door's rows are a list and Team Home's squares a grid.
+  // Keys as in Drive: V flips between the two; Alt+V, then L is list and Alt+V, then G is grid. Not while typing in a box.
+  // The page draws KB.view.html() where it wants the button and calls KB.view.init(default) before its first paint; CSS does the rest
+  // from body[data-kb-view] (hub.css).
+  KB.view = (function () {
+    var KEY = 'trs-hub-view', def = 'grid', armed = 0, wired = false;
+    function get() {
+      var v = null;
+      try { v = localStorage.getItem(KEY); } catch (e) {}
+      return v === 'list' || v === 'grid' ? v : def;
+    }
+    function set(v, save) {
+      document.body.setAttribute('data-kb-view', v);
+      if (save) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+      [].forEach.call(document.querySelectorAll('.kb-vt button[data-v]'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === v)); });
+    }
+    var CHECK = '<svg class="kb-vt-ck" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+    var LIST = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>';
+    var GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></svg>';
+    function html() {
+      var v = get();
+      return '<span class="kb-vt" role="group" aria-label="Layout">' +
+        '<button type="button" data-v="list" aria-pressed="' + (v === 'list') + '" aria-label="List layout" title="List layout (V, or Alt+V then L)">' + CHECK + LIST + '</button>' +
+        '<button type="button" data-v="grid" aria-pressed="' + (v === 'grid') + '" aria-label="Grid layout" title="Grid layout (V, or Alt+V then G)">' + CHECK + GRID + '</button></span>';
+    }
+    function init(d) {
+      def = d === 'list' ? 'list' : 'grid';
+      set(get(), false);
+      if (wired) return;
+      wired = true;
+      document.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('.kb-vt button[data-v]');
+        if (b) set(b.dataset.v, true);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.defaultPrevented || e.repeat || e.ctrlKey || e.metaKey) return;
+        var t = e.target, tag = t && t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable)) return;
+        if (e.altKey && e.code === 'KeyV') { e.preventDefault(); armed = Date.now(); return; }   // e.code: Option+V on a Mac types another letter
+        if (armed && Date.now() - armed < 2000) {
+          var k = (e.key || '').toLowerCase();
+          if (k === 'alt' || k === 'shift') return;           // still releasing Alt
+          armed = 0;
+          if (k === 'l' || k === 'g') { e.preventDefault(); set(k === 'l' ? 'list' : 'grid', true); }
+          return;
+        }
+        if (!e.altKey && !e.shiftKey && (e.key || '').toLowerCase() === 'v') set(get() === 'list' ? 'grid' : 'list', true);
+      });
+    }
+    return { get: get, set: set, html: html, init: init };
+  })();
+
   // ── Theme: the dashboard's own setting (trs-theme), so the two always match.
   function theme() {
     var t = document.documentElement.getAttribute('data-theme');

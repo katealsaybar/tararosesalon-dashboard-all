@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=dcfa22a4">
+<link rel="stylesheet" href="/hub/hub.css?v=5cebef28">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
 <body class="kb-wait">
@@ -41,7 +41,7 @@
 <script src="/auth.js?v=3823f956"></script>
 <script src="/pages.js?v=289d88ea"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=b32f4f9d"></script>
+<script src="/hub/hub.js?v=75ab53d6"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
 KB.ready.then(async function () {
@@ -128,6 +128,9 @@ KB.ready.then(async function () {
     document.getElementById('kbIntro').textContent = door.blurb;
     document.getElementById('kbMyLink').hidden = true;
   }
+  // Kate, 9 Nov 2026: the List / Grid toggle (KB.view, hub.js). A door's rows start as a list, Team Home's squares as a grid, until she picks.
+  KB.view.init(door ? 'list' : 'grid');
+  var viewBtn = function () { return KB.view.html(); };
   var isLive = function (s) { return !!(s.live || s.via || counts[s.key]); };
   // Kate, 5 Oct 2026: each department is one panel of rows (icon, title, one line,
   // page count, star), the panels flowing in two columns on a desktop and one on a
@@ -165,7 +168,7 @@ KB.ready.then(async function () {
       icon(s) + '<span class="kb-gt-tx"><b>' + esc(s.title) + '</b>' + (function (sub) { return sub ? '<span>' + esc(sub) + '</span>' : ''; })(s.dept || (s.key.indexOf('p:') === 0 ? s.blurb : '') || (/^\/\?view=/.test(s.href || '') ? 'Dashboard' : '')) + '</span></a>' + KB.starBtn(s.key, s.title) + '</div>';
   }
   function paintDoor() {
-    var html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a></p>', any = false;
+    var html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a>' + viewBtn() + '</p>', any = false;
     door.lists.forEach(function (l) {
       var list = shown.filter(function (s) { return l.keys ? l.keys.indexOf(s.key) >= 0 : s.dept === l.dept; });
       if (l.order) list.sort(function (a, b) {   // named rows first, in that order; any other row after them, as before
@@ -205,7 +208,7 @@ KB.ready.then(async function () {
     var tiles = (dashN ? doorTile('/?view=dashboard', 'Dashboard', dashN, 'dashboards', 'var(--accent-lavender)') : '') +
       (kbN ? doorTile('/hub/?door=kb', 'Knowledge Base', kbN, 'full-loop', 'var(--accent-mint)') : '') +
       (toolsN ? doorTile('/hub/?door=tools', 'Tools', toolsN, 'approvals', 'var(--accent-butter)') : '');
-    html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a></p>' + html +
+    html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a>' + viewBtn() + '</p>' + html +
       (tiles ? '<h2 class="kb-section-title" style="margin:20px 0 10px">Where to next</h2><div class="kb-gtiles">' + tiles + '</div>' : '');
     document.getElementById('kbGrid').innerHTML = html;
   }
