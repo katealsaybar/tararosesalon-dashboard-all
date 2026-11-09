@@ -57,7 +57,10 @@ function spvBuild(d) {
 }
 const spvInBranch = (r, codes) => codes.includes(r.b) || (r.s === 'wrong' && r.sbranch && codes.includes(r.sbranch));
 const spvInSalon = r => SPV.salon === 'ALL' || r.b === SPV.salon || (r.s === 'wrong' && r.sbranch === SPV.salon);
-const spvMatchQ = r => !SPV.q || (r.name || '').toLowerCase().includes(SPV.q.toLowerCase());
+const spvNm = t => (t || '').toLowerCase().replace(/[^a-zÀ-ɏ؀-ۿ ]+/g, ' ').split(/\s+/).filter(Boolean).sort().join(' ');
+const spvSameName = (a, b) => spvNm(a) !== '' && spvNm(a) === spvNm(b);
+const spvBookOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // the Client Book is a Level 5 page
+const spvMatchQ = r => !SPV.q || (r.name || '').toLowerCase().includes(SPV.q.toLowerCase()) || (r.sclient || '').toLowerCase().includes(SPV.q.toLowerCase());
 function spvInStatus(r, st) {
   if (st === 'all') return true;
   if (st === 'needs') return SPV_NEEDS.includes(r.s);
@@ -193,23 +196,29 @@ function spvPaint() {
   const body = shown.map(r => {
     const open = SPV.open === r.id;
     const salCell = spvName(r.b) + (r.s === 'wrong' ? `<span class="spv-sub">rung through at ${spvName(r.sbranch)}</span>` : '');
-    const clSub = r.s === 'nostripe' ? '<span class="spv-sub">in Phorest only, no Stripe payment</span>' : '';
+    const sameNm = r.sclient && r.s !== 'nostripe' && spvSameName(r.name, r.sclient);   // same name on both sides: leave the Phorest cell blank
+    const phLink = spvBookOk() && r.sclient ? `<a class="spv-bk" href="/?view=clientbook&amp;cbq=${encodeURIComponent(r.sclient)}" target="_blank" rel="noopener" title="Find ${spvEsc(r.sclient)} in the Client Book" onclick="event.stopPropagation()">${spvEsc(r.sclient)}</a>` : spvEsc(r.sclient || '');
+    const phCell = sameNm ? '' : r.sclient ? phLink : '<span class="spv-dim">Not found</span>';
+    const phShow = !sameNm && !!r.sclient;
+    const clSub = '';
     let h = `<tr class="spv-row ${r.s}${open ? ' open' : ''}" data-id="${spvEsc(r.id)}" tabindex="0" role="button" aria-expanded="${open}">` +
       `<td class="dt num">${spvFd(r.paid)}<span class="slp"> · ${spvName(r.b)}${r.s === 'wrong' ? ' to ' + spvName(r.sbranch) : ''}</span></td>` +
-      `<td class="sl">${salCell}</td><td class="cl">${spvEsc(r.name)}${clSub}</td>` +
+      `<td class="sl">${salCell}</td>` +
+      `<td class="ph${phShow ? '' : ' none'}">${phCell}</td>` +
+      `<td class="cl">${r.s === 'nostripe' ? '<span class="spv-dim">No Stripe payment</span>' : spvEsc(r.name)}${clSub}</td>` +
       `<td class="r amt num">${spvM2(r.amt)}</td><td class="st">${spvBadge(r)}</td><td class="go" aria-hidden="true">${open ? '&#9650;' : '&#9660;'}</td></tr>`;
     if (open) {
       const stripeTxt = r.s === 'nostripe' ? `No Stripe payment found for this client in any of the four accounts` :
         `Paid ${spvFd(r.paid)}${r.at ? ', ' + spvTime(r.at) : ''}<br>AED ${spvM2(r.amt)}${r.ref ? `, refunded AED ${spvM2(r.ref)}` : ''}`;
       const searched = ['notco', 'nostripe', 'check', 'wrong'].includes(r.s) && r.why;
-      h += `<tr class="spv-det ${r.s}"><td colspan="6"><div class="spv-dgrid">` +
+      h += `<tr class="spv-det ${r.s}"><td colspan="7"><div class="spv-dgrid">` +
         `<div><small>Stripe</small>${stripeTxt}</div><div><small>Phorest</small>${spvPhorestText(r)}</div>` +
         `<div><small>Why this status</small>${spvEsc(r.why)}</div>` +
         (searched ? `<div class="spv-next look"><b>We searched for you.</b> We looked through the Stripe payments and the Phorest sales of all four salons. ${spvEsc(r.why)}.</div>` : '') +
         `<div class="spv-next"><b>Ask first.</b> ${spvAskFirst(r)}</div><div class="spv-next"><b>Next step.</b> ${spvNextStep(r)}</div></div></td></tr>`;
     }
     return h;
-  }).join('') || '<tr><td colspan="6" class="spv-empty2"><b>Nothing here.</b>No payments match these filters. That is good news if you were looking for problems.</td></tr>';
+  }).join('') || '<tr><td colspan="7" class="spv-empty2"><b>Nothing here.</b>No payments match these filters. That is good news if you were looking for problems.</td></tr>';
   const rest = rows.length - shown.length;
   const stripeRows = rows.filter(r => r.s !== 'nostripe'), phRows = rows.filter(r => r.s === 'nostripe');
   const money = (stripeRows.length || !phRows.length ? `AED <b>${spvM2(spvSum(stripeRows))}</b> in Stripe` : '') + (phRows.length ? (stripeRows.length ? ' and ' : '') + `AED <b>${spvM2(spvSum(phRows))}</b> only in Phorest` : '');
@@ -232,10 +241,10 @@ function spvPaint() {
     `<div class="spv-callout"><b>A difference is normal when a deposit is paid ahead of the appointment.</b> It closes by itself once the client is checked out in Phorest. Only the four coloured statuses need a person.</div>` +
     `<div class="spv-note">Stripe and Phorest are totalled for ${spvFull(d.from)} to ${spvFull(d.data_to < d.to ? d.data_to : d.to)}, the days Phorest has. Stripe counts payments taken, Phorest counts Stripe takings rung through. Difference = Stripe minus Phorest. A difference of 0.00 does not mean clean, because two opposite problems can cancel each other out, so always check the list. Wrong branch is a plus at the salon that took the payment and a minus at the salon that rang it through.</div></div>` +
     `<div class="spv-sec" id="spvPay"><h2>Every Stripe payment</h2><p class="spv-lead">All amounts in AED. Tap a row to see what Stripe has, what Phorest has, and what to do next.${synced ? ' Stripe last copied ' + synced + '.' : ''}</p>` +
-    `<div class="spv-bar"><input class="spv-search" id="spvQ" type="search" placeholder="Search a client" aria-label="Search a client" value="${spvEsc(SPV.q)}"><div class="spv-status-set" role="group" aria-label="Status">${chips}</div></div>` +
+    `<div class="spv-bar"><input class="spv-search" id="spvQ" type="search" placeholder="Search a Stripe or Phorest name" aria-label="Search a Stripe or Phorest name" value="${spvEsc(SPV.q)}"><div class="spv-status-set" role="group" aria-label="Status">${chips}</div></div>` +
     `<div class="spv-sumline">${sum}</div>` +
-    `<div class="spv-card spv-tw"><table class="spv-tbl spv-pay"><colgroup><col class="c-date"><col class="c-salon"><col><col class="c-amt"><col class="c-stat"><col class="c-go"></colgroup>` +
-    `<thead><tr><th class="sortable" style="text-align:left"><button type="button" data-sort="date">Date paid ${arrow('date')}</button></th><th style="text-align:left">Salon</th><th style="text-align:left">Client</th>` +
+    `<div class="spv-card spv-tw"><table class="spv-tbl spv-pay"><colgroup><col class="c-date"><col class="c-salon"><col class="c-ph"><col><col class="c-amt"><col class="c-stat"><col class="c-go"></colgroup>` +
+    `<thead><tr><th class="sortable" style="text-align:left"><button type="button" data-sort="date">Date paid ${arrow('date')}</button></th><th style="text-align:left">Salon</th><th style="text-align:left">Phorest Name</th><th style="text-align:left">Stripe Name</th>` +
     `<th class="sortable"><button type="button" data-sort="amt">Amount ${arrow('amt')}</button></th><th style="text-align:left">Status</th><th></th></tr></thead><tbody>${body}</tbody></table>` +
     `<div class="spv-more-row"${rest > 0 ? '' : ' hidden'}><button class="spv-morebtn" type="button" data-act="more">Show ${Math.min(20, rest)} more (${rest} left)</button></div></div>` +
     `<div class="spv-card spv-commit"><h3>One action this week</h3><p class="lead2">Pick one payment from the list above. One action, one person to teach it to, one date.</p>` +
@@ -342,12 +351,14 @@ function spvCss() {
 #stripeContent .spv-sumline{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:14px;color:var(--muted);margin:2px 0 10px}
 #stripeContent .spv-sumline b{color:var(--text)}
 #stripeContent .spv-clear{border:0;background:none;text-decoration:underline;cursor:pointer;color:var(--text);font:inherit;font-size:14px;padding:0}
-#stripeContent .spv-pay{table-layout:fixed;min-width:820px}
-#stripeContent .spv-pay col.c-date{width:116px}#stripeContent .spv-pay col.c-salon{width:190px}#stripeContent .spv-pay col.c-amt{width:120px}#stripeContent .spv-pay col.c-stat{width:178px}#stripeContent .spv-pay col.c-go{width:44px}
+#stripeContent .spv-pay{table-layout:fixed;min-width:1010px}
+#stripeContent .spv-pay col.c-date{width:116px}#stripeContent .spv-pay col.c-salon{width:190px}#stripeContent .spv-pay col.c-ph{width:200px}#stripeContent .spv-pay col.c-amt{width:120px}#stripeContent .spv-pay col.c-stat{width:178px}#stripeContent .spv-pay col.c-go{width:44px}
 #stripeContent .spv-pay th.sortable{cursor:pointer;user-select:none}
 #stripeContent .spv-pay th.sortable button{border:0;background:none;padding:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
 #stripeContent .spv-pay td{padding:11px 14px}
-#stripeContent .spv-pay td.cl{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#stripeContent .spv-pay td.cl,#stripeContent .spv-pay td.ph{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#stripeContent a.spv-bk{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}#stripeContent a.spv-bk:hover{text-decoration:underline}
+#stripeContent .spv-dim{font-weight:400;color:var(--muted2)}
 #stripeContent .spv-pay td.go{text-align:right;color:var(--muted2);padding-right:16px}
 #stripeContent .spv-pay tr.spv-row{cursor:pointer}
 #stripeContent .spv-pay tr.spv-row:hover td{background:var(--surface2)}
@@ -396,12 +407,15 @@ function spvCss() {
 #stripeContent .spv-pay{min-width:0;table-layout:auto}
 #stripeContent .spv-pay colgroup,#stripeContent .spv-pay thead{display:none}
 #stripeContent .spv-pay,#stripeContent .spv-pay tbody{display:block}
-#stripeContent .spv-pay tr.spv-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"cl amt" "meta stat";gap:4px 12px;padding:12px 14px 12px 18px;border-bottom:1px solid var(--border)}
+#stripeContent .spv-pay tr.spv-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"cl amt" "ph amt" "meta stat";gap:4px 12px;padding:12px 14px 12px 18px;border-bottom:1px solid var(--border)}
 #stripeContent .spv-pay tr.spv-row td{display:block;border:0;padding:0;background:none!important;box-shadow:none!important}
 #stripeContent .spv-pay tr.spv-row.notco{background:var(--s-bad-bg);box-shadow:inset 5px 0 0 var(--s-bad)}
 #stripeContent .spv-pay tr.spv-row.wrong,#stripeContent .spv-pay tr.spv-row.check{background:var(--s-warn-bg);box-shadow:inset 5px 0 0 var(--s-warn)}
 #stripeContent .spv-pay tr.spv-row.nostripe{background:var(--s-info-bg);box-shadow:inset 5px 0 0 var(--s-info)}
 #stripeContent .spv-pay td.cl{grid-area:cl;font-size:16px;white-space:normal}
+#stripeContent .spv-pay td.ph{grid-area:ph;font-size:13px;font-weight:400;color:var(--muted);white-space:normal}
+#stripeContent .spv-pay td.ph::before{content:'Phorest: ';color:var(--muted2)}
+#stripeContent .spv-pay td.ph.none{display:none}
 #stripeContent .spv-pay td.amt{grid-area:amt;text-align:right;font-weight:700}
 #stripeContent .spv-pay td.dt{grid-area:meta;color:var(--muted);font-size:13px;white-space:normal}
 #stripeContent .spv-pay td.sl,#stripeContent .spv-pay td.go{display:none!important}

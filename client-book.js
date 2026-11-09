@@ -223,6 +223,10 @@ function renderClientBook() {
   const el = document.getElementById('clientBookContent');
   if (!el) return;
   if (!cbLevelOk()) { el.innerHTML = '<div class="cb"><p class="cb-meta" style="padding:20px 0">The Client Book is for Level 6 only.</p></div>'; return; }
+  try {   // a link from another page (Stripe vs Phorest) arrives as ?view=clientbook&cbq=Name: search that name in all branches, once
+    const u = new URL(location.href), n = u.searchParams.get('cbq');
+    if (n) { CB.q = n.slice(0, 80); CB.branch = 'all'; CB.page = 0; u.searchParams.delete('cbq'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); }
+  } catch (e) {}
   el.innerHTML = cbShell();
   cbWire();
   cbOpen = '';
