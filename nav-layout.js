@@ -7,7 +7,9 @@
      2. After sign-in, enterDashboard() calls trsNavLayoutSync(): for Level 5 it asks the database for the saved layout; if that differs from the copy it updates the copy and
         reloads once (a new device gets your layout, and someone else signing in on this browser loses it). Anyone below Level 5 only ever has the copy removed.
      3. "View as" never touches it, so previewing another level cannot undo it.
-   A layout is { v: 1, groups: [ { n: 'Numbers', loose: [key], subs: [ { n: 'Business', p: [key] } ] } ] }. A key is the page id from showView('id'), the data-status-id of a
+   A layout is { v: 1, groups: [ { n: 'Numbers', loose: [key], subs: [ { n: 'Business', p: [key] } ] } ] }.
+   Kate, 9 Nov 2026: a section of her own ("+ New section" on Rearrange Menu) is a group with c: 1. index.html has no element for it, so apply() builds one (a .nav-group with a .nav-title, which
+   nav-collapse.js then folds like the rest) and only when it holds at least one page. A group without c that index.html does not have is still dropped, as before. A key is the page id from showView('id'), the data-status-id of a
    link out, or the row's own words. A page the layout does not mention stays where index.html put it, so a page added later still shows up. A page that has gone is skipped. */
 (function () {
   var CACHE = 'trsNavLayout', GUARD = 'trsNavLayoutSeen';
@@ -61,14 +63,14 @@
       g.loose.forEach(function (k) { known[k] = 1; });
       g.subs.forEach(function (s) { s.p.forEach(function (k) { known[k] = 1; }); });
     });
-    function grp(n) { if (!gi[n]) { gi[n] = { n: n, loose: [], subs: [] }; out.push(gi[n]); } return gi[n]; }
+    function grp(n, custom) { if (!gi[n]) { gi[n] = { n: n, loose: [], subs: [] }; if (custom) gi[n].c = 1; out.push(gi[n]); } return gi[n]; }
     function sub(g, n) {
       for (var i = 0; i < g.subs.length; i++) if (g.subs[i].n === n) return g.subs[i];
       var s = { n: n, p: [] }; g.subs.push(s); return s;
     }
     layout.groups.forEach(function (lg) {
-      if (!defNames[lg.n]) return;
-      var g = grp(lg.n);
+      if (!defNames[lg.n] && !lg.c) return;
+      var g = grp(lg.n, !defNames[lg.n]);
       (lg.loose || []).forEach(function (k) { if (known[k] && !used[k]) { used[k] = 1; g.loose.push(k); } });
       (lg.subs || []).forEach(function (ls) {
         var s = sub(g, ls.n);
@@ -92,7 +94,7 @@
     var plan = [];
     tree.forEach(function (g) {
       var ge = ext.groupEls[g.n];
-      if (!ge) return;
+      if (!ge && !g.c) return;
       var seq = [];
       g.loose.forEach(function (k) { if (ext.units[k]) seq.push.apply(seq, ext.units[k].els); });
       g.subs.forEach(function (s) {
@@ -101,6 +103,12 @@
         seq.push(h);
         s.p.forEach(function (k) { if (ext.units[k]) seq.push.apply(seq, ext.units[k].els); });
       });
+      if (!ge) {
+        // A section of her own: drawn only when it holds a page (a sub-section heading on its own is not a page).
+        if (!seq.some(function (el) { return !el.classList.contains('nav-subhead'); })) return;
+        ge = document.createElement('div'); ge.className = 'nav-group'; ge.setAttribute('data-nav-custom', '1');
+        var ti = document.createElement('div'); ti.className = 'nav-title'; ti.textContent = g.n; ge.appendChild(ti);
+      }
       plan.push({ ge: ge, seq: seq });
     });
     var out = aside.querySelector('.nav-out');
@@ -112,10 +120,12 @@
   function canon(layout) {
     if (!layout || !layout.groups) return null;
     return JSON.stringify({ v: 1, groups: layout.groups.map(function (g) {
-      return { n: g.n, loose: (g.loose || []).slice(), subs: (g.subs || []).map(function (s) { return { n: s.n, p: (s.p || []).slice() }; }) };
+      var o = { n: g.n, loose: (g.loose || []).slice(), subs: (g.subs || []).map(function (s) { return { n: s.n, p: (s.p || []).slice() }; }) };
+      if (g.c) o.c = 1;
+      return o;
     }) });
   }
-  function treeToLayout(tree) { return { v: 1, groups: tree.map(function (g) { return { n: g.n, loose: g.loose.slice(), subs: g.subs.map(function (s) { return { n: s.n, p: s.p.slice() }; }) }; }) }; }
+  function treeToLayout(tree) { return { v: 1, groups: tree.map(function (g) { var o = { n: g.n, loose: g.loose.slice(), subs: g.subs.map(function (s) { return { n: s.n, p: s.p.slice() }; }) }; if (g.c) o.c = 1; return o; }) }; }
 
   window.trsNav = { extract: extract, merge: merge, apply: apply, canon: canon, treeToLayout: treeToLayout, CACHE: CACHE };
 
