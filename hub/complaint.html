@@ -247,7 +247,7 @@ button.tk-pill{cursor:pointer}
   function ucNotice(id) {
     var old = document.querySelector('.pg-status'); if (old && old.parentNode) old.parentNode.removeChild(old);
     var nt = typeof trsStatusNotice === 'function' ? trsStatusNotice(id) : null;
-    if (nt) { nt.style.cssText = 'max-width:880px;margin:14px auto 14px;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.45;border:1px solid rgba(214,158,46,.55);background:rgba(214,158,46,.14)'; main.parentNode.insertBefore(nt, main); }
+    if (nt) { nt.style.cssText = 'max-width:880px;margin:10px auto 8px;padding:4px 12px;border-radius:8px;font-size:12.5px;line-height:1.35;border:1px solid rgba(214,158,46,.55);background:rgba(214,158,46,.14)'; main.parentNode.insertBefore(nt, main); }
   }
   function notYet() { return '<div class="cp">' + nav('') + '<p class="kb-msg">My complaints and the pipeline are not switched on yet. Complaints are logged and followed up on <a href="/?view=complaintlog">Log a Client Complaint</a>.</p></div>'; }
   function notOpen() { main.innerHTML = '<p class="kb-msg">This complaint isn’t open to your account. <a href="/hub/complaint">Your complaints</a> · <a href="/hub/">Team Home</a></p>'; }
