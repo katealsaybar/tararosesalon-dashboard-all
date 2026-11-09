@@ -548,3 +548,9 @@
 
 /* the figures on the send card are clickable (5 Nov 2026): the span must not take the small label style of .nvb-sc span */
 .nvb .nvb-sc>div b .nvb-num{font-size:inherit;line-height:inherit;color:inherit}
+.nvb .nvb-gt .stk{display:flex;height:100%;border-radius:7px;overflow:hidden}
+.nvb .nvb-gt .stk i{flex:none;height:100%;border-radius:0}
+.nvb .nvb-gt i.pd,.nvb .nvb-rs-leg b.pd{background:#3AA892}
+.nvb .nvb-gt i.td,.nvb .nvb-rs-leg b.td{background:color-mix(in srgb,var(--muted2) 85%,transparent)}
+.nvb .nvb-gt i.sd,.nvb .nvb-rs-leg b.sd{background:color-mix(in srgb,var(--muted2) 45%,transparent)}
+.nvb .nvb-gt i.nd,.nvb .nvb-rs-leg b.nd{background:#D9A441}

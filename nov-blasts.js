@@ -504,11 +504,12 @@
   function dubaiHm(iso) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)); } catch (e) { return ''; } }
   function resState() {
     var a = RA(), fd = RES && RES.first_send ? dubaiDay(RES.first_send) : '', sd = RES && RES.sales_to || '', bd = RES && RES.bookings_pulled || '', sent = a ? a.sent : 0, wa = a ? a.wa_after : 0;
-    return { fd: fd, replies: sent > 0 && wa >= sent * 0.9 ? 'ok' : (wa > 0 ? 'part' : 'no'), sales: !!(sd && fd && sd >= fd), bookings: !!(bd && fd && bd > fd) };
+    var stl = RES && RES.stale || {}, staleS = !!stl.sales, staleB = !!stl.bookings;
+    return { fd: fd, replies: sent > 0 && wa >= sent * 0.9 ? 'ok' : (wa > 0 ? 'part' : 'no'), sales: !!(sd && fd && sd >= fd) && !staleS, bookings: !!(bd && fd && bd > fd) && !staleB, staleS: staleS, staleB: staleB };
   }
   function whyReplies() { return 'The WhatsApp status check that reads replies last ran ' + fat(RES.wa_check) + (RES.first_send && RES.wa_check < RES.first_send ? ', before the first message went out (' + fat(RES.first_send) + ')' : '') + '. It fills in once that check runs again on the clients we sent to.'; }
-  function whySales(st) { return 'Sales are in to ' + fdate(RES.sales_to) + ', and the first message went out ' + fdate(st.fd) + ', so no till sale after a message is in yet.'; }
-  function whyBookings(st) { return 'The bookings list is the one pulled ' + fdate(RES.bookings_pulled) + ', the day the first message went out, and it has no booked-on date, so it cannot tell a new booking from an old one. A list pulled the next day is readable.'; }
+  function whySales(st) { if (st.staleS) return 'Sales are only in to ' + fdate(RES.sales_to) + ', ' + fmtN(RES.sales_age_days) + ' days behind. Paid at the till, Came in and Cost per booking hold until the daily Phorest upload catches up, so they do not show a number that is too low.'; return 'Sales are in to ' + fdate(RES.sales_to) + ', and the first message went out ' + fdate(st.fd) + ', so no till sale after a message is in yet.'; }
+  function whyBookings(st) { if (st.staleB) return 'The bookings list was last pulled ' + fdate(RES.bookings_pulled) + ', ' + fmtN(RES.bookings_age_days) + ' days ago (it normally refreshes six times a day). Booked ahead, Cost per booking and Projected hold until it is fresh, so they do not show a number that is too low.'; return 'The bookings list is the one pulled ' + fdate(RES.bookings_pulled) + ', the day the first message went out, and it has no booked-on date, so it cannot tell a new booking from an old one. A list pulled the next day is readable.'; }
   function rsCell(label, val, note) { return '<div><small>' + esc(label) + '</small><b>' + val + '</b><span class="cbl-live">' + note + '</span></div>'; }
   function rsWait(label, why) { return '<div class="wait"><small>' + esc(label) + '</small><b>Not readable yet</b><span class="cbl-live">' + esc(why) + '</span></div>'; }
   function rsTable(heads, rows) {   // heads: [label, css]; rows: [{ t: total row, c: [html] }]
@@ -526,7 +527,7 @@
   try { if (localStorage.getItem('nvb-money-view') === 'table') rsV.money = 'table'; if (localStorage.getItem('nvb-del-view') === 'table') rsV.del = 'table'; } catch (e) { /* fine without storage */ }
   var NV_DRILL = { sent: 'Accepted by respond.io', reached: 'Delivered or read', read: 'Read', delivered: 'Delivered, not read yet', unconfirmed: 'Not confirmed yet', failed: 'Failed', checked: 'Status-checked',
     never_checked: 'Not status-checked yet', stop: 'STOP', replied: 'Wrote back', queued: 'Still queued', ahead: 'Booked ahead', appts: 'Booked ahead, with their appointments', came_in: 'Already came in, nothing booked',
-    paid: 'Paid at the till since the message', since: 'Booked ahead or came in',
+    paid: 'Paid at the till since the message', since: 'Booked since the message or came in', bsince: 'Booked since the message', dep_paid: 'Booked ahead, deposit paid', dep_today: 'Booked for today, no deposit needed', dep_need: 'Booked ahead, deposit likely needed, not paid', dep_none: 'Booked ahead, short service, no deposit needed', dep_nodep: 'Booked ahead, no deposit needed', dep_need_1: 'Deposit likely needed, today or tomorrow', dep_need_2: 'Deposit likely needed, in 2 to 3 days', dep_need_3: 'Deposit likely needed, in 4 to 7 days', dep_need_4: 'Deposit likely needed, in 8 to 14 days', dep_need_5: 'Deposit likely needed, later',
     sent_ok: 'Sent', failed_any: 'Failed', skipped: 'Dropped just before sending', notgone: 'Did not go', again: 'Sent again', again_delivered: 'Sent again, delivered or read', again_failed: 'Sent again, failed', again_queued: 'Sent again, still to go' };
   var NV_BUCKET = { '1': 'Wrote to us in the last 30 days', '2': 'Wrote to us 31 to 90 days ago', '3': 'Wrote to us 91 to 180 days ago', '4': 'Wrote to us over 180 days ago', '5': 'Never wrote to us' };
   var NV_SPLIT = [['hair_services', 'Hair services (colour, cut, extensions)'], ['hair_treat', 'Hair treatments'], ['beauty_services', 'Beauty and nails'], ['retail_hair', 'Retail, hair'], ['retail_beauty', 'Retail, beauty'], ['other', 'Other']];
@@ -717,6 +718,63 @@
   var BAR_LEG = '<div class="nvb-rs-leg"><span><b class="d"></b>Delivered or read</span><span><b class="x"></b>Failed</span><span><b class="w"></b>Not confirmed yet</span></div>';
   function gline(cls, label, v, max) { var w = max > 0 ? Math.max(v > 0 ? 1 : 0, Math.round(1000 * v / max) / 10) : 0; return '<div class="nvb-gl"><div class="nvb-gt" role="img" aria-label="' + esc(label) + ': AED ' + money0(v) + '"><i class="' + cls + '" style="width:' + w + '%"></i></div><b>AED ' + money0(v) + '</b></div>'; }
   function grow(label, sub, lines) { return '<div class="nvb-gr"><div class="nvb-glab">' + label + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="nvb-gls">' + lines + '</div></div>'; }
+
+  // The October Lost Clients sections on the November Results (Kate, 9 Nov 2026): The campaign so far, Booked ahead who has paid a deposit, What it took to get a booking, By first send day.
+  function soFarSec(st, a, bkok, r2, reached) {
+    var m = a.money || {}, qd = RES.still_queued || 0, lim = RES.gate ? RES.gate.stop_pct : 2, repl;
+    repl = st.replies === 'ok' ? rsCell('Wrote back', nn(a.replied, 'replied'), pc1(a.replied, reached) + ' of the ' + fmtN(reached) + ' reached. A STOP is counted under STOP, not here') : st.replies === 'part' ? rsCell('Wrote back', nn(a.replied, 'replied'), 'so far, the check has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' accepted') : rsWait('Wrote back', whyReplies());
+    var tiles = rsCell('Accepted by respond.io', nn(a.sent, 'sent'), esc(fat(RES.first_send) + ' to ' + fat(RES.last_send)) + (qd ? ', ' + nn(qd, 'queued') + ' still queued' : '')) + repl +
+      (bkok ? rsCell('Clients booked ahead', nn(m.ahead, 'ahead'), 'Clients with an appointment from today on, each counted once') : rsWait('Clients booked ahead', whyBookings(st))) +
+      (bkok ? rsCell('Booked since the message', nn(m.booked_since, 'bsince'), 'Kept after the date passes. Counted from 4 Nov') : rsWait('Booked since the message', whyBookings(st))) +
+      rsCell('STOP', nn(a.stop, 'stop'), pc1(a.stop, a.sent) + ' asked us to stop. Aim to stay under ' + lim + '%') +
+      rsCell('Failed', '<span class="f">' + nn(a.failed, 'failed') + '</span>', pc1(a.failed, a.sent) + ' of the messages did not go through. Aim to stay under 5%') +
+      rsCell('Still queued', qd ? nn(qd, 'queued') : '0', qd ? 'waiting for the next send window' : 'nothing waiting') +
+      rsCell('Spent (estimate)', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' messages at AED ' + r2 + ' each' + (bkok && m.ahead ? ' (AED ' + money0(a.sent * r2 / m.ahead) + ' per client booked ahead)' : '') + '. ' + nn(reached, 'reached') + ' were delivered, about AED ' + money0(reached * r2) + ' if only those are charged. The Meta invoice has the exact figure');
+    return rsSec('The campaign so far', 'How many we sent and what came back.', '<div class="nvb-rs-nums">' + tiles + '</div>');
+  }
+  var DEP_SOON = { 1: 'Today or tomorrow', 2: 'In 2 to 3 days', 3: 'In 4 to 7 days', 4: 'In 8 to 14 days', 5: 'Later' };
+  function depSec(st, a, bkok) {
+    var lead = 'Clients we messaged who now have a visit booked, and whether a deposit is in. The deposit policy is the one October used: balayage, foils or highlights, all over colour, a restyle or extensions ask for one; a short service does not; the same day never does.';
+    if (!bkok) return rsSec('Booked ahead: who has paid a deposit', lead, '<div class="nvb-rs-nums">' + rsWait('Booked ahead', whyBookings(st)) + '</div>');
+    var D = RES.deposits || {}, t = D.total || {}, by = D.by_branch || [], sn = D.soon_need || [], m = a.money || {};
+    var cards = rsCell('Clients booked', nn(t.booked, 'ahead'), nn(m.appts, 'appts') + ' appointments from today on') +
+      rsCell('Deposit paid', nn(t.paid, 'dep_paid'), pc1(t.paid, t.booked) + ' of the booked') +
+      rsCell('Deposit likely needed', nn(t.need, 'dep_need'), 'not paid yet: balayage, foils, all over colour, restyle or extension') +
+      rsCell('No deposit needed', nn((t.none || 0) + (t.today || 0), 'dep_nodep'), 'by policy: ' + nn(t.none, 'dep_none') + ' short service, ' + nn(t.today, 'dep_today') + ' come today');
+    var maxB = Math.max.apply(null, by.map(function (x) { return x.booked; }).concat([1]));
+    var seg = function (cls, n, tot, label) { return n > 0 ? '<i class="' + cls + '" style="width:' + Math.round(1000 * n / tot) / 10 + '%" title="' + esc(label) + ': ' + n + '"></i>' : ''; };
+    var brRows = by.map(function (x) {
+      var cx = { br: x.k };
+      return grow(esc(BR[x.k] || x.k), '', '<div class="nvb-gl"><div class="nvb-gt"><div class="stk" style="width:' + Math.max(4, Math.round(1000 * x.booked / maxB) / 10) + '%">' + seg('pd', x.paid, x.booked, 'Deposit paid') + seg('td', x.today, x.booked, 'Today, none needed') + seg('sd', x.none, x.booked, 'Short service, none needed') + seg('nd', x.need, x.booked, 'Likely needed, not paid') + '</div></div><b>' + nn(x.booked, 'ahead', cx) + '</b></div>');
+    }).join('') || '<p class="slv-muted">Nobody booked yet.</p>';
+    var leg = '<div class="nvb-rs-leg"><span><b class="pd"></b>Deposit paid</span><span><b class="td"></b>Today, none needed</span><span><b class="sd"></b>Short service, none needed</span><span><b class="nd"></b>Likely needed, not paid</span></div>';
+    var sm = {}; sn.forEach(function (x) { sm[x.k] = x.n; });
+    var maxS = Math.max.apply(null, [1, 2, 3, 4, 5].map(function (k) { return sm[k] || 0; }).concat([1]));
+    var soon = [1, 2, 3, 4, 5].map(function (k) { var n = sm[k] || 0; return grow(esc(DEP_SOON[k]), '', '<div class="nvb-gl"><div class="nvb-gt"><i class="p" style="width:' + (n ? Math.max(4, Math.round(1000 * n / maxS) / 10) : 0) + '%"></i></div><b>' + nn(n, 'dep_need_' + k) + '</b></div>'); }).join('');
+    var body = '<div class="nvb-rs-nums">' + cards + '</div><div class="nvb-g2"><div class="nvb-gp"><h4 class="nvb-h4">By branch</h4>' + brRows + leg + '</div>' +
+      '<div class="nvb-gp"><h4 class="nvb-h4">Likely needed, not paid: how soon they come</h4>' + soon + '<p class="nvb-small">These are the ones reception can chase today. Check at the chair first: a client who booked her next visit before leaving the salon does not need one.</p></div></div>';
+    return rsSec('Booked ahead: who has paid a deposit', lead, body, 'Deposits arrive with the nightly sales upload, so one paid today shows tomorrow. For example: a client has balayage booked for Thursday and no deposit shows in Phorest. She reads Likely needed, so reception messages her before then.');
+  }
+  function tookSec(st, a, bkok, slok, r2, reached) {
+    var m = a.money || {};
+    if (!(bkok && slok)) return rsSec('What it took to get a booking', '', '<div class="nvb-rs-nums">' + rsWait('Cost per booking', !bkok ? whyBookings(st) : whySales(st)) + '</div>');
+    if (!(m.booked_or_in > 0)) return rsSec('What it took to get a booking', '', '<p class="slv-muted">Nobody has booked or come in yet.</p>');
+    var cost = a.sent * r2, cells = rsCell('Messages per booking', (a.sent / m.booked_or_in).toFixed(1), fmtN(a.sent) + ' messages accepted for ' + nn(m.booked_or_in, 'since') + ' clients who booked or came in since our message') +
+      rsCell('Cost per booking', 'AED ' + money2(cost / m.booked_or_in), 'AED ' + money0(cost) + ' spent (estimate) over ' + nn(m.booked_or_in, 'since') + ' clients. AED ' + money2(reached * r2 / m.booked_or_in) + ' if only the ' + fmtN(reached) + ' delivered are charged') +
+      (m.ahead > 0 ? rsCell('Cost per booking ahead', 'AED ' + money2(cost / m.ahead), 'the same spend over the ' + nn(m.ahead, 'ahead') + ' clients with a booking from today on') : '');
+    return rsSec('What it took to get a booking', 'Booked or came in = a booking from today on, a booking first seen after her first message, or a till sale since. A ceiling, not proof the message caused it.', '<div class="nvb-rs-nums">' + cells + '</div>');
+  }
+  function bookDaysSec(st, a, bkok, slok) {
+    var rows = RES.bookdays || [], m = a.money || {};
+    if (!rows.length || !(bkok || slok)) return '';
+    var head = [['Day', ''], ['Clients', 'n']].concat(bkok ? [['Booked ahead', 'n'], ['Booked since', 'n']] : [], slok ? [['Came in', 'n']] : [], bkok && slok ? [['Booked or came in', 'n']] : []);
+    var line = function (x, cx, tot, label) {
+      return { t: tot, c: [esc(label), tot ? fmtN(x.clients) : nn(x.clients, 'sent', cx)].concat(bkok ? [nn(x.ahead, 'ahead', cx), nn(x.booked_since, 'bsince', cx)] : [], slok ? [nn(x.came_in, 'came_in', cx)] : [], bkok && slok ? [nn(x.booked_or_in, 'since', cx)] : []) };
+    };
+    var body = rows.map(function (x) { return line(x, { d: x.d }, false, fdate(x.d)); });
+    body.push(line({ clients: m.clients, ahead: m.ahead, booked_since: m.booked_since, came_in: m.came_in, booked_or_in: m.booked_or_in }, {}, true, 'All'));
+    return rsSec('By first send day', 'One row for each day a client was first messaged (Dubai time). Booked since is the running count, so it does not fall when an appointment date passes.', rsTable(head, body));
+  }
   // Money from the bookings (Kate, 5 Nov 2026): what the messages cost, what the booked appointments should bring in (projected) and what the clients we messaged have paid since (actual).
   function rt(x) { return x >= 10 ? money0(x) : money2(x); }
   function moneySec(st, a, bkok, slok, r2) {
@@ -766,7 +824,7 @@
     return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>7. Money from the bookings</h3>' + toggle + '</div><p class="nvb-rs-lead">' + esc(lead) + '</p>' + body +
       '<p class="nvb-small nvb-rs-note"><b>Projected</b> is what the booked appointments should bring in. <b>Actual</b> is what the clients we messaged have paid so far. <b>Spent</b> is what the messages cost, an estimate at AED ' + r2 + ' each (the sender has no billing data). Booked ahead, appointments, accepted, delivered and came in and paid open their clients; the AED figures add up services and have no list behind them.</p>' +
       '<details class="nvb-fold" data-fold="money-how"' + (opened['money-how'] ? ' open' : '') + '><summary>How these are worked out</summary><p class="nvb-small"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that exact service charged in the last 120 days, VAT included. ' +
-      (unp ? fmtN(unp) + ' of the ' + fmtN(al.svcs) + ' booked services have no price yet (a package or a new name) and count as 0, so it runs low. ' : '') + 'The booking list has no booked-on date, so a booking made before our message cannot be told apart. <b>Actual</b> is everything the clients we messaged have paid since the day of their first message, VAT included, refunds taken off, without deposits, vouchers sold and prepaid courses, the same lines as Paid at the till in the headline. Sales arrive with the daily upload, so today shows tomorrow.</p></details></div>';
+      (unp ? fmtN(unp) + ' of the ' + fmtN(al.svcs) + ' booked services have no price yet (a package or a new name) and count as 0, so it runs low. ' : '') + 'The Phorest bookings report has no booked-on date, so since 9 Nov we log the first day each booking was seen at every bookings pull (from 4 Nov, the send day). <b>Booked since the message</b> counts a booking first seen on or after the first message day of that client, and it stays counted after the appointment date passes, so Cost per booking no longer shrinks as days go by. A booking first seen on 4 Nov may pre-date the message by a few hours. <b>Booked ahead</b> is only the snapshot of bookings from today on. When the bookings list is more than 1 day old, or sales are more than 2 days behind, the figures that depend on them hold and say why. <b>Actual</b> is everything the clients we messaged have paid since the day of their first message, VAT included, refunds taken off, without deposits, vouchers sold and prepaid courses, the same lines as Paid at the till in the headline. Sales arrive with the daily upload, so today shows tomorrow.</p></details></div>';
   }
   function delSec(rows, all2, a, st) {
     var tbl = rsV.del === 'table', bar = (RES.branches || []).map(function (x) { return { name: BR[x.branch] || x.branch || 'Unknown', sent: x.sent, read: x.reached, delivered: 0, failed: x.failed, unconfirmed: x.unconfirmed, k: x.branch }; });
@@ -797,16 +855,18 @@
     var qd = RES.still_queued, fin = qd === 0;
     var chips = '<span class="cbl-chip ok">As of ' + esc(fat(RES.at)) + '</span>' + (fin ? '<span class="cbl-chip ok">Sending finished ' + esc(fat(RES.last_send)) + '</span>' : '<span class="cbl-chip warn">Still sending: ' + fmtN(qd) + ' queued</span>') +
       (a.never_checked > 0 ? '<span class="cbl-chip warn">Delivery statuses still arriving: ' + nn(a.never_checked, 'never_checked') + ' not checked yet</span>' : '') +
-      (RES.gate && RES.gate.paused ? '<span class="cbl-chip bad">Paused by the gate</span>' : '') + '<span class="cbl-chip">Sales in to ' + esc(fdate(RES.sales_to)) + '</span><span class="cbl-chip">Offers run to 30 November</span>';
+      (RES.gate && RES.gate.paused ? '<span class="cbl-chip bad">Paused by the gate</span>' : '') + (st.staleB ? '<span class="cbl-chip warn">Bookings last pulled ' + esc(fdate(RES.bookings_pulled)) + ': not up to date</span>' : '') + (st.staleS ? '<span class="cbl-chip warn">Sales only in to ' + esc(fdate(RES.sales_to)) + ': not up to date</span>' : '') + '<span class="cbl-chip">Sales in to ' + esc(fdate(RES.sales_to)) + '</span><span class="cbl-chip">Offers run to 30 November</span>';
     var out = '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026 · Results</div><h2>How the November blasts did</h2></div></div><div class="nvb-rs-chips">' + chips + '</div>';
     out += '<p class="nvb-rs-intro">Same shape as the October Lost Clients report. One message per client, and a client counts once, by her latest message. Read live from the database and it moves while delivery statuses and sales come in. Every count opens the clients behind it: click a figure with a dotted underline.</p>';
 
+    out += '<!--nvsofar-->';
     // 1 headline
     var repl = st.replies === 'ok' ? rsCell('Wrote back', nn(a.replied, 'replied'), pc1(a.replied, reached) + ' of the ' + fmtN(reached) + ' reached') : st.replies === 'part' ? rsCell('Wrote back', nn(a.replied, 'replied'), 'so far, the check has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' accepted') : rsWait('Wrote back', whyReplies());
     var m = a.money || {}, bkok = st.bookings, slok = st.sales, al = MON && MON.all ? MON.all : null;
-    var ahead = bkok ? rsCell('Booked ahead', nn(m.ahead, 'ahead'), nn(m.appts, 'appts') + ' appointments, from today on') : rsWait('Booked ahead', whyBookings(st));
+    var ahead = bkok ? rsCell('Booked ahead', nn(m.ahead, 'ahead'), nn(m.appts, 'appts') + ' appointments, from today on. A snapshot: it drops a booking once its date passes') : rsWait('Booked ahead', whyBookings(st));
+    var bsince = bkok ? rsCell('Booked since the message', nn(m.booked_since, 'bsince'), 'a booking first seen on or after her first message day, kept after the date passes. Counted from 4 Nov') : rsWait('Booked since the message', whyBookings(st));
     var paid = slok ? rsCell('Paid at the till since the message', 'AED ' + money0(m.paid_aed), nn(m.paid_clients, 'paid') + ' clients. A ceiling, not proof the message caused it') : rsWait('Paid at the till since the message', whySales(st));
-    var cpb = (bkok && slok && m.booked_or_in > 0) ? rsCell('Cost per booking', 'AED ' + money2(reached * r2 / m.booked_or_in), 'delivered messages at ' + r2 + ' divided by ' + nn(m.booked_or_in, 'since') + ' booked or came in') : rsWait('Cost per booking', (bkok && slok) ? 'Nobody has booked or come in yet.' : 'Needs bookings and sales after the message, see Booked ahead and Paid.');
+    var cpb = (bkok && slok && m.booked_or_in > 0) ? rsCell('Cost per booking', 'AED ' + money2(reached * r2 / m.booked_or_in), 'delivered messages at ' + r2 + ' divided by ' + nn(m.booked_or_in, 'since') + ' booked since the message or came in') : rsWait('Cost per booking', (bkok && slok) ? 'Nobody has booked or come in yet.' : 'Needs bookings and sales after the message, see Booked ahead and Paid.');
     var proj = !bkok ? rsWait('Projected spend', whyBookings(st)) : al ? rsCell('Projected spend', 'AED ' + money0(al.proj), 'what the ' + fmtN(al.ahead) + ' booked clients\' appointments should bring in. Section 7') : rsWait('Projected spend', monErr ? 'Could not be read just now.' : 'Loading…');
     var projPer = !bkok ? rsWait('Projected per booked client', whyBookings(st)) : al ? rsCell('Projected per booked client', al.ahead ? 'AED ' + money0(al.proj / al.ahead) : '–', al.ahead ? 'AED ' + money0(al.appts ? al.proj / al.appts : 0) + ' per appointment' : 'nobody booked ahead yet') : rsWait('Projected per booked client', 'Loading…');
     out += rsSec('1. The headline', 'What can be read now is shown. What cannot says why.',
@@ -819,7 +879,7 @@
       rsCell('Spent, every message accepted', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' x ' + r2 + '. AED ' + money0(a.sent * r1) + ' at ' + r1) +
       rsCell('Upper bound', 'AED ' + money0((reached + a.unconfirmed) * r2), 'delivered plus not confirmed, at ' + r2) +
       rsCell('STOP', nn(a.stop, 'stop'), pc1(a.stop, a.sent) + ' of accepted. Limit ' + (RES.gate ? RES.gate.stop_pct : 2) + '%' + (a.never_checked ? '. Partial, not every message is checked yet' : '')) +
-      repl + ahead + paid + cpb + proj + projPer + '</div>',
+      repl + ahead + bsince + paid + cpb + proj + projPer + '</div>',
       'Rate: October used AED ' + r1 + ' a message (about USD 0.046, measured). The page assumes AED ' + r2 + ' (about USD 0.058, one vendor source). Both are shown until the Meta invoice or the respond.io usage report replaces them. WhatsApp does not charge failed messages, so delivered only is the likelier bill.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, cost AED 1,068 on every message accepted.');
 
     // 2 by blast
@@ -879,8 +939,12 @@
     }
     out += rsSec('6. Booked, came in, paid', 'Paid = every till sale since her first message, a ceiling and not proof the message caused it. Matched by client name key, like October (the send jobs carry no Phorest client id), so two clients with one name could be mixed up. Clients who already had an appointment from today on were left out when the blast was queued, so a booking now was made after that.', sec5);
 
+    out += depSec(st, a, bkok);
+
     // 7 money
     out += moneySec(st, a, bkok, slok, r2);
+    out += tookSec(st, a, bkok, slok, r2, reached);
+    out += bookDaysSec(st, a, bkok, slok);
 
     // 8 branch
     var head9 = [['Branch', ''], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['STOP', 'n'], ['Wrote back', 'n']].concat(bkok ? [['Booked ahead', 'n']] : [], slok ? [['Came in', 'n'], ['Paid clients', 'n'], ['Paid AED', 'n']] : []);
@@ -915,7 +979,7 @@
       '<li>Bookings have no booked-on date, and revenue needs sales after the send day. Both fill in later. Projected spend leaves out a booked service that has no price yet.</li>' +
       '<li>Sales are matched by client name key, so two clients with one name could be mixed up.</li>' +
       '<li>The page\'s Clients figure counts from a snapshot that shrinks as people are messaged, so it will not match this view after the send.</li>' +
-      '<li>No deposit section like October\'s: none of the November offers asks for a deposit.</li></ol>');
+      '<li>Deposits use the October service policy on the service names in the booking (the length, the guests and where it was booked are not in Phorest), and a deposit is any net Deposit item in the last 90 days matched by name key.</li></ol>');
 
     // 13 when
     var head11 = [['When', ''], ['What it settles', '']];
@@ -926,6 +990,7 @@
       ['Tue 1 Dec, after the 30 Nov sales upload', 'Final results for the November offers.'],
       ['When the Meta invoice is in', 'Replace the AED ' + r1 + ' and ' + r2 + ' estimates with the real cost.']].map(function (r) { return { c: [esc(r[0]), esc(r[1])] }; });
     out += rsSec('13. When each part fills in', 'This view reads the database again every minute while it is open, so nothing needs re-running by hand. The SQL behind it is docs/NOV-2026-BLASTS-RESULTS.sql in the cowork repo and migrations/nov_results_parity.sql here.', rsTable(head11, body11).replace('class="nvb-rs-t"', 'class="nvb-rs-t txt"'));
+    out = out.replace('<!--nvsofar-->', soFarSec(st, a, bkok, r2, reached));
     return '<div class="nvb-rs">' + out + '</div>';
   }
   async function loadResults() {
