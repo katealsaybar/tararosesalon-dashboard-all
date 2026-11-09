@@ -80,6 +80,12 @@
 .rct-btn.rct-danger{border-color:var(--rct-red);color:var(--rct-red)}
 .rct-btn.rct-danger:hover{border-color:var(--rct-red);background:var(--rct-redbg)}
 .rct-more{justify-self:start}
+.rct-btn[disabled]{opacity:.5;cursor:not-allowed}
+.rct-btn[disabled]:hover{border-color:var(--border)}
+.rct-rowdetail{grid-column:1 / -1;display:grid;gap:8px;background:var(--surface2);border-radius:12px;padding:6px 14px 12px}
+.rct-aboutfull{margin:0;font-size:14.5px;overflow-wrap:anywhere;white-space:pre-wrap}
+.rct-prev{width:100%;border:1px solid var(--border);border-radius:12px;background:#F1ECE3;display:block}
+.rct-field input[type=text]{width:100%;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);padding:10px 12px;font-size:15px}
 
 /* probably no */
 .rct details.rct-grp{border:1px solid var(--border);border-radius:14px;background:var(--surface)}
