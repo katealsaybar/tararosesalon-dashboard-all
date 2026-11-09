@@ -1,0 +1,5 @@
+/* Font faces linked to same-origin woff2 files (cached across pages). Generated. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:300 600;font-display:swap;src:url(../assets/fonts/inter-300.woff2) format('woff2')}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:500;font-display:swap;src:url(../assets/fonts/playfair-display-500.woff2) format('woff2')}
+@font-face{font-family:'Playfair Display';font-style:italic;font-weight:500;font-display:swap;src:url(../assets/fonts/playfair-display-500-italic.woff2) format('woff2')}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:700;font-display:swap;src:url(../assets/fonts/playfair-display-700.woff2) format('woff2')}
