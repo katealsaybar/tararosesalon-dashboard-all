@@ -215,7 +215,8 @@ function rctRawForm_(body, at, mailbox, msgId) {
   const v = {};
   pos.forEach(function (p, k) {
     const end = k + 1 < pos.length ? pos[k + 1].i : Math.min(body.length, p.i + p.l.length + 2500);
-    v[p.l] = body.slice(p.i + p.l.length, end).replace(/^[\s:*]+/, '').trim();
+    // the form marks required questions with " *", which lands at the END of the previous answer (and after the label): strip it both sides
+    v[p.l] = body.slice(p.i + p.l.length, end).replace(/^[\s:*]+/, '').replace(/[\s*]+$/, '').trim();
   });
   const one = function (k) { return String(v[k] || '').replace(/\s+/g, ' ').trim().slice(0, 300); };
   const list = function (k) { return String(v[k] || '').split(/\r?\n|\t|,\s*/).map(function (s) { return s.replace(/\s+/g, ' ').trim(); }).filter(Boolean); };
