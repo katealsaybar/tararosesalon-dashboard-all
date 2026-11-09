@@ -572,7 +572,7 @@
   }
   function nvNext(r) { return r.next ? esc(fdate(r.next)) + (r.svc ? ' <span class="slv-note">' + esc(r.svc) + '</span>' : '') : '<span class="slv-muted">–</span>'; }
   function nvSent(r) { return r.d ? esc(fdate(r.d)) + ' <span class="nvb-t">' + esc(r.t) + '</span>' : '<span class="slv-note">not sent yet</span>'; }
-  var NV_HEAD = '<th>Branch</th><th>Client</th><th>Blast</th><th>Status</th><th>Outcome</th><th>Wrote back</th><th>Sent</th><th>Next appointment</th>';
+  var NV_HEAD = '<th>Branch</th><th>Client</th><th>Blast</th><th>Status</th><th>Outcome</th><th title="A WhatsApp message from her after our message, as read by the WhatsApp status check. A booking does not need one.">Wrote back on WhatsApp</th><th>Sent</th><th>Next appointment</th>';
   function nvCells(r) {
     return '<td>' + esc(BR[r.branch] || r.branch || '') + '</td><td>' + nvWho(r) + '</td><td>' + esc(blastName(r.blast)) + '</td><td>' + nvStatus(r) + '</td><td>' + nvOut(r) + '</td><td>' + (r.replied ? '<span class="nvb-tag good">Yes</span>' : '<span class="slv-muted">–</span>') + '</td><td>' + nvSent(r) + '</td><td>' + nvNext(r) + '</td>';
   }
@@ -597,7 +597,7 @@
     var sub = box.querySelector('#nvDmSub'), bd = box.querySelector('#nvDmBody');
     if (bad || !data) { sub.textContent = 'The list did not load. Close this and try again.'; return; }
     var n = data.total || 0, rows = data.rows || [];
-    sub.textContent = fmtN(n) + (data.per_client ? ' client' : ' message') + (n === 1 ? '' : 's') + (n > rows.length ? ', the first ' + fmtN(rows.length) + ' shown' : '') + '. Click a name or number to copy it.';
+    sub.textContent = fmtN(n) + (data.per_client ? ' client' : ' message') + (n === 1 ? '' : 's') + (n > rows.length ? ', the first ' + fmtN(rows.length) + ' shown' : '') + '. Click a name or number to copy it.' + (data.per_client ? ' Wrote back on WhatsApp is only a WhatsApp message from her after ours, so a client can be booked with a dash there: she may have booked by phone, on the website or at the salon.' : '');
     bd.innerHTML = rows.length ? '<div class="nvb-dw"><table class="nvb-dt"><thead><tr>' + NV_HEAD + '</tr></thead><tbody>' + rows.map(function (r) { return '<tr>' + nvCells(r) + '</tr>'; }).join('') + '</tbody></table></div>' : '<p class="slv-muted">Nobody to show.</p>';
   }
   async function nvCopy(el) {
