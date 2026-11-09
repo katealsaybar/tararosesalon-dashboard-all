@@ -27,6 +27,7 @@ const RCT_SUPA = 'https://gvijxenafoowajqktqvd.supabase.co';
 const RCT_OWN_DOMAIN = '@tararosesalon.com';
 const RCT_OVERLAP_MS = 2 * 86400000;
 const RCT_BUDGET_MS = 4.5 * 60 * 1000;
+const RCT_UNREADABLE_CAP = 20;
 
 function rctProp_(k, optional) {
   const v = PropertiesService.getScriptProperties().getProperty(k);
@@ -79,31 +80,54 @@ function rctQueries_(fromMs, toMs) {
   ];
 }
 
+/* A message Gmail will not let a script read (for example a confidential-mode email: "Exception: Gmail operation not allowed.") is skipped and counted as
+   unreadable, so one such message cannot stop the whole run (added 9 Nov 2026 after the info@ backfill crashed on one). Only this kind of read failure is
+   skipped: a quota error, an out-of-time error, a push error or a bug still stops the run. */
+function rctReadFailure_(e) { return /Gmail operation not allowed|not allowed to (read|access)|No message with id/i.test(String((e && e.message) || e)); }
+function rctSafe_(fn, fallback) { try { const v = fn(); return v === undefined || v === null ? fallback : v; } catch (e) { return fallback; } }
+// date, sender address and subject only (no body), each read on its own because these calls may throw on the same message
+function rctNoteUnreadable_(m, th, un) {
+  un.count++;
+  if (un.list.length >= RCT_UNREADABLE_CAP) return;
+  const d = rctSafe_(function () { return m.getDate().getTime(); }, 0);
+  const addr = rctSafe_(function () { return rctAddr_(m.getFrom()); }, '');
+  const subj = rctSafe_(function () { return String(m.getSubject() || ''); }, rctSafe_(function () { return String(th.getFirstMessageSubject() || ''); }, ''));
+  un.list.push((d ? new Date(d + 4 * 3600000).toISOString().slice(0, 16).replace('T', ' ') + ' Dubai' : 'date not readable') + ' | ' + (addr || 'sender not readable') + ' | ' + (subj.replace(/\s+/g, ' ').trim().slice(0, 80) || 'subject not readable'));
+}
+
 function rctRun_(fromMs, toMs, dry) {
-  const t0 = Date.now(), seen = {}, rows = [], own = rctOwnAddr_();
+  const t0 = Date.now(), seen = {}, rows = [], own = rctOwnAddr_(), un = { count: 0, list: [] };
   rctQueries_(fromMs, toMs).forEach(function (q) {
     for (let start = 0; start < 1500; start += 100) {
       if (Date.now() - t0 > RCT_BUDGET_MS) throw new Error('Out of time, run again for a smaller window (BACKFILL_FROM / BACKFILL_TO).');
       const threads = GmailApp.search(q, start, 100);
       threads.forEach(function (th) {
-        th.getMessages().forEach(function (m) {
-          const id = m.getId(); if (seen[id]) return;
-          const d = m.getDate().getTime(); if (d < fromMs || (toMs && d >= toMs)) return;
-          seen[id] = 1;
-          const r = rctClassify_(m, own); if (r) rows.push(r);
+        let msgs;
+        try { msgs = th.getMessages(); } catch (e) { if (!rctReadFailure_(e)) throw e; rctNoteUnreadable_(th, th, un); return; }
+        msgs.forEach(function (m) {
+          try {
+            const id = m.getId(); if (seen[id]) return;
+            const d = m.getDate().getTime(); if (d < fromMs || (toMs && d >= toMs)) return;
+            seen[id] = 1;
+            const r = rctClassify_(m, own); if (r) rows.push(r);
+          } catch (e) {
+            if (!rctReadFailure_(e)) throw e;
+            rctNoteUnreadable_(m, th, un);
+          }
         });
       });
       if (threads.length < 100) break;
     }
   });
   // an application with no email, no WhatsApp and no name cannot be told apart from anyone else, so the database skips it: count them so a parsing gap shows in the log
-  const totals = { dry: dry, sent: rows.length, blank_applications: rows.filter(function (r) { return r.kind === 'application' && !r.email && !r.whatsapp && !r.name; }).length, kinds: {} };
+  const totals = { dry: dry, sent: rows.length, blank_applications: rows.filter(function (r) { return r.kind === 'application' && !r.email && !r.whatsapp && !r.name; }).length, kinds: {}, unreadable: un.count };
   rows.forEach(function (r) { totals.kinds[r.kind + (r.source ? '/' + r.source : '')] = (totals.kinds[r.kind + (r.source ? '/' + r.source : '')] || 0) + 1; });
   for (let i = 0; i < rows.length; i += 200) {
     const res = rctPush_(rows.slice(i, i + 200), dry);
     Object.keys(res).forEach(function (k) { if (typeof res[k] === 'number') totals[k] = (totals[k] || 0) + res[k]; });
   }
   console.log(JSON.stringify(totals));
+  if (un.count) console.log('Unreadable by Apps Script (open these in Gmail by hand; date | sender | subject; first ' + Math.min(un.count, RCT_UNREADABLE_CAP) + ' of ' + un.count + '):\n' + un.list.join('\n'));
   return totals;
 }
 
