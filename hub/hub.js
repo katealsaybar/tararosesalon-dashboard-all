@@ -195,8 +195,25 @@
       blurb: 'Upload each month’s payslips, email them to staff, and see the WhatsApp that goes with each email.' },
     // Kate, 29 Oct 2026: payroll messages to staff on WhatsApp (Level 5 only, kb_sections 'staff-wa', migrations/staff_wa.sql).
     { key: 'staff-wa', dept: 'Tools', title: 'Staff Payroll WhatsApp', href: '/hub/staff-messages', live: true, rule: 'var(--accent-mint)',
-      blurb: 'Payslip and payroll messages to the team, from the Backup WhatsApp number.' }
+      blurb: 'Payslip and payroll messages to the team, from the Backup WhatsApp number.' },
+    // Kate, 9 Nov 2026: two Tools pages that had a sidebar row and no row here.
+    { key: 'stripe-deposits', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Tools', title: 'Stripe vs Phorest', href: '/?view=stripedeposits', rule: 'var(--accent-mint)',
+      blurb: 'Deposits paid on Stripe checked against Phorest: which are paid, which were not checked out, and which landed on the wrong branch.' },
+    { key: 'nov-blasts', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Tools', title: 'Database Blasts, November 2026', href: '/?view=novblasts', rule: 'var(--accent-butter)',
+      blurb: 'How the November database blasts did: sent, delivered, replies and bookings.' }
   ];
+  // Kate, 9 Nov 2026: "dapat automatic nalabas dito yung new pages". Any page in pages.js's Tools group that has no row above gets one here by itself,
+  // named as in the sidebar, so a new Tools page shows on the Tools door the day it is added. Who sees it still follows that page's own rule (KB.opens).
+  (function () {
+    if (!window.TRS_PAGES) return;
+    var have = {};
+    KB.SECTIONS.forEach(function (x) { var m = /[?&]view=([A-Za-z0-9_-]+)/.exec(x.href || ''); if (m) have[m[1]] = 1; });
+    window.TRS_PAGES.forEach(function (p) {
+      if (p.group !== 'Tools' || p.retired || have[p.id]) return;
+      KB.SECTIONS.push({ key: 'auto-' + p.id, via: 'dashboards', min: p.min || 1, ic: p.ic || 'dashboards', dept: 'Tools', title: p.label, href: '/?view=' + p.id,
+        rule: 'var(--accent-lavender)', blurb: 'Opens the ' + p.label + ' page.' });
+    });
+  })();
   // A shortcut row shows when its `via` section is open to this person and they are at
   // its `min` level; every other row when kb_access() opened its own key.
   KB.opens = function (s) {
