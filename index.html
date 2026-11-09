@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=655962ec"></script>
+<script src="pages.js?v=6fa96a30"></script>
 <script src="page-status.js?v=779c1d41"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
@@ -3531,6 +3531,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="glow-club.css?v=ce0bc189">
 <link rel="stylesheet" href="campaign-blasts.css?v=7bbeafe7">
 <link rel="stylesheet" href="landing-review.css?v=995b9507">
+<link rel="stylesheet" href="recruitment.css?v=de71e0ac">
 <link rel="stylesheet" href="nov-blasts.css?v=a87d2b2e">
 <link rel="stylesheet" href="active-deals.css?v=f6158902">
 <link rel="stylesheet" href="discounts-vouchers.css?v=ef15eb90">
@@ -3597,6 +3598,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cbl: ['campaign-blasts.js?v=876d8d2e'],
       // Landing Page Review (9 Nov 2026): one file, only that page needs it.
       lpr: ['landing-review.js?v=2a84aa09'],
+      rct: ['recruitment.js?v=bb37586c'],
       // November Blasts (2 Nov 2026): one file, only that page needs it. 5 Nov 2026: plus the spreadsheet export, the Results send log saves as XLSX and CSV.
       nvb: [LGX, 'nov-blasts.js?v=63ada929'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -3829,6 +3831,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" onclick="showView('campaignblasts', this)">Campaign Blasts, November</div>
     <!-- Kate, 9 Nov 2026: Landing Page Review, for Tara and Coach Emma to open each draft landing page and pin comments on it (landing-review.js; Executives & Marketing and Kate). -->
     <div class="nav-sub" onclick="showView('landingreview', this)">Landing Page Review</div>
+    <!-- Kate, 9 Nov 2026: Recruitment, the applicant triage for Kate and Coach Emma only (recruitment.js; Level 5 and dashboard_users.extra_pages 'recruitment'). -->
+    <div class="nav-sub" onclick="showView('recruitment', this)">Recruitment</div>
     <div class="nav-sub" onclick="showView('novblasts', this)">Database Blasts, November 2026</div>
     <div class="nav-sub" onclick="showView('complaintlog', this)">Log a Client Complaint</div>
     <div class="nav-sub" data-cmp-pipeline data-status-id="complaintspipeline" onclick="location.href='/hub/complaint?view=board'">Complaints Pipeline</div>
@@ -4454,6 +4458,9 @@ table.tp-cmp td.bad{color:var(--bad)}
   </div>
   <!-- LANDING PAGE REVIEW (Kate, 9 Nov 2026): the draft campaign landing pages as cards or rows, with what the pins on each say. The pins live on the
        landing pages (page-comments.js); this only lists them and reads page_comments_get(), which checks the level again (old Levels 3 and 5). -->
+  <div id="view-recruitment" style="display:none">
+    <main id="recruitmentContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
   <div id="view-landingreview" style="display:none">
     <main id="landingReviewContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
@@ -5168,10 +5175,10 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
-  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'novblasts');
+  document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('metaads-chrome', view === 'metaads');
   document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
@@ -5210,6 +5217,7 @@ function showView(view, el){
   if (view === 'glowclub') renderGlowClub();
   if (view === 'campaignblasts') renderCampaignBlasts();
   if (view === 'landingreview') renderLandingReview();
+  if (view === 'recruitment') renderRecruitment();
   if (view === 'novblasts') renderNovBlasts();
   if (view === 'dealsperf') renderDealsPerf();
   if (view === 'discountsvouchers') renderDiscountsVouchers();

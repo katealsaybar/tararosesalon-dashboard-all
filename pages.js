@@ -74,6 +74,7 @@ window.TRS_PAGES = /*PAGES*/[
   {"id": "wvperf", "label": "Wellness Voucher Performance", "group": "Campaigns", "sub": "2026", "min": 2, "ic": "campaigns", "words": "voucher performance redemptions credit collected campaign target", "lv": [2, 4]},
   {"id": "campaignblasts", "label": "Campaign Blasts, November", "group": "Tools", "min": 3, "lazy": "cbl", "ic": "campaigns", "words": "campaign blasts whatsapp messages preview schedule send date time approve review comments coach emma blonde junior hair rhythm extensions mette", "lv": []},
   {"id": "landingreview", "label": "Landing Page Review", "group": "Tools", "min": 3, "lazy": "lpr", "ic": "campaigns", "words": "landing page review landing pages comments comment pin pins draft check tara emma keratin smoothing extensions blonde standard hair rhythm junior campaign feedback", "lv": []},
+  {"id": "recruitment", "label": "Recruitment", "group": "Tools", "min": 5, "extras": 1, "lazy": "rct", "ic": "people", "words": "recruitment applicants applications applying hiring interview interviews shortlist stylist candidates cv instagram triage booking zoom emma not now screening", "lv": []},
   {"id": "novblasts", "label": "Database Blasts, November 2026", "group": "Tools", "min": 3, "lazy": "nvb", "ic": "campaigns", "words": "november blasts database whatsapp messages smoothing beauty hair junior reminder newly due decisions send monday emma review clients", "lv": []},
   {"id": "glowclub", "label": "Glow Club Performance", "group": "Campaigns", "sub": "2025", "min": 3, "lazy": "gc", "ic": "campaigns", "words": "glow club membership silver gold platinum members renewals perks used monthly performance campaign circle", "lv": [2, 4]},
   {"id": "dealsperf", "label": "Active Deals Performance", "group": "Campaigns", "sub": "2026", "min": 2, "filtered": 1, "nopulse": 1, "lazy": "ad", "ic": "campaigns", "words": "active deals brochure offers packages blonding balayage brunette sunkissed 599 999 350 450 300 sold per branch performance campaign discounts promo", "lv": [2, 4]},
@@ -133,7 +134,8 @@ window.TRS_PAGES = /*PAGES*/[
     if ((!level || level < 5) && window.trsPageStatus(p.id) === 'hidden') return false;
     if (!level) return (p.min || 1) <= 1;
     if (level >= 5) return true;
-    if ((level === 2 || level === 4) && extras && extras.indexOf(p.id) >= 0) return true;
+    // Kate, 9 Nov 2026: a page marked "extras": 1 (Recruitment) opens from a person's own extras at any level, so Coach Emma (Level 3) gets it without the rest of Level 3.
+    if ((level === 2 || level === 4 || p.extras) && extras && extras.indexOf(p.id) >= 0) return true;
     // Kate, 28 Oct 2026: staff are one level inside (1) but the Page Access page keeps separate ticks for Reception & Call Centre (shown as Level 2),
     // saved under 'fd:<page>'; TRS_STAFF_FD says this person is one of them (set at sign-in by hub.js and index.html).
     var ov = window.TRS_ACCESS && window.TRS_ACCESS[(level === 1 && window.TRS_STAFF_FD ? 'fd:' : '') + p.id];

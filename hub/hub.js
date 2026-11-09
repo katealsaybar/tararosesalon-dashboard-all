@@ -163,6 +163,9 @@
     // Kate, 9 Nov 2026: open each draft landing page and pin comments on it (a dashboard page, ?view=landingreview; Executives & Marketing and Kate, the same people as page-comments.js).
     { key: 'landing-review', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Tools', title: 'Landing Page Review', href: '/?view=landingreview', rule: 'var(--accent-butter)',
       blurb: 'Open each draft landing page, drop a comment on the exact spot, and see what has been said on every page.' },
+    // Kate, 9 Nov 2026: applicant triage for Kate and Coach Emma only (a dashboard page, ?view=recruitment; Level 5 or dashboard_users.extra_pages 'recruitment'; migrations/recruitment.sql).
+    { key: 'recruitment', via: 'dashboards', min: 5, ic: 'people', dept: 'Tools', title: 'Recruitment', href: '/?view=recruitment', rule: 'var(--accent-mint)',
+      blurb: 'Every applicant from the recruitment and info inboxes: who is worth a look, who is waiting for an answer, and who to say no to.' },
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
     // Kate, 28 Oct 2026: which dashboard pages each level opens, as tick boxes (Level 5 only; saved in public.page_access, defaults from pages.js).
