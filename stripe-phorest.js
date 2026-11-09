@@ -7,8 +7,9 @@
 // 10px side margins on a phone, dark mode, plain words for Belle. Level 3 and up, and anyone given the page in dashboard_users.extra_pages ('stripedeposits').
 // Needs from dashboard.js (shared script scope): sb, sel, dateFrom, dateTo, dateToIso, BH_BRANCHES.
 const SPV_STORE = 'trs-stripe-phorest';
-const SPV = { status: 'all', q: '', sort: 'smart', shown: 20, open: null, salon: 'ALL', note: ['', '', ''] };
-try { const s = JSON.parse(localStorage.getItem(SPV_STORE) || '{}'); if (Array.isArray(s.note)) SPV.note = [0, 1, 2].map(i => String(s.note[i] || '').slice(0, 200)); } catch (e) {}
+function spvSave() { try { localStorage.setItem(SPV_STORE, JSON.stringify({ note: SPV.note, view: SPV.view })); } catch (e) {} }
+const SPV = { view: 'visual', status: 'all', q: '', fPh: '', fSt: '', sort: 'smart', shown: 20, open: null, salon: 'ALL', note: ['', '', ''] };
+try { const s = JSON.parse(localStorage.getItem(SPV_STORE) || '{}'); if (s.view === 'table' || s.view === 'visual') SPV.view = s.view; if (Array.isArray(s.note)) SPV.note = [0, 1, 2].map(i => String(s.note[i] || '').slice(0, 200)); } catch (e) {}
 const SPV_BR = { KCA: 'Khalifa City A', AQ: 'Al Quoz', SAA: 'Saadiyat', MC: 'Motor City' };
 const SPV_ORDER = ['KCA', 'AQ', 'SAA', 'MC'];
 const SPV_FROM = '2026-10-01';   // the list starts here; Stripe's copy goes back to 1 Aug 2026 so a deposit paid weeks ahead still finds its sale
@@ -60,7 +61,10 @@ const spvInSalon = r => SPV.salon === 'ALL' || r.b === SPV.salon || (r.s === 'wr
 const spvNm = t => (t || '').toLowerCase().replace(/[^a-zÀ-ɏ؀-ۿ ]+/g, ' ').split(/\s+/).filter(Boolean).sort().join(' ');
 const spvSameName = (a, b) => spvNm(a) !== '' && spvNm(a) === spvNm(b);
 const spvBookOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // the Client Book is a Level 5 page
-const spvMatchQ = r => !SPV.q || (r.name || '').toLowerCase().includes(SPV.q.toLowerCase()) || (r.sclient || '').toLowerCase().includes(SPV.q.toLowerCase());
+const spvHas = (t, q) => (t || '').toLowerCase().includes(q.toLowerCase());
+const spvMatchQ = r => (!SPV.q || spvHas(r.name, SPV.q) || spvHas(r.sclient, SPV.q))
+  && (!SPV.fPh || spvHas(r.sclient, SPV.fPh))                       // the Phorest Name filter under the header
+  && (!SPV.fSt || (r.s !== 'nostripe' && spvHas(r.name, SPV.fSt)));  // the Stripe Name filter (a Phorest-only sale has no Stripe name)
 function spvInStatus(r, st) {
   if (st === 'all') return true;
   if (st === 'needs') return SPV_NEEDS.includes(r.s);
@@ -186,6 +190,19 @@ function spvPaint() {
   list.forEach(c => Object.keys(tot).forEach(k => { tot[k] = spvR2(tot[k] + T[c][k]); }));
   trows += trow('ALL', tot, list.length === 1 ? spvName(list[0]) + ' total' : (list.length === 4 ? 'All salons' : 'Salons picked'), true);
 
+  // the visual: one card per salon, Stripe and Phorest as two bars, the difference, and the parts behind it (all clickable)
+  const visCard = (code, t, label, isTot) => {
+    const diff = spvR2(t.stripe - t.phorest), br = isTot ? 'ALL' : code, mx = Math.max(t.stripe, t.phorest, 1);
+    const bar = (cls, v, lab, st) => `<div class="spv-vbar"><span class="spv-vl">${lab}</span><span class="spv-vtrack"><i class="${cls}" style="width:${Math.max(v > 0 ? 2 : 0, Math.round(v / mx * 100))}%"></i></span>${fig(v, spvM2(v), { salon: br, status: st })}</div>`;
+    const parts = [['wait', 'Waiting', 'waiting', spvM2], ['notco', 'Not checked out', 'notco', spvM2], ['wrong', 'Wrong branch', 'wrong', v => spvSg(spvR2(v))], ['check', 'Check', 'check', spvM2], ['nostripe', 'Not in Stripe', 'nostripe', v => spvSg(-spvR2(v))]]
+      .filter(x => t[x[0]]).map(x => `<button type="button" class="spv-vchip ${x[2]}" data-go='${JSON.stringify({ salon: br, status: x[2] })}'><i class="spv-dot ${x[2]}"></i>${x[1]} <b>${x[3](t[x[0]])}</b></button>`).join('');
+    return `<div class="spv-vcard${isTot ? ' tot' : ''}"><div class="spv-vtop"><h3>${label}</h3>` +
+      (diff === 0 ? '<span class="spv-ok">Balanced</span>' : `<button type="button" class="spv-fig spv-bad2 spv-vdiff" data-go='${JSON.stringify({ salon: br, status: 'diff' })}'>${spvSg(diff)}<small>Stripe minus Phorest</small></button>`) + `</div>` +
+      bar('s', t.stripe, 'Stripe', 'all') + bar('p', t.phorest, 'Phorest', 'matched') +
+      `<div class="spv-vparts">${parts || '<span class="spv-dim">Nothing waiting on a person here.</span>'}</div></div>`;
+  };
+  const visHtml = `<div class="spv-vgrid">${list.map(c => visCard(c, T[c], spvName(c), false)).join('')}${list.length > 1 ? visCard('ALL', tot, list.length === 4 ? 'All salons' : 'Salons picked', true) : ''}</div>`;
+
   // list
   const rows = spvVisible(), shown = rows.slice(0, SPV.shown);
   const chips = SPV_CHIPS.map(([k, n]) => {
@@ -223,7 +240,7 @@ function spvPaint() {
   const stripeRows = rows.filter(r => r.s !== 'nostripe'), phRows = rows.filter(r => r.s === 'nostripe');
   const money = (stripeRows.length || !phRows.length ? `AED <b>${spvM2(spvSum(stripeRows))}</b> in Stripe` : '') + (phRows.length ? (stripeRows.length ? ' and ' : '') + `AED <b>${spvM2(spvSum(phRows))}</b> only in Phorest` : '');
   const sn = SPV.status === 'all' ? 'all statuses' : SPV.status === 'needs' ? 'Needs checking' : SPV.status === 'diff' ? 'everything behind the difference' : SPV_NAME[SPV.status];
-  const dirty = SPV.status !== 'all' || SPV.q || SPV.salon !== 'ALL';
+  const dirty = SPV.status !== 'all' || SPV.q || SPV.fPh || SPV.fSt || SPV.salon !== 'ALL';
   const [pa, pb] = spvRange();
   const sum = `Showing <b>${rows.length}</b> row${rows.length === 1 ? '' : 's'}, ${money} · ${sn}${SPV.salon !== 'ALL' ? ' · ' + spvName(SPV.salon) : ''}${dirty ? ' · <button type="button" class="spv-clear" data-act="clear">Clear filters</button>' : ''}`;
   const synced = d.synced_at ? new Date(d.synced_at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
@@ -236,8 +253,10 @@ function spvPaint() {
     `<p><b>Why now:</b> there are four Stripe accounts, and checking them one by one is where the gaps hide.</p>` +
     `<p><b>If we do nothing:</b> the check stays by hand, and a missed deposit is found weeks later, if at all.</p></div></div>` +
     `<div class="spv-cards">${act.map(x => cardHtml(x, true)).join('')}${quiet.map(x => cardHtml(x, false)).join('')}</div>` +
-    `<div class="spv-sec" id="spvSalons"><h2>Salon by salon</h2><p class="spv-lead">What Stripe took, what Phorest shows as Stripe takings, and why they differ. Tap any figure to see the payments behind it.</p>` +
-    `<div class="spv-card spv-tw"><table class="spv-tbl"><thead><tr><th>Salon</th><th>Stripe</th><th>Phorest</th><th>Difference</th><th>Waiting</th><th>Not checked out</th><th>Wrong branch</th><th>Check</th><th>Not in Stripe</th></tr></thead><tbody>${trows}</tbody></table></div>` +
+    `<div class="spv-sec" id="spvSalons"><h2>Branch Discrepancies</h2><p class="spv-lead">What Stripe took, what Phorest shows as Stripe takings, and why they differ. Tap any figure to see the payments behind it.</p>` +
+    `<div class="spv-vtog" role="group" aria-label="Show as"><button type="button" data-view="visual" aria-pressed="${SPV.view === 'visual'}">Visual</button><button type="button" data-view="table" aria-pressed="${SPV.view === 'table'}">Table</button></div>` +
+    (SPV.view === 'visual' ? visHtml : '') +
+    `<div class="spv-card spv-tw"${SPV.view === 'visual' ? ' hidden' : ''}><table class="spv-tbl"><thead><tr><th>Salon</th><th>Stripe</th><th>Phorest</th><th>Difference</th><th>Waiting</th><th>Not checked out</th><th>Wrong branch</th><th>Check</th><th>Not in Stripe</th></tr></thead><tbody>${trows}</tbody></table></div>` +
     `<div class="spv-callout"><b>A difference is normal when a deposit is paid ahead of the appointment.</b> It closes by itself once the client is checked out in Phorest. Only the four coloured statuses need a person.</div>` +
     `<div class="spv-note">Stripe and Phorest are totalled for ${spvFull(d.from)} to ${spvFull(d.data_to < d.to ? d.data_to : d.to)}, the days Phorest has. Stripe counts payments taken, Phorest counts Stripe takings rung through. Difference = Stripe minus Phorest. A difference of 0.00 does not mean clean, because two opposite problems can cancel each other out, so always check the list. Wrong branch is a plus at the salon that took the payment and a minus at the salon that rang it through.</div></div>` +
     `<div class="spv-sec" id="spvPay"><h2>Every Stripe payment</h2><p class="spv-lead">All amounts in AED. Tap a row to see what Stripe has, what Phorest has, and what to do next.${synced ? ' Stripe last copied ' + synced + '.' : ''}</p>` +
@@ -245,7 +264,11 @@ function spvPaint() {
     `<div class="spv-sumline">${sum}</div>` +
     `<div class="spv-card spv-tw"><table class="spv-tbl spv-pay"><colgroup><col class="c-date"><col class="c-salon"><col class="c-ph"><col><col class="c-amt"><col class="c-stat"><col class="c-go"></colgroup>` +
     `<thead><tr><th class="sortable" style="text-align:left"><button type="button" data-sort="date">Date paid ${arrow('date')}</button></th><th style="text-align:left">Salon</th><th style="text-align:left">Phorest Name</th><th style="text-align:left">Stripe Name</th>` +
-    `<th class="sortable"><button type="button" data-sort="amt">Amount ${arrow('amt')}</button></th><th style="text-align:left">Status</th><th></th></tr></thead><tbody>${body}</tbody></table>` +
+    `<th class="sortable"><button type="button" data-sort="amt">Amount ${arrow('amt')}</button></th><th style="text-align:left">Status</th><th></th></tr>` +
+    `<tr class="spv-frow"><th></th><th><select id="spvFSalon" aria-label="Filter by salon"><option value="ALL">All salons</option>${codes.map(c => `<option value="${c}"${SPV.salon === c ? ' selected' : ''}>${spvName(c)}</option>`).join('')}</select></th>` +
+    `<th><input id="spvFPh" type="search" placeholder="Filter" aria-label="Filter by Phorest name" value="${spvEsc(SPV.fPh)}"></th>` +
+    `<th><input id="spvFSt" type="search" placeholder="Filter" aria-label="Filter by Stripe name" value="${spvEsc(SPV.fSt)}"></th><th></th>` +
+    `<th><select id="spvFStatus" aria-label="Filter by status">${SPV_CHIPS.map(([k, n]) => `<option value="${k}"${SPV.status === k ? ' selected' : ''}>${k === 'all' ? 'All statuses' : n}</option>`).join('')}${SPV.status === 'diff' ? '<option value="diff" selected>Behind the difference</option>' : ''}</select></th><th></th></tr></thead><tbody>${body}</tbody></table>` +
     `<div class="spv-more-row"${rest > 0 ? '' : ' hidden'}><button class="spv-morebtn" type="button" data-act="more">Show ${Math.min(20, rest)} more (${rest} left)</button></div></div>` +
     `<div class="spv-card spv-commit"><h3>One action this week</h3><p class="lead2">Pick one payment from the list above. One action, one person to teach it to, one date.</p>` +
     `<div class="spv-crow"><label for="spvC0">My commitment this week is</label><input id="spvC0" data-note="0" type="text" maxlength="200" value="${spvEsc(SPV.note[0])}">` +
@@ -257,7 +280,7 @@ function spvPaint() {
 
 function spvGo(o) {
   if (o.salon !== undefined) SPV.salon = o.salon;
-  SPV.status = o.status || 'all'; SPV.q = ''; SPV.shown = 20; SPV.open = null;
+  SPV.status = o.status || 'all'; SPV.q = ''; SPV.fPh = ''; SPV.fSt = ''; SPV.shown = 20; SPV.open = null;
   spvPaint();
   const t = document.getElementById('spvPay'); if (t) t.scrollIntoView({ block: 'start' });
 }
@@ -272,11 +295,16 @@ function spvWire(el) {
     const k = b.getAttribute('data-sort');
     SPV.sort = k === 'date' ? (SPV.sort === 'dateDesc' ? 'dateAsc' : SPV.sort === 'dateAsc' ? 'smart' : 'dateDesc') : (SPV.sort === 'amtDesc' ? 'amtAsc' : SPV.sort === 'amtAsc' ? 'smart' : 'amtDesc');
     spvPaint(); }; });
-  const clr = el.querySelector('[data-act="clear"]'); if (clr) clr.onclick = () => { SPV.status = 'all'; SPV.q = ''; SPV.salon = 'ALL'; SPV.shown = 20; SPV.open = null; spvPaint(); };
+  const clr = el.querySelector('[data-act="clear"]'); if (clr) clr.onclick = () => { SPV.status = 'all'; SPV.q = ''; SPV.fPh = ''; SPV.fSt = ''; SPV.salon = 'ALL'; SPV.shown = 20; SPV.open = null; spvPaint(); };
   const more = el.querySelector('[data-act="more"]'); if (more) more.onclick = () => { SPV.shown += 20; spvPaint(); };
   const q = document.getElementById('spvQ');
   if (q) q.oninput = () => { SPV.q = q.value.trim(); SPV.shown = 20; SPV.open = null; const pos = q.selectionStart; spvPaint(); const n = document.getElementById('spvQ'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } };
-  el.querySelectorAll('[data-note]').forEach(i => { i.oninput = () => { SPV.note[+i.getAttribute('data-note')] = i.value; try { localStorage.setItem(SPV_STORE, JSON.stringify({ note: SPV.note })); } catch (e) {} }; });
+  el.querySelectorAll('[data-view]').forEach(b => { b.onclick = () => { SPV.view = b.getAttribute('data-view'); spvSave(); spvPaint(); }; });
+  const fSal = document.getElementById('spvFSalon'); if (fSal) fSal.onchange = () => { SPV.salon = fSal.value; SPV.shown = 20; SPV.open = null; spvPaint(); };
+  const fSta = document.getElementById('spvFStatus'); if (fSta) fSta.onchange = () => { SPV.status = fSta.value; SPV.shown = 20; SPV.open = null; spvPaint(); };
+  [['spvFPh', 'fPh'], ['spvFSt', 'fSt']].forEach(([id, k]) => { const i = document.getElementById(id); if (!i) return;
+    i.oninput = () => { SPV[k] = i.value.trim(); SPV.shown = 20; SPV.open = null; const pos = i.selectionStart; spvPaint(); const n = document.getElementById(id); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }; });
+  el.querySelectorAll('[data-note]').forEach(i => { i.oninput = () => { SPV.note[+i.getAttribute('data-note')] = i.value; try { spvSave(); } catch (e) {} }; });
 }
 
 // ── STYLE (scoped; the colours match the approved mockup, light and dark) ───────────────
@@ -326,6 +354,26 @@ function spvCss() {
 #stripeContent .spv-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
 #stripeContent table.spv-tbl{border-collapse:collapse;width:100%;font-size:14.5px}
 #stripeContent .spv-tbl th,#stripeContent .spv-tbl td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+#stripeContent .spv-tbl:not(.spv-pay) th{white-space:normal;line-height:1.25;min-width:70px}
+#stripeContent .spv-tw[hidden]{display:none}
+#stripeContent .spv-vtog{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;background:var(--surface);margin:0 0 14px}
+#stripeContent .spv-vtog button{border:0;background:none;color:var(--muted);font:inherit;font-size:14px;padding:6px 18px;border-radius:999px;cursor:pointer}
+#stripeContent .spv-vtog button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
+#stripeContent .spv-vgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#stripeContent .spv-vcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);min-width:0}
+#stripeContent .spv-vcard.tot{grid-column:1/-1;background:var(--surface2)}
+#stripeContent .spv-vtop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+#stripeContent .spv-vtop h3{margin:0;font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--text)}
+#stripeContent .spv-vdiff{font-size:20px;font-weight:700;text-align:right;line-height:1.1}#stripeContent .spv-vdiff small{display:block;font-size:11.5px;font-weight:400;color:var(--muted2);margin-top:2px}
+#stripeContent .spv-vbar{display:grid;grid-template-columns:62px minmax(0,1fr) auto;align-items:center;gap:10px;margin:7px 0;font-variant-numeric:tabular-nums}
+#stripeContent .spv-vl{font-size:13px;color:var(--muted)}
+#stripeContent .spv-vtrack{height:12px;border-radius:6px;background:var(--surface2);overflow:hidden}
+#stripeContent .spv-vtrack i{display:block;height:100%;border-radius:6px}#stripeContent .spv-vtrack i.s{background:var(--accent)}#stripeContent .spv-vtrack i.p{background:var(--muted2)}
+#stripeContent .spv-vparts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+#stripeContent .spv-vchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:5px 12px;font:inherit;font-size:13.5px;cursor:pointer}
+#stripeContent .spv-vchip:hover{border-color:var(--muted2)}
+#stripeContent .spv-vchip.notco{border-color:var(--s-bad)}#stripeContent .spv-vchip.wrong,#stripeContent .spv-vchip.check{border-color:var(--s-warn)}#stripeContent .spv-vchip.nostripe{border-color:var(--s-info)}
+@media(max-width:760px){#stripeContent .spv-vgrid{grid-template-columns:minmax(0,1fr)}}
 #stripeContent .spv-tbl th{font-size:12px;font-weight:600;color:var(--muted2);letter-spacing:.04em;text-transform:uppercase;text-align:right;vertical-align:bottom}
 #stripeContent .spv-tbl th:first-child,#stripeContent .spv-tbl td:first-child{text-align:left}
 #stripeContent .spv-tbl td.r{text-align:right;font-variant-numeric:tabular-nums}
@@ -353,6 +401,8 @@ function spvCss() {
 #stripeContent .spv-clear{border:0;background:none;text-decoration:underline;cursor:pointer;color:var(--text);font:inherit;font-size:14px;padding:0}
 #stripeContent .spv-pay{table-layout:fixed;min-width:1010px}
 #stripeContent .spv-pay col.c-date{width:116px}#stripeContent .spv-pay col.c-salon{width:190px}#stripeContent .spv-pay col.c-ph{width:200px}#stripeContent .spv-pay col.c-amt{width:120px}#stripeContent .spv-pay col.c-stat{width:178px}#stripeContent .spv-pay col.c-go{width:44px}
+#stripeContent .spv-pay tr.spv-frow th{padding:6px 14px 10px;text-transform:none;letter-spacing:0;font-weight:400}
+#stripeContent .spv-frow select,#stripeContent .spv-frow input{width:100%;box-sizing:border-box;font:inherit;font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
 #stripeContent .spv-pay th.sortable{cursor:pointer;user-select:none}
 #stripeContent .spv-pay th.sortable button{border:0;background:none;padding:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
 #stripeContent .spv-pay td{padding:11px 14px}
