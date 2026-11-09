@@ -96,7 +96,8 @@ function rctRun_(fromMs, toMs, dry) {
       if (threads.length < 100) break;
     }
   });
-  const totals = { dry: dry, sent: rows.length, kinds: {} };
+  // an application with no email, no WhatsApp and no name cannot be told apart from anyone else, so the database skips it: count them so a parsing gap shows in the log
+  const totals = { dry: dry, sent: rows.length, blank_applications: rows.filter(function (r) { return r.kind === 'application' && !r.email && !r.whatsapp && !r.name; }).length, kinds: {} };
   rows.forEach(function (r) { totals.kinds[r.kind + (r.source ? '/' + r.source : '')] = (totals.kinds[r.kind + (r.source ? '/' + r.source : '')] || 0) + 1; });
   for (let i = 0; i < rows.length; i += 200) {
     const res = rctPush_(rows.slice(i, i + 200), dry);
@@ -206,20 +207,26 @@ function rctStructured_(body, at, mailbox, msgId) {
 }
 function rctRawForm_(body, at, mailbox, msgId) {
   const labels = ['Full Name', 'Email Address', 'Whatsapp Number', 'Where are you currently based?', 'Which Emirate?', 'Years of Experience', 'Your specialist area', 'Which path interests you most?', 'Tell us about yourself', 'Link to your work', 'Please upload your CV'];
-  const v = {}; let cur = null;
-  body.split(/\r?\n/).forEach(function (raw) {
-    const ln = raw.trim(); if (!ln) return;
-    if (labels.indexOf(ln) >= 0) { cur = ln; v[cur] = []; return; }
-    if (cur) v[cur].push(ln);
+  // GmailApp's plain body of an HTML email can put a label and its value on one line, on two lines or tab separated, so do not rely on line breaks:
+  // find each label in order (the form always asks in this order) and take everything up to the next label found (fixed 9 Nov 2026 after the first
+  // backfill read only the newer structured copies and skipped about 250 older raw ones).
+  const pos = []; let cursor = 0;
+  labels.forEach(function (l) { const i = body.indexOf(l, cursor); if (i >= 0) { pos.push({ l: l, i: i }); cursor = i + l.length; } });
+  const v = {};
+  pos.forEach(function (p, k) {
+    const end = k + 1 < pos.length ? pos[k + 1].i : Math.min(body.length, p.i + p.l.length + 2500);
+    v[p.l] = body.slice(p.i + p.l.length, end).replace(/^[\s:*]+/, '').trim();
   });
-  const one = function (k) { return (v[k] || []).join(' ').trim(); };
+  const one = function (k) { return String(v[k] || '').replace(/\s+/g, ' ').trim().slice(0, 300); };
+  const list = function (k) { return String(v[k] || '').split(/\r?\n|\t|,\s*/).map(function (s) { return s.replace(/\s+/g, ' ').trim(); }).filter(Boolean); };
   const link = rctLink_(one('Link to your work'));
   const country = one('Where are you currently based?');
+  const cvText = one('Please upload your CV'), cvUrl = /https?:\/\/\S+/i.exec(cvText);
   return Object.assign({
-    kind: 'application', source: 'form', name: one('Full Name'), email: one('Email Address'), whatsapp: one('Whatsapp Number'), country: country, emirate: one('Which Emirate?'),
-    experience: one('Years of Experience'), specialist: (v['Your specialist area'] || []).join(', '), paths: (v['Which path interests you most?'] || []).join('; '),
-    role_key: rctRoleOf_((v['Your specialist area'] || []).join(' ')), role_txt: (v['Which path interests you most?'] || []).join('; ') || (v['Your specialist area'] || []).join(', '),
-    cv_link: /^https?:\/\//i.test(one('Please upload your CV')) ? one('Please upload your CV') : '', about: (v['Tell us about yourself'] || []).join('\n').slice(0, 2000),
+    kind: 'application', source: 'form', name: one('Full Name'), email: rctAddr_(one('Email Address')), whatsapp: one('Whatsapp Number'), country: country, emirate: one('Which Emirate?'),
+    experience: one('Years of Experience'), specialist: list('Your specialist area').join(', '), paths: list('Which path interests you most?').join('; '),
+    role_key: rctRoleOf_(list('Your specialist area').join(' ')), role_txt: list('Which path interests you most?').join('; ') || list('Your specialist area').join(', '),
+    cv_link: cvUrl ? cvUrl[0] : '', about: String(v['Tell us about yourself'] || '').replace(/\t/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000),
     at: at, mailbox: mailbox, msg_id: msgId,
   }, link);
 }
