@@ -176,6 +176,8 @@ button.tk-pill{cursor:pointer}
 .tk-tabs{display:flex;gap:18px;border-bottom:1px solid var(--border);margin-bottom:10px;font-size:14px}
 .tk-tabs button{background:none;border:0;border-bottom:2px solid transparent;font:inherit;color:var(--muted);padding:6px 0;cursor:pointer}
 .tk-sys{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;cursor:pointer;padding:6px 0}.tk-sys input{margin:0;accent-color:#3AA892}
+.tk-pin{margin-bottom:12px}.tk-pin p{white-space:pre-wrap}.tk-pinp.clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.tk-pinbtn{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:2px;padding:6px 0 0;cursor:pointer}
 .tk-tabs button.on{color:var(--text);font-weight:600;border-bottom-color:#3AA892}
 .tk-comp{position:relative;margin-bottom:6px}
 .tk-menu{position:absolute;left:0;top:100%;margin-top:4px;width:min(320px,100%);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 26px rgba(40,30,20,.16);padding:6px;z-index:5}
@@ -711,7 +713,7 @@ button.tk-pill{cursor:pointer}
       (TRI && canAssign ? '<button type="button" class="cp-btn sub mini" data-open="assign">Assign</button>' : '') +
       (TRI ? '<button type="button" class="cp-btn sub mini" data-open="tag">Tag</button>' : '') +
       (c.status === 'open' && !c.duplicate_of ? '<a class="cp-btn pri mini" href="/?view=complaintlog&cid=' + c.id + '">Close it</a>' : '') + '</div></div>';
-    h += (TRI ? nextStep(c) : simpleNext(c)) + '<div class="cp-card tk-what"><h5>What happened</h5><p>' + esc(c.detail || 'Not stated') + '</p></div><div class="tk"><div class="cp-card"><h5>About this complaint</h5>' +
+    h += (TRI ? nextStep(c) : simpleNext(c)) + '<div class="tk"><div class="cp-card"><h5>About this complaint</h5>' +
       '<div class="tk-prop"><span>' + (TRI ? 'Stage' : 'Status') + '</span><b>' + esc(stageOf(c)) + '</b></div>' +
       (TRI ? '<div class="tk-prop"><span>Assigned to</span><b>' + assigned + '</b></div>' : '') +
       '<div class="tk-prop"><span>Reply to client by</span><b>' + esc(day(c.reply_due)) + (c.first_response_at ? ' <span class="cp-pill green">done</span>' : '') + '</b></div>' +
@@ -722,7 +724,9 @@ button.tk-pill{cursor:pointer}
       (c.services ? '<div class="tk-prop"><span>Service</span><b>' + esc(c.services) + '</b></div>' : '') +
       (c.stylists ? '<div class="tk-prop"><span>Stylist</span><b>' + esc(c.stylists) + '<br><span class="cp-sm">recorded, not messaged</span></b></div>' : '') +
       '<div style="margin-top:12px">' + peopleBlock(c) + '</div></div>';
-    h += '<div><div class="tk-tabs" role="tablist">' + (TRI ? [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']] : [['activity', 'Activity']]).map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + (TRI ? '<label class="tk-sys"><input type="checkbox" id="tkSys"' + (S.sys ? ' checked' : '') + '> Show system activity</label>' : '') + '</div>' +
+    var det = String(c.detail || 'Not stated'), longDet = det.length > 260;
+    h += '<div><div class="cp-card tk-what tk-pin"><h5><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"><path d="M12 17v5M9 3h6l-1 6 3 4H7l3-4z"/></svg>Pinned · What happened</h5><p class="tk-pinp' + (longDet ? ' clamp' : '') + '" id="tkPinP">' + esc(det) + '</p>' +
+      (longDet ? '<button type="button" class="tk-pinbtn" id="tkPinBtn" aria-expanded="false">Show all</button>' : '') + '</div><div class="tk-tabs" role="tablist">' + (TRI ? [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']] : [['activity', 'Activity']]).map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + (TRI ? '<label class="tk-sys"><input type="checkbox" id="tkSys"' + (S.sys ? ' checked' : '') + '> Show system activity</label>' : '') + '</div>' +
       '<div class="tk-comp"><textarea class="cp-ta" id="tkNote" placeholder="Write a note. Type @ to tag someone." aria-label="Write a note">' + esc(S.draft) + '</textarea><div class="tk-menu" id="tkMenu" hidden></div></div>' +
       (c.revealed ? '<div class="tk-att"><label class="cp-btn sub mini" style="cursor:pointer">Attach a photo or file<input type="file" id="tkFile" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/heic,application/pdf,text/plain" hidden></label><span id="tkChosen" class="tk-att"></span></div>' : '') +
       '<div class="cp-btnrow" style="grid-template-columns:auto 1fr;align-items:center"><button type="button" class="cp-btn pri mini" id="tkSend">Add note</button><div class="cp-msg" id="tkNoteMsg" aria-live="polite"></div></div>' +
@@ -881,6 +885,11 @@ button.tk-pill{cursor:pointer}
     S.sys = e.target.checked; lsSet('cmp-show-system', S.sys ? '1' : '0');
     var tl = document.getElementById('tkTimeline'); if (tl && S.c) { tl.innerHTML = timelineHtml(S.c); relabelAttached(); }
     var dry = document.getElementById('tkDry'); if (dry) dry.hidden = !S.sys;
+  });
+  main.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('#tkPinBtn'); if (!b) return;
+    var p = document.getElementById('tkPinP'), open = p.classList.toggle('clamp') === false;
+    b.textContent = open ? 'Show less' : 'Show all'; b.setAttribute('aria-expanded', open);
   });
   main.addEventListener('click', async function (e) {
     var cp = e.target.closest('[data-copy]');
