@@ -59,7 +59,9 @@
 .mm-dlg::backdrop{background:rgba(0,0,0,.4)}
 .mm-dlg h4{margin:0 0 12px;font-size:16px}
 .mm-dlg label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-.mm-dlg select{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
+/* Kate, 9 Nov 2026: the Section and Sub-section lists are the site's soft pill menu (assets/pill-select.js), not the browser's square list. The pill fills the box. */
+.mm-dlg .ps{display:flex;width:100%}
+.mm-dlg .ps-menu{max-height:260px}
 .mm-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
 @media(max-width:480px){.mm-tag{display:none}}
 </style>
@@ -75,6 +77,7 @@
 <script src="/nav-layout.js?v=a8dc2643"></script>
 <script src="/hub/hub.js?v=3322d97e"></script>
 <script src="/visits.js?v=1176426c"></script>
+<script src="/assets/pill-select.js?v=7bd2fc3a"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain');
