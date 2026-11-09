@@ -41,7 +41,7 @@
 <script src="/auth.js?v=3823f956"></script>
 <script src="/pages.js?v=289d88ea"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=28cc3ad0"></script>
+<script src="/hub/hub.js?v=b32f4f9d"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
 KB.ready.then(async function () {
@@ -120,7 +120,7 @@ KB.ready.then(async function () {
       lists: [{ title: 'Marketing', keys: ['campaign-blasts', 'staff-campaign', 'post-approvals'] },
         { title: 'Accounts', keys: ['uploads', 'payslips', 'team-roster', 'staff-wa'] },
         { title: 'Operations', keys: ['log-complaint', 'complaints-pipeline', 'targets-calc', 'targets-how'] },
-        { title: 'Backend', keys: ['access', 'page-access', 'page-status'] }] }
+        { title: 'Backend', keys: ['access', 'page-access', 'page-status', 'menu-mover'] }] }
   };
   var door = DOORS[new URLSearchParams(location.search).get('door')] || null;
   if (door) {

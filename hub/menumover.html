@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Rearrange Menu · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=dcfa22a4">
+<link rel="stylesheet" href="/scrollbars.css?v=a903788b">
+<style>
+/* Kate, 9 Nov 2026: Rearrange Menu, Level 5 only. Your own dashboard menu: move pages between sections and sub-sections, and move the sections and sub-sections themselves.
+   Nothing here changes who may open a page, and nobody else's menu changes (public.nav_layout, one row per person; nav-layout.js draws it). Approved mockup: docs/mockups/menu-mover.html. */
+.mm-col{max-width:760px;margin:0 auto;padding-bottom:110px}
+.mm-how{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:13px;margin:6px 0 16px}
+.mm-how b{color:var(--text)}
+.mm-sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.mm-sh{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none}
+.mm-sh h2{font-size:16px;margin:0;flex:1;font-family:inherit;font-weight:700}
+.mm-cnt{font-size:12px;color:var(--muted)}
+.mm-chev{width:16px;color:var(--muted);transition:transform .15s;display:inline-block;text-align:center}
+.mm-sec.open .mm-chev{transform:rotate(90deg)}
+.mm-body{display:none;border-top:1px solid var(--border);padding:6px 14px 14px}
+.mm-sec.open .mm-body{display:block}
+.mm-mini{font:inherit;font-size:12px;border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:3px 9px;cursor:pointer;color:var(--muted);min-height:28px}
+.mm-mini:hover:not(:disabled){border-color:var(--text);color:var(--text)}
+.mm-mini:disabled{opacity:.35;cursor:default}
+.mm-sub{margin-top:12px}
+.mm-subh{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.mm-subh h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0;flex:1;font-family:inherit;font-weight:700}
+.mm-loose{font-size:12px;color:var(--muted);margin:10px 0 4px}
+.mm-body ul{list-style:none;margin:0;padding:0;min-height:12px;border-radius:10px}
+.mm-body ul.over{outline:2px dashed var(--text);outline-offset:2px;background:color-mix(in srgb,var(--text) 6%,transparent)}
+.mm-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg);cursor:grab}
+.mm-row.drag{opacity:.4}
+.mm-grip{color:var(--muted);letter-spacing:-2px;font-size:14px}
+.mm-nm{flex:1;min-width:0;font-size:14px}
+.mm-row.moved{background:color-mix(in srgb,var(--accent-butter) 30%,var(--surface));border-color:transparent}
+.mm-tag{font-size:11px;border-radius:999px;padding:1px 8px;background:var(--surface);color:var(--muted);white-space:nowrap}
+.mm-empty{font-size:13px;color:var(--muted);padding:8px 10px;border:1px dashed var(--border);border-radius:10px;margin-bottom:6px}
+.mm-add{margin-top:10px}
+.mm-bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -8px 24px -12px rgba(0,0,0,.25);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+.mm-bar-in{max-width:760px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center}
+.mm-msg{flex:1 1 200px;font-size:14px}
+.mm-msg.err{color:#B3402A;font-weight:600}
+.mm-btn{font:inherit;font-size:13px;font-weight:600;padding:8px 16px;min-height:40px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer}
+.mm-btn:hover:not(:disabled){border-color:var(--text)}
+.mm-btn.pri{background:var(--text);color:var(--bg);border-color:var(--text)}
+.mm-btn:disabled{opacity:.4;cursor:default}
+.mm-dlg{border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);padding:20px;width:min(380px,92vw)}
+.mm-dlg::backdrop{background:rgba(0,0,0,.4)}
+.mm-dlg h4{margin:0 0 12px;font-size:16px}
+.mm-dlg label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.mm-dlg select{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
+.mm-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+@media(max-width:480px){.mm-tag{display:none}}
+</style>
+</head>
+<body class="kb-wait">
+<header class="kb-head" id="kbHead" data-title="Team Home"></header>
+<main id="kbMain"><p class="kb-msg">Loading…</p></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/auth.js?v=3823f956"></script>
+<script src="/assets/theme-fade.js"></script>
+<script src="/pages.js?v=289d88ea"></script>
+<script src="/nav-layout.js?v=a8dc2643"></script>
+<script src="/hub/hub.js?v=b32f4f9d"></script>
+<script src="/visits.js?v=1176426c"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain');
+  var DEF = [], SAVED = [], CUR = [], UNITS = {}, PLACE = {}, open = {}, dragged = null, moving = null;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function canonTree(t) { return trsNav.canon(trsNav.treeToLayout(t)); }
+  function place(t) {
+    var m = {};
+    t.forEach(function (g) { g.loose.forEach(function (k) { m[k] = g.n + '|'; }); g.subs.forEach(function (s) { s.p.forEach(function (k) { m[k] = g.n + '|' + s.n; }); }); });
+    return m;
+  }
+  function where(k) { var a = k.split('|'); return a[1] ? a[0] + ' › ' + a[1] : a[0]; }
+  function label(k) { return UNITS[k] ? UNITS[k].label : k; }
+  function $(s) { return document.querySelector(s); }
+  function group(n) { return CUR.filter(function (g) { return g.n === n; })[0]; }
+  function subOf(g, n) { return g.subs.filter(function (s) { return s.n === n; })[0]; }
+  function swap(a, i, j) { var t = a[i]; a[i] = a[j]; a[j] = t; }
+  function say(t, err) { var el = $('#mmMsg'); if (el) { el.textContent = t; el.className = 'mm-msg' + (err ? ' err' : ''); } }
+
+  function row(k, cur) {
+    var mv = cur !== PLACE[k], kids = UNITS[k] ? UNITS[k].els.length - 1 : 0;
+    return '<li class="mm-row' + (mv ? ' moved' : '') + '" draggable="true" data-k="' + esc(k) + '"><span class="mm-grip" aria-hidden="true">⋮⋮</span><span class="mm-nm">' + esc(label(k)) +
+      (kids ? ' <span class="mm-cnt">(+' + kids + ' inside)</span>' : '') + '</span>' +
+      (mv ? '<span class="mm-tag">was ' + esc(where(PLACE[k] || '')) + '</span>' : '') +
+      '<button type="button" class="mm-mini" data-act="move" data-k="' + esc(k) + '" aria-label="Move ' + esc(label(k)) + '">Move</button></li>';
+  }
+  function list(arr, g, s) {
+    var cur = g + '|' + (s || '');
+    return '<ul data-g="' + esc(g) + '" data-s="' + esc(s || '') + '">' + (arr.length ? arr.map(function (k) { return row(k, cur); }).join('') : '<div class="mm-empty">Nothing here. Drop a page.</div>') + '</ul>';
+  }
+  function draw() {
+    $('#mmApp').innerHTML = CUR.map(function (g, gi) {
+      var total = g.loose.length + g.subs.reduce(function (a, s) { return a + s.p.length; }, 0);
+      return '<section class="mm-sec' + (open[g.n] ? ' open' : '') + '" data-g="' + esc(g.n) + '">' +
+        '<div class="mm-sh" data-act="toggle" data-g="' + esc(g.n) + '"><span class="mm-chev" aria-hidden="true">›</span><h2>' + esc(g.n) + '</h2><span class="mm-cnt">' + total + ' pages</span>' +
+        '<button type="button" class="mm-mini" data-act="gup" data-i="' + gi + '"' + (gi === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(g.n) + ' up">▲</button>' +
+        '<button type="button" class="mm-mini" data-act="gdn" data-i="' + gi + '"' + (gi === CUR.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(g.n) + ' down">▼</button></div>' +
+        '<div class="mm-body">' +
+        (g.subs.length ? '<div class="mm-loose">Straight under ' + esc(g.n) + ' (no sub-section)</div>' : '') +
+        list(g.loose, g.n, '') +
+        g.subs.map(function (s, si) {
+          return '<div class="mm-sub"><div class="mm-subh"><h3>' + esc(s.n) + '</h3>' +
+            '<button type="button" class="mm-mini" data-act="sup" data-g="' + esc(g.n) + '" data-i="' + si + '"' + (si === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(s.n) + ' up">▲</button>' +
+            '<button type="button" class="mm-mini" data-act="sdn" data-g="' + esc(g.n) + '" data-i="' + si + '"' + (si === g.subs.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(s.n) + ' down">▼</button>' +
+            '<button type="button" class="mm-mini" data-act="sren" data-g="' + esc(g.n) + '" data-i="' + si + '">Rename</button>' +
+            (s.p.length ? '' : '<button type="button" class="mm-mini" data-act="sdel" data-g="' + esc(g.n) + '" data-i="' + si + '">Remove</button>') +
+            '</div>' + list(s.p, g.n, s.n) + '</div>';
+        }).join('') +
+        '<button type="button" class="mm-mini mm-add" data-act="sadd" data-g="' + esc(g.n) + '">+ New sub-section</button></div></section>';
+    }).join('');
+    paintBar();
+  }
+  function paintBar(note) {
+    var dirty = canonTree(CUR) !== canonTree(SAVED), cur = place(CUR), n = Object.keys(cur).filter(function (k) { return cur[k] !== PLACE[k]; }).length;
+    var differs = canonTree(CUR) !== canonTree(DEF);
+    $('#mmSave').disabled = !dirty;
+    $('#mmUndo').disabled = !dirty;
+    $('#mmOrig').disabled = !differs;
+    if (note) return;
+    say(dirty ? 'Not saved yet' + (n ? ': ' + n + ' page' + (n === 1 ? '' : 's') + ' in a new place' : '') : (differs ? 'Saved. ' + (n ? n + ' page' + (n === 1 ? ' sits' : 's sit') + ' somewhere new.' : 'Order changed.') : 'Your menu is the original.'));
+  }
+  function take(k) { CUR.forEach(function (g) { g.loose = g.loose.filter(function (x) { return x !== k; }); g.subs.forEach(function (s) { s.p = s.p.filter(function (x) { return x !== k; }); }); }); }
+  function put(k, gn, sn, idx) {
+    var g = group(gn), arr = sn ? subOf(g, sn).p : g.loose;
+    arr.splice(idx == null ? arr.length : idx, 0, k);
+  }
+  function nameTaken(g, n, except) { return g.subs.some(function (s) { return s.n.toLowerCase() === n.toLowerCase() && s !== except; }); }
+
+  function fillSubs() {
+    var g = group($('#mmDsec').value);
+    $('#mmDsub').innerHTML = '<option value="">None (straight under the section)</option>' + g.subs.map(function (s) { return '<option>' + esc(s.n) + '</option>'; }).join('');
+  }
+  function openDlg(k) {
+    moving = k;
+    $('#mmDtitle').textContent = 'Move “' + label(k) + '”';
+    $('#mmDsec').innerHTML = CUR.map(function (g) { return '<option>' + esc(g.n) + '</option>'; }).join('');
+    var c = place(CUR)[k].split('|');
+    $('#mmDsec').value = c[0]; fillSubs(); $('#mmDsub').value = c[1] || '';
+    $('#mmDlg').showModal();
+  }
+
+  async function save() {
+    var btn = $('#mmSave'); btn.disabled = true;
+    var isOriginal = canonTree(CUR) === canonTree(DEF);
+    var layout = isOriginal ? null : trsNav.treeToLayout(CUR);
+    var r = await KB.client.rpc('nav_layout_set', { p_layout: layout });
+    if (r.error) { say('Not saved: ' + (r.error.message || 'try again') + '.', true); btn.disabled = false; return; }
+    try { if (layout) localStorage.setItem(trsNav.CACHE, trsNav.canon(layout)); else localStorage.removeItem(trsNav.CACHE); } catch (e) {}
+    SAVED = clone(CUR);
+    paintBar();
+    say(isOriginal ? 'Saved. Your menu is back to the original.' : 'Saved. Open the dashboard and your menu is in this order.');
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-act]');
+    if (!b || !$('#mmApp') || !$('#mmApp').contains(b)) return;
+    var a = b.dataset.act, i = +b.dataset.i, g = b.dataset.g && group(b.dataset.g);
+    if (a === 'toggle') { if (e.target.closest('button')) return; open[b.dataset.g] = !open[b.dataset.g]; }
+    else if (a === 'gup') swap(CUR, i, i - 1);
+    else if (a === 'gdn') swap(CUR, i, i + 1);
+    else if (a === 'sup') swap(g.subs, i, i - 1);
+    else if (a === 'sdn') swap(g.subs, i, i + 1);
+    else if (a === 'sren') {
+      var v = prompt('Rename sub-section', g.subs[i].n);
+      if (v && v.trim()) { v = v.trim().slice(0, 40); if (nameTaken(g, v, g.subs[i])) { alert('There is already a sub-section called ' + v + ' in ' + g.n + '.'); return; } g.subs[i].n = v; }
+    }
+    else if (a === 'sdel') g.subs.splice(i, 1);
+    else if (a === 'sadd') {
+      var nv = prompt('Name of the new sub-section');
+      if (nv && nv.trim()) { nv = nv.trim().slice(0, 40); if (nameTaken(g, nv)) { alert('There is already a sub-section called ' + nv + ' in ' + g.n + '.'); return; } g.subs.push({ n: nv, p: [] }); open[g.n] = true; }
+    }
+    else if (a === 'move') { openDlg(b.dataset.k); return; }
+    draw();
+  });
+  // Drag and drop (a mouse or trackpad; on a phone use the Move button). A closed section opens when a page is held over its title.
+  document.addEventListener('dragstart', function (e) {
+    var r = e.target.closest && e.target.closest('.mm-row'); if (!r) return;
+    dragged = r.dataset.k; r.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragged);
+  });
+  document.addEventListener('dragend', function () { dragged = null; Array.prototype.forEach.call(document.querySelectorAll('.over,.drag'), function (x) { x.classList.remove('over', 'drag'); }); });
+  document.addEventListener('dragover', function (e) {
+    if (!dragged) return;
+    var h = e.target.closest && e.target.closest('.mm-sh');
+    if (h && !open[h.dataset.g]) { open[h.dataset.g] = true; h.parentElement.classList.add('open'); }
+    var u = e.target.closest && e.target.closest('.mm-body ul');
+    Array.prototype.forEach.call(document.querySelectorAll('ul.over'), function (x) { if (x !== u) x.classList.remove('over'); });
+    if (u) { e.preventDefault(); u.classList.add('over'); }
+  });
+  document.addEventListener('drop', function (e) {
+    var u = e.target.closest && e.target.closest('.mm-body ul'); if (!u || !dragged) return;
+    e.preventDefault();
+    var rows = Array.prototype.slice.call(u.querySelectorAll('.mm-row:not(.drag)')), idx = rows.length;
+    for (var i = 0; i < rows.length; i++) { var r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { idx = i; break; } }
+    var k = dragged; take(k); put(k, u.dataset.g, u.dataset.s || '', idx); draw();
+  });
+
+  KB.ready.then(async function () {
+    // Level 5 only, and not while "View as" is on: previewing another level must not let that level change a menu.
+    if (KB.realLevel !== 5 || KB.viewAs) {
+      main.innerHTML = '<p class="kb-msg">This page is for Kate only' + (KB.viewAs ? ' (switch View as back to Level 6)' : '') + '.</p>';
+      return;
+    }
+    main.innerHTML =
+      KB.titleIcon('menu-mover', 'Rearrange Menu') +
+      '<p class="kb-meta">Your dashboard menu, as it is now. Change where things sit, then save. Only your menu changes: nobody else sees it, and who may open each page stays exactly as it is.</p>' +
+      '<div class="mm-col"><div class="mm-how"><span><b>Drag</b> a page into another list</span><span><b>Move</b> button if the section is closed, or on a phone</span><span><b>▲ ▼</b> move a section or sub-section</span></div>' +
+      '<div id="mmApp"></div></div>' +
+      '<div class="mm-bar"><div class="mm-bar-in"><div class="mm-msg" id="mmMsg" role="status" aria-live="polite">Loading…</div>' +
+      '<button type="button" class="mm-btn" id="mmOrig" title="Load the original menu into the editor, then Save">Original order</button>' +
+      '<button type="button" class="mm-btn" id="mmUndo">Undo changes</button>' +
+      '<button type="button" class="mm-btn pri" id="mmSave">Save</button></div></div>' +
+      '<dialog class="mm-dlg" id="mmDlg"><h4 id="mmDtitle">Move</h4><label for="mmDsec">Section</label><select id="mmDsec"></select>' +
+      '<label for="mmDsub">Sub-section</label><select id="mmDsub"></select><div class="mm-acts"><button type="button" class="mm-btn" id="mmDno">Cancel</button><button type="button" class="mm-btn pri" id="mmDyes">Move</button></div></dialog>';
+    ['mmSave', 'mmUndo', 'mmOrig'].forEach(function (id) { document.getElementById(id).disabled = true; });
+    try {
+      // The original menu is whatever the dashboard's own page draws, read from it, so a page added to the menu later appears here by itself.
+      var html = await (await fetch('/', { credentials: 'same-origin' })).text();
+      var side = new DOMParser().parseFromString(html, 'text/html').querySelector('aside.sidebar');
+      if (!side) throw new Error('menu not found');
+      var ext = trsNav.extract(side);
+      DEF = ext.tree; UNITS = ext.units; PLACE = place(DEF);
+      var r = await KB.client.rpc('nav_layout_get');
+      if (r.error) throw r.error;
+      SAVED = trsNav.merge(clone(DEF), r.data); CUR = clone(SAVED);
+      open = {}; if (CUR[0]) open[CUR[0].n] = true;   // the first section starts open
+    } catch (err) {
+      say('Could not load the menu: ' + ((err && err.message) || 'try again') + '.', true);
+      return;
+    }
+    $('#mmDsec').addEventListener('change', fillSubs);
+    $('#mmDno').addEventListener('click', function () { $('#mmDlg').close(); });
+    $('#mmDyes').addEventListener('click', function () {
+      take(moving); put(moving, $('#mmDsec').value, $('#mmDsub').value); open[$('#mmDsec').value] = true; $('#mmDlg').close(); draw();
+    });
+    $('#mmSave').addEventListener('click', save);
+    $('#mmUndo').addEventListener('click', function () { CUR = clone(SAVED); draw(); });
+    $('#mmOrig').addEventListener('click', function () { CUR = clone(DEF); draw(); });
+    draw();
+  });
+})();
+</script>
+</body>
+</html>

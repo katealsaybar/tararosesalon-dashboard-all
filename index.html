@@ -3837,6 +3837,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/staff-messages'">Staff Payroll WhatsApp</div>
     <div class="nav-sub" data-tool-min="5" onclick="location.href='/upload/team-roster'">Team Roster</div>
     <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/pagestatus'">Hide Pages &amp; Under Construction</div>
+    <!-- Kate, 9 Nov 2026: Rearrange Menu, Level 5, your own menu only (nav-layout.js, hub/menumover.html). -->
+    <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/menumover'">Rearrange Menu</div>
   </div>
 
   <!-- Logout button -->
@@ -4904,6 +4906,9 @@ async function enterDashboard(role, meAsk){
   window.TRS_STAFF_FD = TRS_LEVEL === 1 && (!viewAs || viewAs.dept === 'Front Desk' || viewAs.dept === 'Call Centre');
   // Kate, 28 Oct 2026: the ticks saved on the Page Access page (pages.js trsAccessLoad); before any page is drawn or opened, or the defaults would flash.
   if (typeof trsAccessLoad === 'function') await trsAccessLoad(sb);
+  // Kate, 9 Nov 2026: Rearrange Menu (nav-layout.js). Her saved menu order was already applied from this browser's copy at load; this checks it against the database and
+  // reloads once if it differs (a new device, or someone else on this browser). "View as" leaves it alone. Uses the REAL level, not the previewed one.
+  if (typeof trsNavLayoutSync === 'function' && await trsNavLayoutSync(sb, { level: (me && me.level) || 0, viewAs: !!viewAs })) return;
   // Kate, 6 Oct 2026: Campaigns now shares a group with Marketing, so the page row
   // goes, not the group; a group with nothing left open hides below.
   const hideNav = v => { const n = document.querySelector(`#sidebar .nav-sub[onclick*="showView('${v}'"]`); if (n) n.style.display = 'none'; };
@@ -4987,6 +4992,7 @@ function applyRole(role){
 async function doLogout(){
   await sb.auth.signOut();
   localStorage.removeItem('trsRole');
+  if (typeof trsNavLayoutForget === 'function') trsNavLayoutForget();   // Kate, 9 Nov 2026: her menu order stays with her, not with the browser
   location.replace(location.pathname);
 }
 
@@ -5789,6 +5795,8 @@ addEventListener('load', sizeTopbar);
 })();
 
 </script>
+<!-- Kate, 9 Nov 2026: Rearrange Menu. Puts the rows in her own saved order BEFORE nav-collapse.js builds the folds from them (nav-layout.js). -->
+<script src="nav-layout.js?v=a8dc2643"></script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=93a8d3b4"></script>
 <script src="nav-stars.js?v=c575eba8"></script>
