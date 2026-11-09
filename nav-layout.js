@@ -30,6 +30,9 @@
 
   // The menu as drawn in `root` (the live sidebar, or index.html parsed by the Rearrange Menu page): a tree of keys plus where each key's elements are.
   // A row with .lvl2 rows straight after it (Wellness Voucher Performance and its blasts) is one unit and moves as one.
+  // Kate, 9 Nov 2026: a row in index.html can say where a NEW page should land in a menu you already saved: data-nav-sub="Backend" puts it in a sub-section called Backend of its section
+  // if that sub-section exists in the saved layout (otherwise it lands straight under the section, as before). extract() reads the hints; merge() uses them.
+  var HINT = {};
   function extract(root) {
     var tree = [], units = {}, heads = {}, groupEls = {};
     Array.prototype.forEach.call(root.querySelectorAll('.nav-group'), function (g) {
@@ -47,6 +50,7 @@
         i = j - 1;
         var k = keyOf(el);
         units[k] = { els: els, label: txt(el) };
+        if (el.getAttribute('data-nav-sub')) HINT[k] = el.getAttribute('data-nav-sub');
         (cur ? cur.p : grp.loose).push(k);
       }
       tree.push(grp);
@@ -79,7 +83,12 @@
     });
     def.forEach(function (dg) {
       var g = grp(dg.n);
-      dg.loose.forEach(function (k) { if (!used[k]) { used[k] = 1; g.loose.push(k); } });
+      dg.loose.forEach(function (k) {
+        if (used[k]) return;
+        used[k] = 1;
+        var hs = HINT[k] && g.subs.filter(function (x) { return x.n === HINT[k]; })[0];
+        (hs ? hs.p : g.loose).push(k);
+      });
       dg.subs.forEach(function (ds) {
         var left = ds.p.filter(function (k) { return !used[k]; });
         if (!ds.p.length) { sub(g, ds.n); return; }

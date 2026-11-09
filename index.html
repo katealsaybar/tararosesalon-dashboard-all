@@ -3855,6 +3855,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/hub/staff-messages'" href="/hub/staff-messages">Staff Payroll WhatsApp</a>
     <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/upload/team-roster'" href="/upload/team-roster">Team Roster</a>
     <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/hub/pagestatus'" href="/hub/pagestatus">Hide Pages &amp; Under Construction</a>
+    <!-- Kate, 9 Nov 2026: Notices (write a notice for the bell, Level 5) had a Tools door row and no menu row, so Rearrange Menu could not list it. data-tool-min is the OLD level number. -->
+    <a class="nav-sub" data-tool-min="5" data-nav-sub="Backend" data-nav-key="l:location.href='/hub/notices'" href="/hub/notices">Notices</a>
   </div>
 
   <!-- Logout button -->
@@ -5831,7 +5833,7 @@ addEventListener('load', sizeTopbar);
 
 </script>
 <!-- Kate, 9 Nov 2026: Rearrange Menu. Puts the rows in her own saved order BEFORE nav-collapse.js builds the folds from them (nav-layout.js). -->
-<script src="nav-layout.js?v=e1f08942"></script>
+<script src="nav-layout.js?v=9486d260"></script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
 <script src="nav-collapse.js?v=4df04ef3"></script>
 <script src="nav-stars.js?v=c575eba8"></script>
