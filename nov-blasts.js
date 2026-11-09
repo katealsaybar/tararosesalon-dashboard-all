@@ -720,18 +720,6 @@
   function grow(label, sub, lines) { return '<div class="nvb-gr"><div class="nvb-glab">' + label + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="nvb-gls">' + lines + '</div></div>'; }
 
   // The October Lost Clients sections on the November Results (Kate, 9 Nov 2026): The campaign so far, Booked ahead who has paid a deposit, What it took to get a booking, By first send day.
-  function soFarSec(st, a, bkok, r2, reached) {
-    var m = a.money || {}, qd = RES.still_queued || 0, lim = RES.gate ? RES.gate.stop_pct : 2, repl;
-    repl = st.replies === 'ok' ? rsCell('Wrote back', nn(a.replied, 'replied'), pc1(a.replied, reached) + ' of the ' + fmtN(reached) + ' reached. A STOP is counted under STOP, not here') : st.replies === 'part' ? rsCell('Wrote back', nn(a.replied, 'replied'), 'so far, the check has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' accepted') : rsWait('Wrote back', whyReplies());
-    var tiles = rsCell('Accepted by respond.io', nn(a.sent, 'sent'), esc(fat(RES.first_send) + ' to ' + fat(RES.last_send)) + (qd ? ', ' + nn(qd, 'queued') + ' still queued' : '')) + repl +
-      (bkok ? rsCell('Clients booked ahead', nn(m.ahead, 'ahead'), 'Clients with an appointment from today on, each counted once') : rsWait('Clients booked ahead', whyBookings(st))) +
-      (bkok ? rsCell('Booked since the message', nn(m.booked_since, 'bsince'), 'Kept after the date passes. Counted from 4 Nov') : rsWait('Booked since the message', whyBookings(st))) +
-      rsCell('STOP', nn(a.stop, 'stop'), pc1(a.stop, a.sent) + ' asked us to stop. Aim to stay under ' + lim + '%') +
-      rsCell('Failed', '<span class="f">' + nn(a.failed, 'failed') + '</span>', pc1(a.failed, a.sent) + ' of the messages did not go through. Aim to stay under 5%') +
-      rsCell('Still queued', qd ? nn(qd, 'queued') : '0', qd ? 'waiting for the next send window' : 'nothing waiting') +
-      rsCell('Spent (estimate)', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' messages at AED ' + r2 + ' each' + (bkok && m.ahead ? ' (AED ' + money0(a.sent * r2 / m.ahead) + ' per client booked ahead)' : '') + '. ' + nn(reached, 'reached') + ' were delivered, about AED ' + money0(reached * r2) + ' if only those are charged. The Meta invoice has the exact figure');
-    return rsSec('The campaign so far', 'How many we sent and what came back.', '<div class="nvb-rs-nums">' + tiles + '</div>');
-  }
   var DEP_SOON = { 1: 'Today or tomorrow', 2: 'In 2 to 3 days', 3: 'In 4 to 7 days', 4: 'In 8 to 14 days', 5: 'Later' };
   function depSec(st, a, bkok) {
     var lead = 'Clients we messaged who now have a visit booked, and whether a deposit is in. The deposit policy is the one October used: balayage, foils or highlights, all over colour, a restyle or extensions ask for one; a short service does not; the same day never does.';
@@ -759,9 +747,9 @@
     var m = a.money || {};
     if (!(bkok && slok)) return rsSec('What it took to get a booking', '', '<div class="nvb-rs-nums">' + rsWait('Cost per booking', !bkok ? whyBookings(st) : whySales(st)) + '</div>');
     if (!(m.booked_or_in > 0)) return rsSec('What it took to get a booking', '', '<p class="slv-muted">Nobody has booked or come in yet.</p>');
-    var cost = a.sent * r2, cells = rsCell('Messages per booking', (a.sent / m.booked_or_in).toFixed(1), fmtN(a.sent) + ' messages accepted for ' + nn(m.booked_or_in, 'since') + ' clients who booked or came in since our message') +
-      rsCell('Cost per booking', 'AED ' + money2(cost / m.booked_or_in), 'AED ' + money0(cost) + ' spent (estimate) over ' + nn(m.booked_or_in, 'since') + ' clients. AED ' + money2(reached * r2 / m.booked_or_in) + ' if only the ' + fmtN(reached) + ' delivered are charged') +
-      (m.ahead > 0 ? rsCell('Cost per booking ahead', 'AED ' + money2(cost / m.ahead), 'the same spend over the ' + nn(m.ahead, 'ahead') + ' clients with a booking from today on') : '');
+    var cost = a.sent * r2, costD = reached * r2, cells = rsCell('Messages per booking', (a.sent / m.booked_or_in).toFixed(1), fmtN(a.sent) + ' messages accepted for ' + nn(m.booked_or_in, 'since') + ' clients who booked or came in since our message') +
+      rsCell('Cost per booking', 'AED ' + money2(costD / m.booked_or_in), 'AED ' + money0(costD) + ' for the ' + fmtN(reached) + ' delivered over ' + nn(m.booked_or_in, 'since') + ' clients. AED ' + money2(cost / m.booked_or_in) + ' if every accepted message is charged') +
+      (m.ahead > 0 ? rsCell('Cost per booking ahead', 'AED ' + money2(costD / m.ahead), 'the same delivered spend over the ' + nn(m.ahead, 'ahead') + ' clients with a booking from today on') : '');
     return rsSec('What it took to get a booking', 'Booked or came in = a booking from today on, a booking first seen after her first message, or a till sale since. A ceiling, not proof the message caused it.', '<div class="nvb-rs-nums">' + cells + '</div>');
   }
   function bookDaysSec(st, a, bkok, slok) {
@@ -859,7 +847,6 @@
     var out = '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026 · Results</div><h2>How the November blasts did</h2></div></div><div class="nvb-rs-chips">' + chips + '</div>';
     out += '<p class="nvb-rs-intro">Same shape as the October Lost Clients report. One message per client, and a client counts once, by her latest message. Read live from the database and it moves while delivery statuses and sales come in. Every count opens the clients behind it: click a figure with a dotted underline.</p>';
 
-    out += '<!--nvsofar-->';
     // 1 headline
     var repl = st.replies === 'ok' ? rsCell('Wrote back', nn(a.replied, 'replied'), pc1(a.replied, reached) + ' of the ' + fmtN(reached) + ' reached') : st.replies === 'part' ? rsCell('Wrote back', nn(a.replied, 'replied'), 'so far, the check has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' accepted') : rsWait('Wrote back', whyReplies());
     var m = a.money || {}, bkok = st.bookings, slok = st.sales, al = MON && MON.all ? MON.all : null;
@@ -867,20 +854,18 @@
     var bsince = bkok ? rsCell('Booked since the message', nn(m.booked_since, 'bsince'), 'a booking first seen on or after her first message day, kept after the date passes. Counted from 4 Nov') : rsWait('Booked since the message', whyBookings(st));
     var paid = slok ? rsCell('Paid at the till since the message', 'AED ' + money0(m.paid_aed), nn(m.paid_clients, 'paid') + ' clients. A ceiling, not proof the message caused it') : rsWait('Paid at the till since the message', whySales(st));
     var cpb = (bkok && slok && m.booked_or_in > 0) ? rsCell('Cost per booking', 'AED ' + money2(reached * r2 / m.booked_or_in), 'delivered messages at ' + r2 + ' divided by ' + nn(m.booked_or_in, 'since') + ' booked since the message or came in') : rsWait('Cost per booking', (bkok && slok) ? 'Nobody has booked or come in yet.' : 'Needs bookings and sales after the message, see Booked ahead and Paid.');
-    var proj = !bkok ? rsWait('Projected spend', whyBookings(st)) : al ? rsCell('Projected spend', 'AED ' + money0(al.proj), 'what the ' + fmtN(al.ahead) + ' booked clients\' appointments should bring in. Section 7') : rsWait('Projected spend', monErr ? 'Could not be read just now.' : 'Loading…');
-    var projPer = !bkok ? rsWait('Projected per booked client', whyBookings(st)) : al ? rsCell('Projected per booked client', al.ahead ? 'AED ' + money0(al.proj / al.ahead) : '–', al.ahead ? 'AED ' + money0(al.appts ? al.proj / al.appts : 0) + ' per appointment' : 'nobody booked ahead yet') : rsWait('Projected per booked client', 'Loading…');
-    out += rsSec('1. The headline', 'What can be read now is shown. What cannot says why.',
+    var bci = bkok && slok ? rsCell('Booked or came in', nn(m.booked_or_in, 'since'), 'a booking from today on, a booking first seen after her first message, or a till sale since') : rsWait('Booked or came in', !bkok ? whyBookings(st) : whySales(st));
+    out += rsSec('1. The campaign so far', 'How many went out, what came back and what it cost. What cannot be read yet says why.',
       '<div class="nvb-rs-nums">' +
-      rsCell('Accepted by respond.io', nn(a.sent, 'sent'), 'of ' + fmtN(aud) + ' clients' + (qd ? ', ' + nn(qd, 'queued') + ' still queued' : '') + (aud > a.sent + qd ? ', ' + fmtN(aud - a.sent - qd) + ' skipped (already booked when queued)' : '')) +
+      rsCell('Accepted by respond.io', nn(a.sent, 'sent'), esc(fat(RES.first_send) + ' to ' + fat(RES.last_send))) +
       rsCell('Delivered or read', nn(reached, 'reached'), pc1(reached, a.sent) + ' of accepted. ' + nn(a.read, 'read') + ' read') +
       rsCell('Failed, Meta did not deliver', '<span class="f">' + nn(a.failed, 'failed') + '</span>', pc1(a.failed, a.sent) + ' of accepted, ' + pc1(a.failed, checked) + ' of the ' + nn(checked, 'checked') + ' checked') +
-      rsCell('Not confirmed yet', nn(a.unconfirmed, 'unconfirmed'), nn(a.never_checked, 'never_checked') + ' of them not status-checked yet') +
-      rsCell('Spent, delivered or read only', 'AED ' + money0(reached * r2), fmtN(reached) + ' x ' + r2 + '. AED ' + money0(reached * r1) + ' at ' + r1) +
-      rsCell('Spent, every message accepted', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' x ' + r2 + '. AED ' + money0(a.sent * r1) + ' at ' + r1) +
-      rsCell('Upper bound', 'AED ' + money0((reached + a.unconfirmed) * r2), 'delivered plus not confirmed, at ' + r2) +
+      rsCell('Still queued', qd ? nn(qd, 'queued') : '0', qd ? 'waiting for the next send window' : 'nothing waiting') +
+      repl +
       rsCell('STOP', nn(a.stop, 'stop'), pc1(a.stop, a.sent) + ' of accepted. Limit ' + (RES.gate ? RES.gate.stop_pct : 2) + '%' + (a.never_checked ? '. Partial, not every message is checked yet' : '')) +
-      repl + ahead + bsince + paid + cpb + proj + projPer + '</div>',
-      'Rate: October used AED ' + r1 + ' a message (about USD 0.046, measured). The page assumes AED ' + r2 + ' (about USD 0.058, one vendor source). Both are shown until the Meta invoice or the respond.io usage report replaces them. WhatsApp does not charge failed messages, so delivered only is the likelier bill.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, cost AED 1,068 on every message accepted.');
+      ahead + bsince + bci + paid + cpb +
+      rsCell('Spent (estimate)', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' accepted at AED ' + r2 + ' each. AED ' + money0(reached * r2) + ' if only the ' + fmtN(reached) + ' delivered are charged. At AED ' + r1 + ': AED ' + money0(a.sent * r1) + ' and AED ' + money0(reached * r1)) + '</div>',
+      'Rate: October used AED ' + r1 + ' a message (about USD 0.046, measured). The page assumes AED ' + r2 + ' (about USD 0.058, one vendor source). Both are shown until the Meta invoice or the respond.io usage report replaces them. WhatsApp does not charge failed messages, so delivered only is the likelier bill, and Cost per booking uses it.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, cost AED 1,068 on every message accepted.');
 
     // 2 by blast
     var head2 = [['Blast', ''], ['Audience', 'n'], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['Failed % of checked', 'n'], ['STOP', 'n'], ['Wrote back', 'n']];
@@ -990,7 +975,6 @@
       ['Tue 1 Dec, after the 30 Nov sales upload', 'Final results for the November offers.'],
       ['When the Meta invoice is in', 'Replace the AED ' + r1 + ' and ' + r2 + ' estimates with the real cost.']].map(function (r) { return { c: [esc(r[0]), esc(r[1])] }; });
     out += rsSec('13. When each part fills in', 'This view reads the database again every minute while it is open, so nothing needs re-running by hand. The SQL behind it is docs/NOV-2026-BLASTS-RESULTS.sql in the cowork repo and migrations/nov_results_parity.sql here.', rsTable(head11, body11).replace('class="nvb-rs-t"', 'class="nvb-rs-t txt"'));
-    out = out.replace('<!--nvsofar-->', soFarSec(st, a, bkok, r2, reached));
     return '<div class="nvb-rs">' + out + '</div>';
   }
   async function loadResults() {
