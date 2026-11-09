@@ -64,6 +64,18 @@ body[data-kb-view="grid"] .mm-row .mm-grip{position:absolute;top:8px;right:10px}
 body[data-kb-view="grid"] .mm-row .mm-nm{flex:none;width:100%;padding-right:22px;overflow-wrap:anywhere}
 body[data-kb-view="grid"] .mm-row .mm-mini{margin-top:auto;align-self:flex-end}
 .mm-top .kb-vt{flex:none}
+/* Grid at the menu level too: each closed section is a tile (name, page count, arrows); an open one takes the full row and shows its pages as tiles. */
+body[data-kb-view="grid"] .mm-col{max-width:1240px}
+body[data-kb-view="grid"] #mmApp{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;align-items:start}
+body[data-kb-view="grid"] .mm-sec{margin-bottom:0}
+body[data-kb-view="grid"] .mm-sec.open{grid-column:1/-1}
+body[data-kb-view="grid"] .mm-sec:not(.open){aspect-ratio:1/1}
+body[data-kb-view="grid"] .mm-sec:not(.open) .mm-sh{flex-wrap:wrap;align-content:space-between;height:100%;box-sizing:border-box;padding:18px;gap:10px 8px}
+body[data-kb-view="grid"] .mm-sec:not(.open) .mm-chev{display:none}
+body[data-kb-view="grid"] .mm-sec:not(.open) .mm-sh h2{flex:1 1 100%;font-size:19px}
+body[data-kb-view="grid"] .mm-sec:not(.open) .mm-sh .mm-cnt{flex:1}
+body[data-kb-view="grid"] .mm-sec:not(.open):hover{border-color:var(--muted)}
+body[data-kb-view="grid"] .mm-addsec{margin-top:0;aspect-ratio:1/1;width:100%;height:auto;border-radius:14px}
 /* Kate, 9 Nov 2026: + New section, under the last section. A section you add is yours (c: 1 in the layout): it can be renamed, and removed while it is empty. */
 .mm-addsec{display:block;width:100%;margin-top:4px;padding:12px;border:1px dashed var(--border);border-radius:14px;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
 .mm-addsec:hover{border-color:var(--text);color:var(--text)}

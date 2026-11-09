@@ -270,6 +270,7 @@ KB.ready.then(async function () {
         var tl = lists.filter(function (l) { return l.title === sl.title; })[0];
         if (tl) tl.keys = tl.keys.concat(keep); else lists.push({ title: sl.title, keys: keep });
       });
+      lists.forEach(function (l) { l.order = l.keys.slice(); });   // the order inside each list is her menu's order, not the order the rows are written in hub.js
       if (lists.length) { DOORS.tools.lists = lists; }
     } catch (e) { /* the standard lists stay */ }
   }
