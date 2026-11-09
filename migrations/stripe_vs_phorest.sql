@@ -138,7 +138,46 @@ begin
   return m.name;
 end $$;
 
--- Everything the page draws, for the header's Period. Stripe data starts 1 Aug 2026; the page's list starts 1 Oct 2026.
+-- The matching is heavy (about 24 s), more than the 8 s a signed-in call is allowed, so it is worked out ahead and kept:
+-- stripe_match_cache (one row per succeeded Stripe payment since 2 Aug 2026 with its status) and stripe_phorest_only_cache (Phorest Stripe lines since
+-- 1 Oct 2026 that no Stripe payment explains and whose client has no Stripe payment at all in the 60 days before). Refreshed by cron
+-- 'stripe-match-refresh-hourly' (minute 40) through stripe_match_refresh(); the 'waiting' status (paid in the last 14 days) moves on with each refresh.
+create table if not exists public.stripe_match_cache (
+  charge_id text primary key, account text not null, dubai_date date not null, created_utc timestamptz not null,
+  amount numeric not null, amount_refunded numeric not null default 0, client_name text,
+  status text not null, reason text, sale_id text, sale_date date, sale_branch text, sale_client text,
+  computed_at timestamptz not null default now());
+alter table public.stripe_match_cache enable row level security;
+create index if not exists stripe_match_cache_date on public.stripe_match_cache (dubai_date);
+create table if not exists public.stripe_phorest_only_cache (
+  sale_id text primary key, branch text not null, date date not null, name text, amt numeric not null, computed_at timestamptz not null default now());
+alter table public.stripe_phorest_only_cache enable row level security;
+
+create or replace function public.stripe_match_refresh() returns jsonb language plpgsql security definer set search_path to 'public' as $fn$
+declare n1 int; n2 int;
+begin
+  delete from stripe_match_cache;
+  insert into stripe_match_cache (charge_id, account, dubai_date, created_utc, amount, amount_refunded, client_name, status, reason, sale_id, sale_date, sale_branch, sale_client)
+    select charge_id, account, dubai_date, created_utc, amount, amount_refunded, client_name, status, reason, sale_id, sale_date, sale_branch, sale_client
+    from public.stripe_match_core(date '2026-08-02', current_date);
+  get diagnostics n1 = row_count;
+  delete from stripe_phorest_only_cache;
+  insert into stripe_phorest_only_cache (sale_id, branch, date, name, amt)
+    select ph.sale_id, ph.branch, ph.date, ph.cname, ph.amt
+    from (select l.branch, l.date, l.sale_id, max(l.client_name) cname, sum((x)[1]::numeric) amt
+          from sales_transaction_lines l
+          cross join lateral regexp_matches(coalesce(l.payment_raw,''), '(?:^|[^A-Z])S\(([0-9.]+)\)', 'g') x
+          where l.date >= date '2026-10-01' and l.branch in ('KCA','AQ','SAA','MC') group by 1,2,3) ph
+    where ph.sale_id not in (select sale_id from stripe_match_cache where sale_id is not null)
+      and not exists (select 1 from stripe_charges c where c.status = 'succeeded' and c.dubai_date between ph.date - 60 and ph.date + 1
+                      and stripe_share_token(stripe_nname(c.name), stripe_nname(ph.cname)));
+  get diagnostics n2 = row_count;
+  return jsonb_build_object('charges', n1, 'phorest_only', n2, 'at', now());
+end $fn$;
+revoke all on function public.stripe_match_refresh() from public, anon, authenticated;
+-- select cron.schedule('stripe-match-refresh-hourly', '40 * * * *', $$ select public.stripe_match_refresh(); $$);   -- applied live 9 Nov 2026
+
+-- Everything the page draws, for the header's Period, read from the caches (13 ms). Stripe data starts 1 Aug 2026; the page's list starts 1 Oct 2026.
 -- charges: every succeeded Stripe payment with its status. phorest_only: Stripe takings lines in Phorest that no Stripe payment explains.
 -- salons: Stripe gross against Phorest's daily Stripe takings (financial_totals.pay_stripe) up to the last day Phorest has.
 create or replace function public.stripe_vs_phorest_core(p_from date default null, p_to date default null) returns jsonb
@@ -147,24 +186,13 @@ declare f date := greatest(coalesce(p_from, date '2026-10-01'), date '2026-10-01
 begin
   select max(date) into dt from financial_totals where branch in ('KCA','AQ','SAA','MC');
   tt := least(t, dt);
-  with m as (select * from public.stripe_match_core(f - 60, t)),
-  used as (select distinct sale_id from m where sale_id is not null),
-  ph as (
-    select l.branch, l.date, l.sale_id, max(l.client_name) cname, sum((x)[1]::numeric) amt
-    from sales_transaction_lines l
-    cross join lateral regexp_matches(coalesce(l.payment_raw,''), '(?:^|[^A-Z])S\(([0-9.]+)\)', 'g') x
-    where l.date between f and tt and l.branch in ('KCA','AQ','SAA','MC') group by 1,2,3)
   select jsonb_build_object(
-    'ok', true, 'from', f, 'to', t, 'data_to', dt, 'synced_at', (select max(synced_at) from stripe_charges),
+    'ok', true, 'from', f, 'to', t, 'data_to', dt, 'synced_at', (select max(synced_at) from stripe_charges), 'computed_at', (select max(computed_at) from stripe_match_cache),
     'charges', coalesce((select jsonb_agg(jsonb_build_object('id', charge_id, 'acct', account, 'paid', dubai_date, 'at', created_utc, 'amt', amount,
         'ref', amount_refunded, 'name', client_name, 'status', status, 'why', reason, 'sale', sale_id, 'sdate', sale_date, 'sbranch', sale_branch,
-        'sclient', sale_client) order by dubai_date desc, created_utc desc) from m where dubai_date >= f), '[]'::jsonb),
-    -- A Phorest Stripe line shows here only when no Stripe payment explains it AND the client has no Stripe payment at all (any account) in the 60 days before it:
-    -- a client who does have one is already on the list through that payment's own status.
-    'phorest_only', coalesce((select jsonb_agg(jsonb_build_object('sale', sale_id, 'branch', branch, 'date', date, 'name', cname, 'amt', amt) order by date desc)
-        from ph where sale_id not in (select sale_id from used)
-          and not exists (select 1 from stripe_charges c where c.status = 'succeeded' and c.dubai_date between ph.date - 60 and ph.date + 1
-                          and stripe_share_token(stripe_nname(c.name), stripe_nname(ph.cname)))), '[]'::jsonb),
+        'sclient', sale_client) order by dubai_date desc, created_utc desc) from stripe_match_cache where dubai_date between f and t), '[]'::jsonb),
+    'phorest_only', coalesce((select jsonb_agg(jsonb_build_object('sale', sale_id, 'branch', branch, 'date', date, 'name', name, 'amt', amt) order by date desc)
+        from stripe_phorest_only_cache where date between f and tt), '[]'::jsonb),
     'salons', coalesce((select jsonb_object_agg(b.branch, jsonb_build_object(
         'stripe', coalesce((select sum(c.amount) from stripe_charges c where c.account = b.branch and c.status = 'succeeded' and c.dubai_date between f and tt), 0),
         'n', coalesce((select count(*) from stripe_charges c where c.account = b.branch and c.status = 'succeeded' and c.dubai_date between f and tt), 0),
