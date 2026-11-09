@@ -32,6 +32,18 @@
       tag.setAttribute('data-label', WORD[st]);
       nav.appendChild(tag);
     });
+    if (window.trsStatusMast) window.trsStatusMast();
+  };
+
+  // The same tag beside the page's name in the header, which stays on screen when the page is scrolled (Kate, 9 Nov 2026). Called from showView with the view,
+  // and again once the status has loaded (trsStatusNav) for the view that is already open.
+  window.trsStatusMast = function (view) {
+    if (view) window.trsCurView = view;
+    var el = document.getElementById('headerStatusPill');
+    if (!el) return;
+    var st = window.trsCurView && typeof trsPageStatus === 'function' ? trsPageStatus(window.trsCurView) : '';
+    if (!st) { el.hidden = true; el.textContent = ''; el.className = 'mast-flag'; return; }
+    el.className = 'mast-flag mast-flag-' + st; el.textContent = WORD[st]; el.hidden = false;
   };
 
   // The notice sits just before the page's own block, not inside it, so a page that redraws itself does not wipe it.

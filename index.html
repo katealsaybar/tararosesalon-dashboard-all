@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="pages.js?v=655962ec"></script>
-<script src="page-status.js?v=71fc15ef"></script>
+<script src="page-status.js?v=779c1d41"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3537,7 +3537,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="tool-spend.css?v=d72f64aa">
 <link rel="stylesheet" href="marketing-spend.css?v=3af355da">
 <link rel="stylesheet" href="mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
-<link rel="stylesheet" href="nav-style.css?v=d880d0ba">
+<link rel="stylesheet" href="nav-style.css?v=27b828c7">
 <link rel="stylesheet" href="drill.css?v=547da3fe">   <!-- the figure that opens the list behind it (drill.js) -->
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
@@ -3607,7 +3607,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       at:  ['attrition.js?v=a1fdad42'],
       cb:  ['client-book.js?v=cb5964c2'],
       // Complaint triage batch 2 (29 Oct 2026): cmp-people.js is the people list and picker shared with Team Home's complaint ticket.
-      cp:  ['complaints.js?v=9511c718', 'cmp-people.js?v=68e823b1', 'complaint-log.js?v=cd090b66'],
+      cp:  ['complaints.js?v=de37e805', 'cmp-people.js?v=68e823b1', 'complaint-log.js?v=cd090b66'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['products.js?v=d1961633'],
@@ -3869,6 +3869,7 @@ table.tp-cmp td.bad{color:var(--bad)}
         <div class="mast-logo mast-lockup" onclick="backToTop()"><img id="headerLogoImg" src="assets/mast-ink.png" alt="Tara Rose Salons"><span class="mast-word" aria-hidden="true">Salons</span></div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-top:7px">
           <div class="mast-sub" id="headerSectionLabel" style="margin-top:0">Organisation Pulse</div>
+          <span class="mast-flag" id="headerStatusPill" hidden></span>
           <!-- Comparison's Visual/Table switch, painted by compare.js. Shown only on that view. -->
           <span class="cmp-mode" id="cmpModeMast" role="group" aria-label="Show as"></span>
           <a id="ocOpenNewWin" href="javascript:void(0)" onclick="ocOpenNewWindow()"
@@ -5097,6 +5098,7 @@ function showView(view, el){
   target.style.display = 'block';
   // Kate, 3 Nov 2026: the Under construction / Hidden notice above the page (page-status.js).
   if (typeof trsStatusBanner === 'function') trsStatusBanner(view);
+  if (typeof trsStatusMast === 'function') trsStatusMast(view);
   // Google Reviews sizes its iframe to its content; ask again now it's visible.
   if (view === 'reviews' && typeof postReviewsTheme === 'function') postReviewsTheme();
   if (view === 'reviews' && typeof postReviewsBranch === 'function') postReviewsBranch();

@@ -119,7 +119,9 @@ function cqCss() {
     .cq-t th.cq-sort .ar{display:inline-block;width:12px;margin-left:4px;font-size:10px;opacity:.35}
     .cq-t th.cq-sort[aria-sort] {color:var(--text)}
     .cq-t th.cq-sort[aria-sort] .ar{opacity:1}
-    .cq-t tr.cq-row{cursor:pointer}
+    .cq-t tr.cq-row{cursor:pointer;position:relative}
+    .cq-rowlink{color:inherit;text-decoration:none}.cq-rowlink::after{content:"";position:absolute;inset:0;z-index:1}.cq-rowlink:hover{text-decoration:underline}
+    .cq-row .cq-code,.cq-row .cq-sub2{position:relative;z-index:2}
     .cq-t tr.cq-row:hover td,.cq-t tr.cq-row:focus-visible td,.cq-t tr.cq-row.on td{background:var(--surface2)}
     .cq-t tr.cq-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     .cq-t td.cq-det{padding:14px 12px 18px;background:var(--surface2)}
@@ -342,16 +344,16 @@ function cqClick(e) {
   const pg = t.closest && t.closest('[data-pg]');
   if (pg) { CQ.page = Math.max(0, CQ.page + Number(pg.dataset.pg)); cqOpen = 0; cqLoadList(); return; }
   const row = t.closest && t.closest('tr.cq-row');
-  if (row && cqMode === 'log') { cqOpenRecord(Number(row.dataset.i)); return; }
+  if (row && cqMode === 'log') { if (t.closest('a.cq-rowlink')) return; cqOpenRecord(Number(row.dataset.i)); return; }
   if (row) cqToggle(row);
 }
 
 // Log a Client Complaint (Kate, 30 Oct 2026): a row opens the full record in a new window (the ticket page, addressed by its code). The follow-up, how it ended,
 // reopen and delete are still on the dashboard, one link away on that page, and open this row when the address carries cid.
+const cqRecordUrl = r => r && r.code ? '/hub/complaint?c=' + encodeURIComponent(r.code) : '/hub/complaint?cid=' + (r && r.id) + '&t=1';
 function cqOpenRecord(id) {
   const r = ((cqList && cqList.rows) || []).find(x => x.id === id);
-  const url = r && r.code ? '/hub/complaint?c=' + encodeURIComponent(r.code) : '/hub/complaint?cid=' + id + '&t=1';
-  window.open(url, '_blank', 'noopener');
+  window.open(cqRecordUrl(r || { id }), '_blank', 'noopener');
 }
 
 function cqToggle(row) {
@@ -694,7 +696,7 @@ function cqPaintList() {
   const tr = rows.map(r => log ? `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint in a new tab" data-i="${r.id}">
       <td class="hm" style="white-space:nowrap">${cqEsc(cqDay(r.date))}</td>
       <td class="hm" style="white-space:nowrap">${cqEsc(cqDay(r.complaint_date))}</td>
-      <td><b>${cqEsc(r.client || 'No name')}</b><div style="margin-top:3px">${cqCodeChip(r)}</div><div class="cq-sub2">${cqEsc(cqBr(r.branch))}${r.phone ? ' · ' + cqEsc(r.phone) : ''}</div>
+      <td><b><a class="cq-rowlink" href="${cqEsc(cqRecordUrl(r))}" target="_blank" rel="noopener">${cqEsc(r.client || 'No name')}</a></b><div style="margin-top:3px">${cqCodeChip(r)}</div><div class="cq-sub2">${cqEsc(cqBr(r.branch))}${r.phone ? ' · ' + cqEsc(r.phone) : ''}</div>
         <div class="cq-sub2 sm">Appointment ${cqEsc(cqDay(r.date))}<br>Complaint ${cqEsc(cqDay(r.complaint_date))}</div></td>
       <td>${cqEsc(r.detail || 'Not stated')}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
       <td>${r.duplicate_of ? `<span class="cq-pill">Duplicate of ${cqEsc(r.duplicate_code || 'another')}</span>` : r.status === 'open' ? cqFlagPill(r) : '<span class="cq-pill">Resolved</span>'}
@@ -772,11 +774,10 @@ async function cqOpenFromLink() {
 
 // Open in Google Sheets (Kate, 22 Oct 2026: "this table may be opened on Google Sheets"). A Google Sheet cannot be made from the page without a
 // sign-in to Google, so this copies every row the filters match (not only the page on screen), tab separated, and opens a new Google Sheet to
-// paste into with Ctrl+V. The window is opened first, on the click, so the browser does not block it while the rows are fetched.
+// paste into with Ctrl+V. The rows are copied first and the sheet is opened after (9 Nov 2026: the other way round took the focus and the copy failed).
 async function cqSheetsExport() {
   const btn = document.getElementById('cqSheet'), msg = document.getElementById('cqSheetMsg');
   const say = t => { if (msg) msg.textContent = t; };
-  const w = window.open('', '_blank');
   if (btn) btn.disabled = true;
   say('Getting the rows…');
   try {
@@ -801,12 +802,21 @@ async function cqSheetsExport() {
       r.phone, r.complaint_date ? String(r.complaint_date).slice(0, 10) : '', r.resolved_at ? String(r.resolved_at).slice(0, 10) : '', r.days_open,
       r.flag === 'overdue' ? 'Overdue' : (r.flag === 'pending' ? 'Pending action' : ''), r.responsible, r.pending_reason, r.note
     ]));
-    await navigator.clipboard.writeText(lines.map(l => l.map(cell).join('\t')).join('\n'));
-    if (w) w.location.href = 'https://sheets.new';
-    say(`Copied ${rows.length} row${rows.length === 1 ? '' : 's'}. Paste them into the new sheet with Ctrl+V.`);
+    const text = lines.map(l => l.map(cell).join('\t')).join('\n');
+    // The copy comes first and the new tab second. Opening the tab first (the old order) moved the focus to it, and a browser refuses to copy from a page that is
+    // not in focus (Kate, 9 Nov 2026: "it could not copy the rows"). Copying through a hidden box is the fallback.
+    try { await navigator.clipboard.writeText(text); } catch (e) {
+      const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      ta.remove();
+      if (!ok) throw e;
+    }
+    const n = `${rows.length} row${rows.length === 1 ? '' : 's'}`;
+    const w = window.open('https://sheets.new', '_blank');
+    if (w) say(`Copied ${n}. Paste them into the new sheet with Ctrl+V.`);
+    else if (msg) msg.innerHTML = `Copied ${n}. <a href="https://sheets.new" target="_blank" rel="noopener">Open a new Google Sheet</a> and paste with Ctrl+V.`;
   } catch (e) {
     console.error(e);
-    if (w) w.close();
     say('It could not copy the rows. Try again.');
   } finally { if (btn) btn.disabled = false; }
 }
