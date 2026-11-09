@@ -121,7 +121,10 @@ function cqCss() {
     .cq-t th.cq-sort[aria-sort] .ar{opacity:1}
     .cq-t tr.cq-row{cursor:pointer;position:relative}
     .cq-rowlink{color:inherit;text-decoration:none}.cq-rowlink::after{content:"";position:absolute;inset:0;z-index:1}.cq-rowlink:hover{text-decoration:underline}
-    .cq-row .cq-code,.cq-row .cq-sub2{position:relative;z-index:2}
+    .cq-row .cq-code,.cq-row .cq-sub2{position:relative;z-index:1}
+    /* What happened is the column people read: wide enough for a few lines, not a thin strip (Kate, 9 Nov 2026). On a phone the other columns fold away, so it takes what is left. */
+    .cq-t.cq-lg th:nth-child(4),.cq-t.cq-lg td:nth-child(4){min-width:200px}
+    @media (min-width:761px){.cq-t.cq-lg th:nth-child(4),.cq-t.cq-lg td:nth-child(4){min-width:340px;max-width:560px}}
     .cq-t tr.cq-row:hover td,.cq-t tr.cq-row:focus-visible td,.cq-t tr.cq-row.on td{background:var(--surface2)}
     .cq-t tr.cq-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     .cq-t td.cq-det{padding:14px 12px 18px;background:var(--surface2)}
