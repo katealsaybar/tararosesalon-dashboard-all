@@ -25,7 +25,7 @@
     // Kate, 30 Oct 2026 (adult-learning audit ALAD-5): on a door (?door=kb or ?door=tools) the small label says where you are
     // (Team Home) and the big title says which door, so nobody is told they are in the Knowledge Base on the Tools door.
     (function () {
-      var d = new URLSearchParams(location.search).get('door'), T = { kb: 'Knowledge Base', tools: 'Tools' }, h = document.getElementById('kbHead');
+      var d = new URLSearchParams(location.search).get('door'), T = { kb: 'Knowledge Base', tools: 'Tools', dashboard: 'Dashboard' }, h = document.getElementById('kbHead');
       if (T[d] && h) { h.dataset.title = T[d]; h.dataset.eyebrow = 'Team Home'; }
     })();
   </script>
@@ -121,7 +121,9 @@ KB.ready.then(async function () {
       lists: [{ title: 'Marketing', keys: ['campaign-blasts', 'nov-blasts', 'landing-review', 'staff-campaign', 'post-approvals'] },
         { title: 'Accounts', keys: ['uploads', 'payslips', 'team-roster', 'staff-wa', 'stripe-deposits'] },
         { title: 'Operations', keys: ['log-complaint', 'complaints-pipeline', 'targets-calc', 'targets-how', 'recruitment'] },
-        { title: 'Backend', keys: ['access', 'page-access', 'page-status', 'menu-mover'] }] }
+        { title: 'Backend', keys: ['access', 'page-access', 'page-status', 'menu-mover'] }] },
+    // Kate, 9 Nov 2026: the Dashboard door, in cards like the other two (lists are filled by dashDoor() below, from the dashboard's own menu). The full dashboard is one link away.
+    dashboard: { title: 'Dashboard', blurb: 'Pick a report and it opens. Prefer everything on one screen? Open the full dashboard.', lists: [] }
   };
   // Kate, 9 Nov 2026: a Tools row that is in none of the lists above (a page added later) goes under "More", so nothing is left off the door.
   (function () {
@@ -176,7 +178,7 @@ KB.ready.then(async function () {
       icon(s) + '<span class="kb-gt-tx"><b>' + esc(s.title) + '</b>' + (function (sub) { return sub ? '<span>' + esc(sub) + '</span>' : ''; })(s.dept || (s.key.indexOf('p:') === 0 ? s.blurb : '') || (/^\/\?view=/.test(s.href || '') ? 'Dashboard' : '')) + '</span></a>' + KB.starBtn(s.key, s.title) + '</div>';
   }
   function paintDoor() {
-    var html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a>' + viewBtn() + '</p>', any = false;
+    var html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a>' + (door.title === 'Dashboard' ? ' <span aria-hidden="true">·</span> <a href="/?view=dashboard">Open the full dashboard →</a>' : '') + viewBtn() + '</p>', any = false;
     door.lists.forEach(function (l) {
       var list = shown.filter(function (s) { return l.keys ? l.keys.indexOf(s.key) >= 0 : s.dept === l.dept; });
       if (l.order) list.sort(function (a, b) {   // named rows first, in that order; any other row after them, as before
@@ -213,7 +215,7 @@ KB.ready.then(async function () {
     }
     var dashN = shown.filter(function (x) { return ['Numbers', 'Clients', 'Targets', 'Campaigns', 'Content', 'People'].indexOf(x.dept) >= 0; }).length;
     var kbN = countDoor(DOORS.kb), toolsN = countDoor(DOORS.tools);
-    var tiles = (dashN ? doorTile('/?view=dashboard', 'Dashboard', dashN, 'dashboards', 'var(--accent-lavender)') : '') +
+    var tiles = (dashN ? doorTile('/hub/?door=dashboard', 'Dashboard', dashN, 'dashboards', 'var(--accent-lavender)') : '') +
       (kbN ? doorTile('/hub/?door=kb', 'Knowledge Base', kbN, 'full-loop', 'var(--accent-mint)') : '') +
       (toolsN ? doorTile('/hub/?door=tools', 'Tools', toolsN, 'approvals', 'var(--accent-butter)') : '');
     html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a>' + viewBtn() + '</p>' + html +
@@ -274,7 +276,46 @@ KB.ready.then(async function () {
       if (lists.length) { DOORS.tools.lists = lists; }
     } catch (e) { /* the standard lists stay */ }
   }
+  // Kate, 9 Nov 2026: the Dashboard door. Its lists are the dashboard's own menu (every group but Tools, which has its own door): each group is a list, each sub-section its own list,
+  // in Kate's saved order if she has one, and a row shows only when that person may open the page (trsPageOpen). Everyone can go back to the full dashboard from the top of the page.
+  async function dashDoor() {
+    if (!door || door.title !== 'Dashboard' || !window.trsNav) return;
+    var lists = [], COL = { Numbers: 'var(--accent-lavender)', Campaigns: 'var(--accent-coral)', Content: 'var(--accent-coral)', People: 'var(--accent-mint)' };
+    try {
+      if (KB.allowed.indexOf('dashboards') < 0) { door.lists = []; return; }
+      var side = new DOMParser().parseFromString(await (await fetch('/', { credentials: 'same-origin' })).text(), 'text/html').querySelector('aside.sidebar');
+      if (!side) throw new Error('menu');
+      var ext = window.trsNav.extract(side), tree = ext.tree;
+      if (KB.realLevel === 5 && !KB.viewAs) {
+        var lr = await KB.client.rpc('nav_layout_get');
+        if (!lr.error && lr.data && lr.data.groups) tree = window.trsNav.merge(ext.tree, lr.data);
+      }
+      var byView = {};
+      KB.SECTIONS.forEach(function (c) { var m = /^\/?\?view=([A-Za-z0-9_-]+)/.exec(c.href || ''); if (m && !byView[window.trsViewOfSlug(m[1])]) byView[window.trsViewOfSlug(m[1])] = c; });
+      tree.forEach(function (g) {
+        if (g.n === 'Tools') return;
+        var mk = function (title, keys, path) {
+          var cs = [];
+          keys.forEach(function (k) {
+            var u = ext.units[k]; if (!u) return;
+            var el = u.els[0], h = el.getAttribute('href') || '', vm = /^\/?\?view=([A-Za-z0-9_-]+)/.exec(h), id = vm && window.trsViewOfSlug(vm[1]);
+            if (id ? !window.trsPageOpen(id, KB.level, KB.extra) : KB.level < Number(el.getAttribute('data-tool-min') || 1)) return;
+            var base = id && byView[id], pg = id && window.trsPage(id);
+            var c = { key: 'dash-' + k, dept: 'Dashboard', title: u.label, href: h, live: true, ic: (base && base.ic) || (pg && pg.ic) || 'dashboards',
+              rule: COL[g.n] || 'var(--accent-lavender)', blurb: (base && base.blurb) || path };
+            KB.SECTIONS.push(c); shown.push(c); cs.push(c.key);
+          });
+          if (cs.length) lists.push({ title: title, keys: cs, order: cs.slice() });
+        };
+        mk(g.n, g.loose, g.n);
+        g.subs.forEach(function (sb) { mk(g.n + ' · ' + sb.n, sb.p, g.n + ' · ' + sb.n); });
+      });
+    } catch (e) { lists = []; }
+    if (!lists.length) lists = ['Numbers', 'Clients', 'Targets', 'Campaigns', 'Content', 'People'].map(function (d) { return { title: d, dept: d }; });
+    door.lists = lists;
+  }
   await menuDoor();
+  await dashDoor();
   paint();
 
   document.getElementById('kbGrid').addEventListener('click', async function (e) {

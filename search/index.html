@@ -330,6 +330,7 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
   document.querySelectorAll('#srDoors .sr-door').forEach(function (a) {
     var d = a.getAttribute('data-d');
     a.classList.toggle('hide', !doorOn[d]);
+    if (d === 'dash') a.href = '/hub/?door=dashboard';   // Kate, 9 Nov 2026: the Dashboard door is cards too; the full dashboard is a link on it
     if (d === 'kb') a.href = '/hub/?door=kb';
     if (d === 'tools') a.href = '/hub/?door=tools';
   });
