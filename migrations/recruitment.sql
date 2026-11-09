@@ -2,13 +2,13 @@
 -- worth a look / probably no / waiting, with Shortlist and Not now. Mockup approved 9 Nov 2026 (docs/mockups/recruitment-triage.html in the cowork repo).
 --
 -- Who may read or change anything here: Level 5 (Kate) and anyone whose dashboard_users.extra_pages holds 'recruitment' (Coach Emma). Nobody else, whatever their
--- level. The last statement of this file (commented out until Kate says go) gives Coach Emma that one extra page.
+-- level. The last statement of this file gives Coach Emma that one extra page.
 -- Applicant emails, numbers and CV links are personal data, so the tables have row level security with NO policy: nothing reads them except the functions below.
 -- The two mailbox scripts (apps-script/sync-recruitment-mailbox.gs, one in recruitment@ and one in info@) push through recruit_import() with the same push pass the
 -- other pushers use. Import never touches stage, decided_by or decided_at, so a decision made on the page is never undone by a sync.
 -- Undo all of it: drop the five functions, then drop table public.recruit_applicants and public.recruit_settings, then
 --   update public.dashboard_users set extra_pages = array_remove(extra_pages, 'recruitment');
--- NOT applied yet.
+-- Applied live 9 Nov 2026 (Kate said go), including Coach Emma's extra page below. Tested rolled back first.
 
 create table if not exists public.recruit_applicants (
   id                   uuid primary key default gen_random_uuid(),
@@ -241,6 +241,6 @@ grant execute on function public.recruit_set_stage(uuid[], text) to authenticate
 grant execute on function public.recruit_settings_set(text, jsonb) to authenticated;
 grant execute on function public.recruit_import(uuid, jsonb, boolean) to anon;
 
--- Giving Coach Emma the page (Kate says go; one row, undone with array_remove):
--- update public.dashboard_users set extra_pages = array_append(coalesce(extra_pages, '{}'::text[]), 'recruitment')
---  where email = 'emmalouise@tararosesalon.com' and not ('recruitment' = any (coalesce(extra_pages, '{}'::text[])));
+-- Giving Coach Emma the page (one row, undone with array_remove):
+update public.dashboard_users set extra_pages = array_append(coalesce(extra_pages, '{}'::text[]), 'recruitment')
+ where email = 'emmalouise@tararosesalon.com' and not ('recruitment' = any (coalesce(extra_pages, '{}'::text[])));
