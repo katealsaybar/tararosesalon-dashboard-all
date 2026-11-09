@@ -1,8 +1,8 @@
 /* Recruitment (Kate, 9 Nov 2026). Uses the site tokens, so it reads as the rest of the dashboard. Everything sits under .rct (the dialog and the toast carry it too)
    and the class prefix is rct-, so no other page's rules reach it. Layout follows the approved mockup (docs/mockups/recruitment-triage.html). */
-.rct,.rct-dlg,#rctToast{--rct-red:#B4412F;--rct-redbg:#F8E4DF;--rct-amber:#8A5A00;--rct-amberbg:#FAEFD6;--rct-green:#2F7A4B;--rct-greenbg:#E1F1E6;--rct-teal:#1F6B59;--rct-tealbg:#E6F3F0;--rct-butter:#F6EFC9}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rct,:root:not([data-theme="light"]) .rct-dlg,:root:not([data-theme="light"]) #rctToast{--rct-red:#F4A99B;--rct-redbg:rgba(180,65,47,.22);--rct-amber:#F0CD85;--rct-amberbg:rgba(217,164,65,.18);--rct-green:#7FD0A0;--rct-greenbg:rgba(47,122,75,.25);--rct-teal:#8ED9C7;--rct-tealbg:rgba(58,168,146,.18);--rct-butter:rgba(238,243,199,.12)}}
-[data-theme="dark"] .rct,[data-theme="dark"] .rct-dlg,[data-theme="dark"] #rctToast{--rct-red:#F4A99B;--rct-redbg:rgba(180,65,47,.22);--rct-amber:#F0CD85;--rct-amberbg:rgba(217,164,65,.18);--rct-green:#7FD0A0;--rct-greenbg:rgba(47,122,75,.25);--rct-teal:#8ED9C7;--rct-tealbg:rgba(58,168,146,.18);--rct-butter:rgba(238,243,199,.12)}
+.rct,.rct-dlg,#rctToast,.rct-pop{--rct-red:#B4412F;--rct-redbg:#F8E4DF;--rct-amber:#8A5A00;--rct-amberbg:#FAEFD6;--rct-green:#2F7A4B;--rct-greenbg:#E1F1E6;--rct-teal:#1F6B59;--rct-tealbg:#E6F3F0;--rct-butter:#F6EFC9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rct,:root:not([data-theme="light"]) .rct-dlg,:root:not([data-theme="light"]) #rctToast,:root:not([data-theme="light"]) .rct-pop{--rct-red:#F4A99B;--rct-redbg:rgba(180,65,47,.22);--rct-amber:#F0CD85;--rct-amberbg:rgba(217,164,65,.18);--rct-green:#7FD0A0;--rct-greenbg:rgba(47,122,75,.25);--rct-teal:#8ED9C7;--rct-tealbg:rgba(58,168,146,.18);--rct-butter:rgba(238,243,199,.12)}}
+[data-theme="dark"] .rct,[data-theme="dark"] .rct-dlg,[data-theme="dark"] #rctToast,[data-theme="dark"] .rct-pop{--rct-red:#F4A99B;--rct-redbg:rgba(180,65,47,.22);--rct-amber:#F0CD85;--rct-amberbg:rgba(217,164,65,.18);--rct-green:#7FD0A0;--rct-greenbg:rgba(47,122,75,.25);--rct-teal:#8ED9C7;--rct-tealbg:rgba(58,168,146,.18);--rct-butter:rgba(238,243,199,.12)}
 .rct *,.rct-dlg *{box-sizing:border-box}
 .rct h2,.rct h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;margin:0;line-height:1.2}
 .rct h2{font-size:clamp(24px,4vw,30px)}
@@ -80,6 +80,67 @@
 .rct-btn.rct-danger{border-color:var(--rct-red);color:var(--rct-red)}
 .rct-btn.rct-danger:hover{border-color:var(--rct-red);background:var(--rct-redbg)}
 .rct-more{justify-self:start}
+/* Grid or List (Kate, 9 Nov 2026; mockup docs/mockups/recruitment-list.html) */
+:where(.rct-pop) :where(button,input){font:inherit;color:inherit}
+.rct-fig.rct-sel{border:2.5px solid var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.rct-lanebar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14.5px;background:var(--rct-tealbg);color:var(--rct-teal);border-radius:12px;padding:8px 12px}
+.rct-lanebar button{border:1.5px solid currentColor;background:transparent;border-radius:999px;min-height:40px;padding:2px 14px;cursor:pointer;font-weight:600}
+.rct-seg{display:inline-flex;border:1px solid var(--border);border-radius:999px;background:var(--surface);overflow:hidden}
+.rct-seg button{border:0;background:transparent;color:var(--muted);min-width:46px;height:44px;display:grid;place-items:center;cursor:pointer;padding:0 6px}
+.rct-seg button+button{border-left:1px solid var(--border)}
+.rct-seg button[aria-pressed="true"]{background:var(--surface2);color:var(--text)}
+.rct-seg svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rct-seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.rct-av{flex:0 0 auto;width:44px;height:44px;border-radius:10px;background:var(--surface2);color:var(--muted);display:grid;place-items:center;font-weight:600;font-size:15px;border:1px solid var(--border)}
+.rct-avlg{width:56px;height:56px;border-radius:12px;font-size:17px}
+.rct-cwho{display:flex;gap:12px;align-items:center;min-width:0}
+.rct-tcount{font-size:14px;color:var(--muted)}
+.rct-tbox{border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:auto;max-height:min(70vh,760px)}
+.rct-table{border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
+.rct-table .rct-pill{white-space:nowrap;line-height:1.25;text-align:left;padding:3px 10px}
+.rct-table td{overflow-wrap:anywhere}
+.rct-table td.rct-c-acts{overflow-wrap:normal;white-space:nowrap}
+.rct-table .rct-c-acts .rct-btn{display:inline-flex;margin:0 4px 0 0;width:auto;padding:4px 10px;font-size:13.5px}
+.rct-table thead th{position:sticky;top:0;z-index:5;background:var(--surface2);text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:0;border-bottom:1.5px solid var(--border);white-space:nowrap}
+.rct-th{display:flex;align-items:center;gap:2px;padding:6px 2px 6px 8px;min-height:46px}
+.rct-th.rct-sorted{color:var(--text)}
+.rct-sortmark{font-size:11px}
+.rct-fbtn{margin-left:auto;border:0;background:transparent;color:var(--muted);width:30px;height:34px;border-radius:8px;display:grid;place-items:center;cursor:pointer;position:relative}
+.rct-fbtn:hover{background:var(--border);color:var(--text)}
+.rct-fbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rct-fbtn.rct-act{color:var(--rct-teal);background:var(--rct-tealbg)}
+.rct-fbtn.rct-act::after{content:"";position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.rct-fbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.rct-table tbody td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle;background:var(--surface)}
+.rct-table tbody tr:hover td{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.rct-table td.rct-c-av{width:56px;padding-right:0}
+.rct-table td.rct-c-name{min-width:112px}
+.rct-cellbtn{border:0;background:transparent;padding:2px 4px;margin:-2px -4px;border-radius:6px;cursor:pointer;text-align:left;font-weight:inherit;color:inherit;white-space:normal}
+.rct-cellbtn:hover{background:var(--rct-tealbg);color:var(--rct-teal)}
+.rct-pillbtn{border:0;cursor:pointer}
+.rct-pillbtn:hover{outline:2px solid var(--accent)}
+.rct-why{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.25}
+.rct-table tr.rct-dtl td{background:var(--bg)}
+.rct-table tr.rct-dtl .rct-rowdetail{background:var(--surface2)}
+/* like Google Sheets: wider than its box (a narrower window or a phone), it scrolls sideways inside the box, the header stays on top, photo and name stay frozen */
+.rct-table td.rct-c-av,.rct-table thead th:nth-child(1){position:sticky;left:0;z-index:3}
+.rct-table td.rct-c-name,.rct-table thead th:nth-child(2){position:sticky;left:56px;z-index:3;box-shadow:6px 0 8px -6px rgba(0,0,0,.25)}
+.rct-table thead th:nth-child(1),.rct-table thead th:nth-child(2){z-index:7}
+.rct-table tbody tr:hover td.rct-c-av,.rct-table tbody tr:hover td.rct-c-name{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.rct-pop{position:fixed;z-index:3500;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 60px -16px rgba(0,0,0,.45);padding:10px;display:grid;gap:8px;max-width:calc(100vw - 16px)}
+.rct-pop[hidden]{display:none}
+.rct-sortrow{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rct-sortrow button{border:1.5px solid var(--border);background:var(--surface);border-radius:10px;min-height:42px;cursor:pointer;font-size:14px}
+.rct-sortrow button.rct-on{background:var(--rct-tealbg);border-color:var(--accent);color:var(--rct-teal);font-weight:600}
+.rct-pop input[type=search]{width:100%;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);padding:8px 10px;font-size:14.5px}
+.rct-ctrl{display:flex;justify-content:space-between;font-size:13px}
+.rct-ctrl button{border:0;background:none;color:var(--rct-teal);cursor:pointer;text-decoration:underline;min-height:40px;padding:0 4px}
+.rct-pl{max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:4px}
+.rct-pl label{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:14.5px;min-height:40px}
+.rct-pl label:hover{background:var(--surface2)}
+.rct-pn{margin-left:auto;color:var(--muted);font-size:13px}
+.rct-pfoot{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+@media (max-width:520px){.rct-pop{left:8px !important;right:8px;bottom:8px;top:auto !important;width:auto !important}}
 .rct-btn[disabled]{opacity:.5;cursor:not-allowed}
 .rct-btn[disabled]:hover{border-color:var(--border)}
 .rct-rowdetail{grid-column:1 / -1;display:grid;gap:8px;background:var(--surface2);border-radius:12px;padding:6px 14px 12px}
@@ -95,7 +156,7 @@
 .rct details.rct-grp[open]>summary::after{content:"\2212"}
 .rct-dbody{padding:0 16px 14px;display:grid;gap:4px}
 .rct-bulk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--rct-butter);border-radius:12px;padding:10px 12px;font-size:14.5px;margin-bottom:6px}
-.rct-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border)}
+.rct-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--border)}
 .rct-list>.rct-row:first-child,.rct-bulk+.rct-row{border-top:0}
 .rct-who{display:grid;gap:2px;min-width:0}
 .rct-who b{font-weight:600;overflow-wrap:anywhere}
@@ -124,8 +185,8 @@
 @media (max-width:520px){
   .rct-btns{grid-template-columns:minmax(0,1fr)}
   .rct-fact{grid-template-columns:92px minmax(0,1fr)}
-  .rct-row{grid-template-columns:minmax(0,1fr)}
-  .rct-acts{justify-content:flex-start}
+  .rct-row{grid-template-columns:auto minmax(0,1fr)}
+  .rct-row .rct-acts{grid-column:1 / -1;justify-content:flex-start}
   .rct-bulk{grid-template-columns:minmax(0,1fr)}
   .rct-dlg{width:calc(100vw - 16px);max-height:calc(100vh - 16px)}
   .rct-sm{width:100%}

@@ -127,7 +127,7 @@
 
   function card(p) {
     return '<article class="rct-card">' +
-      '<div class="rct-ctop"><h3>' + esc(p.name || 'Name not stated') + '</h3><div class="rct-pills">' + waitPill(p) + extraPills(p) + '</div></div>' +
+      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<h3>' + esc(p.name || 'Name not stated') + '</h3></div><div class="rct-pills">' + waitPill(p) + extraPills(p) + '</div></div>' +
       '<div class="rct-facts">' +
         '<div class="rct-fact"><span>Based in</span><b>' + placeOf(p) + '</b></div>' +
         '<div class="rct-fact"><span>Instagram</span><b>' + igHtml(p) + '</b></div>' +
@@ -150,7 +150,7 @@
     else if (p.stage === 'screening') acts = '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>';
     else if (p.stage === 'not_now' || p.stage === 'rejected') acts = '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + esc(p.id) + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + esc(p.id) + '">Put back</button>';
     var det = [p.emirate || p.country, p.experience, p.role_txt].filter(Boolean).map(esc).join(' &middot; ');
-    return '<div class="rct-row"><div class="rct-who"><b>' + esc(p.name || 'Name not stated') + '</b>' +
+    return '<div class="rct-row">' + avatar(p) + '<div class="rct-who"><b>' + esc(p.name || 'Name not stated') + '</b>' +
       (det ? '<span>' + det + '</span>' : '') + '<span>' + esc(sub) + '</span></div>' +
       '<div class="rct-acts">' + waitPill(p) + extraPills(p) + stagePill(p) + acts + '</div>' + (openRows[p.id] ? detailHtml(p) : '') + '</div>';
   }
@@ -161,7 +161,7 @@
     return g;
   }
   function fig(key, n, label, cls) {
-    return '<button type="button" class="rct-fig ' + (cls || '') + '" data-fig="' + key + '"><span class="rct-n">' + n + '</span><span class="rct-l">' + label + '</span></button>';
+    return '<button type="button" class="rct-fig ' + (cls || '') + (S.lane === key ? ' rct-sel' : '') + '" data-fig="' + key + '" aria-pressed="' + (S.lane === key) + '"><span class="rct-n">' + n + '</span><span class="rct-l">' + label + '</span></button>';
   }
 
   function found() {
@@ -189,7 +189,7 @@
       fig('booked', bk.length, 'Interview booked') + '</div>';
 
     h += '<div class="rct-bar"><label class="rct-find"><span class="rct-sr">Find someone</span><input type="search" id="rctFind" placeholder="Find someone by name, email or country" value="' + esc(q) + '" autocomplete="off"></label>' +
-         '<button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
+         segHtml() + '<button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
 
     if (!setting('booking_link', '') || !setting('templates_confirmed', false) || !setting('decline_confirmed', false)) {
       h += '<p class="rct-note rct-amberbox">' + (!setting('booking_link', '') ? 'The booking link is not set yet. ' : '') +
@@ -203,6 +203,14 @@
       ROLES.map(function (r) { var on = open[r[0]] === true; return '<button type="button" class="' + (on ? 'rct-on' : '') + '" data-role="' + r[0] + '" aria-pressed="' + on + '">' + esc(r[1]) + '</button>'; }).join('') +
       '</div><p class="rct-hint">Tap a role to switch it on or off. Anyone applying for a role that is off moves to Probably no.</p></div>';
 
+    if (S.lane) h += laneBarHtml();
+    if (S.mode === 'list') {
+      var bxOld = document.getElementById('rctTbox'), keepPos = bxOld ? [bxOld.scrollTop, bxOld.scrollLeft] : null;
+      h += renderList() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
+      el.innerHTML = h + '</div>';
+      var bxNew = document.getElementById('rctTbox'); if (bxNew && keepPos) { bxNew.scrollTop = keepPos[0]; bxNew.scrollLeft = keepPos[1]; }
+      return;
+    }
     if (q.trim().length >= 2) {
       var f = found();
       h += '<section class="rct-sec"><div class="rct-sech"><h2>Found<span class="rct-cnt">' + f.length + '</span></h2></div>' +
@@ -210,12 +218,16 @@
       el.innerHTML = h + '</div>'; return;
     }
 
+    if (S.lane === 'late') h += lateSectionHtml(late);
+    if (!S.lane || S.lane === 'look') {
     h += '<section class="rct-sec"><div class="rct-sech"><h2>Worth a look<span class="rct-cnt">' + look.length + '</span></h2><span class="rct-hint">Longest waiting first. All checks passed.</span></div>';
     h += look.length ? '<div class="rct-cards">' + look.slice(0, shownLook).map(card).join('') + '</div>' +
       (look.length > shownLook ? '<button type="button" class="rct-btn rct-sm rct-more" data-act="morelook">Show ' + Math.min(PAGE, look.length - shownLook) + ' more (' + (look.length - shownLook) + ' left)</button>' : '')
       : '<div class="rct-empty">Nobody waiting for your decision. The next application will appear here.</div>';
     h += '</section>';
+    }
 
+    if (!S.lane || S.lane === 'no') {
     h += '<section class="rct-sec"><div class="rct-sech"><h2>Probably no<span class="rct-cnt">' + no.length + '</span></h2><span class="rct-hint">Opened by reason. Open a person with Look. The No for a whole group only covers people you have looked at.</span></div>';
     var g = noGroups(), openG = {};
     var cur = el.querySelectorAll('details.rct-grp[open]'); for (var i = 0; i < cur.length; i++) openG[cur[i].getAttribute('data-g')] = true;
@@ -230,17 +242,200 @@
     });
     if (!no.length) h += '<div class="rct-empty">Nothing flagged right now.</div>';
     h += '</section>';
+    }
 
-    var prog = rows.filter(function (p) { var b = bucket(p); return b === 'invited' || b === 'booked' || b === 'later'; });
+    var prog = rows.filter(function (p) { var b = bucket(p); return (b === 'invited' || b === 'booked' || b === 'later') && (!S.lane || b === S.lane); });
+    if (!S.lane || S.lane === 'invited' || S.lane === 'booked') {
     h += '<section class="rct-sec"><div class="rct-sech"><h2>In progress<span class="rct-cnt">' + prog.length + '</span></h2></div><div class="rct-card rct-list">' +
       (prog.length ? prog.map(row).join('') : '<p class="rct-hint">No one yet.</p>') + '</div></section>';
+    }
 
+    if (!S.lane) {
     var done = rows.filter(function (p) { return bucket(p) === 'done'; }).sort(function (a, c) { return new Date(c.decided_at || 0) - new Date(a.decided_at || 0); });
     h += '<details class="rct-grp rct-donebox" data-g="done"><summary><span>Not now<span class="rct-cnt">' + done.length + '</span></span></summary><div class="rct-dbody">' +
       (done.length ? done.slice(0, 30).map(row).join('') + (done.length > 30 ? '<p class="rct-hint">Showing the latest 30.</p>' : '') : '<p class="rct-hint">No one yet.</p>') + '</div></details>';
+    }
     h += '<p class="rct-note">Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email: Shortlist gives you the reply to send from the recruitment inbox. Waiting counts days since the application with no human reply; the automatic brochure email does not count.</p>';
     el.innerHTML = h + '</div>';
     if (q) { var inp = document.getElementById('rctFind'); if (inp && document.activeElement !== inp && inp.__keep) inp.focus(); }
+  }
+
+  /* ---------- Grid or List ---------- */
+  // Kate, 9 Nov 2026 (mockup approved: docs/mockups/recruitment-list.html in the cowork repo). Grid is the card layout; List is a table with a sticky header, a filter
+  // on every column header (sort, search, value checklist, clear) and the photo and name columns frozen on the left like Google Sheets. The five tiles filter BOTH
+  // views. The chosen view is remembered in this browser (localStorage trs-rct-layout, the dashboard's trs-* pattern); V switches.
+  var LKEY = 'trs-rct-layout';
+  var S = { mode: 'grid', lane: null, filters: {}, sort: { col: 'wait', dir: 'desc' }, showDone: false };
+  try { var savedMode = localStorage.getItem(LKEY); if (savedMode === 'list' || savedMode === 'grid') S.mode = savedMode; } catch (e) { /* private window */ }
+  function saveMode(m) { try { localStorage.setItem(LKEY, m); } catch (e) { /* private window */ } }
+  var LANE_NAME = { look: 'Worth a look', no: 'Probably no', late: 'Waiting 14 days or more', invited: 'Invited, not booked yet', booked: 'Interview booked' };
+  var EXP_ORDER = ['1 to 3 years', '3 to 5 years', '5 to 10 years', '10 to 15 years', '15 plus years'];
+  var ICON_LIST = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+  var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></svg>';
+  var ICON_FILTER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
+
+  function laneOk(p) {
+    if (!S.lane) return bucket(p) !== 'done' || S.showDone;
+    if (S.lane === 'late') return isLate(p);
+    return bucket(p) === S.lane;
+  }
+  // a photo or, until there is one, the initials (rounded square, never a circle)
+  function initials(n) { var s = String(n || '').trim().split(/\s+/).filter(Boolean); return s.length ? (s[0].charAt(0) + (s[1] ? s[1].charAt(0) : '')).toUpperCase() : '?'; }
+  function avatar(p, big) { return '<span class="rct-av' + (big ? ' rct-avlg' : '') + '" aria-hidden="true">' + esc(initials(p.name)) + '</span>'; }
+  function placeShort(p) {
+    var c = String(p.country || '').trim(); if (/emirates|^uae$/i.test(c)) c = 'UAE';
+    var bits = [p.emirate, c].filter(Boolean); return bits.length ? bits.join(', ') : 'Not stated';
+  }
+  function roleShort(p) {
+    var s = String(p.role_txt || p.paths || p.specialist || '').replace(/^[\s\-]+/, '');
+    if (!s) return 'Not stated';
+    if (/Path (One|Two|Three)/i.test(s)) {
+      var n = []; if (/Path One/i.test(s)) n.push('Employed stylist'); if (/Path Two/i.test(s)) n.push('Flexible stylist'); if (/Path Three/i.test(s)) n.push('Rent-a-chair');
+      return n.join(', ');
+    }
+    return s.length > 48 ? s.slice(0, 46) + '…' : s;
+  }
+  function statusText(p) {
+    var b = bucket(p);
+    if (b === 'look') return 'Worth a look';
+    if (b === 'no') return 'Probably no: ' + ({ abroad: 'Not in the UAE', noig: 'No Instagram', role: 'Role not open' })[flags(p)[0].k];
+    return STAGE_LABEL[p.stage] || p.stage;
+  }
+  function waitBucket(p) {
+    if (p.stage !== 'new') return 'Not waiting';
+    if (p.replied_at) return 'We replied';
+    var d = waited(p); return d >= 21 ? '21 days or more' : d >= 14 ? '14 to 20 days' : d >= 7 ? '7 to 13 days' : 'Under 7 days';
+  }
+  function igLabel(p) { return hasIg(p) ? 'Has Instagram' : (safeUrl(p.work_link) ? 'Other link only' : (p.source === 'form' ? 'None given' : 'Not stated')); }
+  function monthOf(p) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', month: 'long', year: 'numeric' }).format(new Date(p.applied_at)); } catch (e) { return ''; } }
+
+  var COLS = [
+    { k: 'av', t: '', nofilter: true },
+    { k: 'name', t: 'Name', val: function (p) { return p.name || 'Name not stated'; }, sort: function (p) { return String(p.name || '').toLowerCase(); }, kind: 'text' },
+    { k: 'place', t: 'Based in', val: placeShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
+    { k: 'ig', t: 'Instagram', val: igLabel, sort: function (p) { return hasIg(p) ? 0 : 1; }, kind: 'text' },
+    { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: function (p) { var i = EXP_ORDER.indexOf(p.experience); return i < 0 ? 99 : i; }, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
+    { k: 'role', t: 'Applying for', val: roleShort, sort: function (p) { return roleShort(p).toLowerCase(); }, kind: 'text' },
+    { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
+    { k: 'wait', t: 'Waiting', val: waitBucket, sort: function (p) { return (p.stage === 'new' && !p.replied_at) ? waited(p) : -1; }, kind: 'num', asc: 'Shortest wait first', desc: 'Longest wait first' },
+    { k: 'status', t: 'Status', val: statusText, sort: function (p) { return statusText(p).toLowerCase(); }, kind: 'text' },
+    { k: 'acts', t: '', nofilter: true }
+  ];
+  function colBy(k) { return COLS.filter(function (c) { return c.k === k; })[0]; }
+
+  function listRows(ignoreCol) {
+    var t = q.trim().toLowerCase();
+    return rows.filter(function (p) {
+      if (!laneOk(p)) return false;
+      if (t.length >= 2 && [p.name, p.email, p.whatsapp, p.country, p.emirate].join(' ').toLowerCase().indexOf(t) < 0) return false;
+      for (var k in S.filters) { if (k === ignoreCol) continue; var set = S.filters[k]; if (set && !set[colBy(k).val(p)]) return false; }
+      return true;
+    });
+  }
+  function sortedRows(list) {
+    var c = colBy(S.sort.col); if (!c || !c.sort) return list;
+    var dir = S.sort.dir === 'asc' ? 1 : -1;
+    return list.slice().sort(function (a, b) { var x = c.sort(a), y = c.sort(b); return (x < y ? -1 : x > y ? 1 : 0) * dir || (new Date(a.applied_at) - new Date(b.applied_at)); });
+  }
+  function cellBtn(txt, col, val) { return '<button type="button" class="rct-cellbtn" data-cf="' + col + '" data-cv="' + esc(val) + '">' + txt + '</button>'; }
+  function cell(c, p) {
+    switch (c.k) {
+      case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
+      case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
+      case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', placeShort(p)) + '</td>';
+      case 'ig': {
+        if (hasIg(p)) { var u = igUrl(p), lab = p.ig_handle ? '@' + String(p.ig_handle).replace(/^@/, '') : 'Instagram'; return '<td>' + (u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(lab) + '</a>' : esc(lab)) + '</td>'; }
+        var v = igLabel(p); return '<td>' + cellBtn('<span class="' + (v === 'Not stated' ? 'rct-ns' : 'rct-none') + '">' + esc(v) + '</span>', 'ig', v) + '</td>';
+      }
+      case 'exp': return '<td>' + cellBtn(esc(p.experience || 'Not stated'), 'exp', p.experience || 'Not stated') + '</td>';
+      case 'role': return '<td>' + cellBtn(esc(roleShort(p)), 'role', roleShort(p)) + '</td>';
+      case 'applied': return '<td>' + cellBtn(esc(fat(p.applied_at)), 'applied', monthOf(p)) + '</td>';
+      case 'wait': {
+        if (p.stage !== 'new') return '<td><span class="rct-ns">-</span></td>';
+        if (p.replied_at) return '<td>' + cellBtn('<span class="rct-pill rct-grey">We replied</span>', 'wait', 'We replied') + '</td>';
+        var d = waited(p), wd = waitDays(), cl = d >= wd + 7 ? 'rct-red' : d >= wd ? 'rct-amber' : 'rct-grey';
+        return '<td><button type="button" class="rct-pill rct-pillbtn ' + cl + '" data-cf="wait" data-cv="' + esc(waitBucket(p)) + '">' + d + ' day' + (d === 1 ? '' : 's') + '</button></td>';
+      }
+      case 'status': {
+        var b = bucket(p), sv = statusText(p), cls = b === 'look' ? 'rct-green' : b === 'no' ? 'rct-amber' : b === 'done' ? 'rct-grey' : (p.stage === 'interview_booked' || p.stage === 'hired' || p.stage === 'offer') ? 'rct-green' : 'rct-teal';
+        var main1 = b === 'no' ? 'Probably no' : sv, why = b === 'no' ? sv.replace('Probably no: ', '') : '';
+        return '<td><button type="button" class="rct-pill rct-pillbtn ' + cls + '" data-cf="status" data-cv="' + esc(sv) + '">' + esc(main1) + '</button>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
+      }
+      case 'acts': {
+        var id = esc(p.id);
+        if (p.stage === 'new') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="short" data-id="' + id + '">Shortlist</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button></td>';
+        if (p.stage === 'screening') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + id + '">Booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + id + '">Invite again</button></td>';
+        if (p.stage === 'not_now' || p.stage === 'rejected') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + id + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + id + '">Put back</button></td>';
+        return '<td class="rct-c-acts"></td>';
+      }
+    }
+    return '<td></td>';
+  }
+  function renderList() {
+    var all = rows.filter(laneOk), list = sortedRows(listRows()), doneN = rows.filter(function (p) { return bucket(p) === 'done'; }).length;
+    var h = '<div class="rct-tcount">Showing ' + list.length + ' of ' + all.length +
+      (S.lane ? '' : (S.showDone ? '. Not now people are included. <button type="button" class="rct-linkbtn" data-act="toggledone">Hide them</button>' : '. Not now people (' + doneN + ') are hidden. <button type="button" class="rct-linkbtn" data-act="toggledone">Show them</button>')) +
+      '. Click a value to filter by it, or use the funnel on a column.' + (Object.keys(S.filters).length ? ' <button type="button" class="rct-linkbtn" data-act="clearfilters">Clear all filters</button>' : '') + '</div>';
+    h += '<div class="rct-tbox" id="rctTbox"><table class="rct-table"><thead><tr>';
+    COLS.forEach(function (c) {
+      var sorted = S.sort.col === c.k, act = !!S.filters[c.k] || sorted;
+      h += '<th><div class="rct-th' + (sorted ? ' rct-sorted' : '') + '">' + esc(c.t) + (sorted ? '<span class="rct-sortmark">' + (S.sort.dir === 'asc' ? '&#9650;' : '&#9660;') + '</span>' : '') +
+        (c.nofilter ? '' : '<button type="button" class="rct-fbtn' + (act ? ' rct-act' : '') + '" data-fcol="' + c.k + '" aria-label="Filter and sort ' + esc(c.t) + '" aria-haspopup="true">' + ICON_FILTER + '</button>') + '</div></th>';
+    });
+    h += '</tr></thead><tbody>';
+    if (!list.length) h += '<tr><td colspan="' + COLS.length + '"><div class="rct-empty">Nobody matches. <button type="button" class="rct-btn rct-sm" data-act="clearfilters">Clear all filters</button></div></td></tr>';
+    list.slice(0, 400).forEach(function (p) {
+      h += '<tr>' + COLS.map(function (c) { return cell(c, p); }).join('') + '</tr>';
+      if (openRows[p.id]) h += '<tr class="rct-dtl"><td></td><td colspan="' + (COLS.length - 1) + '">' + detailHtml(p) + '</td></tr>';
+    });
+    h += '</tbody></table></div>' + (list.length > 400 ? '<p class="rct-hint">Showing the first 400. Filter to narrow it.</p>' : '');
+    return h;
+  }
+
+  /* ----- column filter popover ----- */
+  var popCol = null;
+  function popEl() { var e = document.getElementById('rctPop'); if (!e) { e = document.createElement('div'); e.id = 'rctPop'; e.className = 'rct-pop'; e.hidden = true; document.body.appendChild(e); } return e; }
+  function closePop() { var e = popEl(); e.hidden = true; popCol = null; }
+  function openPop(col, btn) {
+    var c = colBy(col), list = listRows(col), counts = {}, sample = {};
+    list.forEach(function (p) { var v = c.val(p); counts[v] = (counts[v] || 0) + 1; sample[v] = p; });
+    var vals = Object.keys(counts).sort(function (a, b) { return c.kind === 'num' ? (c.sort(sample[a]) < c.sort(sample[b]) ? -1 : 1) : a.localeCompare(b); });
+    var set = S.filters[col], on = S.sort.col === col, asc = c.asc || 'Sort A to Z', desc = c.desc || 'Sort Z to A';
+    var pop = popEl(); popCol = col; pop.__vals = vals;
+    pop.innerHTML = '<div class="rct-sortrow"><button type="button" data-sort="asc" class="' + (on && S.sort.dir === 'asc' ? 'rct-on' : '') + '">' + asc + '</button><button type="button" data-sort="desc" class="' + (on && S.sort.dir === 'desc' ? 'rct-on' : '') + '">' + desc + '</button></div>' +
+      '<input type="search" id="rctPopQ" placeholder="Search values" autocomplete="off"><div class="rct-ctrl"><button type="button" data-sel="all">Select all</button><button type="button" data-sel="none">Clear selection</button></div>' +
+      '<div class="rct-pl" id="rctPopList">' + vals.map(function (v) { return '<label><input type="checkbox" data-v="' + esc(v) + '"' + ((!set || set[v]) ? ' checked' : '') + '> <span>' + esc(v) + '</span><span class="rct-pn">' + counts[v] + '</span></label>'; }).join('') + '</div>' +
+      '<div class="rct-pfoot"><button type="button" class="rct-btn rct-sm" data-popclear>Clear filter</button><button type="button" class="rct-btn rct-sm rct-pri" data-popdone>Done</button></div>';
+    pop.hidden = false;
+    var r = btn.getBoundingClientRect(), w = Math.min(290, innerWidth - 16);
+    pop.style.left = Math.min(Math.max(8, r.right - w), innerWidth - w - 8) + 'px'; pop.style.top = Math.max(8, Math.min(r.bottom + 6, innerHeight - 440)) + 'px'; pop.style.width = w + 'px';
+  }
+  function reopenPop(col) { var b = document.querySelector('[data-fcol="' + col + '"]'); if (b) openPop(col, b); }
+  function renderKeep() {
+    var bx = document.getElementById('rctTbox'), pos = bx ? [bx.scrollTop, bx.scrollLeft] : null, pl = document.getElementById('rctPopList'), pt = pl ? pl.scrollTop : 0;
+    render();
+    var b2 = document.getElementById('rctTbox'); if (b2 && pos) { b2.scrollTop = pos[0]; b2.scrollLeft = pos[1]; }
+    return pt;
+  }
+  function popChange() {
+    var pop = popEl(), set = {}, allOn = true;
+    [].forEach.call(pop.querySelectorAll('input[type=checkbox]'), function (b) { set[b.getAttribute('data-v')] = b.checked; if (!b.checked) allOn = false; });
+    if (allOn) delete S.filters[popCol]; else S.filters[popCol] = set;
+    var col = popCol, pt = renderKeep(); reopenPop(col); var pl = document.getElementById('rctPopList'); if (pl) pl.scrollTop = pt;
+  }
+  function setMode(m) { S.mode = m; saveMode(m); closePop(); render(); }
+  // Grid with a tile on: the cards of the people waiting too long (they can be Worth a look or flagged)
+  function lateSectionHtml(list) {
+    return '<section class="rct-sec"><div class="rct-sech"><h2>Waiting ' + waitDays() + ' days or more<span class="rct-cnt">' + list.length + '</span></h2><span class="rct-hint">Longest waiting first.</span></div>' +
+      (list.length ? '<div class="rct-cards">' + list.slice(0, shownLook).map(card).join('') + '</div>' +
+        (list.length > shownLook ? '<button type="button" class="rct-btn rct-sm rct-more" data-act="morelook">Show ' + Math.min(PAGE, list.length - shownLook) + ' more (' + (list.length - shownLook) + ' left)</button>' : '') : '<div class="rct-empty">Nobody here.</div>') + '</section>';
+  }
+  function laneBarHtml() {
+    return '<div class="rct-lanebar"><span>Showing only: <b>' + esc(LANE_NAME[S.lane] || S.lane) + '</b>, in both Grid and List.</span><button type="button" data-lane="' + S.lane + '">Show everyone</button></div>';
+  }
+  function segHtml() {
+    return '<div class="rct-seg" role="group" aria-label="Layout"><button type="button" data-mode="list" aria-pressed="' + (S.mode === 'list') + '" title="List (V)" aria-label="List layout">' + ICON_LIST + '</button>' +
+      '<button type="button" data-mode="grid" aria-pressed="' + (S.mode === 'grid') + '" title="Grid (V)" aria-label="Grid layout">' + ICON_GRID + '</button></div>';
   }
 
   /* ---------- dialogs ---------- */
@@ -257,11 +452,6 @@
   function closeDlg() { var d = dlg(); if (d.open) { if (d.close) d.close(); else d.removeAttribute('open'); } }
   function personById(id) { return rows.filter(function (p) { return String(p.id) === String(id); })[0]; }
 
-  function figDialog(key) {
-    var titles = { look: 'Worth a look', no: 'Probably no', late: 'Waiting ' + waitDays() + ' days or more', invited: 'Invited, not booked yet', booked: 'Interview booked' };
-    var list = key === 'late' ? lateList() : by(key);
-    openDlg(esc(titles[key]) + ' (' + list.length + ')', '<div class="rct-list">' + (list.length ? list.slice(0, 60).map(row).join('') + (list.length > 60 ? '<p class="rct-hint">Showing the first 60.</p>' : '') : '<div class="rct-empty">No one here.</div>') + '</div>');
-  }
   function fill(t, p) {
     var link = setting('booking_link', '') || '[booking link not set yet]';
     return String(t || '').replace(/\{first\}/g, firstName(p && p.name)).replace(/\{link\}/g, link);
@@ -397,7 +587,7 @@
       '<b>' + list.length + ' of ' + all.length + '</b>. Open a person with <b>Look</b> and they are included.</p>' +
       (skipped ? '<p class="rct-amberbox">' + pl(skipped, 'person is', 'people are') + ' left out because nobody has opened ' + (skipped === 1 ? 'them' : 'them') + ' yet.</p>' : '') +
       (list.length ? '<p>Marking them <b>Not now</b> moves them out of your list (undo for a few seconds, or put one back later). <b>Nothing is sent from the dashboard.</b></p>' +
-      '<div class="rct-card rct-list rct-flat">' + list.slice(0, 15).map(function (p) { return '<div class="rct-row"><div class="rct-who"><b>' + esc(p.name || 'Name not stated') + '</b><span>' + esc([p.emirate, p.country].filter(Boolean).join(', ')) + '</span></div><div class="rct-acts">' + waitPill(p) + '</div></div>'; }).join('') + (list.length > 15 ? '<p class="rct-hint">and ' + (list.length - 15) + ' more.</p>' : '') + '</div>' +
+      '<div class="rct-card rct-list rct-flat">' + list.slice(0, 15).map(function (p) { return '<div class="rct-row">' + avatar(p) + '<div class="rct-who"><b>' + esc(p.name || 'Name not stated') + '</b><span>' + esc([p.emirate, p.country].filter(Boolean).join(', ')) + '</span></div><div class="rct-acts">' + waitPill(p) + '</div></div>'; }).join('') + (list.length > 15 ? '<p class="rct-hint">and ' + (list.length - 15) + ' more.</p>' : '') + '</div>' +
       NO_WORDS() +
       '<div><div class="rct-lab">The reply, for a Bcc send (it says Hi there, to everyone)</div>' + previewFrame(rp.html, 380) + '</div>' +
       '<div class="rct-btns"><button type="button" class="rct-btn rct-danger" data-act="bulkgo" data-g="' + esc(g) + '">Not now for ' + list.length + '</button><button type="button" class="rct-btn" data-close>Cancel</button></div>' +
@@ -459,13 +649,32 @@
     var el = main(); if (!el || el.__rctBound) return;
     el.__rctBound = true;
     document.addEventListener('click', async function (e) {
-      var t = e.target.closest && e.target.closest('[data-act],[data-fig],[data-role],[data-close],[data-undo]');
+      var pop = popEl();
+      if (!pop.hidden && !pop.contains(e.target) && !(e.target.closest && e.target.closest('[data-fcol]'))) closePop();
+      var t = e.target.closest && e.target.closest('[data-act],[data-fig],[data-role],[data-close],[data-undo],[data-lane],[data-mode],[data-fcol],[data-cf],[data-sort],[data-sel],[data-popclear],[data-popdone]');
       if (!t) return;
-      var inMain = main() && main().contains(t), inDlg = dlg().contains(t), inToast = document.getElementById('rctToast') && document.getElementById('rctToast').contains(t);
-      if (!inMain && !inDlg && !inToast) return;
+      var inMain = main() && main().contains(t), inDlg = dlg().contains(t), inToast = document.getElementById('rctToast') && document.getElementById('rctToast').contains(t), inPop = pop.contains(t);
+      if (!inMain && !inDlg && !inToast && !inPop) return;
       if (t.hasAttribute('data-close')) { closeDlg(); return; }
       if (t.hasAttribute('data-undo')) { undo(); return; }
-      if (t.hasAttribute('data-fig')) { figDialog(t.getAttribute('data-fig')); return; }
+      // a tile (or the Show everyone button) filters BOTH Grid and List by that lane; tap it again to clear
+      if (t.hasAttribute('data-fig') || t.hasAttribute('data-lane')) { var k0 = t.getAttribute('data-fig') || t.getAttribute('data-lane'); S.lane = S.lane === k0 ? null : k0; S.filters = {}; closePop(); render(); return; }
+      if (t.hasAttribute('data-mode')) { setMode(t.getAttribute('data-mode')); return; }
+      if (t.hasAttribute('data-fcol')) { var fc = t.getAttribute('data-fcol'); if (!pop.hidden && popCol === fc) closePop(); else openPop(fc, t); return; }
+      if (t.hasAttribute('data-sort')) { S.sort = { col: popCol, dir: t.getAttribute('data-sort') }; var sc0 = popCol; renderKeep(); reopenPop(sc0); return; }
+      if (t.hasAttribute('data-sel')) {
+        var allOn = t.getAttribute('data-sel') === 'all', pc = popCol;
+        if (allOn) delete S.filters[pc]; else { var none = {}; pop.__vals.forEach(function (v) { none[v] = false; }); S.filters[pc] = none; }
+        renderKeep(); reopenPop(pc); return;
+      }
+      if (t.hasAttribute('data-popclear')) { delete S.filters[popCol]; if (S.sort.col === popCol && popCol !== 'wait') S.sort = { col: 'wait', dir: 'desc' }; closePop(); render(); return; }
+      if (t.hasAttribute('data-popdone')) { closePop(); return; }
+      if (t.hasAttribute('data-cf')) {
+        var cc = t.getAttribute('data-cf'), vv = t.getAttribute('data-cv'), cur = S.filters[cc];
+        if (cur && Object.keys(cur).filter(function (x) { return cur[x]; }).length === 1 && cur[vv]) delete S.filters[cc];
+        else { var o = {}; listRows(cc).forEach(function (p) { o[colBy(cc).val(p)] = false; }); o[vv] = true; S.filters[cc] = o; }
+        closePop(); render(); return;
+      }
       if (t.hasAttribute('data-role')) {
         var k = t.getAttribute('data-role'), open = Object.assign({}, openRoles()); open[k] = !(open[k] === true);
         var was = settings.open_roles; settings.open_roles = open; render();
@@ -501,8 +710,22 @@
           closeDlg(); render(); toast('Saved.');
         } catch (err) { console.error(err); if (say) say.textContent = 'That did not save: ' + err.message; }
       }
+      else if (a === 'toggledone') { S.showDone = !S.showDone; render(); }
+      else if (a === 'clearfilters') { S.filters = {}; q = ''; closePop(); render(); }
       else if (a === 'morelook') { shownLook += PAGE; render(); }
       else if (a === 'moreno') { shownNo[g] = (shownNo[g] || PAGE) + PAGE; render(); }
+    });
+    document.addEventListener('change', function (e) { if (popCol && e.target && e.target.type === 'checkbox' && popEl().contains(e.target)) popChange(); });
+    document.addEventListener('input', function (e) {
+      if (e.target && e.target.id === 'rctPopQ') { var f = e.target.value.toLowerCase(); [].forEach.call(document.querySelectorAll('#rctPopList label'), function (l) { l.style.display = l.textContent.toLowerCase().indexOf(f) < 0 ? 'none' : ''; }); }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closePop();
+      if (!e.key || e.key.toLowerCase() !== 'v' || e.ctrlKey || e.metaKey || e.altKey) return;
+      var mn = main(); if (!mn || mn.offsetParent === null || dlg().open) return;   // only while this page is the one on screen
+      var tg = e.target, tag = ((tg && tg.tagName) || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || (tg && tg.isContentEditable)) return;
+      setMode(S.mode === 'list' ? 'grid' : 'list');
     });
     // opening "What they wrote" on a card counts as having looked at that person
     el.addEventListener('toggle', function (e) {
