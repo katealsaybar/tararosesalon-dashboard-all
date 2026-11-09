@@ -23,7 +23,7 @@
     { slug: 'hair-rhythm', name: 'Hair Rhythm (junior campaign)', tag: 'Draft for review', hue: 'd',
       who: 'For clients on a regular trim, blow-dry and colour-care rhythm.',
       img: '/campaigns/hair-rhythm/assets/img/hero-junior.jpg',
-      earlier: '/campaigns/hair-rhythm-r1/' }
+      earlier: '/campaigns/hair-rhythm-r2/' }
   ];
 
   var KEY = 'trs-lpr-layout';
