@@ -45,6 +45,13 @@
 .mm-row.drag{opacity:.4}
 .mm-grip{color:var(--muted);letter-spacing:-2px;font-size:14px}
 .mm-nm{flex:1;min-width:0;font-size:14px}
+/* Kate, 9 Nov 2026: a page's name is a real link: click opens it in a new tab, and right-click, Ctrl-click and middle-click work as on any link. Drag still moves the row. */
+.mm-nm a{color:inherit;text-decoration:none}
+.mm-nm a:hover{text-decoration:underline}
+/* Kate, 9 Nov 2026: hover a page (mouse) or press and hold it (phone) and a pill floats over it: Open in a new tab. */
+.mm-row{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.mm-float{position:fixed;z-index:40;display:none;font:inherit;font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;background:var(--text);color:var(--bg);text-decoration:none;white-space:nowrap;box-shadow:0 8px 20px -8px rgba(0,0,0,.45)}
+.mm-float.on{display:block}
 .mm-row.moved{background:color-mix(in srgb,var(--accent-butter) 30%,var(--surface));border-color:transparent}
 .mm-tag{font-size:11px;border-radius:999px;padding:1px 8px;background:var(--surface);color:var(--muted);white-space:nowrap}
 .mm-empty{font-size:13px;color:var(--muted);padding:8px 10px;border:1px dashed var(--border);border-radius:10px;margin-bottom:6px}
@@ -105,9 +112,13 @@
   function swap(a, i, j) { var t = a[i]; a[i] = a[j]; a[j] = t; }
   function say(t, err) { var el = $('#mmMsg'); if (el) { el.textContent = t; el.className = 'mm-msg' + (err ? ' err' : ''); } }
 
+  function nameLink(k) {
+    var h = UNITS[k] && UNITS[k].els[0] && UNITS[k].els[0].getAttribute('href');
+    return h ? '<a href="' + esc(h) + '" target="_blank" rel="noopener" draggable="false">' + esc(label(k)) + '</a>' : esc(label(k));
+  }
   function row(k, cur) {
     var mv = cur !== PLACE[k], kids = UNITS[k] ? UNITS[k].els.length - 1 : 0;
-    return '<li class="mm-row' + (mv ? ' moved' : '') + '" draggable="true" data-k="' + esc(k) + '"><span class="mm-grip" aria-hidden="true">⋮⋮</span><span class="mm-nm">' + esc(label(k)) +
+    return '<li class="mm-row' + (mv ? ' moved' : '') + '" draggable="true" data-k="' + esc(k) + '"><span class="mm-grip" aria-hidden="true">⋮⋮</span><span class="mm-nm">' + nameLink(k) +
       (kids ? ' <span class="mm-cnt">(+' + kids + ' inside)</span>' : '') + '</span>' +
       (mv ? '<span class="mm-tag">was ' + esc(where(PLACE[k] || '')) + '</span>' : '') +
       '<button type="button" class="mm-mini" data-act="move" data-k="' + esc(k) + '" aria-label="Move ' + esc(label(k)) + '">Move</button></li>';
@@ -220,10 +231,48 @@
     else if (a === 'move') { openDlg(b.dataset.k); return; }
     draw();
   });
+  // The floating pill. A mouse hovering a page, or a finger held on it for half a second, shows "Open in a new tab" just above the row.
+  var pill = null, pillT = null, lpT = null, longAt = 0;
+  function hrefOf(k) { return UNITS[k] && UNITS[k].els[0] && UNITS[k].els[0].getAttribute('href'); }
+  function hidePill() { clearTimeout(pillT); if (pill) pill.classList.remove('on'); }
+  function hidePillSoon() { clearTimeout(pillT); pillT = setTimeout(hidePill, 220); }
+  function showPill(r) {
+    var h = hrefOf(r.dataset.k); if (!h) return;
+    if (!pill) {
+      pill = document.createElement('a'); pill.className = 'mm-float'; pill.target = '_blank'; pill.rel = 'noopener'; pill.textContent = 'Open in a new tab ↗';
+      pill.addEventListener('mouseenter', function () { clearTimeout(pillT); });
+      pill.addEventListener('mouseleave', hidePillSoon);
+      pill.addEventListener('click', function () { setTimeout(hidePill, 50); });
+      document.body.appendChild(pill);
+    }
+    clearTimeout(pillT);
+    pill.href = h; pill.classList.add('on');
+    var b = r.getBoundingClientRect();
+    pill.style.left = Math.max(8, Math.min(b.left + 30, window.innerWidth - pill.offsetWidth - 8)) + 'px';
+    pill.style.top = Math.max(8, b.top - pill.offsetHeight + 4) + 'px';
+  }
+  document.addEventListener('pointerover', function (e) {
+    if (e.pointerType !== 'mouse' || dragged) return;
+    var r = e.target.closest && e.target.closest('.mm-row'); if (r) showPill(r);
+  });
+  document.addEventListener('pointerout', function (e) {
+    if (e.pointerType !== 'mouse') return;
+    if (e.target.closest && e.target.closest('.mm-row')) hidePillSoon();
+  });
+  document.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse') return;
+    clearTimeout(lpT);
+    var r = e.target.closest && e.target.closest('.mm-row');
+    if (r && !e.target.closest('button')) lpT = setTimeout(function () { longAt = Date.now(); showPill(r); }, 450);
+    else if (!(pill && pill.contains(e.target))) hidePill();
+  });
+  ['pointerup', 'pointercancel', 'pointermove'].forEach(function (t) { document.addEventListener(t, function (e) { if (e.pointerType !== 'mouse' && (t !== 'pointermove' || Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0) > 8)) clearTimeout(lpT); }); });
+  document.addEventListener('contextmenu', function (e) { if (Date.now() - longAt < 1500 && e.target.closest && e.target.closest('.mm-row')) e.preventDefault(); });
+  window.addEventListener('scroll', hidePill, { passive: true });
   // Drag and drop (a mouse or trackpad; on a phone use the Move button). A closed section opens when a page is held over its title.
   document.addEventListener('dragstart', function (e) {
     var r = e.target.closest && e.target.closest('.mm-row'); if (!r) return;
-    dragged = r.dataset.k; r.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragged);
+    hidePill(); dragged = r.dataset.k; r.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragged);
   });
   document.addEventListener('dragend', function () { dragged = null; Array.prototype.forEach.call(document.querySelectorAll('.over,.drag'), function (x) { x.classList.remove('over', 'drag'); }); });
   document.addEventListener('dragover', function (e) {
