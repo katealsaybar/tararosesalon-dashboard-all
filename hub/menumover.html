@@ -20,7 +20,9 @@
 /* Kate, 9 Nov 2026: Rearrange Menu, Level 5 only. Your own dashboard menu: move pages between sections and sub-sections, and move the sections and sub-sections themselves.
    Nothing here changes who may open a page, and nobody else's menu changes (public.nav_layout, one row per person; nav-layout.js draws it). Approved mockup: docs/mockups/menu-mover.html. */
 .mm-col{max-width:760px;margin:0 auto;padding-bottom:110px}
-.mm-how{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:13px;margin:6px 0 16px}
+.mm-how{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:13px;flex:1 1 280px}
+/* Kate, 9 Nov 2026: the how-to line and the Expand all / Collapse all toggle stay put under the page header while you scroll (--mm-top is the header's height, set in the script). */
+.mm-top{position:sticky;top:var(--mm-top,0px);z-index:15;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 0;margin:0 0 6px}
 .mm-how b{color:var(--text)}
 .mm-sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden}
 .mm-sh{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none}
@@ -66,6 +68,7 @@
 /* Kate, 9 Nov 2026: the Section and Sub-section lists are the site's soft pill menu (assets/pill-select.js), not the browser's square list. The pill fills the box. */
 .mm-dlg .ps{display:flex;width:100%}
 .mm-dlg .ps-menu{max-height:260px}
+.mm-dnew{margin-top:6px}
 .mm-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
 @media(max-width:480px){.mm-tag{display:none}}
 </style>
@@ -135,6 +138,8 @@
         '<button type="button" class="mm-mini mm-add" data-act="sadd" data-g="' + esc(g.n) + '">+ New sub-section</button></div></section>';
     }).join('') + '<button type="button" class="mm-addsec" data-act="gadd">+ New section</button>';
     paintBar();
+    var anyOpen = CUR.some(function (g) { return open[g.n]; }), ab = $('#mmAll');
+    if (ab) ab.textContent = anyOpen ? 'Collapse all' : 'Expand all';
   }
   function paintBar(note) {
     var dirty = canonTree(CUR) !== canonTree(SAVED), cur = place(CUR), n = Object.keys(cur).filter(function (k) { return cur[k] !== PLACE[k]; }).length;
@@ -151,6 +156,14 @@
     arr.splice(idx == null ? arr.length : idx, 0, k);
   }
   function groupTaken(n, except) { return CUR.some(function (g) { return g.n.toLowerCase() === n.toLowerCase() && g !== except; }); }
+  function addSection() {
+    var gv = prompt('Name of the new section');
+    if (!gv || !gv.trim()) return null;
+    gv = gv.trim().slice(0, 40);
+    if (groupTaken(gv)) { alert('There is already a section called ' + gv + '.'); return null; }
+    CUR.push({ n: gv, loose: [], subs: [], c: 1 }); open[gv] = true;
+    return gv;
+  }
   function nameTaken(g, n, except) { return g.subs.some(function (s) { return s.n.toLowerCase() === n.toLowerCase() && s !== except; }); }
 
   function fillSubs() {
@@ -186,9 +199,7 @@
     else if (a === 'gup') swap(CUR, i, i - 1);
     else if (a === 'gdn') swap(CUR, i, i + 1);
     else if (a === 'gadd') {
-      var gv = prompt('Name of the new section');
-      if (gv && gv.trim()) { gv = gv.trim().slice(0, 40); if (groupTaken(gv)) { alert('There is already a section called ' + gv + '.'); return; } CUR.push({ n: gv, loose: [], subs: [], c: 1 }); open[gv] = true; }
-      else return;
+      if (!addSection()) return;
     }
     else if (a === 'gren') {
       var rv = prompt('Rename section', CUR[i].n);
@@ -240,14 +251,15 @@
     main.innerHTML =
       KB.titleIcon('menu-mover', 'Rearrange Menu') +
       '<p class="kb-meta">Your dashboard menu, as it is now. Change where things sit, then save. Only your menu changes: nobody else sees it, and who may open each page stays exactly as it is.</p>' +
-      '<div class="mm-col"><div class="mm-how"><span><b>Drag</b> a page into another list</span><span><b>Move</b> button if the section is closed, or on a phone</span><span><b>▲ ▼</b> move a section or sub-section</span></div>' +
+      '<div class="mm-col"><div class="mm-top"><div class="mm-how"><span><b>Drag</b> a page into another list</span><span><b>Move</b> button if the section is closed, or on a phone</span><span><b>▲ ▼</b> move a section or sub-section</span></div>' +
+      '<button type="button" class="mm-btn" id="mmAddSec">+ New section</button><button type="button" class="mm-btn" id="mmAll">Expand all</button></div>' +
       '<div id="mmApp"></div></div>' +
       '<div class="mm-bar"><div class="mm-bar-in"><div class="mm-msg" id="mmMsg" role="status" aria-live="polite">Loading…</div>' +
       '<button type="button" class="mm-btn" id="mmOrig" title="Load the original menu into the editor, then Save">Original order</button>' +
       '<button type="button" class="mm-btn" id="mmUndo">Undo changes</button>' +
       '<button type="button" class="mm-btn pri" id="mmSave">Save</button></div></div>' +
-      '<dialog class="mm-dlg" id="mmDlg"><h4 id="mmDtitle">Move</h4><label for="mmDsec">Section</label><select id="mmDsec"></select>' +
-      '<label for="mmDsub">Sub-section</label><select id="mmDsub"></select><div class="mm-acts"><button type="button" class="mm-btn" id="mmDno">Cancel</button><button type="button" class="mm-btn pri" id="mmDyes">Move</button></div></dialog>';
+      '<dialog class="mm-dlg" id="mmDlg"><h4 id="mmDtitle">Move</h4><label for="mmDsec">Section</label><select id="mmDsec"></select><button type="button" class="mm-mini mm-dnew" id="mmDnewSec">+ New section</button>' +
+      '<label for="mmDsub">Sub-section</label><select id="mmDsub"></select><button type="button" class="mm-mini mm-dnew" id="mmDnewSub">+ New sub-section</button><div class="mm-acts"><button type="button" class="mm-btn" id="mmDno">Cancel</button><button type="button" class="mm-btn pri" id="mmDyes">Move</button></div></dialog>';
     ['mmSave', 'mmUndo', 'mmOrig'].forEach(function (id) { document.getElementById(id).disabled = true; });
     try {
       // The original menu is whatever the dashboard's own page draws, read from it, so a page added to the menu later appears here by itself.
@@ -259,7 +271,7 @@
       var r = await KB.client.rpc('nav_layout_get');
       if (r.error) throw r.error;
       SAVED = trsNav.merge(clone(DEF), r.data); CUR = clone(SAVED);
-      open = {}; if (CUR[0]) open[CUR[0].n] = true;   // the first section starts open
+      open = {};   // Kate, 9 Nov 2026: every section starts closed; she opens what she wants
     } catch (err) {
       say('Could not load the menu: ' + ((err && err.message) || 'try again') + '.', true);
       return;
@@ -269,6 +281,29 @@
     $('#mmDyes').addEventListener('click', function () {
       take(moving); put(moving, $('#mmDsec').value, $('#mmDsub').value); open[$('#mmDsec').value] = true; $('#mmDlg').close(); draw();
     });
+    $('#mmAddSec').addEventListener('click', function () { if (addSection()) { draw(); window.scrollTo(0, document.body.scrollHeight); } });
+    // Inside the Move dialog too: make the section or sub-section you want, and it is chosen for you.
+    function fillSecs(pick) {
+      $('#mmDsec').innerHTML = CUR.map(function (g) { return '<option>' + esc(g.n) + '</option>'; }).join('');
+      $('#mmDsec').value = pick; fillSubs();
+    }
+    $('#mmDnewSec').addEventListener('click', function () { var n = addSection(); if (n) { draw(); fillSecs(n); } });
+    $('#mmDnewSub').addEventListener('click', function () {
+      var g = group($('#mmDsec').value), nv = prompt('Name of the new sub-section in ' + g.n);
+      if (!nv || !nv.trim()) return;
+      nv = nv.trim().slice(0, 40);
+      if (nameTaken(g, nv)) { alert('There is already a sub-section called ' + nv + ' in ' + g.n + '.'); return; }
+      g.subs.push({ n: nv, p: [] }); open[g.n] = true; draw(); fillSubs(); $('#mmDsub').value = nv;
+    });
+    $('#mmAll').addEventListener('click', function () {
+      var anyOpen = CUR.some(function (g) { return open[g.n]; });
+      CUR.forEach(function (g) { open[g.n] = !anyOpen; });
+      draw();
+    });
+    // The toggle bar sits just under the sticky page header, whatever height the header is (it condenses on scroll).
+    var head = document.getElementById('kbHead');
+    function stick() { document.documentElement.style.setProperty('--mm-top', (head ? head.offsetHeight : 0) + 'px'); }
+    stick(); window.addEventListener('resize', stick); window.addEventListener('scroll', stick, { passive: true });
     $('#mmSave').addEventListener('click', save);
     $('#mmUndo').addEventListener('click', function () { CUR = clone(SAVED); draw(); });
     $('#mmOrig').addEventListener('click', function () { CUR = clone(DEF); draw(); });
