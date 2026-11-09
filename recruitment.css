@@ -1,13 +1,15 @@
 /* Recruitment (Kate, 9 Nov 2026). Uses the site tokens, so it reads as the rest of the dashboard. Everything sits under .rct (the dialog and the toast carry it too)
    and the class prefix is rct-, so no other page's rules reach it. Layout follows the approved mockup (docs/mockups/recruitment-triage.html). */
 .rct,.rct-dlg,#rctToast{--rct-red:#B4412F;--rct-redbg:#F8E4DF;--rct-amber:#8A5A00;--rct-amberbg:#FAEFD6;--rct-green:#2F7A4B;--rct-greenbg:#E1F1E6;--rct-teal:#1F6B59;--rct-tealbg:#E6F3F0;--rct-butter:#F6EFC9}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rct,:root:not([data-theme="light"]) .rct-dlg,:root:not([data-theme="light"]) #rctToast{--rct-red:#E58C7C;--rct-redbg:rgba(180,65,47,.22);--rct-amber:#F0CD85;--rct-amberbg:rgba(217,164,65,.18);--rct-green:#7FD0A0;--rct-greenbg:rgba(47,122,75,.25);--rct-teal:#8ED9C7;--rct-tealbg:rgba(58,168,146,.18);--rct-butter:rgba(238,243,199,.12)}}
-[data-theme="dark"] .rct,[data-theme="dark"] .rct-dlg,[data-theme="dark"] #rctToast{--rct-red:#E58C7C;--rct-redbg:rgba(180,65,47,.22);--rct-amber:#F0CD85;--rct-amberbg:rgba(217,164,65,.18);--rct-green:#7FD0A0;--rct-greenbg:rgba(47,122,75,.25);--rct-teal:#8ED9C7;--rct-tealbg:rgba(58,168,146,.18);--rct-butter:rgba(238,243,199,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rct,:root:not([data-theme="light"]) .rct-dlg,:root:not([data-theme="light"]) #rctToast{--rct-red:#F4A99B;--rct-redbg:rgba(180,65,47,.22);--rct-amber:#F0CD85;--rct-amberbg:rgba(217,164,65,.18);--rct-green:#7FD0A0;--rct-greenbg:rgba(47,122,75,.25);--rct-teal:#8ED9C7;--rct-tealbg:rgba(58,168,146,.18);--rct-butter:rgba(238,243,199,.12)}}
+[data-theme="dark"] .rct,[data-theme="dark"] .rct-dlg,[data-theme="dark"] #rctToast{--rct-red:#F4A99B;--rct-redbg:rgba(180,65,47,.22);--rct-amber:#F0CD85;--rct-amberbg:rgba(217,164,65,.18);--rct-green:#7FD0A0;--rct-greenbg:rgba(47,122,75,.25);--rct-teal:#8ED9C7;--rct-tealbg:rgba(58,168,146,.18);--rct-butter:rgba(238,243,199,.12)}
 .rct *,.rct-dlg *{box-sizing:border-box}
 .rct h2,.rct h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;margin:0;line-height:1.2}
 .rct h2{font-size:clamp(24px,4vw,30px)}
 .rct h3{font-size:19px;overflow-wrap:anywhere}
-.rct button,.rct input,.rct textarea,.rct-dlg button,.rct-dlg input,.rct-dlg textarea{font:inherit;color:inherit}
+/* :where() keeps this reset at zero specificity. As .rct button (0,1,1) it beat .rct-pri's colour (0,1,0), so the dark Shortlist button had the page's text colour on a text
+   coloured background: a blank block in both modes (Kate, 9 Nov 2026). Any class now wins over it, as intended. */
+:where(.rct, .rct-dlg) :where(button, input, textarea){font:inherit;color:inherit}
 .rct{display:grid;gap:18px}
 .rct-lead{color:var(--muted);margin:-8px 0 0;max-width:640px}
 .rct-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -72,9 +74,11 @@
 .rct-btn{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:14px;border:1.5px solid var(--border);background:var(--surface);font-weight:600;font-size:15.5px;padding:8px 12px;cursor:pointer;text-align:center;width:100%;text-decoration:none;color:var(--text)}
 .rct-btn:hover{border-color:var(--text)}
 .rct-btn:focus-visible,.rct-fig:focus-visible,.rct-rolechips button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.rct-pri{background:var(--text);color:var(--bg);border-color:var(--text)}
+.rct-btn.rct-pri{background:var(--text);color:var(--bg);border-color:var(--text)}
+.rct-btn.rct-pri:hover{opacity:.88;border-color:var(--text)}
 .rct-sm{min-height:42px;font-size:14.5px;font-weight:500;width:auto}
-.rct-danger{border-color:var(--rct-red);color:var(--rct-red)}
+.rct-btn.rct-danger{border-color:var(--rct-red);color:var(--rct-red)}
+.rct-btn.rct-danger:hover{border-color:var(--rct-red);background:var(--rct-redbg)}
 .rct-more{justify-self:start}
 
 /* probably no */
