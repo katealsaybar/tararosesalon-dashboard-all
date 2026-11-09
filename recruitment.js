@@ -286,6 +286,17 @@
     var c = String(p.country || '').trim(); if (/emirates|^uae$/i.test(c)) c = 'UAE';
     var bits = [p.emirate, c].filter(Boolean); return bits.length ? bits.join(', ') : 'Not stated';
   }
+  // the filter lists work on short groups (a handful of values), the cells show the longer wording
+  function countryShort(p) {
+    var c = String(p.country || '').trim();
+    if (/emirates|^uae$/i.test(c) || (!c && p.emirate)) return 'UAE';
+    return c || 'Not stated';
+  }
+  function expNum(p) { var m = /(\d+)/.exec(String(p.experience || '')); return m ? +m[1] : 999; }   // "5 to 10 years" sorts as 5, "7 years" as 7, blank last
+  function roleGroup(p) {
+    var r = ROLES.filter(function (x) { return x[0] === p.role_key; })[0];
+    return r ? r[1] : 'Other';
+  }
   function roleShort(p) {
     var s = String(p.role_txt || p.paths || p.specialist || '').replace(/^[\s\-]+/, '');
     if (!s) return 'Not stated';
@@ -312,10 +323,10 @@
   var COLS = [
     { k: 'av', t: '', nofilter: true },
     { k: 'name', t: 'Name', val: function (p) { return p.name || 'Name not stated'; }, sort: function (p) { return String(p.name || '').toLowerCase(); }, kind: 'text' },
-    { k: 'place', t: 'Based in', val: placeShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
+    { k: 'place', t: 'Based in', val: countryShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'ig', t: 'Instagram', val: igLabel, sort: function (p) { return hasIg(p) ? 0 : 1; }, kind: 'text' },
-    { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: function (p) { var i = EXP_ORDER.indexOf(p.experience); return i < 0 ? 99 : i; }, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
-    { k: 'role', t: 'Applying for', val: roleShort, sort: function (p) { return roleShort(p).toLowerCase(); }, kind: 'text' },
+    { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: expNum, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
+    { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
     { k: 'wait', t: 'Waiting', val: waitBucket, sort: function (p) { return (p.stage === 'new' && !p.replied_at) ? waited(p) : -1; }, kind: 'num', asc: 'Shortest wait first', desc: 'Longest wait first' },
     { k: 'status', t: 'Status', val: statusText, sort: function (p) { return statusText(p).toLowerCase(); }, kind: 'text' },
@@ -342,13 +353,13 @@
     switch (c.k) {
       case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
       case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
-      case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', placeShort(p)) + '</td>';
+      case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
       case 'ig': {
         if (hasIg(p)) { var u = igUrl(p), lab = p.ig_handle ? '@' + String(p.ig_handle).replace(/^@/, '') : 'Instagram'; return '<td>' + (u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(lab) + '</a>' : esc(lab)) + '</td>'; }
         var v = igLabel(p); return '<td>' + cellBtn('<span class="' + (v === 'Not stated' ? 'rct-ns' : 'rct-none') + '">' + esc(v) + '</span>', 'ig', v) + '</td>';
       }
       case 'exp': return '<td>' + cellBtn(esc(p.experience || 'Not stated'), 'exp', p.experience || 'Not stated') + '</td>';
-      case 'role': return '<td>' + cellBtn(esc(roleShort(p)), 'role', roleShort(p)) + '</td>';
+      case 'role': return '<td>' + cellBtn(esc(roleShort(p)), 'role', roleGroup(p)) + '</td>';
       case 'applied': return '<td>' + cellBtn(esc(fat(p.applied_at)), 'applied', monthOf(p)) + '</td>';
       case 'wait': {
         if (p.stage !== 'new') return '<td><span class="rct-ns">-</span></td>';
