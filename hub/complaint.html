@@ -156,12 +156,17 @@
 .tk-ft{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:var(--muted)}
 .tk-fn{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.58);color:#fff;font-size:11px;line-height:1.25;padding:3px 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .tk{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
-@media (min-width:980px){.tk{grid-template-columns:260px minmax(0,1fr) 290px}}
+@media (min-width:1180px){.tk{grid-template-columns:280px minmax(0,1fr) 300px}}
 .tk-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .tk-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .tk h5{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 6px}
-.tk-prop{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:14px}
-.tk-prop:first-of-type{border-top:0}.tk-prop span{color:var(--muted)}.tk-prop b{font-weight:500;text-align:right}
+.tk-prop{display:grid;gap:2px;padding:9px 0;border-top:1px solid var(--border);font-size:14.5px}
+.tk-prop:first-of-type{border-top:0}.tk-prop span{color:var(--muted);font-size:12.5px}.tk-prop b{font-weight:500;text-align:left;overflow-wrap:anywhere}
+.tk-line{display:grid;gap:2px;padding:8px 0;border-top:1px solid var(--border);font-size:14.5px}
+.tk-line:first-of-type{border-top:0}.tk-line span{color:var(--muted);font-size:12.5px}.tk-line b{font-weight:500;overflow-wrap:anywhere}
+.tk-next{border:2px solid var(--accent,#3AA892);border-radius:16px;background:color-mix(in srgb,var(--accent,#3AA892) 8%,var(--surface));padding:14px 16px;display:grid;gap:8px}
+.tk-what h5{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 6px}.tk-what p{margin:0;font-size:16px;line-height:1.55;overflow-wrap:anywhere}
+.tk-next h5{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0}.tk-next p{margin:0;font-size:15.5px}
 .tk-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
 .tk-pill{display:inline-flex;align-items:center;gap:4px;border:1.5px solid var(--border);border-radius:999px;padding:4px 11px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit}
 .tk-pill.on{background:#E6F3F0;border-color:#3AA892;color:#1F6B59;font-weight:600}
@@ -198,7 +203,7 @@ button.tk-pill{cursor:pointer}
 <script src="/pages.js?v=655962ec"></script>
 <script src="/page-status.js?v=71fc15ef"></script>
 <script src="/hub/hub.js?v=3322d97e"></script>
-<script src="/cmp-people.js?v=fbeafe2a"></script>
+<script src="/cmp-people.js?v=68e823b1"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc, CP = window.CmpPeople;
@@ -212,6 +217,8 @@ button.tk-pill{cursor:pointer}
   var timer = 0, badge = null;
   var S = { c: null, tab: 'activity', mentions: {}, draft: '', open: '', tagKind: 'copied', board: { branch: 'all', serious: false, grp: '', cards: [], move: null, drag: null, toast: '', bad: false }, pick: [] };
   var cap = function (s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); };
+  // Triage is hidden until Kate switches it on (cmp-people.js, ?triage=1): no chain, no clock, no messages, no assign or tag.
+  var TRI = !!(window.CmpTriage && window.CmpTriage.on);
 
   function day(d) { try { return new Date(d.length === 10 ? d + 'T00:00:00' : d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Dubai' }); } catch (e) { return ''; } }
   function clock(ts) { try { return new Date(ts).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Dubai' }); } catch (e) { return ''; } }
@@ -229,11 +236,13 @@ button.tk-pill{cursor:pointer}
   }
   function row(k, v) { return v ? '<div class="cp-k"><span>' + esc(k) + '</span><b>' + v + '</b></div>' : ''; }
   function kindOf(c) { return KIND[c.type] || 'client'; }
+  function notYet() { return '<div class="cp">' + nav('') + '<p class="kb-msg">My complaints and the pipeline are not switched on yet. Complaints are logged and followed up on <a href="/?view=complaintlog">Log a Client Complaint</a>.</p></div>'; }
   function notOpen() { main.innerHTML = '<p class="kb-msg">This complaint isn’t open to your account. <a href="/hub/complaint">Your complaints</a> · <a href="/hub/">Team Home</a></p>'; }
   function codeChip(code) { return code ? '<span class="cp-code">' + esc(code) + ' <button type="button" data-copy="' + esc(code) + '">Copy</button></span>' : ''; }
   function personDot(name) { var p = CP && CP.byEmailOrName(null, name); return p ? CP.dot(p) : ''; }
   var navActive = '';
   function nav(active) {
+    if (!TRI) { navActive = active; return '<div class="cp-navrow"><div></div><a class="cp-log" href="/?view=complaintlog#cq-new" target="_blank" rel="noopener">+ Log a complaint</a></div>'; }
     navActive = active;
     var dot = badge && ((badge.waiting || 0) + (badge.tagged || 0)) > 0 ? '<i class="bd" title="Something is waiting for you" role="img" aria-label="Something is waiting for you"></i>' : '';
     return '<div class="cp-navrow"><div class="cp-nav"><a href="/hub/complaint" class="' + (active === 'list' ? 'on' : '') + '">My complaints' + dot + '</a>' +
@@ -249,7 +258,7 @@ button.tk-pill{cursor:pointer}
     var t = c.triage;
     if (c.duplicate_of) return 'Duplicate of ' + (c.duplicate_code || 'another complaint');
     if (c.status === 'resolved') return 'Closed';
-    if (!t) return 'Not under triage';
+    if (!TRI) return c.first_response_at ? 'Open, the client has had a reply' : 'Open'; if (!t) return 'Not under triage';
     if (t.state === 'stuck') return 'Stuck, needs a leader';
     if (t.state === 'claimed') return c.first_response_at ? 'Replied, waiting on the client' : 'Taken, reply due';
     if (t.state === 'minor') return 'Minor, daily summary';
@@ -466,9 +475,14 @@ button.tk-pill{cursor:pointer}
   // ---------------------------------------------------------------- tagging, in the action screen and the ticket
   function peopleBlock(c) {
     var inv = (c.people || []).filter(function (p) { return p.kind === 'involved'; }), cc = (c.people || []).filter(function (p) { return p.kind === 'copied'; });
-    return '<h5>People</h5><div class="tk-pills">' + (inv.length ? inv.map(function (p) { return '<span class="tk-pill on">Involved: ' + esc(p.name) + '</span>'; }).join('') : '<span class="cp-sm">Nobody marked as involved.</span>') + '</div>' +
-      '<div class="tk-pills">' + cc.map(function (p) { var q = CP && CP.byEmailOrName(p.email, p.name); return '<span class="tk-pill on">' + (q ? CP.dot(q) : '') + 'Copied: ' + esc(p.name) + '</span>'; }).join('') +
-      '<button type="button" class="tk-pill" data-open="tag">+ Tag</button></div>';
+    var h = '<h5>People</h5>';
+    if (inv.length) h += inv.map(function (p) { return '<div class="tk-line"><span>Involved</span><b>' + esc(p.name) + '</b></div>'; }).join('');
+    else h += '<p class="cp-sm" style="margin:0">Nobody marked as involved.</p>';
+    if (TRI) {
+      h += cc.map(function (p) { var q = CP && CP.byEmailOrName(p.email, p.name); return '<div class="tk-line"><span>Copied</span><b>' + (q ? CP.dot(q) : '') + esc(p.name) + '</b></div>'; }).join('');
+      h += '<div class="tk-pills" style="margin-top:8px"><button type="button" class="tk-pill" data-open="tag">+ Tag</button></div>';
+    }
+    return h;
   }
   function tagCard(c) {
     return '<div class="cp-card" id="tkTag"><h5>Tag a person</h5><div class="tk-seg"><button type="button" data-tk="copied" class="' + (S.tagKind === 'copied' ? 'on' : '') + '">Copied</button><button type="button" data-tk="involved" class="' + (S.tagKind === 'involved' ? 'on' : '') + '">Involved</button></div>' +
@@ -523,7 +537,8 @@ button.tk-pill{cursor:pointer}
     return out;
   }
   function timelineHtml(c) {
-    var tab = S.tab, items = (c.timeline || []);
+    var tab = TRI ? S.tab : 'activity', items = (c.timeline || []);
+    if (!TRI) items = items.filter(function (x) { return x.kind === 'note' || x.kind === 'reply' || x.kind === 'logged' || (x.kind === 'system' && !/^Assigned to /.test(x.text || '')); });
     var MSG = { notified: 1, cc: 1, tag_sent: 1, assigned_sent: 1, failed: 1, escalated: 1, remind_reply: 1, remind_close: 1, question_sent: 1 };
     items = items.filter(function (x) { return tab === 'notes' ? (x.kind === 'note' || x.kind === 'reply') : tab === 'messages' ? !!MSG[x.kind] : true; });
     if (!items.length) return '<p class="cp-sm" style="margin:8px 0">' + (tab === 'notes' ? 'No notes yet.' : tab === 'messages' ? 'No messages sent yet.' : 'Nothing yet.') + '</p>';
@@ -634,6 +649,13 @@ button.tk-pill{cursor:pointer}
     return '<div class="cp-card" style="border-color:var(--accent,#3AA892);margin-bottom:12px"><h5>Next step</h5>' + h + '<div class="cp-msg" id="nxMsg" aria-live="polite"></div></div>';
   }
 
+  // The next step without the triage: only what the dates and the record say (Kate, 9 Nov 2026). No clock, no chain, no message.
+  function simpleNext(c) {
+    if (c.duplicate_of || c.status !== 'open') return '';
+    var line = c.first_response_at ? 'The client has had a first reply. Close it once she is happy, and write how it ended.' : 'Reply to the client' + (c.reply_due ? ' by ' + day(c.reply_due) : '') + ', then write what she said in the note box below.';
+    var btn = c.first_response_at ? '<div><a class="cp-btn pri mini" href="/?view=complaintlog&cid=' + c.id + '" target="_blank" rel="noopener">Close it, how did it end?</a></div>' : '';
+    return '<div class="tk-next"><h5>Next step</h5><p>' + esc(line) + '</p>' + btn + '</div>';
+  }
   // ---------------------------------------------------------------- one complaint as a ticket (three columns on a laptop)
   function ticket(c) {
     var t = c.triage, kind = kindOf(c), Kind = cap(kind), branch = BRANCH[c.branch] || c.branch || '';
@@ -643,18 +665,18 @@ button.tk-pill{cursor:pointer}
     var fromBoard = badge && badge.board && forceTicket;
     document.title = cname(c);
     var pr = cprio(c);
-    var h = '<div class="cp wide">' + nav('') + '<a class="sub" href="' + (fromBoard ? '/hub/complaint?view=board' : '/hub/complaint') + '">← ' + (fromBoard ? 'Pipeline' : 'My complaints') + '</a>';
-    if (t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
-    if (c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
+    var h = '<div class="cp wide">' + nav('') + (TRI ? '<a class="sub" href="' + (fromBoard ? '/hub/complaint?view=board' : '/hub/complaint') + '">← ' + (fromBoard ? 'Pipeline' : 'My complaints') + '</a>' : '<a class="sub" href="/?view=complaintlog">← Log a Client Complaint</a>');
+    if (TRI && t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
+    if (TRI && c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
     if (c.duplicate_of) h += '<div class="cp-tagline">This is a duplicate of <b>' + esc(c.duplicate_code || 'another complaint') + '</b>. It stays on file and is not counted twice.</div>';
     h += '<div class="tk-head"><div>' + codeChip(c.code) + '<h1 style="margin-top:8px">' + esc(cname(c)) + '</h1><div class="sub">Logged by ' + esc(c.by || 'someone') + (c.by_at ? ', ' + esc(clock(c.by_at)) : '') + '</div></div>' +
       '<div class="tk-acts"><span class="cp-pill ' + chipCls + '">' + esc(stageOf(c)) + '</span><span class="cp-pill ' + (pr === 'high' ? 'red' : pr === 'mid' ? 'amber' : 'grey') + '">' + esc(PRN[pr]) + ' priority</span>' +
-      (canAssign ? '<button type="button" class="cp-btn sub mini" data-open="assign">Assign</button>' : '') +
-      '<button type="button" class="cp-btn sub mini" data-open="tag">Tag</button>' +
+      (TRI && canAssign ? '<button type="button" class="cp-btn sub mini" data-open="assign">Assign</button>' : '') +
+      (TRI ? '<button type="button" class="cp-btn sub mini" data-open="tag">Tag</button>' : '') +
       (c.status === 'open' && !c.duplicate_of ? '<a class="cp-btn pri mini" href="/?view=complaintlog&cid=' + c.id + '">Close it</a>' : '') + '</div></div>';
-    h += '<div class="tk"><div class="cp-card"><h5>About this complaint</h5>' +
-      '<div class="tk-prop"><span>Stage</span><b>' + esc(stageOf(c)) + '</b></div>' +
-      '<div class="tk-prop"><span>Assigned to</span><b>' + assigned + '</b></div>' +
+    h += (TRI ? nextStep(c) : simpleNext(c)) + '<div class="cp-card tk-what"><h5>What happened</h5><p>' + esc(c.detail || 'Not stated') + '</p></div><div class="tk"><div class="cp-card"><h5>About this complaint</h5>' +
+      '<div class="tk-prop"><span>' + (TRI ? 'Stage' : 'Status') + '</span><b>' + esc(stageOf(c)) + '</b></div>' +
+      (TRI ? '<div class="tk-prop"><span>Assigned to</span><b>' + assigned + '</b></div>' : '') +
       '<div class="tk-prop"><span>Reply to client by</span><b>' + esc(day(c.reply_due)) + (c.first_response_at ? ' <span class="cp-pill green">done</span>' : '') + '</b></div>' +
       '<div class="tk-prop"><span>Close by</span><b>' + esc(day(c.close_due)) + '</b></div>' +
       '<div class="tk-prop"><span>Client name</span><b>' + (c.revealed ? esc(c.client || '') : '<span class="cp-sm">Not shown to you</span>') + '</b></div>' +
@@ -662,15 +684,14 @@ button.tk-pill{cursor:pointer}
       (c.event_date ? '<div class="tk-prop"><span>Appointment</span><b>' + esc(day(c.event_date)) + '</b></div>' : '') +
       (c.services ? '<div class="tk-prop"><span>Service</span><b>' + esc(c.services) + '</b></div>' : '') +
       (c.stylists ? '<div class="tk-prop"><span>Stylist</span><b>' + esc(c.stylists) + '<br><span class="cp-sm">recorded, not messaged</span></b></div>' : '') +
-      '<div class="tk-prop"><span>What happened</span><b style="max-width:60%">' + esc(c.detail || 'Not stated') + '</b></div>' +
       '<div style="margin-top:12px">' + peopleBlock(c) + '</div></div>';
-    h += '<div>' + nextStep(c) + '<div class="tk-tabs" role="tablist">' + [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']].map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+    h += '<div><div class="tk-tabs" role="tablist">' + (TRI ? [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']] : [['activity', 'Activity']]).map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
       '<div class="tk-comp"><textarea class="cp-ta" id="tkNote" placeholder="Write a note. Type @ to tag someone." aria-label="Write a note">' + esc(S.draft) + '</textarea><div class="tk-menu" id="tkMenu" hidden></div></div>' +
       (c.revealed ? '<div class="tk-att"><label class="cp-btn sub mini" style="cursor:pointer">Attach a photo or file<input type="file" id="tkFile" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/heic,application/pdf,text/plain" hidden></label><span id="tkChosen" class="tk-att"></span></div>' : '') +
       '<div class="cp-btnrow" style="grid-template-columns:auto 1fr;align-items:center"><button type="button" class="cp-btn pri mini" id="tkSend">Add note</button><div class="cp-msg" id="tkNoteMsg" aria-live="polite"></div></div>' +
       '<div id="tkTimeline">' + timelineHtml(c) + '</div></div>';
-    h += '<div style="display:grid;gap:12px;align-content:start">' + (canAssign ? '<div id="tkAssignHold"' + (S.open === 'assign' ? '' : ' hidden') + '>' + assignCard() + '</div>' : '') +
-      '<div id="tkTagHold"' + (S.open === 'tag' ? '' : ' hidden') + '>' + tagCard(c) + '</div>' +
+    h += '<div style="display:grid;gap:12px;align-content:start">' + (TRI && canAssign ? '<div id="tkAssignHold"' + (S.open === 'assign' ? '' : ' hidden') + '>' + assignCard() + '</div>' : '') +
+      (TRI ? '<div id="tkTagHold"' + (S.open === 'tag' ? '' : ' hidden') + '>' + tagCard(c) + '</div>' : '') +
       '<div class="cp-card"><h5>Possible duplicate</h5>' + ((c.dupes && c.dupes.length) ? c.dupes.map(function (d) { return '<p class="cp-sm" style="margin:0 0 6px"><b>' + esc(d.code || '') + '</b>' + (d.by_phone ? ', same mobile number' : '') + (d.holder ? ', ' + esc(d.holder) : '') + '<br>' + esc(d.text || '') + '</p>'; }).join('') + '<p class="cp-sm" style="margin:0">If it is the same complaint, link it as a duplicate on the dashboard.</p>' : '<p class="cp-sm" style="margin:0">None found for this client in the last 30 days.</p>') + '</div>' +
       '<div class="cp-card"><h5>Files' + (c.file_count ? ' (' + c.file_count + ')' : '') + '</h5>' +
       (c.file_count ? '<div class="tk-files" id="tkFiles"><p class="cp-sm" style="margin:0;grid-column:1/-1">Loading…</p></div>' : '<p class="cp-sm" style="margin:0">No files yet.</p>') +
@@ -710,14 +731,14 @@ button.tk-pill{cursor:pointer}
     document.title = Kind + ' complaint · Team Home';
     var canClaim = t && t.state === 'active' && t.can_claim, mine = t && t.i_claimed, urgent = t && t.grp === 'urgent';
     clearInterval(timer);
-    if (forceTicket || !(canClaim || mine) || c.duplicate_of) { return ticket(c); }
+    if (!TRI || forceTicket || !(canClaim || mine) || c.duplicate_of) { return ticket(c); }
     var facts = '<div class="cp-card">' + row('Branch', esc(branch)) + row('About', esc(Kind)) + row('Code', codeChip(c.code)) +
       row('Logged by', esc(c.by || '') + (c.by_at ? ', ' + esc(clock(c.by_at)) : '')) +
       row('What happened', esc(c.detail || 'Not stated')) +
       (c.revealed ? row('Client name', esc(c.client || '')) + (c.phone ? row('Contact details', esc(c.phone)) : '') : row('Client name', 'Shown once you take it') + row('Contact details', 'Shown once you take it')) + '</div>';
     var h = '<div class="cp">' + nav('') + '<a class="sub" href="/hub/complaint">← My complaints</a>';
-    if (t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
-    if (c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
+    if (TRI && t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
+    if (TRI && c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
     var full = '<p class="cp-foot"><a href="/hub/complaint?cid=' + c.id + '&t=1">Open the full ticket</a> (people, notes, assign)</p>';
     if (canClaim) {
       var tl = t.due_at ? left(t.due_at) : null;
@@ -915,7 +936,7 @@ button.tk-pill{cursor:pointer}
     draw(S.c);
     // a one tap link from the WhatsApp message (?a=claim or ?a=pass): do it once, now that the person is signed in and the page has loaded
     var act = P.get('a');
-    if (act && !S.acted) {
+    if (TRI && act && !S.acted) {
       S.acted = true;
       history.replaceState(null, '', location.pathname + '?cid=' + cid);
       var btn = main.querySelector('button[data-a="' + act + '"]');
@@ -942,6 +963,7 @@ button.tk-pill{cursor:pointer}
     await people;
     // Kate, 4 Nov 2026: the Pipeline can be hidden or labelled Under construction from Hide Pages & Under Construction (pages.js trsToolOpen, page-status.js).
     // Hidden: only Kate opens it; a single complaint (cid) is never blocked, only the board. The notice sits above the page so a redraw of the board keeps it.
+    if (!TRI && !cid) { main.innerHTML = notYet(); return; }
     if (!cid && view === 'board') {
       if (typeof trsToolOpen === 'function' && !trsToolOpen('complaintspipeline', KB.level)) {
         main.innerHTML = '<p class="kb-msg">This page is switched off for now. <a href="/hub/">Team Home</a></p>';

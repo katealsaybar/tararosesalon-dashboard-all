@@ -1,3 +1,15 @@
+// Triage switch (Kate, 9 Nov 2026). The triage (who is told, the chain, the clock, the messages) is not finished and November is not final, so every page
+// hides it and says nothing about it. It shows only when the address has ?triage=1 (kept for this tab); ?triage=0 puts it away again. It fails closed:
+// no flag, no triage. Nothing else about a complaint depends on it.
+window.CmpTriage = (function () {
+  var on = false;
+  try {
+    var q = new URLSearchParams(location.search).get('triage');
+    if (q === '1') sessionStorage.setItem('cmp-triage', '1'); else if (q === '0') sessionStorage.removeItem('cmp-triage');
+    on = sessionStorage.getItem('cmp-triage') === '1';
+  } catch (e) { on = false; }
+  return { on: on };
+})();
 // Complaint people (Kate, 29 Oct 2026, complaint triage batch 2). Shared by Log a Complaint on the dashboard (complaint-log.js) and the complaint
 // ticket on Team Home (hub/complaint.html), so the same list, the same dots and the same picker are used wherever a person is chosen:
 // who was involved, who else should know, tag a person, assign, and @ in a note.

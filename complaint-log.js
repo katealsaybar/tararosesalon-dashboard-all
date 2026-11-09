@@ -17,6 +17,8 @@ let cqDupSeq = 0, cqDupTimer = 0;
 // If a person who was involved is on the chain, the chain skips them (the worker does the same).
 const CMPF = { roles: { Reception: false, Beautician: false }, stylistOn: true, people: [], names: [], cc: [], chain: null, key: '', panel: '' };
 let cmpChainSeq = 0, cmpChainTimer = 0, cmpUrgentTimer = 0;
+// Triage is hidden until Kate switches it on (cmp-people.js, ?triage=1): no 'Where it goes', no 'Who else should know', no chain, no My complaints or Pipeline links.
+const CMP_TRI = !!(window.CmpTriage && window.CmpTriage.on);
 const cmpE = s => CmpPeople.esc(s);
 const cmpVal = id => ((document.getElementById(id) || {}).value || '').trim();
 
@@ -24,6 +26,7 @@ function cmpCssTag() {
   return `<style>
     .cmp-split{display:grid;gap:4px 22px;grid-template-columns:minmax(0,1fr);grid-template-areas:"f" "s" "b"}
     .cmp-f{grid-area:f;min-width:0}.cmp-s{grid-area:s;min-width:0}.cmp-b{grid-area:b;min-width:0}
+    .cmp-split.cmp-one{grid-template-columns:minmax(0,1fr);grid-template-areas:"f" "b"}
     @media (min-width:1280px){.cmp-split{grid-template-columns:minmax(0,1.6fr) minmax(290px,1fr);grid-template-areas:"f s" "b s"}.cmp-s{align-self:start;position:sticky;top:12px}}
     .cmp-side{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:12px 14px;margin:10px 0}
     .cmp-side h3,.cmp-urg h3{font-size:14px;font-weight:600;margin:0 0 6px}
@@ -103,6 +106,7 @@ const cqPlusDays = (iso, n) => { const [y, m, d] = String(iso).slice(0, 10).spli
 function cmpDrawHere() {
   const el = document.getElementById('cmpHere');
   if (!el) return;
+  if (!CMP_TRI) { el.hidden = true; return; }
   const ch = CMPF.chain;
   if (!ch) { el.textContent = 'Pick the branch and the kind, and this line says who hears about it first.'; return; }
   const names = ps => cqNameList((ps || []).map(p => p.name));
@@ -117,9 +121,9 @@ function cmpWho() {
   return `<div class="wide cmp-who">
     <div class="cmp-lab">Who was involved? <small>(written down, not messaged. Their coordinator will talk to them)</small></div>
     <div class="cmp-pills" id="cmpInv"></div>
-    <div class="cmp-lab">Who else should know? <small>(each gets one message)</small></div>
+${CMP_TRI ? `    <div class="cmp-lab">Who else should know? <small>(each gets one message)</small></div>
     <div class="cmp-pills" id="cmpCc"></div>
-    <div class="cmp-panel" id="cmpPanel" hidden></div>
+` : ''}    <div class="cmp-panel" id="cmpPanel" hidden></div>
   </div>`;
 }
 
@@ -182,6 +186,7 @@ function cmpDrawSide() {
   cmpDrawHere();
   const box = document.getElementById('cmpSide');
   if (!box) return;
+  if (!CMP_TRI) { box.innerHTML = ''; const a = box.closest('aside'); if (a) a.hidden = true; return; }
   const ch = CMPF.chain;
   if (!ch) { box.innerHTML = `<h3>Where it goes</h3><p class="cq-note" style="margin:0">Pick the kind of complaint and the branch, and it shows here who gets it first.</p>`; return; }
   const invs = cmpInvolvedList();
@@ -205,6 +210,7 @@ function cmpDrawSide() {
 }
 
 function cmpLoadChain() {
+  if (!CMP_TRI) return;
   clearTimeout(cmpChainTimer);
   cmpChainTimer = setTimeout(async () => {
     const type = cmpVal('cqfType'), branch = cmpVal('cqfBranch');
@@ -279,6 +285,19 @@ async function cmpSavePeople(id) {
 async function cmpUrgentShow(id, code) {
   const box = document.getElementById('cmpUrgent'), split = document.getElementById('cmpSplit');
   if (!box) return;
+  if (!CMP_TRI) {   // nothing is sent yet, so the screen says only what to do (Kate, 9 Nov 2026)
+    box.innerHTML = `${cmpCssTag()}<div class="cmp-urg"><h3>Logged. This one needs a person now.</h3>
+      <p class="cq-muted">${code ? `<span class="cq-code">${cmpE(code)} <button type="button" data-copy="${cmpE(code)}">Copy</button></span>` : ''}</p>
+      <p><b>Please ring Coach Emma or Mette now.</b> Ask your coordinator if you do not have the number. Nothing is sent to anyone automatically yet.</p>
+      <button type="button" class="cq-btn" id="cmpUrgDone">Log another complaint</button></div>`;
+    box.hidden = false; if (split) split.hidden = true;
+    box.onclick = e => {
+      const cp = e.target.closest && e.target.closest('[data-copy]');
+      if (cp) { cqCopy(cp); return; }
+      if (e.target.id === 'cmpUrgDone') { box.hidden = true; box.innerHTML = ''; if (split) split.hidden = false; }
+    };
+    return;
+  }
   let info = null;
   try { const { data } = await sb.rpc('cmp_urgent_numbers', { p_id: id }); info = data; } catch (e) { /* names only */ }
   const people = (info && info.people && info.people.length) ? info.people : [{ name: 'Coach Emma' }, { name: 'Mette' }];
@@ -316,6 +335,7 @@ async function cmpUrgentShow(id, code) {
 async function cmpLinks() {
   const box = document.getElementById('cmpLinks');
   if (!box) return;
+  if (!CMP_TRI) { box.hidden = true; return; }
   try {
     const { data } = await sb.rpc('cmp_my_badge');
     if (!data) return;
@@ -401,7 +421,7 @@ function cqForm() {
   return `<details class="cq-card" id="cq-new"${closed ? '' : ' open'} ontoggle="try{if(!this.dataset.door)localStorage.setItem('trs-cq-form',this.open?'open':'closed');delete this.dataset.door}catch(e){}"><summary>Log a complaint</summary>
     <p class="cq-note" style="margin-top:6px">For a complaint a client made that is not in the Phorest notes yet. It is counted with the rest and marked as logged by staff, under your name. Three short steps; the fields marked required are the ones it needs.</p>
     ${cmpCssTag()}
-    <div class="cmp-split" id="cmpSplit">
+    <div class="cmp-split${CMP_TRI ? '' : ' cmp-one'}" id="cmpSplit">
     <div class="cmp-f">
     <section class="cql-step">
       <h3><i>1</i>Who she is</h3>
@@ -546,7 +566,7 @@ function cqLogShell() {
       <button type="button" class="cql-door" data-door="log"><b>A client just complained</b><span>Log it in three short steps</span></button>
       <button type="button" class="cql-door" data-door="chase" id="cqlChase"><b>Chase the ones waiting</b><span id="cqlChaseN">See what is overdue</span></button>
     </div>
-    <p class="cql-more" id="cmpLinks"><span>Or open</span> <a class="cql-pill" href="/hub/complaint">My complaints</a></p>
+    <p class="cql-more" id="cmpLinks"${CMP_TRI ? '' : ' hidden'}><span>Or open</span> <a class="cql-pill" href="/hub/complaint">My complaints</a></p>
     <p class="cq-sub" style="margin:0 0 14px">Levels 3 and up. Everything logged here also counts in Client Complaints.</p>
     ${cqRailShell(`<div class="cq-tiles" id="cqFlags" aria-live="polite"></div>
     <p class="cq-note" style="margin:-6px 0 14px">These counts follow the Branch above and cover every period. The list below follows Period and Branch.</p>

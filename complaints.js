@@ -699,7 +699,7 @@ function cqPaintList() {
       <td>${cqEsc(r.detail || 'Not stated')}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
       <td>${r.duplicate_of ? `<span class="cq-pill">Duplicate of ${cqEsc(r.duplicate_code || 'another')}</span>` : r.status === 'open' ? cqFlagPill(r) : '<span class="cq-pill">Resolved</span>'}
         <div class="cq-sub2${r.flag === 'overdue' ? ' late' : ''}">${cqEsc(cqDaysText(r))}${r.status === 'open' && !r.first_response_at ? (r.flag === 'overdue' ? ' · reply to her today' : ' · waiting for a first reply') : ''}</div>
-        ${r.holder ? `<div class="cq-sub2">${cqEsc(r.holder.charAt(0).toUpperCase() + r.holder.slice(1))}</div>` : ''}
+        ${(window.CmpTriage && window.CmpTriage.on && r.holder) ? `<div class="cq-sub2">${cqEsc(r.holder.charAt(0).toUpperCase() + r.holder.slice(1))}</div>` : ''}
         ${r.status === 'open' && !r.duplicate_of ? `<div class="cq-sub2">${r.responsible ? 'Replying: ' + cqEsc(r.responsible) : 'Who will reply? Add a name on the complaint page'}${r.pending_reason ? ' · ' + cqEsc(r.pending_reason) : (r.flag ? ' · why is it waiting? Add a reason' : '')}</div>` : ''}</td>
       <td class="hm" style="white-space:nowrap">${r.resolved_at ? cqEsc(cqDubai(r.resolved_at)) : '<span class="cq-muted">Open</span>'}</td>
       <td class="hm">${r.status === 'open' ? '<span class="cq-muted">Not yet</span>' : cqEsc(CQ_RES[r.resolution] || '')}${r.revisit_date ? `<div class="cq-sub2">${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}</div>` : ''}</td>
