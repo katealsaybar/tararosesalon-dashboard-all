@@ -56,6 +56,14 @@
 .mm-tag{font-size:11px;border-radius:999px;padding:1px 8px;background:var(--surface);color:var(--muted);white-space:nowrap}
 .mm-empty{font-size:13px;color:var(--muted);padding:8px 10px;border:1px dashed var(--border);border-radius:10px;margin-bottom:6px}
 .mm-add{margin-top:10px}
+/* Kate, 9 Nov 2026: the List / Grid toggle from the Tools door (KB.view, hub.js; V flips it, one choice kept for every page that has it). List is the default here; Grid lays each list's pages out as tiles. */
+body[data-kb-view="grid"] .mm-body ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+body[data-kb-view="grid"] .mm-body ul .mm-empty{grid-column:1/-1;margin:0}
+body[data-kb-view="grid"] .mm-row{position:relative;flex-direction:column;align-items:flex-start;gap:8px;min-height:92px;margin:0;padding:12px 12px 10px}
+body[data-kb-view="grid"] .mm-row .mm-grip{position:absolute;top:8px;right:10px}
+body[data-kb-view="grid"] .mm-row .mm-nm{flex:none;width:100%;padding-right:22px;overflow-wrap:anywhere}
+body[data-kb-view="grid"] .mm-row .mm-mini{margin-top:auto;align-self:flex-end}
+.mm-top .kb-vt{flex:none}
 /* Kate, 9 Nov 2026: + New section, under the last section. A section you add is yours (c: 1 in the layout): it can be renamed, and removed while it is empty. */
 .mm-addsec{display:block;width:100%;margin-top:4px;padding:12px;border:1px dashed var(--border);border-radius:14px;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
 .mm-addsec:hover{border-color:var(--text);color:var(--text)}
@@ -301,7 +309,7 @@
       KB.titleIcon('menu-mover', 'Rearrange Menu') +
       '<p class="kb-meta">Your dashboard menu, as it is now. Change where things sit, then save. Only your menu changes: nobody else sees it, and who may open each page stays exactly as it is.</p>' +
       '<div class="mm-col"><div class="mm-top"><div class="mm-how"><span><b>Drag</b> a page into another list</span><span><b>Move</b> button if the section is closed, or on a phone</span><span><b>▲ ▼</b> move a section or sub-section</span></div>' +
-      '<button type="button" class="mm-btn" id="mmAddSec">+ New section</button><button type="button" class="mm-btn" id="mmAll">Expand all</button></div>' +
+      (window.KB && KB.view ? KB.view.html() : '') + '<button type="button" class="mm-btn" id="mmAddSec">+ New section</button><button type="button" class="mm-btn" id="mmAll">Expand all</button></div>' +
       '<div id="mmApp"></div></div>' +
       '<div class="mm-bar"><div class="mm-bar-in"><div class="mm-msg" id="mmMsg" role="status" aria-live="polite">Loading…</div>' +
       '<button type="button" class="mm-btn" id="mmOrig" title="Load the original menu into the editor, then Save">Original order</button>' +
@@ -309,6 +317,7 @@
       '<button type="button" class="mm-btn pri" id="mmSave">Save</button></div></div>' +
       '<dialog class="mm-dlg" id="mmDlg"><h4 id="mmDtitle">Move</h4><label for="mmDsec">Section</label><select id="mmDsec"></select><button type="button" class="mm-mini mm-dnew" id="mmDnewSec">+ New section</button>' +
       '<label for="mmDsub">Sub-section</label><select id="mmDsub"></select><button type="button" class="mm-mini mm-dnew" id="mmDnewSub">+ New sub-section</button><div class="mm-acts"><button type="button" class="mm-btn" id="mmDno">Cancel</button><button type="button" class="mm-btn pri" id="mmDyes">Move</button></div></dialog>';
+    if (KB.view) KB.view.init('list');
     ['mmSave', 'mmUndo', 'mmOrig'].forEach(function (id) { document.getElementById(id).disabled = true; });
     try {
       // The original menu is whatever the dashboard's own page draws, read from it, so a page added to the menu later appears here by itself.
