@@ -26,6 +26,9 @@
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
+// Kate, 9 Nov 2026: every report in the sidebar is a real link (<a href="/?view=...">), so right-click offers Open link in new tab and Ctrl/Cmd/Shift-click
+// and middle-click open it in another tab. A plain left click is the only one the page takes over (showView, no reload); a modified click is left to the browser.
+window.trsPlain = function (e) { return !!e && !e.defaultPrevented && (e.button === 0 || e.button === undefined) && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey; };
 // A failed sign-in leaves ?error=... in the address. supabase-js treats any error
 // there as the result of the NEXT sign-in too and ignores its session, so keep the
 // message for the card and take the params out before supabase-js looks.
@@ -3538,7 +3541,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="tool-spend.css?v=d72f64aa">
 <link rel="stylesheet" href="marketing-spend.css?v=3af355da">
 <link rel="stylesheet" href="mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
-<link rel="stylesheet" href="nav-style.css?v=27b828c7">
+<link rel="stylesheet" href="nav-style.css?v=0acfadf2">
 <link rel="stylesheet" href="drill.css?v=547da3fe">   <!-- the figure that opens the list behind it (drill.js) -->
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
@@ -3581,9 +3584,9 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'lost-clients.js?v=240fb683', 'lost-lists.js?v=82848701', 'lost-consults.js?v=8dd97a9d', 'lost-review-file.js?v=de965c04',
+      cl:  [LGX, 'lost-clients.js?v=9a925f4d', 'lost-lists.js?v=fadf2741', 'lost-consults.js?v=8dd97a9d', 'lost-review-file.js?v=de965c04',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=47a42dd0', 'lost-waves.js?v=c142e140', 'lost-blast.js?v=3ca1ba99',
-            'lost-report.js?v=bdc2b22c', 'wv-blast.js?v=96e47ebb', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=e4188c8d', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=ccd22f87', 'client-mix.js?v=012e7ff2',
+            'lost-report.js?v=bdc2b22c', 'wv-blast.js?v=22a9b944', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=e4188c8d', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=ccd22f87', 'client-mix.js?v=012e7ff2',
             'service-rankings.js?v=c1364c02'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
@@ -3753,35 +3756,35 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="nav-group">
     <div class="nav-title">Numbers</div>
     <div class="nav-subhead">Business</div>
-    <div class="nav-sub" onclick="showView('dashboard', this)">Organisation Pulse</div>
-    <div class="nav-sub" onclick="showView('compare', this)">Comparison</div>
-    <div class="nav-sub" onclick="showView('dailyperf', this)">Daily Performance</div>
-    <div class="nav-sub" onclick="showView('overyears', this)">Over the Years</div>
-    <div class="nav-sub" onclick="showView('ledgerFinancials', this)">Financial Totals</div>
+    <a class="nav-sub" href="/?view=dashboard" onclick="if(trsPlain(event)){event.preventDefault();showView('dashboard', this)}">Organisation Pulse</a>
+    <a class="nav-sub" href="/?view=compare" onclick="if(trsPlain(event)){event.preventDefault();showView('compare', this)}">Comparison</a>
+    <a class="nav-sub" href="/?view=dailyperf" onclick="if(trsPlain(event)){event.preventDefault();showView('dailyperf', this)}">Daily Performance</a>
+    <a class="nav-sub" href="/?view=overyears" onclick="if(trsPlain(event)){event.preventDefault();showView('overyears', this)}">Over the Years</a>
+    <a class="nav-sub" href="/?view=ledgerFinancials" onclick="if(trsPlain(event)){event.preventDefault();showView('ledgerFinancials', this)}">Financial Totals</a>
     <div class="nav-subhead">Team Performance</div>
-    <div class="nav-sub" id="navTeamRace" onclick="showView('team', this)">Podium Race</div>
-    <div class="nav-sub" onclick="showView('teamquad', this)">Staff Quadrant</div>
-    <div class="nav-sub" onclick="showView('staffperf', this)">Staff Dashboards</div>
-    <div class="nav-sub" onclick="showView('staffweeks', this)">Staff&rsquo;s 13 Week</div>
-    <div class="nav-sub" onclick="showView('stafflevels', this)">Stylist&rsquo;s Benchmarks</div>
-    <div class="nav-sub" onclick="showView('one2ones', this)">1-to-1s &amp; Goals</div>
-    <div class="nav-sub" onclick="showView('attrition', this)">Staff Attrition</div>
+    <a class="nav-sub" id="navTeamRace" href="/?view=team" onclick="if(trsPlain(event)){event.preventDefault();showView('team', this)}">Podium Race</a>
+    <a class="nav-sub" href="/?view=teamquad" onclick="if(trsPlain(event)){event.preventDefault();showView('teamquad', this)}">Staff Quadrant</a>
+    <a class="nav-sub" href="/?view=staffperf" onclick="if(trsPlain(event)){event.preventDefault();showView('staffperf', this)}">Staff Dashboards</a>
+    <a class="nav-sub" href="/?view=staffweeks" onclick="if(trsPlain(event)){event.preventDefault();showView('staffweeks', this)}">Staff&rsquo;s 13 Week</a>
+    <a class="nav-sub" href="/?view=stafflevels" onclick="if(trsPlain(event)){event.preventDefault();showView('stafflevels', this)}">Stylist&rsquo;s Benchmarks</a>
+    <a class="nav-sub" href="/?view=one2ones" onclick="if(trsPlain(event)){event.preventDefault();showView('one2ones', this)}">1-to-1s &amp; Goals</a>
+    <a class="nav-sub" href="/?view=attrition" onclick="if(trsPlain(event)){event.preventDefault();showView('attrition', this)}">Staff Attrition</a>
     <div class="nav-subhead">Clients</div>
-    <div class="nav-sub" onclick="showView('clients', this)">Top Clients</div>
-    <div class="nav-sub" onclick="showView('clientmix', this)">Client Mix</div>
-    <div class="nav-sub" onclick="showView('retention', this)">Retention</div>
-    <div class="nav-sub" onclick="showView('clientbook', this)">Client Book</div>
-    <div class="nav-sub" onclick="showView('complaints', this)">Client Complaints</div>
-    <div class="nav-sub" onclick="showView('lostclients', this)">Client’s Last Visit</div>
-    <div class="nav-sub" onclick="showView('reviews', this)">Google Reviews</div>
+    <a class="nav-sub" href="/?view=clients" onclick="if(trsPlain(event)){event.preventDefault();showView('clients', this)}">Top Clients</a>
+    <a class="nav-sub" href="/?view=clientmix" onclick="if(trsPlain(event)){event.preventDefault();showView('clientmix', this)}">Client Mix</a>
+    <a class="nav-sub" href="/?view=retention" onclick="if(trsPlain(event)){event.preventDefault();showView('retention', this)}">Retention</a>
+    <a class="nav-sub" href="/?view=clientbook" onclick="if(trsPlain(event)){event.preventDefault();showView('clientbook', this)}">Client Book</a>
+    <a class="nav-sub" href="/?view=complaints" onclick="if(trsPlain(event)){event.preventDefault();showView('complaints', this)}">Client Complaints</a>
+    <a class="nav-sub" href="/?view=last-visit" onclick="if(trsPlain(event)){event.preventDefault();showView('lostclients', this)}">Client’s Last Visit</a>
+    <a class="nav-sub" href="/?view=reviews" onclick="if(trsPlain(event)){event.preventDefault();showView('reviews', this)}">Google Reviews</a>
     <div class="nav-subhead">Sales &amp; Stock</div>
-    <div class="nav-sub" onclick="showView('services', this)">Service Rankings</div>
-    <div class="nav-sub" onclick="showView('products', this)">Products</div>
-    <div class="nav-sub" onclick="showView('supplierspend', this)">Stock &amp; Supplier Spend</div>
+    <a class="nav-sub" href="/?view=services" onclick="if(trsPlain(event)){event.preventDefault();showView('services', this)}">Service Rankings</a>
+    <a class="nav-sub" href="/?view=products" onclick="if(trsPlain(event)){event.preventDefault();showView('products', this)}">Products</a>
+    <a class="nav-sub" href="/?view=supplierspend" onclick="if(trsPlain(event)){event.preventDefault();showView('supplierspend', this)}">Stock &amp; Supplier Spend</a>
     <div class="nav-subhead">Targets</div>
-    <div class="nav-sub" onclick="showView('ledgerTargets', this)">Daily Target Sheet</div>
-    <div class="nav-sub" onclick="showView('ledgerStylist', this)">Daily Stylist Target</div>
-    <div class="nav-sub" onclick="showView('ledgerActuals', this)">Actuals vs Targets</div>
+    <a class="nav-sub" href="/?view=ledgerTargets" onclick="if(trsPlain(event)){event.preventDefault();showView('ledgerTargets', this)}">Daily Target Sheet</a>
+    <a class="nav-sub" href="/?view=ledgerStylist" onclick="if(trsPlain(event)){event.preventDefault();showView('ledgerStylist', this)}">Daily Stylist Target</a>
+    <a class="nav-sub" href="/?view=ledgerActuals" onclick="if(trsPlain(event)){event.preventDefault();showView('ledgerActuals', this)}">Actuals vs Targets</a>
   </div>
 
   <!-- Kate, 18 Oct 2026: the two WhatsApp blasts and the voucher's results sit together, apart from the numbers pages: they are
@@ -3792,34 +3795,34 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">Campaigns</div>
     <!-- Kate, 23 Oct 2026: by year. Under Wellness Voucher Performance, Overall Blast performances and each blast are pages of their own (wvGoBlast), each with its own mini nav. -->
     <div class="nav-subhead">2025</div>
-    <div class="nav-sub" onclick="showView('glowclub', this)">Glow Club Performance</div>
+    <a class="nav-sub" href="/?view=glowclub" onclick="if(trsPlain(event)){event.preventDefault();showView('glowclub', this)}">Glow Club Performance</a>
     <div class="nav-subhead">2026</div>
-    <div class="nav-sub" onclick="showView('lostlists', this)">Lost Client Blasts, October 2026</div>
-    <div class="nav-sub" onclick="showView('wvperf', this)">Wellness Voucher Performance</div>
-    <div class="nav-sub lvl2" data-wvb="all" onclick="wvGoBlast('all', this)">Overall Blast performances</div>
-    <div class="nav-sub lvl2" data-wvb="b4" onclick="wvGoBlast('b4', this)">Blast 4</div>
-    <div class="nav-sub lvl2" data-wvb="b3" onclick="wvGoBlast('b3', this)">Blast 3</div>
-    <div class="nav-sub lvl2" data-wvb="b2" onclick="wvGoBlast('b2', this)">Blast 2</div>
-    <div class="nav-sub lvl2" data-wvb="b1" onclick="wvGoBlast('b1', this)">Blast 1</div>
-    <div class="nav-sub" onclick="showView('dealsperf', this)">Active Deals Performance</div>
-    <div class="nav-sub" onclick="showView('discountsvouchers', this)">Discounts and Vouchers</div>
+    <a class="nav-sub" href="/?view=lost-clients" onclick="if(trsPlain(event)){event.preventDefault();showView('lostlists', this)}">Lost Client Blasts, October 2026</a>
+    <a class="nav-sub" href="/?view=wvperf" onclick="if(trsPlain(event)){event.preventDefault();showView('wvperf', this)}">Wellness Voucher Performance</a>
+    <a class="nav-sub lvl2" data-wvb="all" href="/?view=wvblast#wvAll" onclick="if(trsPlain(event)){event.preventDefault();wvGoBlast('all', this)}">Overall Blast performances</a>
+    <a class="nav-sub lvl2" data-wvb="b4" href="/?view=wvblast#wvB4" onclick="if(trsPlain(event)){event.preventDefault();wvGoBlast('b4', this)}">Blast 4</a>
+    <a class="nav-sub lvl2" data-wvb="b3" href="/?view=wvblast#wvB3" onclick="if(trsPlain(event)){event.preventDefault();wvGoBlast('b3', this)}">Blast 3</a>
+    <a class="nav-sub lvl2" data-wvb="b2" href="/?view=wvblast#wvB2" onclick="if(trsPlain(event)){event.preventDefault();wvGoBlast('b2', this)}">Blast 2</a>
+    <a class="nav-sub lvl2" data-wvb="b1" href="/?view=wvblast#wvB1" onclick="if(trsPlain(event)){event.preventDefault();wvGoBlast('b1', this)}">Blast 1</a>
+    <a class="nav-sub" href="/?view=dealsperf" onclick="if(trsPlain(event)){event.preventDefault();showView('dealsperf', this)}">Active Deals Performance</a>
+    <a class="nav-sub" href="/?view=discountsvouchers" onclick="if(trsPlain(event)){event.preventDefault();showView('discountsvouchers', this)}">Discounts and Vouchers</a>
   </div>
 
   <!-- Google Ads, Website & Search and Social: Level 3 and above. -->
   <div class="nav-group" id="navMarketing">
     <div class="nav-title">Content</div>
-    <div class="nav-sub" onclick="showView('googleads', this)">Google Ads</div>
-    <div class="nav-sub" onclick="showView('metaads', this)">Meta Ads</div>
-    <div class="nav-sub" onclick="showView('marketingspend', this)">Marketing Spend</div>
-    <div class="nav-sub" onclick="showView('toolspend', this)">Tool Spend</div>
-    <div class="nav-sub" onclick="showView('website', this)">Website &amp; Search</div>
-    <div class="nav-sub" onclick="showView('social', this)">Social</div>
+    <a class="nav-sub" href="/?view=googleads" onclick="if(trsPlain(event)){event.preventDefault();showView('googleads', this)}">Google Ads</a>
+    <a class="nav-sub" href="/?view=metaads" onclick="if(trsPlain(event)){event.preventDefault();showView('metaads', this)}">Meta Ads</a>
+    <a class="nav-sub" href="/?view=marketingspend" onclick="if(trsPlain(event)){event.preventDefault();showView('marketingspend', this)}">Marketing Spend</a>
+    <a class="nav-sub" href="/?view=toolspend" onclick="if(trsPlain(event)){event.preventDefault();showView('toolspend', this)}">Tool Spend</a>
+    <a class="nav-sub" href="/?view=website" onclick="if(trsPlain(event)){event.preventDefault();showView('website', this)}">Website &amp; Search</a>
+    <a class="nav-sub" href="/?view=social" onclick="if(trsPlain(event)){event.preventDefault();showView('social', this)}">Social</a>
   </div>
 
   <div class="nav-group">
     <div class="nav-title">People</div>
-    <div class="nav-sub" onclick="showView('stylists', this)">Staff Cards</div>
-    <div class="nav-sub" onclick="showView('orgchart', this)">Org Chart</div>
+    <a class="nav-sub" href="/?view=stylists" onclick="if(trsPlain(event)){event.preventDefault();showView('stylists', this)}">Staff Cards</a>
+    <a class="nav-sub" href="/?view=orgchart" onclick="if(trsPlain(event)){event.preventDefault();showView('orgchart', this)}">Org Chart</a>
   </div>
 
   <!-- TOOLS (Kate, 30 Oct 2026): pages where someone does something and the site remembers it (docs/SITE-MAP-PLAN-30OCT2026.md). Campaign Blasts
@@ -3829,29 +3832,29 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="nav-group" id="navTools">
     <div class="nav-title">Tools</div>
     <!-- Kate, 9 Nov 2026: Rearrange Menu, Level 5, your own menu only (nav-layout.js, hub/menumover.html). First in Tools, at her ask. -->
-    <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/menumover'">Rearrange Menu</div>
-    <div class="nav-sub" onclick="showView('campaignblasts', this)">Campaign Blasts, November</div>
+    <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/hub/menumover'" href="/hub/menumover">Rearrange Menu</a>
+    <a class="nav-sub" href="/?view=campaignblasts" onclick="if(trsPlain(event)){event.preventDefault();showView('campaignblasts', this)}">Campaign Blasts, November</a>
     <!-- Kate, 9 Nov 2026: Landing Page Review, for Tara and Coach Emma to open each draft landing page and pin comments on it (landing-review.js; Executives & Marketing and Kate). -->
-    <div class="nav-sub" onclick="showView('landingreview', this)">Landing Page Review</div>
+    <a class="nav-sub" href="/?view=landingreview" onclick="if(trsPlain(event)){event.preventDefault();showView('landingreview', this)}">Landing Page Review</a>
     <!-- Kate, 9 Nov 2026: Recruitment, the applicant triage for Kate and Coach Emma only (recruitment.js; Level 5 and dashboard_users.extra_pages 'recruitment'). -->
-    <div class="nav-sub" onclick="showView('recruitment', this)">Recruitment</div>
-    <div class="nav-sub" onclick="showView('novblasts', this)">Database Blasts, November 2026</div>
+    <a class="nav-sub" href="/?view=recruitment" onclick="if(trsPlain(event)){event.preventDefault();showView('recruitment', this)}">Recruitment</a>
+    <a class="nav-sub" href="/?view=novblasts" onclick="if(trsPlain(event)){event.preventDefault();showView('novblasts', this)}">Database Blasts, November 2026</a>
     <!-- Kate, 9 Nov 2026: Stripe vs Phorest, the four Stripe accounts checked against Phorest (stripe-phorest.js; Level 3 and up, and Belle by her own extra page). -->
-    <div class="nav-sub" onclick="showView('stripedeposits', this)">Stripe vs Phorest</div>
-    <div class="nav-sub" onclick="showView('complaintlog', this)">Log a Client Complaint</div>
-    <div class="nav-sub" data-cmp-pipeline data-status-id="complaintspipeline" onclick="location.href='/hub/complaint?view=board'">Complaints Pipeline</div>
-    <div class="nav-sub" data-tool-link onclick="location.href='/targets/'">Target Calculator</div>
-    <div class="nav-sub" data-tool-link onclick="window.open('https://katealsaybar.github.io/smm_board_approvals/', '_blank', 'noopener')">Post Approvals</div>
+    <a class="nav-sub" href="/?view=stripedeposits" onclick="if(trsPlain(event)){event.preventDefault();showView('stripedeposits', this)}">Stripe vs Phorest</a>
+    <a class="nav-sub" href="/?view=complaintlog" onclick="if(trsPlain(event)){event.preventDefault();showView('complaintlog', this)}">Log a Client Complaint</a>
+    <a class="nav-sub" data-cmp-pipeline data-status-id="complaintspipeline" href="/hub/complaint?view=board">Complaints Pipeline</a>
+    <a class="nav-sub" data-tool-link data-nav-key="l:location.href='/targets/'" href="/targets/">Target Calculator</a>
+    <a class="nav-sub" data-tool-link data-nav-key="l:window.open('https://katealsaybar.github.io/smm_board_approvals/', '_blank', 'noopener')" href="https://katealsaybar.github.io/smm_board_approvals/" target="_blank" rel="noopener">Post Approvals</a>
     <!-- Kate, 4 Nov 2026: Find a Stylist (Client to Staff Matching) in Tools. A Team Home page, so a link out; its Team Home card stays under Clients. -->
-    <div class="nav-sub" data-tool-min="1" onclick="location.href='/hub/find-stylist'">Find a Stylist</div>
+    <a class="nav-sub" data-tool-min="1" data-nav-key="l:location.href='/hub/find-stylist'" href="/hub/find-stylist">Find a Stylist</a>
     <!-- Upload Portal and the two WhatsApp senders (Kate, 30 Oct 2026): Team Home pages, so links out. data-tool-min is the OLD level number, the same as their kb_sections rows
          (uploads 4, staff-campaign 5, staff-wa 5); the pages and the database still decide who may open or send. -->
-    <div class="nav-sub" data-tool-min="4" onclick="location.href='/upload/'">Upload Portal</div>
-    <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/staff-campaign'">Staff Campaign Messages</div>
-    <div class="nav-sub" data-tool-min="4" onclick="location.href='/upload/payslips'">Payslips</div>
-    <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/staff-messages'">Staff Payroll WhatsApp</div>
-    <div class="nav-sub" data-tool-min="5" onclick="location.href='/upload/team-roster'">Team Roster</div>
-    <div class="nav-sub" data-tool-min="5" onclick="location.href='/hub/pagestatus'">Hide Pages &amp; Under Construction</div>
+    <a class="nav-sub" data-tool-min="4" data-nav-key="l:location.href='/upload/'" href="/upload/">Upload Portal</a>
+    <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/hub/staff-campaign'" href="/hub/staff-campaign">Staff Campaign Messages</a>
+    <a class="nav-sub" data-tool-min="4" data-nav-key="l:location.href='/upload/payslips'" href="/upload/payslips">Payslips</a>
+    <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/hub/staff-messages'" href="/hub/staff-messages">Staff Payroll WhatsApp</a>
+    <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/upload/team-roster'" href="/upload/team-roster">Team Roster</a>
+    <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/hub/pagestatus'" href="/hub/pagestatus">Hide Pages &amp; Under Construction</a>
   </div>
 
   <!-- Logout button -->
@@ -4674,7 +4677,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=7b4719d6"></script>
 <script src="pulse-drill.js?v=14b37921"></script>
-<script src="dashboard.js?v=39bb7ce5"></script>
+<script src="dashboard.js?v=f7058943"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5828,17 +5831,17 @@ addEventListener('load', sizeTopbar);
 
 </script>
 <!-- Kate, 9 Nov 2026: Rearrange Menu. Puts the rows in her own saved order BEFORE nav-collapse.js builds the folds from them (nav-layout.js). -->
-<script src="nav-layout.js?v=a8dc2643"></script>
+<script src="nav-layout.js?v=3ae19d17"></script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
-<script src="nav-collapse.js?v=93a8d3b4"></script>
+<script src="nav-collapse.js?v=4df04ef3"></script>
 <script src="nav-stars.js?v=c575eba8"></script>
 <script src="scroll-edges.js?v=95c16c04"></script>
 <script src="count-up.js?v=f80eaa82"></script>
-<script src="mobile.js?v=0aec8169"></script>
+<script src="mobile.js?v=564f8312"></script>
 <script src="phone-fold.js?v=0eea4012"></script>
 <script src="voice-mic.js?v=62fac83a"></script>
 <script src="metric-glossary.js?v=8f5b03ad"></script>
-<script src="search.js?v=6bbea80e"></script>
+<script src="search.js?v=49ba352f"></script>
 <script src="visits.js?v=1176426c"></script>
 <!-- Kate, 9 Nov 2026: the notification bell, on every signed-in page. -->
 <script src="/notifications.js?v=a52ed9df"></script>

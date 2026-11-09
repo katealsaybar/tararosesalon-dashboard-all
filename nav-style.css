@@ -104,3 +104,7 @@ aside.sidebar .nav-sub .nav-flag-hidden::before{background:color-mix(in srgb,var
 .pg-status{margin:0 0 14px;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.45;border:1px solid var(--border);color:var(--text)}
 .pg-status-construction{background:rgba(214,158,46,.14);border-color:rgba(214,158,46,.55)}
 .pg-status-hidden{background:color-mix(in srgb,var(--text) 6%,transparent)}
+
+/* Kate, 9 Nov 2026: the sidebar's pages are real links now (<a class="nav-sub" href="/?view=...">), so right-click offers Open link in new tab. They must look exactly as the rows
+   did: a zero-specificity rule, so every .nav-sub rule above and in index.html, nav-collapse.css and mobile.css (flex rows, stars, tags, the active fill) still wins. */
+:where(aside.sidebar a.nav-sub){display:block;text-decoration:none}

@@ -591,7 +591,7 @@ function wvSendPaint() {
   const tri = ssTriageHtml((i.failed || []).map(f => ({ id: f.id, cls: f.cls, error: f.error })), { retry: 'wvTriRetry', copy: 'wvTriCopy',
     stopSay: 'These fail the same way every time (no contact with that number in GHL, or GHL refused). Fix the contact in GHL, or message her by hand.' });
   box.innerHTML = `<div class="ll-panel wv-send">
-    <div class="wv-send-h"><div><b>Blast 3: send the next wave</b> <span class="slv-note">only you see this</span> <a class="slv-note" href="?view=wvperf" onclick="event.preventDefault();showView('wvperf', document.querySelector('#sidebar .nav-sub[onclick*=&quot;wvperf&quot;]'))">Results: Wellness Voucher Performance</a></div>
+    <div class="wv-send-h"><div><b>Blast 3: send the next wave</b> <span class="slv-note">only you see this</span> <a class="slv-note" href="?view=wvperf" onclick="if(!trsPlain(event))return;event.preventDefault();showView('wvperf', document.querySelector('#sidebar .nav-sub[onclick*=&quot;wvperf&quot;]'))">Results: Wellness Voucher Performance</a></div>
       <button type="button" class="tglr lc-btn wv-sw ${on ? 'on' : 'off'}" onclick="wvSendSwitch(${on ? 'false' : 'true'})" title="The kill switch. Off: nothing is sent, even what is already queued.">Sending is ${on ? 'ON' : 'OFF'} · turn ${on ? 'off' : 'on'}</button></div>
     <dl class="wv-facts wv-www"><div><dt>What is this</dt><dd>The switch and buttons that send a wave of Blast 3 through GoHighLevel.</dd></div>
       <div><dt>Why it matters</dt><dd>Sent messages cannot be called back.</dd></div>

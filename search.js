@@ -1221,6 +1221,8 @@
       const item = serpItems[+res.querySelector('.gs-r').dataset.i];
       if (!item) return;
       if (item.kind === 'kb') return;           // a real link: opens Team Home in a new tab
+      // A modified click on a page result is the browser's (new tab); a plain click, or any other kind of result, jumps in place.
+      if (!act && (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) && e.target.closest('a.gs-r') && e.target.closest('a.gs-r').getAttribute('href') !== '#') return;
       e.preventDefault();
       openResult(item, act ? item.acts[+act.dataset.a][1] : item.go);
     });
@@ -1490,7 +1492,9 @@
     const cards = pageRows.map((x, i) => {
       const snip = x.snip || x.s || (x.kind === 'page' ? pageSnip(x, q) : '');
       const acts = x.acts ? `<span class="gs-acts">${x.acts.map(([l], a) => `<button type="button" class="gs-act" data-a="${a}">${esc(l)}</button>`).join('')}</span>` : '';
-      const open = x.href ? `<a class="gs-r" data-i="${i}" href="${esc(x.href)}" target="_blank" rel="noopener">` : `<a class="gs-r" data-i="${i}" href="#">`;
+      // Kate, 9 Nov 2026: a result that opens a dashboard page is a real link to that page (/?view=...), so right-click offers Open link in new tab and a Ctrl/Cmd-click opens it in another tab; a plain click still jumps in place (the handler below).
+      const pageHref = !x.href && x.view && (x.kind === 'page' || x.kind === 'content') && typeof trsSlugOf === 'function' ? '/?view=' + trsSlugOf(x.view) : '';
+      const open = x.href ? `<a class="gs-r" data-i="${i}" href="${esc(x.href)}" target="_blank" rel="noopener">` : `<a class="gs-r" data-i="${i}" href="${pageHref || '#'}">`;
       const iso = x.updated || (x.sec && secDates ? secDates.get(x.sec) : '');
       const upd = iso ? `<div class="gs-r-upd"${x.sec ? ' title="When the newest page in this section was last changed"' : ''}>Updated ${esc(updatedLabel(iso))}</div>` : '';
       const feed = !upd && x.view && x.kind !== 'kb' ? feedHtml(x.view) : '';

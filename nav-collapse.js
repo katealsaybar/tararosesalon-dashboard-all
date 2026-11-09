@@ -148,7 +148,9 @@
     btn.addEventListener('click', e => {
       // The arrow folds, it does not navigate, and on a narrow screen it must
       // not close the panel either (the aside's own click handler would).
+      // Kate, 9 Nov 2026: the row is a real link now, and a button inside a link follows it in Chrome unless the click is cancelled.
       e.stopPropagation();
+      e.preventDefault();
       const open = parent.classList.contains('kids-folded');
       if (parent._gliding) return;
       if (open) opened[id] = 1; else delete opened[id];

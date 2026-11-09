@@ -337,7 +337,7 @@ function drawReviewsRail(items, o) {
     nav.dataset.sig = sig;
     nav.innerHTML = '<div class="side-k">On this page</div>' + items.map(i =>
       `<a href="#${i.id}" onclick="lgJump(event,'${i.id}')">${escapeHtml(i.label)}</a>`).join('') +
-      (goBlast ? `<a class="side-go" href="/?view=wvblast" onclick="event.preventDefault();showView('wvblast', null)">Wellness Voucher Message and Email Blasts</a>` : '');
+      (goBlast ? `<a class="side-go" href="/?view=wvblast" onclick="if(!trsPlain(event))return;event.preventDefault();showView('wvblast', null)">Wellness Voucher Message and Email Blasts</a>` : '');
   }
   doc.querySelectorAll('.rv-anchor').forEach(a => { if (!items.some(i => i.id === a.id)) a.remove(); });
   items.forEach(i => {
@@ -5609,7 +5609,7 @@ ${actionHtml}
 <div class="card">
   <div class="card-title">Every figure behind this read</div>
   <div class="card-sub">Day by day against each target, where the money came from, who came in, and the full staff tables.</div>
-  <a class="r-cta" href="#" onclick="showView('dailyperf', document.querySelector('[onclick*=&quot;dailyperf&quot;]'));return false">Open Daily Performance <span aria-hidden="true">→</span></a>
+  <a class="r-cta" href="/?view=dailyperf" onclick="if(!trsPlain(event))return;showView('dailyperf', document.querySelector('[onclick*=&quot;dailyperf&quot;]'));return false">Open Daily Performance <span aria-hidden="true">→</span></a>
 </div>
 
 <!-- Kate, 1 Oct 2026: the notes fold into a dropdown (nobody reads them unasked), and

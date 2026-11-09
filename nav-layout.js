@@ -17,6 +17,9 @@
   function keyOf(el) {
     var s = el.getAttribute('data-status-id');
     if (s) return s;
+    // Kate, 9 Nov 2026: a link out is now a real <a href>, with no onclick. data-nav-key holds the key its row had when it was a div (the onclick text), so a layout saved before still finds it.
+    var nk = el.getAttribute('data-nav-key');
+    if (nk) return nk;
     var oc = el.getAttribute('onclick') || '', m = oc.match(/showView\('([^']+)'/);
     if (m) return m[1];
     if (oc) return 'l:' + oc.replace(/\s+/g, ' ').trim();

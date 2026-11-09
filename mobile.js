@@ -201,7 +201,8 @@
   // ── 10. THE DRAWER ──
   // Its items are <div onclick>: make each one a keyboard button at every width
   // (focusable, Enter and Space), without changing how any of them looks.
-  document.querySelectorAll('aside.sidebar .nav-sub[onclick]').forEach(d => {
+  // Kate, 9 Nov 2026: a row that is a real link (<a href>) is left alone: it is already focusable, Enter follows it, and it must stay a link for a screen reader.
+  document.querySelectorAll('aside.sidebar .nav-sub[onclick]:not([href])').forEach(d => {
     if (!d.hasAttribute('role')) d.setAttribute('role', 'button');
     if (!d.hasAttribute('tabindex')) d.tabIndex = 0;
     d.addEventListener('keydown', e => {

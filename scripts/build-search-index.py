@@ -390,7 +390,8 @@ def fn_starts(src):
 def view_names():
     names = {}
     idx = (ROOT / 'index.html').read_text(encoding='utf-8')
-    for m in re.finditer(r"""<div class="nav-sub"[^>]*onclick="showView\('([^']+)'[^>]*>([^<]+)<""", idx):
+    # Kate, 9 Nov 2026: a sidebar page is an <a class="nav-sub" href="/?view=..."> with showView in its onclick (it used to be a div).
+    for m in re.finditer(r"""<a class="nav-sub"[^>]*onclick="[^"]*?showView\('([^']+)'[^>]*>([^<]+)<""", idx):
         names.setdefault(m.group(1), clean(m.group(2)))
     # A page that is a tab inside another page (pages.js "inside") has no sidebar entry but is still a page to index and to name.
     for p in page_list():
@@ -461,7 +462,7 @@ def registry_problems(names):
     # The sidebar's groups and subheads, in order, against the list's.
     idx = (ROOT / 'index.html').read_text(encoding='utf-8')
     group = sub = None
-    for m in re.finditer(r'<div class="nav-title">([^<]+)<|<div class="nav-subhead">([^<]+)<|<div class="nav-sub"[^>]*onclick="showView\(\'([^\']+)\'', idx):
+    for m in re.finditer(r'<div class="nav-title">([^<]+)<|<div class="nav-subhead">([^<]+)<|<a class="nav-sub"[^>]*onclick="[^"]*?showView\(\'([^\']+)\'', idx):
         if m.group(1):
             group, sub = clean(m.group(1)), None
         elif m.group(2):
