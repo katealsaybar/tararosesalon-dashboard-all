@@ -101,7 +101,8 @@ aside.sidebar .nav-sub .nav-flag-hidden::before{background:color-mix(in srgb,var
 .mast-flag[hidden]{display:none}
 .mast-flag-construction{background:rgba(214,158,46,.18);border-color:rgba(214,158,46,.55);color:var(--text)}
 .mast-flag-hidden{background:color-mix(in srgb,var(--text) 8%,transparent);border-color:var(--border);color:var(--muted)}
-.pg-status{margin:0 0 14px;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.45;border:1px solid var(--border);color:var(--text)}
+/* Slimmer (Kate, 9 Nov 2026: the small Under construction pill beside the page name already says it, so the notice is a thin line) */
+.pg-status{margin:0 0 8px;padding:4px 12px;border-radius:8px;font-size:12.5px;line-height:1.35;border:1px solid var(--border);color:var(--text)}
 .pg-status-construction{background:rgba(214,158,46,.14);border-color:rgba(214,158,46,.55)}
 .pg-status-hidden{background:color-mix(in srgb,var(--text) 6%,transparent)}
 
