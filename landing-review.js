@@ -101,7 +101,7 @@
     }).join('');
     el.innerHTML = '<div class="lpr">' +
       '<h2>Landing Page Review</h2>' +
-      '<p class="lpr-lead">The campaign landing pages, as clients will see them. All of them are still drafts. Open one, drop a comment on the exact spot you want changed, and Kate and Coach Emma see it straight away.</p>' +
+      '<p class="lpr-lead">The campaign landing pages, as clients will see them. All of them are still drafts. Open one, drop a comment on the exact spot you want changed, and Kate, Hanneh, and Coach Emma see it straight away.</p>' +
       '<div class="lpr-how"><div><b>1</b><span>Tap <strong>Open and comment</strong> on a page.</span></div><div><b>2</b><span>On the page, tap <strong>+ Add a comment</strong>.</span></div><div><b>3</b><span>Tap the spot, write what to change, post.</span></div></div>' +
       '<div class="lpr-bar"><div class="lpr-filters" role="group" aria-label="Show">' + chips + '</div>' +
         '<div class="lpr-seg" role="group" aria-label="Layout">' +
