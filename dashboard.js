@@ -792,7 +792,7 @@ function periodChips(shown) {
 // middot never becomes a click target.
 // Kate, 23 Oct 2026: "since wala pa tayong targets set for Bahrain, strike out muna sya, hindi pwede pindutin". Daily Performance is read against daily targets and
 // Bahrain has none yet, so on that page its chip is struck out and cannot be pressed. Add a view here when it is read against targets too.
-const NO_BAH_VIEWS = new Set(['dailyperf', 'clientmix', 'retention']);   // Client Mix (29 Oct 2026): its sales lines are the four UAE branches
+const NO_BAH_VIEWS = new Set(['dailyperf', 'clientmix', 'retention', 'stripedeposits']);   // Client Mix (29 Oct 2026): its sales lines are the four UAE branches
 const bahStruck = () => typeof CURRENT_VIEW !== 'undefined' && NO_BAH_VIEWS.has(CURRENT_VIEW);
 function chipRow(opts) {
   return opts.map((o, i) =>
@@ -845,7 +845,7 @@ function paintFilterChips() {
       ...BH_BRANCHES.map(code => ({
         v: code, label: BRANCH_INFO[code].name,
         on: sel.branch.includes(code),
-        ...(bahStruck() ? { disabled: true, cls: 'chip-strike', title: CURRENT_VIEW === 'clientmix' || CURRENT_VIEW === 'retention' ? (CURRENT_VIEW === 'retention' ? 'Retention covers the four UAE branches' : 'Client Mix covers the four UAE branches') : 'No targets set for Bahrain yet' } : {}),
+        ...(bahStruck() ? { disabled: true, cls: 'chip-strike', title: CURRENT_VIEW === 'stripedeposits' ? 'Stripe vs Phorest covers the four UAE salons' : CURRENT_VIEW === 'clientmix' || CURRENT_VIEW === 'retention' ? (CURRENT_VIEW === 'retention' ? 'Retention covers the four UAE branches' : 'Client Mix covers the four UAE branches') : 'No targets set for Bahrain yet' } : {}),
       })),
     ]);
   }
@@ -1507,7 +1507,7 @@ const LEDGER_VIEWS = new Set(TRS_PAGES.filter(p => p.ledger).map(p => p.id));   
 // nopulse: the four Ledgers pages, Podium Race and Staff Quadrant). A first load onto one no longer runs the Pulse behind it, and a Branch
 // or Period change redraws that page alone (PULSE_STALE, as for Daily Performance); the Pulse catches up when a page that needs it opens.
 const NOPULSE_VIEWS = new Set(TRS_PAGES.filter(p => p.nopulse).map(p => p.id));
-const NOPULSE_REDRAW = { ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam', supplierspend: 'renderSpend', lostclients: 'renderLostClients', complaints: 'cqRefresh', complaintlog: 'cqRefreshLog', marketingspend: 'mspendRefresh', toolspend: 'tsRefresh', dealsperf: 'renderDealsPerf', discountsvouchers: 'renderDiscountsVouchers', clientmix: 'renderClientMix', retention: 'renderRetention' };
+const NOPULSE_REDRAW = { ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam', supplierspend: 'renderSpend', lostclients: 'renderLostClients', complaints: 'cqRefresh', complaintlog: 'cqRefreshLog', marketingspend: 'mspendRefresh', toolspend: 'tsRefresh', dealsperf: 'renderDealsPerf', discountsvouchers: 'renderDiscountsVouchers', clientmix: 'renderClientMix', retention: 'renderRetention', stripedeposits: 'renderStripePhorest' };
 // Resolved by loadData() once the window, the last day of data, the address and the weekly table (its staff names classify Phorest-only
 // people) are in, so a page that needs only those can open before the rest of the load (the freshness badge, the Pulse) is done.
 let _winReadyRes = null;

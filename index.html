@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=6fa96a30"></script>
+<script src="pages.js?v=6044f3d7"></script>
 <script src="page-status.js?v=779c1d41"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
@@ -3601,6 +3601,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       rct: ['recruitment.js?v=bb37586c'],
       // November Blasts (2 Nov 2026): one file, only that page needs it. 5 Nov 2026: plus the spreadsheet export, the Results send log saves as XLSX and CSV.
       nvb: [LGX, 'nov-blasts.js?v=63ada929'],
+      // Stripe vs Phorest (9 Nov 2026): one file, reads stripe_vs_phorest(); the header's Branch and Period drive it.
+      spv: ['stripe-phorest.js?v=74f87c80'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'active-deals.js?v=442ed4c5'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -3834,6 +3836,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <!-- Kate, 9 Nov 2026: Recruitment, the applicant triage for Kate and Coach Emma only (recruitment.js; Level 5 and dashboard_users.extra_pages 'recruitment'). -->
     <div class="nav-sub" onclick="showView('recruitment', this)">Recruitment</div>
     <div class="nav-sub" onclick="showView('novblasts', this)">Database Blasts, November 2026</div>
+    <!-- Kate, 9 Nov 2026: Stripe vs Phorest, the four Stripe accounts checked against Phorest (stripe-phorest.js; Level 3 and up, and Belle by her own extra page). -->
+    <div class="nav-sub" onclick="showView('stripedeposits', this)">Stripe vs Phorest</div>
     <div class="nav-sub" onclick="showView('complaintlog', this)">Log a Client Complaint</div>
     <div class="nav-sub" data-cmp-pipeline data-status-id="complaintspipeline" onclick="location.href='/hub/complaint?view=board'">Complaints Pipeline</div>
     <div class="nav-sub" data-tool-link onclick="location.href='/targets/'">Target Calculator</div>
@@ -4471,6 +4475,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="novBlastsContent" style="max-width:1240px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
+  <!-- STRIPE VS PHOREST (Kate, 9 Nov 2026): every Stripe payment of the four salons checked against Phorest, from stripe_vs_phorest() (migrations/stripe_vs_phorest.sql).
+       stripe-phorest.js draws it; the header's Branch and Period drive it (pages.js filtered + nopulse, dashboard.js NOPULSE_REDRAW). Level 3 and up, and anyone given the page in extra_pages. -->
+  <div id="view-stripedeposits" style="display:none">
+    <main id="stripeContent"></main>
+  </div>
+
   <!-- ACTIVE DEALS PERFORMANCE (Kate, 23 Oct 2026): how many times each deal on the active deals brochure was bought at the till, in the Wellness
        Voucher Performance format. No filters of its own: it reads the masthead's Branch and Period (pages.js filtered + nopulse, dashboard.js
        NOPULSE_REDRAW). Level 2 and above, no client names. active_deals_performance() (migrations/active_deals_performance.sql); active-deals.js draws it. -->
@@ -4664,7 +4674,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=7b4719d6"></script>
 <script src="pulse-drill.js?v=14b37921"></script>
-<script src="dashboard.js?v=0b0a14e6"></script>
+<script src="dashboard.js?v=39bb7ce5"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5219,6 +5229,7 @@ function showView(view, el){
   if (view === 'landingreview') renderLandingReview();
   if (view === 'recruitment') renderRecruitment();
   if (view === 'novblasts') renderNovBlasts();
+  if (view === 'stripedeposits') renderStripePhorest();
   if (view === 'dealsperf') renderDealsPerf();
   if (view === 'discountsvouchers') renderDiscountsVouchers();
   if (view === 'googleads') renderGoogleAds();
