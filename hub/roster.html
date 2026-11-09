@@ -345,12 +345,16 @@
         '<form class="rs-form" id="rsForm" autocomplete="off">' +
           '<label>Full name<input type="text" id="rsName" required></label>' +
           '<label>Email<input type="email" id="rsEmail" required></label>' +
-          '<label>Level<select id="rsLevel">' + [2, 3, 4].map(function (l) {
-            return '<option value="' + l + '">Level ' + KB.lvNo(l) + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
-          }).join('') + '</select></label>' +
+          '<label>Level<select id="rsLevel">' +
+            '<option value="t1">Level 1 · Stylists &amp; Beauticians</option>' +
+            '<option value="t2">Level 2 · Reception &amp; Call Centre</option>' +
+            [2, 3, 4].map(function (l) {
+              return '<option value="' + l + '"' + (l === 2 ? ' selected' : '') + '>Level ' + KB.lvNo(l) + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
+            }).join('') + '</select></label>' +
+          '<label id="rsTeamWrap" style="display:none">Team<select id="rsTeam"></select></label>' +
           '<label>Region<select id="rsScope"><option value="">All branches</option><option value="BAH">Bahrain only</option></select></label>' +
           '<button type="submit" class="rs-addbtn" id="rsAddGo">Add and send invite</button>' +
-          '<p class="rs-hint">They get the Team Home invite email straight away. Level 6 is not set here.</p>' +
+          '<p class="rs-hint">Levels 3 to 5 get the Team Home invite email straight away. Levels 1 and 2 have no invite: once Team Home is open to the team they sign in themselves with this email. Level 6 is not set here.</p>' +
         '</form></div>' : '') +
       (data.staff_open ? '' : '<div class="kb-note">Team Home isn’t open to the salon team yet, so they can’t sign in until it is.</div>') +
       '<div class="rs-bar">' +
@@ -448,6 +452,17 @@
     }
     if (byLevel) {
       var form = document.getElementById('rsForm');
+      // Levels 1 and 2 sit on the team list (kb_add_staff), not on the dashboard list: pick the team.
+      var TEAM_OPTS = { t1: ['Hair', 'Beauty'], t2: ['Front Desk', 'Call Centre'] };
+      function syncTeam() {
+        var v = document.getElementById('rsLevel').value, wrap = document.getElementById('rsTeamWrap'), sel = document.getElementById('rsTeam');
+        var go = document.getElementById('rsAddGo');
+        if (TEAM_OPTS[v]) {
+          sel.innerHTML = TEAM_OPTS[v].map(function (t) { return '<option>' + t + '</option>'; }).join('');
+          wrap.style.display = 'flex'; go.textContent = 'Add person';
+        } else { sel.innerHTML = ''; wrap.style.display = 'none'; go.textContent = 'Add and send invite'; }
+      }
+      document.getElementById('rsLevel').addEventListener('change', syncTeam);
       document.getElementById('rsAddBtn').addEventListener('click', function () {
         form.classList.toggle('open');
         if (form.classList.contains('open')) document.getElementById('rsName').focus();
@@ -455,15 +470,21 @@
       form.addEventListener('submit', async function (e) {
         e.preventDefault();
         var name = document.getElementById('rsName').value.trim(), email = document.getElementById('rsEmail').value.trim().toLowerCase();
-        var level = parseInt(document.getElementById('rsLevel').value, 10), scope = document.getElementById('rsScope').value || null;
-        if (!confirm('Add ' + name + ' (' + email + ') at Level ' + KB.lvNo(level) + (scope ? ', Bahrain only' : '') + ' and email them the invite?')) return;
+        var lvVal = document.getElementById('rsLevel').value, scope = document.getElementById('rsScope').value || null;
+        var isTeam = lvVal.charAt(0) === 't', team = document.getElementById('rsTeam').value;
+        var level = isTeam ? 1 : parseInt(lvVal, 10);
+        var lvLabel = isTeam ? (lvVal === 't1' ? 'Level 1' : 'Level 2') + ', ' + team : 'Level ' + KB.lvNo(level);
+        if (!confirm('Add ' + name + ' (' + email + ') at ' + lvLabel + (scope ? ', Bahrain only' : '') + (isTeam ? '? No invite email is sent, they sign in themselves with this email.' : ' and email them the invite?'))) return;
         var go = document.getElementById('rsAddGo'); go.disabled = true; go.textContent = 'Adding…';
-        var s = await KB.client.rpc('kb_add_user', { p_email: email, p_name: name, p_level: level, p_scope: scope });
-        go.disabled = false; go.textContent = 'Add and send invite';
+        var s = isTeam
+          ? await KB.client.rpc('kb_add_staff', { p_email: email, p_name: name, p_team: team, p_scope: scope })
+          : await KB.client.rpc('kb_add_user', { p_email: email, p_name: name, p_level: level, p_scope: scope });
+        go.disabled = false; syncTeam();
         if (s.error) { alert('Not added: ' + s.error.message); return; }
-        form.reset(); form.classList.remove('open');
+        form.reset(); syncTeam(); form.classList.remove('open');
         await reload();
-        alert(name + ' is on the list at Level ' + KB.lvNo(level) + '. The invite email goes out in a few seconds.');
+        alert(isTeam ? name + ' is on the list at ' + lvLabel + '. There is no invite email for this level: they sign in with this email once Team Home is open to the team.'
+                     : name + ' is on the list at ' + lvLabel + '. The invite email goes out in a few seconds.');
       });
       // Revoke access (kb_revoke_access): shuts the person out altogether, any level or
       // position: off the dashboard list (a copy is kept), onto the block list, sign-in
