@@ -154,6 +154,8 @@
 .tk-file:hover{border-color:var(--muted)}
 .tk-file img{width:100%;height:100%;object-fit:cover;display:block}
 .tk-ft{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:var(--muted)}
+a.tk-img{color:var(--text);font-weight:600;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+a.tk-img:not([data-i]){text-decoration:none;font-weight:500;color:var(--muted);cursor:default}
 .tk-fn{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.58);color:#fff;font-size:11px;line-height:1.25;padding:3px 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .tk{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);align-items:start}
 @media (min-width:1180px){.tk{grid-template-columns:280px minmax(0,1fr) 300px}}
@@ -173,6 +175,7 @@
 button.tk-pill{cursor:pointer}
 .tk-tabs{display:flex;gap:18px;border-bottom:1px solid var(--border);margin-bottom:10px;font-size:14px}
 .tk-tabs button{background:none;border:0;border-bottom:2px solid transparent;font:inherit;color:var(--muted);padding:6px 0;cursor:pointer}
+.tk-sys{margin-left:auto;display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;cursor:pointer;padding:6px 0}.tk-sys input{margin:0;accent-color:#3AA892}
 .tk-tabs button.on{color:var(--text);font-weight:600;border-bottom-color:#3AA892}
 .tk-comp{position:relative;margin-bottom:6px}
 .tk-menu{position:absolute;left:0;top:100%;margin-top:4px;width:min(320px,100%);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 26px rgba(40,30,20,.16);padding:6px;z-index:5}
@@ -204,6 +207,7 @@ button.tk-pill{cursor:pointer}
 <script src="/page-status.js?v=779c1d41"></script>
 <script src="/hub/hub.js?v=bf100e65"></script>
 <script src="/cmp-people.js?v=5925547b"></script>
+<script src="/cmp-gallery.js?v=4f7ad4b3"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc, CP = window.CmpPeople;
@@ -215,7 +219,7 @@ button.tk-pill{cursor:pointer}
   var P = new URLSearchParams(location.search);
   var cid = Number(P.get('cid')) || 0, view = P.get('view') || '', forceTicket = P.get('t') === '1';
   var timer = 0, badge = null;
-  var S = { c: null, tab: 'activity', mentions: {}, draft: '', open: '', tagKind: 'copied', board: { branch: 'all', serious: false, grp: '', cards: [], move: null, drag: null, toast: '', bad: false }, pick: [] };
+  var S = { c: null, sys: false, tab: 'activity', mentions: {}, draft: '', open: '', tagKind: 'copied', board: { branch: 'all', serious: false, grp: '', cards: [], move: null, drag: null, toast: '', bad: false }, pick: [] };
   var cap = function (s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); };
   // Triage is hidden until Kate switches it on (cmp-people.js, ?triage=1): no chain, no clock, no messages, no assign or tag.
   var TRI = !!(window.CmpTriage && window.CmpTriage.on);
@@ -537,16 +541,42 @@ button.tk-pill{cursor:pointer}
   }
 
   // ---------------------------------------------------------------- notes with @
+  // the files of this complaint, oldest first (set by loadFiles). A note ends with "Attached: name, name" and those long names show as "Image 1", "Image 2"
+  // links that open the pop-up viewer (Kate, 9 Nov 2026: "image links na lang, no need full name nung screenshots").
+  var GFILES = null, GALLERY = [];
+  function attLabel(name) {
+    var i = GFILES ? GFILES[name] : null;
+    if (i == null) return { i: -1, t: 'Image' };
+    var g = GALLERY[i]; return { i: i, t: g && !/^image\//.test(g.mime) || (g && /heic/i.test(g.mime)) ? name : 'Image ' + (i + 1) };
+  }
+  function relabelAttached() {
+    document.querySelectorAll('a.tk-img[data-fname]').forEach(function (a) {
+      var l = attLabel(a.getAttribute('data-fname')); a.textContent = l.t; if (l.i >= 0) a.setAttribute('data-i', l.i); else a.removeAttribute('data-i');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a.tk-img'); if (!a) return;
+    e.preventDefault();
+    var i = parseInt(a.getAttribute('data-i'), 10);
+    if (i >= 0 && window.CmpGallery) window.CmpGallery.open(i);
+  });
   function noteHtml(t) {
     var names = (CP && CP.list || []).map(function (p) { return p.short; }).sort(function (a, b) { return b.length - a.length; }).map(function (s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
     var out = esc(t);
     if (names.length) out = out.replace(new RegExp('@(' + names.join('|') + ')', 'g'), '<span class="tk-at">@$1</span>');
+    out = out.replace(/(^|\n)Attached: ([^\n]+)/g, function (m, pre, list) {
+      return pre + 'Attached: ' + list.split(', ').map(function (n) {
+        var raw = n.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"), l = attLabel(raw);
+        return '<a href="#" class="tk-img" data-fname="' + esc(raw) + '"' + (l.i >= 0 ? ' data-i="' + l.i + '"' : '') + '>' + esc(l.t) + '</a>';
+      }).join(' · ');
+    });
     return out;
   }
   function timelineHtml(c) {
     var tab = TRI ? S.tab : 'activity', items = (c.timeline || []);
     if (!TRI) items = items.filter(function (x) { return x.kind === 'note' || x.kind === 'reply' || x.kind === 'logged' || (x.kind === 'system' && !/^Assigned to /.test(x.text || '')); });
     var MSG = { notified: 1, cc: 1, tag_sent: 1, assigned_sent: 1, failed: 1, escalated: 1, remind_reply: 1, remind_close: 1, question_sent: 1 };
+    if (TRI && !S.sys && tab === 'activity') items = items.filter(function (x) { return x.kind === 'note' || x.kind === 'reply' || x.kind === 'logged'; });
     items = items.filter(function (x) { return tab === 'notes' ? (x.kind === 'note' || x.kind === 'reply') : tab === 'messages' ? !!MSG[x.kind] : true; });
     if (!items.length) return '<p class="cp-sm" style="margin:8px 0">' + (tab === 'notes' ? 'No notes yet.' : tab === 'messages' ? 'No messages sent yet.' : 'Nothing yet.') + '</p>';
     return items.map(function (x) {
@@ -673,7 +703,7 @@ button.tk-pill{cursor:pointer}
     document.title = cname(c);
     var pr = cprio(c);
     var h = '<div class="cp wide">' + nav('') + (TRI ? '<a class="sub" href="' + (fromBoard ? '/hub/complaint?view=board' : '/hub/complaint') + '">← ' + (fromBoard ? 'Pipeline' : 'My complaints') + '</a>' : '<a class="sub" href="/?view=complaintlog">← Log a Client Complaint</a>');
-    if (TRI && t && t.dry_run) h += '<div class="cp-dry">Dry run: nobody else was messaged, this is only to see how it looks.</div>';
+    if (TRI && t && t.dry_run) h += '<div class="cp-dry" id="tkDry"' + (S.sys ? '' : ' hidden') + '>Dry run: nobody else was messaged, this is only to see how it looks.</div>';
     if (TRI && c.tagged_me) h += '<div class="cp-tagline">' + esc(c.tagged_me.by || 'Someone') + ' tagged you on this. Nothing is needed from you unless you want to add something.</div>';
     if (c.duplicate_of) h += '<div class="cp-tagline">This is a duplicate of <b>' + esc(c.duplicate_code || 'another complaint') + '</b>. It stays on file and is not counted twice.</div>';
     h += '<div class="tk-head"><div>' + codeChip(c.code) + '<h1 style="margin-top:8px">' + esc(cname(c)) + '</h1><div class="sub">Logged by ' + esc(c.by || 'someone') + (c.by_at ? ', ' + esc(clock(c.by_at)) : '') + '</div></div>' +
@@ -692,7 +722,7 @@ button.tk-pill{cursor:pointer}
       (c.services ? '<div class="tk-prop"><span>Service</span><b>' + esc(c.services) + '</b></div>' : '') +
       (c.stylists ? '<div class="tk-prop"><span>Stylist</span><b>' + esc(c.stylists) + '<br><span class="cp-sm">recorded, not messaged</span></b></div>' : '') +
       '<div style="margin-top:12px">' + peopleBlock(c) + '</div></div>';
-    h += '<div><div class="tk-tabs" role="tablist">' + (TRI ? [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']] : [['activity', 'Activity']]).map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>' +
+    h += '<div><div class="tk-tabs" role="tablist">' + (TRI ? [['activity', 'Activity'], ['notes', 'Notes'], ['messages', 'Messages sent']] : [['activity', 'Activity']]).map(function (x) { return '<button type="button" role="tab" data-tab="' + x[0] + '" class="' + (S.tab === x[0] ? 'on' : '') + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + (TRI ? '<label class="tk-sys"><input type="checkbox" id="tkSys"' + (S.sys ? ' checked' : '') + '> Show system activity</label>' : '') + '</div>' +
       '<div class="tk-comp"><textarea class="cp-ta" id="tkNote" placeholder="Write a note. Type @ to tag someone." aria-label="Write a note">' + esc(S.draft) + '</textarea><div class="tk-menu" id="tkMenu" hidden></div></div>' +
       (c.revealed ? '<div class="tk-att"><label class="cp-btn sub mini" style="cursor:pointer">Attach a photo or file<input type="file" id="tkFile" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/heic,application/pdf,text/plain" hidden></label><span id="tkChosen" class="tk-att"></span></div>' : '') +
       '<div class="cp-btnrow" style="grid-template-columns:auto 1fr;align-items:center"><button type="button" class="cp-btn pri mini" id="tkSend">Add note</button><div class="cp-msg" id="tkNoteMsg" aria-live="polite"></div></div>' +
@@ -722,12 +752,18 @@ button.tk-pill{cursor:pointer}
     if (!fs.length) { none(c.revealed ? 'The files did not load. Refresh to try again.' : 'Files are shown to the person who took it.'); return; }
     var sg = await KB.client.storage.from('complaint-files').createSignedUrls(fs.map(function (f) { return f.path; }), 3600);
     var urls = {}; ((sg && sg.data) || []).forEach(function (u) { if (u && u.path && u.signedUrl) urls[u.path] = u.signedUrl; });
-    box.innerHTML = fs.map(function (f) {
-      var u = urls[f.path]; if (!u) return '';
-      var mime = f.mime || '', pic = /^image\//.test(mime) && !/heic/i.test(mime);
-      var inner = pic ? '<img loading="lazy" src="' + esc(u) + '" alt="' + esc(f.name) + '">' : '<span class="tk-ft">' + (/pdf/i.test(mime) ? 'PDF' : /^image\//.test(mime) ? 'Photo' : 'File') + '</span>';
-      return '<a class="tk-file" href="' + esc(u) + '" target="_blank" rel="noopener" title="' + esc(f.name + (f.by ? ', ' + f.by : '')) + '">' + inner + '<span class="tk-fn">' + esc(f.name) + '</span></a>';
+    // oldest first, numbered 1, 2, 3...; a click opens the pop-up viewer (cmp-gallery.js), Ctrl/middle click opens the file in its own tab (Kate, 9 Nov 2026)
+    fs = fs.filter(function (f) { return urls[f.path]; }).sort(function (a, b) { return (new Date(a.at) - new Date(b.at)) || ((a.id || 0) - (b.id || 0)); });
+    var gal = fs.map(function (f) { return { u: urls[f.path], name: f.name, mime: f.mime || '', by: f.by, at: f.at }; });
+    GFILES = {}; fs.forEach(function (f, i) { if (GFILES[f.name] == null) GFILES[f.name] = i; });
+    box.innerHTML = fs.map(function (f, i) {
+      var u = urls[f.path], mime = f.mime || '', pic = /^image\//.test(mime) && !/heic/i.test(mime);
+      var inner = pic ? '<img loading="lazy" src="' + esc(u) + '" alt="Image ' + (i + 1) + '">' : '<span class="tk-ft">' + (/pdf/i.test(mime) ? 'PDF' : /^image\//.test(mime) ? 'Photo' : 'File') + '</span>';
+      return '<a class="tk-file" data-i="' + i + '" href="' + esc(u) + '" target="_blank" rel="noopener" title="' + esc((pic ? 'Image ' + (i + 1) : f.name) + (f.by ? ', ' + f.by : '')) + '"><span class="tk-no">' + (i + 1) + '</span>' + inner + (pic ? '' : '<span class="tk-fn">' + esc(f.name) + '</span>') + '</a>';
     }).join('') || '<p class="cp-sm" style="margin:0;grid-column:1/-1">The files did not open. Refresh to try again.</p>';
+    GALLERY = gal;
+    if (window.CmpGallery) window.CmpGallery.mount(box, gal);
+    relabelAttached();
     box.querySelectorAll('img').forEach(function (im) { im.addEventListener('error', function () { var a = im.parentNode; im.remove(); a.insertAdjacentHTML('afterbegin', '<span class="tk-ft">Photo</span>'); }); });
   }
 
@@ -838,6 +874,14 @@ button.tk-pill{cursor:pointer}
   });
 
   // ---------------------------------------------------------------- clicks
+  // the system lines (assigned, tagged, message not delivered, reminders) and the dry-run bar are hidden by default; one tick shows them (Kate, 9 Nov 2026)
+  S.sys = lsGet('cmp-show-system') === '1';
+  main.addEventListener('change', function (e) {
+    if (!e.target || e.target.id !== 'tkSys') return;
+    S.sys = e.target.checked; lsSet('cmp-show-system', S.sys ? '1' : '0');
+    var tl = document.getElementById('tkTimeline'); if (tl && S.c) { tl.innerHTML = timelineHtml(S.c); relabelAttached(); }
+    var dry = document.getElementById('tkDry'); if (dry) dry.hidden = !S.sys;
+  });
   main.addEventListener('click', async function (e) {
     var cp = e.target.closest('[data-copy]');
     if (cp) { copyText(cp); return; }

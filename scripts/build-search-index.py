@@ -87,6 +87,7 @@ NOT_PAGES = {
     'pages.js': 'the list of dashboard pages: names, levels, slugs; read by the check below',
     'page-status.js': 'the Under construction / Hidden tag and notice (Hide Pages & Under Construction, Kate 3 Nov 2026)',
     'nav-layout.js': 'puts the sidebar rows in the order Kate chose on Rearrange Menu (Kate 9 Nov 2026); draws nothing of its own',
+    'cmp-gallery.js': 'the pop-up photo viewer on the Team Home complaint ticket (oldest first, arrows and swipe)',
     'cmp-people.js': 'the people list and picker shared by Log a Complaint and the Team Home complaint ticket (names come from the database)',
     'notifications.js': 'the bell and the one popup on every signed-in page (Notices, Kate 9 Nov 2026); text comes from the database',
     'site-presence.js': 'tells the database the site is open, for the green dots in the complaint pickers; draws nothing',
