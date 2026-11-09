@@ -60,7 +60,7 @@
   var D = null, LIVE = null, LEFT = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null, termsFor = '', draft = {};
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   var RESID = 'RESULTS', RES = null, resErr = false, resTimer = null;   // the Results view (Kate, 4 Nov 2026): how the blasts did, read live from nov_results()
-  var SND = null, sndM = null, sndTyped = '', sndImg = '', sndPhone = '', sndPrev = null, sndTest = null, sndErr = '', sndBusy = false, sndTimer = null, sndAt = { on: false, v: '' }, sndPrevTok = 0, RWHEN = {};   // the send control (Level 5); sndAt = the Resend failed time (Dubai, 'YYYY-MM-DDTHH:MM'), RWHEN = when a scheduled resend goes, per blast
+  var SND = null, LOCKI = null, sndM = null, sndTyped = '', sndImg = '', sndPhone = '', sndPrev = null, sndTest = null, sndErr = '', sndBusy = false, sndTimer = null, sndAt = { on: false, v: '' }, sndPrevTok = 0, RWHEN = {};   // the send control (Level 5); sndAt = the Resend failed time (Dubai, 'YYYY-MM-DDTHH:MM'), RWHEN = when a scheduled resend goes, per blast
   window.nvbUrlParts = function () {
     var p = [], first = D && D.items.filter(isBlast)[0], b = D ? cur : wantBlast, t = D ? tab : (wantTab || 'messages');
     if (t && t !== 'messages') p.push('tab=' + encodeURIComponent(t));
@@ -414,6 +414,54 @@
       '<p class="cbl-hint">' + esc(t.intro) + '</p><ol class="nvb-tcl">' + (t.pts || []).map(function (p) { return '<li><b>' + esc(p[0]) + '</b> ' + esc(p[1]) + '</li>'; }).join('') + '</ol></div></div></div>';
   }
   /* The Kate: schedule card (Change day or time) is gone from the blast pages (Kate, 4 Nov 2026); schedHtml and the sched: handler stay unused, nov_blast_schedule and the data are untouched. */
+  function termsText(b) {
+    var tm = item('terms'), T = b && b.data.tkey && tm && tm.data ? tm.data[b.data.tkey] : null; if (!T) return '';
+    return T.title + '\n\n' + T.intro + '\n\n' + (T.pts || []).map(function (p, i) { return (i + 1) + '. ' + p[0] + ' ' + p[1]; }).join('\n');
+  }
+  function copyTerms(id) {
+    var b = item(id), txt = termsText(b), n = document.getElementById('nvbTcNote');
+    var done = function () { if (n) n.textContent = 'Copied.'; }, fb = function () { var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { if (n) n.textContent = 'Select the text and copy it.'; } ta.parentNode.removeChild(ta); };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, fb); else fb(); } catch (e) { fb(); }
+  }
+  /* The flow in words, from the same data the phone plays (nov_blast_items data.flow): what she does, what we send. */
+  function flowSteps(b) {
+    var d = b.data, f = d.flow, say = function (s) { return esc(String(s).replace(/\{\{1\}\}/g, 'Layla').replace(/\{\{2\}\}/g, 'Saadiyat').replace(/\{\{3\}\}/g, d.end || '30 November 2026')).replace(/\n/g, '<br>'); };
+    var steps = [];
+    if (!f || !f.root || !f.root.length) {
+      steps = [['Template goes out', 'No buttons on this one, only the footer line.', ''], ['She types a reply', 'It goes to the call centre team, who answer her in respond.io.', '']];
+    } else {
+      steps.push(['Template goes out', 'The message and these buttons: ' + f.root.map(function (x) { return x.l; }).join(', ') + '.', '']);
+      var seen = {}, q = f.root.slice();
+      while (q.length) {
+        var x = q.shift(), n = f.nodes && f.nodes[x.to]; if (!n || seen[x.to]) continue; seen[x.to] = 1;
+        var sub = n.call ? 'Her answer goes to the call centre team, who are told.' : (n.b && n.b.length ? 'Then these buttons: ' + n.b.map(function (y) { return y.l; }).join(', ') + '.' : '');
+        var txt = n.t + (n.fu ? '\nNo answer after 1 hour: ' + n.fu : '');
+        steps.push(['She taps ' + x.l, sub, txt]); (n.b || []).forEach(function (y) { q.push(y); });
+      }
+      steps.push(['She types a message instead', 'It goes to the call centre team.', '']);
+    }
+    steps.push(['She types STOP', 'She is marked as opted out and left out of every later send.', '']);
+    return '<ol class="nvb-flowsteps">' + steps.map(function (s) { return '<li><b>' + esc(s[0]) + '</b>' + (s[1] ? '<span>' + esc(s[1]) + '</span>' : '') + (s[2] ? '<div class="nvb-say">' + say(s[2]) + '</div>' : '') + '</li>'; }).join('') + '</ol>';
+  }
+  function tplDetails(b) {
+    var d = b.data, m = d.msg && (d.msg.warm || d.msg.std) || '', vs = [], nm = { 1: 'first name', 2: 'salon', 3: 'end date' };
+    m.replace(/\{\{(\d)\}\}/g, function (a, n) { if (vs.indexOf(n) < 0) vs.push(n); return a; });
+    var btn = (d.flow && d.flow.root || []).map(function (x) { return x.l; }), row = function (k, v) { return '<div><small>' + esc(k) + '</small><span>' + v + '</span></div>'; };
+    return '<div class="nvb-kvs">' + row('Category and language', 'Marketing, English (UK)') + row('Variables', vs.length ? vs.map(function (n) { return '{{' + n + '}} ' + (nm[n] || ''); }).join(', ') : 'None') +
+      row('Header image', d.tkey || d.img ? 'Yes' : 'No') + row('Footer', d.footer ? esc(d.footer) : 'None') + row('Buttons', btn.length ? esc(btn.join(', ')) : 'None') + '</div>';
+  }
+  function termsSection(b) {
+    var tm = item('terms'), T = b.data.tkey && tm && tm.data ? tm.data[b.data.tkey] : null;
+    if (!T) return '<p class="nvb-small nvb-noterms">No terms: no offer in this message.</p>';
+    return '<h4 class="nvb-h4">' + esc(T.title) + '</h4><p class="nvb-small">' + esc(T.intro) + '</p><ol class="nvb-tcl">' + (T.pts || []).map(function (p) { return '<li><b>' + esc(p[0]) + '</b> ' + esc(p[1]) + '</li>'; }).join('') + '</ol>' +
+      '<div class="nvb-sbtns"><button type="button" class="nvb-btn" data-nvb="copyterms:' + esc(b.id) + '">Copy the terms</button><span class="nvb-small" id="nvbTcNote"></span></div>';
+  }
+  function whenSection(b, d) {
+    var rows = [['Day and time', esc(fdateY(d.date)) + ', ' + esc(fmtClock(clockMins(b)))]];
+    if (aqDate(b) !== d.date) rows.push(['Al Quoz', esc(fdateY(aqDate(b)))]);
+    var pre = item('pre'), snd = pre && pre.data && pre.data.sender; if (snd) rows.push(['Who sends', 'The call centre, from ' + esc(snd.waba) + (snd.number ? ', ' + esc(snd.number) : '')]);
+    return '<div class="nvb-kvs">' + rows.map(function (r) { return '<div><small>' + esc(r[0]) + '</small><span>' + r[1] + '</span></div>'; }).join('') + '</div>' + (isL5() && SND ? (lockedNow() ? lockDisable(paceHtml()) : paceHtml()) : '');
+  }
   function blastMain(b) {
     var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = sorted().map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
     var ln = lanesOf(b, c);
@@ -422,18 +470,23 @@
       (c && c.unchecked ? '<p class="nvb-wa-note"><b>WhatsApp check:</b> ' + fmtN(c.unchecked) + ' of these ' + fmtN(c.n) + ' have not been checked in respond.io yet. The overnight check does it; Count again tomorrow morning. Numbers that are landlines, invalid, or not found there are left out (SMS-only).</p>' : '') +
       '<p><b>No repeats.</b> Left out: anyone messaged in October’s Lost Clients blasts or Wellness Voucher blasts 3 and 4, by name and by phone number, anyone we wrote to on WhatsApp since 9 Oct, and every opt-out. Not checked: Wellness Voucher blasts 1 and 2 (August), their recipients are only in GHL.</p>';
     var facts = '<div class="nvb-facts"><div><b>Cost, at most</b>' + (c ? calcNum('AED ' + fmtN(Math.round(c.n * RATE_AED)), 'cost', b.id) : '…') + '</div><div><b>Target by 30 Nov</b>' + esc(d.gold) + '</div><div><b>Message test</b>' + esc(d.arms) + '</div><div><b>Valid until</b>' + esc(d.valid || '30 November 2026') + '</div></div>';
-    return '<div class="cbl-pos"><a href="?view=novblasts" data-nvb="sel:' + esc(pv || b.id) + '"' + (pv ? '' : ' class="off"') + '>‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=novblasts" data-nvb="sel:' + esc(nx || b.id) + '"' + (nx ? '' : ' class="off"') + '>Next ›</a></div>' +
-      '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdateY(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdateY(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>' +
-      '<div class="cbl-card cbl-nums"><div><small>Clients</small><b>' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</b><span class="cbl-live">' + (c && c.sent_here ? fmtN(c.sent_here) + ' sent, ' + fmtN(c.unsent || 0) + ' not sent yet. ' : '') + (ed ? 'Tap the number to see the clients.' : '') + '</span>' + leftHtml(b) + '</div>' +
-      '<div><small>Who</small>' + whoHtml(d) + tplHtml(b) + '</div><div><small>She gets</small>' + esc(d.gets || d.valid || '') + '</div></div>' +
-      sendCardHtml(b) +
+    var posHead = '<div class="cbl-pos"><a href="?view=novblasts" data-nvb="sel:' + esc(pv || b.id) + '"' + (pv ? '' : ' class="off"') + '>‹ Previous</a><span>Blast ' + (i + 1) + ' of ' + ids.length + '</span><a href="?view=novblasts" data-nvb="sel:' + esc(nx || b.id) + '"' + (nx ? '' : ' class="off"') + '>Next ›</a></div>' +
+      '<div class="cbl-head"><div><div class="cbl-eyebrow">' + esc(fdateY(d.date)) + ', ' + esc(fmtClock(clockMins(b))) + (aqDate(b) !== d.date ? '. Al Quoz: ' + esc(fdateY(aqDate(b))) : '') + '</div><h2>' + esc(d.title) + '</h2></div><span class="cbl-chip ' + rcls(rv) + '">' + lab(rv) + '</span></div>';
+    var s1 = rsSec('1. Who gets it', 'Which clients are in this blast, and how many?',
+      '<div class="nvb-bigno">' + (c ? num(c.n, tl + ', every client', { p_blast: b.id }) : (liveErr ? '?' : '…')) + '</div><p class="nvb-small">' + (c && c.sent_here ? fmtN(c.sent_here) + ' sent, ' + fmtN(c.unsent || 0) + ' not sent yet. ' : '') + (ed ? 'Tap the number to see the clients.' : '') + '</p>' + leftHtml(b) + who);
+    var s2 = rsSec('2. The message', 'What does she read on her phone, and what happens when she taps?',
       '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-nvb="flowbig">' + FLOWICON + 'See the flow bigger</button></div>' +
       '<div class="cbl-phones' + (ln.one ? ' nvb-onephone' : '') + '" id="nvbPhones">' + ln.html + '</div>' +
-      '<div class="nvb-after nvb-afterrow">' + (d.tkey ? '<button type="button" class="nvb-btn" data-nvb="terms:' + esc(b.id) + '">Terms</button>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') +
+      '<div class="nvb-after nvb-afterrow">' + (d.tkey ? '<a class="nvb-btn" href="#nvbTerms">Terms and conditions</a>' : '<span class="nvb-small nvb-noterms">No terms: no offer in this message.</span>') +
       '<button type="button" class="nvb-btn' + (sim[b.id] ? ' pri' : '') + '" data-nvb="sim:' + esc(b.id) + '" aria-pressed="' + (sim[b.id] ? 'true' : 'false') + '">If she replies</button></div>' +
-      (isSplit(b) ? '<p class="nvb-small nvb-afterrow">Warm: last visit in the last 90 days' + warmSince() + '. ' + WHY_SPLIT + '</p>' : '') +
-      reviewHtml(b, rv, ed) +
-      '<div class="nvb-stack">' + fold('who', 'Who gets it, and who is left out', '', who) + fold('facts', 'Cost, target and test', '', facts) + planHtml() + octHtml() + knowHtml() + '</div>';
+      (isSplit(b) ? '<p class="nvb-small nvb-afterrow">Warm: last visit in the last 90 days' + warmSince() + '. ' + WHY_SPLIT + '</p>' : ''));
+    var s3 = rsSec('3. Template in respond.io', 'What exactly is in the template?', tplHtml(b).replace('nvb-tplbox', 'nvb-tplbox nvb-tplnb') + tplDetails(b));
+    var s4 = rsSec('4. If she replies', 'What happens in WhatsApp when she taps or types?', flowSteps(b));
+    var s5 = '<span id="nvbTerms"></span>' + rsSec('5. Terms and conditions', 'What are the terms that go with this blast?', termsSection(b));
+    var s6 = isL5() && SND ? rsSec('6. Sending', 'Is sending on, how far did it get, and what can be sent again?', sendBarHtml() + sendCardHtml(b)) : '';
+    var s7 = rsSec('7. When it goes out', 'When did it go out, and how?', whenSection(b, d));
+    return posHead + s1 + s2 + s3 + s4 + s5 + s6 + s7 + reviewHtml(b, rv, ed) +
+      '<div class="nvb-stack">' + fold('facts', 'Cost, target and test', '', facts) + planHtml() + octHtml() + knowHtml() + '</div>';
   }
   /* The All blasts view (Kate, 3 Nov 2026): the whole picture across the blasts in the main panel. Numbers, one row per blast (day, time, clients, review), what was left out in total and by
      reason, cost and sending time, the sending plan, and every client who gets a blast with the blast she is in. Every figure opens its rows. */
@@ -646,7 +699,7 @@
       sel('outcome', 'Outcome', [['all', 'Any outcome'], ['booked', 'Booked ahead'], ['done', 'Came in'], ['replied', 'Wrote back'], ['stop', 'STOP'], ['none', 'No outcome yet']]) +
       '<input type="search" class="nvb-q" id="nvLogQ" data-nlg="q" placeholder="Search name or last 4 digits" value="' + esc(s.q) + '">' +
       '<span class="nvb-spacer"></span><button type="button" class="tglr lc-btn" data-nvr="logsave:xlsx" title="Download the log for these filters, with the message for each">XLSX</button><button type="button" class="tglr lc-btn" data-nvr="logsave:csv" title="Download the log for these filters, with the message for each">CSV</button><span id="nvLogNote" class="slv-note"></span></div>';
-    return rsSec('11. Send log', 'Every real message, her latest one if she was sent more than one. Name and number copy on click; Chat opens her conversation in respond.io.', bar + '<div id="nvLog">' + logInner() + '</div>');
+    return rsSec('9. Send log', 'Every real message, her latest one if she was sent more than one. Name and number copy on click; Chat opens her conversation in respond.io.', bar + '<div id="nvLog">' + logInner() + '</div>');
   }
   async function logSave(kind) {
     var note = document.getElementById('nvLogNote'), say = function (t) { if (note) note.textContent = t; };
@@ -723,7 +776,7 @@
   var DEP_SOON = { 1: 'Today or tomorrow', 2: 'In 2 to 3 days', 3: 'In 4 to 7 days', 4: 'In 8 to 14 days', 5: 'Later' };
   function depSec(st, a, bkok) {
     var lead = 'Clients we messaged who now have a visit booked, and whether a deposit is in. The deposit policy is the one October used: balayage, foils or highlights, all over colour, a restyle or extensions ask for one; a short service does not; the same day never does.';
-    if (!bkok) return rsSec('Booked ahead: who has paid a deposit', lead, '<div class="nvb-rs-nums">' + rsWait('Booked ahead', whyBookings(st)) + '</div>');
+    if (!bkok) return rsSec('3. Booked ahead: who has paid a deposit', lead, '<div class="nvb-rs-nums">' + rsWait('Booked ahead', whyBookings(st)) + '</div>');
     var D = RES.deposits || {}, t = D.total || {}, by = D.by_branch || [], sn = D.soon_need || [], m = a.money || {};
     var cards = rsCell('Clients booked', nn(t.booked, 'ahead'), nn(m.appts, 'appts') + ' appointments from today on') +
       rsCell('Deposit paid', nn(t.paid, 'dep_paid'), pc1(t.paid, t.booked) + ' of the booked') +
@@ -741,7 +794,7 @@
     var soon = [1, 2, 3, 4, 5].map(function (k) { var n = sm[k] || 0; return grow(esc(DEP_SOON[k]), '', '<div class="nvb-gl"><div class="nvb-gt"><i class="p" style="width:' + (n ? Math.max(4, Math.round(1000 * n / maxS) / 10) : 0) + '%"></i></div><b>' + nn(n, 'dep_need_' + k) + '</b></div>'); }).join('');
     var body = '<div class="nvb-rs-nums">' + cards + '</div><div class="nvb-g2"><div class="nvb-gp"><h4 class="nvb-h4">By branch</h4>' + brRows + leg + '</div>' +
       '<div class="nvb-gp"><h4 class="nvb-h4">Likely needed, not paid: how soon they come</h4>' + soon + '<p class="nvb-small">These are the ones reception can chase today. Check at the chair first: a client who booked her next visit before leaving the salon does not need one.</p></div></div>';
-    return rsSec('Booked ahead: who has paid a deposit', lead, body, 'Deposits arrive with the nightly sales upload, so one paid today shows tomorrow. For example: a client has balayage booked for Thursday and no deposit shows in Phorest. She reads Likely needed, so reception messages her before then.');
+    return rsSec('3. Booked ahead: who has paid a deposit', lead, body, 'Deposits arrive with the nightly sales upload, so one paid today shows tomorrow. For example: a client has balayage booked for Thursday and no deposit shows in Phorest. She reads Likely needed, so reception messages her before then.');
   }
   function tookSec(st, a, bkok, slok, r2, reached) {
     var m = a.money || {};
@@ -767,7 +820,7 @@
   function rt(x) { return x >= 10 ? money0(x) : money2(x); }
   function moneySec(st, a, bkok, slok, r2) {
     var lead = 'What the bookings are worth, and what the messages cost. Same method as October: projected prices each booked service at the median of what it charged in the last 120 days, actual is what the clients we messaged have paid since their first message.';
-    if (!MON) return rsSec('7. Money from the bookings', lead, '<p class="slv-muted">' + (monErr ? 'The money could not be read just now. It tries again in a minute.' : 'Loading…') + '</p>');
+    if (!MON) return rsSec('4. Money from the bookings', lead, '<p class="slv-muted">' + (monErr ? 'The money could not be read just now. It tries again in a minute.' : 'Loading…') + '</p>');
     var al = MON.all || {}, by = MON.by_branch || [], bb = MON.by_blast || [], sp = (al.sent || 0) * r2, spD = (al.reached || 0) * r2, tbl = rsV.money === 'table';
     var toggle = '<div class="tp-seg nvb-seg" role="group" aria-label="View"><button type="button" class="' + (tbl ? '' : 'on') + '" data-nvr="money:visual">Graph</button><button type="button" class="' + (tbl ? 'on' : '') + '" data-nvr="money:table">Table</button></div>';
     var waitP = '<span class="nvb-rs-dash">Not readable yet</span>', body;
@@ -809,7 +862,7 @@
       body = '<div class="nvb-g2">' + panel1 + panel2 + '</div><div class="nvb-g2">' + panel3 + panel4 + '</div>';
     }
     var unp = al.unpriced || 0;
-    return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>7. Money from the bookings</h3>' + toggle + '</div><p class="nvb-rs-lead">' + esc(lead) + '</p>' + body +
+    return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>4. Money from the bookings</h3>' + toggle + '</div><p class="nvb-rs-lead">' + esc(lead) + '</p>' + body +
       '<p class="nvb-small nvb-rs-note"><b>Projected</b> is what the booked appointments should bring in. <b>Actual</b> is what the clients we messaged have paid so far. <b>Spent</b> is what the messages cost, an estimate at AED ' + r2 + ' each (the sender has no billing data). Booked ahead, appointments, accepted, delivered and came in and paid open their clients; the AED figures add up services and have no list behind them.</p>' +
       '<details class="nvb-fold" data-fold="money-how"' + (opened['money-how'] ? ' open' : '') + '><summary>How these are worked out</summary><p class="nvb-small"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that exact service charged in the last 120 days, VAT included. ' +
       (unp ? fmtN(unp) + ' of the ' + fmtN(al.svcs) + ' booked services have no price yet (a package or a new name) and count as 0, so it runs low. ' : '') + 'The Phorest bookings report has no booked-on date, so since 9 Nov we log the first day each booking was seen at every bookings pull (from 4 Nov, the send day). <b>Booked since the message</b> counts a booking first seen on or after the first message day of that client, and it stays counted after the appointment date passes, so Cost per booking no longer shrinks as days go by. A booking first seen on 4 Nov may pre-date the message by a few hours. <b>Booked ahead</b> is only the snapshot of bookings from today on. When the bookings list is more than 1 day old, or sales are more than 2 days behind, the figures that depend on them hold and say why. <b>Actual</b> is everything the clients we messaged have paid since the day of their first message, VAT included, refunds taken off, without deposits, vouchers sold and prepaid courses, the same lines as Paid at the till in the headline. Sales arrive with the daily upload, so today shows tomorrow.</p></details></div>';
@@ -830,7 +883,7 @@
     } else {
       inner = '<div class="nvb-rs-two"><div><h4>By branch</h4><div class="nvb-rs-bars">' + bar.map(function (x) { return rsBar(x, { br: x.k }); }).join('') + '</div></div><div><h4>By day sent</h4><div class="nvb-rs-bars">' + days.map(function (x) { return rsBar(x, { d: x.k }); }).join('') + '</div></div></div>' + BAR_LEG;
     }
-    return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>3. Did the message arrive?</h3>' + toggle + '</div><p class="nvb-rs-lead">Whether the messages reached the phones: read, delivered, not confirmed yet, or failed. The by-blast bars are under section 2.</p>' + cards + inner +
+    return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>2. Did the message arrive?</h3>' + toggle + '</div><p class="nvb-rs-lead">Whether the messages reached the phones: read, delivered, not confirmed yet, or failed. The by-blast bars are under section 2.</p>' + cards + inner +
       '<p class="nvb-small nvb-rs-note">From respond.io\'s delivery report for each message, read again every few minutes while the statuses arrive; Meta keeps updating a status for 24 hours. A client who wrote back still counts by what happened to the message.</p></div>';
   }
   function resultsMain() {
@@ -845,7 +898,7 @@
       (a.never_checked > 0 ? '<span class="cbl-chip warn">Delivery statuses still arriving: ' + nn(a.never_checked, 'never_checked') + ' not checked yet</span>' : '') +
       (RES.gate && RES.gate.paused ? '<span class="cbl-chip bad">Paused by the gate</span>' : '') + (st.staleB ? '<span class="cbl-chip warn">Bookings last pulled ' + esc(fdate(RES.bookings_pulled)) + ': not up to date</span>' : '') + (st.staleS ? '<span class="cbl-chip warn">Sales only in to ' + esc(fdate(RES.sales_to)) + ': not up to date</span>' : '') + '<span class="cbl-chip">Sales in to ' + esc(fdate(RES.sales_to)) + '</span><span class="cbl-chip">Offers run to 30 November</span>';
     var out = '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026 · Results</div><h2>How the November blasts did</h2></div></div><div class="nvb-rs-chips">' + chips + '</div>';
-    out += '<p class="nvb-rs-intro">Same shape as the October Lost Clients report. One message per client, and a client counts once, by her latest message. Read live from the database and it moves while delivery statuses and sales come in. Every count opens the clients behind it: click a figure with a dotted underline.</p>';
+    out += '<p class="nvb-rs-intro">Same nine sections, in the same order, as the October Lost Clients report. One message per client, and a client counts once, by her latest message. Read live from the database and it moves while delivery statuses and sales come in. Every count opens the clients behind it: click a figure with a dotted underline.</p>';
 
     // 1 headline
     var repl = st.replies === 'ok' ? rsCell('Wrote back', nn(a.replied, 'replied'), pc1(a.replied, reached) + ' of the ' + fmtN(reached) + ' reached') : st.replies === 'part' ? rsCell('Wrote back', nn(a.replied, 'replied'), 'so far, the check has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' accepted') : rsWait('Wrote back', whyReplies());
@@ -867,6 +920,14 @@
       rsCell('Spent (estimate)', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' accepted at AED ' + r2 + ' each. AED ' + money0(reached * r2) + ' if only the ' + fmtN(reached) + ' delivered are charged. At AED ' + r1 + ': AED ' + money0(a.sent * r1) + ' and AED ' + money0(reached * r1)) + '</div>',
       'Rate: October used AED ' + r1 + ' a message (about USD 0.046, measured). The page assumes AED ' + r2 + ' (about USD 0.058, one vendor source). Both are shown until the Meta invoice or the respond.io usage report replaces them. WhatsApp does not charge failed messages, so delivered only is the likelier bill, and Cost per booking uses it.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, cost AED 1,068 on every message accepted.');
 
+    // 3 did the message arrive
+    out += delSec(rows, all2, a, st);
+
+    out += depSec(st, a, bkok);
+
+    // 7 money
+    out += moneySec(st, a, bkok, slok, r2);
+    out += tookSec(st, a, bkok, slok, r2, reached);
     // 2 by blast
     var head2 = [['Blast', ''], ['Audience', 'n'], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['Failed % of checked', 'n'], ['STOP', 'n'], ['Wrote back', 'n']];
     var all2 = rows.concat([a]);
@@ -880,56 +941,10 @@
       var rd = x.read + x.delivered, tot = x.id === 'ALL', mm = x.money || {};
       return { t: tot, c: [esc(tot ? 'All' : x.name), money2(x.sent * r1), money2(x.sent * r2), money2(rd * r1), money2(rd * r2)].concat(bkok && slok ? [nn(mm.booked_or_in, 'since', { b: x.id }), mm.booked_or_in > 0 ? money2(rd * r2 / mm.booked_or_in) : 'none yet'] : []) };
     });
-    out += rsSec('2. By blast', 'One message per client, so clients and messages are the same number. Failed is shown on its own, never counted as delivered.', rsTable(head2, body2) +
+    out += rsSec('5. By blast', 'One message per client, so clients and messages are the same number. Failed is shown on its own, never counted as delivered.', rsTable(head2, body2) +
       '<p class="nvb-small nvb-rs-note">Not confirmed means respond.io took it and nothing more has been read yet (' + fmtN(a.never_checked) + ' of ' + fmtN(a.unconfirmed) + ' have never been status-checked). ' + (st.replies === 'no' ? 'Wrote back is not readable yet, see section 5.' : '') + '</p>' + bars) +
       rsSec('Cost by blast, AED', 'Every message accepted is the page\'s own cost basis. Delivered or read is the likelier bill. Low delivered figures on a blast mostly mean its messages are not status-checked yet.', rsTable(head3, body3));
 
-    // 3 did the message arrive
-    out += delSec(rows, all2, a, st);
-
-    // 4 failed
-    var rs = RES.reasons || [], byR = {};
-    rs.forEach(function (x) { var k = x.reason || ''; byR[k] = byR[k] || { all: 0 }; byR[k][x.blast_id] = (byR[k][x.blast_id] || 0) + x.n; byR[k].all += x.n; });
-    var ks = Object.keys(byR).sort(function (p, q) { if (!p) return 1; if (!q) return -1; return byR[q].all - byR[p].all; });
-    var withReason = 0; ks.forEach(function (k) { if (k) withReason += byR[k].all; });
-    var fr = rows.filter(function (x) { return x.failed > 0; });
-    var head4 = [['Reason on the failed message', '']].concat(fr.map(function (x) { return [x.name, 'n']; }), [['All', 'n']]);
-    var body4 = ks.map(function (k) { var rk = k || '~none'; return { c: [k ? esc(k) : 'Reason not saved yet'].concat(fr.map(function (x) { return nn(byR[k][x.id] || 0, 'failed', { b: x.id, r: rk }); }), [nn(byR[k].all, 'failed', { r: rk })]) }; });
-    body4.push({ t: true, c: ['Failed'].concat(fr.map(function (x) { return nn(x.failed, 'failed', { b: x.id }); }), [nn(a.failed, 'failed')]) });
-    var pend = a.failed - withReason;
-    var reasonBox = pend > 0 ? '<div class="nvb-rs-callout"><b>Reasons are still being filled in.</b> The sender saves Meta\'s reason on each failed message. ' + fmtN(withReason) + ' of the ' + fmtN(a.failed) + ' have one so far, the rest are filled in as the sender gets to them, so the table below changes.</div>' : '';
-    var head5 = [['Last wrote to us', ''], ['Checked', 'n'], ['Failed', 'n'], ['Failed % of checked', 'n']];
-    var body5 = (RES.recency || []).map(function (x) { var lb = x.b.slice(2), bk = x.b.charAt(0); return { c: [esc(lb === 'never' ? 'Never' : lb), nn(x.checked, 'checked', { k: bk }), nn(x.failed, 'failed', { k: bk }), pc1(x.failed, x.checked)] }; });
-    var head6 = [['Branch', ''], ['Accepted by respond.io', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n']];
-    var body6 = (RES.branches || []).map(function (x) { return { c: [esc(BR[x.branch] || x.branch || 'Unknown'), nn(x.sent, 'sent', { br: x.branch }), nn(x.failed, 'failed', { br: x.branch }), pc1(x.failed, x.sent)] }; });
-    body6.push({ t: true, c: ['All', nn(a.sent, 'sent'), nn(a.failed, 'failed'), pc1(a.failed, a.sent)] });
-    out += rsSec('4. Failed sends, on their own', 'Respond.io took them, Meta did not deliver them. Meta\'s per-user marketing limit (131049) means no charge: wait 24 hours, never resend within 24 hours. The Resend failed button on the send card retries them once, after 24 hours; a client who is sent again is counted by her new message only.',
-      reasonBox + rsTable(head4, body4) +
-      '<p class="nvb-small nvb-rs-note">The failed count can still rise: ' + fmtN(a.never_checked) + ' messages have not been status-checked yet, and a failure shows the first time a message is checked. The share of checked messages (' + pc1(a.failed, checked) + ') is the better guide than the share of accepted (' + pc1(a.failed, a.sent) + ') until they are.</p>' +
-      '<div class="nvb-rs-two"><div><h4>By how recently she wrote to us</h4>' + rsTable(head5, body5) + '</div><div><h4>By branch</h4>' + rsTable(head6, body6) + '</div></div>');
-
-    // 5 replies and STOP
-    var head7 = [['Blast', ''], ['Reached', 'n'], ['Wrote back', 'n'], ['Of reached', 'n'], ['STOP', 'n'], ['STOP of accepted', 'n']];
-    var body7 = all2.map(function (x) { var rd = x.read + x.delivered, tot = x.id === 'ALL', cx = { b: x.id }; return { t: tot, c: [esc(tot ? 'All' : x.name), nn(rd, 'reached', cx), st.replies === 'no' ? 'Not yet' : nn(x.replied, 'replied', cx), st.replies === 'no' ? 'Not yet' : pc1(x.replied, rd), nn(x.stop, 'stop', cx), pc1(x.stop, x.sent)] }; });
-    out += rsSec('5. Replies and STOP', st.replies === 'no' ? 'Replies cannot be read yet. ' + whyReplies() + ' STOP is what the sender has seen so far.' : 'Wrote back = a WhatsApp message from her after our message, from the status check' + (st.replies === 'part' ? ' (it has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' sent so far)' : '') + '.', rsTable(head7, body7),
-      'October: 179 wrote back (4.9% of reached, warm 8.7%, standard 2.3%), 77 STOP (1.5%). STOP opt-outs written to the do-not-contact list by these blasts: ' + fmtN(RES.stop_optouts) + '. The gate pauses sending above ' + (RES.gate ? RES.gate.stop_pct : 2) + '% STOP.');
-
-    // 6 bookings
-    var sec5;
-    if (!bkok && !slok) sec5 = '<div class="nvb-rs-wait"><b>Not readable yet.</b> ' + esc(whySales(st)) + '<br>' + esc(whyBookings(st)) + '<br>It fills in on its own once sales after the send day load (the daily upload) and a bookings list from a later day is pulled. Bookings and visits take days, and the offers run to 30 November.</div>';
-    else {
-      var head8 = [['Blast', ''], ['Clients messaged', 'n']].concat(bkok ? [['Booked ahead', 'n'], ['Appointments', 'n']] : [], slok ? [['Already came in', 'n'], ['Paid clients', 'n'], ['Paid AED', 'n'], ['AED back per AED 1 (every message accepted, ' + r2 + ')', 'n']] : [], bkok && slok ? [['Booked or came in', 'n']] : []);
-      var body8 = all2.map(function (x) { var mm = x.money || {}, tot = x.id === 'ALL', cx = { b: x.id }; return { t: tot, c: [esc(tot ? 'All' : x.name), nn(mm.clients, 'sent', cx)].concat(bkok ? [nn(mm.ahead, 'ahead', cx), nn(mm.appts, 'appts', cx)] : [], slok ? [nn(mm.came_in, 'came_in', cx), nn(mm.paid_clients, 'paid', cx), money0(mm.paid_aed), x.sent ? Math.round(mm.paid_aed / (x.sent * r2)) : '0'] : [], bkok && slok ? [nn(mm.booked_or_in, 'since', cx)] : []) }; });
-      sec5 = rsTable(head8, body8) + (!bkok ? '<div class="nvb-rs-wait"><b>Booked ahead is not readable yet.</b> ' + esc(whyBookings(st)) + '</div>' : '') + (!slok ? '<div class="nvb-rs-wait"><b>Paid is not readable yet.</b> ' + esc(whySales(st)) + '</div>' : '');
-    }
-    out += rsSec('6. Booked, came in, paid', 'Paid = every till sale since her first message, a ceiling and not proof the message caused it. Matched by client name key, like October (the send jobs carry no Phorest client id), so two clients with one name could be mixed up. Clients who already had an appointment from today on were left out when the blast was queued, so a booking now was made after that.', sec5);
-
-    out += depSec(st, a, bkok);
-
-    // 7 money
-    out += moneySec(st, a, bkok, slok, r2);
-    out += tookSec(st, a, bkok, slok, r2, reached);
-    out += bookDaysSec(st, a, bkok, slok);
 
     // 8 branch
     var head9 = [['Branch', ''], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['STOP', 'n'], ['Wrote back', 'n']].concat(bkok ? [['Booked ahead', 'n']] : [], slok ? [['Came in', 'n'], ['Paid clients', 'n'], ['Paid AED', 'n']] : []);
@@ -940,41 +955,23 @@
     };
     var body9 = (RES.branches || []).map(function (x) { return brRow(x, x.branch); });
     body9.push(brRow(a, ''));
-    out += rsSec('8. By branch', '', rsTable(head9, body9), 'Motor City only gets Due, hair. Al Quoz offers end 28 November.');
+    out += rsSec('6. By branch', 'Which salon got the most out of it?', rsTable(head9, body9), 'Motor City only gets Due, hair. Al Quoz offers end 28 November.');
 
     // 9 by day
     var head12 = [['Day sent', ''], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['STOP', 'n'], ['Wrote back', 'n'], ['First', 'n'], ['Last', 'n']];
     var body12 = (RES.days || []).map(function (x) { var cx = { d: x.d }; return { c: [esc(fdate(x.d)), nn(x.sent, 'sent', cx), nn(x.reached, 'reached', cx), nn(x.unconfirmed, 'unconfirmed', cx), '<span class="f">' + nn(x.failed, 'failed', cx) + '</span>', nn(x.stop, 'stop', cx), st.replies === 'no' ? 'Not yet' : nn(x.replied, 'replied', cx), esc(dubaiHm(x.first_at)), esc(dubaiHm(x.last_at))] }; });
-    out += rsSec('9. By day', 'One row for each day messages went out (Dubai time). A blast moved to another day shows up here as a new row.', rsTable(head12, body12));
+    out += rsSec('7. By day sent', 'One row for each day messages went out (Dubai time). A blast moved to another day shows up here as a new row.', rsTable(head12, body12));
+    out += bookDaysSec(st, a, bkok, slok);
 
     // 10 pace
     var head10 = [['Half-hour (Dubai)', ''], ['Accepted by respond.io', 'n'], ['Status-checked', 'n'], ['Failed of checked', 'n']];
     var body10 = (RES.pace || []).map(function (x) { var d0 = x.slot.slice(0, 10), t0 = x.slot.slice(11); return { c: [esc(fdate(d0) + ' ' + t0), nn(x.sent, 'sent', { d: x.slot }), nn(x.checked, 'checked', { d: x.slot }), x.checked ? nn(x.failed, 'failed', { d: x.slot }) + ' (' + pc1(x.failed, x.checked) + ')' : 'not checked yet'] }; });
     var wins = rows.map(function (x) { return esc(x.name) + ' ' + esc(dubaiHm(x.first)) + (x.last && dubaiHm(x.last) !== dubaiHm(x.first) ? ' to ' + esc(dubaiHm(x.last)) : ''); }).join(', ');
-    out += rsSec('10. Send times', 'When the messages went out, in half hours (Dubai time).', rsTable(head10, body10), 'Send windows (Dubai time): ' + wins + '. October ran about 400 messages per half-hour; a failed share that stays level across the half-hours points to the client, not the pace.');
+    out += rsSec('8. Send times', 'When the messages went out, in half hours (Dubai time).', rsTable(head10, body10), 'Send windows (Dubai time): ' + wins + '. October ran about 400 messages per half-hour; a failed share that stays level across the half-hours points to the client, not the pace.');
 
     // 11 log
     out += logSec(rows);
 
-    // 12 not verified
-    out += rsSec('12. Numbers that could not be fully verified', '', '<ol class="nvb-rs-ol"><li>Cost is an estimate (AED ' + r1 + ' or ' + r2 + ' a message). No billing data is in the database. The Meta invoice or respond.io usage report decides.</li>' +
-      '<li>Delivery status is partial while messages are still being status-checked (' + fmtN(checked) + ' of ' + fmtN(a.sent) + ' checked now). Meta statuses keep updating for 24 hours.</li>' +
-      '<li>The failed reason is saved on ' + fmtN(withReason) + ' of ' + fmtN(a.failed) + ' failed messages so far.</li>' +
-      '<li>Replies cannot be read until the WhatsApp status check runs again after the send. STOP shows only what the sender has read.</li>' +
-      '<li>Bookings have no booked-on date, and revenue needs sales after the send day. Both fill in later. Projected spend leaves out a booked service that has no price yet.</li>' +
-      '<li>Sales are matched by client name key, so two clients with one name could be mixed up.</li>' +
-      '<li>The page\'s Clients figure counts from a snapshot that shrinks as people are messaged, so it will not match this view after the send.</li>' +
-      '<li>Deposits use the October service policy on the service names in the booking (the length, the guests and where it was booked are not in Phorest), and a deposit is any net Deposit item in the last 90 days matched by name key.</li></ol>');
-
-    // 13 when
-    var head11 = [['When', ''], ['What it settles', '']];
-    var body11 = [['Wed 4 Nov evening and Thu 5 Nov morning', 'Delivery and failed for the whole send, and the failed reasons. Meta statuses update for 24 hours.'],
-      ['Thu 5 Nov, after the WhatsApp status check runs again', 'First honest replies and STOP rate.'],
-      ['Fri 6 Nov, after the 5 Nov sales upload', 'First read of booked ahead and came in. Still early.'],
-      ['Mon 9, 16 and 23 Nov', 'Weekly bookings, paid AED, cost per booking and return.'],
-      ['Tue 1 Dec, after the 30 Nov sales upload', 'Final results for the November offers.'],
-      ['When the Meta invoice is in', 'Replace the AED ' + r1 + ' and ' + r2 + ' estimates with the real cost.']].map(function (r) { return { c: [esc(r[0]), esc(r[1])] }; });
-    out += rsSec('13. When each part fills in', 'This view reads the database again every minute while it is open, so nothing needs re-running by hand. The SQL behind it is docs/NOV-2026-BLASTS-RESULTS.sql in the cowork repo and migrations/nov_results_parity.sql here.', rsTable(head11, body11).replace('class="nvb-rs-t"', 'class="nvb-rs-t txt"'));
     return '<div class="nvb-rs">' + out + '</div>';
   }
   async function loadResults() {
@@ -991,7 +988,7 @@
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + resultsSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + sendBarHtml() + (cur === ALLID ? allMain() : cur === RESID ? resultsMain() : blastMain(b)) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + resultsSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + ((cur === ALLID || cur === RESID) ? sendBarHtml() : '') + (cur === ALLID ? allMain() : cur === RESID ? resultsMain() : blastMain(b)) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
@@ -1048,6 +1045,8 @@
   /* ---------- Send from the site (Level 5, Kate only; migrations/nov_send.sql, supabase/functions/nov-send-worker) ----------
      One number, about 200 every 30 minutes, blast after blast. Dry run is the default: a dry run goes through the whole queue and pace and is counted, but nothing is posted to respond.io.
      Everything that decides who is sent to (the booked and opt-out re-check, 24 hours, no retry of a failed message, the gate) is in the database; this is the control and the counts. */
+  function lockedNow() { return !!(LOCKI && LOCKI.locked); }   // sending locks by itself once every blast has finished (migrations/nov_send_lock.sql); Level 5 unlocks it by typing UNLOCK
+  function lockDisable(h) { return h.replace(/<button type="button" class="nvb-btn/g, '<button type="button" disabled aria-disabled="true" class="nvb-btn').replace(/<(input|select) id="nvbP/g, '<$1 disabled id="nvbP'); }
   function isL5() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 5; }
   var IMGS = [['', 'No header image'], ['assets/nov-blasts/nov-hair-to-beauty-4x5.png', 'Hair to beauty artwork, 4:5'], ['assets/nov-blasts/nov-beauty-to-hair-4x5.png', 'Beauty to hair artwork, 4:5']];
   function tplOf(b) { var t = b.data.tpl || {}, g = ['warm', 'std'].filter(function (x) { return t[x] && t[x].n; })[0]; return g ? { n: t[g].n, s: t[g].s || 'todo' } : null; }
@@ -1057,7 +1056,7 @@
   function pctOf(a, n) { return n ? (Math.round(a * 1000 / n) / 10) + '%' : '0%'; }
   function showSend(b) { var t = tplOf(b); return isL5() && !!SND && ((t && t.s === 'approved') || !!sendOf(b)); }
   function kick() { try { var r = sb.functions.invoke('nov-send-worker', { body: {} }); if (r && r.then) r.then(function () {}, function () {}); } catch (e) { /* the cron picks it up */ } }
-  async function loadSend() { if (!isL5()) return; try { SND = await rpc('nov_send_info'); } catch (e) { console.error(e); SND = null; } try { RWHEN = (await rpc('nov_send_resend_when')) || {}; } catch (e) { RWHEN = {}; } }
+  async function loadSend() { if (!isL5()) return; try { SND = await rpc('nov_send_info'); } catch (e) { console.error(e); SND = null; } try { LOCKI = await rpc('nov_send_lock_info'); } catch (e) { LOCKI = null; } try { RWHEN = (await rpc('nov_send_resend_when')) || {}; } catch (e) { RWHEN = {}; } }
   /* Resend failed at a set time (Kate, 5 Nov 2026: "scheduled time toggle to send this out"). The time is Dubai time, typed in a datetime-local box; the database queues the messages now with that time as
      their turn (migrations/nov_send_resend_schedule.sql), and the worker only takes them once it comes, inside the send window. Cancel on the card stops them like any queued message. */
   function sndAtIso() { if (!sndAt.on || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(sndAt.v)) return null; var d = new Date(sndAt.v + ':00+04:00'); return isNaN(d.getTime()) ? null : d.toISOString(); }
@@ -1082,6 +1081,7 @@
   }
   function sndOk() {
     if (!sndM || !SND) return false;
+    if (sndM.kind === 'unlock') return sndTyped.trim().toUpperCase() === 'UNLOCK' && !sndBusy;
     if (sndM.kind === 'live') return sndTyped.trim().toUpperCase() === 'LIVE';
     if (sndM.kind === 'test') return sndPhone.replace(/\D/g, '').length >= 9 && !(sndTest && sndTest.busy);
     if (sndM.kind === 'resend') return (!sndAt.on || sndAtOk()) && !!sndPrev && !sndPrev.err && sndPrev.ok > 0 && !SND.dry_run && !!SND.enabled && sndTyped.trim().toUpperCase() === 'RESEND ' + sndM.id.toUpperCase() && !sndBusy;
@@ -1089,10 +1089,34 @@
     return !!sndPrev && !sndPrev.err && sndPrev.ok > 0 && (!live || sndTyped.trim().toUpperCase() === 'SEND ' + sndM.id.toUpperCase()) && !sndBusy;
   }
   function imgSelect() { return '<select id="nvbSndImg">' + IMGS.map(function (x) { return '<option value="' + esc(x[0]) + '"' + (x[0] === sndImg ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('') + '</select>'; }
+  function paceHtml() {
+    if (!isL5() || !SND) return '';
+    var from = SND.hour_from, to = SND.hour_to, cap = SND.slot_cap, mins = SND.slot_minutes, left = 0;
+    Object.keys(SND.blasts || {}).forEach(function (k) { var z = SND.blasts[k]; if (z && z.counts) left += (z.counts.queued || 0); });
+    var hrs = function (sel) { var o = ''; for (var h = 0; h <= 24; h++) o += '<option value="' + h + '"' + (h === sel ? ' selected' : '') + '>' + esc(fmtClock(h * 60)) + '</option>'; return o; };
+    var ms = [10, 15, 20, 30, 45, 60].map(function (m) { return '<option value="' + m + '"' + (m === mins ? ' selected' : '') + '>' + m + ' minutes</option>'; }).join('');
+    var slots = to > from ? Math.floor((to - from) * 60 / mins) : 0, day = slots * cap;
+    return '<div class="nvb-pace"><h4 class="nvb-h4">Pace</h4><p class="nvb-small">How many messages go out, how often and inside which hours (Dubai time). It applies to messages that have not gone yet.</p>' +
+      '<div class="nvb-pg"><label>Messages<input id="nvbPcap" type="number" min="1" max="1000" step="10" value="' + cap + '"></label>' +
+      '<label>Every<select id="nvbPmin">' + ms + '</select></label>' +
+      '<label>Window starts<select id="nvbPfrom">' + hrs(from) + '</select></label>' +
+      '<label>Window ends<select id="nvbPto">' + hrs(to) + '</select></label></div>' +
+      '<p class="nvb-small" id="nvbPsum">Up to <b>' + fmtN(day) + '</b> a day. Still to send: <b>' + fmtN(left) + '</b>' + (left > 0 && day > 0 ? ', about ' + (left <= day ? 'one day' : Math.ceil(left / day) + ' days') + ' at this pace' : ', nothing is waiting') + '.</p>' +
+      '<div class="nvb-sbtns"><button type="button" class="nvb-btn" data-nvb="snd:pace"' + (sndBusy ? ' disabled' : '') + '>Save pace</button></div></div>';
+  }
+  function lockBoxHtml() {
+    return '<div class="nvb-lockbox" role="status"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
+      '<div><b>Locked: every blast has finished</b><span>Nobody can send, resend, test, switch sending on or change the pace. The counts below stay. Only Level 5 can unlock it, by typing UNLOCK. The next message queued puts the lock back on.</span></div>' +
+      '<button type="button" class="nvb-btn" data-nvb="snd:unlock">Unlock…</button></div>';
+  }
   function sendBarHtml() {
+    var h = sendBarCore(); if (!lockedNow()) return h;
+    return lockBoxHtml() + lockDisable(h);
+  }
+  function sendBarCore() {
     if (!isL5() || !SND) return '';
     var g = SND.gate || {}, d = g.sent || 0, f = g.failed || 0, so = g.stop || 0;
-    var st = SND.paused ? ['bad', 'Paused'] : !SND.enabled ? ['', 'Sending is off'] : SND.dry_run ? ['warn', 'On, dry run'] : ['good', 'On, live'];
+    var st = lockedNow() ? ['warn', 'Locked'] : SND.paused ? ['bad', 'Paused'] : !SND.enabled ? ['', 'Sending is off'] : SND.dry_run ? ['warn', 'On, dry run'] : ['good', 'On, live'];
     return '<div class="cbl-card nvb-sbar"><div class="nvb-sbar-top"><h3>Sending from the site</h3><span class="chip ' + st[0] + '">' + st[1] + '</span>' +
       (SND.dry_run ? '<span class="chip warn">Dry run: nothing goes to any client</span>' : '<span class="chip bad">Live: real messages</span>') + '</div>' +
       '<p class="nvb-small">One number: ' + esc(SND.channel) + '. About ' + SND.slot_cap + ' every ' + SND.slot_minutes + ' minutes, ' + esc(fmtClock(SND.hour_from * 60)) + ' to ' + esc(fmtClock(SND.hour_to * 60)) +
@@ -1107,7 +1131,8 @@
       '<button type="button" class="nvb-btn" data-nvb="snd:run">Run now</button></div></div>';
   }
   var SKIPWHY = { 'Has an appointment booked': 'Booked since the list was made' };
-  function sendCardHtml(b) {
+  function sendCardHtml(b) { var h = sendCardCore(b); return lockedNow() ? lockDisable(h) : h; }
+  function sendCardCore(b) {
     if (!showSend(b)) return '';
     var t = tplOf(b), x = sendOf(b), c = x && x.counts || {}, h = '<div class="cbl-card cbl-when nvb-send"><h3>Send from the site</h3>', act = activeRun(x);
     if (!x) h += '<p class="nvb-small">Not queued yet. The template is approved in respond.io, so this blast can be sent.</p>';
@@ -1145,6 +1170,12 @@
         '<label class="nvb-sl" for="nvbSndTyped">Type <b>LIVE</b> to go live</label><input id="nvbSndTyped" type="text" autocomplete="off" autocapitalize="characters">' +
         '<p class="nvb-small">Sending also has to be switched on, and each blast still asks for its own typed confirmation.</p>';
       foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:golive2"' + (sndOk() ? '' : ' disabled') + '>Go live</button>';
+    } else if (m.kind === 'unlock') {
+      head = 'Unlock sending?';
+      body = '<p>Every blast has finished, so sending locked by itself. Unlocking lets the next message be queued. The lock goes back on as soon as that message is queued and every blast has finished again.</p>' +
+        '<label class="nvb-sl" for="nvbSndTyped">Type <b>UNLOCK</b> to unlock</label><input id="nvbSndTyped" type="text" autocomplete="off" autocapitalize="characters">' +
+        (sndErr ? '<p class="nvb-err nvb-small" role="alert">' + esc(sndErr) + '</p>' : '');
+      foot = '<button type="button" class="nvb-btn pri" id="nvbSndGo" data-nvb="snd:unlock2"' + (sndOk() ? '' : ' disabled') + '>Unlock</button>';
     } else if (m.kind === 'test') {
       var tb = item(m.id), tt = tplOf(tb), r = sndTest && sndTest.r;
       head = 'Test ' + esc(tb.data.short || tb.data.title) + ' to one number';
@@ -1260,6 +1291,13 @@
     else if (w === 'test') { if (!b) return; sndM = { kind: 'test', id: id }; sndImg = defImg(b); sndTest = null; render(true); }
     else if (w === 'golive') { sndM = { kind: 'live' }; sndTyped = ''; render(true); }
     else if (w === 'golive2') { if (!sndOk()) return; sndM = null; sndTyped = ''; sndCall('nov_send_config_set', { p_patch: { dry_run: false } }); }
+    else if (w === 'unlock') { sndM = { kind: 'unlock' }; sndTyped = ''; sndErr = ''; render(true); }
+    else if (w === 'unlock2') { if (!sndOk()) return; var utyp = sndTyped; sndM = null; sndTyped = ''; sndCall('nov_send_unlock', { p_confirm: utyp }); }
+    else if (w === 'pace') {
+      var g = function (id) { var e = document.getElementById(id); return e ? +e.value : NaN; }, pc = g('nvbPcap'), pm = g('nvbPmin'), pf = g('nvbPfrom'), pt = g('nvbPto');
+      if (!(pc >= 1 && pc <= 1000) || !(pm >= 5 && pm <= 120) || !(pt > pf)) { sndErr = 'Check the pace: messages from 1 to 1000, and the window has to end after it starts.'; render(true); return; }
+      sndCall('nov_send_config_set', { p_patch: { slot_cap: pc, slot_minutes: pm, hour_from: pf, hour_to: pt } });
+    }
     else if (w === 'dry') { sndCall('nov_send_config_set', { p_patch: { dry_run: true } }); }
     else if (w === 'onoff') { sndCall('nov_send_config_set', { p_patch: { enabled: !SND.enabled } }); }
     else if (w === 'pause') { sndCall('nov_send_pause', { p_blast: null }); }
@@ -1359,6 +1397,7 @@
       else if (k === 'flowbig') { bigflow = true; render(true); }
       else if (k === 'close' || k === 'termsx' || k === 'flowx' || k === 'sndx') { if (t.classList.contains('cbl-modal') && e.target !== t) return; if (k === 'sndx' && sndBusy) return; big = false; bigflow = false; termsFor = ''; sndM = null; sndTest = null; render(true); }
       else if (k === 'snd') { sndAct(v); }
+      else if (k === 'copyterms') { copyTerms(v); }
       else if (k === 'sel') { cur = v; rb = v; var sb2 = blast(v); if (sb2) { var cd2 = parts(sb2.data.date); cal = { y: cd2.getFullYear(), m: cd2.getMonth() }; } sideOpen = false; big = false; bigflow = false; render(true); syncUrl(); }   // stays where she is, so the picker works as a toggle and the message swaps in below
       else if (k === 'recount') { if (!canEdit() || counting) return; counting = true; render(true); rpc('nov_blast_audience', { p_recount: true }).then(function (r) { LIVE = r; liveErr = false; return rpc('nov_blast_leftout', { p_recount: true }).then(function (l) { LEFT = l; }).catch(function (e) { console.error(e); }); }).catch(function (e) { console.error(e); errMsg = 'Counting did not finish: ' + (e.message || 'try again'); }).then(function () { counting = false; render(true); }); }
       else if (k === 'sched') {
