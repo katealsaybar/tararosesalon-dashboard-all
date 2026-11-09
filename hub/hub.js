@@ -172,6 +172,9 @@
     // Kate, 3 Nov 2026: hide a dashboard page from everyone but Kate, or label it Under construction (Level 5 only; saved in public.page_status, migrations/page_status.sql).
     { key: 'page-status', via: 'dashboards', only: [5], dept: 'Tools', title: 'Hide Pages & Under Construction', href: '/hub/pagestatus', live: true, rule: 'var(--accent-butter)',
       blurb: 'Switch a page off for everyone but you, or label it Under construction while you build it.' },
+    // Kate, 9 Nov 2026: write a notice for the bell on every page, and switch the automatic ones on or off (Level 5 only; saved in public.site_notices, migrations/site_notices.sql).
+    { key: 'notices', via: 'dashboards', only: [5], dept: 'Tools', title: 'Notices', href: '/hub/notices', live: true, rule: 'var(--accent-butter)',
+      blurb: 'Write a notice for the bell on every page, pick who sees it, and switch the automatic ones on or off.' },
     // Kate, 9 Nov 2026: move pages between the sections and sub-sections of your own dashboard menu (Level 5; saved per person in public.nav_layout, migrations/nav_layout.sql).
     { key: 'menu-mover', via: 'dashboards', only: [5], dept: 'Tools', title: 'Rearrange Menu', href: '/hub/menumover', live: true, rule: 'var(--accent-lavender)',
       blurb: 'Move pages between the sections and sub-sections of the dashboard menu. Only your menu changes.' },
@@ -289,6 +292,8 @@
     'page-access': '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="m8 8.2 1.4 1.4L12 7"/><path d="M14.5 8.5H17"/><path d="m8 14.2 1.4 1.4L12 13"/><path d="M14.5 14.5H17"/>',
     // Kate, 3 Nov 2026: an eye with a line through it, for Hide Pages & Under Construction.
     'page-status': '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/>',
+    // Kate, 9 Nov 2026: a bell, for Notices.
+    notices: '<path d="M6 9a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9"/><path d="M10 19a2 2 0 0 0 4 0"/>',
     // Kate, 9 Nov 2026: a short list with an arrow, for Rearrange Menu.
     'menu-mover': '<path d="M4 6h9M4 12h6M4 18h9"/><path d="M18 7v10"/><path d="m15.5 14.5 2.5 2.5 2.5-2.5"/>',
     'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP,
