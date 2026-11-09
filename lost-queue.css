@@ -381,3 +381,32 @@ body.lr-modal-open{overflow:hidden}
 .lr-ex em{font-style:normal;font:600 20px 'Playfair Display',Georgia,serif}
 .lr-ex small{display:block;color:var(--muted);font-size:12.5px}
 .lr-more>summary{cursor:pointer;font-weight:600;padding:8px 0}
+
+/* Uniform October blast sections, the lock and the pace (Kate, 9 Nov 2026) */
+.lq-us{margin-top:14px}
+.lq-us .cbl-phone{height:560px}
+.lq-kvs{display:grid;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:10px}
+.lq-kvs>div{display:grid;grid-template-columns:170px 1fr;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:14px}
+.lq-kvs>div:last-child{border-bottom:0}
+.lq-kvs small{color:var(--muted);font-size:12.5px}
+.lq-tp{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--border)}
+.lq-tp:first-child{border-top:0}
+.lq-tp .g{font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);min-width:150px}
+.lq-tp code{font-size:13px;overflow-wrap:anywhere}
+.lq-tps{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--border);color:var(--muted);margin-left:auto}
+.lq-tps.ok{border-color:var(--good,#2f7d4f);color:var(--good,#2f7d4f)}
+.lq-flow{margin:0;padding-left:22px;display:grid;gap:10px}
+.lq-flow li span{display:block;color:var(--muted);font-size:14px}
+.lq-tcl{padding-left:22px;line-height:1.55}
+.lq-tcl li{margin:0 0 8px}
+.lq-h4{font:600 16px 'Playfair Display',Georgia,serif;margin:10px 0 4px}
+.lq-lockbox{display:flex;gap:12px;align-items:flex-start;border:1px solid #E0A43A;border-radius:14px;padding:12px 14px;margin:0 0 12px;flex-wrap:wrap}
+.lq-lockbox>div{flex:1 1 260px}
+.lq-lockbox b{display:block}
+.lq-lockbox span{color:var(--muted);font-size:13.5px}
+.lq-pace{display:grid;gap:8px;margin-top:12px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface2)}
+.lq-pg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.lq-pg label{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
+.lq-pg input,.lq-pg select{min-height:44px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:600 15px inherit}
+.lq-pg input:disabled,.lq-pg select:disabled,.tglr.lc-btn:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:640px){.lq-kvs>div{grid-template-columns:1fr;gap:2px}.lq-pg{grid-template-columns:1fr 1fr}}

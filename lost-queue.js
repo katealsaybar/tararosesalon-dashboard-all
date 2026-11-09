@@ -39,7 +39,7 @@ try { Object.assign(lqSel, JSON.parse(localStorage.getItem('trs-lost-queue') || 
 const lqSave = () => { try { localStorage.setItem('trs-lost-queue', JSON.stringify(lqSel)); } catch (e) {} };
 let lqOptSet = new Set();   // digits of the numbers on lost_send_optout, from lost_send_info
 const lqOptedOut = r => lqOptSet.size > 0 && lqOptSet.has(String(r._phone || '').replace(/\D/g, ''));
-let lqSnd = { info: null, jobs: {}, poll: null, test: null };   // sending from the site (migrations/lost_send.sql), see SENDING FROM THE SITE below
+let lqSnd = { info: null, jobs: {}, poll: null, test: null, lock: null };   // sending from the site (migrations/lost_send.sql), see SENDING FROM THE SITE below
 let lqData = null, lqRows = [], lqTpl = null, lqLoadedAt = 0, lqQuery = '', lqPage = 1, lqShown = [], lqBusy = false, lqErr = '', lqTplKey = 'wa_smoothing', lqTplSample = 0;
 const lqToday = () => new Date().toLocaleDateString('en-CA');   // YYYY-MM-DD on this computer's clock
 
@@ -80,9 +80,10 @@ function lqRenderTerms() {
   const host = document.getElementById('lqHost');
   if (!host || lqSel.tab !== 'terms') return;
   host.innerHTML = `<div class="lr-sec"><h3>Welcome-back rate: Terms &amp; Conditions</h3>
-    <p class="slv-muted">The terms that go with the welcome-back rate in the Lost Clients message. Tell a client who asks, or open the PDF to read it with her.</p>
-    <p><a class="lq-terms-open" href="${LQ_TERMS_PDF}" target="_blank" rel="noopener">Open the PDF in a new tab</a></p>
-    <iframe class="lq-terms-frame" src="${LQ_TERMS_PDF}#view=FitH" title="Welcome-back rate Terms and Conditions"></iframe></div>`;
+    <p class="slv-muted">The terms that go with the welcome-back rate in the Lost Clients message (Colour and Smoothing). Tell a client who asks, copy them to send, or open the PDF to read it with her. The Due message has no offer, so no terms.</p>
+    ${lqTermsList()}
+    <details class="lr-fold"><summary>The PDF</summary><p><a class="lq-terms-open" href="${LQ_TERMS_PDF}" target="_blank" rel="noopener">Open the PDF in a new tab</a></p>
+    <iframe class="lq-terms-frame" src="${LQ_TERMS_PDF}#view=FitH" title="Welcome-back rate Terms and Conditions"></iframe></details></div>`;
 }
 // Called once renderLostListsPage has drawn the page: open the tab the person left on.
 // The address bar names the tab (Kate, 12 Oct 2026): ?view=lost-clients&tab=templates. Slugs: groups, to-message, templates.
@@ -449,10 +450,45 @@ function lqPaintTpl() {
           ? 'A text is one message up to 160 characters, so keep it short. The approved wording has no opt-out line. Where texts are sent from (and the sender name) is set up outside this page.'
           : 'WhatsApp only lets us start a chat with someone who has not written in the last 24 hours using a message Meta has approved, so a changed wording has to be approved in respond.io before it is sent there. Added automatically: for "Replied 12 to 18 months ago" the opening becomes "it\'s been a while since we last chatted, this is ...", and for "No reply seen" the message ends with "' + lcEsc(LQ_STOP.trim()) + '"' + (lqSendOn() ? '. <b>Sending from this site uses the approved Meta wording, so editing it here does not change what goes out through Send.</b>' : '')}</p>
       </section>
-    </div>`;
+    </div>
+    ${lqUniformHtml(t)}`;
   lqFillWho();
   lqPreview();
 }
+const LQ_TERMS = {"title": "Welcome-back rate: Terms & Conditions", "intro": "These terms apply to the welcome-back rate in the WhatsApp message you received from Tara Rose. It can be used at all four of our UAE salons: Mamsha al Saadiyat and Khalifa City A in Abu Dhabi, and Al Quoz and Motor City in Dubai.", "pts": [["Who it is for.", "The rate is the one named in your welcome-back message from Tara Rose. It is held in your name and is not transferable: it cannot be shared or passed on to anyone else."], ["Colour and cut.", "The rate is 20% off your colour and cut bill when you spend AED 500 or more on it, on one visit. Toners and treatments booked with your colour are included. Other services and products on the same visit are not. The AED 500 is counted before the rate is taken off."], ["Smoothing.", "The rate is 30% off your next smoothing. Every type of smoothing is included, with no minimum spend."], ["One use.", "The rate can be used once, on one visit. A cancelled or missed appointment does not use it up."], ["Our salons.", "You can use it at any of our four UAE salons, on the services available at each salon. When you book, tell the team that you have the welcome-back rate."], ["Until 31 October 2026.", "The rate can be used for any appointment that takes place on or before 31 October 2026, and it must also be booked on or before 31 October 2026. A booking made after that date does not qualify. Booking before it is not enough on its own: the appointment itself must also fall within it. Appointments stay subject to our usual booking, cancellation and no-show policies, and the rate does not reserve a particular stylist, date or time."], ["Other rates.", "The rate cannot be used alongside any other promotion or rate, including Wellness Voucher credit, and it has no cash value."], ["Pricing.", "All amounts are in UAE Dirhams (AED) and include applicable value-added tax."], ["General.", "Tara Rose reserves the right to reasonably amend or clarify these terms where required for the administration of the rate, provided this does not reduce a rate you have already received."]]};
+const LQ_FLOWS = [['Template goes out', 'No buttons on the October templates, only the footer line.', ''], ['She types a reply', 'It lands in the respond.io inbox and the call centre answers her there.', ''], ['She types STOP', 'Read each night. She is marked as opted out and left out of every later send.', '']];
+const LQ_VARNAME = { first_name: 'first name', branch: 'salon', stylist: 'stylist', month: 'last visit month', offer_pct: 'offer', offer_until: 'end date' };
+function lqPhoneHtml(text) {
+  return `<div class="cbl-phone-wrap"><div class="cbl-phone"><div class="cbl-screen"><div class="cbl-status"><span>11:32 am</span><span class="ic">5G <span class="cbl-batt"></span></span></div>
+    <div class="cbl-chat-head"><span class="cbl-back">‹</span><span class="cbl-av"></span><span class="cbl-who">Tara Rose Salons UAE<small>Business account</small></span><span class="cbl-dots">⋮</span></div>
+    <div class="cbl-thread"><span class="cbl-day">Today</span><div class="cbl-bub"><div class="cbl-body" id="lqPhoneBody">${lcEsc(text)}</div><div class="cbl-time">11:30 am</div></div></div>
+    <div class="cbl-compose"><span class="cbl-input">Message</span><span class="cbl-mic"></span></div></div></div></div>`;
+}
+function lqTermsList() {
+  return `<h4 class="lq-h4">${lcEsc(LQ_TERMS.title)}</h4><p class="slv-note">${lcEsc(LQ_TERMS.intro)}</p><ol class="lq-tcl">${LQ_TERMS.pts.map(p => `<li><b>${lcEsc(p[0])}</b> ${lcEsc(p[1])}</li>`).join('')}</ol>
+    <div class="lq-edrow"><button type="button" class="tglr lc-btn" onclick="lqCopyTerms()">Copy the terms</button><span class="slv-note" id="lqTcNote"></span></div>`;
+}
+function lqCopyTerms() {
+  const txt = LQ_TERMS.title + '\n\n' + LQ_TERMS.intro + '\n\n' + LQ_TERMS.pts.map((p, i) => (i + 1) + '. ' + p[0] + ' ' + p[1]).join('\n'), n = document.getElementById('lqTcNote');
+  const ok = () => { if (n) n.textContent = 'Copied.'; }, fb = () => { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) { if (n) n.textContent = 'Select the text and copy it.'; } ta.remove(); };
+  try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, fb); else fb(); } catch (e) { fb(); }
+}
+// The uniform blast sections for the template picked (Kate, 9 Nov 2026): the message on a phone, the template in respond.io, what happens if she replies, the terms.
+function lqUniformHtml(t) {
+  if (t.channel === 'sms') return '';
+  const type = lqTplType(t.key), tp = lqSnd.info ? (lqSnd.info.templates || []).filter(x => x.qtype === type) : [], VL = { '': 'Standard', stop: 'Standard plus STOP line', gap: 'Gap', story: 'Story' };
+  const names = tp.length ? tp.map(x => `<div class="lq-tp"><span class="g">${lcEsc(VL[x.variant] || x.variant || 'Standard')}</span><code>${lcEsc(x.respond_name)}</code><span class="lq-tps${x.approved ? ' ok' : ''}">${x.approved ? 'Approved by Meta' : 'Not approved yet'}</span></div>`).join('') : '<p class="slv-note">The template names load for Level 3 and above.</p>';
+  const vars = [...new Set([].concat(...tp.map(x => x.vars || [])))].map(v => lcEsc(LQ_VARNAME[v] || v)).join(', ') || '';
+  const foot = [...new Set(tp.map(x => x.footer).filter(Boolean))];
+  const row = (k, v) => `<div><small>${k}</small><span>${v}</span></div>`;
+  const hasTerms = type === 'colour' || type === 'smoothing';
+  return `<section class="slv-card lq-us"><h3>2. The message</h3><p class="slv-note">What does she read on her phone?</p>${lqPhoneHtml(lqPrevText())}</section>
+    <section class="slv-card lq-us"><h3>3. Template in respond.io</h3><p class="slv-note">What exactly is in the template?</p><div class="lq-tpl">${names}</div>
+      <div class="lq-kvs">${row('Category and language', 'Marketing, English (UK)')}${row('Variables', vars || 'None')}${row('Header image', 'No')}${row('Footer', foot.length ? lcEsc(foot.join(' · ')) : 'None')}${row('Buttons', 'None')}</div></section>
+    <section class="slv-card lq-us"><h3>4. If she replies</h3><p class="slv-note">What happens in WhatsApp when she types?</p><ol class="lq-flow">${LQ_FLOWS.map(s => `<li><b>${lcEsc(s[0])}</b><span>${lcEsc(s[1])}</span></li>`).join('')}</ol></section>
+    <section class="slv-card lq-us"><h3>5. Terms and conditions</h3><p class="slv-note">What are the terms that go with this message?</p>${hasTerms ? `<p><button type="button" class="tglr lc-btn" onclick="lqShowTab('terms')">Open the terms</button></p>` : '<p class="slv-note">No terms: no offer in this message.</p>'}</section>`;
+}
+function lqPrevText() { const o = document.getElementById('lqPrev'); if (o && o.textContent) return o.textContent; const t = lqTpl && lqTpl.find(x => x.key === lqTplKey); return t ? t.body : ''; }
 function lqPickTpl(k) { lqTplKey = k; lqTplSample = 0; lqPaintTpl(); }
 function lqFillWho() {
   const sel = document.getElementById('lqWho');
@@ -466,6 +502,7 @@ function lqPreview() {
   const s = lqSamples(lqTplKey), r = s[lqTplSample] || s[0];
   const m = r ? lqMessage(r, ta.value) : lqFill(ta.value, { first_name: 'Sara', branch: 'Saadiyat', stylist: 'Nikki', month: 'August 2025' });
   out.textContent = m;
+  const pb = document.getElementById('lqPhoneBody'); if (pb) pb.textContent = m;
   const c = document.getElementById('lqCnt'), sms = lqTplKey.startsWith('sms');
   if (c) c.textContent = sms ? `${m.length} characters when filled in (one text is 160)` : `${m.length} characters when filled in`;
   const dirty = ta.value.trim() !== ((lqTpl.find(x => x.key === lqTplKey) || {}).body || '').trim();
@@ -508,6 +545,7 @@ async function lqSendLoad() {
     lqSnd.jobs = {};
     j.data.forEach(x => { lqSnd.jobs[x.client_key] = x; });
   } catch (e) { lqSnd.info = null; lqSnd.jobs = {}; }
+  try { const l = await sb.rpc('lost_send_lock_info'); lqSnd.lock = !l.error && l.data ? l.data : null; } catch (e) { lqSnd.lock = null; }   // migrations/lost_send_lock.sql: sending locks by itself once the campaign has finished
 }
 function lqRelink() { lqRows.forEach(r => { r._job = lqSnd.jobs[r.client_key] || null; }); }
 const lqSendOn = () => !!(lqSnd.info && lqSnd.info.enabled);
@@ -549,7 +587,51 @@ function lqOutLine() {
   return bits.length ? bits.join(' · ') : 'queued, failed and skipped';
 }
 
+const lqLocked = () => !!(lqSnd.lock && lqSnd.lock.locked);
+function lqLockDisable(h) { return h.replace(/<button type="button" class="tglr lc-btn/g, '<button type="button" disabled aria-disabled="true" class="tglr lc-btn').replace(/<(select|input) class="ll-sel" id="lqTestTpl"/g, '<$1 disabled class="ll-sel" id="lqTestTpl"'); }
+function lqLockBoxHtml() {
+  return `<div class="lq-lockbox" role="status"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    <div><b>Locked: the campaign has finished</b><span>Nobody can send, retry, test, switch sending on or change the pace. The counts stay. Only Level 5 can unlock it, by typing UNLOCK. The next message queued puts the lock back on.</span></div>
+    ${typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5 ? '<button type="button" class="tglr lc-btn" onclick="lqUnlock()">Unlock…</button>' : ''}</div>`;
+}
+function lqUnlock() {
+  lqModalOpen(`<h3>Unlock sending?</h3><p class="slv-note">The campaign has finished, so sending locked by itself. Unlocking lets the next message be queued. The lock goes back on as soon as that message is queued and the campaign has finished again.</p>
+    <label class="slv-note" for="lqUnl">Type <b>UNLOCK</b> to unlock</label><input id="lqUnl" type="text" autocomplete="off" autocapitalize="characters" class="ll-search" oninput="document.getElementById('lqUnlGo').disabled = this.value.trim().toUpperCase() !== 'UNLOCK'">
+    <p class="slv-note" id="lqUnlErr" style="color:var(--bad,#b3402f)"></p>
+    <div class="lqm-btns"><button type="button" class="tglr lc-btn" onclick="lqModalClose()">Cancel</button><button type="button" class="tglr lc-btn lq-pri" id="lqUnlGo" disabled onclick="lqUnlockGo()">Unlock</button></div>`);
+}
+async function lqUnlockGo() {
+  const el = document.getElementById('lqUnl'), er = document.getElementById('lqUnlErr');
+  const { error } = await sb.rpc('lost_send_unlock', { p_confirm: el ? el.value : '' });
+  if (error) { console.error(error); if (er) er.textContent = error.message || 'That did not unlock. Level 5 only.'; return; }
+  lqModalClose(); await lqSendLoad(); lqPaint();
+}
+// The pace, set here (Kate, 9 Nov 2026: "dapat naka-set yung pace"): how many go out, how often and inside which hours. Level 5, and read only once the campaign is locked.
+function lqPaceHtml() {
+  const i = lqSnd.info; if (!i || !(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5)) return '';
+  const hrs = sel => { let o = ''; for (let h = 0; h <= 24; h++) o += `<option value="${h}"${h === sel ? ' selected' : ''}>${lcEsc(lqHour(h))}</option>`; return o; };
+  const mins = [10, 15, 20, 30, 45, 60].map(m => `<option value="${m}"${m === (i.slot_minutes || 30) ? ' selected' : ''}>${m} minutes</option>`).join('');
+  const day = i.slot_cap && i.hour_to > i.hour_from ? Math.floor((i.hour_to - i.hour_from) * 60 / (i.slot_minutes || 30)) * i.slot_cap : 0;
+  return `<div class="lq-pace"><b>Pace</b><span class="slv-note">How many go out, how often and inside which hours (Dubai time). It applies to messages that have not gone yet.</span>
+    <div class="lq-pg"><label>Messages<input id="lqPcap" type="number" min="0" max="1000" step="10" value="${i.slot_cap || 0}"></label><label>Every<select id="lqPmin">${mins}</select></label>
+      <label>Window starts<select id="lqPfrom">${hrs(i.hour_from)}</select></label><label>Window ends<select id="lqPto">${hrs(i.hour_to)}</select></label></div>
+    <span class="slv-note">${day ? `Up to ${lcNum(day)} a day.` : 'No pace limit is set (messages 0).'}</span>
+    <span id="lqPerr" class="slv-note" style="color:var(--bad,#b3402f)"></span>
+    <div><button type="button" class="tglr lc-btn" onclick="lqPaceSave()">Save pace</button></div></div>`;
+}
+async function lqPaceSave() {
+  const g = id => { const e = document.getElementById(id); return e ? +e.value : NaN; }, er = document.getElementById('lqPerr');
+  const cap = g('lqPcap'), mn = g('lqPmin'), f = g('lqPfrom'), to = g('lqPto');
+  if (!(cap >= 0 && cap <= 1000) || !(mn >= 5 && mn <= 120) || !(to > f)) { if (er) er.textContent = 'Check the pace: messages from 0 to 1000, and the window has to end after it starts.'; return; }
+  const { data, error } = await sb.rpc('lost_send_config_set', { p_patch: { slot_cap: cap, slot_minutes: mn, hour_from: f, hour_to: to } });
+  if (error) { console.error(error); if (er) er.textContent = error.message || 'That did not save. Level 5 only.'; return; }
+  lqSnd.info = data; lqPaint();
+}
 function lqSendBarHtml() {
+  const h = lqSendBarCore() + lqPaceHtml();
+  return lqLocked() ? lqLockBoxHtml() + lqLockDisable(h).replace(/<input id="lqPcap"/, '<input disabled id="lqPcap"').replace(/<select id="lqP(min|from|to)"/g, '<select disabled id="lqP$1"') : h;
+}
+function lqSendBarCore() {
   const i = lqSnd.info;
   if (!i) return '';
   const lvl5 = typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;
