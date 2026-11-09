@@ -41,6 +41,7 @@
 <script src="/auth.js?v=3823f956"></script>
 <script src="/pages.js?v=6044f3d7"></script>
 <script src="/assets/theme-fade.js"></script>
+<script src="/nav-layout.js?v=e1f08942"></script>
 <script src="/hub/hub.js?v=b36f9bda"></script>
 <script src="/visits.js?v=1176426c"></script>
 <script>
@@ -225,6 +226,54 @@ KB.ready.then(async function () {
     'Targets': 'var(--accent-coral)', 'Campaigns': 'var(--accent-coral)', 'Content': 'var(--accent-coral)', 'People': 'var(--accent-mint)', 'Tools': 'var(--accent-butter)', 'Admin': 'var(--accent-mint)' };
   var openG = null;
   try { var hm = /^#g=(.+)$/.exec(location.hash); if (hm) openG = decodeURIComponent(hm[1]); } catch (e) {}
+  // Kate, 9 Nov 2026: "changes in here must appear on here as well". When Kate has saved her own menu (Rearrange Menu), the Tools door follows it: its Tools section is the door,
+  // its sub-sections are the door's lists, in her order, and a page she moved into Tools gets a row here (and one she moved out loses it). The menu is read the way Rearrange Menu reads it
+  // (the dashboard's own sidebar plus her saved layout), so a page added later appears too. Everyone else, and Kate before she saves anything, keeps the standard lists.
+  async function menuDoor() {
+    if (!door || door.title !== 'Tools' || KB.realLevel !== 5 || KB.viewAs || !window.trsNav) return;
+    try {
+      var lr = await KB.client.rpc('nav_layout_get');
+      if (lr.error || !lr.data || !lr.data.groups) return;
+      var side = new DOMParser().parseFromString(await (await fetch('/', { credentials: 'same-origin' })).text(), 'text/html').querySelector('aside.sidebar');
+      if (!side) return;
+      var ext = window.trsNav.extract(side), tree = window.trsNav.merge(ext.tree, lr.data);
+      var tg = tree.filter(function (g) { return g.n === 'Tools'; })[0];
+      if (!tg) return;
+      var norm = function (h) {
+        h = String(h || '').replace(/^https?:\/\/trk-salon-os\.com/, '');
+        var m = /^\/?\?view=([A-Za-z0-9_-]+)/.exec(h);
+        return m ? 'v:' + window.trsViewOfSlug(m[1]) : h.replace(/\/$/, '');
+      };
+      var byHref = {};
+      KB.SECTIONS.forEach(function (c) { if (c.href && !byHref[norm(c.href)]) byHref[norm(c.href)] = c; });
+      var cardFor = function (k) {
+        var u = ext.units[k]; if (!u) return null;
+        var h = u.els[0].getAttribute('href') || '', c = byHref[norm(h)];
+        if (c) return c;
+        var vm = /[?&]view=([A-Za-z0-9_-]+)/.exec(h), pg = vm && trsPage(window.trsViewOfSlug(vm[1]));
+        c = { key: 'lay-' + k, dept: 'Tools', title: u.label, href: h, live: true, ic: (pg && pg.ic) || 'dashboards', rule: 'var(--accent-lavender)', blurb: 'Opens the ' + u.label + ' page.' };
+        KB.SECTIONS.push(c); shown.push(c);
+        return c;
+      };
+      var lists = [], put = function (title, keys) {
+        var cs = keys.map(cardFor).filter(function (c) { return c && shown.indexOf(c) >= 0; });
+        if (cs.length) lists.push({ title: title, keys: cs.map(function (c) { return c.key; }) });
+      };
+      put('More', tg.loose);
+      tg.subs.forEach(function (sb) { put(sb.n, sb.p); });
+      // A row the standard door has that the sidebar has no row for at all (Staff Roster & Access, Page Access) stays where the standard door puts it.
+      var onSide = {};
+      Object.keys(ext.units).forEach(function (k) { onSide[norm(ext.units[k].els[0].getAttribute('href'))] = 1; });
+      DOORS.tools.lists.forEach(function (sl) {
+        var keep = shown.filter(function (c) { return (sl.keys || []).indexOf(c.key) >= 0 && c.href && !onSide[norm(c.href)]; }).map(function (c) { return c.key; });
+        if (!keep.length) return;
+        var tl = lists.filter(function (l) { return l.title === sl.title; })[0];
+        if (tl) tl.keys = tl.keys.concat(keep); else lists.push({ title: sl.title, keys: keep });
+      });
+      if (lists.length) { DOORS.tools.lists = lists; }
+    } catch (e) { /* the standard lists stay */ }
+  }
+  await menuDoor();
   paint();
 
   document.getElementById('kbGrid').addEventListener('click', async function (e) {
