@@ -148,7 +148,7 @@ async function lrLoadWS() {
   if (lrBusy || !lrSum || typeof lqSel === 'undefined' || lqSel.tab !== 'perf') return;
   const el = document.getElementById('lr-warm'), html = lrWSInner();
   if (el) el.innerHTML = html;
-  else { const t = document.getElementById('lr-totals'); if (t) { t.insertAdjacentHTML('afterend', `<section class="lr-sec" id="lr-warm">${html}</section>`); lrRailSubs(); } }
+  else { const t = document.getElementById('lr-more-in'); if (t) { t.insertAdjacentHTML('afterbegin', `<section class="lr-sec" id="lr-warm">${html}</section>`); } }
 }
 // The three messages' money, one call each, run together; a failed one just leaves its row out. Repaints the money section in place when they land.
 async function lrLoadMoneyBy() {
@@ -364,7 +364,7 @@ function lrDepInner() {
   const d = lrDep;
   if (!d) return '';
   const tbl = lrDepView === 'table';
-  return `<div class="lr-dhd"><h3>Booked: who has paid a deposit</h3>
+  return `<div class="lr-dhd"><h3>3. Booked ahead: who has paid a deposit</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrDepSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrDepSet('table')">Table</button></div></div>
     ${lrSince ? lrSinceTiles(lrSince, tbl) + '<h4 class="lr-dh">Booked ahead: who has paid a deposit</h4>' : ''}
     <p class="slv-note">Clients we messaged who now have a visit booked, and whether her deposit is in.</p>
@@ -451,7 +451,7 @@ function lrMoneyInner() {
   const m = lrMoney;
   if (!m) return '';
   const tbl = lrMoneyView === 'table', b = m.booked, unp = b.unpriced || 0;
-  return `<div class="lr-dhd"><h3>Money from the bookings</h3>
+  return `<div class="lr-dhd"><h3>4. Money from the bookings</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrMoneySet('visual')">Graph</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrMoneySet('table')">Table</button></div></div>
     ${tbl ? lrMoneyTable(m) : lrMoneyVisual(m)}
     ${lrMoneyByInner()}
@@ -538,7 +538,7 @@ function lrDelInner() {
   const d = lrDel;
   if (!d) return '';
   const tbl = lrDelView === 'table', unk = d.total.unknown || 0;
-  return `<div class="lr-dhd"><h3>Did the message arrive?</h3>
+  return `<div class="lr-dhd"><h3>2. Did the message arrive?</h3>
       <div class="tp-seg" role="group" aria-label="View"><button type="button" class="${tbl ? '' : 'on'}" onclick="lrDelSet('visual')">Visual</button><button type="button" class="${tbl ? 'on' : ''}" onclick="lrDelSet('table')">Table</button></div></div>
     <p class="slv-note">Whether the messages reached the phones: seen, delivered, or not delivered yet.</p>
     ${d.total.sent ? (tbl ? lrDelTable(d) : lrDelVisual(d)) : '<p class="slv-muted">Nothing sent yet.</p>'}
@@ -649,8 +649,8 @@ function lrWSInner() {
 // sections gets a link under the Performance report entry. Drawn only in the sidebar rail (lost-queue.css shows them from 1400px; below
 // that the rail is a row of chips), removed when another tab opens (lqShowTab) and redrawn on every paint, so a section that is not
 // there (no delivery or deposit data yet) has no link. The lit entry follows the scroll.
-const LR_SUBS = [['lr-type', 'Which message'], ['lr-totals', 'The campaign so far'], ['lr-warm', 'Warm or standard?'], ['lr-delivery', 'Did the message arrive?'], ['lr-deposits', 'Bookings and deposits'], ['lr-money', 'Money from the bookings'],
-  ['lr-waves', 'By wave'], ['lr-messages', 'By message'], ['lr-branches', 'By branch'], ['lr-days', 'By day'], ['lr-slots', 'Send times'], ['lr-log', 'Send log']];
+const LR_SUBS = [['lr-type', 'Which message'], ['lr-totals', '1. The campaign so far'], ['lr-delivery', '2. Did the message arrive?'], ['lr-deposits', '3. Booked ahead'], ['lr-money', '4. Money from the bookings'],
+  ['lr-bymsg', '5. By message'], ['lr-branches', '6. By branch'], ['lr-days', '7. By day sent'], ['lr-slots', '8. Send times'], ['lr-log', '9. Send log'], ['lr-more', 'More on October']];
 let lrSpy = null;
 function lrRailClear() {
   document.querySelectorAll('#lostListsContent .side-sub').forEach(n => n.remove());
@@ -689,6 +689,16 @@ function lrRailSubs() {
   }
   spy();
 }
+// The two notices that open the October report (Kate, 9 Nov 2026). The first is Coach Emma's ruling of 4 Nov. The second is the clients to exempt from the 31 Oct end date: the October
+// terms were not set up before the blast went out, so some clients booked beyond 31 Oct. The counts are lost_after_deadline(): next appointment after 31 Oct and not in since our first message.
+function lrNotices() {
+  const lt = lrLate, o = lt && lt.offer, d = lt && lt.due;
+  const ex = lt ? `<div class="lr-ex"><span>Colour or Smoothing<small>booked after 31 Oct without using the welcome-back rate, of ${lcNum(o.clients)} messaged</small></span><em>${lrNum(o.late || 0, 'late_offer')}</em>
+      <span>Due only<small>booked after 31 Oct, of ${lcNum(d.clients)} messaged</small></span><em>${lrNum(d.late || 0, 'late_due')}</em></div>
+    <p class="slv-note">${lcNum(o.late_came || 0)} more Colour or Smoothing clients and ${lcNum(d.late_came || 0)} more Due clients booked past 31 Oct but had already come in, so they are not in these counts. Tap a number to open the names.</p>` : '<p class="slv-note">The counts are loading.</p>';
+  return `<div class="lr-notice"><b>Read these with one caution</b><p>Lost Clients blasts, 15 to 19 Oct. The figures move every day. The October reminder text went to Lost Clients, people already past due, not to clients who were due, so it was the wrong message for that group.</p></div>
+    <div class="lr-notice"><b>Exempt from the 31 Oct end date</b><p>The October terms and conditions were not set up before the blast went out, so some clients booked beyond 31 Oct. These are the clients to exempt. Counted as: next appointment after 31 Oct and not in since our first message.</p>${ex}</div>`;
+}
 function lrPaint() {
   const host = document.getElementById('lqHost');
   if (!host) return;
@@ -696,17 +706,6 @@ function lrPaint() {
   if (lrErr || !lrSum) { host.innerHTML = `<p class="slv-muted">${lcEsc(lrErr || 'No report yet.')}</p>`; return; }
   const s = lrSum, t = s.totals || {}, byB = s.by_branch || [];
   const typeRows = LR_TYPES.map(([k, l]) => { const m = (s.by_type || []).find(x => x.k === k); return m ? lrRow(`<b>${lcEsc(l)}</b>`, m, { y: k }) : null; }).filter(Boolean);
-  // Two extra lines under the three messages (Kate, 27 Oct 2026): next appointment after the 31 Oct deadline and not in yet. The number sits under Booked;
-  // the rest of the row says how many clients that is out of, and how many more already came in (a visit since the message may have used the rate).
-  const lateRow = (label, g, met) => {
-    const n = g.late || 0, came = g.late_came || 0;
-    return `<tr class="lr-late"><td>${label}</td><td colspan="3" class="slv-muted">Next appointment after 31 Oct, not in yet</td><td>${lrNum(n, met)}</td>
-      <td colspan="5" class="slv-muted">${lrPct(n, g.clients)} of the ${lcNum(g.clients)} clients messaged${came ? `. ${lcNum(came)} more booked past 31 Oct but had already come in` : ''}</td></tr>`;
-  };
-  if (lrLate && typeRows.length) {
-    typeRows.push(lateRow('<b>Booked after 31 Oct</b> without the offer <span class="ll-tag">Colour, Smoothing</span>', lrLate.offer, 'late_offer'));
-    typeRows.push(lateRow('<b>Booked after 31 Oct</b> <span class="ll-tag">Due only</span>', lrLate.due, 'late_due'));
-  }
   const waveRows = (s.by_wave || []).map(w => lrRow(`<b>Wave ${w.k || '?'}</b>`, w, { w: w.k || 0 }));
   const msgRows = (s.by_message || []).map(m => { const x = lrMsg(m.k); return lrRow(`${lcEsc(x.nm)} <span class="ll-tag">${lcEsc(x.arm)}</span>`, m, { t: m.k }); });
   const brRows = LR_BR.map(b => byB.find(x => x.k === b)).filter(Boolean).map(m => lrRow(lcEsc(LC_BRANCH[m.k] || m.k), m, { b: m.k }))
@@ -719,23 +718,20 @@ function lrPaint() {
       <span class="ll-chip">Report made <b>${lcEsc(lrTime(s.at))}</b></span>
       <button type="button" class="ll-chip lq-refresh" onclick="lrRenderPerf(true)" title="Ask again">Refresh</button>
     </div>
+    ${lrNotices()}
     <section class="lr-sec" id="lr-type"><div class="lr-dhd"><h3>Which message</h3>
       <div class="tp-seg" role="group" aria-label="Message">${[['all', 'All']].concat(LR_TYPES.map(([k, l]) => [k, k === 'due' ? 'Due' : l])).map(([k, l]) => `<button type="button" class="${lrType === k ? 'on' : ''}" onclick="lrSetType('${k}')">${l}</button>`).join('')}</div></div>
-      ${lrType === 'all' ? `<p class="slv-note">How the three messages compare. Pick one to see every number on this page for that message alone.</p>${lrTable('Message', typeRows)}<details class="lr-fold"><summary>How the three are made</summary><p class="slv-note">Smoothing is groups 1 and 2, Colour is group 3, Due is everyone else. A client who was sent two different messages is counted under each.</p></details>`
-        : `<p class="slv-note">Showing <b>${lcEsc(lrTypeName())}</b> only, everything below. Pick All to see the three together.</p>`}
+      <p class="slv-note">${lrType === 'all' ? 'Pick one message to see every number on this page for that message alone.' : `Showing <b>${lcEsc(lrTypeName())}</b> only, everything below. Pick All to see the three together.`}</p>
     </section>
-    <section class="lr-sec" id="lr-totals"><h3>The campaign so far${lrType === 'all' ? '' : `: ${lcEsc(lrTypeName())}`}</h3><p class="slv-note">How many we sent and what came back.</p>${lrTiles(t)}</section>
-    ${lrWS && lrType === 'all' ? `<section class="lr-sec" id="lr-warm">${lrWSInner()}</section>` : ''}
+    <section class="lr-sec" id="lr-totals"><h3>1. The campaign so far${lrType === 'all' ? '' : `: ${lcEsc(lrTypeName())}`}</h3><p class="slv-note">How many we sent and what came back.</p>${lrTiles(t)}</section>
     ${lrDel ?`<section class="lr-sec" id="lr-delivery">${lrDelInner()}</section>` : ''}
     ${lrDep ? `<section class="lr-sec" id="lr-deposits">${lrDepInner()}</section>` : ''}
     ${lrMoney ? `<section class="lr-sec" id="lr-money">${lrMoneyInner()}</section>` : ''}
-    <section class="lr-sec" id="lr-waves"><h3>By wave</h3>${lrTable('Wave', waveRows)}</section>
-    <section class="lr-sec" id="lr-messages"><h3>By message</h3>${lrTable('Message', msgRows)}
-      <p class="slv-note">The versions were not split at random: each went out in its own stretch of time (see First sent and Last sent), and the STOP line went only to waves 3 and 4, the colder clients, so the text and the audience move together (Warm or standard? above). Reply rate here is replies over messages sent, and a message that was never delivered cannot be answered, so read the gap between versions as a hint, not proof. Story and Standard were split evenly only in the 50-client pilot.</p></section>
-    <section class="lr-sec" id="lr-branches"><h3>By branch</h3>${lrTable('Branch', brRows)}</section>
-    <section class="lr-sec" id="lr-days"><h3>By day</h3>${lrTable('Day', dayRows)}</section>
-    <section class="lr-sec" id="lr-slots"><h3>Send times</h3><p class="slv-note">When the messages went out, in half hours (Dubai time). To change the pace, use Pace on the To message tab.</p>${lrSlots(s.by_slot || [])}</section>
-    <section class="lr-sec" id="lr-log"><h3>Send log</h3>
+    <section class="lr-sec" id="lr-bymsg"><h3>5. By message</h3><p class="slv-note">Which message did the most? Smoothing is groups 1 and 2, Colour is group 3, Due is everyone else. A client who was sent two different messages is counted under each.</p>${lrTable('Message', typeRows)}</section>
+    <section class="lr-sec" id="lr-branches"><h3>6. By branch</h3><p class="slv-note">Which salon got the most out of it?</p>${lrTable('Branch', brRows)}</section>
+    <section class="lr-sec" id="lr-days"><h3>7. By day sent</h3><p class="slv-note">What happened on each send day?</p>${lrTable('Day', dayRows)}</section>
+    <section class="lr-sec" id="lr-slots"><h3>8. Send times</h3><p class="slv-note">When the messages went out, in half hours (Dubai time). To change the pace, use Pace on the To message tab.</p>${lrSlots(s.by_slot || [])}</section>
+    <section class="lr-sec" id="lr-log"><h3>9. Send log</h3>
       <div class="lc-tools ll-tools">
         <select class="ll-sel" aria-label="Wave" onchange="lrSet('wave',this.value)">${[['all', 'All waves'], ['1', 'Wave 1'], ['2', 'Wave 2'], ['3', 'Wave 3'], ['4', 'Wave 4']].map(([v, l]) => `<option value="${v}"${lrSel.wave === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <select class="ll-sel" aria-label="Branch" onchange="lrSet('branch',this.value)"><option value="all">All branches</option>${LR_BR.map(b => `<option value="${b}"${lrSel.branch === b ? ' selected' : ''}>${lcEsc(LC_BRANCH[b] || b)}</option>`).join('')}</select>
@@ -751,7 +747,14 @@ function lrPaint() {
         <span id="lrNote" class="slv-note" style="display:inline"></span>
       </div>
       <div id="lrLog"></div>
-    </section>`;
+    </section>
+    <details class="lr-fold lr-more" id="lr-more"><summary>More on October</summary><div id="lr-more-in">
+      ${lrWS && lrType === 'all' ? `<section class="lr-sec" id="lr-warm">${lrWSInner()}</section>` : ''}
+      <section class="lr-sec" id="lr-waves"><h3>By wave</h3>${lrTable('Wave', waveRows)}</section>
+      <section class="lr-sec" id="lr-messages"><h3>By message version</h3>${lrTable('Message', msgRows)}
+        <p class="slv-note">The versions were not split at random: each went out in its own stretch of time (see First sent and Last sent), and the STOP line went only to waves 3 and 4, the colder clients, so the text and the audience move together (Warm or standard above). Reply rate here is replies over messages sent, and a message that was never delivered cannot be answered, so read the gap between versions as a hint, not a result.</p></section>
+    </div></details>
+`;
   lrPaintLog();
   lrRailSubs();
 }

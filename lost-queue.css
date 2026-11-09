@@ -372,3 +372,12 @@ body.lr-modal-open{overflow:hidden}
 #lostListsContent .ws-stat .v{overflow-wrap:anywhere}
 #lostListsContent .ws-r{flex-wrap:wrap}
 #lostListsContent .ws-card:not(.ws-won):not(.ws-lost) .ws-bar i{background:var(--muted2)}
+
+/* October report notices (Kate, 9 Nov 2026) */
+.lr-notice{border:1px solid #E0A43A;border-left-width:4px;border-radius:12px;padding:12px 16px;margin:0 0 14px;max-width:84ch;background:var(--surface2)}
+.lr-notice b{display:block;margin-bottom:2px}
+.lr-notice p{margin:0;color:var(--muted);font-size:14px}
+.lr-ex{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:14px}
+.lr-ex em{font-style:normal;font:600 20px 'Playfair Display',Georgia,serif}
+.lr-ex small{display:block;color:var(--muted);font-size:12.5px}
+.lr-more>summary{cursor:pointer;font-weight:600;padding:8px 0}
