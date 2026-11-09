@@ -203,7 +203,7 @@ button.tk-pill{cursor:pointer}
 <script src="/pages.js?v=655962ec"></script>
 <script src="/page-status.js?v=779c1d41"></script>
 <script src="/hub/hub.js?v=bf100e65"></script>
-<script src="/cmp-people.js?v=68e823b1"></script>
+<script src="/cmp-people.js?v=5925547b"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain'), esc = KB.esc, CP = window.CmpPeople;
@@ -236,6 +236,13 @@ button.tk-pill{cursor:pointer}
   }
   function row(k, v) { return v ? '<div class="cp-k"><span>' + esc(k) + '</span><b>' + v + '</b></div>' : ''; }
   function kindOf(c) { return KIND[c.type] || 'client'; }
+  // The Under construction notice above the page (page-status.js), for the Pipeline and for My complaints and a record (Kate, 9 Nov 2026: while a page is
+  // labelled, anyone with the level may see it). It sits outside main, so a redraw does not wipe it.
+  function ucNotice(id) {
+    var old = document.querySelector('.pg-status'); if (old && old.parentNode) old.parentNode.removeChild(old);
+    var nt = typeof trsStatusNotice === 'function' ? trsStatusNotice(id) : null;
+    if (nt) { nt.style.cssText = 'max-width:880px;margin:14px auto 14px;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.45;border:1px solid rgba(214,158,46,.55);background:rgba(214,158,46,.14)'; main.parentNode.insertBefore(nt, main); }
+  }
   function notYet() { return '<div class="cp">' + nav('') + '<p class="kb-msg">My complaints and the pipeline are not switched on yet. Complaints are logged and followed up on <a href="/?view=complaintlog">Log a Client Complaint</a>.</p></div>'; }
   function notOpen() { main.innerHTML = '<p class="kb-msg">This complaint isn’t open to your account. <a href="/hub/complaint">Your complaints</a> · <a href="/hub/">Team Home</a></p>'; }
   function codeChip(code) { return code ? '<span class="cp-code">' + esc(code) + ' <button type="button" data-copy="' + esc(code) + '">Copy</button></span>' : ''; }
@@ -970,11 +977,11 @@ button.tk-pill{cursor:pointer}
         return;
       }
       await board();
-      var nt = typeof trsStatusNotice === 'function' ? trsStatusNotice('complaintspipeline') : null;
-      if (nt) { nt.style.cssText = 'max-width:880px;margin:14px auto 0;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.45;border:1px solid rgba(214,158,46,.55);background:rgba(214,158,46,.14)'; main.parentNode.insertBefore(nt, main); }
+      ucNotice('complaintspipeline');
       return;
     }
-    return cid ? one() : list();
+    await (cid ? one() : list());
+    ucNotice('complaintlog');
   });
 })();
 </script>
