@@ -74,7 +74,7 @@ NOT_PAGES = {
     'ask-widget.js': 'the Ask box, one widget on every page', 'staff-links.js': 'the name hover menu',
     'staff-profiles.js': 'staff card data; people are found through the Team results',
     'stylist-cards.js': 'staff card words; people are found through the Team results',
-    'ledger-export.js': 'spreadsheet export of the ledger pages', 'report-export.js': 'the XLSX and CSV buttons every report shares', 'staff-dash-export.js': 'XLSX and CSV of the Staff Dashboards frame', 'ledger-targets-db.js': 'target data loader',
+    'ledger-export.js': 'spreadsheet export of the ledger pages', 'report-export.js': 'the XLSX and CSV buttons every report shares', 'staff-dash-export.js': 'XLSX and CSV of the Staff Dashboards frame', 'pulse-export.js': 'XLSX and CSV of the Organisation Pulse', 'ledger-targets-db.js': 'target data loader',
     'marketing-chart.js': 'chart drawing shared by Google Ads and Website',
     'fix-blank-rows.js': 'one-off Node repair script, not a page',
     'loading-facts.js': 'the lines on the loading screen',

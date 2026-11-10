@@ -5435,6 +5435,10 @@ async function renderDashboard() {
   const brAvg   = brCols.length ? brTotal / brCols.length : 0;
   const brMax   = brCols.length ? Math.max(...brCols.map(b => b.rev)) * 1.16 : 1;
   const brDim   = b => !sel.branch.includes('all') && !sel.branch.includes(b.code);
+  // What the XLSX and CSV buttons write (pulse-export.js, Kate 10 Nov 2026): the page as it was just worked out.
+  window._pulseExport = { s, prevS, prevLabel: prevS ? prevPeriodLabel : '', rangeLabel, branchLabel, hasBeauty, brCols, brDoor, fn: window._fn,
+    bench: benchRows.map(r => Object.assign({}, r, { fmt: undefined })).concat(unscored),
+    fromIso: (dateFrom && dateTo) ? dateToIso(dateFrom) : '', toIso: (dateFrom && dateTo) ? dateToIso(dateTo) : '' };
   // Kate, 27 Oct 2026: a branch's figures open that branch's own staff list, or its door clients (pulse-drill.js branchCtx), whatever the Branch filter says.
   const dnb = (html, b, kind, o) => { const c = pdCtx ? PD.branchCtx(pdCtx, b.code, b.bs) : null; return c ? TRSD.num(html, PD.spec(kind, c, o)) : html; };
   const colsPlot = brCols.length ? `
@@ -5504,6 +5508,9 @@ async function renderDashboard() {
     </div>`;
 
   main.innerHTML = `
+<div class="rex-row"><span class="rex-bar" role="group" aria-label="Download this report">
+  <button type="button" class="sc-btn rex-btn" title="Download the Pulse as an Excel file" onclick="pulseExport('xlsx',this)">XLSX</button>
+  <button type="button" class="sc-btn rex-btn" title="Download the Pulse as a CSV file" onclick="pulseExport('csv',this)">CSV</button></span></div>
 <!-- ══ HEADLINE THREE ══ -->
 <div class="eyebrow" id="s-three"><span class="bar"></span>The headline three</div>
 <div class="three">
@@ -6256,3 +6263,9 @@ function initCliView() {
 function _rankCls(i) { return i===0?'gold':i===1?'silver':i===2?'bronze':''; }
 
 // ── CLIENTS VIEW ─────────────────────────────────────────────
+
+// Kate, 10 Nov 2026: XLSX and CSV of the Pulse as drawn (pulse-export.js reads window._pulseExport, report-export.js saves it); both load on the first click.
+async function pulseExport(kind, btn) {
+  try { await trsLazy('px'); } catch (e) { if (typeof lgxToast === 'function') lgxToast('The download did not load. Try again.', true); return; }
+  return rexRun('pulseExportModel', kind, btn);
+}
