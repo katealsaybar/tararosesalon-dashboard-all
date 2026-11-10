@@ -2001,8 +2001,11 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 @media(prefers-reduced-motion:reduce){#bootLoader .bl-fact{transition:none}}
 #bootLoader .bl-bar{width:140px;height:2px;border-radius:2px;background:var(--border,#e6dfd3);overflow:hidden;position:relative}
 #bootLoader .bl-bar::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;border-radius:2px;
-  background:var(--text,#1c1b19);animation:blSlide 1.1s ease-in-out infinite}
+  background:var(--beauty,#0F8A72);animation:blSlide 1.1s ease-in-out infinite,blHue 4s step-end infinite}
 @keyframes blSlide{to{left:100%}}
+/* Kate, 10 Nov 2026: while it waits, the bar changes colour every second through the brand colours (mint, lavender, coral, butter on the dark theme, their deeper
+   versions on the light one: the --beauty, --hair, --staff-beauty and --warn tokens already switch with the theme). */
+@keyframes blHue{0%{background:var(--beauty,#0F8A72)}25%{background:var(--hair,#7C5CD4)}50%{background:var(--staff-beauty,#C2416A)}75%{background:var(--warn,#BA7517)}}
 @media(prefers-reduced-motion:reduce){#bootLoader .bl-bar::after{animation:none;left:30%}}
 /* THE SIGN-IN SCREEN (Kate, 8 Oct 2026: "let's improve login UI"). It follows the page's
    theme like the rest of the site and the search page (the tokens, not a card that is
