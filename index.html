@@ -3363,6 +3363,15 @@ body.ledger-chrome .lg-month-sel{font-size:15px}
 /* Kate, 15 Oct 2026: the compare hint used to wrap onto a second row of the sticky bar,
    so the bar ate two rows of the screen. It now sits under the bar and scrolls away. */
 .tp-hint{margin:0 0 6px}
+/* Kate, 4 Nov 2026: the Rank by list (position:fixed, but inside this bar's stacking context) was painted under the On this page row, which is also
+   z-index 40 and comes later in the page, so the open list looked cut in half and hid the card behind it. One above the row, so a list sits over it. */
+#view-team .tp-bar{z-index:41}
+/* Same day: a short window (a laptop with a split screen, a phone on its side) cannot carry three pinned rows. The masthead, these controls and
+   On this page left a strip of podium. Under 560px tall the controls and the row scroll away with the page; the masthead stays pinned. */
+@media (max-height:560px){
+  #view-team .tp-bar{position:relative;top:auto}
+  :root #view-team .jn-rail.jn-pin{position:relative;top:auto}
+}
 .tp-seg{display:flex;gap:2px;padding:2px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
 .tp-seg button{appearance:none;border:0;background:transparent;color:var(--muted);
   font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;letter-spacing:.04em;
