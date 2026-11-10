@@ -290,7 +290,7 @@
   var PHOTO = {};   // storage path -> short-lived signed link, filled by loadPhotoUrls()
   function avatar(p, big) {
     var url = p.photo && PHOTO[p.photo];
-    return '<button type="button" class="rct-av' + (big ? ' rct-avlg' : '') + (url ? ' rct-hasimg' : '') + '" data-act="photo" data-id="' + esc(p.id) + '" title="' + (p.photo ? 'Change photo' : 'Add a photo') + '" aria-label="' + (p.photo ? 'Change the photo of ' : 'Add a photo for ') + esc(p.name || 'this person') + '">' +
+    return '<button type="button" class="rct-av' + (big ? ' rct-avlg' : '') + (url ? ' rct-hasimg' : '') + '" data-act="photo" data-id="' + esc(p.id) + '" title="' + (p.photo ? 'Change photo' : 'Add a photo') + ' (click, or point here and press Ctrl+V to paste a copied image)" aria-label="' + (p.photo ? 'Change the photo of ' : 'Add a photo for ') + esc(p.name || 'this person') + '">' +
       (url ? '<img src="' + esc(url) + '" alt="" loading="lazy" draggable="false">' : esc(initials(p.name))) + '</button>';
   }
   function placeShort(p) {
@@ -329,6 +329,8 @@
     var d = waited(p); return d >= 21 ? '21 days or more' : d >= 14 ? '14 to 20 days' : d >= 7 ? '7 to 13 days' : 'Under 7 days';
   }
   function igLabel(p) { return hasIg(p) ? 'Has Instagram' : (safeUrl(p.work_link) ? 'Other link only' : (p.source === 'form' ? 'None given' : 'Not stated')); }
+  // Kate, 10 Nov 2026: which inbox the application arrived in (a person who wrote to both shows as Both)
+  function srcLabel(p) { var m = p.mailboxes || [], i = m.indexOf('info') >= 0, r = m.indexOf('recruitment') >= 0; return i && r ? 'Both inboxes' : i ? 'info@' : r ? 'recruitment@' : 'Not stated'; }
   function monthOf(p) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', month: 'long', year: 'numeric' }).format(new Date(p.applied_at)); } catch (e) { return ''; } }
 
   var COLS = [
@@ -339,6 +341,7 @@
     { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: expNum, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
     { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
+    { k: 'src', t: 'Came from', val: srcLabel, sort: function (p) { return srcLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'wait', t: 'Waiting', val: waitBucket, sort: function (p) { return (p.stage === 'new' && !p.replied_at) ? waited(p) : -1; }, kind: 'num', asc: 'Shortest wait first', desc: 'Longest wait first' },
     { k: 'status', t: 'Status', val: statusText, sort: function (p) { return statusText(p).toLowerCase(); }, kind: 'text' },
     { k: 'acts', t: 'Application Status', nofilter: true }
@@ -364,6 +367,7 @@
     switch (c.k) {
       case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
       case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
+      case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
       case 'ig': {
         if (hasIg(p)) { var u = igUrl(p), lab = p.ig_handle ? '@' + String(p.ig_handle).replace(/^@/, '') : 'Instagram'; return '<td>' + (u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(lab) + '</a>' : esc(lab)) + '</td>'; }
@@ -688,12 +692,52 @@
     if (!el) { el = document.createElement('input'); el.type = 'file'; el.accept = 'image/*'; el.hidden = true; el.id = multiple ? 'rctPhotosIn' : 'rctPhotoIn'; if (multiple) el.multiple = true; document.body.appendChild(el); }
     el.value = ''; return el;
   }
+  // Kate, 10 Nov 2026: "i want to be able to paste this directly". Click an avatar for the box (Ctrl+V pastes a copied image, or drop one, or choose a file);
+  // or point at an avatar and press Ctrl+V without opening anything.
+  var photoFor = null, hoverAv = null;
   function pickPhoto(id) {
     var p = personById(id); if (!p) return;
+    photoFor = String(p.id);
+    openDlg('Photo for ' + esc(p.name || 'this person'),
+      '<div class="rct-pastebox" id="rctPasteBox" tabindex="0" role="button" aria-label="Paste or drop a picture here">' +
+        '<b>Paste a picture here</b><span>Copy an image (right click, Copy image), then press Ctrl+V. Or drop an image on this box.</span></div>' +
+      '<p class="rct-pasteacts"><button type="button" class="rct-btn rct-sm" data-act="photofile" data-id="' + esc(p.id) + '">Choose a file instead</button>' +
+      (p.photo ? '<button type="button" class="rct-btn rct-sm" data-act="photoclear" data-id="' + esc(p.id) + '">Remove photo</button>' : '') + '</p>');
+    var box = document.getElementById('rctPasteBox'); if (box) box.focus();
+  }
+  function pickPhotoFile(id) {
+    var p = personById(id); if (!p) return;
     var el = fileInput(false);
-    el.onchange = function () { if (el.files && el.files[0]) addOnePhoto(p, el.files[0]); };
+    el.onchange = function () { if (el.files && el.files[0]) { closeDlg(); addOnePhoto(p, el.files[0]); } };
     el.click();
   }
+  function clipImage(e) {
+    var cd = e.clipboardData; if (!cd) return null;
+    var f = cd.files && cd.files.length ? [].filter.call(cd.files, function (x) { return /^image\//.test(x.type); })[0] : null;
+    if (f) return f;
+    var items = cd.items ? [].slice.call(cd.items) : [];
+    for (var i = 0; i < items.length; i++) { if (items[i].kind === 'file' && /^image\//.test(items[i].type)) return items[i].getAsFile(); }
+    return null;
+  }
+  document.addEventListener('paste', function (e) {
+    var mn = main(); if (!mn || mn.offsetParent === null) return;   // only while this page is the one on screen
+    var viaBox = dlg().open && photoFor && document.getElementById('rctPasteBox') ? photoFor : null, tg = e.target, tag = ((tg && tg.tagName) || '').toLowerCase();
+    if (!viaBox && (tag === 'input' || tag === 'textarea' || tag === 'select' || (tg && tg.isContentEditable))) return;   // typing, not pasting a photo
+    var id = viaBox ? photoFor : hoverAv; if (!id) return;
+    var f = clipImage(e); if (!f) return;
+    var p = personById(id); if (!p) return;
+    e.preventDefault(); if (viaBox) { closeDlg(); photoFor = null; }
+    addOnePhoto(p, f);
+  });
+  document.addEventListener('mouseover', function (e) { var a = e.target.closest && e.target.closest('[data-act="photo"]'); hoverAv = a && main() && main().contains(a) ? a.getAttribute('data-id') : null; });
+  document.addEventListener('dragover', function (e) { var b = e.target.closest && e.target.closest('#rctPasteBox'); if (b) { e.preventDefault(); b.classList.add('rct-drop'); } });
+  document.addEventListener('dragleave', function (e) { var b = e.target.closest && e.target.closest('#rctPasteBox'); if (b) b.classList.remove('rct-drop'); });
+  document.addEventListener('drop', function (e) {
+    var b = e.target.closest && e.target.closest('#rctPasteBox'); if (!b || !photoFor) return;
+    e.preventDefault(); b.classList.remove('rct-drop');
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0], p = personById(photoFor);
+    if (f && p) { closeDlg(); photoFor = null; addOnePhoto(p, f); }
+  });
   async function addOnePhoto(p, file) {
     try { await savePhoto(p, file); render(); toast('Photo saved for ' + firstName(p.name) + '.'); }
     catch (e) { console.error(e); toast('That photo did not save: ' + (e.message || 'try again')); }
@@ -704,7 +748,7 @@
       var r = await sb.rpc('recruit_clear_photo', { p_id: p.id });
       if (r.error) throw new Error(r.error.message);
       var old = r.data && r.data.old; if (old) { try { await sb.storage.from('recruit-photos').remove([old]); } catch (e) { /* harmless */ } delete PHOTO[old]; }
-      p.photo = null; render(); toast('Photo removed. Back to initials.');
+      p.photo = null; if (dlg().open && photoFor === String(p.id)) { closeDlg(); photoFor = null; } render(); toast('Photo removed. Back to initials.');
     } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
   }
   // bulk: each file is matched to a person by its name without the extension: their Instagram handle (ar.lashes_.jpg) or their full name (Radia Nouiri.jpg)
@@ -848,6 +892,7 @@
       else if (a === 'toggledone') { S.showDone = !S.showDone; render(); }
       else if (a === 'clearfilters') { S.filters = {}; q = ''; closePop(); render(); }
       else if (a === 'photo') pickPhoto(id);
+      else if (a === 'photofile') pickPhotoFile(id);
       else if (a === 'photoclear') clearPhoto(id);
       else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }

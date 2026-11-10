@@ -208,3 +208,10 @@
 
 /* Kate, 10 Nov 2026: "nasan yung upload": a small + on every avatar that has no photo yet, so the click-to-add is visible. */
 .rct-av:not(.rct-hasimg)::after{content:"+";position:absolute;right:0;bottom:0;width:17px;height:17px;border-radius:7px 0 9px 0;background:var(--accent);color:#0b1f1c;font-size:14px;font-weight:700;line-height:17px;text-align:center}
+
+/* Kate, 10 Nov 2026: the paste / drop box that opens from an avatar. */
+.rct-pastebox{display:grid;gap:6px;place-items:center;text-align:center;border:2px dashed var(--border);border-radius:14px;padding:30px 18px;color:var(--muted);cursor:default;outline:0}
+.rct-pastebox b{color:var(--text);font-size:16px}
+.rct-pastebox:focus,.rct-pastebox.rct-drop{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.rct-pasteacts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.rct-pasteacts .rct-btn{width:auto}
