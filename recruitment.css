@@ -218,3 +218,7 @@
 .rct-pastebox:focus,.rct-pastebox.rct-drop{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
 .rct-pasteacts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
 .rct-pasteacts .rct-btn{width:auto}
+
+/* Kate, 10 Nov 2026: the roles are typed, not switched. */
+.rct-rolein{width:100%;font:inherit;font-size:16px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin:8px 0 6px}
+.rct-rolein:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}

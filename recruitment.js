@@ -19,6 +19,25 @@
 
   function setting(k, d) { return settings[k] == null ? d : settings[k]; }
   function openRoles() { return setting('open_roles', { stylist: true, colourist: true, beauty: true, nails: true }); }
+  // Kate, 10 Nov 2026: "let me type what is needed instead". The roles we are hiring for are typed, separated by commas (setting open_roles_text).
+  // Until she types, it starts from the old switches so nothing changes by itself. A typed role matches a person when it names their role group
+  // (stylist, colourist, beauty, nails, front desk, barber, braider, with the usual other words) or appears in what they wrote for the role.
+  var ROLE_WORDS = { stylist: ['stylist', 'hairdresser'], colourist: ['colourist', 'colorist'], beauty: ['beauty', 'therapist'], nails: ['nail'], front: ['front desk', 'reception'], barber: ['barber'], braider: ['braid'] };
+  function openText() {
+    var t = settings.open_roles_text;
+    if (typeof t === 'string') return t;
+    var open = openRoles();
+    return ROLES.filter(function (r) { return open[r[0]] === true; }).map(function (r) { return r[1]; }).join(', ');
+  }
+  function openTerms() { return openText().split(/[,;\n]+/).map(function (x) { return x.trim(); }).filter(Boolean); }
+  function roleListed(p, terms) {
+    var hay = [p.role_txt, p.paths, p.specialist].join(' ').toLowerCase();
+    return terms.some(function (term) {
+      var t = term.toLowerCase();
+      if (p.role_key && ROLE_WORDS[p.role_key] && ROLE_WORDS[p.role_key].some(function (w) { return t.indexOf(w) >= 0; })) return true;
+      return t.length >= 3 && hay.indexOf(t) >= 0;
+    });
+  }
   function waitDays() { var n = +setting('wait_days', 14); return n > 0 ? n : 14; }
   function firstName(n) { return String(n || '').trim().split(/\s+/)[0] || 'there'; }
   function dayMs() { return 86400000; }
@@ -47,8 +66,8 @@
       var kind = p.link_kind && p.link_kind !== 'instagram' ? ({ tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn', youtube: 'YouTube' }[p.link_kind] || p.link_kind) : '';
       f.push({ k: 'noig', t: kind ? 'No Instagram (gave a ' + kind + ' link instead)' : 'No Instagram given' });
     }
-    var open = openRoles();
-    if (p.role_key && p.role_key !== 'other' && open[p.role_key] === false) {
+    var terms = openTerms();
+    if (p.role_key && p.role_key !== 'other' && terms.length && !roleListed(p, terms)) {
       var nm = ROLES.filter(function (r) { return r[0] === p.role_key; })[0];
       f.push({ k: 'role', t: 'Applying as ' + (nm ? nm[1].toLowerCase() : p.role_key) + ', not on your open list' });
     }
@@ -200,10 +219,9 @@
            '<button type="button" class="rct-linkbtn" data-act="settings">Set them now</button></p>';
     }
 
-    var open = openRoles();
-    h += '<div class="rct-roles"><div class="rct-lab">What we are hiring for right now</div><div class="rct-rolechips">' +
-      ROLES.map(function (r) { var on = open[r[0]] === true; return '<button type="button" class="' + (on ? 'rct-on' : '') + '" data-role="' + r[0] + '" aria-pressed="' + on + '">' + esc(r[1]) + '</button>'; }).join('') +
-      '</div><p class="rct-hint">Tap a role to switch it on or off. Anyone applying for a role that is off moves to Probably no.</p></div>';
+    h += '<div class="rct-roles"><label class="rct-lab" for="rctRoles">What we are hiring for right now</label>' +
+      '<input type="text" id="rctRoles" class="rct-rolein" value="' + esc(openText()) + '" placeholder="Type the roles, separated by commas, for example Hair stylist, Receptionist" autocomplete="off">' +
+      '<p class="rct-hint">Type what is needed and press Enter. Anyone applying for a role that is not in this list moves to Probably no. Leave it empty and nobody is moved because of their role.</p></div>';
 
     if (S.lane) h += laneBarHtml();
     if (S.mode === 'list') {
@@ -854,12 +872,6 @@
         else { var o = {}; listRows(cc).forEach(function (p) { o[colBy(cc).val(p)] = false; }); o[vv] = true; S.filters[cc] = o; }
         closePop(); render(); return;
       }
-      if (t.hasAttribute('data-role')) {
-        var k = t.getAttribute('data-role'), open = Object.assign({}, openRoles()); open[k] = !(open[k] === true);
-        var was = settings.open_roles; settings.open_roles = open; render();
-        try { await saveSetting('open_roles', open); } catch (err) { console.error(err); settings.open_roles = was; render(); toast('That did not save: ' + err.message); }
-        return;
-      }
       var a = t.getAttribute('data-act'), id = t.getAttribute('data-id'), g = t.getAttribute('data-g'), p = id ? personById(id) : null;
       if (a === 'short') shortDialog(id);
       else if (a === 'invite') { if (await setStage([id], 'screening', 'Moved to Screening.')) closeDlg(); }
@@ -900,7 +912,15 @@
       else if (a === 'morelook') { shownLook += PAGE; render(); }
       else if (a === 'moreno') { shownNo[g] = (shownNo[g] || PAGE) + PAGE; render(); }
     });
-    document.addEventListener('change', function (e) {
+    document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target && e.target.id === 'rctRoles') { e.preventDefault(); e.target.blur(); } });
+    document.addEventListener('change', async function (e) {
+      if (e.target && e.target.id === 'rctRoles') {
+        var v = e.target.value.replace(/\s*[,;]\s*/g, ', ').replace(/^[,\s]+|[,\s]+$/g, ''), was = settings.open_roles_text;
+        settings.open_roles_text = v; render();
+        try { await saveSetting('open_roles_text', v); toast(v ? 'Hiring for: ' + v + '.' : 'No roles listed, so nobody is moved for their role.'); }
+        catch (err) { console.error(err); settings.open_roles_text = was; render(); toast('That did not save: ' + err.message); }
+        return;
+      }
       if (e.target && e.target.id === 'rctPageSize') { var n = parseInt(e.target.value, 10); if (SIZES.indexOf(n) >= 0) { S.pageSize = n; S.page = 0; savePageSize(n); render(); } }
     });
     document.addEventListener('change', function (e) { if (popCol && e.target && e.target.type === 'checkbox' && popEl().contains(e.target)) popChange(); });
