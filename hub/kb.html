@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/hub/hub.css?v=b2b2affc">
+<link rel="stylesheet" href="/hub/hub.css?v=78728545">
 <link rel="stylesheet" href="/jump-nav.css?v=e099d37d">
 <link rel="stylesheet" href="/scrollbars.css?v=a903788b">
 </head>
@@ -31,7 +31,7 @@
 <script src="/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
 <script src="/hub/hub.js?v=b36f9bda"></script>
-<script src="/visits.js?v=1176426c"></script>
+<script src="/visits.js?v=e33b3a0d"></script>
 <script src="/hub/kb-doc.js?v=85cc532b"></script>
 <script>
 (function () {
@@ -164,6 +164,7 @@
     }).join('');
   }
 
+  var BAR = ['#99F6E4', '#C4B5FD', '#FF9B9B', '#E3C766'];   // brand mint, lavender, coral and a deepened butter, in turn down the chapter list
   async function onePage(slug) {
     var r = await KB.client.from('kb_pages').select('slug,section,group_name,sort,title,body_html,note,owner,version,updated_at').eq('slug', slug).maybeSingle();
     if (r.error || !r.data) { notFound(); return; }
@@ -182,7 +183,7 @@
           '<nav aria-label="Chapters in ' + esc(sec.title) + '">' + toc(list, p.slug) + '</nav></details>' +
         '<div class="kb-read">' +
           '<div class="kb-tools">' + pdfBtn('Download PDF') + KB.starBtn('p:' + p.slug, p.title) + '</div>' +
-          '<article class="kb-doc kd">' +
+          '<article class="kb-doc kd" style="--kd-bar:' + BAR[(i >= 0 ? i : 0) % BAR.length] + '">' +
             '<header class="kd-head">' +
               '<p class="kd-eyebrow">' + esc(sec.title) + (p.group_name ? ' · ' + esc(p.group_name) : '') + '</p>' +
               KB.titleIcon(sec.key, esc(p.title), 'kd-title') +
@@ -206,6 +207,36 @@
     window.scrollTo(0, 0);
     main.querySelector('.kb-pdf').addEventListener('click', function (e) { pagePdf(p, sec, i, list.length, e.currentTarget); });
   }
+
+  // Kate, 10 Nov 2026: "every time i click it does this, smooth transition only". A chapter, a pager link or a section link used to reload the whole page
+  // (header, a blank "Loading" screen, then the content). Now the page stays put: the content dims while the next one is fetched, then it replaces it.
+  // The address bar, Back and Forward, the tab title and Recently opened all follow. A link with a modifier key, or to anywhere else, is left alone.
+  var navBusy = 0;
+  function show(url, push) {
+    var u = new URL(url, location.href);
+    if (push && u.pathname + u.search === location.pathname + location.search) return;
+    q = new URLSearchParams(u.search);
+    if (push) history.pushState(null, '', u.pathname + u.search);
+    var mine = ++navBusy;
+    main.classList.add('kb-fading');
+    var job = q.get('p') ? onePage(q.get('p')) : q.get('s') ? sectionList(q.get('s')) : (location.assign('/hub/'), null);
+    var done = function () {
+      if (mine !== navBusy) return;   // a newer click is already on its way
+      main.classList.remove('kb-fading');
+      if (typeof window.trsHubVisit === 'function') window.trsHubVisit();
+    };
+    Promise.resolve(job).then(done, function (e) { console.error(e); done(); });
+  }
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a || !main.contains(a) || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+    var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
+    if (u.origin !== location.origin || u.pathname !== '/hub/kb.html' || !(u.searchParams.get('p') || u.searchParams.get('s'))) return;
+    e.preventDefault();
+    show(u.href, true);
+  });
+  window.addEventListener('popstate', function () { if (location.pathname === '/hub/kb.html') show(location.href, false); });
 
   KB.ready.then(async function () {
     await KB.loadFavs();

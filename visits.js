@@ -23,13 +23,16 @@
   var p = location.pathname.replace(/\.html$/, ''), q = new URLSearchParams(location.search);
 
   // Team Home: a page or section (kb?p= or kb?s=), or one of its own tools.
-  if (p.indexOf('/hub/') === 0 && !/^\/hub\/?(index)?$/.test(p)) {
-    var arg = q.get('p') ? '?p=' + encodeURIComponent(q.get('p')) : q.get('s') ? '?s=' + encodeURIComponent(q.get('s')) : '';
-    window.addEventListener('load', function () {
-      var title = (document.title || '').replace(/\s*[·|]\s*Tara Rose.*$/i, '').trim();
-      if (title && !/^Team Home$/i.test(title)) bump('h:' + p + arg, title, p + arg);
-    });
+  // Kate, 10 Nov 2026: the chapter list on kb.html now switches pages without a reload, so it calls window.trsHubVisit() after each switch.
+  function hubVisit() {
+    var hp = location.pathname.replace(/\.html$/, ''), hq = new URLSearchParams(location.search);
+    if (hp.indexOf('/hub/') !== 0 || /^\/hub\/?(index)?$/.test(hp)) return;
+    var arg = hq.get('p') ? '?p=' + encodeURIComponent(hq.get('p')) : hq.get('s') ? '?s=' + encodeURIComponent(hq.get('s')) : '';
+    var title = (document.title || '').replace(/\s*[·|]\s*Tara Rose.*$/i, '').trim();
+    if (title && !/^Team Home$/i.test(title)) bump('h:' + hp + arg, title, hp + arg);
   }
+  window.trsHubVisit = hubVisit;
+  if (p.indexOf('/hub/') === 0 && !/^\/hub\/?(index)?$/.test(p)) window.addEventListener('load', hubVisit);
 
   // The dashboard: each page shown through showView, named as the sidebar names it.
   if (p === '/' || p === '/index') {
