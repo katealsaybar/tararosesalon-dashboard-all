@@ -119,6 +119,9 @@
 .cp-tk:hover{border-color:var(--muted)}
 .cp-tk a.cp-tkl{display:block;color:inherit;text-decoration:none}
 .cp-tk b{display:block;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+/* Kate, 10 Nov 2026: a board card's name was three lines long. Two lines with an ellipsis; hover or keyboard focus on the card shows all of it (and the full name is the tooltip). */
+.cp-tk a.cp-tkl>b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.cp-tk:hover a.cp-tkl>b,.cp-tk:focus-within a.cp-tkl>b{display:block;overflow:visible;-webkit-line-clamp:unset;line-clamp:unset}
 .cp-tk .m{color:var(--muted);font-size:13px;display:block;margin-top:3px}
 /* Priority is the card edge and a word on the card; the pill is the clock (30 Oct 2026 audit). The tint is lighter so the two do not fight. */
 .cp-tk.p-high{border-left-color:#E0674F;background:color-mix(in srgb,#C9503A 12%,var(--surface));border-color:color-mix(in srgb,#B4412F 35%,var(--border))}
@@ -366,7 +369,7 @@ button.tk-pill{cursor:pointer}
       return '<button type="button" class="cp-btn ' + (i === 0 ? 'pri' : 'sub') + ' mini" data-step="' + to + '" data-id="' + x.id + '">' + esc(STEP[to]) + '</button>';
     }).join('') + '</div>' : '';
     return '<div class="cp-tk p-' + pr + '"' + (nx.length ? ' draggable="true"' : '') + ' data-id="' + x.id + '">' +
-      '<a class="cp-tkl" href="' + bhref(x) + '" target="_blank" rel="noopener"><b>' + esc(tname(x)) + '</b>' +
+      '<a class="cp-tkl" href="' + bhref(x) + '" target="_blank" rel="noopener"><b title="' + esc(tname(x)) + '">' + esc(tname(x)) + '</b>' +
       '<span class="cp-prio">' + esc(PRN[pr]) + ' priority</span>' + (who ? '<span class="m">' + esc(who) + (x.dry_run ? ' · dry run' : '') + '</span>' : '') +
       '<span class="cp-pill ' + ch[0] + '">' + esc(ch[1]) + '</span></a>' + acts + '</div>';
   }
