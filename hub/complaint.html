@@ -130,7 +130,9 @@
 .cp-tk .cp-prio{display:block;font-size:12.5px;font-weight:600;margin-top:3px;color:var(--text)}
 .cp-tk .cp-pill{margin-top:6px;font-size:13px;padding:2px 9px}
 .cp-tk .cp-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.cp-tk .cp-acts .cp-btn{min-height:40px;font-size:14px;font-weight:600;padding:6px 14px;width:auto}
+/* Kate, 10 Nov 2026: "tanggalin mo yung chunky buttons unless hovered". The step buttons show only while the card is hovered or has keyboard focus (always on a touch screen, which has no hover), and are a size smaller. Dragging the card still works. */
+.cp-tk .cp-acts .cp-btn{min-height:34px;font-size:13.5px;font-weight:600;padding:4px 12px;width:auto}
+@media (hover:hover){.cp-tk .cp-acts{display:none}.cp-tk:hover .cp-acts,.cp-tk:focus-within .cp-acts{display:flex}}
 .cp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .cp-empty{font-size:14px;color:var(--muted);margin:4px}
 .cp-mv{background:var(--surface);border:1.5px solid var(--accent,#3AA892);border-radius:10px;padding:10px;margin-bottom:9px;font-size:14px}
