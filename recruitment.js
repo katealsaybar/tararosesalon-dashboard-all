@@ -340,7 +340,7 @@
     { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
     { k: 'wait', t: 'Waiting', val: waitBucket, sort: function (p) { return (p.stage === 'new' && !p.replied_at) ? waited(p) : -1; }, kind: 'num', asc: 'Shortest wait first', desc: 'Longest wait first' },
     { k: 'status', t: 'Status', val: statusText, sort: function (p) { return statusText(p).toLowerCase(); }, kind: 'text' },
-    { k: 'acts', t: '', nofilter: true }
+    { k: 'acts', t: 'Application Status', nofilter: true }
   ];
   function colBy(k) { return COLS.filter(function (c) { return c.k === k; })[0]; }
 

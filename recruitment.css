@@ -103,7 +103,8 @@
 .rct-table .rct-pill{white-space:nowrap;line-height:1.25;text-align:left;padding:3px 10px}
 .rct-table td{overflow-wrap:anywhere}
 .rct-table td.rct-c-acts{overflow-wrap:normal;white-space:nowrap}
-.rct-table .rct-c-acts .rct-btn{display:inline-flex;margin:0 4px 0 0;width:auto;padding:4px 10px;font-size:13.5px}
+/* Kate, 10 Nov 2026: the row buttons (Shortlist, No, Booked...) were too big for a table row: shorter and narrower. */
+.rct-table .rct-c-acts .rct-btn{display:inline-flex;margin:0 4px 0 0;width:auto;min-height:30px;border-radius:9px;padding:2px 9px;font-size:13px;border-width:1px}
 .rct-table thead th{position:sticky;top:0;z-index:5;background:var(--surface2);text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:0;border-bottom:1.5px solid var(--border);white-space:nowrap}
 .rct-th{display:flex;align-items:center;gap:2px;padding:6px 2px 6px 8px;min-height:46px}
 .rct-th.rct-sorted{color:var(--text)}
