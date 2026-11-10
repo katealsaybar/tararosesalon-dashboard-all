@@ -54,7 +54,9 @@
     return c ? 'abroad' : 'unknown';
   }
   function hasIg(p) { return !!(p.ig_handle || p.link_kind === 'instagram'); }
+  var PLAT_WORD = /^@?(tiktok|tik tok|facebook|fb|youtube|linkedin|threads|twitter|x|instagram)$/i;   // typed in the Instagram box instead of a handle
   function igUrl(p) {
+    if (p.ig_handle && PLAT_WORD.test(String(p.ig_handle).trim())) return '';
     if (p.ig_handle) return 'https://www.instagram.com/' + encodeURIComponent(String(p.ig_handle).replace(/^@/, ''));
     return p.link_kind === 'instagram' ? safeUrl(p.work_link) : '';
   }
@@ -114,31 +116,39 @@
     x: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#111" stroke="#666" stroke-width="1"/><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
     drive: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#0F9D58" d="M8 3 1 15l4 6.5L12 9.5z"/><path fill="#F4B400" d="M8 3h8l7 12h-8z"/><path fill="#4285F4" d="M5 21.5h14l4-6.5H9z"/></svg>',
     cloud: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#6FA3DA" d="M7 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.3 4.9 4.9 0 0 1 17.5 19z"/></svg>',
+    tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#000" stroke="#555" stroke-width="1"/><g fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.6 5.5v8.7a2.6 2.6 0 1 1-2.6-2.6" stroke="#25F4EE" transform="translate(-0.8 -0.6)"/><path d="M13.6 5.5v8.7a2.6 2.6 0 1 1-2.6-2.6" stroke="#FE2C55" transform="translate(0.8 0.6)"/><path d="M13.6 5.5v8.7a2.6 2.6 0 1 1-2.6-2.6M13.6 5.5c.3 1.9 1.6 3.1 3.6 3.3" stroke="#fff"/></g></svg>',
     other: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="#9aa0b4" stroke-width="2" stroke-linecap="round"/></svg>'
   };
-  var LK_NAME = { ig: 'Instagram', fb: 'Facebook', x: 'X', drive: 'Google Drive', cloud: 'Cloud storage', other: 'Other link' };
-  function linkHost(p) { var m = /^https?:\/\/(?:www\.|m\.)?([^\/?#:]+)/i.exec(safeUrl(p.work_link)); return m ? m[1].toLowerCase() : ''; }
-  function linkKind(p) {   // ig, fb, x, drive, cloud, other, or '' when they gave no link
+  var LK_NAME = { ig: 'Instagram', fb: 'Facebook', x: 'X', tiktok: 'TikTok', drive: 'Google Drive', cloud: 'Cloud storage', other: 'Other link' };
+  function workUrl(p) {   // the work link as a full address; "www.tiktok.com/@x" written without https:// gets one
+    var u = String(p.work_link || '').trim();
+    if (/^https?:\/\//i.test(u)) return safeUrl(u);
+    return /^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(u) ? safeUrl('https://' + u) : '';
+  }
+  function linkHost(p) { var m = /^https?:\/\/(?:www\.|m\.)?([^\/?#:]+)/i.exec(workUrl(p)); return m ? m[1].toLowerCase() : ''; }
+  function linkKind(p) {   // ig, fb, x, tiktok, drive, cloud, other, or '' when they gave no link
+    var hw = String(p.ig_handle || '').trim().toLowerCase().replace(/^@/, '');
+    if (hw && PLAT_WORD.test(hw)) return /tik/.test(hw) ? 'tiktok' : /^(facebook|fb)$/.test(hw) ? 'fb' : /^(twitter|x)$/.test(hw) ? 'x' : /^instagram$/.test(hw) ? 'ig' : 'other';
     if (hasIg(p)) return 'ig';
     var h = linkHost(p); if (!h) return '';
     if (/(^|\.)instagram\.com$/.test(h)) return 'ig';
     if (/(^|\.)(facebook|fb)\.com$|^fb\.me$/.test(h)) return 'fb';
+    if (/(^|\.)tiktok\.com$/.test(h) || p.link_kind === 'tiktok') return 'tiktok';
     if (/^(x|twitter)\.com$|^t\.co$/.test(h)) return 'x';
     if (/^(drive|docs)\.google\.com$|^drive\.usercontent\.google\.com$/.test(h)) return 'drive';
     if (/dropbox\.com$|onedrive\.live\.com$|^1drv\.ms$|sharepoint\.com$|icloud\.com$|wetransfer\.com$|^we\.tl$|(^|\.)box\.com$|mega\.nz$|pcloud\.com$|mediafire\.com$/.test(h)) return 'cloud';
     return 'other';
   }
-  function linkName(p) { var k = linkKind(p); if (k !== 'other') return LK_NAME[k] || ''; return ({ tiktok: 'TikTok', linkedin: 'LinkedIn', youtube: 'YouTube', facebook: 'Facebook' }[p.link_kind]) || (linkHost(p) === 'wa.me' ? 'WhatsApp' : 'Other link'); }
-  function linkUrl(p) { return igUrl(p) || safeUrl(p.work_link); }
+  function linkName(p) { var k = linkKind(p); if (k !== 'other') return LK_NAME[k] || ''; return ({ linkedin: 'LinkedIn', youtube: 'YouTube', facebook: 'Facebook' }[p.link_kind]) || (linkHost(p) === 'wa.me' ? 'WhatsApp' : 'Other link'); }
+  function linkUrl(p) { return igUrl(p) || workUrl(p); }
   function lk(kind, inner) { return '<span class="rct-lk"><span class="rct-lki" title="' + esc(LK_NAME[kind] || '') + '">' + LK_ICON[kind] + '</span>' + inner + '</span>'; }
   function igHtml(p) {
-    var u = igUrl(p);
-    if (hasIg(p)) {
+    var k = linkKind(p), u = linkUrl(p);
+    if (k === 'ig') {
       var label = p.ig_handle ? '@' + String(p.ig_handle).replace(/^@/, '') : 'Instagram';
       return lk('ig', u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(label) + '</a>' : esc(label));
     }
-    var other = safeUrl(p.work_link);
-    if (other) return lk(linkKind(p), '<a class="rct-ig" href="' + esc(other) + '" target="_blank" rel="noopener">' + esc(linkName(p)) + '</a>');
+    if (k) return lk(k, u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(linkName(p)) + '</a>' : esc(linkName(p)) + ' <span class="rct-ns">(no link given)</span>');
     return p.source === 'form' ? '<span class="rct-none">None given</span>' : '<span class="rct-ns">Not stated</span>';
   }
   function linksHtml(p) {
