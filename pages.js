@@ -108,15 +108,15 @@ window.TRS_PAGES = /*PAGES*/[
   window.TRS_LINKS = [{ id: 'complaintspipeline', label: 'Complaints Pipeline', group: 'Tools', href: '/hub/complaint?view=board' }];
   // A hidden tool opens for Level 5 only, like a hidden page.
   window.trsToolOpen = function (id, level) { return !((!level || level < 5) && window.trsPageStatus(id) === 'hidden'); };
+  // Kate, 10 Nov 2026: "tagal na tlga mag load". The two calls went one after the other (about 140 ms each on every open); they are independent, so they go out together.
   window.trsAccessLoad = async function (client) {
-    try {
-      var r = await client.rpc('page_access_get');
-      window.TRS_ACCESS = (!r.error && r.data && typeof r.data === 'object') ? r.data : {};
-    } catch (e) { window.TRS_ACCESS = {}; }
-    try {
-      var st = await client.rpc('page_status_get');
-      window.TRS_STATUS = (!st.error && st.data && typeof st.data === 'object') ? st.data : {};
-    } catch (e) { window.TRS_STATUS = {}; }
+    var ask = function (name, set) {
+      return Promise.resolve(client.rpc(name)).then(function (r) { set((!r.error && r.data && typeof r.data === 'object') ? r.data : {}); }, function () { set({}); });
+    };
+    await Promise.all([
+      ask('page_access_get', function (v) { window.TRS_ACCESS = v; }),
+      ask('page_status_get', function (v) { window.TRS_STATUS = v; })
+    ]);
   };
   // The built-in rule, with no saved ticks and no extras: what the Page Access page shows as checked from the start.
   window.trsPageDefault = function (id, level) {
