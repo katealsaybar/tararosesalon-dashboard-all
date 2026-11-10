@@ -316,6 +316,7 @@ function mspendPaint(el) {
     </details>`;
 
   el.innerHTML = `
+    <div class="rex-row">${typeof rexButtons === 'function' ? rexButtons('mspendExport') : ''}</div>
     <section class="slv-intro">
       <h2>Marketing Spend</h2>
       <p>What Google ads, Meta ads, the agency and the WhatsApp and CRM tools cost, what that comes to for every new client the salons got, and the gross profit a new client earns. Shows every month that falls in the Period at the top.</p>

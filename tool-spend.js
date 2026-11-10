@@ -185,7 +185,8 @@ function tsPaint(el) {
       </div>
       <p class="ts-sub" style="margin:10px 0 0">GoHighLevel and respond.io are what was paid. Phorest is what it invoiced, not what the card was charged. The three tabs below show each one.</p>
     </section>` : '';
-  const head = `<section class="slv-intro">
+  const head = `<div class="rex-row">${typeof rexButtons === 'function' ? rexButtons('tsExport') : ''}</div>
+    <section class="slv-intro">
       <h2>Tool Spend</h2>
       <p>What GoHighLevel, respond.io and Phorest cost us, one report each. Shows every month that falls in the Period at the top, in dirhams first.</p>
     </section>

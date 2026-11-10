@@ -42,6 +42,7 @@ function mkPeriodRow(p, days, custom, restored) {
           <span>to</span>
           <input type="date" aria-label="To" value="${mkEsc(custom.to)}" min="2025-01-01" max="${mkIso(new Date())}" onchange="${p}SetCustom('to', this.value)">
         </div>` : ''}
+        ${typeof rexButtons === 'function' ? rexButtons(p + 'Export') : ''}
       </div>
       ${restored ? `<p class="mk-restored">You are looking at ${mkRangeText(restored.from, restored.to)}, the dates you chose last time. <button type="button" class="mk-restored-btn" onclick="${p}SetDays(30)">Show the last 30 days</button></p>` : ''}
     </div>`;
