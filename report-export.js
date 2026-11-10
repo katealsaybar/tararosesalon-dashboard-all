@@ -37,7 +37,7 @@ async function rexRun(fn, kind, btn) {
       const ci = (m.csv >= 0 && m.csv < m.sheets.length) ? m.csv : 0;
       const flat = m.sheets.slice(ci, ci + 1).map(s => Object.assign({}, s, { title: null, subtitle: null, legend: null,
         blocks: (s.blocks || []).filter(Boolean).map(b => Object.assign({}, b, { title: null, note: null, legend: null,
-          rows: (b.rows || []).map(r => (r && r.cells) ? Object.assign({}, r, { cells: r.cells.map(c => (c && typeof c === 'object') ? { v: c.v, fmt: c.fmt } : c) }) : r) })) }));
+          rows: (b.rows || []).map(r => (r && r.cells) ? Object.assign({}, r, { cells: r.cells.map(c => (c && typeof c === 'object') ? { v: c.v, fmt: c.fmt } : rexPhoneSafe(c)) }) : r) })) }));
       const built = lgxBuild({ sheets: flat });
       lgxSave(new Blob(['﻿' + lgxCsv(built[0])], { type: 'text/csv;charset=utf-8' }), base + '.csv');
       rexToast('Saved ' + base + '.csv' + (m.sheets.length > 1 ? ' · the “' + m.sheets[ci].name + '” tab only, a CSV holds one sheet. Use XLSX for all ' + m.sheets.length + '.' : ''));
@@ -49,3 +49,6 @@ async function rexRun(fn, kind, btn) {
     if (btn) btn.disabled = false;
   }
 }
+
+// A phone number in a CSV: Excel reads +971501234567 as a number and shows 9.72E+11, so it goes in as ="+971..." (as Client's Last Visit's file does). XLSX keeps text as text.
+const rexPhoneSafe = c => (typeof c === 'string' && /^\+?\d[\d ]{8,}\d(?: \/ \+?\d[\d ]{8,}\d)*$/.test(c) && !/^\d{4}-\d{2}-\d{2}$/.test(c)) ? '="' + c + '"' : c;

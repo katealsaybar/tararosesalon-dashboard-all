@@ -247,6 +247,7 @@ function tcPaint() {
         <input type="search" id="tcSearch" placeholder="Search name or stylist" value="${lcEsc(tcQ)}" aria-label="Search name or stylist"
           oninput="tcQ=this.value;tcPaintTable()"
           style="flex:1;min-width:180px;max-width:320px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
+        ${typeof rexButtons === 'function' ? rexButtons('tcExport') : ''}
       </div>
       <div id="tcTable"></div>
     </section>
@@ -314,7 +315,7 @@ function tcPaintTable() {
       const f = TC_SORTVAL[TC.sortk] || TC_SORTVAL.rev, x = f(a), y = f(b);
       return ((x < y ? -1 : x > y ? 1 : 0) * TC.sortdir) || (a._rank - b._rank);
     });
-  lcShown = shown;
+  lcShown = shown; tcShown = shown;   // tcShown: what tcExport (the XLSX and CSV buttons) writes
   const open = tcCanOpen(), phones = tcData.rows.some(r => r.mobile || r.landline), emails = tcData.rows.some(r => r._em);
   const cls = open ? 'lc-row' : 'tc-flat';
   const click = i => open ? ` onclick="lcToggleDetail(event,${i})"` : '';
@@ -379,4 +380,45 @@ function tcDetailHtml(d, r) {
   const call = Number(r.days_since) >= 61
     ? `<div class="tc-call">Last seen ${lcNum(r.days_since)} days ago. Worth a call from ${person ? lcStylist(person) : 'her usual team'}, one person, this week.</div>` : '';
   return lcDetailHtml(d, { extra: bars + otherTxt + call, allBranches: TC.branch === 'all' && ((d && d.branches) || []).length > 1 });
+}
+
+/* ── DOWNLOADS (Kate, 10 Nov 2026: every report gets an XLSX and a CSV button; report-export.js draws the buttons and saves the file) ──
+   The list as it stands on screen (the filters, the period, the search box and the sort), then the every-branch board's numbers as a second tab.
+   Nothing is added that the page does not show this person: a phone number only where the column is on the page (the owner login), an email only at
+   Level 5 where tcContacts fetched it. The CSV is the list. */
+let tcShown = null;   // set by tcPaintTable: the rows on screen, in order
+function tcExport() {
+  if (!tcData || !tcShown) return null;
+  const phones = tcData.rows.some(r => r.mobile || r.landline), emails = tcData.rows.some(r => r._em);
+  const cols = [{ key: 'rank', label: 'Rank by revenue', fmt: 'num' }, { key: 'name', label: 'Client', fmt: 'text' }, { key: 'rev', label: 'Revenue (AED, ex VAT)', fmt: 'aed' }, { key: 'visits', label: 'Visits', fmt: 'num' },
+    { key: 'avg', label: 'Average per visit (AED)', fmt: 'aed' }, { key: 'last', label: 'Last seen', fmt: 'text' }, { key: 'days', label: 'Days since', fmt: 'num' }, { key: 'status', label: 'Status', fmt: 'text' },
+    { key: 'sty', label: 'Usual stylist', fmt: 'text' }, { key: 'sty2', label: 'Also saw (hair)', fmt: 'text' }, { key: 'bea', label: 'Usual beautician', fmt: 'text' }, { key: 'bea2', label: 'Also saw (beauty)', fmt: 'text' },
+    { key: 'fav', label: 'Usually has', fmt: 'text' }]
+    .concat(phones ? [{ key: 'phone', label: 'Phone', fmt: 'text' }] : []).concat(emails ? [{ key: 'email', label: 'Email', fmt: 'text' }] : []);
+  const rows = tcShown.map(r => {
+    const t = lcTeam(r), d = Number(r.days_since) || 0;
+    const cells = [(r._rank || 0) + 1, r.client_name || '', Number(r.rev) || 0, Number(r.visits) || 0,
+      { v: tcAvg(r) ? Math.round(tcAvg(r) * 100) / 100 : null, fmt: 'aed', f: A => `IF(N(${A('visits')})>0,${A('rev')}/${A('visits')},"")` },
+      r.last_visit ? String(r.last_visit).slice(0, 10) : '', r.days_since == null ? null : d, d <= 30 ? 'Seen in the last 30 days' : d <= 60 ? 'Cooling (31 to 60 days)' : 'Slipping (60+ days)',
+      t.hair[0] || '', t.hair.slice(1).join(', '), t.beauty[0] || '', t.beauty.slice(1).join(', '), r.fav || ''];
+    if (phones) cells.push(String(r.mobile || r.landline || '').split(' / ').filter(Boolean).join(' / '));
+    if (emails) cells.push(String(r._em || ''));
+    return { cells };
+  });
+  const sheets = [{ name: 'Top clients', title: 'Top Clients' + (TC.branch === 'all' ? ', all branches' : ', ' + (TC_BRANCH_NAME[TC.branch] || TC.branch)),
+    subtitle: `Revenue ${tcPeriodTxt()}${TC.last !== 'any' ? ', last seen ' + (TC.last === 'custom' ? `${tcAway()[0]} to ${tcAway()[1]} days ago` : TC_LASTTXT[TC.last]) : ''} · ${rows.length} client${rows.length === 1 ? '' : 's'}${(Number(tcData.matched) || 0) > rows.length ? ' of ' + Number(tcData.matched) + ' who match' : ''} · revenue is ex VAT, deposits and vouchers left out.${tcQ.trim() ? ' Search: ' + tcQ.trim() + '.' : ''}`,
+    blocks: [{ cols, rows }],
+    legend: [['Rank', 'Her rank by revenue within these filters.'], ['Visits', 'Days she came in.'], ['Last seen', 'Her newest visit at the branch picked (any branch on All), whatever the dates above, so the last day or two can lag.'],
+      ['Usual stylist', 'Whoever served most of her visits; the others she saw are beside it.'], ['Phone and email', 'Only where the page shows them to this login. The report does not say who opted out of marketing, so check consent in Phorest before anyone messages a client.']] }];
+  // The every-branch board: each salon's top N by when she was last at that branch.
+  if (tcBoard && tcBoard.length) {
+    const brs = Object.keys(LC_BRANCH).map(b => ({ b, x: tcBoard.find(y => y.branch === b) })).filter(o => o.x);
+    if (brs.length) sheets.push({ name: 'Every branch', title: `Top ${TC.top} at each salon, by when we last saw them`, subtitle: `Revenue ${tcPeriodTxt()}. A client who is top at two salons counts at each.`,
+      blocks: [{ cols: [{ label: 'Branch', fmt: 'text' }].concat(TC_BUCKETS.flatMap(u => [{ label: u.short + ', clients', fmt: 'num' }, { label: u.short + ', revenue', fmt: 'aed' }]))
+        .concat([{ label: 'Top ' + TC.top + ', clients', fmt: 'num' }, { label: 'Top ' + TC.top + ', revenue', fmt: 'aed' }, { label: 'All named-client revenue', fmt: 'aed' }, { label: 'Their share', fmt: 'pct' }]),
+        rows: brs.map(({ b, x }) => ({ cells: [LC_BRANCH[b]].concat(TC_BUCKETS.flatMap(u => [Number(x[u.k + '_n']) || 0, Number(x[u.k + '_rev']) || 0]))
+          .concat([Number(x.n) || 0, Number(x.rev) || 0, Number(x.total_rev) || 0, Number(x.total_rev) ? Math.round(1000 * Number(x.rev) / Number(x.total_rev)) / 10 : null]) })) }] });
+  }
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return { name: ['top-clients', TC.branch, tcRange()[0], 'to', tcRange()[1], TC.last !== 'any' ? 'last-seen-' + TC.last : '', TC.seg !== 'all' ? 'visits-' + TC.seg : '', TC.spend ? 'spend-' + TC.spend : ''].filter(Boolean).map(slug).join('-'), csv: 0, sheets };
 }
