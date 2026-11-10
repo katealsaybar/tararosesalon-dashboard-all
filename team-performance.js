@@ -655,6 +655,7 @@ async function renderTeam() {
   const chase  = roster.slice(3, 10);
   const rest   = roster.slice(10);
   const lead   = roster.length ? lg.get(roster[0]) : 0;
+  tpLast = { part, roster, key: tpLeagueKey(), dept: tpDept, branchLabel, leavers: tpHideLeavers };   // what tpExport (the XLSX and CSV buttons) writes
   const benchWord = tpDept === 'beauty' ? 'beauty bench' : 'hair floor';
 
   // Kate, 18 Oct 2026 ("option 3"): on a phone the four controls were about 230px tall, so the bar shows one summary line and the
@@ -683,6 +684,7 @@ async function renderTeam() {
       ${tpCountsBad ? '<span class="tp-bar-n" style="color:var(--warn)">Instagram and review counts did not load, showing Net take.</span>' : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       ${typeof ihTip === 'function' ? ihTip('', 'Two counts of clients, side by side. Clients per staff is the ledgers’ count: a client seen by two staff counts for each, and rebooking, NCR and the aims are written on it. Phorest is the Staff Daily report per employee: visits, requests (RQ), new clients and her services; her Phorest avg bill is her services over her Phorest visits. Phorest figures need a daily window, so a full-week window shows none.') : ''}
+      ${part === 'race' && typeof rexButtons === 'function' ? rexButtons('tpExport') : ''}
       </div>
     </div>
     <div class="tp-hint tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}.</div>
@@ -1526,3 +1528,55 @@ function tpUrlParts() {
     const r = q.get('rebook'); if (r === 'phorest' || r === 'ledger') tpRebookSrc = r;
   } catch (e) { /* no address to read */ }
 })();
+
+/* ── DOWNLOADS (Kate, 10 Nov 2026: every report gets an XLSX and a CSV button; report-export.js draws the buttons and saves the file) ──
+   Podium Race as a table: everyone on the bench in the order the page ranks them (renderTeam keeps that roster in tpLast), with the league figure
+   she is ranked on and then every figure the cards and rows carry. Branch, Period, Hair or Beauty, With leavers or Current team, the rebooking
+   source and Rank by are all the page's own, so the file is what is on the screen. */
+let tpLast = null;
+function tpExport() {
+  const L = tpLast;
+  if (!L || L.part !== 'race' || !L.roster.length) return null;
+  const lg = TP_LEAGUES[L.key];
+  const ranked = { net: 'aed', services: 'aed', retail: 'aed', treatment: 'aed', rebook: 'pct' }[L.key] || 'num';
+  const r2 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
+  const any = f => L.roster.some(f);
+  const cols = [
+    { label: 'Rank', fmt: 'num' }, { label: 'Name', fmt: 'text' }, { label: 'Position', fmt: 'text' }, { label: 'Team', fmt: 'text' }, { label: 'Branch', fmt: 'text' }, { label: 'Status', fmt: 'text' },
+    { label: 'Ranked by: ' + lg.label, fmt: ranked },
+    { label: 'Net take', fmt: 'aed' }, { label: 'Service sales', fmt: 'aed' }, { label: 'Retail', fmt: 'aed' }, { label: 'Treatments', fmt: 'aed' },
+    { label: 'Clients (by staff)', fmt: 'num' }, { label: 'Rebooked', fmt: 'num' },
+    { label: 'Rebooking %', fmt: 'pct' }, { label: 'Rebooking from', fmt: 'text' }, { label: 'Rebooking % (Phorest)', fmt: 'pct' }, { label: 'Rebooking % (ledger)', fmt: 'pct' },
+    { label: 'Treatment %', fmt: 'pct' }, { label: 'Retail %', fmt: 'pct' }, { label: 'Average bill', fmt: 'aed' }, { label: 'New client requests', fmt: 'num' },
+    { label: 'Phorest visits', fmt: 'num' }, { label: 'Phorest average bill', fmt: 'aed' }];
+  const hasIg = any(st => st.igPosts != null), hasRev = any(st => st.gReviews != null);
+  if (hasIg) cols.push({ label: 'Instagram posts / Reels', fmt: 'num' });
+  if (hasRev) cols.push({ label: 'Google reviews', fmt: 'num' });
+  const rows = L.roster.map((st, i) => {
+    const noL = tpNoLedger(st), beauty = !!st.isBeauty, ph = st.ph;
+    const row = [i + 1, tpTitle(st.name), tpRole(st), L.dept === 'beauty' ? 'Beauty' : 'Hair', (st.branches || [{ name: st.branchName }]).map(b => b.name).join(' + '), tpGone(st) ? 'Left' : 'Current',
+      r2(lg.get(st)),
+      r2(st.net), r2(beauty ? st.beautySales : st.hairSalesNet), r2(st.retail), beauty ? null : r2(st.treatments),
+      r2(st.total), noL ? null : r2(st.rebooked),
+      noL && st.rebookPhorest == null ? null : r2(st.rebookPct), st.rebookSrc === 'phorest' ? 'Phorest' : noL ? '' : 'Ledger', r2(st.rebookPhorest), noL ? null : r2(st.rebookLedger),
+      (beauty || noL) ? null : r2(st.treatmentPct), r2(st.retailPct), r2(st.avgBill), noL ? null : r2(st.newClientReq),
+      ph ? r2(ph.t) : null, ph && ph.t ? r2(ph.svc / ph.t) : null];
+    if (hasIg) row.push(st.igPosts == null ? null : st.igPosts);
+    if (hasRev) row.push(st.gReviews == null ? null : st.gReviews);
+    return { cells: row };
+  });
+  const from = typeof dateFrom !== 'undefined' && dateFrom ? dateToIso(dateFrom) : '', to = typeof dateTo !== 'undefined' && dateTo ? dateToIso(dateTo) : '';
+  const legend = [
+    ['Ranked by', lg.note + (lg.floor ? ' (' + lg.floor + ')' : '') + '. Ties fall back to net take.'],
+    ['Net take', 'Services plus retail, ex VAT: the ledger’s Net Salon Take.'],
+    ['Clients (by staff)', 'The ledgers’ count per staff member: a client seen by two staff counts for each, and rebooking, NCR and the aims are written on it.'],
+    ['Rebooking %', 'The one the page has in force: ' + (tpRebookSrc === 'phorest' ? 'Phorest’s Staff Performance Tracker (rebooked over Phorest visits) where it has her, otherwise the branch ledger' : 'the branch ledger (rebooked over the ledger’s clients)') + '. Both are in the next two columns. The tracker starts on 1 Jul 2026.'],
+    ['Phorest visits and average bill', 'The Staff Daily report per employee; her Phorest average bill is her services over her visits. A full-week window has none.'],
+    ['Aims', `Rebooking ${tpPct(TARGETS.rebookPct)}, treatment ${tpPct(TARGETS.treatmentPct)} (hair), retail ${tpPct(TARGETS.retailPct)}, average bill ${tpNum(TARGETS.hairAvgBillUAE)} hair and ${tpNum(TARGETS.beautyAvgBillUAE)} beauty. A blank is a figure she has none of (no ledger rows, beauty has no treatment aim).`],
+    ['Left', 'Someone who has since left stays in for the period she worked; switch the page to Current team to leave her out.']];
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return { name: ['podium-race', L.dept, L.key === 'net' ? '' : L.key, from, from ? 'to' : '', to].filter(Boolean).map(slug).join('-'),
+    sheets: [{ name: 'Podium Race', title: `Podium Race, ${L.dept === 'beauty' ? 'beauty' : 'hair'}`,
+      subtitle: `${from} to ${to} · ${L.branchLabel} · ${L.roster.length} ${L.roster.length === 1 ? 'person' : 'people'} · ranked by ${lg.label}${L.leavers ? ' · current team only' : ' · with leavers'}. Ex VAT.`,
+      blocks: [{ cols, rows }], legend }] };
+}
