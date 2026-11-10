@@ -446,6 +446,18 @@ body[data-kb-view="list"] .kb-gtiles .kb-gt-tx{flex:1;min-width:0}
   /* The chapter count sits beside "Chapters", not in the middle of the bar. */
   .kb-toc summary span{margin:0 auto 0 10px}
 }
+/* Kate, 10 Nov 2026 (from her phone): on a narrow phone the page title ("Dashboard", "Search page") sat on top of the logo, because three things shared one row (title, logo, and the
+   bell + light/dark + account buttons) and the title column was left with almost no room. Narrow phones now use three rows: the logo on the left with the buttons on the right,
+   the title and its Search page link on one line under them, then the search box. */
+@media (max-width:520px){
+  .kb-head{grid-template-columns:minmax(0,1fr) auto}
+  .kb-head>.kb-brand{grid-column:1;grid-row:1;justify-self:start}
+  .kb-account{grid-column:2;grid-row:1}
+  .kb-head>.kb-titles{grid-column:1/-1;grid-row:2}
+  .kb-titlerow{flex-direction:row;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .kb-titles h1{font-size:20px}
+  .kb-search-wrap{grid-row:3}
+}
 @media print{
   .kb-head,.kb-pager,.kb-foot,.kb-crumbs,.kb-toc,.kb-tools,.kb-viewas-bar{display:none}
   .kb-reader{display:block}
