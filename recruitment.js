@@ -104,6 +104,7 @@
     if (p.email) s += '<a href="https://mail.google.com/mail/?authuser=recruitment@tararosesalon.com#search/' + encodeURIComponent(p.email) + '" target="_blank" rel="noopener">Their emails in Gmail</a>';
     var wa = String(p.whatsapp || '').replace(/\D/g, '');
     if (wa.length >= 9) s += '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">WhatsApp</a>';
+    s += '<button type="button" class="rct-linkbtn" data-act="photo" data-id="' + esc(p.id) + '">' + (p.photo ? 'Change photo' : 'Add photo') + '</button>';
     if (p.photo) s += '<button type="button" class="rct-linkbtn" data-act="photoclear" data-id="' + esc(p.id) + '">Remove photo</button>';
     return s ? '<div class="rct-links">' + s + '</div>' : '';
   }

@@ -205,3 +205,6 @@
 .rct-pgsize select{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 8px}
 .rct-pgbtns{display:inline-flex;gap:8px;margin-left:auto}
 .rct-pgbtns .rct-btn[disabled]{opacity:.45;cursor:default}
+
+/* Kate, 10 Nov 2026: "nasan yung upload": a small + on every avatar that has no photo yet, so the click-to-add is visible. */
+.rct-av:not(.rct-hasimg)::after{content:"+";position:absolute;right:0;bottom:0;width:17px;height:17px;border-radius:7px 0 9px 0;background:var(--accent);color:#0b1f1c;font-size:14px;font-weight:700;line-height:17px;text-align:center}
