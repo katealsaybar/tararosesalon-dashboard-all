@@ -636,7 +636,8 @@ function otyToggleYear(y) {
 function otyControls() {
   return `<div class="oty-lab">Compare on</div><div class="oty-pills">
       <button class="oty-pill" aria-pressed="${OTY.basis === 'same'}" onclick="otySet('basis','same')">Same days (1 Jan – ${otyCutLabel()})</button>
-      <button class="oty-pill" aria-pressed="${OTY.basis === 'full'}" onclick="otySet('basis','full')">Full years</button></div>`;
+      <button class="oty-pill" aria-pressed="${OTY.basis === 'full'}" onclick="otySet('basis','full')">Full years</button></div>
+    <div class="rex-row">${typeof rexButtons === 'function' ? rexButtons('otyExport') : ''}</div>`;
 }
 // On a phone the rail's chips wrapped into five rows; this is the same list as one menu (the rail is hidden there).
 function otyJumpMenu(parts) {
@@ -1968,4 +1969,82 @@ function otyNotes() {
       <p><b>Same days first.</b> The year in progress is set against the same dates in every earlier year. Switch to Full years to see whole years, with this one marked as partial.</p>
       <p><b>Slightly different from the Pulse.</b> These are Phorest's own financial totals. The Pulse's net take is built from the ledgers, so the two differ by about 1%.</p>
     </details>`;
+}
+
+/* ── DOWNLOADS (Kate, 10 Nov 2026: every report gets an XLSX and a CSV button; report-export.js draws the buttons and saves the file) ──
+   Tab 1, Years, is the table as the page has it for the Branch chips and the Compare on switch picked. The other tabs are the feeds the page's sections are
+   drawn from, whole, so the file answers the questions the page does not: By branch and year (every branch, every year, both bases), Seasons, Month by month,
+   Google reviews and Instagram (Level 3 and above, as on the page). The CSV is the Years tab. */
+function otyExport() {
+  if (!otyD || !otyRaw) return null;
+  const raw = otyRaw, rows = otyRows(), set = otyCodes(), same = otySame(), cut = otyD.cut;
+  const r2 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
+  const nm = b => OTY_NAME[b] || b;
+  const cols = [{ key: 'y', label: 'Year', fmt: 'text' }, { key: 'basis', label: 'Basis', fmt: 'text' }, { key: 'net', label: 'Net take', fmt: 'aed' },
+    { key: 'vis', label: 'Clients per visit', fmt: 'num' }, { key: 'stf', label: 'Clients per staff', fmt: 'num' },
+    { key: 'avgv', label: 'Average bill per visit', fmt: 'aed' }, { key: 'avgs', label: 'Average bill per staff', fmt: 'aed' }, { key: 'g', label: 'Growth on the year before', fmt: 'pct' }]
+    .concat(set.map(b => ({ key: 'b_' + b, label: nm(b) + ' net take', fmt: 'aed' })));
+  const yrRows = rows.map(r => ({ cells: [String(r.y), same ? `Same days, 1 Jan to ${otyDay(cut)}` : r.partial ? 'Year in progress' : 'Full year',
+    r2(r.net), r.vis ? r2(r.vis) : null, r.stf ? r2(r.stf) : null,
+    { v: r.vis ? r2(r.net / r.vis) : null, fmt: 'aed', f: A => `IF(N(${A('vis')})>0,${A('net')}/${A('vis')},"")` },
+    { v: r.stf ? r2(r.net / r.stf) : null, fmt: 'aed', f: A => `IF(N(${A('stf')})>0,${A('net')}/${A('stf')},"")` },
+    r.growth == null ? null : r2(r.growth)].concat(r.per.map(p => r2(p.v))) }));
+  const sheets = [{ name: 'Years', title: 'Over the Years, the years side by side',
+    subtitle: `${otySetLabel(set)} · ${same ? `same days of every year, 1 Jan to ${otyDay(cut)}` : 'full years, the year in progress marked'}. Net take is ex VAT; clients per visit counts each client once a day through the door, per staff once for each staff who served her.`,
+    blocks: [{ cols, rows: yrRows }],
+    legend: [['Growth', 'Net take on the year before, on the same basis (a year in progress is always read on the same days).'], ['Blank', 'No figure for that year (a branch that had not opened, or a feed that had not started).']] }];
+
+  // Every branch and every year, both bases, from the three money feeds.
+  const key = (y, b) => y + '|' + b, by = {};
+  const at = (y, b) => by[key(y, b)] || (by[key(y, b)] = { y, b });
+  (raw.money || []).forEach(r => Object.assign(at(r.y, r.b), { net: +r.net, netY: +r.net_y, days: +r.days }));
+  (raw.visits || []).forEach(r => Object.assign(at(r.y, r.b), { vis: +r.vis, visY: +r.vis_y }));
+  (raw.staff || []).forEach(r => Object.assign(at(r.y, r.b), { stf: +r.stf, stfY: +r.stf_y }));
+  const list = Object.values(by).sort((a, b) => OTY_BR.indexOf(a.b) - OTY_BR.indexOf(b.b) || a.y - b.y);
+  if (list.length) sheets.push({ name: 'By branch and year', title: 'By branch and year',
+    subtitle: `Whole year and the same days to ${otyDay(cut)}, for every branch the feed has. The four salons open now; Fratelli and Marasy are on the page only as chips.`,
+    blocks: [{ cols: [{ key: 'b', label: 'Branch', fmt: 'text' }, { key: 'y', label: 'Year', fmt: 'text' }, { key: 'net', label: 'Net take, full year', fmt: 'aed' }, { key: 'nety', label: 'Net take, same days', fmt: 'aed' },
+      { key: 'days', label: 'Trading days', fmt: 'num' }, { key: 'vis', label: 'Visits, full year', fmt: 'num' }, { key: 'visy', label: 'Visits, same days', fmt: 'num' },
+      { key: 'stf', label: 'Clients per staff, full year', fmt: 'num' }, { key: 'stfy', label: 'Clients per staff, same days', fmt: 'num' }],
+      rows: list.map(o => ({ cells: [nm(o.b), String(o.y), o.net ?? null, o.netY ?? null, o.days ?? null, o.vis ?? null, o.visY ?? null, o.stf ?? null, o.stfY ?? null] })) }] });
+
+  // Seasons: a row per branch, season and year, with the season's own dates.
+  const dates = {}; (raw.seasons || []).forEach(s => { dates[s.y + '|' + s.season] = s; });
+  const sb = (raw.season_br || []);
+  if (sb.length) sheets.push({ name: 'Seasons', title: 'Season on season',
+    subtitle: 'Ramadan and Eid move about 11 days earlier every year, so a season is set against the same season last year, per trading day. Same days is the part of the season up to the same date as today.',
+    blocks: [{ cols: [{ key: 'b', label: 'Branch', fmt: 'text' }, { key: 's', label: 'Season', fmt: 'text' }, { key: 'y', label: 'Year', fmt: 'text' }, { key: 'from', label: 'Starts', fmt: 'text' }, { key: 'to', label: 'Ends', fmt: 'text' },
+      { key: 'tot', label: 'Net take', fmt: 'aed' }, { key: 'days', label: 'Trading days', fmt: 'num' }, { key: 'pd', label: 'Net take per trading day', fmt: 'aed' },
+      { key: 'totw', label: 'Net take, same days', fmt: 'aed' }, { key: 'daysw', label: 'Trading days, same days', fmt: 'num' }],
+      rows: sb.map(r => { const d = dates[r.y + '|' + r.season] || {};
+        return { cells: [nm(r.b), r.season, String(r.y), String(d.start_date || '').slice(0, 10), String(d.end_date || '').slice(0, 10), r.tot == null ? null : +r.tot, r.days == null ? null : +r.days,
+          { v: +r.days > 0 ? r2(r.tot / r.days) : null, fmt: 'aed', f: A => `IF(N(${A('days')})>0,${A('tot')}/${A('days')},"")` }, r.tot_w == null ? null : +r.tot_w, r.days_w == null ? null : +r.days_w] }; }) }] });
+
+  // Month by month.
+  const MON = otyMoRaw && otyMoRaw.months || [];
+  if (MON.length) sheets.push({ name: 'Month by month', title: 'Month by month',
+    subtitle: 'Net take (ex VAT), trading days and clients per staff for every branch, year and month. A month in progress holds the days so far.',
+    blocks: [{ cols: [{ key: 'y', label: 'Year', fmt: 'text' }, { key: 'm', label: 'Month', fmt: 'text' }, { key: 'b', label: 'Branch', fmt: 'text' }, { key: 'net', label: 'Net take', fmt: 'aed' },
+      { key: 'days', label: 'Trading days', fmt: 'num' }, { key: 'pd', label: 'Net take per trading day', fmt: 'aed' }, { key: 'stf', label: 'Clients per staff', fmt: 'num' }],
+      rows: MON.slice().sort((a, b) => a.y - b.y || a.m - b.m || OTY_BR.indexOf(a.b) - OTY_BR.indexOf(b.b)).map(r => ({ cells: [String(r.y), OTY_MON[r.m - 1] || String(r.m), nm(r.b), r.net == null ? null : +r.net, r.days == null ? null : +r.days,
+        { v: +r.days > 0 ? r2(r.net / r.days) : null, fmt: 'aed', f: A => `IF(N(${A('days')})>0,${A('net')}/${A('days')},"")` }, r.stf == null ? null : +r.stf] })) }] });
+
+  // Google reviews by branch and year.
+  const rv = raw.reviews || [];
+  if (rv.length) sheets.push({ name: 'Google reviews', title: 'Google reviews, by branch and year',
+    subtitle: 'Counts and average stars of the reviews on the Google profiles. The review sync is still by hand while the Google approval is pending, so read this as under construction.',
+    blocks: [{ cols: [{ label: 'Branch', fmt: 'text' }, { label: 'Year', fmt: 'text' }, { label: 'Reviews, full year', fmt: 'num' }, { label: 'Average stars, full year', fmt: 'aed2' }, { label: 'Reviews, same days', fmt: 'num' }, { label: 'Average stars, same days', fmt: 'aed2' }],
+      rows: rv.slice().sort((a, b) => OTY_BR.indexOf(a.b) - OTY_BR.indexOf(b.b) || a.y - b.y).map(r => ({ cells: [nm(r.b), String(r.y), +r.n, r.st == null ? null : +r.st, +r.n_y, r.st_y == null ? null : +r.st_y] })) }] });
+
+  // Instagram by month (Level 3 and above; there is nothing here for anyone below).
+  const ig = otyIgRaw && otyIgRaw.months || [];
+  if (ig.length) {
+    const st = {}; (otyIgRaw.stories || []).forEach(s => { st[s.m] = +s.n; });
+    sheets.push({ name: 'Instagram', title: 'Instagram by month',
+      subtitle: 'Posts and Reels from the salon’s own account, posts it was a collaborator on, posts that tagged it, and stories. Each feed only exists from the month it started (2025), so an earlier month is blank, not zero.',
+      blocks: [{ cols: [{ label: 'Month', fmt: 'text' }, { label: 'Own posts and Reels', fmt: 'num' }, { label: 'Collab posts', fmt: 'num' }, { label: 'Tagged posts', fmt: 'num' }, { label: 'Stories', fmt: 'num' }],
+        rows: ig.map(r => ({ cells: [otyMonLabel(r.m), +r.own || 0, +r.collab || 0, +r.tags || 0, st[r.m] == null ? null : st[r.m]] })) }] });
+  }
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return { name: ['over-the-years', same ? 'same-days' : 'full-years', slug(otySetLabel(set))].join('-'), csv: 0, sheets };
 }
