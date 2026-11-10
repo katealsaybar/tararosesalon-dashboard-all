@@ -99,7 +99,7 @@ function adPaint() {
   if (!el) return;
   const head = `<div class="ad-top"><div><h1 class="ad-t">Active Deals Performance</h1><p class="ad-sub">${adData ? 'As of ' + adEsc(adWhen(adData.at)) + '. Phorest sales, deals on the brochure.' : ''}</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderDealsPerf(true)">Refresh</button>
-    <button class="ad-btn" type="button" onclick="adSave()">Save as xlsx</button>
+    <button class="ad-btn" type="button" onclick="adSave()">Save as xlsx</button> <button class="ad-btn" type="button" onclick="adSave('csv')" title="The By offer tab as a CSV">Save as csv</button>
     <a class="ad-btn" href="https://promo.tararosesalon.com/active-deals-brochure" target="_blank" rel="noopener">Open the brochure</a></div></div>`;
   if (adErr || !adData) { el.innerHTML = head + `<div class="ad-state">${adEsc(adErr || 'No report yet.')}</div>`; adRail(false); return; }
 
@@ -311,7 +311,7 @@ function adRail(on) {
 }
 
 // ── SAVE AS XLSX (what the page shows now: the window, the offers, the days) ─
-function adSave() {
+function adSave(kind) {
   if (!adData || typeof lgxBuild !== 'function') return;
   const w = adRange(), codes = adCodes();
   const offerCols = [{ label: 'Offer', fmt: 'text' }, { label: 'Slide', fmt: 'text' }, { label: 'Price (AED)', fmt: 'text' }, ...AD_BR.map(b => ({ label: b[1], fmt: 'num' })), { label: 'Sold', fmt: 'num' }, { label: 'AED', fmt: 'aed' }, { label: 'Match', fmt: 'text' }];
@@ -328,5 +328,7 @@ function adSave() {
     { name: 'By day', blocks: [{ cols: [{ label: 'Date', fmt: 'text' }, { label: 'Offer', fmt: 'text' }, { label: 'Branch', fmt: 'text' }, { label: 'Sales', fmt: 'num' }, { label: 'AED', fmt: 'aed' }], rows: days }] }
   ] });
   const stamp = dateToIso(new Date());
-  lgxSave(lgxXlsxBlob(built), 'active-deals-performance-' + stamp + '.xlsx');
+  // Kate, 10 Nov 2026: a CSV holds one tab, so it is By offer, the page's own report (the XLSX has every tab).
+  if (kind === 'csv') lgxSave(new Blob(['﻿' + lgxCsv(built[1])], { type: 'text/csv;charset=utf-8' }), 'active-deals-performance-' + stamp + '-by-offer.csv');
+  else lgxSave(lgxXlsxBlob(built), 'active-deals-performance-' + stamp + '.xlsx');
 }

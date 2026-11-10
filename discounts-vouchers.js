@@ -147,7 +147,7 @@ function dvPaint() {
   if (!el) return;
   const head = `<div class="dv-top"><div><h1 class="dv-t">Discounts and Vouchers</h1><p class="dv-sub">${dvData ? 'As of ' + dvEsc(dvWhen(dvData.at)) + '. Phorest Discounts and Client Vouchers lists, archived included. Vouchers are cut by the month they were issued.' : ''}</p></div>
     <div class="dv-toplinks"><button class="dv-btn" type="button" onclick="renderDiscountsVouchers(true)">Refresh</button>
-    <button class="dv-btn" type="button" onclick="dvSave()">Save as xlsx</button></div></div>`;
+    <button class="dv-btn" type="button" onclick="dvSave()">Save as xlsx</button> <button class="dv-btn" type="button" onclick="dvSave('csv')" title="The Vouchers by month tab as a CSV">Save as csv</button></div></div>`;
   if (dvErr || !dvData) { el.innerHTML = head + `<div class="dv-state">${dvEsc(dvErr || 'No report yet.')}</div>`; dvRail(false); return; }
 
   const rs = dvData.vouchers.filter(dvIn);
@@ -321,7 +321,7 @@ function dvRail(on) {
 }
 
 // ── SAVE AS XLSX (what the page shows now: the window, the branches, the discount list) ─
-function dvSave() {
+function dvSave(kind) {
   if (!dvData || typeof lgxBuild !== 'function') return;
   const w = dvRange();
   const brs = DV_BR.concat(DV_CLOSED).map(b => { const l = dvData.vouchers.filter(r => r[0] === b[0] && r[1] >= w.from && r[1] <= w.to); return { b, on: dvOn(b[0]), l }; }).filter(x => x.on);
@@ -338,5 +338,8 @@ function dvSave() {
     { name: 'Offered per salon', blocks: [{ cols: [{ label: 'Branch', fmt: 'text' }, { label: 'Offer', fmt: 'text' }, { label: 'Who', fmt: 'text' }, { label: 'Stylist', fmt: 'text' }, { label: 'Rule', fmt: 'text' }, { label: 'Status', fmt: 'text' }, { label: 'On Phorest', fmt: 'text' }],
       rows: dvOffRows().map(r => ({ cells: [dvBrName(r[0]), r[1], r[2], r[3] || 'all', r[4], r[5] === 'act' ? 'Active' : r[5] === 'cf' ? 'To confirm' : 'Inactive', { ok: 'On Phorest', no: 'Not on Phorest', arc: 'Archived on Phorest', cf: 'To confirm' }[r[6]] || ''] })) }] }
   ] });
-  lgxSave(lgxXlsxBlob(built), 'discounts-and-vouchers-' + dateToIso(new Date()) + '.xlsx');
+  const base = 'discounts-and-vouchers-' + dateToIso(new Date());
+  // Kate, 10 Nov 2026: a CSV holds one tab, so it is Vouchers by month, the page's own report (the XLSX has every tab).
+  if (kind === 'csv') lgxSave(new Blob(['﻿' + lgxCsv(built[1])], { type: 'text/csv;charset=utf-8' }), base + '-vouchers-by-month.csv');
+  else lgxSave(lgxXlsxBlob(built), base + '.xlsx');
 }
