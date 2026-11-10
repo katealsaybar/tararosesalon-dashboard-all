@@ -369,6 +369,13 @@ function postReviewsBranch() {
   f.contentWindow.postMessage({ type: 'trs-reviews-filter', codes,
     from: key === 'All time' ? null : dateToIso(dateFrom), to: dateToIso(dateTo), label }, '*');
 }
+// Kate, 10 Nov 2026: the frame's XLSX and CSV buttons (reviews-export.js reads the frame, report-export.js saves the file); both load on the first click.
+window.addEventListener('message', async e => {
+  const f = document.getElementById('reviewsFrame');
+  if (!f || e.source !== f.contentWindow || !e.data || e.data.type !== 'trs-reviews-export') return;
+  try { await trsLazy('rv'); } catch (err) { if (typeof lgxToast === 'function') lgxToast('The download did not load. Try again.', true); return; }
+  rexRun('reviewsExportModel', e.data.kind === 'csv' ? 'csv' : 'xlsx', null);
+});
 // A tap on a branch's row inside the frame picks that branch up here.
 window.addEventListener('message', e => {
   const f = document.getElementById('reviewsFrame');

@@ -667,8 +667,10 @@ async function renderGbp(){
     ${shown.length?`<div class="gbp-wrap"><table class="gbp-t"><thead><tr><th>Salon</th><th>Seen on Google</th><th>Calls</th><th>Directions</th><th>Website clicks</th><th class="gbp-sm">Calls per 100 views</th></tr></thead><tbody>${rows}${tot}</tbody></table></div>`:""}
     <div class="gbp-note">"Seen on Google" is how many times the salon's profile showed in Search or Maps. ${gbpCut?"Profile numbers go back 12 months at most. ":""}${fmtDate(w.from)} to ${fmtDate(last&&last<w.to?last:w.to)}${last&&last<w.to?", the last day Google has reported (it runs about three days late)":""}. From Metricool, updated nightly.${stale?` <span class="no">Paused${s&&s.last_error?": "+String(s.last_error).replace(/[<>&]/g,""):""}.</span>`:""}</div>`;
 }
+let LASTF=[];   // the reviews on screen, for the dashboard's XLSX and CSV buttons (reviewsSnapshot, below)
 function render(){
   const F=baseFilter();
+  LASTF=F;
   PAGE=0;
   saveRefine();
   renderGbp();
@@ -751,3 +753,18 @@ loadLive().catch(e=>{console.warn("Google reviews: live load failed, using the 2
   .then(()=>Promise.all([loadVariants(), loadClientCredit()]))
   .then(()=>{TODAY=new Date(META.generated+"T00:00:00");buildStaff();if(state.staff&&state.staff!=="__any"&&state.staff!=="__none"&&!STAFF.some(x=>x.key===state.staff)) state.staff="";R.forEach(tagStaff);renderExact();render();checkEdit();});
 document.getElementById("fStaff").onchange=e=>{state.staff=e.target.value;render();};
+
+// The dashboard's XLSX and CSV buttons (reviews-export.js, Kate 10 Nov 2026) ask for the list as it stands: the reviews the Branch and Period chips and the Refine
+// filters leave, in the page's own order, with the staff each one names. Nothing is fetched or redrawn.
+window.reviewsSnapshot=()=>{
+  const L=[...LASTF].sort((a,b)=> state.sort==="new"? b.date.localeCompare(a.date) : state.sort==="old"? a.date.localeCompare(b.date) : state.sort==="low"? a.stars-b.stars || b.date.localeCompare(a.date) : b.stars-a.stars || b.date.localeCompare(a.date));
+  const rg=curRange(), parts=[];
+  if(state.stars.size!==ALL.length) parts.push([...state.stars].sort().join(", ")+" stars");
+  if(state.withText) parts.push("with a written comment"); if(state.noReply) parts.push("no reply yet"); if(state.withPhotos) parts.push("with photos"); if(state.noTag) parts.push("no one tagged");
+  if(state.staff) parts.push(state.staff==="__any"?"naming staff":state.staff==="__none"?"naming no one":"naming "+((staffBy(state.staff)||{}).label||state.staff));
+  if(state.q) parts.push("search: "+state.q);
+  const picked=BRANCHES.filter(b=>state.branches.has(b));
+  return {rangeLabel:rg.label, from:rg.from, to:rg.to, branchLabel:picked.length===BRANCHES.length?"All branches":picked.map(b=>SHORT[b]).join(", "), filterText:parts.join(", ")||"no Refine filters",
+    rows:L.map(r=>({date:r.date, approx:!!r.approx, branch:SHORT[r.branch]||r.branch, stars:r.stars, reviewer:r.reviewer||"Anonymous", comment:r.comment||"",
+      replied:r.branch===MRY_BRANCH?"Unknown":r.replied?"Yes":"No", reply:r.reply||"", staff:r.staff.map(k=>(staffBy(k)||{}).label||k), photos:(r.photos||[]).length, link:googleReviewUrl(r)||r.url||""}))};
+};
