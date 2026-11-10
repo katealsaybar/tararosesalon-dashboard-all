@@ -192,3 +192,10 @@
   .rct-sm{width:100%}
   .rct-bar .rct-btn{width:100%}
 }
+
+/* Kate, 10 Nov 2026: the List's pager (Rows per page 10, 20, 50, 100; Previous and Next). Grid has none. */
+.rct-pager{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:12px 0 4px;font-size:14px;color:var(--muted)}
+.rct-pgsize{display:inline-flex;align-items:center;gap:8px}
+.rct-pgsize select{font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 8px}
+.rct-pgbtns{display:inline-flex;gap:8px;margin-left:auto}
+.rct-pgbtns .rct-btn[disabled]{opacity:.45;cursor:default}

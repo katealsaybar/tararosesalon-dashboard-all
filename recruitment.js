@@ -13,7 +13,7 @@
   var ROLES = [['stylist', 'Hair stylist'], ['colourist', 'Colourist'], ['beauty', 'Beauty therapist'], ['nails', 'Nail technician'],
                ['front', 'Front desk'], ['barber', 'Barber'], ['braider', 'Hair braider']];
   var STAGE_LABEL = { new: 'New', screening: 'Screening', interview_booked: 'Interview booked', trade_test: 'Trade test', offer: 'Offer', hired: 'Hired', not_now: 'Not now', rejected: 'Rejected' };
-  var PAGE = 12;
+  var PAGE = 10;   // Kate, 10 Nov 2026: 10 cards at a time in Grid (Show 10 more); the List has its own Rows per page (10, 20, 50, 100)
   var C = null, loadErr = '', rows = [], settings = {}, me = '', q = '', shownLook = PAGE, shownNo = {}, bound = false, toastTimer = null, openRows = {};
   var UNDO = [];
 
@@ -265,8 +265,11 @@
   // on every column header (sort, search, value checklist, clear) and the photo and name columns frozen on the left like Google Sheets. The five tiles filter BOTH
   // views. The chosen view is remembered in this browser (localStorage trs-rct-layout, the dashboard's trs-* pattern); V switches.
   var LKEY = 'trs-rct-layout';
-  var S = { mode: 'grid', lane: null, filters: {}, sort: { col: 'wait', dir: 'desc' }, showDone: false };
+  var S = { mode: 'grid', lane: null, filters: {}, sort: { col: 'wait', dir: 'desc' }, showDone: false, pageSize: 10, page: 0, pgSig: '' };
   try { var savedMode = localStorage.getItem(LKEY); if (savedMode === 'list' || savedMode === 'grid') S.mode = savedMode; } catch (e) { /* private window */ }
+  var PKEY = 'trs-rct-pagesize', SIZES = [10, 20, 50, 100];
+  try { var savedSize = parseInt(localStorage.getItem(PKEY), 10); if (SIZES.indexOf(savedSize) >= 0) S.pageSize = savedSize; } catch (e) { /* private window */ }
+  function savePageSize(n) { try { localStorage.setItem(PKEY, String(n)); } catch (e) { /* private window */ } }
   function saveMode(m) { try { localStorage.setItem(LKEY, m); } catch (e) { /* private window */ } }
   var LANE_NAME = { look: 'Worth a look', no: 'Probably no', late: 'Waiting 14 days or more', invited: 'Invited, not booked yet', booked: 'Interview booked' };
   var EXP_ORDER = ['1 to 3 years', '3 to 5 years', '5 to 10 years', '10 to 15 years', '15 plus years'];
@@ -395,11 +398,23 @@
     });
     h += '</tr></thead><tbody>';
     if (!list.length) h += '<tr><td colspan="' + COLS.length + '"><div class="rct-empty">Nobody matches. <button type="button" class="rct-btn rct-sm" data-act="clearfilters">Clear all filters</button></div></td></tr>';
-    list.slice(0, 400).forEach(function (p) {
+    // Kate, 10 Nov 2026: the List shows 10 rows a page (10, 20, 50 or 100 on the picker), so it opens short; Grid keeps its own Show 10 more.
+    var sig = JSON.stringify([S.filters, S.sort, q, S.lane, S.showDone, S.pageSize]);
+    if (sig !== S.pgSig) { S.pgSig = sig; S.page = 0; }
+    var pages = Math.max(1, Math.ceil(list.length / S.pageSize)); if (S.page > pages - 1) S.page = pages - 1;
+    var from = S.page * S.pageSize, to = Math.min(list.length, from + S.pageSize);
+    list.slice(from, to).forEach(function (p) {
       h += '<tr>' + COLS.map(function (c) { return cell(c, p); }).join('') + '</tr>';
       if (openRows[p.id]) h += '<tr class="rct-dtl"><td></td><td colspan="' + (COLS.length - 1) + '">' + detailHtml(p) + '</td></tr>';
     });
-    h += '</tbody></table></div>' + (list.length > 400 ? '<p class="rct-hint">Showing the first 400. Filter to narrow it.</p>' : '');
+    h += '</tbody></table></div>';
+    if (list.length) {
+      h += '<div class="rct-pager"><label class="rct-pgsize">Rows per page <select id="rctPageSize" aria-label="Rows per page">' +
+        SIZES.map(function (n) { return '<option value="' + n + '"' + (n === S.pageSize ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
+        '<span class="rct-pgcount">' + (from + 1) + ' to ' + to + ' of ' + list.length + '</span>' +
+        '<span class="rct-pgbtns"><button type="button" class="rct-btn rct-sm" data-act="pgprev"' + (S.page === 0 ? ' disabled' : '') + '>Previous</button>' +
+        '<button type="button" class="rct-btn rct-sm" data-act="pgnext"' + (S.page >= pages - 1 ? ' disabled' : '') + '>Next</button></span></div>';
+    }
     return h;
   }
 
@@ -723,8 +738,13 @@
       }
       else if (a === 'toggledone') { S.showDone = !S.showDone; render(); }
       else if (a === 'clearfilters') { S.filters = {}; q = ''; closePop(); render(); }
+      else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
+      else if (a === 'pgnext') { S.page += 1; render(); }
       else if (a === 'morelook') { shownLook += PAGE; render(); }
       else if (a === 'moreno') { shownNo[g] = (shownNo[g] || PAGE) + PAGE; render(); }
+    });
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.id === 'rctPageSize') { var n = parseInt(e.target.value, 10); if (SIZES.indexOf(n) >= 0) { S.pageSize = n; S.page = 0; savePageSize(n); render(); } }
     });
     document.addEventListener('change', function (e) { if (popCol && e.target && e.target.type === 'checkbox' && popEl().contains(e.target)) popChange(); });
     document.addEventListener('input', function (e) {
