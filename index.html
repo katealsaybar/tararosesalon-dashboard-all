@@ -3673,7 +3673,20 @@ table.tp-cmp td.bad{color:var(--bad)}
     };
     window.trsLazyDone = function(g){ return !!D[g]; };
     window.trsLazyOf = function(view){ return V[view] || null; };
-    window.trsLazyIdle = function(){ Object.keys(G).forEach(function(g){ window.trsLazy(g).catch(function(){}); }); };
+    // Kate, 10 Nov 2026 ("super bagal pa rin"): once the first page was up, this fetched AND ran every on-demand page's files, 58 files and about 2.4 MB, all at the same
+    // moment (forced after 6 s even on a busy phone). That is the "loading everything" Kate saw. Now: a phone, a small screen, a slow or data-saver connection or a low-memory
+    // or few-core device skips it altogether (each page loads on its own when it is opened, as it always could); a desktop does it one group at a time, each in its own idle moment.
+    window.trsLazyIdle = function(){
+      var c = navigator.connection || {};
+      var weak = c.saveData || /(^|-)(2g|3g)$/.test(c.effectiveType || '') || (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+        (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || matchMedia('(max-width:900px)').matches || matchMedia('(pointer:coarse)').matches;
+      if (weak) return;
+      var keys = Object.keys(G), i = 0, idle = window.requestIdleCallback ? function(f){ window.requestIdleCallback(f, { timeout: 4000 }); } : function(f){ setTimeout(f, 1500); };
+      (function next(){
+        if (i >= keys.length) return;
+        window.trsLazy(keys[i++]).catch(function(){}).then(function(){ idle(next); });
+      })();
+    };
   })();
 </script>
 
