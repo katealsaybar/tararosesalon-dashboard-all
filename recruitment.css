@@ -64,6 +64,9 @@
 .rct-src{font-size:13px;color:var(--muted);font-weight:400}
 .rct-links{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}
 .rct-links a{color:var(--rct-teal);text-decoration:underline}
+/* Kate, 10 Nov 2026: Add photo / Remove photo sat lower than the other links (the button is 44px tall, the links are not). Same look and baseline as the links. */
+.rct-links{align-items:center}
+.rct-links .rct-linkbtn{color:var(--rct-teal);font:inherit;font-weight:400;padding:0;min-height:0;line-height:inherit}
 .rct-about{border:0;font-size:14.5px}
 .rct-about summary{cursor:pointer;color:var(--muted);font-size:14px;list-style:none}
 .rct-about summary::-webkit-details-marker{display:none}
