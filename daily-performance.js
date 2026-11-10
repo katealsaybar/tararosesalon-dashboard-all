@@ -1448,7 +1448,7 @@ function dpControls(win) {
   const mopts = DP_MENU[DP.dept].map(([g, ks]) => `<optgroup label="${g}">${ks.map(k => `<option value="${k}"${k === DP.measure ? ' selected' : ''}>${dpEsc(DP_M[k].label)}</option>`).join('')}</optgroup>`).join('');
   return `<div class="dp-bar" id="dpBar" role="group" aria-label="Measure"><div class="dp-bar-row">
     <div class="dp-bf"><span class="dp-lab">Team</span><span class="dp-pills" id="dpDept" role="group" aria-label="Department">${[['all', 'All'], ['hair', 'Hair'], ['beauty', 'Beauty']].map(([k, l]) => `<button type="button" class="dp-pill" data-dept="${k}" aria-pressed="${DP.dept === k}">${l}</button>`).join('')}</span></div>
-    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label>${DP_M[DP.measure] && DP_M[DP.measure].def && typeof ihTip === 'function' ? '<span class="dp-bf dp-info">' + ihTip('', DP_M[DP.measure].def) + '</span>' : ''}</div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
+    <label class="dp-bf"><span class="dp-lab">Measure</span><select id="dpSelM" aria-label="Measure">${mopts}</select></label>${DP_M[DP.measure] && DP_M[DP.measure].def && typeof ihTip === 'function' ? '<span class="dp-bf dp-info">' + ihTip('', DP_M[DP.measure].def) + '</span>' : ''}${typeof rexButtons === 'function' ? rexButtons('dpExport') : ''}</div></div>${dpDefault() ? '' : '<p class="dp-note" style="margin:0 0 8px">Your choices are saved on this device for next time. <button type="button" class="dp-linkbtn" id="dpReset">Reset to the defaults</button></p>'}`;
 }
 const dpDefault = () => DP.measure === 'sales' && DP.dept === 'all' && !DP.radar;
 
@@ -1664,3 +1664,52 @@ function dpUrlParts() {
     dpFitDept();
   } catch (e) { /* no address to read */ }
 })();
+
+/* ── DOWNLOADS (Kate, 10 Nov 2026: every report gets an XLSX and a CSV button; report-export.js draws the buttons and saves the file) ──
+   Branch Performance was folded into this page on 16 Oct, so this is its download. One sheet, one row for each branch on each day in the
+   window the masthead has picked, never weeks or months (the charts bucket a long window; a file should not): the day's figure for every
+   measure on the Team menu, and for a measure with a target the day's target and the % of it. Branch and Period are the masthead's, Team is
+   the page's. In the XLSX the % of target is a real formula; the CSV is figures only. */
+function dpExport() {
+  if (!DPD || !dpCtx) return null;
+  const win = dpCtx.win, idxs = dpIdx(win), codes = dpSel(), keys = dpMenuKeys(DP.dept);
+  if (!idxs.length || !codes.length) return null;
+  const hasT = {}, ty = {};
+  keys.forEach(mk => { hasT[mk] = !dpRawFor(mk, codes); ty[mk] = dpColType(DP_M[mk]); });
+  const cols = [{ key: 'date', label: 'Date', fmt: 'text' }, { key: 'day', label: 'Day', fmt: 'text' }, { key: 'branch', label: 'Branch', fmt: 'text' }, { key: 'status', label: 'Status', fmt: 'text' }];
+  keys.forEach(mk => {
+    const M = DP_M[mk];
+    cols.push({ key: mk + '_v', label: M.label, fmt: ty[mk] });
+    if (hasT[mk]) {
+      cols.push({ key: mk + '_t', label: M.label + ' target', fmt: ty[mk] === 'pct' ? 'pct' : 'aed2' });
+      cols.push({ key: mk + '_p', label: M.label + ' vs target', fmt: 'pct' });
+    }
+  });
+  const r2 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
+  const rows = [];
+  codes.forEach(code => idxs.forEach(i => {
+    const d = DPD.days[i], c = DPD.byCode[code], cells = keys.map(mk => dpCell(mk, code, i));
+    const status = c.closed[i] ? 'Closed' : cells.some(x => x.state === 'ok') ? 'Open' : 'No figures';
+    const row = [dpYmd(d), DP_DOW[d.getDay()], dpName(code), status];
+    keys.forEach((mk, k) => {
+      const x = cells[k], ok = x.state === 'ok';
+      row.push(ok ? r2(x.v) : null);
+      if (hasT[mk]) {
+        row.push(ok && x.t != null ? r2(x.t) : null);
+        row.push(DP_M[mk].util ? (ok && x.p != null ? r2(x.p) : null)
+          : { v: ok && x.p != null ? r2(x.p) : null, fmt: 'pct', f: A => `IF(AND(ISNUMBER(${A(mk + '_v')}),${A(mk + '_t')}>0),${A(mk + '_v')}/${A(mk + '_t')}*100,"")` });
+      }
+    });
+    rows.push({ cells: row });
+  }));
+  const range = `${dpRangeLbl(win.from)} to ${dpRangeLbl(win.to)}`;
+  const team = DP.dept === 'all' ? 'Hair and beauty' : DP.dept === 'hair' ? 'Hair' : 'Beauty';
+  const legend = keys.map(mk => [DP_M[mk].label, DP_M[mk].def || DP_M[mk].help || DP_M[mk].noun]).concat([
+    ['Daily target', 'A monthly target is spread over the branch’s trading days, weighted by how strong each weekday has been for that branch in the 8 weeks before the month began. A rate, a bill or a benchmark reads the same figure every day.'],
+    ['vs target', 'The day’s figure as a % of the day’s target. Utilisation is scored on its own band (85 to 100 is on target) instead of a straight ratio.'],
+    ['Status', 'Closed is a day the branch was shut. No figures is a day it was open but nothing was uploaded for it.'],
+    ['Blank cell', 'Nothing to report: a closed day, a day with no figures, a measure the branch does not track, or no target keyed.']]);
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return { name: ['daily-performance', dpYmd(win.from), 'to', dpYmd(win.to), DP.dept === 'all' ? '' : DP.dept, codes.length === DPD.codes.length ? '' : codes.join('-').toLowerCase()].filter(Boolean).join('-'),
+    sheets: [{ name: 'Daily Performance', title: 'Daily Performance, day by day', subtitle: `${range} · ${team} · ${codes.map(dpName).join(', ')}. Ex VAT.`, blocks: [{ cols, rows }], legend }] };
+}
