@@ -107,14 +107,38 @@
     var bits = [p.emirate, p.country].filter(Boolean);
     return bits.length ? esc(bits.join(', ')) : '<span class="rct-ns">Not stated</span>';
   }
+  // Kate, 10 Nov 2026: the Instagram column is "Link to work", with a small logo for where the link goes: Instagram, Facebook, X, Google Drive or a cloud store.
+  var LK_ICON = {
+    ig: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="#E1306C" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#E1306C" stroke-width="2"/><circle cx="17.2" cy="6.8" r="1.2" fill="#E1306C"/></svg>',
+    fb: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#1877F2"/><path fill="#fff" d="M13.5 20v-7h2.4l.4-2.8h-2.8V8.5c0-.8.3-1.4 1.4-1.4h1.5V4.6c-.3 0-1.1-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v1.9H8v2.8h2.5v7z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#111" stroke="#666" stroke-width="1"/><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
+    drive: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#0F9D58" d="M8 3 1 15l4 6.5L12 9.5z"/><path fill="#F4B400" d="M8 3h8l7 12h-8z"/><path fill="#4285F4" d="M5 21.5h14l4-6.5H9z"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#6FA3DA" d="M7 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.3 4.9 4.9 0 0 1 17.5 19z"/></svg>',
+    other: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="#9aa0b4" stroke-width="2" stroke-linecap="round"/></svg>'
+  };
+  var LK_NAME = { ig: 'Instagram', fb: 'Facebook', x: 'X', drive: 'Google Drive', cloud: 'Cloud storage', other: 'Other link' };
+  function linkHost(p) { var m = /^https?:\/\/(?:www\.|m\.)?([^\/?#:]+)/i.exec(safeUrl(p.work_link)); return m ? m[1].toLowerCase() : ''; }
+  function linkKind(p) {   // ig, fb, x, drive, cloud, other, or '' when they gave no link
+    if (hasIg(p)) return 'ig';
+    var h = linkHost(p); if (!h) return '';
+    if (/(^|\.)instagram\.com$/.test(h)) return 'ig';
+    if (/(^|\.)(facebook|fb)\.com$|^fb\.me$/.test(h)) return 'fb';
+    if (/^(x|twitter)\.com$|^t\.co$/.test(h)) return 'x';
+    if (/^(drive|docs)\.google\.com$|^drive\.usercontent\.google\.com$/.test(h)) return 'drive';
+    if (/dropbox\.com$|onedrive\.live\.com$|^1drv\.ms$|sharepoint\.com$|icloud\.com$|wetransfer\.com$|^we\.tl$|(^|\.)box\.com$|mega\.nz$|pcloud\.com$|mediafire\.com$/.test(h)) return 'cloud';
+    return 'other';
+  }
+  function linkName(p) { var k = linkKind(p); if (k !== 'other') return LK_NAME[k] || ''; return ({ tiktok: 'TikTok', linkedin: 'LinkedIn', youtube: 'YouTube', facebook: 'Facebook' }[p.link_kind]) || (linkHost(p) === 'wa.me' ? 'WhatsApp' : 'Other link'); }
+  function linkUrl(p) { return igUrl(p) || safeUrl(p.work_link); }
+  function lk(kind, inner) { return '<span class="rct-lk"><span class="rct-lki" title="' + esc(LK_NAME[kind] || '') + '">' + LK_ICON[kind] + '</span>' + inner + '</span>'; }
   function igHtml(p) {
     var u = igUrl(p);
     if (hasIg(p)) {
       var label = p.ig_handle ? '@' + String(p.ig_handle).replace(/^@/, '') : 'Instagram';
-      return u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(label) + '</a>' : esc(label);
+      return lk('ig', u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(label) + '</a>' : esc(label));
     }
     var other = safeUrl(p.work_link);
-    if (other) return '<span class="rct-none">No Instagram</span> <a class="rct-ig" href="' + esc(other) + '" target="_blank" rel="noopener">their link</a>';
+    if (other) return lk(linkKind(p), '<a class="rct-ig" href="' + esc(other) + '" target="_blank" rel="noopener">' + esc(linkName(p)) + '</a>');
     return p.source === 'form' ? '<span class="rct-none">None given</span>' : '<span class="rct-ns">Not stated</span>';
   }
   function linksHtml(p) {
@@ -134,7 +158,7 @@
   function factsHtml(p) {
     return '<div class="rct-facts">' +
       '<div class="rct-fact"><span>Based in</span><b>' + placeOf(p) + '</b></div>' +
-      '<div class="rct-fact"><span>Instagram</span><b>' + igHtml(p) + '</b></div>' +
+      '<div class="rct-fact"><span>Link to work</span><b>' + igHtml(p) + '</b></div>' +
       '<div class="rct-fact"><span>Experience</span><b>' + stated(p.experience) + '</b></div>' +
       '<div class="rct-fact"><span>Applying for</span><b>' + roleLine(p) + '</b></div>' +
       '<div class="rct-fact"><span>Applied</span><b>' + esc(fat(p.applied_at)) + ' <span class="rct-src">(' + (p.source === 'form' ? 'website form' : 'email') + (p.merged > 1 ? ', ' + p.merged + ' emails merged' : '') + ')</span></b></div>' +
@@ -151,7 +175,7 @@
       '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<h3>' + esc(p.name || 'Name not stated') + '</h3></div><div class="rct-pills">' + waitPill(p) + extraPills(p) + '</div></div>' +
       '<div class="rct-facts">' +
         '<div class="rct-fact"><span>Based in</span><b>' + placeOf(p) + '</b></div>' +
-        '<div class="rct-fact"><span>Instagram</span><b>' + igHtml(p) + '</b></div>' +
+        '<div class="rct-fact"><span>Link to work</span><b>' + igHtml(p) + '</b></div>' +
         '<div class="rct-fact"><span>Experience</span><b>' + stated(p.experience) + '</b></div>' +
         '<div class="rct-fact"><span>Applying for</span><b>' + roleLine(p) + '</b></div>' +
         '<div class="rct-fact"><span>Applied</span><b>' + esc(fat(p.applied_at)) + ' <span class="rct-src">(' + (p.source === 'form' ? 'website form' : 'email') + (p.merged > 1 ? ', ' + p.merged + ' emails merged' : '') + ')</span></b></div>' +
@@ -346,7 +370,7 @@
     if (p.replied_at) return 'We replied';
     var d = waited(p); return d >= 21 ? '21 days or more' : d >= 14 ? '14 to 20 days' : d >= 7 ? '7 to 13 days' : 'Under 7 days';
   }
-  function igLabel(p) { return hasIg(p) ? 'Has Instagram' : (safeUrl(p.work_link) ? 'Other link only' : (p.source === 'form' ? 'None given' : 'Not stated')); }
+  function igLabel(p) { var k = linkKind(p); return k ? linkName(p) : (p.source === 'form' ? 'None given' : 'Not stated'); }
   // Kate, 10 Nov 2026: which inbox the application arrived in (a person who wrote to both shows as Both)
   function srcLabel(p) { var m = p.mailboxes || [], i = m.indexOf('info') >= 0, r = m.indexOf('recruitment') >= 0; return i && r ? 'Both inboxes' : i ? 'info@' : r ? 'recruitment@' : 'Not stated'; }
   function monthOf(p) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', month: 'long', year: 'numeric' }).format(new Date(p.applied_at)); } catch (e) { return ''; } }
@@ -355,7 +379,7 @@
     { k: 'av', t: '', nofilter: true },
     { k: 'name', t: 'Name', val: function (p) { return p.name || 'Name not stated'; }, sort: function (p) { return String(p.name || '').toLowerCase(); }, kind: 'text' },
     { k: 'place', t: 'Based in', val: countryShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
-    { k: 'ig', t: 'Instagram', val: igLabel, sort: function (p) { return hasIg(p) ? 0 : 1; }, kind: 'text' },
+    { k: 'ig', t: 'Link to work', val: igLabel, sort: function (p) { return (linkKind(p) ? '0' : '1') + igLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: expNum, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
     { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
@@ -388,7 +412,11 @@
       case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
       case 'ig': {
-        if (hasIg(p)) { var u = igUrl(p), lab = p.ig_handle ? '@' + String(p.ig_handle).replace(/^@/, '') : 'Instagram'; return '<td>' + (u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(lab) + '</a>' : esc(lab)) + '</td>'; }
+        var kk = linkKind(p);
+        if (kk) {
+          var lu = linkUrl(p), ll = kk === 'ig' ? (p.ig_handle ? '@' + String(p.ig_handle).replace(/^@/, '') : 'Instagram') : linkName(p);
+          return '<td>' + lk(kk, lu ? '<a class="rct-ig" href="' + esc(lu) + '" target="_blank" rel="noopener">' + esc(ll) + '</a>' : esc(ll)) + '</td>';
+        }
         var v = igLabel(p); return '<td>' + cellBtn('<span class="' + (v === 'Not stated' ? 'rct-ns' : 'rct-none') + '">' + esc(v) + '</span>', 'ig', v) + '</td>';
       }
       case 'exp': return '<td>' + cellBtn(esc(p.experience || 'Not stated'), 'exp', p.experience || 'Not stated') + '</td>';

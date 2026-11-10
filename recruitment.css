@@ -222,3 +222,8 @@
 /* Kate, 10 Nov 2026: the roles are typed, not switched. */
 .rct-rolein{width:100%;font:inherit;font-size:16px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin:8px 0 6px}
 .rct-rolein:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+
+/* Kate, 10 Nov 2026: the small logo beside the link to their work. */
+.rct-lk{display:inline-flex;align-items:flex-start;gap:7px;min-width:0}
+.rct-lki{flex:0 0 auto;width:17px;height:17px;margin-top:2px;display:inline-grid}
+.rct-lki svg{width:17px;height:17px;display:block}
