@@ -381,6 +381,7 @@ async function renderStaffWeeks() {
     <div class="sc-bar w13-bar" style="margin-bottom:14px">
       <button type="button" class="sc-btn" onclick="w13Set(null)">← ${w13Dept === 'Hair' ? 'Hair team' : w13Dept === 'Beauty' ? 'Beauty team' : 'All staff'}</button>
       ${w13YearPick(d)}
+      ${typeof rexButtons === 'function' ? rexButtons('w13Export') : ''}
     </div>
     <section class="slv-card">
       <div class="slv-head">
@@ -471,6 +472,7 @@ async function w13RenderTeam(el) {
         ${Object.entries(W13_SORTS).map(([k, v]) => `<option value="${k}"${k === w13Sort ? ' selected' : ''}>Sort: ${v.label}</option>`).join('')}
       </select></span>
       <button type="button" class="sc-btn" title="Reverse the order" onclick="w13SetSort(null, true)">${['branch', 'name'].includes(w13Sort) ? (w13Rev ? 'Z–A' : 'A–Z') : (w13Rev ? 'Lowest first' : 'Highest first')} ⇅</button>
+      ${typeof rexButtons === 'function' ? rexButtons('w13Export') : ''}
     </div>
     ${list.length ? w13Body(list, flip, byTakings, grid, head) : '<p class="slv-muted" style="margin-top:22px">No one on this team at this branch.</p>'}
     <p class="slv-muted">Sales are services before VAT, retail not included. A solid grey stub is a week she took nothing (leave or days off); an outlined one is a week her branch has not uploaded yet. The dotted line is her level's weekly take aim (Stylist’s Benchmarks monthly aim × 12 ÷ 52; beauty has no level aims yet).</p>
@@ -778,4 +780,124 @@ function w13Set(id) {
   w13Mode = 'week'; w13Win = 28; w13Off = 0;
   window.scrollTo(0, 0);
   renderStaffWeeks();
+}
+
+/* ── DOWNLOADS (Kate, 10 Nov 2026: every report gets an XLSX and a CSV button; report-export.js draws the buttons and saves the file) ──
+   The file is what is on the screen: her report as a row a week with the year's total and the week so far, or the team grid
+   (everyone's year and a column a week) for the dept, branch and year picked. Ratios are real formulas in the XLSX; the CSV is figures only. */
+const w13AddDays = (iso, n) => { const x = new Date(iso + 'T00:00:00'); x.setDate(x.getDate() + n);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+// ISO week number of a date, the same week_no the database gives (Monday weeks, Week 1 holds the first Thursday).
+function w13IsoWeekNo(iso) {
+  const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const w1 = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d - w1) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7);
+}
+// A date with its year, for a file that is read away from the page.
+const w13DayY = iso => new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const w13Slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const w13Q = v => (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) ? null : Number(v);
+// A ratio cell: the value worked out here, and the formula that works it out in the sheet (blank when the bottom is 0).
+const w13RatioCell = (top, bottom, times, fmt, tk, bk) => {
+  const t = w13Q(top), b = w13Q(bottom);
+  return { v: (b > 0 && t !== null) ? Math.round(1e4 * times * t / b) / 1e4 : null, fmt,
+           f: A => `IF(${A(bk)}>0,${times === 1 ? '' : times + '*'}${A(tk)}/${A(bk)},"")` };
+};
+
+function w13Export() {
+  const t = w13Pick ? w13Data : w13Team;
+  if (!t) return null;
+  return w13Pick ? w13ExportOne(t) : w13ExportTeam(t);
+}
+
+// One stylist: a row a week, Weeks 1 to N, the year's total under them, then the week still being traded.
+function w13ExportOne(d) {
+  const s = d.staff;
+  if (!s) return null;
+  const weeks = d.weeks.filter(w => !w.current), curWk = d.weeks.find(w => w.current);
+  const num = (n, k) => w13Q(n[k]);
+  const ph = (n, k) => w13Q(n.phorest && n.phorest[k]);
+  // [key, heading, format, how to read it from a week's numbers, the page's own label for the legend]
+  const C = [
+    ['sales', 'Service sales (AED)', 'aed', n => num(n, 'total_revenue'), 'Service sales (AED)'],
+    ['hair', 'Hair services (AED)', 'aed', n => num(n, 'hair_services'), 'Hair services (AED)'],
+    ['treat', 'Treatments (AED)', 'aed', n => num(n, 'treatments'), 'Treatments (AED)'],
+    ['retail', 'Retail (AED)', 'aed', n => num(n, 'retail'), 'Retail (AED)'],
+    ['avg', 'Average bill (AED)', 'aed', null, 'Average bill (AED, Phorest sales per ledger client)'],
+    ['clients', 'Clients (ledger)', 'num', n => num(n, 'clients'), 'Clients (ledger)'],
+    ['salon', 'Salon clients', 'num', n => num(n, 'salon'), 'Salon clients'],
+    ['req', 'Requests', 'num', n => num(n, 'req'), 'Requests'],
+    ['newc', 'New clients', 'num', n => num(n, 'new_clients'), 'New clients'],
+    ['ncr', 'New client requests', 'num', n => num(n, 'ncr'), 'New client requests'],
+    ['reqp', 'Request %', 'pct', null, 'Request %'],
+    ['reb', 'Rebooked (ledger)', 'num', n => num(n, 'rebooked'), 'Rebooked (ledger)'],
+    ['rebp', 'Rebooking % (ledger)', 'pct', null, 'Rebooking % (ledger)'],
+    ['phr', 'Phorest rebooked', 'num', n => ph(n, 'rebooked'), 'Phorest rebooked'],
+    ['phv', 'Phorest visits', 'num', n => ph(n, 'rebook_visits'), null],
+    ['phrp', 'Phorest rebooking %', 'pct', null, 'Phorest rebooking %'],
+    ['ub', 'Hours booked', 'aed2', n => num(n, 'booked_hours'), 'Hours booked'],
+    ['ua', 'Hours available', 'aed2', n => num(n, 'available_hours'), 'Hours available'],
+    ['fill', 'Column fill %', 'pct', null, 'Column fill %'],
+    ['rev', 'Google reviews', 'num', n => num(n, 'google_reviews'), 'Google reviews'],
+  ];
+  // The year's totals work out from the same sums as a week, so a ratio is a ratio of totals.
+  const totalsN = {};
+  C.forEach(c => { if (c[3]) totalsN[c[0]] = weeks.reduce((a, w) => a + (c[3](w.numbers) || 0), 0); });
+  const ratio = (key, v) => key === 'avg' ? w13RatioCell(v.sales, v.clients, 1, 'aed', 'sales', 'clients')
+    : key === 'reqp' ? w13RatioCell((v.req || 0) + (v.ncr || 0), v.clients, 100, 'pct', 'req', 'clients')
+    : key === 'rebp' ? w13RatioCell(v.reb, v.clients, 100, 'pct', 'reb', 'clients')
+    : key === 'phrp' ? w13RatioCell(v.phr, v.phv, 100, 'pct', 'phr', 'phv')
+    : w13RatioCell(v.ub, v.ua, 100, 'pct', 'ub', 'ua');
+  // Request % is (requests + new client requests) over clients, so its formula adds two cells.
+  const fixReq = cell => { cell.f = A => `IF(${A('clients')}>0,100*(${A('req')}+${A('ncr')})/${A('clients')},"")`; return cell; };
+  const rowCells = (vals, lead, sumKeys) => lead.concat(C.map(c => {
+    if (c[3]) return sumKeys ? { v: vals[c[0]], f: A => `SUM(${A.col(c[0], sumKeys[0], sumKeys[1])})` } : vals[c[0]];
+    const cell = ratio(c[0], vals);
+    return c[0] === 'reqp' ? fixReq(cell) : cell;
+  }));
+  const valsOf = n => { const o = {}; C.forEach(c => { if (c[3]) o[c[0]] = c[3](n); }); return o; };
+  const lastNo = weeks.length ? weeks[weeks.length - 1].week_no : 0;
+  const rows = weeks.map((w, i) => {
+    const n = w.numbers, off = !(n.total_revenue > 0 || n.clients > 0), iso = String(w.week_start).slice(0, 10);
+    const why = !off ? '' : w13NoData(s.branch, iso) ? 'Not uploaded yet' : (w13Cov ? 'Leave or days off' : '');
+    return { key: 'w' + i, cells: rowCells(valsOf(n), [w13Wk(w.week_no), iso, w13AddDays(iso, 6), why]) };
+  });
+  if (weeks.length) rows.push({ key: 'tot', total: true, cells: rowCells(totalsN, [`${d.year} · Weeks 1–${lastNo}`, String(d.from).slice(0, 10), w13AddDays(String(weeks[weeks.length - 1].week_start).slice(0, 10), 6), 'Complete weeks only'], ['w0', 'w' + (weeks.length - 1)]) });
+  if (curWk) { const iso = String(curWk.week_start).slice(0, 10);
+    rows.push({ key: 'cur', cells: rowCells(valsOf(curWk.numbers), [w13Wk(curWk.week_no), iso, String(d.data_through || '').slice(0, 10), 'So far, not in the total']) }); }
+  const cols = [{ key: 'wk', label: 'Week', fmt: 'text' }, { key: 'from', label: 'Starts', fmt: 'text' }, { key: 'to', label: 'Ends', fmt: 'text' }, { key: 'note', label: 'Note', fmt: 'text' }]
+    .concat(C.map(c => ({ key: c[0], label: c[1], fmt: c[2] })));
+  const legend = [];
+  C.forEach(c => { const m = w13Mean(c[4]); if (m && !legend.some(l => l[0] === c[1])) legend.push([c[1], m]); });
+  legend.push(['Service sales', 'Before VAT, retail not included.'], ['Year total', 'Complete weeks only; the week still being traded is shown after it and is not added in.']);
+  return { name: 'staff-13-week-' + w13Slug(s.name) + '-' + d.year,
+    sheets: [{ name: s.name || 'Staff 13 Week', title: `Staff’s 13 Week · ${s.name}`,
+      subtitle: `${s.level || s.dept} · ${W13_BRANCH[s.branch] || s.branch} · ${w13DayY(d.from)} to ${w13DayY(d.to)}. Sales to ${w13DayY(d.data_through)}.`,
+      blocks: [{ cols, rows }], legend }] };
+}
+
+// The team grid as a table: everyone on the dept, branch and year picked, their year so far and a column of sales a week.
+function w13ExportTeam(t) {
+  const list = t.roster.filter(r => (w13Dept === 'all' || r.dept === w13Dept) && (!w13Branch || w13Branch.includes(r.branch)));
+  if (!list.length) return null;
+  const nWeeks = Math.max(0, ...list.map(r => (r.weekly || []).length));
+  const hasCur = list.some(r => r.current !== null && r.current !== undefined);
+  const wkHead = i => { const iso = w13AddDays(String(t.from).slice(0, 10), 7 * i); return `Week ${String(w13IsoWeekNo(iso)).padStart(2, '0')} (${w13Day(iso)})`; };
+  const cols = [{ key: 'name', label: 'Name', fmt: 'text' }, { key: 'lvl', label: 'Position', fmt: 'text' }, { key: 'dept', label: 'Department', fmt: 'text' }, { key: 'br', label: 'Branch', fmt: 'text' },
+    { key: 'sales', label: 'Service sales (AED)', fmt: 'aed' }, { key: 'clients', label: 'Clients (ledger)', fmt: 'num' }, { key: 'reb', label: 'Rebooked (ledger)', fmt: 'num' }, { key: 'rebp', label: 'Rebooking % (ledger)', fmt: 'pct' },
+    { key: 'phr', label: 'Phorest rebooked', fmt: 'num' }, { key: 'phv', label: 'Phorest visits', fmt: 'num' }, { key: 'phrp', label: 'Phorest rebooking %', fmt: 'pct' }]
+    .concat(Array.from({ length: nWeeks }, (_, i) => ({ key: 'x' + i, label: wkHead(i), fmt: 'aed' })))
+    .concat(hasCur ? [{ key: 'cur', label: `Week ${String(t.current_week_no || '').padStart(2, '0')} so far`, fmt: 'aed' }] : []);
+  const rows = list.map(r => { const n = r.numbers || {}, p = n.phorest || {};
+    return { cells: [r.name, r.level || r.dept, r.dept, W13_BRANCH[r.branch] || r.branch,
+      w13Q(n.total_revenue), w13Q(n.clients), w13Q(n.rebooked), w13RatioCell(n.rebooked, n.clients, 100, 'pct', 'reb', 'clients'),
+      w13Q(p.rebooked), w13Q(p.rebook_visits), w13RatioCell(p.rebooked, p.rebook_visits, 100, 'pct', 'phr', 'phv')]
+      .concat(Array.from({ length: nWeeks }, (_, i) => w13Q((r.weekly || [])[i])))
+      .concat(hasCur ? [w13Q(r.current)] : []) }; });
+  const bits = [w13Dept === 'all' ? '' : w13Dept.toLowerCase(), w13Branch ? w13Branch.map(c => (W13_BRANCH[c] || c)).join('-') : ''].filter(Boolean).map(w13Slug);
+  return { name: ['staff-13-week-team'].concat(bits, [t.year]).join('-'),
+    sheets: [{ name: 'Team ' + t.year, title: `Staff’s 13 Week · everyone, ${t.year}`,
+      subtitle: `${w13Dept === 'all' ? 'Hair and beauty' : w13Dept} · ${w13Branch ? w13Branch.map(c => W13_BRANCH[c] || c).join(' + ') : 'All branches'} · ${w13DayY(t.from)} to ${w13DayY(t.to)}. Sales to ${w13DayY(t.data_through)}.`,
+      blocks: [{ cols, rows }],
+      legend: [['Service sales', 'Before VAT, retail not included. The year so far is the complete weeks only.'], ['Week columns', 'Service sales for that Monday to Sunday week from Phorest.'], ['Week so far', 'The week still being traded; not in the year’s total.']] }] };
 }
