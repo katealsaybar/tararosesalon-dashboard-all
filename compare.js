@@ -449,6 +449,7 @@ function cmpControlsHtml() {
         <input type="checkbox" ${cmpState.per ? 'checked' : ''} ${unequal ? '' : 'disabled'} onchange="cmpSetPer(this.checked)">
         Per day <small>${unequal ? `off shows totals. The windows are different lengths (${daysBetween(cmpState.a.from, cmpState.a.to)} vs ${daysBetween(cmpState.b.from, cmpState.b.to)} days); tick to see a daily average instead` : 'both windows are the same length'}</small>
       </label>
+      ${typeof rexButtons === 'function' ? rexButtons('cmpExport') : ''}
     </div>`;
 }
 
@@ -1160,4 +1161,51 @@ function cmpSetMode(mode) {
   if (t) t.hidden = cmpState.mode !== 'table';
   // Chart.js measures a canvas when drawn; one drawn while hidden has no size.
   if (cmpState.mode === 'visual') Object.values(cmpCharts).forEach(c => { try { c.resize(); } catch (e) {} });
+}
+
+/* ── DOWNLOADS (Kate, 10 Nov 2026: every report gets an XLSX and a CSV button; report-export.js draws the buttons and saves the file) ──
+   The Table, as a sheet: every row the Table view shows, for the two windows and branches on screen (cmpLast keeps the two summaries the page was
+   last drawn from), with each side's target where it has one, then Change (B minus A) and Change %. Per day follows the tick: a total or a count is
+   divided by the window's days, as on screen. A row blank on both sides is left out, as on screen. In the XLSX the change columns are real
+   formulas; the CSV is figures only. Always the whole table, whichever of Visual or Table is showing. */
+function cmpExport() {
+  if (!cmpLast || (!cmpLast.sa && !cmpLast.sb2)) return null;
+  const sa = cmpLast.sa, sb2 = cmpLast.sb2, A = cmpState.a, B = cmpState.b;
+  const daysA = daysBetween(A.from, A.to), daysB = daysBetween(B.from, B.to);
+  const per = cmpState.per && daysA !== daysB;
+  const scale = (kind, v, days) => (v == null) ? null : (per && (kind === 'aed' || kind === 'n') ? v / days : v);
+  const r2 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
+  const side = (k, s) => `${k} · ${cmpBranchName(s.branch)} · ${cmpIso(s.from)} to ${cmpIso(s.to)} (${daysBetween(s.from, s.to)} days)`;
+  const fmtOf = (kind, isChange) => kind === 'pct' ? (isChange ? 'pts' : 'pct') : kind === 'star' ? 'aed2' : kind === 'n' ? (per ? 'aed2' : 'num') : 'aed';
+  const cols = [{ key: 'grp', label: 'Group', fmt: 'text' }, { key: 'name', label: 'Metric', fmt: 'text' }, { key: 'sub', label: 'Detail', fmt: 'text' },
+    { key: 'a', label: 'A: ' + side('A', A).slice(4), fmt: 'num' }, { key: 'ta', label: 'A target', fmt: 'num' },
+    { key: 'b', label: 'B: ' + side('B', B).slice(4), fmt: 'num' }, { key: 'tb', label: 'B target', fmt: 'num' },
+    { key: 'd', label: 'Change (B minus A)', fmt: 'num' }, { key: 'p', label: 'Change %', fmt: 'pct' }];
+  const rows = [];
+  let grp = '';
+  cmpMetrics().forEach(m => {
+    if (m.group) { grp = m.group + (per && m.group !== 'Averages' && m.group !== 'Benchmarks' ? ', per day' : ''); return; }
+    const va = sa ? scale(m.kind, m.get(sa), daysA) : null, vb = sb2 ? scale(m.kind, m.get(sb2), daysB) : null;
+    if (va == null && vb == null) return;
+    const tScale = (t, days) => (t != null && per && m.kind === 'n') ? t / days : t;
+    const tA = m.target ? tScale(m.target(A), daysA) : null, tB = m.target ? tScale(m.target(B), daysB) : null;
+    const f = fmtOf(m.kind), pts = m.kind === 'pct';
+    const both = va != null && vb != null;
+    rows.push({ cells: [grp, cmpNm(m.name), m.sub || '',
+      { v: r2(va), fmt: f }, { v: sa && va != null ? r2(tA) : null, fmt: f },
+      { v: r2(vb), fmt: f }, { v: sb2 && vb != null ? r2(tB) : null, fmt: f },
+      { v: both ? r2(vb - va) : null, fmt: fmtOf(m.kind, true), f: A1 => `IF(AND(ISNUMBER(${A1('a')}),ISNUMBER(${A1('b')})),${A1('b')}-${A1('a')},"")` },
+      pts ? null : { v: both && va ? r2((vb - va) / Math.abs(va) * 100) : null, fmt: 'pct', f: A1 => `IF(AND(ISNUMBER(${A1('a')}),ISNUMBER(${A1('b')})),IF(${A1('a')}<>0,(${A1('b')}-${A1('a')})/ABS(${A1('a')})*100,""),"")` }] });
+  });
+  if (!rows.length) return null;
+  const legend = [
+    ['B against A', 'The change column is B minus A. Rates move in points, not percent: 20% to 32% is +12 pts.'],
+    ['Targets', 'Each side is read against its own standing target; the rebooking and treatment bars rose on 1 Sep 2026, so a window before then is judged against the old bar. NCR’s target is for the whole window.'],
+    ['Per day', per ? 'On: money totals and counts are divided by each window’s days; averages and rates never are.' : 'Off: totals. (Tick Per day on the page when the windows are different lengths.)'],
+    ['Clients', CMP_DOOR ? 'Through the door (Phorest Sales Transactions), each client once a day; the per staff figures are the ledgers’ count, where a client seen by two staff counts twice.' : 'Per staff, from the ledgers, because one side has no through-the-door count.'],
+    ['Money', 'AED, ex VAT, takings before staff cost.']];
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return { name: ['comparison', 'a', cmpIso(A.from), cmpIso(A.to), 'b', cmpIso(B.from), cmpIso(B.to)].join('-'),
+    sheets: [{ name: 'Comparison', title: 'Comparison, two windows side by side',
+      subtitle: `${side('A', A)}  against  ${side('B', B)}${per ? '. Per day.' : ''}`, blocks: [{ cols, rows }], legend }] };
 }
