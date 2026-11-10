@@ -206,6 +206,7 @@ async function renderStylistLevels() {
     </div>
     ${whyWall([], 'Ask one person close to the next level which number in the last column she wants to start with.')}
     <section class="slv-card">
+      <div class="rex-row">${typeof rexButtons === 'function' ? rexButtons('slvExport') : ''}</div>
       <div class="slv-head">
         <div><div class="slv-eyebrow">Level ${i + 1} of ${levels.length}</div><h3>${slvEsc(cur.level)}</h3></div>
         <p>${next ? `To move up to <strong>${slvEsc(next.level)}</strong>, reach the numbers in the last column.` : 'The top of the ladder. Hold these aims month after month.'}</p>
@@ -262,3 +263,60 @@ function slvUrlParts() {
     const l = q.get('bench_level'); if (l) slvPick = l;
   } catch (e) { /* no address to read */ }
 })();
+
+/* ── DOWNLOADS (Kate, 10 Nov 2026: every report gets an XLSX and a CSV button; report-export.js draws the buttons and saves the file) ──
+   Two tabs. "Levels guide" is the whole ladder, every level's minimum and aim for every measure (the page shows one level at a time).
+   "Team <month>" is At this level for everyone, every level, in the month picked: her month against her own level's minimum and aim (cut to
+   the days she worked, as on the page), a status for each measure, her Phorest rebooking, and how many of the next level's aims she hits.
+   The CSV is the Team tab (the figures people ask for); the XLSX has both. The Team tab is there once the page has loaded the team's month. */
+function slvExport() {
+  if (!slvData || !slvData.length) return null;
+  const levels = slvData, fmtOf = f => f === 'aed' ? 'aed' : f === 'pct' ? 'pct' : f === 'rep' ? 'aed2' : 'num';
+  const flat = SLV_GROUPS.flatMap(([g, list]) => list.map(([k, label, f]) => [g, k, label, f]));
+  const guideRows = [];
+  levels.forEach((l, i) => flat.forEach(([g, k, label, f]) => {
+    const b = l.kpis && l.kpis[k];
+    if (!b || (b.min == null && b.target == null)) return;
+    guideRows.push({ cells: [`${i + 1}. ${l.level}`, g, label, { v: b.min == null ? null : Number(b.min), fmt: fmtOf(f) }, { v: b.target == null ? null : Number(b.target), fmt: fmtOf(f) }] });
+  }));
+  const guide = { name: 'Levels guide', title: 'Stylist’s Benchmarks, the levels',
+    subtitle: 'Every level’s monthly minimum (what holds the level) and aim (what to work towards; reach the next level’s aims to move up). A blank means it is not set for that level. Beauty levels are still being set with Tara.',
+    blocks: [{ cols: [{ label: 'Level', fmt: 'text' }, { label: 'Group', fmt: 'text' }, { label: 'Measure', fmt: 'text' }, { label: 'Minimum', fmt: 'num' }, { label: 'Aim', fmt: 'num' }], rows: guideRows }],
+    legend: Object.entries(SLV_NOTES).map(([k, v]) => [(flat.find(x => x[1] === k) || [, , k])[2], v]) };
+  const sheets = [guide];
+  if (slvTeam && slvTeamMonth === slvMonth && (slvTeam.staff || []).length) {
+    const month = slvTeamMonth;
+    const cols = [{ label: 'Stylist', fmt: 'text' }, { label: 'Team', fmt: 'text' }, { label: 'Branch', fmt: 'text' }, { label: 'Level', fmt: 'text' }, { label: 'Share of the month worked', fmt: 'pct' }];
+    SLV_ACT.forEach(([, l, f]) => { cols.push({ label: l, fmt: fmtOf(f) }, { label: l + ' minimum', fmt: fmtOf(f) }, { label: l + ' aim', fmt: fmtOf(f) }, { label: l + ' status', fmt: 'text' }); });
+    cols.push({ label: 'Phorest rebooking %', fmt: 'pct' }, { label: 'Next level', fmt: 'text' }, { label: 'Next level aims hit', fmt: 'num' }, { label: 'Next level aims counted', fmt: 'num' });
+    const r1 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
+    const order = s => { const j = levels.findIndex(l => l.level === s.level); return j < 0 ? 99 : j; };
+    const people = (slvTeam.staff || []).slice().sort((a, b) => order(a) - order(b) || String(a.branch).localeCompare(String(b.branch)) || String(a.name).localeCompare(String(b.name)));
+    const rows = people.map(s => {
+      const n = s.numbers || {}, share = slvShare(n, month), li = levels.findIndex(l => l.level === s.level), cur = li >= 0 ? levels[li] : null, next = li >= 0 ? levels[li + 1] : null;
+      const row = [s.name, s.dept || '', (typeof BRANCH_INFO !== 'undefined' && BRANCH_INFO[s.branch] && BRANCH_INFO[s.branch].name) || s.branch, s.level || '', share === null ? 0 : Math.round(share * 1000) / 10];
+      SLV_ACT.forEach(([k, , f]) => {
+        const v = n[k], b = cur && cur.kpis[k];
+        const min = b ? slvCut(b.min, k, f, share) : null, aim = b ? slvCut(b.target, k, f, share) : null;
+        const status = (v === null || v === undefined) ? '' : (aim != null && v >= aim) ? 'At aim' : (min != null && v < min) ? 'Below minimum' : (b ? 'Between minimum and aim' : '');
+        row.push(v === null || v === undefined ? null : r1(Number(v)), r1(min), r1(aim), status);
+      });
+      const p = n.phorest;
+      row.push(p && p.rebook_visits > 0 ? r1(p.rebooking_pct != null ? p.rebooking_pct : 100 * p.rebooked / p.rebook_visits) : null);
+      let hit = 0, of = 0;
+      const nextKeys = next ? Object.keys(next.kpis).filter(k => next.kpis[k] && next.kpis[k].target != null) : [];
+      nextKeys.forEach(k => { const v = n[k]; if (v === null || v === undefined) return; of++;
+        const f = (flat.find(x => x[1] === k) || [, , , 'num'])[3];
+        if (v >= slvCut(next.kpis[k].target, k, f, share)) hit++; });
+      row.push(next ? next.level : '', next ? hit : null, next ? of : null);
+      return { cells: row };
+    });
+    sheets.unshift({ name: 'Team ' + slvMonthLabel(month), title: `Stylist’s Benchmarks, the team in ${slvMonthLabel(month)}`,
+      subtitle: 'Each person’s month against her own level’s minimum and aim, amounts in AED. Minimum and aim are cut to the days she worked in a first month or after 4+ days of leave, as on her own page.',
+      blocks: [{ cols, rows }],
+      legend: [['Status', 'At aim: reached the aim. Below minimum: under what holds the level. Between: in the middle. Blank: no figure, or no level set.'],
+        ['Phorest rebooking %', 'Rebooked out of Phorest visits from the Staff Performance Tracker; blank where it has no visits for her in the month (it starts 1 Jul 2026). The Rebook % column is the branch ledger’s.'],
+        ['Next level aims hit', 'How many of the next level’s aims she already reaches, out of those that are set.']] });
+  }
+  return { name: 'stylist-benchmarks-' + (sheets.length > 1 ? slvTeamMonth : 'levels'), csv: 0, sheets };
+}

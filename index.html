@@ -2254,6 +2254,7 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 /* XLSX and CSV buttons on a report (report-export.js): pushed to the end of the toolbar, kept together. */
 .rex-bar{display:inline-flex;gap:6px;margin-left:auto}
 .rex-btn[disabled]{opacity:.5;cursor:default}
+.rex-row{display:flex;justify-content:flex-end;margin:0 0 8px}
 @media(max-width:700px){.w13-zoom{flex-direction:column;align-items:stretch}.w13-zoom .sc-seg{justify-content:space-between}.w13-zoom .sc-seg button{flex:1;padding-left:4px;padding-right:4px}.w13-pan{justify-content:space-between}}
 /* Controls beside the chart title: the key and the Daily / Weekly toggle. */
 .w13-chart-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 16px}
@@ -3592,7 +3593,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
       oty: ['over-the-years.js?v=4b67a008'],
-      dp:  ['report-export.js?v=96befab2', 'daily-performance.js?v=939b8848', 'daily-addons.js?v=feaba0f0'],
+      dp:  ['report-export.js?v=49a0f5e1', 'daily-performance.js?v=939b8848', 'daily-addons.js?v=feaba0f0'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
@@ -3605,8 +3606,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       cmp: ['compare.js?v=2abea8d7'],
       mk:  ['marketing-chart.js?v=8d66329c', 'google-ads.js?v=ed3bd9e2', 'meta-ads.js?v=9e3fd1f4', 'tool-spend.js?v=137c69b7', 'marketing-spend.js?v=a554db32', 'website.js?v=c47da80a', 'social.js?v=d3770c8c'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
-      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=6a34c968', 'team-performance.js?v=2da5bdb1', 'report-export.js?v=96befab2', 'staff-weeks.js?v=0e21c912'],
-      lv:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=6a34c968', 'stylist-levels.js?v=28635a9d'],
+      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=6a34c968', 'team-performance.js?v=2da5bdb1', 'report-export.js?v=49a0f5e1', 'staff-weeks.js?v=0e21c912'],
+      lv:  ['report-export.js?v=49a0f5e1', performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=6a34c968', 'stylist-levels.js?v=222d5a17'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['glow-club.js?v=84f11759'],
       // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
