@@ -684,7 +684,7 @@ async function renderTeam() {
       ${tpCountsBad ? '<span class="tp-bar-n" style="color:var(--warn)">Instagram and review counts did not load, showing Net take.</span>' : ''}
       <span class="tp-bar-n">${branchLabel} · ${roster.length} ${roster.length === 1 ? 'person' : 'people'}</span>
       ${typeof ihTip === 'function' ? ihTip('', 'Two counts of clients, side by side. Clients per staff is the ledgers’ count: a client seen by two staff counts for each, and rebooking, NCR and the aims are written on it. Phorest is the Staff Daily report per employee: visits, requests (RQ), new clients and her services; her Phorest avg bill is her services over her Phorest visits. Phorest figures need a daily window, so a full-week window shows none.') : ''}
-      ${part === 'race' && typeof rexButtons === 'function' ? rexButtons('tpExport') : ''}
+      ${typeof rexButtons === 'function' ? rexButtons(part === 'race' ? 'tpExport' : 'tpQExport') : ''}
       </div>
     </div>
     <div class="tp-hint tp-bar-n">${part === 'quad' ? 'Tap a face' : 'Tap + on anyone'} to compare, up to ${TP_MAX_COMPARE}.</div>
@@ -1041,6 +1041,7 @@ const tpQuadAddon = aim => ({
 const TP_PHONE = matchMedia('(max-width:760px),(hover:none) and (max-height:480px)');
 TP_PHONE.addEventListener('change', () => { if (tpPart() === 'quad' || tpCompare.length) renderTeam(); });
 function tpQuadrant(roster) {
+  tpQLast = null;   // set again below once the chart is worked out (tpQExport)
   const months = tpWindowMonths();
   const levels = tpLevels || {};
   const levelOk = tpDept === 'hair' && Object.keys(levels).length > 0 && !!months;
@@ -1237,6 +1238,22 @@ function tpQuadrant(roster) {
     : byLevel ? (tpWindowMonthList().length <= 6 && tpWindowMonthList().every(x => tpTeamMonths[x.ym])
         ? `aims cut to the days each person was on the team, as on Staff Dashboards (${Math.round(months * 100) / 100} calendar month${Math.abs(months - 1) < 0.01 ? '' : 's'} in this window)`
         : `aims prorated to ${Math.round(months * 100) / 100} calendar months in this window (a window this long is not cut to each person's start day)`) : '';
+  // What the XLSX and CSV buttons write (tpQExport, Kate 10 Nov 2026): every person the chart and the lists beside it name, with the group she is in.
+  const qrow = (st, g, x, y) => {
+    const a = byLevel ? aimOf(st) : null, mo = byLevel ? moOf(st) : null, beauty = !!st.isBeauty;
+    return { name: tpTitle(st.name), role: tpRole(st), level: byLevel ? levelOf(st) : '', branch: st.branchName, group: g, x, y,
+      net: st.net || 0, svc: beauty ? st.beautySales : st.hairSalesNet, treatments: beauty ? null : st.treatments, retail: st.retail,
+      rebook: st.noLedger && st.rebookPhorest == null ? null : st.rebookPct, rebookPh: st.rebookPhorest, rebookLed: st.noLedger ? null : st.rebookLedger,
+      treatPct: (beauty || st.noLedger) ? null : st.treatmentPct, retailPct: st.retailPct,
+      aimTake: a ? a.take * mo : null, aimRebook: a ? a.rebook : null, aimTreat: a && a.treat ? a.treat * mo : null, aimRetail: a && a.retail ? a.retail * mo : null };
+  };
+  tpQLast = { addon, byLevel, share: byLevel || addon, title: L.title, xT: axisName(L.xT), yT: axisName(L.yT), why, months, xSplit, ySplit, xLine: L.xLine, yLine: L.yLine,
+    groups: ['leak', 'focus', 'star', 'grow'].map(g => [QUAD[g].t, QUAD[g].d]),
+    rows: pts.map(st => qrow(st, QUAD[group(st)].t, vx(st), vy(st)))
+      .concat(noRows.map(st => qrow(st, 'No ledger rows (left off the chart)', null, null)))
+      .concat(noAim.map(st => qrow(st, 'No level aim (left off the chart)', null, null)))
+      .concat(owners.map(st => qrow(st, 'Not on this chart (the owner)', null, null))) };
+
   const legend = `Tap a face to compare. The green dashed line is ${L.yWord}, the grey dashed line ${L.xWord}, and the shaded corner is above both`;
   // Which pair of figures the chart plots. Treatment is a hair line only.
   const metricSeg = `<div class="tp-seg tp-q-basis" role="group" aria-label="Chart">
@@ -1578,5 +1595,35 @@ function tpExport() {
   return { name: ['podium-race', L.dept, L.key === 'net' ? '' : L.key, from, from ? 'to' : '', to].filter(Boolean).map(slug).join('-'),
     sheets: [{ name: 'Podium Race', title: `Podium Race, ${L.dept === 'beauty' ? 'beauty' : 'hair'}`,
       subtitle: `${from} to ${to} · ${L.branchLabel} · ${L.roster.length} ${L.roster.length === 1 ? 'person' : 'people'} · ranked by ${lg.label}${L.leavers ? ' · current team only' : ' · with leavers'}. Ex VAT.`,
+      blocks: [{ cols, rows }], legend }] };
+}
+
+/* ── STAFF QUADRANT DOWNLOADS (Kate, 10 Nov 2026) ──
+   The chart as a table: everyone the chart and the lists beside it name, the group she sits in, the two figures she was placed by (as the chart reads
+   them: a % of her level's aim, or the bench figure) and the raw figures behind them. tpQuadrant keeps them in tpQLast each time it draws, so the file is
+   the chart on screen: Treatment vs Retail or Takings vs Rebooking, her level's aims or the Bench, Hair or Beauty, the masthead's branch and period. */
+let tpQLast = null;
+function tpQExport() {
+  const Q = tpQLast;
+  if (!Q || !Q.rows.length) return null;
+  const r2 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
+  const xf = Q.share ? 'pct' : 'aed', yf = 'pct';
+  const cols = [{ label: 'Name', fmt: 'text' }, { label: 'Position', fmt: 'text' }, { label: 'Level read against', fmt: 'text' }, { label: 'Branch', fmt: 'text' }, { label: 'Group', fmt: 'text' },
+    { label: Q.xT, fmt: xf }, { label: Q.yT, fmt: yf },
+    { label: 'Net take', fmt: 'aed' }, { label: 'Service sales', fmt: 'aed' }, { label: 'Treatments', fmt: 'aed' }, { label: 'Retail', fmt: 'aed' },
+    { label: 'Rebooking %', fmt: 'pct' }, { label: 'Rebooking % (Phorest)', fmt: 'pct' }, { label: 'Rebooking % (ledger)', fmt: 'pct' }, { label: 'Treatment %', fmt: 'pct' }, { label: 'Retail %', fmt: 'pct' }];
+  if (Q.byLevel) cols.push({ label: 'Her level’s take aim for the window', fmt: 'aed' }, { label: 'Her level’s rebooking aim', fmt: 'pct' }, { label: 'Her level’s treatment aim for the window', fmt: 'aed' }, { label: 'Her level’s retail aim for the window', fmt: 'aed' });
+  const rows = Q.rows.map(r => ({ cells: [r.name, r.role, r.level, r.branch, r.group, r2(r.x), r2(r.y), r2(r.net), r2(r.svc), r2(r.treatments), r2(r.retail), r2(r.rebook), r2(r.rebookPh), r2(r.rebookLed), r2(r.treatPct), r2(r.retailPct)]
+    .concat(Q.byLevel ? [r2(r.aimTake), r2(r.aimRebook), r2(r.aimTreat), r2(r.aimRetail)] : []) }));
+  const from = typeof dateFrom !== 'undefined' && dateFrom ? dateToIso(dateFrom) : '', to = typeof dateTo !== 'undefined' && dateTo ? dateToIso(dateTo) : '';
+  const legend = Q.groups.map(([t, d]) => [t, d]).concat([
+    ['How she is placed', Q.byLevel ? 'Each person against her own level’s aims from Stylist’s Benchmarks: the two figures are % of her level’s aim for the window, split at 100%.' : 'Against the bench: ' + Q.xLine + ' and ' + Q.yLine + '.'],
+    ['Left off the chart', 'No ledger rows (Phorest has her, the branch ledger has nothing), no level aim, or the owner. They are listed here with no group figures.'],
+    ['Aims for the window', Q.byLevel ? 'Her level’s monthly aim times the calendar months of the window she was on the team (' + (Math.round((Q.months || 0) * 100) / 100) + ' for the window).' : 'Not used on the Bench basis.'],
+    ['Rebooking %', 'The one the page has in force (Phorest’s tracker where it has her, otherwise the branch ledger); both are beside it.']]);
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return { name: ['staff-quadrant', Q.addon ? 'treatment-retail' : 'takings-rebooking', Q.byLevel ? 'levels' : 'bench', tpDept, from, from ? 'to' : '', to].filter(Boolean).map(slug).join('-'),
+    sheets: [{ name: 'Staff Quadrant', title: 'Staff Quadrant, ' + Q.title.toLowerCase(),
+      subtitle: `${tpDept === 'beauty' ? 'Beauty' : 'Hair'} · ${from} to ${to} · ${Q.byLevel ? 'against her level’s aims' : 'against the bench'}${Q.why ? ' · ' + Q.why : ''}`,
       blocks: [{ cols, rows }], legend }] };
 }
