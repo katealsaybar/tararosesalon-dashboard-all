@@ -104,6 +104,7 @@
     if (p.email) s += '<a href="https://mail.google.com/mail/?authuser=recruitment@tararosesalon.com#search/' + encodeURIComponent(p.email) + '" target="_blank" rel="noopener">Their emails in Gmail</a>';
     var wa = String(p.whatsapp || '').replace(/\D/g, '');
     if (wa.length >= 9) s += '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">WhatsApp</a>';
+    if (p.photo) s += '<button type="button" class="rct-linkbtn" data-act="photoclear" data-id="' + esc(p.id) + '">Remove photo</button>';
     return s ? '<div class="rct-links">' + s + '</div>' : '';
   }
   function aboutHtml(p) {
@@ -189,7 +190,7 @@
       fig('booked', bk.length, 'Interview booked') + '</div>';
 
     h += '<div class="rct-bar"><label class="rct-find"><span class="rct-sr">Find someone</span><input type="search" id="rctFind" placeholder="Find someone by name, email or country" value="' + esc(q) + '" autocomplete="off"></label>' +
-         segHtml() + '<button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
+         segHtml() + '<button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
 
     if (!setting('booking_link', '') || !setting('templates_confirmed', false) || !setting('decline_confirmed', false)) {
       h += '<p class="rct-note rct-amberbox">' + (!setting('booking_link', '') ? 'The booking link is not set yet. ' : '') +
@@ -284,7 +285,13 @@
   }
   // a photo or, until there is one, the initials (rounded square, never a circle)
   function initials(n) { var s = String(n || '').trim().split(/\s+/).filter(Boolean); return s.length ? (s[0].charAt(0) + (s[1] ? s[1].charAt(0) : '')).toUpperCase() : '?'; }
-  function avatar(p, big) { return '<span class="rct-av' + (big ? ' rct-avlg' : '') + '" aria-hidden="true">' + esc(initials(p.name)) + '</span>'; }
+  // Kate, 10 Nov 2026: the avatar is the photo (rounded square, never a circle) or the initials; click it, or drop an image on it, to add or change the photo.
+  var PHOTO = {};   // storage path -> short-lived signed link, filled by loadPhotoUrls()
+  function avatar(p, big) {
+    var url = p.photo && PHOTO[p.photo];
+    return '<button type="button" class="rct-av' + (big ? ' rct-avlg' : '') + (url ? ' rct-hasimg' : '') + '" data-act="photo" data-id="' + esc(p.id) + '" title="' + (p.photo ? 'Change photo' : 'Add a photo') + '" aria-label="' + (p.photo ? 'Change the photo of ' : 'Add a photo for ') + esc(p.name || 'this person') + '">' +
+      (url ? '<img src="' + esc(url) + '" alt="" loading="lazy" draggable="false">' : esc(initials(p.name))) + '</button>';
+  }
   function placeShort(p) {
     var c = String(p.country || '').trim(); if (/emirates|^uae$/i.test(c)) c = 'UAE';
     var bits = [p.emirate, c].filter(Boolean); return bits.length ? bits.join(', ') : 'Not stated';
@@ -636,6 +643,107 @@
   }
 
   /* ---------- saving ---------- */
+  /* ----- photos (Kate, 10 Nov 2026): added by hand, one by one or in bulk by file name; private bucket recruit-photos, a 240 px jpeg each ----- */
+  async function loadPhotoUrls() {
+    var paths = rows.map(function (p) { return p.photo; }).filter(function (x) { return x && !PHOTO[x]; });
+    if (!paths.length) return;
+    try {
+      var r = await sb.storage.from('recruit-photos').createSignedUrls(paths, 3600);
+      if (r.error) throw r.error;
+      (r.data || []).forEach(function (x) { if (x && x.signedUrl && x.path) PHOTO[x.path] = x.signedUrl; });
+    } catch (e) { console.error('photo links', e); }
+  }
+  // any image the browser can read, cut to a centred square, 240 px, jpeg
+  function squareJpeg(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        try {
+          var w = img.naturalWidth, h = img.naturalHeight, side = Math.min(w, h), c = document.createElement('canvas');
+          c.width = c.height = 240;
+          var g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 240, 240);
+          g.drawImage(img, (w - side) / 2, (h - side) / 3, side, side, 0, 0, 240, 240);   // a little high of centre: faces sit in the upper half
+          URL.revokeObjectURL(url);
+          c.toBlob(function (b) { b ? resolve(b) : reject(new Error('could not shrink the picture')); }, 'image/jpeg', 0.86);
+        } catch (e) { URL.revokeObjectURL(url); reject(e); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('this file cannot be read as a picture' + (/hei[cf]/i.test(file.type + file.name) ? ' (HEIC: save it as JPG first)' : ''))); };
+      img.src = url;
+    });
+  }
+  async function savePhoto(p, file) {
+    var blob = await squareJpeg(file), path = p.id + '/' + Date.now() + '.jpg', bucket = sb.storage.from('recruit-photos');
+    var up = await bucket.upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+    if (up.error) throw new Error(up.error.message);
+    var r = await sb.rpc('recruit_set_photo', { p_id: p.id, p_path: path });
+    if (r.error) { try { await bucket.remove([path]); } catch (e) { /* stray file, harmless */ } throw new Error(r.error.message); }
+    var old = r.data && r.data.old;
+    if (old && old !== path) { try { await bucket.remove([old]); } catch (e) { /* harmless */ } delete PHOTO[old]; }
+    p.photo = path;
+    var s2 = await bucket.createSignedUrl(path, 3600); if (s2.data && s2.data.signedUrl) PHOTO[path] = s2.data.signedUrl;
+  }
+  function fileInput(multiple) {
+    var el = document.getElementById(multiple ? 'rctPhotosIn' : 'rctPhotoIn');
+    if (!el) { el = document.createElement('input'); el.type = 'file'; el.accept = 'image/*'; el.hidden = true; el.id = multiple ? 'rctPhotosIn' : 'rctPhotoIn'; if (multiple) el.multiple = true; document.body.appendChild(el); }
+    el.value = ''; return el;
+  }
+  function pickPhoto(id) {
+    var p = personById(id); if (!p) return;
+    var el = fileInput(false);
+    el.onchange = function () { if (el.files && el.files[0]) addOnePhoto(p, el.files[0]); };
+    el.click();
+  }
+  async function addOnePhoto(p, file) {
+    try { await savePhoto(p, file); render(); toast('Photo saved for ' + firstName(p.name) + '.'); }
+    catch (e) { console.error(e); toast('That photo did not save: ' + (e.message || 'try again')); }
+  }
+  async function clearPhoto(id) {
+    var p = personById(id); if (!p || !p.photo) return;
+    try {
+      var r = await sb.rpc('recruit_clear_photo', { p_id: p.id });
+      if (r.error) throw new Error(r.error.message);
+      var old = r.data && r.data.old; if (old) { try { await sb.storage.from('recruit-photos').remove([old]); } catch (e) { /* harmless */ } delete PHOTO[old]; }
+      p.photo = null; render(); toast('Photo removed. Back to initials.');
+    } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
+  // bulk: each file is matched to a person by its name without the extension: their Instagram handle (ar.lashes_.jpg) or their full name (Radia Nouiri.jpg)
+  function normKey(x) { return String(x || '').toLowerCase().replace(/\.[a-z0-9]+$/, '').replace(/\s*\(\d+\)\s*$/, '').replace(/^@/, '').replace(/[^a-z0-9]/g, ''); }
+  function pickBulk() {
+    var el = fileInput(true);
+    el.onchange = function () { if (el.files && el.files.length) addBulk([].slice.call(el.files)); };
+    el.click();
+  }
+  async function addBulk(files) {
+    var byIg = {}, byName = {};
+    rows.forEach(function (p) {
+      var ig = normKey(p.ig_handle), nm = normKey(p.name);
+      if (ig) (byIg[ig] = byIg[ig] || []).push(p);
+      if (nm) (byName[nm] = byName[nm] || []).push(p);
+    });
+    var done = 0, bad = [], unmatched = [], several = [];
+    toast('Adding ' + files.length + ' photos...');
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i], k = normKey(f.name), hit = byIg[k] && byIg[k].length === 1 ? byIg[k][0] : (!byIg[k] && byName[k] && byName[k].length === 1 ? byName[k][0] : null);
+      if (!hit) { ((byIg[k] && byIg[k].length > 1) || (byName[k] && byName[k].length > 1) ? several : unmatched).push(f.name); continue; }
+      try { await savePhoto(hit, f); done++; } catch (e) { console.error(e); bad.push(f.name + ' (' + (e.message || 'failed') + ')'); }
+    }
+    render();
+    var list = function (a, what) { return a.length ? '<p><b>' + a.length + '</b> ' + what + '</p><p class="rct-hint">' + a.map(esc).join(', ') + '</p>' : ''; };
+    if (!unmatched.length && !several.length && !bad.length) { toast(done + ' photos added.'); return; }
+    openDlg('Photos added: ' + done + ' of ' + files.length,
+      list(unmatched, 'did not match anyone. Name the file after their Instagram handle or their full name as shown here.') +
+      list(several, 'matched more than one person, so they were left alone.') +
+      list(bad, 'did not save.') + '<p><button type="button" class="rct-btn rct-sm rct-pri" data-close>Done</button></p>');
+  }
+  document.addEventListener('dragover', function (e) { var a = e.target.closest && e.target.closest('[data-act="photo"]'); if (a && main() && main().contains(a) && e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], 'Files') >= 0) { e.preventDefault(); a.classList.add('rct-drop'); } });
+  document.addEventListener('dragleave', function (e) { var a = e.target.closest && e.target.closest('[data-act="photo"]'); if (a) a.classList.remove('rct-drop'); });
+  document.addEventListener('drop', function (e) {
+    var a = e.target.closest && e.target.closest('[data-act="photo"]'); if (!a || !main() || !main().contains(a)) return;
+    a.classList.remove('rct-drop'); e.preventDefault();
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0], p = personById(a.getAttribute('data-id'));
+    if (f && p) addOnePhoto(p, f);
+  });
+
   function toast(msg, undo) {
     var host = document.getElementById('rctToast');
     if (!host) { host = document.createElement('div'); host.id = 'rctToast'; document.body.appendChild(host); }
@@ -738,6 +846,9 @@
       }
       else if (a === 'toggledone') { S.showDone = !S.showDone; render(); }
       else if (a === 'clearfilters') { S.filters = {}; q = ''; closePop(); render(); }
+      else if (a === 'photo') pickPhoto(id);
+      else if (a === 'photoclear') clearPhoto(id);
+      else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
       else if (a === 'pgnext') { S.page += 1; render(); }
       else if (a === 'morelook') { shownLook += PAGE; render(); }
@@ -787,6 +898,7 @@
       C = r.data || null;
       if (!C) throw new Error('No data came back.');
       rows = C.rows || []; settings = C.settings || {}; me = C.me || '';
+      await loadPhotoUrls();
     } catch (e) {
       console.error(e); C = null; loadErr = 'The applicants could not be read just now (' + (e.message || 'unknown') + '). Refresh the page to try again.';
     }

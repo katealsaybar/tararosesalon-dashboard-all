@@ -91,7 +91,10 @@
 .rct-seg button[aria-pressed="true"]{background:var(--surface2);color:var(--text)}
 .rct-seg svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .rct-seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.rct-av{flex:0 0 auto;width:44px;height:44px;border-radius:10px;background:var(--surface2);color:var(--muted);display:grid;place-items:center;font-weight:600;font-size:15px;border:1px solid var(--border)}
+.rct-av{flex:0 0 auto;width:44px;height:44px;border-radius:10px;background:var(--surface2);color:var(--muted);display:grid;place-items:center;font-weight:600;font-size:15px;border:1px solid var(--border);padding:0;font-family:inherit;cursor:pointer;overflow:hidden;position:relative}
+.rct-av:hover,.rct-av.rct-drop{border-color:var(--accent);outline:2px solid var(--accent);outline-offset:1px}
+.rct-av img{width:100%;height:100%;object-fit:cover;display:block}
+.rct-av.rct-hasimg{background:#fff}
 .rct-avlg{width:56px;height:56px;border-radius:12px;font-size:17px}
 .rct-cwho{display:flex;gap:12px;align-items:center;min-width:0}
 .rct-tcount{font-size:14px;color:var(--muted)}
