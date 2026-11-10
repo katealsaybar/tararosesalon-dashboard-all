@@ -100,6 +100,7 @@ if (['ledger', 'phorest'].includes(qs.get('src'))) SRC = qs.get('src');
 let FREE = false;
 try { if (localStorage.getItem('perf-free') === '1') FREE = true; } catch (e) {}
 if (['0', '1'].includes(qs.get('free'))) FREE = qs.get('free') === '1';
+let TEAM_D = null, VIEW_NOW = null;   // what is on screen, for the dashboard's XLSX and CSV buttons (perfSnapshot, below)
 let RAW = null, RAW_KEY = null;   // the last perf_dashboard answer, so the switch needn't ask again
 // Rebooking both ways (Kate's ruling, 17 Oct 2026): Phorest's tracker and the branch ledger, side by side wherever a manager reads it, so
 // nobody has to guess which one a card is showing. n is a numbers object as perf_core gives it (ledger at the top, Phorest in n.phorest);
@@ -703,7 +704,7 @@ async function renderStylist() {
   d.benchmarks_full = d.benchmarks ? JSON.parse(JSON.stringify(d.benchmarks)) : d.benchmarks;
   if (share) { prorate(d.benchmarks, share.f); prorate(d.next_benchmarks, share.f); }
   if (window.MyDrill) MyDrill.init({ token: TOKEN, sid: SID, admin: ADMIN });   // a leader opening a stylist's page reads the same rows (the sign-in lock lets leaders through)
-  DG_D = d;
+  DG_D = d; VIEW_NOW = 'stylist';
   const n = d.numbers, s = d.staff, pace = paceFactor(d);
   const isHair = s.dept === 'Hair';
   const midMonth = pace < 1;
@@ -1026,6 +1027,7 @@ async function renderTeam() {
   const d = await rpc('perf_team', { p_admin: ADMIN, p_month: MONTH + '-01' });
   if (!d) { app.innerHTML = `<p class="err">This team link isn't valid.</p>`; return; }
   ROLE = d.role || 'leader';
+  TEAM_D = d; VIEW_NOW = 'team';
   // Opened from a dashboard address with &staff=<slug>: go straight to that person.
   const hit = STAFF_SLUG && d.staff.find(s => slugOf(s.name) === STAFF_SLUG);
   if (hit) { if (hit.token) TOKEN = hit.token; else SID = hit.id; return renderStylist(); }
@@ -1154,3 +1156,12 @@ async function renderTeam() {
     app.innerHTML = `<p class="err">Couldn't load the numbers just now. Try again in a minute.</p>`;
   }
 })();
+
+// The dashboard's XLSX and CSV buttons (staff-dash-export.js, Kate 10 Nov 2026) read what this frame is showing through here: the team's month or one
+// person's month, exactly as drawn (Ledger or Phorest included), with the page's own measure list and rebooking helper. Nothing is fetched or redrawn.
+window.perfSnapshot = () => {
+  const base = { dept: DEPT, src: SRC, kpis: KPIS, rb: rbBoth, monthLabel };
+  if (VIEW_NOW === 'stylist' && DG_D) return Object.assign(base, { view: 'stylist', d: DG_D, rawNumbers: RAW && RAW.numbers });
+  if (VIEW_NOW === 'team' && TEAM_D) return Object.assign(base, { view: 'team', d: TEAM_D });
+  return null;
+};

@@ -3637,7 +3637,9 @@ table.tp-cmp td.bad{color:var(--bad)}
       rt:  ['retention.js?v=87f0b7fa'],
       sc:  ['stylist-cards.js?v=fe5a89a4'],
       oc:  ['org-chart.js?v=37a5bbdf'],
-      tp:  ['report-export.js?v=49a0f5e1', 'team-performance.js?v=40a1c0a0']
+      tp:  ['report-export.js?v=49a0f5e1', 'team-performance.js?v=40a1c0a0'],
+      // The XLSX and CSV buttons on Staff Dashboards (the frame's bar below): the writer and what reads the frame, on the first click.
+      rx:  ['report-export.js?v=49a0f5e1', 'staff-dash-export.js?v=a447e3f8']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -4154,6 +4156,10 @@ table.tp-cmp td.bad{color:var(--bad)}
           <button type="button" data-dept="Hair" onclick="spfSetDept('Hair')">Hair</button>
           <button type="button" data-dept="Beauty" onclick="spfSetDept('Beauty')">Beauty</button>
         </div>
+        <span class="rex-bar" role="group" aria-label="Download this report">
+          <button type="button" class="sc-btn rex-btn" title="Download what is on screen as an Excel file" onclick="spfExport('xlsx',this)">XLSX</button>
+          <button type="button" class="sc-btn rex-btn" title="Download what is on screen as a CSV file" onclick="spfExport('csv',this)">CSV</button>
+        </span>
       </div>
       <p class="slv-note" id="spfNote" style="display:none;margin:8px 0 0">Dashboard sign-ins are for coordinators, management, marketing and accounts. Hair and beauty staff use My Numbers, so this page is not open to them.</p>
       <iframe id="spfFrame" title="Staff Dashboards" style="display:none;width:100%;min-height:400px;border:0;background:transparent"></iframe>
@@ -4350,6 +4356,11 @@ table.tp-cmp td.bad{color:var(--bad)}
   }
   // With a leader key saved: drop it and go back to view-only. Without one:
   // show the key card so a leader can enter theirs.
+  // Kate, 10 Nov 2026: XLSX and CSV of what the frame shows (staff-dash-export.js reads it, report-export.js saves it); both load on the first click.
+  async function spfExport(kind, btn){
+    try { await trsLazy('rx'); } catch (e) { if (typeof lgxToast === 'function') lgxToast('The download did not load. Try again.', true); return; }
+    return rexRun('spfExportModel', kind, btn);
+  }
   function spfForgetKey(){
     const had = !!spfStored();
     try { localStorage.removeItem(SPF_KEY); } catch(e){}
