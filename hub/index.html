@@ -178,7 +178,7 @@ KB.ready.then(async function () {
       icon(s) + '<span class="kb-gt-tx"><b>' + esc(s.title) + '</b>' + (function (sub) { return sub ? '<span>' + esc(sub) + '</span>' : ''; })(s.dept || (s.key.indexOf('p:') === 0 ? s.blurb : '') || (/^\/\?view=/.test(s.href || '') ? 'Dashboard' : '')) + '</span></a>' + KB.starBtn(s.key, s.title) + '</div>';
   }
   function paintDoor() {
-    var html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a>' + (door.title === 'Dashboard' ? ' <span aria-hidden="true">·</span> <a href="/?view=dashboard">Open the full dashboard →</a>' : '') + viewBtn() + '</p>', any = false;
+    var html = '<p class="kb-crumbs"><a href="/search/">← Back to the front door</a><span class="kb-crumbs-r">' + (door.title === 'Dashboard' ? '<a href="/?view=dashboard">Open the full dashboard →</a>' : '') + viewBtn() + '</span></p>', any = false;   // Kate, 10 Nov 2026: no stray dot in the middle; the full-dashboard link sits right beside the layout toggle
     door.lists.forEach(function (l) {
       var list = shown.filter(function (s) { return l.keys ? l.keys.indexOf(s.key) >= 0 : s.dept === l.dept; });
       if (l.order) list.sort(function (a, b) {   // named rows first, in that order; any other row after them, as before
