@@ -113,7 +113,9 @@
 .rct-fbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .rct-table tbody td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle;background:var(--surface)}
 .rct-table tbody tr:hover td{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
-.rct-table td.rct-c-av{width:56px;padding-right:0}
+/* Kate, 10 Nov 2026: the strip between the photo and the name. A table column may shrink below its width to its contents (8 + 44 = 52), while the name column is frozen at left:56px, so 4px of the scrolled columns showed through. Padding 4px on the right makes the contents exactly 56. */
+.rct-table td.rct-c-av,.rct-table thead th:nth-child(1){width:56px;min-width:56px;max-width:56px}
+.rct-table td.rct-c-av{padding-right:4px}
 .rct-table td.rct-c-name{min-width:112px}
 .rct-cellbtn{border:0;background:transparent;padding:2px 4px;margin:-2px -4px;border-radius:6px;cursor:pointer;text-align:left;font-weight:inherit;color:inherit;white-space:normal}
 .rct-cellbtn:hover{background:var(--rct-tealbg);color:var(--rct-teal)}
