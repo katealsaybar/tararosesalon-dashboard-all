@@ -218,7 +218,7 @@ function srPaint() {
     <section class="slv-card" style="margin-top:16px">
       <div class="slv-head"><div><div class="slv-eyebrow">${lcEsc(srBranchTxt())}${SR.fam !== 'all' ? ' · ' + lcEsc(cmFam(SR.fam).name) : ''}${SR.cat ? ' · ' + lcEsc(SR.cat) : ''}</div>
         <h3>Top services by ${SR.rank === 'units' ? 'units' : 'revenue'}</h3><p>${lcEsc(lcDayY(a))} to ${lcEsc(lcDayY(b))}</p></div>
-        <button type="button" class="cm-pill" id="srCopy" onclick="srCopy()">Copy list for Sheets</button></div>
+        <span class="rex-row" style="margin:0;gap:8px;align-items:center"><button type="button" class="cm-pill" id="srCopy" onclick="srCopy()">Copy list for Sheets</button>${typeof rexButtons === 'function' ? rexButtons('srExport') : ''}</span></div>
       <div class="w13-tiles lc-tiles">
         ${tile('Revenue, ex VAT', srAed(tr), vs(tr, pr))}
         ${tile('Units', lcNum(tu), vs(tu, pu))}
@@ -284,4 +284,40 @@ async function srCopy() {
     await navigator.clipboard.writeText([head].concat(rows).map(r => r.map(v => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t')).join('\n'));
     say(`Copied ${lcNum(rows.length)}, paste into Sheets`);
   } catch (e) { console.error(e); say('Copy did not work here'); }
+}
+
+/* ── DOWNLOADS (Kate, 10 Nov 2026: every report gets an XLSX and a CSV button; report-export.js draws the buttons and saves the file) ──
+   The whole ranking for the branch, period, family and category picked (not only the rows shown so far: "Show more" is a page of the same list), in the order of
+   Rank by, with the period before beside it when it has loaded. Tab 2, Sizes, is what each row is made of (the item names and sizes behind it). The CSV is the ranking. */
+function srExport() {
+  if (!srData || !srRows.length) return null;
+  const key = SR.rank === 'units' ? 'units' : 'rev', hasPrev = !!srPrev, one = SR.branch !== 'all';
+  const total = Number(key === 'rev' ? srData.total_rev : srData.total_units) || 0;
+  const r2 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
+  const [a, b] = srRange(), prev = srPrevRange();
+  const cols = [{ key: 'rank', label: 'Rank', fmt: 'num' }, { key: 'svc', label: 'Service', fmt: 'text' }, { key: 'cat', label: 'Phorest category', fmt: 'text' }, { key: 'names', label: 'Names rolled into this row', fmt: 'num' },
+    { key: 'rev', label: 'Revenue (AED, ex VAT)', fmt: 'aed' }, { key: 'units', label: 'Units', fmt: 'num' }, { key: 'avg', label: 'Average per unit (AED)', fmt: 'aed' }, { key: 'clients', label: 'Clients', fmt: 'num' },
+    { key: 'share', label: 'Share of ' + (key === 'rev' ? 'revenue' : 'units'), fmt: 'pct' }]
+    .concat(one ? [] : SR_BR.map(c => ({ key: 'u_' + c, label: 'Units ' + c, fmt: 'num' })))
+    .concat(hasPrev ? [{ key: 'prev', label: 'Revenue, ' + prev[2], fmt: 'aed' }, { key: 'pu', label: 'Units, ' + prev[2], fmt: 'num' }, { key: 'chg', label: 'Change in ' + (key === 'rev' ? 'revenue' : 'units') + ' %', fmt: 'pct' }] : []);
+  const rows = srRows.map((r, i) => {
+    const p = r._p;
+    const cells = [i + 1, r.stem, r.category, (r.v || []).length || 1, r2(r.rev), r2(r.units),
+      { v: r.units ? r2(r.rev / r.units) : null, fmt: 'aed', f: A => `IF(N(${A('units')})>0,${A('rev')}/${A('units')},"")` },
+      r2(r.clients), total ? r2(100 * r[key] / total) : null];
+    if (!one) SR_BR.forEach(c => cells.push((r.bu && r.bu[c]) || 0));
+    if (hasPrev) cells.push(p ? r2(p.rev) : null, p ? r2(p.units) : null, (p && Number(p[key]) > 0) ? r2(100 * (r[key] - p[key]) / p[key]) : null);
+    return { cells };
+  });
+  const sheets = [{ name: 'Service Rankings', title: 'Service Rankings' + (SR.fam !== 'all' ? ', ' + cmFam(SR.fam).name : '') + (SR.cat ? ', ' + SR.cat : ''),
+    subtitle: `${srBranchTxt()} · ${a} to ${b} · ranked by ${key === 'rev' ? 'revenue' : 'units'}${hasPrev ? ' · set against ' + prev[2] : ''}${srRows.length >= SR_LIMIT ? ` · the top ${SR_LIMIT} by revenue` : ''}. Revenue is ex VAT.`,
+    blocks: [{ cols, rows }],
+    legend: [['Service', 'Every size of a service is one row; a keratin’s Application and Ironing count as one treatment, and package lines count as their service.'], ['Units', 'Sales lines.'],
+      ['Revenue', 'Ex VAT. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.'], ['Phorest category', 'Phorest’s own service category (the Service roster tab on Client Mix).']] }];
+  const sz = [];
+  srRows.forEach((r, i) => (r.v || []).forEach(x => sz.push({ cells: [i + 1, r.stem, r.category, x.item, r2(x.units), r2(x.rev)] })));
+  if (sz.length) sheets.push({ name: 'Sizes', title: 'The sizes and names behind each row', subtitle: `${srBranchTxt()} · ${a} to ${b}`,
+    blocks: [{ cols: [{ label: 'Rank', fmt: 'num' }, { label: 'Service', fmt: 'text' }, { label: 'Phorest category', fmt: 'text' }, { label: 'Item name in Phorest', fmt: 'text' }, { label: 'Units', fmt: 'num' }, { label: 'Revenue (AED, ex VAT)', fmt: 'aed' }], rows: sz }] });
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return { name: ['service-rankings', SR.branch, a, 'to', b, SR.fam !== 'all' ? SR.fam : '', SR.cat || '', SR.rank === 'units' ? 'by-units' : ''].filter(Boolean).map(slug).join('-'), csv: 0, sheets };
 }
