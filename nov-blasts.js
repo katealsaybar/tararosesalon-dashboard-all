@@ -161,6 +161,21 @@
     if (!LIVE || !LIVE.at) return '';
     return '<p class="nvb-small nvb-counted">Clients counted ' + esc(fat(LIVE.at)) + ', Dubai time, from our sales records. ' + (canEdit() ? '<button type="button" class="nvb-link" data-nvb="recount">Count again</button>' : '') + '</p>';
   }
+  // The two views at the top of the page (Kate, 11 Nov 2026, the uniform blast layout): Results, the nine section report, and Blast pages, the seven section page of each blast.
+  // The Oct and Nov pills move between the two reports. Results has no calendar, pill list or sending bar: those belong to the Blast pages.
+  window.nvbGoOct = function (e, el) { if (typeof trsPlain === 'function' && trsPlain(e) && typeof showView === 'function') { e.preventDefault(); showView('lostlists', el); return false; } return true; };   // a plain click moves inside the app, a new tab or modifier click follows the address
+  function viewsHtml() {
+    var res = cur === RESID && tab === 'messages';
+    return '<div class="nvb-views"><div class="nvb-vsw" role="tablist"><button type="button" role="tab" class="' + (res ? 'on' : '') + '" data-nvb="view:results" aria-selected="' + res + '">Results</button>' +
+      '<button type="button" role="tab" class="' + (res ? '' : 'on') + '" data-nvb="view:blasts" aria-selected="' + !res + '">Blast pages: message, template, flow</button></div>' +
+      '<div class="nvb-vsw nvb-camp"><a href="/?view=lost-clients" onclick="return window.nvbGoOct(event, this)">October, Lost Clients</a><span class="on">November, Database blasts</span></div></div>';
+  }
+  function stateChip() {   // was always "Draft, nothing sent", even after the send
+    if (isL5() && SND && SND.enabled && !SND.dry_run) return '<span class="chip bad">Live sending is on</span>';
+    if (RES && RES.first_send) return RES.still_queued > 0 ? '<span class="chip warn">Sending paused, ' + fmtN(RES.still_queued) + ' queued</span>' : '<span class="chip ok">Sent, finished ' + esc(fat(RES.last_send)) + '</span>';
+    if (typeof PG !== 'undefined' && PG && PG.any && PG.s > 0) return '<span class="chip ok">Sending started</span>';
+    return '<span class="chip warn">Draft, nothing sent</span>';
+  }
   function tabsHtml() {
     var t = [['decide', 'Decisions', 'Coach Emma', openDecs().length], ['messages', 'Messages', 'Everyone', 0], ['before', 'Before sending', 'Kate', openTasks().length]].filter(function (x) { return x[0] !== 'decide' || decs().length; });
     return '<div class="nvb-tabs" role="tablist">' + t.map(function (x) {
@@ -579,7 +594,7 @@
   var LOG = { rows: [], total: 0, loaded: false, busy: false, err: false, sel: { blast: '', branch: 'all', status: 'all', outcome: 'all', q: '', page: 1, per: 10 }, open: {} };
   try { if (localStorage.getItem('nvb-money-view') === 'table') rsV.money = 'table'; if (localStorage.getItem('nvb-del-view') === 'table') rsV.del = 'table'; } catch (e) { /* fine without storage */ }
   var NV_DRILL = { sent: 'Accepted by respond.io', reached: 'Delivered or read', read: 'Read', delivered: 'Delivered, not read yet', unconfirmed: 'Not confirmed yet', failed: 'Failed', checked: 'Status-checked',
-    never_checked: 'Not status-checked yet', stop: 'STOP', replied: 'Wrote back', queued: 'Still queued', ahead: 'Booked ahead', appts: 'Booked ahead, with their appointments', came_in: 'Already came in, nothing booked',
+    never_checked: 'Not status-checked yet', stop: 'STOP', replied: 'Wrote back', queued: 'Still queued', ahead: 'Booked ahead, to 30 November', late: 'Booked after 30 November, outside the offer', appts: 'Booked ahead, with their appointments', came_in: 'Already came in, nothing booked',
     paid: 'Paid at the till since the message', since: 'Booked since the message or came in', bsince: 'Booked since the message', dep_paid: 'Booked ahead, deposit paid', dep_today: 'Booked for today, no deposit needed', dep_need: 'Booked ahead, deposit likely needed, not paid', dep_none: 'Booked ahead, short service, no deposit needed', dep_nodep: 'Booked ahead, no deposit needed', dep_need_1: 'Deposit likely needed, today or tomorrow', dep_need_2: 'Deposit likely needed, in 2 to 3 days', dep_need_3: 'Deposit likely needed, in 4 to 7 days', dep_need_4: 'Deposit likely needed, in 8 to 14 days', dep_need_5: 'Deposit likely needed, later',
     sent_ok: 'Sent', failed_any: 'Failed', skipped: 'Dropped just before sending', notgone: 'Did not go', again: 'Sent again', again_delivered: 'Sent again, delivered or read', again_failed: 'Sent again, failed', again_queued: 'Sent again, still to go' };
   var NV_BUCKET = { '1': 'Wrote to us in the last 30 days', '2': 'Wrote to us 31 to 90 days ago', '3': 'Wrote to us 91 to 180 days ago', '4': 'Wrote to us over 180 days ago', '5': 'Never wrote to us' };
@@ -621,6 +636,7 @@
     if (!o) return '<span class="slv-muted">–</span>';
     if (o === 'stop') return '<span class="nvb-tag bad">STOP / opt out</span>';
     if (o === 'booked') return '<span class="nvb-tag good">Booked ahead</span>';
+    if (o === 'late') return '<span class="nvb-tag">Booked after 30 Nov</span>';
     return '<span class="nvb-tag good">Came in</span>' + (r.spent ? ' <span class="slv-note">AED ' + money0(r.spent) + '</span>' : '');
   }
   function nvNext(r) { return r.next ? esc(fdate(r.next)) + (r.svc ? ' <span class="slv-note">' + esc(r.svc) + '</span>' : '') : '<span class="slv-muted">–</span>'; }
@@ -696,7 +712,7 @@
     var s = LOG.sel, sel = function (key, label, opts) { return '<select class="nvb-sel" aria-label="' + label + '" data-nlg="' + key + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (String(s[key]) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>'; };
     var bar = '<div class="nvb-tools">' + sel('blast', 'Blast', [['', 'All blasts']].concat(rows.map(function (x) { return [x.id, x.name]; }))) + sel('branch', 'Branch', [['all', 'All branches']].concat(BKEYS.map(function (b) { return [b, BR[b]]; }))) +
       sel('status', 'Status', [['all', 'Every status'], ['reached', 'Delivered or read'], ['read', 'Read'], ['delivered', 'Delivered, not read'], ['unconfirmed', 'Not confirmed yet'], ['failed', 'Failed'], ['queued', 'Queued']]) +
-      sel('outcome', 'Outcome', [['all', 'Any outcome'], ['booked', 'Booked ahead'], ['done', 'Came in'], ['replied', 'Wrote back'], ['stop', 'STOP'], ['none', 'No outcome yet']]) +
+      sel('outcome', 'Outcome', [['all', 'Any outcome'], ['booked', 'Booked ahead'], ['late', 'Booked after 30 Nov'], ['done', 'Came in'], ['replied', 'Wrote back'], ['stop', 'STOP'], ['none', 'No outcome yet']]) +
       '<input type="search" class="nvb-q" id="nvLogQ" data-nlg="q" placeholder="Search name or last 4 digits" value="' + esc(s.q) + '">' +
       '<span class="nvb-spacer"></span><button type="button" class="tglr lc-btn" data-nvr="logsave:xlsx" title="Download the log for these filters, with the message for each">XLSX</button><button type="button" class="tglr lc-btn" data-nvr="logsave:csv" title="Download the log for these filters, with the message for each">CSV</button><span id="nvLogNote" class="slv-note"></span></div>';
     return rsSec('9. Send log', 'Every real message, her latest one if she was sent more than one. Name and number copy on click; Chat opens her conversation in respond.io.', bar + '<div id="nvLog">' + logInner() + '</div>');
@@ -712,7 +728,7 @@
       if (!d.rows || d.rows.length < 500 || out.length >= d.total) break;
     }
     var head = ['Date sent', 'Time sent (Dubai)', 'Blast', 'Branch', 'Client', 'Phone', 'Status', 'Delivery', 'Failed reason', 'Outcome', 'Wrote back', 'STOP', 'Next appointment', 'Booked for', 'Message sent', 'Queued by', 'respond.io message', 'respond.io chat'];
-    var dl = { read: 'Read', delivered: 'Delivered', sent: 'Not confirmed yet', failed: 'Failed' }, oc = { stop: 'STOP', booked: 'Booked ahead', done: 'Came in' }, yn = function (v) { return v ? 'Yes' : 'No'; };
+    var dl = { read: 'Read', delivered: 'Delivered', sent: 'Not confirmed yet', failed: 'Failed' }, oc = { stop: 'STOP', booked: 'Booked ahead', late: 'Booked after 30 Nov', done: 'Came in' }, yn = function (v) { return v ? 'Yes' : 'No'; };
     var lines = out.map(function (r) { return [r.d || '', r.t || '', blastName(r.blast), BR[r.branch] || r.branch, r.client, r.phone || r.last4, r.status, dl[r.delivery] || '', r.reason || '', oc[r.outcome] || '', yn(r.replied), yn(r.stop), r.next || '', r.svc || '', r.text || '', r.by || '', r.message_id || '', r.cid ? 'https://app.respond.io/space/250275/inbox/' + r.cid : '']; });
     var built = lgxBuild({ sheets: [{ name: 'Send log', blocks: [{ cols: head.map(function (h) { return { label: h, fmt: 'text' }; }), rows: lines.map(function (l) { return { cells: l }; }) }] }] });
     var s = LOG.sel, slug = function (t) { return String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); };
@@ -903,11 +919,13 @@
     // 1 headline
     var repl = st.replies === 'ok' ? rsCell('Wrote back', nn(a.replied, 'replied'), pc1(a.replied, reached) + ' of the ' + fmtN(reached) + ' reached') : st.replies === 'part' ? rsCell('Wrote back', nn(a.replied, 'replied'), 'so far, the check has covered ' + fmtN(a.wa_after) + ' of ' + fmtN(a.sent) + ' accepted') : rsWait('Wrote back', whyReplies());
     var m = a.money || {}, bkok = st.bookings, slok = st.sales, al = MON && MON.all ? MON.all : null;
-    var ahead = bkok ? rsCell('Booked ahead', nn(m.ahead, 'ahead'), nn(m.appts, 'appts') + ' appointments, from today on. A snapshot: it drops a booking once its date passes') : rsWait('Booked ahead', whyBookings(st));
+    var ahead = bkok ? rsCell('Booked ahead', nn(m.ahead, 'ahead'), nn(m.appts, 'appts') + ' appointments, from today to 30 Nov. A snapshot: it drops a booking once its date passes. A booking after 30 Nov is counted in its own box below') : rsWait('Booked ahead', whyBookings(st));
     var bsince = bkok ? rsCell('Booked since the message', nn(m.booked_since, 'bsince'), 'a booking first seen on or after her first message day, kept after the date passes. Counted from 4 Nov') : rsWait('Booked since the message', whyBookings(st));
     var paid = slok ? rsCell('Paid at the till since the message', 'AED ' + money0(m.paid_aed), nn(m.paid_clients, 'paid') + ' clients. A ceiling, not proof the message caused it') : rsWait('Paid at the till since the message', whySales(st));
     var cpb = (bkok && slok && m.booked_or_in > 0) ? rsCell('Cost per booking', 'AED ' + money2(reached * r2 / m.booked_or_in), 'delivered messages at ' + r2 + ' divided by ' + nn(m.booked_or_in, 'since') + ' booked since the message or came in') : rsWait('Cost per booking', (bkok && slok) ? 'Nobody has booked or come in yet.' : 'Needs bookings and sales after the message, see Booked ahead and Paid.');
-    var bci = bkok && slok ? rsCell('Booked or came in', nn(m.booked_or_in, 'since'), 'a booking from today on, a booking first seen after her first message, or a till sale since') : rsWait('Booked or came in', !bkok ? whyBookings(st) : whySales(st));
+    var bci = bkok && slok ? rsCell('Booked or came in', nn(m.booked_or_in, 'since'), 'a booking from today to 30 Nov, a booking first seen after her first message, or a till sale since. Not the ones booked after 30 Nov') : rsWait('Booked or came in', !bkok ? whyBookings(st) : whySales(st));
+    // Booked after the offer ended (Kate, 11 Nov 2026): a client whose next appointment is after 30 Nov is counted here and nowhere else (nov_client_facts.late, migrations/nov_after_deadline.sql).
+    var lateBox = bkok ? '<div class="nvb-rs-nums nvb-rs-late">' + rsCell('Booked after 30 November', nn(m.late, 'late'), 'Her next appointment is after the offers end, so she is counted here and not in Booked ahead, Booked since the message, Booked or came in or Cost per booking. A snapshot of bookings from today on') + '</div>' : '';
     out += rsSec('1. The campaign so far', 'How many went out, what came back and what it cost. What cannot be read yet says why.',
       '<div class="nvb-rs-nums">' +
       rsCell('Accepted by respond.io', nn(a.sent, 'sent'), esc(fat(RES.first_send) + ' to ' + fat(RES.last_send))) +
@@ -917,7 +935,7 @@
       repl +
       rsCell('STOP', nn(a.stop, 'stop'), pc1(a.stop, a.sent) + ' of accepted. Limit ' + (RES.gate ? RES.gate.stop_pct : 2) + '%' + (a.never_checked ? '. Partial, not every message is checked yet' : '')) +
       ahead + bsince + bci + paid + cpb +
-      rsCell('Spent (estimate)', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' accepted at AED ' + r2 + ' each. AED ' + money0(reached * r2) + ' if only the ' + fmtN(reached) + ' delivered are charged. At AED ' + r1 + ': AED ' + money0(a.sent * r1) + ' and AED ' + money0(reached * r1)) + '</div>',
+      rsCell('Spent (estimate)', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' accepted at AED ' + r2 + ' each. AED ' + money0(reached * r2) + ' if only the ' + fmtN(reached) + ' delivered are charged. At AED ' + r1 + ': AED ' + money0(a.sent * r1) + ' and AED ' + money0(reached * r1)) + '</div>' + lateBox,
       'Rate: October used AED ' + r1 + ' a message (about USD 0.046, measured). The page assumes AED ' + r2 + ' (about USD 0.058, one vendor source). Both are shown until the Meta invoice or the respond.io usage report replaces them. WhatsApp does not charge failed messages, so delivered only is the likelier bill, and Cost per booking uses it.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, cost AED 1,068 on every message accepted.');
 
     // 3 did the message arrive
@@ -987,8 +1005,9 @@
   }
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
+    if (cur === RESID) return '<div class="cbl"><div class="cbl-shell nvb-rs-full"><div class="cbl-main" id="nvbMain">' + resultsMain() + '</div></div></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + resultsSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + ((cur === ALLID || cur === RESID) ? sendBarHtml() : '') + (cur === ALLID ? allMain() : cur === RESID ? resultsMain() : blastMain(b)) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
@@ -1350,10 +1369,11 @@
     var el = main(); if (!el) return;
     var y = window.scrollY, thY = {}; [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) { thY[t.getAttribute('data-key')] = t.scrollTop; });
     var body = tab === 'decide' && decs().length ? decideHtml() : tab === 'before' ? beforeHtml() : messagesHtml();
-    el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
-      '<div class="nvb-chipsrow">' + (isL5() && SND && SND.enabled && !SND.dry_run ? '<span class="chip bad">Live sending is on</span>' : '<span class="chip warn">Draft, nothing sent</span>') + '<span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
+    var onRes = cur === RESID && tab === 'messages';
+    el.innerHTML = '<div class="nvb">' + viewsHtml() + '<header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
+      '<div class="nvb-chipsrow">' + stateChip() + '<span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
-      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + numsHtml() + '</header>' + tabsHtml() + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && cur !== RESID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
+      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + (onRes ? '' : numsHtml()) + '</header>' + (onRes ? '' : tabsHtml()) + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && cur !== RESID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
     sndBindInputs();
     var cta = document.getElementById('nvbCmt'); if (cta) { cta.value = draft[cur] || ''; cta.oninput = function () { draft[cur] = cta.value; }; }
     [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
@@ -1382,6 +1402,7 @@
       var t = e.target.closest && e.target.closest('[data-nvb]'); if (!t || t.disabled || !D) return;
       if (t.tagName === 'A') e.preventDefault();
       var a = t.getAttribute('data-nvb').split(':'), k = a[0], v = a.slice(1).join(':');
+      if (k === 'view') { tab = 'messages'; k = 'sel'; v = v === 'results' ? RESID : (cur === RESID ? ALLID : cur); }   // the two views at the top: Results, or the Blast pages (All blasts first)
       if (k === 'tab') { tab = v; render(); toTop(); syncUrl(); }
       else if (k === 'goto') { var q = v.split(':'); tab = q[0]; if (q[1] != null) dec = +q[1]; render(); toTop(); syncUrl(); }
       else if (k === 'go') { dec = +v; render(true); }
