@@ -63,13 +63,22 @@
     if (p.ig_handle) return 'https://www.instagram.com/' + encodeURIComponent(String(p.ig_handle).replace(/^@/, ''));
     return p.link_kind === 'instagram' ? safeUrl(p.work_link) : '';
   }
+  // Kate, 11 Nov 2026: the standard. WORTH A LOOK = a work link on Instagram or Facebook, a CV and a professional profile photo. PROBABLY NO = any one of: no profile photo, a photo
+  // marked "not professional" (Kate or Emma click that, a program cannot judge it), no CV, no Instagram or Facebook link, not based in the UAE, role not on the open list.
+  // A CV link that is dead (Brevo) still counts as a CV; a direct email never counts as "no CV" or "no link" on its own, because its CV is an attached file and it has no form fields.
+  function hasIgFb(p) { return hasIg(p) || p.link_kind === 'facebook'; }
+  var FLAG_NAME = { abroad: 'Not based in the UAE', noph: 'No profile photo', badph: 'Photo not professional', nocv: 'No CV', noig: 'No Instagram or Facebook given', role: 'Role not on your open list' };
+  var FLAG_SHORT = { abroad: 'Not in the UAE', noph: 'No photo', badph: 'Photo not professional', nocv: 'No CV', noig: 'No Instagram or Facebook', role: 'Role not open' };
   function flags(p) {
     var f = [], w = where(p);
     if (w === 'abroad') f.push({ k: 'abroad', t: 'Not based in the UAE' + (/relocat/i.test(p.about || '') ? ' (says they can relocate)' : '') });
-    // a form always asks for a work link, so none means no Instagram; a direct email only counts when it gave some other link
-    if (!hasIg(p) && (p.source === 'form' || p.link_kind)) {
-      var kind = p.link_kind && p.link_kind !== 'instagram' ? ({ tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn', youtube: 'YouTube' }[p.link_kind] || p.link_kind) : '';
-      f.push({ k: 'noig', t: kind ? 'No Instagram (gave a ' + kind + ' link instead)' : 'No Instagram given' });
+    if (!p.photo) f.push({ k: 'noph', t: FLAG_NAME.noph });
+    else if (p.photo_bad) f.push({ k: 'badph', t: FLAG_NAME.badph });
+    if (p.source === 'form' && !String(p.cv_link || '').trim()) f.push({ k: 'nocv', t: FLAG_NAME.nocv });
+    // a form always asks for a work link, so none means no Instagram or Facebook; a direct email only counts when it gave some other link
+    if (!hasIgFb(p) && (p.source === 'form' || p.link_kind)) {
+      var kind = p.link_kind && p.link_kind !== 'instagram' ? ({ tiktok: 'TikTok', linkedin: 'LinkedIn', youtube: 'YouTube' }[p.link_kind] || p.link_kind) : '';
+      f.push({ k: 'noig', t: kind ? 'No Instagram or Facebook (gave a ' + kind + ' link instead)' : FLAG_NAME.noig });
     }
     var terms = openTerms();
     if (p.role_key && p.role_key !== 'other' && terms.length && !roleListed(p, terms)) {
@@ -157,10 +166,12 @@
   function linksHtml(p) {
     var s = '', cv = cvUrl(p);
     if (cv) s += '<a href="' + esc(cv) + '" target="_blank" rel="noopener">CV</a>';
+    else if (mailUrl(p)) s += '<a href="' + esc(mailUrl(p)) + '" target="_blank" rel="noopener">CV (open the email)</a>';
     if (p.email) s += '<a href="https://mail.google.com/mail/?authuser=recruitment@tararosesalon.com#search/' + encodeURIComponent(p.email) + '" target="_blank" rel="noopener">Their emails in Gmail</a>';
     var wa = String(p.whatsapp || '').replace(/\D/g, '');
     if (wa.length >= 9) s += '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">WhatsApp</a>';
     s += '<button type="button" class="rct-linkbtn" data-act="photo" data-id="' + esc(p.id) + '">' + (p.photo ? 'Change photo' : 'Add photo') + '</button>';
+    if (p.photo) s += photoBadBtn(p, 'rct-linkbtn');
     if (p.photo) s += '<button type="button" class="rct-linkbtn" data-act="photoclear" data-id="' + esc(p.id) + '">Remove photo</button>';
     return s ? '<div class="rct-links">' + s + '</div>' : '';
   }
@@ -212,9 +223,9 @@
       (det ? '<span>' + det + '</span>' : '') + '<span>' + esc(sub) + '</span></div>' +
       '<div class="rct-acts">' + waitPill(p) + extraPills(p) + stagePill(p) + acts + '</div>' + (openRows[p.id] ? detailHtml(p) : '') + '</div>';
   }
-  var GROUPS = [['abroad', 'Not based in the UAE'], ['noig', 'No Instagram given'], ['role', 'Role not on your open list']];
+  var GROUPS = ['abroad', 'noph', 'badph', 'nocv', 'noig', 'role'].map(function (k) { return [k, FLAG_NAME[k]]; });
   function noGroups() {
-    var g = { abroad: [], noig: [], role: [] };
+    var g = { abroad: [], noph: [], badph: [], nocv: [], noig: [], role: [] };
     by('no').forEach(function (p) { g[flags(p)[0].k].push(p); });
     return g;
   }
@@ -229,6 +240,9 @@
     }).sort(function (a, c) { return new Date(c.applied_at) - new Date(a.applied_at); });
   }
 
+  // Kate, 11 Nov 2026: the Look panel is as wide as the visible table so it stays put when the table is scrolled right (see .rct-dtlin in the css)
+  function fitDetail() { var bx = document.getElementById('rctTbox'); if (bx) bx.style.setProperty('--rct-vw', bx.clientWidth + 'px'); }
+  window.addEventListener('resize', fitDetail);
   function render() {
     var el = main(); if (!el) return;
     saveView();
@@ -267,6 +281,7 @@
       h += renderList() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
       el.innerHTML = h + '</div>';
       var bxNew = document.getElementById('rctTbox'); if (bxNew && keepPos) { bxNew.scrollTop = keepPos[0]; bxNew.scrollLeft = keepPos[1]; }
+      fitDetail();
       return;
     }
     if (q.trim().length >= 2) {
@@ -389,7 +404,7 @@
   function statusText(p) {
     var b = bucket(p);
     if (b === 'look') return 'Worth a look';
-    if (b === 'no') return 'Probably no: ' + ({ abroad: 'Not in the UAE', noig: 'No Instagram', role: 'Role not open' })[flags(p)[0].k];
+    if (b === 'no') return 'Probably no: ' + FLAG_SHORT[flags(p)[0].k];
     return STAGE_LABEL[p.stage] || p.stage;
   }
   function waitBucket(p) {
@@ -399,8 +414,15 @@
   }
   // Kate, 10 Nov 2026: a CV column. The CV link opens the original; people without one show as No CV (a form asks for one, a direct email may carry it as an attachment).
   // Kate, 11 Nov 2026: a Profile photo column so the people with a photo can be filtered from the ones without (the first column only shows the picture or initials).
-  function photoLabel(p) { return p.photo ? 'Has photo' : 'No photo'; }
-  function cvLabel(p) { return cvUrl(p) ? 'Has CV' : deadCv(p) ? 'CV link broken' : 'No CV'; }
+  function photoLabel(p) { return !p.photo ? 'No photo' : p.photo_bad ? 'Photo not professional' : 'Has photo'; }
+  // Kate, 11 Nov 2026: a direct email carries its CV as an attached file, so there is no file link. "Open email" opens that email in its own mailbox (info@ or recruitment@, whichever
+  // the person is signed in to in Chrome) where the attachment can be read. Only when the person came through exactly one mailbox and one message id is known; otherwise No CV.
+  function mailUrl(p) {
+    var mb = p.mailboxes || [], ids = p.msg_ids || [];
+    if (p.source !== 'email' || mb.length !== 1 || !ids.length || !/^[0-9a-f]{10,}$/i.test(String(ids[0]))) return '';
+    return 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(mb[0] + '@tararosesalon.com') + '#all/' + ids[0];
+  }
+  function cvLabel(p) { return cvUrl(p) ? 'Has CV' : deadCv(p) ? 'CV link broken' : mailUrl(p) ? 'CV in the email' : 'No CV'; }
   var CV_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function igLabel(p) { var k = linkKind(p); return k ? linkName(p) : (p.source === 'form' ? 'None given' : 'Not stated'); }
   // Kate, 10 Nov 2026: which inbox the application arrived in (a person who wrote to both shows as Both)
@@ -410,10 +432,10 @@
   var COLS = [
     { k: 'av', t: '', nofilter: true },
     { k: 'name', t: 'Name', val: function (p) { return p.name || 'Name not stated'; }, sort: function (p) { return String(p.name || '').toLowerCase(); }, kind: 'text' },
-    { k: 'photo', t: 'Profile photo', val: photoLabel, sort: function (p) { return p.photo ? 0 : 1; }, kind: 'num', asc: 'With photo first', desc: 'Without photo first' },
+    { k: 'photo', t: 'Profile photo', val: photoLabel, sort: function (p) { return !p.photo ? 2 : p.photo_bad ? 1 : 0; }, kind: 'num', asc: 'Good photo first', desc: 'No photo first' },
     { k: 'place', t: 'Based in', val: countryShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'ig', t: 'Link to work', val: igLabel, sort: function (p) { return (linkKind(p) ? '0' : '1') + igLabel(p).toLowerCase(); }, kind: 'text' },
-    { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return cvUrl(p) ? 0 : deadCv(p) ? 1 : 2; }, kind: 'text' },
+    { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return cvUrl(p) ? 0 : mailUrl(p) ? 1 : deadCv(p) ? 2 : 3; }, kind: 'text' },
     { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: expNum, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
     { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleGroup(p).toLowerCase(); }, kind: 'text' },
     { k: 'emp', t: 'Employment type', val: empType, sort: function (p) { return empType(p).toLowerCase(); }, kind: 'text' },
@@ -463,7 +485,7 @@
       case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
       case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
       case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
-      case 'photo': return '<td>' + cellBtn(p.photo ? 'Has photo' : '<span class="rct-ns">No photo</span>', 'photo', photoLabel(p)) + '</td>';
+      case 'photo': return '<td>' + cellBtn(!p.photo ? '<span class="rct-ns">No photo</span>' : p.photo_bad ? '<span class="rct-badph">Photo not professional</span>' : 'Has photo', 'photo', photoLabel(p)) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
       case 'ig': {
         var kk = linkKind(p);
@@ -476,6 +498,7 @@
       case 'cv': {
         var cu = cvUrl(p);
         return '<td>' + (cu ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><a class="rct-ig" href="' + esc(cu) + '" target="_blank" rel="noopener">CV</a></span>'
+          : mailUrl(p) ? '<span class="rct-lk"><span class="rct-lki" title="CV attached to the email">' + CV_ICON + '</span><a class="rct-ig" href="' + esc(mailUrl(p)) + '" target="_blank" rel="noopener">Open email</a></span>'
           : cellBtn('<span class="rct-ns rct-nw">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>', 'cv', cvLabel(p))) + '</td>';
       }
       case 'exp': return '<td>' + cellBtn(esc(p.experience || 'Not stated'), 'exp', p.experience || 'Not stated') + '</td>';
@@ -490,7 +513,7 @@
       }
       case 'status': {
         var b = bucket(p), sv = statusText(p), cls = b === 'look' ? 'rct-green' : b === 'no' ? 'rct-amber' : b === 'done' ? 'rct-grey' : (p.stage === 'interview_booked' || p.stage === 'hired' || p.stage === 'offer') ? 'rct-green' : 'rct-teal';
-        var main1 = b === 'no' ? 'Probably no' : sv, why = b === 'no' ? sv.replace('Probably no: ', '') : '';
+        var main1 = b === 'no' ? 'Probably no' : sv, why = b === 'no' ? flags(p).map(function (f0) { return FLAG_SHORT[f0.k]; }).join(', ') : '';
         return '<td><button type="button" class="rct-pill rct-pillbtn ' + cls + '" data-cf="status" data-cv="' + esc(sv) + '">' + esc(main1) + '</button>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
       }
       case 'acts': {
@@ -523,7 +546,7 @@
     var from = S.page * S.pageSize, to = Math.min(list.length, from + S.pageSize);
     list.slice(from, to).forEach(function (p) {
       h += '<tr>' + COLS.map(function (c) { return cell(c, p); }).join('') + '</tr>';
-      if (openRows[p.id]) h += '<tr class="rct-dtl"><td></td><td colspan="' + (COLS.length - 1) + '">' + detailHtml(p) + '</td></tr>';
+      if (openRows[p.id]) h += '<tr class="rct-dtl"><td colspan="' + COLS.length + '"><div class="rct-dtlin">' + detailHtml(p) + '</div></td></tr>';
     });
     h += '</tbody></table></div>';
     if (list.length) {
@@ -723,7 +746,7 @@
   function bulkDialog(g) {
     var all = noGroups()[g] || []; if (!all.length) return;
     var list = all.filter(isReviewed), skipped = all.length - list.length;
-    var name = { abroad: 'Not based in the UAE', noig: 'No Instagram given', role: 'Role not on your open list' }[g];
+    var name = FLAG_NAME[g];
     var rp = replyParts(null, true);
     var emails = list.map(function (p) { return p.email; }).filter(Boolean);
     openDlg(list.length ? 'No for ' + pl(list.length, 'person', 'people') + '?' : 'Nobody here has been looked at yet',
@@ -791,6 +814,7 @@
     var old = r.data && r.data.old;
     if (old && old !== path) { try { await bucket.remove([old]); } catch (e) { /* harmless */ } delete PHOTO[old]; }
     p.photo = path;
+    if (p.photo_bad) { try { var rf = await sb.rpc('recruit_set_photo_flag', { p_id: p.id, p_flag: false }); if (!rf.error) p.photo_bad = false; } catch (e) { /* the old mark stays, harmless */ } }
     var s2 = await bucket.createSignedUrl(path, 3600); if (s2.data && s2.data.signedUrl) PHOTO[path] = s2.data.signedUrl;
   }
   function fileInput(multiple) {
@@ -801,6 +825,19 @@
   // Kate, 10 Nov 2026: "i want to be able to paste this directly". Click an avatar for the box (Ctrl+V pastes a copied image, or drop one, or choose a file);
   // or point at an avatar and press Ctrl+V without opening anything.
   var photoFor = null, hoverAv = null;
+  // Kate, 11 Nov 2026: a photo that looks personal, not professional, is marked by hand (recruit_set_photo_flag); it makes the person Probably no.
+  function photoBadBtn(p, cls) {
+    return '<button type="button" class="' + cls + '" data-act="photobad" data-id="' + esc(p.id) + '">' + (p.photo_bad ? 'Photo is fine, take the mark off' : 'Photo is not professional') + '</button>';
+  }
+  async function togglePhotoBad(id) {
+    var p = personById(id); if (!p || !p.photo) return;
+    var flag = !p.photo_bad;
+    try {
+      var r = await sb.rpc('recruit_set_photo_flag', { p_id: p.id, p_flag: flag }); if (r.error) throw new Error(r.error.message);
+      p.photo_bad = flag; if (dlg().open && photoFor === String(p.id)) { closeDlg(); photoFor = null; }
+      render(); toast(flag ? firstName(p.name) + '\u2019s photo is marked not professional. Probably no.' : 'Mark taken off ' + firstName(p.name) + '.');
+    } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
   function pickPhoto(id) {
     var p = personById(id); if (!p) return;
     photoFor = String(p.id);
@@ -808,7 +845,7 @@
       '<div class="rct-pastebox" id="rctPasteBox" tabindex="0" role="button" aria-label="Paste or drop a picture here">' +
         '<b>Paste a picture here</b><span>Copy an image (right click, Copy image), then press Ctrl+V. Or drop an image on this box.</span></div>' +
       '<p class="rct-pasteacts"><button type="button" class="rct-btn rct-sm" data-act="photofile" data-id="' + esc(p.id) + '">Choose a file instead</button>' +
-      (p.photo ? '<button type="button" class="rct-btn rct-sm" data-act="photoclear" data-id="' + esc(p.id) + '">Remove photo</button>' : '') + '</p>');
+      (p.photo ? '<button type="button" class="rct-btn rct-sm" data-act="photoclear" data-id="' + esc(p.id) + '">Remove photo</button>' + photoBadBtn(p, 'rct-btn rct-sm') : '') + '</p>');
     var box = document.getElementById('rctPasteBox'); if (box) box.focus();
   }
   function pickPhotoFile(id) {
@@ -994,6 +1031,7 @@
       else if (a === 'photo') pickPhoto(id);
       else if (a === 'photofile') pickPhotoFile(id);
       else if (a === 'photoclear') clearPhoto(id);
+      else if (a === 'photobad') togglePhotoBad(id);
       else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
       else if (a === 'pgnext') { S.page += 1; render(); }

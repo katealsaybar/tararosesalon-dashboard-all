@@ -228,3 +228,7 @@
 .rct-lki{flex:0 0 auto;width:17px;height:17px;margin-top:2px;display:inline-grid}
 .rct-lki svg{width:17px;height:17px;display:block}
 .rct-nw{white-space:nowrap}
+.rct-badph{color:var(--rct-amber)}
+/* Kate, 11 Nov 2026: the Look panel under a List row stays in view when the table is scrolled right: it is as wide as the visible table (--rct-vw, set by the page) and sticks to the left edge */
+.rct-table tr.rct-dtl td{padding:0}
+.rct-dtlin{position:sticky;left:0;box-sizing:border-box;width:var(--rct-vw,100%);padding:8px 8px 8px 64px}
