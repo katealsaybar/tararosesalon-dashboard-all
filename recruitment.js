@@ -925,8 +925,10 @@
       render(); toast(flag ? (p.name || 'They') + ' is out of the list. Find them under Not applicants at the bottom.' : (p.name || 'They') + ' is back in the list.');
     } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
   }
+  // Kate, 11 Nov 2026: "any non applicants can be removed". The Not applicants section is not shown any more. The people stay MARKED (not_applicant) in the database and are only
+  // deleted from view: a person deleted outright would be read from the mailbox again on the next run, a marked one is not. Take the next line out to show the section again.
   function goneHtml() {
-    if (!gone.length) return '';
+    return '';
     return '<details class="rct-gone"><summary>Not applicants <span class="rct-cnt">' + gone.length + '</span></summary>' +
       gone.slice().sort(function (a, b2) { return String(a.name || '').localeCompare(String(b2.name || '')); }).map(function (p) {
         return '<div class="rct-gonerow"><div><b>' + esc(p.name || 'Name not stated') + '</b><span>' + esc(String(p.role_txt || '').slice(0, 90)) + '</span></div>' +
