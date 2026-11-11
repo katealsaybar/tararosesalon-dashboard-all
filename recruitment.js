@@ -382,15 +382,18 @@
                      beauty: 'Beautician', nails: 'Beautician', front: 'Front Desk / Reception' };
   var HAIR_ASSIST = /(hair\s*dresser|hairdresser|hair|salon)\s*(and\s*)?assistant|assistant\s*(hair\s*dresser|hairdresser|hair\b|stylist)|\bhair\s*assist/i;
   var HAIR_WORD = /hair|stylist|barber|braid|colou?rist|balayage|keratin|wig/i, BEAUTY_WORD = /beaut|nail|manicur|pedicur|lash|make-?up|henna|facial|skin|massage|\bwax|threading|therapist/i;
+  // Kate, 11 Nov 2026 (second pass, Serge Allaverdian: "she's not a beautician, she's a hair colourist"): what the person WROTE decides first, because the mailbox script's own role
+  // guess puts "beauty" ahead of "stylist" and caught a handle like beauty_glam_dxb. The path they ticked ("The Employed Stylist") is taken out of the text first, it says nothing about the
+  // trade. Hair Assistant wins, then front desk, then whichever of the hair or the beauty words comes FIRST in what they wrote; the script's role_key is only the fallback.
+  var PATH_WORDS = /Path (One|Two|Three):\s*(The (Employed|Flexible) Stylist|Rent-a-Chair)|Not sure yet\s*I would like to explore the options/gi;
+  var REC_WORD = /receptionist|front\s*(desk|off+ice)|call\s*cent/i;
   function roleGroup(p) {
-    var t = [p.role_txt, p.specialist, String(p.about || '').slice(0, 300)].join(' ');
+    var t = [p.role_txt, p.specialist, String(p.about || '').slice(0, 300)].join(' ').replace(PATH_WORDS, ' ');
     if (HAIR_ASSIST.test(t)) return 'Hair Assistant';
-    if (ROLE_FIXED[p.role_key]) return ROLE_FIXED[p.role_key];
-    if (/receptionist|front desk/i.test(t)) return 'Front Desk / Reception';
-    var h = t.search(HAIR_WORD), b = t.search(BEAUTY_WORD);
-    if (h >= 0 && (b < 0 || h <= b)) return 'Hairdresser / Hair Stylist';
-    if (b >= 0) return 'Beautician';
-    return 'Not stated';
+    // whichever of reception, hair or beauty words comes first in what they wrote (a hair person's "receptionist" never beats "hairstylist" and the other way round)
+    var r = t.search(REC_WORD), h = t.search(HAIR_WORD), b = t.search(BEAUTY_WORD), first = -1, g = '';
+    [[r, 'Front Desk / Reception'], [h, 'Hairdresser / Hair Stylist'], [b, 'Beautician']].forEach(function (x) { if (x[0] >= 0 && (first < 0 || x[0] < first)) { first = x[0]; g = x[1]; } });
+    return g || ROLE_FIXED[p.role_key] || 'Not stated';
   }
   // Kate, 11 Nov 2026: the employment type they are interested in, from the path(s) ticked on the form. More than one path shows as "A + B"; no path (a direct email) is Not stated.
   function empType(p) {
