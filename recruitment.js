@@ -359,18 +359,31 @@
     return c || 'Not stated';
   }
   function expNum(p) { var m = /(\d+)/.exec(String(p.experience || '')); return m ? +m[1] : 999; }   // "5 to 10 years" sorts as 5, "7 years" as 7, blank last
+  // Kate, 11 Nov 2026: "Applying for" shows a few fixed values, not what the person typed (change the words here only):
+  //   Hair Assistant (says so in the subject, role or what they wrote), then the role the mailbox script read (hair roles = Hairdresser / Hair Stylist, beauty and nails = Beautician,
+  //   front desk), and for "other" the first hair or beauty word in what they wrote; no clue at all is Not stated.
+  var ROLE_FIXED = { stylist: 'Hairdresser / Hair Stylist', colourist: 'Hairdresser / Hair Stylist', barber: 'Hairdresser / Hair Stylist', braider: 'Hairdresser / Hair Stylist',
+                     beauty: 'Beautician', nails: 'Beautician', front: 'Front Desk / Reception' };
+  var HAIR_ASSIST = /(hair\s*dresser|hairdresser|hair|salon)\s*(and\s*)?assistant|assistant\s*(hair\s*dresser|hairdresser|hair\b|stylist)|\bhair\s*assist/i;
+  var HAIR_WORD = /hair|stylist|barber|braid|colou?rist|balayage|keratin|wig/i, BEAUTY_WORD = /beaut|nail|manicur|pedicur|lash|make-?up|henna|facial|skin|massage|\bwax|threading|therapist/i;
   function roleGroup(p) {
-    var r = ROLES.filter(function (x) { return x[0] === p.role_key; })[0];
-    return r ? r[1] : 'Other';
+    var t = [p.role_txt, p.specialist, String(p.about || '').slice(0, 300)].join(' ');
+    if (HAIR_ASSIST.test(t)) return 'Hair Assistant';
+    if (ROLE_FIXED[p.role_key]) return ROLE_FIXED[p.role_key];
+    if (/receptionist|front desk/i.test(t)) return 'Front Desk / Reception';
+    var h = t.search(HAIR_WORD), b = t.search(BEAUTY_WORD);
+    if (h >= 0 && (b < 0 || h <= b)) return 'Hairdresser / Hair Stylist';
+    if (b >= 0) return 'Beautician';
+    return 'Not stated';
   }
-  function roleShort(p) {
-    var s = String(p.role_txt || p.paths || p.specialist || '').replace(/^[\s\-]+/, '');
-    if (!s) return 'Not stated';
-    if (/Path (One|Two|Three)/i.test(s)) {
-      var n = []; if (/Path One/i.test(s)) n.push('Employed stylist'); if (/Path Two/i.test(s)) n.push('Flexible stylist'); if (/Path Three/i.test(s)) n.push('Rent-a-chair');
-      return n.join(', ');
-    }
-    return s.length > 48 ? s.slice(0, 46) + '…' : s;
+  // Kate, 11 Nov 2026: the employment type they are interested in, from the path(s) ticked on the form. More than one path shows as "A + B"; no path (a direct email) is Not stated.
+  function empType(p) {
+    var s = [p.paths, p.role_txt].join(' '), n = [];
+    if (/Path One/i.test(s)) n.push('Employed');
+    if (/Path Two/i.test(s)) n.push('Flexible');
+    if (/Path Three/i.test(s)) n.push('Rent-a-chair');
+    if (/Not sure yet/i.test(s)) n.push('Not sure yet');
+    return n.length ? n.join(' + ') : 'Not stated';
   }
   function statusText(p) {
     var b = bucket(p);
@@ -401,7 +414,8 @@
     { k: 'ig', t: 'Link to work', val: igLabel, sort: function (p) { return (linkKind(p) ? '0' : '1') + igLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return cvUrl(p) ? 0 : deadCv(p) ? 1 : 2; }, kind: 'text' },
     { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: expNum, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
-    { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleShort(p).toLowerCase(); }, kind: 'text' },
+    { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleGroup(p).toLowerCase(); }, kind: 'text' },
+    { k: 'emp', t: 'Employment type', val: empType, sort: function (p) { return empType(p).toLowerCase(); }, kind: 'text' },
     { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
     { k: 'src', t: 'Came from', val: srcLabel, sort: function (p) { return srcLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'wait', t: 'Waiting', val: waitBucket, sort: function (p) { return (p.stage === 'new' && !p.replied_at) ? waited(p) : -1; }, kind: 'num', asc: 'Shortest wait first', desc: 'Longest wait first' },
@@ -446,7 +460,8 @@
           : cellBtn('<span class="rct-ns">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>', 'cv', cvLabel(p))) + '</td>';
       }
       case 'exp': return '<td>' + cellBtn(esc(p.experience || 'Not stated'), 'exp', p.experience || 'Not stated') + '</td>';
-      case 'role': return '<td>' + cellBtn(esc(roleShort(p)), 'role', roleGroup(p)) + '</td>';
+      case 'role': return '<td>' + cellBtn(esc(roleGroup(p)), 'role', roleGroup(p)) + '</td>';
+      case 'emp': { var ev = empType(p); return '<td>' + cellBtn(ev === 'Not stated' ? '<span class="rct-ns">Not stated</span>' : esc(ev), 'emp', ev) + '</td>'; }
       case 'applied': return '<td>' + cellBtn(esc(fat(p.applied_at)), 'applied', monthOf(p)) + '</td>';
       case 'wait': {
         if (p.stage !== 'new') return '<td><span class="rct-ns">-</span></td>';
