@@ -126,6 +126,7 @@ function rctRun_(fromMs, toMs, dry) {
     const res = rctPush_(rows.slice(i, i + 200), dry);
     Object.keys(res).forEach(function (k) { if (typeof res[k] === 'number') totals[k] = (totals[k] || 0) + res[k]; });
   }
+  totals.cv_rebuilt = RCT_CV_STATS.rebuilt; totals.cv_unresolved = RCT_CV_STATS.unresolved;
   console.log(JSON.stringify(totals));
   if (un.count) console.log('Unreadable by Apps Script (open these in Gmail by hand; date | sender | subject; first ' + Math.min(un.count, RCT_UNREADABLE_CAP) + ' of ' + un.count + '):\n' + un.list.join('\n'));
   return totals;
@@ -190,6 +191,37 @@ function rctClassify_(m, own) {
   return rctDirect_(m, fromAddr, subject, body, at, mailbox, msgId);
 }
 
+/* ---------- the CV link (fixed 11 Nov 2026) ----------
+   The raw form copy (from info@) is an HTML email, and GmailApp's plain body wraps the CV filename in a Brevo click-tracking link (badhbgjd.r.*.sendibt*.com or
+   tsp1-brevo.net, /tr/cl/...). Those links are dead (404) and hide the real file, so 249 applicants showed a CV that opened "Page not found". The real file sits at
+   the website's fixed Gravity Forms folder: BASE + YYYY/MM + / + the file name shown in the email (checked: IMG_8698.jpg, 10 Sep 2026, answers 200). The month is the
+   upload month, so a few days either side of midnight can land in the neighbouring month: try each candidate and keep the first one the website answers 200 for.
+   If none answers, the link is left blank (the database then keeps whatever it already has) and the run logs how many it could not resolve. */
+const RCT_CV_BASE = 'https://www.tararosesalon.com/wp-content/uploads/gravity_forms/14-751f9867c40e14976fe72c223c1edc15/';
+const RCT_TRACKING = /^https?:\/\/[^\/]*(sendibt\d*|brevo)[^\/]*\//i;
+var RCT_CV_STATS = { rebuilt: 0, unresolved: 0 };
+function rctIsTracking_(u) { return RCT_TRACKING.test(String(u || '').trim()); }
+function rctCvLink_(text, at) {
+  const t = String(text || ''), urls = t.match(/https?:\/\/[^\s)\]>]+/gi) || [];
+  const direct = urls.filter(function (u) { return !rctIsTracking_(u); })[0];
+  if (direct) return direct;                                   // a real link already (image uploads, non-Latin file names)
+  const name = t.replace(/https?:\/\/[^\s)\]>]+/gi, ' ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) return '';   // no file name to rebuild from
+  const when = new Date(at), months = [];
+  [when.getTime(), when.getTime() + 4 * 3600000, when.getTime() - 86400000, when.getTime() + 86400000].forEach(function (ms) {
+    const d = new Date(ms), k = d.getUTCFullYear() + '/' + ('0' + (d.getUTCMonth() + 1)).slice(-2);
+    if (months.indexOf(k) < 0) months.push(k);
+  });
+  const names = [name]; const dashed = name.replace(/\s+/g, '-'); if (dashed !== name) names.push(dashed);
+  const cands = []; months.forEach(function (mo) { names.forEach(function (n) { cands.push(RCT_CV_BASE + mo + '/' + encodeURIComponent(n)); }); });
+  try {
+    const res = UrlFetchApp.fetchAll(cands.map(function (u) { return { url: u, method: 'head', muteHttpExceptions: true, followRedirects: false }; }));
+    for (let i = 0; i < res.length; i++) if (res[i].getResponseCode() === 200) { RCT_CV_STATS.rebuilt++; return cands[i]; }
+  } catch (e) { console.log('CV check failed: ' + e); }
+  RCT_CV_STATS.unresolved++;
+  return '';
+}
+
 /* ---------- the website form ---------- */
 function rctHandle_(h) { return String(h || '').replace(/^@/, '').replace(/\.+$/, ''); }   // a handle at the end of a sentence picks up the full stop
 function rctLink_(text) {
@@ -226,7 +258,7 @@ function rctStructured_(body, at, mailbox, msgId) {
   return Object.assign({
     kind: 'application', source: 'form', name: f.Name, email: f.Email, whatsapp: f.WhatsApp, country: country, emirate: '',
     experience: f.Experience, specialist: f['Specialist areas'], paths: f.Paths, role_key: rctRoleOf_(f['Specialist areas']), role_txt: f.Paths || f['Specialist areas'],
-    cv_link: f.CV, about: (f.About || '').trim().slice(0, 2000), at: stamp, mailbox: mailbox, msg_id: msgId,
+    cv_link: rctIsTracking_(f.CV) ? '' : f.CV, about: (f.About || '').trim().slice(0, 2000), at: stamp, mailbox: mailbox, msg_id: msgId,
   }, link);
 }
 function rctRawForm_(body, at, mailbox, msgId) {
@@ -246,12 +278,12 @@ function rctRawForm_(body, at, mailbox, msgId) {
   const list = function (k) { return String(v[k] || '').split(/\r?\n|\t|,\s*/).map(function (s) { return s.replace(/\s+/g, ' ').trim(); }).filter(Boolean); };
   const link = rctLink_(one('Link to your work'));
   const country = one('Where are you currently based?');
-  const cvText = one('Please upload your CV'), cvUrl = /https?:\/\/\S+/i.exec(cvText);
+  const cvText = one('Please upload your CV');
   return Object.assign({
     kind: 'application', source: 'form', name: one('Full Name'), email: rctAddr_(one('Email Address')), whatsapp: one('Whatsapp Number'), country: country, emirate: one('Which Emirate?'),
     experience: one('Years of Experience'), specialist: list('Your specialist area').join(', '), paths: list('Which path interests you most?').join('; '),
     role_key: rctRoleOf_(list('Your specialist area').join(' ')), role_txt: list('Which path interests you most?').join('; ') || list('Your specialist area').join(', '),
-    cv_link: cvUrl ? cvUrl[0] : '', about: String(v['Tell us about yourself'] || '').replace(/\t/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000),
+    cv_link: rctCvLink_(cvText, at), about: String(v['Tell us about yourself'] || '').replace(/\t/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000),
     at: at, mailbox: mailbox, msg_id: msgId,
   }, link);
 }

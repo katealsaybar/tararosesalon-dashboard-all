@@ -8,6 +8,9 @@
   function main() { return document.getElementById('recruitmentContent'); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function safeUrl(u) { u = String(u || '').trim(); return /^https?:\/\/[^\s]+$/i.test(u) ? u : ''; }
+  // Kate, 11 Nov 2026: a Brevo click-tracking link (sendibt, brevo.net) is dead (404) and hides the real file, so it never counts as a usable CV link.
+  function deadCv(p) { return /^https?:\/\/[^\/]*(sendibt\d*|brevo)[^\/]*\//i.test(String(p.cv_link || '').trim()); }
+  function cvUrl(p) { return deadCv(p) ? '' : safeUrl(p.cv_link); }
   function pl(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
 
   var ROLES = [['stylist', 'Hair stylist'], ['colourist', 'Colourist'], ['beauty', 'Beauty therapist'], ['nails', 'Nail technician'],
@@ -152,7 +155,7 @@
     return p.source === 'form' ? '<span class="rct-none">None given</span>' : '<span class="rct-ns">Not stated</span>';
   }
   function linksHtml(p) {
-    var s = '', cv = safeUrl(p.cv_link);
+    var s = '', cv = cvUrl(p);
     if (cv) s += '<a href="' + esc(cv) + '" target="_blank" rel="noopener">CV</a>';
     if (p.email) s += '<a href="https://mail.google.com/mail/?authuser=recruitment@tararosesalon.com#search/' + encodeURIComponent(p.email) + '" target="_blank" rel="noopener">Their emails in Gmail</a>';
     var wa = String(p.whatsapp || '').replace(/\D/g, '');
@@ -383,7 +386,7 @@
   // Kate, 10 Nov 2026: a CV column. The CV link opens the original; people without one show as No CV (a form asks for one, a direct email may carry it as an attachment).
   // Kate, 11 Nov 2026: a Profile photo column so the people with a photo can be filtered from the ones without (the first column only shows the picture or initials).
   function photoLabel(p) { return p.photo ? 'Has photo' : 'No photo'; }
-  function cvLabel(p) { return safeUrl(p.cv_link) ? 'Has CV' : 'No CV'; }
+  function cvLabel(p) { return cvUrl(p) ? 'Has CV' : deadCv(p) ? 'CV link broken' : 'No CV'; }
   var CV_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function igLabel(p) { var k = linkKind(p); return k ? linkName(p) : (p.source === 'form' ? 'None given' : 'Not stated'); }
   // Kate, 10 Nov 2026: which inbox the application arrived in (a person who wrote to both shows as Both)
@@ -396,7 +399,7 @@
     { k: 'photo', t: 'Profile photo', val: photoLabel, sort: function (p) { return p.photo ? 0 : 1; }, kind: 'num', asc: 'With photo first', desc: 'Without photo first' },
     { k: 'place', t: 'Based in', val: countryShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'ig', t: 'Link to work', val: igLabel, sort: function (p) { return (linkKind(p) ? '0' : '1') + igLabel(p).toLowerCase(); }, kind: 'text' },
-    { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return safeUrl(p.cv_link) ? 0 : 1; }, kind: 'text' },
+    { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return cvUrl(p) ? 0 : deadCv(p) ? 1 : 2; }, kind: 'text' },
     { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: expNum, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
     { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
@@ -438,9 +441,9 @@
         var v = igLabel(p); return '<td>' + cellBtn('<span class="' + (v === 'Not stated' ? 'rct-ns' : 'rct-none') + '">' + esc(v) + '</span>', 'ig', v) + '</td>';
       }
       case 'cv': {
-        var cu = safeUrl(p.cv_link);
+        var cu = cvUrl(p);
         return '<td>' + (cu ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><a class="rct-ig" href="' + esc(cu) + '" target="_blank" rel="noopener">CV</a></span>'
-          : cellBtn('<span class="rct-ns">No CV</span>', 'cv', 'No CV')) + '</td>';
+          : cellBtn('<span class="rct-ns">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>', 'cv', cvLabel(p))) + '</td>';
       }
       case 'exp': return '<td>' + cellBtn(esc(p.experience || 'Not stated'), 'exp', p.experience || 'Not stated') + '</td>';
       case 'role': return '<td>' + cellBtn(esc(roleShort(p)), 'role', roleGroup(p)) + '</td>';
