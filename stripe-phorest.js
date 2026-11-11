@@ -215,7 +215,7 @@ function spvPaint() {
     const salCell = spvName(r.b) + (r.s === 'wrong' ? `<span class="spv-sub">rung through at ${spvName(r.sbranch)}</span>` : '');
     const sameNm = r.sclient && r.s !== 'nostripe' && spvSameName(r.name, r.sclient);   // same name on both sides: leave the Phorest cell blank
     const phLink = spvBookOk() && r.sclient ? `<a class="spv-bk" href="/?view=clientbook&amp;cbq=${encodeURIComponent(r.sclient)}" target="_blank" rel="noopener" title="Find ${spvEsc(r.sclient)} in the Client Book" onclick="event.stopPropagation()">${spvEsc(r.sclient)}</a>` : spvEsc(r.sclient || '');
-    const phCell = sameNm ? '' : r.sclient ? phLink : '<span class="spv-dim">Not found</span>';
+    const phCell = sameNm ? '' : r.sclient ? phLink : r.s === 'waiting' ? '<span class="spv-dim">Appointment ahead</span>' : '<span class="spv-dim">Not found</span>';
     const phShow = !sameNm && !!r.sclient;
     const clSub = '';
     let h = `<tr class="spv-row ${r.s}${open ? ' open' : ''}" data-id="${spvEsc(r.id)}" tabindex="0" role="button" aria-expanded="${open}">` +
