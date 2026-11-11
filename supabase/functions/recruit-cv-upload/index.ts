@@ -13,14 +13,14 @@
 //   POST  x-mode: upload  x-msg-id, x-file-name (URL-encoded), body = the raw file bytes
 //         -> {"ok": true, "path": "..."} | {"ok": true, "exists": true} | an error with a status code
 // The person is found by the Gmail message id (recruit_applicants.msg_ids), so the script must have pushed the application first (recruit_import).
-// Limits: 5 MB, pdf / doc / docx / jpeg / png / webp only (the type is taken from the file name, not from what the sender claimed).
+// Limits: 10 MB (raised from 5 on 11 Nov 2026), pdf / doc / docx / jpeg / png / webp only (the type is taken from the file name, not from what the sender claimed).
 //
 // Deploy: supabase functions deploy recruit-cv-upload --no-verify-jwt --project-ref gvijxenafoowajqktqvd
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const MAX = 5 * 1024 * 1024;
+const MAX = 10 * 1024 * 1024;
 const TYPES: Record<string, string> = {
   pdf: "application/pdf", doc: "application/msword",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
   if (!type) return out(415, { error: "that file type is not accepted: " + ext });
   const bytes = new Uint8Array(await req.arrayBuffer());
   if (!bytes.length) return out(400, { error: "empty file" });
-  if (bytes.length > MAX) return out(413, { error: "file is over 5 MB" });
+  if (bytes.length > MAX) return out(413, { error: "file is over 10 MB" });
 
   const p = await sb.from("recruit_applicants").select("id, cv_file, cv_file_msg").contains("msg_ids", [msgId]).limit(1).maybeSingle();
   if (p.error) return out(500, { error: p.error.message });

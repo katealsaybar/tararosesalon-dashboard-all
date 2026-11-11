@@ -156,9 +156,9 @@ function rctPush_(rows, dry) {
    A direct email carries its CV as an attached file, and Coach Emma has no access to info@, so each attachment is sent to the edge function recruit-cv-upload (same push
    pass), which keeps it in the private bucket recruit-cvs; Kate and Coach Emma open it from the Recruitment page. One call first asks which messages already have their file, so
    the every-5-minutes run and a backfill never upload the same file twice. Only the best attachment of a message is sent: a file named like a CV, else a pdf / doc / docx, else the
-   largest picture of 40 KB or more (a signature logo is smaller). 5 MB a file. A failure is counted and logged, never stops the run. */
+   largest picture of 40 KB or more (a signature logo is smaller). 10 MB a file. A failure is counted and logged, never stops the run. */
 const RCT_CV_EXT = { pdf: 1, doc: 1, docx: 1, jpg: 1, jpeg: 1, png: 1, webp: 1 };
-const RCT_CV_MAX = 5 * 1024 * 1024;
+const RCT_CV_MAX = 10 * 1024 * 1024;   // 10 MB (was 5: a real applicant's 8 MB CV was refused on 11 Nov 2026)
 // 11 Nov 2026: includeInlineImages is TRUE on purpose. The info@ backfill saw 44 of 45 direct emails with no attachment although some say 'CV attached' (Akash Deep, Merin R):
 // phone and some desktop mail apps send a PDF with an inline disposition, which a call that leaves inline parts out does not return. The filters below (CV-type files only,
 // pictures of 40 KB or more) already keep signature logos out.

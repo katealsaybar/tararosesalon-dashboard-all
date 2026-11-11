@@ -1,0 +1,10 @@
+-- Recruitment: set "Applying for" by hand, and a 10 MB CV limit (Kate, 11 Nov 2026). Run after recruit_bucket_override.sql. Additive.
+--
+-- "kung di mo ma determine ako na lang mag set": where the email or the CV does not say what someone applies for, Kate or Coach Emma pick it in the row.
+--   recruit_applicants.role_override   text, null = automatic; otherwise one of Hairdresser / Hair Stylist, Hair Assistant, Beautician, Front Desk / Reception, Other
+--   recruit_set_role(id, to)           Kate / Coach Emma only; to = 'auto' (or null) clears it
+--   recruit_get()                      also returns 'role_set'
+-- CV limit: bucket recruit-cvs file_size_limit 10485760 (was 5 MB), the edge function recruit-cv-upload MAX 10 MB and the script's RCT_CV_MAX 10 MB, after an 8 MB CV from a real applicant was refused.
+-- Undo: drop the function and the column, put recruit_get back from recruit_bucket_override.sql, set the bucket limit back to 5242880.
+-- (The statements were applied live as the migration recruit_role_override on 11 Nov 2026: alter table, recruit_set_role, recruit_get with 'role_set', and
+--  update storage.buckets set file_size_limit = 10485760 where id = 'recruit-cvs'.)

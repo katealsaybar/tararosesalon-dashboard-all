@@ -199,7 +199,7 @@
       '<div class="rct-fact"><span>Based in</span><b>' + placeOf(p) + '</b></div>' +
       '<div class="rct-fact"><span>Link to work</span><b>' + igHtml(p) + '</b></div>' +
       '<div class="rct-fact"><span>Experience</span><b>' + stated(p.experience) + '</b></div>' +
-      '<div class="rct-fact"><span>Applying for</span><b>' + roleLine(p) + '</b></div>' +
+      '<div class="rct-fact"><span>Applying for</span><b>' + roleSelect(p) + '<div class="rct-roleraw">' + roleLine(p) + '</div></b></div>' +
       '<div class="rct-fact"><span>Applied</span><b>' + esc(fat(p.applied_at)) + ' <span class="rct-src">(' + (p.source === 'form' ? 'website form' : 'email') + (p.merged > 1 ? ', ' + p.merged + ' emails merged' : '') + ')</span></b></div>' +
       '</div>';
   }
@@ -415,14 +415,25 @@
   var ROLE_FIXED = { stylist: 'Hairdresser / Hair Stylist', colourist: 'Hairdresser / Hair Stylist', barber: 'Hairdresser / Hair Stylist', braider: 'Hairdresser / Hair Stylist',
                      beauty: 'Beautician', nails: 'Beautician', front: 'Front Desk / Reception' };
   var HAIR_ASSIST = /(hair\s*dresser|hairdresser|hair|salon)\s*(and\s*)?assistant|assistant\s*(hair\s*dresser|hairdresser|hair\b|stylist)|\bhair\s*assist/i;
-  var HAIR_WORD = /hair|stylist|barber|braid|colou?rist|balayage|keratin|wig/i, BEAUTY_WORD = /beaut|nail|manicur|pedicur|lash|make-?up|henna|facial|skin|massage|\bwax|threading|therapist/i;
+  var HAIR_WORD = /hair|stylist|barber|braid|colou?rist|colou?r\s*specialist|balayage|keratin|wig|coiffeu|parrucchier|peluquer|barbier|مصفف|حلاق|تصفيف|парикмахер|стилист|барбер/i,
+      BEAUTY_WORD = /beaut|nail|manicur|pedicur|lash|make-?up|henna|facial|skin|massage|\bwax|threading|therapist|esthetic|aesthetic|maquill|esthéti|manucure|ongle|estetist|unghie|مكياج|تجميل|اظافر|أظافر|بشرة|маникюр|косметолог/i;
   // Kate, 11 Nov 2026 (second pass, Serge Allaverdian: "she's not a beautician, she's a hair colourist"): what the person WROTE decides first, because the mailbox script's own role
   // guess puts "beauty" ahead of "stylist" and caught a handle like beauty_glam_dxb. The path they ticked ("The Employed Stylist") is taken out of the text first, it says nothing about the
   // trade. Hair Assistant wins, then front desk, then whichever of the hair or the beauty words comes FIRST in what they wrote; the script's role_key is only the fallback.
   var PATH_WORDS = /Path (One|Two|Three):\s*(The (Employed|Flexible) Stylist|Rent-a-Chair)|Not sure yet\s*I would like to explore the options/gi;
   var REC_WORD = /receptionist|front\s*(desk|off+ice)|call\s*cent/i;
+  // the CV's own file name often says it ("Youssef_Ehab_Hairstylist_CV.pdf"): the stored attachment's name, else the file name at the end of the CV link
+  function cvFileName(p) {
+    var n = p.cv_file_name || ''; if (n) return n;
+    var m = /([^\/?#]+\.(?:pdf|docx?|jpe?g|png|webp))(?:[?#].*)?$/i.exec(String(p.cv_link || ''));
+    if (!m) return '';
+    try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
+  }
+  // Kate, 11 Nov 2026: "kung di mo ma determine ako na lang mag set": the dropdown in the Applying for cell sets it by hand (role_override), whatever the text says.
+  var ROLE_CHOICES = ['Hairdresser / Hair Stylist', 'Hair Assistant', 'Beautician', 'Front Desk / Reception', 'Other'];
   function roleGroup(p) {
-    var t = [p.role_txt, p.specialist, String(p.about || '')].join(' ').replace(PATH_WORDS, ' ');
+    if (p.role_set) return p.role_set;
+    var t = [p.role_txt, p.specialist, String(p.about || ''), cvFileName(p).replace(/[_.]+/g, ' ')].join(' ').replace(PATH_WORDS, ' ');
     if (HAIR_ASSIST.test(t)) return 'Hair Assistant';
     // whichever of reception, hair or beauty words comes first in what they wrote (a hair person's "receptionist" never beats "hairstylist" and the other way round)
     var r = t.search(REC_WORD), h = t.search(HAIR_WORD), b = t.search(BEAUTY_WORD), first = -1, g = '';
@@ -430,6 +441,20 @@
     return g || ROLE_FIXED[p.role_key] || 'Not stated';
   }
   // Kate, 11 Nov 2026: the employment type they are interested in, from the path(s) ticked on the form. More than one path shows as "A + B"; no path (a direct email) is Not stated.
+  function autoRole(p) { var was = p.role_set; p.role_set = null; var g = roleGroup(p); p.role_set = was; return g; }
+  function roleSelect(p) {
+    var cur = p.role_set || 'auto';
+    return '<select class="rct-pill rct-pillsel rct-rolesel" data-rs="' + esc(p.id) + '" aria-label="Applying for, ' + esc(p.name || 'this person') + '">' +
+      '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>' + (autoRole(p) === 'Not stated' ? 'Not stated (set it)' : esc(autoRole(p)) + ' (automatic)') + '</option>' +
+      ROLE_CHOICES.map(function (x) { return '<option value="' + esc(x) + '"' + (cur === x ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>';
+  }
+  async function setRole(id, to) {
+    var p = personById(id); if (!p) return;
+    try {
+      var r = await sb.rpc('recruit_set_role', { p_id: p.id, p_to: to === 'auto' ? null : to }); if (r.error) throw new Error(r.error.message);
+      p.role_set = to === 'auto' ? null : to; render(); toast(to === 'auto' ? firstName(p.name) + ': back to automatic.' : firstName(p.name) + ' is set to ' + to + '.');
+    } catch (e) { console.error(e); render(); toast('That did not save: ' + (e.message || 'try again')); }
+  }
   function empType(p) {
     var s = [p.paths, p.role_txt].join(' '), n = [];
     if (/Path One/i.test(s)) n.push('Employed');
@@ -536,7 +561,7 @@
           : cellBtn('<span class="rct-ns rct-nw">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>', 'cv', cvLabel(p))) + '</td>';
       }
       case 'exp': return '<td>' + cellBtn(esc(p.experience || 'Not stated'), 'exp', p.experience || 'Not stated') + '</td>';
-      case 'role': return '<td>' + cellBtn(esc(roleGroup(p)), 'role', roleGroup(p)) + '</td>';
+      case 'role': return '<td>' + roleSelect(p) + '</td>';
       case 'emp': { var ev = empType(p); return '<td>' + cellBtn(ev === 'Not stated' ? '<span class="rct-ns">Not stated</span>' : esc(ev), 'emp', ev) + '</td>'; }
       case 'applied': return '<td>' + cellBtn(esc(fat(p.applied_at)), 'applied', monthOf(p)) + '</td>';
       case 'wait': {
@@ -1148,6 +1173,7 @@
         catch (err) { console.error(err); settings.open_roles_text = was; render(); toast('That did not save: ' + err.message); }
         return;
       }
+      if (e.target && e.target.getAttribute && e.target.getAttribute('data-rs')) { setRole(e.target.getAttribute('data-rs'), e.target.value); return; }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-bk')) { setBucket(e.target.getAttribute('data-bk'), e.target.value); return; }
       if (e.target && e.target.id === 'rctPageSize') { var n = parseInt(e.target.value, 10); if (SIZES.indexOf(n) >= 0) { S.pageSize = n; S.page = 0; savePageSize(n); render(); } }
     });
