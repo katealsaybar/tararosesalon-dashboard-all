@@ -381,6 +381,8 @@
     var d = waited(p); return d >= 21 ? '21 days or more' : d >= 14 ? '14 to 20 days' : d >= 7 ? '7 to 13 days' : 'Under 7 days';
   }
   // Kate, 10 Nov 2026: a CV column. The CV link opens the original; people without one show as No CV (a form asks for one, a direct email may carry it as an attachment).
+  // Kate, 11 Nov 2026: a Profile photo column so the people with a photo can be filtered from the ones without (the first column only shows the picture or initials).
+  function photoLabel(p) { return p.photo ? 'Has photo' : 'No photo'; }
   function cvLabel(p) { return safeUrl(p.cv_link) ? 'Has CV' : 'No CV'; }
   var CV_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function igLabel(p) { var k = linkKind(p); return k ? linkName(p) : (p.source === 'form' ? 'None given' : 'Not stated'); }
@@ -391,6 +393,7 @@
   var COLS = [
     { k: 'av', t: '', nofilter: true },
     { k: 'name', t: 'Name', val: function (p) { return p.name || 'Name not stated'; }, sort: function (p) { return String(p.name || '').toLowerCase(); }, kind: 'text' },
+    { k: 'photo', t: 'Profile photo', val: photoLabel, sort: function (p) { return p.photo ? 0 : 1; }, kind: 'num', asc: 'With photo first', desc: 'Without photo first' },
     { k: 'place', t: 'Based in', val: countryShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'ig', t: 'Link to work', val: igLabel, sort: function (p) { return (linkKind(p) ? '0' : '1') + igLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return safeUrl(p.cv_link) ? 0 : 1; }, kind: 'text' },
@@ -424,6 +427,7 @@
       case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
       case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
       case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
+      case 'photo': return '<td>' + cellBtn(p.photo ? 'Has photo' : '<span class="rct-ns">No photo</span>', 'photo', photoLabel(p)) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
       case 'ig': {
         var kk = linkKind(p);
