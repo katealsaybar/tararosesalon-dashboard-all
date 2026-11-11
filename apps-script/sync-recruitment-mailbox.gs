@@ -410,8 +410,9 @@ function rctDirect_(m, fromAddr, subject, body, at, mailbox, msgId) {
   const ig = /instagram\.com\/([A-Za-z0-9._]+)/i.exec(text) || /instagram[^\n]{0,40}?@([A-Za-z0-9._]{2,30})/i.exec(text);
   const wa = /(\+?\d[\d ()-]{8,16}\d)/.exec(body.slice(0, 3000));
   const otherLink = /(https?:\/\/(?:www\.)?(?:tiktok\.com|facebook\.com|linkedin\.com|youtu\.?be)[^\s)>"]+)/i.exec(text);
-  // a CV sent as a cloud link in the message (Gmail turns a big attachment into a Google Drive link, others paste Dropbox, WeTransfer, OneDrive or Canva): that link is the CV
-  const cloud = /(https?:\/\/(?:drive\.google\.com\/(?:file\/d\/|open\?id=|drive\/folders\/)|docs\.google\.com\/(?:document|file)\/|(?:www\.)?dropbox\.com\/|we\.tl\/|(?:www\.)?wetransfer\.com\/|1drv\.ms\/|onedrive\.live\.com\/|app\.box\.com\/|(?:www\.)?canva\.com\/design\/)[^\s)>"]+)/i.exec(body.slice(0, 3000));
+  // a CV sent as a cloud link in the message (Gmail turns a big attachment into a Google Drive link, others paste Dropbox, WeTransfer, OneDrive, Canva or an iCloud shared note; an
+  // iPhone shows only the first line of a shared note as the text, 'Hello! My name is Hellen...', and the whole letter is behind the link): that link is the CV
+  const cloud = /(https?:\/\/(?:drive\.google\.com\/(?:file\/d\/|open\?id=|drive\/folders\/)|docs\.google\.com\/(?:document|file)\/|(?:www\.)?dropbox\.com\/|we\.tl\/|(?:www\.)?wetransfer\.com\/|1drv\.ms\/|onedrive\.live\.com\/|app\.box\.com\/|(?:www\.)?canva\.com\/design\/|(?:www\.)?icloud\.com\/(?:notes|iclouddrive)\/|share\.icloud\.com\/)[^\s)>"]+)/i.exec(body.slice(0, 3000));
   const link = ig ? { work_link: 'https://www.instagram.com/' + rctHandle_(ig[1]), link_kind: 'instagram', ig_handle: rctHandle_(ig[1]) } : otherLink ? rctLink_(otherLink[1]) : { work_link: '', link_kind: '', ig_handle: '' };
   return Object.assign({
     kind: 'application', source: 'email', name: rctNameOf_(m.getFrom()), email: fromAddr, whatsapp: wa ? wa[1] : '', country: country, emirate: emirate,
