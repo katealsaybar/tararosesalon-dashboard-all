@@ -81,23 +81,38 @@ function qrCss() {
   .qrp .qr-wall small{display:block;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-bottom:3px}
   .qrp .qr-wall div{font-size:14.5px}
   .qrp .qr-start{margin:18px 0 0;font-size:15px;padding:12px 16px;border-left:4px solid var(--mint,#99F6E4);background:var(--surface2,var(--surface));border-radius:10px}
-  .qrp .qr-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
-  .qrp .qr-tile{border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;gap:6px}
-  .qrp .qr-tile .k{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;align-items:center}
-  .qrp .qr-tile .big{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;line-height:1.1}
-  .qrp .qr-tile .r2{font-size:13px;color:var(--muted)}
-  .qrp .qr-tile .ly{font-size:12.5px;color:var(--muted2)}
-  .qrp .qr-tile .ln{display:flex;justify-content:space-between;gap:8px;align-items:baseline;border-top:1px solid var(--border);padding-top:6px;margin-top:2px}
-  .qrp .qr-tile .ln:first-of-type{border-top:0;padding-top:0;margin-top:0}
-  .qrp .qr-tile .ln b{font-family:'Playfair Display',serif;font-size:20px;font-weight:500}
-  .qrp .qr-mini{display:flex;gap:8px;align-items:flex-end;height:58px;margin-top:6px;border-bottom:1.5px solid var(--muted2)}
-  .qrp .qr-mini>div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%;min-width:0}
+  .qrp .qr-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:6px}
+  .qrp .qr-tile{border:1px solid var(--border);border-radius:14px;padding:14px 16px 12px;background:var(--surface);display:flex;flex-direction:column;gap:9px}
+  .qrp .qr-tile .nm{font-size:13.5px;color:var(--muted)}
+  .qrp .qr-tile .nm b{font-weight:600;color:var(--text)}
+  .qrp .qr-tile .big{font-family:'Playfair Display',serif;font-size:28px;font-weight:500;line-height:1.05;white-space:nowrap}
+  .qrp .qr-tile .big.na{color:var(--muted2);font-size:24px}
+  .qrp .qr-meter{display:grid;gap:5px}
+  .qrp .qr-meter .p{font-size:12.5px;font-weight:700}
+  .qrp .qr-track{position:relative;height:10px;border-radius:6px;background:var(--border);overflow:hidden}
+  .qrp .qr-track i{position:absolute;left:0;top:0;bottom:0;border-radius:6px 0 0 6px;background:var(--muted2)}
+  .qrp .qr-track i.good{background:#3E7A5E}.qrp .qr-track i.warn{background:#C9962B}.qrp .qr-track i.bad{background:#C46A6A}
+  [data-theme="dark"] .qrp .qr-track i.good{background:#99F6E4}[data-theme="dark"] .qrp .qr-track i.warn{background:#EEF3C7}[data-theme="dark"] .qrp .qr-track i.bad{background:#FF9B9B}
+  .qrp .qr-track i.part{background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.28) 0 3px,transparent 3px 7px)}
+  .qrp .qr-track::after{content:"";position:absolute;left:66.667%;top:-2px;bottom:-2px;border-left:2px dashed var(--text);opacity:.55}
+  .qrp .qr-meter .tg{font-size:12.5px;color:var(--muted);line-height:1.35}
+  .qrp .qr-meter.none .box{border:1px dashed var(--border);border-radius:8px;padding:6px 10px;font-size:12.5px;color:var(--muted)}
+  .qrp .qr-tile .ly{font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;align-items:baseline;border-top:1px solid var(--border);padding-top:8px}
+  .qrp .qr-mini{display:flex;gap:8px;align-items:flex-end;height:52px;border-bottom:1.5px solid var(--muted2)}
+  .qrp .qr-mini>div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%}
   .qrp .qr-mini em{font-style:normal;font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;line-height:1}
   .qrp .qr-mini i{display:block;width:100%;background:#3E7A5E;border-radius:3px 3px 0 0;min-height:2px}
   [data-theme="dark"] .qrp .qr-mini i{background:#99F6E4}
-  .qrp .qr-ml{display:flex;gap:8px;margin-top:3px;font-size:11px;color:var(--muted2)}
-  .qrp .qr-ml span{flex:1;text-align:center}
-  .qrp .qr-tile.how{justify-content:center;color:var(--muted);font-size:14px;gap:4px}
+  .qrp .qr-mini i.part{background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.3) 0 3px,transparent 3px 6px)}
+  .qrp .qr-ml{display:flex;gap:8px;margin-top:-5px;font-size:11px;color:var(--muted2)}
+  .qrp .qr-ml span{flex:1;text-align:center;white-space:nowrap}
+  .qrp .qr-key{margin:12px 2px 0;font-size:13px;color:var(--muted2);display:flex;gap:16px;flex-wrap:wrap}
+  .qrp .qr-key span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;background:var(--border)}
+  .qrp .qr-key .a::before{background:#3E7A5E}.qrp .qr-key .b::before{background:#C9962B}.qrp .qr-key .c::before{background:#C46A6A}
+  [data-theme="dark"] .qrp .qr-key .a::before{background:#99F6E4}[data-theme="dark"] .qrp .qr-key .b::before{background:#EEF3C7}[data-theme="dark"] .qrp .qr-key .c::before{background:#FF9B9B}
+  .qrp .qr-key .d::before{background:none;border-left:2px dashed var(--text);border-radius:0;width:2px;height:12px;margin-right:7px}
+  .qrp .qr-key .e::before{background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.45) 0 3px,var(--muted2) 3px 6px)}
+  .qrp .qr-jt{scroll-margin-top:120px}
   .qrp .qr-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .qrp table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:760px}
   .qrp th,.qrp td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:top}
@@ -127,7 +142,7 @@ function qrCss() {
     body.qr-printing .sidebar,body.qr-printing #sidebar,body.qr-printing #topbar,body.qr-printing #topbarSpacer,body.qr-printing .qr-noprint,body.qr-printing #trs-ask,body.qr-printing .totop{display:none!important}
     body.qr-printing{background:#fff!important}
     body.qr-printing .qrp{max-width:none}
-    body.qr-printing .qr-start{display:none}
+    body.qr-printing .qr-start,body.qr-printing .lg-side,body.qr-printing .jn-rail{display:none!important}
   }`;
   document.head.appendChild(st);
 }
@@ -219,7 +234,8 @@ async function qrLoad() {
   const months = [];
   for (let d = new Date(from.getFullYear(), from.getMonth(), 1); d <= toEff; d.setMonth(d.getMonth() + 1)) {
     const a = new Date(Math.max(+d, +from)), b = new Date(Math.min(+new Date(d.getFullYear(), d.getMonth() + 1, 0), +toEff));
-    months.push({ label: QR_MON[d.getMonth()] + ' ' + d.getFullYear(), short: QR_MON[d.getMonth()], idx: qrIdx(a, b) });
+    const held = Math.round((b - a) / 864e5) + 1, dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    months.push({ label: QR_MON[d.getMonth()] + ' ' + d.getFullYear(), short: QR_MON[d.getMonth()], idx: qrIdx(a, b), held, part: held < dim });
   }
   // Branches that traded in the quarter: the four open ones, and a closed branch (Fratelli, Marasy) whose open days it touches, as everywhere on the dashboard.
   const codes = DPD.codes.filter(c => dpPeriodFig('sales', c, cur));
@@ -294,34 +310,34 @@ function qrPartNote(m, codes, idx) { const f = qrMany(m, codes, idx); return qrP
 const qrDn = (html, m, codes, idx) => { const sp = qrSpec(m, codes, idx); return sp ? TRSD.num(html, sp) : html; };
 
 // ── Draw ────────────────────────────────────────────────────
+const QR_JUMPS = [['qrTiles', 'The seven numbers'], ['qrBranch', 'Branch by branch'], ['qrReflect', 'What did you notice?'], ['qrTry', 'Your commitment']];
 function qrShown() { const C = QR.C; return QR.scope !== 'all' && C.codes.includes(QR.scope) ? [QR.scope] : C.codes; }
-function qrTile(m, codes) {
+// One tile, the same shape for all eight: name, figure, a meter (the figure against its target, the dashed line is 100%), last year, and the months from zero.
+// Average bill is two tiles, Hair and Beauty, so the seventh number reads as a pair and nothing wraps.
+function qrTile(m, codes, sub) {
   const C = QR.C, f = qrMany(m, codes, C.cur), g = qrMany(m, codes, C.ly);
   const dn = (h, idx) => qrDn(h, m, codes, idx || C.cur);
-  if (!f) return `<div class="qr-tile"><div class="k"><span>${qrEsc(m.label)}</span></div><div class="big" style="color:var(--muted2)">n/a</div><div class="r2">No figures in this quarter</div></div>`;
-  const pill = f.p == null ? '<span class="qr-pill">no target keyed</span>' : `<span class="qr-pill ${qrPart(f) ? 'warn' : qrCls(f.p)}">${dn(qrPctTxt(f))}</span>`;
-  const bars = C.months.map(mo => ({ mo, f: qrMany(m, codes, mo.idx) })), mx = Math.max(1, ...bars.map(b => b.f ? b.f.v : 0));
-  const mini = `<div class="qr-mini">${bars.map(b => `<div title="${qrEsc(b.mo.label)}: ${b.f ? qrEsc(qrFmt(m, b.f.v)) : 'no figures'}"><em>${b.f ? qrEsc(qrShort(m, b.f.v)) : ''}</em><i style="height:${b.f ? Math.max(2, Math.round(b.f.v / mx * 34)) : 2}px"></i></div>`).join('')}</div>
-    <div class="qr-ml">${bars.map(b => `<span>${b.f ? dn(qrEsc(b.mo.short), b.mo.idx) : qrEsc(b.mo.short)}</span>`).join('')}</div>`;
-  let lyLine = '<div class="ly">No figure for the same dates last year</div>';
+  const name = `<div class="nm"><b>${qrEsc(sub ? 'Average bill' : m.label)}</b>${sub ? ` <span>· ${qrEsc(sub)}</span>` : ''}</div>`;
+  if (!f) {
+    const hairOnly = m.beauty && codes.length === 1 && DPD.hairOnly[codes[0]];
+    return `<div class="qr-tile">${name}<div class="big na">n/a</div><div class="qr-meter none"><div class="box">${hairOnly ? 'Hair-only branch: no beauty clients, so no beauty bill.' : 'No figures in this quarter.'}</div></div></div>`;
+  }
+  const part = qrPart(f);
+  let meter;
+  if (f.p == null) meter = '<div class="qr-meter none"><div class="box">No target keyed for this quarter</div></div>';
+  else {
+    const c = qrCls(f.p), w = Math.min(Math.max(f.p, 0), 150) / 150 * 100;
+    meter = `<div class="qr-meter"><div class="p ${part ? 'warn' : c}">${dn(qrPctTxt(f))}</div><div class="qr-track" role="img" aria-label="${qrEsc(qrPctTxt(f))}"><i class="${part ? 'warn part' : c}" style="width:${w}%"></i></div><div class="tg">Target ${dn(qrTgtTxt(m, f))}</div></div>`;
+  }
+  let lyLine = '<div class="ly"><span>Same dates last year</span><span>n/a</span></div>';
   if (g) {
     const pts = m.t === 'pct', d = f.v - g.v, ch = pts ? d : (g.v ? d / g.v * 100 : null);
-    if (ch != null) lyLine = `<div class="ly">Same dates last year ${dn(qrFmt(m, g.v), C.ly)} · <span class="${ch >= 0 ? 'good' : 'bad'}">${ch >= 0 ? '+' : '-'}${Math.abs(Math.round(ch * 10) / 10)}${pts ? ' pts' : '%'}</span></div>`;
+    if (ch != null) lyLine = `<div class="ly"><span>Same dates last year ${dn(qrFmt(m, g.v), C.ly)}</span><span class="${ch >= 0 ? 'good' : 'bad'}"><b>${ch >= 0 ? '▲ +' : '▼ -'}${Math.abs(Math.round(ch * 10) / 10)}${pts ? ' pts' : '%'}</b></span></div>`;
   }
-  return `<div class="qr-tile"><div class="k"><span>${qrEsc(m.label)}</span>${pill}</div>
-    <div class="big">${dn(qrFmt(m, f.v))}</div>
-    <div class="r2">Target ${f.t == null ? 'none keyed' : dn(qrTgtTxt(m, f))}</div>${lyLine}${mini}</div>`;
-}
-function qrBillTile(codes) {
-  const C = QR.C, h = QR_BY.hbill, b = QR_BY.bbill;
-  const line = m => {
-    const f = qrMany(m, codes, C.cur); if (!f) return `<div class="ln"><span class="r2">${qrEsc(m.label)}</span><b style="color:var(--muted2)">n/a</b></div>`;
-    const dn = h2 => qrDn(h2, m, codes, C.cur);
-    return `<div class="ln"><span class="r2">${qrEsc(m.label.replace(' average bill', ''))}</span><b>${dn(qrFmt(m, f.v))}</b>
-      ${f.p == null ? '' : `<span class="qr-pill ${qrCls(f.p)}">${dn(qrPctTxt(f))}</span>`}</div>
-      <div class="ly" style="text-align:right">Target ${f.t == null ? 'none keyed' : dn(qrTgtTxt(m, f))}</div>`;
-  };
-  return `<div class="qr-tile"><div class="k"><span>Average bill</span></div>${line(h)}${line(b)}</div>`;
+  const bars = C.months.map(mo => ({ mo, f: qrMany(m, codes, mo.idx) })), mx = Math.max(1, ...bars.map(b => b.f ? b.f.v : 0));
+  const mini = `<div class="qr-mini">${bars.map(b => `<div title="${qrEsc(b.mo.label)}: ${b.f ? qrEsc(qrFmt(m, b.f.v)) : 'no figures'}${b.mo.part ? ' (' + b.mo.held + ' days so far)' : ''}"><em>${b.f ? qrEsc(qrShort(m, b.f.v)) : ''}</em><i class="${b.mo.part ? 'part' : ''}" style="height:${b.f ? Math.max(2, Math.round(b.f.v / mx * 34)) : 2}px"></i></div>`).join('')}</div>
+    <div class="qr-ml">${bars.map(b => `<span>${b.f ? dn(qrEsc(b.mo.short + (b.mo.part ? ', ' + b.mo.held + ' days' : '')), b.mo.idx) : qrEsc(b.mo.short)}</span>`).join('')}</div>`;
+  return `<div class="qr-tile">${name}<div class="big">${dn(qrFmt(m, f.v))}</div>${meter}${lyLine}${mini}</div>`;
 }
 function qrMatrix() {
   const C = QR.C, codes = C.codes;
@@ -369,25 +385,31 @@ function qrDraw(host) {
       <div><small>If we do nothing</small>We keep fixing the month that just ended and miss the pattern across three.</div>
     </div>
     <div class="qr-start"><b>Start here:</b> click the figure that looks wrong to you. It opens the branches, months and days behind it.</div>
-    <div class="qr-tiles">${['net', 'svc', 'tr', 'rt', 'cli', 'reb'].map(id => qrTile(QR_BY[id], shown)).join('')}${qrBillTile(shown)}
-      <div class="qr-tile how"><b style="color:var(--text)">How to read a tile</b><span>Big figure: what we did.</span><span>Target: what we planned.</span><span>Same dates last year: the comparison.</span><span>Bars: the months, drawn from zero.</span></div></div>
-    <p class="qr-note">${C.open ? 'The quarter is still open, so the target is the target to date for the days that have figures, not the whole quarter. ' : ''}A rate is pooled over the quarter, the way the Organisation Pulse reads it.</p>
-    <h3>The seven numbers, branch by branch</h3>
+    ${typeof lgRail === 'function' ? '<div class="lg-shell lg-shell-wide">' + lgRail(QR_JUMPS.map(([id, l]) => [id, l, `event.preventDefault();document.getElementById('${id}').scrollIntoView({behavior:'smooth',block:'start'})`])) + '<div class="lg-doc">' : '<div><div>'}
+    <section class="qr-jt" id="qrTiles"><h3 style="margin-top:6px">The seven numbers</h3>
+    <div class="qr-tiles">${['net', 'svc', 'tr', 'rt', 'cli', 'reb'].map(id => qrTile(QR_BY[id], shown)).join('')}${qrTile(QR_BY.hbill, shown, 'Hair')}${qrTile(QR_BY.bbill, shown, 'Beauty')}</div>
+    <div class="qr-key"><span style="margin:0">Dotted underline: click it for the list behind it.</span><span class="a">At or over target</span><span class="b">80 to 99%</span><span class="c">Under 80%</span><span class="d">100% of target</span><span class="e">A part month or part-keyed target</span></div>
+    <p class="qr-note">${C.open ? 'The quarter is still open, so the target is the target to date for the days that have figures, not the whole quarter. ' : ''}A rate is pooled over the quarter, the way the Organisation Pulse reads it.</p></section>
+    <section class="qr-jt" id="qrBranch"><h3>The seven numbers, branch by branch</h3>
     ${qrMatrix()}
     <p class="qr-note">The small figure under each number is its share of target. Every figure opens the list behind it. Bahrain (in BHD) is not in this first version: its rows are read through the Bahrain view, not this feed, so it is left out here rather than guessed.</p>
-    <div class="qr-reflect"><div class="qr-eb">Reflect</div><h3>What did you notice?</h3>
+    </section>
+    <section class="qr-jt" id="qrReflect"><div class="qr-reflect"><div class="qr-eb">Reflect</div><h3>What did you notice?</h3>
       <ol><li>Which branch moved most against last year, and what changed there?</li>
       <li>Which of the seven is furthest from target, and is it about the team, the bookings or the target itself?</li>
       <li>What did one branch do well that another could try this week?</li></ol>
       <label class="qr-l" for="qrThink">Think: in one sentence, what do we know now that we did not know last quarter?</label>
       <input type="text" class="qr-in" id="qrThink" maxlength="400" value="${qrEsc(r.think || '')}" placeholder="Type it here, together">
     </div>
-    <div class="qr-commit"><div class="qr-eb" style="color:var(--good,#3E7A5E)">Try · one action, one owner, one deadline</div>
+    </div></section>
+    <section class="qr-jt" id="qrTry"><div class="qr-commit"><div class="qr-eb" style="color:var(--good,#3E7A5E)">Try · one action, one owner, one deadline</div>
       <div class="row"><div><label class="qr-l" for="qrAct">My commitment this quarter is</label><input type="text" class="qr-in" id="qrAct" maxlength="200" value="${qrEsc(r.c_action || '')}"></div>
       <div><label class="qr-l" for="qrOwn">I will teach it to</label><input type="text" class="qr-in" id="qrOwn" maxlength="120" value="${qrEsc(r.c_owner || '')}"></div>
       <div><label class="qr-l" for="qrBy">By</label><input type="text" class="qr-in" id="qrBy" maxlength="60" value="${qrEsc(r.c_by || '')}"></div></div>
       <div class="qr-saved" id="qrSaved">${QR.recErr === 'setup' ? 'Not saved yet: the quarter_reports table has not been set up in Supabase (migrations/quarter_reports.sql).' : QR.recErr ? 'Could not read what was typed: ' + qrEsc(QR.recErr) : r.updated_by ? 'Last saved by ' + qrEsc(r.updated_by) + '. It is shown first next quarter, so we check it before we set a new one.' : 'Typed here, saved with this quarter, and shown first next quarter.'}</div>
     </div>
+    </div></section>
+    </div></div>
     <div class="qr-foot"><span>Figures are the total of the days Daily Performance shows, from the ledgers and Phorest, ex VAT. Targets are the Target Calculator's, spread over each branch's trading days. Clients are the handled (ledger) count.</span><span>Tara, Coach Emma and Kate only</span></div>
   </div>`;
   qrWire(host);
