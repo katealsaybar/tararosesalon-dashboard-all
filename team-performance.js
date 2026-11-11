@@ -796,7 +796,22 @@ function tpDaysSpec(st) {
           if (p.ph) { t.pv += p.ph.t || 0; t.rbv += p.ph.rbV || 0; t.rbr += p.ph.rbR || 0; }
         });
       });
-      if (hit && (t.net || t.cl || t.pv)) rows.push(Object.assign({ k, w: byDay ? tpDayTxt(k) : new Date(k + '-01T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) }, t));
+      if (hit && (t.net || t.cl || t.pv)) {
+        const w = byDay ? tpDayTxt(k) : new Date(k + '-01T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        // Kate, 11 Nov 2026 ("lahat ndi clickable across all employees"): each figure in her day opens the rows behind it (her sales lines, the clients she handled,
+        // her new clients), the same lists as the Daily Performance person list. Rebooked and treatments are typed by reception with no rows, so they stay plain.
+        let dn = null;
+        try {
+          if (window.PD && PD.personDayDn) {
+            const last = new Date(+k.slice(0, 4), +k.slice(5, 7), 0).getDate(), a = byDay ? k : k + '-01', b = byDay ? k : k + '-' + String(last).padStart(2, '0');
+            dn = PD.personDayDn({ name: st.name, codes, from: a < from ? from : a, to: b > to ? to : b, rows: (J.phorestStaffRows || []).filter(r => codes.includes(r.branch)),
+              label: `${(st.branches || [{ name: st.branchName }]).map(b => b.name).join(' + ')}, ${tpDayTxt(from)} to ${tpDayTxt(to)}`, range: `${tpDayTxt(from)} to ${tpDayTxt(to)}`, who: tpTitle(st.name), when: w, vals: t });
+          }
+        } catch (e) { dn = null; }
+        const row = Object.assign({ k, w }, t);
+        if (dn && Object.keys(dn).length) row._dn = dn;
+        rows.push(row);
+      }
     });
     if (!rows.length) return { cols: [], rows: [], empty: 'No days to show for her in this window.' };
     rows.sort((a, b) => b.k.localeCompare(a.k));
@@ -810,7 +825,13 @@ function tpDaysSpec(st) {
       .concat(st.isBeauty ? [] : [{ k: 'tr', l: 'Treatments', t: 'aed' }])
       .concat([{ k: 'cl', l: 'Clients (ledger)', t: 'num' }, { k: 'rb', l: 'Rebooked (ledger)', t: 'num' }, { k: 'rq', l: 'Requests', t: 'num' }, { k: 'nw', l: 'New clients', t: 'num' }, { k: 'pv', l: 'Visits (Phorest)', t: 'num' }])
       .concat(trk ? [{ k: 'rbr', l: 'Rebooked (tracker)', t: 'num' }, { k: 'rbv', l: 'Visits (tracker)', t: 'num' }] : []);
-    return { cols, rows, foot: Object.assign({ w: 'Total' }, card),
+    const foot = Object.assign({ w: 'Total' }, card);
+    try {   // the Total row opens the same lists over the whole window
+      const fd = window.PD && PD.personDayDn && PD.personDayDn({ name: st.name, codes, from, to, rows: (J.phorestStaffRows || []).filter(r => codes.includes(r.branch)),
+        label: `${(st.branches || [{ name: st.branchName }]).map(b => b.name).join(' + ')}, ${tpDayTxt(from)} to ${tpDayTxt(to)}`, range: `${tpDayTxt(from)} to ${tpDayTxt(to)}`, who: tpTitle(st.name), when: `${tpDayTxt(from)} to ${tpDayTxt(to)}`, vals: card });
+      if (fd && Object.keys(fd).length) foot._dn = fd;
+    } catch (e) {}
+    return { cols, rows, foot,
       sub: `${tpTitle(st.name)}, ${tpDayTxt(from)} to ${tpDayTxt(to)}. What her card on the Podium Race is made of, ${byDay ? 'a day' : 'a month'} at a time: the ledger rows reception typed (clients, rebooked, requests and new clients have no client names behind them) and Phorest's own rows. A rate on the card (rebooking, treatment, retail, average bill) is worked out from the total row.`,
       note: off ? 'The grey last line is the difference between her card, which works the whole window out in one go, and the rows above, which work it out one ' + (byDay ? 'day' : 'month') + ' at a time.' : '' };
   } }] };

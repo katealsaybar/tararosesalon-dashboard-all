@@ -3398,6 +3398,12 @@ body.ledger-chrome .lg-month-sel{font-size:15px}
   font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;letter-spacing:.04em;
   padding:5px 14px;border-radius:999px;cursor:pointer;transition:background .18s,color .18s}
 .tp-seg button.on{background:var(--accent);color:var(--accent-fg);font-weight:700}
+/* Kate, 11 Nov 2026 ("same pill width lang po"): on the Podium Race and Staff Quadrant bar every pill, the three switches and the Rank by list, is the same width,
+   and the two buttons inside a switch share it equally. A phone keeps its own full-width rows (mobile-late.css). */
+@media(min-width:761px){
+  .tp-bar .tp-seg,.tp-bar .ps{width:270px;max-width:100%;flex:none;box-sizing:border-box}
+  .tp-bar .tp-seg button{flex:1 1 0;min-width:0;text-align:center;white-space:nowrap;padding-left:6px;padding-right:6px}
+}
 @media(hover:hover){.tp-seg button:hover:not(.on){color:var(--text)}}
 .tp-btn{appearance:none;padding:4px 12px;border-radius:999px;border:1px solid var(--border);
   background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:13px;
@@ -3619,7 +3625,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cmp: ['report-export.js?v=e993c0b2', 'compare.js?v=a7bf6b23'],
       mk:  ['report-export.js?v=e993c0b2', 'marketing-chart.js?v=2861059a', 'google-ads.js?v=ed3bd9e2', 'meta-ads.js?v=9e3fd1f4', 'tool-spend.js?v=d6f89eac', 'marketing-spend.js?v=39233b1c', 'website.js?v=c47da80a', 'social.js?v=d3770c8c', 'marketing-export.js?v=72c753cd'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
-      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=6a34c968', 'team-performance.js?v=555d6f01', 'report-export.js?v=e993c0b2', 'staff-weeks.js?v=0e21c912'],
+      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=6a34c968', 'team-performance.js?v=fa39a0d0', 'report-export.js?v=e993c0b2', 'staff-weeks.js?v=0e21c912'],
       lv:  ['report-export.js?v=e993c0b2', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=6a34c968', 'stylist-levels.js?v=222d5a17'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['glow-club.js?v=84f11759'],
@@ -3649,7 +3655,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       rt:  ['retention.js?v=87f0b7fa'],
       sc:  ['stylist-cards.js?v=fe5a89a4'],
       oc:  ['org-chart.js?v=37a5bbdf'],
-      tp:  ['report-export.js?v=e993c0b2', 'team-performance.js?v=555d6f01'],
+      tp:  ['report-export.js?v=e993c0b2', 'team-performance.js?v=fa39a0d0'],
       // The XLSX and CSV buttons on Staff Dashboards (the frame's bar below): the writer and what reads the frame, on the first click.
       rx:  ['report-export.js?v=e993c0b2', 'staff-dash-export.js?v=a447e3f8'],
       // The XLSX and CSV buttons on the Organisation Pulse.
@@ -4720,7 +4726,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=7b4719d6"></script>
-<script src="pulse-drill.js?v=14b37921"></script>
+<script src="pulse-drill.js?v=2165ce27"></script>
 <script src="dashboard.js?v=7294aa79"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>

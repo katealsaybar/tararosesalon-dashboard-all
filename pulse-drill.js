@@ -1178,5 +1178,24 @@ const PD = (() => {
     const w = { from: o.date, to: o.date, branches: [o.branch], employees: null, when: o.when || '' };
     return kind === 'net' ? staffServicesSpec(ctx, Object.assign(w, { kind: 'net' })) : staffClientsSpec(ctx, Object.assign(w, o.count == null ? {} : { ledger: o.count }));
   }
-  return { snap, spec, branchCtx, snapSide, metric, ledgerSpec, dayList, clientHistory: clientHistorySpec };   // clientHistory: Retention (3 Nov 2026) opens a client's own window from its lists
+  // One person's figures for one day (or one month) opening the rows behind them (Kate, 11 Nov 2026: the Podium Race "her days" list had every figure plain).
+  // o = { name, codes, from, to, rows: Phorest staff rows, label, range, cur, who, when, vals: { net, svc, retail, cl, rq, nw, pv } }. Returns { column key: spec } for the
+  // figures that have rows behind them. Rebooked, treatments and the tracker's two columns are typed or counted with no client rows, so they stay plain.
+  function personDayDn(o) {
+    if (!canNames() || !o.from || !o.codes || !o.codes.length) return {};
+    const ctx = { label: o.label, range: o.range || '', cur: o.cur || CUR(), rows: { phorest: o.rows || [], ledger: [] } };
+    const emps = [...new Set(o.codes.flatMap(c => phoneNames(ctx, c, o.name)))];
+    if (!emps.length) return {};
+    const win = { from: o.from, to: o.to, branches: o.codes, employees: emps, who: o.who, when: o.when }, v = o.vals || {}, dn = {};
+    if (v.net) dn.net = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.net, kind: 'net' }));
+    if (v.svc) dn.svc = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.svc }));
+    if (v.retail) dn.retail = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.retail, kind: 'retail' }));
+    if (v.cl) dn.cl = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.cl }));
+    if (v.rq) dn.rq = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.rq, kind: 'req' }));
+    if (v.nw) dn.nw = newClientsSpec(ctx, Object.assign({}, win, { ledger: v.nw }));
+    if (v.pv) dn.pv = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.cl, phCol: true }));
+    Object.keys(dn).forEach(k => { if (!dn[k]) delete dn[k]; });
+    return dn;
+  }
+  return { snap, spec, branchCtx, snapSide, metric, ledgerSpec, dayList, personDayDn, clientHistory: clientHistorySpec };   // clientHistory: Retention (3 Nov 2026) opens a client's own window from its lists
 })();
