@@ -194,7 +194,7 @@ function tpRebookBar() {
     return '<span class="tp-bar-n" title="Phorest\u2019s Staff Performance Tracker starts on 1 Jul 2026, so an earlier window has the ledger only.">Rebooking: ledger only for this window</span>';
   }
   return `<div class="tp-seg" role="group" aria-label="Rebooking from">
-        <button class="${tpRebookSrc === 'phorest' ? 'on' : ''}" onclick="tpSetRebookSrc('phorest')" title="Rebooking from Phorest\u2019s Staff Performance Tracker: rebooked over Phorest visits">Rebooking: Phorest</button>
+        <button class="${tpRebookSrc === 'phorest' ? 'on' : ''}" onclick="tpSetRebookSrc('phorest')" title="Rebooking from Phorest\u2019s Staff Performance Tracker: rebooked over Phorest visits">Rebook: Phorest</button>
         <button class="${tpRebookSrc === 'ledger' ? 'on' : ''}" onclick="tpSetRebookSrc('ledger')" title="Rebooking from the branch ledger: rebooked over the ledger\u2019s clients">Ledger</button>
       </div>`;
 }
