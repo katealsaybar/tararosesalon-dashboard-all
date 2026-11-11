@@ -128,6 +128,7 @@ function rctRun_(fromMs, toMs, dry) {
     Object.keys(res).forEach(function (k) { if (typeof res[k] === 'number') totals[k] = (totals[k] || 0) + res[k]; });
   }
   totals.cv_rebuilt = RCT_CV_STATS.rebuilt; totals.cv_unresolved = RCT_CV_STATS.unresolved;
+  if (RCT_CV_DIAG.length) console.log('CV links not rebuilt, first ' + RCT_CV_DIAG.length + ':\n' + RCT_CV_DIAG.join('\n'));
   if (!dry) totals.cv_files = rctUploadCvs_(cvJobs, t0); else totals.cv_files = { direct_emails: cvJobs.length, dry: true };
   console.log(JSON.stringify(totals));
   if (un.count) console.log('Unreadable by Apps Script (open these in Gmail by hand; date | sender | subject; first ' + Math.min(un.count, RCT_UNREADABLE_CAP) + ' of ' + un.count + '):\n' + un.list.join('\n'));
@@ -251,24 +252,44 @@ const RCT_CV_BASE = 'https://www.tararosesalon.com/wp-content/uploads/gravity_fo
 const RCT_TRACKING = /^https?:\/\/[^\/]*(sendibt\d*|brevo)[^\/]*\//i;
 var RCT_CV_STATS = { rebuilt: 0, unresolved: 0 };
 function rctIsTracking_(u) { return RCT_TRACKING.test(String(u || '').trim()); }
-// The plain body of the raw form copy often holds ONLY the Brevo tracking link for the CV (no file name), found 11 Nov 2026 when the first backfill rebuilt nothing. The file name is the
-// text of that link in the HTML body, right after the "Please upload your CV" label, so read it from there (only asked for when the plain text has no name).
-function rctCvNameFromHtml_(html) {
-  const h = String(html || ''), i = h.search(/Please upload your CV/i); if (i < 0) return '';
-  const m = /<a\b[^>]*>([\s\S]*?)<\/a>/i.exec(h.slice(i, i + 4000)); if (!m) return '';
+// The plain body of the raw form copy often holds ONLY the Brevo tracking link for the CV (no file name): the first backfill (11 Nov) rebuilt nothing, the second logged
+// cv_unresolved 295 (every form CV). So the file name is read from the HTML body: first the link whose address is the tracking link we already have (its text is the file name),
+// then, failing that, the first link after the "Please upload your CV" label (words may have tags between them). Asked for only when the plain text has no file name.
+// A tracking link that still cannot be rebuilt is counted in cv_unresolved and the first few are described in the log (RCT_CV_DIAG): why, the name read, the address tried
+// and what the website answered, so the cause is visible instead of guessed.
+var RCT_CV_DIAG = [];
+const RCT_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+function rctDecodeHtml_(t) {
   const ent = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
-  return m[1].replace(/<[^>]*>/g, '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, function (all, e) {
+  return String(t || '').replace(/<[^>]*>/g, '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, function (all, e) {
     if (e.charAt(0) === '#') { const n = e.charAt(1).toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10); return n ? String.fromCharCode(n) : ' '; }
     return ent[e.toLowerCase()] || all;
   }).replace(/\s+/g, ' ').trim();
+}
+function rctNameOfLinkText_(txt) {
+  const t = rctDecodeHtml_(txt); if (!t) return '';
+  if (/^https?:\/\//i.test(t)) { try { return decodeURIComponent(t.split('?')[0].split('/').pop()); } catch (e) { return t.split('?')[0].split('/').pop(); } }
+  return t;
+}
+function rctCvNameFromHtml_(html, trk) {
+  const h = String(html || ''), want = rctDecodeHtml_(trk || '').replace(/[)\]>.,;]+$/, '');
+  const re = /<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi; let m;
+  while ((m = re.exec(h))) {
+    const href = rctDecodeHtml_(m[1]);
+    if (want && (href.indexOf(want) === 0 || want.indexOf(href) === 0)) { const n = rctNameOfLinkText_(m[2]); if (n) return n; }
+  }
+  const i = h.search(/Please[\s\S]{0,60}?upload[\s\S]{0,60}?your[\s\S]{0,60}?CV/i); if (i < 0) return '';
+  const m2 = /<a\b[^>]*>([\s\S]*?)<\/a>/i.exec(h.slice(i, i + 4000)); return m2 ? rctNameOfLinkText_(m2[1]) : '';
 }
 function rctCvLink_(text, at, getHtml) {
   const t = String(text || ''), urls = t.match(/https?:\/\/[^\s)\]>]+/gi) || [];
   const direct = urls.filter(function (u) { return !rctIsTracking_(u); })[0];
   if (direct) return direct;                                   // a real link already (image uploads, non-Latin file names)
+  const trk = urls.filter(rctIsTracking_)[0] || '';
+  const diag = function (why, extra) { if (RCT_CV_DIAG.length < 4) RCT_CV_DIAG.push(why + (extra ? ' | ' + extra : '') + ' | plain text: ' + t.slice(0, 120).replace(/\s+/g, ' ')); };
   let name = t.replace(/https?:\/\/[^\s)\]>]+/gi, ' ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
-  if ((!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) && urls.length && getHtml) { try { name = rctCvNameFromHtml_(getHtml()); } catch (e) { name = ''; } }
-  if (!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) { if (urls.length) RCT_CV_STATS.unresolved++; return ''; }   // no file name to rebuild from
+  if ((!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) && trk && getHtml) { try { name = rctCvNameFromHtml_(getHtml(), trk); } catch (e) { name = ''; } }
+  if (!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) { if (trk) { RCT_CV_STATS.unresolved++; diag('no file name found', 'name read: "' + name + '"'); } return ''; }   // no file name to rebuild from
   const when = new Date(at), months = [];
   [when.getTime(), when.getTime() + 4 * 3600000, when.getTime() - 86400000, when.getTime() + 86400000].forEach(function (ms) {
     const d = new Date(ms), k = d.getUTCFullYear() + '/' + ('0' + (d.getUTCMonth() + 1)).slice(-2);
@@ -276,11 +297,21 @@ function rctCvLink_(text, at, getHtml) {
   });
   const names = [name]; const dashed = name.replace(/\s+/g, '-'); if (dashed !== name) names.push(dashed);
   const cands = []; months.forEach(function (mo) { names.forEach(function (n) { cands.push(RCT_CV_BASE + mo + '/' + encodeURIComponent(n)); }); });
+  let codes = [];
   try {
-    const res = UrlFetchApp.fetchAll(cands.map(function (u) { return { url: u, method: 'head', muteHttpExceptions: true, followRedirects: false }; }));
-    for (let i = 0; i < res.length; i++) if (res[i].getResponseCode() === 200) { RCT_CV_STATS.rebuilt++; return cands[i]; }
-  } catch (e) { console.log('CV check failed: ' + e); }
+    const mk = function (u, method) { const o = { url: u, method: method, muteHttpExceptions: true, followRedirects: false, headers: { 'User-Agent': RCT_UA } }; if (method === 'get') o.headers.Range = 'bytes=0-0'; return o; };
+    let res = UrlFetchApp.fetchAll(cands.map(function (u) { return mk(u, 'head'); }));
+    codes = res.map(function (r) { return r.getResponseCode(); });
+    for (let i = 0; i < res.length; i++) if (codes[i] === 200) { RCT_CV_STATS.rebuilt++; return cands[i]; }
+    // the website may refuse a HEAD (not a 404): ask for the first byte with a GET instead
+    if (codes.some(function (c) { return c !== 404; })) {
+      res = UrlFetchApp.fetchAll(cands.map(function (u) { return mk(u, 'get'); }));
+      codes = codes.concat(res.map(function (r) { return r.getResponseCode(); }));
+      for (let k = 0; k < res.length; k++) { const c = res[k].getResponseCode(); if (c === 200 || c === 206) { RCT_CV_STATS.rebuilt++; return cands[k]; } }
+    }
+  } catch (e) { console.log('CV check failed: ' + e); diag('check threw', String(e)); }
   RCT_CV_STATS.unresolved++;
+  diag('file not found on the website', 'name "' + name + '", first address ' + cands[0] + ', answers ' + codes.join(','));
   return '';
 }
 
