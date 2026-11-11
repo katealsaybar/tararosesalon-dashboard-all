@@ -818,9 +818,8 @@
     if (!(bkok && slok)) return rsSec('What it took to get a booking', '', '<div class="nvb-rs-nums">' + rsWait('Cost per booking', !bkok ? whyBookings(st) : whySales(st)) + '</div>');
     if (!(m.booked_or_in > 0)) return rsSec('What it took to get a booking', '', '<p class="slv-muted">Nobody has booked or come in yet.</p>');
     var cost = a.sent * r2, costD = reached * r2, cells = rsCell('Messages per booking', (a.sent / m.booked_or_in).toFixed(1), fmtN(a.sent) + ' messages accepted for ' + nn(m.booked_or_in, 'since') + ' clients who booked or came in since our message') +
-      rsCell('Cost per booking', 'AED ' + money2(costD / m.booked_or_in), 'AED ' + money0(costD) + ' for the ' + fmtN(reached) + ' delivered over ' + nn(m.booked_or_in, 'since') + ' clients. AED ' + money2(cost / m.booked_or_in) + ' if every accepted message is charged') +
-      (m.ahead > 0 ? rsCell('Cost per booking ahead', 'AED ' + money2(costD / m.ahead), 'the same delivered spend over the ' + nn(m.ahead, 'ahead') + ' clients with a booking from today on') : '');
-    return rsSec('What it took to get a booking', 'Booked or came in = a booking from today on, a booking first seen after her first message, or a till sale since. A ceiling, not proof the message caused it.', '<div class="nvb-rs-nums">' + cells + '</div>');
+      rsCell('Cost per booking', 'AED ' + money2(costD / m.booked_or_in), 'AED ' + money0(costD) + ' for the ' + fmtN(reached) + ' delivered over ' + nn(m.booked_or_in, 'since') + ' clients. AED ' + money2(cost / m.booked_or_in) + ' if every accepted message is charged');
+    return rsSec('What it took to get a booking', 'Booked or came in = a booking from today to 30 Nov, a booking first seen after her first message, or a till sale since. A ceiling, not proof the message caused it.', '<div class="nvb-rs-nums">' + cells + '</div>');
   }
   function bookDaysSec(st, a, bkok, slok) {
     var rows = RES.bookdays || [], m = a.money || {};

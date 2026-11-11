@@ -488,7 +488,6 @@ function lrRecInner() {
     <div class="ll-cards lr-cards">
       ${card(f1(r.messages_per_booking), 'Messages per booking', `${lcNum(r.sent)} messages sent for ${lcNum(r.booked_since)} clients who booked or came in since our message`)}
       ${card(aed2(r.cost_per_booking), 'Cost per booking', `${lrAed(r.cost_aed)} spent (estimate) over ${lcNum(r.booked_since)} clients`)}
-      ${card(aed2(r.cost_per_ahead), 'Cost per booking ahead', `the same spend over the ${lcNum(r.booked_ahead)} clients with a booking from today on`)}
     </div>
     ${lrRecMsgs()}
     <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Day</th><th>Messages sent</th><th>Spent (estimate)</th><th>Replied</th><th>STOP</th><th>Booked ahead</th><th>Booked since</th><th>Messages per booking</th><th>Cost per booking</th></tr></thead><tbody>
