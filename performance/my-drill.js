@@ -311,13 +311,17 @@
   }
   // In the dashboard's frame the list is read here and the dashboard opens it (a window inside a frame sized to its page would sit off screen).
   async function toParent(sp) {
+    // Kate, 11 Nov 2026: "these underlined numbers are not clickable". A month figure's rows carry a figure of their own that opens that day (row._dn, with load functions),
+    // and postMessage cannot send functions, so the click failed without a word. The frame is the dashboard's own page (same origin): hand the live list straight to the
+    // dashboard's window, nothing is copied. The message below stays as the fallback, with the day links left out.
+    try { if (parent.TRSD && typeof parent.TRSD.open === 'function') { parent.TRSD.open(sp); return; } } catch (e) {}
     let out;
     try {
       const views = [];
       for (const v of sp.views) views.push({ id: v.id, label: v.label, res: await v.load() });
       out = { title: sp.title, cur: sp.cur || '', sk: sp.sk || '', views };
     } catch (e) { out = { title: sp.title || 'Your numbers', cur: '', sk: '', views: [{ id: 'e', label: 'List', res: { cols: [], rows: [], empty: e && e.message || 'The list did not load.' } }] }; }
-    parent.postMessage({ type: 'perf-drill', spec: out }, location.origin);
+    parent.postMessage({ type: 'perf-drill', spec: JSON.parse(JSON.stringify(out, (k, v) => k === '_dn' ? undefined : v)) }, location.origin);
   }
   function show(sp, el) { if (!st.on || !sp) return; if (st.embed) toParent(sp); else if (PHONE() && !st.inline) openWindow(sp, el); else TRSD.open(sp, el); }
   function open(id, el) { show(REG.get(id), el); }
