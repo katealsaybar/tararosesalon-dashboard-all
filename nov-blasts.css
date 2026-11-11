@@ -591,3 +591,29 @@
 .nvb .nvb-vsw>button:focus-visible,.nvb .nvb-vsw>a:focus-visible{outline:2px solid #3AA892;outline-offset:2px}
 .nvb .cbl-shell.nvb-rs-full{display:block;padding-top:0}
 @media (max-width:600px){.nvb .nvb-vsw{width:100%}.nvb .nvb-vsw>button,.nvb .nvb-vsw>a,.nvb .nvb-vsw>span{flex:1 1 auto;justify-content:center;text-align:center;padding:0 12px;min-height:44px;font-size:14px}}
+
+/* The mini sidebar navigation (Kate, 11 Nov 2026) */
+.nvb .cbl-shell.nvb-rs-full.nvb-rs-wrap{display:grid;grid-template-columns:230px minmax(0,1fr);gap:28px;align-items:start}
+.nvb .nvb-rail{position:sticky;top:calc(var(--topbar-cond-h,104px) + 12px);display:flex;flex-direction:column;gap:2px;font-size:14px;max-height:calc(100vh - 150px);overflow:auto;scrollbar-width:thin}
+.nvb .nvb-rail[hidden]{display:none}
+.nvb .nvb-rail a{display:flex;gap:9px;padding:8px 10px;border-radius:8px;color:var(--muted);text-decoration:none;line-height:1.3}
+.nvb .nvb-rail a i{font-style:normal;min-width:18px;text-align:right;color:var(--muted2)}
+.nvb .nvb-rail a:hover{background:var(--surface);color:var(--text)}
+.nvb .nvb-rail a.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:inset 3px 0 0 #3AA892}
+.nvb .nvb-rail a:focus-visible{outline:2px solid #3AA892;outline-offset:2px}
+.nvb .nvb-rs-sec[id^="nvr-"]{scroll-margin-top:calc(var(--topbar-cond-h,104px) + 64px)}
+.nvb .nvb-rail.nvb-rail-h,.nvb .nvb-rail.nvb-rail-h a{}
+.nvb .nvb-rail.nvb-rail-h{flex-direction:row;overflow-x:auto;gap:6px;max-height:none;margin:0 0 14px;padding:8px 0;top:var(--topbar-cond-h,104px);z-index:30;background:var(--bg)}
+@media (max-width:1100px){
+  .nvb .cbl-shell.nvb-rs-full.nvb-rs-wrap{display:block}
+  .nvb .nvb-rail{flex-direction:row;overflow-x:auto;gap:6px;max-height:none;margin:0 0 14px;padding:8px 0;top:var(--topbar-cond-h,104px);z-index:30;background:var(--bg)}
+}
+.nvb .nvb-rail.nvb-rail-h a,.nvb .nvb-rs-wrap .nvb-rail a{}
+@media (max-width:1100px){.nvb .nvb-rail a{white-space:nowrap;border:1px solid var(--border);border-radius:999px;padding:0 14px;min-height:40px;align-items:center}.nvb .nvb-rail a i{min-width:0}.nvb .nvb-rail a.on{box-shadow:none;background:var(--text);color:var(--bg);border-color:var(--text)}.nvb .nvb-rail a.on i{color:var(--bg)}}
+.nvb .nvb-rail.nvb-rail-h a{white-space:nowrap;border:1px solid var(--border);border-radius:999px;padding:0 14px;min-height:40px;align-items:center}
+.nvb .nvb-rail.nvb-rail-h a i{min-width:0}
+.nvb .nvb-rail.nvb-rail-h a.on{box-shadow:none;background:var(--text);color:var(--bg);border-color:var(--text)}
+.nvb .nvb-rail.nvb-rail-h a.on i{color:var(--bg)}
+
+.nvb .nvb-rail.nvb-rail-h{scrollbar-width:none}.nvb .nvb-rail.nvb-rail-h::-webkit-scrollbar{display:none}
+@media (max-width:1100px){.nvb .nvb-rail{scrollbar-width:none}.nvb .nvb-rail::-webkit-scrollbar{display:none}}

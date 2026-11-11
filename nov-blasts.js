@@ -168,7 +168,7 @@
     var res = cur === RESID && tab === 'messages';
     return '<div class="nvb-views"><div class="nvb-vsw" role="tablist"><button type="button" role="tab" class="' + (res ? 'on' : '') + '" data-nvb="view:results" aria-selected="' + res + '">Results</button>' +
       '<button type="button" role="tab" class="' + (res ? '' : 'on') + '" data-nvb="view:blasts" aria-selected="' + !res + '">Blast pages: message, template, flow</button></div>' +
-      '<div class="nvb-vsw nvb-camp"><a href="/?view=lost-clients" onclick="return window.nvbGoOct(event, this)">October, Lost Clients</a><span class="on">November, Database blasts</span></div></div>';
+      '<div class="nvb-vsw nvb-camp"><a href="/?view=lost-clients" onclick="return window.nvbGoOct(event, this)">October, Lost Clients</a><span class="on">November 2026 Blasts</span></div></div>';
   }
   function stateChip() {   // was always "Draft, nothing sent", even after the send
     if (isL5() && SND && SND.enabled && !SND.dry_run) return '<span class="chip bad">Live sending is on</span>';
@@ -584,7 +584,7 @@
     return '<div class="nvb-rs-tw"><table class="nvb-rs-t"><thead><tr>' + heads.map(function (h) { return '<th' + (h[1] ? ' class="' + h[1] + '"' : '') + '>' + esc(h[0]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
       rows.map(function (r) { return '<tr' + (r.t ? ' class="tot"' : '') + '>' + r.c.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
   }
-  function rsSec(title, lead, inner, note) { return '<div class="cbl-card nvb-rs-sec"><h3>' + esc(title) + '</h3>' + (lead ? '<p class="nvb-rs-lead">' + esc(lead) + '</p>' : '') + inner + (note ? '<p class="nvb-small nvb-rs-note">' + note + '</p>' : '') + '</div>'; }
+  function rsSec(title, lead, inner, note) { var nm = /^(\d)\. /.exec(title); return '<div class="cbl-card nvb-rs-sec"' + (nm ? ' id="nvr-' + nm[1] + '"' : '') + '><h3>' + esc(title) + '</h3>' + (lead ? '<p class="nvb-rs-lead">' + esc(lead) + '</p>' : '') + inner + (note ? '<p class="nvb-small nvb-rs-note">' + note + '</p>' : '') + '</div>'; }
   /* 5 Nov 2026 (Kate: "saan clickable values? lalo na tong 7 clients booked ahead", "walang projected spend vs actual spend", "kung anong meron sa oct blasts na info dapat meron din dito sa nov blasts", "except warm vs standard"):
      the Results view carries what October's Lost Client Blasts Performance page has. Every count opens the clients behind it (nov_drill, migrations/nov_results_parity.sql, the same shape as
      October's lost_drill: name and number copy on click, a Chat link to respond.io), Money from the bookings is projected vs actual spend (nov_campaign_money), delivery by blast, branch and
@@ -878,7 +878,7 @@
       body = '<div class="nvb-g2">' + panel1 + panel2 + '</div><div class="nvb-g2">' + panel3 + panel4 + '</div>';
     }
     var unp = al.unpriced || 0;
-    return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>4. Money from the bookings</h3>' + toggle + '</div><p class="nvb-rs-lead">' + esc(lead) + '</p>' + body +
+    return '<div class="cbl-card nvb-rs-sec" id="nvr-4"><div class="nvb-hd"><h3>4. Money from the bookings</h3>' + toggle + '</div><p class="nvb-rs-lead">' + esc(lead) + '</p>' + body +
       '<p class="nvb-small nvb-rs-note"><b>Projected</b> is what the booked appointments should bring in. <b>Actual</b> is what the clients we messaged have paid so far. <b>Spent</b> is what the messages cost, an estimate at AED ' + r2 + ' each (the sender has no billing data). Booked ahead, appointments, accepted, delivered and came in and paid open their clients; the AED figures add up services and have no list behind them.</p>' +
       '<details class="nvb-fold" data-fold="money-how"' + (opened['money-how'] ? ' open' : '') + '><summary>How these are worked out</summary><p class="nvb-small"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that exact service charged in the last 120 days, VAT included. ' +
       (unp ? fmtN(unp) + ' of the ' + fmtN(al.svcs) + ' booked services have no price yet (a package or a new name) and count as 0, so it runs low. ' : '') + 'The Phorest bookings report has no booked-on date, so since 9 Nov we log the first day each booking was seen at every bookings pull (from 4 Nov, the send day). <b>Booked since the message</b> counts a booking first seen on or after the first message day of that client, and it stays counted after the appointment date passes, so Cost per booking no longer shrinks as days go by. A booking first seen on 4 Nov may pre-date the message by a few hours. <b>Booked ahead</b> is only the snapshot of bookings from today on. When the bookings list is more than 1 day old, or sales are more than 2 days behind, the figures that depend on them hold and say why. <b>Actual</b> is everything the clients we messaged have paid since the day of their first message, VAT included, refunds taken off, without deposits, vouchers sold and prepaid courses, the same lines as Paid at the till in the headline. Sales arrive with the daily upload, so today shows tomorrow.</p></details></div>';
@@ -899,7 +899,7 @@
     } else {
       inner = '<div class="nvb-rs-two"><div><h4>By branch</h4><div class="nvb-rs-bars">' + bar.map(function (x) { return rsBar(x, { br: x.k }); }).join('') + '</div></div><div><h4>By day sent</h4><div class="nvb-rs-bars">' + days.map(function (x) { return rsBar(x, { d: x.k }); }).join('') + '</div></div></div>' + BAR_LEG;
     }
-    return '<div class="cbl-card nvb-rs-sec"><div class="nvb-hd"><h3>2. Did the message arrive?</h3>' + toggle + '</div><p class="nvb-rs-lead">Whether the messages reached the phones: read, delivered, not confirmed yet, or failed. The by-blast bars are under section 2.</p>' + cards + inner +
+    return '<div class="cbl-card nvb-rs-sec" id="nvr-2"><div class="nvb-hd"><h3>2. Did the message arrive?</h3>' + toggle + '</div><p class="nvb-rs-lead">Whether the messages reached the phones: read, delivered, not confirmed yet, or failed. The by-blast bars are under section 2.</p>' + cards + inner +
       '<p class="nvb-small nvb-rs-note">From respond.io\'s delivery report for each message, read again every few minutes while the statuses arrive; Meta keeps updating a status for 24 hours. A client who wrote back still counts by what happened to the message.</p></div>';
   }
   function resultsMain() {
@@ -1005,9 +1005,9 @@
   }
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
-    if (cur === RESID) return '<div class="cbl"><div class="cbl-shell nvb-rs-full"><div class="cbl-main" id="nvbMain">' + resultsMain() + '</div></div></div>';
+    if (cur === RESID) return '<div class="cbl"><div class="cbl-shell nvb-rs-full nvb-rs-wrap"><nav class="nvb-rail" id="nvbRail" aria-label="Sections on this page"></nav><div class="cbl-main" id="nvbMain">' + resultsMain() + '</div></div></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '<nav class="nvb-rail nvb-rail-h" id="nvbRail" aria-label="Sections on this page"></nav>') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
@@ -1370,11 +1370,11 @@
     var y = window.scrollY, thY = {}; [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) { thY[t.getAttribute('data-key')] = t.scrollTop; });
     var body = tab === 'decide' && decs().length ? decideHtml() : tab === 'before' ? beforeHtml() : messagesHtml();
     var onRes = cur === RESID && tab === 'messages';
-    el.innerHTML = '<div class="nvb">' + viewsHtml() + '<header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November blasts</h1>' +
+    el.innerHTML = '<div class="nvb">' + viewsHtml() + '<header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November 2026 Blasts</h1>' +
       '<div class="nvb-chipsrow">' + stateChip() + '<span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
       (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + (onRes ? '' : numsHtml()) + '</header>' + (onRes ? '' : tabsHtml()) + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && cur !== RESID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
-    sndBindInputs();
+    sndBindInputs(); buildRail();
     var cta = document.getElementById('nvbCmt'); if (cta) { cta.value = draft[cur] || ''; cta.oninput = function () { draft[cur] = cta.value; }; }
     [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
       var k = t.getAttribute('data-key'); t.scrollTop = thY[k] || 0;
@@ -1383,6 +1383,26 @@
     flowScroll = null;
     if (keep) window.scrollTo({ top: y, behavior: 'instant' });   // the dashboard sets smooth scrolling, which would glide the page up
   }
+  // The mini sidebar navigation (Kate, 11 Nov 2026: "bakit walang mini sidebar navi like oct 2026 lost clients blasts"): one link for each numbered section on the page, built from the
+  // sections that are really there, the lit link follows the scroll. A list on the left of Results; a row of chips above a blast page and on a narrow screen.
+  function buildRail() {
+    var nav = document.getElementById('nvbRail'), c = main(); if (!nav || !c) return;
+    var secs = [].slice.call(c.querySelectorAll('.nvb-rs-sec[id^="nvr-"]'));
+    nav.innerHTML = secs.map(function (x) { var h = x.querySelector('h3'), t = h ? h.textContent : '', m = /^(\d)\. (.*)$/.exec(t); return '<a href="#' + x.id + '" data-s="' + x.id + '"><i>' + (m ? m[1] : '') + '</i><span>' + esc(m ? m[2] : t) + '</span></a>'; }).join('');
+    nav.hidden = !secs.length; railSpy();
+  }
+  function railSpy() {
+    var nav = document.getElementById('nvbRail'); if (!nav || nav.hidden) return;
+    var links = [].slice.call(nav.querySelectorAll('a')), cur = links.length ? links[0].dataset.s : '';
+    links.forEach(function (a) { var el = document.getElementById(a.dataset.s); if (el && el.getBoundingClientRect().top <= 170) cur = a.dataset.s; });
+    if (links.length && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = links[links.length - 1].dataset.s;
+    links.forEach(function (a) { a.classList.toggle('on', a.dataset.s === cur); });
+  }
+  window.addEventListener('scroll', function () { if (main() && main().offsetParent !== null) railSpy(); }, { passive: true });
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('#nvbRail a[data-s]'); if (!a) return;
+    e.preventDefault(); var el = document.getElementById(a.dataset.s); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   function toTop() { window.scrollTo({ top: 0, behavior: 'instant' }); }
   async function reload() { D = await rpc('nov_blast_get'); }
   async function loadLive() {
@@ -1460,7 +1480,7 @@
     if (typeof TRS_LEVEL === 'undefined' || (TRS_LEVEL !== 3 && TRS_LEVEL !== 5) && !(typeof TRS_EXTRA !== 'undefined' && TRS_EXTRA.indexOf('campaignblasts') >= 0)) { notFound(); return; }
     if (firstOpen) { firstOpen = false; try { var q = new URLSearchParams(location.search); wantBlast = q.get('blast') || ''; wantTab = q.get('tab') || ''; } catch (e) { wantBlast = ''; wantTab = ''; } }
     errMsg = '';
-    if (!D) el.innerHTML = '<div class="nvb"><header class="nvb-head"><h1>November blasts</h1></header><p class="slv-muted">Loading…</p></div>';
+    if (!D) el.innerHTML = '<div class="nvb"><header class="nvb-head"><h1>November 2026 Blasts</h1></header><p class="slv-muted">Loading…</p></div>';
     try { await reload(); } catch (e) { console.error(e); notFound(); return; }
     if (wantBlast) { if (wantBlast === ALLID || wantBlast === RESID || (item(wantBlast) && isBlast(item(wantBlast)))) { cur = wantBlast; rb = wantBlast; } wantBlast = ''; }
     if (wantTab) { if (TABS.indexOf(wantTab) >= 0) tab = wantTab; wantTab = ''; }
