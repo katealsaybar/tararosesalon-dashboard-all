@@ -211,6 +211,7 @@ function dgSpec(k, o) {
   const w = o.win || M.month(d.month), src = o.src || SRC;
   if (k === 'reputation') { const to = w.to, from = M.addDays(to, -89); return M.reviews({ from, to, title: 'Your Google reviews', sub: `The reviews behind your star score: every Google review that counts for you in the 90 days to ${M.dText(to)}.` }); }
   if (k === 'google_reviews') return M.reviews({ from: w.from, to: w.to, list: o.win ? null : d.numbers.review_list, title: 'Your Google reviews' });
+  if (k === 'social_workdays') return M.workdays({ from: w.from, to: w.to, list: o.win ? null : d.numbers.social_list, total: o.win ? null : d.numbers.social_workdays });
   if (k === 'social_feed') return M.posts({ from: w.from, to: w.to, list: o.win ? null : d.numbers.social_list, title: 'Your Instagram posts' });
   // nd: the days of the month on the page that have figures; a month with one day so far has nothing to break down (my-drill.js keeps that figure plain).
   const nd = o.win ? null : (d.days || []).filter(x => x.date >= w.from && x.date <= w.to && (x.clients > 0 || x.total_revenue > 0)).length;

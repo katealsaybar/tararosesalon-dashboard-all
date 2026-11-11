@@ -269,6 +269,35 @@
         sub: esc(o.sub || `Posts and Reels that tag the salon and you, ${winText(o)}`), empty: 'Nothing tagged in these dates yet.' };
     } }] };
   }
+  // Social posts (workdays) (Kate, 11 Nov 2026: "not working (pop up)"). The figure is the days she worked (a branch sheet row with clients, or Phorest visits) on which she
+  // had a post, a collab or a story mention. The days she worked come from her days, the posts and collabs from her posts, so those are listed with what she posted;
+  // a story mention carries no date here, so the days that only had a story are one grey line that brings the list to the figure (o.total).
+  function workdays(o) {
+    if (!who(o)) return null;
+    const TYPE = { VIDEO: 'Reel', CAROUSEL_ALBUM: 'Carousel', IMAGE: 'Post' };
+    return { title: o.title || 'Social posts on your workdays', sk: `workdays-${o.from}-${o.to}`, views: [{ id: 'wd', label: 'Workdays', load: async () => {
+      const w = who(o);
+      const [days, list] = await Promise.all([rpcList('perf_my_days', o.from, o.to, w), o.list ? Promise.resolve(o.list) : rpcList('perf_my_socials', o.from, o.to, w)]);
+      if (days == null || list == null) return NOTREADY;
+      const worked = new Map();
+      days.forEach(d => { if (A(d.clients) > 0 || A(d.visits) > 0) worked.set(d.date, d); });
+      const by = new Map();
+      list.forEach(p => { if (!by.has(p.date)) by.set(p.date, []); by.get(p.date).push(p); });
+      const kind = ps => ps.map(p => p.via === 'collab' ? 'Collab on a salon post' : (TYPE[p.type] || 'Post')).join(', ');
+      // A day she posted on but did not work is kept on the list in grey, so the gap to her feed posts can be seen; it is not counted.
+      const all = [...by.keys()].sort().reverse().map(date => {
+        const d = worked.get(date), what = kind(by.get(date));
+        return d ? { w: dText(date), what, cl: A(d.clients), vi: A(d.visits) } : { w: dText(date), what: what + ' (day off, not counted)', cl: null, vi: null, _cls: 'dr-muted' };
+      });
+      const rows = all.slice(), counted = all.filter(r => !r._cls).length;
+      const total = o.total != null ? A(o.total) : counted;
+      if (total > counted) rows.push({ w: 'Story mentions only', what: (total - counted) + (total - counted === 1 ? ' day' : ' days') + ' with a story mention and no post, dates not listed', cl: null, vi: null, _cls: 'dr-muted' });
+      return { cols: [{ k: 'w', l: 'Day' }, { k: 'what', l: 'What you posted' }, { k: 'cl', l: 'Clients (branch sheet)', t: 'num' }, { k: 'vi', l: 'Visits (Phorest)', t: 'num' }],
+        rows, foot: rows.length ? { w: 'Total', what: total + (total === 1 ? ' workday' : ' workdays'), cl: null, vi: null } : null,
+        sub: esc(o.sub || `The days you worked, ${dText(o.from)} to ${dText(o.to)}, on which you posted with @tararosesalon, were a collaborator on a salon post or mentioned the salon in your story. Posts on a day off do not count here, so this runs under your feed posts.`),
+        empty: 'No workdays with a post in these dates yet.' };
+    } }] };
+  }
   // A list the page already holds: { title, sub, cols, rows, foot?, note?, cur? }.
   function rows(o) {
     return { title: o.title, sk: o.sk, cur: o.cur || 'AED', views: [{ id: 'r', label: o.label || 'List', load: async () => ({ cols: o.cols, rows: o.rows, foot: o.foot || null, sub: esc(o.sub || ''), note: o.note || '', empty: o.empty || 'Nothing here yet.' }) }] };
@@ -328,5 +357,5 @@
   document.addEventListener('click', e => { const n = e.target.closest && e.target.closest('[data-md]'); if (!n) return; e.stopPropagation(); e.preventDefault(); open(n.dataset.md, n); }, true);
   document.addEventListener('keydown', e => { const n = e.target.closest && e.target.closest('[data-md]'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(n.dataset.md, n); } });
 
-  window.MyDrill = { init, fig, show, days, reviews, posts, rows, month, week, addDays, mondayOf, esc, dText, get on() { return st.on; } };
+  window.MyDrill = { init, fig, show, days, reviews, posts, workdays, rows, month, week, addDays, mondayOf, esc, dText, get on() { return st.on; } };
 })();

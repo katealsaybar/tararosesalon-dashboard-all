@@ -24,6 +24,12 @@ SKIP_DIRS = {'.git', 'node_modules', 'vendor', 'archive', '_source', 'FINAL CARD
 REF = re.compile(r"(?P<path>[A-Za-z0-9_@%./-]+?\.(?:js|css))\?v=(?P<v>[A-Za-z0-9_.-]+)")
 STAMP = re.compile(r"\?v=[A-Za-z0-9_.-]+")
 _hash_cache = {}
+# The Staff Dashboards page is an iframe on performance/index.html. A page is cached by its whole address, so the address carries a stamp too (Kate, 11 Nov 2026: a
+# deploy left the frame on yesterday's script for up to 10 minutes). Unlike a script's stamp it is the hash of the page AS IT IS, its own ?v= text included, because
+# that page changes whenever one of its scripts' stamps does, and that is exactly when the frame must be fetched again.
+FRAME_REF = re.compile(r"(performance/index\.html\?v=)([A-Za-z0-9_.-]+)")
+FRAME_HOST = 'index.html'
+FRAME_PAGE = os.path.join('performance', 'index.html')
 
 
 def digest(path):
@@ -56,6 +62,25 @@ def sources():
                 yield os.path.join(base, name)
 
 
+def frame_stamp():
+    """Stamp the iframe address in the dashboard's index.html from performance/index.html as it stands now. Returns the stale entry, or None."""
+    host, page = os.path.join(ROOT, FRAME_HOST), os.path.join(ROOT, FRAME_PAGE)
+    if not (os.path.isfile(host) and os.path.isfile(page)):
+        return None
+    with open(page, 'rb') as f:
+        want = hashlib.sha1(f.read().replace(b'\r\n', b'\n')).hexdigest()[:8]
+    with open(host, 'rb') as f:
+        raw = f.read()
+    text = raw.decode('utf-8', 'replace')
+    m = FRAME_REF.search(text)
+    if not m or m.group(2) == want:
+        return None
+    if '--check' not in sys.argv:
+        with open(host, 'wb') as f:
+            f.write(FRAME_REF.sub(lambda x: x.group(1) + want, text).encode('utf-8'))
+    return f"{FRAME_HOST}: {FRAME_PAGE} {m.group(2)} -> {want}"
+
+
 def main():
     check = '--check' in sys.argv
     stale, missing, changed_files = [], [], 0
@@ -84,6 +109,10 @@ def main():
             with open(src, 'wb') as f:
                 f.write(new.encode('utf-8'))
             changed_files += 1
+    fs = frame_stamp()
+    if fs:
+        stale.append(fs)
+        changed_files += 0 if check else 1
     if check:
         if stale:
             print(f"STAMP CHECK FAILED ({len(stale)} stale): run  python scripts/stamp-assets.py  and commit it")

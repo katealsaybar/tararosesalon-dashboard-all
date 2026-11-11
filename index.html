@@ -3630,8 +3630,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       cmp: ['report-export.js?v=e993c0b2', 'compare.js?v=a7bf6b23'],
       mk:  ['report-export.js?v=e993c0b2', 'marketing-chart.js?v=2861059a', 'google-ads.js?v=ed3bd9e2', 'meta-ads.js?v=9e3fd1f4', 'tool-spend.js?v=d6f89eac', 'marketing-spend.js?v=39233b1c', 'website.js?v=c47da80a', 'social.js?v=d3770c8c', 'marketing-export.js?v=72c753cd'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
-      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=16d14928', 'team-performance.js?v=528bd646', 'report-export.js?v=e993c0b2', 'staff-weeks.js?v=0e21c912'],
-      lv:  ['report-export.js?v=e993c0b2', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=16d14928', 'stylist-levels.js?v=222d5a17'],
+      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=dc3c57e5', 'team-performance.js?v=528bd646', 'report-export.js?v=e993c0b2', 'staff-weeks.js?v=0e21c912'],
+      lv:  ['report-export.js?v=e993c0b2', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=dc3c57e5', 'stylist-levels.js?v=222d5a17'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['glow-club.js?v=84f11759'],
       // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
@@ -4375,7 +4375,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=cbbbff20&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
