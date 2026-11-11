@@ -802,7 +802,7 @@ function tpDaysSpec(st) {
         // her new clients), the same lists as the Daily Performance person list. Rebooked and treatments are typed by reception with no rows, so they stay plain.
         let dn = null;
         try {
-          if (window.PD && PD.personDayDn) {
+          if (typeof PD !== 'undefined' && PD.personDayDn) {
             const last = new Date(+k.slice(0, 4), +k.slice(5, 7), 0).getDate(), a = byDay ? k : k + '-01', b = byDay ? k : k + '-' + String(last).padStart(2, '0');
             dn = PD.personDayDn({ name: st.name, codes, from: a < from ? from : a, to: b > to ? to : b, rows: (J.phorestStaffRows || []).filter(r => codes.includes(r.branch)),
               label: `${(st.branches || [{ name: st.branchName }]).map(b => b.name).join(' + ')}, ${tpDayTxt(from)} to ${tpDayTxt(to)}`, range: `${tpDayTxt(from)} to ${tpDayTxt(to)}`, who: tpTitle(st.name), when: w, vals: t });
@@ -827,7 +827,7 @@ function tpDaysSpec(st) {
       .concat(trk ? [{ k: 'rbr', l: 'Rebooked (tracker)', t: 'num' }, { k: 'rbv', l: 'Visits (tracker)', t: 'num' }] : []);
     const foot = Object.assign({ w: 'Total' }, card);
     try {   // the Total row opens the same lists over the whole window
-      const fd = window.PD && PD.personDayDn && PD.personDayDn({ name: st.name, codes, from, to, rows: (J.phorestStaffRows || []).filter(r => codes.includes(r.branch)),
+      const fd = typeof PD !== 'undefined' && PD.personDayDn && PD.personDayDn({ name: st.name, codes, from, to, rows: (J.phorestStaffRows || []).filter(r => codes.includes(r.branch)),
         label: `${(st.branches || [{ name: st.branchName }]).map(b => b.name).join(' + ')}, ${tpDayTxt(from)} to ${tpDayTxt(to)}`, range: `${tpDayTxt(from)} to ${tpDayTxt(to)}`, who: tpTitle(st.name), when: `${tpDayTxt(from)} to ${tpDayTxt(to)}`, vals: card });
       if (fd && Object.keys(fd).length) foot._dn = fd;
     } catch (e) {}
