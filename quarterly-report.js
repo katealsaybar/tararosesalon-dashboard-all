@@ -49,6 +49,8 @@ const qrName = c => (typeof dpName === 'function' ? dpName(c) : c);
 const qrCls = p => p == null ? '' : p >= 100 ? 'good' : p >= 80 ? 'warn' : 'bad';
 const qrPart = f => !!f && f.t != null && f.cov < f.n;   // a target that covers only some of the days
 const qrPctTxt = f => f.p == null ? 'no target keyed' : Math.round(f.p) + (qrPart(f) ? '% on keyed days' : '% of target');
+// A short value for the top of a bar: 1.46m, 408k, 3,088, 24.4%.
+const qrShort = (m, v) => v == null || !isFinite(v) ? '' : m.t === 'pct' ? (Math.round(v * 10) / 10) + '%' : m.t === 'aed' && v >= 1e6 ? (Math.round(v / 1e4) / 100) + 'm' : m.t === 'aed' && v >= 1e4 ? Math.round(v / 1e3) + 'k' : qrN(v);
 const qrTgtTxt = (m, f) => f.t == null ? 'none keyed' : qrFmt(m, f.t) + (qrPart(f) ? ` on ${f.cov} of ${f.n} days` : '');
 
 function qrCss() {
@@ -88,9 +90,13 @@ function qrCss() {
   .qrp .qr-tile .ln{display:flex;justify-content:space-between;gap:8px;align-items:baseline;border-top:1px solid var(--border);padding-top:6px;margin-top:2px}
   .qrp .qr-tile .ln:first-of-type{border-top:0;padding-top:0;margin-top:0}
   .qrp .qr-tile .ln b{font-family:'Playfair Display',serif;font-size:20px;font-weight:500}
-  .qrp .qr-mini{display:flex;gap:6px;align-items:flex-end;height:46px;margin-top:2px}
-  .qrp .qr-mini span{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%;font-size:10.5px;color:var(--muted2)}
-  .qrp .qr-mini i{display:block;width:100%;background:var(--accent,#3E7A5E);border-radius:3px 3px 0 0;min-height:3px;opacity:.85}
+  .qrp .qr-mini{display:flex;gap:8px;align-items:flex-end;height:58px;margin-top:6px;border-bottom:1.5px solid var(--muted2)}
+  .qrp .qr-mini>div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%;min-width:0}
+  .qrp .qr-mini em{font-style:normal;font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;line-height:1}
+  .qrp .qr-mini i{display:block;width:100%;background:#3E7A5E;border-radius:3px 3px 0 0;min-height:2px}
+  [data-theme="dark"] .qrp .qr-mini i{background:#99F6E4}
+  .qrp .qr-ml{display:flex;gap:8px;margin-top:3px;font-size:11px;color:var(--muted2)}
+  .qrp .qr-ml span{flex:1;text-align:center}
   .qrp .qr-tile.how{justify-content:center;color:var(--muted);font-size:14px;gap:4px}
   .qrp .qr-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .qrp table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:760px}
@@ -295,7 +301,8 @@ function qrTile(m, codes) {
   if (!f) return `<div class="qr-tile"><div class="k"><span>${qrEsc(m.label)}</span></div><div class="big" style="color:var(--muted2)">n/a</div><div class="r2">No figures in this quarter</div></div>`;
   const pill = f.p == null ? '<span class="qr-pill">no target keyed</span>' : `<span class="qr-pill ${qrPart(f) ? 'warn' : qrCls(f.p)}">${dn(qrPctTxt(f))}</span>`;
   const bars = C.months.map(mo => ({ mo, f: qrMany(m, codes, mo.idx) })), mx = Math.max(1, ...bars.map(b => b.f ? b.f.v : 0));
-  const mini = `<div class="qr-mini">${bars.map(b => `<span title="${qrEsc(b.mo.label)}"><i style="height:${b.f ? Math.max(4, Math.round(b.f.v / mx * 30)) : 3}px"></i>${b.f ? dn(qrEsc(b.mo.short), b.mo.idx) : qrEsc(b.mo.short)}</span>`).join('')}</div>`;
+  const mini = `<div class="qr-mini">${bars.map(b => `<div title="${qrEsc(b.mo.label)}: ${b.f ? qrEsc(qrFmt(m, b.f.v)) : 'no figures'}"><em>${b.f ? qrEsc(qrShort(m, b.f.v)) : ''}</em><i style="height:${b.f ? Math.max(2, Math.round(b.f.v / mx * 34)) : 2}px"></i></div>`).join('')}</div>
+    <div class="qr-ml">${bars.map(b => `<span>${b.f ? dn(qrEsc(b.mo.short), b.mo.idx) : qrEsc(b.mo.short)}</span>`).join('')}</div>`;
   let lyLine = '<div class="ly">No figure for the same dates last year</div>';
   if (g) {
     const pts = m.t === 'pct', d = f.v - g.v, ch = pts ? d : (g.v ? d / g.v * 100 : null);
@@ -363,7 +370,7 @@ function qrDraw(host) {
     </div>
     <div class="qr-start"><b>Start here:</b> click the figure that looks wrong to you. It opens the branches, months and days behind it.</div>
     <div class="qr-tiles">${['net', 'svc', 'tr', 'rt', 'cli', 'reb'].map(id => qrTile(QR_BY[id], shown)).join('')}${qrBillTile(shown)}
-      <div class="qr-tile how"><b style="color:var(--text)">How to read a tile</b><span>Big figure: what we did.</span><span>Target: what we planned.</span><span>Same dates last year: the comparison.</span><span>Bars: the months of the quarter.</span></div></div>
+      <div class="qr-tile how"><b style="color:var(--text)">How to read a tile</b><span>Big figure: what we did.</span><span>Target: what we planned.</span><span>Same dates last year: the comparison.</span><span>Bars: the months, drawn from zero.</span></div></div>
     <p class="qr-note">${C.open ? 'The quarter is still open, so the target is the target to date for the days that have figures, not the whole quarter. ' : ''}A rate is pooled over the quarter, the way the Organisation Pulse reads it.</p>
     <h3>The seven numbers, branch by branch</h3>
     ${qrMatrix()}
