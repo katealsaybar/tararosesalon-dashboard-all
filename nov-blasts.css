@@ -582,20 +582,35 @@
 .nvb .nvb-rs-late small{color:var(--muted2)}
 
 /* The "On this page" rail, the October Lost Clients one (Kate, 11 Nov 2026): the shared .lg-side / .side-nav of index.html, plus the numbered sections under the open entry.
-   Results: a gutter on the left from 1400px, a sticky row of chips below that (the shared rules). A blast page: always a row of chips above the lanes. */
+   Two shapes. In the gutter (Results, 1600px and up, or 1400px and up with the main navigation closed, the same breakpoints the shared rail uses) it is the list with the
+   sections indented under the open entry. Everywhere else it lies down into ONE pinned row of chips that scrolls sideways, so it never grows into a tall block over the page. */
 #novBlastsContent .side-sub{display:contents}
 #novBlastsContent .nvb-rs-sec[id^="nvr-"]{scroll-margin-top:calc(var(--topbar-cond-h,104px) + 64px)}
-@media(min-width:1400px){
+#novBlastsContent .lg-side .side-nav{flex-wrap:nowrap;align-items:center;overflow-x:auto;scrollbar-width:none}
+#novBlastsContent .lg-side .side-nav::-webkit-scrollbar{display:none}
+#novBlastsContent .lg-side .side-nav>a,#novBlastsContent .lg-side .side-nav .side-sub a,#novBlastsContent .lg-side .side-k{flex:none;white-space:nowrap}
+@media(min-width:1600px){
   #novBlastsContent .lg-shell.nvb-lgs{margin-top:16px}
-  #novBlastsContent .side-sub{display:block;margin:0 0 4px}
-  #novBlastsContent .lg-side .side-nav .side-sub a{padding:5px 0 5px 27px;font-size:13px;color:var(--muted);border-left:2px solid var(--border2)}
-  #novBlastsContent .lg-side .side-nav .side-sub a.on{color:var(--text);font-weight:600;border-left-color:var(--text)}
-  @media(hover:hover){#novBlastsContent .lg-side .side-nav .side-sub a:hover{color:var(--text)}}
   #novBlastsContent .lg-shell .lg-side{max-height:calc(100vh - 136px);overflow-y:auto}
+  #novBlastsContent .lg-shell .lg-side .side-nav{display:block;overflow:visible}
+  #novBlastsContent .lg-shell .lg-side .side-nav>a{white-space:normal}
+  #novBlastsContent .lg-shell .lg-side .side-sub{display:block;margin:0 0 4px}
+  #novBlastsContent .lg-shell .lg-side .side-nav .side-sub a{display:block;white-space:normal;padding:5px 0 5px 27px;font-size:13px;color:var(--muted);border:0;border-left:2px solid var(--border2);border-radius:0}
+  #novBlastsContent .lg-shell .lg-side .side-nav .side-sub a.on{color:var(--text);font-weight:600;border-left-color:var(--text)}
+  @media(hover:hover){#novBlastsContent .lg-shell .lg-side .side-nav .side-sub a:hover{color:var(--text)}}
 }
+@media(min-width:1400px) and (max-width:1599.98px){
+  body:not(.nav-open) #novBlastsContent .lg-shell.nvb-lgs{margin-top:16px}
+  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side{max-height:calc(100vh - 136px);overflow-y:auto}
+  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-nav{display:block;overflow:visible}
+  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-nav>a{white-space:normal}
+  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-sub{display:block;margin:0 0 4px}
+  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-nav .side-sub a{display:block;white-space:normal;padding:5px 0 5px 27px;font-size:13px;color:var(--muted);border:0;border-left:2px solid var(--border2);border-radius:0}
+  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-nav .side-sub a.on{color:var(--text);font-weight:600;border-left-color:var(--text)}
+}
+/* every chip: the shared pill look, and the lit one outlined */
 #novBlastsContent .lg-side.nvb-chips{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);margin:6px 0;padding:9px 0 0;border-bottom:1px solid var(--border2);max-height:none;overflow:visible}
-#novBlastsContent .lg-side.nvb-chips .side-nav{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;padding:0 0 9px}
+#novBlastsContent .lg-side.nvb-chips .side-nav{display:flex;gap:6px;padding:0 0 9px}
 #novBlastsContent .lg-side.nvb-chips .side-k{display:block;padding:0 4px 0 0;border:0}
-#novBlastsContent .lg-side.nvb-chips .side-sub{display:contents;margin:0}
-#novBlastsContent .lg-side.nvb-chips .side-nav a,#novBlastsContent .lg-side.nvb-chips .side-nav .side-sub a{display:block;padding:4px 11px;font-size:14px;color:var(--muted);border:1px solid var(--border);border-left:1px solid var(--border);border-radius:999px;white-space:nowrap}
+#novBlastsContent .lg-side.nvb-chips .side-nav a,#novBlastsContent .lg-side.nvb-chips .side-nav .side-sub a{display:block;padding:4px 11px;font-size:14px;color:var(--muted);border:1px solid var(--border);border-left:1px solid var(--border);border-radius:999px}
 #novBlastsContent .lg-side.nvb-chips .side-nav a.on,#novBlastsContent .lg-side.nvb-chips .side-nav .side-sub a.on{color:var(--text);font-weight:600;border-color:var(--text)}
