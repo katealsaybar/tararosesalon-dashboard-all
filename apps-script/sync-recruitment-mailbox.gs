@@ -287,7 +287,8 @@ function rctCvLink_(text, at, getHtml) {
   if (direct) return direct;                                   // a real link already (image uploads, non-Latin file names)
   const trk = urls.filter(rctIsTracking_)[0] || '';
   const diag = function (why, extra) { if (RCT_CV_DIAG.length < 4) RCT_CV_DIAG.push(why + (extra ? ' | ' + extra : '') + ' | plain text: ' + t.slice(0, 120).replace(/\s+/g, ' ')); };
-  let name = t.replace(/https?:\/\/[^\s)\]>]+/gi, ' ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  // the plain body reads "- 2026-Laureen-McCartan-CV1.pdf <https://...tracking link...>": drop the link, the angle brackets and the bullet
+  let name = t.replace(/https?:\/\/[^\s)\]>]+/gi, ' ').replace(/[<>]/g, ' ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').replace(/^[\s\-\u2022*]+/, '').trim();
   if ((!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) && trk && getHtml) { try { name = rctCvNameFromHtml_(getHtml(), trk); } catch (e) { name = ''; } }
   if (!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) { if (trk) { RCT_CV_STATS.unresolved++; diag('no file name found', 'name read: "' + name + '"'); } return ''; }   // no file name to rebuild from
   const when = new Date(at), months = [];
@@ -299,16 +300,11 @@ function rctCvLink_(text, at, getHtml) {
   const cands = []; months.forEach(function (mo) { names.forEach(function (n) { cands.push(RCT_CV_BASE + mo + '/' + encodeURIComponent(n)); }); });
   let codes = [];
   try {
-    const mk = function (u, method) { const o = { url: u, method: method, muteHttpExceptions: true, followRedirects: false, headers: { 'User-Agent': RCT_UA } }; if (method === 'get') o.headers.Range = 'bytes=0-0'; return o; };
-    let res = UrlFetchApp.fetchAll(cands.map(function (u) { return mk(u, 'head'); }));
+    // Apps Script's UrlFetchApp has no HEAD (method must be get, post, put, patch or delete: the first versions used 'head' and every check threw, cv_unresolved 295), so ask for
+    // the first byte of each candidate with a GET: 200 (the whole file) or 206 (one byte) means the file is there, 404 means it is not.
+    const res = UrlFetchApp.fetchAll(cands.map(function (u) { return { url: u, method: 'get', muteHttpExceptions: true, followRedirects: false, headers: { 'User-Agent': RCT_UA, Range: 'bytes=0-0' } }; }));
     codes = res.map(function (r) { return r.getResponseCode(); });
-    for (let i = 0; i < res.length; i++) if (codes[i] === 200) { RCT_CV_STATS.rebuilt++; return cands[i]; }
-    // the website may refuse a HEAD (not a 404): ask for the first byte with a GET instead
-    if (codes.some(function (c) { return c !== 404; })) {
-      res = UrlFetchApp.fetchAll(cands.map(function (u) { return mk(u, 'get'); }));
-      codes = codes.concat(res.map(function (r) { return r.getResponseCode(); }));
-      for (let k = 0; k < res.length; k++) { const c = res[k].getResponseCode(); if (c === 200 || c === 206) { RCT_CV_STATS.rebuilt++; return cands[k]; } }
-    }
+    for (let i = 0; i < res.length; i++) if (codes[i] === 200 || codes[i] === 206) { RCT_CV_STATS.rebuilt++; return cands[i]; }
   } catch (e) { console.log('CV check failed: ' + e); diag('check threw', String(e)); }
   RCT_CV_STATS.unresolved++;
   diag('file not found on the website', 'name "' + name + '", first address ' + cands[0] + ', answers ' + codes.join(','));
