@@ -304,6 +304,7 @@ const PD = (() => {
       const shown = (data.rows || []).length;
       let t = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(data.total)} ${RT ? 'retail' : NT ? 'sales' : TR ? 'treatment' : 'service'} line${data.total === 1 ? '' : 's'}, AED ${cnt(Math.round(data.net))}, from Phorest's sales lines (${RT ? 'products only; services, courses and memberships are left out' : TR ? 'the treatments on her sales, named as the Client Mix catalogue names them; colour, cuts, extensions and products are left out' : NT ? 'services, retail, courses and memberships' : 'services only; products, courses and memberships are left out'}; on a paid sale, a deposit, a balance payment or a voucher bought on its own is left out, refunds come off).`;
       if (o.ledger != null) t += ` The branch ledger, typed by reception, shows ${TR && o.units != null ? cnt(o.units) + ' treatment' + (o.units === 1 ? '' : 's') + ' and ' : ''}AED ${cnt(Math.round(o.ledger))}: they are two separate counts, so they can differ.`;
+      if (RT) t += ` Phorest keeps no quantity, so one line is one unit: ${cnt(data.total)} unit${data.total === 1 ? '' : 's'}${o.units != null ? ', against the ledger’s ' + cnt(o.units) : ''}.`;
       if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
       return t;
     };
@@ -320,7 +321,7 @@ const PD = (() => {
       { id: 'each', label: 'Each line', load: async () => {
         const data = await staffServicesLoad(ctx, o), rows = data.rows || [];
         return { sub: sub(data), cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Branch' }, ...(o.who ? [] : [{ k: 'e', l: 'Staff' }]), { k: 'c', l: 'Client' }, { k: 'i', l: lab }, { k: 'n', l: 'Net', t: 'aed' }],
-          client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n, _dn: { c: r.c === 'No name' ? null : clientHistorySpec(ctx, { client: r.c, on: r.d }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + ' lines', i: '', n: data.net } : null };
+          client: { k: 'c', b: 'bc', d: 'd' }, rows: rows.map(r => ({ d: r.d, b: bname(r.b), bc: r.b, e: nm(r.e), c: r.c, i: r.r ? r.i + ' (refund)' : r.i, n: r.n, _dn: { c: r.c === 'No name' ? null : clientHistorySpec(ctx, { client: r.c, on: r.d }) } })), foot: data.total <= rows.length ? { d: '', b: '', e: '', c: cnt(data.total) + (RT ? (data.total === 1 ? ' unit' : ' units') : TR ? (data.total === 1 ? ' treatment' : ' treatments') : ' lines'), i: '', n: data.net } : null };
       } },
     ] };
   }
@@ -1190,7 +1191,7 @@ const PD = (() => {
     if (v.net) dn.net = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.net, kind: 'net' }));
     if (v.svc) dn.svc = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.svc }));
     if (v.tr || v.tu) { const sp = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.tr || 0, units: v.tu != null ? v.tu : null, kind: 'treat' })); if (v.tr) dn.tr = sp; if (v.tu) dn.tu = sp; }
-    if (v.retail || v.ru) { const sp = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.retail || 0, kind: 'retail' })); if (v.retail) dn.retail = sp; if (v.ru) dn.ru = sp; }
+    if (v.retail || v.ru) { const sp = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.retail || 0, units: v.ru != null ? v.ru : null, kind: 'retail' })); if (v.retail) dn.retail = sp; if (v.ru) dn.ru = sp; }
     if (v.cl) dn.cl = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.cl }));
     if (v.rq) dn.rq = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.rq, kind: 'req' }));
     if (v.nw) dn.nw = newClientsSpec(ctx, Object.assign({}, win, { ledger: v.nw }));
