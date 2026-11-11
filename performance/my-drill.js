@@ -79,12 +79,12 @@
       s: () => 'Services and retail together, before VAT, from Phorest. The total row is the figure the Podium Race ranks you on.' },
     hair:     { t: 'Hair services', c: () => [['svc', 'Services', AED], ['treat', 'Treatments', AED], ['hs', 'Hair services', AED]], f: r => ({ svc: r.svc, treat: r.treat, hs: r.svc - r.treat }), keep: r => r.svc > 0 || r.treat > 0,
       s: () => 'Your services from Phorest, less the treatments on the branch sheet.' },
-    treat:    { t: 'Treatments', c: () => [['treat', 'Treatments', AED]], f: r => ({ treat: r.treat }), keep: r => r.treat > 0,
-      s: () => 'Treatment sales from the branch sheet.' },
-    treatpct: { t: 'Treatments %', c: () => [['treat', 'Treatments', AED], ['hs', 'Hair services', AED], ['p', 'Treatments %', PCT]], f: r => ({ treat: r.treat, hs: r.svc - r.treat, p: pc(r.treat, r.svc - r.treat) }), keep: r => r.treat > 0 || r.svc > 0,
+    treat:    { t: 'Treatments', c: () => [['treat', 'Treatments', AED], ['tu', 'Treatments (#)', NUM]], f: r => ({ treat: r.treat, tu: r.tu }), keep: r => r.treat > 0 || r.tu > 0,
+      s: () => 'Treatment sales from the branch sheet, and how many treatments the till rang up for you (Phorest\u2019s own treatment family: bond repair, scalp, Olaplex and the rest).' },
+    treatpct: { t: 'Treatments %', c: () => [['treat', 'Treatments', AED], ['tu', 'Treatments (#)', NUM], ['hs', 'Hair services', AED], ['p', 'Treatments %', PCT]], f: r => ({ treat: r.treat, tu: r.tu, hs: r.svc - r.treat, p: pc(r.treat, r.svc - r.treat) }), keep: r => r.treat > 0 || r.svc > 0,
       s: () => 'Treatments as a share of your hair services. The total row is the figure on your page.' },
-    retail:   { t: 'Retail', c: () => [['retail', 'Retail', AED]], f: r => ({ retail: r.retail }), keep: r => r.retail > 0,
-      s: () => 'Home care you sold before VAT, from Phorest.' },
+    retail:   { t: 'Retail', c: () => [['retail', 'Retail', AED], ['ru', 'Retail units', NUM]], f: r => ({ retail: r.retail, ru: r.ru }), keep: r => r.retail > 0 || r.ru > 0,
+      s: () => 'Home care you sold before VAT, from Phorest. Units are the product lines on the till, one per item rung up.' },
     retailpct:{ t: 'Retail %', c: () => [['retail', 'Retail', AED], ['svc', 'Services', AED], ['p', 'Retail %', PCT]], f: r => ({ retail: r.retail, svc: r.svc, p: pc(r.retail, r.svc) }), keep: r => r.retail > 0 || r.svc > 0,
       s: () => 'Retail as a share of your services. The total row is the figure on your page.' },
     avgbill:  { t: 'Average bill', c: () => [['svc', 'Services', AED], ['cl', 'Clients', NUM], ['avg', 'Average bill', AED], ['avgr', 'With retail', AED]],
@@ -114,7 +114,7 @@
       s: src => `Your sales from Phorest and your clients and rebooked (${SRC_NOTE[src]}).` },
     phclients:{ t: 'Clients', c: () => [['vi', ALL ? 'Visits (Phorest, all)' : 'Paid visits (Phorest)', NUM]], f: r => ({ vi: VIS(r) }), keep: r => VIS(r) > 0, s: () => 'The visits you looked after, from Phorest.' },
   };
-  const SUMF = ['svc', 'retail', 'visits', 'pvisits', 'rqs', 'pnew', 'rb_visits', 'rb_n', 'clients', 'req', 'salon', 'newc', 'ncr', 'lreb', 'treat', 'uh', 'ah'];
+  const SUMF = ['svc', 'retail', 'visits', 'pvisits', 'rqs', 'pnew', 'rb_visits', 'rb_n', 'clients', 'req', 'salon', 'newc', 'ncr', 'lreb', 'treat', 'ru', 'tu', 'uh', 'ah'];
   const blank = () => Object.fromEntries(SUMF.map(k => [k, 0]));
   const add = (a, d) => { SUMF.forEach(k => { a[k] += A(d[k]); }); return a; };
   const nice = v => Math.round(v * 10) / 10;
@@ -141,6 +141,16 @@
     const one = (cols, rows, foot, sub, note) => ({ cols, rows, foot: rows.length > 1 ? foot : null, sub: esc(sub), note: note || '', empty: 'No rows for this day.' });
     const multi = rows => new Set(rows.map(x => x.branch)).size > 1;
     const bc = rows => multi(rows) ? [{ k: 'br', l: 'Branch' }] : [];
+    // Kate, 11 Nov 2026 ("walang treatment names"): a day of Treatments names the treatments. They are the till lines Phorest files under its treatment family; the branch
+    // sheet's treatment figure is typed by reception, so the two are compared and any gap is said.
+    if ((kind === 'treat' || kind === 'treatpct') && (d.lines || []).length) {
+      const T = d.lines.filter(x => x.family === 'treat'), sum = sumOf(T, 'net'), want = sumOf(d.sheet, 'treat');
+      const rows = T.map(x => ({ visit: 'Visit ' + x.visit, br: brn(x.branch), item: x.item, net: x.net }));
+      const cols = [{ k: 'visit', l: 'Visit' }].concat(bc(T), [{ k: 'item', l: 'Treatment' }, { k: 'net', l: 'Amount', t: 'aed' }]);
+      const gap = Math.abs(sum - want) > 1 ? `Not matched: the treatments on the till add to ${aed0(sum)} and the branch sheet, which reception types, says ${aed0(want)}.` : '';
+      return one(cols, rows, { visit: 'Total', item: T.length + (T.length === 1 ? ' treatment' : ' treatments'), net: sum },
+        `The treatments you rang up on ${day}, before VAT, grouped by visit, from Phorest.`, gap);
+    }
     if (LINES.includes(kind)) {
       const all = d.lines || [], ph = d.phorest || [], svc = sumOf(ph, 'svc'), rt = sumOf(ph, 'retail');
       // Phorest's day report splits the day into services and retail, the till lines do not say which is which. Home care with a size in its name is marked a product,
