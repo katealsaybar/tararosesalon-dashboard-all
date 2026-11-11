@@ -322,8 +322,15 @@ function renderKpis(F){
   const FR=F.filter(r=>r.branch!==MRY_BRANCH), replied=FR.filter(r=>r.replied).length;
   const rl = curRange().label, recLabel = /^(Last|This|All)/.test(rl) ? rl.toLowerCase() : rl;
   const pct=n=>F.length?Math.round(n/F.length*100):0;
+  // Kate, 11 Nov 2026: the headline said 37 for a period that holds 333, because Refine (With comment is on by default, and the staff
+  // and star picks are remembered) was cutting it down and nothing at this spot said so. Say how many the period holds and what is hiding the rest.
+  const inPeriod=R.filter(r=>state.branches.has(r.branch)&&inRange(r.date)).length, hid=inPeriod-F.length, on=[];
+  if(!setEq(state.stars,ALL)) on.push(setEq(state.stars,[1,2,3])?"Complaints 1–3★":setEq(state.stars,[4,5])?"Positive 4–5★":ALL.filter(x=>state.stars.has(x)).map(x=>x+"★").join(" "));
+  if(state.withText) on.push("With comment");
+  if(state.staff) on.push(state.staff==="__any"?"Names any staff":state.staff==="__none"?"Written, no staff named":"one stylist");
+  if(state.noReply) on.push("No reply yet"); if(state.withPhotos) on.push("With photos"); if(state.noTag) on.push("No staff tagged"); if(state.q) on.push("search");
   document.getElementById("kpis").innerHTML=`
-   <div class="kpi"><div class="l">Reviews shown</div><div class="v">${F.length}</div><div class="h">${recLabel}</div></div>
+   <div class="kpi"><div class="l">Reviews shown</div><div class="v">${F.length}</div><div class="h">${recLabel}${hid?`<br><b>${inPeriod}</b> in this period, ${hid} hidden by Refine${on.length?`: ${on.join(", ")}`:""}`:""}</div></div>
    <div class="kpi"><div class="l">Average rating</div><div class="v">${avg}<span style="font-size:16px;color:var(--faint)">★</span></div><div class="h">of filtered reviews</div></div>
    <div class="kpi"><div class="l">Complaints (1–3★)</div><div class="v" style="color:var(--s1)">${low}</div><div class="h">${pct(low)}% of filtered</div></div>
    <div class="kpi"><div class="l">Positive (4–5★)</div><div class="v" style="color:var(--s5)">${hi}</div><div class="h">${pct(hi)}% of filtered</div></div>

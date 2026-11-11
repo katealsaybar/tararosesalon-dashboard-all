@@ -64,7 +64,7 @@ const otySetLabel = set => {
 };
 const otyHist = () => { const c = otyCodes(); return c.length === 1 && c[0] === 'MRY'; };
 const otySame = () => OTY.basis === 'same' && !otyHist();
-let otyRaw = null, otyIgRaw = null, otyD = null, otyBusy = false, otyErr = '', otyIgErr = '', otyIgLoaded = false;
+let otyRvRaw = null, otyRaw = null, otyIgRaw = null, otyD = null, otyBusy = false, otyErr = '', otyIgErr = '', otyIgLoaded = false;
 
 const otyEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const otyNum = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
@@ -501,7 +501,9 @@ async function otyLoad(force) {
   const ask = name => sb.rpc(name).then(r => r, e => ({ data: null, error: e }));
   const wantIg = !otyIgLoaded && typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 3;
   const wantMo = !otyMoLoaded || force;
-  const [main, ig, mo] = await Promise.all([ask('over_the_years'), wantIg ? ask('over_the_years_ig') : null, wantMo ? ask('over_the_years_months') : null]);
+  const [main, ig, mo, rv] = await Promise.all([ask('over_the_years'), wantIg ? ask('over_the_years_ig') : null, wantMo ? ask('over_the_years_months') : null, ask('over_the_years_reviews_alltime')]);
+  // Kate, 11 Nov 2026: what each branch holds in all (the yearly bars start at 2021 and Google dates the older reviews only by the year).
+  if (!rv.error && rv.data) otyRvRaw = rv.data;
   if (main.error) otyErr = (main.error && main.error.message) || 'Could not load.'; else otyRaw = main.data;
   if (otyRaw && wantIg && ig) {
     if (ig.error) otyIgErr = (ig.error && ig.error.message) || 'Could not load Instagram.'; else otyIgRaw = ig.data;
@@ -1872,14 +1874,21 @@ function otyReviews() {
   pts.forEach(r => g += `<circle cx="${L + bw * r.i + bw / 2}" cy="${yl(r.stars)}" r="3.6" fill="var(--warn)"/><circle${otyCell(otyRevSpec(r.i, same, null), 'hit')} cx="${L + bw * r.i + bw / 2}" cy="${yl(r.stars)}" r="11" fill="transparent"${otyTTh(`<div class="h"><b>${r.y}${r.partial ? '*' : ''}</b></div><div class="v">${r.stars.toFixed(2)} stars</div><div class="s">average of ${r.n} reviews</div>`)}/>`);
   const legend = (set.length > 1 ? set.map(b => `<span><i style="background:${OTY_COL[b]}"></i>${OTY_NAME[b]}</span>`).join('') : `<span><i style="background:var(--hair)"></i>${OTY_NAME[set[0]]}</span>`) + `<span><i class="ln" style="background:var(--warn)"></i>Average stars (right scale)</span>`;
   const a = rows[n - 1];
-  const n25 = set.reduce((t, b) => t + (D[b].rev.ny[n - 2] || 0), 0), n26 = set.reduce((t, b) => t + (D[b].rev.ny[n - 1] || 0), 0);
-  const s25 = n25 ? set.reduce((t, b) => t + (D[b].rev.ny[n - 2] || 0) * (D[b].rev.sy[n - 2] || 0), 0) / n25 : 0;
-  const d = n25 ? (n26 - n25) / n25 * 100 : null;
+  // Kate, 11 Nov 2026: 2026 was set against "the same days of 2025" and read as a 65% drop. It is not one. Google dates a review older
+  // than a year only as "a year ago", "2 years ago", and the sync files every one of those on Sep of that year (847 of the UAE ones
+  // sit on Sep 2025). So the years before 2026 are buckets and their same days mean nothing. The read-out now gives what is solid:
+  // 2026 so far, the last 12 months, and what each branch holds in all.
+  const rv = (otyRvRaw && otyRvRaw.rows || []).filter(r => set.includes(r.b));
+  const sum = k => rv.reduce((t, r) => t + (r[k] || 0), 0);
+  const allN = sum('n'), preN = sum('pre'), l12 = sum('l12');
+  const allSt = allN ? rv.reduce((t, r) => t + r.n * (r.st || 0), 0) / allN : 0;
+  const per = rv.slice().sort((x, y) => y.n - x.n).map(r => `${otyEsc(OTY_NAME[r.b] || r.b)} <b>${r.n.toLocaleString('en-GB')}</b>`).join(' · ');
+  const allLine = rv.length ? `<div class="oty-ro" style="margin-top:6px"><span>All time <b>${allN.toLocaleString('en-GB')}</b> reviews</span><span>Average <b>${allSt.toFixed(2)} stars</b></span><span>Last 12 months <b>${l12.toLocaleString('en-GB')}</b></span></div><div class="oty-note" style="margin-top:4px">${per}${preN || set.includes('FRT') ? ` · In the all-time number but not on the bars: ${[preN ? preN + ' dated before 2021' : '', set.includes('FRT') ? "Fratelli's " + ((rv.find(r => r.b === 'FRT') || {}).n || 0) + ' (the yearly feed does not carry Fratelli)' : ''].filter(Boolean).join(' and ')}` : ''}. Bahrain is not on this page.</div>` : '';
   return `<div class="oty-eb"><i style="background:var(--warn)"></i>Reputation · Google reviews <span class="oty-uc">(UNDER CONSTRUCTION)</span></div>
     <div class="oty-card"><div class="oty-legend">${legend}</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Google reviews by year, bars, with average stars as a line">${g}</svg>
-    <div class="oty-read"><b>${otyD.curYear}</b> · ${same ? `1 Jan – ${otyCutLabel()}` : 'so far'}<div class="oty-ro"><span>Reviews <b>${otyDnS(a.n, otyRevSpec(a.i, same, null))}</b></span><span>Average <b>${a.stars ? otyDnS(a.stars.toFixed(2), otyRevSpec(a.i, same, null)) : '·'} stars</b></span><span>${otyD.curYear - 1}, same days <b>${otyDnS(n25, otyRevSpec(n - 2, true, null))}</b></span><span>${otyD.curYear - 1} average <b>${s25 ? otyDnS(s25.toFixed(2), otyRevSpec(n - 2, true, null)) : '·'}</b></span></div></div></div>
-    <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Check before reading ${d == null ? 'it' : d.toFixed(0) + '%'} as a drop.</b> ${otyDnS(n26, otyRevSpec(n - 1, true, null))} reviews so far in ${otyD.curYear} against ${otyDnS(n25, otyRevSpec(n - 2, true, null))} on the same days of ${otyD.curYear - 1}. A fall that steep may be the review sync, not the salons: new reviews are still pulled by hand while the Google approval is pending, and older dates are approximate ("2 years ago"), so the years are solid and the days are not.</p><p><b>The stars</b> are a review-weighted average of every review in the window, so a branch with more reviews counts for more.</p>${set.includes('MRY') ? `<p><b>Marasy is in these figures.</b> ${otyEsc(OTY_MRY_REV)}</p>` : ''}</div></div>`;
+    <div class="oty-read"><b>${otyD.curYear}</b> · ${same ? `1 Jan – ${otyCutLabel()}` : 'so far'}<div class="oty-ro"><span>Reviews <b>${otyDnS(a.n, otyRevSpec(a.i, same, null))}</b></span><span>Average <b>${a.stars ? otyDnS(a.stars.toFixed(2), otyRevSpec(a.i, same, null)) : '·'} stars</b></span></div>${allLine}</div></div>
+    <div class="oty-card oty-flag" style="margin-top:10px"><div class="oty-note"><p><b>Read 2026 on its own, not against 2025.</b> Only ${otyD.curYear} (and the months since Oct 2025) carry the real date of each review. For anything older, Google says only "a year ago" or "2 years ago", and the sync files all of those on September of that year. So the 2025 bar is tall because everything Google called "a year ago" (about Oct 2024 to Sep 2025) was put on Sep 2025, and ${otyD.curYear} set against the same days of 2025 would look like a fall that did not happen. The all-time number above is the true total, and it matches the Reviews page.</p><p><b>The stars</b> are a review-weighted average of every review in the window, so a branch with more reviews counts for more.</p>${set.includes('MRY') ? `<p><b>Marasy is in these figures.</b> ${otyEsc(OTY_MRY_REV)}</p>` : ''}</div></div>`;
 }
 
 // ── INSTAGRAM (UNDER CONSTRUCTION) ───────────────────────────────────────
