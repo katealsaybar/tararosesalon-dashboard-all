@@ -297,6 +297,9 @@ function rctCvLink_(text, at, getHtml) {
     if (months.indexOf(k) < 0) months.push(k);
   });
   const names = [name]; const dashed = name.replace(/\s+/g, '-'); if (dashed !== name) names.push(dashed);
+  // WordPress also trims dots, dashes and underscores off the end of the name before the extension ("Resume.Hair-dresser.pdf1_.pdf" is stored as "Resume.Hair-dresser.pdf1.pdf", the one
+  // form CV the 11 Nov backfill could not find), so try that spelling too
+  const ex = /^(.*?)[._-]*(\.[A-Za-z0-9]{2,5})$/.exec(dashed); if (ex && ex[1] + ex[2] !== dashed && ex[1]) names.push(ex[1] + ex[2]);
   const cands = []; months.forEach(function (mo) { names.forEach(function (n) { cands.push(RCT_CV_BASE + mo + '/' + encodeURIComponent(n)); }); });
   let codes = [];
   try {
