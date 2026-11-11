@@ -217,7 +217,7 @@
     return h.join('');
   }
   function card(p) {
-    var emp = empType(p), bits = [roleGroup(p), emp === 'Not stated' ? '' : emp, p.experience || ''].filter(Boolean);
+    var emp = empType(p), bits = [roleGroup(p), emp, p.experience || ''].filter(function (x) { return x && x !== 'Not stated'; });
     return '<article class="rct-card rct-cardc">' +
       '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3><span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + extraPills(p) + '</div></div></div></div>' +
       '<div class="rct-chips">' + checkChips(p) + '</div>' +

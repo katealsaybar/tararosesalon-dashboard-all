@@ -251,3 +251,7 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 @media (max-width:520px){.rct-btns3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}}
 .rct-cpills{margin-top:4px;gap:6px}
 .rct-cname .rct-pills{justify-content:flex-start}
+/* Kate, 11 Nov 2026: "apaka laki masyado nung buttons". The three buttons on a Grid card are small and sit side by side (still 40 px tall on a phone for a finger) */
+.rct-cardc .rct-btns{display:flex;flex-wrap:wrap;gap:8px}
+.rct-cardc .rct-btn{width:auto;min-height:34px;padding:4px 16px;font-size:14px;font-weight:600;border-radius:10px;border-width:1px}
+@media (max-width:520px){.rct-cardc .rct-btn{min-height:40px}}
