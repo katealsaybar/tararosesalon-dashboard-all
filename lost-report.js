@@ -484,10 +484,18 @@ function lrRecInner() {
   if (!rows.length) return '';
   const r = rows[0], f1 = v => v == null ? '–' : (+v).toFixed(1), aed2 = v => v == null ? '–' : 'AED ' + (+v).toFixed(2);
   const card = (n, ti, ds) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${n}</div><div class="ll-d">${ds}</div></div>`;
+  // The two headline cards are read live, the same way as the November 2026 Blasts report (Kate, 11 Nov 2026, "same dapat sila"): Cost per booking is the delivered spend over the
+  // clients who booked (up to 31 Oct) or came in since our message, with the every-accepted-message figure beside it. The nightly record below keeps its own history, and is the
+  // fallback until the delivery and booking figures have loaded.
+  const lv = lrSince && lrSince.total && lrSince.total.since > 0 && lrBillable() != null && lrMoney && lrMoney.cost ? { n: lrSince.total.since, sent: lrMoney.cost.sent, del: lrBillable(), rate: +lrMoney.rate } : null;
+  const mpb = lv ? card(f1(lv.sent / lv.n), 'Messages per booking', `${lcNum(lv.sent)} messages accepted for ${lrNum(lv.n, 'since')} clients who booked or came in since our message`)
+    : card(f1(r.messages_per_booking), 'Messages per booking', `${lcNum(r.sent)} messages sent for ${lcNum(r.booked_since)} clients who booked or came in since our message`);
+  const cpb = lv ? card(aed2(lv.del * lv.rate / lv.n), 'Cost per booking', `${lrAed(lv.del * lv.rate)} for the ${lcNum(lv.del)} delivered over ${lrNum(lv.n, 'since')} clients. ${aed2(lv.sent * lv.rate / lv.n)} if every accepted message is charged`)
+    : card(aed2(r.cost_per_booking), 'Cost per booking', `${lrAed(r.cost_aed)} spent (estimate) over ${lcNum(r.booked_since)} clients`);
   return `<h4 class="lr-dh">What it took to get a booking</h4>
     <div class="ll-cards lr-cards">
-      ${card(f1(r.messages_per_booking), 'Messages per booking', `${lcNum(r.sent)} messages sent for ${lcNum(r.booked_since)} clients who booked or came in since our message`)}
-      ${card(aed2(r.cost_per_booking), 'Cost per booking', `${lrAed(r.cost_aed)} spent (estimate) over ${lcNum(r.booked_since)} clients`)}
+      ${mpb}
+      ${cpb}
     </div>
     ${lrRecMsgs()}
     <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Day</th><th>Messages sent</th><th>Spent (estimate)</th><th>Replied</th><th>STOP</th><th>Booked ahead</th><th>Booked since</th><th>Messages per booking</th><th>Cost per booking</th></tr></thead><tbody>
