@@ -17,7 +17,7 @@
                ['front', 'Front desk'], ['barber', 'Barber'], ['braider', 'Hair braider']];
   var STAGE_LABEL = { new: 'New', screening: 'Screening', interview_booked: 'Interview booked', trade_test: 'Trade test', offer: 'Offer', hired: 'Hired', not_now: 'Not now', rejected: 'Rejected' };
   var PAGE = 10;   // Kate, 10 Nov 2026: 10 cards at a time in Grid (Show 10 more); the List has its own Rows per page (10, 20, 50, 100)
-  var C = null, loadErr = '', rows = [], settings = {}, me = '', q = '', shownLook = PAGE, shownNo = {}, bound = false, toastTimer = null, openRows = {};
+  var C = null, loadErr = '', rows = [], gone = [], settings = {}, me = '', q = '', shownLook = PAGE, shownNo = {}, bound = false, toastTimer = null, openRows = {};
   var UNDO = [];
 
   function setting(k, d) { return settings[k] == null ? d : settings[k]; }
@@ -67,10 +67,11 @@
   // marked "not professional" (Kate or Emma click that, a program cannot judge it), no CV, no Instagram or Facebook link, not based in the UAE, role not on the open list.
   // A CV link that is dead (Brevo) still counts as a CV; a direct email never counts as "no CV" or "no link" on its own, because its CV is an attached file and it has no form fields.
   function hasIgFb(p) { return hasIg(p) || p.link_kind === 'facebook'; }
-  var FLAG_NAME = { abroad: 'Not based in the UAE', noph: 'No profile photo', badph: 'Photo not professional', nocv: 'No CV', noig: 'No Instagram or Facebook given', role: 'Role not on your open list' };
-  var FLAG_SHORT = { abroad: 'Not in the UAE', noph: 'No photo', badph: 'Photo not professional', nocv: 'No CV', noig: 'No Instagram or Facebook', role: 'Role not open' };
+  var FLAG_NAME = { hand: 'Moved to Probably no by hand', abroad: 'Not based in the UAE', noph: 'No profile photo', badph: 'Photo not professional', nocv: 'No CV', noig: 'No Instagram or Facebook given', role: 'Role not on your open list' };
+  var FLAG_SHORT = { hand: 'By hand', abroad: 'Not in the UAE', noph: 'No photo', badph: 'Photo not professional', nocv: 'No CV', noig: 'No Instagram or Facebook', role: 'Role not open' };
   function flags(p) {
     var f = [], w = where(p);
+    if (p.no_ok && !p.look_ok) f.push({ k: 'hand', t: FLAG_NAME.hand });
     if (w === 'abroad') f.push({ k: 'abroad', t: 'Not based in the UAE' + (/relocat/i.test(p.about || '') ? ' (says they can relocate)' : '') });
     if (!p.photo) f.push({ k: 'noph', t: FLAG_NAME.noph });
     else if (p.photo_bad) f.push({ k: 'badph', t: FLAG_NAME.badph });
@@ -89,7 +90,7 @@
   }
   function bucket(p) {
     // Kate, 11 Nov 2026: Kate or Coach Emma can move a person to Worth a look by hand (look_override), whatever the checks say; the checks stay visible on the card
-    if (p.stage === 'new') return (p.look_ok || !flags(p).length) ? 'look' : 'no';
+    if (p.stage === 'new') return p.look_ok ? 'look' : (p.no_ok || flags(p).length) ? 'no' : 'look';
     if (p.stage === 'screening') return 'invited';
     if (p.stage === 'interview_booked') return 'booked';
     if (p.stage === 'not_now' || p.stage === 'rejected') return 'done';
@@ -164,11 +165,16 @@
     if (k) return lk(k, u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(linkName(p)) + '</a>' : esc(linkName(p)) + ' <span class="rct-ns">(no link given)</span>');
     return p.source === 'form' ? '<span class="rct-none">None given</span>' : '<span class="rct-ns">Not stated</span>';
   }
-  // "Move to Worth a look" (for a Probably no person) and "Put back to automatic" (for one moved by hand): only while the person is new
+  // Kate, 11 Nov 2026: change Worth a look / Probably no by hand, both ways ("i should be able to change sa column sa row din mismo"); the Status cell has the dropdown, the Look panel
+  // has the same moves as buttons. Only while the person is new.
+  function autoBucket(p) { return flags(p).filter(function (f) { return f.k !== 'hand'; }).length ? 'no' : 'look'; }
+  function bkBtn(p, to, label, cls) { return '<button type="button" class="' + cls + '" data-act="bk" data-to="' + to + '" data-id="' + esc(p.id) + '">' + label + '</button>'; }
   function lookBtn(p, cls) {
     if (p.stage !== 'new') return '';
-    if (p.look_ok) return '<button type="button" class="' + cls + '" data-act="lookback" data-id="' + esc(p.id) + '">Put back to automatic</button>';
-    return flags(p).length ? '<button type="button" class="' + cls + '" data-act="lookmove" data-id="' + esc(p.id) + '">Move to Worth a look</button>' : '';
+    var b = bucket(p), s = '';
+    s += b === 'look' ? bkBtn(p, 'no', 'Move to Probably no', cls) : bkBtn(p, 'look', 'Move to Worth a look', cls);
+    if (p.look_ok || p.no_ok) s += bkBtn(p, 'auto', 'Put back to automatic', cls);
+    return s;
   }
   function linksHtml(p) {
     var s = '', cv = cvUrl(p);
@@ -180,6 +186,7 @@
     s += '<button type="button" class="rct-linkbtn" data-act="photo" data-id="' + esc(p.id) + '">' + (p.photo ? 'Change photo' : 'Add photo') + '</button>';
     if (p.photo) s += photoBadBtn(p, 'rct-linkbtn');
     s += lookBtn(p, 'rct-linkbtn');
+    s += '<button type="button" class="rct-linkbtn" data-act="notapp" data-id="' + esc(p.id) + '">Not an applicant</button>';
     if (p.photo) s += '<button type="button" class="rct-linkbtn" data-act="photoclear" data-id="' + esc(p.id) + '">Remove photo</button>';
     return s ? '<div class="rct-links">' + s + '</div>' : '';
   }
@@ -227,7 +234,7 @@
   function card(p) {
     var emp = empType(p), bits = [roleGroup(p), emp, p.experience || ''].filter(function (x) { return x && x !== 'Not stated'; });
     return '<article class="rct-card rct-cardc">' +
-      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3><span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + (p.look_ok && flags(p).length ? '<span class="rct-pill rct-teal">Moved here by hand</span>' : '') + extraPills(p) + '</div></div></div></div>' +
+      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3><span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + (p.look_ok && autoBucket(p) === 'no' ? '<span class="rct-pill rct-teal">Moved here by hand</span>' : '') + extraPills(p) + '</div></div></div></div>' +
       '<div class="rct-chips">' + checkChips(p) + '</div>' +
       '<div class="rct-btns rct-btns3"><button type="button" class="rct-btn rct-pri" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
       '<button type="button" class="rct-btn" data-act="no" data-id="' + esc(p.id) + '">No</button>' +
@@ -241,7 +248,7 @@
               p.stage === 'interview_booked' ? 'Interview booked, moved ' + fat(p.decided_at) :
               p.stage === 'not_now' || p.stage === 'rejected' ? (STAGE_LABEL[p.stage] + ' ' + fat(p.decided_at)) : (STAGE_LABEL[p.stage] || '');
     var acts = '', lookBtn = '<button type="button" class="rct-btn rct-sm" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button>';
-    if (p.stage === 'new') acts = lookBtn + (flags(p).length && !p.look_ok ? '<button type="button" class="rct-btn rct-sm" data-act="lookmove" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
+    if (p.stage === 'new') acts = lookBtn + (bucket(p) === 'no' ? '<button type="button" class="rct-btn rct-sm" data-act="bk" data-to="look" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
                                   '<button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'screening') acts = '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>';
     else if (p.stage === 'not_now' || p.stage === 'rejected') acts = '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + esc(p.id) + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + esc(p.id) + '">Put back</button>';
@@ -250,9 +257,9 @@
       (det ? '<span>' + det + '</span>' : '') + '<span>' + esc(sub) + '</span></div>' +
       '<div class="rct-acts">' + waitPill(p) + extraPills(p) + stagePill(p) + acts + '</div>' + (openRows[p.id] ? detailHtml(p) : '') + '</div>';
   }
-  var GROUPS = ['abroad', 'noph', 'badph', 'nocv', 'noig', 'role'].map(function (k) { return [k, FLAG_NAME[k]]; });
+  var GROUPS = ['hand', 'abroad', 'noph', 'badph', 'nocv', 'noig', 'role'].map(function (k) { return [k, FLAG_NAME[k]]; });
   function noGroups() {
-    var g = { abroad: [], noph: [], badph: [], nocv: [], noig: [], role: [] };
+    var g = { hand: [], abroad: [], noph: [], badph: [], nocv: [], noig: [], role: [] };
     by('no').forEach(function (p) { g[flags(p)[0].k].push(p); });
     return g;
   }
@@ -305,7 +312,7 @@
     if (S.lane) h += laneBarHtml();
     if (S.mode === 'list') {
       var bxOld = document.getElementById('rctTbox'), keepPos = bxOld ? [bxOld.scrollTop, bxOld.scrollLeft] : null;
-      h += renderList() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
+      h += renderList() + goneHtml() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
       el.innerHTML = h + '</div>';
       var bxNew = document.getElementById('rctTbox'); if (bxNew && keepPos) { bxNew.scrollTop = keepPos[0]; bxNew.scrollLeft = keepPos[1]; }
       fitDetail();
@@ -355,7 +362,7 @@
     h += '<details class="rct-grp rct-donebox" data-g="done"><summary><span>Not now<span class="rct-cnt">' + done.length + '</span></span></summary><div class="rct-dbody">' +
       (done.length ? done.slice(0, 30).map(row).join('') + (done.length > 30 ? '<p class="rct-hint">Showing the latest 30.</p>' : '') : '<p class="rct-hint">No one yet.</p>') + '</div></details>';
     }
-    h += '<p class="rct-note">Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email: Shortlist gives you the reply to send from the recruitment inbox. Waiting counts days since the application with no human reply; the automatic brochure email does not count.</p>';
+    h += goneHtml() + '<p class="rct-note">Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email: Shortlist gives you the reply to send from the recruitment inbox. Waiting counts days since the application with no human reply; the automatic brochure email does not count.</p>';
     el.innerHTML = h + '</div>';
     if (q) { var inp = document.getElementById('rctFind'); if (inp && document.activeElement !== inp && inp.__keep) inp.focus(); }
   }
@@ -541,6 +548,13 @@
       case 'status': {
         var b = bucket(p), sv = statusText(p), cls = b === 'look' ? 'rct-green' : b === 'no' ? 'rct-amber' : b === 'done' ? 'rct-grey' : (p.stage === 'interview_booked' || p.stage === 'hired' || p.stage === 'offer') ? 'rct-green' : 'rct-teal';
         var main1 = b === 'no' ? 'Probably no' : sv, why = b === 'no' ? flags(p).map(function (f0) { return FLAG_SHORT[f0.k]; }).join(', ') : '';
+        if (p.stage === 'new') {
+          var ab = autoBucket(p), cur = p.look_ok ? 'look' : p.no_ok ? 'no' : 'auto';
+          return '<td><select class="rct-pill rct-pillsel ' + cls + '" data-bk="' + esc(p.id) + '" aria-label="Worth a look or Probably no for ' + esc(p.name || 'this person') + '">' +
+            '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>Automatic: ' + (ab === 'look' ? 'Worth a look' : 'Probably no') + '</option>' +
+            '<option value="look"' + (cur === 'look' ? ' selected' : '') + '>Worth a look, by hand</option>' +
+            '<option value="no"' + (cur === 'no' ? ' selected' : '') + '>Probably no, by hand</option></select>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
+        }
         return '<td><button type="button" class="rct-pill rct-pillbtn ' + cls + '" data-cf="status" data-cv="' + esc(sv) + '">' + esc(main1) + '</button>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
       }
       case 'acts': {
@@ -893,13 +907,31 @@
       dlg().classList.add('rct-wide');
     } catch (e) { console.error(e); toast('That CV did not open: ' + (e.message || 'try again')); }
   }
-  async function setLookOverride(id, flag) {
+  async function setBucket(id, to) {
     var p = personById(id); if (!p) return;
     try {
-      var r = await sb.rpc('recruit_set_look_override', { p_id: p.id, p_flag: flag }); if (r.error) throw new Error(r.error.message);
-      p.look_ok = flag; render();
-      toast(flag ? firstName(p.name) + ' is in Worth a look now.' : firstName(p.name) + ' is back to the automatic checks.');
+      var r = await sb.rpc('recruit_set_bucket', { p_id: p.id, p_to: to }); if (r.error) throw new Error(r.error.message);
+      p.look_ok = to === 'look'; p.no_ok = to === 'no'; render();
+      toast(to === 'look' ? firstName(p.name) + ' is in Worth a look now.' : to === 'no' ? firstName(p.name) + ' is in Probably no now.' : firstName(p.name) + ' is back to the automatic checks.');
+    } catch (e) { console.error(e); render(); toast('That did not save: ' + (e.message || 'try again')); }
+  }
+  // Kate, 11 Nov 2026: "hindi sya dapat kasama, client po sya": a client asking for an appointment, a supplier or a creator is not an applicant. Out of every list and count, kept at the bottom.
+  async function setNotApplicant(id, flag) {
+    var p = flag ? personById(id) : gone.filter(function (x) { return String(x.id) === String(id); })[0]; if (!p) return;
+    try {
+      var r = await sb.rpc('recruit_set_not_applicant', { p_id: p.id, p_flag: flag }); if (r.error) throw new Error(r.error.message);
+      p.not_app = flag;
+      if (flag) { rows = rows.filter(function (x) { return x !== p; }); gone.push(p); } else { gone = gone.filter(function (x) { return x !== p; }); rows.push(p); }
+      render(); toast(flag ? (p.name || 'They') + ' is out of the list. Find them under Not applicants at the bottom.' : (p.name || 'They') + ' is back in the list.');
     } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
+  function goneHtml() {
+    if (!gone.length) return '';
+    return '<details class="rct-gone"><summary>Not applicants <span class="rct-cnt">' + gone.length + '</span></summary>' +
+      gone.slice().sort(function (a, b2) { return String(a.name || '').localeCompare(String(b2.name || '')); }).map(function (p) {
+        return '<div class="rct-gonerow"><div><b>' + esc(p.name || 'Name not stated') + '</b><span>' + esc(String(p.role_txt || '').slice(0, 90)) + '</span></div>' +
+          '<button type="button" class="rct-btn rct-sm" data-act="notappback" data-id="' + esc(p.id) + '">Put back</button></div>';
+      }).join('') + '</details>';
   }
   function pickPhoto(id) {
     var p = personById(id); if (!p) return;
@@ -1095,8 +1127,9 @@
       else if (a === 'photofile') pickPhotoFile(id);
       else if (a === 'photoclear') clearPhoto(id);
       else if (a === 'photobad') togglePhotoBad(id);
-      else if (a === 'lookmove') setLookOverride(id, true);
-      else if (a === 'lookback') setLookOverride(id, false);
+      else if (a === 'bk') setBucket(id, t.getAttribute('data-to'));
+      else if (a === 'notapp') setNotApplicant(id, true);
+      else if (a === 'notappback') setNotApplicant(id, false);
       else if (a === 'cvfile') openCvFile(id);
       else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
@@ -1113,6 +1146,7 @@
         catch (err) { console.error(err); settings.open_roles_text = was; render(); toast('That did not save: ' + err.message); }
         return;
       }
+      if (e.target && e.target.getAttribute && e.target.getAttribute('data-bk')) { setBucket(e.target.getAttribute('data-bk'), e.target.value); return; }
       if (e.target && e.target.id === 'rctPageSize') { var n = parseInt(e.target.value, 10); if (SIZES.indexOf(n) >= 0) { S.pageSize = n; S.page = 0; savePageSize(n); render(); } }
     });
     document.addEventListener('change', function (e) { if (popCol && e.target && e.target.type === 'checkbox' && popEl().contains(e.target)) popChange(); });
@@ -1155,7 +1189,7 @@
       if (r.error) throw new Error(r.error.message);
       C = r.data || null;
       if (!C) throw new Error('No data came back.');
-      rows = C.rows || []; settings = C.settings || {}; me = C.me || '';
+      var allRows = C.rows || []; rows = allRows.filter(function (p) { return !p.not_app; }); gone = allRows.filter(function (p) { return p.not_app; }); settings = C.settings || {}; me = C.me || '';
       await loadPhotoUrls();
     } catch (e) {
       console.error(e); C = null; loadErr = 'The applicants could not be read just now (' + (e.message || 'unknown') + '). Refresh the page to try again.';
