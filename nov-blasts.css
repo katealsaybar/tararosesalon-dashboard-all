@@ -620,3 +620,6 @@
 
 .nvb .cbl-shell.nvb-rs-wrap>.nvb-rail{grid-column:1}.nvb .cbl-shell.nvb-rs-wrap>.cbl-main{grid-column:2}
 @media (max-width:1100px){.nvb .cbl-shell.nvb-rs-wrap>.nvb-rail,.nvb .cbl-shell.nvb-rs-wrap>.cbl-main{grid-column:auto}}
+
+/* space between the chips row and the section list / report (Kate, 11 Nov 2026: too close) */
+.nvb .cbl-shell.nvb-rs-wrap{margin-top:16px}

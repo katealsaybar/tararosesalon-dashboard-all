@@ -163,12 +163,11 @@
   }
   // The two views at the top of the page (Kate, 11 Nov 2026, the uniform blast layout): Results, the nine section report, and Blast pages, the seven section page of each blast.
   // The Oct and Nov pills move between the two reports. Results has no calendar, pill list or sending bar: those belong to the Blast pages.
-  window.nvbGoOct = function (e, el) { if (typeof trsPlain === 'function' && trsPlain(e) && typeof showView === 'function') { e.preventDefault(); showView('lostlists', el); return false; } return true; };   // a plain click moves inside the app, a new tab or modifier click follows the address
   function viewsHtml() {
     var res = cur === RESID && tab === 'messages';
     return '<div class="nvb-views"><div class="nvb-vsw" role="tablist"><button type="button" role="tab" class="' + (res ? 'on' : '') + '" data-nvb="view:results" aria-selected="' + res + '">Results</button>' +
       '<button type="button" role="tab" class="' + (res ? '' : 'on') + '" data-nvb="view:blasts" aria-selected="' + !res + '">Blast pages: message, template, flow</button></div>' +
-      '<div class="nvb-vsw nvb-camp"><a href="/?view=lost-clients" onclick="return window.nvbGoOct(event, this)">October, Lost Clients</a><span class="on">November 2026 Blasts</span></div></div>';
+      '</div>';
   }
   function stateChip() {   // was always "Draft, nothing sent", even after the send
     if (isL5() && SND && SND.enabled && !SND.dry_run) return '<span class="chip bad">Live sending is on</span>';
