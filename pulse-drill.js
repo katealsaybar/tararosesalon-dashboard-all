@@ -1190,7 +1190,7 @@ const PD = (() => {
     if (v.net) dn.net = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.net, kind: 'net' }));
     if (v.svc) dn.svc = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.svc }));
     if (v.tr || v.tu) { const sp = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.tr || 0, units: v.tu != null ? v.tu : null, kind: 'treat' })); if (v.tr) dn.tr = sp; if (v.tu) dn.tu = sp; }
-    if (v.retail) dn.retail = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.retail, kind: 'retail' }));
+    if (v.retail || v.ru) { const sp = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.retail || 0, kind: 'retail' })); if (v.retail) dn.retail = sp; if (v.ru) dn.ru = sp; }
     if (v.cl) dn.cl = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.cl }));
     if (v.rq) dn.rq = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.rq, kind: 'req' }));
     if (v.nw) dn.nw = newClientsSpec(ctx, Object.assign({}, win, { ledger: v.nw }));
