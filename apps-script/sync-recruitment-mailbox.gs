@@ -153,8 +153,11 @@ function rctPush_(rows, dry) {
    largest picture of 40 KB or more (a signature logo is smaller). 5 MB a file. A failure is counted and logged, never stops the run. */
 const RCT_CV_EXT = { pdf: 1, doc: 1, docx: 1, jpg: 1, jpeg: 1, png: 1, webp: 1 };
 const RCT_CV_MAX = 5 * 1024 * 1024;
+// 11 Nov 2026: includeInlineImages is TRUE on purpose. The info@ backfill saw 44 of 45 direct emails with no attachment although some say 'CV attached' (Akash Deep, Merin R):
+// phone and some desktop mail apps send a PDF with an inline disposition, which a call that leaves inline parts out does not return. The filters below (CV-type files only,
+// pictures of 40 KB or more) already keep signature logos out.
 function rctPickCv_(m) {
-  let atts; try { atts = m.getAttachments({ includeInlineImages: false, includeAttachments: true }); } catch (e) { return null; }
+  let atts; try { atts = m.getAttachments({ includeInlineImages: true, includeAttachments: true }); } catch (e) { return null; }
   let best = null, bestScore = 0;
   atts.forEach(function (a) {
     const name = String(a.getName() || ''), ext = (name.split('.').pop() || '').toLowerCase(), size = a.getSize();
@@ -167,7 +170,7 @@ function rctPickCv_(m) {
   return best;
 }
 function rctAttInfo_(m) {
-  try { return m.getAttachments({ includeInlineImages: false, includeAttachments: true }).map(function (a) { return a.getName() + ' ' + Math.round(a.getSize() / 1024) + 'KB'; }).join('; '); } catch (e) { return 'unreadable: ' + e; }
+  try { return m.getAttachments({ includeInlineImages: true, includeAttachments: true }).map(function (a) { return a.getName() + ' ' + Math.round(a.getSize() / 1024) + 'KB'; }).join('; '); } catch (e) { return 'unreadable: ' + e; }
 }
 function rctUploadCvs_(jobs, t0) {
   const res = { direct_emails: jobs.length, uploaded: 0, already: 0, no_attachment: 0, refused: 0, failed: 0, left_for_next_run: 0 }, errs = [], refused = [];
@@ -415,4 +418,20 @@ function rctDirect_(m, fromAddr, subject, body, at, mailbox, msgId) {
     experience: yrs ? yrs[1] + ' years' : '', specialist: '', paths: '', role_key: rctRoleOf_(subject + ' ' + body.slice(0, 500)), role_txt: subject.trim().slice(0, 90) || 'Job enquiry',
     cv_link: cloud ? cloud[1] : '', about: body.replace(/\r/g, '').split(/\n>|On .{5,80} wrote:/)[0].trim().slice(0, 2000), at: at, mailbox: mailbox, msg_id: msgId,
   }, link);
+}
+
+/* A one-off look at why a message shows no attachment: run debugAttachments() once (pick it in the function list), read the log. It only READS; nothing is sent or changed.
+   Message ids are Gmail ids from the dashboard (recruit_applicants.msg_ids). Added 11 Nov 2026. */
+function debugAttachments() {
+  const ids = ['1a119ff5ebe7662e', '1a0b3abfa86ff624', '1a01565249706bf9'];   // Akash Deep (CV Attached), Merin R, Aqsa Albaloshi
+  ids.forEach(function (id) {
+    try {
+      const m = GmailApp.getMessageById(id);
+      const plain = m.getAttachments({ includeInlineImages: false, includeAttachments: true }).length;
+      const all = m.getAttachments({ includeInlineImages: true, includeAttachments: true });
+      const raw = String(m.getRawContent() || '');
+      const parts = (raw.match(/^Content-(Type|Disposition):.*$/gim) || []).slice(0, 14).join(' || ');
+      console.log(id + ' | ' + m.getSubject() + ' | without inline: ' + plain + ' | with inline: ' + all.length + ' [' + all.map(function (a) { return a.getName() + ' ' + Math.round(a.getSize() / 1024) + 'KB'; }).join('; ') + '] | raw ' + raw.length + ' chars | ' + parts);
+    } catch (e) { console.log(id + ' | could not read: ' + e); }
+  });
 }
