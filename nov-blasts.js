@@ -174,6 +174,7 @@
     if (isL5() && SND && SND.enabled && !SND.dry_run) return '<span class="chip bad">Live sending is on</span>';
     if (RES && RES.first_send) return RES.still_queued > 0 ? '<span class="chip warn">Sending paused, ' + fmtN(RES.still_queued) + ' queued</span>' : '<span class="chip ok">Sent, finished ' + esc(fat(RES.last_send)) + '</span>';
     if (typeof PG !== 'undefined' && PG && PG.any && PG.s > 0) return '<span class="chip ok">Sending started</span>';
+    if (!RES && !resErr) return '<span class="chip">Reading the numbers…</span>';   // not a verdict: the results have not arrived yet
     return '<span class="chip warn">Draft, nothing sent</span>';
   }
   function tabsHtml() {
