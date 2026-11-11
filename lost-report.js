@@ -63,7 +63,7 @@ async function lrCopy(e, el) {
 function lrCopyKey(e, el) { if (e.key === 'Enter' || e.key === ' ') lrCopy(e, el); }
 const lrChat = cid => cid ? ` <a class="lr-chat" href="${LR_RESP}${+cid}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open her chat in respond.io">Chat ↗</a>` : '';
 const LR_OUT = { booked_nodep: ['Booked, no deposit needed', 'sent'], booked_dep: ['Booked, deposit needed', 'sent'], done: ['Done appointment', 'sent'],
-  rescheduled: ['Rescheduled', ''], cancelled: ['Cancelled', 'lr-bad'], stop: ['STOP / opt out', 'lr-bad'] };
+  rescheduled: ['Rescheduled', ''], late: ['Booked after 31 Oct', ''], cancelled: ['Cancelled', 'lr-bad'], stop: ['STOP / opt out', 'lr-bad'] };
 // The section in the address (Belle, 26 Oct 2026): the Performance report's sub-entries write #lr-money and so on, and a link that carries one opens there.
 let lrCurSection = '';
 const LR_HASH0 = (() => { try { return location.hash.replace(/^#/, ''); } catch (e) { return ''; } })();
@@ -233,15 +233,16 @@ function lrTiles(t) {
   return `<div class="ll-cards lr-cards">
     ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet', '', 'sent')}
     ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of those sent wrote back. A STOP is counted under STOP, not here.`, '', 'replied')}
-    ${lrDep ? card(lrDep.total.booked, 'Clients booked', 'Clients with an appointment from today on, each counted once.', '', 'booked')
+    ${lrDep ? card(lrDep.total.booked, 'Clients booked', 'Clients with an appointment from today to 31 Oct, the end of the offer, each counted once. Bookings after 31 Oct have their own box.', '', 'booked')
       : card(t.booked, 'Booked', `${lrPct(t.booked, t.sent)} have a booking from today on`, '', 'booked')}
-    ${lrDep && lrDep.total.appts != null ? card(lrDep.total.appts, 'Appointments booked', 'Appointments from today on. A client can book more than one, so this is higher than the number of clients.', '', 'appts')
+    ${lrDep && lrDep.total.appts != null ? card(lrDep.total.appts, 'Appointments booked', 'Appointments from today to 31 Oct. A client can book more than one, so this is higher than the number of clients.', '', 'appts')
       : ''}
+    ${lrSince && lrSince.total && lrSince.total.late != null ? card(lrSince.total.late, 'Booked after 31 Oct', 'Next appointment is after the end date and she has not come in. Counted here and not in Booked, Booked since the message or the money. Tap to see who.', '', 'late') : ''}
     ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} asked us to stop. Aim to stay under 2%.`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '', 'stop')}
     ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of the messages we tried to send did not go through. Aim to stay under 5%.`, t.failed ? 'lr-warn' : '', 'failed')}
     ${card(t.queued, 'Still queued', 'waiting for the next send window', '', 'queued')}
     ${m ? card(lrAed(m.cost.aed), 'Spent (estimate)', `${lrNum(m.cost.sent, 'sent')} messages at AED ${(+m.rate).toFixed(2)} each${perBooked}. ${lrBillable() != null ? `Only ${lcNum(lrBillable())} of them were delivered, which is about ${lrAed(lrBillable() * m.rate)} if only those are charged. ` : ''}Meta's invoice has the exact figure.`) : ''}
-  </div>${lrDep ? '<p class="slv-note">These are clients we messaged who have an appointment from today on. She may have booked before our message or at the chair; Phorest does not record that.</p>' : ''}`;
+  </div>${lrDep ? '<p class="slv-note">These are clients we messaged who have an appointment from today to 31 Oct. A booking after 31 Oct is counted in its own box. She may have booked before our message or at the chair; Phorest does not record that.</p>' : ''}`;
 }
 // Booked, by deposit (Kate, 18 Oct 2026): of the clients who booked after our message, who has paid a deposit, who has not, and who
 // comes today (no deposit needed). Visual by default, Table beside it like Comparison. Colours are the page's own: paid = --good,
@@ -352,12 +353,13 @@ function lrSinceTiles(sc, tbl) {
   const card = (n, ti, ds, met) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${lrNum(n, met)}</div><div class="ll-d">${ds}</div></div>`;
   return `<div class="ll-cards lr-cards">
       ${card(t.since, 'Booked since the message', `${lrPct(t.since, t.sent)} of the ${lcNum(t.sent)} clients we messaged. Does not drop when they come in`, 'since')}
-      ${card(t.ahead, 'Booked ahead', 'still has a booking from today on', 'ahead')}
+      ${card(t.ahead, 'Booked ahead', 'still has a booking from today to 31 Oct', 'ahead')}
+      ${t.late != null ? card(t.late, 'Booked after 31 Oct', 'next appointment is after the end date and she has not come in. Not in the counts beside it', 'late') : ''}
       ${card(t.done, 'Already came in', 'visited since our message, nothing booked ahead', 'done')}
     </div>
-    ${tbl ? `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Branch</th><th>Messaged</th><th>Booked since the message</th><th>Booked ahead</th><th>Already came in</th></tr></thead><tbody>
-      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td><td>${lcNum(b.sent)}</td><td>${lrNum(b.since, 'since', { b: b.k })}</td><td>${lrNum(b.ahead, 'ahead', { b: b.k })}</td><td>${lrNum(b.done, 'done', { b: b.k })}</td></tr>`).join('')}
-      <tr><td><b>All</b></td><td><b>${lcNum(t.sent)}</b></td><td><b>${lcNum(t.since)}</b></td><td><b>${lcNum(t.ahead)}</b></td><td><b>${lcNum(t.done)}</b></td></tr></tbody></table></div>` : ''}
+    ${tbl ? `<div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Branch</th><th>Messaged</th><th>Booked since the message</th><th>Booked ahead</th>${t.late != null ? '<th>Booked after 31 Oct</th>' : ''}<th>Already came in</th></tr></thead><tbody>
+      ${by.map(b => `<tr><td>${lcEsc(LC_BRANCH[b.k] || b.k)}</td><td>${lcNum(b.sent)}</td><td>${lrNum(b.since, 'since', { b: b.k })}</td><td>${lrNum(b.ahead, 'ahead', { b: b.k })}</td>${t.late != null ? `<td>${lrNum(b.late || 0, 'late', { b: b.k })}</td>` : ''}<td>${lrNum(b.done, 'done', { b: b.k })}</td></tr>`).join('')}
+      <tr><td><b>All</b></td><td><b>${lcNum(t.sent)}</b></td><td><b>${lcNum(t.since)}</b></td><td><b>${lcNum(t.ahead)}</b></td>${t.late != null ? `<td><b>${lcNum(t.late)}</b></td>` : ''}<td><b>${lcNum(t.done)}</b></td></tr></tbody></table></div>` : ''}
     <p class="slv-note">Counted per client from the first message sent to her (${lcEsc(lrDay(sc.first_send))} on). Came in means any sale line since then except a deposit, so it can include a walk-in who never booked ahead. Sales arrive with the nightly upload.</p>`;
 }
 function lrDepInner() {
@@ -760,7 +762,7 @@ function lrPaint() {
 }
 
 // The Outcome filter, with how many clients are in each (counted for the other filters in force). Redrawn with every page of the log.
-const LR_OUT_ORDER = ['booked_nodep', 'booked_dep', 'done', 'rescheduled', 'cancelled', 'stop'];
+const LR_OUT_ORDER = ['booked_nodep', 'booked_dep', 'done', 'rescheduled', 'late', 'cancelled', 'stop'];
 // Pick one outcome or several (Kate, 26 Oct 2026), "–" (no outcome yet) among them so it can be left out of a select-all. Nothing ticked = every outcome.
 // The server takes the picks as a comma list; 'none' is the clients with no outcome yet.
 let lrOutOpen = false;
@@ -793,7 +795,7 @@ function lrLateCell(r) {
 function lrOutcomeCell(r) {
   const o = LR_OUT[r.outcome];
   if (!o) return '<span class="slv-muted">–</span>';
-  const when = r.next && (r.outcome === 'booked_nodep' || r.outcome === 'booked_dep' || r.outcome === 'rescheduled') ? ` <span class="slv-note">${r.outcome === 'rescheduled' ? 'now ' : ''}${lcEsc(lrDay(r.next))}</span>` : '';
+  const when = r.next && (r.outcome === 'booked_nodep' || r.outcome === 'booked_dep' || r.outcome === 'rescheduled' || r.outcome === 'late') ? ` <span class="slv-note">${r.outcome === 'rescheduled' ? 'now ' : ''}${lcEsc(lrDay(r.next))}</span>` : '';
   return `<span class="ll-tag ${o[1]}">${o[0]}</span>${when}`;
 }
 function lrStatus(r) {
@@ -861,7 +863,7 @@ async function lrSaveLog(kind) {
 const LR_DRILL = { sent: 'Sent', replied: 'Replied', booked: 'Clients booked', appts: 'Clients with an appointment booked', stop: 'STOP', failed: 'Failed', queued: 'Still queued',
   skipped: 'Skipped', blocked: 'Blocked', seen: 'Seen', delivered: 'Delivered, not read yet', sent_only: 'Not delivered yet', paid: 'Deposit paid',
   need: 'Deposit likely needed, not paid', none: 'No deposit needed, short service', today: 'Booked for today', nodep: 'No deposit needed', unpaid: 'Not paid yet',
-  since: 'Booked since the message', ahead: 'Booked ahead', done: 'Already came in',
+  since: 'Booked since the message', ahead: 'Booked ahead, to 31 Oct', late: 'Booked after 31 Oct, outside the offer', done: 'Already came in',
   late_offer: 'Booked after 31 Oct, offer not used (Colour / Smoothing)', late_due: 'Booked after 31 Oct (Due only)',
   ws_clients: 'Clients messaged', ws_reached: 'Delivered or seen', ws_replied: 'Wrote back', ws_stop: 'STOP', ws_since: 'Booked or came in since the message', ws_ahead: 'Booked ahead', ws_done: 'Already came in' };
 let lrDrillEl = null, lrDrillFrom = null;
