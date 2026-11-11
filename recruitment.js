@@ -231,6 +231,7 @@
 
   function render() {
     var el = main(); if (!el) return;
+    saveView();
     var h = '<div class="rct">';
     h += '<h2>Recruitment</h2><p class="rct-lead">Who is worth Emma’s time today, and who is still waiting for an answer.</p>';
     h += '<div class="rct-pills rct-top"><span class="rct-pill rct-teal">Kate and Emma only</span>' +
@@ -423,6 +424,24 @@
     { k: 'acts', t: 'Application Status', nofilter: true }
   ];
   function colBy(k) { return COLS.filter(function (c) { return c.k === k; })[0]; }
+  // Kate, 11 Nov 2026: the List remembers the column filters, the sort, the tile picked and Show/Hide Not now people in this browser (localStorage trs-rct-view, the dashboard's trs-*
+  // pattern), so a refresh keeps them. Search text is not kept. Anything unreadable or naming a column that no longer exists is dropped. Clear all filters clears it too.
+  var VKEY = 'trs-rct-view';
+  function saveView() {
+    try {
+      var empty = !Object.keys(S.filters).length && !S.lane && !S.showDone && S.sort.col === 'wait' && S.sort.dir === 'desc';
+      if (empty) localStorage.removeItem(VKEY); else localStorage.setItem(VKEY, JSON.stringify({ f: S.filters, s: S.sort, l: S.lane, d: !!S.showDone }));
+    } catch (e) { /* private window */ }
+  }
+  (function loadView() {
+    try {
+      var v = JSON.parse(localStorage.getItem(VKEY) || 'null'); if (!v || typeof v !== 'object') return;
+      if (v.f && typeof v.f === 'object') Object.keys(v.f).forEach(function (k) { var c = colBy(k), set = v.f[k]; if (c && !c.nofilter && set && typeof set === 'object') S.filters[k] = set; });
+      if (v.s && colBy(v.s.col) && colBy(v.s.col).sort && (v.s.dir === 'asc' || v.s.dir === 'desc')) S.sort = { col: v.s.col, dir: v.s.dir };
+      if (v.l && LANE_NAME[v.l]) S.lane = v.l;
+      if (v.d === true) S.showDone = true;
+    } catch (e) { /* unreadable, start clean */ }
+  })();
 
   function listRows(ignoreCol) {
     var t = q.trim().toLowerCase();
