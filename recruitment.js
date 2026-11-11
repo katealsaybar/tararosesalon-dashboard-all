@@ -194,18 +194,37 @@
   }
   function roleLine(p) { return esc(p.role_txt || p.paths || p.specialist || '') || '<span class="rct-ns">Not stated</span>'; }
 
+  // Kate, 11 Nov 2026: "difficult to sift through pag grid style". The card is now a decision card, built from the doctrine (start from the real job, one decision at a time, show what
+  // they already know): the person, the trade and what they want on two lines, then Kate's own standard as four ticks (photo, Instagram or Facebook, CV, in the UAE) so one glance says
+  // why they are Worth a look or Probably no, then Shortlist, No and Look. Everything else (facts, what they wrote, links) opens with Look. About 3 cards across on a wide screen.
+  function chip(kind, text, tag, attrs) {
+    var cls = 'rct-chip rct-' + kind, mark = kind === 'ok' ? '\u2713 ' : kind === 'x' ? '\u2717 ' : '\u2013 ';
+    return '<' + tag + ' class="' + cls + '"' + (attrs || '') + (tag === 'button' ? ' type="button"' : '') + '>' + mark + esc(text) + '</' + tag + '>';
+  }
+  function checkChips(p) {
+    var h = [], k = linkKind(p), u = linkUrl(p), w = where(p);
+    h.push(!p.photo ? chip('x', 'No photo', 'span') : p.photo_bad ? chip('x', 'Photo not professional', 'span') : chip('ok', 'Photo', 'span'));
+    if (k === 'ig' || k === 'fb') h.push(u ? chip('ok', k === 'ig' ? 'Instagram' : 'Facebook', 'a', ' href="' + esc(u) + '" target="_blank" rel="noopener"') : chip('ok', k === 'ig' ? 'Instagram' : 'Facebook', 'span'));
+    else if (k) h.push(u ? chip('nt', linkName(p), 'a', ' href="' + esc(u) + '" target="_blank" rel="noopener"') : chip('nt', linkName(p), 'span'));
+    else h.push(p.source === 'form' ? chip('x', 'No Instagram or Facebook', 'span') : chip('nt', 'No link given', 'span'));
+    var cu = cvUrl(p);
+    if (cu) h.push(chip('ok', 'CV', 'a', ' href="' + esc(cu) + '" target="_blank" rel="noopener"'));
+    else if (p.cv_file) h.push(chip('ok', 'CV', 'button', ' data-act="cvfile" data-id="' + esc(p.id) + '"'));
+    else if (deadCv(p)) h.push(chip('x', 'CV link broken', 'span'));
+    else if (inEmail(p)) h.push(chip('nt', 'CV in the email', 'span'));
+    else h.push(chip('x', 'No CV', 'span'));
+    h.push(w === 'uae' ? chip('ok', 'In the UAE', 'span') : w === 'abroad' ? chip('x', 'Not in the UAE', 'span') : w === 'bah' ? chip('nt', 'Bahrain', 'span') : chip('nt', 'Place not stated', 'span'));
+    return h.join('');
+  }
   function card(p) {
-    return '<article class="rct-card">' +
-      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<h3>' + esc(p.name || 'Name not stated') + '</h3></div><div class="rct-pills">' + waitPill(p) + extraPills(p) + '</div></div>' +
-      '<div class="rct-facts">' +
-        '<div class="rct-fact"><span>Based in</span><b>' + placeOf(p) + '</b></div>' +
-        '<div class="rct-fact"><span>Link to work</span><b>' + igHtml(p) + '</b></div>' +
-        '<div class="rct-fact"><span>Experience</span><b>' + stated(p.experience) + '</b></div>' +
-        '<div class="rct-fact"><span>Applying for</span><b>' + roleLine(p) + '</b></div>' +
-        '<div class="rct-fact"><span>Applied</span><b>' + esc(fat(p.applied_at)) + ' <span class="rct-src">(' + (p.source === 'form' ? 'website form' : 'email') + (p.merged > 1 ? ', ' + p.merged + ' emails merged' : '') + ')</span></b></div>' +
-      '</div>' + aboutHtml(p) + linksHtml(p) +
-      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
-      '<button type="button" class="rct-btn" data-act="no" data-id="' + esc(p.id) + '">No</button></div></article>';
+    var emp = empType(p), bits = [roleGroup(p), emp === 'Not stated' ? '' : emp, p.experience || ''].filter(Boolean);
+    return '<article class="rct-card rct-cardc">' +
+      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3><span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + extraPills(p) + '</div></div></div></div>' +
+      '<div class="rct-chips">' + checkChips(p) + '</div>' +
+      '<div class="rct-btns rct-btns3"><button type="button" class="rct-btn rct-pri" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
+      '<button type="button" class="rct-btn" data-act="no" data-id="' + esc(p.id) + '">No</button>' +
+      '<button type="button" class="rct-btn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button></div>' +
+      (openRows[p.id] ? detailHtml(p) : '') + '</article>';
   }
   function row(p) {
     var why = flags(p).map(function (f) { return f.t; }).join(' and ');
@@ -388,7 +407,7 @@
   var PATH_WORDS = /Path (One|Two|Three):\s*(The (Employed|Flexible) Stylist|Rent-a-Chair)|Not sure yet\s*I would like to explore the options/gi;
   var REC_WORD = /receptionist|front\s*(desk|off+ice)|call\s*cent/i;
   function roleGroup(p) {
-    var t = [p.role_txt, p.specialist, String(p.about || '').slice(0, 300)].join(' ').replace(PATH_WORDS, ' ');
+    var t = [p.role_txt, p.specialist, String(p.about || '')].join(' ').replace(PATH_WORDS, ' ');
     if (HAIR_ASSIST.test(t)) return 'Hair Assistant';
     // whichever of reception, hair or beauty words comes first in what they wrote (a hair person's "receptionist" never beats "hairstylist" and the other way round)
     var r = t.search(REC_WORD), h = t.search(HAIR_WORD), b = t.search(BEAUTY_WORD), first = -1, g = '';

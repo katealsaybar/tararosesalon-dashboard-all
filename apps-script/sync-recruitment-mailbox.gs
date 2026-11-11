@@ -166,8 +166,11 @@ function rctPickCv_(m) {
   });
   return best;
 }
+function rctAttInfo_(m) {
+  try { return m.getAttachments({ includeInlineImages: false, includeAttachments: true }).map(function (a) { return a.getName() + ' ' + Math.round(a.getSize() / 1024) + 'KB'; }).join('; '); } catch (e) { return 'unreadable: ' + e; }
+}
 function rctUploadCvs_(jobs, t0) {
-  const res = { direct_emails: jobs.length, uploaded: 0, already: 0, no_attachment: 0, failed: 0, left_for_next_run: 0 }, errs = [];
+  const res = { direct_emails: jobs.length, uploaded: 0, already: 0, no_attachment: 0, refused: 0, failed: 0, left_for_next_run: 0 }, errs = [], refused = [];
   if (!jobs.length) return res;
   const key = rctProp_('RCT_ANON_KEY'), pass = rctProp_('RCT_PUSH_PASS'), url = RCT_SUPA + '/functions/v1/recruit-cv-upload';
   const stored = {};
@@ -182,7 +185,13 @@ function rctUploadCvs_(jobs, t0) {
     if (stored[j.id]) { res.already++; continue; }
     if (Date.now() - t0 > RCT_BUDGET_MS) { res.left_for_next_run = jobs.length - k; break; }
     const a = rctPickCv_(j.m);
-    if (!a) { res.no_attachment++; continue; }
+    if (!a) {
+      res.no_attachment++;
+      // say WHY nothing was kept: no attachment at all, or files that were refused (type or size), so the next change is based on facts
+      const seen = rctAttInfo_(j.m);
+      if (seen) { res.refused++; if (refused.length < 12) refused.push(j.id + ' | ' + seen); }
+      continue;
+    }
     try {
       const r = UrlFetchApp.fetch(url, { method: 'post', muteHttpExceptions: true, contentType: 'application/octet-stream',
         headers: { apikey: key, 'x-push-pass': pass, 'x-msg-id': j.id, 'x-file-name': encodeURIComponent(a.getName()) }, payload: a.copyBlob().getBytes() });
@@ -191,6 +200,7 @@ function rctUploadCvs_(jobs, t0) {
     } catch (e) { res.failed++; if (errs.length < 5) errs.push(j.id + ': ' + e); }
   }
   if (errs.length) console.log('CV uploads that failed (first 5):\n' + errs.join('\n'));
+  if (refused.length) console.log('Attachments that were NOT kept, first ' + refused.length + ' (message id | file names and sizes):\n' + refused.join('\n'));
   return res;
 }
 
@@ -397,10 +407,12 @@ function rctDirect_(m, fromAddr, subject, body, at, mailbox, msgId) {
   const ig = /instagram\.com\/([A-Za-z0-9._]+)/i.exec(text) || /instagram[^\n]{0,40}?@([A-Za-z0-9._]{2,30})/i.exec(text);
   const wa = /(\+?\d[\d ()-]{8,16}\d)/.exec(body.slice(0, 3000));
   const otherLink = /(https?:\/\/(?:www\.)?(?:tiktok\.com|facebook\.com|linkedin\.com|youtu\.?be)[^\s)>"]+)/i.exec(text);
+  // a CV sent as a cloud link in the message (Gmail turns a big attachment into a Google Drive link, others paste Dropbox, WeTransfer, OneDrive or Canva): that link is the CV
+  const cloud = /(https?:\/\/(?:drive\.google\.com\/(?:file\/d\/|open\?id=|drive\/folders\/)|docs\.google\.com\/(?:document|file)\/|(?:www\.)?dropbox\.com\/|we\.tl\/|(?:www\.)?wetransfer\.com\/|1drv\.ms\/|onedrive\.live\.com\/|app\.box\.com\/|(?:www\.)?canva\.com\/design\/)[^\s)>"]+)/i.exec(body.slice(0, 3000));
   const link = ig ? { work_link: 'https://www.instagram.com/' + rctHandle_(ig[1]), link_kind: 'instagram', ig_handle: rctHandle_(ig[1]) } : otherLink ? rctLink_(otherLink[1]) : { work_link: '', link_kind: '', ig_handle: '' };
   return Object.assign({
     kind: 'application', source: 'email', name: rctNameOf_(m.getFrom()), email: fromAddr, whatsapp: wa ? wa[1] : '', country: country, emirate: emirate,
     experience: yrs ? yrs[1] + ' years' : '', specialist: '', paths: '', role_key: rctRoleOf_(subject + ' ' + body.slice(0, 500)), role_txt: subject.trim().slice(0, 90) || 'Job enquiry',
-    cv_link: '', about: body.replace(/\r/g, '').split(/\n>|On .{5,80} wrote:/)[0].trim().slice(0, 2000), at: at, mailbox: mailbox, msg_id: msgId,
+    cv_link: cloud ? cloud[1] : '', about: body.replace(/\r/g, '').split(/\n>|On .{5,80} wrote:/)[0].trim().slice(0, 2000), at: at, mailbox: mailbox, msg_id: msgId,
   }, link);
 }

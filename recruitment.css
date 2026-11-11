@@ -46,8 +46,7 @@
 .rct-sec{display:grid;gap:12px}
 .rct-sech{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .rct-cnt{font-size:13px;background:var(--surface2);border-radius:999px;padding:1px 10px;margin-left:8px;font-weight:600;font-family:Inter,system-ui,sans-serif}
-.rct-cards{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
-@media (min-width:900px){.rct-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rct-cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr))}
 .rct-card{border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:14px 16px;box-shadow:var(--shadow);display:grid;gap:12px;align-content:start;min-width:0}
 .rct-list{gap:0;padding:4px 16px}
 .rct-flat{box-shadow:none}
@@ -236,3 +235,19 @@
 .rct-dlg.rct-wide{width:min(980px,calc(100vw - 24px))}
 .rct-cvframe{display:block;width:100%;height:calc(100vh - 190px);min-height:360px;border:0;border-radius:12px;background:#fff}
 .rct-cvimg{display:block;max-width:100%;max-height:calc(100vh - 190px);margin:0 auto;border-radius:12px}
+/* Kate, 11 Nov 2026: the compact decision card in Grid (see card() in recruitment.js) */
+.rct-cardc{gap:10px;padding:12px 14px}
+.rct-cname{min-width:0;display:grid;gap:2px}
+.rct-cname h3{margin:0;font-size:17px;line-height:1.2;overflow-wrap:anywhere}
+.rct-csub{color:var(--muted);font-size:14px;line-height:1.3}
+.rct-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rct-chip{display:inline-flex;align-items:center;border-radius:999px;padding:3px 10px;font:inherit;font-size:13px;font-weight:500;line-height:1.3;border:0;text-decoration:none}
+.rct-chip.rct-ok{background:var(--rct-greenbg);color:var(--rct-green)}
+.rct-chip.rct-x{background:var(--rct-amberbg);color:var(--rct-amber)}
+.rct-chip.rct-nt{background:var(--surface2);color:var(--muted)}
+a.rct-chip,button.rct-chip{cursor:pointer}
+a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:underline}
+.rct-btns3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:520px){.rct-btns3{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}}
+.rct-cpills{margin-top:4px;gap:6px}
+.rct-cname .rct-pills{justify-content:flex-start}
