@@ -227,3 +227,4 @@
 .rct-lk{display:inline-flex;align-items:flex-start;gap:7px;min-width:0}
 .rct-lki{flex:0 0 auto;width:17px;height:17px;margin-top:2px;display:inline-grid}
 .rct-lki svg{width:17px;height:17px;display:block}
+.rct-nw{white-space:nowrap}
