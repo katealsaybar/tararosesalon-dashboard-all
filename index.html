@@ -3403,8 +3403,11 @@ body.ledger-chrome .lg-month-sel{font-size:15px}
 /* Kate, 11 Nov 2026 ("same pill width lang po"): on the Podium Race and Staff Quadrant bar every pill, the three switches and the Rank by list, is the same width,
    and the two buttons inside a switch share it (each keeps its own text width, then the rest is split equally). A phone keeps its own full-width rows (mobile-late.css). */
 @media(min-width:761px){
-  .tp-bar .tp-seg,.tp-bar .ps{width:196px;max-width:100%;flex:none;box-sizing:border-box}
-  .tp-bar .tp-seg button{flex:1 1 auto;min-width:0;text-align:center;white-space:nowrap;padding-left:6px;padding-right:6px}
+  .tp-bar .tp-seg,.tp-bar .ps{width:220px;max-width:100%;flex:none;box-sizing:border-box}
+  /* One height for all four (Kate, 11 Nov 2026: the Rank by pill was taller and its text bigger than the switches). */
+  .tp-bar .tp-seg,.tp-bar .ps .ps-btn{height:38px;box-sizing:border-box}
+  .tp-bar .tp-seg button{flex:1 1 auto;min-width:0;text-align:center;white-space:nowrap;padding:0 4px;display:flex;align-items:center;justify-content:center}
+  .tp-bar .ps .ps-btn{font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;letter-spacing:.04em;line-height:1;padding:0 14px}
 }
 @media(hover:hover){.tp-seg button:hover:not(.on){color:var(--text)}}
 .tp-btn{appearance:none;padding:4px 12px;border-radius:999px;border:1px solid var(--border);
