@@ -131,3 +131,27 @@ begin
   ) into out;
   return out;
 end $function$;
+
+-- Client names on one day's lines (Kate, 11 Nov 2026: "beside visit column add another column for client name, clickable, leads to client book deets").
+-- perf_my_day stays name-free (it answers her own My Numbers link). This one needs a leader's team key AND a signed-in login at Level 3 or above (lost_send_level),
+-- the bar the Client Book and the Pulse lists use, and returns, for her one day, the client behind each "Visit N" with the sale key the client window takes.
+create or replace function public.perf_my_day_clients(p_admin uuid, p_token uuid, p_date date) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare s perf_staff;
+begin
+  if not exists (select 1 from perf_admins where token = p_admin and role in ('leader', 'viewer', 'payroll')) then return null; end if;
+  if public.lost_send_level() < 3 then return null; end if;
+  select * into s from perf_staff where token = p_token and active;
+  if s.id is null or p_date is null then return null; end if;
+  return coalesce((
+    select jsonb_agg(jsonb_build_object('visit', z.visit, 'branch', z.branch, 'client', z.client, 'cid', z.ckey) order by z.branch, z.visit)
+      from (select distinct on (y.branch, y.visit) y.branch, y.visit, y.client_name as client, y.ckey
+              from (select x.branch, x.client_name, x.ckey, dense_rank() over (order by x.branch, x.first_id) visit
+                      from (select l.id, l.branch, l.client_name, l.ckey, min(l.id) over (partition by l.branch, l.sale_id) first_id
+                              from sales_transaction_lines l
+                             where l.employee_name = s.phorest_name and l.date = p_date
+                               and public.stl_item_kind(l.item) in ('service', 'product')) x) y
+             order by y.branch, y.visit) z), '[]'::jsonb);
+end $$;
+revoke all on function public.perf_my_day_clients(uuid, uuid, date) from public;
+grant execute on function public.perf_my_day_clients(uuid, uuid, date) to anon, authenticated;

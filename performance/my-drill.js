@@ -85,7 +85,7 @@
       s: () => 'Treatments as a share of your hair services. The total row is the figure on your page.' },
     retail:   { t: 'Retail', c: () => [['retail', 'Retail', AED], ['ru', 'Retail units', NUM]], f: r => ({ retail: r.retail, ru: r.ru }), keep: r => r.retail > 0 || r.ru > 0,
       s: () => 'Home care you sold before VAT, from Phorest. Units are the product lines on the till, one per item rung up.' },
-    retailpct:{ t: 'Retail %', c: () => [['retail', 'Retail', AED], ['svc', 'Services', AED], ['p', 'Retail %', PCT]], f: r => ({ retail: r.retail, svc: r.svc, p: pc(r.retail, r.svc) }), keep: r => r.retail > 0 || r.svc > 0,
+    retailpct:{ t: 'Retail %', c: () => [['retail', 'Retail', AED], ['ru', 'Retail units', NUM], ['svc', 'Services', AED], ['p', 'Retail %', PCT]], f: r => ({ retail: r.retail, ru: r.ru, svc: r.svc, p: pc(r.retail, r.svc) }), keep: r => r.retail > 0 || r.svc > 0,
       s: () => 'Retail as a share of your services. The total row is the figure on your page.' },
     avgbill:  { t: 'Average bill', c: () => [['svc', 'Services', AED], ['cl', 'Clients', NUM], ['avg', 'Average bill', AED], ['avgr', 'With retail', AED]],
       f: (r, src) => { const cl = src === 'phorest' ? VIS(r) : r.clients; return { svc: r.svc, cl, avg: cl > 0 ? r.svc / cl : null, avgr: cl > 0 ? (r.svc + r.retail) / cl : null }; }, keep: (r, src) => r.svc > 0 || (src === 'phorest' ? VIS(r) : r.clients) > 0,
@@ -136,6 +136,32 @@
     if (Math.abs(t - prod.reduce((a, x) => a + cents(x.net), 0)) <= 2) return { ok: true, retail: prod, svc: rest };
     return { ok: false };                                         // the till does not mark them all as products: not guessed, the day's lines are shown whole
   }
+  // Client names on a day's lines (Kate, 11 Nov 2026: "beside visit column add another column for client name, clickable, leads to client book deets"). Only a leader's team key
+  // asks for them (perf_my_day_clients, Level 3 and above, no name ever reaches her own My Numbers link), and the window is the dashboard's own Client Book (PD.clientHistory),
+  // which the dashboard page holds: a frame reaches it through its parent. No Client Book (a login under Level 3, her own link) means no Client column.
+  function pdOf() {
+    try { if (typeof PD !== 'undefined' && PD && PD.clientHistory) return PD; } catch (e) {}
+    try { return window.parent && window.parent !== window ? window.parent.eval("typeof PD !== 'undefined' && PD.clientHistory ? PD : null") : null; } catch (e) { return null; }
+  }
+  async function dayClients(date, w) {
+    if (!st.admin || !w || !w.token || !pdOf()) return null;
+    try {
+      const r = await fetch(`${SUPA_URL}/rest/v1/rpc/perf_my_day_clients`, { method: 'POST', headers: await PerfAuth.headers(), body: JSON.stringify({ p_admin: st.admin, p_token: w.token, p_date: date }) });
+      if (!r.ok) return null;
+      const list = await r.json();
+      if (!Array.isArray(list) || !list.length) return null;
+      const m = {}; list.forEach(x => { if (x.client && String(x.client).trim()) m[x.branch + '|' + x.visit] = x; });
+      return Object.keys(m).length ? m : null;
+    } catch (e) { return null; }
+  }
+  function clientOf(d, x, date, row) {
+    const c = d._cn && d._cn[x.branch + '|' + x.visit];
+    if (!c) return row;
+    row.cn = String(c.client).trim();
+    const P = pdOf(), sp = P && P.clientHistory({ cur: 'AED', label: dText(date) }, { client: row.cn, on: date, branches: [x.branch], cid: c.cid || undefined });
+    if (sp) row._dn = Object.assign(row._dn || {}, { cn: sp });
+    return row;
+  }
   function dayRes(kind, d, o, date) {
     const src = o.src === 'phorest' ? 'phorest' : 'ledger', day = dText(date);
     const one = (cols, rows, foot, sub, note) => ({ cols, rows, foot: rows.length > 1 ? foot : null, sub: esc(sub), note: note || '', empty: 'No rows for this day.' });
@@ -145,8 +171,8 @@
     // sheet's treatment figure is typed by reception, so the two are compared and any gap is said.
     if ((kind === 'treat' || kind === 'treatpct') && (d.lines || []).length) {
       const T = d.lines.filter(x => x.family === 'treat'), sum = sumOf(T, 'net'), want = sumOf(d.sheet, 'treat');
-      const rows = T.map(x => ({ visit: 'Visit ' + x.visit, br: brn(x.branch), item: x.item, net: x.net }));
-      const cols = [{ k: 'visit', l: 'Visit' }].concat(bc(T), [{ k: 'item', l: 'Treatment' }, { k: 'net', l: 'Amount', t: 'aed' }]);
+      const rows = T.map(x => clientOf(d, x, date, { visit: 'Visit ' + x.visit, br: brn(x.branch), item: x.item, net: x.net }));
+      const cols = [{ k: 'visit', l: 'Visit' }].concat(d._cn ? [{ k: 'cn', l: 'Client' }] : [], bc(T), [{ k: 'item', l: 'Treatment' }, { k: 'net', l: 'Amount', t: 'aed' }]);
       const gap = Math.abs(sum - want) > 1 ? `Not matched: the treatments on the till add to ${aed0(sum)} and the branch sheet, which reception types, says ${aed0(want)}.` : '';
       return one(cols, rows, { visit: 'Total', item: T.length + (T.length === 1 ? ' treatment' : ' treatments'), net: sum },
         `The treatments you rang up on ${day}, before VAT, grouped by visit, from Phorest.`, gap);
@@ -164,8 +190,9 @@
       const retailList = ['retail', 'retailpct'].includes(kind), svcList = ['revenue', 'services', 'hair', 'avgbill'].includes(kind);
       const L = !sp.ok ? all : retailList ? sp.retail : svcList ? sp.svc : all;
       const want = !sp.ok ? svc + rt : retailList ? rt : svcList ? svc : svc + rt, sum = sumOf(L, 'net');
-      const cols = [{ k: 'visit', l: 'Visit' }].concat(bc(L), [{ k: 'item', l: 'What' }, { k: 'net', l: 'Amount', t: 'aed' }]);
-      const rows = L.map(x => ({ visit: 'Visit ' + x.visit, br: brn(x.branch), item: x.item, net: x.net }));
+      const hasC = !!d._cn, units = retailList && sp.ok;
+      const cols = [{ k: 'visit', l: 'Visit' }].concat(hasC ? [{ k: 'cn', l: 'Client' }] : [], bc(L), [{ k: 'item', l: 'What' }], units ? [{ k: 'u', l: 'Units', t: 'num' }] : [], [{ k: 'net', l: 'Amount', t: 'aed' }]);
+      const rows = L.map(x => clientOf(d, x, date, { visit: 'Visit ' + x.visit, br: brn(x.branch), item: x.item, u: 1, net: x.net }));
       const tr = sumOf(d.sheet, 'treat');
       let sub = !sp.ok ? `Everything you rang up on ${day}, before VAT, grouped by visit, from Phorest. Phorest’s day report puts ${aed0(svc)} of it in services and ${aed0(rt)} in retail; the till lines do not say which is which on this day.`
         : retailList ? `The home care you sold on ${day}, before VAT, grouped by visit, from Phorest.`
@@ -174,7 +201,7 @@
       if (kind === 'hair' && tr) sub += ` Hair services are these services less the ${aed0(tr)} of treatments on the branch sheet.`;
       if (kind === 'avgbill') sub += ' The average bill is these services divided by your clients.';
       const gap = Math.abs(sum - want) > 1 ? `Not matched: these lines add to ${aed0(sum)} and Phorest’s day report to ${aed0(want)}.` : '';
-      return one(cols, rows, { visit: 'Total', net: sum }, sub, gap);
+      return one(cols, rows, units ? { visit: 'Total', u: L.length, net: sum } : { visit: 'Total', net: sum }, sub, gap);
     }
     if (kind === 'fill') {
       const U = d.util || [];
@@ -207,7 +234,7 @@
   function daySpec(kind, o, w, date) {
     if (!K[kind] || !date) return null;
     return { title: (o.title || K[kind].t) + ' · ' + dText(date), sk: `${kind}-day-${o.src === 'phorest' ? 'ph' : 'ld'}-${(w.token || w.sid).slice(0, 8)}-${date}`, cur: 'AED',
-      views: [{ id: 'dd', label: 'That day', load: async () => { const d = await rpcList('perf_my_day', date, date, w); return d == null ? NOTREADY : dayRes(kind, d, o, date); } }] };
+      views: [{ id: 'dd', label: 'That day', load: async () => { const d = await rpcList('perf_my_day', date, date, w); if (d == null) return NOTREADY; const run = Object.assign({}, d); if (LINES.includes(kind) || kind === 'treat' || kind === 'treatpct') run._cn = await dayClients(date, w); return dayRes(kind, run, o, date); } }] };
   }
 
   function build(kind, days, o, view, w) {
