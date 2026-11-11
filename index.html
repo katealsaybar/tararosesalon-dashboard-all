@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=85107883"></script>
+<script src="pages.js?v=e27be7e1"></script>
 <script src="page-status.js?v=779c1d41"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
@@ -3618,6 +3618,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     var G = {
       oty: ['report-export.js?v=d7b73ae8', 'over-the-years.js?v=3ee5e8d2'],
       dp:  ['report-export.js?v=d7b73ae8', 'daily-performance.js?v=939b8848', 'daily-addons.js?v=feaba0f0'],
+      // Quarterly Report (11 Nov 2026): borrows Daily Performance's loader, day cells and drill lists, so it loads those files too (a file is fetched once however many groups name it).
+      qr:  ['report-export.js?v=d7b73ae8', 'daily-performance.js?v=939b8848', 'daily-addons.js?v=feaba0f0', 'quarterly-report.js?v=10c3f065'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
@@ -3815,6 +3817,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-title">Numbers</div>
     <div class="nav-subhead">Business</div>
     <a class="nav-sub" href="/?view=dashboard" onclick="if(trsPlain(event)){event.preventDefault();showView('dashboard', this)}">Organisation Pulse</a>
+    <!-- Kate, 11 Nov 2026: Quarterly Report, the Pulse's seven numbers for one quarter, every figure clickable (quarterly-report.js; Executives & Marketing and Kate). -->
+    <a class="nav-sub" href="/?view=quarterreport" onclick="if(trsPlain(event)){event.preventDefault();showView('quarterreport', this)}">Quarterly Report</a>
     <a class="nav-sub" href="/?view=compare" onclick="if(trsPlain(event)){event.preventDefault();showView('compare', this)}">Comparison</a>
     <a class="nav-sub" href="/?view=dailyperf" onclick="if(trsPlain(event)){event.preventDefault();showView('dailyperf', this)}">Daily Performance</a>
     <a class="nav-sub" href="/?view=overyears" onclick="if(trsPlain(event)){event.preventDefault();showView('overyears', this)}">Over the Years</a>
@@ -4116,6 +4120,11 @@ table.tp-cmp td.bad{color:var(--bad)}
        Own Measure and Period controls, so the masthead filters are hidden. Drawn by daily-performance.js. -->
   <div id="view-dailyperf" style="display:none">
     <main id="dailyPerfContent" style="padding:10px clamp(14px,4vw,28px) 48px"></main>
+  </div>
+
+  <!-- Quarterly Report (Kate, 11 Nov 2026): one quarter, seven numbers, branch by branch; quarterly-report.js. -->
+  <div id="view-quarterreport" style="display:none">
+    <main id="quarterReportContent" style="padding:10px clamp(14px,4vw,28px) 48px"></main>
   </div>
 
   <!-- COMPARISON: two windows side by side, each its own branch + dates.
@@ -4732,7 +4741,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="target-links.js?v=72e70df1"></script>
 <script src="drill.js?v=7b4719d6"></script>
 <script src="pulse-drill.js?v=d67ecf2e"></script>
-<script src="dashboard.js?v=7294aa79"></script>
+<script src="dashboard.js?v=c2012cdb"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5305,6 +5314,7 @@ function showView(view, el){
   if (view === 'compare')       renderCompare();
   if (view === 'overyears')     renderOverYears();
   if (view === 'dailyperf')     renderDailyPerf();
+  if (view === 'quarterreport') renderQuarterReport();
   if (view === 'ledgerFinancials') renderLedgerFinancials();
   if (view === 'ledgerTargets') renderLedgerTargets();
   if (view === 'ledgerActuals') renderLedgerActuals();

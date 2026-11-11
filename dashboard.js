@@ -799,7 +799,7 @@ function periodChips(shown) {
 // middot never becomes a click target.
 // Kate, 23 Oct 2026: "since wala pa tayong targets set for Bahrain, strike out muna sya, hindi pwede pindutin". Daily Performance is read against daily targets and
 // Bahrain has none yet, so on that page its chip is struck out and cannot be pressed. Add a view here when it is read against targets too.
-const NO_BAH_VIEWS = new Set(['dailyperf', 'clientmix', 'retention', 'stripedeposits']);   // Client Mix (29 Oct 2026): its sales lines are the four UAE branches
+const NO_BAH_VIEWS = new Set(['dailyperf', 'quarterreport', 'clientmix', 'retention', 'stripedeposits']);   // Client Mix (29 Oct 2026): its sales lines are the four UAE branches
 const bahStruck = () => typeof CURRENT_VIEW !== 'undefined' && NO_BAH_VIEWS.has(CURRENT_VIEW);
 function chipRow(opts) {
   return opts.map((o, i) =>

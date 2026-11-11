@@ -38,6 +38,7 @@
    Keep the list between the markers strict JSON: the check reads it. */
 window.TRS_PAGES = /*PAGES*/[
   {"id": "dashboard", "label": "Organisation Pulse", "group": "Numbers", "sub": "Business", "scope": 1, "filtered": 1, "words": "home overview kpi sales revenue takings pulse summary", "lv": [2]},
+  {"id": "quarterreport", "label": "Quarterly Report", "group": "Numbers", "sub": "Business", "min": 3, "nopulse": 1, "lazy": "qr", "words": "quarter quarterly business report q1 q2 q3 q4 three months target last year net take services treatments retail clients rebooking average bill tara emma board review", "lv": []},
   {"id": "compare", "lazy": "cmp", "label": "Comparison", "group": "Numbers", "sub": "Business", "words": "compare comparison versus vs side by side", "lv": []},
   {"id": "dailyperf", "label": "Daily Performance", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "dp", "words": "daily day by day per branch graph chart radar heatmap weekday strengths weaknesses sales net take total net take clients utilisation rebooking target", "lv": [2]},
   {"id": "overyears", "label": "Over the Years", "group": "Numbers", "sub": "Business", "filtered": 1, "lazy": "oty", "words": "years history annual year by year seasons month by month growth", "lv": [2]},
