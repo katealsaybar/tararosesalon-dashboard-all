@@ -166,6 +166,7 @@
   function linksHtml(p) {
     var s = '', cv = cvUrl(p);
     if (cv) s += '<a href="' + esc(cv) + '" target="_blank" rel="noopener">CV</a>';
+    else if (p.cv_file) s += '<button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '">CV (' + esc(p.cv_file_name || 'attached file') + ')</button>';
     if (p.email) s += '<a href="https://mail.google.com/mail/?authuser=recruitment@tararosesalon.com#search/' + encodeURIComponent(p.email) + '" target="_blank" rel="noopener">Their emails in Gmail</a>';
     var wa = String(p.whatsapp || '').replace(/\D/g, '');
     if (wa.length >= 9) s += '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">WhatsApp</a>';
@@ -416,8 +417,8 @@
   function photoLabel(p) { return !p.photo ? 'No photo' : p.photo_bad ? 'Photo not professional' : 'Has photo'; }
   // Kate, 11 Nov 2026: a direct email carries its CV as an attached file, so there is no file link, and Coach Emma has no access to info@ to open the email, so the page does not
   // link into Gmail. It says "In the email" (not clickable) until the attachments are stored on the dashboard.
-  function inEmail(p) { return p.source === 'email' && !cvUrl(p) && !deadCv(p); }
-  function cvLabel(p) { return cvUrl(p) ? 'Has CV' : deadCv(p) ? 'CV link broken' : inEmail(p) ? 'CV in the email' : 'No CV'; }
+  function inEmail(p) { return p.source === 'email' && !cvUrl(p) && !deadCv(p) && !p.cv_file; }
+  function cvLabel(p) { return cvUrl(p) || p.cv_file ? 'Has CV' : deadCv(p) ? 'CV link broken' : inEmail(p) ? 'CV in the email' : 'No CV'; }
   var CV_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function igLabel(p) { var k = linkKind(p); return k ? linkName(p) : (p.source === 'form' ? 'None given' : 'Not stated'); }
   // Kate, 10 Nov 2026: which inbox the application arrived in (a person who wrote to both shows as Both)
@@ -430,7 +431,7 @@
     { k: 'photo', t: 'Profile photo', val: photoLabel, sort: function (p) { return !p.photo ? 2 : p.photo_bad ? 1 : 0; }, kind: 'num', asc: 'Good photo first', desc: 'No photo first' },
     { k: 'place', t: 'Based in', val: countryShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'ig', t: 'Link to work', val: igLabel, sort: function (p) { return (linkKind(p) ? '0' : '1') + igLabel(p).toLowerCase(); }, kind: 'text' },
-    { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return cvUrl(p) ? 0 : inEmail(p) ? 1 : deadCv(p) ? 2 : 3; }, kind: 'text' },
+    { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return cvUrl(p) || p.cv_file ? 0 : inEmail(p) ? 1 : deadCv(p) ? 2 : 3; }, kind: 'text' },
     { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: expNum, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
     { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleGroup(p).toLowerCase(); }, kind: 'text' },
     { k: 'emp', t: 'Employment type', val: empType, sort: function (p) { return empType(p).toLowerCase(); }, kind: 'text' },
@@ -493,6 +494,7 @@
       case 'cv': {
         var cu = cvUrl(p);
         return '<td>' + (cu ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><a class="rct-ig" href="' + esc(cu) + '" target="_blank" rel="noopener">CV</a></span>'
+          : p.cv_file ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '" title="' + esc(p.cv_file_name || 'CV') + '">CV</button></span>'
           : inEmail(p) ? cellBtn('<span class="rct-ns rct-nw">In the email</span>', 'cv', cvLabel(p))
           : cellBtn('<span class="rct-ns rct-nw">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>', 'cv', cvLabel(p))) + '</td>';
       }
@@ -833,6 +835,17 @@
       render(); toast(flag ? firstName(p.name) + '\u2019s photo is marked not professional. Probably no.' : 'Mark taken off ' + firstName(p.name) + '.');
     } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
   }
+  // Kate, 11 Nov 2026: the CV a person attached to a direct email is kept in the private bucket recruit-cvs (the mailbox script sends it, edge function recruit-cv-upload) and opened
+  // here with a short-lived link, so Coach Emma can read it without any access to info@. The tab is opened first so a pop-up blocker lets it through.
+  async function openCvFile(id) {
+    var p = personById(id); if (!p || !p.cv_file) return;
+    var w = window.open('', '_blank');
+    try {
+      var r = await sb.storage.from('recruit-cvs').createSignedUrl(p.cv_file, 300);
+      if (r.error || !r.data || !r.data.signedUrl) throw new Error(r.error ? r.error.message : 'no link');
+      if (w) w.location.href = r.data.signedUrl; else window.open(r.data.signedUrl, '_blank');
+    } catch (e) { console.error(e); if (w) w.close(); toast('That CV did not open: ' + (e.message || 'try again')); }
+  }
   function pickPhoto(id) {
     var p = personById(id); if (!p) return;
     photoFor = String(p.id);
@@ -1027,6 +1040,7 @@
       else if (a === 'photofile') pickPhotoFile(id);
       else if (a === 'photoclear') clearPhoto(id);
       else if (a === 'photobad') togglePhotoBad(id);
+      else if (a === 'cvfile') openCvFile(id);
       else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
       else if (a === 'pgnext') { S.page += 1; render(); }

@@ -96,7 +96,7 @@ function rctNoteUnreadable_(m, th, un) {
 }
 
 function rctRun_(fromMs, toMs, dry) {
-  const t0 = Date.now(), seen = {}, rows = [], own = rctOwnAddr_(), un = { count: 0, list: [] };
+  const t0 = Date.now(), seen = {}, rows = [], own = rctOwnAddr_(), un = { count: 0, list: [] }, cvJobs = [];
   rctQueries_(fromMs, toMs).forEach(function (q) {
     for (let start = 0; start < 1500; start += 100) {
       if (Date.now() - t0 > RCT_BUDGET_MS) throw new Error('Out of time, run again for a smaller window (BACKFILL_FROM / BACKFILL_TO).');
@@ -109,7 +109,8 @@ function rctRun_(fromMs, toMs, dry) {
             const id = m.getId(); if (seen[id]) return;
             const d = m.getDate().getTime(); if (d < fromMs || (toMs && d >= toMs)) return;
             seen[id] = 1;
-            const r = rctClassify_(m, own); if (r) rows.push(r);
+            const r = rctClassify_(m, own);
+            if (r) { rows.push(r); if (r.kind === 'application' && r.source === 'email') cvJobs.push({ id: id, m: m }); }   // a direct email: its CV is an attached file
           } catch (e) {
             if (!rctReadFailure_(e)) throw e;
             rctNoteUnreadable_(m, th, un);
@@ -127,6 +128,7 @@ function rctRun_(fromMs, toMs, dry) {
     Object.keys(res).forEach(function (k) { if (typeof res[k] === 'number') totals[k] = (totals[k] || 0) + res[k]; });
   }
   totals.cv_rebuilt = RCT_CV_STATS.rebuilt; totals.cv_unresolved = RCT_CV_STATS.unresolved;
+  if (!dry) totals.cv_files = rctUploadCvs_(cvJobs, t0); else totals.cv_files = { direct_emails: cvJobs.length, dry: true };
   console.log(JSON.stringify(totals));
   if (un.count) console.log('Unreadable by Apps Script (open these in Gmail by hand; date | sender | subject; first ' + Math.min(un.count, RCT_UNREADABLE_CAP) + ' of ' + un.count + '):\n' + un.list.join('\n'));
   return totals;
@@ -141,6 +143,54 @@ function rctPush_(rows, dry) {
   });
   if (resp.getResponseCode() !== 200) throw new Error('recruit_import said ' + resp.getResponseCode() + ': ' + resp.getContentText().slice(0, 300));
   return JSON.parse(resp.getContentText());
+}
+
+/* ---------- the CV attached to a direct email (added 11 Nov 2026) ----------
+   A direct email carries its CV as an attached file, and Coach Emma has no access to info@, so each attachment is sent to the edge function recruit-cv-upload (same push
+   pass), which keeps it in the private bucket recruit-cvs; Kate and Coach Emma open it from the Recruitment page. One call first asks which messages already have their file, so
+   the every-5-minutes run and a backfill never upload the same file twice. Only the best attachment of a message is sent: a file named like a CV, else a pdf / doc / docx, else the
+   largest picture of 40 KB or more (a signature logo is smaller). 5 MB a file. A failure is counted and logged, never stops the run. */
+const RCT_CV_EXT = { pdf: 1, doc: 1, docx: 1, jpg: 1, jpeg: 1, png: 1, webp: 1 };
+const RCT_CV_MAX = 5 * 1024 * 1024;
+function rctPickCv_(m) {
+  let atts; try { atts = m.getAttachments({ includeInlineImages: false, includeAttachments: true }); } catch (e) { return null; }
+  let best = null, bestScore = 0;
+  atts.forEach(function (a) {
+    const name = String(a.getName() || ''), ext = (name.split('.').pop() || '').toLowerCase(), size = a.getSize();
+    if (!RCT_CV_EXT[ext] || size <= 0 || size > RCT_CV_MAX) return;
+    const doc = ext === 'pdf' || ext === 'doc' || ext === 'docx';
+    if (!doc && size < 40 * 1024) return;
+    const score = (/\bcv\b|resume|r\u00e9sum\u00e9|curriculum/i.test(name) ? 4 : 0) + (doc ? 2 : 1) + size / 1e9;
+    if (score > bestScore) { best = a; bestScore = score; }
+  });
+  return best;
+}
+function rctUploadCvs_(jobs, t0) {
+  const res = { direct_emails: jobs.length, uploaded: 0, already: 0, no_attachment: 0, failed: 0, left_for_next_run: 0 }, errs = [];
+  if (!jobs.length) return res;
+  const key = rctProp_('RCT_ANON_KEY'), pass = rctProp_('RCT_PUSH_PASS'), url = RCT_SUPA + '/functions/v1/recruit-cv-upload';
+  const stored = {};
+  for (let i = 0; i < jobs.length; i += 200) {
+    const ids = jobs.slice(i, i + 200).map(function (j) { return j.id; });
+    const r = UrlFetchApp.fetch(url, { method: 'post', muteHttpExceptions: true, contentType: 'application/json', headers: { apikey: key, 'x-push-pass': pass, 'x-mode': 'check' }, payload: JSON.stringify({ msg_ids: ids }) });
+    if (r.getResponseCode() !== 200) throw new Error('recruit-cv-upload (check) said ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200));
+    (JSON.parse(r.getContentText()).stored || []).forEach(function (x) { stored[x] = 1; });
+  }
+  for (let k = 0; k < jobs.length; k++) {
+    const j = jobs[k];
+    if (stored[j.id]) { res.already++; continue; }
+    if (Date.now() - t0 > RCT_BUDGET_MS) { res.left_for_next_run = jobs.length - k; break; }
+    const a = rctPickCv_(j.m);
+    if (!a) { res.no_attachment++; continue; }
+    try {
+      const r = UrlFetchApp.fetch(url, { method: 'post', muteHttpExceptions: true, contentType: 'application/octet-stream',
+        headers: { apikey: key, 'x-push-pass': pass, 'x-msg-id': j.id, 'x-file-name': encodeURIComponent(a.getName()) }, payload: a.copyBlob().getBytes() });
+      if (r.getResponseCode() === 200) res.uploaded++;
+      else { res.failed++; if (errs.length < 5) errs.push(j.id + ' ' + a.getName() + ': ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 120)); }
+    } catch (e) { res.failed++; if (errs.length < 5) errs.push(j.id + ': ' + e); }
+  }
+  if (errs.length) console.log('CV uploads that failed (first 5):\n' + errs.join('\n'));
+  return res;
 }
 
 /* ---------- classifying one message ---------- */
