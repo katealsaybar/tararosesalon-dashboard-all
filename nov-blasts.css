@@ -578,35 +578,29 @@
 .nvb .nvb-pg input:disabled,.nvb .nvb-pg select:disabled,.nvb .nvb-btn:disabled{opacity:.45;cursor:not-allowed}
 @media (max-width:640px){.nvb .nvb-kvs>div{grid-template-columns:1fr;gap:2px}.nvb .nvb-pg{grid-template-columns:1fr 1fr}}
 
-.nvb .nvb-rs-late{margin-top:10px;grid-template-columns:minmax(0,1fr)}
+.nvb .nvb-rs-late{margin-top:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .nvb .nvb-rs-late small{color:var(--muted2)}
 
 /* The "On this page" rail, the October Lost Clients one (Kate, 11 Nov 2026): the shared .lg-side / .side-nav of index.html, plus the numbered sections under the open entry.
-   Two shapes. In the gutter (Results, 1600px and up, or 1400px and up with the main navigation closed, the same breakpoints the shared rail uses) it is the list with the
+   Two shapes. In the gutter (Results, 1100px and up, beside the main sidebar open or collapsed) it is the list with the
    sections indented under the open entry. Everywhere else it lies down into ONE pinned row of chips that scrolls sideways, so it never grows into a tall block over the page. */
 #novBlastsContent .side-sub{display:contents}
 #novBlastsContent .nvb-rs-sec[id^="nvr-"]{scroll-margin-top:calc(var(--topbar-cond-h,104px) + 64px)}
 #novBlastsContent .lg-side .side-nav{flex-wrap:nowrap;align-items:center;overflow-x:auto;scrollbar-width:none}
 #novBlastsContent .lg-side .side-nav::-webkit-scrollbar{display:none}
 #novBlastsContent .lg-side .side-nav>a,#novBlastsContent .lg-side .side-nav .side-sub a,#novBlastsContent .lg-side .side-k{flex:none;white-space:nowrap}
-@media(min-width:1600px){
-  #novBlastsContent .lg-shell.nvb-lgs{margin-top:16px}
-  #novBlastsContent .lg-shell .lg-side{max-height:calc(100vh - 136px);overflow-y:auto}
-  #novBlastsContent .lg-shell .lg-side .side-nav{display:block;overflow:visible}
-  #novBlastsContent .lg-shell .lg-side .side-nav>a{white-space:normal}
+@media(min-width:1100px){
+  /* Kate, 11 Nov 2026: the list stays beside the main sidebar whether it is open or collapsed (the shared rail drops to a row of chips with the main navigation open; this page does not) */
+  #novBlastsContent .lg-shell.nvb-lgs{display:grid;grid-template-columns:172px minmax(0,1fr);gap:40px;align-items:start;margin-top:16px}
+  #novBlastsContent .lg-shell .lg-side{position:sticky;top:118px;z-index:auto;background:none;margin:0;padding:0;border:0;max-height:calc(100vh - 136px);overflow-y:auto}
+  #novBlastsContent .lg-shell .lg-side .side-nav{display:block;padding:0;overflow:visible}
+  #novBlastsContent .lg-shell .lg-side .side-k{display:block;padding:0 0 9px;border-bottom:1px solid var(--text)}
+  #novBlastsContent .lg-shell .lg-side .side-nav>a{display:block;padding:8px 0 8px 13px;border:0;border-left:2px solid var(--border2);border-radius:0;white-space:normal}
+  #novBlastsContent .lg-shell .lg-side .side-nav>a.on{border-left-color:var(--text)}
   #novBlastsContent .lg-shell .lg-side .side-sub{display:block;margin:0 0 4px}
   #novBlastsContent .lg-shell .lg-side .side-nav .side-sub a{display:block;white-space:normal;padding:5px 0 5px 27px;font-size:13px;color:var(--muted);border:0;border-left:2px solid var(--border2);border-radius:0}
   #novBlastsContent .lg-shell .lg-side .side-nav .side-sub a.on{color:var(--text);font-weight:600;border-left-color:var(--text)}
   @media(hover:hover){#novBlastsContent .lg-shell .lg-side .side-nav .side-sub a:hover{color:var(--text)}}
-}
-@media(min-width:1400px) and (max-width:1599.98px){
-  body:not(.nav-open) #novBlastsContent .lg-shell.nvb-lgs{margin-top:16px}
-  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side{max-height:calc(100vh - 136px);overflow-y:auto}
-  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-nav{display:block;overflow:visible}
-  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-nav>a{white-space:normal}
-  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-sub{display:block;margin:0 0 4px}
-  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-nav .side-sub a{display:block;white-space:normal;padding:5px 0 5px 27px;font-size:13px;color:var(--muted);border:0;border-left:2px solid var(--border2);border-radius:0}
-  body:not(.nav-open) #novBlastsContent .lg-shell .lg-side .side-nav .side-sub a.on{color:var(--text);font-weight:600;border-left-color:var(--text)}
 }
 /* every chip: the shared pill look, and the lit one outlined */
 #novBlastsContent .lg-side.nvb-chips{position:sticky;top:var(--topbar-cond-h,104px);z-index:40;background:var(--bg);margin:6px 0;padding:9px 0 0;border-bottom:1px solid var(--border2);max-height:none;overflow:visible}

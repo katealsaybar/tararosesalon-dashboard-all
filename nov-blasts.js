@@ -925,7 +925,8 @@
     var cpb = (bkok && slok && m.booked_or_in > 0) ? rsCell('Cost per booking', 'AED ' + money2(reached * r2 / m.booked_or_in), 'delivered messages at ' + r2 + ' divided by ' + nn(m.booked_or_in, 'since') + ' booked since the message or came in') : rsWait('Cost per booking', (bkok && slok) ? 'Nobody has booked or come in yet.' : 'Needs bookings and sales after the message, see Booked ahead and Paid.');
     var bci = bkok && slok ? rsCell('Booked or came in', nn(m.booked_or_in, 'since'), 'a booking from today to 30 Nov, a booking first seen after her first message, or a till sale since. Not the ones booked after 30 Nov') : rsWait('Booked or came in', !bkok ? whyBookings(st) : whySales(st));
     // Booked after the offer ended (Kate, 11 Nov 2026): a client whose next appointment is after 30 Nov is counted here and nowhere else (nov_client_facts.late, migrations/nov_after_deadline.sql).
-    var lateBox = bkok ? '<div class="nvb-rs-nums nvb-rs-late">' + rsCell('Booked after 30 November', nn(m.late, 'late'), 'Her next appointment is after the offers end, so she is counted here and not in Booked ahead, Booked since the message, Booked or came in or Cost per booking. A snapshot of bookings from today on') + '</div>' : '';
+    var mpb = (bkok && slok && m.booked_or_in > 0) ? rsCell('Messages per booking', (a.sent / m.booked_or_in).toFixed(1), fmtN(a.sent) + ' messages accepted for ' + nn(m.booked_or_in, 'since') + ' clients who booked or came in since our message') : rsWait('Messages per booking', (bkok && slok) ? 'Nobody has booked or come in yet.' : 'Needs bookings and sales after the message.');   // moved up from What it took to get a booking (Kate, 11 Nov 2026: redundant, move to the top)
+    var lateBox = bkok ? '<div class="nvb-rs-nums nvb-rs-late">' + mpb + rsCell('Booked after 30 November', nn(m.late, 'late'), 'Her next appointment is after the offers end, so she is counted here and not in Booked ahead, Booked since the message, Booked or came in or Cost per booking. A snapshot of bookings from today on') + '</div>' : '';
     out += rsSec('1. The campaign so far', 'How many went out, what came back and what it cost. What cannot be read yet says why.',
       '<div class="nvb-rs-nums">' +
       rsCell('Accepted by respond.io', nn(a.sent, 'sent'), esc(fat(RES.first_send) + ' to ' + fat(RES.last_send))) +
@@ -945,7 +946,6 @@
 
     // 7 money
     out += moneySec(st, a, bkok, slok, r2);
-    out += tookSec(st, a, bkok, slok, r2, reached);
     // 2 by blast
     var head2 = [['Blast', ''], ['Audience', 'n'], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['Failed % of checked', 'n'], ['STOP', 'n'], ['Wrote back', 'n']];
     var all2 = rows.concat([a]);
