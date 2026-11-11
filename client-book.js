@@ -11,14 +11,15 @@
 // Own controls (search, branch), so the masthead filters are hidden here, as on Client Mix.
 // Not in the pull: photos on visits (only how many), patch tests, consultation forms, reviews tabs.
 const CB_STORE = 'trs-client-book';
-const CB = { branch: 'all', q: '', page: 0 };
+const CB = { branch: 'all', q: '', page: 0, size: 10 };
+const CB_SIZES = [10, 20, 50, 100];   // rows on a page (Kate, 11 Nov 2026: 10 to start, then 20, 50, 100; the search call itself stops at 100)
 try {
   const s = JSON.parse(localStorage.getItem(CB_STORE) || '{}');
   if (typeof s.branch === 'string') CB.branch = s.branch;
+  if (CB_SIZES.includes(s.size)) CB.size = s.size;
 } catch (e) {}
-const cbSave = () => { try { localStorage.setItem(CB_STORE, JSON.stringify({ branch: CB.branch })); } catch (e) {} };
+const cbSave = () => { try { localStorage.setItem(CB_STORE, JSON.stringify({ branch: CB.branch, size: CB.size })); } catch (e) {} };
 let cbData = null, cbSeq = 0, cbTimer = 0, cbOpen = '';
-const CB_PAGE = 40;
 const CB_BRANCH = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz', MRY: 'Marasy', FRA: 'Fratelli', BAH: 'Bahrain' };
 const CB_TOGGLE = [['all', 'All branches'], ['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'],
   ['MRY', 'Marasy (closed)'], ['FRA', 'Fratelli (closed)'], ['BAH', 'Bahrain']];
@@ -82,6 +83,8 @@ function cbShell() {
     <div class="cb-bar">
       <input id="cbQ" class="cb-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, phone number or email" aria-label="Search clients" value="${cbEsc(CB.q)}">
       <select id="cbB" class="cb-sel" aria-label="Branch">${opts}</select>
+      <select id="cbN" class="cb-sel" aria-label="Rows on a page">${CB_SIZES.map(n => `<option value="${n}"${CB.size === n ? ' selected' : ''}>${n} rows</option>`).join('')}</select>
+      ${typeof rexButtons === 'function' ? rexButtons('cbExport') : ''}
     </div>
     <p class="cb-meta" id="cbMeta" aria-live="polite"></p>
     <div class="cb-card"><div id="cbBody" style="overflow-x:auto"><p class="cb-meta">Loading…</p></div></div>
@@ -101,6 +104,11 @@ function cbWire() {
   if (sel && !sel.dataset.w) {
     sel.dataset.w = '1';
     sel.addEventListener('change', () => { CB.branch = sel.value; CB.page = 0; cbOpen = ''; cbSave(); cbLoad(); });
+  }
+  const nsel = document.getElementById('cbN');
+  if (nsel && !nsel.dataset.w) {
+    nsel.dataset.w = '1';
+    nsel.addEventListener('change', () => { CB.size = Number(nsel.value) || 10; CB.page = 0; cbOpen = ''; cbSave(); cbLoad(); });
   }
   if (body && !body.dataset.w) {
     body.dataset.w = '1';
@@ -184,7 +192,7 @@ function cbPaint() {
   const body = document.getElementById('cbBody'), meta = document.getElementById('cbMeta');
   if (!body || !cbData) return;
   const rows = cbData.rows || [], total = Number(cbData.total || 0);
-  const from = total ? CB.page * CB_PAGE + 1 : 0, to = CB.page * CB_PAGE + rows.length;
+  const from = total ? CB.page * CB.size + 1 : 0, to = CB.page * CB.size + rows.length;
   if (meta) meta.textContent = total ? `${cbNum(from)} to ${cbNum(to)} of ${cbNum(total)} client${total === 1 ? '' : 's'}` : '';
   if (!rows.length) { body.innerHTML = `<p class="cb-meta" style="padding:10px 4px">${CB.q ? 'No client matches that.' : 'No clients in this branch.'}</p>`; return; }
   const tr = rows.map(r => {
@@ -207,7 +215,7 @@ async function cbLoad() {
   if (!body) return;
   const seq = ++cbSeq;
   try {
-    const { data, error } = await sb.rpc('client_book_search', { p_q: CB.q.trim(), p_branch: CB.branch, p_limit: CB_PAGE, p_offset: CB.page * CB_PAGE });
+    const { data, error } = await sb.rpc('client_book_search', { p_q: CB.q.trim(), p_branch: CB.branch, p_limit: CB.size, p_offset: CB.page * CB.size });
     if (error) throw error;
     if (seq !== cbSeq) return;
     cbData = data;
@@ -217,6 +225,50 @@ async function cbLoad() {
     if (seq !== cbSeq) return;
     body.innerHTML = '<p class="cb-meta" style="padding:10px 4px">The client list did not load. Refresh to try again.</p>';
   }
+}
+
+// XLSX and CSV (Kate, 11 Nov 2026): every client the search and branch pick match, not just the page on screen. The search call hands back at
+// most 100 a page, so the export reads it 100 at a time, four pages together, and says how far it is in the line above the list. Contact details
+// only (no client or visit notes): the notes stay on the card. Level 5 and over only, like the page; the call refuses anyone lower.
+async function cbExport() {
+  if (!cbLevelOk()) return null;
+  const meta = document.getElementById('cbMeta'), q = CB.q.trim(), br = CB.branch, N = 100;
+  const call = off => sb.rpc('client_book_search', { p_q: q, p_branch: br, p_limit: N, p_offset: off });
+  const first = await call(0);
+  if (first.error) throw first.error;
+  const total = Number(first.data.total || 0), rows = (first.data.rows || []).slice();
+  if (!total) return null;
+  const offs = []; for (let o = N; o < total; o += N) offs.push(o);
+  const pages = {};
+  let next = 0, done = 0;
+  const worker = async () => {
+    while (next < offs.length) {
+      const o = offs[next++], r = await call(o);
+      if (r.error) throw r.error;
+      pages[o] = r.data.rows || [];
+      done++;
+      if (meta) meta.textContent = `Collecting the clients for the file: ${cbNum(Math.min(total, (done + 1) * N))} of ${cbNum(total)}`;
+    }
+  };
+  try { await Promise.all([worker(), worker(), worker(), worker()]); }
+  finally { cbPaint_meta(); }
+  offs.forEach(o => rows.push(...pages[o]));
+  const bn = CB_TOGGLE.find(x => x[0] === br);
+  const cols = [['Name', 'text'], ['Phone', 'text'], ['Email', 'text'], ['Email status', 'text'], ['Branches', 'text'], ['Archived in Phorest', 'text'],
+    ['Client note', 'text'], ['Visit notes', 'num'], ['Phorest ID', 'text']];
+  const status = r => r.email_status === 'real' ? 'Real' : r.email_status === 'no email' ? 'None' : 'Shared, not theirs';
+  const sheet = {
+    name: 'Client Book', title: 'Client Book', subtitle: `${bn ? bn[1] : 'All branches'}${q ? ', search: ' + q : ''}. ${cbNum(rows.length)} clients. Copy of Phorest taken on 21 Oct 2026.`,
+    blocks: [{ cols: cols.map(c => ({ label: c[0], fmt: c[1] })), rows: rows.map(r => ({ cells: [cbName(r), r.mobile || '', r.email || '', status(r),
+      (r.branches || []).map(c => CB_BRANCH[c] || c).join(', '), r.archived ? 'Yes' : 'No', r.has_note ? 'Yes' : 'No', Number(r.visit_notes || 0), r.id] })) }]
+  };
+  return { name: 'client-book' + (br !== 'all' ? '-' + br.toLowerCase() : ''), sheets: [sheet] };
+}
+function cbPaint_meta() {   // put the "1 to 10 of N" line back after the export's progress line
+  const meta = document.getElementById('cbMeta');
+  if (!meta || !cbData) return;
+  const total = Number(cbData.total || 0), rows = cbData.rows || [];
+  meta.textContent = total ? `${cbNum(CB.page * CB.size + 1)} to ${cbNum(CB.page * CB.size + rows.length)} of ${cbNum(total)} client${total === 1 ? '' : 's'}` : '';
 }
 
 function renderClientBook() {

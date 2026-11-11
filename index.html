@@ -3616,22 +3616,22 @@ table.tp-cmp td.bad{color:var(--bad)}
   (function(){
     var LGX = 'ledger-export.js?v=67737bd9';
     var G = {
-      oty: ['report-export.js?v=e993c0b2', 'over-the-years.js?v=3ee5e8d2'],
-      dp:  ['report-export.js?v=e993c0b2', 'daily-performance.js?v=939b8848', 'daily-addons.js?v=feaba0f0'],
+      oty: ['report-export.js?v=d7b73ae8', 'over-the-years.js?v=3ee5e8d2'],
+      dp:  ['report-export.js?v=d7b73ae8', 'daily-performance.js?v=939b8848', 'daily-addons.js?v=feaba0f0'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'report-export.js?v=e993c0b2', 'lost-clients.js?v=9a925f4d', 'lost-lists.js?v=fadf2741', 'lost-consults.js?v=8dd97a9d', 'lost-review-file.js?v=de965c04',
+      cl:  [LGX, 'report-export.js?v=d7b73ae8', 'lost-clients.js?v=9a925f4d', 'lost-lists.js?v=fadf2741', 'lost-consults.js?v=8dd97a9d', 'lost-review-file.js?v=de965c04',
             'send-schedule.js?v=3abf6266', 'lost-queue.js?v=4d4924ab', 'lost-waves.js?v=c142e140', 'lost-blast.js?v=3ca1ba99',
             'lost-report.js?v=a62283dc', 'wv-blast.js?v=22a9b944', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=e4188c8d', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=24a0799c', 'client-mix.js?v=012e7ff2',
             'service-rankings.js?v=f73e912d'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
-      cmp: ['report-export.js?v=e993c0b2', 'compare.js?v=a7bf6b23'],
-      mk:  ['report-export.js?v=e993c0b2', 'marketing-chart.js?v=2861059a', 'google-ads.js?v=ed3bd9e2', 'meta-ads.js?v=9e3fd1f4', 'tool-spend.js?v=d6f89eac', 'marketing-spend.js?v=39233b1c', 'website.js?v=c47da80a', 'social.js?v=d3770c8c', 'marketing-export.js?v=72c753cd'],
+      cmp: ['report-export.js?v=d7b73ae8', 'compare.js?v=a7bf6b23'],
+      mk:  ['report-export.js?v=d7b73ae8', 'marketing-chart.js?v=2861059a', 'google-ads.js?v=ed3bd9e2', 'meta-ads.js?v=9e3fd1f4', 'tool-spend.js?v=d6f89eac', 'marketing-spend.js?v=39233b1c', 'website.js?v=c47da80a', 'social.js?v=d3770c8c', 'marketing-export.js?v=72c753cd'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
-      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=a2ec43d4', 'team-performance.js?v=f87c34f7', 'report-export.js?v=e993c0b2', 'staff-weeks.js?v=0e21c912'],
-      lv:  ['report-export.js?v=e993c0b2', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=a2ec43d4', 'stylist-levels.js?v=222d5a17'],
+      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=a2ec43d4', 'team-performance.js?v=f87c34f7', 'report-export.js?v=d7b73ae8', 'staff-weeks.js?v=0e21c912'],
+      lv:  ['report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=a2ec43d4', 'stylist-levels.js?v=222d5a17'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['glow-club.js?v=84f11759'],
       // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
@@ -3649,7 +3649,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       dv:  [LGX, 'discounts-vouchers.js?v=9cc02f97'],
       o2:  ['one2ones.js?v=5d072cf8'],
       at:  ['attrition.js?v=a1fdad42'],
-      cb:  ['client-book.js?v=e0583bd2'],
+      cb:  ['report-export.js?v=d7b73ae8', 'client-book.js?v=5cb6aa40'],
       // Complaint triage batch 2 (29 Oct 2026): cmp-people.js is the people list and picker shared with Team Home's complaint ticket.
       cp:  ['complaints.js?v=a8c3bea9', 'cmp-people.js?v=5925547b', 'complaint-log.js?v=cd090b66'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
@@ -3660,13 +3660,13 @@ table.tp-cmp td.bad{color:var(--bad)}
       rt:  ['retention.js?v=87f0b7fa'],
       sc:  ['stylist-cards.js?v=fe5a89a4'],
       oc:  ['org-chart.js?v=37a5bbdf'],
-      tp:  ['report-export.js?v=e993c0b2', 'team-performance.js?v=f87c34f7'],
+      tp:  ['report-export.js?v=d7b73ae8', 'team-performance.js?v=f87c34f7'],
       // The XLSX and CSV buttons on Staff Dashboards (the frame's bar below): the writer and what reads the frame, on the first click.
-      rx:  ['report-export.js?v=e993c0b2', 'staff-dash-export.js?v=a447e3f8'],
+      rx:  ['report-export.js?v=d7b73ae8', 'staff-dash-export.js?v=a447e3f8'],
       // The XLSX and CSV buttons on the Organisation Pulse.
-      px:  ['report-export.js?v=e993c0b2', 'pulse-export.js?v=02084377'],
+      px:  ['report-export.js?v=d7b73ae8', 'pulse-export.js?v=02084377'],
       // The XLSX and CSV buttons on Google Reviews (the frame's own, which tell the dashboard).
-      rv:  ['report-export.js?v=e993c0b2', 'reviews-export.js?v=f7327c97']
+      rv:  ['report-export.js?v=d7b73ae8', 'reviews-export.js?v=f7327c97']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });

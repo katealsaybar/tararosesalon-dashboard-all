@@ -25,7 +25,7 @@ async function rexRun(fn, kind, btn) {
   try {
     if (typeof lgxBuild !== 'function' && typeof trsLazy === 'function') await trsLazy('lgx');
     if (typeof lgxBuild !== 'function') throw new Error('The spreadsheet writer did not load');
-    const m = window[fn] && window[fn]();
+    const m = await (window[fn] && window[fn]());   // an export may fetch its rows first (Client Book), so it can return a promise
     if (!m || !m.sheets || !m.sheets.length) { rexToast('Nothing to download yet. Wait for the page to finish loading.', true); return; }
     const base = m.name + '-' + rexToday();
     if (kind === 'xlsx') {
