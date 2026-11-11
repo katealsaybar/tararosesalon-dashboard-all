@@ -610,6 +610,7 @@
   }
   function openDlg(title, body) {
     var d = dlg();
+    d.classList.remove('rct-wide');
     d.innerHTML = '<div class="rct rct-dh"><h2>' + title + '</h2><button type="button" class="rct-x" data-close aria-label="Close">&times;</button></div><div class="rct rct-db">' + body + '</div>';
     if (!d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
   }
@@ -835,16 +836,32 @@
       render(); toast(flag ? firstName(p.name) + '\u2019s photo is marked not professional. Probably no.' : 'Mark taken off ' + firstName(p.name) + '.');
     } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
   }
-  // Kate, 11 Nov 2026: the CV a person attached to a direct email is kept in the private bucket recruit-cvs (the mailbox script sends it, edge function recruit-cv-upload) and opened
-  // here with a short-lived link, so Coach Emma can read it without any access to info@. The tab is opened first so a pop-up blocker lets it through.
+  // Kate, 11 Nov 2026: the CV a person attached to a direct email is kept in the private bucket recruit-cvs (the mailbox script sends it, edge function recruit-cv-upload).
+  // "shouldnt be supabase, should be simply trk-salon-os": the file is downloaded here with the signed-in session and shown INSIDE the page (a viewer dialog), so the address
+  // bar never leaves trk-salon-os.com and no token or supabase.co link is ever shown. A Word file cannot be shown in a browser, so it downloads, named after the person.
+  var CV_TYPE = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+  var cvUrlLive = '';
+  function cvDownloadName(p, ext) { return 'CV - ' + (String(p.name || 'applicant').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 60) || 'applicant') + '.' + ext; }
   async function openCvFile(id) {
     var p = personById(id); if (!p || !p.cv_file) return;
-    var w = window.open('', '_blank');
+    var ext = String(p.cv_file_name || p.cv_file).split('.').pop().toLowerCase(); if (!CV_TYPE[ext]) ext = 'pdf';
+    toast('Opening the CV...');
     try {
-      var r = await sb.storage.from('recruit-cvs').createSignedUrl(p.cv_file, 300);
-      if (r.error || !r.data || !r.data.signedUrl) throw new Error(r.error ? r.error.message : 'no link');
-      if (w) w.location.href = r.data.signedUrl; else window.open(r.data.signedUrl, '_blank');
-    } catch (e) { console.error(e); if (w) w.close(); toast('That CV did not open: ' + (e.message || 'try again')); }
+      var r = await sb.storage.from('recruit-cvs').download(p.cv_file);
+      if (r.error || !r.data) throw new Error(r.error ? r.error.message : 'no file');
+      if (cvUrlLive) { try { URL.revokeObjectURL(cvUrlLive); } catch (e) { /* harmless */ } }
+      cvUrlLive = URL.createObjectURL(new Blob([r.data], { type: CV_TYPE[ext] }));
+      var dl = esc(cvDownloadName(p, ext));
+      if (ext === 'doc' || ext === 'docx') {
+        var a = document.createElement('a'); a.href = cvUrlLive; a.download = cvDownloadName(p, ext); document.body.appendChild(a); a.click(); a.remove();
+        toast('CV downloaded for ' + firstName(p.name) + '. Open it in Word.'); return;
+      }
+      openDlg('CV: ' + esc(p.name || 'applicant'),
+        '<p class="rct-pasteacts"><a class="rct-btn rct-sm" href="' + cvUrlLive + '" download="' + dl + '">Download</a>' +
+        '<a class="rct-btn rct-sm" href="' + cvUrlLive + '" target="_blank" rel="noopener">Open in a new tab</a></p>' +
+        (ext === 'pdf' ? '<iframe class="rct-cvframe" title="CV" src="' + cvUrlLive + '"></iframe>' : '<img class="rct-cvimg" alt="CV" src="' + cvUrlLive + '">'));
+      dlg().classList.add('rct-wide');
+    } catch (e) { console.error(e); toast('That CV did not open: ' + (e.message || 'try again')); }
   }
   function pickPhoto(id) {
     var p = personById(id); if (!p) return;
