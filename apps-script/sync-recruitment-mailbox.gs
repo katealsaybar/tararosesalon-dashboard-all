@@ -208,7 +208,7 @@ function rctClassify_(m, own) {
 
   // 1. the website form: raw copy (from info@) and the structured copy (from recruitment@ to itself)
   if (/^New application:/i.test(subject) && fromAddr.indexOf('recruitment@') === 0) return rctStructured_(body, at, mailbox, msgId);
-  if (/^Recruitment Form submission/i.test(subject)) return rctRawForm_(body, at, mailbox, msgId);
+  if (/^Recruitment Form submission/i.test(subject)) return rctRawForm_(body, at, mailbox, msgId, function () { return m.getBody(); });
 
   // 2. bounces: the failed address is the one in the body that is not ours
   if (/mailer-daemon|postmaster/i.test(fromAddr)) {
@@ -251,12 +251,24 @@ const RCT_CV_BASE = 'https://www.tararosesalon.com/wp-content/uploads/gravity_fo
 const RCT_TRACKING = /^https?:\/\/[^\/]*(sendibt\d*|brevo)[^\/]*\//i;
 var RCT_CV_STATS = { rebuilt: 0, unresolved: 0 };
 function rctIsTracking_(u) { return RCT_TRACKING.test(String(u || '').trim()); }
-function rctCvLink_(text, at) {
+// The plain body of the raw form copy often holds ONLY the Brevo tracking link for the CV (no file name), found 11 Nov 2026 when the first backfill rebuilt nothing. The file name is the
+// text of that link in the HTML body, right after the "Please upload your CV" label, so read it from there (only asked for when the plain text has no name).
+function rctCvNameFromHtml_(html) {
+  const h = String(html || ''), i = h.search(/Please upload your CV/i); if (i < 0) return '';
+  const m = /<a\b[^>]*>([\s\S]*?)<\/a>/i.exec(h.slice(i, i + 4000)); if (!m) return '';
+  const ent = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+  return m[1].replace(/<[^>]*>/g, '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, function (all, e) {
+    if (e.charAt(0) === '#') { const n = e.charAt(1).toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10); return n ? String.fromCharCode(n) : ' '; }
+    return ent[e.toLowerCase()] || all;
+  }).replace(/\s+/g, ' ').trim();
+}
+function rctCvLink_(text, at, getHtml) {
   const t = String(text || ''), urls = t.match(/https?:\/\/[^\s)\]>]+/gi) || [];
   const direct = urls.filter(function (u) { return !rctIsTracking_(u); })[0];
   if (direct) return direct;                                   // a real link already (image uploads, non-Latin file names)
-  const name = t.replace(/https?:\/\/[^\s)\]>]+/gi, ' ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) return '';   // no file name to rebuild from
+  let name = t.replace(/https?:\/\/[^\s)\]>]+/gi, ' ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  if ((!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) && urls.length && getHtml) { try { name = rctCvNameFromHtml_(getHtml()); } catch (e) { name = ''; } }
+  if (!name || !/\.[A-Za-z0-9]{2,5}$/.test(name)) { if (urls.length) RCT_CV_STATS.unresolved++; return ''; }   // no file name to rebuild from
   const when = new Date(at), months = [];
   [when.getTime(), when.getTime() + 4 * 3600000, when.getTime() - 86400000, when.getTime() + 86400000].forEach(function (ms) {
     const d = new Date(ms), k = d.getUTCFullYear() + '/' + ('0' + (d.getUTCMonth() + 1)).slice(-2);
@@ -311,7 +323,7 @@ function rctStructured_(body, at, mailbox, msgId) {
     cv_link: rctIsTracking_(f.CV) ? '' : f.CV, about: (f.About || '').trim().slice(0, 2000), at: stamp, mailbox: mailbox, msg_id: msgId,
   }, link);
 }
-function rctRawForm_(body, at, mailbox, msgId) {
+function rctRawForm_(body, at, mailbox, msgId, getHtml) {
   const labels = ['Full Name', 'Email Address', 'Whatsapp Number', 'Where are you currently based?', 'Which Emirate?', 'Years of Experience', 'Your specialist area', 'Which path interests you most?', 'Tell us about yourself', 'Link to your work', 'Please upload your CV'];
   // GmailApp's plain body of an HTML email can put a label and its value on one line, on two lines or tab separated, so do not rely on line breaks:
   // find each label in order (the form always asks in this order) and take everything up to the next label found (fixed 9 Nov 2026 after the first
@@ -333,7 +345,7 @@ function rctRawForm_(body, at, mailbox, msgId) {
     kind: 'application', source: 'form', name: one('Full Name'), email: rctAddr_(one('Email Address')), whatsapp: one('Whatsapp Number'), country: country, emirate: one('Which Emirate?'),
     experience: one('Years of Experience'), specialist: list('Your specialist area').join(', '), paths: list('Which path interests you most?').join('; '),
     role_key: rctRoleOf_(list('Your specialist area').join(' ')), role_txt: list('Which path interests you most?').join('; ') || list('Your specialist area').join(', '),
-    cv_link: rctCvLink_(cvText, at), about: String(v['Tell us about yourself'] || '').replace(/\t/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000),
+    cv_link: rctCvLink_(cvText, at, getHtml), about: String(v['Tell us about yourself'] || '').replace(/\t/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000),
     at: at, mailbox: mailbox, msg_id: msgId,
   }, link);
 }
