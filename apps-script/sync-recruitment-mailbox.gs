@@ -55,6 +55,12 @@ function backfillOnce() {
   const f = rctProp_('BACKFILL_FROM'), t = rctProp_('BACKFILL_TO', true);
   rctRun_(new Date(f.replace(/\//g, '-') + 'T00:00:00+04:00').getTime(), t ? new Date(t.replace(/\//g, '-') + 'T00:00:00+04:00').getTime() : null, false);
 }
+// One click, no Script Properties to edit (added 11 Nov 2026): read the WHOLE mailbox from the day it was opened (recruitment@ was opened on 25 Jun 2026; info@ has mail from 2025,
+// so in info@ use backfillOnce with BACKFILL_FROM instead). Same import as backfillOnce: idempotent, nothing is sent or changed in Gmail. If it says "Out of time", run
+// backfillFirstHalf() and then backfillSecondHalf().
+function backfillFromStart() { rctRun_(new Date('2026-06-25T00:00:00+04:00').getTime(), null, false); }
+function backfillFirstHalf() { rctRun_(new Date('2026-06-25T00:00:00+04:00').getTime(), new Date('2026-09-01T00:00:00+04:00').getTime(), false); }
+function backfillSecondHalf() { rctRun_(new Date('2026-09-01T00:00:00+04:00').getTime(), null, false); }
 function setupTrigger() {
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'syncRecruitment') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('syncRecruitment').timeBased().everyMinutes(5).create();
