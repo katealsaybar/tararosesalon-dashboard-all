@@ -834,10 +834,10 @@ function tpDaysSpec(st) {
         } catch (e) { dn = null; }
         const row = Object.assign({ k, w }, t);
         if (dn && Object.keys(dn).length) row._dn = dn;
-        try {   // treatments, their count and rebooked open her ledger line(s): typed by reception, no client rows
+        try {   // rebooked opens her ledger line(s): typed by reception, no client rows
           const last2 = new Date(+k.slice(0, 4), +k.slice(5, 7), 0).getDate(), a2 = byDay ? k : k + '-01', b2 = byDay ? k : k + '-' + String(last2).padStart(2, '0');
           const sh = {}, mk = () => tpSheetSpec(st, J, codes, a2 < from ? from : a2, b2 > to ? to : b2, w);
-          ['tr', 'tu', 'rb'].forEach(f => { if (t[f]) sh[f] = mk(); });
+          if (t.rb) sh.rb = mk();   // treatments and their count open the treatment names (PD.personDayDn); rebooked has only her ledger line
           if (Object.keys(sh).length) row._dn = Object.assign(row._dn || {}, sh);
         } catch (e) {}
         rows.push(row);

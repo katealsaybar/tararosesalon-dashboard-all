@@ -292,18 +292,18 @@ const PD = (() => {
   // ── The services behind a staff member's Services figure (Kate, 27 Oct 2026) ──
   // The ledger's services figure is typed in, so the lines come from Phorest's sales lines (services only, on a paid sale). Two counts, and the window says both.
   async function staffServicesLoad(ctx, o) {
-    const { data, error } = await sb.rpc(o.kind === 'retail' ? 'drill_staff_retail' : o.kind === 'net' ? 'drill_staff_net' : 'drill_staff_services', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees });
+    const { data, error } = await sb.rpc(o.kind === 'treat' ? 'drill_staff_treatments' : o.kind === 'retail' ? 'drill_staff_retail' : o.kind === 'net' ? 'drill_staff_net' : 'drill_staff_services', { p_from: o.from, p_to: o.to, p_branches: o.branches, p_employees: o.employees });
     if (error) throw error;
     return data;
   }
   function staffServicesSpec(ctx, o) {
     if (!canNames() || !o.from) return null;
     // The same list for the Retail figure and the Net take figure (Kate, 27 Oct 2026): over the products, or over every line, instead of the services.
-    const RT = o.kind === 'retail', NT = o.kind === 'net', W = RT ? 'Retail' : NT ? 'Net take' : 'Services', w1 = RT ? 'product' : NT ? 'item' : 'service', lab = RT ? 'Product' : NT ? 'Item' : 'Service';
+    const RT = o.kind === 'retail', NT = o.kind === 'net', TR = o.kind === 'treat', W = RT ? 'Retail' : NT ? 'Net take' : TR ? 'Treatments' : 'Services', w1 = RT ? 'product' : NT ? 'item' : TR ? 'treatment' : 'service', lab = RT ? 'Product' : NT ? 'Item' : TR ? 'Treatment' : 'Service';
     const sub = data => {
       const shown = (data.rows || []).length;
-      let t = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(data.total)} ${RT ? 'retail' : NT ? 'sales' : 'service'} line${data.total === 1 ? '' : 's'}, AED ${cnt(Math.round(data.net))}, from Phorest's sales lines (${RT ? 'products only; services, courses and memberships are left out' : NT ? 'services, retail, courses and memberships' : 'services only; products, courses and memberships are left out'}; on a paid sale, a deposit, a balance payment or a voucher bought on its own is left out, refunds come off).`;
-      if (o.ledger != null) t += ` The branch ledger, typed by reception, shows AED ${cnt(Math.round(o.ledger))}: they are two separate counts, so they can differ.`;
+      let t = `${esc(ctx.label)}. ${o.who ? esc(o.who) + ', ' : ''}${esc(o.when)}: ${cnt(data.total)} ${RT ? 'retail' : NT ? 'sales' : TR ? 'treatment' : 'service'} line${data.total === 1 ? '' : 's'}, AED ${cnt(Math.round(data.net))}, from Phorest's sales lines (${RT ? 'products only; services, courses and memberships are left out' : TR ? 'the treatments on her sales, named as the Client Mix catalogue names them; colour, cuts, extensions and products are left out' : NT ? 'services, retail, courses and memberships' : 'services only; products, courses and memberships are left out'}; on a paid sale, a deposit, a balance payment or a voucher bought on its own is left out, refunds come off).`;
+      if (o.ledger != null) t += ` The branch ledger, typed by reception, shows ${TR && o.units != null ? cnt(o.units) + ' treatment' + (o.units === 1 ? '' : 's') + ' and ' : ''}AED ${cnt(Math.round(o.ledger))}: they are two separate counts, so they can differ.`;
       if (data.total > shown) t += ` The newest ${cnt(shown)} are shown.`;
       return t;
     };
@@ -1189,6 +1189,7 @@ const PD = (() => {
     const win = { from: o.from, to: o.to, branches: o.codes, employees: emps, who: o.who, when: o.when }, v = o.vals || {}, dn = {};
     if (v.net) dn.net = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.net, kind: 'net' }));
     if (v.svc) dn.svc = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.svc }));
+    if (v.tr || v.tu) { const sp = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.tr || 0, units: v.tu != null ? v.tu : null, kind: 'treat' })); if (v.tr) dn.tr = sp; if (v.tu) dn.tu = sp; }
     if (v.retail) dn.retail = staffServicesSpec(ctx, Object.assign({}, win, { ledger: v.retail, kind: 'retail' }));
     if (v.cl) dn.cl = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.cl }));
     if (v.rq) dn.rq = staffClientsSpec(ctx, Object.assign({}, win, { ledger: v.rq, kind: 'req' }));
