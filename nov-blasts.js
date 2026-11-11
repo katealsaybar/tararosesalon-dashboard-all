@@ -161,13 +161,14 @@
     if (!LIVE || !LIVE.at) return '';
     return '<p class="nvb-small nvb-counted">Clients counted ' + esc(fat(LIVE.at)) + ', Dubai time, from our sales records. ' + (canEdit() ? '<button type="button" class="nvb-link" data-nvb="recount">Count again</button>' : '') + '</p>';
   }
-  // The two views at the top of the page (Kate, 11 Nov 2026, the uniform blast layout): Results, the nine section report, and Blast pages, the seven section page of each blast.
-  // The Oct and Nov pills move between the two reports. Results has no calendar, pill list or sending bar: those belong to the Blast pages.
-  function viewsHtml() {
+  // The "On this page" rail, the October Lost Clients one (Kate, 11 Nov 2026: "follow oct blast screenshot for mini sidebar navi UI"): the shared .lg-side / .side-nav of index.html,
+  // two entries, Results and Blast pages, and under the open one the numbered sections that are really on the page. Results carries it in the gutter; a blast page carries it as a
+  // row of chips above the lanes (the calendar and blast list already sit in the left column there).
+  function railHtml(chips) {
     var res = cur === RESID && tab === 'messages';
-    return '<div class="nvb-views"><div class="nvb-vsw" role="tablist"><button type="button" role="tab" class="' + (res ? 'on' : '') + '" data-nvb="view:results" aria-selected="' + res + '">Results</button>' +
-      '<button type="button" role="tab" class="' + (res ? '' : 'on') + '" data-nvb="view:blasts" aria-selected="' + !res + '">Blast pages: message, template, flow</button></div>' +
-      '</div>';
+    return '<aside class="lg-side' + (chips ? ' nvb-chips' : '') + '"><nav class="side-nav" data-tabs="1" id="nvbRail" aria-label="On this page"><div class="side-k">On this page</div>' +
+      '<a href="?view=novblasts&blast=' + RESID + '" data-nvb="view:results" class="' + (res ? 'on' : '') + '">Results</a>' + (res ? '<div class="side-sub" id="nvbSubs"></div>' : '') +
+      '<a href="?view=novblasts" data-nvb="view:blasts" class="' + (res ? '' : 'on') + '">Blast pages</a>' + (res ? '' : '<div class="side-sub" id="nvbSubs"></div>') + '</nav></aside>';
   }
   function stateChip() {   // was always "Draft, nothing sent", even after the send
     if (isL5() && SND && SND.enabled && !SND.dry_run) return '<span class="chip bad">Live sending is on</span>';
@@ -1005,9 +1006,9 @@
   }
   function messagesHtml() {
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
-    if (cur === RESID) return '<div class="cbl"><div class="cbl-shell nvb-rs-full nvb-rs-wrap"><nav class="nvb-rail" id="nvbRail" aria-label="Sections on this page"></nav><div class="cbl-main" id="nvbMain">' + resultsMain() + '</div></div></div>';
+    if (cur === RESID) return '<div class="cbl"><div class="lg-shell nvb-lgs">' + railHtml(false) + '<div class="cbl-main" id="nvbMain">' + resultsMain() + '</div></div></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '<nav class="nvb-rail nvb-rail-h" id="nvbRail" aria-label="Sections on this page"></nav>') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
@@ -1370,10 +1371,10 @@
     var y = window.scrollY, thY = {}; [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) { thY[t.getAttribute('data-key')] = t.scrollTop; });
     var body = tab === 'decide' && decs().length ? decideHtml() : tab === 'before' ? beforeHtml() : messagesHtml();
     var onRes = cur === RESID && tab === 'messages';
-    el.innerHTML = '<div class="nvb">' + viewsHtml() + '<header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November 2026 Blasts</h1>' +
+    el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November 2026 Blasts</h1>' +
       '<div class="nvb-chipsrow">' + stateChip() + '<span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
-      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + (onRes ? '' : numsHtml()) + '</header>' + (onRes ? '' : tabsHtml()) + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && cur !== RESID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
+      (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + (onRes ? '' : numsHtml()) + '</header>' + (onRes ? '' : railHtml(true) + tabsHtml()) + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && cur !== RESID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
     sndBindInputs(); buildRail();
     var cta = document.getElementById('nvbCmt'); if (cta) { cta.value = draft[cur] || ''; cta.oninput = function () { draft[cur] = cta.value; }; }
     [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) {
@@ -1386,21 +1387,21 @@
   // The mini sidebar navigation (Kate, 11 Nov 2026: "bakit walang mini sidebar navi like oct 2026 lost clients blasts"): one link for each numbered section on the page, built from the
   // sections that are really there, the lit link follows the scroll. A list on the left of Results; a row of chips above a blast page and on a narrow screen.
   function buildRail() {
-    var nav = document.getElementById('nvbRail'), c = main(); if (!nav || !c) return;
+    var box = document.getElementById('nvbSubs'), c = main(); if (!box || !c) return;
     var secs = [].slice.call(c.querySelectorAll('.nvb-rs-sec[id^="nvr-"]'));
-    nav.innerHTML = secs.map(function (x) { var h = x.querySelector('h3'), t = h ? h.textContent : '', m = /^(\d)\. (.*)$/.exec(t); return '<a href="#' + x.id + '" data-s="' + x.id + '"><i>' + (m ? m[1] : '') + '</i><span>' + esc(m ? m[2] : t) + '</span></a>'; }).join('');
-    nav.hidden = !secs.length; railSpy();
+    box.innerHTML = secs.map(function (x) { var h = x.querySelector('h3'); return '<a href="#' + x.id + '" data-s="' + x.id + '">' + esc(h ? h.textContent : '') + '</a>'; }).join('');
+    railSpy();
   }
   function railSpy() {
-    var nav = document.getElementById('nvbRail'); if (!nav || nav.hidden) return;
-    var links = [].slice.call(nav.querySelectorAll('a')), cur = links.length ? links[0].dataset.s : '';
+    var links = [].slice.call(document.querySelectorAll('#nvbSubs a')); if (!links.length) return;
+    var cur = links[0].dataset.s;
     links.forEach(function (a) { var el = document.getElementById(a.dataset.s); if (el && el.getBoundingClientRect().top <= 170) cur = a.dataset.s; });
-    if (links.length && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = links[links.length - 1].dataset.s;
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) cur = links[links.length - 1].dataset.s;   // the end of the page lights the last one
     links.forEach(function (a) { a.classList.toggle('on', a.dataset.s === cur); });
   }
   window.addEventListener('scroll', function () { if (main() && main().offsetParent !== null) railSpy(); }, { passive: true });
   document.addEventListener('click', function (e) {
-    var a = e.target.closest && e.target.closest('#nvbRail a[data-s]'); if (!a) return;
+    var a = e.target.closest && e.target.closest('#nvbSubs a[data-s]'); if (!a) return;
     e.preventDefault(); var el = document.getElementById(a.dataset.s); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   function toTop() { window.scrollTo({ top: 0, behavior: 'instant' }); }
