@@ -33,7 +33,7 @@ let socCustom = { from: '', to: '' };
 try { Object.assign(socCustom, JSON.parse(localStorage.getItem('trs-soc-custom') || '{}')); } catch (e) {}
 
 const SOC_NETS = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', youtube: 'YouTube' };
-if (!SOC_NETS[socTab] && socTab !== 'overview') socTab = 'overview';
+if (!SOC_NETS[socTab] && socTab !== 'overview' && socTab !== 'calendar') socTab = 'overview';
 const SOC_KIND = { post: 'post', reel: 'reel', video: 'video', photo: 'photo post', story: 'story' };
 // What each platform's numbers are called in metricool_daily.
 const SOC_PLAT = {
@@ -153,6 +153,28 @@ function socPaint(el) {
   const stale = !s || !s.last_ok_at || (Date.now() - new Date(s.last_ok_at).getTime()) > 36 * 3600e3;
   const synced = s && s.last_ok_at ? new Date(s.last_ok_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
   const T = socTotals(d);
+  // The tab row is shared by every tab. Calendar (social-calendar.js, 11 Nov 2026) has its own week / month / list controls, so it skips the Period row.
+  const tabsBar = `<div class="sc-bar w13-bar soc-bar">
+      <div class="sc-seg soc-tabs" role="tablist" aria-label="Report">
+        ${[['overview', 'Overview'], ['calendar', 'Calendar'], ...Object.entries(SOC_NETS)].map(([k, l]) =>
+          `<button type="button" role="tab" aria-selected="${socTab === k}" class="${socTab === k ? 'on' : ''}" onclick="socSetTab('${k}')">${k !== 'overview' && k !== 'calendar' ? `<i style="background:${cols[k]}"></i>` : ''}${l}</button>`).join('')}
+      </div>
+    </div>`;
+  if (socTab === 'calendar' && typeof socCalHtml === 'function') {
+    el.innerHTML = `
+    <section class="slv-intro">
+      <h2>Social</h2>
+      <p>The posts we made on Instagram, Facebook and TikTok, on a calendar. Open one to see how it did.</p>
+    </section>
+    ${whyWall([
+      ['Why this page', 'This is what we really posted and when, with how each one did, so next month’s plan starts from what worked.'],
+      ['What to watch', 'The blue hours Metricool suggests, and the posts marked “Did well” on each app.'],
+      ['What to do', 'Pick one post that did well and plan a new take on it for next month. Tell Kate which one.']])}
+    ${tabsBar}
+    ${socCalHtml()}`;
+    socCalMount();
+    return;
+  }
   el.innerHTML = `
     ${mkPeriodRow('soc', socDays, socCustom, socRestored ? w : null)}
     <section class="slv-intro">
@@ -163,12 +185,7 @@ function socPaint(el) {
       ['Why this page', 'This is what we post on each app and how many women it reaches, so we see what to make more of.'],
       ['What to watch', 'If reach falls two weeks in a row on one app, the posts there have stopped landing.'],
       ['What to do', 'Tell Kate which app, and she checks the content plan with Tara.']])}
-    <div class="sc-bar w13-bar soc-bar">
-      <div class="sc-seg soc-tabs" role="tablist" aria-label="Report">
-        ${[['overview', 'Overview'], ...Object.entries(SOC_NETS)].map(([k, l]) =>
-          `<button type="button" role="tab" aria-selected="${socTab === k}" class="${socTab === k ? 'on' : ''}" onclick="socSetTab('${k}')">${k !== 'overview' ? `<i style="background:${cols[k]}"></i>` : ''}${l}</button>`).join('')}
-      </div>
-    </div>
+    ${tabsBar}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Social numbers are paused${s && s.last_error ? ': ' + mkEsc(s.last_error) : ''}. Last good update: ${synced ? mkEsc(synced) : 'never'}.</p>` : ''}
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
     <p class="slv-muted">From Metricool, updated nightly${synced ? ', last ' + mkEsc(synced) : ''}. Numbers start when each account was connected to Metricool. Facebook Ads are not here; Google Ads and Meta Ads each have their own page.</p>`;
