@@ -88,7 +88,8 @@
     return f;
   }
   function bucket(p) {
-    if (p.stage === 'new') return flags(p).length ? 'no' : 'look';
+    // Kate, 11 Nov 2026: Kate or Coach Emma can move a person to Worth a look by hand (look_override), whatever the checks say; the checks stay visible on the card
+    if (p.stage === 'new') return (p.look_ok || !flags(p).length) ? 'look' : 'no';
     if (p.stage === 'screening') return 'invited';
     if (p.stage === 'interview_booked') return 'booked';
     if (p.stage === 'not_now' || p.stage === 'rejected') return 'done';
@@ -163,6 +164,12 @@
     if (k) return lk(k, u ? '<a class="rct-ig" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(linkName(p)) + '</a>' : esc(linkName(p)) + ' <span class="rct-ns">(no link given)</span>');
     return p.source === 'form' ? '<span class="rct-none">None given</span>' : '<span class="rct-ns">Not stated</span>';
   }
+  // "Move to Worth a look" (for a Probably no person) and "Put back to automatic" (for one moved by hand): only while the person is new
+  function lookBtn(p, cls) {
+    if (p.stage !== 'new') return '';
+    if (p.look_ok) return '<button type="button" class="' + cls + '" data-act="lookback" data-id="' + esc(p.id) + '">Put back to automatic</button>';
+    return flags(p).length ? '<button type="button" class="' + cls + '" data-act="lookmove" data-id="' + esc(p.id) + '">Move to Worth a look</button>' : '';
+  }
   function linksHtml(p) {
     var s = '', cv = cvUrl(p);
     if (cv) s += '<a href="' + esc(cv) + '" target="_blank" rel="noopener">CV</a>';
@@ -172,6 +179,7 @@
     if (wa.length >= 9) s += '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">WhatsApp</a>';
     s += '<button type="button" class="rct-linkbtn" data-act="photo" data-id="' + esc(p.id) + '">' + (p.photo ? 'Change photo' : 'Add photo') + '</button>';
     if (p.photo) s += photoBadBtn(p, 'rct-linkbtn');
+    s += lookBtn(p, 'rct-linkbtn');
     if (p.photo) s += '<button type="button" class="rct-linkbtn" data-act="photoclear" data-id="' + esc(p.id) + '">Remove photo</button>';
     return s ? '<div class="rct-links">' + s + '</div>' : '';
   }
@@ -219,7 +227,7 @@
   function card(p) {
     var emp = empType(p), bits = [roleGroup(p), emp, p.experience || ''].filter(function (x) { return x && x !== 'Not stated'; });
     return '<article class="rct-card rct-cardc">' +
-      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3><span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + extraPills(p) + '</div></div></div></div>' +
+      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3><span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + (p.look_ok && flags(p).length ? '<span class="rct-pill rct-teal">Moved here by hand</span>' : '') + extraPills(p) + '</div></div></div></div>' +
       '<div class="rct-chips">' + checkChips(p) + '</div>' +
       '<div class="rct-btns rct-btns3"><button type="button" class="rct-btn rct-pri" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
       '<button type="button" class="rct-btn" data-act="no" data-id="' + esc(p.id) + '">No</button>' +
@@ -233,7 +241,7 @@
               p.stage === 'interview_booked' ? 'Interview booked, moved ' + fat(p.decided_at) :
               p.stage === 'not_now' || p.stage === 'rejected' ? (STAGE_LABEL[p.stage] + ' ' + fat(p.decided_at)) : (STAGE_LABEL[p.stage] || '');
     var acts = '', lookBtn = '<button type="button" class="rct-btn rct-sm" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button>';
-    if (p.stage === 'new') acts = lookBtn + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
+    if (p.stage === 'new') acts = lookBtn + (flags(p).length && !p.look_ok ? '<button type="button" class="rct-btn rct-sm" data-act="lookmove" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
                                   '<button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'screening') acts = '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>';
     else if (p.stage === 'not_now' || p.stage === 'rejected') acts = '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + esc(p.id) + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + esc(p.id) + '">Put back</button>';
@@ -425,7 +433,7 @@
   }
   function statusText(p) {
     var b = bucket(p);
-    if (b === 'look') return 'Worth a look';
+    if (b === 'look') return p.look_ok && flags(p).length ? 'Worth a look (by hand)' : 'Worth a look';
     if (b === 'no') return 'Probably no: ' + FLAG_SHORT[flags(p)[0].k];
     return STAGE_LABEL[p.stage] || p.stage;
   }
@@ -885,6 +893,14 @@
       dlg().classList.add('rct-wide');
     } catch (e) { console.error(e); toast('That CV did not open: ' + (e.message || 'try again')); }
   }
+  async function setLookOverride(id, flag) {
+    var p = personById(id); if (!p) return;
+    try {
+      var r = await sb.rpc('recruit_set_look_override', { p_id: p.id, p_flag: flag }); if (r.error) throw new Error(r.error.message);
+      p.look_ok = flag; render();
+      toast(flag ? firstName(p.name) + ' is in Worth a look now.' : firstName(p.name) + ' is back to the automatic checks.');
+    } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
   function pickPhoto(id) {
     var p = personById(id); if (!p) return;
     photoFor = String(p.id);
@@ -1079,6 +1095,8 @@
       else if (a === 'photofile') pickPhotoFile(id);
       else if (a === 'photoclear') clearPhoto(id);
       else if (a === 'photobad') togglePhotoBad(id);
+      else if (a === 'lookmove') setLookOverride(id, true);
+      else if (a === 'lookback') setLookOverride(id, false);
       else if (a === 'cvfile') openCvFile(id);
       else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
