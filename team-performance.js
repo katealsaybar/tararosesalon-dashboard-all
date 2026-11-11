@@ -461,7 +461,7 @@ function tpCombine(group, mergeKey) {
     ...first,
     mergeKey,
     total, ledgerClients: ledgerBase, noLedger, ph, rebooked, newC: sum('newC'), newClientReq: sum('newClientReq'), req: sum('req'), salon: sum('salon'),
-    treatments, retail, hairSalesNet, beautySales, net, netSalonTake: net,
+    treatments, treatmentUnits: sum('treatmentUnits'), retail, hairSalesNet, beautySales, net, netSalonTake: net,
     avgBill:      total ? services / total : 0,
     rebookPct:    ledgerBase ? (rebooked / ledgerBase * 100) : 0,
     ncrPct:       ledgerBase ? (sum('newClientReq') / ledgerBase * 100) : 0,
@@ -771,6 +771,30 @@ function tpRowKey(name, code) {
 }
 const TP_DAY_VIEW_MAX = 92;
 const tpDayTxt = iso => new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+// The ledger line behind a Treatments, Treatments (#) or Rebooked figure (Kate, 11 Nov 2026: "Treatments not clickable, dapat meron ring # of treatments"). Those are typed
+// by reception on the branch sheet, so no client rows exist; what opens is her sheet line, a day at a time, with the columns reception typed on it.
+function tpSheetSpec(st, J, codes, a, b, when, label) {
+  return { title: `${tpTitle(st.name)} · ledger lines`, cur: 'AED', views: [{ id: 'sheet', label: 'Her ledger lines', load: async () => {
+    const G = new Map();
+    (J.branchStaffRows || []).forEach(r => { if (codes.includes(r.branch) && r.date >= a && r.date <= b) { const k = r.date + '|' + r.branch; (G.get(k) || G.set(k, []).get(k)).push(r); } });
+    const rows = [];
+    [...G.keys()].sort().reverse().forEach(k => {
+      const [date, code] = k.split('|'), d = aggDailyData([], G.get(k), []); if (!d) return;
+      [].concat(st.isBeauty ? (d.beautyStaff || []) : [], (d.hairStaff || [])).filter(p => tpRowKey(p.name, code) === st.mergeKey).forEach(p => {
+        const br = (st.branches || []).find(x => x.code === code);
+        rows.push({ w: tpDayTxt(date), b: br ? br.name : code, svc: (st.isBeauty ? (p.beautySales || p.hairSalesNet) : p.hairSalesNet) || 0, tr: p.treatments || 0, tu: p.treatmentUnits || 0, rt: +p.retail || 0,
+          cl: p.total || 0, rb: p.rebooked || 0, rq: p.req || 0, nw: p.newC || 0 });
+      });
+    });
+    const sum = f => rows.reduce((x, r) => x + (+r[f] || 0), 0);
+    const cols = [{ k: 'w', l: 'Day' }, { k: 'b', l: 'Branch' }, { k: 'svc', l: 'Services', t: 'aed' }]
+      .concat(st.isBeauty ? [] : [{ k: 'tr', l: 'Treatments', t: 'aed' }, { k: 'tu', l: 'Treatments (#)', t: 'num' }])
+      .concat([{ k: 'rt', l: 'Retail', t: 'aed' }, { k: 'cl', l: 'Clients (ledger)', t: 'num' }, { k: 'rb', l: 'Rebooked (ledger)', t: 'num' }, { k: 'rq', l: 'Requests', t: 'num' }, { k: 'nw', l: 'New clients', t: 'num' }]);
+    const foot = { w: 'Total', b: '' }; ['svc', 'tr', 'tu', 'rt', 'cl', 'rb', 'rq', 'nw'].forEach(f => { foot[f] = sum(f); });
+    return { cols, rows, foot, empty: 'No ledger line for her in this window.',
+      sub: `${escapeHtml(tpTitle(st.name))}, ${escapeHtml(when)}. Her line on the branch ledger sheet, as reception typed it. Treatments, the number of treatments, rebooked, requests and new clients are typed on the sheet, so there are no client names behind them; the ledger is the most that can be shown.` };
+  } }] };
+}
 function tpDaysSpec(st) {
   const J = window._cachedDailyJoin;
   if (!window.TRSD || !J || !st || !st.mergeKey || typeof dateFrom === 'undefined' || !dateFrom || !dateTo) return null;
@@ -786,12 +810,12 @@ function tpDaysSpec(st) {
     (J.rebookRows || []).forEach(r => { if (codes.includes(r.branch) && r.date >= from && r.date <= to) at(key(r.date), r.branch).R.push(r); });
     const rows = [];
     [...M.keys()].sort().forEach(k => {
-      const t = { net: 0, svc: 0, retail: 0, tr: 0, cl: 0, rb: 0, rq: 0, nw: 0, pv: 0, rbv: 0, rbr: 0 }; let hit = false;
+      const t = { net: 0, svc: 0, retail: 0, tr: 0, tu: 0, cl: 0, rb: 0, rq: 0, nw: 0, pv: 0, rbv: 0, rbr: 0 }; let hit = false;
       Object.keys(M.get(k)).forEach(code => {
         const g = M.get(k)[code], d = aggDailyData([], g.L, g.P, g.R); if (!d) return;
         [].concat(st.isBeauty ? (d.beautyStaff || []) : [], (d.hairStaff || [])).filter(p => tpRowKey(p.name, code) === st.mergeKey).forEach(p => {
           hit = true;
-          t.net += p.netSalonTake || 0; t.svc += (st.isBeauty ? (p.beautySales || p.hairSalesNet) : p.hairSalesNet) || 0; t.retail += +p.retail || 0; t.tr += p.treatments || 0;
+          t.net += p.netSalonTake || 0; t.svc += (st.isBeauty ? (p.beautySales || p.hairSalesNet) : p.hairSalesNet) || 0; t.retail += +p.retail || 0; t.tr += p.treatments || 0; t.tu += p.treatmentUnits || 0;
           t.cl += p.total || 0; t.rb += p.rebooked || 0; t.rq += p.req || 0; t.nw += p.newC || 0;
           if (p.ph) { t.pv += p.ph.t || 0; t.rbv += p.ph.rbV || 0; t.rbr += p.ph.rbR || 0; }
         });
@@ -810,6 +834,12 @@ function tpDaysSpec(st) {
         } catch (e) { dn = null; }
         const row = Object.assign({ k, w }, t);
         if (dn && Object.keys(dn).length) row._dn = dn;
+        try {   // treatments, their count and rebooked open her ledger line(s): typed by reception, no client rows
+          const last2 = new Date(+k.slice(0, 4), +k.slice(5, 7), 0).getDate(), a2 = byDay ? k : k + '-01', b2 = byDay ? k : k + '-' + String(last2).padStart(2, '0');
+          const sh = {}, mk = () => tpSheetSpec(st, J, codes, a2 < from ? from : a2, b2 > to ? to : b2, w);
+          ['tr', 'tu', 'rb'].forEach(f => { if (t[f]) sh[f] = mk(); });
+          if (Object.keys(sh).length) row._dn = Object.assign(row._dn || {}, sh);
+        } catch (e) {}
         rows.push(row);
       }
     });
@@ -817,12 +847,12 @@ function tpDaysSpec(st) {
     rows.sort((a, b) => b.k.localeCompare(a.k));
     const sum = f => rows.reduce((a, r) => a + (+r[f] || 0), 0);
     const svcCard = (st.isBeauty ? st.beautySales : st.hairSalesNet) || 0, ph = st.ph || {};
-    const card = { net: st.net || 0, svc: svcCard, retail: st.retail || 0, tr: st.treatments || 0, cl: st.total || 0, rb: st.rebooked || 0, rq: st.req || 0, nw: st.newC || 0, pv: ph.t || 0, rbv: ph.rbV || 0, rbr: ph.rbR || 0 };
+    const card = { net: st.net || 0, svc: svcCard, retail: st.retail || 0, tr: st.treatments || 0, tu: st.treatmentUnits || 0, cl: st.total || 0, rb: st.rebooked || 0, rq: st.req || 0, nw: st.newC || 0, pv: ph.t || 0, rbv: ph.rbV || 0, rbr: ph.rbR || 0 };
     const off = Object.keys(card).some(f => Math.abs(sum(f) - card[f]) >= 0.5);
     if (off) rows.push(Object.assign({ k: '', w: 'Not matched to a day', _cls: 'dr-muted' }, Object.fromEntries(Object.keys(card).map(f => [f, card[f] - sum(f)]))));
     const trk = card.rbv > 0 || sum('rbv') > 0;
     const cols = [{ k: 'w', l: byDay ? 'Day' : 'Month' }, { k: 'net', l: 'Net take', t: 'aed' }, { k: 'svc', l: 'Services', t: 'aed' }, { k: 'retail', l: 'Retail', t: 'aed' }]
-      .concat(st.isBeauty ? [] : [{ k: 'tr', l: 'Treatments', t: 'aed' }])
+      .concat(st.isBeauty ? [] : [{ k: 'tr', l: 'Treatments', t: 'aed' }, { k: 'tu', l: 'Treatments (#)', t: 'num' }])
       .concat([{ k: 'cl', l: 'Clients (ledger)', t: 'num' }, { k: 'rb', l: 'Rebooked (ledger)', t: 'num' }, { k: 'rq', l: 'Requests', t: 'num' }, { k: 'nw', l: 'New clients', t: 'num' }, { k: 'pv', l: 'Visits (Phorest)', t: 'num' }])
       .concat(trk ? [{ k: 'rbr', l: 'Rebooked (tracker)', t: 'num' }, { k: 'rbv', l: 'Visits (tracker)', t: 'num' }] : []);
     const foot = Object.assign({ w: 'Total' }, card);
