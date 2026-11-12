@@ -66,7 +66,7 @@ h1.t{margin:0 0 4px;font-size:clamp(22px,4cqi,28px);font-weight:600;letter-spaci
 
 /* the sheet */
 .sheet{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.xw{max-height:max(420px,calc(100vh - var(--topbar-cond-h,104px) - 230px));overflow:auto;position:relative}
+.xw{max-height:max(520px,calc(100vh - var(--topbar-cond-h,104px) - 80px));overflow:auto;position:relative}
 table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-numeric:tabular-nums;width:max-content;min-width:100%}
 .xt th{position:sticky;top:0;z-index:3;background:var(--surface2);font-size:12px;font-weight:600;color:var(--muted);padding:6px 6px 6px 10px;text-align:right;border-bottom:1px solid var(--border);vertical-align:bottom;line-height:1.25}
 .xt th.on{background:color-mix(in srgb,var(--ok) 14%,var(--surface2))}
