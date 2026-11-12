@@ -49,7 +49,7 @@
 .ps-seg label.ps-hid:has(input:checked){background:color-mix(in srgb,var(--text) 16%,transparent)}
 .ps-seg label:has(input:focus-visible){outline:2px solid var(--text);outline-offset:-2px}
 .ps-msg{flex:1 1 100%;display:none}
-.ps-row.ps-isCon .ps-msg{display:block}
+.ps-row.ps-isCon .ps-msg{display:block}   /* Kate, 12 Nov 2026: Hidden keeps a note too (ps-isCon is on for either status) */
 .ps-msg input{font:inherit;font-size:13px;width:100%;max-width:520px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
 .ps-hint{font-size:13px;color:var(--muted);margin:10px 0 0;max-width:760px}
 @media(max-width:700px){
@@ -67,8 +67,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/js/pages.js?v=e27be7e1"></script>
-<script src="/hub/hub.js?v=2cb1223b"></script>
+<script src="/js/pages.js?v=d17760dd"></script>
+<script src="/hub/hub.js?v=f7fff8be"></script>
 <script src="/js/visits.js?v=e33b3a0d"></script>
 <script>
 (function () {
@@ -97,7 +97,7 @@
     function opt(v, cls, label) {
       return '<label class="' + cls + '"><input type="radio" name="' + esc(name) + '" value="' + v + '"' + (st === v ? ' checked' : '') + ' aria-label="' + esc(p.label) + ': ' + label + '">' + label + '</label>';
     }
-    return '<div class="ps-row' + (st === 'construction' ? ' ps-isCon' : '') + '" data-id="' + esc(p.id) + '">' +
+    return '<div class="ps-row' + (st !== 'live' ? ' ps-isCon' : '') + '" data-id="' + esc(p.id) + '">' +
       '<div class="ps-name"><a href="' + esc(p.href || '/?view=' + encodeURIComponent(trsSlugOf(p.id))) + '" target="_blank" rel="noopener" title="Open this page in a new window" aria-label="' + esc(p.label) + ' (opens in a new window)">' + esc(p.label) + OPEN_ICON + '</a>' + (p.inside ? '<span class="ps-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</div>' +
       '<div class="ps-seg" role="radiogroup" aria-label="' + esc(p.label) + '">' + opt('live', 'ps-live', 'Live') + opt('construction', 'ps-con', 'Under construction') + opt('hidden', 'ps-hid', 'Hidden') + '</div>' +
       '<div class="ps-msg"><input type="text" maxlength="200" placeholder="Optional note shown on the page, e.g. Numbers are being checked" value="' + esc(noteOf(p.id)) + '" aria-label="Note for ' + esc(p.label) + '"></div></div>';
@@ -117,10 +117,10 @@
   }
   async function save(id, status, note, rowEl) {
     var p = pages().filter(function (x) { return x.id === id; })[0], label = p ? p.label : id;
-    var r = await KB.client.rpc('page_status_set', { p_page: id, p_status: status === 'live' ? null : status, p_note: status === 'construction' ? (note || null) : null });
+    var r = await KB.client.rpc('page_status_set', { p_page: id, p_status: status === 'live' ? null : status, p_note: status !== 'live' ? (note || null) : null });
     if (r.error) { say('Not saved: ' + (r.error.message || 'try again') + '.', true); draw(); return false; }
-    if (status === 'live') delete window.TRS_STATUS[id]; else window.TRS_STATUS[id] = { status: status, note: status === 'construction' ? (note || '') : '' };
-    if (rowEl) rowEl.classList.toggle('ps-isCon', status === 'construction');
+    if (status === 'live') delete window.TRS_STATUS[id]; else window.TRS_STATUS[id] = { status: status, note: status !== 'live' ? (note || '') : '' };
+    if (rowEl) rowEl.classList.toggle('ps-isCon', status !== 'live');
     say(label + (status === 'live' ? ' is Live again.' : status === 'hidden' ? ' is Hidden: only you can open it.' : ' is labelled Under construction.'));
     paintCount();
     return true;
@@ -163,8 +163,8 @@
       if (inp.type === 'radio') {
         save(rowEl.getAttribute('data-id'), inp.value, note ? note.value.trim() : '', rowEl);
       } else if (inp.type === 'text') {
-        // The note saves when the box is left or Enter is pressed; it only exists while the page is Under construction.
-        save(rowEl.getAttribute('data-id'), 'construction', inp.value.trim(), rowEl);
+        // The note saves when the box is left or Enter is pressed; it is there while the page is Under construction or Hidden, and keeps whichever of the two it is.
+        save(rowEl.getAttribute('data-id'), (window.TRS_STATUS[rowEl.getAttribute('data-id')] || {}).status || 'construction', inp.value.trim(), rowEl);
       }
     });
     body.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target && e.target.type === 'text') e.target.blur(); });

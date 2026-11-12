@@ -62,8 +62,9 @@
     var box = document.createElement('div');
     box.className = 'pg-status pg-status-' + st;
     box.setAttribute('role', 'note');
+    // Kate, 12 Nov 2026: a Hidden page can carry a note too (account menu), shown to her alone since nobody else can open it.
     box.innerHTML = st === 'hidden'
-      ? '<b>Hidden.</b> Only you can see this page. Everyone else has it removed from the menu, Team Home and search.'
+      ? '<b>Hidden.</b> Only you can see this page. Everyone else has it removed from the menu, Team Home and search.' + (info.note ? ' ' + esc(info.note) : '')
       : '<b>Under construction.</b> This page is still being built, so the numbers or layout may change.' + (info.note ? ' ' + esc(info.note) : '');
     return box;
   };

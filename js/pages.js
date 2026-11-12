@@ -137,7 +137,8 @@ window.TRS_PAGES = /*PAGES*/[
     if (!level) return (p.min || 1) <= 1;
     if (level >= 5) return true;
     // Kate, 9 Nov 2026: a page marked "extras": 1 (Recruitment) opens from a person's own extras at any level, so Coach Emma (Level 3) gets it without the rest of Level 3.
-    if ((level === 2 || level === 4 || p.extras) && extras && extras.indexOf(p.id) >= 0) return true;
+    // Kate, 12 Nov 2026: "give specific page access to someone regardless of his/her level" (account menu, Level 5): a page in a person's own extras opens at any level below 5.
+    if (extras && extras.indexOf(p.id) >= 0) return true;
     // Kate, 28 Oct 2026: staff are one level inside (1) but the Page Access page keeps separate ticks for Reception & Call Centre (shown as Level 2),
     // saved under 'fd:<page>'; TRS_STAFF_FD says this person is one of them (set at sign-in by hub.js and index.html).
     var ov = window.TRS_ACCESS && window.TRS_ACCESS[(level === 1 && window.TRS_STAFF_FD ? 'fd:' : '') + p.id];

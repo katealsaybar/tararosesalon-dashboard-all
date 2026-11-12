@@ -569,7 +569,7 @@
     // Kate, 21 Oct 2026: pages opened for one person alone (dashboard_users.extra_pages); only Level 2 and 4 can have any.
     KB.extra = [];
     if (KB.viewAs) KB.extra = KB.viewAs.extra || [];
-    else if (KB.level === 2 || KB.level === 4) {
+    else if (KB.level >= 2 && KB.level <= 4) {   // Kate, 12 Nov 2026: any dashboard level, not just 2 and 4 (account menu, page access for one person)
       var dm = await c.rpc('dashboard_me');
       KB.extra = (!dm.error && dm.data && dm.data[0] && dm.data[0].extra_pages) || [];
     }

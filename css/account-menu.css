@@ -1,0 +1,101 @@
+/* Kate, 12 Nov 2026: the account menu in the dashboard header (js/account-menu.js), Level 6 only. Drawn like Team Home's (hub/hub.css .kb-account), in the dashboard's own tokens. */
+.acct{position:relative;display:inline-flex;align-self:center}
+.tglr.acct-btn{display:inline-flex;align-items:center;gap:8px;padding:0 12px 0 4px;text-transform:none;letter-spacing:0;font-size:13px;font-weight:500;color:var(--text)}
+@media(min-width:761px){.mast-acts .tglr.acct-btn{padding:0 12px 0 4px;font-size:13px;min-height:34px}}
+.tglr.acct-btn[aria-expanded="true"]{border-color:var(--text)}
+.acct-av{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:700;letter-spacing:0;background:var(--accent-mint);color:#1A1A1A;flex:none}
+.acct-caret{transition:transform .2s;flex:none;opacity:.7}
+.acct-btn[aria-expanded="true"] .acct-caret{transform:rotate(180deg)}
+/* Phones: Log Out is in the drawer, as before, so the header keeps its round buttons and the menu is a desktop thing. */
+@media(max-width:760px){.acct{display:none}}
+
+.acct-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:70;width:316px;max-width:calc(100vw - 24px);max-height:calc(100vh - 90px);overflow:auto;
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.22);padding:6px;text-align:left;
+  text-transform:none;letter-spacing:0;color:var(--text);font-size:14px;line-height:1.35;cursor:default}
+.acct-menu[hidden]{display:none}
+.acct-who{padding:8px 12px 10px;border-bottom:1px solid var(--border2);margin-bottom:4px}
+.acct-who b{display:block;font-size:14.5px}
+.acct-who span{display:block;font-size:12.5px;color:var(--muted2);word-break:break-all}
+.acct-who em{display:block;font-style:normal;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.acct-sec{padding:2px 0 4px;border-bottom:1px solid var(--border2);margin-bottom:4px}
+.acct-sec:last-child{border-bottom:0;margin-bottom:0}
+.acct-k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+.acct-menu button,.acct-menu a.acct-row{font:inherit;color:inherit}
+
+/* View as */
+.acct-vatog{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:6px 12px;border:0;background:none;border-radius:8px;cursor:pointer;text-align:left}
+.acct-vatog:hover{background:var(--surface2)}
+.acct-vacur{flex:1;min-width:0;text-align:right;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acct-vatog svg{transition:transform .18s}
+.acct-vatog[aria-expanded="true"] svg{transform:rotate(180deg)}
+.acct-valist{padding:2px 0 4px}
+.acct-valist button{display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:6px 12px 6px 14px;border:0;background:none;border-radius:8px;cursor:pointer;font-size:13.5px;color:var(--muted);text-align:left}
+.acct-valist button:hover{background:var(--surface2)}
+.acct-valist button::before{content:'';width:7px;height:7px;border-radius:50%;flex:none;border:1.5px solid var(--border)}
+.acct-valist button.on{color:var(--text);font-weight:600;cursor:default}
+.acct-valist button.on::before{background:var(--accent-mint);border-color:var(--accent-mint)}
+
+/* This page */
+.acct-page{padding:8px 12px 10px}
+.acct-pname{font-size:14.5px;font-weight:600;margin:2px 0 8px}
+.acct-seg{display:grid;grid-template-columns:auto 1fr auto;gap:0;border:1px solid var(--border);border-radius:999px;overflow:hidden;background:var(--surface)}
+.acct-seg button{border:0;background:none;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap;border-left:1px solid var(--border)}
+.acct-seg button:first-child{border-left:0}
+.acct-seg button:hover{color:var(--text);background:var(--surface2)}
+.acct-seg button.on{color:#1A1A1A;cursor:default}
+.acct-seg .acct-seg-live.on{background:var(--accent-mint)}
+.acct-seg .acct-seg-construction.on{background:#F3D9A4}
+.acct-seg .acct-seg-hidden.on{background:#D9D6D0}
+.acct-note{display:flex;gap:6px;margin-top:8px}
+.acct-note[hidden]{display:none}
+.acct-note input{flex:1;min-width:0;font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)}
+.acct-note input:focus{outline:2px solid var(--text);outline-offset:1px}
+.acct-save{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:0 12px;font-size:12.5px;font-weight:600;cursor:pointer}
+.acct-save:hover{border-color:var(--text)}
+.acct-say{min-height:0;font-size:12.5px;color:var(--good);margin-top:6px}
+.acct-say:empty{display:none}
+.acct-say.bad{color:var(--bad)}
+
+/* Rows */
+.acct-menu .acct-row{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;text-align:left;padding:9px 12px;border:0;background:none;border-radius:8px;cursor:pointer;font-size:14.5px;text-decoration:none;min-height:40px;justify-content:center}
+.acct-menu .acct-row:hover{background:var(--surface2)}
+.acct-row small{font-size:12px;color:var(--muted2)}
+.acct-menu .acct-out{color:var(--bad)}
+.acct-menu button:focus-visible,.acct-menu a:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+
+/* Page access for a person: the dialog */
+.acm{position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(20,20,24,.55)}
+.acm-card{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(560px,100%);max-height:min(720px,calc(100vh - 32px));display:flex;flex-direction:column;overflow:hidden}
+.acm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 12px;border-bottom:1px solid var(--border2)}
+.acm-title{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:500}
+.acm-sub{font-size:13px;color:var(--muted);margin-top:2px}
+.acm-x{border:0;background:none;font-size:26px;line-height:1;cursor:pointer;color:var(--muted);padding:0 4px}
+.acm-x:hover{color:var(--text)}
+.acm-body{padding:14px 20px 18px;overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
+.acm-lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+.acm-sel,.acm-q{font:inherit;font-size:14px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);width:100%}
+.acm-sel:focus,.acm-q:focus{outline:2px solid var(--text);outline-offset:1px}
+.acm-only{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.acm-only input{width:16px;height:16px;accent-color:var(--text)}
+.acm-count{font-size:13px;color:var(--muted)}
+.acm-warn{font-size:12.5px;color:var(--warn);margin:0}
+.acm-load,.acm-empty{color:var(--muted);font-size:13.5px;margin:0}
+.acm-list{border:1px solid var(--border);border-radius:12px;overflow:auto;max-height:340px;background:var(--surface)}
+.acm-grp{position:sticky;top:0;z-index:1;background:var(--surface2);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);padding:6px 12px;border-top:1px solid var(--border2)}
+.acm-grp:first-child{border-top:0}
+.acm-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--border2);cursor:pointer;font-size:14px}
+.acm-row:hover{background:var(--surface2)}
+.acm-row.dim{cursor:default;color:var(--muted)}
+.acm-row.dim:hover{background:none}
+.acm-row.here{background:color-mix(in srgb,var(--accent-mint) 18%,var(--surface))}
+.acm-row input{width:17px;height:17px;flex:none;accent-color:var(--text)}
+.acm-nm{flex:1;min-width:0}
+.acm-nm small{display:block;font-size:11.5px;color:var(--muted2)}
+.acm-row em{font-style:normal;font-size:11.5px;color:var(--muted2);white-space:nowrap}
+.acm-row em.acm-here{color:var(--text);font-weight:600}
+.acm-row em.acm-own{color:var(--good);font-weight:600}
+.acm-say{font-size:13px;min-height:18px;color:var(--good)}
+.acm-say.bad{color:var(--bad)}
+.acm-fine{font-size:12px;color:var(--muted2);line-height:1.5;margin:0}
+.acm-fine a{color:inherit;text-decoration:underline}
+@media(max-width:560px){.acm{padding:8px}.acm-head,.acm-body{padding-left:14px;padding-right:14px}.acm-row em.acm-note{display:none}}
