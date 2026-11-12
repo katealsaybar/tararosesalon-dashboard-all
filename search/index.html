@@ -21,7 +21,7 @@
      happens where the signed-in person's access lives: the dashboard's results page for
      dashboard people (/?q=), Team Home's own search for staff (/hub/?q=). -->
 <link rel="stylesheet" href="/hub/hub.css?v=282837f3">
-<link rel="stylesheet" href="/scrollbars.css?v=a903788b">
+<link rel="stylesheet" href="/css/scrollbars.css?v=a903788b">
 <style>
   body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
   /* Kate, 30 Oct 2026 (audit ALAD-1, finding 9): on a slow connection the page was a blank screen. The logo, the bar and Search now show at once;
@@ -280,12 +280,12 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
-<script src="/auth.js?v=3823f956"></script>
+<script src="/js/auth.js?v=3823f956"></script>
 <!-- The list of dashboard pages: names, levels, icons. The same list the dashboard reads. -->
-<script src="/pages.js?v=e27be7e1"></script>
+<script src="/js/pages.js?v=e27be7e1"></script>
 <!-- Team Home's own script: the sign-in check, the icons and the stars. It draws no header here (no #kbHead). -->
-<script src="/voice-mic.js?v=62fac83a"></script>
-<script src="/hub/hub.js?v=b36f9bda"></script>
+<script src="/js/voice-mic.js?v=62fac83a"></script>
+<script src="/hub/hub.js?v=2cb1223b"></script>
 <script>
 (async function () {
   // Signed in and on a list, as Team Home checks it; anyone else is sent to the sign-in card
@@ -755,6 +755,6 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
 })();
 </script>
 <!-- Kate, 9 Nov 2026: the notification bell, on every signed-in page. -->
-<script src="/notifications.js?v=a52ed9df"></script>
+<script src="/js/notifications.js?v=a52ed9df"></script>
 </body>
 </html>

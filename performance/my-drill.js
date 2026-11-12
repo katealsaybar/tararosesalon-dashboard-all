@@ -59,7 +59,7 @@
   // Save as xlsx / csv (the shared window's buttons) loads the spreadsheet writer the first time; this page has no lazy loader of its own, so a small one.
   if (typeof window.trsLazy !== 'function') {
     let lgx = null;
-    window.trsLazy = name => name !== 'lgx' ? Promise.resolve() : lgx || (lgx = new Promise((ok, no) => { const s = document.createElement('script'); s.src = '/ledger-export.js?v=67737bd9'; s.onload = ok; s.onerror = () => { lgx = null; no(new Error('export')); }; document.head.appendChild(s); }));
+    window.trsLazy = name => name !== 'lgx' ? Promise.resolve() : lgx || (lgx = new Promise((ok, no) => { const s = document.createElement('script'); s.src = '/js/ledger-export.js?v=67737bd9'; s.onload = ok; s.onerror = () => { lgx = null; no(new Error('export')); }; document.head.appendChild(s); }));
   }
   const NOTREADY = { cols: [], rows: [], empty: 'This list is not switched on yet. It will be there after the next update.' };
 

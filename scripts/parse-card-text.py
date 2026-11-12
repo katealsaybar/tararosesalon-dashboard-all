@@ -208,7 +208,7 @@ def parse(page, name, role):
 
 
 def roles():
-    src = open(os.path.join(ROOT, "staff-profiles.js"), encoding="utf-8").read()
+    src = open(os.path.join(ROOT, "js", "staff-profiles.js"), encoding="utf-8").read()
     return dict(re.findall(r"'([A-Z ]+)':\s*\{[^}]*?role:\s*'([^']+)'", src))
 
 

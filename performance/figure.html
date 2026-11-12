@@ -8,7 +8,7 @@
 <link rel="shortcut icon" href="../assets/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="performance.css?v=79c81710">
-<link rel="stylesheet" href="/drill.css?v=547da3fe">
+<link rel="stylesheet" href="/css/drill.css?v=547da3fe">
 <script>
 // The same Light / Dark choice as the My Numbers page (perf-theme), or the phone's own.
 (function () { try { var t = localStorage.getItem('perf-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) {} })();
@@ -26,9 +26,9 @@ body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-famil
 <p class="fg-msg" id="msg" role="status">Getting your list…</p>
 <script>
 // Save as xlsx / csv loads the spreadsheet writer the first time it is pressed.
-(function () { var p = null; window.trsLazy = function (n) { return n !== 'lgx' ? Promise.resolve() : p || (p = new Promise(function (ok, no) { var s = document.createElement('script'); s.src = '/ledger-export.js?v=67737bd9'; s.onload = ok; s.onerror = function () { p = null; no(new Error('export')); }; document.head.appendChild(s); })); }; })();
+(function () { var p = null; window.trsLazy = function (n) { return n !== 'lgx' ? Promise.resolve() : p || (p = new Promise(function (ok, no) { var s = document.createElement('script'); s.src = '/js/ledger-export.js?v=67737bd9'; s.onload = ok; s.onerror = function () { p = null; no(new Error('export')); }; document.head.appendChild(s); })); }; })();
 </script>
-<script src="/drill.js?v=7b4719d6"></script>
+<script src="/js/drill.js?v=7b4719d6"></script>
 <script>
 (function () {
   var msg = document.getElementById('msg'), id = new URLSearchParams(location.search).get('h'), key = 'mydrill:' + id, tries = 0, back = '/performance/';
@@ -57,6 +57,6 @@ body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-famil
 })();
 </script>
 <!-- Kate, 9 Nov 2026: the notification bell, on every signed-in page. -->
-<script src="/notifications.js?v=a52ed9df"></script>
+<script src="/js/notifications.js?v=a52ed9df"></script>
 </body>
 </html>

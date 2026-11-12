@@ -21,8 +21,8 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="pages.js?v=e27be7e1"></script>
-<script src="page-status.js?v=779c1d41"></script>
+<script src="js/pages.js?v=e27be7e1"></script>
+<script src="js/page-status.js?v=779c1d41"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
 <script>
 window.TRS_AUTH_HASH = location.hash;
@@ -3558,33 +3558,33 @@ table.tp-cmp td.bad{color:var(--bad)}
 }
 
 </style>
-<link rel="stylesheet" href="scrollbars.css?v=a903788b">
-<link rel="stylesheet" href="team-performance.css?v=c23a9f7a">
-<link rel="stylesheet" href="nav-collapse.css?v=7809b314">
+<link rel="stylesheet" href="css/scrollbars.css?v=a903788b">
+<link rel="stylesheet" href="css/team-performance.css?v=c23a9f7a">
+<link rel="stylesheet" href="css/nav-collapse.css?v=7809b314">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="mobile.css?v=a4af2688">
-<link rel="stylesheet" href="search.css?v=ad896c51">
-<link rel="stylesheet" href="client-mix.css?v=9925ddc9">
-<link rel="stylesheet" href="lost-lists.css?v=5021aa8e">
-<link rel="stylesheet" href="lost-queue.css?v=5a7f8366">
-<link rel="stylesheet" href="send-schedule.css?v=88a70391">
-<link rel="stylesheet" href="jump-nav.css?v=e099d37d">
-<link rel="stylesheet" href="why-wall.css?v=a9e824b4">
-<link rel="stylesheet" href="wv-blast.css?v=9b1a775f">
-<link rel="stylesheet" href="target-links.css?v=5f45ddf2">
-<link rel="stylesheet" href="glow-club.css?v=ce0bc189">
-<link rel="stylesheet" href="social-calendar.css?v=00f39fec">
-<link rel="stylesheet" href="campaign-blasts.css?v=7bbeafe7">
-<link rel="stylesheet" href="landing-review.css?v=995b9507">
-<link rel="stylesheet" href="recruitment.css?v=795a78ca">
-<link rel="stylesheet" href="nov-blasts.css?v=98749086">
-<link rel="stylesheet" href="active-deals.css?v=f6158902">
-<link rel="stylesheet" href="discounts-vouchers.css?v=ef15eb90">
-<link rel="stylesheet" href="tool-spend.css?v=d72f64aa">
-<link rel="stylesheet" href="marketing-spend.css?v=3af355da">
-<link rel="stylesheet" href="mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
-<link rel="stylesheet" href="nav-style.css?v=5bf98990">
-<link rel="stylesheet" href="drill.css?v=547da3fe">   <!-- the figure that opens the list behind it (drill.js) -->
+<link rel="stylesheet" href="css/mobile.css?v=a4af2688">
+<link rel="stylesheet" href="css/search.css?v=ad896c51">
+<link rel="stylesheet" href="css/client-mix.css?v=9925ddc9">
+<link rel="stylesheet" href="css/lost-lists.css?v=5021aa8e">
+<link rel="stylesheet" href="css/lost-queue.css?v=5a7f8366">
+<link rel="stylesheet" href="css/send-schedule.css?v=88a70391">
+<link rel="stylesheet" href="css/jump-nav.css?v=e099d37d">
+<link rel="stylesheet" href="css/why-wall.css?v=a9e824b4">
+<link rel="stylesheet" href="css/wv-blast.css?v=9b1a775f">
+<link rel="stylesheet" href="css/target-links.css?v=5f45ddf2">
+<link rel="stylesheet" href="css/glow-club.css?v=ce0bc189">
+<link rel="stylesheet" href="css/social-calendar.css?v=00f39fec">
+<link rel="stylesheet" href="css/campaign-blasts.css?v=067347b6">
+<link rel="stylesheet" href="css/landing-review.css?v=995b9507">
+<link rel="stylesheet" href="css/recruitment.css?v=795a78ca">
+<link rel="stylesheet" href="css/nov-blasts.css?v=98749086">
+<link rel="stylesheet" href="css/active-deals.css?v=f6158902">
+<link rel="stylesheet" href="css/discounts-vouchers.css?v=ef15eb90">
+<link rel="stylesheet" href="css/tool-spend.css?v=d72f64aa">
+<link rel="stylesheet" href="css/marketing-spend.css?v=3af355da">
+<link rel="stylesheet" href="css/mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
+<link rel="stylesheet" href="css/nav-style.css?v=5bf98990">
+<link rel="stylesheet" href="css/drill.css?v=547da3fe">   <!-- the figure that opens the list behind it (drill.js) -->
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=7bd2fc3a"></script>
@@ -3600,7 +3600,7 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div class="bl-fact" id="blFact" aria-live="off"></div>
   <div class="bl-slow" id="blSlow" role="alert"><span>Still loading. The connection looks slow.</span><button type="button" onclick="location.reload()">Try again</button></div>
 </div>
-<script src="loading-facts.js?v=701d61c5"></script>
+<script src="js/loading-facts.js?v=701d61c5"></script>
 <script>
   window.trsBootDone = function(){ var b = document.getElementById('bootLoader'); if (!b || b.classList.contains('out')) return;
     b.classList.add('out'); setTimeout(function(){ b.remove(); }, 350); };
@@ -3615,61 +3615,61 @@ table.tp-cmp td.bad{color:var(--bad)}
   // click is usually instant. Each group is loaded in order; the ?v= stamp that used to sit on the script tag lives here now, so
   // BUMP IT HERE when the file changes. Nothing outside a group calls into it except behind a typeof check or showView.
   (function(){
-    var LGX = 'ledger-export.js?v=67737bd9';
+    var LGX = 'js/ledger-export.js?v=67737bd9';
     var G = {
-      oty: ['report-export.js?v=d7b73ae8', 'over-the-years.js?v=3ee5e8d2'],
-      dp:  ['report-export.js?v=d7b73ae8', 'daily-performance.js?v=939b8848', 'daily-addons.js?v=feaba0f0'],
+      oty: ['js/report-export.js?v=d7b73ae8', 'js/over-the-years.js?v=3ee5e8d2'],
+      dp:  ['js/report-export.js?v=d7b73ae8', 'js/daily-performance.js?v=939b8848', 'js/daily-addons.js?v=feaba0f0'],
       // Quarterly Report (11 Nov 2026): borrows Daily Performance's loader, day cells and drill lists, so it loads those files too (a file is fetched once however many groups name it).
-      qr:  ['report-export.js?v=d7b73ae8', 'daily-performance.js?v=939b8848', 'daily-addons.js?v=feaba0f0', 'quarterly-report.js?v=1f6013c1'],
+      qr:  ['js/report-export.js?v=d7b73ae8', 'js/daily-performance.js?v=939b8848', 'js/daily-addons.js?v=feaba0f0', 'js/quarterly-report.js?v=1f6013c1'],
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'report-export.js?v=d7b73ae8', 'lost-clients.js?v=9a925f4d', 'lost-lists.js?v=fadf2741', 'lost-consults.js?v=8dd97a9d', 'lost-review-file.js?v=de965c04',
-            'send-schedule.js?v=3abf6266', 'lost-queue.js?v=4d4924ab', 'lost-waves.js?v=c142e140', 'lost-blast.js?v=3ca1ba99',
-            'lost-report.js?v=a62283dc', 'wv-blast.js?v=22a9b944', 'wv-last.js?v=5f1b7d69', 'wv-depth.js?v=e4188c8d', 'wv-lastsend.js?v=cf678e57', 'wv-remind.js?v=61840cb2', 'wv-messages.js?v=356bebe0', 'top-clients.js?v=24a0799c', 'client-mix.js?v=012e7ff2',
-            'service-rankings.js?v=f73e912d'],
+      cl:  [LGX, 'js/report-export.js?v=d7b73ae8', 'js/lost-clients.js?v=9a925f4d', 'js/lost-lists.js?v=fadf2741', 'js/lost-consults.js?v=8dd97a9d', 'js/lost-review-file.js?v=de965c04',
+            'js/send-schedule.js?v=3abf6266', 'js/lost-queue.js?v=4d4924ab', 'js/lost-waves.js?v=c142e140', 'js/lost-blast.js?v=3ca1ba99',
+            'js/lost-report.js?v=a62283dc', 'js/wv-blast.js?v=22a9b944', 'js/wv-last.js?v=5f1b7d69', 'js/wv-depth.js?v=e4188c8d', 'js/wv-lastsend.js?v=cf678e57', 'js/wv-remind.js?v=61840cb2', 'js/wv-messages.js?v=356bebe0', 'js/top-clients.js?v=24a0799c', 'js/client-mix.js?v=012e7ff2',
+            'js/service-rankings.js?v=f73e912d'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
-      cmp: ['report-export.js?v=d7b73ae8', 'compare.js?v=a7bf6b23'],
-      mk:  ['report-export.js?v=d7b73ae8', 'marketing-chart.js?v=2861059a', 'google-ads.js?v=ed3bd9e2', 'meta-ads.js?v=9e3fd1f4', 'tool-spend.js?v=d6f89eac', 'marketing-spend.js?v=39233b1c', 'website.js?v=c47da80a', 'social.js?v=a22519a9', 'social-calendar.js?v=baed8682', 'marketing-export.js?v=72c753cd'],
+      cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=a7bf6b23'],
+      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=ed3bd9e2', 'js/meta-ads.js?v=9e3fd1f4', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=c47da80a', 'js/social.js?v=a22519a9', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=72c753cd'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
-      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=a2ec43d4', 'team-performance.js?v=f87c34f7', 'report-export.js?v=d7b73ae8', 'staff-weeks.js?v=0e21c912'],
-      lv:  ['report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=a2ec43d4', 'stylist-levels.js?v=222d5a17'],
+      wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/team-performance.js?v=f87c34f7', 'js/report-export.js?v=d7b73ae8', 'js/staff-weeks.js?v=0e21c912'],
+      lv:  ['js/report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/stylist-levels.js?v=222d5a17'],
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
-      gc:  ['glow-club.js?v=84f11759'],
+      gc:  ['js/glow-club.js?v=84f11759'],
       // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
-      cbl: ['campaign-blasts.js?v=876d8d2e'],
+      cbl: ['js/campaign-blasts.js?v=876d8d2e'],
       // Landing Page Review (9 Nov 2026): one file, only that page needs it.
-      lpr: ['landing-review.js?v=a64e7cf9'],
-      rct: ['recruitment.js?v=55574dd1'],
+      lpr: ['js/landing-review.js?v=a64e7cf9'],
+      rct: ['js/recruitment.js?v=55574dd1'],
       // November Blasts (2 Nov 2026): one file, only that page needs it. 5 Nov 2026: plus the spreadsheet export, the Results send log saves as XLSX and CSV.
-      nvb: [LGX, 'nov-blasts.js?v=efedf1a6'],
+      nvb: [LGX, 'js/nov-blasts.js?v=efedf1a6'],
       // Stripe vs Phorest (9 Nov 2026): one file, reads stripe_vs_phorest(); the header's Branch and Period drive it.
-      spv: ['stripe-phorest.js?v=fa3c98aa'],
+      spv: ['js/stripe-phorest.js?v=fa3c98aa'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
-      ad:  [LGX, 'active-deals.js?v=a7878905'],
+      ad:  [LGX, 'js/active-deals.js?v=a7878905'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
-      dv:  [LGX, 'discounts-vouchers.js?v=9cc02f97'],
-      o2:  ['one2ones.js?v=5d072cf8'],
-      at:  ['attrition.js?v=a1fdad42'],
-      cb:  ['report-export.js?v=d7b73ae8', 'client-book.js?v=5cb6aa40'],
+      dv:  [LGX, 'js/discounts-vouchers.js?v=9cc02f97'],
+      o2:  ['js/one2ones.js?v=5d072cf8'],
+      at:  ['js/attrition.js?v=a1fdad42'],
+      cb:  ['js/report-export.js?v=d7b73ae8', 'js/client-book.js?v=5cb6aa40'],
       // Complaint triage batch 2 (29 Oct 2026): cmp-people.js is the people list and picker shared with Team Home's complaint ticket.
-      cp:  ['complaints.js?v=a8c3bea9', 'cmp-people.js?v=5925547b', 'complaint-log.js?v=cd090b66'],
+      cp:  ['js/complaints.js?v=a8c3bea9', 'js/cmp-people.js?v=5925547b', 'js/complaint-log.js?v=cd090b66'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
-      pr:  ['products.js?v=d1961633'],
-      sp:  ['spend.js?v=60c3b654'],
+      pr:  ['js/products.js?v=d1961633'],
+      sp:  ['js/spend.js?v=60c3b654'],
       // Retention (3 Nov 2026): one file, reads retention_report and drill_retention_clients.
-      rt:  ['retention.js?v=87f0b7fa'],
-      sc:  ['stylist-cards.js?v=fe5a89a4'],
-      oc:  ['org-chart.js?v=37a5bbdf'],
-      tp:  ['report-export.js?v=d7b73ae8', 'team-performance.js?v=f87c34f7'],
+      rt:  ['js/retention.js?v=87f0b7fa'],
+      sc:  ['js/stylist-cards.js?v=fe5a89a4'],
+      oc:  ['js/org-chart.js?v=37a5bbdf'],
+      tp:  ['js/report-export.js?v=d7b73ae8', 'js/team-performance.js?v=f87c34f7'],
       // The XLSX and CSV buttons on Staff Dashboards (the frame's bar below): the writer and what reads the frame, on the first click.
-      rx:  ['report-export.js?v=d7b73ae8', 'staff-dash-export.js?v=a447e3f8'],
+      rx:  ['js/report-export.js?v=d7b73ae8', 'js/staff-dash-export.js?v=a447e3f8'],
       // The XLSX and CSV buttons on the Organisation Pulse.
-      px:  ['report-export.js?v=d7b73ae8', 'pulse-export.js?v=02084377'],
+      px:  ['js/report-export.js?v=d7b73ae8', 'js/pulse-export.js?v=02084377'],
       // The XLSX and CSV buttons on Google Reviews (the frame's own, which tell the dashboard).
-      rv:  ['report-export.js?v=d7b73ae8', 'reviews-export.js?v=f7327c97']
+      rv:  ['js/report-export.js?v=d7b73ae8', 'js/reviews-export.js?v=f7327c97']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -4385,7 +4385,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=a640ec46&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=0e1a2a42&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -4728,31 +4728,31 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 <script src="upload/name-aliases.js?v=b21544d8"></script>
 <!-- After name-aliases.js: ledgerStaffTarget() canonicalises names through it. -->
-<script src="ledger-targets.js?v=14d8143e"></script>
+<script src="js/ledger-targets.js?v=14d8143e"></script>
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
-<script src="ledger-targets-db.js?v=a344975f"></script>
-<script src="staff-profiles.js?v=a67ddd4e"></script>
+<script src="js/ledger-targets-db.js?v=a344975f"></script>
+<script src="js/staff-profiles.js?v=a67ddd4e"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
 <!-- Before dashboard.js: the shared jump list, lgRail and lgShell and lgJump (moved out of branch-ledger.js) and the automatic list on pages that name their sections. -->
 <!-- The shared Why wall (ALD Batch 3): whyWall() and whyFoot(), used by the Podium, Quadrant, 13 Week, Benchmarks and Ledgers pages. -->
-<script src="why-wall.js?v=4805dd60"></script>
-<script src="jump-nav.js?v=02da6ede"></script>
+<script src="js/why-wall.js?v=4805dd60"></script>
+<script src="js/jump-nav.js?v=02da6ede"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
-<script src="target-links.js?v=72e70df1"></script>
-<script src="drill.js?v=7b4719d6"></script>
-<script src="pulse-drill.js?v=d67ecf2e"></script>
-<script src="dashboard.js?v=c2012cdb"></script>
+<script src="js/target-links.js?v=72e70df1"></script>
+<script src="js/drill.js?v=7b4719d6"></script>
+<script src="js/pulse-drill.js?v=d67ecf2e"></script>
+<script src="js/dashboard.js?v=c2012cdb"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
-<script src="auth.js?v=3823f956"></script>
+<script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
-<script src="site-presence.js?v=b7e5ccac"></script>
+<script src="js/site-presence.js?v=b7e5ccac"></script>
 <!-- After dashboard.js: reuses its aggregators, formatters and section chrome. -->
-<script src="branch-ledger.js?v=ba818112"></script>
+<script src="js/branch-ledger.js?v=ba818112"></script>
 <!-- over-the-years.js and daily-performance.js + daily-addons.js load on first use (trsLazy, in the boot script above). So do compare.js, the Marketing pages (marketing-chart, google-ads, website, social), staff-weeks.js and stylist-levels.js. -->
 <!-- ledger-export.js (spreadsheet export, built from branch-ledger.js's series and target helpers) loads on first use too: trsLazy. -->
 <!-- After the three renderers it decorates: the hover menu on every staff name. -->
-<script src="staff-links.js?v=affdd565"></script>
+<script src="js/staff-links.js?v=affdd565"></script>
 <!-- pulse-narrative.js (the model-written Pulse read) was never wired in: fetchPulseNarrative has no caller. Add the tag back if it is. -->
 <!-- After branch-ledger.js: reads its growth series (bpGrowth) and its formatters. -->
 <!-- branch-narrative.js belonged to the retired Branch Performance page; bnRender is only called behind a typeof check. -->
@@ -5900,18 +5900,18 @@ addEventListener('load', sizeTopbar);
 
 </script>
 <!-- Kate, 9 Nov 2026: Rearrange Menu. Puts the rows in her own saved order BEFORE nav-collapse.js builds the folds from them (nav-layout.js). -->
-<script src="nav-layout.js?v=9486d260"></script>
+<script src="js/nav-layout.js?v=9486d260"></script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
-<script src="nav-collapse.js?v=4df04ef3"></script>
-<script src="nav-stars.js?v=c575eba8"></script>
-<script src="scroll-edges.js?v=95c16c04"></script>
-<script src="count-up.js?v=f80eaa82"></script>
-<script src="mobile.js?v=564f8312"></script>
-<script src="phone-fold.js?v=0eea4012"></script>
-<script src="voice-mic.js?v=62fac83a"></script>
-<script src="metric-glossary.js?v=8f5b03ad"></script>
-<script src="search.js?v=49ba352f"></script>
-<script src="visits.js?v=e33b3a0d"></script>
+<script src="js/nav-collapse.js?v=4df04ef3"></script>
+<script src="js/nav-stars.js?v=c575eba8"></script>
+<script src="js/scroll-edges.js?v=95c16c04"></script>
+<script src="js/count-up.js?v=f80eaa82"></script>
+<script src="js/mobile.js?v=564f8312"></script>
+<script src="js/phone-fold.js?v=0eea4012"></script>
+<script src="js/voice-mic.js?v=62fac83a"></script>
+<script src="js/metric-glossary.js?v=8f5b03ad"></script>
+<script src="js/search.js?v=49ba352f"></script>
+<script src="js/visits.js?v=e33b3a0d"></script>
 <!-- Kate, 9 Nov 2026: the notification bell, on every signed-in page. -->
-<script src="/notifications.js?v=a52ed9df"></script>
+<script src="/js/notifications.js?v=a52ed9df"></script>
 </body>

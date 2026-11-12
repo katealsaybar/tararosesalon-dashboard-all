@@ -46,7 +46,19 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / 'search-index.js'
+
+
+def at(rel):
+    """Where a repo file lives. Since 12 Nov 2026 every script of the dashboard sits in js/ and every stylesheet in css/ (they used to be loose
+    beside index.html), so a bare name like 'pages.js' is read from js/. A name with a folder in it ('hub/hub.js') is exactly as written."""
+    if '/' not in rel and rel.endswith('.js'):
+        return ROOT / 'js' / rel
+    if '/' not in rel and rel.endswith('.css'):
+        return ROOT / 'css' / rel
+    return ROOT / rel
+
+
+OUT = at('search-index.js')
 
 # One page script, one page. A file that draws several pages is handled below.
 FILE_VIEWS = {
@@ -413,25 +425,25 @@ def src_hash():
     h = hashlib.sha256()
     for rel in source_files():
         h.update(rel.encode())
-        h.update((ROOT / rel).read_bytes().replace(bytes([13, 10]), bytes([10])))   # same on Windows and Linux
+        h.update(at(rel).read_bytes().replace(bytes([13, 10]), bytes([10])))   # same on Windows and Linux
     return h.hexdigest()[:16]
 
 
 def script_problems():
     out = []
-    for p in sorted(ROOT.glob('*.js')):
+    for p in sorted((ROOT / 'js').glob('*.js')):
         n = p.name
         if n not in FILE_VIEWS and n not in SPECIAL and n not in NOT_PAGES:
             out.append(f'{n} has no home: add it to FILE_VIEWS (the page it draws), SPECIAL or NOT_PAGES in scripts/build-search-index.py')
     for n in list(FILE_VIEWS) + sorted(SPECIAL):
-        if not (ROOT / n).exists():
+        if not at(n).exists():
             out.append(f'{n} is named in scripts/build-search-index.py but is not in the repo')
     return out
 
 
 def page_list():
     """pages.js's strict-JSON list of dashboard pages."""
-    src = (ROOT / 'pages.js').read_text(encoding='utf-8')
+    src = at('pages.js').read_text(encoding='utf-8')
     m = re.search(r'/\*PAGES\*/(\[.*?\])/\*END\*/', src, re.S)
     return json.loads(m.group(1)) if m else []
 
@@ -482,7 +494,7 @@ def registry_problems(names):
     # No page list of its own may come back in the places that used to carry one.
     for rel, marker in (('search/index.html', 'var DASH = {'), ('hub/index.html', 'var DASH_PAGES = {'), ('search.js', 'const PAGE_WORDS = {\n    dashboard')):
         try:
-            if marker in (ROOT / rel).read_text(encoding='utf-8'):
+            if marker in at(rel).read_text(encoding='utf-8'):
                 out.append(f'{rel} has its own list of dashboard pages again: read pages.js instead')
         except FileNotFoundError:
             pass
@@ -537,7 +549,7 @@ def from_markup_text(ix, view, s, section=''):
 
 
 def scan_js_file(ix, rel, pick_view, src=None):
-    path = ROOT / rel
+    path = at(rel)
     if src is None:
         src = path.read_text(encoding='utf-8')
     fpos, fnames = fn_starts(src)
@@ -597,7 +609,7 @@ def main():
     # 3. The Staff Dashboards frame.
     for rel, view in FRAME_VIEWS.items():
         if rel.endswith('.html'):
-            page = (ROOT / rel).read_text(encoding='utf-8')
+            page = at(rel).read_text(encoding='utf-8')
             page = re.sub(r'<!--.*?-->', '', page, flags=re.S)
             from_markup_text(ix, view, page)
         else:

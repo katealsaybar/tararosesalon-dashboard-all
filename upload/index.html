@@ -16,16 +16,16 @@
 <script src="parser.js?v=224e1aeb"></script>
 <script src="upload.js?v=9bdf802a"></script>
 <!-- Signed-in people on the dashboard list only (auth.js, 25 Sep 2026); anyone else goes to the dashboard's sign-in and comes back. -->
-<script src="../auth.js?v=3823f956"></script>
-<script src="../why-wall.js?v=4805dd60"></script>
+<script src="../js/auth.js?v=3823f956"></script>
+<script src="../js/why-wall.js?v=4805dd60"></script>
 <!-- Kate, 30 Sep 2026: Google sign-in is the only way in (the old shared password card is gone).
      Owner (Kate) can do everything. Payroll (Accounts and Admin) sees every tab but can only
      change Payslips: the Upload segments, delete/edit buttons and roster switches are hidden,
      and any table write outside Payslips is refused in the browser (payslips go through their
      own edge function, not sb.from). The rest of the list goes back to the dashboard. -->
-<link rel="stylesheet" href="/scrollbars.css?v=a903788b">
-<link rel="stylesheet" href="/target-links.css?v=5f45ddf2">
-<link rel="stylesheet" href="/why-wall.css?v=a9e824b4">
+<link rel="stylesheet" href="/css/scrollbars.css?v=a903788b">
+<link rel="stylesheet" href="/css/target-links.css?v=5f45ddf2">
+<link rel="stylesheet" href="/css/why-wall.css?v=a9e824b4">
 <style>
 .role-payroll .seg-btn[data-seg="upload"],.role-payroll .seg-pane[id$="-upload"],
 .role-payroll .tab-btn[data-tab="products"],.role-payroll .tab-btn[data-tab="service"],
@@ -103,7 +103,7 @@ function upViewOnly() {
 <script src="name-aliases.js?v=b21544d8"></script>
 <!-- staff-profiles.js wants canonicalStaffName() from name-aliases.js above it,
      same load order the dashboard itself uses (its own comment says so). -->
-<script src="../staff-profiles.js?v=a67ddd4e"></script>
+<script src="../js/staff-profiles.js?v=a67ddd4e"></script>
 <script src="phorest-staff.js?v=6afedea0"></script>
 <script src="phorest-pdf.js?v=f61051d3"></script>
 <script src="utilisation-pdf.js?v=142204f0"></script>
@@ -1871,4 +1871,4 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 })();
 </script>
 <!-- Kate, 9 Nov 2026: the notification bell, on every signed-in page. -->
-<script src="/notifications.js?v=a52ed9df"></script>
+<script src="/js/notifications.js?v=a52ed9df"></script>

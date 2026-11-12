@@ -542,7 +542,7 @@
     if (r.error || !r.data) { location.replace(back); return new Promise(function () {}); }
     KB.access = r.data;
     // who is on the site now (29 Oct 2026): the green dot in the complaint pickers; every Team Home page loads it from here
-    try { var ps = document.createElement('script'); ps.src = '/site-presence.js?v=b7e5ccac'; document.head.appendChild(ps); } catch (e) { /* the dots just stay grey */ }
+    try { var ps = document.createElement('script'); ps.src = '/js/site-presence.js?v=b7e5ccac'; document.head.appendChild(ps); } catch (e) { /* the dots just stay grey */ }
     KB.level = r.data.level;
     KB.allowed = r.data.sections || [];
     KB.myLink = r.data.my_link || null;
@@ -750,7 +750,7 @@
     var input = document.getElementById('kbSearch'), box = document.getElementById('kbResults');
     // Voice, 18 Oct 2026: the shared mic (voice-mic.js), loaded once, added to this bar.
     if (window.TRSMic) TRSMic.add(input);
-    else { var vm = document.createElement('script'); vm.src = '/voice-mic.js?v=62fac83a'; vm.onload = function () { if (window.TRSMic) TRSMic.add(input); }; document.head.appendChild(vm); }
+    else { var vm = document.createElement('script'); vm.src = '/js/voice-mic.js?v=62fac83a'; vm.onload = function () { if (window.TRSMic) TRSMic.add(input); }; document.head.appendChild(vm); }
     var timer = null, items = [], active = -1, seq = 0, fixedFrom = '', shownQ = '';
     // Spelling and title weight (audit 18 Oct 2026, P7-06). kb_search matches the letters typed, so "complants", "balyage" and "depsoit" found
     // nothing, and a page whose body mentions the words could outrank four pages titled with them. Both are answered here, with no change to
