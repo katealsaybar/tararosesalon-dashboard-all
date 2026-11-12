@@ -4,7 +4,7 @@
 -- Read only. A complaint logged from the form with no Phorest client still answers, from the name and mobile typed on it.
 create or replace function public.complaint_client_profile(p_id bigint) returns jsonb
 language plpgsql stable security definer set search_path = '' set statement_timeout = '20s' as $$
-declare c record; e record; out jsonb; today date := (now() at time zone 'Asia/Dubai')::date;
+declare c record; e record; out jsonb; out2 jsonb; today date := (now() at time zone 'Asia/Dubai')::date;
 begin
   if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 2 or (select public.dashboard_scope()) is not null then raise exception 'Client profile is for Levels 3 and up'; end if;
   select x.id, x.phorest_id, x.client_name, x.client_phone, x.branch_code, coalesce(x.complaint_date, x.event_date) as cdate
@@ -26,19 +26,33 @@ begin
     'branches', coalesce((select jsonb_agg(distinct b.branch_code) from public.phorest_client_branches b where b.phorest_id = c.phorest_id and b.branch_code is not null), '[]'::jsonb)
   );
   if c.phorest_id is not null then
-    out := out || jsonb_build_object(
-      'visits', (select count(distinct v.visit_id) from public.phorest_visit_notes v where v.phorest_id = c.phorest_id and v.visit_date <= today),
-      'first_visit', (select min(v.visit_date) from public.phorest_visit_notes v where v.phorest_id = c.phorest_id),
-      'last_visit', (select max(v.visit_date) from public.phorest_visit_notes v where v.phorest_id = c.phorest_id and v.visit_date <= today),
-      'recent', coalesce((select jsonb_agg(r order by r.date desc) from (
-          select v.visit_date as date, trim(v.branch_short) as at,
-                 coalesce((select jsonb_agg(jsonb_build_object('desc', i ->> 'desc', 'st', i ->> 'st'))
-                             from jsonb_array_elements(coalesce(v.services -> 'items', '[]'::jsonb)) i
-                            where coalesce(i ->> 'state', '') not in ('CANCELED', 'NO_SHOW')), '[]'::jsonb) as items
-            from public.phorest_visit_notes v
-           where v.phorest_id = c.phorest_id and v.visit_date <= today
-           order by v.visit_date desc, v.visit_id limit 8) r), '[]'::jsonb),
-      'others', coalesce((select jsonb_agg(o order by o.date desc nulls last) from (
+    -- Visits come from what she was sold (sales_transaction_lines by Phorest client id), because phorest_visit_notes only holds visits that carry a note (13 Nov 2026: Steffy Gabriella's 10 Sep colour was missing).
+    -- A visit from the notes table is added only for a day with no sale, and only when it has a service that was not cancelled or a no-show (older than the sales lines, or a sale that was never keyed).
+    with sv as (
+      select s.date::date as d, min(s.branch) as at,
+             jsonb_agg(jsonb_build_object('desc', s.item, 'st', s.employee_name) order by s.item) as items
+        from public.sales_transaction_lines s
+       where s.client_id = c.phorest_id and s.date::date <= today
+       group by s.date::date
+    ), nv as (
+      select v.visit_date as d, min(trim(v.branch_short)) as at,
+             jsonb_agg(jsonb_build_object('desc', i ->> 'desc', 'st', i ->> 'st')) as items
+        from public.phorest_visit_notes v
+        cross join lateral jsonb_array_elements(coalesce(v.services -> 'items', '[]'::jsonb)) i
+       where v.phorest_id = c.phorest_id and v.visit_date <= today
+         and coalesce(i ->> 'state', '') not in ('CANCELED', 'NO_SHOW')
+         and not exists (select 1 from sv where sv.d = v.visit_date)
+       group by v.visit_date
+    ), allv as (select * from sv union all select * from nv)
+    select jsonb_build_object(
+             'visits', count(*),
+             'first_visit', min(d),
+             'last_visit', max(d),
+             'recent', coalesce((select jsonb_agg(jsonb_build_object('date', r.d, 'at', r.at, 'items', r.items) order by r.d desc)
+                                   from (select * from allv order by d desc limit 8) r), '[]'::jsonb))
+      into out2 from allv;
+    out := out || coalesce(out2, jsonb_build_object('visits', 0, 'first_visit', null, 'last_visit', null, 'recent', '[]'::jsonb))
+      || jsonb_build_object('others', coalesce((select jsonb_agg(o order by o.date desc nulls last) from (
           select y.id, y.code, coalesce(y.complaint_date, y.event_date) as date, y.complaint_type as type, y.status
             from public.client_complaints y
            where y.phorest_id = c.phorest_id and y.id <> c.id and y.is_complaint and y.duplicate_of is null
