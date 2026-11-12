@@ -97,6 +97,20 @@ body[data-kb-view="grid"] .mm-addsec{margin-top:0;aspect-ratio:1/1;width:100%;he
 .mm-dlg .ps-menu{max-height:260px}
 .mm-dnew{margin-top:6px}
 .mm-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+/* Kate, 12 Nov 2026: a search box in the bar under the page header. Type part of a page, section or sub-section name and only the matches stay; sections with a match open by themselves, the rest hide. */
+.mm-search{flex:1 1 220px;min-width:180px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--bg);border-radius:999px;padding:0 14px;min-height:40px;color:var(--muted)}
+.mm-search:focus-within{border-color:var(--text);color:var(--text)}
+.mm-search input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:14px;color:var(--text);padding:8px 0}
+.mm-search input::-webkit-search-cancel-button{cursor:pointer}
+.mm-hide{display:none!important}
+.mm-sec.mm-force .mm-body{display:block}
+.mm-sec.mm-force .mm-chev{transform:rotate(90deg)}
+body[data-kb-view="grid"] .mm-sec.mm-force{grid-column:1/-1}
+body[data-kb-view="grid"] .mm-sec.mm-force:not(.open){aspect-ratio:auto}
+body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh{height:auto;padding:12px 14px;flex-wrap:nowrap}
+body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-chev{display:inline-block}
+body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size:16px}
+.mm-nomatch{font-size:14px;color:var(--muted);padding:18px 4px}
 @media(max-width:480px){.mm-tag{display:none}}
 </style>
 </head>
@@ -172,6 +186,41 @@ body[data-kb-view="grid"] .mm-addsec{margin-top:0;aspect-ratio:1/1;width:100%;he
     paintBar();
     var anyOpen = CUR.some(function (g) { return open[g.n]; }), ab = $('#mmAll');
     if (ab) ab.textContent = anyOpen ? 'Collapse all' : 'Expand all';
+    applyFilter();
+  }
+  // Kate, 12 Nov 2026: search. Runs after every draw(). A section or sub-section whose own name matches shows all its pages; otherwise only the pages whose name matches stay.
+  var Q = '';
+  function applyFilter() {
+    var q = Q.trim().toLowerCase(), app = $('#mmApp'); if (!app) return;
+    var old = app.querySelector('.mm-nomatch'); if (old) old.remove();
+    var all = app.querySelectorAll('.mm-hide'); Array.prototype.forEach.call(all, function (x) { x.classList.remove('mm-hide'); });
+    Array.prototype.forEach.call(app.querySelectorAll('.mm-force'), function (x) { x.classList.remove('mm-force'); });
+    if (!q) return;
+    var any = false;
+    Array.prototype.forEach.call(app.querySelectorAll('.mm-sec'), function (sec) {
+      var gm = sec.dataset.g.toLowerCase().indexOf(q) > -1, hits = 0;
+      var loose = sec.querySelector('.mm-loose'), looseUl = sec.querySelector('.mm-body > ul');
+      Array.prototype.forEach.call(sec.querySelectorAll('.mm-row'), function (r) {
+        var ok = gm || label(r.dataset.k).toLowerCase().indexOf(q) > -1;
+        r.classList.toggle('mm-hide', !ok); if (ok) hits++;
+      });
+      Array.prototype.forEach.call(sec.querySelectorAll('.mm-sub'), function (sub) {
+        var sn = (sub.querySelector('h3').textContent || '').toLowerCase(), sm = sn.indexOf(q) > -1, n = 0;
+        Array.prototype.forEach.call(sub.querySelectorAll('.mm-row'), function (r) { if (sm) r.classList.remove('mm-hide'); if (!r.classList.contains('mm-hide')) n++; });
+        if (sm && !gm) hits += n;
+        sub.classList.toggle('mm-hide', !n);
+      });
+      // empty-list notes, the add buttons and the "straight under" caption are noise while searching
+      Array.prototype.forEach.call(sec.querySelectorAll('.mm-empty,.mm-add'), function (x) { x.classList.add('mm-hide'); });
+      var looseVisible = looseUl && looseUl.querySelector('.mm-row:not(.mm-hide)');
+      if (loose) loose.classList.toggle('mm-hide', !looseVisible);
+      if (looseUl) looseUl.classList.toggle('mm-hide', !looseVisible);
+      var show = hits > 0 || gm;
+      sec.classList.toggle('mm-hide', !show);
+      if (show) { any = true; sec.classList.add('mm-force'); }
+    });
+    var add = app.querySelector('.mm-addsec'); if (add) add.classList.add('mm-hide');
+    if (!any) { var p = document.createElement('p'); p.className = 'mm-nomatch'; p.textContent = 'No page matches “' + Q.trim() + '”.'; app.appendChild(p); }
   }
   function paintBar(note) {
     var dirty = canonTree(CUR) !== canonTree(SAVED), cur = place(CUR), n = Object.keys(cur).filter(function (k) { return cur[k] !== PLACE[k]; }).length;
@@ -311,7 +360,7 @@ body[data-kb-view="grid"] .mm-addsec{margin-top:0;aspect-ratio:1/1;width:100%;he
     var u = e.target.closest && e.target.closest('.mm-body ul'); if (!u || !dragged) return;
     e.preventDefault();
     var rows = Array.prototype.slice.call(u.querySelectorAll('.mm-row:not(.drag)')), idx = rows.length;
-    for (var i = 0; i < rows.length; i++) { var r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { idx = i; break; } }
+    for (var i = 0; i < rows.length; i++) { if (rows[i].classList.contains('mm-hide')) continue; var r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { idx = i; break; } }
     var k = dragged; take(k); put(k, u.dataset.g, u.dataset.s || '', idx); draw();
   });
 
@@ -325,7 +374,7 @@ body[data-kb-view="grid"] .mm-addsec{margin-top:0;aspect-ratio:1/1;width:100%;he
       KB.titleIcon('menu-mover', 'Rearrange Menu') +
       '<p class="kb-meta">Your dashboard menu, as it is now. Change where things sit, then save. Only your menu changes: nobody else sees it, and who may open each page stays exactly as it is.</p>' +
       '<div class="mm-col"><div class="mm-top"><div class="mm-how"><span><b>Drag</b> a page into another list</span><span><b>Move</b> button if the section is closed, or on a phone</span><span><b>▲ ▼</b> move a section or sub-section</span></div>' +
-      (window.KB && KB.view ? KB.view.html() : '') + '<button type="button" class="mm-btn" id="mmAddSec">+ New section</button><button type="button" class="mm-btn" id="mmAll">Expand all</button></div>' +
+      '<label class="mm-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="mmSearch" placeholder="Search pages, sections…" autocomplete="off" aria-label="Search the menu"></label>' + (window.KB && KB.view ? KB.view.html() : '') + '<button type="button" class="mm-btn" id="mmAddSec">+ New section</button><button type="button" class="mm-btn" id="mmAll">Expand all</button></div>' +
       '<div id="mmApp"></div></div>' +
       '<div class="mm-bar"><div class="mm-bar-in"><div class="mm-msg" id="mmMsg" role="status" aria-live="polite">Loading…</div>' +
       '<button type="button" class="mm-btn" id="mmMake" title="Use this arrangement as your original: Original order will come back to it, and the was-tags start from it">Make this the original</button>' +
@@ -382,6 +431,8 @@ body[data-kb-view="grid"] .mm-addsec{margin-top:0;aspect-ratio:1/1;width:100%;he
     var head = document.getElementById('kbHead');
     function stick() { document.documentElement.style.setProperty('--mm-top', (head ? head.offsetHeight : 0) + 'px'); }
     stick(); window.addEventListener('resize', stick); window.addEventListener('scroll', stick, { passive: true });
+    $('#mmSearch').addEventListener('input', function () { Q = this.value; applyFilter(); });
+    $('#mmSearch').addEventListener('keydown', function (e) { if (e.key === 'Escape') { this.value = ''; Q = ''; applyFilter(); } });
     $('#mmSave').addEventListener('click', save);
     $('#mmUndo').addEventListener('click', function () { CUR = clone(SAVED); draw(); });
     $('#mmOrig').addEventListener('click', function () { CUR = clone(DEF); draw(); });
