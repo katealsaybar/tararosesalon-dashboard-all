@@ -85,7 +85,7 @@ async function messages(token: string, id: number, dateIso: string | null) {
 // The part of the chat about the complaint, not the whole conversation (Kate, 12 Nov 2026: "complaint snippet only, not the full convo").
 // The anchor is the client's message that sounds most like a complaint (a plain word list, English and a few Arabic words), or, when the caller passes the words a search found, the message that holds them.
 // With neither, it is her first message on or after the day. The snippet is from the first complaint wording just before the anchor (two messages of lead-in) and everything after it until the chat goes quiet (see below), and the client's complaint lines in it are marked as hits.
-const COMPLAINT_WORDS = /(not happy|unhappy|disappoint|unacceptable|terrible|horrible|awful|worst|poor service|rude|refund|money back|redo|re-do|fix (it|this)|wrong|not what|too (orange|yellow|warm|brassy|short|light|dark|long)|orange|yellow|brassy|patchy|uneven|burn|itch|rash|allerg|irritat|swollen|damaged|ruined|waited|waiting|overcharg|charged|complain|manager|speak to|never again|won't be back|chipped|lifted|came off|peeling|غير راض|سيء|سيئ|مشكلة|استرداد|فلوس|لن أعود)/gi;
+const COMPLAINT_WORDS = /(not happy|unhappy|disappoint|unacceptable|terrible|horrible|awful|worst|poor service|rude|refund|money back|redo|re-do|fix (it|this)|wrong|not what|reimburse|unprofessional|infection|infected|falling out|fell out|fall out|broken|broke|rough|didn't like|don't like|do not like|did not like|too much|not lasting|isn't lasting|didn't take|did not take|never replied|no reply|ignored|too (orange|yellow|warm|brassy|short|light|dark|long)|orange|yellow|brassy|patchy|uneven|burn|itch|rash|allerg|irritat|swollen|damaged|ruined|waited|waiting|overcharg|charged|complain|manager|speak to|never again|won't be back|chipped|lifted|came off|peeling|غير راض|سيء|سيئ|مشكلة|استرداد|فلوس|لن أعود)/gi;
 const flat = (t: string) => String(t || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 function score(m: any, words: string): number {
   if (m.w !== "c" || !m.text) return 0;
@@ -118,7 +118,9 @@ function snippet(list: any[], dateIso: string | null, words: string) {
   // three days earlier, was cut). So it starts at the first message of hers with complaint wording in the 7 days before the anchor, and two messages of lead-in before that.
   let first = best;
   for (let i = 0; i < best; i++) if (list[i].w === "c" && score(list[i], "") > 0 && list[best].ts - list[i].ts <= 7 * 86400000) { first = i; break; }
-  const from = Math.max(0, first - 2);
+  // A very short first message ("Too much orange", "I didn't like it") does not say why on its own, so it gets more of the chat before it.
+  const lead = (list[first].text || "").length < 40 ? 6 : 2;
+  const from = Math.max(0, first - lead);
   let to = best;
   while (to + 1 < list.length && list[to + 1].ts - list[to].ts <= 4 * 86400000 && to - best < 60) to++;
   const out = list.slice(from, to + 1).map((m, k) => ({ ...m, hit: score(m, words) > 0 || from + k === best && m.w === "c" }));
