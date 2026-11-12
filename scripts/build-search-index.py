@@ -108,6 +108,7 @@ NOT_PAGES = {
 # A page in the sidebar that may have no text in the index, and why.
 NO_TEXT_OK = {
     'wvperf': 'an iframe of the Wellness Voucher pages, searched there',
+    'contentcalendar': 'an iframe of the Content Calendar in Post Approvals, found through its name and words in pages.js',
     'stylists': 'Staff Cards: the people are found through the Team results',
     'reviews': 'drawn inside the Google Reviews frame; Team and Content results cover it (see audit part on search coverage)',
 }
