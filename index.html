@@ -5187,7 +5187,7 @@ function wvGoBlast(mode, el){
 // Kate, 12 Nov 2026: Content Calendar's bar in the masthead filters (#calRow). The calendar frame (smm_board_approvals calendar/?embed=1) posts trs-cal-state after every draw
 // (the label of the stretch on show, the view, whether Previous or Next can go further); the buttons here post trs-cal-cmd back. Only the frame this page holds is listened to.
 const CAL_ORIGIN = 'https://katealsaybar.github.io';
-let calState = null;
+let calState = null, calOpenedBar = false;
 function calCmd(cmd, value) { const f = document.getElementById('calFrame'); try { f.contentWindow.postMessage({ type: 'trs-cal-cmd', cmd, value }, CAL_ORIGIN); } catch (e) {} }
 function calBarPaint() {
   const el = document.getElementById('calChips'); if (!el) return;
@@ -5306,7 +5306,21 @@ function showView(view, el){
   if (filtersWrap) filtersWrap.style.display = usesFilters ? '' : 'none';
   if (filtersBtn)  filtersBtn.style.display  = usesFilters ? '' : 'none';
   // Content Calendar has no Branch or Period but does carry its own bar in the masthead filters (#calRow), so the bar and its Hide filters button show.
-  if (view === 'contentcalendar') { if (filtersWrap) filtersWrap.style.display = ''; if (filtersBtn) filtersBtn.style.display = ''; }
+  // The bar is the page's only month and view control, so it opens here even when Hide filters was remembered from another page (the remembered choice is not changed, and
+  // comes back when you leave: calOpenedBar). Hiding it on this page still works and is remembered like anywhere else.
+  if (view === 'contentcalendar') {
+    if (filtersWrap) filtersWrap.style.display = ''; if (filtersBtn) filtersBtn.style.display = '';
+    if (filtersWrap && filtersWrap.classList.contains('closed')) {
+      filtersWrap.classList.remove('closed'); calOpenedBar = true;
+      if (filtersBtn) { filtersBtn.textContent = 'Hide filters'; filtersBtn.setAttribute('aria-expanded', 'true'); }
+    }
+  } else if (calOpenedBar) {
+    calOpenedBar = false;
+    try { if (localStorage.getItem('trs-filters') === 'closed' && matchMedia('(min-width:761px)').matches && filtersWrap) {
+      filtersWrap.classList.add('closed');
+      if (filtersBtn) { filtersBtn.textContent = 'Show filters'; filtersBtn.setAttribute('aria-expanded', 'false'); }
+    } } catch (e) {}
+  }
 
   // The cover is the KPI page's own device. Every other view is just a page, so
   // the "back to top" button and the reveal state travel with the dashboard only.
