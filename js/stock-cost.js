@@ -23,8 +23,11 @@
 *{box-sizing:border-box}
 .stage{container-type:inline-size;color:var(--text);font:inherit;
   --ok:var(--good,#0F8A72);--over:var(--bad,#B3322F);--tri:var(--warn,#E08A00);--gx:28px;
-  --c-hr:#2BB89E;--c-hp:#7B67D8;--c-br:#E0645F;--c-bp:#C9A227;--c-co:#8C8A95}
-.stage.dk{--c-hr:#99F6E4;--c-hp:#C4B5FD;--c-br:#FF9B9B;--c-bp:#EEF3C7;--c-co:#9A98A6}
+  }
+/* The five line colours. The tip and the month sheet sit beside .stage, not inside it, so they carry the colours themselves (the variables would not reach them),
+   and they take the opposite set: a dark theme has a light tip, so its swatches use the saturated colours. */
+.stage,.tip,.msheet{--c-hr:#2BB89E;--c-hp:#7B67D8;--c-br:#E0645F;--c-bp:#C9A227;--c-co:#8C8A95}
+.stage.dk,.tip.dk,.msheet.dk{--c-hr:#99F6E4;--c-hp:#C4B5FD;--c-br:#FF9B9B;--c-bp:#EEF3C7;--c-co:#9A98A6}
 @container (max-width:900px){.pg{--gx:18px}}
 @container (max-width:760px){.pg{--gx:10px}}
 .pg{padding:10px var(--gx) 48px}
@@ -126,13 +129,14 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .vcard.don{display:flex;flex-direction:column}
 .donw{position:relative;width:min(100%,250px);margin:6px auto 0}
 .donw svg{display:block;width:100%;height:auto;transform:rotate(-90deg)}
-.donw circle.seg{fill:none;stroke-width:30;cursor:pointer;transition:opacity .15s}
-.donw circle.seg:hover{stroke-width:34}
+.donw circle.seg{fill:none;stroke-width:22;cursor:pointer;transition:opacity .15s}
+.donw circle.seg:hover{stroke-width:26}
 .donw circle.seg.dim{opacity:.18}
-.donc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;line-height:1.25}
-.donc b{font-size:18px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.donc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;line-height:1.25;padding:0 17%}
+.donc b{font-size:17px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 .donc span{font-size:12px;color:var(--muted)}
-.donc em{font-style:normal;font-size:12px;color:var(--muted2);margin-top:2px}
+.dnote{margin:12px 0 0;text-align:center;font-size:12px;color:var(--muted)}
+.donc em{font-style:normal;font-size:11.5px;color:var(--muted2);margin-top:2px}
 .dlist{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin:14px 0 0;font-size:12px;color:var(--muted)}
 .dlist span{display:inline-flex;align-items:center;gap:6px}.dlist i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .split{display:grid;gap:10px}
@@ -311,14 +315,14 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
     const rows = t.any ? shown.map(x => '<div class="srow clk' + (F ? ' one' : '') + '" data-focus="' + x.k + '" role="button" tabindex="0"><span class="nm"><i style="background:var(' + x.c + ')"></i>' + x.n + '</span><span class="tr"><b style="width:' + (x.v / mx * 100) + '%;background:var(' + x.c + ')"></b></span><span class="vl">' +
       (x.k === 'cons' && cn ? '<span style="font-size:13px;color:var(--muted2)">not in the P&amp;L yet</span>' : '<a data-open="' + x.k + '">AED ' + fmt(x.v) + '</a><span>' + (t.stock ? pc(x.v / t.stock * 100) : '-') + ' of the stock spend &middot; ' + (t.inc ? pc(x.v / t.inc * 100) : '-') + ' of income</span>') + '</span></div>').join('') : '<p class="vnote">No data in this Period.</p>';
     const nm = brLabel();
-    const dparts = parts.filter(x => !(x.k === 'cons' && cn) && x.v > 0), dtot = dparts.reduce((a, x) => a + x.v, 0), CIRC = 2 * Math.PI * 70;
-    let off = 0, donut = '<svg viewBox="0 0 200 200" role="img" aria-label="Donut chart of how the stock spend is shared between the five lines"><circle cx="100" cy="100" r="70" fill="none" stroke="var(--surface2)" stroke-width="30"/>';
+    const dparts = parts.filter(x => !(x.k === 'cons' && cn) && x.v > 0), dtot = dparts.reduce((a, x) => a + x.v, 0), CIRC = 2 * Math.PI * 78;
+    let off = 0, donut = '<svg viewBox="0 0 200 200" role="img" aria-label="Donut chart of how the stock spend is shared between the five lines"><circle cx="100" cy="100" r="78" fill="none" stroke="var(--surface2)" stroke-width="22"/>';
     if (dtot > 0) dparts.forEach(x => { const len = x.v / dtot * CIRC, gap = dparts.length > 1 ? Math.min(2.5, len * .4) : 0;
-      donut += '<circle class="seg' + (F && F !== x.k ? ' dim' : '') + '" data-seg="' + x.k + '" cx="100" cy="100" r="70" stroke="var(' + x.c + ')" stroke-dasharray="' + Math.max(0, len - gap) + ' ' + CIRC + '" stroke-dashoffset="' + (-off) + '"></circle>'; off += len; });
+      donut += '<circle class="seg' + (F && F !== x.k ? ' dim' : '') + '" data-seg="' + x.k + '" cx="100" cy="100" r="78" stroke="var(' + x.c + ')" stroke-dasharray="' + Math.max(0, len - gap) + ' ' + CIRC + '" stroke-dashoffset="' + (-off) + '"></circle>'; off += len; });
     donut += '</svg>';
     const fv = F ? lineVal(t, F) : 0;
     const center = !t.any ? '<span>No data</span>' : F ? (F === 'cons' && cn ? '<b>&ndash;</b><span>not in the P&amp;L yet</span>' : '<b>AED ' + fmt(fv) + '</b><span>' + pc(fv / t.inc * 100) + ' of income</span><em>' + pc(t.stock ? fv / t.stock * 100 : 0) + ' of the stock spend</em>')
-      : '<b>AED ' + fmt(t.stock) + '</b><span>' + pc(t.stock / t.inc * 100) + ' of income</span>' + (cn ? '<em>without Consumables</em>' : t.consMissing ? '<em>Consumables to the last P&amp;L month</em>' : '');
+      : '<b>AED ' + fmt(t.stock) + '</b><span>' + pc(t.stock / t.inc * 100) + ' of income</span>' + '';
     const pill = F ? '<div class="focusp"><span>' + swatch(FL[2]) + 'Showing only <b>' + FL[1] + '</b></span><button type="button" class="pill" data-unfocus="1">Show all five &#10005;</button></div>' : '';
     return '<div class="vwrap"><div class="vcard"><h2>' + (F ? FL[1] + ' as a share of income, by month' : 'Stock cost as a share of income, by month') + '</h2><p class="vs">' + esc(nm) + '. ' +
       (F ? 'Only this line is shown. The max to spend is for the total, so it is hidden here.' : 'Each bar is the month\'s stock spend divided by its income, split into the five lines; the dashed line is the max to spend.') +
@@ -326,7 +330,7 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
       '<div class="chartw"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Bars of stock cost as a percentage of income for each month of ' + S.year + '">' + g + '</svg></div>' +
       '<p class="vnote">' + (F ? '' : '* Total without Consumables: the P&amp;L does not have that month yet. ') + 'The month in progress is month to date. The highlighted months are the Period you picked at the top.</p></div>' +
       '<div class="vpair"><div class="vcard don"><h2>' + (F ? FL[1] + ', ' : 'Share of the stock spend, ') + esc(perShort()) + '</h2><p class="vs">' + esc(nm) + '. ' + (F ? 'This line against the rest. Click it again to see all five.' : 'How each line makes up the spend. Click a slice to look at it alone.') + '</p>' +
-      '<div class="donw">' + donut + '<div class="donc">' + center + '</div></div><div class="dlist">' + parts.filter(x => !(x.k === 'cons' && cn)).map(x => '<span' + (F && F !== x.k ? ' style="opacity:.4"' : '') + '><i style="background:var(' + x.c + ')"></i>' + x.n + '</span>').join('') + '</div></div>' +
+      '<div class="donw">' + donut + '<div class="donc">' + center + '</div></div>' + (!F && cn ? '<p class="dnote">Without Consumables: not in the P&amp;L yet.</p>' : !F && t.consMissing ? '<p class="dnote">Consumables are the P&amp;L months only.</p>' : '') + '<div class="dlist">' + parts.filter(x => !(x.k === 'cons' && cn)).map(x => '<span' + (F && F !== x.k ? ' style="opacity:.4"' : '') + '><i style="background:var(' + x.c + ')"></i>' + x.n + '</span>').join('') + '</div></div>' +
       '<div class="vcard"><h2>' + (F ? FL[1] + ', ' + esc(perShort()) : 'The five lines, ' + esc(perShort())) + '</h2><p class="vs">' + esc(nm) + (t.any ? ': AED ' + fmt(t.stock) + ' on stock against AED ' + fmt(t.inc) + ' of income (' + pc(t.stock / t.inc * 100) + ').' : '.') +
       (cn ? ' Consumables not in the P&amp;L yet for this Period, so it is without it.' : t.consMissing ? ' Consumables is the P&amp;L months only.' : '') + (F ? '' : ' Click a line to look at it alone.') + '</p><div class="split">' + rows + '</div></div></div></div>';
   }
@@ -405,7 +409,9 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
   }
   function applyTheme() {
     const st = root && root.querySelector('.stage'); if (!st) return;
-    st.classList.toggle('dk', document.documentElement.getAttribute('data-theme') === 'dark');
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    st.classList.toggle('dk', dark);
+    ['tip', 'msheet'].forEach(id => { const e = root.getElementById(id); if (e) e.classList.toggle('dk', !dark); });
   }
 
   /* ---------- order lines behind a figure ---------- */
