@@ -218,6 +218,8 @@ function cqCss() {
     .cq-rb.out{justify-self:end;background:#dbe8ff;border:1px solid #c3d6fb;border-bottom-right-radius:4px}
     .cq-rimg{display:block;width:260px;max-width:100%;border-radius:10px;margin:0 0 6px}
     .cq-rlink{color:inherit;text-decoration:underline}
+    .cq-rb.hit{background:#fff3cf !important;border-color:#e0a82e !important;box-shadow:0 0 0 2px #e0a82e}
+    .cq-rhit{display:block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a5a00;margin-bottom:2px}
     .cq-rbt{display:block;font-size:11.5px;color:#6a7488;margin-top:3px;text-align:right}
     @media (max-width:760px){.cq-rb{max-width:92%}.cq-ptiles{grid-template-columns:1fr}}
     @media (max-width:760px){.cq-stg{font-size:12px;padding:8px 2px 6px}.cq-stg small{font-size:10px}.cq-t.cq-arc th.hm,.cq-t.cq-arc td.hm{display:none}}
@@ -432,6 +434,8 @@ function cqClick(e) {
   if (tb) { cqTabShow(Number(tb.dataset.id), tb.dataset.cqtab); return; }
   const go = t.closest && t.closest('[data-cqgo]');
   if (go) { const el = document.getElementById(go.dataset.cqgo); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const wd = t.closest && t.closest('[data-cqwide]');
+  if (wd) { const id = Number(wd.dataset.cqwide), c = cqCacheOf(id); c.wide = !c.wide; const r = cqRowById(id); if (r && c.chat) { const b = document.getElementById('cqTabBody'); if (b) b.innerHTML = cqChatHtml(r, c.chat); } return; }
   const rt = t.closest && t.closest('[data-cqretry]');
   if (rt) { const id = Number(rt.dataset.cqretry), r = cqRowById(id); if (r) { delete cqCacheOf(id).chat; cqTabShow(id, 'chat'); cqRioStatus(r); } return; }
   const yes = t.closest && t.closest('[data-cqyes]');
@@ -556,16 +560,18 @@ function cqChatHtml(r, chat) {
     return note + `<div class="cq-eye">Is this her in respond.io?</div>` + cands.map(x => `<div class="cq-box cq-cand"><div><b>${cqEsc(x.name || 'No name')}</b>${x.phone ? ', ' + cqEsc(x.phone) : ', no phone number'}${x.lifecycle ? ' <span class="cq-muted">' + cqEsc(x.lifecycle) + '</span>' : ''}${(x.tags || []).length ? '<div class="cq-sub2">' + (x.tags || []).slice(0, 5).map(cqEsc).join(', ') + '</div>' : ''}<div class="cq-sub2">Matched by name only, because Instagram and Facebook have no phone number.</div></div>
       <div class="cq-seq"><button type="button" class="cq-btn" data-cqyes="${x.id}" data-id="${r.id}">Yes, this is her</button><button type="button" class="cq-btn" data-cqno="${x.id}" data-id="${r.id}">Not her</button></div></div>`).join('');
   }
-  const ct = chat.contact || {}, msgs = chat.messages || [];
+  const ct = chat.contact || {}, wide = !!(box.wide && chat.wider), msgs = wide ? chat.wider : (chat.messages || []);
   const chans = Array.from(new Set(msgs.map(m => m.ch)));
   let day = '';
   const body = msgs.length ? msgs.map(m => {
     const d = cqMsgDay(m.ts); let sep = '';
     if (d !== day) { day = d; sep = `<span class="cq-rday">${cqEsc(d)}</span>`; }
-    return `${sep}<div class="cq-rb ${m.w === 'c' ? 'in' : 'out'}">${cqAtt(m.att)}${m.text ? cqText(m.text) : ''}<span class="cq-rbt">${m.w === 's' ? 'Tara Rose, ' : ''}${cqMsgTime(m.ts)}${chans.length > 1 ? ' · ' + cqEsc(m.ch) : ''}</span></div>`;
+    return `${sep}<div class="cq-rb ${m.w === 'c' ? 'in' : 'out'}${m.hit ? ' hit' : ''}">${m.hit ? '<span class="cq-rhit">The complaint</span>' : ''}${cqAtt(m.att)}${m.text ? cqText(m.text) : ''}<span class="cq-rbt">${m.w === 's' ? 'Tara Rose, ' : ''}${cqMsgTime(m.ts)}${chans.length > 1 ? ' · ' + cqEsc(m.ch) : ''}</span></div>`;
   }).join('') : '<p class="cq-meta" style="margin:8px">No messages around the date of the complaint.</p>';
   const initials = String(ct.name || '?').split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
-  return note + `<div class="cq-rio"><div class="cq-rhd"><span class="cq-rav">${cqEsc(initials)}</span><div class="cq-rwho"><b>${cqEsc(ct.name || 'No name')}</b><small>${cqEsc(ct.phone || 'No phone number')}</small></div>
+  const total = chat.total || msgs.length;
+  const noteSnip = `<p class="cq-note">${wide ? 'The week around the complaint' : 'Only the part about the complaint'}, ${cqNum(msgs.length)} of ${cqNum(total)} messages that week. Nothing here can be sent.${chat.wider && total > msgs.length || wide ? ` <button type="button" class="cq-link" data-cqwide="${r.id}">${wide ? 'Show only the part about the complaint' : 'Not the right part? Show the week around it'}</button>` : ''}</p>`;
+  return noteSnip + `<div class="cq-rio"><div class="cq-rhd"><span class="cq-rav">${cqEsc(initials)}</span><div class="cq-rwho"><b>${cqEsc(ct.name || 'No name')}</b><small>${cqEsc(ct.phone || 'No phone number')}</small></div>
       ${ct.status ? `<span class="cq-rpill">${cqEsc(String(ct.status).replace(/^./, c => c.toUpperCase()))}</span>` : ''}<span class="cq-rpill ghost">${cqEsc(ct.assignee || 'Unassigned')}</span></div>
     <div class="cq-rsub">${chans.length ? cqEsc(chans.join(', ')) : 'respond.io'}${(ct.tags || []).slice(0, 6).map(t => `<span class="cq-rtag">${cqEsc(t)}</span>`).join('')}</div>
     <div class="cq-rbody">${body}</div></div>

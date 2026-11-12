@@ -82,6 +82,34 @@ async function messages(token: string, id: number, dateIso: string | null) {
   return dateIso ? out.slice(0, 80) : out.slice(-40);
 }
 
+// The part of the chat about the complaint, not the whole conversation (Kate, 12 Nov 2026: "complaint snippet only, not the full convo").
+// The anchor is the client's message that sounds most like a complaint (a plain word list, English and a few Arabic words), or, when the caller passes the words a search found, the message that holds them.
+// With neither, it is her first message on or after the day. The snippet is two messages before the anchor and six after (the replies), and the client's complaint lines in it are marked as hits.
+const COMPLAINT_WORDS = /(not happy|unhappy|disappoint|unacceptable|terrible|horrible|awful|worst|poor service|rude|refund|money back|redo|re-do|fix (it|this)|wrong|not what|too (orange|yellow|warm|brassy|short|light|dark|long)|orange|yellow|brassy|patchy|uneven|burn|itch|rash|allerg|irritat|swollen|damaged|ruined|waited|waiting|overcharg|charged|complain|manager|speak to|never again|won't be back|chipped|lifted|came off|peeling|غير راض|سيء|سيئ|مشكلة|استرداد|فلوس|لن أعود)/gi;
+const flat = (t: string) => String(t || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+function score(m: any, words: string): number {
+  if (m.w !== "c" || !m.text) return 0;
+  let n = new Set((m.text.toLowerCase().match(COMPLAINT_WORDS) || [])).size;
+  const key = flat(words).slice(0, 28);
+  if (key.length >= 12 && flat(m.text).includes(key)) n += 100;
+  return n;
+}
+function snippet(list: any[], dateIso: string | null, words: string) {
+  if (!list.length) return { messages: [], from: 0, shown: 0 };
+  const day0 = dateIso ? Date.parse(dateIso + "T00:00:00+04:00") : 0;
+  let best = -1, bestScore = 0;
+  list.forEach((m, i) => {
+    const sc = score(m, words);
+    if (sc > bestScore || (sc === bestScore && sc > 0 && best >= 0 && Math.abs(m.ts - day0) < Math.abs(list[best].ts - day0))) { best = i; bestScore = sc; }
+  });
+  if (best < 0) best = list.findIndex((m) => m.w === "c" && m.ts >= day0);
+  if (best < 0) best = list.map((m) => m.w).lastIndexOf("c");
+  if (best < 0) best = 0;
+  const from = Math.max(0, best - 2), to = Math.min(list.length - 1, best + 6);
+  const out = list.slice(from, to + 1).map((m, k) => ({ ...m, hit: score(m, words) > 0 || from + k === best && m.w === "c" }));
+  return { messages: out, from, shown: out.length };
+}
+
 // body: { contact_id?, phone?, name?, date? (the complaint's day, YYYY-MM-DD) }
 export async function lookup(token: string, body: any) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(body?.date || "")) ? String(body.date) : null;
@@ -97,7 +125,9 @@ export async function lookup(token: string, body: any) {
     if (r.status === 200 && r.data) card = contactCard(r.data);
   }
   if (card) {
-    return { status: "found", how: cid ? "confirmed" : "phone", contact: card, messages: await messages(token, card.id, date) };
+    const wide = await messages(token, card.id, date);
+    const sn = snippet(wide, date, String(body?.words || ""));
+    return { status: "found", how: cid ? "confirmed" : "phone", contact: card, messages: sn.messages, wider: wide, total: wide.length };
   }
   const name = String(body?.name || "").trim();
   if (name.length >= 3 && !cid) {

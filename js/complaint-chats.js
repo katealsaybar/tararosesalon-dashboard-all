@@ -84,7 +84,7 @@ function ccRecOpen(id) {
   const r = ccRow(id), rec = document.getElementById('ccRec'), main = document.getElementById('ccMain'); if (!r || !rec || !main) return;
   if (!main.classList.contains('cq-gone')) { ccBackY = window.scrollY; CC.ctx = ccFiltered().map(x => x.id); }
   const i = CC.ctx.indexOf(id);
-  CC.open = id; CC.tab = 'words';
+  CC.open = id; CC.tab = 'words'; cqCacheOf(-1).wide = false;
   const pos = i >= 0 ? `${i + 1} of ${CC.ctx.length} in this list` : '';
   rec.innerHTML = `<div class="cq-recbar"><button type="button" class="cq-btn" data-ccback="1">&larr; Back to the list</button>
       <span class="cq-recpos">${pos} <button type="button" class="cq-btn" data-ccnav="-1" aria-label="Previous chat"${i <= 0 ? ' disabled' : ''}>&lsaquo;</button><button type="button" class="cq-btn" data-ccnav="1" aria-label="Next chat"${i < 0 || i >= CC.ctx.length - 1 ? ' disabled' : ''}>&rsaquo;</button></span></div>
@@ -146,7 +146,7 @@ async function ccChat(r, contact) {
   const c = ccCache[r.id] = ccCache[r.id] || {};
   if (c.chat && !contact) return c.chat;
   try {
-    const body = { phone: r.phone || '', name: r.client, date: ccDate(r) }; if (contact) body.contact_id = contact;
+    const body = { phone: r.phone || '', name: r.client, date: ccDate(r), words: r.words || '' }; if (contact) body.contact_id = contact;
     const { data, error } = await sb.functions.invoke('complaint-chat', { body });
     if (error) throw error; if (data && data.error) throw new Error(data.error);
     c.chat = data || { status: 'none' };
@@ -231,6 +231,7 @@ function ccWire() {
     if ((x = g('[data-ccdo]'))) { ccDecide(x.dataset.ccdo); return; }
     if ((x = g('[data-cclink]'))) { ccDecide('already', Number(x.dataset.cclink)); return; }
     if (g('[data-ccretry]')) { const r = ccRow(CC.open); if (r) { delete (ccCache[r.id] || {}).chat; ccTabShow('chat'); } return; }
+    if ((x = g('[data-cqwide]'))) { const c = cqCacheOf(-1); c.wide = !c.wide; const r = ccRow(CC.open), ch = r && ccCache[r.id] && ccCache[r.id].chat; const b = document.getElementById('ccTabBody'); if (b && ch) b.innerHTML = ccChatHtml(r, ch); return; }
     if ((x = g('[data-ccyes]'))) { const r = ccRow(CC.open); if (r) { ccChat(r, Number(x.dataset.ccyes)).then(() => ccTabShow('chat')); } return; }
     if ((x = g('[data-cqgo]'))) { const el = document.getElementById(x.dataset.cqgo); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
     if ((x = g('[data-ccstat]'))) { CC.status = (CC.status === x.dataset.ccstat) ? 'all' : x.dataset.ccstat; const s = document.getElementById('ccS'); if (s) s.value = CC.status; ccPaint(); const l = document.getElementById('ccList'); if (l && x.closest('.cq-intro')) l.scrollIntoView({ behavior: 'smooth' }); return; }
