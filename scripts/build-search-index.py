@@ -64,7 +64,7 @@ OUT = at('search-index.js')
 FILE_VIEWS = {
     'compare.js': 'compare', 'quarterly-report.js': 'quarterreport', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'meta-ads.js': 'metaads', 'marketing-spend.js': 'marketingspend', 'tool-spend.js': 'toolspend', 'website.js': 'website',
     'social.js': 'social', 'social-calendar.js': 'social', 'products.js': 'products', 'spend.js': 'supplierspend', 'org-chart.js': 'orgchart',
-    'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'one2ones.js': 'one2ones', 'attrition.js': 'attrition', 'client-book.js': 'clientbook', 'complaints.js': 'complaints', 'complaint-log.js': 'complaintlog',
+    'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'one2ones.js': 'one2ones', 'attrition.js': 'attrition', 'client-book.js': 'clientbook', 'complaint-chats.js': 'complaintchats', 'complaints-detail.js': 'complaintsdetail', 'complaints.js': 'complaints', 'complaint-log.js': 'complaintlog',
     'top-clients.js': 'clients',
     # Added 14 Oct 2026: these pages had no entry here, so their text was not in the index at all.
     'over-the-years.js': 'overyears', 'client-mix.js': 'clientmix', 'retention.js': 'retention', 'service-rankings.js': 'services',
@@ -404,8 +404,9 @@ def fn_starts(src):
 def view_names():
     names = {}
     idx = (ROOT / 'index.html').read_text(encoding='utf-8')
+    # Kate, 12 Nov 2026: an indented child (class nav-sub lvl2, like the two pages under Client Complaints) is a sidebar page too.
     # Kate, 9 Nov 2026: a sidebar page is an <a class="nav-sub" href="/?view=..."> with showView in its onclick (it used to be a div).
-    for m in re.finditer(r"""<a class="nav-sub"[^>]*onclick="[^"]*?showView\('([^']+)'[^>]*>([^<]+)<""", idx):
+    for m in re.finditer(r"""<a class="nav-sub(?: lvl2)?"[^>]*onclick="[^"]*?showView\('([^']+)'[^>]*>([^<]+)<""", idx):
         names.setdefault(m.group(1), clean(m.group(2)))
     # A page that is a tab inside another page (pages.js "inside") has no sidebar entry but is still a page to index and to name.
     for p in page_list():
@@ -476,7 +477,7 @@ def registry_problems(names):
     # The sidebar's groups and subheads, in order, against the list's.
     idx = (ROOT / 'index.html').read_text(encoding='utf-8')
     group = sub = None
-    for m in re.finditer(r'<div class="nav-title">([^<]+)<|<div class="nav-subhead">([^<]+)<|<a class="nav-sub"[^>]*onclick="[^"]*?showView\(\'([^\']+)\'', idx):
+    for m in re.finditer(r'<div class="nav-title">([^<]+)<|<div class="nav-subhead">([^<]+)<|<a class="nav-sub(?: lvl2)?"[^>]*onclick="[^"]*?showView\(\'([^\']+)\'', idx):
         if m.group(1):
             group, sub = clean(m.group(1)), None
         elif m.group(2):

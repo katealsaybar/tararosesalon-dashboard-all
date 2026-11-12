@@ -70,6 +70,29 @@ const cqDay = iso => {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 };
 const cqBr = c => CQ_BRANCH[c] || c || 'Not matched';
+
+// The archive (Kate, 12 Nov 2026): every complaint is one row of three things, the complaint, where it was found and where it is now. A row opens like the pipeline.
+const cqMDY = iso => { if (!iso) return 'Client card'; const [y, m, d] = String(iso).slice(0, 10).split('-'); return m + '/' + d + '/' + y; };
+const cqFound = r => (r.by ? 'Logged by staff' : r.src === 'client' ? 'Phorest client card' : 'Phorest note');
+const cqFoundKey = r => (r.by ? 'staff' : 'ph');
+// Where it is now, in the pipeline's words. Old Phorest notes were written after the fact, so they are Closed, history.
+function cqStage(r) {
+  if (r.duplicate_of) return { i: 4, tone: 'grey', text: 'Duplicate' };
+  if (r.status === 'open') {
+    if (r.flag === 'overdue') return { i: r.first_response_at ? 3 : 1, tone: 'red', text: 'Overdue' };
+    if (r.first_response_at) return { i: 3, tone: 'green', text: 'Replied, client back?' };
+    if (r.flag === 'pending') return { i: 1, tone: 'amber', text: 'Pending action' };
+    return { i: 1, tone: 'amber', text: 'Waiting to be taken' };
+  }
+  return { i: 4, tone: 'grey', text: r.by ? 'Closed' : 'Closed, history' };
+}
+const cqPri = r => r.status !== 'open' ? 'low' : ((r.type === 'skin_reaction_or_injury' || r.flag === 'overdue') ? 'high' : 'mid');   // the pipeline's rule: closed is low, a skin reaction or an overdue reply is high
+const CQ_STAGES = ['Found', 'Waiting', 'Taken', 'Replied', 'Closed'];
+function cqPipe(r) {
+  const st = cqStage(r);
+  const bar = CQ_STAGES.map((g, i) => `<div class="cq-stg${i < st.i ? ' done' : i === st.i ? ' cur' + (st.tone === 'red' ? ' red' : '') : ''}">${i < st.i ? '&#10003; ' : ''}${g}<small>${i === 0 && st.i > 0 ? cqEsc(cqFound(r).toLowerCase()) : i === st.i ? cqEsc(st.text.toLowerCase()) : ''}</small></div>`).join('');
+  return `<div class="cq-pipe" role="img" aria-label="Stage: ${cqEsc(CQ_STAGES[st.i])}">${bar}</div>`;
+}
 // Today as the server counts it: the Dubai day (cq_today). A phone in Manila is a day ahead between midnight and 4 am there, so the browser's own date
 // made the form say "the date she complained is in the future" (Kate, 31 Oct 2026).
 const cqToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
@@ -128,6 +151,78 @@ function cqCss() {
     .cq-t tr.cq-row:hover td,.cq-t tr.cq-row:focus-visible td,.cq-t tr.cq-row.on td{background:var(--surface2)}
     .cq-t tr.cq-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     .cq-t td.cq-det{padding:14px 12px 18px;background:var(--surface2)}
+    .cq-intro{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 22px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius-card);padding:12px 16px;margin:0 0 14px}
+    .cq-intro p{margin:0;font-size:13.5px;line-height:1.45}
+    .cq-intro b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+    .cq-link{background:none;border:0;padding:0;font:inherit;font-weight:600;text-decoration:underline;color:inherit;cursor:pointer}
+    @media (max-width:900px){.cq-intro{grid-template-columns:minmax(0,1fr)}}
+    /* The archive rows (Kate, 12 Nov 2026): three columns only. */
+    .cq-t.cq-arc td:first-child{border-left:5px solid transparent}
+    .cq-t.cq-arc tr.cq-row.p-high td:first-child{border-left-color:#E0674F}
+    .cq-t.cq-arc tr.cq-row.p-mid td:first-child{border-left-color:#D9A441}
+    .cq-t.cq-arc tr.cq-row.p-low td:first-child{border-left-color:#A8A398}
+    .cq-t.cq-arc td.cq-det{border-left:0}
+    .cq-nm{display:block;font-weight:600;overflow-wrap:anywhere}
+    .cq-qt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
+    .cq-ch{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);line-height:1.4}
+    .cq-ch.ph{background:#ECE8FB;border-color:#C4B5FD;color:#2D2E37}.cq-ch.staff{background:var(--surface2);color:var(--muted)}
+    .cq-ch.red{background:#F8E4DF;color:#B4412F;border-color:transparent}.cq-ch.amber{background:#FAEFD6;color:#8A5A00;border-color:transparent}.cq-ch.green{background:#E1F1E6;color:#2F7A4B;border-color:transparent}.cq-ch.grey{background:var(--border);color:var(--muted);border-color:transparent}
+    .cq-pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin:0 0 14px}
+    .cq-stg{text-align:center;padding:9px 4px 7px;font-size:13px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);margin-left:-1.5px;color:var(--muted);min-width:0}
+    .cq-stg:first-child{border-radius:10px 0 0 10px;margin-left:0}.cq-stg:last-child{border-radius:0 10px 10px 0}
+    .cq-stg small{display:block;font-size:11px;font-weight:500;min-height:1.3em;overflow-wrap:anywhere}
+    .cq-stg.done{background:#E1F1E6;border-color:#2F7A4B;color:#1f5a35}
+    .cq-stg.cur{background:#99F6E4;border-color:var(--accent);color:#1C1B18}
+    .cq-stg.cur.red{background:#E0674F;border-color:#E0674F;color:#2b0d08}
+    .cq-gone{display:none}
+    .cq-tilebtn{text-align:left;cursor:pointer;font:inherit;color:inherit}.cq-tilebtn:hover{border-color:var(--muted)}.cq-tilebtn.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+    .cq-recgrid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+    .cq-decide{position:sticky;top:12px}
+    .cq-acts{display:grid;gap:8px}
+    .cq-act{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:46px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);padding:8px 14px;font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;text-align:left;color:inherit}
+    .cq-act:hover{border-color:var(--muted)}.cq-act.pri{background:var(--text);color:var(--bg);border-color:var(--text)}.cq-act.cur{outline:2.5px solid var(--accent);outline-offset:2px}
+    .cq-act kbd{font:inherit;font-size:11px;font-weight:600;border:1px solid currentColor;border-radius:5px;padding:0 6px;opacity:.7}
+    .cq-toast{background:#DDF0E3;color:#1f5a35;border-radius:10px;padding:9px 14px;font-size:13.5px;margin:0 0 12px}
+    .cd-scroll{max-height:72vh;overflow:auto}
+    .cd-t th{position:sticky;top:0;background:var(--surface);z-index:2}
+    .cd-t td.cd-wide{min-width:240px;max-width:420px}
+    @media (max-width:1000px){.cq-recgrid{grid-template-columns:minmax(0,1fr)}.cq-decide{position:static}.cq-act kbd{display:none}}
+    .cq-recbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 12px}
+    .cq-recpos{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+    .cq-recbox{padding:16px 18px 18px;max-width:1040px}
+    .cq-rectitle{font-size:19px !important;line-height:1.35;font-weight:600;margin:0 0 8px !important;overflow-wrap:anywhere}
+    .cq-recchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+    .cq-rioline{margin:0 0 10px;font-size:13px;line-height:1.5;color:var(--muted)}.cq-rioline b{color:var(--text)}
+    .cq-tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin:0 0 12px;flex-wrap:wrap}
+    .cq-tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 10px;font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+    .cq-tab.on{color:var(--text);border-bottom-color:var(--accent)}
+    .cq-tab .cq-ch{margin-left:4px;padding:0 7px;font-size:11px}
+    .cq-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5;margin-bottom:8px}
+    .cq-cand{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+    .cq-seq{display:flex;gap:8px;flex-wrap:wrap}
+    .cq-ptiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+    .cq-ptile{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:8px 12px;min-width:0;font:inherit;color:inherit}
+    button.cq-ptile{cursor:pointer}button.cq-ptile:hover{border-color:var(--muted)}
+    .cq-ptile b{font-size:20px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}.cq-ptile span{font-size:12px;color:var(--muted)}
+    .cq-rio{background:#fff;color:#1c2330;border:1px solid #cfd5e0;border-radius:12px;overflow:hidden;max-width:720px}
+    .cq-rhd{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #e3e7ef;flex-wrap:wrap}
+    .cq-rav{flex:none;width:36px;height:36px;border-radius:10px;background:#dfe6f7;color:#2c3f7a;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+    .cq-rwho{min-width:0;flex:1 1 140px}.cq-rwho b{display:block;font-size:14.5px}.cq-rwho small{color:#5b6477;font-size:12.5px}
+    .cq-rpill{font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:#e4f4ea;color:#1d6b3a;border:1px solid #bfe3cc}.cq-rpill.ghost{background:#f1f3f8;color:#4a5468;border-color:#d9dde6}
+    .cq-rsub{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-bottom:1px solid #e3e7ef;font-size:12.5px;color:#4a5468;background:#fafbfd}
+    .cq-rtag{background:#eef1f7;border-radius:6px;padding:1px 8px;font-size:12px;color:#3b4560}
+    .cq-rbody{background:#f3f5f9;padding:12px;display:grid;gap:8px;max-height:560px;overflow:auto}
+    .cq-rday{justify-self:center;font-size:11.5px;color:#5b6477;background:#e6eaf2;border-radius:999px;padding:2px 12px}
+    .cq-rb{max-width:80%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.45;overflow-wrap:anywhere;user-select:text}
+    .cq-rb.in{justify-self:start;background:#fff;border:1px solid #e0e4ec;border-bottom-left-radius:4px}
+    .cq-rb.out{justify-self:end;background:#dbe8ff;border:1px solid #c3d6fb;border-bottom-right-radius:4px}
+    .cq-rimg{display:block;width:260px;max-width:100%;border-radius:10px;margin:0 0 6px}
+    .cq-rlink{color:inherit;text-decoration:underline}
+    .cq-rb.hit{background:#fff3cf !important;border-color:#e0a82e !important;box-shadow:0 0 0 2px #e0a82e}
+    .cq-rhit{display:block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a5a00;margin-bottom:2px}
+    .cq-rbt{display:block;font-size:11.5px;color:#6a7488;margin-top:3px;text-align:right}
+    @media (max-width:760px){.cq-rb{max-width:92%}.cq-ptiles{grid-template-columns:1fr}}
+    @media (max-width:760px){.cq-stg{font-size:12px;padding:8px 2px 6px}.cq-stg small{font-size:10px}.cq-t.cq-arc th.hm,.cq-t.cq-arc td.hm{display:none}}
     .cq-bars{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:6px 10px;align-items:center;font-size:13px}
     .cq-bars.yrs{grid-template-columns:44px 1fr auto}
     .cq-ftog{display:none}
@@ -221,7 +316,14 @@ function cqShell() {
   const ropts = ['<option value="all">All outcomes</option>'].concat(Object.keys(CQ_RES).map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
   return cqCss() + `<div class="cq">
     <h1>Client Complaints</h1>
+    <div id="cqRec" class="cq-gone"></div>
+    <div id="cqMain">
     <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 3 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
+    <div class="cq-intro" id="cqIntro">
+      <p><b>What is this?</b>Every complaint we know about, wherever it was found. Click one and it opens like the pipeline.</p>
+      <p><b>Why it matters</b>Phorest notes show what staff wrote down, not everything a client told us. Every complaint is looked up in respond.io first (WhatsApp, Instagram and Facebook), so her own words sit beside it.</p>
+      <p><b>Do this now</b><span id="cqDo">Loading…</span></p>
+    </div>
     ${cqRailShell(`<div id="cqTop"><p class="cq-meta">Loading…</p></div>
     <div class="cq-card cq-wait" id="cq-list">
       <h2>The complaints</h2>
@@ -230,7 +332,7 @@ function cqShell() {
         <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
         <button type="button" id="cqFtog" class="cq-btn cq-ftog" aria-expanded="false">Filters</button>
         <div class="cq-fsel">
-        <select id="cqS" class="cq-sel" aria-label="Where it was written"><option value="visit">Visit notes</option><option value="client">Client card notes</option></select>
+        <select id="cqS" class="cq-sel" aria-label="Found in"><option value="visit">Found in: Phorest visit notes</option><option value="client">Found in: Phorest client cards</option><option value="logged">Found in: logged by staff</option></select>
         <select id="cqT" class="cq-sel" aria-label="Kind">${topts}</select>
         <select id="cqR" class="cq-sel" aria-label="Outcome">${ropts}</select>
         <select id="cqSt" class="cq-sel" aria-label="Status"><option value="all">Status: any</option><option value="open">Still open</option><option value="resolved">Resolved</option></select>
@@ -238,10 +340,11 @@ function cqShell() {
         <label class="cq-chk"><input id="cqL" type="checkbox"> Unsure only</label>
         </div>
       </div>
-      <div class="cq-metarow"><p class="cq-meta" id="cqMeta" aria-live="polite"></p><span class="cq-sheetwrap"><span id="cqSheetMsg" class="cq-meta" aria-live="polite"></span><button type="button" id="cqSheet" class="cq-btn">Open in Google Sheets</button></span></div>
+      <div class="cq-metarow"><p class="cq-meta" id="cqMeta" aria-live="polite"></p><span class="cq-sheetwrap"><span id="cqSheetMsg" class="cq-meta" aria-live="polite"></span><button type="button" id="cqSheet" class="cq-btn">Open in Google Sheets</button>${typeof rexButtons === 'function' ? rexButtons('cqExport') : ''}</span></div>
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
     </div>`)}
     <p class="cq-foot">How to read it. A complaint here is a note where the client was unhappy with the service, result, price, wait or experience, or where a redo, refund or credit was given because the result was not right. Cancellation apologies, deposit rules, Google review requests and clients unhappy with another salon were left out. A free redo means a redo was written down; most of them had no charge on the visit, some did. The rate per 1,000 noted visits is there because branches do not write notes equally, so the raw count favours the branch that writes most. Marasy closed in 2022. Not included: WhatsApp complaints, respond.io tags, Google reviews, and anything nobody typed into Phorest. Client card notes have no date, so they are counted apart and only show in All time. Unsure means the note was too short to be sure, usually a bare "redo". The Google column looks for a Google review whose reviewer name is the client's full name, left on or after the complaint. Reviewers often post a first name or a nickname, so None found is not proof that nothing was posted, and a match is the same name, not a certainty it is about that visit.</p>
+    </div>
   </div>`;
 }
 
@@ -261,6 +364,9 @@ function cqWire() {
     ft.addEventListener('click', () => { const bar = ft.closest('.cq-filt'); const on = bar.classList.toggle('open'); ft.setAttribute('aria-expanded', String(on)); });
   }
   cqFtogLabel();
+  const rec = document.getElementById('cqRec');
+  if (rec && !rec.dataset.w) { rec.dataset.w = '1'; rec.addEventListener('click', cqClick); }
+  if (!window.cqEscWired) { window.cqEscWired = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && cqOpen && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) cqRecClose(); }); }
   const sh = document.getElementById('cqSheet');
   if (sh && !sh.dataset.w) { sh.dataset.w = '1'; sh.addEventListener('click', cqSheetsExport); }
   const go = document.getElementById('cqfGo');
@@ -321,6 +427,23 @@ function cqWireTip(root) {
 
 function cqClick(e) {
   const t = e.target;
+  if (t.closest && t.closest('[data-cqback]')) { cqRecClose(); return; }
+  const nv = t.closest && t.closest('[data-cqnav]');
+  if (nv) { cqRecNav(Number(nv.dataset.cqnav)); return; }
+  const tb = t.closest && t.closest('[data-cqtab]');
+  if (tb) { cqTabShow(Number(tb.dataset.id), tb.dataset.cqtab); return; }
+  const go = t.closest && t.closest('[data-cqgo]');
+  if (go) { const el = document.getElementById(go.dataset.cqgo); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const wd = t.closest && t.closest('[data-cqwide]');
+  if (wd) { const id = Number(wd.dataset.cqwide), c = cqCacheOf(id); c.wide = !c.wide; const r = cqRowById(id); if (r && c.chat) { const b = document.getElementById('cqTabBody'); if (b) b.innerHTML = cqChatHtml(r, c.chat); } return; }
+  const rt = t.closest && t.closest('[data-cqretry]');
+  if (rt) { const id = Number(rt.dataset.cqretry), r = cqRowById(id); if (r) { delete cqCacheOf(id).chat; cqTabShow(id, 'chat'); cqRioStatus(r); } return; }
+  const yes = t.closest && t.closest('[data-cqyes]');
+  if (yes) { const id = Number(yes.dataset.id); cqChatLink(id, Number(yes.dataset.cqyes)).then(ok => { const r = cqRowById(id); if (ok && r) { cqTabShow(id, 'chat'); cqRioStatus(r); } }); return; }
+  const no = t.closest && t.closest('[data-cqno]');
+  if (no) { const id = Number(no.dataset.id), r = cqRowById(id); cqCacheOf(id).skip.push(Number(no.dataset.cqno)); if (r) { cqTabShow(id, 'chat'); cqRioStatus(r); } return; }
+  const cul = t.closest && t.closest('[data-cqunlink]');
+  if (cul) { const id = Number(cul.dataset.cqunlink); cqChatLink(id, null).then(ok => { const r = cqRowById(id); if (ok && r) { cqTabShow(id, 'chat'); cqRioStatus(r); } }); return; }
   const cp = t.closest && t.closest('[data-copy]');
   if (cp) { e.stopPropagation(); cqCopy(cp); return; }
   const dl = t.closest && t.closest('[data-dup]');
@@ -359,8 +482,185 @@ function cqOpenRecord(id) {
   window.open(cqRecordUrl(r || { id }), '_blank', 'noopener');
 }
 
+// The record (Kate, 12 Nov 2026): the stage bar, one line on what respond.io found, and three tabs. Complaint is the card the row always had; Conversation is her chat in
+// respond.io (WhatsApp, Instagram, Facebook); Client profile is who she is in Phorest. Levels 3 and up, checked again in the database and in the edge function.
+const cqCache = {};
+const cqCacheOf = id => (cqCache[id] = cqCache[id] || { skip: [] });
+const cqDateIso = r => { const d = r.complaint_date || r.date; return d ? String(d).slice(0, 10) : null; };
+function cqRecord(r) {
+  return `${cqPipe(r)}<p class="cq-rioline" id="cqRioLine" aria-live="polite"><b>respond.io check:</b> looking her up…</p>
+    <div class="cq-tabs" role="tablist">${[['complaint', 'Complaint'], ['chat', 'Conversation'], ['client', 'Client profile']].map(([k, l], i) => `<button type="button" role="tab" class="cq-tab${i ? '' : ' on'}" data-cqtab="${k}" data-id="${r.id}">${l}</button>`).join('')}</div>
+    <div id="cqTabBody">${cqCard(r)}</div>`;
+}
+async function cqProfile(id) {
+  const c = cqCacheOf(id);
+  if (c.profile !== undefined) return c.profile;
+  try {
+    const [p, l] = await Promise.all([sb.rpc('complaint_client_profile', { p_id: id }), sb.rpc('complaint_chat_link_get', { p_id: id })]);
+    if (p.error) throw p.error;
+    c.profile = p.data || null;
+    c.link = l && !l.error && l.data ? Number(l.data) : null;
+  } catch (e) { console.error(e); c.profile = null; c.link = null; c.err = true; }
+  return c.profile;
+}
+const cqRowById = id => ((cqList && cqList.rows) || []).find(x => x.id === id);
+// Ask respond.io (through the edge function) for her chat: by the confirmed contact, else by her phone, else by her name (then a person confirms).
+async function cqChat(r, force) {
+  const c = cqCacheOf(r.id);
+  if (c.chat && !force) return c.chat;
+  const p = await cqProfile(r.id);
+  const body = { phone: (p && p.phone) || r.phone || '', name: (p && p.name) || r.client || '', date: cqDateIso(r) };
+  if (c.link) body.contact_id = c.link;
+  try {
+    const { data, error } = await sb.functions.invoke('complaint-chat', { body });
+    if (error) throw error;
+    if (data && data.error) throw new Error(data.error);
+    c.chat = data || { status: 'none' };
+  } catch (e) { console.error(e); c.chat = { status: 'error' }; }
+  return c.chat;
+}
+// The line under the stage bar: the first thing a complaint does is look for her in respond.io.
+async function cqRioStatus(r) {
+  const chat = await cqChat(r);
+  const el = document.getElementById('cqRioLine');
+  if (!el || cqOpen !== r.id) return;
+  const how = chat.how === 'confirmed' ? 'The contact was confirmed by a person.' : 'Matched by her phone number.';
+  const chans = Array.from(new Set((chat.messages || []).map(m => m.ch))).join(', ');
+  const n = (chat.messages || []).length;
+  const cands = (chat.candidates || []).filter(x => !cqCacheOf(r.id).skip.includes(x.id));
+  el.innerHTML = chat.status === 'found'
+    ? `<b>respond.io check:</b> <span class="cq-ch green">chat found</span> ${n ? cqNum(n) + ' message' + (n === 1 ? '' : 's') + ' around the complaint' + (chans ? ' on ' + cqEsc(chans) : '') + '. ' : 'No messages around the complaint date. '}${how}`
+    : chat.status === 'possible' && cands.length
+      ? `<b>respond.io check:</b> <span class="cq-ch amber">confirm it is her</span> ${cands.length} possible ${cands.length === 1 ? 'person' : 'people'} by name. Open the Conversation tab.`
+      : chat.status === 'error'
+        ? `<b>respond.io check:</b> <span class="cq-ch grey">did not load</span> Open the Conversation tab to try again.`
+        : `<b>respond.io check:</b> <span class="cq-ch grey">not found</span> Searched by phone and by name. She may never have written to us.`;
+  const tab = document.querySelector('.cq-tab[data-cqtab="chat"]');
+  if (tab) tab.innerHTML = 'Conversation' + (chat.status === 'found' ? ' <span class="cq-ch green">found</span>' : chat.status === 'possible' && cands.length ? ' <span class="cq-ch amber">confirm</span>' : '');
+}
+function cqMsgTime(ts) { return new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }); }
+function cqMsgDay(ts) { return new Date(ts).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }); }
+// What she sent besides words: a photo shows in the chat (a tap opens it full size), a video or a voice note plays, anything else is a link to the file.
+function cqAtt(a) {
+  if (!a || !a.url || !/^https:\/\//i.test(a.url)) return '';
+  const u = cqEsc(a.url);
+  if (a.type === 'image') return `<a href="${u}" target="_blank" rel="noopener" class="cq-rlink"><img class="cq-rimg" src="${u}" alt="A photo she sent" loading="lazy"></a>`;
+  if (a.type === 'video') return `<video class="cq-rimg" controls preload="none" src="${u}"></video>`;
+  if (a.type === 'audio') return `<audio controls preload="none" src="${u}" style="max-width:100%"></audio>`;
+  return `<a href="${u}" target="_blank" rel="noopener" class="cq-rlink">${cqEsc(a.name || 'Open the file')}</a>`;
+}
+function cqChatHtml(r, chat) {
+  const box = cqCacheOf(r.id);
+  const note = '<p class="cq-note">A look at her chat in respond.io, around the day of the complaint. Nothing here can be sent. Replies are made in respond.io.</p>';
+  if (chat.status === 'error') return note + '<p class="cq-meta">The chat did not load. <button type="button" class="cq-link" data-cqretry="' + r.id + '">Try again</button></p>';
+  if (chat.status === 'none') return note + '<div class="cq-box">No chat found. We searched by phone and by name in respond.io (WhatsApp, Instagram and Facebook). She may never have written to us.</div>';
+  if (chat.status === 'possible') {
+    const cands = (chat.candidates || []).filter(x => !box.skip.includes(x.id));
+    if (!cands.length) return note + '<div class="cq-box">No chat found. Every possible person was marked as not her.</div>';
+    return note + `<div class="cq-eye">Is this her in respond.io?</div>` + cands.map(x => `<div class="cq-box cq-cand"><div><b>${cqEsc(x.name || 'No name')}</b>${x.phone ? ', ' + cqEsc(x.phone) : ', no phone number'}${x.lifecycle ? ' <span class="cq-muted">' + cqEsc(x.lifecycle) + '</span>' : ''}${(x.tags || []).length ? '<div class="cq-sub2">' + (x.tags || []).slice(0, 5).map(cqEsc).join(', ') + '</div>' : ''}<div class="cq-sub2">Matched by name only, because Instagram and Facebook have no phone number.</div></div>
+      <div class="cq-seq"><button type="button" class="cq-btn" data-cqyes="${x.id}" data-id="${r.id}">Yes, this is her</button><button type="button" class="cq-btn" data-cqno="${x.id}" data-id="${r.id}">Not her</button></div></div>`).join('');
+  }
+  const ct = chat.contact || {}, wide = !!(box.wide && chat.wider), msgs = wide ? chat.wider : (chat.messages || []);
+  const chans = Array.from(new Set(msgs.map(m => m.ch)));
+  let day = '';
+  const body = msgs.length ? msgs.map(m => {
+    const d = cqMsgDay(m.ts); let sep = '';
+    if (d !== day) { day = d; sep = `<span class="cq-rday">${cqEsc(d)}</span>`; }
+    return `${sep}<div class="cq-rb ${m.w === 'c' ? 'in' : 'out'}${m.hit ? ' hit' : ''}">${m.hit ? '<span class="cq-rhit">The complaint</span>' : ''}${cqAtt(m.att)}${m.text ? cqText(m.text) : ''}<span class="cq-rbt">${m.w === 's' ? 'Tara Rose, ' : ''}${cqMsgTime(m.ts)}${chans.length > 1 ? ' · ' + cqEsc(m.ch) : ''}</span></div>`;
+  }).join('') : '<p class="cq-meta" style="margin:8px">No messages around the date of the complaint.</p>';
+  const initials = String(ct.name || '?').split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
+  const total = chat.total || msgs.length;
+  const noteSnip = `<p class="cq-note">${wide ? 'The week around the complaint' : 'Only the part about the complaint'}, ${cqNum(msgs.length)} of ${cqNum(total)} messages that week. Nothing here can be sent.${chat.wider && total > msgs.length || wide ? ` <button type="button" class="cq-link" data-cqwide="${r.id}">${wide ? 'Show only the part about the complaint' : 'Not the right part? Show the week around it'}</button>` : ''}</p>`;
+  return noteSnip + `<div class="cq-rio"><div class="cq-rhd"><span class="cq-rav">${cqEsc(initials)}</span><div class="cq-rwho"><b>${cqEsc(ct.name || 'No name')}</b><small>${cqEsc(ct.phone || 'No phone number')}</small></div>
+      ${ct.status ? `<span class="cq-rpill">${cqEsc(String(ct.status).replace(/^./, c => c.toUpperCase()))}</span>` : ''}<span class="cq-rpill ghost">${cqEsc(ct.assignee || 'Unassigned')}</span></div>
+    <div class="cq-rsub">${chans.length ? cqEsc(chans.join(', ')) : 'respond.io'}${(ct.tags || []).slice(0, 6).map(t => `<span class="cq-rtag">${cqEsc(t)}</span>`).join('')}</div>
+    <div class="cq-rbody">${body}</div></div>
+    ${box.link ? `<p class="cq-note" style="margin-top:8px">Confirmed as her by a person. <button type="button" class="cq-link" data-cqunlink="${r.id}">Not her after all</button></p>` : ''}`;
+}
+function cqProfileHtml(r, p) {
+  if (!p) return '<p class="cq-meta">The profile did not load. Tap the tab to try again.</p>';
+  const items = v => (v.items || []).map(i => `${cqEsc(i.desc || 'Service')}${i.st ? ' <span class="cq-muted">with ' + cqEsc(i.st) + '</span>' : ''}`).join('<br>') || '<span class="cq-muted">No service listed</span>';
+  const visits = (p.recent || []).map(v => `<tr><td style="white-space:nowrap">${cqEsc(cqDay(v.date))}</td><td>${items(v)}</td></tr>`).join('');
+  const others = p.others || [];
+  return `<div class="cq-grid"><div>
+      <div class="cq-eye">Who she is</div>
+      <p class="cq-kv"><span>Name</span> ${cqEsc(p.name || r.client || '')}</p>
+      <p class="cq-kv"><span>Phone</span> ${p.phone ? cqEsc(p.phone) : '<span class="cq-muted">None on file</span>'}</p>
+      <p class="cq-kv"><span>Email</span> ${p.email ? cqEsc(p.email) : '<span class="cq-muted">' + (p.email_status === 'no email' ? 'No email on file' : 'None that is hers') + '</span>'}</p>
+      <p class="cq-kv"><span>Branches</span> ${(p.branches || []).length ? (p.branches || []).map(b => cqEsc(cqBr(b))).join(', ') : '<span class="cq-muted">Not matched</span>'}</p>
+      ${p.archived ? '<p class="cq-kv"><span class="cq-pill warn">Archived in Phorest</span></p>' : ''}
+      ${p.on_phorest ? '' : '<p class="cq-kv cq-muted">She is not matched to a Phorest client, so there are no visits to show.</p>'}
+      <div class="cq-ptiles">
+        <button type="button" class="cq-ptile" data-cqgo="cqVisits" title="Shows her last visits"><b>${cqNum(p.visits)}</b><span>Visits</span></button>
+        <button type="button" class="cq-ptile" data-cqgo="cqOthers" title="Shows her other complaints"><b>${cqNum(others.length)}</b><span>Other complaints</span></button>
+        <div class="cq-ptile"><b>${p.last_visit ? cqEsc(cqDay(p.last_visit)) : 'None'}</b><span>Last visit${p.first_visit ? ', first ' + cqEsc(cqDay(p.first_visit)) : ''}</span></div>
+      </div></div>
+    <div><div class="cq-eye" id="cqOthers">Her other complaints</div>
+      ${others.length ? `<table class="cq-t"><tr><th>Date</th><th>About</th><th>Where it is</th></tr>${others.map(o => `<tr><td style="white-space:nowrap">${cqEsc(cqDay(o.date))}</td><td>${cqEsc(CQ_TYPE[o.type] || o.type || 'Unclear')}${o.code ? ' <span class="cq-muted">' + cqEsc(o.code) + '</span>' : ''}</td><td>${o.status === 'open' ? 'Open' : 'Closed'}</td></tr>`).join('')}</table>` : '<p class="cq-kv cq-muted">No other complaints for this client.</p>'}
+      <div class="cq-eye" id="cqVisits" style="margin-top:14px">Last visits in Phorest</div>
+      ${visits ? `<table class="cq-t"><tr><th>Date</th><th>What she had</th></tr>${visits}</table>` : '<p class="cq-kv cq-muted">No visits on file.</p>'}</div></div>`;
+}
+async function cqTabShow(id, tab) {
+  const box = document.getElementById('cqTabBody');
+  if (!box) return;
+  document.querySelectorAll('.cq-tab').forEach(b => b.classList.toggle('on', b.dataset.cqtab === tab));
+  const r = cqRowById(id);
+  if (!r) return;
+  if (tab === 'complaint') { box.innerHTML = cqCard(r); return; }
+  box.innerHTML = '<p class="cq-meta" style="padding:8px 2px">Loading…</p>';
+  if (tab === 'client') {
+    const c = cqCacheOf(id); if (c.err) { delete c.profile; c.err = false; }
+    const p = await cqProfile(id);
+    if (document.querySelector('.cq-tab.on')?.dataset.cqtab === 'client') box.innerHTML = cqProfileHtml(r, p);
+  } else {
+    const chat = await cqChat(r);
+    if (document.querySelector('.cq-tab.on')?.dataset.cqtab === 'chat') box.innerHTML = cqChatHtml(r, chat);
+  }
+}
+async function cqChatLink(id, contact) {
+  const { error } = await sb.rpc('complaint_chat_link_set', { p_id: id, p_contact: contact });
+  if (error) { console.error(error); return false; }
+  const c = cqCacheOf(id); c.link = contact; delete c.chat;
+  return true;
+}
+
+// The record's own view (Kate, 12 Nov 2026: "can it have its own opening? masikip, and nakakalito pag nasa pinaka baba"). A row used to open a card under itself at the foot of the list.
+// Now it replaces the archive with the record, a Back button and previous and next through the page of complaints, and Back returns to the same place in the list.
+let cqBackY = 0;
+function cqRecOpen(id) {
+  const r = cqRowById(id), rec = document.getElementById('cqRec'), main = document.getElementById('cqMain');
+  if (!r || !rec || !main) return;
+  if (!main.classList.contains('cq-gone')) cqBackY = window.scrollY;
+  const rows = (cqList && cqList.rows) || [], i = rows.findIndex(x => x.id === id);
+  cqOpen = id;
+  const st = cqStage(r), pri = cqPri(r);
+  rec.innerHTML = `<div class="cq-recbar"><button type="button" class="cq-btn" data-cqback="1">&larr; Back to the archive</button>
+      <span class="cq-recpos">${i + 1} of ${rows.length} on this page <button type="button" class="cq-btn" data-cqnav="-1" aria-label="Previous complaint"${i <= 0 ? ' disabled' : ''}>&lsaquo;</button><button type="button" class="cq-btn" data-cqnav="1" aria-label="Next complaint"${i >= rows.length - 1 ? ' disabled' : ''}>&rsaquo;</button></span></div>
+    <div class="cq-card cq-recbox">
+      <h2 class="cq-rectitle">${cqEsc(cqMDY(r.date))} | ${cqEsc(r.branch || '')} | ${cqEsc(r.client || 'No name')} | ${cqEsc(CQ_TYPE[r.type] || 'Unclear')}</h2>
+      <div class="cq-recchips"><span class="cq-ch ${cqFoundKey(r)}">${cqEsc(cqFound(r))}</span><span class="cq-ch ${st.tone}">${cqEsc(st.text)}</span><span class="cq-ch ${pri === 'high' ? 'red' : pri === 'mid' ? 'amber' : 'grey'}">${pri === 'high' ? 'High' : pri === 'mid' ? 'Mid' : 'Low'} priority</span>${r.code ? cqCodeChip(r) : ''}</div>
+      ${cqRecord(r)}
+    </div>`;
+  main.classList.add('cq-gone'); rec.classList.remove('cq-gone');
+  window.scrollTo(0, 0);
+  cqRioStatus(r);
+}
+function cqRecClose() {
+  const rec = document.getElementById('cqRec'), main = document.getElementById('cqMain');
+  if (!rec || !main || rec.classList.contains('cq-gone')) return;
+  rec.classList.add('cq-gone'); rec.innerHTML = '';
+  main.classList.remove('cq-gone');
+  cqOpen = 0;
+  window.scrollTo(0, cqBackY);
+}
+function cqRecNav(d) {
+  const rows = (cqList && cqList.rows) || [], i = rows.findIndex(x => x.id === cqOpen), n = rows[i + d];
+  if (i >= 0 && n) cqRecOpen(n.id);
+}
+
 function cqToggle(row) {
   const id = Number(row.dataset.i);
+  if (cqMode === 'main') { cqRecOpen(id); return; }
   const body = document.getElementById('cqBody');
   body.querySelectorAll('tr.cq-detrow').forEach(r => r.remove());
   body.querySelectorAll('tr.cq-row.on').forEach(r => r.classList.remove('on'));
@@ -371,8 +671,9 @@ function cqToggle(row) {
   row.classList.add('on');
   const det = document.createElement('tr');
   det.className = 'cq-detrow';
-  det.innerHTML = `<td class="cq-det" colspan="${row.children.length}">${cqCard(r)}</td>`;
+  det.innerHTML = `<td class="cq-det" colspan="${row.children.length}">${cqRecord(r)}</td>`;
   row.after(det);
+  cqRioStatus(r);
 }
 
 // Which complaints reached Google: a Google review whose reviewer name is the client's full name, left on or after the complaint.
@@ -667,6 +968,17 @@ function cqPaintSummary() {
     ...(cqWindowed() ? [] : [[cqNum(t.profile_flags), 'more on client cards, undated']]),
     [cqNum(t.low_confidence), 'unsure, note too short']].concat(cqSum.google ? [[cqNum(cqSum.google.on_google), 'also left a Google review (same name)']] : []
   ).map(([b, s]) => `<div class="cq-tile"><b>${b}</b><span>${cqEsc(s)}</span></div>`).join('');
+  const doEl = document.getElementById('cqDo');
+  if (doEl) doEl.innerHTML = Number(t.open_now) > 0
+    ? `Open the <button type="button" class="cq-link" id="cqOpenNow">${cqNum(t.open_now)} complaint${Number(t.open_now) === 1 ? '' : 's'} still open</button>. Overdue replies come first.`
+    : 'Nothing is open. Every logged complaint has an ending.';
+  const on = document.getElementById('cqOpenNow');
+  if (on) on.addEventListener('click', () => {
+    CQ.src = 'logged'; CQ.status = 'open'; CQ.page = 0; cqOpen = 0;
+    ['cqS', 'cqSt'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'cqS' ? 'logged' : 'open'; });
+    cqFtogLabel(); cqLoadList();
+    const l = document.getElementById('cq-list'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   const brows = (cqSum.branches || []).map(b => {
     const rate = b.noted_since_2024 ? (1000 * b.since_2024 / b.noted_since_2024).toFixed(1) : 'n/a';
     return `<tr class="cq-br${picked.includes(b.branch) ? ' on' : ''}">
@@ -708,13 +1020,10 @@ function cqPaintList() {
         ${r.status === 'open' && !r.duplicate_of ? `<div class="cq-sub2">${r.responsible ? 'Replying: ' + cqEsc(r.responsible) : 'Who will reply? Add a name on the complaint page'}${r.pending_reason ? ' · ' + cqEsc(r.pending_reason) : (r.flag ? ' · why is it waiting? Add a reason' : '')}</div>` : ''}</td>
       <td class="hm" style="white-space:nowrap">${r.resolved_at ? cqEsc(cqDubai(r.resolved_at)) : '<span class="cq-muted">Open</span>'}</td>
       <td class="hm">${r.status === 'open' ? '<span class="cq-muted">Not yet</span>' : cqEsc(CQ_RES[r.resolution] || '')}${r.revisit_date ? `<div class="cq-sub2">${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}</div>` : ''}</td>
-    </tr>` : `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
-      <td style="white-space:nowrap">${cqEsc(cqDay(r.date))}</td>
-      <td class="hm">${cqEsc(cqBr(r.branch))}</td>
-      <td><b>${cqEsc(r.client || 'No name')}</b></td>
-      <td>${cqEsc(r.detail || 'Not stated')}${r.confidence === 'low' ? ' <span class="cq-pill warn">unsure</span>' : ''}${r.by ? ' <span class="cq-pill">logged by staff</span>' : ''}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
-      <td>${r.status === 'open' ? '<span class="cq-pill warn">Open</span>' : cqEsc(CQ_RES[r.resolution] || '')}</td>
-      <td class="hm" style="white-space:nowrap">${cqGoogle(r)}</td>
+    </tr>` : `<tr class="cq-row p-${cqPri(r)}" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
+      <td><span class="cq-nm">${cqEsc(cqMDY(r.date))} | ${cqEsc(r.branch || '')} | ${cqEsc(r.client || 'No name')} | ${cqEsc(CQ_TYPE[r.type] || 'Unclear')}</span><span class="cq-qt">${cqEsc(r.detail || r.note || 'Not stated')}${r.confidence === 'low' ? ' (unsure)' : ''}</span></td>
+      <td class="hm"><span class="cq-ch ${cqFoundKey(r)}">${cqEsc(cqFound(r))}</span></td>
+      <td><span class="cq-ch ${cqStage(r).tone}">${cqEsc(cqStage(r).text)}</span></td>
     </tr>`).join('');
   const th = (k, label, cls) => {
     const on = CQ.sort === k;
@@ -723,8 +1032,8 @@ function cqPaintList() {
   const sizes = CQ_SIZES.map(n => `<option value="${n}"${CQ.size === n ? ' selected' : ''}>${n}</option>`).join('');
   const head = log
     ? `${th('date', 'Appointment', 'hm')}${th('cdate', 'Complaint', 'hm')}${th('client', 'Client')}${th('detail', 'What happened')}${th('priority', 'Status')}${th('resolved', 'Date resolved', 'hm')}${th('resolution', 'Resolution', 'hm')}`
-    : `${th('date', 'Date')}${th('branch', 'Branch', 'hm')}${th('client', 'Client')}${th('detail', 'What happened')}${th('resolution', 'Outcome')}<th class="hm" title="Is there a Google review by someone with the same name, left on or after the complaint date">Google</th>`;
-  body.innerHTML = `<table class="cq-t${log ? ' cq-lg' : ''}"><tr>${head}</tr>${tr}</table>
+    : `${th('date', 'Complaint')}<th class="hm">Found in</th>${th('resolution', 'Where it is now')}`;
+  body.innerHTML = `<table class="cq-t${log ? ' cq-lg' : ' cq-arc'}"><tr>${head}</tr>${tr}</table>
     <div class="cq-pager"><label class="cq-size">Show <select id="cqN" class="cq-sel" aria-label="Complaints per page">${sizes}</select> per page</label><button type="button" class="cq-btn" data-pg="-1"${CQ.page === 0 ? ' disabled' : ''}>Previous</button>
     <button type="button" class="cq-btn" data-pg="1"${to >= total ? ' disabled' : ''}>Next</button></div>`;
 }
@@ -824,6 +1133,38 @@ async function cqSheetsExport() {
   } finally { if (btn) btn.disabled = false; }
 }
 
+// XLSX and CSV (Kate, 10 Nov 2026 ruling for every report): every row the filters match, not only the page on screen. report-export.js draws the buttons and saves.
+async function cqExport() {
+  const rows = []; let total = Infinity, off = 0;
+  while (off < total && off < 5000) {
+    const { data, error } = await sb.rpc('client_complaints_list', cqListArgs(100, off));
+    if (error) throw error;
+    total = Number(data.total || 0);
+    const got = data.rows || [];
+    rows.push(...got);
+    if (!got.length) break;
+    off += 100;
+  }
+  if (!rows.length) return null;
+  const phones = rows.some(r => r.phone);
+  const cols = [{ key: 'date', label: 'Date', fmt: 'text' }, { key: 'branch', label: 'Branch', fmt: 'text' }, { key: 'client', label: 'Client', fmt: 'text' }, { key: 'kind', label: 'Kind', fmt: 'text' },
+    { key: 'what', label: 'What happened', fmt: 'text' }, { key: 'found', label: 'Found in', fmt: 'text' }, { key: 'now', label: 'Where it is now', fmt: 'text' }, { key: 'out', label: 'Outcome', fmt: 'text' },
+    { key: 'end', label: 'How it ended', fmt: 'text' }, { key: 'sty', label: 'Stylist', fmt: 'text' }, { key: 'svc', label: 'Services that day', fmt: 'text' }, { key: 'fee', label: 'Charged (AED)', fmt: 'aed' },
+    { key: 'by', label: 'Handled by', fmt: 'text' }, { key: 'g', label: 'Google review', fmt: 'text' }, { key: 'code', label: 'Code', fmt: 'text' }, { key: 'note', label: 'Original note', fmt: 'text' }]
+    .concat(phones ? [{ key: 'phone', label: 'Mobile', fmt: 'text' }] : []);
+  const out = rows.map(r => {
+    const cells = [r.date ? String(r.date).slice(0, 10) : 'Client card', cqBr(r.branch), r.client || '', CQ_TYPE[r.type] || r.type || '', r.detail || '', cqFound(r), cqStage(r).text,
+      r.status === 'open' ? 'Still open' : (CQ_RES[r.resolution] || r.resolution || ''), r.resolution_detail || '', r.stylists || '', r.services || '', r.fee == null ? null : Number(r.fee),
+      r.handled_by || '', r.g_date ? `${String(r.g_date).slice(0, 10)}, ${Number(r.g_stars) || ''} stars` : (r.g_manual ? 'Posted (logged)' : ''), r.code || '', r.note || ''];
+    if (phones) cells.push(r.phone || '');
+    return { cells };
+  });
+  return { name: 'client-complaints-' + (cqBranch() === 'all' ? 'all-branches' : cqBranch().toLowerCase().replace(/,/g, '-')), sheets: [{ name: 'Complaints', title: 'Client Complaints',
+    subtitle: `${out.length} complaint${out.length === 1 ? '' : 's'}, with the filters set on the page`, blocks: [{ cols, rows: out }],
+    legend: [['Found in', 'Where the complaint was first written down: a Phorest visit note, a Phorest client card, or logged by staff.'], ['Where it is now', 'The pipeline stage. Notes from Phorest were written after the fact, so they are Closed, history.']] }] };
+}
+window.cqExport = cqExport;
+
 async function cqLoadList() {
   const body = document.getElementById('cqBody');
   if (!body) return;
@@ -845,6 +1186,7 @@ async function cqLoadList() {
 
 // The masthead's Branch chips changed (dashboard.js NOPULSE_REDRAW): redraw the numbers and the list for the new pick.
 function cqRefresh() {
+  cqRecClose();
   if (!document.getElementById('cqTop')) return renderComplaints();
   CQ.page = 0; cqOpen = 0;
   cqLoadSummary();
