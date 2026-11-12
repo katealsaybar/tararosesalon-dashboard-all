@@ -151,6 +151,11 @@ function cqCss() {
     .cq-t tr.cq-row:hover td,.cq-t tr.cq-row:focus-visible td,.cq-t tr.cq-row.on td{background:var(--surface2)}
     .cq-t tr.cq-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     .cq-t td.cq-det{padding:14px 12px 18px;background:var(--surface2)}
+    .cq-intro{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 22px;background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--radius-card);padding:12px 16px;margin:0 0 14px}
+    .cq-intro p{margin:0;font-size:13.5px;line-height:1.45}
+    .cq-intro b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+    .cq-link{background:none;border:0;padding:0;font:inherit;font-weight:600;text-decoration:underline;color:inherit;cursor:pointer}
+    @media (max-width:900px){.cq-intro{grid-template-columns:minmax(0,1fr)}}
     /* The archive rows (Kate, 12 Nov 2026): three columns only. */
     .cq-t.cq-arc td:first-child{border-left:5px solid transparent}
     .cq-t.cq-arc tr.cq-row.p-high td:first-child{border-left-color:#E0674F}
@@ -264,6 +269,11 @@ function cqShell() {
   return cqCss() + `<div class="cq">
     <h1>Client Complaints</h1>
     <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 3 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
+    <div class="cq-intro" id="cqIntro">
+      <p><b>What is this?</b>Every complaint we know about, wherever it was found. Click one and it opens like the pipeline.</p>
+      <p><b>Why it matters</b>Phorest notes show what staff wrote down, not everything a client told us. WhatsApp, Instagram and Facebook chats are being added so none slips through.</p>
+      <p><b>Do this now</b><span id="cqDo">Loading…</span></p>
+    </div>
     ${cqRailShell(`<div id="cqTop"><p class="cq-meta">Loading…</p></div>
     <div class="cq-card cq-wait" id="cq-list">
       <h2>The complaints</h2>
@@ -272,7 +282,7 @@ function cqShell() {
         <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
         <button type="button" id="cqFtog" class="cq-btn cq-ftog" aria-expanded="false">Filters</button>
         <div class="cq-fsel">
-        <select id="cqS" class="cq-sel" aria-label="Where it was written"><option value="visit">Visit notes</option><option value="client">Client card notes</option></select>
+        <select id="cqS" class="cq-sel" aria-label="Found in"><option value="visit">Found in: Phorest visit notes</option><option value="client">Found in: Phorest client cards</option><option value="logged">Found in: logged by staff</option></select>
         <select id="cqT" class="cq-sel" aria-label="Kind">${topts}</select>
         <select id="cqR" class="cq-sel" aria-label="Outcome">${ropts}</select>
         <select id="cqSt" class="cq-sel" aria-label="Status"><option value="all">Status: any</option><option value="open">Still open</option><option value="resolved">Resolved</option></select>
@@ -709,6 +719,17 @@ function cqPaintSummary() {
     ...(cqWindowed() ? [] : [[cqNum(t.profile_flags), 'more on client cards, undated']]),
     [cqNum(t.low_confidence), 'unsure, note too short']].concat(cqSum.google ? [[cqNum(cqSum.google.on_google), 'also left a Google review (same name)']] : []
   ).map(([b, s]) => `<div class="cq-tile"><b>${b}</b><span>${cqEsc(s)}</span></div>`).join('');
+  const doEl = document.getElementById('cqDo');
+  if (doEl) doEl.innerHTML = Number(t.open_now) > 0
+    ? `Open the <button type="button" class="cq-link" id="cqOpenNow">${cqNum(t.open_now)} complaint${Number(t.open_now) === 1 ? '' : 's'} still open</button>. Overdue replies come first.`
+    : 'Nothing is open. Every logged complaint has an ending.';
+  const on = document.getElementById('cqOpenNow');
+  if (on) on.addEventListener('click', () => {
+    CQ.src = 'logged'; CQ.status = 'open'; CQ.page = 0; cqOpen = 0;
+    ['cqS', 'cqSt'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'cqS' ? 'logged' : 'open'; });
+    cqFtogLabel(); cqLoadList();
+    const l = document.getElementById('cq-list'); if (l) l.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   const brows = (cqSum.branches || []).map(b => {
     const rate = b.noted_since_2024 ? (1000 * b.since_2024 / b.noted_since_2024).toFixed(1) : 'n/a';
     return `<tr class="cq-br${picked.includes(b.branch) ? ' on' : ''}">
