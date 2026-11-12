@@ -481,6 +481,14 @@ body.social-chrome .filters-wrap{display:none}
 /* Client's Last Visit (Kate, 22 Oct 2026): its Branch toggles live in the masthead's Branch row now; Visits and Days away stay on
    the page, so the masthead's Period row (which would change nothing here) is left out. */
 body.lastvisit-chrome #periodRow{display:none}
+/* Content Calendar (Kate, 12 Nov 2026): the month or week, Today and Week | Month | List are a row of the masthead filters (#calRow, painted by calBarPaint() from what the calendar frame reports).
+   Branch and Period change nothing there, and the masthead rule (branch, date range, feed freshness) describes a different thing, so they go. */
+#calRow{display:none}
+body.contentcalendar-chrome #calRow{display:flex}
+body.contentcalendar-chrome #branchRow,body.contentcalendar-chrome #periodRow,body.contentcalendar-chrome .mast-rule{display:none}
+#calChips{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+#calChips .cal-label{font-size:14px;font-weight:600;color:var(--text);padding:6px 4px;min-width:9ch;text-align:center}
+#calChips .cal-nav{padding:6px 10px;font-size:18px;line-height:1}
 /* Marketing Spend (Kate, 23 Oct 2026): follows the masthead Period; ads are not bought per salon, so no Branch row or branch words. */
 body.marketingspend-chrome #branchRow,
 body.marketingspend-chrome #mastBranch,
@@ -4020,6 +4028,12 @@ table.tp-cmp td.bad{color:var(--bad)}
         <select class="lg-month-sel" id="yearPickY" aria-label="Year" onchange="pickYearRange()"></select>
       </div>
     </div>
+    <!-- Kate, 12 Nov 2026: Content Calendar's own bar, moved up from the frame: the month or week on show with Previous and Next, Today, and Week | Month | List.
+         Painted by calBarPaint() from the state the calendar frame reports; the buttons send it commands (calCmd). Shown only on that page (contentcalendar-chrome). -->
+    <div class="f-row" id="calRow">
+      <span class="f-lbl" id="calLbl">Calendar</span>
+      <div class="chipset" role="group" aria-labelledby="calLbl" id="calChips"></div>
+    </div>
     <!-- Kate, 1 Oct 2026: clients handled (ledgers, per staff) or through the door
          (Phorest Sales Transactions, once per client a day). Painted by
          paintFilterChips(); shown only on the pages it changes (CLIENT_VIEWS). -->
@@ -5170,6 +5184,32 @@ function wvGoBlast(mode, el){
   WV_ONLY = mode;
   showView('wvblast', el || document.querySelector(`#sidebar .nav-sub[data-wvb="${mode}"]`));
 }
+// Kate, 12 Nov 2026: Content Calendar's bar in the masthead filters (#calRow). The calendar frame (smm_board_approvals calendar/?embed=1) posts trs-cal-state after every draw
+// (the label of the stretch on show, the view, whether Previous or Next can go further); the buttons here post trs-cal-cmd back. Only the frame this page holds is listened to.
+const CAL_ORIGIN = 'https://katealsaybar.github.io';
+let calState = null;
+function calCmd(cmd, value) { const f = document.getElementById('calFrame'); try { f.contentWindow.postMessage({ type: 'trs-cal-cmd', cmd, value }, CAL_ORIGIN); } catch (e) {} }
+function calBarPaint() {
+  const el = document.getElementById('calChips'); if (!el) return;
+  const s = calState, esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  if (!s) { el.innerHTML = '<span class="cal-label">Loading the calendar…</span>'; }
+  else el.innerHTML =
+    '<button type="button" class="chip cal-nav" aria-label="Previous" onclick="calCmd(\'prev\')"' + (s.atMin ? ' disabled' : '') + '>‹</button>' +
+    '<span class="cal-label" aria-live="polite">' + esc(s.label) + '</span>' +
+    '<button type="button" class="chip cal-nav" aria-label="Next" onclick="calCmd(\'next\')"' + (s.atMax ? ' disabled' : '') + '>›</button>' +
+    '<button type="button" class="chip" onclick="calCmd(\'today\')">Today</button><span class="sep">·</span>' +
+    '<span class="seg" role="group" aria-label="View">' + [['week', 'Week'], ['month', 'Month'], ['list', 'List']].map(([v, l]) =>
+      '<button type="button" class="chip seg-b" aria-pressed="' + (s.view === v) + '" onclick="calCmd(\'view\',\'' + v + '\')">' + l + '</button>').join('') + '</span>';
+  if (typeof sizeTopbar === 'function') sizeTopbar();
+}
+window.addEventListener('message', e => {
+  const f = document.getElementById('calFrame');
+  if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data || e.data.type !== 'trs-cal-state') return;
+  const d = e.data;
+  if (typeof d.label !== 'string' || d.label.length > 60 || !['week', 'month', 'list'].includes(d.view)) return;
+  calState = { label: d.label, view: d.view, atMin: d.atMin === true, atMax: d.atMax === true };
+  calBarPaint();
+});
 function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
   // opens Daily. Before the scope check, so a Bahrain sign-in is sent on to its own page like any other page it may not open.
@@ -5226,6 +5266,7 @@ function showView(view, el){
   if (view === 'contentcalendar') {
     const cf = document.getElementById('calFrame');
     const calTheme = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    calBarPaint();
     if (cf && !cf.getAttribute('src') && cf.dataset.src) {
       cf.setAttribute('src', cf.dataset.src + '&theme=' + calTheme());
       new MutationObserver(() => { try { cf.contentWindow.postMessage({ type: 'trs-theme', theme: calTheme() }, 'https://katealsaybar.github.io'); } catch (e) {} })
@@ -5264,6 +5305,8 @@ function showView(view, el){
   const filtersBtn  = document.getElementById('filtersBtn');
   if (filtersWrap) filtersWrap.style.display = usesFilters ? '' : 'none';
   if (filtersBtn)  filtersBtn.style.display  = usesFilters ? '' : 'none';
+  // Content Calendar has no Branch or Period but does carry its own bar in the masthead filters (#calRow), so the bar and its Hide filters button show.
+  if (view === 'contentcalendar') { if (filtersWrap) filtersWrap.style.display = ''; if (filtersBtn) filtersBtn.style.display = ''; }
 
   // The cover is the KPI page's own device. Every other view is just a page, so
   // the "back to top" button and the reveal state travel with the dashboard only.
@@ -5298,6 +5341,7 @@ function showView(view, el){
   document.body.classList.toggle('metaads-chrome', view === 'metaads');
   document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
   document.body.classList.toggle('toolspend-chrome', view === 'toolspend');
+  document.body.classList.toggle('contentcalendar-chrome', view === 'contentcalendar');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');
   // Popped-out standalone window (ocOpenNewWindow() sets ocFit=1): no sidebar
