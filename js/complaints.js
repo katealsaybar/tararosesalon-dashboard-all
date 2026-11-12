@@ -70,6 +70,29 @@ const cqDay = iso => {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 };
 const cqBr = c => CQ_BRANCH[c] || c || 'Not matched';
+
+// The archive (Kate, 12 Nov 2026): every complaint is one row of three things, the complaint, where it was found and where it is now. A row opens like the pipeline.
+const cqMDY = iso => { if (!iso) return 'Client card'; const [y, m, d] = String(iso).slice(0, 10).split('-'); return m + '/' + d + '/' + y; };
+const cqFound = r => (r.by ? 'Logged by staff' : r.src === 'client' ? 'Phorest client card' : 'Phorest note');
+const cqFoundKey = r => (r.by ? 'staff' : 'ph');
+// Where it is now, in the pipeline's words. Old Phorest notes were written after the fact, so they are Closed, history.
+function cqStage(r) {
+  if (r.duplicate_of) return { i: 4, tone: 'grey', text: 'Duplicate' };
+  if (r.status === 'open') {
+    if (r.flag === 'overdue') return { i: r.first_response_at ? 3 : 1, tone: 'red', text: 'Overdue' };
+    if (r.first_response_at) return { i: 3, tone: 'green', text: 'Replied, client back?' };
+    if (r.flag === 'pending') return { i: 1, tone: 'amber', text: 'Pending action' };
+    return { i: 1, tone: 'amber', text: 'Waiting to be taken' };
+  }
+  return { i: 4, tone: 'grey', text: r.by ? 'Closed' : 'Closed, history' };
+}
+const cqPri = r => r.status !== 'open' ? 'low' : ((r.type === 'skin_reaction_or_injury' || r.flag === 'overdue') ? 'high' : 'mid');   // the pipeline's rule: closed is low, a skin reaction or an overdue reply is high
+const CQ_STAGES = ['Found', 'Waiting', 'Taken', 'Replied', 'Closed'];
+function cqPipe(r) {
+  const st = cqStage(r);
+  const bar = CQ_STAGES.map((g, i) => `<div class="cq-stg${i < st.i ? ' done' : i === st.i ? ' cur' + (st.tone === 'red' ? ' red' : '') : ''}">${i < st.i ? '&#10003; ' : ''}${g}<small>${i === 0 && st.i > 0 ? cqEsc(cqFound(r).toLowerCase()) : i === st.i ? cqEsc(st.text.toLowerCase()) : ''}</small></div>`).join('');
+  return `<div class="cq-pipe" role="img" aria-label="Stage: ${cqEsc(CQ_STAGES[st.i])}">${bar}</div>`;
+}
 // Today as the server counts it: the Dubai day (cq_today). A phone in Manila is a day ahead between midnight and 4 am there, so the browser's own date
 // made the form say "the date she complained is in the future" (Kate, 31 Oct 2026).
 const cqToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
@@ -128,6 +151,25 @@ function cqCss() {
     .cq-t tr.cq-row:hover td,.cq-t tr.cq-row:focus-visible td,.cq-t tr.cq-row.on td{background:var(--surface2)}
     .cq-t tr.cq-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     .cq-t td.cq-det{padding:14px 12px 18px;background:var(--surface2)}
+    /* The archive rows (Kate, 12 Nov 2026): three columns only. */
+    .cq-t.cq-arc td:first-child{border-left:5px solid transparent}
+    .cq-t.cq-arc tr.cq-row.p-high td:first-child{border-left-color:#E0674F}
+    .cq-t.cq-arc tr.cq-row.p-mid td:first-child{border-left-color:#D9A441}
+    .cq-t.cq-arc tr.cq-row.p-low td:first-child{border-left-color:#A8A398}
+    .cq-t.cq-arc td.cq-det{border-left:0}
+    .cq-nm{display:block;font-weight:600;overflow-wrap:anywhere}
+    .cq-qt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.35}
+    .cq-ch{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface2);line-height:1.4}
+    .cq-ch.ph{background:#ECE8FB;border-color:#C4B5FD;color:#2D2E37}.cq-ch.staff{background:var(--surface2);color:var(--muted)}
+    .cq-ch.red{background:#F8E4DF;color:#B4412F;border-color:transparent}.cq-ch.amber{background:#FAEFD6;color:#8A5A00;border-color:transparent}.cq-ch.green{background:#E1F1E6;color:#2F7A4B;border-color:transparent}.cq-ch.grey{background:var(--border);color:var(--muted);border-color:transparent}
+    .cq-pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin:0 0 14px}
+    .cq-stg{text-align:center;padding:9px 4px 7px;font-size:13px;font-weight:600;background:var(--surface);border:1.5px solid var(--border);margin-left:-1.5px;color:var(--muted);min-width:0}
+    .cq-stg:first-child{border-radius:10px 0 0 10px;margin-left:0}.cq-stg:last-child{border-radius:0 10px 10px 0}
+    .cq-stg small{display:block;font-size:11px;font-weight:500;min-height:1.3em;overflow-wrap:anywhere}
+    .cq-stg.done{background:#E1F1E6;border-color:#2F7A4B;color:#1f5a35}
+    .cq-stg.cur{background:#99F6E4;border-color:var(--accent);color:#1C1B18}
+    .cq-stg.cur.red{background:#E0674F;border-color:#E0674F;color:#2b0d08}
+    @media (max-width:760px){.cq-stg{font-size:12px;padding:8px 2px 6px}.cq-stg small{font-size:10px}.cq-t.cq-arc th.hm,.cq-t.cq-arc td.hm{display:none}}
     .cq-bars{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:6px 10px;align-items:center;font-size:13px}
     .cq-bars.yrs{grid-template-columns:44px 1fr auto}
     .cq-ftog{display:none}
@@ -238,7 +280,7 @@ function cqShell() {
         <label class="cq-chk"><input id="cqL" type="checkbox"> Unsure only</label>
         </div>
       </div>
-      <div class="cq-metarow"><p class="cq-meta" id="cqMeta" aria-live="polite"></p><span class="cq-sheetwrap"><span id="cqSheetMsg" class="cq-meta" aria-live="polite"></span><button type="button" id="cqSheet" class="cq-btn">Open in Google Sheets</button></span></div>
+      <div class="cq-metarow"><p class="cq-meta" id="cqMeta" aria-live="polite"></p><span class="cq-sheetwrap"><span id="cqSheetMsg" class="cq-meta" aria-live="polite"></span><button type="button" id="cqSheet" class="cq-btn">Open in Google Sheets</button>${typeof rexButtons === 'function' ? rexButtons('cqExport') : ''}</span></div>
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
     </div>`)}
     <p class="cq-foot">How to read it. A complaint here is a note where the client was unhappy with the service, result, price, wait or experience, or where a redo, refund or credit was given because the result was not right. Cancellation apologies, deposit rules, Google review requests and clients unhappy with another salon were left out. A free redo means a redo was written down; most of them had no charge on the visit, some did. The rate per 1,000 noted visits is there because branches do not write notes equally, so the raw count favours the branch that writes most. Marasy closed in 2022. Not included: WhatsApp complaints, respond.io tags, Google reviews, and anything nobody typed into Phorest. Client card notes have no date, so they are counted apart and only show in All time. Unsure means the note was too short to be sure, usually a bare "redo". The Google column looks for a Google review whose reviewer name is the client's full name, left on or after the complaint. Reviewers often post a first name or a nickname, so None found is not proof that nothing was posted, and a match is the same name, not a certainty it is about that visit.</p>
@@ -599,7 +641,7 @@ function cqCard(r) {
       <p class="cq-kv"><span>Responsible</span> ${r.responsible ? cqEsc(r.responsible) : '<span class="cq-muted">Nobody named yet</span>'}</p>
       ${open ? `<p class="cq-kv"><span>Why pending</span> ${r.pending_reason ? cqEsc(r.pending_reason) : '<span class="cq-muted">Not written yet</span>'}</p>` : ''}` : '';
   const revisit = (logged && r.revisit_date) ? `<p class="cq-kv"><span>Revisit</span> ${cqEsc(cqDay(r.revisit_date))}. ${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}${r.revisit_note ? '. ' + cqEsc(r.revisit_note) : ''}</p>` : '';
-  return `<div class="cq-grid">
+  return cqPipe(r) + `<div class="cq-grid">
     <div>
       <div class="cq-eye">Where and who</div>
       ${r.code ? `<p class="cq-kv"><span>Code</span> ${cqCodeChip(r)}</p>` : ''}
@@ -708,13 +750,10 @@ function cqPaintList() {
         ${r.status === 'open' && !r.duplicate_of ? `<div class="cq-sub2">${r.responsible ? 'Replying: ' + cqEsc(r.responsible) : 'Who will reply? Add a name on the complaint page'}${r.pending_reason ? ' · ' + cqEsc(r.pending_reason) : (r.flag ? ' · why is it waiting? Add a reason' : '')}</div>` : ''}</td>
       <td class="hm" style="white-space:nowrap">${r.resolved_at ? cqEsc(cqDubai(r.resolved_at)) : '<span class="cq-muted">Open</span>'}</td>
       <td class="hm">${r.status === 'open' ? '<span class="cq-muted">Not yet</span>' : cqEsc(CQ_RES[r.resolution] || '')}${r.revisit_date ? `<div class="cq-sub2">${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}</div>` : ''}</td>
-    </tr>` : `<tr class="cq-row" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
-      <td style="white-space:nowrap">${cqEsc(cqDay(r.date))}</td>
-      <td class="hm">${cqEsc(cqBr(r.branch))}</td>
-      <td><b>${cqEsc(r.client || 'No name')}</b></td>
-      <td>${cqEsc(r.detail || 'Not stated')}${r.confidence === 'low' ? ' <span class="cq-pill warn">unsure</span>' : ''}${r.by ? ' <span class="cq-pill">logged by staff</span>' : ''}<div class="cq-muted" style="font-size:12px">${cqEsc(CQ_TYPE[r.type] || '')}</div></td>
-      <td>${r.status === 'open' ? '<span class="cq-pill warn">Open</span>' : cqEsc(CQ_RES[r.resolution] || '')}</td>
-      <td class="hm" style="white-space:nowrap">${cqGoogle(r)}</td>
+    </tr>` : `<tr class="cq-row p-${cqPri(r)}" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
+      <td><span class="cq-nm">${cqEsc(cqMDY(r.date))} | ${cqEsc(r.branch || '')} | ${cqEsc(r.client || 'No name')} | ${cqEsc(CQ_TYPE[r.type] || 'Unclear')}</span><span class="cq-qt">${cqEsc(r.detail || r.note || 'Not stated')}${r.confidence === 'low' ? ' (unsure)' : ''}</span></td>
+      <td class="hm"><span class="cq-ch ${cqFoundKey(r)}">${cqEsc(cqFound(r))}</span></td>
+      <td><span class="cq-ch ${cqStage(r).tone}">${cqEsc(cqStage(r).text)}</span></td>
     </tr>`).join('');
   const th = (k, label, cls) => {
     const on = CQ.sort === k;
@@ -723,8 +762,8 @@ function cqPaintList() {
   const sizes = CQ_SIZES.map(n => `<option value="${n}"${CQ.size === n ? ' selected' : ''}>${n}</option>`).join('');
   const head = log
     ? `${th('date', 'Appointment', 'hm')}${th('cdate', 'Complaint', 'hm')}${th('client', 'Client')}${th('detail', 'What happened')}${th('priority', 'Status')}${th('resolved', 'Date resolved', 'hm')}${th('resolution', 'Resolution', 'hm')}`
-    : `${th('date', 'Date')}${th('branch', 'Branch', 'hm')}${th('client', 'Client')}${th('detail', 'What happened')}${th('resolution', 'Outcome')}<th class="hm" title="Is there a Google review by someone with the same name, left on or after the complaint date">Google</th>`;
-  body.innerHTML = `<table class="cq-t${log ? ' cq-lg' : ''}"><tr>${head}</tr>${tr}</table>
+    : `${th('date', 'Complaint')}<th class="hm">Found in</th>${th('resolution', 'Where it is now')}`;
+  body.innerHTML = `<table class="cq-t${log ? ' cq-lg' : ' cq-arc'}"><tr>${head}</tr>${tr}</table>
     <div class="cq-pager"><label class="cq-size">Show <select id="cqN" class="cq-sel" aria-label="Complaints per page">${sizes}</select> per page</label><button type="button" class="cq-btn" data-pg="-1"${CQ.page === 0 ? ' disabled' : ''}>Previous</button>
     <button type="button" class="cq-btn" data-pg="1"${to >= total ? ' disabled' : ''}>Next</button></div>`;
 }
@@ -823,6 +862,38 @@ async function cqSheetsExport() {
     say('It could not copy the rows. Try again.');
   } finally { if (btn) btn.disabled = false; }
 }
+
+// XLSX and CSV (Kate, 10 Nov 2026 ruling for every report): every row the filters match, not only the page on screen. report-export.js draws the buttons and saves.
+async function cqExport() {
+  const rows = []; let total = Infinity, off = 0;
+  while (off < total && off < 5000) {
+    const { data, error } = await sb.rpc('client_complaints_list', cqListArgs(100, off));
+    if (error) throw error;
+    total = Number(data.total || 0);
+    const got = data.rows || [];
+    rows.push(...got);
+    if (!got.length) break;
+    off += 100;
+  }
+  if (!rows.length) return null;
+  const phones = rows.some(r => r.phone);
+  const cols = [{ key: 'date', label: 'Date', fmt: 'text' }, { key: 'branch', label: 'Branch', fmt: 'text' }, { key: 'client', label: 'Client', fmt: 'text' }, { key: 'kind', label: 'Kind', fmt: 'text' },
+    { key: 'what', label: 'What happened', fmt: 'text' }, { key: 'found', label: 'Found in', fmt: 'text' }, { key: 'now', label: 'Where it is now', fmt: 'text' }, { key: 'out', label: 'Outcome', fmt: 'text' },
+    { key: 'end', label: 'How it ended', fmt: 'text' }, { key: 'sty', label: 'Stylist', fmt: 'text' }, { key: 'svc', label: 'Services that day', fmt: 'text' }, { key: 'fee', label: 'Charged (AED)', fmt: 'aed' },
+    { key: 'by', label: 'Handled by', fmt: 'text' }, { key: 'g', label: 'Google review', fmt: 'text' }, { key: 'code', label: 'Code', fmt: 'text' }, { key: 'note', label: 'Original note', fmt: 'text' }]
+    .concat(phones ? [{ key: 'phone', label: 'Mobile', fmt: 'text' }] : []);
+  const out = rows.map(r => {
+    const cells = [r.date ? String(r.date).slice(0, 10) : 'Client card', cqBr(r.branch), r.client || '', CQ_TYPE[r.type] || r.type || '', r.detail || '', cqFound(r), cqStage(r).text,
+      r.status === 'open' ? 'Still open' : (CQ_RES[r.resolution] || r.resolution || ''), r.resolution_detail || '', r.stylists || '', r.services || '', r.fee == null ? null : Number(r.fee),
+      r.handled_by || '', r.g_date ? `${String(r.g_date).slice(0, 10)}, ${Number(r.g_stars) || ''} stars` : (r.g_manual ? 'Posted (logged)' : ''), r.code || '', r.note || ''];
+    if (phones) cells.push(r.phone || '');
+    return { cells };
+  });
+  return { name: 'client-complaints-' + (cqBranch() === 'all' ? 'all-branches' : cqBranch().toLowerCase().replace(/,/g, '-')), sheets: [{ name: 'Complaints', title: 'Client Complaints',
+    subtitle: `${out.length} complaint${out.length === 1 ? '' : 's'}, with the filters set on the page`, blocks: [{ cols, rows: out }],
+    legend: [['Found in', 'Where the complaint was first written down: a Phorest visit note, a Phorest client card, or logged by staff.'], ['Where it is now', 'The pipeline stage. Notes from Phorest were written after the fact, so they are Closed, history.']] }] };
+}
+window.cqExport = cqExport;
 
 async function cqLoadList() {
   const body = document.getElementById('cqBody');
