@@ -46,8 +46,15 @@ function bodyText(m: any): string {
   if (x.text) return String(x.text);
   const tpl = x.template && Array.isArray(x.template.components) ? x.template.components.find((c: any) => c.type === "body") : null;
   if (tpl && tpl.text) return String(tpl.text);
-  if (x.attachment && x.attachment.type) return "[" + x.attachment.type + "]";
+  if (x.attachment) return x.attachment.description ? String(x.attachment.description) : "";   // a photo has no words of its own: the page shows the photo
   return x.type ? "[" + x.type + "]" : "[message]";
+}
+
+// A photo, video, voice note or file she sent. The link opens without a login (checked 12 Nov 2026), so the page shows it from there; nothing is copied or stored.
+function attInfo(m: any) {
+  const a = m.message && m.message.attachment;
+  if (!a || !a.url) return null;
+  return { type: a.type || "file", url: String(a.url), mime: a.mimeType || a.mime || null, name: a.fileName || null };
 }
 
 async function messages(token: string, id: number, dateIso: string | null) {
@@ -64,7 +71,7 @@ async function messages(token: string, id: number, dateIso: string | null) {
       const ts = Math.floor(Number(m.messageId) / 1000);
       oldest = Math.min(oldest, ts);
       if (ts < from || ts > to) continue;
-      out.push({ w: m.traffic === "incoming" ? "c" : "s", ts, ch: CHANNELS[m.channelId] || "Chat", text: bodyText(m) });
+      out.push({ w: m.traffic === "incoming" ? "c" : "s", ts, ch: CHANNELS[m.channelId] || "Chat", text: bodyText(m), att: attInfo(m) });
     }
     const next = r.data.pagination && r.data.pagination.next;
     if (!next || !items.length || oldest < from) break;

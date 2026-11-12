@@ -216,6 +216,8 @@ function cqCss() {
     .cq-rb{max-width:80%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.45;overflow-wrap:anywhere;user-select:text}
     .cq-rb.in{justify-self:start;background:#fff;border:1px solid #e0e4ec;border-bottom-left-radius:4px}
     .cq-rb.out{justify-self:end;background:#dbe8ff;border:1px solid #c3d6fb;border-bottom-right-radius:4px}
+    .cq-rimg{display:block;width:260px;max-width:100%;border-radius:10px;margin:0 0 6px}
+    .cq-rlink{color:inherit;text-decoration:underline}
     .cq-rbt{display:block;font-size:11.5px;color:#6a7488;margin-top:3px;text-align:right}
     @media (max-width:760px){.cq-rb{max-width:92%}.cq-ptiles{grid-template-columns:1fr}}
     @media (max-width:760px){.cq-stg{font-size:12px;padding:8px 2px 6px}.cq-stg small{font-size:10px}.cq-t.cq-arc th.hm,.cq-t.cq-arc td.hm{display:none}}
@@ -532,8 +534,17 @@ async function cqRioStatus(r) {
   const tab = document.querySelector('.cq-tab[data-cqtab="chat"]');
   if (tab) tab.innerHTML = 'Conversation' + (chat.status === 'found' ? ' <span class="cq-ch green">found</span>' : chat.status === 'possible' && cands.length ? ' <span class="cq-ch amber">confirm</span>' : '');
 }
-function cqMsgTime(ts) { return new Date(ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }); }
-function cqMsgDay(ts) { return new Date(ts * 1000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }); }
+function cqMsgTime(ts) { return new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }); }
+function cqMsgDay(ts) { return new Date(ts).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }); }
+// What she sent besides words: a photo shows in the chat (a tap opens it full size), a video or a voice note plays, anything else is a link to the file.
+function cqAtt(a) {
+  if (!a || !a.url || !/^https:\/\//i.test(a.url)) return '';
+  const u = cqEsc(a.url);
+  if (a.type === 'image') return `<a href="${u}" target="_blank" rel="noopener" class="cq-rlink"><img class="cq-rimg" src="${u}" alt="A photo she sent" loading="lazy"></a>`;
+  if (a.type === 'video') return `<video class="cq-rimg" controls preload="none" src="${u}"></video>`;
+  if (a.type === 'audio') return `<audio controls preload="none" src="${u}" style="max-width:100%"></audio>`;
+  return `<a href="${u}" target="_blank" rel="noopener" class="cq-rlink">${cqEsc(a.name || 'Open the file')}</a>`;
+}
 function cqChatHtml(r, chat) {
   const box = cqCacheOf(r.id);
   const note = '<p class="cq-note">A look at her chat in respond.io, around the day of the complaint. Nothing here can be sent. Replies are made in respond.io.</p>';
@@ -551,7 +562,7 @@ function cqChatHtml(r, chat) {
   const body = msgs.length ? msgs.map(m => {
     const d = cqMsgDay(m.ts); let sep = '';
     if (d !== day) { day = d; sep = `<span class="cq-rday">${cqEsc(d)}</span>`; }
-    return `${sep}<div class="cq-rb ${m.w === 'c' ? 'in' : 'out'}">${cqText(m.text)}<span class="cq-rbt">${m.w === 's' ? 'Tara Rose, ' : ''}${cqMsgTime(m.ts)}${chans.length > 1 ? ' · ' + cqEsc(m.ch) : ''}</span></div>`;
+    return `${sep}<div class="cq-rb ${m.w === 'c' ? 'in' : 'out'}">${cqAtt(m.att)}${m.text ? cqText(m.text) : ''}<span class="cq-rbt">${m.w === 's' ? 'Tara Rose, ' : ''}${cqMsgTime(m.ts)}${chans.length > 1 ? ' · ' + cqEsc(m.ch) : ''}</span></div>`;
   }).join('') : '<p class="cq-meta" style="margin:8px">No messages around the date of the complaint.</p>';
   const initials = String(ct.name || '?').split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
   return note + `<div class="cq-rio"><div class="cq-rhd"><span class="cq-rav">${cqEsc(initials)}</span><div class="cq-rwho"><b>${cqEsc(ct.name || 'No name')}</b><small>${cqEsc(ct.phone || 'No phone number')}</small></div>
