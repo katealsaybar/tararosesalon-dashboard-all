@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=0983ef12"></script>
+<script src="js/pages.js?v=d89db3f0"></script>
 <script src="js/page-status.js?v=cc07375f"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=4c13e7f1"></script>
@@ -3669,7 +3669,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['js/products.js?v=d1961633'],
-      sp:  ['js/spend.js?v=60c3b654'],
+      sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=83ba4a45'],
       // Retention (3 Nov 2026): one file, reads retention_report and drill_retention_clients.
       rt:  ['js/retention.js?v=87f0b7fa'],
       sc:  ['js/stylist-cards.js?v=fe5a89a4'],
@@ -4409,7 +4409,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=0e1a2a42&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=4c17f3a4&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -4692,8 +4692,9 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="productsContent" style="padding:10px 0 48px"></main>
   </div>
 
-  <!-- STOCK & SUPPLIER SPEND (Kate, 21 Oct 2026): what every supplier invoiced, the products received under it, the five
-       categories and the caps. Level 4 and up. spend.js draws it (inside a shadow root) from spend_report(). -->
+  <!-- STOCK & SUPPLIER SPEND (Kate, 21 Oct 2026), now the WEEKLY PRODUCT PLAN sheet (Kate, 12 Nov 2026): one row per product per salon,
+       built from Phorest, with the plan columns editable and every edit logged. Level 4 and up. spend.js draws it (inside a shadow
+       root) from spend_plan(); the Branch and Period at the top drive it. -->
   <div id="view-supplierspend" style="display:none">
     <main id="spendContent" style="padding:10px 0 48px"></main>
   </div>
@@ -4780,7 +4781,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- Before dashboard.js: the shared jump list, lgRail and lgShell and lgJump (moved out of branch-ledger.js) and the automatic list on pages that name their sections. -->
 <!-- The shared Why wall (ALD Batch 3): whyWall() and whyFoot(), used by the Podium, Quadrant, 13 Week, Benchmarks and Ledgers pages. -->
 <script src="js/why-wall.js?v=4805dd60"></script>
-<script src="js/jump-nav.js?v=02da6ede"></script>
+<script src="js/jump-nav.js?v=22c4d28d"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=7b4719d6"></script>
