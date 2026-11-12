@@ -58,7 +58,7 @@ function attInfo(m: any) {
 }
 
 async function messages(token: string, id: number, dateIso: string | null) {
-  const from = dateIso ? Date.parse(dateIso + "T00:00:00+04:00") - 4 * 86400000 : 0;
+  const from = dateIso ? Date.parse(dateIso + "T00:00:00+04:00") - 7 * 86400000 : 0;
   const to = dateIso ? Date.parse(dateIso + "T00:00:00+04:00") + 14 * 86400000 : Infinity;
   const out: any[] = [];
   let cursor = "";
@@ -84,15 +84,21 @@ async function messages(token: string, id: number, dateIso: string | null) {
 
 // The part of the chat about the complaint, not the whole conversation (Kate, 12 Nov 2026: "complaint snippet only, not the full convo").
 // The anchor is the client's message that sounds most like a complaint (a plain word list, English and a few Arabic words), or, when the caller passes the words a search found, the message that holds them.
-// With neither, it is her first message on or after the day. The snippet is three messages before the anchor and everything after it until the chat goes quiet (see below), and the client's complaint lines in it are marked as hits.
+// With neither, it is her first message on or after the day. The snippet is from the first complaint wording just before the anchor (two messages of lead-in) and everything after it until the chat goes quiet (see below), and the client's complaint lines in it are marked as hits.
 const COMPLAINT_WORDS = /(not happy|unhappy|disappoint|unacceptable|terrible|horrible|awful|worst|poor service|rude|refund|money back|redo|re-do|fix (it|this)|wrong|not what|too (orange|yellow|warm|brassy|short|light|dark|long)|orange|yellow|brassy|patchy|uneven|burn|itch|rash|allerg|irritat|swollen|damaged|ruined|waited|waiting|overcharg|charged|complain|manager|speak to|never again|won't be back|chipped|lifted|came off|peeling|غير راض|سيء|سيئ|مشكلة|استرداد|فلوس|لن أعود)/gi;
 const flat = (t: string) => String(t || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 function score(m: any, words: string): number {
   if (m.w !== "c" || !m.text) return 0;
   let n = new Set((m.text.toLowerCase().match(COMPLAINT_WORDS) || [])).size;
+  // The words the scan stored only count for a message that also has complaint wording: the scan is sometimes wrong (13 Nov 2026: it kept "can I bring my son to my appointment" and the page marked that as the complaint).
   const key = flat(words).slice(0, 28);
-  if (key.length >= 12 && flat(m.text).includes(key)) n += 100;
+  if (n > 0 && key.length >= 12 && flat(m.text).includes(key)) n += 100;
   return n;
+}
+// The fallback when no message of hers has complaint wording at all: the message the scan stored, as before.
+function keyHit(m: any, words: string): boolean {
+  const key = flat(words).slice(0, 28);
+  return m.w === "c" && !!m.text && key.length >= 12 && flat(m.text).includes(key);
 }
 function snippet(list: any[], dateIso: string | null, words: string) {
   if (!list.length) return { messages: [], from: 0, shown: 0 };
@@ -102,12 +108,17 @@ function snippet(list: any[], dateIso: string | null, words: string) {
     const sc = score(m, words);
     if (sc > bestScore || (sc === bestScore && sc > 0 && best >= 0 && Math.abs(m.ts - day0) < Math.abs(list[best].ts - day0))) { best = i; bestScore = sc; }
   });
+  if (best < 0) best = list.findIndex((m) => keyHit(m, words));
   if (best < 0) best = list.findIndex((m) => m.w === "c" && m.ts >= day0);
   if (best < 0) best = list.map((m) => m.w).lastIndexOf("c");
   if (best < 0) best = 0;
-  // Kate, 13 Nov 2026: the snippet stopped six messages after the complaint, so it always looked as if nobody had answered her. It now runs from three messages before the complaint
-  // to the end of the conversation that follows: every message after it until the chat goes quiet for more than 4 days (at most 60), so the replies and the fix show.
-  const from = Math.max(0, best - 3);
+  // Kate, 13 Nov 2026: the snippet stopped six messages after the complaint, so it always looked as if nobody had answered her. It now runs on to the end of the conversation that follows:
+  // every message after the anchor until the chat goes quiet for more than 4 days (at most 60), so the replies and the fix show.
+  // The anchor is not always where it starts: the page can pass a later message of hers (Monika Gaehler, 13 Nov 2026: the snippet began at "can I speak to a manager" and the reason, an uneven colour with photos
+  // three days earlier, was cut). So it starts at the first message of hers with complaint wording in the 7 days before the anchor, and two messages of lead-in before that.
+  let first = best;
+  for (let i = 0; i < best; i++) if (list[i].w === "c" && score(list[i], "") > 0 && list[best].ts - list[i].ts <= 7 * 86400000) { first = i; break; }
+  const from = Math.max(0, first - 2);
   let to = best;
   while (to + 1 < list.length && list[to + 1].ts - list[to].ts <= 4 * 86400000 && to - best < 60) to++;
   const out = list.slice(from, to + 1).map((m, k) => ({ ...m, hit: score(m, words) > 0 || from + k === best && m.w === "c" }));

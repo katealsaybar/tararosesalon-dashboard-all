@@ -127,6 +127,7 @@ function cqCss() {
     .cq-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:10px 14px}
     .cq-tile b{display:block;font-size:24px;font-weight:600;line-height:1.2}
     .cq-tile span{font-size:12px;color:var(--muted)}
+    .cq-tile span.cq-muted{display:block;margin-top:2px}   /* the label and its second line were running together: Unsurea second look */
     .cq-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:12px 14px 12px;margin-bottom:14px}
     .cq-card h2{font-size:14px;font-weight:600;margin:0 0 2px}
     .cq-card .cq-note{color:var(--muted);font-size:12px;margin:0 0 10px;line-height:1.45}

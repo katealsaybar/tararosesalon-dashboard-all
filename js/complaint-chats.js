@@ -57,7 +57,7 @@ function ccPaintTiles() {
   const el = document.getElementById('ccTiles'); if (!el) return;
   const c = ccCounts(), dec = c.confirmed + c.not + c.already, real = c.confirmed + c.already;
   const T = [['todo', c.todo, 'To decide', 'chats waiting'], ['confirmed', c.confirmed, 'Confirmed', 'real complaints, only in chats'], ['not', c.not, 'Not a complaint', 'kept so we know what to ignore'],
-    ['already', c.already, 'Already in dashboard', 'on Client Complaints'], ['unsure', c.unsure, 'Unsure', 'a second look'], ['all', dec ? Math.round(100 * real / dec) + '%' : 'No data yet', 'Hit rate', dec ? real + ' of ' + dec + ' decided were real' : 'fills in as you review']];
+    ['already', c.already, 'Already in dashboard', 'on Client Complaints'], ['unsure', c.unsure, 'Unsure', 'needs a second look'], ['all', dec ? Math.round(100 * real / dec) + '%' : 'No data yet', 'Hit rate', dec ? real + ' of ' + dec + ' decided were real' : 'fills in as you review']];
   el.innerHTML = T.map(([k, n, l, s]) => `<button type="button" class="cq-tile cq-tilebtn${CC.status === k && k !== 'all' ? ' on' : ''}" data-ccstat="${k}" title="Opens the chats behind this number"><b>${n}</b><span>${cqEsc(l)}</span><span class="cq-muted">${cqEsc(s)}</span></button>`).join('');
   const d = document.getElementById('ccDo');
   if (d) d.innerHTML = c.todo ? `Open the <button type="button" class="cq-link" data-ccstat="todo">${c.todo} chat${c.todo === 1 ? '' : 's'} waiting</button>. About 1 minute each, red ones first.` : 'Nothing is waiting. Every chat has a decision.';
