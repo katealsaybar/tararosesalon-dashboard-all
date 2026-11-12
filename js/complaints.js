@@ -174,6 +174,32 @@ function cqCss() {
     .cq-stg.done{background:#E1F1E6;border-color:#2F7A4B;color:#1f5a35}
     .cq-stg.cur{background:#99F6E4;border-color:var(--accent);color:#1C1B18}
     .cq-stg.cur.red{background:#E0674F;border-color:#E0674F;color:#2b0d08}
+    .cq-rioline{margin:0 0 10px;font-size:13px;line-height:1.5;color:var(--muted)}.cq-rioline b{color:var(--text)}
+    .cq-tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin:0 0 12px;flex-wrap:wrap}
+    .cq-tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 10px;font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+    .cq-tab.on{color:var(--text);border-bottom-color:var(--accent)}
+    .cq-tab .cq-ch{margin-left:4px;padding:0 7px;font-size:11px}
+    .cq-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.5;margin-bottom:8px}
+    .cq-cand{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+    .cq-seq{display:flex;gap:8px;flex-wrap:wrap}
+    .cq-ptiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+    .cq-ptile{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:8px 12px;min-width:0;font:inherit;color:inherit}
+    button.cq-ptile{cursor:pointer}button.cq-ptile:hover{border-color:var(--muted)}
+    .cq-ptile b{font-size:20px;font-weight:600;line-height:1.25;overflow-wrap:anywhere}.cq-ptile span{font-size:12px;color:var(--muted)}
+    .cq-rio{background:#fff;color:#1c2330;border:1px solid #cfd5e0;border-radius:12px;overflow:hidden;max-width:720px}
+    .cq-rhd{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #e3e7ef;flex-wrap:wrap}
+    .cq-rav{flex:none;width:36px;height:36px;border-radius:10px;background:#dfe6f7;color:#2c3f7a;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+    .cq-rwho{min-width:0;flex:1 1 140px}.cq-rwho b{display:block;font-size:14.5px}.cq-rwho small{color:#5b6477;font-size:12.5px}
+    .cq-rpill{font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:#e4f4ea;color:#1d6b3a;border:1px solid #bfe3cc}.cq-rpill.ghost{background:#f1f3f8;color:#4a5468;border-color:#d9dde6}
+    .cq-rsub{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-bottom:1px solid #e3e7ef;font-size:12.5px;color:#4a5468;background:#fafbfd}
+    .cq-rtag{background:#eef1f7;border-radius:6px;padding:1px 8px;font-size:12px;color:#3b4560}
+    .cq-rbody{background:#f3f5f9;padding:12px;display:grid;gap:8px;max-height:560px;overflow:auto}
+    .cq-rday{justify-self:center;font-size:11.5px;color:#5b6477;background:#e6eaf2;border-radius:999px;padding:2px 12px}
+    .cq-rb{max-width:80%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.45;overflow-wrap:anywhere;user-select:text}
+    .cq-rb.in{justify-self:start;background:#fff;border:1px solid #e0e4ec;border-bottom-left-radius:4px}
+    .cq-rb.out{justify-self:end;background:#dbe8ff;border:1px solid #c3d6fb;border-bottom-right-radius:4px}
+    .cq-rbt{display:block;font-size:11.5px;color:#6a7488;margin-top:3px;text-align:right}
+    @media (max-width:760px){.cq-rb{max-width:92%}.cq-ptiles{grid-template-columns:1fr}}
     @media (max-width:760px){.cq-stg{font-size:12px;padding:8px 2px 6px}.cq-stg small{font-size:10px}.cq-t.cq-arc th.hm,.cq-t.cq-arc td.hm{display:none}}
     .cq-bars{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:6px 10px;align-items:center;font-size:13px}
     .cq-bars.yrs{grid-template-columns:44px 1fr auto}
@@ -271,7 +297,7 @@ function cqShell() {
     <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 3 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
     <div class="cq-intro" id="cqIntro">
       <p><b>What is this?</b>Every complaint we know about, wherever it was found. Click one and it opens like the pipeline.</p>
-      <p><b>Why it matters</b>Phorest notes show what staff wrote down, not everything a client told us. WhatsApp, Instagram and Facebook chats are being added so none slips through.</p>
+      <p><b>Why it matters</b>Phorest notes show what staff wrote down, not everything a client told us. Every complaint is looked up in respond.io first (WhatsApp, Instagram and Facebook), so her own words sit beside it.</p>
       <p><b>Do this now</b><span id="cqDo">Loading…</span></p>
     </div>
     ${cqRailShell(`<div id="cqTop"><p class="cq-meta">Loading…</p></div>
@@ -373,6 +399,18 @@ function cqWireTip(root) {
 
 function cqClick(e) {
   const t = e.target;
+  const tb = t.closest && t.closest('[data-cqtab]');
+  if (tb) { cqTabShow(Number(tb.dataset.id), tb.dataset.cqtab); return; }
+  const go = t.closest && t.closest('[data-cqgo]');
+  if (go) { const el = document.getElementById(go.dataset.cqgo); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const rt = t.closest && t.closest('[data-cqretry]');
+  if (rt) { const id = Number(rt.dataset.cqretry), r = cqRowById(id); if (r) { delete cqCacheOf(id).chat; cqTabShow(id, 'chat'); cqRioStatus(r); } return; }
+  const yes = t.closest && t.closest('[data-cqyes]');
+  if (yes) { const id = Number(yes.dataset.id); cqChatLink(id, Number(yes.dataset.cqyes)).then(ok => { const r = cqRowById(id); if (ok && r) { cqTabShow(id, 'chat'); cqRioStatus(r); } }); return; }
+  const no = t.closest && t.closest('[data-cqno]');
+  if (no) { const id = Number(no.dataset.id), r = cqRowById(id); cqCacheOf(id).skip.push(Number(no.dataset.cqno)); if (r) { cqTabShow(id, 'chat'); cqRioStatus(r); } return; }
+  const cul = t.closest && t.closest('[data-cqunlink]');
+  if (cul) { const id = Number(cul.dataset.cqunlink); cqChatLink(id, null).then(ok => { const r = cqRowById(id); if (ok && r) { cqTabShow(id, 'chat'); cqRioStatus(r); } }); return; }
   const cp = t.closest && t.closest('[data-copy]');
   if (cp) { e.stopPropagation(); cqCopy(cp); return; }
   const dl = t.closest && t.closest('[data-dup]');
@@ -411,6 +449,137 @@ function cqOpenRecord(id) {
   window.open(cqRecordUrl(r || { id }), '_blank', 'noopener');
 }
 
+// The record (Kate, 12 Nov 2026): the stage bar, one line on what respond.io found, and three tabs. Complaint is the card the row always had; Conversation is her chat in
+// respond.io (WhatsApp, Instagram, Facebook); Client profile is who she is in Phorest. Levels 3 and up, checked again in the database and in the edge function.
+const cqCache = {};
+const cqCacheOf = id => (cqCache[id] = cqCache[id] || { skip: [] });
+const cqDateIso = r => { const d = r.complaint_date || r.date; return d ? String(d).slice(0, 10) : null; };
+function cqRecord(r) {
+  return `${cqPipe(r)}<p class="cq-rioline" id="cqRioLine" aria-live="polite"><b>respond.io check:</b> looking her up…</p>
+    <div class="cq-tabs" role="tablist">${[['complaint', 'Complaint'], ['chat', 'Conversation'], ['client', 'Client profile']].map(([k, l], i) => `<button type="button" role="tab" class="cq-tab${i ? '' : ' on'}" data-cqtab="${k}" data-id="${r.id}">${l}</button>`).join('')}</div>
+    <div id="cqTabBody">${cqCard(r)}</div>`;
+}
+async function cqProfile(id) {
+  const c = cqCacheOf(id);
+  if (c.profile !== undefined) return c.profile;
+  try {
+    const [p, l] = await Promise.all([sb.rpc('complaint_client_profile', { p_id: id }), sb.rpc('complaint_chat_link_get', { p_id: id })]);
+    if (p.error) throw p.error;
+    c.profile = p.data || null;
+    c.link = l && !l.error && l.data ? Number(l.data) : null;
+  } catch (e) { console.error(e); c.profile = null; c.link = null; c.err = true; }
+  return c.profile;
+}
+const cqRowById = id => ((cqList && cqList.rows) || []).find(x => x.id === id);
+// Ask respond.io (through the edge function) for her chat: by the confirmed contact, else by her phone, else by her name (then a person confirms).
+async function cqChat(r, force) {
+  const c = cqCacheOf(r.id);
+  if (c.chat && !force) return c.chat;
+  const p = await cqProfile(r.id);
+  const body = { phone: (p && p.phone) || r.phone || '', name: (p && p.name) || r.client || '', date: cqDateIso(r) };
+  if (c.link) body.contact_id = c.link;
+  try {
+    const { data, error } = await sb.functions.invoke('complaint-chat', { body });
+    if (error) throw error;
+    if (data && data.error) throw new Error(data.error);
+    c.chat = data || { status: 'none' };
+  } catch (e) { console.error(e); c.chat = { status: 'error' }; }
+  return c.chat;
+}
+// The line under the stage bar: the first thing a complaint does is look for her in respond.io.
+async function cqRioStatus(r) {
+  const chat = await cqChat(r);
+  const el = document.getElementById('cqRioLine');
+  if (!el || cqOpen !== r.id) return;
+  const how = chat.how === 'confirmed' ? 'The contact was confirmed by a person.' : 'Matched by her phone number.';
+  const chans = Array.from(new Set((chat.messages || []).map(m => m.ch))).join(', ');
+  const n = (chat.messages || []).length;
+  const cands = (chat.candidates || []).filter(x => !cqCacheOf(r.id).skip.includes(x.id));
+  el.innerHTML = chat.status === 'found'
+    ? `<b>respond.io check:</b> <span class="cq-ch green">chat found</span> ${n ? cqNum(n) + ' message' + (n === 1 ? '' : 's') + ' around the complaint' + (chans ? ' on ' + cqEsc(chans) : '') + '. ' : 'No messages around the complaint date. '}${how}`
+    : chat.status === 'possible' && cands.length
+      ? `<b>respond.io check:</b> <span class="cq-ch amber">confirm it is her</span> ${cands.length} possible ${cands.length === 1 ? 'person' : 'people'} by name. Open the Conversation tab.`
+      : chat.status === 'error'
+        ? `<b>respond.io check:</b> <span class="cq-ch grey">did not load</span> Open the Conversation tab to try again.`
+        : `<b>respond.io check:</b> <span class="cq-ch grey">not found</span> Searched by phone and by name. She may never have written to us.`;
+  const tab = document.querySelector('.cq-tab[data-cqtab="chat"]');
+  if (tab) tab.innerHTML = 'Conversation' + (chat.status === 'found' ? ' <span class="cq-ch green">found</span>' : chat.status === 'possible' && cands.length ? ' <span class="cq-ch amber">confirm</span>' : '');
+}
+function cqMsgTime(ts) { return new Date(ts * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }); }
+function cqMsgDay(ts) { return new Date(ts * 1000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }); }
+function cqChatHtml(r, chat) {
+  const box = cqCacheOf(r.id);
+  const note = '<p class="cq-note">A look at her chat in respond.io, around the day of the complaint. Nothing here can be sent. Replies are made in respond.io.</p>';
+  if (chat.status === 'error') return note + '<p class="cq-meta">The chat did not load. <button type="button" class="cq-link" data-cqretry="' + r.id + '">Try again</button></p>';
+  if (chat.status === 'none') return note + '<div class="cq-box">No chat found. We searched by phone and by name in respond.io (WhatsApp, Instagram and Facebook). She may never have written to us.</div>';
+  if (chat.status === 'possible') {
+    const cands = (chat.candidates || []).filter(x => !box.skip.includes(x.id));
+    if (!cands.length) return note + '<div class="cq-box">No chat found. Every possible person was marked as not her.</div>';
+    return note + `<div class="cq-eye">Is this her in respond.io?</div>` + cands.map(x => `<div class="cq-box cq-cand"><div><b>${cqEsc(x.name || 'No name')}</b>${x.phone ? ', ' + cqEsc(x.phone) : ', no phone number'}${x.lifecycle ? ' <span class="cq-muted">' + cqEsc(x.lifecycle) + '</span>' : ''}${(x.tags || []).length ? '<div class="cq-sub2">' + (x.tags || []).slice(0, 5).map(cqEsc).join(', ') + '</div>' : ''}<div class="cq-sub2">Matched by name only, because Instagram and Facebook have no phone number.</div></div>
+      <div class="cq-seq"><button type="button" class="cq-btn" data-cqyes="${x.id}" data-id="${r.id}">Yes, this is her</button><button type="button" class="cq-btn" data-cqno="${x.id}" data-id="${r.id}">Not her</button></div></div>`).join('');
+  }
+  const ct = chat.contact || {}, msgs = chat.messages || [];
+  const chans = Array.from(new Set(msgs.map(m => m.ch)));
+  let day = '';
+  const body = msgs.length ? msgs.map(m => {
+    const d = cqMsgDay(m.ts); let sep = '';
+    if (d !== day) { day = d; sep = `<span class="cq-rday">${cqEsc(d)}</span>`; }
+    return `${sep}<div class="cq-rb ${m.w === 'c' ? 'in' : 'out'}">${cqText(m.text)}<span class="cq-rbt">${m.w === 's' ? 'Tara Rose, ' : ''}${cqMsgTime(m.ts)}${chans.length > 1 ? ' · ' + cqEsc(m.ch) : ''}</span></div>`;
+  }).join('') : '<p class="cq-meta" style="margin:8px">No messages around the date of the complaint.</p>';
+  const initials = String(ct.name || '?').split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
+  return note + `<div class="cq-rio"><div class="cq-rhd"><span class="cq-rav">${cqEsc(initials)}</span><div class="cq-rwho"><b>${cqEsc(ct.name || 'No name')}</b><small>${cqEsc(ct.phone || 'No phone number')}</small></div>
+      ${ct.status ? `<span class="cq-rpill">${cqEsc(String(ct.status).replace(/^./, c => c.toUpperCase()))}</span>` : ''}<span class="cq-rpill ghost">${cqEsc(ct.assignee || 'Unassigned')}</span></div>
+    <div class="cq-rsub">${chans.length ? cqEsc(chans.join(', ')) : 'respond.io'}${(ct.tags || []).slice(0, 6).map(t => `<span class="cq-rtag">${cqEsc(t)}</span>`).join('')}</div>
+    <div class="cq-rbody">${body}</div></div>
+    ${box.link ? `<p class="cq-note" style="margin-top:8px">Confirmed as her by a person. <button type="button" class="cq-link" data-cqunlink="${r.id}">Not her after all</button></p>` : ''}`;
+}
+function cqProfileHtml(r, p) {
+  if (!p) return '<p class="cq-meta">The profile did not load. Tap the tab to try again.</p>';
+  const items = v => (v.items || []).map(i => `${cqEsc(i.desc || 'Service')}${i.st ? ' <span class="cq-muted">with ' + cqEsc(i.st) + '</span>' : ''}`).join('<br>') || '<span class="cq-muted">No service listed</span>';
+  const visits = (p.recent || []).map(v => `<tr><td style="white-space:nowrap">${cqEsc(cqDay(v.date))}</td><td>${items(v)}</td></tr>`).join('');
+  const others = p.others || [];
+  return `<div class="cq-grid"><div>
+      <div class="cq-eye">Who she is</div>
+      <p class="cq-kv"><span>Name</span> ${cqEsc(p.name || r.client || '')}</p>
+      <p class="cq-kv"><span>Phone</span> ${p.phone ? cqEsc(p.phone) : '<span class="cq-muted">None on file</span>'}</p>
+      <p class="cq-kv"><span>Email</span> ${p.email ? cqEsc(p.email) : '<span class="cq-muted">' + (p.email_status === 'no email' ? 'No email on file' : 'None that is hers') + '</span>'}</p>
+      <p class="cq-kv"><span>Branches</span> ${(p.branches || []).length ? (p.branches || []).map(b => cqEsc(cqBr(b))).join(', ') : '<span class="cq-muted">Not matched</span>'}</p>
+      ${p.archived ? '<p class="cq-kv"><span class="cq-pill warn">Archived in Phorest</span></p>' : ''}
+      ${p.on_phorest ? '' : '<p class="cq-kv cq-muted">She is not matched to a Phorest client, so there are no visits to show.</p>'}
+      <div class="cq-ptiles">
+        <button type="button" class="cq-ptile" data-cqgo="cqVisits" title="Shows her last visits"><b>${cqNum(p.visits)}</b><span>Visits</span></button>
+        <button type="button" class="cq-ptile" data-cqgo="cqOthers" title="Shows her other complaints"><b>${cqNum(others.length)}</b><span>Other complaints</span></button>
+        <div class="cq-ptile"><b>${p.last_visit ? cqEsc(cqDay(p.last_visit)) : 'None'}</b><span>Last visit${p.first_visit ? ', first ' + cqEsc(cqDay(p.first_visit)) : ''}</span></div>
+      </div></div>
+    <div><div class="cq-eye" id="cqOthers">Her other complaints</div>
+      ${others.length ? `<table class="cq-t"><tr><th>Date</th><th>About</th><th>Where it is</th></tr>${others.map(o => `<tr><td style="white-space:nowrap">${cqEsc(cqDay(o.date))}</td><td>${cqEsc(CQ_TYPE[o.type] || o.type || 'Unclear')}${o.code ? ' <span class="cq-muted">' + cqEsc(o.code) + '</span>' : ''}</td><td>${o.status === 'open' ? 'Open' : 'Closed'}</td></tr>`).join('')}</table>` : '<p class="cq-kv cq-muted">No other complaints for this client.</p>'}
+      <div class="cq-eye" id="cqVisits" style="margin-top:14px">Last visits in Phorest</div>
+      ${visits ? `<table class="cq-t"><tr><th>Date</th><th>What she had</th></tr>${visits}</table>` : '<p class="cq-kv cq-muted">No visits on file.</p>'}</div></div>`;
+}
+async function cqTabShow(id, tab) {
+  const box = document.getElementById('cqTabBody');
+  if (!box) return;
+  document.querySelectorAll('.cq-tab').forEach(b => b.classList.toggle('on', b.dataset.cqtab === tab));
+  const r = cqRowById(id);
+  if (!r) return;
+  if (tab === 'complaint') { box.innerHTML = cqCard(r); return; }
+  box.innerHTML = '<p class="cq-meta" style="padding:8px 2px">Loading…</p>';
+  if (tab === 'client') {
+    const c = cqCacheOf(id); if (c.err) { delete c.profile; c.err = false; }
+    const p = await cqProfile(id);
+    if (document.querySelector('.cq-tab.on')?.dataset.cqtab === 'client') box.innerHTML = cqProfileHtml(r, p);
+  } else {
+    const chat = await cqChat(r);
+    if (document.querySelector('.cq-tab.on')?.dataset.cqtab === 'chat') box.innerHTML = cqChatHtml(r, chat);
+  }
+}
+async function cqChatLink(id, contact) {
+  const { error } = await sb.rpc('complaint_chat_link_set', { p_id: id, p_contact: contact });
+  if (error) { console.error(error); return false; }
+  const c = cqCacheOf(id); c.link = contact; delete c.chat;
+  return true;
+}
+
 function cqToggle(row) {
   const id = Number(row.dataset.i);
   const body = document.getElementById('cqBody');
@@ -423,8 +592,9 @@ function cqToggle(row) {
   row.classList.add('on');
   const det = document.createElement('tr');
   det.className = 'cq-detrow';
-  det.innerHTML = `<td class="cq-det" colspan="${row.children.length}">${cqCard(r)}</td>`;
+  det.innerHTML = `<td class="cq-det" colspan="${row.children.length}">${cqRecord(r)}</td>`;
   row.after(det);
+  cqRioStatus(r);
 }
 
 // Which complaints reached Google: a Google review whose reviewer name is the client's full name, left on or after the complaint.
@@ -651,7 +821,7 @@ function cqCard(r) {
       <p class="cq-kv"><span>Responsible</span> ${r.responsible ? cqEsc(r.responsible) : '<span class="cq-muted">Nobody named yet</span>'}</p>
       ${open ? `<p class="cq-kv"><span>Why pending</span> ${r.pending_reason ? cqEsc(r.pending_reason) : '<span class="cq-muted">Not written yet</span>'}</p>` : ''}` : '';
   const revisit = (logged && r.revisit_date) ? `<p class="cq-kv"><span>Revisit</span> ${cqEsc(cqDay(r.revisit_date))}. ${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}${r.revisit_note ? '. ' + cqEsc(r.revisit_note) : ''}</p>` : '';
-  return cqPipe(r) + `<div class="cq-grid">
+  return `<div class="cq-grid">
     <div>
       <div class="cq-eye">Where and who</div>
       ${r.code ? `<p class="cq-kv"><span>Code</span> ${cqCodeChip(r)}</p>` : ''}
