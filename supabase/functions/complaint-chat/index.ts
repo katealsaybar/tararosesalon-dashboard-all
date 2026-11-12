@@ -19,7 +19,9 @@ Deno.serve(async (req) => {
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
   const me = await sb.rpc("dashboard_me");
   const level = Array.isArray(me.data) && me.data[0] ? Number(me.data[0].level) : 0;
-  if (level < 3) return json({ error: "Conversations are for Levels 3 and up" }, 403);
+  const scope = await sb.rpc("dashboard_scope");   // a Bahrain-scoped sign-in is refused, like every other Client Complaints call
+  // The level numbers in the database are the old ones: Level 3 in the dashboard's own words (Leadership) is 2 here.
+  if (level < 2 || scope.data) return json({ error: "Conversations are for Levels 3 and up" }, 403);
   let body: any = {};
   try { body = await req.json(); } catch (_) { return json({ error: "Bad request" }, 400); }
   try {

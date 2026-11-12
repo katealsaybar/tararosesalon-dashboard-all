@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=d17760dd"></script>
+<script src="js/pages.js?v=db3c845c"></script>
 <script src="js/page-status.js?v=cc07375f"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=4c13e7f1"></script>
@@ -3657,7 +3657,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       at:  ['js/attrition.js?v=a1fdad42'],
       cb:  ['js/report-export.js?v=d7b73ae8', 'js/client-book.js?v=5cb6aa40'],
       // Complaint triage batch 2 (29 Oct 2026): cmp-people.js is the people list and picker shared with Team Home's complaint ticket.
-      cp:  ['js/report-export.js?v=d7b73ae8', 'js/complaints.js?v=6511c83e', 'js/cmp-people.js?v=5925547b', 'js/complaint-log.js?v=cd090b66'],
+      cp:  ['js/report-export.js?v=d7b73ae8', 'js/complaints.js?v=55b28bb5', 'js/complaint-chats.js?v=a8954417', 'js/complaints-detail.js?v=b01fae8e', 'js/cmp-people.js?v=5925547b', 'js/complaint-log.js?v=cd090b66'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['js/products.js?v=d1961633'],
@@ -3841,6 +3841,9 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" href="/?view=retention" onclick="if(trsPlain(event)){event.preventDefault();showView('retention', this)}">Retention</a>
     <a class="nav-sub" href="/?view=clientbook" onclick="if(trsPlain(event)){event.preventDefault();showView('clientbook', this)}">Client Book</a>
     <a class="nav-sub" href="/?view=complaints" onclick="if(trsPlain(event)){event.preventDefault();showView('complaints', this)}">Client Complaints</a>
+    <!-- Kate, 12 Nov 2026: the chat complaints review and the detailed complaints table sit under Client Complaints. -->
+    <a class="nav-sub lvl2" href="/?view=complaintchats" onclick="if(trsPlain(event)){event.preventDefault();showView('complaintchats', this)}">Chat complaints review</a>
+    <a class="nav-sub lvl2" href="/?view=complaintsdetail" onclick="if(trsPlain(event)){event.preventDefault();showView('complaintsdetail', this)}">Detailed complaints</a>
     <a class="nav-sub" href="/?view=last-visit" onclick="if(trsPlain(event)){event.preventDefault();showView('lostclients', this)}">Client’s Last Visit</a>
     <a class="nav-sub" href="/?view=reviews" onclick="if(trsPlain(event)){event.preventDefault();showView('reviews', this)}">Google Reviews</a>
     <div class="nav-subhead">Sales &amp; Stock</div>
@@ -4594,6 +4597,17 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- LOG A COMPLAINT (Kate, 22 Oct 2026): the form to log a complaint and the ones logged from it, to follow up and close; its own page
        under Client Complaints, so the mini side nav there stays about the numbers. complaints.js draws it (renderComplaintLog). -->
+  <!-- CHAT COMPLAINTS REVIEW (Kate, 12 Nov 2026): the chats in respond.io that sound like a complaint and are not on Client Complaints yet; Coach Emma and Kate decide each one.
+       complaint_candidates_list and complaint_candidate_* (migrations/complaint_candidates.sql), Levels 3 and up. complaint-chats.js draws it. -->
+  <div id="view-complaintchats" style="display:none">
+    <main id="complaintChatsContent" style="max-width:1340px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+  <!-- DETAILED COMPLAINTS (Kate, 12 Nov 2026): every complaint on one table with every column, XLSX and CSV. Reads client_complaints_list and the confirmed chat complaints.
+       complaints-detail.js draws it. Levels 3 and up. -->
+  <div id="view-complaintsdetail" style="display:none">
+    <main id="complaintsDetailContent" style="max-width:1560px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <div id="view-complaintlog" style="display:none">
     <main id="complaintlogContent" style="max-width:1340px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
@@ -5267,7 +5281,7 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'complaintchats' || view === 'complaintsdetail' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts');
@@ -5302,6 +5316,8 @@ function showView(view, el){
   if (view === 'clientbook') renderClientBook();
   if (view === 'complaints') renderComplaints();
   if (view === 'complaintlog') renderComplaintLog();
+  if (view === 'complaintchats') renderComplaintChats();
+  if (view === 'complaintsdetail') renderComplaintsDetail();
   if (view === 'attrition') renderAttrition();
   if (view === 'lostclients') renderLostClients();
   if (view === 'lostlists') renderLostListsPage();

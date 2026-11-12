@@ -1,12 +1,12 @@
 -- Client profile on a complaint (Kate, 12 Nov 2026: "level 3 and up"). One call for the Client profile tab of a complaint record:
 -- who she is (name, phone, email only when it is hers), the branches she sits under, how many visits Phorest holds for her, her last visits, and her other complaints.
--- Levels 3 and up, checked here (the Client Book stays Level 5 because it shows every note; this shows no notes, only the visit list and the contact details).
+-- Levels 3 and up (the numbers in the database are the old ones: 3 in the UI is 2 here, and a Bahrain-scoped sign-in is refused), checked here (the Client Book stays Level 5 because it shows every note; this shows no notes, only the visit list and the contact details).
 -- Read only. A complaint logged from the form with no Phorest client still answers, from the name and mobile typed on it.
 create or replace function public.complaint_client_profile(p_id bigint) returns jsonb
 language plpgsql stable security definer set search_path = '' set statement_timeout = '20s' as $$
 declare c record; e record; out jsonb; today date := (now() at time zone 'Asia/Dubai')::date;
 begin
-  if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 3 then raise exception 'Client profile is for Levels 3 and up'; end if;
+  if coalesce((select m.level from public.dashboard_me() m limit 1), 0) < 2 or (select public.dashboard_scope()) is not null then raise exception 'Client profile is for Levels 3 and up'; end if;
   select x.id, x.phorest_id, x.client_name, x.client_phone, x.branch_code, coalesce(x.complaint_date, x.event_date) as cdate
     into c from public.client_complaints x where x.id = p_id;
   if not found then return null; end if;
