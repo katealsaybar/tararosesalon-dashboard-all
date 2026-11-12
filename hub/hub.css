@@ -268,6 +268,16 @@ body[data-kb-view="list"] .kb-gtiles .kb-fvwrap .kb-star{top:50%;right:10px;marg
 body[data-kb-view="list"] .kb-gtiles .kb-gt-tx{flex:1;min-width:0}
 .kb-crumbs a{text-decoration:none;border-bottom:1px solid var(--border)}
 .kb-crumbs a:hover{border-color:var(--text)}
+/* Phone (Kate, 12 Nov 2026): the two links wrapped to two lines each beside the view switch. Now the links stack on the left, one line each,
+   and the switch sits on the right across both rows. */
+@media (max-width:560px){
+  .kb-crumbs{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:14px;row-gap:2px;align-items:center}
+  .kb-crumbs-r{display:contents}
+  .kb-crumbs a{white-space:nowrap;justify-self:start;font-size:14px;padding:6px 0 3px}
+  .kb-crumbs>a:first-child{grid-column:1;grid-row:1}
+  .kb-crumbs-r>a{grid-column:1;grid-row:2}
+  .kb-crumbs .kb-vt{grid-column:2;grid-row:1 / span 2;align-self:center}
+}
 .kb-page-title{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:34px;line-height:1.2;margin:0 0 6px}
 .kb-meta{font-size:13px;color:var(--muted2);margin:0 0 22px}
 .kb-group{margin:0 0 26px}
