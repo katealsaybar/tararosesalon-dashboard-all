@@ -12,8 +12,10 @@ create table if not exists public.plan_scope (
   kind  text not null check (kind in ('brand','cat')),
   pat   text not null,        -- brand: a lower-case regex matched on the brand; cat: the Phorest category (compared in upper case)
   label text,                 -- cat only: the name the sheet shows
+  supplier text,              -- brand only (12 Nov 2026): who we buy that brand from, shown as the sheet's first column; no match shows DBD
   primary key (kind, pat)
 );
+alter table public.plan_scope add column if not exists supplier text;
 
 create table if not exists public.plan_settings (
   key   text primary key,
@@ -103,7 +105,7 @@ revoke all on sequence public.plan_edit_log_id_seq, public.plan_list_prices_id_s
 -- The sheet. p_from..p_to is the dashboard's Period (Avg Units / Week = units in the window / days x 7); the window stops at the last
 -- day of usage loaded. p_list = the price list to read (null = the one in force today).
 -- rows: [row_key, branch, category, product, type p|r, flag, units per month (aligned with months), priority, min, max, unit cost,
---        unit cost in the list before, stock list price, in stock now, match status, price tag, brand]
+--        unit cost in the list before, stock list price, in stock now, match status, price tag, brand, supplier]
 --   flag 0 = fine, 1 = not on the Stock List now, 2 = the category name and Phorest disagree on professional or retail
 create or replace function public.spend_plan(p_from date default null, p_to date default null, p_list bigint default null)
 returns jsonb language plpgsql security definer set search_path = '' as $$
@@ -260,7 +262,8 @@ begin
            when p.kind = 2 then 'New SKU from a price list'
            when g.au is null then 'No matched usage' else 'Matched' end,
       pt.tag,
-      p.brand
+      p.brand,
+      coalesce((select b.supplier from public.plan_scope b where b.kind = 'brand' and lower(coalesce(p.brand, '')) ~ b.pat order by length(b.pat) desc limit 1), 'DBD')
     ) order by p.branch, p.label, p.product, p.rk) rows
     from pg_temp.pl_prow p
     cross join zeros

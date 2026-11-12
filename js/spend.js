@@ -17,8 +17,8 @@
   const B = ['SAA', 'KCA', 'MC', 'AQ'];
   const BN = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' };
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  // a row from spend_plan(): the first 17 come from the database, the next four are worked out here
-  const K = 0, BR = 1, CAT = 2, NAME = 3, TYPE = 4, FLAG = 5, U = 6, PRIO = 7, MIN = 8, MAX = 9, COST = 10, PREV = 11, SALE = 12, STK = 13, STAT = 14, TAG = 15, AVG = 17, MINV = 18, MAXV = 19, WK = 20, MO = 100;
+  // a row from spend_plan(): the first 18 come from the database (index 16 is the brand, 17 the supplier), the next four are worked out here
+  const K = 0, BR = 1, CAT = 2, NAME = 3, TYPE = 4, FLAG = 5, U = 6, PRIO = 7, MIN = 8, MAX = 9, COST = 10, PREV = 11, SALE = 12, STK = 13, STAT = 14, TAG = 15, SUP = 17, AVG = 18, MINV = 19, MAXV = 20, WK = 21, MO = 100;
   const FIELD = { [CAT]: 'cat', [NAME]: 'name', [TYPE]: 'type', [PRIO]: 'prio', [MIN]: 'min', [MAX]: 'max' };
 
   const CSS = `
@@ -81,9 +81,10 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .srt{color:var(--ok);font-size:10px;margin-left:3px}
 .xt td{position:relative;padding:3px 6px 3px 10px;border-bottom:1px solid var(--border2);text-align:right;white-space:nowrap;background:var(--surface);height:36px}
 .xt th.l,.xt td.l{text-align:left}
-.xt .c-cat{position:sticky;left:0;z-index:2;width:140px;min-width:140px;max-width:140px;text-align:left}
-.xt .c-name{position:sticky;left:140px;z-index:2;width:270px;min-width:270px;max-width:270px;text-align:left;white-space:normal;box-shadow:1px 0 0 var(--border)}
-.xt th.c-cat,.xt th.c-name{z-index:5}
+.xt .c-sup{position:sticky;left:0;z-index:2;width:92px;min-width:92px;max-width:92px;text-align:left;font-weight:600;white-space:nowrap}
+.xt .c-cat{position:sticky;left:92px;z-index:2;width:140px;min-width:140px;max-width:140px;text-align:left}
+.xt .c-name{position:sticky;left:232px;z-index:2;width:270px;min-width:270px;max-width:270px;text-align:left;white-space:normal;box-shadow:1px 0 0 var(--border)}
+.xt th.c-sup,.xt th.c-cat,.xt th.c-name{z-index:5}
 .xt .c-type{text-align:left;width:164px;min-width:164px}
 .xt th.c-type{background:color-mix(in srgb,var(--accent-lavender,#C4B5FD) 28%,var(--surface2));color:var(--text)}
 .xt th.c-stk{background:color-mix(in srgb,var(--accent-mint,#99F6E4) 26%,var(--surface2));color:var(--text)}
@@ -98,7 +99,7 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .xt .c-st{text-align:left;width:210px;min-width:210px;max-width:210px;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
 .xt tr.rw:hover td{background-image:linear-gradient(color-mix(in srgb,var(--warn,#BA7517) 14%,transparent),color-mix(in srgb,var(--warn,#BA7517) 14%,transparent))}
 .xt tfoot td{position:sticky;bottom:0;z-index:2;background:var(--surface2);font-weight:600;border-top:1px solid var(--border);border-bottom:0;padding-right:10px}
-.xt tfoot td.c-cat,.xt tfoot td.c-name{z-index:4}
+.xt tfoot td.c-sup,.xt tfoot td.c-cat,.xt tfoot td.c-name{z-index:4}
 .sal{display:block;font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--muted2);margin-top:1px;padding-left:5px}
 .tg{display:flex;gap:4px;flex-wrap:wrap;padding:0 0 1px 5px}
 .tag{font-size:11px;font-weight:600;border-radius:5px;padding:0 6px;background:var(--warn-bg,#FAEEDA);color:var(--warn,#8A5A0C);white-space:normal}
@@ -188,7 +189,7 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .fm button:focus-visible,.fm input:focus-visible,.fm select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
 @container (max-width:760px){
-  .xt .c-cat{display:none}
+  .xt .c-sup,.xt .c-cat{display:none}
   .xt .c-name{left:0;width:176px;min-width:176px;max-width:176px}
   #q{min-width:0;width:100%}
   .dl{margin-left:0}
@@ -264,7 +265,7 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
     return MON[a.getMonth()] + ((a.getDate() !== 1 || z.getDate() !== last) ? ' ' + a.getDate() + '-' + z.getDate() : '');
   }
   function cols() {
-    const c = [['Category', '', CAT, 'l c-cat', 's'], ['Product', '', NAME, 'l c-name', 's'], ['Type', 'Hair Professional or Hair Retail', TYPE, 'l c-type', 's'], ['In stock now', 'on the shelf, Phorest', STK, 'c-n c-stk', 'n']];
+    const c = [['Supplier', '', SUP, 'l c-sup', 's'], ['Category', '', CAT, 'l c-cat', 's'], ['Product', '', NAME, 'l c-name', 's'], ['Type', 'Hair Professional or Hair Retail', TYPE, 'l c-type', 's'], ['In stock now', 'on the shelf, Phorest', STK, 'c-n c-stk', 'n']];
     S.months.forEach((m, i) => c.push([mlab(m), '', MO + i, 'c-m', 'n']));
     c.push(['Avg Units / Week', '@avg', AVG, 'c-avg', 'n'], ['PRIORITY', '', PRIO, 'c-pr', 's'], ['Suggested Min Units', '', MIN, 'c-n', 'n'], ['Suggested Max Units', '', MAX, 'c-n', 'n'],
       ['Usage Unit Cost AED', '@price', COST, 'c-n c-uc', 'n'], ['Min Stock Value AED', '', MINV, 'c-n', 'n'], ['Max Stock Value AED', '', MAXV, 'c-n', 'n'],
@@ -576,25 +577,26 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
   function rowHtml(i) {
     const r = S.rows[i], mx = heat(r), d = deltaOf(r), flag = r[FLAG] === 2, ed = S.access.edit;
     let h = '<tr class="rw' + (ed ? '' : ' ro') + '" data-i="' + i + '">' +
+      '<td class="c-sup ro" title="From the supplier list, not editable here">' + esc(r[SUP] || '') + '</td>' +
       '<td class="c-cat"><select class="cs" data-k="' + CAT + '" aria-label="Category"' + dis() + '><option>' + esc(r[CAT]) + '</option></select>' + triHtml(r, CAT) + '</td>' +
       '<td class="c-name"><div class="tx" contenteditable="' + (ed ? 'true' : 'false') + '" spellcheck="false" data-k="' + NAME + '" role="textbox" aria-label="Product">' + esc(r[NAME]) + '</div>' + (multi() ? '<span class="sal">' + BN[r[BR]] + '</span>' : '') + pvTag(r) + triHtml(r, NAME) + '</td>' +
       '<td class="c-type"><select class="tyl ' + r[TYPE] + (r[FLAG] === 1 ? ' inf' : '') + '" data-k="' + TYPE + '" aria-label="Type"' + dis() + '><option value="p"' + (r[TYPE] === 'p' ? ' selected' : '') + '>Hair Professional</option><option value="r"' + (r[TYPE] === 'r' ? ' selected' : '') + '>Hair Retail</option></select>' +
       (flag ? '<i class="fl" tabindex="0" data-say="The category name says ' + (r[TYPE] === 'r' ? 'Professional' : 'Retail') + ' but Phorest has it as ' + (r[TYPE] === 'r' ? 'retail' : 'professional') + '. Change it here if Phorest is wrong." aria-label="The category name says ' + (r[TYPE] === 'r' ? 'Professional' : 'Retail') + ' but Phorest has it as ' + (r[TYPE] === 'r' ? 'retail' : 'professional') + '. Change it here if Phorest is wrong.">!</i>' : '') + triHtml(r, TYPE) + '</td>' +
       '<td class="c-n c-stk ro" title="From Phorest, not editable here">' + (r[STK] == null ? '<span class="gap">-</span>' : f(r[STK])) + '</td>';
     S.months.forEach((m, j) => { const v = r[U][j]; h += '<td class="c-m ro' + (v ? '' : ' z') + '" style="' + heatStyle(v, mx) + '" title="' + esc(mlab(m)) + ', from Phorest, not editable here">' + v + '</td>'; });
-    h += '<td class="c-avg v17">' + f2(r[AVG]) + '</td>' +
+    h += '<td class="c-avg v18">' + f2(r[AVG]) + '</td>' +
       '<td class="c-pr"><select class="pri ' + r[PRIO] + '" data-k="' + PRIO + '" aria-label="Priority"' + dis() + '>' + ['A', 'B', 'C'].map(p => '<option' + (p === r[PRIO] ? ' selected' : '') + '>' + p + '</option>').join('') + '</select>' + triHtml(r, PRIO) + '</td>' +
       '<td class="c-n"><input class="num" type="number" min="0" step="1" data-k="' + MIN + '" aria-label="Suggested min units" value="' + (r[MIN] == null ? '' : r[MIN]) + '"' + dis() + '>' + triHtml(r, MIN) + '</td>' +
       '<td class="c-n"><input class="num" type="number" min="0" step="1" data-k="' + MAX + '" aria-label="Suggested max units" value="' + (r[MAX] == null ? '' : r[MAX]) + '"' + dis() + '>' + triHtml(r, MAX) + '</td>' +
       '<td class="c-n c-uc"><div class="uc">' + (d ? '<span class="dlt ' + (d.pct > 0 ? 'up' : 'dn') + '" title="Change from price list ' + (curList().n - 1) + '">' + (d.pct > 0 ? '&#9650; ' : '&#9660; ') + Math.abs(d.pct * 100).toFixed(1) + '%</span>' : '') + '<span class="uv" title="From Phorest and the price list, not editable here">' + (r[COST] == null ? '<span class="gap">-</span>' : f2(r[COST])) + '</span></div></td>' +
-      '<td class="c-n v18">' + dash(r[MINV], f) + '</td><td class="c-n v19">' + dash(r[MAXV], f) + '</td><td class="c-n v20">' + dash(r[WK], f2) + '</td>' +
+      '<td class="c-n v19">' + dash(r[MINV], f) + '</td><td class="c-n v20">' + dash(r[MAXV], f) + '</td><td class="c-n v21">' + dash(r[WK], f2) + '</td>' +
       '<td class="c-st" title="' + esc(r[STAT]) + '">' + esc(r[STAT]) + '</td><td class="c-n">' + dash(r[SALE], f2) + '</td></tr>';
     return h;
   }
   function totalsHtml() {
     const T = S.months.map(() => 0); let avg = 0, mn = 0, mx = 0, mv = 0, xv = 0, wc = 0, sk = 0;
     S.view.forEach(i => { const r = S.rows[i]; r[U].forEach((v, j) => { T[j] += v; }); avg += r[AVG]; mn += (r[MIN] || 0); mx += (r[MAX] || 0); mv += (r[MINV] || 0); xv += (r[MAXV] || 0); wc += (r[WK] || 0); sk += (r[STK] || 0); });
-    let h = '<tr><td class="c-cat">Total</td><td class="c-name">' + S.view.length + ' products shown</td><td class="c-type"></td><td class="c-n c-stk">' + f(sk) + '</td>';
+    let h = '<tr><td class="c-sup"></td><td class="c-cat">Total</td><td class="c-name">' + S.view.length + ' products shown</td><td class="c-type"></td><td class="c-n c-stk">' + f(sk) + '</td>';
     T.forEach(v => { h += '<td class="c-m">' + f(v) + '</td>'; });
     return h + '<td class="c-avg">' + f2(avg) + '</td><td class="c-pr"></td><td class="c-n">' + f(mn) + '</td><td class="c-n">' + f(mx) + '</td><td class="c-n c-uc"></td><td class="c-n">' + f(mv) + '</td><td class="c-n">' + f(xv) + '</td><td class="c-n">' + f2(wc) + '</td><td class="c-st"></td><td class="c-n"></td></tr>';
   }
@@ -653,6 +655,7 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
     const asof = Object.keys(S.asof).filter(x => S.brs.indexOf(x) >= 0).map(x => S.asof[x]).sort()[0];
     const card = (t, h) => '<div><b>' + t + '</b>' + h + '</div>';
     $('foot').innerHTML =
+      card('Supplier', 'Who we buy the product from, set from its brand. Everything from the original Weekly Product Plan sheet is DBD. Madi and Eideal products come from Phorest.') +
       card('Type', 'The stock type Phorest holds. Colour products are always professional.' + (cf ? ' <i class="fl">!</i> marks the ' + cf + ' products where the category name and Phorest disagree, so change the Type in Phorest if it is wrong.' : '')) +
       (orph ? card('Not on the Stock List', 'The ' + orph + ' products in italics had usage but are not on the Stock List any more, so they have no shelf stock.') : '') +
       card('In stock now', 'The quantity Phorest shows on the shelf' + (asof ? ' (Stock List of ' + dmy(asof) + ')' : '') + '. A negative number is what Phorest holds.') +
@@ -737,7 +740,7 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
     E.list.unshift({ who: data.by, at: data.at, from: oldTxt, to: newTxt }); E.n++;
     if (k === TYPE) { el.className = 'tyl ' + after + (r[FLAG] === 1 ? ' inf' : ''); const fl = tr.querySelector('.fl'); if (fl) fl.style.display = 'none'; }
     if (k === PRIO) el.className = 'pri ' + after;
-    tr.querySelector('.v18').innerHTML = dash(r[MINV], f); tr.querySelector('.v19').innerHTML = dash(r[MAXV], f);
+    tr.querySelector('.v19').innerHTML = dash(r[MINV], f); tr.querySelector('.v20').innerHTML = dash(r[MAXV], f);
     if (!td.querySelector('.tri')) td.insertAdjacentHTML('beforeend', triHtml(r, k));
     $('tf').innerHTML = totalsHtml(); refreshMeta();
   }
