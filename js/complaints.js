@@ -174,6 +174,12 @@ function cqCss() {
     .cq-stg.done{background:#E1F1E6;border-color:#2F7A4B;color:#1f5a35}
     .cq-stg.cur{background:#99F6E4;border-color:var(--accent);color:#1C1B18}
     .cq-stg.cur.red{background:#E0674F;border-color:#E0674F;color:#2b0d08}
+    .cq-gone{display:none}
+    .cq-recbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 12px}
+    .cq-recpos{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+    .cq-recbox{padding:16px 18px 18px;max-width:1040px}
+    .cq-rectitle{font-size:19px !important;line-height:1.35;font-weight:600;margin:0 0 8px !important;overflow-wrap:anywhere}
+    .cq-recchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
     .cq-rioline{margin:0 0 10px;font-size:13px;line-height:1.5;color:var(--muted)}.cq-rioline b{color:var(--text)}
     .cq-tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin:0 0 12px;flex-wrap:wrap}
     .cq-tab{background:none;border:0;border-bottom:3px solid transparent;padding:8px 10px;font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
@@ -294,6 +300,8 @@ function cqShell() {
   const ropts = ['<option value="all">All outcomes</option>'].concat(Object.keys(CQ_RES).map(k => `<option value="${k}">${cqEsc(CQ_RES[k])}</option>`)).join('');
   return cqCss() + `<div class="cq">
     <h1>Client Complaints</h1>
+    <div id="cqRec" class="cq-gone"></div>
+    <div id="cqMain">
     <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 3 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
     <div class="cq-intro" id="cqIntro">
       <p><b>What is this?</b>Every complaint we know about, wherever it was found. Click one and it opens like the pipeline.</p>
@@ -320,6 +328,7 @@ function cqShell() {
       <div id="cqBody" style="overflow-x:auto"><p class="cq-meta">Loading…</p></div>
     </div>`)}
     <p class="cq-foot">How to read it. A complaint here is a note where the client was unhappy with the service, result, price, wait or experience, or where a redo, refund or credit was given because the result was not right. Cancellation apologies, deposit rules, Google review requests and clients unhappy with another salon were left out. A free redo means a redo was written down; most of them had no charge on the visit, some did. The rate per 1,000 noted visits is there because branches do not write notes equally, so the raw count favours the branch that writes most. Marasy closed in 2022. Not included: WhatsApp complaints, respond.io tags, Google reviews, and anything nobody typed into Phorest. Client card notes have no date, so they are counted apart and only show in All time. Unsure means the note was too short to be sure, usually a bare "redo". The Google column looks for a Google review whose reviewer name is the client's full name, left on or after the complaint. Reviewers often post a first name or a nickname, so None found is not proof that nothing was posted, and a match is the same name, not a certainty it is about that visit.</p>
+    </div>
   </div>`;
 }
 
@@ -339,6 +348,9 @@ function cqWire() {
     ft.addEventListener('click', () => { const bar = ft.closest('.cq-filt'); const on = bar.classList.toggle('open'); ft.setAttribute('aria-expanded', String(on)); });
   }
   cqFtogLabel();
+  const rec = document.getElementById('cqRec');
+  if (rec && !rec.dataset.w) { rec.dataset.w = '1'; rec.addEventListener('click', cqClick); }
+  if (!window.cqEscWired) { window.cqEscWired = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && cqOpen && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) cqRecClose(); }); }
   const sh = document.getElementById('cqSheet');
   if (sh && !sh.dataset.w) { sh.dataset.w = '1'; sh.addEventListener('click', cqSheetsExport); }
   const go = document.getElementById('cqfGo');
@@ -399,6 +411,9 @@ function cqWireTip(root) {
 
 function cqClick(e) {
   const t = e.target;
+  if (t.closest && t.closest('[data-cqback]')) { cqRecClose(); return; }
+  const nv = t.closest && t.closest('[data-cqnav]');
+  if (nv) { cqRecNav(Number(nv.dataset.cqnav)); return; }
   const tb = t.closest && t.closest('[data-cqtab]');
   if (tb) { cqTabShow(Number(tb.dataset.id), tb.dataset.cqtab); return; }
   const go = t.closest && t.closest('[data-cqgo]');
@@ -580,8 +595,43 @@ async function cqChatLink(id, contact) {
   return true;
 }
 
+// The record's own view (Kate, 12 Nov 2026: "can it have its own opening? masikip, and nakakalito pag nasa pinaka baba"). A row used to open a card under itself at the foot of the list.
+// Now it replaces the archive with the record, a Back button and previous and next through the page of complaints, and Back returns to the same place in the list.
+let cqBackY = 0;
+function cqRecOpen(id) {
+  const r = cqRowById(id), rec = document.getElementById('cqRec'), main = document.getElementById('cqMain');
+  if (!r || !rec || !main) return;
+  if (!main.classList.contains('cq-gone')) cqBackY = window.scrollY;
+  const rows = (cqList && cqList.rows) || [], i = rows.findIndex(x => x.id === id);
+  cqOpen = id;
+  const st = cqStage(r), pri = cqPri(r);
+  rec.innerHTML = `<div class="cq-recbar"><button type="button" class="cq-btn" data-cqback="1">&larr; Back to the archive</button>
+      <span class="cq-recpos">${i + 1} of ${rows.length} on this page <button type="button" class="cq-btn" data-cqnav="-1" aria-label="Previous complaint"${i <= 0 ? ' disabled' : ''}>&lsaquo;</button><button type="button" class="cq-btn" data-cqnav="1" aria-label="Next complaint"${i >= rows.length - 1 ? ' disabled' : ''}>&rsaquo;</button></span></div>
+    <div class="cq-card cq-recbox">
+      <h2 class="cq-rectitle">${cqEsc(cqMDY(r.date))} | ${cqEsc(r.branch || '')} | ${cqEsc(r.client || 'No name')} | ${cqEsc(CQ_TYPE[r.type] || 'Unclear')}</h2>
+      <div class="cq-recchips"><span class="cq-ch ${cqFoundKey(r)}">${cqEsc(cqFound(r))}</span><span class="cq-ch ${st.tone}">${cqEsc(st.text)}</span><span class="cq-ch ${pri === 'high' ? 'red' : pri === 'mid' ? 'amber' : 'grey'}">${pri === 'high' ? 'High' : pri === 'mid' ? 'Mid' : 'Low'} priority</span>${r.code ? cqCodeChip(r) : ''}</div>
+      ${cqRecord(r)}
+    </div>`;
+  main.classList.add('cq-gone'); rec.classList.remove('cq-gone');
+  window.scrollTo(0, 0);
+  cqRioStatus(r);
+}
+function cqRecClose() {
+  const rec = document.getElementById('cqRec'), main = document.getElementById('cqMain');
+  if (!rec || !main || rec.classList.contains('cq-gone')) return;
+  rec.classList.add('cq-gone'); rec.innerHTML = '';
+  main.classList.remove('cq-gone');
+  cqOpen = 0;
+  window.scrollTo(0, cqBackY);
+}
+function cqRecNav(d) {
+  const rows = (cqList && cqList.rows) || [], i = rows.findIndex(x => x.id === cqOpen), n = rows[i + d];
+  if (i >= 0 && n) cqRecOpen(n.id);
+}
+
 function cqToggle(row) {
   const id = Number(row.dataset.i);
+  if (cqMode === 'main') { cqRecOpen(id); return; }
   const body = document.getElementById('cqBody');
   body.querySelectorAll('tr.cq-detrow').forEach(r => r.remove());
   body.querySelectorAll('tr.cq-row.on').forEach(r => r.classList.remove('on'));
@@ -1107,6 +1157,7 @@ async function cqLoadList() {
 
 // The masthead's Branch chips changed (dashboard.js NOPULSE_REDRAW): redraw the numbers and the list for the new pick.
 function cqRefresh() {
+  cqRecClose();
   if (!document.getElementById('cqTop')) return renderComplaints();
   CQ.page = 0; cqOpen = 0;
   cqLoadSummary();
