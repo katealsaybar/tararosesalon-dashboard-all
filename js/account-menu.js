@@ -4,6 +4,8 @@
      2. Rearrange menu: opens Rearrange Menu (sections, sub-sections, pages; nav-layout.js);
      3. Page access for a person: opens one page, or several, for one person whatever their level (dashboard_users.extra_pages, through page_access_people and
         page_access_person_set; pages.js trsPageOpen honours extras at every level below 5).
+   Kate, 12 Nov 2026 (second pass, "i meant ALL"): the same three shortcuts are in Team Home's own account menu and in every page that uses it (trsAcctExtras.mount, loaded by hub.js KB.loadAcct, Level 6 only);
+   the Search page and Marketing, which have a bare Sign out button of their own, get the whole menu (trsAccountMenu with an anchor).
    Everyone else keeps the plain Sign out button: index.html calls trsAccountMenu() only when the REAL level is 5 (so View as does not take the menu away).
    Called from enterDashboard() with { sb, name }. Needs pages.js (TRS_PAGES, trsPageOpen, TRS_STATUS), page-status.js (the tags) and css/account-menu.css. */
 (function () {
@@ -26,7 +28,19 @@
 
   var S = { sb: null, btn: null, menu: null, name: '', email: '' };
 
-  function curView() { return (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW) || window.trsCurView || ''; }
+  // A tool that is a link out of the dashboard (TRS_LINKS: the Complaints Pipeline) has a status of its own and is found by its address.
+  function linkId() {
+    var L = window.TRS_LINKS || [], here = location.pathname.replace(/\/$/, '');
+    for (var i = 0; i < L.length; i++) {
+      try { var u = new URL(L[i].href, location.origin); if (u.pathname.replace(/\/$/, '') === here && u.search === location.search) return L[i].id; } catch (e) {}
+    }
+    return '';
+  }
+  function curView() { return (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW) || window.trsCurView || linkId(); }
+  function labelFor(id) {
+    var l = (window.TRS_LINKS || []).filter(function (x) { return x.id === id; })[0];
+    return l ? l.label : trsPageLabel(id);
+  }
   function pageList() { return TRS_PAGES.filter(function (p) { return !p.retired; }); }
   function viewAsKey() {
     try { var v = JSON.parse(localStorage.getItem('trs-viewas') || 'null'); if (v && v.level >= 1 && v.level <= 4) return v.level + (v.dept ? '|' + v.dept : ''); } catch (e) {}
@@ -39,16 +53,26 @@
   function noteOf(id) { var s = (window.TRS_STATUS || {})[typeof trsLive === 'function' ? trsLive(id) : id]; return s ? (s.note || '') : ''; }
 
   function pageBlock() {
-    var id = curView(), p = id && typeof trsPage === 'function' ? trsPage(id) : null;
-    if (!p) return '';
+    var id = curView(), p = id && typeof trsPage === 'function' ? (trsPage(id) || (window.TRS_LINKS || []).filter(function (x) { return x.id === id; })[0]) : null;
+    if (!p) return '<div class="acct-sec acct-page"><div class="acct-k">This page</div><a class="acct-all" href="/hub/pagestatus">Set the status of any page &rarr;</a></div>';
     var st = statusOf(id);
     function seg(v, label) { return '<button type="button" role="radio" data-st="' + v + '" aria-checked="' + (st === v) + '" class="acct-seg-' + v + (st === v ? ' on' : '') + '">' + label + '</button>'; }
     return '<div class="acct-sec acct-page" data-id="' + esc(id) + '">' +
-      '<div class="acct-k">This page</div><div class="acct-pname">' + esc(trsPageLabel(id)) + '</div>' +
-      '<div class="acct-seg" role="radiogroup" aria-label="Status of ' + esc(trsPageLabel(id)) + '">' + seg('live', 'Live') + seg('construction', 'Under construction') + seg('hidden', 'Hidden') + '</div>' +
+      '<div class="acct-k">This page</div><div class="acct-pname">' + esc(labelFor(id)) + '</div>' +
+      '<div class="acct-seg" role="radiogroup" aria-label="Status of ' + esc(labelFor(id)) + '">' + seg('live', 'Live') + seg('construction', 'Under construction') + seg('hidden', 'Hidden') + '</div>' +
       '<div class="acct-note"' + (st === 'live' ? ' hidden' : '') + '><input type="text" maxlength="200" value="' + esc(noteOf(id)) + '" aria-label="Note for this page" ' +
         'placeholder="Note (optional)' + '"><button type="button" class="acct-save">Save</button></div>' +
       '<div class="acct-say" role="status" aria-live="polite"></div>' +
+      '<a class="acct-all" href="/hub/pagestatus">All pages &rarr;</a>' +
+      '</div>';
+  }
+
+  // The three shortcuts, shared by the dashboard's menu and Team Home's.
+  function extrasHtml() {
+    return pageBlock() +
+      '<div class="acct-sec acct-tools">' +
+        '<a href="/hub/menumover" class="acct-row"><span>Rearrange menu</span><small>Sections, sub-sections, pages</small></a>' +
+        '<button type="button" class="acct-row" data-act="access"><span>Page access for a person</span><small>Open pages for someone, any level</small></button>' +
       '</div>';
   }
 
@@ -60,11 +84,7 @@
         '<div class="acct-valist" hidden role="listbox" aria-label="View as">' + VIEW_AS.map(function (o) {
           return '<button type="button" role="option" data-v="' + esc(o.v) + '" aria-selected="' + (o.v === cur) + '"' + (o.v === cur ? ' class="on"' : '') + '>' + esc(o.label) + '</button>';
         }).join('') + '</div></div>' +
-      pageBlock() +
-      '<div class="acct-sec acct-tools">' +
-        '<a href="/hub/menumover" class="acct-row"><span>Rearrange menu</span><small>Sections, sub-sections, pages</small></a>' +
-        '<button type="button" class="acct-row" data-act="access"><span>Page access for a person</span><small>Open pages for someone, any level</small></button>' +
-      '</div>' +
+      extrasHtml() +
       '<div class="acct-sec acct-links">' +
         '<a href="/reports/" class="acct-row"><span>Reports</span></a>' +
         '<a href="/hub/" class="acct-row"><span>Team Home</span></a>' +
@@ -81,7 +101,7 @@
 
   // Saves the current page's status and note, then repaints the menu tags, the header pill and the notice on the page without a reload.
   async function saveStatus(box, status, note) {
-    var id = box.getAttribute('data-id'), label = trsPageLabel(id), real = typeof trsLive === 'function' ? trsLive(id) : id;
+    var id = box.getAttribute('data-id'), label = labelFor(id), real = typeof trsLive === 'function' ? trsLive(id) : id;
     var r = await S.sb.rpc('page_status_set', { p_page: real, p_status: status === 'live' ? null : status, p_note: status === 'live' ? null : (note || null) });
     if (r.error) { say(box, 'Not saved: ' + (r.error.message || 'try again') + '.', true); return false; }
     window.TRS_STATUS = window.TRS_STATUS || {};
@@ -91,7 +111,9 @@
     if (typeof trsStatusMast === 'function') trsStatusMast(id);
     box.querySelectorAll('.acct-seg button').forEach(function (b) { var on = b.getAttribute('data-st') === status; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
     box.querySelector('.acct-note').hidden = status === 'live';
-    say(box, label + (status === 'live' ? ' is Live.' : status === 'hidden' ? ' is Hidden: only you can open it.' : ' is Under construction.'));
+    // A page that is not a dashboard view (the Pipeline) draws its own notice when it opens, so it shows after a refresh.
+    var later = !document.getElementById('view-' + id) && status !== 'live' ? ' Refresh to see the notice on the page.' : '';
+    say(box, label + (status === 'live' ? ' is Live.' : status === 'hidden' ? ' is Hidden: only you can open it.' : ' is Under construction.') + later);
     return true;
   }
 
@@ -100,6 +122,31 @@
     S.menu.hidden = false; S.btn.setAttribute('aria-expanded', 'true');
   }
   function close() { if (S.menu.hidden) return; S.menu.hidden = true; S.btn.setAttribute('aria-expanded', 'false'); }
+
+
+  // Clicks inside the shortcuts: the status buttons, the note's Save and Page access. `closeMenu` shuts whichever menu holds them.
+  function bindExtras(root, closeMenu) {
+    root.addEventListener('click', function (e) {
+      var t = e.target;
+      var seg = t.closest('.acct-seg button');
+      if (seg) {
+        var box = seg.closest('.acct-page'), st = seg.getAttribute('data-st'), inp = box.querySelector('.acct-note input');
+        if (seg.classList.contains('on')) return;
+        saveStatus(box, st, st === 'live' ? '' : inp.value.trim()).then(function (ok) { if (ok && st !== 'live') inp.focus(); });
+        return;
+      }
+      if (t.closest('.acct-save')) {
+        var b2 = t.closest('.acct-page'), cur = b2.querySelector('.acct-seg button.on');
+        if (cur) saveStatus(b2, cur.getAttribute('data-st'), b2.querySelector('.acct-note input').value.trim());
+        return;
+      }
+      var act = t.closest('[data-act="access"]');
+      if (act) { closeMenu(); openAccess(); }
+    });
+    root.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.matches('.acct-note input')) { e.preventDefault(); e.target.closest('.acct-page').querySelector('.acct-save').click(); }
+    });
+  }
 
   function onMenuClick(e) {
     var t = e.target;
@@ -112,24 +159,11 @@
       try { if (lv >= 1 && lv <= 4) localStorage.setItem('trs-viewas', JSON.stringify({ level: lv, dept: parts[1] || null })); else localStorage.removeItem('trs-viewas'); } catch (er) {}
       location.reload(); return;
     }
-    var seg = t.closest('.acct-seg button');
-    if (seg) {
-      var box = seg.closest('.acct-page'), st = seg.getAttribute('data-st'), inp = box.querySelector('.acct-note input');
-      if (seg.classList.contains('on')) return;
-      saveStatus(box, st, st === 'live' ? '' : inp.value.trim()).then(function (ok) { if (ok && st !== 'live') inp.focus(); });
-      return;
-    }
-    if (t.closest('.acct-save')) {
-      var b2 = t.closest('.acct-page'), cur = b2.querySelector('.acct-seg button.on');
-      if (cur) saveStatus(b2, cur.getAttribute('data-st'), b2.querySelector('.acct-note input').value.trim());
-      return;
-    }
     var act = t.closest('[data-act]');
     if (!act) return;
     var a = act.getAttribute('data-act');
     if (a === 'theme') { close(); if (typeof toggleTheme === 'function') toggleTheme(); }
     else if (a === 'out') { if (typeof doLogout === 'function') doLogout(); }
-    else if (a === 'access') { close(); openAccess(); }
   }
 
   /* ── Page access for a person ────────────────────────────────────────── */
@@ -232,29 +266,39 @@
   }
 
   /* ── Mount ───────────────────────────────────────────────────────────── */
+  // Team Home's own account menu (hub/hub.js drawHeader) holds an empty <div id="kbMenuX"> for Level 6; this fills it with the same shortcuts.
+  window.trsAcctExtras = {
+    mount: function (el, o) {
+      S.sb = o.sb;
+      el.classList.add('acct-x', 'acct-scope');
+      el.innerHTML = extrasHtml();
+      bindExtras(el, o.close || function () {});
+    }
+  };
+
   window.trsAccountMenu = function (o) {
     try {
       if (S.btn) return;
       o = o || {}; S.sb = o.sb; S.name = o.name || ''; S.email = o.email || '';
-      var out = document.getElementById('signOutBtn'), who = out && out.parentNode;
+      // The dashboard's header replaces #signOutBtn (and hides it on a phone, where the drawer has Log Out); Team Home's Search page and Marketing pass their own button.
+      var out = o.anchor || document.getElementById('signOutBtn'), who = out && out.parentNode;
       if (!who || !S.sb) return;
       var initials = (S.name || S.email || '?').split(/\s+/).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
       var first = (S.name || '').split(/[\s(]/)[0];
-      var wrap = document.createElement('span'); wrap.className = 'acct'; wrap.id = 'acct';
-      wrap.innerHTML = '<button type="button" class="tglr acct-btn" id="acctBtn" aria-haspopup="true" aria-expanded="false" aria-controls="acctMenu">' +
+      var wrap = document.createElement('span'); wrap.className = 'acct acct-scope' + (o.up ? ' acct-up' : '') + (o.anchor ? '' : ' acct-nophone'); wrap.id = 'acct';
+      wrap.innerHTML = '<button type="button" class="acct-btn" id="acctBtn" aria-haspopup="true" aria-expanded="false" aria-controls="acctMenu">' +
         '<span class="acct-av">' + esc(initials) + '</span><span class="acct-nm">' + esc(first || 'Account') + '</span>' + CARET + '</button>' +
-        '<div class="acct-menu" id="acctMenu" hidden></div>';
+        '<div class="acct-menu acct-scope" id="acctMenu" hidden></div>';
       who.insertBefore(wrap, out);
       out.style.display = 'none';   // the menu holds Sign out; the button stays in the page for anyone else
       var hello = document.getElementById('mastHello'); if (hello) hello.style.display = 'none';   // the name is on the button now
       document.body.classList.add('has-acct');
       S.btn = wrap.querySelector('#acctBtn'); S.menu = wrap.querySelector('#acctMenu');
+      if (o.up) { S.menu.classList.add('acct-fixed'); document.body.appendChild(S.menu); }   // out of the scrolling sidebar, so nothing clips it
       S.btn.addEventListener('click', function (e) { e.stopPropagation(); if (S.menu.hidden) open(); else close(); });
       S.menu.addEventListener('click', onMenuClick);
-      S.menu.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && e.target.matches('.acct-note input')) { e.preventDefault(); e.target.closest('.acct-page').querySelector('.acct-save').click(); }
-      });
-      document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
+      bindExtras(S.menu, close);
+      document.addEventListener('click', function (e) { if (!wrap.contains(e.target) && !S.menu.contains(e.target)) close(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !S.menu.hidden && !A.root) { close(); S.btn.focus(); } });
     } catch (e) { /* a failure leaves the plain Sign out button */ var b = document.getElementById('signOutBtn'); if (b) b.style.display = ''; }
   };

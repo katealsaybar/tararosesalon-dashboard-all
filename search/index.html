@@ -285,7 +285,7 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
 <script src="/js/pages.js?v=d17760dd"></script>
 <!-- Team Home's own script: the sign-in check, the icons and the stars. It draws no header here (no #kbHead). -->
 <script src="/js/voice-mic.js?v=62fac83a"></script>
-<script src="/hub/hub.js?v=9073ca11"></script>
+<script src="/hub/hub.js?v=56dd40a8"></script>
 <script>
 (async function () {
   // Signed in and on a list, as Team Home checks it; anyone else is sent to the sign-in card
@@ -360,6 +360,11 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
   document.getElementById('srOut').addEventListener('click', async function () {
     try { await c.auth.signOut(); } catch (e) { /* signed out or not, the door is the same */ }
     location.replace('/');
+  });
+  // Kate, 12 Nov 2026: Level 6 gets the account menu (View as, this page's status, Rearrange menu, page access for a person) in place of Sign out (js/account-menu.js, via hub.js).
+  KB.ready.then(function () {
+    if (KB.realLevel !== 5) return;
+    KB.loadAcct().then(function () { if (window.trsAccountMenu) trsAccountMenu({ sb: c, name: KB.name, email: KB.email, anchor: document.getElementById('srOut') }); });
   });
 
   var esc = KB.esc;

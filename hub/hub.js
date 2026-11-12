@@ -633,6 +633,19 @@
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.6 9.7l5.8-.8z"/></svg></button>';
   };
 
+  // Kate, 12 Nov 2026: Level 6's shortcuts (this page's status, Rearrange menu, page access for a person) in the account menu of every page that draws it. The script, its
+  // stylesheet and the page list load only for her (the page list too when the page does not have it), so nobody else downloads them.
+  KB.loadAcct = function () {
+    if (KB._acct) return KB._acct;
+    var needPages = typeof TRS_PAGES === 'undefined';
+    function js(src) { return new Promise(function (ok) { var sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }); }
+    var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/css/account-menu.css?v=fa57d46e'; document.head.appendChild(css);
+    KB._acct = (needPages ? js('/js/pages.js?v=d17760dd') : Promise.resolve())
+      .then(function () { return js('/js/account-menu.js?v=4c13e7f1'); })
+      .then(function () { if (needPages && typeof trsAccessLoad === 'function') return trsAccessLoad(c); });
+    return KB._acct;
+  };
+
   KB.signOut = async function () {
     await c.auth.signOut();
     try { localStorage.removeItem('trsRole'); } catch (e) {}
@@ -688,6 +701,7 @@
                   (o.v === cur ? ' class="on"' : '') + '>' + esc(o.label) + '</button>';
               }).join('') + '</div></div>';
           })() : '') +
+          (KB.realLevel === 5 ? '<div id="kbMenuX"></div>' : '') +
           // Kate, 22 Oct 2026: the Reports Hub, one box per report, for everyone who is signed in.
           '<a href="/reports/">Reports</a>' +
           (KB.allowed.indexOf('dashboards') >= 0 ? '<a href="/dashboard/">Open the dashboard</a>' : '') +
@@ -716,6 +730,12 @@
         var b = e.target.closest('button[data-v]');
         if (b && !b.classList.contains('on')) KB.setViewAs(b.dataset.v);
       };
+    }
+    if (KB.realLevel === 5) {
+      KB.loadAcct().then(function () {
+        var x = document.getElementById('kbMenuX');
+        if (x && window.trsAcctExtras) trsAcctExtras.mount(x, { sb: c, close: function () { menu.classList.add('hide'); btn.setAttribute('aria-expanded', 'false'); } });
+      });
     }
     if (KB.viewAs) {
       var bar = document.createElement('div');

@@ -1,13 +1,13 @@
 /* Kate, 12 Nov 2026: the account menu in the dashboard header (js/account-menu.js), Level 6 only. Drawn like Team Home's (hub/hub.css .kb-account), in the dashboard's own tokens. */
 .acct{position:relative;display:inline-flex;align-self:center}
-.tglr.acct-btn{display:inline-flex;align-items:center;gap:8px;padding:0 12px 0 4px;text-transform:none;letter-spacing:0;font-size:13px;font-weight:500;color:var(--text)}
-@media(min-width:761px){.mast-acts .tglr.acct-btn{padding:0 12px 0 4px;font-size:13px;min-height:34px}}
-.tglr.acct-btn[aria-expanded="true"]{border-color:var(--text)}
+.acct-btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px 0 4px;border:1px solid var(--border);background:var(--surface);border-radius:20px;
+  font:inherit;font-size:13px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--text);cursor:pointer;white-space:nowrap}
+.acct-btn:hover,.acct-btn[aria-expanded="true"]{border-color:var(--text)}
 .acct-av{width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:700;letter-spacing:0;background:var(--accent-mint);color:#1A1A1A;flex:none}
 .acct-caret{transition:transform .2s;flex:none;opacity:.7}
 .acct-btn[aria-expanded="true"] .acct-caret{transform:rotate(180deg)}
 /* Phones: Log Out is in the drawer, as before, so the header keeps its round buttons and the menu is a desktop thing. */
-@media(max-width:760px){.acct{display:none}}
+@media(max-width:760px){.acct-nophone{display:none}}
 
 .acct-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:70;width:316px;max-width:calc(100vw - 24px);max-height:calc(100vh - 90px);overflow:auto;
   background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.22);padding:6px;text-align:left;
@@ -20,7 +20,7 @@
 .acct-sec{padding:2px 0 4px;border-bottom:1px solid var(--border2);margin-bottom:4px}
 .acct-sec:last-child{border-bottom:0;margin-bottom:0}
 .acct-k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
-.acct-menu button,.acct-menu a.acct-row{font:inherit;color:inherit}
+.acct-scope button,.acct-scope a.acct-row{font:inherit;color:inherit}
 
 /* View as */
 .acct-vatog{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:6px 12px;border:0;background:none;border-radius:8px;cursor:pointer;text-align:left}
@@ -57,11 +57,11 @@
 .acct-say.bad{color:var(--bad)}
 
 /* Rows */
-.acct-menu .acct-row{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;text-align:left;padding:9px 12px;border:0;background:none;border-radius:8px;cursor:pointer;font-size:14.5px;text-decoration:none;min-height:40px;justify-content:center}
-.acct-menu .acct-row:hover{background:var(--surface2)}
+.acct-scope .acct-row{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;text-align:left;padding:9px 12px;border:0;background:none;border-radius:8px;cursor:pointer;font-size:14.5px;text-decoration:none;min-height:40px;justify-content:center}
+.acct-scope .acct-row:hover{background:var(--surface2)}
 .acct-row small{font-size:12px;color:var(--muted2)}
-.acct-menu .acct-out{color:var(--bad)}
-.acct-menu button:focus-visible,.acct-menu a:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
+.acct-scope .acct-out{color:var(--bad)}
+.acct-scope button:focus-visible,.acct-scope a:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 
 /* Page access for a person: the dialog */
 .acm{position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(20,20,24,.55)}
@@ -99,3 +99,13 @@
 .acm-fine{font-size:12px;color:var(--muted2);line-height:1.5;margin:0}
 .acm-fine a{color:inherit;text-decoration:underline}
 @media(max-width:560px){.acm{padding:8px}.acm-head,.acm-body{padding-left:14px;padding-right:14px}.acm-row em.acm-note{display:none}}
+
+/* Kate, 12 Nov 2026: the shortcuts inside Team Home's own menu (.kb-menu), and the menu opening upward from Marketing's sidebar foot. */
+.acct-x{border-bottom:1px solid var(--border2);margin-bottom:4px;padding-bottom:2px;text-transform:none;letter-spacing:0}
+.acct-x .acct-sec:last-child{border-bottom:0;margin-bottom:0}
+.acct-scope .acct-all{display:inline-block;width:auto;margin-top:6px;font-size:12.5px;color:var(--muted);text-decoration:underline;padding:2px 0;border-radius:0}
+.acct-scope .acct-all:hover{color:var(--text);background:none}
+/* Marketing's sidebar scrolls and clips, so its menu is fixed to the screen, drawn on the body, and the button there is a quiet row like the others in the foot. */
+.acct-menu.acct-fixed{position:fixed;top:auto;bottom:16px;left:16px;right:auto;z-index:9400}
+.acct-up .acct-btn{border:0;background:none;padding:7px 0;height:auto;color:var(--muted);border-radius:0}
+.acct-up .acct-btn:hover,.acct-up .acct-btn[aria-expanded="true"]{color:var(--text)}

@@ -67,7 +67,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/hub/hub.js?v=9073ca11"></script>
+<script src="/hub/hub.js?v=56dd40a8"></script>
 <script src="/js/visits.js?v=e33b3a0d"></script>
 <script src="/hub/marketing-tool/marketing.js?v=be4840a2"></script>
 <script>
@@ -239,6 +239,11 @@
   [].forEach.call(document.querySelectorAll('.mk-side-nav a'), function (a) { a.addEventListener('click', function () { nav(false); }); });
   document.getElementById('mkSideLang').onclick = function () { nav(false); var b = document.getElementById('mkLanguage'); if (b) b.click(); };
   document.getElementById('mkSignOut').onclick = function () { KB.signOut(); };
+  // Kate, 12 Nov 2026: Level 6 gets the account menu in place of Sign out, opening upward from the sidebar's foot (js/account-menu.js, via hub.js).
+  KB.ready.then(function () {
+    if (KB.realLevel !== 5) return;
+    KB.loadAcct().then(function () { if (window.trsAccountMenu) trsAccountMenu({ sb: KB.client, name: KB.name, email: KB.email, anchor: document.getElementById('mkSignOut'), up: true }); });
+  });
   document.getElementById('kbThemeBtn').onclick = KB.toggleTheme;
   document.getElementById('kbThemeBtn').textContent =
     (document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark' ? 'Light mode' : 'Dark mode';
