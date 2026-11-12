@@ -84,7 +84,7 @@ async function messages(token: string, id: number, dateIso: string | null) {
 
 // The part of the chat about the complaint, not the whole conversation (Kate, 12 Nov 2026: "complaint snippet only, not the full convo").
 // The anchor is the client's message that sounds most like a complaint (a plain word list, English and a few Arabic words), or, when the caller passes the words a search found, the message that holds them.
-// With neither, it is her first message on or after the day. The snippet is two messages before the anchor and six after (the replies), and the client's complaint lines in it are marked as hits.
+// With neither, it is her first message on or after the day. The snippet is three messages before the anchor and everything after it until the chat goes quiet (see below), and the client's complaint lines in it are marked as hits.
 const COMPLAINT_WORDS = /(not happy|unhappy|disappoint|unacceptable|terrible|horrible|awful|worst|poor service|rude|refund|money back|redo|re-do|fix (it|this)|wrong|not what|too (orange|yellow|warm|brassy|short|light|dark|long)|orange|yellow|brassy|patchy|uneven|burn|itch|rash|allerg|irritat|swollen|damaged|ruined|waited|waiting|overcharg|charged|complain|manager|speak to|never again|won't be back|chipped|lifted|came off|peeling|غير راض|سيء|سيئ|مشكلة|استرداد|فلوس|لن أعود)/gi;
 const flat = (t: string) => String(t || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 function score(m: any, words: string): number {
@@ -105,7 +105,11 @@ function snippet(list: any[], dateIso: string | null, words: string) {
   if (best < 0) best = list.findIndex((m) => m.w === "c" && m.ts >= day0);
   if (best < 0) best = list.map((m) => m.w).lastIndexOf("c");
   if (best < 0) best = 0;
-  const from = Math.max(0, best - 2), to = Math.min(list.length - 1, best + 6);
+  // Kate, 13 Nov 2026: the snippet stopped six messages after the complaint, so it always looked as if nobody had answered her. It now runs from three messages before the complaint
+  // to the end of the conversation that follows: every message after it until the chat goes quiet for more than 4 days (at most 60), so the replies and the fix show.
+  const from = Math.max(0, best - 3);
+  let to = best;
+  while (to + 1 < list.length && list[to + 1].ts - list[to].ts <= 4 * 86400000 && to - best < 60) to++;
   const out = list.slice(from, to + 1).map((m, k) => ({ ...m, hit: score(m, words) > 0 || from + k === best && m.w === "c" }));
   return { messages: out, from, shown: out.length };
 }
