@@ -545,6 +545,12 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
     let h = '<b>Edited by ' + names.map(esc).join(', ') + '</b>';
     E.list.slice(0, 6).forEach(e => { h += '<div><span>' + esc(e.who) + '</span><em>' + fmtAt(e.at) + ' &middot; ' + esc(fmtVal(k, e.from)) + ' &rarr; ' + esc(fmtVal(k, e.to)) + '</em></div>'; });
     if (E.n > 6) h += '<div><em>and ' + (E.n - 6) + ' earlier edits</em></div>';
+    placeTip(el, h);
+  }
+  // Kate, 12 Nov 2026: the "!" next to a Type used the browser's own title tooltip, a small box that was clipped and hard to read. It now uses
+  // the page's own tip (readable size, wraps, stays inside the window), on hover and on keyboard focus like the edit-history triangle.
+  function showSay(el) { const t = el.getAttribute('data-say'); if (t) placeTip(el, esc(t)); }
+  function placeTip(el, h) {
     const tip = $('tip'); tip.innerHTML = h; tip.style.display = 'block';
     const r = el.getBoundingClientRect(), w = tip.offsetWidth, hh = tip.offsetHeight;
     tip.style.left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8)) + 'px';
@@ -571,7 +577,7 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
       '<td class="c-cat"><select class="cs" data-k="' + CAT + '" aria-label="Category"' + dis() + '><option>' + esc(r[CAT]) + '</option></select>' + triHtml(r, CAT) + '</td>' +
       '<td class="c-name"><div class="tx" contenteditable="' + (ed ? 'true' : 'false') + '" spellcheck="false" data-k="' + NAME + '" role="textbox" aria-label="Product">' + esc(r[NAME]) + '</div>' + (multi() ? '<span class="sal">' + BN[r[BR]] + '</span>' : '') + pvTag(r) + triHtml(r, NAME) + '</td>' +
       '<td class="c-type"><select class="tyl ' + r[TYPE] + (r[FLAG] === 1 ? ' inf' : '') + '" data-k="' + TYPE + '" aria-label="Type"' + dis() + '><option value="p"' + (r[TYPE] === 'p' ? ' selected' : '') + '>Hair Professional</option><option value="r"' + (r[TYPE] === 'r' ? ' selected' : '') + '>Hair Retail</option></select>' +
-      (flag ? '<i class="fl" title="The category name says ' + (r[TYPE] === 'r' ? 'Professional' : 'Retail') + ' but Phorest has it as ' + (r[TYPE] === 'r' ? 'retail' : 'professional') + '. Change it here if Phorest is wrong.">!</i>' : '') + triHtml(r, TYPE) + '</td>' +
+      (flag ? '<i class="fl" tabindex="0" data-say="The category name says ' + (r[TYPE] === 'r' ? 'Professional' : 'Retail') + ' but Phorest has it as ' + (r[TYPE] === 'r' ? 'retail' : 'professional') + '. Change it here if Phorest is wrong." aria-label="The category name says ' + (r[TYPE] === 'r' ? 'Professional' : 'Retail') + ' but Phorest has it as ' + (r[TYPE] === 'r' ? 'retail' : 'professional') + '. Change it here if Phorest is wrong.">!</i>' : '') + triHtml(r, TYPE) + '</td>' +
       '<td class="c-n c-stk ro" title="From Phorest, not editable here">' + (r[STK] == null ? '<span class="gap">-</span>' : f(r[STK])) + '</td>';
     S.months.forEach((m, j) => { const v = r[U][j]; h += '<td class="c-m ro' + (v ? '' : ' z') + '" style="' + heatStyle(v, mx) + '" title="' + esc(mlab(m)) + ', from Phorest, not editable here">' + v + '</td>'; });
     h += '<td class="c-avg v17">' + f2(r[AVG]) + '</td>' +
@@ -803,15 +809,16 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
         else if (e.key === 'Escape') { el.textContent = S.rows[+el.closest('tr').getAttribute('data-i')][NAME]; el.blur(); }
       }
     });
-    R.addEventListener('focusout', e => { const el = e.target; if (el.classList && el.classList.contains('tx')) commit(el); if (el.classList && el.classList.contains('tri')) hideTip(); });
+    R.addEventListener('focusout', e => { const el = e.target; if (el.classList && el.classList.contains('tx')) commit(el); if (el.classList && (el.classList.contains('tri') || el.classList.contains('fl'))) hideTip(); });
     R.addEventListener('focusin', e => {
       const el = e.target;
       if (el.classList && el.classList.contains('tri')) showTip(el);
+      if (el.classList && el.classList.contains('fl')) showSay(el);
       if (el.classList && el.classList.contains('cs') && !el.dataset.full) fillCats(el);
     });
     R.addEventListener('mousedown', e => { const el = e.target; if (el.classList && el.classList.contains('cs') && !el.dataset.full) fillCats(el); });
-    R.addEventListener('mouseover', e => { const t = e.target.closest && e.target.closest('.tri'); if (t) showTip(t); });
-    R.addEventListener('mouseout', e => { const t = e.target.closest && e.target.closest('.tri'); if (t) hideTip(); });
+    R.addEventListener('mouseover', e => { const t = e.target.closest && e.target.closest('.tri'); if (t) showTip(t); const f = e.target.closest && e.target.closest('.fl[data-say]'); if (f) showSay(f); });
+    R.addEventListener('mouseout', e => { const t = e.target.closest && e.target.closest('.tri, .fl'); if (t) hideTip(); });
     R.addEventListener('paste', e => { if (e.target.classList && e.target.classList.contains('tx')) { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, ' '); document.execCommand('insertText', false, t); } });
     // the category list is filled when the cell is first used, so 1,900 rows do not carry 20,000 options
     function fillCats(el) { const cur = el.value; el.innerHTML = catList().map(c => '<option' + (c === cur ? ' selected' : '') + '>' + esc(c) + '</option>').join(''); el.dataset.full = '1'; }
