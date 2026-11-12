@@ -90,7 +90,6 @@ const JN_PAGES = {
   lostclients:    { sel: '#lcBody > section.slv-card', labels: ['The totals', 'The client list'] },
   services:       { sel: '#srBody .w13-tiles, #srBody h3', labels: ['The numbers', 'Top services'] },
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },
-  supplierspend:  { sel: 'h2.s', shadow: '#spendContent', full: true, labels: ['Weekly spend by family', 'Every supplier', 'What Accounts paid'] },
   googleads:      { sel: 'h3' },
   metaads:        { sel: 'h3' },
   website:        { sel: 'h3' },
