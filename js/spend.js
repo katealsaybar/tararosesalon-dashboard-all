@@ -124,8 +124,8 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .tyl.inf{font-style:italic}
 .fl{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:var(--warn-bg,#FAEEDA);color:var(--warn,#8A5A0C);font-size:10px;font-weight:700;font-style:normal;margin-left:5px;vertical-align:1px;cursor:help}
 .pri{min-width:32px;height:24px;font-weight:700;font-size:12px;cursor:pointer;padding:0 8px;text-align:center;text-align-last:center;appearance:none;-webkit-appearance:none;border-radius:7px}
-.pri.A{background:color-mix(in srgb,var(--accent-mint,#99F6E4) 60%,var(--surface));color:#2B2A1E}
-.pri.B{background:color-mix(in srgb,var(--accent-butter,#EEF3C7) 80%,var(--surface));color:#2B2A1E}
+.pri.A{background:#D7263D;color:#fff;box-shadow:0 0 10px 1px rgba(215,38,61,.55)}
+.pri.B{background:#F5CF3D;color:#2B2A1E}
 .pri.C{background:color-mix(in srgb,var(--accent-coral,#FF9B9B) 40%,var(--surface));color:#2B2A1E}
 .gap{color:var(--muted2)}
 .xt td.ro.z{color:var(--muted2)}
