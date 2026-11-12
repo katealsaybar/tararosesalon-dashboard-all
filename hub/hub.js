@@ -641,7 +641,7 @@
     var needPages = typeof TRS_PAGES === 'undefined';
     function js(src) { return new Promise(function (ok) { var sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }); }
     var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/css/account-menu.css?v=fa57d46e'; document.head.appendChild(css);
-    KB._acct = (needPages ? js('/js/pages.js?v=42bdf490') : Promise.resolve())
+    KB._acct = (needPages ? js('/js/pages.js?v=1cb85cc2') : Promise.resolve())
       .then(function () { return js('/js/account-menu.js?v=4c13e7f1'); })
       .then(function () { if (needPages && typeof trsAccessLoad === 'function') return trsAccessLoad(c); });
     return KB._acct;
