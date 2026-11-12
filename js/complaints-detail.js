@@ -9,12 +9,12 @@ function cdNormal(r) {
   return {
     date: r.date ? String(r.date).slice(0, 10) : '', branch: r.branch || '', client: r.client || '', kind: CQ_TYPE[r.type] || r.type || '', what: r.detail || '', found: cqFound(r), now: cqStage(r).text,
     outcome: r.status === 'open' ? 'Still open' : (CQ_RES[r.resolution] || r.resolution || ''), ended: r.resolution_detail || '', stylist: r.stylists || '', services: r.services || '', fee: r.fee == null ? null : Number(r.fee),
-    handled: r.handled_by || '', google: r.g_date ? `${String(r.g_date).slice(0, 10)}, ${Number(r.g_stars) || ''} stars` : (r.g_manual ? 'Posted (logged)' : ''), code: r.code || '', note: r.note || '', open: r.status === 'open', chat: false
+    handled: r.handled_by || '', google: r.g_date ? `${String(r.g_date).slice(0, 10)}, ${Number(r.g_stars) || ''} stars` : (r.g_manual ? 'Posted (logged)' : ''), code: r.code || '', note: r.note || '', open: r.status === 'open', chat: false, id: r.id, raw: r
   };
 }
 function cdNormalChat(r) {
   return { date: String(r.date || '').slice(0, 10), branch: r.branch || '', client: r.client, kind: CQ_TYPE[r.type] || '', what: r.note || '', found: typeof ccChatName === 'function' ? ccChatName(r.chat) : r.chat,
-    now: 'Closed, history', outcome: '', ended: '', stylist: '', services: '', fee: null, handled: r.decided_by || '', google: '', code: '', note: r.words || '', open: false, chat: true };
+    now: 'Closed, history', outcome: '', ended: '', stylist: '', services: '', fee: null, handled: r.decided_by || '', google: '', code: '', note: r.words || '', open: false, chat: true, id: r.id, raw: r };
 }
 async function cdLoad() {
   const seq = ++CD.seq; CD.loading = true;
@@ -72,9 +72,9 @@ function cdFiltered() {
 function cdShell() {
   const branches = ['all'].concat(Object.keys(CQ_BRANCH));
   const srcs = ['Phorest note', 'Phorest client card', 'Logged by staff'].concat((typeof CC_CHATS !== 'undefined' ? CC_CHATS : []).map(c => (typeof ccChatName === 'function' ? ccChatName(c) : c)));
-  return cqCss() + `<div class="cq">
+  return cqCss() + `<div class="cq"><div id="cdRec" class="cq-gone"></div><div id="cdMain">
     <h1>Detailed complaints</h1>
-    <p class="cq-sub">Every complaint on one table, with every column: what happened, where it was found, where it is now, how it ended, who did the service and whether the client left a Google review. Filter it, sort it, and take it into a spreadsheet. Levels 3 and up.</p>
+    <p class="cq-sub">Every complaint on one table, with every column: what happened, where it was found, where it is now, how it ended, who did the service and whether the client left a Google review. Filter it, sort it, and take it into a spreadsheet. Click a row to open it with her chat and her profile. Levels 3 and up.</p>
     <div class="cq-intro">
       <p><b>What is this?</b>One row per complaint, newest first, from Phorest notes, the ones staff logged and the chat complaints that were confirmed.</p>
       <p><b>Why it matters</b>The archive reads one complaint at a time. This is for the questions that need all of them: which stylist, which service, which branch, how it ended.</p>
@@ -95,7 +95,7 @@ function cdShell() {
       <div id="cdBody" class="cd-scroll"><p class="cq-meta">Loading…</p></div>
     </div>
     <p class="cq-foot">How to read it. Each row is a complaint. Found in says where it was first written down; Where it is now is the pipeline stage, and notes from Phorest were written after the fact so they are Closed, history. Charged is what the visit cost that day, not a refund. A complaint found only in a chat is added once Coach Emma or Kate confirm it in Chat complaints review, and has no stylist or service because the chat does not say.</p>
-  </div>`;
+  </div></div>`;
 }
 function cdPaint() {
   const rows = cdFiltered(), meta = document.getElementById('cdMeta'), body = document.getElementById('cdBody'); if (!body || !CD.rows) return;
@@ -113,7 +113,7 @@ function cdPaint() {
     : k === 'branch' ? `<td>${cqEsc(r.branch)}</td>`
     : k === 'code' && r.code ? `<td style="white-space:nowrap"><a href="/hub/complaint?c=${encodeURIComponent(r.code)}" target="_blank" rel="noopener">${cqEsc(r.code)}</a></td>`
     : k === 'what' || k === 'note' || k === 'ended' || k === 'services' ? `<td class="cd-wide" dir="auto">${cqEsc(r[k])}</td>` : `<td>${cqEsc(r[k])}</td>`;
-  body.innerHTML = `<table class="cq-t cd-t"><tr>${CD_COLS.map(th).join('')}</tr>${rows.slice(CD.page * CD.size, (CD.page + 1) * CD.size).map(r => `<tr>${CD_COLS.map(([k]) => td(r, k)).join('')}</tr>`).join('')}</table>
+  body.innerHTML = `<table class="cq-t cd-t"><tr>${CD_COLS.map(th).join('')}</tr>${rows.slice(CD.page * CD.size, (CD.page + 1) * CD.size).map(r => `<tr class="cq-row" tabindex="0" data-cdrow="${cdKey(r)}" title="Open this complaint">${CD_COLS.map(([k]) => td(r, k)).join('')}</tr>`).join('')}</table>
     <div class="cq-pager"><button type="button" class="cq-btn" data-cdpg="-1"${CD.page === 0 ? ' disabled' : ''}>Previous</button><span class="cq-meta" style="margin:0 8px">Page ${CD.page + 1} of ${pages}</span><button type="button" class="cq-btn" data-cdpg="1"${CD.page >= pages - 1 ? ' disabled' : ''}>Next</button></div>`;
 }
 function cdExport() {
@@ -124,6 +124,76 @@ function cdExport() {
     legend: [['Found in', 'Where the complaint was first written down.'], ['Where it is now', 'The pipeline stage. Notes from Phorest were written after the fact, so they are Closed, history.'], ['Charged (AED)', 'What the visit cost that day, not a refund.']] }] };
 }
 window.cdExport = cdExport;
+// A row opens its record (Kate, 13 Nov 2026: "why not clickable tho"). The same three tabs as the archive and the chat review: Complaint (every column of the row), Conversation (her chat in respond.io)
+// and Client profile (who she is in Phorest), through the same helpers and the same read-only functions. Back returns to the same place in the table, and the arrows go through the filtered table.
+const cdKey = r => (r.chat ? 'c' : 'v') + r.id;
+const cdByKey = k => (CD.rows || []).find(r => cdKey(r) === k);
+let cdBackY = 0, cdOpenKey = '', cdTab = 'complaint', cdCtx = [];
+function cdFieldsHtml(r) {
+  const rows = [['Date', r.date ? cqDay(r.date) : 'Client card'], ['Branch', r.branch ? cqBr(r.branch) : ''], ['Client', r.client], ['Kind', r.kind], [r.chat ? 'Note' : 'What happened', r.what], ['Found in', r.found], ['Where it is now', r.now],
+    ['Outcome', r.outcome], ['How it ended', r.ended], ['Stylist', r.stylist], ['Services that day', r.services], ['Charged (AED)', r.fee == null ? '' : cqNum(r.fee)], ['Handled by', r.handled], ['Google review', r.google], [r.chat ? 'Their words' : 'Original note', r.note]];
+  const code = r.code ? `<p class="cq-kv"><span>Code</span> <a href="/hub/complaint?c=${encodeURIComponent(r.code)}" target="_blank" rel="noopener">${cqEsc(r.code)}</a> <span>(the ticket page opens in a new window)</span></p>` : '';
+  return rows.filter(([, v]) => v !== '' && v != null).map(([k, v]) => `<p class="cq-kv" style="white-space:pre-wrap" dir="auto"><span>${k}</span> ${cqEsc(v)}</p>`).join('') + code;
+}
+function cdRecOpen(key) {
+  const r = cdByKey(key), rec = document.getElementById('cdRec'), main = document.getElementById('cdMain');
+  if (!r || !rec || !main) return;
+  if (!main.classList.contains('cq-gone')) { cdBackY = window.scrollY; cdCtx = cdFiltered().map(cdKey); }
+  const i = cdCtx.indexOf(key);
+  cdOpenKey = key; cdTab = 'complaint'; cqCacheOf(-1).wide = false;
+  rec.innerHTML = `<div class="cq-recbar"><button type="button" class="cq-btn" data-cdback="1">&larr; Back to the table</button>
+      <span class="cq-recpos">${i >= 0 ? `${i + 1} of ${cdCtx.length} in this table ` : ''}<button type="button" class="cq-btn" data-cdnav="-1" aria-label="Previous complaint"${i <= 0 ? ' disabled' : ''}>&lsaquo;</button><button type="button" class="cq-btn" data-cdnav="1" aria-label="Next complaint"${i < 0 || i >= cdCtx.length - 1 ? ' disabled' : ''}>&rsaquo;</button></span></div>
+    <div class="cq-card cq-recbox">
+      <h2 class="cq-rectitle">${cqEsc(cqMDY(r.date))} | ${cqEsc(r.branch || '')} | ${cqEsc(r.client || 'No name')} | ${cqEsc(r.kind || 'Unclear')}</h2>
+      <div class="cq-recchips"><span class="cq-ch grey">${cqEsc(r.found)}</span><span class="cq-ch grey">${cqEsc(r.now)}</span></div>
+      <div class="cq-tabs" role="tablist">${[['complaint', 'Complaint'], ['chat', 'Conversation'], ['client', 'Client profile']].map(([k, l], n) => `<button type="button" role="tab" class="cq-tab${n ? '' : ' on'}" data-cdtab="${k}">${l}</button>`).join('')}</div>
+      <div id="cdTabBody"></div>
+    </div>`;
+  main.classList.add('cq-gone'); rec.classList.remove('cq-gone');
+  window.scrollTo(0, 0);
+  cdTabShow('complaint');
+}
+function cdRecClose() {
+  const rec = document.getElementById('cdRec'), main = document.getElementById('cdMain');
+  if (!rec || !main || rec.classList.contains('cq-gone')) return;
+  rec.classList.add('cq-gone'); rec.innerHTML = ''; main.classList.remove('cq-gone'); cdOpenKey = '';
+  window.scrollTo(0, cdBackY);
+}
+function cdRecNav(d) { const i = cdCtx.indexOf(cdOpenKey), n = cdCtx[i + d]; if (i >= 0 && n) cdRecOpen(n); }
+async function cdTabShow(tab) {
+  const box = document.getElementById('cdTabBody'), r = cdByKey(cdOpenKey), key = cdOpenKey;
+  if (!box || !r) return;
+  cdTab = tab;
+  document.querySelectorAll('#cdRec .cq-tab').forEach(b => b.classList.toggle('on', b.dataset.cdtab === tab));
+  if (tab === 'complaint') { box.innerHTML = cdFieldsHtml(r); return; }
+  box.innerHTML = '<p class="cq-meta" style="padding:8px 2px">Loading…</p>';
+  const live = () => cdTab === tab && cdOpenKey === key, raw = r.raw;
+  if (typeof cqProfile !== 'function' || (r.chat && typeof ccChat !== 'function')) { box.innerHTML = '<p class="cq-meta">This did not load. Refresh the page and try again.</p>'; return; }
+  if (tab === 'client') {
+    const c = r.chat ? ccCache[raw.id] : cqCacheOf(raw.id); if (c && c.err) { delete c.profile; c.err = false; }
+    const p = r.chat ? await ccProfile(raw.id) : await cqProfile(raw.id);
+    if (live()) box.innerHTML = cqProfileHtml({ client: r.client }, p);
+  } else {
+    const chat = r.chat ? await ccChat(raw) : await cqChat(raw);
+    if (live()) box.innerHTML = r.chat ? ccChatHtml(raw, chat) : cqChatHtml(raw, chat);
+  }
+}
+function cdRecClick(e) {
+  const t = e.target, g = s => t.closest && t.closest(s); let x;
+  if (g('[data-cdback]')) { cdRecClose(); return true; }
+  if ((x = g('[data-cdnav]'))) { cdRecNav(Number(x.dataset.cdnav)); return true; }
+  if ((x = g('[data-cdtab]'))) { cdTabShow(x.dataset.cdtab); return true; }
+  if ((x = g('[data-cqgo]'))) { const el = document.getElementById(x.dataset.cqgo); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return true; }
+  const r = cdByKey(cdOpenKey); if (!r) return false;
+  if ((x = g('[data-cqwide]'))) { const c = cqCacheOf(Number(x.dataset.cqwide)); c.wide = !c.wide; cdTabShow('chat'); return true; }
+  if (g('[data-cqretry]')) { delete cqCacheOf(r.raw.id).chat; cdTabShow('chat'); return true; }
+  if (g('[data-ccretry]') && ccCache[r.raw.id]) { delete ccCache[r.raw.id].chat; cdTabShow('chat'); return true; }
+  if ((x = g('[data-cqyes]'))) { cqChatLink(r.raw.id, Number(x.dataset.cqyes)).then(ok => { if (ok) cdTabShow('chat'); }); return true; }
+  if ((x = g('[data-cqno]'))) { cqCacheOf(r.raw.id).skip.push(Number(x.dataset.cqno)); cdTabShow('chat'); return true; }
+  if (g('[data-cqunlink]')) { cqChatLink(r.raw.id, null).then(ok => { if (ok) cdTabShow('chat'); }); return true; }
+  if ((x = g('[data-ccyes]'))) { ccChat(r.raw, Number(x.dataset.ccyes)).then(() => cdTabShow('chat')); return true; }
+  return false;
+}
 function cdWire() {
   const root = document.getElementById('complaintsDetailContent'); if (!root) return;
   const set = (id, k, ev) => { const el = document.getElementById(id); if (el) el.addEventListener(ev || 'change', () => { CD[k] = el.type === 'checkbox' ? el.checked : el.value; CD.page = 0; if (k === 'cards') cdLoad(); else cdPaint(); }); };
@@ -131,6 +201,7 @@ function cdWire() {
   if (root.dataset.w) return;
   root.dataset.w = '1';
   root.addEventListener('click', e => {
+    if (cdRecClick(e)) return;
     const t = e.target, g = s => t.closest && t.closest(s); let x;
     if ((x = g('[data-cdsort]'))) { const k = x.dataset.cdsort; if (CD.sort === k) CD.dir = CD.dir === 'asc' ? 'desc' : 'asc'; else { CD.sort = k; CD.dir = (k === 'date' ? 'desc' : 'asc'); } cdPaint(); return; }
     if ((x = g('[data-cdpg]'))) { CD.page = Math.max(0, CD.page + Number(x.dataset.cdpg)); cdPaint(); const b = document.getElementById('cdBody'); if (b) b.scrollTop = 0; return; }
@@ -139,7 +210,10 @@ function cdWire() {
       ['cdSrc', 'cdSt'].forEach(id => { const el = document.getElementById(id); if (el) el.value = id === 'cdSrc' ? CD.src : CD.status; });
       cdPaint(); return;
     }
+    if ((x = g('tr.cq-row')) && !g('a')) { cdRecOpen(x.dataset.cdrow); return; }
   });
+  root.addEventListener('keydown', e => { const row = e.target.closest && e.target.closest('tr.cq-row'); if (row && (e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); cdRecOpen(row.dataset.cdrow); } });
+  if (!window.cdEscWired) { window.cdEscWired = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && cdOpenKey && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) cdRecClose(); }); }
 }
 function renderComplaintsDetail() {
   const el = document.getElementById('complaintsDetailContent'); if (!el) return;
