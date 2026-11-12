@@ -4959,9 +4959,12 @@ function tidyNav(){
   const cplOpen = typeof trsPageOpen === 'function' && trsPageOpen('complaintlog', TRS_LEVEL, TRS_EXTRA) && trsToolOpen('complaintspipeline', TRS_LEVEL);
   document.querySelectorAll('#sidebar .nav-sub[data-cmp-pipeline]').forEach(el => { el.style.display = cplOpen ? '' : 'none'; });
   const open = el => el.style.display !== 'none' && /showView/.test(el.getAttribute('onclick') || '');
+  // Kate, 12 Nov 2026: a link out that is showing (Post Approvals, Content Calendar, Upload Portal, Rearrange Menu...) is a page too. A sub-section made only of links out
+  // (Social Media, Backend, Accounts in her own menu) was hidden because none of its rows has a showView, so the whole sub-section went missing from the sidebar.
+  const shownLink = el => el.style.display !== 'none' && (el.hasAttribute('data-tool-link') || el.hasAttribute('data-tool-min') || el.hasAttribute('data-cmp-pipeline'));
   document.querySelectorAll('#sidebar .nav-subhead').forEach(h => {
     let n = h.nextElementSibling, any = false;
-    while (n && !n.classList.contains('nav-subhead')) { if (n.classList.contains('nav-sub') && open(n)) any = true; n = n.nextElementSibling; }
+    while (n && !n.classList.contains('nav-subhead')) { if (n.classList.contains('nav-sub') && (open(n) || shownLink(n))) any = true; n = n.nextElementSibling; }
     h.style.display = any ? '' : 'none';
   });
   document.querySelectorAll('#sidebar .nav-group').forEach(g => {
