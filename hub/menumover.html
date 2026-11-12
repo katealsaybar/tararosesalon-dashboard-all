@@ -122,7 +122,7 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
 <script src="/js/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
 <script src="/js/pages.js?v=d17760dd"></script>
-<script src="/js/nav-layout.js?v=9486d260"></script>
+<script src="/js/nav-layout.js?v=14cd1d3a"></script>
 <script src="/hub/hub.js?v=8c9a3b5f"></script>
 <script src="/js/visits.js?v=e33b3a0d"></script>
 <script src="/assets/pill-select.js?v=7bd2fc3a"></script>
@@ -144,6 +144,9 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
   function $(s) { return document.querySelector(s); }
   function group(n) { return CUR.filter(function (g) { return g.n === n; })[0]; }
   function subOf(g, n) { return g.subs.filter(function (s) { return s.n === n; })[0]; }
+  // Kate, 12 Nov 2026: any section or sub-section can be renamed. `n` stays the original name (the key the layout matches on); `l` is the name shown.
+  function gl(g) { return g.l || g.n; }
+  function sl(s) { return s.l || s.n; }
   function swap(a, i, j) { var t = a[i]; a[i] = a[j]; a[j] = t; }
   function say(t, err) { var el = $('#mmMsg'); if (el) { el.textContent = t; el.className = 'mm-msg' + (err ? ' err' : ''); } }
 
@@ -166,17 +169,17 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
     $('#mmApp').innerHTML = CUR.map(function (g, gi) {
       var total = g.loose.length + g.subs.reduce(function (a, s) { return a + s.p.length; }, 0);
       return '<section class="mm-sec' + (open[g.n] ? ' open' : '') + '" data-g="' + esc(g.n) + '">' +
-        '<div class="mm-sh" data-act="toggle" data-g="' + esc(g.n) + '"><span class="mm-chev" aria-hidden="true">›</span><h2>' + esc(g.n) + '</h2><span class="mm-cnt">' + total + ' pages</span>' +
-        (g.c ? '<span class="mm-mine">Yours</span><button type="button" class="mm-mini" data-act="gren" data-i="' + gi + '">Rename</button>' + (total ? '' : '<button type="button" class="mm-mini" data-act="gdel" data-i="' + gi + '">Remove</button>') : '') +
-        '<button type="button" class="mm-mini" data-act="gup" data-i="' + gi + '"' + (gi === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(g.n) + ' up">▲</button>' +
-        '<button type="button" class="mm-mini" data-act="gdn" data-i="' + gi + '"' + (gi === CUR.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(g.n) + ' down">▼</button></div>' +
+        '<div class="mm-sh" data-act="toggle" data-g="' + esc(g.n) + '"><span class="mm-chev" aria-hidden="true">›</span><h2>' + esc(gl(g)) + '</h2><span class="mm-cnt">' + total + ' pages</span>' +
+        (g.c ? '<span class="mm-mine">Yours</span>' : '') + '<button type="button" class="mm-mini" data-act="gren" data-i="' + gi + '">Rename</button>' + (g.c && !total ? '<button type="button" class="mm-mini" data-act="gdel" data-i="' + gi + '">Remove</button>' : '') +
+        '<button type="button" class="mm-mini" data-act="gup" data-i="' + gi + '"' + (gi === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(gl(g)) + ' up">▲</button>' +
+        '<button type="button" class="mm-mini" data-act="gdn" data-i="' + gi + '"' + (gi === CUR.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(gl(g)) + ' down">▼</button></div>' +
         '<div class="mm-body">' +
-        (g.subs.length ? '<div class="mm-loose">Straight under ' + esc(g.n) + ' (no sub-section)</div>' : '') +
+        (g.subs.length ? '<div class="mm-loose">Straight under ' + esc(gl(g)) + ' (no sub-section)</div>' : '') +
         list(g.loose, g.n, '') +
         g.subs.map(function (s, si) {
-          return '<div class="mm-sub"><div class="mm-subh"><h3>' + esc(s.n) + '</h3>' +
-            '<button type="button" class="mm-mini" data-act="sup" data-g="' + esc(g.n) + '" data-i="' + si + '"' + (si === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(s.n) + ' up">▲</button>' +
-            '<button type="button" class="mm-mini" data-act="sdn" data-g="' + esc(g.n) + '" data-i="' + si + '"' + (si === g.subs.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(s.n) + ' down">▼</button>' +
+          return '<div class="mm-sub"><div class="mm-subh"><h3>' + esc(sl(s)) + '</h3>' +
+            '<button type="button" class="mm-mini" data-act="sup" data-g="' + esc(g.n) + '" data-i="' + si + '"' + (si === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(sl(s)) + ' up">▲</button>' +
+            '<button type="button" class="mm-mini" data-act="sdn" data-g="' + esc(g.n) + '" data-i="' + si + '"' + (si === g.subs.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(sl(s)) + ' down">▼</button>' +
             '<button type="button" class="mm-mini" data-act="sren" data-g="' + esc(g.n) + '" data-i="' + si + '">Rename</button>' +
             (s.p.length ? '' : '<button type="button" class="mm-mini" data-act="sdel" data-g="' + esc(g.n) + '" data-i="' + si + '">Remove</button>') +
             '</div>' + list(s.p, g.n, s.n) + '</div>';
@@ -198,7 +201,7 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
     if (!q) return;
     var any = false;
     Array.prototype.forEach.call(app.querySelectorAll('.mm-sec'), function (sec) {
-      var gm = sec.dataset.g.toLowerCase().indexOf(q) > -1, hits = 0;
+      var gm = ((sec.querySelector('h2') || {}).textContent || sec.dataset.g).toLowerCase().indexOf(q) > -1, hits = 0;
       var loose = sec.querySelector('.mm-loose'), looseUl = sec.querySelector('.mm-body > ul');
       Array.prototype.forEach.call(sec.querySelectorAll('.mm-row'), function (r) {
         var ok = gm || label(r.dataset.k).toLowerCase().indexOf(q) > -1;
@@ -238,7 +241,7 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
     var g = group(gn), arr = sn ? subOf(g, sn).p : g.loose;
     arr.splice(idx == null ? arr.length : idx, 0, k);
   }
-  function groupTaken(n, except) { return CUR.some(function (g) { return g.n.toLowerCase() === n.toLowerCase() && g !== except; }); }
+  function groupTaken(n, except) { var q = n.toLowerCase(); return CUR.some(function (g) { return g !== except && (g.n.toLowerCase() === q || gl(g).toLowerCase() === q); }); }
   function addSection() {
     var gv = prompt('Name of the new section');
     if (!gv || !gv.trim()) return null;
@@ -247,16 +250,16 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
     CUR.push({ n: gv, loose: [], subs: [], c: 1 }); open[gv] = true;
     return gv;
   }
-  function nameTaken(g, n, except) { return g.subs.some(function (s) { return s.n.toLowerCase() === n.toLowerCase() && s !== except; }); }
+  function nameTaken(g, n, except) { var q = n.toLowerCase(); return g.subs.some(function (s) { return s !== except && (s.n.toLowerCase() === q || sl(s).toLowerCase() === q); }); }
 
   function fillSubs() {
     var g = group($('#mmDsec').value);
-    $('#mmDsub').innerHTML = '<option value="">None (straight under the section)</option>' + g.subs.map(function (s) { return '<option>' + esc(s.n) + '</option>'; }).join('');
+    $('#mmDsub').innerHTML = '<option value="">None (straight under the section)</option>' + g.subs.map(function (s) { return '<option value="' + esc(s.n) + '">' + esc(sl(s)) + '</option>'; }).join('');
   }
   function openDlg(k) {
     moving = k;
     $('#mmDtitle').textContent = 'Move “' + label(k) + '”';
-    $('#mmDsec').innerHTML = CUR.map(function (g) { return '<option>' + esc(g.n) + '</option>'; }).join('');
+    $('#mmDsec').innerHTML = CUR.map(function (g) { return '<option value="' + esc(g.n) + '">' + esc(gl(g)) + '</option>'; }).join('');
     var c = place(CUR)[k].split('|');
     $('#mmDsec').value = c[0]; fillSubs(); $('#mmDsub').value = c[1] || '';
     $('#mmDlg').showModal();
@@ -286,20 +289,26 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
       if (!addSection()) return;
     }
     else if (a === 'gren') {
-      var rv = prompt('Rename section', CUR[i].n);
-      if (rv && rv.trim()) { rv = rv.trim().slice(0, 40); if (groupTaken(rv, CUR[i])) { alert('There is already a section called ' + rv + '.'); return; } open[rv] = open[CUR[i].n]; CUR[i].n = rv; }
+      var cg = CUR[i], rv = prompt('Rename section' + (cg.c ? '' : ' (leave it empty to go back to “' + cg.n + '”)'), gl(cg));
+      if (rv === null) return;
+      rv = rv.trim().slice(0, 40);
+      if (!rv || rv === cg.n) delete cg.l;
+      else { if (groupTaken(rv, cg)) { alert('There is already a section called ' + rv + '.'); return; } cg.l = rv; }
     }
     else if (a === 'gdel') CUR.splice(i, 1);
     else if (a === 'sup') swap(g.subs, i, i - 1);
     else if (a === 'sdn') swap(g.subs, i, i + 1);
     else if (a === 'sren') {
-      var v = prompt('Rename sub-section', g.subs[i].n);
-      if (v && v.trim()) { v = v.trim().slice(0, 40); if (nameTaken(g, v, g.subs[i])) { alert('There is already a sub-section called ' + v + ' in ' + g.n + '.'); return; } g.subs[i].n = v; }
+      var cs = g.subs[i], v = prompt('Rename sub-section' + ' (leave it empty to go back to “' + cs.n + '”)', sl(cs));
+      if (v === null) return;
+      v = v.trim().slice(0, 40);
+      if (!v || v === cs.n) delete cs.l;
+      else { if (nameTaken(g, v, cs)) { alert('There is already a sub-section called ' + v + ' in ' + gl(g) + '.'); return; } cs.l = v; }
     }
     else if (a === 'sdel') g.subs.splice(i, 1);
     else if (a === 'sadd') {
       var nv = prompt('Name of the new sub-section');
-      if (nv && nv.trim()) { nv = nv.trim().slice(0, 40); if (nameTaken(g, nv)) { alert('There is already a sub-section called ' + nv + ' in ' + g.n + '.'); return; } g.subs.push({ n: nv, p: [] }); open[g.n] = true; }
+      if (nv && nv.trim()) { nv = nv.trim().slice(0, 40); if (nameTaken(g, nv)) { alert('There is already a sub-section called ' + nv + ' in ' + gl(g) + '.'); return; } g.subs.push({ n: nv, p: [] }); open[g.n] = true; }
     }
     else if (a === 'move') { openDlg(b.dataset.k); return; }
     draw();
@@ -411,15 +420,15 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
     $('#mmAddSec').addEventListener('click', function () { if (addSection()) { draw(); window.scrollTo(0, document.body.scrollHeight); } });
     // Inside the Move dialog too: make the section or sub-section you want, and it is chosen for you.
     function fillSecs(pick) {
-      $('#mmDsec').innerHTML = CUR.map(function (g) { return '<option>' + esc(g.n) + '</option>'; }).join('');
+      $('#mmDsec').innerHTML = CUR.map(function (g) { return '<option value="' + esc(g.n) + '">' + esc(gl(g)) + '</option>'; }).join('');
       $('#mmDsec').value = pick; fillSubs();
     }
     $('#mmDnewSec').addEventListener('click', function () { var n = addSection(); if (n) { draw(); fillSecs(n); } });
     $('#mmDnewSub').addEventListener('click', function () {
-      var g = group($('#mmDsec').value), nv = prompt('Name of the new sub-section in ' + g.n);
+      var g = group($('#mmDsec').value), nv = prompt('Name of the new sub-section in ' + gl(g));
       if (!nv || !nv.trim()) return;
       nv = nv.trim().slice(0, 40);
-      if (nameTaken(g, nv)) { alert('There is already a sub-section called ' + nv + ' in ' + g.n + '.'); return; }
+      if (nameTaken(g, nv)) { alert('There is already a sub-section called ' + nv + ' in ' + gl(g) + '.'); return; }
       g.subs.push({ n: nv, p: [] }); open[g.n] = true; draw(); fillSubs(); $('#mmDsub').value = nv;
     });
     $('#mmAll').addEventListener('click', function () {

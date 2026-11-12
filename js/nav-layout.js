@@ -38,12 +38,12 @@
     Array.prototype.forEach.call(root.querySelectorAll('.nav-group'), function (g) {
       var t = g.querySelector(':scope > .nav-title');
       if (!t) return;
-      var gn = txt(t), grp = { n: gn, loose: [], subs: [] }, cur = null, kids = Array.prototype.slice.call(g.children);
+      var gn = t.getAttribute('data-nav-orig') || txt(t), grp = { n: gn, loose: [], subs: [] }, cur = null, kids = Array.prototype.slice.call(g.children);
       groupEls[gn] = g;
       for (var i = 0; i < kids.length; i++) {
         var el = kids[i];
         if (el === t) continue;
-        if (el.classList.contains('nav-subhead')) { cur = { n: txt(el), p: [] }; grp.subs.push(cur); heads[gn + '|' + cur.n] = el; continue; }
+        if (el.classList.contains('nav-subhead')) { cur = { n: el.getAttribute('data-nav-orig') || txt(el), p: [] }; grp.subs.push(cur); heads[gn + '|' + cur.n] = el; continue; }
         if (!el.classList.contains('nav-sub') || isKid(el)) continue;
         var els = [el], j = i + 1;
         while (j < kids.length && isKid(kids[j])) { els.push(kids[j]); j++; }
@@ -75,9 +75,11 @@
     layout.groups.forEach(function (lg) {
       if (!defNames[lg.n] && !lg.c) return;
       var g = grp(lg.n, !defNames[lg.n]);
+      if (lg.l) g.l = String(lg.l).slice(0, 40);
       (lg.loose || []).forEach(function (k) { if (known[k] && !used[k]) { used[k] = 1; g.loose.push(k); } });
       (lg.subs || []).forEach(function (ls) {
         var s = sub(g, ls.n);
+        if (ls.l) s.l = String(ls.l).slice(0, 40);
         (ls.p || []).forEach(function (k) { if (known[k] && !used[k]) { used[k] = 1; s.p.push(k); } });
       });
     });
@@ -104,37 +106,48 @@
     tree.forEach(function (g) {
       var ge = ext.groupEls[g.n];
       if (!ge && !g.c) return;
-      var seq = [];
+      var seq = [], heads = [];
       g.loose.forEach(function (k) { if (ext.units[k]) seq.push.apply(seq, ext.units[k].els); });
       g.subs.forEach(function (s) {
         var h = ext.heads[g.n + '|' + s.n];
         if (!h) { h = document.createElement('div'); h.className = 'nav-subhead'; h.textContent = s.n; }
         seq.push(h);
+        heads.push({ h: h, key: s.n, text: s.l || s.n });
         s.p.forEach(function (k) { if (ext.units[k]) seq.push.apply(seq, ext.units[k].els); });
       });
       if (!ge) {
         // A section of her own: drawn only when it holds a page (a sub-section heading on its own is not a page).
         if (!seq.some(function (el) { return !el.classList.contains('nav-subhead'); })) return;
         ge = document.createElement('div'); ge.className = 'nav-group'; ge.setAttribute('data-nav-custom', '1');
-        var ti = document.createElement('div'); ti.className = 'nav-title'; ti.textContent = g.n; ge.appendChild(ti);
+        var ti = document.createElement('div'); ti.className = 'nav-title'; ti.textContent = g.l || g.n; ge.appendChild(ti);
       }
-      plan.push({ ge: ge, seq: seq });
+      plan.push({ ge: ge, seq: seq, key: g.n, title: g.l || g.n, heads: heads });
     });
     var out = aside.querySelector('.nav-out');
     plan.forEach(function (p) { p.seq.forEach(function (el) { p.ge.appendChild(el); }); });
     plan.forEach(function (p) { if (out && out.parentNode) out.parentNode.insertBefore(p.ge, out); else aside.appendChild(p.ge); });
+    // Kate, 12 Nov 2026: a section or sub-section can be renamed. The heading shows the label; data-nav-orig keeps the original name, which is the key the saved layout and
+    // the Rearrange Menu page match on. Runs before nav-collapse.js builds the folds, so they read the new text.
+    function setText(el, t) { var n = el.firstChild; if (n && n.nodeType === 3) n.nodeValue = t; else el.insertBefore(document.createTextNode(t), el.firstChild); }
+    plan.forEach(function (p) {
+      var ti = p.ge.querySelector(':scope > .nav-title');
+      if (ti) { ti.setAttribute('data-nav-orig', p.key); setText(ti, p.title); }
+      p.heads.forEach(function (x) { x.h.setAttribute('data-nav-orig', x.key); setText(x.h, x.text); });
+    });
   }
 
   // One fixed key order, so a layout saved here and the same layout read back from the database compare equal as text.
   function canon(layout) {
     if (!layout || !layout.groups) return null;
     return JSON.stringify({ v: 1, groups: layout.groups.map(function (g) {
-      var o = { n: g.n, loose: (g.loose || []).slice(), subs: (g.subs || []).map(function (s) { return { n: s.n, p: (s.p || []).slice() }; }) };
+      var o = { n: g.n }; if (g.l) o.l = g.l;
+      o.loose = (g.loose || []).slice();
+      o.subs = (g.subs || []).map(function (s) { var so = { n: s.n }; if (s.l) so.l = s.l; so.p = (s.p || []).slice(); return so; });
       if (g.c) o.c = 1;
       return o;
     }) });
   }
-  function treeToLayout(tree) { return { v: 1, groups: tree.map(function (g) { var o = { n: g.n, loose: g.loose.slice(), subs: g.subs.map(function (s) { return { n: s.n, p: s.p.slice() }; }) }; if (g.c) o.c = 1; return o; }) }; }
+  function treeToLayout(tree) { return { v: 1, groups: tree.map(function (g) { var o = { n: g.n, loose: g.loose.slice(), subs: g.subs.map(function (s) { var so = { n: s.n, p: s.p.slice() }; if (s.l) so.l = s.l; return so; }) }; if (g.l) o.l = g.l; if (g.c) o.c = 1; return o; }) }; }
 
   window.trsNav = { extract: extract, merge: merge, apply: apply, canon: canon, treeToLayout: treeToLayout, CACHE: CACHE };
 

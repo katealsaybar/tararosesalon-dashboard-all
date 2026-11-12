@@ -41,7 +41,7 @@
 <script src="/js/auth.js?v=3823f956"></script>
 <script src="/js/pages.js?v=d17760dd"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/js/nav-layout.js?v=9486d260"></script>
+<script src="/js/nav-layout.js?v=14cd1d3a"></script>
 <script src="/hub/hub.js?v=8c9a3b5f"></script>
 <script src="/js/visits.js?v=e33b3a0d"></script>
 <script>
@@ -262,7 +262,7 @@ KB.ready.then(async function () {
         if (cs.length) lists.push({ title: title, keys: cs.map(function (c) { return c.key; }) });
       };
       put('More', tg.loose);
-      tg.subs.forEach(function (sb) { put(sb.n, sb.p); });
+      tg.subs.forEach(function (sb) { put(sb.l || sb.n, sb.p); });
       // A row the standard door has that the sidebar has no row for at all (Staff Roster & Access, Page Access) stays where the standard door puts it.
       var onSide = {};
       Object.keys(ext.units).forEach(function (k) { onSide[norm(ext.units[k].els[0].getAttribute('href'))] = 1; });
@@ -307,8 +307,8 @@ KB.ready.then(async function () {
           });
           if (cs.length) lists.push({ title: title, keys: cs, order: cs.slice() });
         };
-        mk(g.n, g.loose, g.n);
-        g.subs.forEach(function (sb) { mk(g.n + ' · ' + sb.n, sb.p, g.n + ' · ' + sb.n); });
+        mk(g.l || g.n, g.loose, g.l || g.n);
+        g.subs.forEach(function (sb) { mk((g.l || g.n) + ' · ' + (sb.l || sb.n), sb.p, (g.l || g.n) + ' · ' + (sb.l || sb.n)); });
       });
     } catch (e) { lists = []; }
     if (!lists.length) lists = ['Numbers', 'Clients', 'Targets', 'Campaigns', 'Content', 'People'].map(function (d) { return { title: d, dept: d }; });
