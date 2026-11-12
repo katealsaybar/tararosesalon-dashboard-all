@@ -3351,6 +3351,8 @@ body.ledger-chrome .wrap{max-width:1560px}
 /* Kate, 30 Sep 2026: the fixed masthead kept the 1180px cap, so with the sidebar
    closed the logo and date line sat indented from the page below them. */
 body.ledger-chrome .topbar-in{max-width:1560px}
+/* Kate, 12 Nov 2026: the Weekly Product Plan sheet has 20-plus columns, so on a wide screen the page and the masthead (kept in line) run to 1560px. */
+@media(min-width:1240px){body.spend-chrome .wrap,body.spend-chrome .topbar-in{max-width:1560px}}
 body.ledger-chrome table.lg{font-size:16px}
 body.ledger-chrome table.lg.lg-compact{font-size:15px}
 body.ledger-chrome table.lg th{font-size:12.5px;padding:11px 13px}
@@ -3669,7 +3671,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['js/products.js?v=d1961633'],
-      sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=83ba4a45'],
+      sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=06a57649'],
       // Retention (3 Nov 2026): one file, reads retention_report and drill_retention_clients.
       rt:  ['js/retention.js?v=87f0b7fa'],
       sc:  ['js/stylist-cards.js?v=fe5a89a4'],
@@ -5370,6 +5372,7 @@ function showView(view, el){
   document.body.classList.toggle('metaads-chrome', view === 'metaads');
   document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
   document.body.classList.toggle('toolspend-chrome', view === 'toolspend');
+  document.body.classList.toggle('spend-chrome', view === 'supplierspend');   // Kate, 12 Nov 2026: the Weekly Product Plan sheet runs wider than the usual page
   document.body.classList.toggle('contentcalendar-chrome', view === 'contentcalendar');
   document.body.classList.toggle('website-chrome', view === 'website');
   document.body.classList.toggle('social-chrome', view === 'social');

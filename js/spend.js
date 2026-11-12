@@ -29,6 +29,17 @@
 @container (max-width:900px){.pg{--gx:18px}}
 @container (max-width:760px){.pg{--gx:10px}}
 .pg{padding:10px var(--gx) 48px}
+/* The site's one scrollbar (css/scrollbars.css), repeated here because that sheet cannot reach inside this page's shadow root: thin, no arrows,
+   no track, a soft pill in the colour of the text, a little stronger under the pointer. */
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--text) 30%,transparent) transparent}
+@supports selector(::-webkit-scrollbar){
+  *{scrollbar-width:auto;scrollbar-color:auto}
+  *::-webkit-scrollbar{width:10px;height:10px;background:transparent}
+  *::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}
+  *::-webkit-scrollbar-button{display:none;width:0;height:0}
+  *::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--text) 30%,transparent);background-clip:padding-box;border:3px solid transparent;border-radius:999px;min-height:40px;min-width:40px}
+  *::-webkit-scrollbar-thumb:hover,*::-webkit-scrollbar-thumb:active{background:color-mix(in srgb,var(--text) 55%,transparent);background-clip:padding-box}
+}
 button,select,textarea,input{font:inherit;color:inherit}
 .msg{padding:30px 0;color:var(--muted);font-size:14px}
 h1.t{margin:0 0 4px;font-size:clamp(22px,4cqi,28px);font-weight:600;letter-spacing:-.01em;line-height:1.15}
