@@ -136,8 +136,10 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
 .tip div{display:flex;flex-direction:column;padding:3px 0;border-top:1px solid color-mix(in srgb,var(--bg) 25%,transparent)}
 .tip div:first-of-type{border-top:0}
 .tip em{font-style:normal;opacity:.75;font-size:11.5px}
-.foot{margin:12px 2px 0;color:var(--muted);font-size:12.5px;line-height:1.6}
-.foot b{color:var(--text)}
+.howh{margin:22px 0 10px;font-size:13px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.howto{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.howto div{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:14px;line-height:1.45;color:var(--text)}
+.howto div>b{display:block;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
 .newsku{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
 .newsku h3{margin:0 0 6px;font-size:14px}
 .newsku ul{margin:6px 0 10px;padding-left:18px;font-size:13px;color:var(--muted)}
@@ -642,21 +644,24 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
       '<span class="cnt" id="cnt"></span>' +
       '<span class="dl" role="group" aria-label="Download this report"><button type="button" onclick="rexRun(\'spendExport\',\'xlsx\',this)" title="Download as an Excel file">XLSX</button><button type="button" onclick="rexRun(\'spendExport\',\'csv\',this)" title="Download as a CSV file">CSV</button></span></div>' +
       '<div class="sheet"><div class="xw" id="xw"><table class="xt"><thead id="th">' + theadHtml() + '</thead><tbody id="tb">' + tbodyHtml() + '</tbody><tfoot id="tf">' + totalsHtml() + '</tfoot></table></div></div>' +
-      newSkuHtml() + '<p class="foot" id="foot"></p>';
+      newSkuHtml() + '<h2 class="howh">How to read this</h2><div class="howto" id="foot"></div>';
     refreshMeta();
   }
   function refreshMeta() {
     const all = S.rows.filter(r => S.brs.indexOf(r[BR]) >= 0), cf = all.filter(r => r[FLAG] === 2).length, orph = all.filter(r => r[FLAG] === 1).length, edits = Object.keys(S.edits).length, b = S.basis || {};
     $('cnt').innerHTML = S.view.length + ' of ' + all.length + ' products &middot; ' + brLabel() + (edits ? ' &middot; ' + edits + ' cells edited' : '');
     const asof = Object.keys(S.asof).filter(x => S.brs.indexOf(x) >= 0).map(x => S.asof[x]).sort()[0];
-    $('foot').innerHTML = '<b>Type</b> follows the stock type Phorest holds (colour products are always professional). ' +
-      (cf ? '<i class="fl">!</i> marks the ' + cf + ' products where the category name and Phorest disagree, change the Type there if Phorest is wrong. ' : '') +
-      (orph ? 'The ' + orph + ' products that are in italics had usage but are not on the Stock List any more, so they have no shelf stock. ' : '') +
-      '<b>In stock now</b> is the quantity Phorest shows on the shelf' + (asof ? ' (Stock List of ' + dmy(asof) + ')' : '') + ', a negative number is what Phorest holds. <b>The months, In stock now and Usage Unit Cost come from Phorest and the price list, so they cannot be edited here.</b> ' +
-      '<b>Avg Units / Week</b> is the units of the Period chosen at the top divided by its days, times 7' + (days() ? ' (' + days() + ' days now)' : '') + '. ' +
-      '<b>Min and Max</b> start as the average weekly units of ' + dmy(b.minmax_from) + ' to ' + dmy(b.minmax_to) + ' rounded up (Max is Min plus 3); <b>Priority A</b> is the products that make the first 80% of the spend from ' + dmy(b.prio_from) + ' to ' + dmy(b.prio_to) + ' at the Phorest cost, B is the rest. Change any of them and your change wins; clear a Min or Max to go back to the starting figure. ' +
-      '<span style="color:var(--tri)">&#9698;</span> A triangle in the lower right of a cell means someone edited it, hover it to see who. ' +
-      '<b>Min and Max Stock Value</b> are Min or Max units times the unit cost, so they follow every change.';
+    const card = (t, h) => '<div><b>' + t + '</b>' + h + '</div>';
+    $('foot').innerHTML =
+      card('Type', 'The stock type Phorest holds. Colour products are always professional.' + (cf ? ' <i class="fl">!</i> marks the ' + cf + ' products where the category name and Phorest disagree, so change the Type in Phorest if it is wrong.' : '')) +
+      (orph ? card('Not on the Stock List', 'The ' + orph + ' products in italics had usage but are not on the Stock List any more, so they have no shelf stock.') : '') +
+      card('In stock now', 'The quantity Phorest shows on the shelf' + (asof ? ' (Stock List of ' + dmy(asof) + ')' : '') + '. A negative number is what Phorest holds.') +
+      card('From Phorest', 'The months, In stock now and Usage Unit Cost come from Phorest and the price list, so they cannot be edited here.') +
+      card('Avg Units / Week', 'The units of the Period chosen at the top, divided by its days, times 7' + (days() ? ' (' + days() + ' days now)' : '') + '.') +
+      card('Min and Max', 'Start as the average weekly units of ' + dmy(b.minmax_from) + ' to ' + dmy(b.minmax_to) + ', rounded up. Max is Min plus 3.') +
+      card('Priority', 'A is the products that make the first 80% of the spend from ' + dmy(b.prio_from) + ' to ' + dmy(b.prio_to) + ' at the Phorest cost. B is the rest.') +
+      card('Your changes', 'Change any Min, Max or Priority and your change wins. Clear a Min or Max to go back to the starting figure. <span style="color:var(--tri)">&#9698;</span> A triangle in the lower right of a cell means someone edited it, hover it to see who.') +
+      card('Stock Value', 'Min and Max Stock Value are Min or Max units times the unit cost, so they follow every change.');
   }
   const keep = fn => { let x = $('xw'); const sx = x ? x.scrollLeft : 0, sy = x ? x.scrollTop : 0; fn(); x = $('xw'); if (x) { x.scrollLeft = sx; x.scrollTop = sy; } };
   const redrawAll = () => keep(render);
