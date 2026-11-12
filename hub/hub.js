@@ -117,6 +117,9 @@
       blurb: 'Our ROSES magazine, 2021 to 2023, to read or download.' },
     { key: 'post-approvals', via: 'dashboards', min: 3, only: [3, 5], ic: 'approvals', dept: 'Tools', title: 'Post Approvals', href: 'https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/', rule: 'var(--accent-coral)',
       blurb: 'Posts waiting for a yes, with comments.' },
+    // Kate, 12 Nov 2026: the Content Calendar lives in the Post Approvals app (calendar/, no login), one click from here.
+    { key: 'content-calendar', via: 'dashboards', min: 3, only: [3, 5], ic: 'marketing', dept: 'Tools', title: 'Content Calendar', href: 'https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/calendar/', rule: 'var(--accent-coral)',
+      blurb: 'Every post we made on a calendar, how it did, and the plan for next month. Opens straight away, no login.' },
     // Kate, 6 Oct 2026: named as in the dashboard sidebar (Marketing & Campaigns).
     { key: 'content-ads', via: 'dashboards', min: 3, ic: 'marketing', dept: 'Content', title: 'Google Ads', href: '/?view=googleads', rule: 'var(--accent-coral)',
       blurb: 'Spend, clicks and leads from Google Ads.' },
