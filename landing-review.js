@@ -10,20 +10,22 @@
   /* One entry per landing page. slug = the folder under /campaigns/ and the key page_comments uses (a -r1 style suffix shares its page's comments).
      Every page is a draft until Kate says otherwise: nothing here says "live". */
   var PAGES = [
-    { slug: 'keratin-smoothing', name: 'Keratin & Smoothing', tag: 'Draft for review', hue: 'a',
+    { slug: 'keratin-smoothing', name: 'Keratin & Smoothing', tag: 'Draft for review, Revision 2', hue: 'a',
       who: 'For clients fighting frizz in Dubai and Abu Dhabi humidity. Prices by hair length.',
-      img: '/campaigns/keratin-smoothing/og/keratin-smoothing.jpg' },
-    { slug: 'extensions', name: 'Extensions', tag: 'Draft for review', hue: 'b',
+      img: '/campaigns/keratin-smoothing/og/keratin-smoothing.jpg',
+      earlier: '/campaigns/keratin-smoothing-r1/' },
+    { slug: 'extensions', name: 'Extensions', tag: 'Draft for review, Revision 2', hue: 'b',
       who: 'For clients choosing a method and a care plan. Five methods, matched to hair type.',
-      img: '/campaigns/extensions/assets/img/hero-extensions.jpg' },
-    { slug: 'blonde-standard-revised', name: 'Blonde Standard, revised', tag: 'Draft, 5 Nov feedback applied', hue: 'c',
+      img: '/campaigns/extensions/assets/img/hero-extensions.jpg',
+      earlier: '/campaigns/extensions-r1/' },
+    { slug: 'blonde-standard-revised', name: 'Blonde Standard, revised', tag: 'Draft, Revision 3 (5 Nov feedback applied)', hue: 'c',
       who: 'For clients who want to keep their blonde fresh all year. Version A and Version B are on the page.',
       img: '/campaigns/blonde-standard-revised/assets/img/inline-71bb1c2697.jpg',
       earlier: '/campaigns/blonde-standard/' },
-    { slug: 'hair-rhythm', name: 'Hair Rhythm (junior campaign)', tag: 'Draft for review', hue: 'd',
+    { slug: 'hair-rhythm', name: 'Hair Rhythm (junior campaign)', tag: 'Draft for review, Revision 4', hue: 'd',
       who: 'For clients on a regular trim, blow-dry and colour-care rhythm.',
       img: '/campaigns/hair-rhythm/assets/img/hero-junior.jpg',
-      earlier: '/campaigns/hair-rhythm-r2/' }
+      earlier: '/campaigns/hair-rhythm-r3/' }
   ];
 
   var KEY = 'trs-lpr-layout';
