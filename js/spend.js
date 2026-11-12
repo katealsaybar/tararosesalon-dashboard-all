@@ -867,6 +867,18 @@ table.xt{border-collapse:separate;border-spacing:0;font-size:13px;font-variant-n
       wire();
     }
     try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) { /* the page reads its own default window */ }
+    // Kate, 12 Nov 2026: the plan opens on the whole year, not on This month. Once per visit, and only while the header Period is still
+    // the dashboard's own This month with no period in the address, so a window she picks (or a link names) is never overwritten.
+    if (!S.yearSet) {
+      S.yearSet = true;
+      try {
+        if (typeof activePeriodKey === 'function' && typeof yearRange === 'function' && typeof dateFrom !== 'undefined' && dateFrom && activePeriodKey() === 'This month' && !(window.trsParam && window.trsParam('period'))) {
+          const yr = yearRange(new Date().getFullYear());
+          periodPick = null; dateFrom = yr.from; dateTo = yr.to;
+          if (typeof refreshActiveView === 'function') { refreshActiveView(); return; }
+        }
+      } catch (e) { /* keep the window as it is */ }
+    }
     S.brs = wantBranches();
     const w = wantWindow(), key = (w.from || '') + '|' + (w.to || '');
     // A Branch change redraws what is loaded; a new Period reads the usage again (it is the Period that sets the weekly figures).
