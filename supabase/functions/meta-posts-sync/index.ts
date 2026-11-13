@@ -3,11 +3,13 @@
 //   source               'metricool' when the post's live url is in Metricool's scheduler list (/v2/scheduler/posts, providers[].publicUrl), else 'manual' (posted by hand, for example by Hanneh).
 // Metricool already carries every Instagram and Facebook post (checked 13 Nov), so this adds no rows: it only labels rows that exist and says which Instagram posts are not in the table yet.
 // Body/query: { days? (default 45, back from today, 7 to 400), dry? } dry only reports. Every run marks sync_health 'meta-posts-sync'. Needs metricool-sync to have run first (nightly, 03:20 Dubai; this one 03:40).
+//   likes, comments, shares  for Facebook photo posts, from the page itself (13 Nov 2026: Metricool's reactions were wrong on an album post, 31 against Facebook's 4). Views stay Metricool's.
 // Read only against Meta and Metricool. Never writes a token, never returns one.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const GRAPH = 'https://graph.facebook.com/v26.0';
 const IG_USER = '17841403590323716';   // @tararosesalon
+const PAGE = '482018305295476';        // the Facebook page
 const BLOG = '6329614';                // Metricool brand "tararosesalon"
 const USER_ID = '4877991';
 const NAME = 'meta-posts-sync';
@@ -88,7 +90,7 @@ Deno.serve(async (req) => {
     // 3. The rows we already hold, since the cut-off.
     const rows: any[] = [];
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await sb.from('metricool_posts').select('post_key,network,kind,url,post_date,source,media_type,slides')
+      const { data, error } = await sb.from('metricool_posts').select('post_key,network,kind,url,post_date,source,media_type,slides,likes,comments,shares,extra')
         .in('network', ['instagram', 'facebook', 'tiktok']).neq('kind', 'story').gte('post_date', fromDate).range(from, from + 999);
       if (error) throw new Error('metricool_posts: ' + error.message);
       rows.push(...(data || [])); if (!data || data.length < 1000) break;
@@ -126,6 +128,51 @@ Deno.serve(async (req) => {
           if (error) errors.push(`update ${r.post_key}: ${error.message}`);
         }
       }
+    }
+    // 4. Facebook photo posts: reactions, comments and shares from Meta itself (Kate, 13 Nov 2026). Metricool said 31 reactions on the 10 Nov album post, Facebook's own count was 4.
+    //    Views (impressions) stay Metricool's, the token has no read_insights. Reels stay Metricool's until they are checked. Metricool's own figures are kept in extra.metricool_likes / _comments / _shares.
+    //    metricool-sync writes Metricool's figure at 03:20 and this overwrites it at 03:40, so Meta's number is what the calendar reads.
+    {
+      const fbRows = rows.filter(r => r.network === 'facebook' && r.kind === 'post');
+      const fbOut: any = { rows: fbRows.length, fetched: 0, matched: 0, changed: 0, examples: [] };
+      try {
+        const pr = await (await fetch(`${GRAPH}/${PAGE}?fields=access_token&access_token=${encodeURIComponent(igToken)}`)).json();
+        if (!pr.access_token) throw new Error('facebook page token: ' + String(pr.error?.message || 'none').slice(0, 120));
+        const pt = String(pr.access_token);
+        const fields = 'id,created_time,reactions.summary(true).limit(0),comments.summary(true).limit(0),shares';
+        const byId = new Map<string, { likes: number; comments: number; shares: number }>();
+        let size = 10, pages = 0;
+        const mk = () => `${GRAPH}/${PAGE}/posts?fields=${encodeURIComponent(fields)}&limit=${size}&access_token=${encodeURIComponent(pt)}`;
+        let url = mk();
+        const cutoff = Date.parse(fromDate + 'T00:00:00Z') - 3 * dayMs;
+        while (url && pages < 60) {
+          const j = await (await fetch(url)).json();
+          if (j.error) {
+            if (size > 3) { size = Math.max(3, Math.floor(size / 2)); url = mk(); if (pages === 0) continue; }
+            throw new Error('facebook posts: ' + String(j.error.message || '').slice(0, 160));
+          }
+          for (const p of (j.data || [])) byId.set(String(p.id).split('_').pop()!, { likes: Number(p.reactions?.summary?.total_count) || 0, comments: Number(p.comments?.summary?.total_count) || 0, shares: Number(p.shares?.count) || 0 });
+          pages++;
+          const last = j.data && j.data.length ? Date.parse(j.data[j.data.length - 1].created_time) : 0;
+          url = j.paging?.next && last > cutoff ? j.paging.next : '';
+        }
+        fbOut.fetched = byId.size;
+        for (const r of fbRows) {
+          const g = byId.get(String(r.post_key).split('_').pop()!);
+          if (!g) continue;
+          fbOut.matched++;
+          const differs = Number(r.likes) !== g.likes || Number(r.comments) !== g.comments || Number(r.shares) !== g.shares;
+          if (!differs && r.extra?.numbers === 'meta') continue;
+          fbOut.changed++;
+          if (fbOut.examples.length < 6 && differs) fbOut.examples.push({ post: String(r.post_key).split('_').pop()!.slice(-6), likes: [Number(r.likes), g.likes], comments: [Number(r.comments), g.comments], shares: [Number(r.shares), g.shares] });
+          if (!dry) {
+            const extra = { ...(r.extra || {}), numbers: 'meta', ...(differs ? { metricool_likes: r.likes, metricool_comments: r.comments, metricool_shares: r.shares } : {}) };
+            const { error } = await sb.from('metricool_posts').update({ likes: g.likes, comments: g.comments, shares: g.shares, extra, source_checked_at: stamp }).eq('post_key', r.post_key);
+            if (error) errors.push(`facebook numbers ${r.post_key}: ${error.message}`);
+          }
+        }
+      } catch (e) { errors.push(String((e as Error).message || e).slice(0, 200)); }
+      out.facebook = fbOut;
     }
     out.sourceCounts = counts; out.carouselsLabelled = carousels; out.rowsChanged = changed;
     out.instagramNotInTable = media.filter(m => !seenCodes.has(m.code) && m.ts >= fromDate).map(m => m.code + ' ' + m.ts.slice(0, 10)).slice(0, 30);
