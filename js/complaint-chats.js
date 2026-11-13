@@ -191,9 +191,10 @@ async function ccDecide(status, link) {
   r.decided_by = status === 'todo' ? null : 'you'; r.decided_at = status === 'todo' ? null : new Date().toISOString();
   const T = { confirmed: 'Confirmed. Saved as a complaint found in a chat. Nobody was alerted.', not: 'Marked not a complaint. We keep it so we know what to ignore.', already: 'Linked to the complaint already in the dashboard.', unsure: 'Kept as unsure for a second look.', todo: 'Put back to decide.' };
   CC.msg = T[status];
-  // In the To decide list the next one opens by itself; anywhere else the chat stays on screen with its new state.
-  if (CC.status === 'todo' && status !== 'todo') {
-    const i = CC.ctx.indexOf(r.id); CC.ctx.splice(i, 1);
+  // When the decision takes the chat out of the list on screen (To decide, Unsure, or any other single status), it leaves the list and the next one opens by itself; on Everything the chat stays on screen
+  // with its new state. Kate, 13 Nov 2026: she confirmed the 3 chats in Unsure and they stayed in "3 of 3 in this list", because only To decide behaved this way.
+  if (CC.status !== 'all' && status !== CC.status) {
+    const i = Math.max(0, CC.ctx.indexOf(r.id)); CC.ctx = CC.ctx.filter(x => x !== r.id);
     if (CC.ctx.length) { ccRecOpen(CC.ctx[Math.min(i, CC.ctx.length - 1)]); } else { ccRecClose(); }
   } else ccRecOpen(r.id);
   const m = document.getElementById('ccMsg'); if (m && CC.msg) m.innerHTML = `<div class="cq-toast">${cqEsc(CC.msg)}</div>`;
