@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=a29cb86f"></script>
+<script src="js/pages.js?v=48f26ad9"></script>
 <script src="js/page-status.js?v=cc07375f"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=4c13e7f1"></script>
@@ -3669,7 +3669,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       at:  ['js/attrition.js?v=a1fdad42'],
       cb:  ['js/report-export.js?v=d7b73ae8', 'js/client-book.js?v=5cb6aa40'],
       // Complaint triage batch 2 (29 Oct 2026): cmp-people.js is the people list and picker shared with Team Home's complaint ticket.
-      cp:  ['js/report-export.js?v=d7b73ae8', 'js/complaints.js?v=afb3d80e', 'js/complaint-chats.js?v=b20e89a5', 'js/complaints-detail.js?v=49a2a20c', 'js/cmp-people.js?v=5925547b', 'js/complaint-log.js?v=33607687'],
+      cp:  ['js/report-export.js?v=d7b73ae8', 'js/complaints.js?v=afb3d80e', 'js/complaint-chats.js?v=b20e89a5', 'js/complaints-detail.js?v=2bca2042', 'js/cmp-people.js?v=5925547b', 'js/complaint-log.js?v=33607687'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['js/products.js?v=d1961633'],
@@ -4802,7 +4802,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=7b4719d6"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=c2012cdb"></script>
+<script src="js/dashboard.js?v=afca745d"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5410,7 +5410,7 @@ function showView(view, el){
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'complaintchats' || view === 'complaintsdetail' || view === 'services' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
-  document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
+  document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintsdetail' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
   document.body.classList.toggle('metaads-chrome', view === 'metaads');

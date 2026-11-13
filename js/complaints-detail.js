@@ -1,7 +1,7 @@
 // Detailed complaints (Kate, 12 Nov 2026: "detailed complaints report go under Client Complaints"): every complaint on one table with every column, so it can be filtered, sorted and taken into a spreadsheet.
 // The rows are the ones Client Complaints reads (Phorest visit notes, the ones staff logged, optionally the undated client card notes) plus the chat complaints Coach Emma or Kate confirmed.
 // Levels 3 and up, enforced in every function. It borrows the look and the small helpers of complaints.js and complaint-chats.js (same script group). It sits under Client Complaints in the menu.
-const CD = { q: '', src: 'all', branch: 'all', status: 'all', from: '', to: '', cards: false, rows: null, loading: false, sort: 'date', dir: 'desc', page: 0, size: 50, seq: 0 };
+const CD = { q: '', src: 'all', status: 'all', cards: false, rows: null, loading: false, sort: 'date', dir: 'desc', page: 0, size: 50, seq: 0 };
 const CD_COLS = [['date', 'Date'], ['branch', 'Branch'], ['client', 'Client'], ['kind', 'Kind'], ['what', 'What happened'], ['found', 'Found in'], ['now', 'Where it is now'], ['outcome', 'Outcome'], ['ended', 'How it ended'],
   ['stylist', 'Stylist'], ['services', 'Services that day'], ['fee', 'Charged (AED)'], ['handled', 'Handled by'], ['google', 'Google review'], ['code', 'Code'], ['note', 'Original note']];
 
@@ -49,17 +49,26 @@ async function cdLoad() {
     const b = document.getElementById('cdBody'); if (b) b.innerHTML = '<p class="cq-meta" style="padding:10px 4px">The complaints did not load. Refresh to try again.</p>';
   }
 }
+// Branch and date come from the masthead's Branch and Period chips (Kate, 13 Nov 2026: "date filters and branch filters should be based on the global sticky header filter"), the same
+// reading as Client Complaints (cqPicked, cqWin). A row with no date (a client card note) is only inside All time. The rows are loaded once; the chips just change what is kept.
+function cdBase() {
+  if (!CD.rows) return [];
+  const picked = cqPicked(), w = cqWin();
+  return CD.rows.filter(r => {
+    if (picked.length && !picked.includes(r.branch)) return false;
+    if (w.p_from && (!r.date || r.date < w.p_from)) return false;
+    if (w.p_to && (!r.date || r.date > w.p_to)) return false;
+    return true;
+  });
+}
 function cdFiltered() {
   if (!CD.rows) return [];
   const q = CD.q.trim().toLowerCase();
   const isClosed = r => !r.open;
-  let rows = CD.rows.filter(r => {
+  let rows = cdBase().filter(r => {
     if (CD.src === 'chat' ? !r.chat : (CD.src !== 'all' && r.found !== CD.src)) return false;
-    if (CD.branch !== 'all' && r.branch !== CD.branch) return false;
     if (CD.status === 'open' && !r.open) return false;
     if (CD.status === 'closed' && !isClosed(r)) return false;
-    if (CD.from && (!r.date || r.date < CD.from)) return false;
-    if (CD.to && (!r.date || r.date > CD.to)) return false;
     if (q && !(r.client + ' ' + r.what + ' ' + r.stylist + ' ' + r.services + ' ' + r.note + ' ' + r.code + ' ' + r.found).toLowerCase().includes(q)) return false;
     return true;
   });
@@ -72,7 +81,6 @@ function cdFiltered() {
   return rows;
 }
 function cdShell() {
-  const branches = ['all'].concat(Object.keys(CQ_BRANCH));
   const srcs = ['Phorest note', 'Phorest client card', 'Logged by staff'].concat((typeof CC_CHATS !== 'undefined' ? CC_CHATS : []).map(c => (typeof ccChatName === 'function' ? ccChatName(c) : c)));
   return cqCss() + `<div class="cq"><div id="cdRec" class="cq-gone"></div><div id="cdMain">
     <h1>Detailed complaints</h1>
@@ -80,7 +88,7 @@ function cdShell() {
     <div class="cq-intro">
       <p><b>What is this?</b>One row per complaint, newest first, from Phorest notes, the ones staff logged and the chat complaints that were confirmed.</p>
       <p><b>Why it matters</b>The archive reads one complaint at a time. This is for the questions that need all of them: which stylist, which service, which branch, how it ended.</p>
-      <p><b>Do this now</b><span id="cdDo">Pick a branch or a window, then take the rows with XLSX or CSV.</span></p>
+      <p><b>Do this now</b><span id="cdDo">Set the Branch and Period at the top, then take the rows with XLSX or CSV.</span></p>
     </div>
     <div id="cdTiles" class="cq-tiles"></div>
     <p class="cq-meta" id="cdRecon" style="margin:-4px 0 12px"></p>
@@ -88,10 +96,7 @@ function cdShell() {
       <div class="cq-bar cq-filt" style="display:flex">
         <input id="cdQ" class="cq-in" type="search" autocomplete="off" placeholder="Client, stylist, service, code or words in the note" aria-label="Search the complaints" value="${cqEsc(CD.q)}">
         <select id="cdSrc" class="cq-sel" aria-label="Found in"><option value="all">Found in: everywhere</option><option value="chat">Found in: any chat</option>${srcs.map(s => `<option>${cqEsc(s)}</option>`).join('')}</select>
-        <select id="cdBr" class="cq-sel" aria-label="Branch">${branches.map(b => `<option value="${b}">${b === 'all' ? 'All branches' : cqEsc(CQ_BRANCH[b])}</option>`).join('')}</select>
         <select id="cdSt" class="cq-sel" aria-label="Where it is now"><option value="all">Status: any</option><option value="open">Still open</option><option value="closed">Closed</option></select>
-        <label class="cq-chk">From <input id="cdFrom" type="date" class="cq-sel" aria-label="From the date"></label>
-        <label class="cq-chk">to <input id="cdTo" type="date" class="cq-sel" aria-label="To the date"></label>
         <label class="cq-chk"><input id="cdCards" type="checkbox"> Include client card notes (undated)</label>
       </div>
       <div class="cq-metarow"><p class="cq-meta" id="cdMeta" aria-live="polite">Loading…</p><span class="cq-sheetwrap">${typeof rexButtons === 'function' ? rexButtons('cdExport') : ''}</span></div>
@@ -102,14 +107,14 @@ function cdShell() {
 }
 function cdPaint() {
   const rows = cdFiltered(), meta = document.getElementById('cdMeta'), body = document.getElementById('cdBody'); if (!body || !CD.rows) return;
-  const open = CD.rows.filter(r => r.open).length, chat = CD.rows.filter(r => r.chat).length;
+  const base = cdBase(), open = base.filter(r => r.open).length, chat = base.filter(r => r.chat).length;
   const tiles = document.getElementById('cdTiles');
-  if (tiles) tiles.innerHTML = [['all', CD.rows.length, 'All complaints', 'every row'], ['open', open, 'Still open', 'logged and not closed'], ['closed', CD.rows.length - open, 'Closed', 'including history'], ['chat', chat, 'Found in a chat', 'confirmed']]
+  if (tiles) tiles.innerHTML = [['all', base.length, 'All complaints', 'every row'], ['open', open, 'Still open', 'logged and not closed'], ['closed', base.length - open, 'Closed', 'including history'], ['chat', chat, 'Found in a chat', 'confirmed']]
     .map(([k, n, l, s]) => `<button type="button" class="cq-tile cq-tilebtn" data-cdtile="${k}" title="Opens the rows behind this number"><b>${cqNum(n)}</b><span>${cqEsc(l)}</span><span class="cq-muted">${cqEsc(s)}</span></button>`).join('');
   // how the number adds up, so it can be traced to Client Complaints (visit notes) and Chat complaints review (chats)
   const recon = document.getElementById('cdRecon');
-  if (recon) { const cards = CD.rows.filter(r => !r.chat && !r.date).length, visits = CD.rows.length - chat - cards;
-    recon.innerHTML = `${cqNum(CD.rows.length)} = ${cqNum(visits)} from visit notes and logged (the number on Client Complaints) + ${cqNum(chat)} confirmed in chats (the Confirmed filter in Chat complaints review)${cards ? ` + ${cqNum(cards)} client card notes, undated` : ''}.`; }
+  if (recon) { const cards = base.filter(r => !r.chat && !r.date).length, visits = base.length - chat - cards;
+    recon.innerHTML = `${cqNum(base.length)} = ${cqNum(visits)} from visit notes and logged (the number on Client Complaints) + ${cqNum(chat)} confirmed in chats (the Confirmed filter in Chat complaints review)${cards ? ` + ${cqNum(cards)} client card notes, undated` : ''}.`; }
   const pages = Math.max(1, Math.ceil(rows.length / CD.size)); CD.page = Math.min(CD.page, pages - 1);
   const from = rows.length ? CD.page * CD.size + 1 : 0, to = Math.min(rows.length, (CD.page + 1) * CD.size);
   if (meta) meta.textContent = rows.length ? `${cqNum(from)} to ${cqNum(to)} of ${cqNum(rows.length)} complaint${rows.length === 1 ? '' : 's'}` : '';
@@ -204,9 +209,9 @@ function cdRecClick(e) {
 function cdWire() {
   const root = document.getElementById('complaintsDetailContent'); if (!root) return;
   const set = (id, k, ev) => { const el = document.getElementById(id); if (el) el.addEventListener(ev || 'change', () => { CD[k] = el.type === 'checkbox' ? el.checked : el.value; CD.page = 0; if (k === 'cards') cdLoad(); else cdPaint(); }); };
-  set('cdQ', 'q', 'input'); set('cdSrc', 'src'); set('cdBr', 'branch'); set('cdSt', 'status'); set('cdFrom', 'from'); set('cdTo', 'to'); set('cdCards', 'cards');
+  set('cdQ', 'q', 'input'); set('cdSrc', 'src'); set('cdSt', 'status'); set('cdCards', 'cards');
   // the menus show the filter that is on (a tile on Client Complaints can open this page already filtered to the chats)
-  [['cdSrc', 'src'], ['cdBr', 'branch'], ['cdSt', 'status']].forEach(([id, k]) => { const el = document.getElementById(id); if (el && CD[k]) el.value = CD[k]; });
+  [['cdSrc', 'src'], ['cdSt', 'status']].forEach(([id, k]) => { const el = document.getElementById(id); if (el && CD[k]) el.value = CD[k]; });
   if (root.dataset.w) return;
   root.dataset.w = '1';
   root.addEventListener('click', e => {
@@ -230,4 +235,8 @@ function renderComplaintsDetail() {
   el.innerHTML = cdShell();
   cdWire();
   cdLoad();
+  if (typeof cqAllTime === 'function') cqAllTime();   // like Client Complaints: the first visit opens on All time, the Period chips are the toggle after that
 }
+// The masthead's Branch or Period chip changed (dashboard.js NOPULSE_REDRAW): the rows stay loaded, only what is kept changes. An open record stays open.
+function cdRefresh() { if (CD.rows) { CD.page = 0; cdPaint(); } }
+window.cdRefresh = cdRefresh;
