@@ -5250,6 +5250,14 @@ window.addEventListener('message', async e => {
   if (!iso.test(from) || !iso.test(to)) return;
   let rows = [], denied = false;
   try { const { data, error } = await sb.rpc('content_calendar_story_stats', { p_from: from, p_to: to }); if (error) throw error; rows = Array.isArray(data) ? data : []; } catch (err) { denied = true; }
+  // Kate, 13 Nov 2026: a story saved by story-saver (private bucket story-media) comes back as a path. This page, with the signed-in session, turns the paths into short-lived signed links
+  // (2 hours) and sends media_url and is_video to the frame; the path itself never leaves this page.
+  try {
+    const paths = [...new Set(rows.map(r => r && r.media_path).filter(Boolean))];
+    const links = {};
+    if (paths.length) { const { data: sg } = await sb.storage.from('story-media').createSignedUrls(paths, 7200); (sg || []).forEach(x => { if (x && x.signedUrl && x.path) links[x.path] = x.signedUrl; }); }
+    rows = rows.map(r => { const o = { ...r }; if (o.media_path && links[o.media_path]) o.media_url = links[o.media_path]; else delete o.is_video; delete o.media_path; return o; });
+  } catch (err) { rows = rows.map(r => { const o = { ...r }; delete o.media_path; delete o.is_video; return o; }); }
   try { f.contentWindow.postMessage({ type: 'trs-cal-stories', from, to, rows, denied }, CAL_ORIGIN); } catch (err) {}
 });
 function showView(view, el){
