@@ -12,7 +12,7 @@
 .cbl-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
 
 /* sidebar */
-.cbl-side{position:sticky;top:96px;display:flex;flex-direction:column;gap:18px;max-height:calc(100vh - 112px);overflow-y:auto;padding:2px 2px 8px;scrollbar-width:thin}
+.cbl-side{position:sticky;top:96px;display:flex;flex-direction:column;gap:18px;max-height:calc(100vh - 112px);overflow-y:auto;padding:2px 2px 8px}   /* no scrollbar-width here: the site's one scrollbar (css/scrollbars.css, Kate 22 Oct) draws it, and an own scrollbar-width:thin switches that off (13 Nov 2026) */
 .cbl-side h3{font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);margin:0 0 10px}
 .cbl-cal{padding:14px}
 .cbl-cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
