@@ -1088,7 +1088,7 @@
   function lockedNow() { return !!(LOCKI && LOCKI.locked); }   // sending locks by itself once every blast has finished (migrations/nov_send_lock.sql); Level 5 unlocks it by typing UNLOCK
   function lockDisable(h) { return h.replace(/<button type="button" class="nvb-btn/g, '<button type="button" disabled aria-disabled="true" class="nvb-btn').replace(/<(input|select) id="nvbP/g, '<$1 disabled id="nvbP'); }
   function isL5() { return typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL === 5; }
-  var IMGS = [['', 'No header image'], ['assets/nov-blasts/nov-hair-to-beauty-4x5.png', 'Hair to beauty artwork, 4:5'], ['assets/nov-blasts/nov-beauty-to-hair-4x5.png', 'Beauty to hair artwork, 4:5']];
+  var IMGS = [['', 'No header image'], ['assets/nov-blasts/nov-hair-to-beauty-4x5.png', 'Hair to beauty artwork, 4:5 (Blast 1)'], ['assets/nov-blasts/nov-hair-to-beauty-4x5-v2.png', 'Hair to beauty artwork, 4:5 (Manicure or pedicure)'], ['assets/nov-blasts/nov-beauty-to-hair-4x5.png', 'Beauty to hair artwork, 4:5']];   // -v2 = the 10 Nov wording fix ("Manicure or pedicure", not "and"), used by Blast 2; the first file is what Blast 1 sent
   function tplOf(b) { var t = b.data.tpl || {}, g = ['warm', 'std'].filter(function (x) { return t[x] && t[x].n; })[0]; return g ? { n: t[g].n, s: t[g].s || 'todo' } : null; }
   function sendOf(b) { return SND && SND.blasts ? (SND.blasts[b.id] || null) : null; }
   function defImg(b) { var im = b && b.data.img || ''; return IMGS.some(function (x) { return x[0] === im; }) ? im : ''; }
