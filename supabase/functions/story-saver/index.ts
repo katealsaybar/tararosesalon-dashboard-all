@@ -50,6 +50,16 @@ Deno.serve(async (req) => {
     bucketStat.saved++; out.bytes += bytes.byteLength;
   };
 
+  // A story Instagram gives no file for (it carries licensed music or shared content): record that once, so the calendar can say so instead of looking broken.
+  const noFile = async (r: { id: string; network: 'instagram' | 'facebook'; ts: string | null; key: string | null; permalink: string | null; isVideo: boolean }, bucketStat: any) => {
+    bucketStat.noFile = (bucketStat.noFile || 0) + 1;
+    if (dry) return;
+    const { data: have } = await sb.from('story_media').select('media_id').eq('network', r.network).or(`media_id.eq.${r.id},media_id.eq.${r.id.replace(/^(ig|fb):/, '$1:nofile:')}`).maybeSingle();
+    if (have) return;
+    const { error } = await sb.from('story_media').insert({ media_id: r.id.replace(/^(ig|fb):/, '$1:nofile:'), network: r.network, posted_at: r.ts, story_key: r.key, permalink: r.permalink, storage_path: null, is_video: r.isVideo, no_file: true, reason: 'Instagram or Facebook gave no file (copyrighted music or shared content)' });
+    if (error) errors.push(`record no file ${r.id}: ${error.message}`);
+  };
+
   try {
     if (!token) throw new Error('no IG_ACCESS_TOKEN secret');
 
@@ -58,8 +68,8 @@ Deno.serve(async (req) => {
     if (ig.error) errors.push('instagram stories: ' + String(ig.error.message).slice(0, 160));
     for (const s of (ig.data || [])) {
       out.instagram.live++;
-      if (!s.media_url) { out.instagram.skipped.push(`${s.id}: no media_url`); continue; }
       const key = (String(s.permalink || '').match(/\/stories\/[^/]+\/(\d+)/) || [])[1] || null;
+      if (!s.media_url) { await noFile({ id: 'ig:' + s.id, network: 'instagram', ts: s.timestamp || null, key, permalink: s.permalink || null, isVideo: s.media_type === 'VIDEO' }, out.instagram); continue; }
       try { await save({ id: 'ig:' + s.id, network: 'instagram', ts: s.timestamp || null, key, permalink: s.permalink || null, fileUrl: s.media_url, isVideo: s.media_type === 'VIDEO' }, out.instagram); }
       catch (e) { errors.push(`instagram ${s.id}: ${String((e as Error).message).slice(0, 100)}`); }
     }
@@ -80,8 +90,8 @@ Deno.serve(async (req) => {
           const m = await gj(`/${s.media_id}`, { fields: isVideo ? 'source' : 'images' }, pt);
           fileUrl = isVideo ? String(m.source || '') : String(m.images?.[0]?.source || '');
         }
-        if (!fileUrl) { out.facebook.noFile++; continue; }
         const ts = s.creation_time ? new Date(Number(s.creation_time) * 1000).toISOString() : null;
+        if (!fileUrl) { out.facebook.noFile++; await noFile({ id: 'fb:' + s.post_id, network: 'facebook', ts, key: null, permalink: null, isVideo }, { noFile: 0 }); continue; }
         try { await save({ id: 'fb:' + s.post_id, network: 'facebook', ts, key: null, permalink: null, fileUrl, isVideo }, out.facebook); }
         catch (e) { errors.push(`facebook ${s.post_id}: ${String((e as Error).message).slice(0, 100)}`); }
       }
