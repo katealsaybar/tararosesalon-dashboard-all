@@ -27,6 +27,30 @@ Buttons:
 2. Quick reply: `Not mine`
 3. URL: `Open it`, `https://trk-salon-os.com/hub/complaint{{1}}`, sample `?cid=2050`
 
+## 1b. complaint_alert_v2 (ready to submit, NOT submitted, 13 Nov 2026)
+
+`complaint_alert` was REJECTED by Meta on 9 Nov 2026 (error 100-2388299: a variable at the start or the end of the body). The body ended with `{{6}}.`, so the last variable was the last word. v2 keeps every variable and puts a word after the last one. It also drops the sentence about passing it on "in one tap", because the respond.io form only allows URL buttons: taking and passing happen on the page.
+
+Category **Utility**, language **English (UK), en_GB**, footer **Tara Rose Salons**. Set the Category first in the respond.io form (picking it again resets the whole form). Header (text): `New client complaint`
+
+Body:
+
+```
+Hi {{1}}, a client complaint came in at {{2}} ({{3}}). It is about {{4}}, so it is yours to look at first.
+
+Tap Open it to take it, or pass it on from the same page. If nobody takes it in {{5}} it moves to {{6}} next.
+```
+
+Sample values: `Emma`, `Saadiyat`, `C-SAA-20261109-KA8412-001`, `colour`, `3 hours`, `Ashleigh`
+
+Button: one URL button, `Open it`, `https://trk-salon-os.com/hub/complaint{{1}}`, sample `?c=C-SAA-20261109-KA8412-001`.
+
+After approval: set `complaint_triage_config.template_alert` to `complaint_alert_v2` (the worker reads the name from there). Nothing is switched on by this file.
+
+What still blocks the ladies getting alerts (checked in the database 13 Nov 2026): `dry_run` is true; `template_alert`, `template_escalated` and `template_fyi` are all empty; `wa_on` is false for all 10 people on the chains; `complaint_alert` needs v2 approved by Meta; `complaint_escalated` and `complaint_tagged` were submitted 9 Nov and their approval has not been checked; email works only for 5 leaders and the SMTP secrets are unset. Go-live order, each step Kate's word: v2 approved, set the three template names, pilot with Coach Emma only (`wa_on` for her), then everyone, then `dry_run` off.
+
+---
+
 ## 2. complaint_escalated
 
 Goes to the next person when it moves on, and to a person it has been assigned to. Header (text): `Complaint waiting for you`
