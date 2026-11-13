@@ -5260,6 +5260,17 @@ window.addEventListener('message', async e => {
   } catch (err) { rows = rows.map(r => { const o = { ...r }; delete o.media_path; delete o.is_video; return o; }); }
   try { f.contentWindow.postMessage({ type: 'trs-cal-stories', from, to, rows, denied }, CAL_ORIGIN); } catch (err) {}
 });
+// Kate, 13 Nov 2026: private post numbers (reach, saves, views, shares, interactions, watch time) for the pop-up. Same idea as the story numbers: the frame asks (trs-cal-need-post-stats, two dates),
+// this page answers from content_calendar_post_stats, which only a signed-in Level 3 or higher can run. The public calendar call never carries them.
+window.addEventListener('message', async e => {
+  const f = document.getElementById('calFrame');
+  if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data || e.data.type !== 'trs-cal-need-post-stats') return;
+  const iso = /^\d{4}-\d{2}-\d{2}$/, from = e.data.from, to = e.data.to;
+  if (!iso.test(from) || !iso.test(to)) return;
+  let rows = [];
+  try { const { data, error } = await sb.rpc('content_calendar_post_stats', { p_from: from, p_to: to }); if (error) throw error; rows = Array.isArray(data) ? data : []; } catch (err) { rows = []; }
+  try { f.contentWindow.postMessage({ type: 'trs-cal-post-stats', from, to, rows }, CAL_ORIGIN); } catch (err) {}
+});
 function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
   // opens Daily. Before the scope check, so a Bahrain sign-in is sent on to its own page like any other page it may not open.
