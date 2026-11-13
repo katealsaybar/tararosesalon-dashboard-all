@@ -818,14 +818,32 @@
       return list.map(function (it, i) { return { it: it, i: i, s: score(it) }; })
         .sort(function (a, b) { return (b.s - a.s) || (a.i - b.i); }).map(function (x) { return x.it; });
     }
+    // Kate, 13 Nov 2026: this bar now answers like the Search page's. Team Home's own cards (Beauty SOPs, Price List, Hair SOPs...) come first,
+    // by the Search page's rule (every typed word starts a word of the card's name, blurb or keywords), then the pages from kb_search. Before this
+    // only pages were searched, so typing "beauty sop" never offered the Beauty SOPs card itself.
+    function words(s) { return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').match(/[a-z0-9%]+/g) || []; }
+    function cardHits(raw) {
+      var q = words(raw).filter(function (w) { return w.length >= 2; });
+      if (!q.length) return [];
+      var out = [];
+      KB.SECTIONS.filter(KB.opens).forEach(function (s) {
+        var tw = words(s.title), bw = words((s.blurb || '') + ' ' + (s.words || ''));
+        var inTitle = q.every(function (t) { return tw.some(function (w) { return w.indexOf(t) === 0; }); });
+        var inAll = q.every(function (t) { return tw.concat(bw).some(function (w) { return w.indexOf(t) === 0; }); });
+        var sc = inTitle ? (tw.join(' ').indexOf(q.join(' ')) === 0 ? 3 : 2) : (inAll ? 1 : 0);
+        if (sc) out.push({ card: true, s: sc, title: s.title, group_name: s.dept, snippet: s.blurb || '', href: s.href || '/hub/kb.html?s=' + s.key });
+      });
+      return out.sort(function (a, b) { return b.s - a.s; }).slice(0, 4);
+    }
+    function hrefOf(it) { return it.card ? it.href : '/hub/kb.html?p=' + encodeURIComponent(it.slug); }
     function close() { box.classList.remove('open'); box.innerHTML = ''; active = -1; }
     function paint(q) {
       if (!items.length) { box.innerHTML = '<div class="kb-empty">Nothing matches “' + esc(q) + '”.</div>'; box.classList.add('open'); return; }
       box.innerHTML = (fixedFrom ? '<div class="kb-empty" style="padding:8px 14px">Showing results for “' + esc(q) + '” (you typed “' + esc(fixedFrom) + '”).</div>' : '') + items.map(function (it, i) {
-        return '<a class="kb-result' + (i === active ? ' active' : '') + '" role="option" href="/hub/kb.html?p=' + encodeURIComponent(it.slug) + '">' +
+        return '<a class="kb-result' + (i === active ? ' active' : '') + '" role="option" href="' + esc(hrefOf(it)) + '">' +
           '<div class="kb-result-group">' + esc(it.group_name || '') + '</div>' +
           '<div class="kb-result-title">' + highlight(it.title, q) + '</div>' +
-          (it.snippet ? '<div class="kb-result-snip">…' + highlight(it.snippet, q) + '…</div>' : '') + '</a>';
+          (it.snippet ? '<div class="kb-result-snip">' + (it.card ? '' : '…') + highlight(it.snippet, q) + (it.card ? '' : '…') + '</div>' : '') + '</a>';
       }).join('');
       box.classList.add('open');
     }
@@ -833,6 +851,9 @@
       clearTimeout(timer);
       var q = input.value.trim();
       if (q.length < 2) { close(); return; }
+      // the cards answer at once, the pages a moment later
+      var early = cardHits(q);
+      if (early.length) { items = early; fixedFrom = ''; active = -1; shownQ = q; paint(q); }
       timer = setTimeout(async function () {
         var mine = ++seq;
         var r = await c.rpc('kb_search', { q: q });
@@ -851,6 +872,7 @@
         }
         items = byTitle(items, shown);
         if (KB.viewAs) items = items.filter(function (it) { return KB.allowed.indexOf(it.section) >= 0 && KB.shows(it.slug); });
+        items = cardHits(shown).concat(items);
         active = -1; shownQ = shown; paint(shown);
       }, 220);
     });
@@ -858,7 +880,7 @@
       if (!box.classList.contains('open')) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, items.length - 1); paint(shownQ || input.value.trim()); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); paint(shownQ || input.value.trim()); }
-      else if (e.key === 'Enter' && items[Math.max(active, 0)]) { e.preventDefault(); location.href = '/hub/kb.html?p=' + encodeURIComponent(items[Math.max(active, 0)].slug); }
+      else if (e.key === 'Enter' && items[Math.max(active, 0)]) { e.preventDefault(); location.href = hrefOf(items[Math.max(active, 0)]); }
       else if (e.key === 'Escape') { close(); input.blur(); }
     });
     document.addEventListener('click', function (e) { if (!box.contains(e.target) && e.target !== input) close(); });
