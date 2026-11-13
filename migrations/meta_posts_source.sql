@@ -10,7 +10,7 @@ alter table public.metricool_posts add column if not exists media_type text;
 alter table public.metricool_posts add column if not exists slides integer;
 alter table public.metricool_posts add column if not exists source_checked_at timestamptz;
 
--- The public calendar call now also sends source, carousel and slides (labels only, nothing private).
+-- The public calendar call now also sends source, carousel and slides (labels only, nothing private), and the whole caption (up to 2,200 characters, Instagram's own limit) so the pop-up can show it in full.
 create or replace function public.content_calendar_posts(p_from date, p_to date)
 returns jsonb language plpgsql stable security definer set search_path to 'public' as $$
 declare out jsonb;
@@ -21,7 +21,7 @@ begin
   select jsonb_build_object(
     'posts', (select coalesce(jsonb_agg(jsonb_build_object(
         'network', p.network, 'kind', p.kind, 'post_date', p.post_date, 'posted_at', p.posted_at,
-        'caption', left(p.caption, 300), 'url', p.url, 'image_url', p.image_url,
+        'caption', left(p.caption, 2200), 'url', p.url, 'image_url', p.image_url,
         'likes', p.likes, 'comments', p.comments,
         'views', case when p.kind in ('reel', 'video') then p.views end,
         'shares', case when p.network <> 'instagram' then p.shares end,
