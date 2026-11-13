@@ -20,7 +20,7 @@ Hi {{1}}, a client complaint came in at {{2}} ({{3}}). It is about {{4}}, so it 
 Tap below to take it. If it is not yours, pass it on in one tap. If nobody takes it in {{5}} it moves to {{6}}.
 ```
 
-Sample values: `Emma`, `Saadiyat`, `CMP-SAA-20261029-01`, `colour`, `3 hours`, `Ashleigh`
+Sample values: `Emma`, `Saadiyat`, `C-SAA-20261109-KA8412-001`, `colour`, `3 hours`, `Ashleigh`
 
 Buttons:
 1. Quick reply: `I've got this`
@@ -39,7 +39,7 @@ Hi {{1}}, a {{2}} complaint at {{3}} ({{4}}) is now with you. {{5}}
 Tap below to take it, or pass it on if it is not yours.
 ```
 
-Sample values: `Ashleigh`, `colour`, `Saadiyat`, `CMP-SAA-20261029-01`, `Emma W could not get to it in time.`
+Sample values: `Ashleigh`, `colour`, `Saadiyat`, `C-SAA-20261109-KA8412-001`, `Emma W could not get to it in time.`
 
 `{{5}}` is one sentence: `Emma W could not get to it in time.`, `Emma W passed it on.`, `Emma W could not be reached.` or `Cristine assigned it to you.`
 
@@ -57,7 +57,7 @@ Hi {{1}}, a client complaint at {{2}} ({{3}}) has something for you to see. {{4}
 There is nothing you need to do now. You can see how it is going below.
 ```
 
-Sample values: `Cristine`, `Saadiyat`, `CMP-SAA-20261029-01`, `Emma W is looking after it.`
+Sample values: `Cristine`, `Saadiyat`, `C-SAA-20261109-KA8412-001`, `Emma W is looking after it.`
 
 `{{4}}` is one sentence: `Emma W is looking after it.`, `Kate tagged you.` or, when several tags are joined into one message, `You were tagged on 3 complaints.`
 
@@ -73,7 +73,7 @@ Body:
 Hi {{1}}, {{2}} minor complaints were logged since yesterday: {{3}}. Nothing needs to be done today. You can see them below.
 ```
 
-Sample values: `Kate`, `3`, `CMP-AQ-20261029-02 price or billing, Al Quoz; CMP-MC-20261029-01 booking or admin, Motor City`
+Sample values: `Kate`, `3`, `C-AQ-20261029-XX0000-001 price or billing, Al Quoz; C-MC-20261029-XX0000-001 booking or admin, Motor City`
 
 Button: URL `See them`, `https://trk-salon-os.com/hub/complaint{{1}}`, sample `?view=board`
 
@@ -82,3 +82,5 @@ Button: URL `See them`, `https://trk-salon-os.com/hub/complaint{{1}}`, sample `?
 ## After they are approved
 
 Tell me the four names. They go in `complaint_triage_config` (`template_alert`, `template_escalated`, `template_fyi`) and the worker is changed to send them with the variables above. The Quick reply buttons (`I've got this`, `Not mine`) need a respond.io workflow to do something when tapped. Until that exists they still work as a reply the person can see, and the `Open it` button is the one that takes them to the page. A workflow is optional and last.
+
+Complaint code format (13 Nov 2026): `C-<BRANCH>-<YYYYMMDD>-<II><NNNN>-<SEQ>`, for example `C-SAA-20261109-KA8412-001` (branch, complaint date, client initials, last 4 phone digits, this client's Nth complaint). Issued once by the database, never changed. The old `CMP-` codes still open the ticket page (alias). The sample values above are made-up.

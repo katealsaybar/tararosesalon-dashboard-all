@@ -8,7 +8,7 @@
 // (channel 569496, "WhatsApp Brand Account (Backup nr)"), through the respond.io Developer API.
 // Called by public.complaint_notify(), which the client_complaints insert trigger runs (only for a complaint logged from the page),
 // and which can be run by hand to send one again. complaint_notify_test(recipient id) sends a test to one recipient.
-// Kate, 29 Oct 2026 (batch 2): the complaint code (CMP-SAA-20261029-01) is in the email, and in the WhatsApp text (folded into the kind, so the
+// Kate, 29 Oct 2026 (batch 2): the complaint code (C-SAA-20261109-KA8412-001) is in the email, and in the WhatsApp text (folded into the kind, so the
 // template body does not change); and body.mail sends one plain email for the triage worker (a tagged person whose WhatsApp did not go).
 //
 // The caller must send the vault secret 'complaint_hook_secret' (checked by complaint_hook_ok(), service role only).

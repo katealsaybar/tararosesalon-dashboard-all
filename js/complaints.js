@@ -290,6 +290,7 @@ function cqCss() {
     .cq-link{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-align:left}
     .cq-chk-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .cq-kv a{color:var(--accent)}
+    .cq-codetxt{font-size:11px;letter-spacing:.02em;color:var(--muted);white-space:nowrap}
     .cq-code{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:8px;background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
     .cq-code button{background:none;border:0;padding:0;color:var(--accent);font:inherit;font-size:11.5px;font-weight:500;cursor:pointer;text-decoration:underline}
     @media (max-width:760px){.cq-t .hm{display:none}.cq-t .sm{display:block}.cq-t.cq-lg th,.cq-t.cq-lg td{padding-left:5px;padding-right:5px}.cq-t.cq-lg td.cq-det{padding-left:12px;padding-right:12px}.cq-t.cq-lg{font-size:12px}.cq-t.cq-lg .cq-sub2{font-size:11px}.cq-t.cq-lg .cq-flag{padding:2px 7px;font-size:10.5px}.cq-t.cq-lg td.cq-det{font-size:13px}.cq-grid{grid-template-columns:1fr}.cq h1{font-size:24px}.cq-bars{grid-template-columns:minmax(90px,130px) 1fr auto}
@@ -477,7 +478,8 @@ function cqClick(e) {
 
 // Log a Client Complaint (Kate, 30 Oct 2026): a row opens the full record in a new window (the ticket page, addressed by its code). The follow-up, how it ended,
 // reopen and delete are still on the dashboard, one link away on that page, and open this row when the address carries cid.
-const cqRecordUrl = r => r && r.code ? '/hub/complaint?c=' + encodeURIComponent(r.code) : '/hub/complaint?cid=' + (r && r.id) + '&t=1';
+// Every complaint has a code since 13 Nov 2026, but only the ones logged on the form have a ticket page (by_at is set).
+const cqRecordUrl = r => r && r.code && r.by_at ? '/hub/complaint?c=' + encodeURIComponent(r.code) : '/hub/complaint?cid=' + (r && r.id) + '&t=1';
 function cqOpenRecord(id) {
   const r = ((cqList && cqList.rows) || []).find(x => x.id === id);
   window.open(cqRecordUrl(r || { id }), '_blank', 'noopener');
@@ -833,7 +835,8 @@ async function cqUpdate(id, kind) {
   } catch (e) { console.error(e); say((e && e.message) || 'It did not save. Try again.'); }
 }
 
-// The complaint code (Kate, 29 Oct 2026): CMP-SAA-20261029-01, the one everybody says out loud. Shown with a Copy button wherever a complaint is.
+// The complaint code (Kate, 29 Oct 2026; new format 13 Nov 2026): C-SAA-20261109-KA8412-001 = branch, complaint date, client initials and last 4 phone digits, her Nth complaint.
+// Issued once by the database for every complaint and never changed. The old CMP- codes still work in search and in Link as duplicate. Shown with a Copy button wherever a complaint is.
 const cqCodeChip = r => r.code ? `<span class="cq-code">${cqEsc(r.code)} <button type="button" data-copy="${cqEsc(r.code)}">Copy</button></span>` : '';
 async function cqCopy(btn) {
   const text = btn.dataset.copy || '';
@@ -855,7 +858,7 @@ async function cqDupLink(id) {
   const inp = document.getElementById('cqu-dup'), msg = document.getElementById('cqu-dupmsg');
   const say = t => { if (msg) msg.textContent = t; };
   const code = ((inp || {}).value || '').trim();
-  if (code.length < 8) return say('Write the code of the first complaint, for example CMP-SAA-20261029-01.');
+  if (code.length < 8) return say('Write the code of the first complaint, for example C-SAA-20261109-KA8412-001.');
   say('Linking…');
   try {
     const { data, error } = await sb.rpc('cmp_link_duplicate', { p_id: id, p_of: code });
@@ -880,7 +883,7 @@ function cqDupBlock(r) {
     <p class="cq-kv">Linked as a duplicate of <b>${cqEsc(r.duplicate_code || 'another complaint')}</b>. It stays on file and is not counted twice. <button type="button" class="cq-btn" data-unlink="${r.id}">Unlink</button> <span id="cqu-dupmsg" class="cq-msg err" aria-live="polite"></span></p>
     <p class="cq-kv">${ticket}</p>`;
   return `<div class="cq-eye" style="margin-top:10px">Is it the same complaint as another one?</div>
-    <div class="cq-chk-row"><input id="cqu-dup" class="cq-in" maxlength="30" autocomplete="off" placeholder="CMP-SAA-20261029-01" aria-label="Code of the first complaint"> <button type="button" class="cq-btn" data-dup="${r.id}">Link as duplicate</button> <span id="cqu-dupmsg" class="cq-msg err" aria-live="polite"></span></div>
+    <div class="cq-chk-row"><input id="cqu-dup" class="cq-in" maxlength="30" autocomplete="off" placeholder="C-SAA-20261109-KA8412-001" aria-label="Code of the first complaint"> <button type="button" class="cq-btn" data-dup="${r.id}">Link as duplicate</button> <span id="cqu-dupmsg" class="cq-msg err" aria-live="polite"></span></div>
     <p class="cq-kv cq-muted">It stays on file, is not counted twice and leaves the pipeline.</p>
     <p class="cq-kv">${ticket}</p>`;
 }
@@ -968,7 +971,13 @@ function cqPaintSummary() {
     [cqNum(t.repeat_clients), 'clients with 2 or more'],
     ...(cqWindowed() ? [] : [[cqNum(t.profile_flags), 'more on client cards, undated']]),
     [cqNum(t.low_confidence), 'unsure, note too short']].concat(cqSum.google ? [[cqNum(cqSum.google.on_google), 'also left a Google review (same name)']] : []
-  ).map(([b, s]) => `<div class="cq-tile"><b>${b}</b><span>${cqEsc(s)}</span></div>`).join('');
+  ).concat(Number(t.chat_confirmed) > 0 ? [[cqNum(t.chat_confirmed), 'more found only in chats, confirmed (not counted above)' + where, 'chat']] : []
+  ).map(([b, s, go]) => go
+    ? `<button type="button" class="cq-tile btn" data-cqgo="${go}" title="Opens the rows behind this number in Detailed complaints"><b>${b}</b><span>${cqEsc(s)}</span></button>`
+    : `<div class="cq-tile"><b>${b}</b><span>${cqEsc(s)}</span></div>`).join('');
+  // How the two pages add up (Kate, 13 Nov 2026): this page counts the visit notes; Detailed complaints adds the chats Coach Emma or Kate confirmed.
+  const reconEl = Number(t.chat_confirmed) > 0
+    ? `<p class="cq-meta" id="cqRecon" style="margin:-4px 0 12px">Traced in total${where}: ${cqNum(total)} in visit notes and logged + ${cqNum(t.chat_confirmed)} confirmed in chats = <b>${cqNum(total + Number(t.chat_confirmed))}</b>. Detailed complaints lists all of them; Chat complaints review lists the chats.</p>` : '';
   const doEl = document.getElementById('cqDo');
   if (doEl) doEl.innerHTML = Number(t.open_now) > 0
     ? `Open the <button type="button" class="cq-link" id="cqOpenNow">${cqNum(t.open_now)} complaint${Number(t.open_now) === 1 ? '' : 's'} still open</button>. Overdue replies come first.`
@@ -989,7 +998,13 @@ function cqPaintSummary() {
   }).join('');
   const types = (cqSum.types || []).map(r => ({ n: r.n, k: r.type }));
   const ress = (cqSum.resolutions || []).map(r => ({ n: r.n, k: r.resolution }));
-  el.innerHTML = `<div class="cq-tiles">${tiles}</div>
+  // the chat tile opens Detailed complaints already filtered to the chat complaints (CD lives in complaints-detail.js, same script group)
+  el.onclick = ev => {
+    const g = ev.target.closest && ev.target.closest('[data-cqgo="chat"]'); if (!g) return;
+    if (typeof CD !== 'undefined') { CD.src = 'chat'; CD.status = 'all'; CD.page = 0; }
+    if (typeof showView === 'function') showView('complaintsdetail');
+  };
+  el.innerHTML = `<div class="cq-tiles">${tiles}</div>${reconEl}
     <div class="cq-card" id="cq-branch"><h2>By branch</h2>
       <p class="cq-note">Visit notes only. Every branch is shown here; pick branches in the filter at the top to narrow the rest of the page. The rate is complaints per 1,000 visits that had a note, since 1 Jan 2024, so branches that write fewer notes are not flattered.</p>
       <div style="overflow-x:auto"><table class="cq-t"><tr><th>Branch</th><th class="n">Complaints</th><th class="n">Since 2025</th><th class="n hm">Per 1,000 noted</th><th class="n">Free redo</th><th class="n hm">Refund</th><th class="n hm">Discount or credit</th><th class="n hm">Free service</th><th class="n hm">Fixed on the day</th><th class="n hm">Talked or escalated</th><th class="n hm">Client lost</th><th class="n">No outcome</th></tr>${brows}</table></div></div>
@@ -1022,7 +1037,7 @@ function cqPaintList() {
       <td class="hm" style="white-space:nowrap">${r.resolved_at ? cqEsc(cqDubai(r.resolved_at)) : '<span class="cq-muted">Open</span>'}</td>
       <td class="hm">${r.status === 'open' ? '<span class="cq-muted">Not yet</span>' : cqEsc(CQ_RES[r.resolution] || '')}${r.revisit_date ? `<div class="cq-sub2">${cqEsc(CQ_HAPPY[r.revisit_happy] || '')}</div>` : ''}</td>
     </tr>` : `<tr class="cq-row p-${cqPri(r)}" tabindex="0" role="button" aria-label="Open this complaint" data-i="${r.id}">
-      <td><span class="cq-nm">${cqEsc(cqMDY(r.date))} | ${cqEsc(r.branch || '')} | ${cqEsc(r.client || 'No name')} | ${cqEsc(CQ_TYPE[r.type] || 'Unclear')}</span><span class="cq-qt">${cqEsc(r.detail || r.note || 'Not stated')}${r.confidence === 'low' ? ' (unsure)' : ''}</span></td>
+      <td><span class="cq-nm">${cqEsc(cqMDY(r.date))} | ${cqEsc(r.branch || '')} | ${cqEsc(r.client || 'No name')} | ${cqEsc(CQ_TYPE[r.type] || 'Unclear')}</span><span class="cq-qt">${cqEsc(r.detail || r.note || 'Not stated')}${r.confidence === 'low' ? ' (unsure)' : ''}</span>${r.code ? `<span class="cq-qt cq-codetxt">${cqEsc(r.code)}</span>` : ''}</td>
       <td class="hm"><span class="cq-ch ${cqFoundKey(r)}">${cqEsc(cqFound(r))}</span></td>
       <td><span class="cq-ch ${cqStage(r).tone}">${cqEsc(cqStage(r).text)}</span></td>
     </tr>`).join('');

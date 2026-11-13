@@ -1019,7 +1019,7 @@ button.tk-pill{cursor:pointer}
       var nr = document.querySelector('.cp-navrow'); if (nr) nr.outerHTML = nav(navActive);
     });
     var people = CP ? CP.load() : Promise.resolve();
-    // the ticket code in the address (?c=CMP-SAA-20261028-04) opens the full record
+    // the ticket code in the address (?c=C-SAA-20261109-KA8412-001) opens the full record
     if (P.get('c') && !cid) {
       var fnd = await KB.client.rpc('cmp_find', { p_code: P.get('c') });
       cid = fnd && !fnd.error && fnd.data ? Number(fnd.data) : 0; forceTicket = true;

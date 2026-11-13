@@ -576,7 +576,7 @@ function cqLogShell() {
       <h2>Logged complaints</h2>
       <p class="cq-note">Tap one to open its complaint page in a new tab: the follow-up, how it ended and reopening are there.</p>
       <div class="cq-bar cq-filt">
-        <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, mobile number, code (CMP-SAA-20261029-01), stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
+        <input id="cqQ" class="cq-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, mobile number, code (for example C-SAA-20261109-KA8412-001, or the last 4 or more characters), stylist or words in the note" aria-label="Search complaints" value="${cqEsc(CQ.q)}">
         <button type="button" id="cqFtog" class="cq-btn cq-ftog" aria-expanded="false">Filters</button>
         <div class="cq-fsel">
         <select id="cqSt" class="cq-sel" aria-label="Status"><option value="all">Status: any</option><option value="open">Still open</option><option value="overdue">Overdue</option><option value="pending">Pending action</option><option value="resolved">Resolved</option></select>

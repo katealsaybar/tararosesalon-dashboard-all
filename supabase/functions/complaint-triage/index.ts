@@ -14,7 +14,7 @@
 // was assigned to them, (7) once a day after 9:30 am Dubai, the summary of the minor complaints.
 //
 // Batch 2 (29 Oct 2026):
-//   - every message carries the complaint code (CMP-SAA-20261029-01);
+//   - every message carries the complaint code (C-SAA-20261109-KA8412-001);
 //   - someone marked as "involved" on the form is skipped on the chain (the next person gets it); never for skin reactions and injuries, and Kate is
 //     only skipped by her email, never by a first name (there is another Kate on the team);
 //   - tagged events (migrations/complaint_people_assign.sql): copied people get ONE message, WhatsApp first, email only if WhatsApp fails or there is no

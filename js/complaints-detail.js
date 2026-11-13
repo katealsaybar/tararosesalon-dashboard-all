@@ -5,6 +5,8 @@ const CD = { q: '', src: 'all', branch: 'all', status: 'all', from: '', to: '', 
 const CD_COLS = [['date', 'Date'], ['branch', 'Branch'], ['client', 'Client'], ['kind', 'Kind'], ['what', 'What happened'], ['found', 'Found in'], ['now', 'Where it is now'], ['outcome', 'Outcome'], ['ended', 'How it ended'],
   ['stylist', 'Stylist'], ['services', 'Services that day'], ['fee', 'Charged (AED)'], ['handled', 'Handled by'], ['google', 'Google review'], ['code', 'Code'], ['note', 'Original note']];
 
+// Only a complaint logged on the form (by_at set) has a ticket page; every complaint and every confirmed chat has a code.
+const cdHasTicket = r => !r.chat && r.raw && r.raw.by_at;
 function cdNormal(r) {
   return {
     date: r.date ? String(r.date).slice(0, 10) : '', branch: r.branch || '', client: r.client || '', kind: CQ_TYPE[r.type] || r.type || '', what: r.detail || '', found: cqFound(r), now: cqStage(r).text,
@@ -14,7 +16,7 @@ function cdNormal(r) {
 }
 function cdNormalChat(r) {
   return { date: String(r.date || '').slice(0, 10), branch: r.branch || '', client: r.client, kind: CQ_TYPE[r.type] || '', what: r.note || '', found: typeof ccChatName === 'function' ? ccChatName(r.chat) : r.chat,
-    now: 'Closed, history', outcome: '', ended: '', stylist: '', services: '', fee: null, handled: r.decided_by || '', google: '', code: '', note: r.words || '', open: false, chat: true, id: r.id, raw: r };
+    now: 'Closed, history', outcome: '', ended: '', stylist: '', services: '', fee: null, handled: r.decided_by || '', google: '', code: r.code || '', note: r.words || '', open: false, chat: true, id: r.id, raw: r };
 }
 async function cdLoad() {
   const seq = ++CD.seq; CD.loading = true;
@@ -81,6 +83,7 @@ function cdShell() {
       <p><b>Do this now</b><span id="cdDo">Pick a branch or a window, then take the rows with XLSX or CSV.</span></p>
     </div>
     <div id="cdTiles" class="cq-tiles"></div>
+    <p class="cq-meta" id="cdRecon" style="margin:-4px 0 12px"></p>
     <div class="cq-card">
       <div class="cq-bar cq-filt" style="display:flex">
         <input id="cdQ" class="cq-in" type="search" autocomplete="off" placeholder="Client, stylist, service, code or words in the note" aria-label="Search the complaints" value="${cqEsc(CD.q)}">
@@ -103,6 +106,10 @@ function cdPaint() {
   const tiles = document.getElementById('cdTiles');
   if (tiles) tiles.innerHTML = [['all', CD.rows.length, 'All complaints', 'every row'], ['open', open, 'Still open', 'logged and not closed'], ['closed', CD.rows.length - open, 'Closed', 'including history'], ['chat', chat, 'Found in a chat', 'confirmed']]
     .map(([k, n, l, s]) => `<button type="button" class="cq-tile cq-tilebtn" data-cdtile="${k}" title="Opens the rows behind this number"><b>${cqNum(n)}</b><span>${cqEsc(l)}</span><span class="cq-muted">${cqEsc(s)}</span></button>`).join('');
+  // how the number adds up, so it can be traced to Client Complaints (visit notes) and Chat complaints review (chats)
+  const recon = document.getElementById('cdRecon');
+  if (recon) { const cards = CD.rows.filter(r => !r.chat && !r.date).length, visits = CD.rows.length - chat - cards;
+    recon.innerHTML = `${cqNum(CD.rows.length)} = ${cqNum(visits)} from visit notes and logged (the number on Client Complaints) + ${cqNum(chat)} confirmed in chats (the Confirmed filter in Chat complaints review)${cards ? ` + ${cqNum(cards)} client card notes, undated` : ''}.`; }
   const pages = Math.max(1, Math.ceil(rows.length / CD.size)); CD.page = Math.min(CD.page, pages - 1);
   const from = rows.length ? CD.page * CD.size + 1 : 0, to = Math.min(rows.length, (CD.page + 1) * CD.size);
   if (meta) meta.textContent = rows.length ? `${cqNum(from)} to ${cqNum(to)} of ${cqNum(rows.length)} complaint${rows.length === 1 ? '' : 's'}` : '';
@@ -111,7 +118,7 @@ function cdPaint() {
   const td = (r, k) => k === 'fee' ? `<td class="n">${r.fee == null ? '' : cqNum(r.fee)}</td>`
     : k === 'date' ? `<td style="white-space:nowrap">${r.date ? cqEsc(cqDay(r.date)) : 'Client card'}</td>`
     : k === 'branch' ? `<td>${cqEsc(r.branch)}</td>`
-    : k === 'code' && r.code ? `<td style="white-space:nowrap"><a href="/hub/complaint?c=${encodeURIComponent(r.code)}" target="_blank" rel="noopener">${cqEsc(r.code)}</a></td>`
+    : k === 'code' && r.code ? `<td style="white-space:nowrap">${cdHasTicket(r) ? `<a href="/hub/complaint?c=${encodeURIComponent(r.code)}" target="_blank" rel="noopener">${cqEsc(r.code)}</a>` : cqEsc(r.code)}</td>`
     : k === 'what' || k === 'note' || k === 'ended' || k === 'services' ? `<td class="cd-wide" dir="auto">${cqEsc(r[k])}</td>` : `<td>${cqEsc(r[k])}</td>`;
   body.innerHTML = `<table class="cq-t cd-t"><tr>${CD_COLS.map(th).join('')}</tr>${rows.slice(CD.page * CD.size, (CD.page + 1) * CD.size).map(r => `<tr class="cq-row" tabindex="0" data-cdrow="${cdKey(r)}" title="Open this complaint">${CD_COLS.map(([k]) => td(r, k)).join('')}</tr>`).join('')}</table>
     <div class="cq-pager"><button type="button" class="cq-btn" data-cdpg="-1"${CD.page === 0 ? ' disabled' : ''}>Previous</button><span class="cq-meta" style="margin:0 8px">Page ${CD.page + 1} of ${pages}</span><button type="button" class="cq-btn" data-cdpg="1"${CD.page >= pages - 1 ? ' disabled' : ''}>Next</button></div>`;
@@ -132,7 +139,7 @@ let cdBackY = 0, cdOpenKey = '', cdTab = 'complaint', cdCtx = [];
 function cdFieldsHtml(r) {
   const rows = [['Date', r.date ? cqDay(r.date) : 'Client card'], ['Branch', r.branch ? cqBr(r.branch) : ''], ['Client', r.client], ['Kind', r.kind], [r.chat ? 'Note' : 'What happened', r.what], ['Found in', r.found], ['Where it is now', r.now],
     ['Outcome', r.outcome], ['How it ended', r.ended], ['Stylist', r.stylist], ['Services that day', r.services], ['Charged (AED)', r.fee == null ? '' : cqNum(r.fee)], ['Handled by', r.handled], ['Google review', r.google], [r.chat ? 'Their words' : 'Original note', r.note]];
-  const code = r.code ? `<p class="cq-kv"><span>Code</span> <a href="/hub/complaint?c=${encodeURIComponent(r.code)}" target="_blank" rel="noopener">${cqEsc(r.code)}</a> <span>(the ticket page opens in a new window)</span></p>` : '';
+  const code = r.code ? `<p class="cq-kv"><span>Code</span> ${cdHasTicket(r) ? `<a href="/hub/complaint?c=${encodeURIComponent(r.code)}" target="_blank" rel="noopener">${cqEsc(r.code)}</a> <span>(the ticket page opens in a new window)</span>` : cqEsc(r.code)}</p>` : '';
   return rows.filter(([, v]) => v !== '' && v != null).map(([k, v]) => `<p class="cq-kv" style="white-space:pre-wrap" dir="auto"><span>${k}</span> ${cqEsc(v)}</p>`).join('') + code;
 }
 function cdRecOpen(key) {
@@ -198,6 +205,8 @@ function cdWire() {
   const root = document.getElementById('complaintsDetailContent'); if (!root) return;
   const set = (id, k, ev) => { const el = document.getElementById(id); if (el) el.addEventListener(ev || 'change', () => { CD[k] = el.type === 'checkbox' ? el.checked : el.value; CD.page = 0; if (k === 'cards') cdLoad(); else cdPaint(); }); };
   set('cdQ', 'q', 'input'); set('cdSrc', 'src'); set('cdBr', 'branch'); set('cdSt', 'status'); set('cdFrom', 'from'); set('cdTo', 'to'); set('cdCards', 'cards');
+  // the menus show the filter that is on (a tile on Client Complaints can open this page already filtered to the chats)
+  [['cdSrc', 'src'], ['cdBr', 'branch'], ['cdSt', 'status']].forEach(([id, k]) => { const el = document.getElementById(id); if (el && CD[k]) el.value = CD[k]; });
   if (root.dataset.w) return;
   root.dataset.w = '1';
   root.addEventListener('click', e => {

@@ -117,6 +117,7 @@ function ccWordsHtml(r) {
       <p class="cq-kv"><span>Branch</span> ${r.branch ? cqEsc(cqBr(r.branch)) : '<span class="cq-muted">Not known</span>'}</p></div><div>
       <p class="cq-kv"><span>Short note</span> ${cqEsc(r.note || 'None')}</p>
       <p class="cq-kv"><span>Suggested kind</span> ${cqEsc(CQ_TYPE[r.suggested] || 'Unclear')}</p>
+      ${r.code ? `<p class="cq-kv"><span>Code</span> ${cqEsc(r.code)}</p>` : ''}
       ${r.decided_by ? `<p class="cq-kv"><span>Decided by</span> ${cqEsc(r.decided_by)}${r.decided_at ? ' on ' + cqEsc(cqDubai(r.decided_at)) : ''}</p>` : ''}</div></div>`;
 }
 function ccDecideHtml(r) {
