@@ -4760,7 +4760,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        this frame puts it inside the dashboard so the main sidebar stays. ?embed=1 hides the page's own logo bar; ?theme= and a trs-theme message keep it in the dashboard's light or dark.
        data-src, not src: loaded on first open only. -->
   <div id="view-contentcalendar" style="display:none">
-    <iframe id="calFrame" title="Content Calendar" data-src="https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/calendar/?embed=1"
+    <iframe id="calFrame" title="Content Calendar" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen data-src="https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/calendar/?embed=1"
       style="width:100%;height:calc(100vh - 120px);min-height:520px;border:none;border-radius:12px;display:block;background:transparent"></iframe>
   </div>
 
@@ -5229,7 +5229,7 @@ function calBarPaint() {
     '<span class="cal-label" aria-live="polite">' + esc(s.label) + '</span>' +
     '<button type="button" class="chip cal-nav" aria-label="Next" onclick="calCmd(\'next\')"' + (s.atMax ? ' disabled' : '') + '>›</button>' +
     '<button type="button" class="chip" onclick="calCmd(\'today\')">Today</button><span class="sep">·</span>' +
-    '<span class="seg" role="group" aria-label="View">' + [['week', 'Week'], ['month', 'Month'], ['list', 'List']].map(([v, l]) =>
+    '<span class="seg" role="group" aria-label="View">' + [['day', 'Daily'], ['week', 'Week'], ['month', 'Month'], ['list', 'List']].map(([v, l]) =>
       '<button type="button" class="chip seg-b" aria-pressed="' + (s.view === v) + '" onclick="calCmd(\'view\',\'' + v + '\')">' + l + '</button>').join('') + '</span>';
   if (typeof sizeTopbar === 'function') sizeTopbar();
 }
@@ -5237,9 +5237,20 @@ window.addEventListener('message', e => {
   const f = document.getElementById('calFrame');
   if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data || e.data.type !== 'trs-cal-state') return;
   const d = e.data;
-  if (typeof d.label !== 'string' || d.label.length > 60 || !['week', 'month', 'list'].includes(d.view)) return;
+  if (typeof d.label !== 'string' || d.label.length > 60 || !['day', 'week', 'month', 'list'].includes(d.view)) return;
   calState = { label: d.label, view: d.view, atMin: d.atMin === true, atMax: d.atMax === true };
   calBarPaint();
+});
+// Kate, 13 Nov 2026: story numbers on the Content Calendar. The frame is a public page and holds no login, so it asks this page (trs-cal-need-stats, two dates) and this page
+// answers from content_calendar_story_stats, which only a signed-in Level 3 or higher can run. Nothing about the stories is ever sent to the frame's own database call.
+window.addEventListener('message', async e => {
+  const f = document.getElementById('calFrame');
+  if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data || e.data.type !== 'trs-cal-need-stats') return;
+  const iso = /^\d{4}-\d{2}-\d{2}$/, from = e.data.from, to = e.data.to;
+  if (!iso.test(from) || !iso.test(to)) return;
+  let rows = [], denied = false;
+  try { const { data, error } = await sb.rpc('content_calendar_story_stats', { p_from: from, p_to: to }); if (error) throw error; rows = Array.isArray(data) ? data : []; } catch (err) { denied = true; }
+  try { f.contentWindow.postMessage({ type: 'trs-cal-stories', from, to, rows, denied }, CAL_ORIGIN); } catch (err) {}
 });
 function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
