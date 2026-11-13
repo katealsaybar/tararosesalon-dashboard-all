@@ -1,7 +1,10 @@
 // Detailed complaints (Kate, 12 Nov 2026: "detailed complaints report go under Client Complaints"): every complaint on one table with every column, so it can be filtered, sorted and taken into a spreadsheet.
 // The rows are the ones Client Complaints reads (Phorest visit notes, the ones staff logged, optionally the undated client card notes) plus the chat complaints Coach Emma or Kate confirmed.
 // Levels 3 and up, enforced in every function. It borrows the look and the small helpers of complaints.js and complaint-chats.js (same script group). It sits under Client Complaints in the menu.
-const CD = { q: '', src: 'all', status: 'all', cards: false, rows: null, loading: false, sort: 'date', dir: 'desc', page: 0, size: 50, seq: 0 };
+const CD = { q: '', src: 'all', status: 'all', cards: false, rows: null, loading: false, sort: 'date', dir: 'desc', page: 0, size: 10, seq: 0 };
+// Rows per page (Kate, 13 Nov 2026): 10 to start, then 20, 50 or 100 (the same list and the same Show-per-page box as Client Complaints); the pick is remembered on this computer.
+const CD_STORE = 'trs-detailed-complaints';
+try { const st = JSON.parse(localStorage.getItem(CD_STORE) || '{}'); if ((typeof CQ_SIZES !== 'undefined' ? CQ_SIZES : [10, 20, 50, 100]).includes(st.size)) CD.size = st.size; } catch (e) {}
 const CD_COLS = [['date', 'Date'], ['branch', 'Branch'], ['client', 'Client'], ['kind', 'Kind'], ['what', 'What happened'], ['found', 'Found in'], ['now', 'Where it is now'], ['outcome', 'Outcome'], ['ended', 'How it ended'],
   ['stylist', 'Stylist'], ['services', 'Services that day'], ['fee', 'Charged (AED)'], ['handled', 'Handled by'], ['google', 'Google review'], ['code', 'Code'], ['note', 'Original note']];
 
@@ -126,13 +129,24 @@ function cdPaint() {
     : k === 'code' && r.code ? `<td style="white-space:nowrap">${cdHasTicket(r) ? `<a href="/hub/complaint?c=${encodeURIComponent(r.code)}" target="_blank" rel="noopener">${cqEsc(r.code)}</a>` : cqEsc(r.code)}</td>`
     : k === 'what' || k === 'note' || k === 'ended' || k === 'services' ? `<td class="cd-wide" dir="auto">${cqEsc(r[k])}</td>` : `<td>${cqEsc(r[k])}</td>`;
   body.innerHTML = `<table class="cq-t cd-t"><tr>${CD_COLS.map(th).join('')}</tr>${rows.slice(CD.page * CD.size, (CD.page + 1) * CD.size).map(r => `<tr class="cq-row" tabindex="0" data-cdrow="${cdKey(r)}" title="Open this complaint">${CD_COLS.map(([k]) => td(r, k)).join('')}</tr>`).join('')}</table>
-    <div class="cq-pager"><button type="button" class="cq-btn" data-cdpg="-1"${CD.page === 0 ? ' disabled' : ''}>Previous</button><span class="cq-meta" style="margin:0 8px">Page ${CD.page + 1} of ${pages}</span><button type="button" class="cq-btn" data-cdpg="1"${CD.page >= pages - 1 ? ' disabled' : ''}>Next</button></div>`;
+    <div class="cq-pager"><label class="cq-size">Show <select id="cdN" class="cq-sel" aria-label="Complaints per page">${[10, 20, 50, 100].map(n => `<option value="${n}"${CD.size === n ? ' selected' : ''}>${n}</option>`).join('')}</select> per page</label><button type="button" class="cq-btn" data-cdpg="-1"${CD.page === 0 ? ' disabled' : ''}>Previous</button><span class="cq-meta" style="margin:0 8px">Page ${CD.page + 1} of ${pages}</span><button type="button" class="cq-btn" data-cdpg="1"${CD.page >= pages - 1 ? ' disabled' : ''}>Next</button></div>`;
+}
+// What the filters on the page were, in words, for the top of a downloaded sheet: the masthead's Branch and Period, then the page's own.
+function cdScopeText() {
+  const picked = cqPicked(), w = cqWin(), bits = [];
+  bits.push('Branch: ' + (picked.length ? picked.map(c => cqBr(c)).join(', ') : 'all branches'));
+  bits.push('Period: ' + (w.p_from || w.p_to ? `${w.p_from ? cqDay(w.p_from) : 'the start'} to ${w.p_to ? cqDay(w.p_to) : 'today'}` : 'All time'));
+  if (CD.src !== 'all') bits.push('Found in: ' + (CD.src === 'chat' ? 'any chat' : CD.src));
+  if (CD.status !== 'all') bits.push('Status: ' + (CD.status === 'open' ? 'still open' : 'closed'));
+  if (CD.q.trim()) bits.push('Search: "' + CD.q.trim() + '"');
+  if (CD.cards) bits.push('Client card notes included');
+  return bits.join('. ') + '.';
 }
 function cdExport() {
   const rows = cdFiltered(); if (!rows.length) return null;
   const cols = CD_COLS.map(([key, label]) => ({ key, label, fmt: key === 'fee' ? 'aed' : 'text' }));
   const out = rows.map(r => ({ cells: CD_COLS.map(([k]) => k === 'fee' ? (r.fee == null ? null : r.fee) : k === 'branch' ? (r.branch ? cqBr(r.branch) : '') : (r[k] == null ? '' : r[k])) }));
-  return { name: 'detailed-complaints', sheets: [{ name: 'Complaints', title: 'Detailed complaints', subtitle: `${out.length} complaint${out.length === 1 ? '' : 's'}, with the filters set on the page`, blocks: [{ cols, rows: out }],
+  return { name: 'detailed-complaints', sheets: [{ name: 'Complaints', title: 'Detailed complaints', subtitle: `${out.length} complaint${out.length === 1 ? '' : 's'}. All of them, not only the page on screen. ${cdScopeText()}`, blocks: [{ cols, rows: out }],
     legend: [['Found in', 'Where the complaint was first written down.'], ['Where it is now', 'The pipeline stage. Notes from Phorest were written after the fact, so they are Closed, history.'], ['Charged (AED)', 'What the visit cost that day, not a refund.']] }] };
 }
 window.cdExport = cdExport;
@@ -226,6 +240,7 @@ function cdWire() {
     }
     if ((x = g('tr.cq-row')) && !g('a')) { cdRecOpen(x.dataset.cdrow); return; }
   });
+  root.addEventListener('change', e => { if (e.target && e.target.id === 'cdN') { CD.size = Number(e.target.value) || 10; CD.page = 0; try { localStorage.setItem(CD_STORE, JSON.stringify({ size: CD.size })); } catch (x) {} cdPaint(); } });
   root.addEventListener('keydown', e => { const row = e.target.closest && e.target.closest('tr.cq-row'); if (row && (e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); cdRecOpen(row.dataset.cdrow); } });
   if (!window.cdEscWired) { window.cdEscWired = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && cdOpenKey && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) cdRecClose(); }); }
 }
