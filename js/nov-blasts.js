@@ -1389,6 +1389,7 @@
   function render(keep) {
     var el = main(); if (!el) return;
     var y = window.scrollY, thY = {}; [].forEach.call(document.querySelectorAll('.cbl-thread[data-key]'), function (t) { thY[t.getAttribute('data-key')] = t.scrollTop; });
+    var sdEl = document.getElementById('nvbSide'), sideY = sdEl ? sdEl.scrollTop : 0;   // the left column scrolls on its own (Blast 2, 13 Nov 2026: it jumped back to the top after every pick)
     var body = tab === 'decide' && decs().length ? decideHtml() : tab === 'before' ? beforeHtml() : messagesHtml();
     var onRes = cur === RESID && tab === 'messages';
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November 2026 Blasts</h1>' +
@@ -1402,6 +1403,7 @@
       if (flowScroll === k) { var outs = t.querySelectorAll('.cbl-out'), last = outs[outs.length - 1]; if (last) t.scrollTop += last.getBoundingClientRect().top - t.getBoundingClientRect().top - 10; }
     });
     flowScroll = null;
+    if (sideY) { var sd2 = document.getElementById('nvbSide'); if (sd2) sd2.scrollTop = sideY; }
     if (keep) window.scrollTo({ top: y, behavior: 'instant' });   // the dashboard sets smooth scrolling, which would glide the page up
   }
   // The mini sidebar navigation (Kate, 11 Nov 2026: "bakit walang mini sidebar navi like oct 2026 lost clients blasts"): one link for each numbered section on the page, built from the
