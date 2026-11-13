@@ -219,6 +219,8 @@ function cqCss() {
     .cq-rb.out{justify-self:end;background:#dbe8ff;border:1px solid #c3d6fb;border-bottom-right-radius:4px}
     .cq-rimg{display:block;width:260px;max-width:100%;border-radius:10px;margin:0 0 6px}
     .cq-rlink{color:inherit;text-decoration:underline}
+    .cq-rb.cq-rsalon{justify-self:stretch;max-width:100%;background:#fff3cf;border:1px solid #e0a82e;border-radius:10px;color:#2a2a2a}
+    .cq-rb.cq-rsalon .cq-rorig{margin-top:6px;padding-top:6px;border-top:1px dashed #e0a82e;color:#4a4330}
     .cq-rb.hit{background:#fff3cf !important;border-color:#e0a82e !important;box-shadow:0 0 0 2px #e0a82e}
     .cq-rhit{display:block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8a5a00;margin-bottom:2px}
     .cq-rbt{display:block;font-size:11.5px;color:#6a7488;margin-top:3px;text-align:right}
@@ -563,17 +565,38 @@ function cqChatHtml(r, chat) {
     return note + `<div class="cq-eye">Is this her in respond.io?</div>` + cands.map(x => `<div class="cq-box cq-cand"><div><b>${cqEsc(x.name || 'No name')}</b>${x.phone ? ', ' + cqEsc(x.phone) : ', no phone number'}${x.lifecycle ? ' <span class="cq-muted">' + cqEsc(x.lifecycle) + '</span>' : ''}${(x.tags || []).length ? '<div class="cq-sub2">' + (x.tags || []).slice(0, 5).map(cqEsc).join(', ') + '</div>' : ''}<div class="cq-sub2">Matched by name only, because Instagram and Facebook have no phone number.</div></div>
       <div class="cq-seq"><button type="button" class="cq-btn" data-cqyes="${x.id}" data-id="${r.id}">Yes, this is her</button><button type="button" class="cq-btn" data-cqno="${x.id}" data-id="${r.id}">Not her</button></div></div>`).join('');
   }
-  const ct = chat.contact || {}, wide = !!(box.wide && chat.wider), msgs = wide ? chat.wider : (chat.messages || []);
+  // Kate, 13 Nov 2026 (Majd Alkhatied, KCA, 12 Nov): a complaint from a Phorest note, a client card or a staff log was raised in the salon, not in the chat, so the chat holds no complaint line and
+  // the old snippet only showed chat around that day with a message marked "The complaint" that was not it. For these the complaint itself is the first card on the timeline, on its own day,
+  // the chat starts at that day (what was said after it) and nothing in the chat is marked as the complaint. A complaint a client wrote in chat (the chat review, id -1) is unchanged.
+  const salon = r.id !== -1 && !!(r.detail || r.note);
+  const day0 = salon && cqDateIso(r) ? Date.parse(cqDateIso(r) + 'T00:00:00+04:00') : 0;
+  let ct = chat.contact || {}, wide = !!(box.wide && chat.wider), msgs = wide ? chat.wider : (chat.messages || []);
+  if (salon && day0 && !wide) {
+    const all = (chat.wider || chat.messages || []).filter(m => m.ts >= day0), keep = [];
+    for (const m of all) { if (keep.length && m.ts - keep[keep.length - 1].ts > 4 * 86400000) break; keep.push(m); }
+    msgs = keep.slice(0, 60);
+  }
   const chans = Array.from(new Set(msgs.map(m => m.ch)));
-  let day = '';
-  const body = msgs.length ? msgs.map(m => {
+  let day = '', marked = !(salon && day0);
+  const marker = () => {
+    const src = r.by ? 'Logged by staff' : r.src === 'client' ? 'Written on her Phorest client card' : 'Written in Phorest';
+    return `<div class="cq-rb cq-rsalon"><span class="cq-rhit">The complaint, raised in the salon</span>${r.detail ? `<div><b>${cqEsc(r.detail)}</b></div>` : ''}${r.note && r.note !== r.detail ? `<div class="cq-rorig">${cqText(r.note)}</div>` : ''}<span class="cq-rbt">${cqEsc(src)}, ${cqEsc(cqDay(cqDateIso(r)))}. The client did not write this in the chat.</span></div>`;
+  };
+  const drawn = [];
+  msgs.forEach(m => {
+    if (!marked && m.ts >= day0) { drawn.push(`<span class="cq-rday">${cqEsc(cqMsgDay(day0))}</span>` + marker()); day = cqMsgDay(day0); marked = true; }
     const d = cqMsgDay(m.ts); let sep = '';
     if (d !== day) { day = d; sep = `<span class="cq-rday">${cqEsc(d)}</span>`; }
-    return `${sep}<div class="cq-rb ${m.w === 'c' ? 'in' : 'out'}${m.hit ? ' hit' : ''}">${m.hit ? '<span class="cq-rhit">The complaint</span>' : ''}${cqAtt(m.att)}${m.text ? cqText(m.text) : ''}<span class="cq-rbt">${m.w === 's' ? 'Tara Rose, ' : ''}${cqMsgTime(m.ts)}${chans.length > 1 ? ' · ' + cqEsc(m.ch) : ''}</span></div>`;
-  }).join('') : '<p class="cq-meta" style="margin:8px">No messages around the date of the complaint.</p>';
+    const hit = m.hit && !salon;
+    drawn.push(`${sep}<div class="cq-rb ${m.w === 'c' ? 'in' : 'out'}${hit ? ' hit' : ''}">${hit ? '<span class="cq-rhit">The complaint</span>' : ''}${cqAtt(m.att)}${m.text ? cqText(m.text) : ''}<span class="cq-rbt">${m.w === 's' ? 'Tara Rose, ' : ''}${cqMsgTime(m.ts)}${chans.length > 1 ? ' · ' + cqEsc(m.ch) : ''}</span></div>`);
+  });
+  if (!marked) drawn.push(`<span class="cq-rday">${cqEsc(cqMsgDay(day0))}</span>` + marker());
+  const body = salon && day0
+    ? drawn.join('') + (msgs.length ? '' : '<p class="cq-meta" style="margin:8px">Nothing in respond.io from the day of the complaint on.</p>')
+    : (msgs.length ? drawn.join('') : '<p class="cq-meta" style="margin:8px">No messages around the date of the complaint.</p>');
   const initials = String(ct.name || '?').split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
   const total = chat.total || msgs.length;
-  const noteSnip = `<p class="cq-note">${wide ? 'The week around the complaint' : 'From just before the complaint to the last message after it'}, ${cqNum(msgs.length)} of ${cqNum(total)} messages that week. Nothing here can be sent.${chat.wider && total > msgs.length || wide ? ` <button type="button" class="cq-link" data-cqwide="${r.id}">${wide ? 'Show only from the complaint on' : 'Not the right part? Show the whole week'}</button>` : ''}</p>`;
+  const noteSnip = `<p class="cq-note">${wide ? 'The week around the complaint' : salon && day0 ? 'From the day of the complaint on' : 'From just before the complaint to the last message after it'}, ${cqNum(msgs.length)} of ${cqNum(total)} messages that week. Nothing here can be sent.${chat.wider && total > msgs.length || wide ? ` <button type="button" class="cq-link" data-cqwide="${r.id}">${wide ? 'Show only from the complaint on' : 'Not the right part? Show the whole week'}</button>` : ''}</p>`;
   return noteSnip + `<div class="cq-rio"><div class="cq-rhd"><span class="cq-rav">${cqEsc(initials)}</span><div class="cq-rwho"><b>${cqEsc(ct.name || 'No name')}</b><small>${cqEsc(ct.phone || 'No phone number')}</small></div>
       ${ct.status ? `<span class="cq-rpill">${cqEsc(String(ct.status).replace(/^./, c => c.toUpperCase()))}</span>` : ''}<span class="cq-rpill ghost">${cqEsc(ct.assignee || 'Unassigned')}</span></div>
     <div class="cq-rsub">${chans.length ? cqEsc(chans.join(', ')) : 'respond.io'}${(ct.tags || []).slice(0, 6).map(t => `<span class="cq-rtag">${cqEsc(t)}</span>`).join('')}</div>
