@@ -324,7 +324,7 @@
     if (S.lane) h += laneBarHtml();
     if (S.mode === 'list') {
       var bxOld = document.getElementById('rctTbox'), keepPos = bxOld ? [bxOld.scrollTop, bxOld.scrollLeft] : null;
-      h += renderList() + goneHtml() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
+      h += renderList() + goneHtml() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. Apart from the automatic shortlist email for support roles, the dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
       el.innerHTML = h + '</div>';
       var bxNew = document.getElementById('rctTbox'); if (bxNew && keepPos) { bxNew.scrollTop = keepPos[0]; bxNew.scrollLeft = keepPos[1]; }
       fitDetail();
@@ -374,7 +374,7 @@
     h += '<details class="rct-grp rct-donebox" data-g="done"><summary><span>Not now<span class="rct-cnt">' + done.length + '</span></span></summary><div class="rct-dbody">' +
       (done.length ? done.slice(0, 30).map(row).join('') + (done.length > 30 ? '<p class="rct-hint">Showing the latest 30.</p>' : '') : '<p class="rct-hint">No one yet.</p>') + '</div></details>';
     }
-    h += goneHtml() + '<p class="rct-note">Stage names are the TRS Recruitment labels already in the inboxes. The dashboard never sends email: Shortlist gives you the reply to send from the recruitment inbox. Waiting counts days since the application with no human reply; the automatic brochure email does not count.</p>';
+    h += goneHtml() + '<p class="rct-note">Stage names are the TRS Recruitment labels already in the inboxes. Apart from the automatic shortlist email for support roles, the dashboard never sends email: Shortlist gives you the reply to send from the recruitment inbox. Waiting counts days since the application with no human reply; the automatic brochure email does not count.</p>';
     el.innerHTML = h + '</div>';
     if (q) { var inp = document.getElementById('rctFind'); if (inp && document.activeElement !== inp && inp.__keep) inp.focus(); }
   }
@@ -748,10 +748,10 @@
     return String(s).replace(/\{greeting\}/g, greeting).replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '$1').replace(/\*\*(.+?)\*\*/g, '$1');
   }
   // greeting: the text for the {greeting} line. Returns { subject, text, html } for one person, or for a bulk send (there = true).
-  function replyParts(p, there, greetingOverride) {
+  function replyParts(p, there, greetingOverride, tplOverride, subjOverride) {
     var greeting = greetingOverride || greetingFor(p, there);
-    var subject = String(setting('decline_subject', DEFAULT_SUBJECT) || DEFAULT_SUBJECT);
-    var blocks = declineBlocks(setting('decline_template', DEFAULT_DECLINE) || DEFAULT_DECLINE);
+    var subject = subjOverride || String(setting('decline_subject', DEFAULT_SUBJECT) || DEFAULT_SUBJECT);
+    var blocks = declineBlocks(tplOverride || setting('decline_template', DEFAULT_DECLINE) || DEFAULT_DECLINE);
     var sign = blocks.length > 1 ? blocks.pop().split('\n') : [];
     var text = blocks.concat(sign.length ? [sign.join('\n')] : []).map(function (b) { return plainInline(b, greeting); }).join('\n\n');
     var paras = blocks.map(function (b, i) {
@@ -764,6 +764,15 @@
     var html = RH_HEAD.replace('Your application to Tara Rose Salons', function () { return esc(subject); }) + '\n' + paras.concat(signOff ? [signOff] : []).join('\n') + '\n' + RH_MID +
       (nameDiv ? '\n' + nameDiv : '') + (titleDivs.length ? '\n' + titleDivs.join('\n') : '') + '\n' + RH_TAIL;
     return { subject: subject, text: text, html: html };
+  }
+  // Kate, 16 Nov 2026: the automatic email to a shortlisted support-role applicant (brand review of the wording: no BLOCK, soft notes applied; the number that will call is left out on purpose).
+  // Same formatted layout and the same recruitment signature as the No reply (its last block), so changing the signature there changes it here. Sent from recruitment@ by
+  // apps-script/send-recruitment-mail.gs after recruit_queue_email() queues it (migrations/recruit_shortlist_email.sql).
+  var SL_SUBJECT = 'Thank you for applying to Tara Rose';
+  var SL_BODY = '{greeting}\n\nThank you for applying to Tara Rose. We have shortlisted your application, and a member of our team will phone you to arrange your interview.\n\nPlease keep an eye out for a call from us.\n\nWe look forward to speaking with you.';
+  function shortlistEmailParts(p) {
+    var dec = declineBlocks(setting('decline_template', DEFAULT_DECLINE) || DEFAULT_DECLINE), sig = dec.length > 1 ? dec[dec.length - 1] : '';
+    return replyParts(p, false, null, SL_BODY + (sig ? '\n\n' + sig : ''), SL_SUBJECT);
   }
   // Rich text on the clipboard so it pastes formatted into Gmail; plain text is the fallback part. Returns 'rich', 'plain' or ''.
   async function copyRich(html, text) {
@@ -812,6 +821,10 @@
       '<p class="rct-hint">Copy reply pastes with the formatting into Gmail. Sending stays your click.</p>');
   }
 
+  function autoMailNote(p) {
+    return setting('shortlist_email_enabled', false) && notifyRole(roleGroup(p)) && p.email && !p.bounced
+      ? '<p class="rct-amberbox">They are also getting an automatic email from the recruitment inbox saying the team will phone them. The invite below is only if you want them to book a time.</p>' : '';
+  }
   function shortDialog(id) {
     var p = personById(id); if (!p) return;
     var txt = fill(setting('invite_template', ''), p), hasLink = !!setting('booking_link', '');
@@ -822,7 +835,8 @@
       (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : '') +
       '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="invite" data-id="' + esc(p.id) + '">Mark as invited</button><button type="button" class="rct-btn" data-act="copy">Copy reply</button></div>' +
       (p.email && !p.bounced ? '<a class="rct-btn rct-sm" href="' + esc(composeUrl(p.email, 'Your application to Tara Rose', txt)) + '" target="_blank" rel="noopener">Open in Gmail from the recruitment inbox</a>' : '') +
-      '<p class="rct-hint">The dashboard does not send email. Send the reply, then press Mark as invited so they move to Screening.</p>');
+      autoMailNote(p) +
+      '<p class="rct-hint">The dashboard does not send this invite. Send the reply, then press Mark as invited so they move to Screening.</p>');
   }
   // Only people someone has looked at: the reply says "I have reviewed your application", so it must be true for every one of them.
   function bulkReviewed(g) { return (noGroups()[g] || []).filter(isReviewed); }
@@ -1076,6 +1090,8 @@
     if (f && p) addOnePhoto(p, f);
   });
 
+  var TL = [], TLt = null;
+  function toastLine(msg) { TL.push(msg); clearTimeout(TLt); TLt = setTimeout(function () { TL = []; }, 9000); toast(TL.join(' ')); }
   function toast(msg, undo) {
     var host = document.getElementById('rctToast');
     if (!host) { host = document.createElement('div'); host.id = 'rctToast'; document.body.appendChild(host); }
@@ -1105,13 +1121,27 @@
       var r = await sb.rpc('recruit_shortlist_notify', { p_id: p.id, p_role: roleGroup(p) });
       if (r.error) throw new Error(r.error.message);
       var d = r.data || {}, who = (d.names || []).join(' and ');
-      if (d.test) { toast('Test sent to your own number' + (d.mode === 'text' ? ', as plain text (Meta has not approved the template yet, so it only arrives if you wrote to the main number in the last 24 hours).' : '.')); return; }
-      if (d.queued) toast(who + ' will get the WhatsApp to interview ' + firstName(p.name) + (d.sends_now ? ' now.' : ' from ' + (d.hour_from || 9) + ':00 in the morning (Dubai).'));
-      else if ((d.skipped || []).length && d.skipped.every(function (x) { return x.reason === 'already told'; })) toast('The interviewers were already told about ' + firstName(p.name) + '.');
-      else if (d.reason === 'template_not_approved') toast('Shortlisted. The WhatsApp to the interviewers did not go: the message is not approved by Meta yet.');
-      else if (d.reason && d.reason !== 'role' && d.reason !== 'off') toast('Shortlisted. The WhatsApp to the interviewers did not go (' + d.reason.replace(/_/g, ' ') + ').');
-      else if ((d.skipped || []).length) toast('Shortlisted. WhatsApp did not go to ' + d.skipped.map(function (x) { return x.name + ' (' + x.reason + ')'; }).join(', ') + '.');
-    } catch (e) { console.error(e); toast('Shortlisted, but the WhatsApp to the interviewers did not go: ' + (e.message || 'try again')); }
+      if (d.test) { toastLine('Test sent to your own number' + (d.mode === 'text' ? ', as plain text (Meta has not approved the template yet, so it only arrives if you wrote to the main number in the last 24 hours).' : '.')); return; }
+      if (d.queued) toastLine(who + ' will get the WhatsApp to interview ' + firstName(p.name) + (d.sends_now ? ' now.' : ' from ' + (d.hour_from || 9) + ':00 in the morning (Dubai).'));
+      else if ((d.skipped || []).length && d.skipped.every(function (x) { return x.reason === 'already told'; })) toastLine('The interviewers were already told about ' + firstName(p.name) + '.');
+      else if (d.reason === 'template_not_approved') toastLine('Shortlisted. The WhatsApp to the interviewers did not go: the message is not approved by Meta yet.');
+      else if (d.reason && d.reason !== 'role' && d.reason !== 'off') toastLine('Shortlisted. The WhatsApp to the interviewers did not go (' + d.reason.replace(/_/g, ' ') + ').');
+      else if ((d.skipped || []).length) toastLine('Shortlisted. WhatsApp did not go to ' + d.skipped.map(function (x) { return x.name + ' (' + x.reason + ')'; }).join(', ') + '.');
+    } catch (e) { console.error(e); toastLine('Shortlisted, but the WhatsApp to the interviewers did not go: ' + (e.message || 'try again')); }
+  }
+  async function emailShortlist(id) {
+    var p = personById(id); if (!p || !(p.is_test || (setting('shortlist_email_enabled', false) && notifyRole(roleGroup(p))))) return;
+    if (!p.is_test && (!p.email || p.bounced)) { toastLine(p.bounced ? 'No automatic email: their address bounced.' : 'No automatic email: no email address.'); return; }
+    try {
+      var rp = shortlistEmailParts(p);
+      var r = await sb.rpc('recruit_queue_email', { p_id: p.id, p_role: roleGroup(p), p_subject: rp.subject, p_html: rp.html, p_text: rp.text });
+      if (r.error) throw new Error(r.error.message);
+      var d = r.data || {};
+      if (d.queued && d.test) toastLine('A test of the applicant email goes to your own address within 5 minutes.');
+      else if (d.queued) toastLine(firstName(p.name) + ' will get the automatic email from the recruitment inbox within 5 minutes.');
+      else if (d.reason === 'already_emailed') toastLine(firstName(p.name) + ' was already sent the automatic email.');
+      else if (d.reason === 'no_email' || d.reason === 'bounced') toastLine('No automatic email: ' + (d.reason === 'bounced' ? 'their address bounced.' : 'no email address.'));
+    } catch (e) { console.error(e); toastLine('The automatic email did not queue: ' + (e.message || 'try again')); }
   }
   // Offer -> Hired: the starting date is finalised here (recruit_set_hired, migrations/recruit_hire.sql).
   function hireDialog(id) {
@@ -1180,7 +1210,7 @@
         closePop(); render(); return;
       }
       var a = t.getAttribute('data-act'), id = t.getAttribute('data-id'), g = t.getAttribute('data-g'), p = id ? personById(id) : null;
-      if (a === 'short') { var wasNew = p && p.stage === 'new'; shortDialog(id); if (wasNew) notifyShortlist(id); }
+      if (a === 'short') { var wasNew = p && p.stage === 'new'; shortDialog(id); if (wasNew) { TL = []; notifyShortlist(id); emailShortlist(id); } }
       else if (a === 'invite') { if (await setStage([id], 'screening', 'Moved to Screening.')) closeDlg(); }
       else if (a === 'booked') setStage([id], 'interview_booked', 'Moved to Interview booked.');
       // Kate, 16 Nov 2026: after the interview (ate Jho and ate Frans for support roles, Coach Emma for stylists and beauticians) the next step is the Trade test (Jho, 16 Nov); No works as everywhere else
