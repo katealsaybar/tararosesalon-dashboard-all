@@ -131,9 +131,10 @@
     drive: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#0F9D58" d="M8 3 1 15l4 6.5L12 9.5z"/><path fill="#F4B400" d="M8 3h8l7 12h-8z"/><path fill="#4285F4" d="M5 21.5h14l4-6.5H9z"/></svg>',
     cloud: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#6FA3DA" d="M7 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.3 4.9 4.9 0 0 1 17.5 19z"/></svg>',
     tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#000" stroke="#555" stroke-width="1"/><g fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.6 5.5v8.7a2.6 2.6 0 1 1-2.6-2.6" stroke="#25F4EE" transform="translate(-0.8 -0.6)"/><path d="M13.6 5.5v8.7a2.6 2.6 0 1 1-2.6-2.6" stroke="#FE2C55" transform="translate(0.8 0.6)"/><path d="M13.6 5.5v8.7a2.6 2.6 0 1 1-2.6-2.6M13.6 5.5c.3 1.9 1.6 3.1 3.6 3.3" stroke="#fff"/></g></svg>',
+    threads: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#111" stroke="#666" stroke-width="1"/><path d="M16.4 11.3c-.2-2.3-1.5-3.6-3.9-3.6-1.6 0-2.8.8-3.4 2m7.3 1.6c-.6-.3-1.4-.5-2.3-.5-1.7 0-2.8.8-2.8 2 0 1.1.9 1.9 2.2 1.9 1.7 0 2.8-1.1 2.8-3.2 0 2.3-1.3 4.6-4.2 4.6-2.7 0-4.4-1.8-4.4-4.8s1.7-4.8 4.4-4.8c2.1 0 3.6 1 4.2 2.9" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>',
     other: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="#9aa0b4" stroke-width="2" stroke-linecap="round"/></svg>'
   };
-  var LK_NAME = { ig: 'Instagram', fb: 'Facebook', x: 'X', tiktok: 'TikTok', drive: 'Google Drive', cloud: 'Cloud storage', other: 'Other link' };
+  var LK_NAME = { ig: 'Instagram', fb: 'Facebook', x: 'X', tiktok: 'TikTok', threads: 'Threads', drive: 'Google Drive', cloud: 'Cloud storage', other: 'Other link' };
   function workUrl(p) {   // the work link as a full address; "www.tiktok.com/@x" written without https:// gets one
     var u = String(p.work_link || '').trim();
     if (/^https?:\/\//i.test(u)) return safeUrl(u);
@@ -142,13 +143,14 @@
   function linkHost(p) { var m = /^https?:\/\/(?:www\.|m\.)?([^\/?#:]+)/i.exec(workUrl(p)); return m ? m[1].toLowerCase() : ''; }
   function linkKind(p) {   // ig, fb, x, tiktok, drive, cloud, other, or '' when they gave no link
     var hw = String(p.ig_handle || '').trim().toLowerCase().replace(/^@/, '');
-    if (hw && PLAT_WORD.test(hw)) return /tik/.test(hw) ? 'tiktok' : /^(facebook|fb)$/.test(hw) ? 'fb' : /^(twitter|x)$/.test(hw) ? 'x' : /^instagram$/.test(hw) ? 'ig' : 'other';
+    if (hw && PLAT_WORD.test(hw)) return /tik/.test(hw) ? 'tiktok' : /^(facebook|fb)$/.test(hw) ? 'fb' : /^(twitter|x)$/.test(hw) ? 'x' : /^threads$/.test(hw) ? 'threads' : /^instagram$/.test(hw) ? 'ig' : 'other';
     if (hasIg(p)) return 'ig';
     var h = linkHost(p); if (!h) return '';
     if (/(^|\.)instagram\.com$/.test(h)) return 'ig';
     if (/(^|\.)(facebook|fb)\.com$|^fb\.me$/.test(h)) return 'fb';
     if (/(^|\.)tiktok\.com$/.test(h) || p.link_kind === 'tiktok') return 'tiktok';
     if (/^(x|twitter)\.com$|^t\.co$/.test(h)) return 'x';
+    if (/(^|\.)threads\.(net|com)$/.test(h)) return 'threads';   // Kate, 16 Nov 2026: a Threads link says Threads, not Other link
     if (/^(drive|docs)\.google\.com$|^drive\.usercontent\.google\.com$/.test(h)) return 'drive';
     if (/dropbox\.com$|onedrive\.live\.com$|^1drv\.ms$|sharepoint\.com$|icloud\.com$|wetransfer\.com$|^we\.tl$|(^|\.)box\.com$|mega\.nz$|pcloud\.com$|mediafire\.com$/.test(h)) return 'cloud';
     return 'other';
@@ -241,17 +243,27 @@
       '<button type="button" class="rct-btn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button></div>' +
       (openRows[p.id] ? detailHtml(p) : '') + '</article>';
   }
+  // Kate, 16 Nov 2026 (ate Jho's steps for the support roles): Trade test (4 to 5 hours, on a busy day, about twice a week), then Good or Not good, then the Offer letter and the starting date.
+  function fdate(d) { try { return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(String(d).slice(0, 10) + 'T12:00:00')); } catch (e) { return ''; } }
+  function stageSub(p) {
+    if (p.stage === 'trade_test') return 'Trade test: 4 to 5 hours on a busy day, then report whether it was good';
+    if (p.stage === 'offer') return 'Offer: ask for the offer letter, then set the starting date';
+    if (p.stage === 'hired') return 'Hired' + (p.start_date ? ', starts ' + fdate(p.start_date) : '');
+    return STAGE_LABEL[p.stage] || '';
+  }
   function row(p) {
     var why = flags(p).map(function (f) { return f.t; }).join(' and ');
     var sub = p.stage === 'new' ? (why || (p.role_txt || '')) :
               p.stage === 'screening' ? 'Invite sent ' + fat(p.decided_at) + ', not booked yet' :
               p.stage === 'interview_booked' ? 'Interview booked, moved ' + fat(p.decided_at) :
-              p.stage === 'not_now' || p.stage === 'rejected' ? (STAGE_LABEL[p.stage] + ' ' + fat(p.decided_at)) : (STAGE_LABEL[p.stage] || '');
+              p.stage === 'not_now' || p.stage === 'rejected' ? (STAGE_LABEL[p.stage] + ' ' + fat(p.decided_at)) : stageSub(p);
     var acts = '', lookBtn = '<button type="button" class="rct-btn rct-sm" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button>';
     if (p.stage === 'new') acts = lookBtn + (bucket(p) === 'no' ? '<button type="button" class="rct-btn rct-sm" data-act="bk" data-to="look" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
                                   '<button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'screening') acts = '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'interview_booked') acts = '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
+    else if (p.stage === 'trade_test') acts = '<button type="button" class="rct-btn rct-sm rct-pri" data-act="ttgood" data-id="' + esc(p.id) + '">Trade test good</button><button type="button" class="rct-btn rct-sm" data-act="ttbad" data-id="' + esc(p.id) + '">Not good</button>';
+    else if (p.stage === 'offer') acts = '<button type="button" class="rct-btn rct-sm rct-pri" data-act="hire" data-id="' + esc(p.id) + '">Set starting date</button>';
     else if (p.stage === 'not_now' || p.stage === 'rejected') acts = '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + esc(p.id) + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + esc(p.id) + '">Put back</button>';
     var det = [p.emirate || p.country, p.experience, p.role_txt].filter(Boolean).map(esc).join(' &middot; ');
     return '<div class="rct-row">' + avatar(p) + '<div class="rct-who"><b>' + esc(p.name || 'Name not stated') + '</b>' +
@@ -587,6 +599,9 @@
         if (p.stage === 'new') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="short" data-id="' + id + '">Shortlist</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button></td>';
         if (p.stage === 'screening') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + id + '">Booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + id + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
         if (p.stage === 'interview_booked') return '<td class="rct-c-acts">' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
+        if (p.stage === 'trade_test') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="ttgood" data-id="' + id + '">Trade test good</button><button type="button" class="rct-btn rct-sm" data-act="ttbad" data-id="' + id + '">Not good</button></td>';
+        if (p.stage === 'offer') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="hire" data-id="' + id + '">Set starting date</button></td>';
+        if (p.stage === 'hired') return '<td class="rct-c-acts">' + (p.start_date ? '<span class="rct-pill rct-green">Starts ' + esc(fdate(p.start_date)) + '</span>' : '') + '</td>';
         if (p.stage === 'not_now' || p.stage === 'rejected') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + id + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + id + '">Put back</button></td>';
         return '<td class="rct-c-acts"></td>';
       }
@@ -1098,6 +1113,25 @@
       else if ((d.skipped || []).length) toast('Shortlisted. WhatsApp did not go to ' + d.skipped.map(function (x) { return x.name + ' (' + x.reason + ')'; }).join(', ') + '.');
     } catch (e) { console.error(e); toast('Shortlisted, but the WhatsApp to the interviewers did not go: ' + (e.message || 'try again')); }
   }
+  // Offer -> Hired: the starting date is finalised here (recruit_set_hired, migrations/recruit_hire.sql).
+  function hireDialog(id) {
+    var p = personById(id); if (!p) return;
+    openDlg('Hire ' + esc(firstName(p.name)),
+      '<p>Once the offer letter is agreed, put in the starting date and mark ' + esc(firstName(p.name)) + ' as hired.</p>' +
+      '<label class="rct-field"><span>Starting date</span><input type="date" id="rctStart" value="' + esc(String(p.start_date || '').slice(0, 10)) + '"></label>' +
+      '<p class="rct-amberbox" id="rctStartSay" hidden></p>' +
+      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="hiresave" data-id="' + esc(p.id) + '">Mark as hired</button><button type="button" class="rct-btn" data-close>Cancel</button></div>' +
+      '<p class="rct-hint">The dashboard does not send the offer letter. This only records the date and moves them to Hired.</p>');
+  }
+  async function hireSave(id) {
+    var p = personById(id), inp = document.getElementById('rctStart'), say = document.getElementById('rctStartSay'); if (!p || !inp) return;
+    if (!inp.value) { if (say) { say.hidden = false; say.textContent = 'Pick the starting date first.'; } return; }
+    try {
+      var r = await sb.rpc('recruit_set_hired', { p_id: p.id, p_start: inp.value }); if (r.error) throw new Error(r.error.message);
+    } catch (e) { console.error(e); if (say) { say.hidden = false; say.textContent = 'That did not save: ' + (e.message || 'try again'); } return; }
+    p.stage = 'hired'; p.start_date = inp.value; p.decided_by = me; p.decided_at = new Date().toISOString();
+    closeDlg(); render(); toast(firstName(p.name) + ' is hired, starting ' + fdate(inp.value) + '.');
+  }
   async function undo() {
     var prev = UNDO.pop(); if (!prev) return;
     var groups = {};
@@ -1150,6 +1184,10 @@
       else if (a === 'invite') { if (await setStage([id], 'screening', 'Moved to Screening.')) closeDlg(); }
       else if (a === 'booked') setStage([id], 'interview_booked', 'Moved to Interview booked.');
       // Kate, 16 Nov 2026: after the interview (ate Jho and ate Frans for support roles, Coach Emma for stylists and beauticians) the next step is the Trade test (Jho, 16 Nov); No works as everywhere else
+      else if (a === 'ttgood') setStage([id], 'offer', firstName(p && p.name) + ' passed the trade test. Moved to Offer: ask for the offer letter, then set the starting date.');
+      else if (a === 'ttbad') setStage([id], 'not_now', firstName(p && p.name) + ' did not pass the trade test. Not now.');
+      else if (a === 'hire') hireDialog(id);
+      else if (a === 'hiresave') hireSave(id);
       else if (a === 'passed') setStage([id], 'trade_test', firstName(p && p.name) + ' passed the interview. Moved to Trade test.');
       // No: the person is marked Not now (that also counts as reviewed), then the reply is offered. Nothing is sent by the site.
       else if (a === 'no') { if (await setStage([id], 'not_now', 'Not now for ' + firstName(p && p.name) + '.')) noDialog(id); }
