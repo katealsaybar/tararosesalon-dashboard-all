@@ -1609,7 +1609,8 @@ function refreshActiveView() {
 // Creative Director first (14 Oct 2026: Callum and Paul Standenmay, Phorest's own category).
 const STYLIST_ROLE_ORDER = ['Creative Director', 'Style Director', 'Senior Stylist', 'Stylist', 'Junior Stylist',
   'Blow-Dry Specialist', 'Senior Beauty Therapist', 'Beauty Therapist',
-  'Senior Nail Technician', 'Nail Technician', 'Assistant'];
+  'Senior Nail Technician', 'Nail Technician', 'Assistant',
+  'Receptionist']; // Kate, 16 Nov 2026: front desk joins the list with Jessa Padilla (KCA), after the Assistants; it counts as "1 receptionist" in the branch heading
 
 // ── ONE STYLIST CARD, AS THE DESIGNED PDF ────────────────────
 // Kate, 2026-08-13: the hand-built HTML replica of the A3 card was ugly, and an

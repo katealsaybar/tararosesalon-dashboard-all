@@ -84,14 +84,24 @@ const STAFF_PROFILES = {
   // own combined Staff Card ("two different people, not one"). Removed; each
   // assistant already has her own row below, which is the correct card.
   'CHONA':     { role: 'Assistant', branch: 'KCA' },
-  'ESTHER':    { role: 'Assistant', branch: 'KCA' },
+  // Kate, 16 Nov 2026: cutouts for the assistants and front desk (esther, laila, apol, maria, ivy, liberty, dorah, lhang-ann, and jessa at the front desk).
+  // Same card style as the stylists, in colour, head inside the block. Not every assistant has one yet: Chona, Pearl, Kathy, Ercely, Luningning, Eden.
+  'ESTHER':    { photo: 'esther.png', role: 'Assistant', branch: 'KCA' },
   'PEARL':     { role: 'Assistant', branch: 'KCA' },
   // Kate, 19 Sep 2026, confirmed off Phorest's own Staff list (Category: Assistant):
   // "laila pabico is an assistant pls mark her off as such". Filed here rather than
   // under Saadiyat — Kate confirmed she genuinely covers both (422 KCA vs 378 SAA
   // staff_utilisation rows, both still running through Sep 2026, not a one-off cover
   // shift) — but STAFF_PROFILES only carries one branch per card, and KCA edges it.
-  'LAILA':     { role: 'Assistant', branch: 'KCA' },
+  'LAILA':     { photo: 'laila.png', role: 'Assistant', branch: 'KCA' },
+  // Kate, 16 Nov 2026: Jessa Padilla is front desk at Khalifa City A (Kate, 9 Oct 2026; Phorest: Receptionist, KCA and SAA). 'Receptionist' joined STYLIST_ROLE_ORDER in
+  // dashboard.js the same day, so she sorts after the Assistants instead of floating above the Style Directors. Her card is her own, not folded into the Assistants card.
+  'JESSA':     { photo: 'jessa.png', role: 'Receptionist', branch: 'KCA' },
+  // Kate, 16 Nov 2026: Ara Gonzales (assistant) and Abbie Tuazon (front desk) at Khalifa City A, Maan Solis (front desk) at Al Quoz. All three work across the salons in
+  // Phorest; the branch here is where Phorest rosters most of their hours (12 weeks to 15 Nov 2026), so it is a tidy default and not a ruling. To confirm with Kate.
+  'ARA':       { photo: 'ara.png', role: 'Assistant', branch: 'KCA' },
+  'ABBIE':     { photo: 'abbie.png', role: 'Receptionist', branch: 'KCA' },
+  'MAAN':      { photo: 'maan.png', role: 'Receptionist', branch: 'AQ' },
 
   // -- Mamsha Al Saadiyat --
   // Kate, 8 Oct 2026: Emma and Ashleigh are educators now. `role` stays Style Director because
@@ -141,9 +151,13 @@ const STAFF_PROFILES = {
   'MYRA/APOL/XAVRINA':  { role: 'Assistant', branch: 'SAA' },
   'MARIA/APOL':         { role: 'Assistant', branch: 'SAA' },
   'MAY/XAV':            { role: 'Assistant', branch: 'SAA' },
-  'APOL':      { role: 'Assistant', branch: 'SAA' },
+  'APOL':      { photo: 'apol.png', role: 'Assistant', branch: 'SAA' },
   'KATHY':     { role: 'Assistant', branch: 'SAA' },
-  'MARIA':     { role: 'Assistant', branch: 'SAA' },   // Maria Theresa
+  'MARIA':     { photo: 'maria.png', role: 'Assistant', branch: 'SAA' },   // Maria Theresa
+  // Kate, 16 Nov 2026: Liberty Caparas (Saadiyat) and Lhang Ann (Saadiyat, also covers KCA) are assistants and now have a photo each, so they get an entry.
+  // Both were only in LEDGER_ASSISTANT_NAMES before. Lhang Ann's key is LHANG, the first word the ledger writes (her Phorest surname is a literal ".").
+  'LIBERTY':   { photo: 'liberty.png', role: 'Assistant', branch: 'SAA' },
+  'LHANG':     { photo: 'lhang-ann.png', role: 'Assistant', branch: 'SAA', alsoAt: ['KCA'] },
   // A leaver, let go when the staff was reduced (Christine, 4 Sep 2026). Stays here on
   // purpose: the tables list whoever had sales in the window you are looking at, and her
   // 22 days run Jan to May 2025.
@@ -179,7 +193,9 @@ const STAFF_PROFILES = {
   'MJ':        { photo: 'mj.png',        role: 'Nail Technician',  branch: 'AQ', ig: 'mj_torresgalos' },
   // Kate, 7 Sep 2026: photo and handle sent over WhatsApp-style, cut to 200px like the rest.
   'GALINA':    { photo: 'galina.png',    role: 'Beauty Therapist', branch: 'AQ', ig: 'galina_spierling' },
-  'IVY':       { role: 'Assistant', branch: 'AQ' },
+  'IVY':       { photo: 'ivy.png', role: 'Assistant', branch: 'AQ' },
+  // Dorah Namayanja: an assistant (Phorest, Assistant category); Al Quoz is where Phorest rosters her hours (12 weeks to 15 Nov 2026), branch to confirm with Kate.
+  'DORAH':     { photo: 'dorah.png', role: 'Assistant', branch: 'AQ' },
   'LUNINGNING':{ role: 'Assistant', branch: 'AQ' },
   // Kate, 9 Oct 2026: Eden Domasin is an assistant at Al Quoz.
   'EDEN':      { role: 'Assistant', branch: 'AQ' },
