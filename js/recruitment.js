@@ -274,11 +274,11 @@
     if (usesPipe(p)) acts = lookBtn + pipeActs(p, false);
     else if (p.stage === 'new') acts = lookBtn + (bucket(p) === 'no' ? '<button type="button" class="rct-btn rct-sm" data-act="bk" data-to="look" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
                                   '<button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
-    else if (p.stage === 'screening') acts = '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
-    else if (p.stage === 'interview_booked') acts = '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
+    else if (p.stage === 'screening') acts = statusSelect(p) + '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
+    else if (p.stage === 'interview_booked') acts = statusSelect(p) + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'trade_test') acts = '<button type="button" class="rct-btn rct-sm rct-pri" data-act="ttgood" data-id="' + esc(p.id) + '">Trade test good</button><button type="button" class="rct-btn rct-sm" data-act="ttbad" data-id="' + esc(p.id) + '">Not good</button>';
     else if (p.stage === 'offer') acts = '<button type="button" class="rct-btn rct-sm rct-pri" data-act="hire" data-id="' + esc(p.id) + '">Set starting date</button>';
-    else if (p.stage === 'not_now' || p.stage === 'rejected') acts = '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + esc(p.id) + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + esc(p.id) + '">Put back</button>';
+    else if (p.stage === 'not_now' || p.stage === 'rejected') acts = statusSelect(p) + '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + esc(p.id) + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + esc(p.id) + '">Put back</button>';
     var det = [p.emirate || p.country, p.experience, p.role_txt].filter(Boolean).map(esc).join(' &middot; ');
     return '<div class="rct-row">' + avatar(p) + '<div class="rct-who"><b>' + esc(p.name || 'Name not stated') + '</b>' +
       (det ? '<span>' + det + '</span>' : '') + '<span>' + esc(sub) + '</span></div>' +
@@ -640,12 +640,12 @@
         var id = esc(p.id);
         if (usesPipe(p)) return '<td class="rct-c-acts">' + pipeActs(p, true) + '</td>';
         if (p.stage === 'new') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="short" data-id="' + id + '">Shortlist</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button></td>';
-        if (p.stage === 'screening') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + id + '">Booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + id + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
-        if (p.stage === 'interview_booked') return '<td class="rct-c-acts">' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
+        if (p.stage === 'screening') return '<td class="rct-c-acts">' + statusSelect(p) + '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + id + '">Booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + id + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
+        if (p.stage === 'interview_booked') return '<td class="rct-c-acts">' + statusSelect(p) + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
         if (p.stage === 'trade_test') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="ttgood" data-id="' + id + '">Trade test good</button><button type="button" class="rct-btn rct-sm" data-act="ttbad" data-id="' + id + '">Not good</button></td>';
         if (p.stage === 'offer') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="hire" data-id="' + id + '">Set starting date</button></td>';
         if (p.stage === 'hired') return '<td class="rct-c-acts">' + (p.start_date ? '<span class="rct-pill rct-green">Starts ' + esc(fdate(p.start_date)) + '</span>' : '') + '</td>';
-        if (p.stage === 'not_now' || p.stage === 'rejected') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + id + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + id + '">Put back</button></td>';
+        if (p.stage === 'not_now' || p.stage === 'rejected') return '<td class="rct-c-acts">' + statusSelect(p) + '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + id + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + id + '">Put back</button></td>';
         return '<td class="rct-c-acts"></td>';
       }
     }
@@ -1382,35 +1382,59 @@
   function pipeActs(p, sm) {
     var cfg = PIPE[p.stage]; if (!cfg) return '';
     var id = esc(p.id), cl = 'rct-btn' + (sm ? ' rct-sm' : '');
-    var s = cfg.next.map(function (n) { return '<button type="button" class="' + cl + (n[2] ? ' rct-pri' : '') + '" data-act="mv" data-to="' + n[0] + '" data-id="' + id + '">' + esc(n[1]) + '</button>'; }).join('');
+    var s = statusSelect(p) + (sm ? '' : cfg.next.map(function (n) { return '<button type="button" class="' + cl + (n[2] ? ' rct-pri' : '') + '" data-act="mv" data-to="' + n[0] + '" data-id="' + id + '">' + esc(n[1]) + '</button>'; }).join(''));
     if (PE[p.stage === 'offer' ? 'offer_to_send' : p.stage]) s += '<button type="button" class="' + cl + '" data-act="mvmail" data-id="' + id + '">Email</button>';
-    if (cfg.reopen) s += '<button type="button" class="' + cl + '" data-act="back" data-id="' + id + '">Put back</button>';
     return s;
   }
   function usesPipe(p) { return !!PIPE[p.stage] && (p.stage !== 'screening' || lineOpenRole(p)); }
-  async function moveTo(id, to) {
-    var p = personById(id); if (!p) return;
-    if (to === 'trade_test' || to === 'start_pending') { moveDialog(id, to); return; }
-    var ok = await setStage([id], to, firstName(p.name) + ' is now: ' + STAGE_LABEL[to] + '.');
-    if (ok && PE[to]) await showStageEmail(id, to, 'Moved to <b>' + esc(STAGE_LABEL[to]) + '</b>.');
+  // Kate, 16 Nov 2026 ("i should be able to change statuses beh, make it a drop down"): any status can be set by hand. Going back a step only sets the status (no email is offered, it is
+  // a correction); going forward opens that step's email as usual; Trade test scheduled and Set start date still ask for their detail first.
+  var SEL_ORDER = ['screening', 'interview_booked', 'interview_pass', 'interview_fail', 'trade_test', 'trade_pass', 'trade_fail', 'offer_to_send', 'offer_sent', 'start_pending', 'start_accepted', 'hired'];
+  var STAGE_RANK = { screening: 1, interview_booked: 2, interview_pass: 3, interview_fail: 3, trade_test: 4, trade_pass: 5, trade_fail: 5, offer_to_send: 6, offer_sent: 7, start_pending: 8, start_accepted: 9, hired: 10 };
+  // shorter wording inside the dropdown so the chosen status fits the column; the Status column and the emails use the full names
+  var SEL_LABEL = { interview_pass: 'Interview: pass', interview_fail: 'Interview: fail', trade_test: 'Trade test: scheduled', trade_pass: 'Trade test: pass', trade_fail: 'Trade test: fail',
+    offer_to_send: 'Offer letter: to send', offer_sent: 'Offer letter: sent', start_pending: 'Start date: pending', start_accepted: 'Start date: accepted' };
+  function statusSelect(p) {
+    var cur = p.stage === 'offer' ? 'offer_to_send' : p.stage;
+    var keys = SEL_ORDER.filter(function (k) { return k !== 'interview_booked' || cur === 'interview_booked' || !lineOpenRole(p); });
+    var extra = [['not_now', 'Not now'], ['new', 'Back to New']];
+    if (cur === 'rejected') extra.unshift(['rejected', 'Rejected']);
+    var opts = keys.map(function (k) { return [k, SEL_LABEL[k] || STAGE_LABEL[k]]; }).concat(extra);
+    return '<select class="rct-pill rct-pillsel rct-stsel ' + stageCls(p) + '" data-ss="' + esc(p.id) + '" aria-label="Change the status of ' + esc(p.name || 'this person') + '">' +
+      opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
   }
-  function moveDialog(id, to) {
+  async function changeStatus(id, to) {
+    var p = personById(id); if (!p) return;
+    var from = p.stage === 'offer' ? 'offer_to_send' : p.stage; if (to === from || to === 'rejected') { render(); return; }
+    if (to === 'new') { await setStage([id], 'new', firstName(p.name) + ' is back in the list.'); return; }
+    if (to === 'not_now') { if (await setStage([id], 'not_now', 'Not now for ' + firstName(p.name) + '.')) noDialog(id); return; }
+    var quiet = (STAGE_RANK[to] || 0) < (STAGE_RANK[from] || 0);
+    await moveTo(id, to, quiet);
+    if (to === 'trade_test' || to === 'start_pending') render();   // the dialog is open; until it is saved the list still shows the old status
+  }
+  async function moveTo(id, to, quiet) {
+    var p = personById(id); if (!p) return;
+    if (to === 'trade_test' || to === 'start_pending') { moveDialog(id, to, quiet); return; }
+    var ok = await setStage([id], to, firstName(p.name) + ' is now: ' + STAGE_LABEL[to] + '.');
+    if (ok && PE[to] && !quiet) await showStageEmail(id, to, 'Moved to <b>' + esc(STAGE_LABEL[to]) + '</b>.');
+  }
+  function moveDialog(id, to, quiet) {
     var p = personById(id); if (!p) return;
     if (to === 'trade_test') {
       openDlg('Trade test for ' + esc(firstName(p.name)),
         '<p>Put in when and where, exactly as it should read in the email.</p>' +
         '<label class="rct-field"><span>When and where</span><input type="text" id="rctNote" maxlength="160" placeholder="Friday 20 November, 10am, Saadiyat" value="' + esc(p.stage_note || '') + '"></label>' +
         '<p class="rct-amberbox" id="rctMvSay" hidden></p>' +
-        '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="mvsave" data-to="trade_test" data-id="' + esc(p.id) + '">Save and show the email</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
+        '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="mvsave" data-to="trade_test"' + (quiet ? ' data-quiet="1"' : '') + ' data-id="' + esc(p.id) + '">' + (quiet ? 'Save' : 'Save and show the email') + '</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
     } else {
       openDlg('Start date for ' + esc(firstName(p.name)),
         '<p>Put in the start date you are offering. The email carries a button so ' + esc(firstName(p.name)) + ' can confirm it, and the status updates by itself when they do.</p>' +
         '<label class="rct-field"><span>Start date</span><input type="date" id="rctStart2" value="' + esc(String(p.start_date || '').slice(0, 10)) + '"></label>' +
         '<p class="rct-amberbox" id="rctMvSay" hidden></p>' +
-        '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="mvsave" data-to="start_pending" data-id="' + esc(p.id) + '">Save and show the email</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
+        '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="mvsave" data-to="start_pending"' + (quiet ? ' data-quiet="1"' : '') + ' data-id="' + esc(p.id) + '">' + (quiet ? 'Save' : 'Save and show the email') + '</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
     }
   }
-  async function moveSave(id, to) {
+  async function moveSave(id, to, quiet) {
     var p = personById(id), say = document.getElementById('rctMvSay'); if (!p) return;
     var note = null, start = null;
     if (to === 'trade_test') { note = String((document.getElementById('rctNote') || {}).value || '').trim(); if (!note) { if (say) { say.hidden = false; say.textContent = 'Put in when and where first.'; } return; } }
@@ -1420,7 +1444,8 @@
       if (to === 'start_pending') await acceptUrl(p);
     } catch (e) { console.error(e); if (say) { say.hidden = false; say.textContent = 'That did not save: ' + (e.message || 'try again'); } return; }
     p.stage = to; if (note !== null) p.stage_note = note; if (start) p.start_date = start; p.decided_by = me; p.decided_at = new Date().toISOString();
-    closeDlg(); render(); stageEmailDialog(p, to, 'Moved to <b>' + esc(STAGE_LABEL[to]) + '</b>.');
+    closeDlg(); render();
+    if (quiet) toast(firstName(p.name) + ' is now: ' + STAGE_LABEL[to] + '.'); else stageEmailDialog(p, to, 'Moved to <b>' + esc(STAGE_LABEL[to]) + '</b>.');
   }
   async function undo() {
     var prev = UNDO.pop(); if (!prev) return;
@@ -1485,7 +1510,7 @@
       // Kate, 16 Nov 2026: after the interview (ate Jho and ate Frans for support roles, Coach Emma for stylists and beauticians) the next step is the Trade test (Jho, 16 Nov); No works as everywhere else
       else if (a === 'mv') moveTo(id, t.getAttribute('data-to'));
       else if (a === 'mvmail') showStageEmail(id, p && p.stage === 'offer' ? 'offer_to_send' : p && p.stage);
-      else if (a === 'mvsave') moveSave(id, t.getAttribute('data-to'));
+      else if (a === 'mvsave') moveSave(id, t.getAttribute('data-to'), t.getAttribute('data-quiet') === '1');
       else if (a === 'copyst') { var rps = stageEmailParts(p, t.getAttribute('data-to')), ress = rps ? await copyRich(rps.htmlCopy, rps.text) : ''; t.textContent = ress === 'rich' ? 'Copied, with formatting' : ress === 'plain' ? 'Copied as plain text' : 'Copy did not work here'; }
       else if (a === 'ttgood') moveTo(id, 'trade_pass');
       else if (a === 'ttbad') moveTo(id, 'trade_fail');
@@ -1547,6 +1572,7 @@
         return;
       }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-rs')) { setRole(e.target.getAttribute('data-rs'), e.target.value); return; }
+      if (e.target && e.target.getAttribute && e.target.getAttribute('data-ss')) { changeStatus(e.target.getAttribute('data-ss'), e.target.value); return; }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-bk')) { setBucket(e.target.getAttribute('data-bk'), e.target.value); return; }
       if (e.target && e.target.id === 'rctPageSize') { var n = parseInt(e.target.value, 10); if (SIZES.indexOf(n) >= 0) { S.pageSize = n; S.page = 0; savePageSize(n); render(); } }
     });

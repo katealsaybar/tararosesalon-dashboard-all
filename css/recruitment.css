@@ -109,7 +109,7 @@
 .rct-cwho{display:flex;gap:12px;align-items:center;min-width:0}
 .rct-tcount{font-size:14px;color:var(--muted)}
 .rct-tbox{border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:auto;max-height:min(70vh,760px)}
-.rct-table{--rct-aw:156px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
+.rct-table{--rct-aw:190px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
 .rct-table .rct-pill{white-space:nowrap;line-height:1.25;text-align:left;padding:3px 10px}
 .rct-table td{overflow-wrap:anywhere}
 .rct-table td.rct-c-acts{overflow-wrap:normal;white-space:normal;text-align:center;width:var(--rct-aw);min-width:var(--rct-aw);max-width:var(--rct-aw)}
@@ -283,6 +283,8 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 .rct-cardc .rct-btn{width:auto;min-height:34px;padding:4px 16px;font-size:14px;font-weight:600;border-radius:10px;border-width:1px}
 @media (max-width:520px){.rct-cardc .rct-btn{min-height:40px}}
 /* Kate, 11 Nov 2026: the Status dropdown in a List row (Worth a look / Probably no by hand) and the Not applicants section */
+.rct-c-acts .rct-stsel{display:block;width:100%;max-width:100%;margin:0 0 6px;font-size:12.5px;padding:5px 4px}
+.rct-acts .rct-stsel{max-width:230px}
 .rct-pillsel{appearance:auto;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:600;padding:5px 8px;max-width:190px}
 .rct-gone{margin:18px 0 8px;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:10px 14px}
 .rct-gone summary{cursor:pointer;font-weight:600}
