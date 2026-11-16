@@ -1072,11 +1072,13 @@
     if (msg) toast(msg, true);
     return true;
   }
-  // Kate, 16 Nov 2026: Shortlist on a Front Desk / Reception or Hair Assistant applicant also tells the interviewers (ate Jho and ate Frans) on WhatsApp, from the main number,
+  // Kate, 16 Nov 2026: Shortlist on a support-staff applicant (not a stylist or beautician) also tells the interviewers (ate Jho and ate Frans) on WhatsApp, from the main number,
   // through the staff WhatsApp queue (migrations/recruit_shortlist_notify.sql). It never blocks the Shortlist itself, and the database sends it once per person.
-  var NOTIFY_ROLES = { 'Front Desk / Reception': 1, 'Hair Assistant': 1 };
+  // Kate, 16 Nov 2026: ate Jho and ate Frans interview the support roles (front desk, reception, assistants and any other staff type); Coach Emma interviews stylists and beauticians herself,
+  // so those get no WhatsApp. The roles are the setting notify_roles (the database checks the same list); Not stated is left out on purpose.
+  function notifyRole(r) { var l = setting('notify_roles', ['Front Desk / Reception', 'Hair Assistant', 'Other']); return l.indexOf(r) >= 0; }
   async function notifyShortlist(id) {
-    var p = personById(id); if (!p || !NOTIFY_ROLES[roleGroup(p)] || !setting('notify_enabled', false)) return;
+    var p = personById(id); if (!p || !notifyRole(roleGroup(p)) || !setting('notify_enabled', false)) return;
     try {
       var r = await sb.rpc('recruit_shortlist_notify', { p_id: p.id, p_role: roleGroup(p) });
       if (r.error) throw new Error(r.error.message);

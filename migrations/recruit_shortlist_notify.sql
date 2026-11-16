@@ -8,7 +8,9 @@
 -- The channel is a setting (notify_channel_id), so changing the sender later is one row.
 --
 -- What it does, in order (anything that does not hold returns a reason and queues nothing; Shortlist itself always works):
---   1. only the roles Front Desk / Reception and Hair Assistant (the page decides the role from the form text and sends the label)
+--   1. only the roles in the setting notify_roles: Front Desk / Reception, Hair Assistant and Other (any other staff type). Stylists and beauticians are Coach Emma's own interviews,
+--      so they get no WhatsApp; Not stated is left out too. (Kate, 16 Nov 2026: 'pag assistant / recep / front desk / any other type of staff: ate Frans and ate Jho; pag stylist beautician etc Coach Emma'.)
+--      The page decides the role from the form text and sends the label.
 --   2. notify_enabled must be true (starts FALSE: it goes live only when Kate flips it, after Meta has approved the template)
 --   3. the template recruit_interview must be approved in staff_wa_templates (starts FALSE)
 --   4. one message per interviewer in notify_staff_ids (staff_phones ids, starts with Jhoana Cairel 23 and Frances Pia Sergio 26), once per applicant:
@@ -24,7 +26,8 @@ insert into public.recruit_settings (key, value) values
   ('notify_enabled',    'false'::jsonb),
   ('notify_channel_id', '572200'::jsonb),
   ('notify_staff_ids',  '[23, 26]'::jsonb),
-  ('notify_url',        '"https://trk-salon-os.com/?view=recruitment"'::jsonb)
+  ('notify_url',        '"https://trk-salon-os.com/?view=recruitment"'::jsonb),
+  ('notify_roles',      '["Front Desk / Reception", "Hair Assistant", "Other"]'::jsonb)
 on conflict (key) do nothing;
 
 -- The Meta template, to be created in respond.io on the main number (Settings, Channels, WhatsApp Brand Account, Templates), category Utility, English (UK).
@@ -43,9 +46,10 @@ declare
   who text := public.recruit_guard();
   a public.recruit_applicants; t public.staff_wa_templates; cfg public.staff_wa_config; s public.staff_phones;
   chan bigint; ids bigint[]; sid bigint; ph text; v_params text[]; v_batch text; link text; nm text; reason text;
-  queued int := 0; skipped jsonb := '[]'::jsonb; names text[] := '{}'; hr int;
+  queued int := 0; skipped jsonb := '[]'::jsonb; names text[] := '{}'; hr int; roles jsonb;
 begin
-  if p_role is null or p_role not in ('Front Desk / Reception', 'Hair Assistant') then
+  roles := coalesce((select value from public.recruit_settings where key = 'notify_roles'), '["Front Desk / Reception", "Hair Assistant", "Other"]'::jsonb);
+  if p_role is null or not (roles ? p_role) then
     return jsonb_build_object('queued', 0, 'reason', 'role');
   end if;
   if coalesce((select value from public.recruit_settings where key = 'notify_enabled'), 'false'::jsonb) <> 'true'::jsonb then
