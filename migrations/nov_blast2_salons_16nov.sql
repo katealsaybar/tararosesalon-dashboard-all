@@ -14,3 +14,10 @@ $$;
 -- ("Al Quoz is shut today, it goes on its next open day"). For 16 Nov 2026 only, that hold is off: the line now reads
 --   td.wv = 2 and e.branch = 'AQ' and td.dow in (0, 1) and (now() at time zone 'Asia/Dubai')::date <> date '2026-11-16'
 -- so from 17 Nov it is back to normal. Applied live the same way (function body rewritten in place).
+
+-- Slow page fix (Kate, 16 Nov 2026: "super bagal, hindi nag-aappear # of clients"): nov_blast_audience() took over 30 seconds once Blast 2 had queued about 800 more jobs.
+-- The "is this client already sent in this wave" test was an EXISTS with an OR across the whole sent list, row by row. It is now two hashed IN tests with the same meaning:
+--   mem as (select x.*, coalesce(((nov_wave(x.blast_id), x.k) in (select s0.w, s0.k from sent s0)
+--                              or (nov_wave(x.blast_id), stl_key_fold(x.k)) in (select s1.w, s1.f from sent s1)), false) as is_sent from nov_blast_snap x)
+-- Same counts, 0.9 seconds. Applied live by rewriting the function body in place. The client snapshot (nov_blast_snap) was also rebuilt by hand at 11:25 and 13:31 Dubai, because only
+-- a Level 3 or 5 page session can run nov_blast_snap_refresh() and it is rebuilt when over 60 minutes old.
