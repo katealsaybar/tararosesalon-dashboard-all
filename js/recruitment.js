@@ -283,8 +283,7 @@
     saveView();
     var h = '<div class="rct">';
     h += '<h2>Recruitment</h2><p class="rct-lead">Who is worth Emma’s time today, and who is still waiting for an answer.</p>';
-    h += '<div class="rct-pills rct-top"><span class="rct-pill rct-teal">Kate and Emma only</span>' +
-         '<span class="rct-pill rct-grey">Checked every 5 minutes from the two inboxes</span></div>';
+    h += '<div class="rct-pills rct-top"><span class="rct-pill rct-grey">Checked every 5 minutes from the two inboxes</span></div>';
     if (loadErr) { el.innerHTML = h + '<p class="rct-warn">' + esc(loadErr) + '</p></div>'; return; }
     if (!C) { el.innerHTML = h + '<p class="slv-muted">Loading.</p></div>'; return; }
 
