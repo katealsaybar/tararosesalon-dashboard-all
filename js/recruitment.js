@@ -446,13 +446,19 @@
     try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
   }
   // Kate, 11 Nov 2026: "kung di mo ma determine ako na lang mag set": the dropdown in the Applying for cell sets it by hand (role_override), whatever the text says.
-  var ROLE_CHOICES = ['Hairdresser / Hair Stylist', 'Hair Assistant', 'Beautician', 'Front Desk / Reception', 'Admin', 'Other'];   // Kate, 16 Nov 2026: Admin added (Supriya Gonsalves, Admin/Manager)
+  // Kate, 16 Nov 2026: Admin added (Supriya Gonsalves, Admin/Manager); Manager and Make Up Artist added the same day (the database function recruit_set_role accepts the same words).
+  var ROLE_CHOICES = ['Hairdresser / Hair Stylist', 'Hair Assistant', 'Beautician', 'Make Up Artist', 'Front Desk / Reception', 'Manager', 'Admin', 'Other'];
+  var MUA_WORD = /make-?\s*up\s*artist|\bmua\b|مكياج/i, MGR_WORD = /\bmanager\b|\bmanageress\b/i;
   function roleGroup(p) {
     if (p.role_set) return p.role_set;
     var t = [p.role_txt, p.specialist, String(p.about || ''), cvFileName(p).replace(/[_.]+/g, ' ')].join(' ').replace(PATH_WORDS, ' ');
     if (HAIR_ASSIST.test(t)) return 'Hair Assistant';
     // whichever of reception, hair or beauty words comes first in what they wrote (a hair person's "receptionist" never beats "hairstylist" and the other way round)
     var r = t.search(REC_WORD), h = t.search(HAIR_WORD), b = t.search(BEAUTY_WORD), first = -1, g = '';
+    // Make Up Artist and Manager are only read from what they say they apply for (role and specialist), so a stylist's "I managed a salon" in the story does not move them
+    var ra = [p.role_txt, p.specialist].join(' ').replace(PATH_WORDS, ' ');
+    if (MUA_WORD.test(ra)) return 'Make Up Artist';
+    if (MGR_WORD.test(ra) && ra.search(MGR_WORD) <= Math.min.apply(null, [ra.search(HAIR_WORD), ra.search(BEAUTY_WORD)].filter(function (x) { return x >= 0; }).concat([1e9]))) return 'Manager';
     [[r, 'Front Desk / Reception'], [h, 'Hairdresser / Hair Stylist'], [b, 'Beautician']].forEach(function (x) { if (x[0] >= 0 && (first < 0 || x[0] < first)) { first = x[0]; g = x[1]; } });
     return g || ROLE_FIXED[p.role_key] || 'Not stated';
   }
