@@ -294,6 +294,7 @@
   var FLOWICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
   var ALLID = 'ALL';   // the All blasts view (Kate, 3 Nov 2026): picking the All blasts card opens the whole picture in the main panel, like picking a blast
   var RATE_USD = 0.058;   // roughly one delivered marketing message in the UAE (see the Before sending top-up task)
+  function progSum() { PG = { s: 0, f: 0, t: 0, any: false }; sorted().forEach(function (b) { progRow(b); }); return ''; }   // the sending totals the page chips and the Results pill read; the All blasts pill that used to work them out is gone
   function totalSide() {
     var bs = sorted(), tot = 0, slots = 0, rows = '';
     PG = { s: 0, f: 0, t: 0, any: false };
@@ -327,12 +328,12 @@
   function listSide() {
     var bs = sorted(), rev = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length, o = pills.bl;
     var t1 = 0, r1 = !!(LIVE && LIVE.blasts); bs.forEach(function (b) { var c = lv(b.id); if (c && c.n) t1 += c.n; });   // Kate, 16 Nov 2026: "Blast 1, 1889 clients listed", then "5 of 5 reviewed"
-    var card = '<div class="cbl-tabs cbl-card">' + (o ? moneyHead(1, r1 ? t1 : null, rev, bs.length, bs) : '') + '<div>' + bs.map(function (b) {
+    var card = '<div class="cbl-tabs cbl-card">' + (o ? moneyHead(1, r1 ? t1 : null, rev, bs.length, bs) + '<p class="cbl-hint"><a href="?view=novblasts&blast=' + ALLID + '" data-nvb="sel:' + ALLID + '">Open the whole picture</a></p>' : '') + '<div>' + bs.map(function (b) {
       return '<div class="cbl-tab' + (cur === b.id ? ' on' : '') + '"><a href="?view=novblasts" data-nvb="sel:' + esc(b.id) + '" style="padding-left:12px"><span>' + esc(b.data.short || b.data.title) + '</span><small>' + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + '</small></a>' +
         '<span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     }).join('') + '</div></div>';
     if (o) moneyOnce();
-    return '<div class="nvb-pwrap">' + pillBtn('bl', 'Blast 1', r1 ? fmtN(t1) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && !isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o) + (o ? card : '') + '</div>';
+    return '<div class="nvb-pwrap">' + pillBtn('bl', 'Blast 1', r1 ? fmtN(t1) + ' clients listed' : (liveErr ? '?' : '…'), o, '', (cur === ALLID || (blast(cur) && !isR(blast(cur)) && cur !== RESID)) && !o) + (o ? card : '') + '</div>';
   }
   // Blast 2, the reminders (Kate, 13 Nov 2026): its own pill under Blasts, one row per blast with the clients still to send, and the day it goes. Each row opens the blast like any other.
   function wave2Side() { try { return wave2Pill(); } catch (e) { console.error(e); return ''; } }   // a fault in this extra pill must never take the page down
@@ -1048,7 +1049,7 @@
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
     if (cur === RESID) return '<div class="cbl"><div class="lg-shell nvb-lgs">' + railHtml(false) + '<div class="cbl-main" id="nvbMain">' + resultsMain() + '</div></div></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + totalSide() + listSide() + wave2Side() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + progSum() + listSide() + wave2Side() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
