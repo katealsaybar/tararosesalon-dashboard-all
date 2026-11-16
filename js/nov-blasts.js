@@ -308,14 +308,31 @@
     var o = pills.all;
     return '<div class="nvb-pwrap">' + pillBtn('all', 'All blasts', ready ? fmtN(tot) : (liveErr ? '?' : '…'), o, 'num', cur === ALLID, PG.any && PG.s + PG.f > 0 ? '<span class="pp">' + Math.round(PG.s * 100 / (PG.t || 1)) + '% sent</span>' : '') + (o ? card : '') + '</div>';
   }
+  /* The head of the Blast 1 and Blast 2 cards (Kate, 16 Nov 2026, her pasted layout): "N clients listed. AED spent vs AED earned so far", then "x of y reviewed", then the list.
+     Blast 1: spent = what respond.io accepted at the page's rate, earned = what those clients have paid since (the same figures as the Results page, from nov_campaign_money, read once in the background).
+     Blast 2: spent only, from the send counts. Earned is not shown: a Blast 2 client is a Blast 1 client, and her payments count once, under Blast 1 (the first message she got). */
+  function moneyHead(kind, listed, rev, n, bs) { try { return moneyHeadRaw(kind, listed, rev, n, bs); } catch (e) { console.error(e); return ''; } }   // the extra line must never take the pill down
+  function moneyHeadRaw(kind, listed, rev, n, bs) {
+    var spent = null, earned = null;
+    if (kind === 1 && MON && MON.by_blast) {
+      var sn = 0, ea = 0; MON.by_blast.forEach(function (x) { if (!/^R_/.test(x.k)) { sn += x.sent || 0; ea += x.actual || 0; } });
+      spent = sn * RATE_AED; earned = ea;
+    } else if (kind === 2 && SND && SND.blasts) {
+      var sent2 = 0, any2 = false; bs.forEach(function (b) { var p = progOf(b); if (p) { any2 = true; sent2 += p.sent; } });
+      if (any2) spent = sent2 * RATE_AED;
+    }
+    var line = spent == null ? '' : ' AED ' + money0(spent) + ' spent' + (kind === 1 && earned != null ? ' vs AED ' + money0(earned) + ' earned so far' : ' so far') + '.';
+    return '<p class="cbl-hint nvb-mh"><b>' + (listed == null ? '…' : fmtN(listed) + ' clients listed.') + '</b>' + esc(line) + '<br><b>' + rev + ' of ' + n + '</b> reviewed</p>';
+  }
   function listSide() {
     var bs = sorted(), rev = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length, o = pills.bl;
-    var card = '<div class="cbl-tabs cbl-card"><div>' + bs.map(function (b) {
+    var t1 = 0, r1 = !!(LIVE && LIVE.blasts); bs.forEach(function (b) { var c = lv(b.id); if (c && c.n) t1 += c.n; });   // Kate, 16 Nov 2026: "Blast 1, 1889 clients listed", then "5 of 5 reviewed"
+    var card = '<div class="cbl-tabs cbl-card">' + (o ? moneyHead(1, r1 ? t1 : null, rev, bs.length, bs) : '') + '<div>' + bs.map(function (b) {
       return '<div class="cbl-tab' + (cur === b.id ? ' on' : '') + '"><a href="?view=novblasts" data-nvb="sel:' + esc(b.id) + '" style="padding-left:12px"><span>' + esc(b.data.short || b.data.title) + '</span><small>' + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + '</small></a>' +
         '<span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
-    }).join('') + '</div><p class="cbl-hint cbl-prog"><b>' + rev + ' of ' + bs.length + '</b> reviewed</p></div>';
-    var t1 = 0, r1 = !!(LIVE && LIVE.blasts); bs.forEach(function (b) { var c = lv(b.id); if (c && c.n) t1 += c.n; });   // Kate, 16 Nov 2026: "Blast 1, 1889 clients listed", then "5 of 5 reviewed"
-    return '<div class="nvb-pwrap">' + pillBtn('bl', 'Blast 1', r1 ? fmtN(t1) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && !isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o, '<span class="pp">' + rev + ' of ' + bs.length + ' reviewed</span>') + (o ? card : '') + '</div>';
+    }).join('') + '</div></div>';
+    if (o) moneyOnce();
+    return '<div class="nvb-pwrap">' + pillBtn('bl', 'Blast 1', r1 ? fmtN(t1) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && !isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o) + (o ? card : '') + '</div>';
   }
   // Blast 2, the reminders (Kate, 13 Nov 2026): its own pill under Blasts, one row per blast with the clients still to send, and the day it goes. Each row opens the blast like any other.
   function wave2Side() { try { return wave2Pill(); } catch (e) { console.error(e); return ''; } }   // a fault in this extra pill must never take the page down
@@ -323,14 +340,14 @@
     var bs = sorted2(); if (!bs.length) return '';
     var o = pills.w2, tot = 0, ready = !!(LIVE && LIVE.blasts);
     bs.forEach(function (b) { var c = lv(b.id); if (c && c.n) tot += c.n; });
-    var card = '<div class="cbl-tabs cbl-card"><div>' + bs.map(function (b) {
+    var rev2 = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length;
+    var card = '<div class="cbl-tabs cbl-card">' + (o ? moneyHead(2, ready ? tot : null, rev2, bs.length, bs) : '') + '<div>' + bs.map(function (b) {
       var c = lv(b.id);
       return '<div class="cbl-tab' + (cur === b.id ? ' on' : '') + '"><a href="?view=novblasts&blast=' + esc(b.id) + '" data-nvb="sel:' + esc(b.id) + '" style="padding-left:12px"><span>' + esc(b.data.short || b.data.title) + '</span><small>' +
         (c ? fmtN(c.n || 0) + ' clients, ' : '') + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + '</small></a><span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     }).join('') + '</div><p class="cbl-hint">The reminders to clients who got Blast 1 and have not booked, come in, written back or said STOP. About <b>' + (ready ? fmtN(tot) : '…') + '</b> messages, one per client, at most <b>AED ' +
       (ready ? fmtN(Math.round(tot * RATE_AED)) : '…') + '</b>.</p></div>';
-    var rev2 = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length;
-    return '<div class="nvb-pwrap">' + pillBtn('w2', 'Blast 2', ready ? fmtN(tot) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o, '<span class="pp">' + rev2 + ' of ' + bs.length + ' reviewed</span>') + (o ? card : '') + '</div>';
+    return '<div class="nvb-pwrap">' + pillBtn('w2', 'Blast 2', ready ? fmtN(tot) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o) + (o ? card : '') + '</div>';
   }
   var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
   function resultsSide() {   // the Results pill sits under Blasts (the last pill) and opens the report in the main panel, like All blasts
@@ -768,8 +785,9 @@
       try { MON = await rpc('nov_campaign_money'); monErr = false; break; } catch (e) { console.error(e); monErr = true; await new Promise(function (res) { setTimeout(res, 900); }); }
     }
     monBusy = false;
-    if (cur === RESID && main() && main().offsetParent !== null && !sndM && !typing()) render(true);
+    if ((cur === RESID || pills.bl) && main() && main().offsetParent !== null && !sndM && !typing()) render(true);
   }
+  function moneyOnce() { if (!MON && !monBusy && !monErr && isL5()) setTimeout(loadMoney, 1500); }   // the Blast 1 card shows spent vs earned, so read the money once, quietly, when it is opened; a failure just leaves the line out
   function typing() { var a = document.activeElement; return !!(a && a.id === 'nvLogQ'); }
   function rsAct(v, t) {
     var a = v.split(':'), k = a[0], x = a.slice(1).join(':');
