@@ -368,6 +368,16 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
 /* today is a thin mint line, not a filled block (Kate: the tinted column floated and did nothing); the legend names it */
 .pl-c.today{background:none;box-shadow:inset 2px 0 0 #5CE0C8}
 .pl-c.sel.today{box-shadow:inset 2px 0 0 #5CE0C8}
+/* XLSX and CSV buttons, the same as every report (report-export.js) */
+.sc-btn{appearance:none;padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}
+@media(hover:hover){.sc-btn:hover{border-color:var(--accent);color:var(--accent)}}
+.rex-bar{display:inline-flex;gap:6px;margin-left:auto}
+.rex-btn[disabled]{opacity:.5;cursor:default}
+.lgx-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:9999;max-width:min(560px,calc(100vw - 32px));padding:10px 16px;border-radius:8px;font-size:13.5px;line-height:1.45;background:var(--text);color:var(--bg);box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+.lgx-toast.on{opacity:1;transform:translate(-50%,0)}
+.lgx-toast.bad{background:var(--red);color:#fff}
+.lc-sechead{display:flex;align-items:flex-end;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin:0 0 6px}
+.lc-sechead h2{margin-bottom:0}
 
 </style>
 </head>
@@ -385,12 +395,14 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
 <script src="/assets/theme-fade.js"></script>
 <script src="/hub/hub.js?v=69cfcabf"></script>
 <script src="/js/visits.js?v=e33b3a0d"></script>
+<script src="/js/ledger-export.js?v=67737bd9"></script>
+<script src="/js/report-export.js?v=d7b73ae8"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain');
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search + location.hash);
   function notFound() { main.innerHTML = '<p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>'; }
-  var BODY = "<div class=\"topbar\" id=\"topbar\">\n  <div class=\"lc-rule\"><span id=\"mastBranch\"><\/span><span class=\"rl\"><span id=\"mastRange\"><\/span><\/span>\n    <span class=\"mast-acts\"><button class=\"tglr\" id=\"filtersBtn\" type=\"button\" aria-expanded=\"true\" aria-controls=\"filters\">Hide filters<\/button>\n    <button class=\"tglr\" id=\"fSheetBtn\" type=\"button\" aria-expanded=\"false\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 5h18l-7 8v6l-4-2v-4z\"/><\/svg><span id=\"fSheetSum\">Filters<\/span><\/button><\/span><\/div>\n  <div class=\"filters-wrap\"><div class=\"filters\" id=\"filters\"><\/div><\/div>\n<\/div>\n\n<div class=\"withrail\">\n<aside class=\"rail\" aria-label=\"On this page\"><span class=\"k\">On this page<\/span>\n  <button data-sec=\"sec-why\" class=\"on\">Why this page<\/button>\n  <button data-sec=\"sec-overview\">Overview<\/button>\n  <button data-sec=\"sec-cal\">Calendar<\/button>\n  <button data-sec=\"sec-sick\">Sick leave &amp; absences<\/button>\n  <button data-sec=\"sec-off\">Day offs<\/button>\n  <button data-sec=\"sec-hol\">Public holidays<\/button>\n<\/aside>\n<div class=\"railmain\">\n<div class=\"note\"><b>Please read.<\/b> Names, sick leave and absences are HR data, so this page opens for Accounts and Admin and above only. Leave comes from Jumera's notes and the approved list, and Bayzat has no API yet, so a request in Bayzat shows here only once it has been added. Planned dates were read from the planner sheets, so check them before relying on one. Public holidays are <b>expected dates<\/b> from press estimates, not a Cabinet announcement.<\/div>\n\n<div class=\"why\" id=\"sec-why\">\n  <div class=\"wk\">Why this page<\/div>\n  <p><b>Why this:<\/b> one place shows who is off and which days are public holidays, so rosters, bookings and blasts are planned around the real gaps.<\/p>\n  <p><b>Why now:<\/b> leave is now requested in Bayzat, and the National Day holidays start on 2 Dec.<\/p>\n  <p><b>If we do nothing:<\/b> a gap shows up on the day, with a client already booked.<\/p>\n  <div class=\"try\"><b>Try it first:<\/b> open 22 Nov. Who is off, and which bookings would you move? Then tell Kate what you noticed.<\/div>\n<\/div>\n\n<h2 id=\"sec-overview\">Overview<\/h2>\n<div class=\"tiles\" id=\"tiles\"><\/div>\n<h2 id=\"sec-cal\">Calendar<\/h2>\n<div class=\"layers\" id=\"layers\"><\/div>\n  <div class=\"blegend\"><span><i style=\"background:var(--c-KCA)\"><\/i>KCA<\/span><span><i style=\"background:var(--c-AQ)\"><\/i>AQ<\/span><span><i style=\"background:var(--c-SAA)\"><\/i>SAA<\/span><span><i style=\"background:var(--c-MC)\"><\/i>MC<\/span><span><i style=\"background:var(--c-X)\"><\/i>Branch not set<\/span><span><i style=\"background:#5CE0C8;width:3px;height:14px;border-radius:2px\"><\/i>Today<\/span><\/div>\n\n  <div class=\"main\">\n    <div class=\"card\" id=\"cal\"><\/div>\n    <div class=\"card side\" id=\"side\"><\/div>\n  <\/div>\n\n  <h2 id=\"sec-sick\">Sick leave and absences (counts per month, no dates)<\/h2>\n  <div class=\"foot\" style=\"margin:0 0 8px\"><span class=\"pill sl\">3<\/span> sick with a medical certificate (SL Monitoring). <span class=\"pill ab\">3<\/span> sick without one, marked absent. Follows the Branch filter, and anyone Phorest lists in several salons shows under each. The sheets give counts, not dates, so these cannot be drawn on the calendar days. From Jumera's notes.<\/div>\n  <div class=\"sickbar\"><div class=\"gseg\" id=\"sickMode\"><\/div><span id=\"sickInfo\"><\/span><\/div>\n  <div class=\"card tw fix sickw\"><table class=\"lt sickT\" id=\"sickT\"><\/table><\/div>\n\n  <h2 id=\"sec-off\">Usual day offs by branch (from Phorest rosters)<\/h2>\n  <div class=\"foot\" style=\"margin:0 0 8px\">Each cell is the share of weeks the person was rostered on that weekday in Phorest, 24 Aug to 15 Nov 2026 (12 weeks). <b>off<\/b> = rostered in 25% of weeks or fewer. Only weeks with at least two rostered days count, so a week of leave is not read as a week off. Phorest rosters hours, it does not hold approved leave, and a rota that moves every week shows as Rotating. The top table adds up the shares: the average number of people rostered on each day, the quietest day tinted.<\/div>\n  <div class=\"card tw fix\"><table class=\"lt covT\" id=\"covT\"><\/table><\/div>\n  <div class=\"sickbar\" style=\"margin-top:14px\"><span id=\"offInfo\"><\/span><\/div>\n  <div class=\"card tw fix sickw\"><table class=\"lt offT\" id=\"offT\"><\/table><\/div>\n\n  <h2 id=\"sec-hol\">Public holidays 2026 (expected)<\/h2>\n  <div class=\"foot\" style=\"margin:0 0 8px\">Working? is read from Phorest: &#10003; every branch shown had visits, &#10007; none did, &frac12; some did, ? no data yet. It shows what happened, not a rule for next year. Follows the Branch filter. Hover a mark for the visit counts.<\/div>\n  <div class=\"card tw\"><table class=\"lt\" id=\"holT\"><\/table><\/div>\n<div class=\"foot\">Colours are the branch, the same as the planner sheets: KCA blue, AQ purple, SAA green, MC orange. A solid bar = planned, with a tick = approved, amber outline = waiting for approval, grey hatched = blocked days (no leave), the solid dark block = public holiday. Leave and absences come from Jumera's notes.<\/div>\n<\/div>\n<\/div>\n<div class=\"fscrim\" id=\"fScrim\"><\/div>\n<div class=\"fsheet\" id=\"fSheet\" role=\"dialog\" aria-label=\"Filters\">\n  <div class=\"fsheet-head\"><b>Filters<\/b><button class=\"tglr\" type=\"button\" id=\"fDone\">Done<\/button><\/div>\n  <div id=\"fSheetBody\"><\/div>\n<\/div>\n";
+  var BODY = "<div class=\"topbar\" id=\"topbar\">\n  <div class=\"lc-rule\"><span id=\"mastBranch\"><\/span><span class=\"rl\"><span id=\"mastRange\"><\/span><\/span>\n    <span class=\"mast-acts\"><button class=\"tglr\" id=\"filtersBtn\" type=\"button\" aria-expanded=\"true\" aria-controls=\"filters\">Hide filters<\/button>\n    <button class=\"tglr\" id=\"fSheetBtn\" type=\"button\" aria-expanded=\"false\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 5h18l-7 8v6l-4-2v-4z\"/><\/svg><span id=\"fSheetSum\">Filters<\/span><\/button><\/span><\/div>\n  <div class=\"filters-wrap\"><div class=\"filters\" id=\"filters\"><\/div><\/div>\n<\/div>\n\n<div class=\"withrail\">\n<aside class=\"rail\" aria-label=\"On this page\"><span class=\"k\">On this page<\/span>\n  <button data-sec=\"sec-why\" class=\"on\">Why this page<\/button>\n  <button data-sec=\"sec-overview\">Overview<\/button>\n  <button data-sec=\"sec-cal\">Calendar<\/button>\n  <button data-sec=\"sec-sick\">Sick leave &amp; absences<\/button>\n  <button data-sec=\"sec-off\">Day offs<\/button>\n  <button data-sec=\"sec-hol\">Public holidays<\/button>\n<\/aside>\n<div class=\"railmain\">\n<div class=\"note\"><b>Please read.<\/b> Names, sick leave and absences are HR data, so this page opens for Accounts and Admin and above only. Leave comes from Jumera's notes and the approved list, and Bayzat has no API yet, so a request in Bayzat shows here only once it has been added. Planned dates were read from the planner sheets, so check them before relying on one. Public holidays are <b>expected dates<\/b> from press estimates, not a Cabinet announcement.<\/div>\n\n<div class=\"why\" id=\"sec-why\">\n  <div class=\"wk\">Why this page<\/div>\n  <p><b>Why this:<\/b> one place shows who is off and which days are public holidays, so rosters, bookings and blasts are planned around the real gaps.<\/p>\n  <p><b>Why now:<\/b> leave is now requested in Bayzat, and the National Day holidays start on 2 Dec.<\/p>\n  <p><b>If we do nothing:<\/b> a gap shows up on the day, with a client already booked.<\/p>\n  <div class=\"try\"><b>Try it first:<\/b> open 22 Nov. Who is off, and which bookings would you move? Then tell Kate what you noticed.<\/div>\n<\/div>\n\n<h2 id=\"sec-overview\">Overview<\/h2>\n<div class=\"tiles\" id=\"tiles\"><\/div>\n<div class=\"lc-sechead\"><h2 id=\"sec-cal\">Calendar<\/h2><span class=\"rex-bar\" role=\"group\" aria-label=\"Download this report\"><button type=\"button\" class=\"sc-btn rex-btn\" title=\"Download the leave list as an Excel file\" onclick=\"rexRun('lcExpLeave','xlsx',this)\">XLSX<\/button><button type=\"button\" class=\"sc-btn rex-btn\" title=\"Download the leave list as a CSV file\" onclick=\"rexRun('lcExpLeave','csv',this)\">CSV<\/button><\/span><\/div>\n<div class=\"layers\" id=\"layers\"><\/div>\n  <div class=\"blegend\"><span><i style=\"background:var(--c-KCA)\"><\/i>KCA<\/span><span><i style=\"background:var(--c-AQ)\"><\/i>AQ<\/span><span><i style=\"background:var(--c-SAA)\"><\/i>SAA<\/span><span><i style=\"background:var(--c-MC)\"><\/i>MC<\/span><span><i style=\"background:var(--c-X)\"><\/i>Branch not set<\/span><span><i style=\"background:#5CE0C8;width:3px;height:14px;border-radius:2px\"><\/i>Today<\/span><\/div>\n\n  <div class=\"main\">\n    <div class=\"card\" id=\"cal\"><\/div>\n    <div class=\"card side\" id=\"side\"><\/div>\n  <\/div>\n\n  <div class=\"lc-sechead\"><h2 id=\"sec-sick\">Sick leave and absences (counts per month, no dates)<\/h2><span class=\"rex-bar\" role=\"group\" aria-label=\"Download this report\"><button type=\"button\" class=\"sc-btn rex-btn\" title=\"Download sick leave and absences as an Excel file\" onclick=\"rexRun('lcExpSick','xlsx',this)\">XLSX<\/button><button type=\"button\" class=\"sc-btn rex-btn\" title=\"Download sick leave and absences as a CSV file\" onclick=\"rexRun('lcExpSick','csv',this)\">CSV<\/button><\/span><\/div>\n  <div class=\"foot\" style=\"margin:0 0 8px\"><span class=\"pill sl\">3<\/span> sick with a medical certificate (SL Monitoring). <span class=\"pill ab\">3<\/span> sick without one, marked absent. Follows the Branch filter, and anyone Phorest lists in several salons shows under each. The sheets give counts, not dates, so these cannot be drawn on the calendar days. From Jumera's notes.<\/div>\n  <div class=\"sickbar\"><div class=\"gseg\" id=\"sickMode\"><\/div><span id=\"sickInfo\"><\/span><\/div>\n  <div class=\"card tw fix sickw\"><table class=\"lt sickT\" id=\"sickT\"><\/table><\/div>\n\n  <div class=\"lc-sechead\"><h2 id=\"sec-off\">Usual day offs by branch (from Phorest rosters)<\/h2><span class=\"rex-bar\" role=\"group\" aria-label=\"Download this report\"><button type=\"button\" class=\"sc-btn rex-btn\" title=\"Download the usual day offs as an Excel file\" onclick=\"rexRun('lcExpOff','xlsx',this)\">XLSX<\/button><button type=\"button\" class=\"sc-btn rex-btn\" title=\"Download the usual day offs as a CSV file\" onclick=\"rexRun('lcExpOff','csv',this)\">CSV<\/button><\/span><\/div>\n  <div class=\"foot\" style=\"margin:0 0 8px\">Each cell is the share of weeks the person was rostered on that weekday in Phorest, 24 Aug to 15 Nov 2026 (12 weeks). <b>off<\/b> = rostered in 25% of weeks or fewer. Only weeks with at least two rostered days count, so a week of leave is not read as a week off. Phorest rosters hours, it does not hold approved leave, and a rota that moves every week shows as Rotating. The top table adds up the shares: the average number of people rostered on each day, the quietest day tinted.<\/div>\n  <div class=\"card tw fix\"><table class=\"lt covT\" id=\"covT\"><\/table><\/div>\n  <div class=\"sickbar\" style=\"margin-top:14px\"><span id=\"offInfo\"><\/span><\/div>\n  <div class=\"card tw fix sickw\"><table class=\"lt offT\" id=\"offT\"><\/table><\/div>\n\n  <div class=\"lc-sechead\"><h2 id=\"sec-hol\">Public holidays 2026 (expected)<\/h2><span class=\"rex-bar\" role=\"group\" aria-label=\"Download this report\"><button type=\"button\" class=\"sc-btn rex-btn\" title=\"Download the public holidays as an Excel file\" onclick=\"rexRun('lcExpHol','xlsx',this)\">XLSX<\/button><button type=\"button\" class=\"sc-btn rex-btn\" title=\"Download the public holidays as a CSV file\" onclick=\"rexRun('lcExpHol','csv',this)\">CSV<\/button><\/span><\/div>\n  <div class=\"foot\" style=\"margin:0 0 8px\">Working? is read from Phorest: &#10003; every branch shown had visits, &#10007; none did, &frac12; some did, ? no data yet. It shows what happened, not a rule for next year. Follows the Branch filter. Hover a mark for the visit counts.<\/div>\n  <div class=\"card tw\"><table class=\"lt\" id=\"holT\"><\/table><\/div>\n<div class=\"foot\">Colours are the branch, the same as the planner sheets: KCA blue, AQ purple, SAA green, MC orange. A solid bar = planned, with a tick = approved, amber outline = waiting for approval, grey hatched = blocked days (no leave), the solid dark block = public holiday. Leave and absences come from Jumera's notes.<\/div>\n<\/div>\n<\/div>\n<div class=\"fscrim\" id=\"fScrim\"><\/div>\n<div class=\"fsheet\" id=\"fSheet\" role=\"dialog\" aria-label=\"Filters\">\n  <div class=\"fsheet-head\"><b>Filters<\/b><button class=\"tglr\" type=\"button\" id=\"fDone\">Done<\/button><\/div>\n  <div id=\"fSheetBody\"><\/div>\n<\/div>\n";
 
   /* sticky offsets: --kbh is the Team Home header, --tb the bottom of the filter bar under it */
   function setTb() {
@@ -635,7 +647,7 @@ function drawPlanner(c){
     for(var d=1;d<=31;d++){(function(d){
       var s=S.y+'-'+mm+'-'+('0'+d).slice(-2),x=d>dim,dd=idx[s];
       var cell=el('div','pl-c'+(x?' x':'')+(!x&&dd&&dd.hol.length?' h':'')+(!x&&S.layers.blk&&isBlk(s)?' b':'')+(s===TODAY?' today':'')+(s===S.sel?' sel':''));
-      if(!x){cell.onclick=function(){S.sel=s;draw()};cell.title=fmt(s)+(s===TODAY?' (today)':'')}bg.appendChild(cell)})(d)}
+      if(!x){cell.onclick=function(){S.sel=s;draw()};cell.title=fmt(s)+(s===TODAY?' (today)':'');if(s===TODAY)todayTip(cell)}bg.appendChild(cell)})(d)}
     var bars=el('div','pl-bars');L.segs.forEach(function(g){bars.appendChild(barEl(g))});
     body.appendChild(bg);body.appendChild(bars);row.appendChild(body);pl.appendChild(row)})(m)}
   wrap.appendChild(pl);c.appendChild(wrap);
@@ -891,6 +903,7 @@ function drawSick(){
     });
   }
 
+  window.__sickRows=rows;
   /* mode toggle, count, clear */
   var sm=document.getElementById('sickMode');sm.innerHTML='';
   [[true,'Everyone on the Phorest roster'],[false,'With sick or absent days only']].forEach(function(x){
@@ -967,6 +980,7 @@ function drawOff(){
       return isN?(x-y)*dir:String(x).localeCompare(String(y))*dir;
     });
   }
+  window.__offRows=rows;
   var info=document.getElementById('offInfo');info.innerHTML='';
   info.appendChild(el('span','cnt','Showing '+rows.length+' of '+data.length));
   if(Object.keys(S[FK()]).length||so){var cl=el('button','rs','Clear filters and sort');cl.onclick=function(){S.F2={};S.sort2=null;draw()};info.appendChild(cl)}
@@ -1008,6 +1022,63 @@ function drawHolT(){
 }
 /* a holiday date up to the last day Phorest data covers, with no staff rows, is a day nobody traded */
 HOL.forEach(function(h){for(var t=P(h.f);t<=P(h.t);t+=864e5){var k=iso(t);if(k>RANGE_TO)continue;var d=PH[k]=PH[k]||{};['SAA','KCA','MC','AQ'].forEach(function(b){if(d[b]==null)d[b]=0})}});
+
+/* hover the today line: the date, in the same card the bars use */
+function todayTip(cell){
+  cell.addEventListener('mouseenter',function(ev){
+    hideTip();var t=el('div','tip'),tx=el('div','tip-tx');
+    tx.appendChild(el('b','','Today'));
+    tx.appendChild(el('div','m',['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(P(TODAY)).getUTCDay()]+', '+fmt(TODAY)));
+    t.appendChild(tx);document.body.appendChild(t);tipEl=t;moveTip(ev);
+  });
+  cell.addEventListener('mousemove',moveTip);
+  cell.addEventListener('mouseleave',hideTip);
+}
+
+/* XLSX and CSV for each report (report-export.js and ledger-export.js, the same writers as the other reports). A model is
+   { name, csv, sheets:[{ name, title, subtitle, blocks:[{ cols:[{label,fmt}], rows:[{cells}] }] }] }; each follows the filters on screen. */
+var STATUS_LBL={req:'Waiting for approval',app:'Approved',plan:'Planned'};
+function filterLine(){return brLabel()+', '+(S.res?'including resigned staff':'present staff')+', data up to '+fmt(RANGE_TO)}
+window.lcExpLeave=function(){
+  var rows=LV.filter(function(l){return brOK(l.b)&&(S.res||!isRes(l.n,l.b))}).sort(function(a,b){return a.f<b.f?-1:a.f>b.f?1:a.n.localeCompare(b.n)}).map(function(l){
+    var pp=personByName(l.n,l.b);
+    return {cells:[pp.n||l.n,pp.r||'',BR[l.b]||BR.X,l.ty,l.f,l.t,nd(l.f,l.t),STATUS_LBL[l.s]||l.s,l.src||'']};
+  });
+  return {name:'leave-calendar-leave',csv:0,sheets:[{name:'Leave',title:'Leave, '+brLabel(),subtitle:'Planned and approved leave from Jumera’s notes and the approved list, and the requests waiting in Bayzat. '+filterLine()+'.',
+    blocks:[{cols:[{label:'Staff',fmt:'text'},{label:'Position',fmt:'text'},{label:'Branch',fmt:'text'},{label:'Type',fmt:'text'},{label:'From',fmt:'text'},{label:'To',fmt:'text'},{label:'Days',fmt:'num'},{label:'Status',fmt:'text'},{label:'Source',fmt:'text'}],rows:rows}]}]};
+};
+window.lcExpSick=function(){
+  var rows=[];
+  (window.__sickRows||[]).forEach(function(d){
+    for(var m=1;m<=12;m++){var a=(d.r.sl&&d.r.sl[m])||0,b=(d.r.ab&&d.r.ab[m])||0;if(!a&&!b)continue;
+      rows.push({cells:[d.v.name,d.v.pos,d.v.works,MON[m-1],a,b]})}
+  });
+  return {name:'leave-calendar-sick-leave-and-absences',csv:0,sheets:[{name:'Sick and absences',title:'Sick leave and absences '+TODAY.slice(0,4)+', counts per month, no dates',
+    subtitle:'Sick with a medical certificate (SL Monitoring) and sick without one, marked absent (staff absences), from Jumera’s notes. '+filterLine()+'. One row per person per month with a count.',
+    blocks:[{cols:[{label:'Staff',fmt:'text'},{label:'Position',fmt:'text'},{label:'Works',fmt:'text'},{label:'Month',fmt:'text'},{label:'Sick with medical certificate (days)',fmt:'num'},{label:'Sick without one, marked absent (days)',fmt:'num'}],rows:rows}]}]};
+};
+window.lcExpOff=function(){
+  var DNL=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],rows=(window.__offRows||[]).map(function(d){
+    return {cells:[d.v.name,d.v.pos,d.v.branch].concat(d.x.s,[d.v.off,d.x.w])};
+  });
+  var cov=BRN.filter(function(b){return S.br.indexOf(b[0])>=0}).map(function(b){
+    var people=DAYOFF.filter(function(x){return x.b===b[0]});
+    return {cells:[b[1]].concat(DNL.map(function(_,i){return Math.round(people.reduce(function(a,x){return a+x.s[i]/100},0)*10)/10}),[people.length])};
+  });
+  var note='Share of weeks the person was rostered on each weekday in Phorest (12 weeks to '+fmt(RANGE_TO)+'). Off = rostered in 25% of weeks or fewer. Only weeks with at least two rostered days count. Phorest rosters hours, it does not hold approved leave.';
+  return {name:'leave-calendar-usual-day-offs',csv:0,sheets:[
+    {name:'Day offs',title:'Usual day offs by person',subtitle:note+' '+filterLine()+'.',
+     blocks:[{cols:[{label:'Staff',fmt:'text'},{label:'Position',fmt:'text'},{label:'Branch',fmt:'text'}].concat(DNL.map(function(d){return {label:d+' % of weeks rostered',fmt:'num'}}),[{label:'Usual days off',fmt:'text'},{label:'Weeks counted',fmt:'num'}]),rows:rows}]},
+    {name:'Coverage',title:'Average people rostered on each weekday, by branch',subtitle:note,
+     blocks:[{cols:[{label:'Branch',fmt:'text'}].concat(DNL.map(function(d){return {label:d,fmt:'num'}}),[{label:'People',fmt:'num'}]),rows:cov}]}]};
+};
+window.lcExpHol=function(){
+  var W={on:'Salons open',off:'Salons closed',part:'Part open',tbc:'To confirm'},WQ={on:'Yes',off:'No',part:'Some branches',tbc:'No data yet'};
+  var rows=HOL.map(function(h){var k=holWork(h);return {cells:[h.n,h.f,h.t,nd(h.f,h.t),WQ[k],holVisits(h),h.note]}});
+  return {name:'leave-calendar-public-holidays',csv:0,sheets:[{name:'Public holidays',title:'Public holidays '+TODAY.slice(0,4)+' (expected dates)',
+    subtitle:'Expected dates from press estimates, not a Cabinet announcement. Working? is read from Phorest visits for '+brLabel()+': Yes = every branch shown had visits, No = none did, Some branches = part, No data yet = the date has not happened.',
+    blocks:[{cols:[{label:'Holiday',fmt:'text'},{label:'From',fmt:'text'},{label:'To',fmt:'text'},{label:'Days',fmt:'num'},{label:'Working?',fmt:'text'},{label:'Phorest visits',fmt:'text'},{label:'Note',fmt:'text'}],rows:rows}]}]};
+};
 
 buildFilters();
 draw();
