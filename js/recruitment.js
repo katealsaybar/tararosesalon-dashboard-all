@@ -97,8 +97,8 @@
     return 'later';
   }
   function isLate(p) { return p.stage === 'new' && !p.replied_at && waited(p) >= waitDays(); }
-  function by(b) { return rows.filter(function (p) { return bucket(p) === b; }).sort(function (a, c) { return new Date(a.applied_at) - new Date(c.applied_at); }); }
-  function lateList() { return rows.filter(isLate).sort(function (a, c) { return new Date(a.applied_at) - new Date(c.applied_at); }); }
+  function by(b) { return rows.filter(function (p) { return !p.is_test && bucket(p) === b; }).sort(function (a, c) { return new Date(a.applied_at) - new Date(c.applied_at); }); }
+  function lateList() { return rows.filter(function (p) { return !p.is_test && isLate(p); }).sort(function (a, c) { return new Date(a.applied_at) - new Date(c.applied_at); }); }
 
   /* ---------- pieces ---------- */
   function waitPill(p) {
@@ -250,7 +250,8 @@
     var acts = '', lookBtn = '<button type="button" class="rct-btn rct-sm" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button>';
     if (p.stage === 'new') acts = lookBtn + (bucket(p) === 'no' ? '<button type="button" class="rct-btn rct-sm" data-act="bk" data-to="look" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
                                   '<button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
-    else if (p.stage === 'screening') acts = '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>';
+    else if (p.stage === 'screening') acts = '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
+    else if (p.stage === 'interview_booked') acts = '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'not_now' || p.stage === 'rejected') acts = '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + esc(p.id) + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + esc(p.id) + '">Put back</button>';
     var det = [p.emirate || p.country, p.experience, p.role_txt].filter(Boolean).map(esc).join(' &middot; ');
     return '<div class="rct-row">' + avatar(p) + '<div class="rct-who"><b>' + esc(p.name || 'Name not stated') + '</b>' +
@@ -351,14 +352,14 @@
     h += '</section>';
     }
 
-    var prog = rows.filter(function (p) { var b = bucket(p); return (b === 'invited' || b === 'booked' || b === 'later') && (!S.lane || b === S.lane); });
+    var prog = rows.filter(function (p) { var b = bucket(p); return !p.is_test && (b === 'invited' || b === 'booked' || b === 'later') && (!S.lane || b === S.lane); });
     if (!S.lane || S.lane === 'invited' || S.lane === 'booked') {
     h += '<section class="rct-sec"><div class="rct-sech"><h2>In progress<span class="rct-cnt">' + prog.length + '</span></h2></div><div class="rct-card rct-list">' +
       (prog.length ? prog.map(row).join('') : '<p class="rct-hint">No one yet.</p>') + '</div></section>';
     }
 
     if (!S.lane) {
-    var done = rows.filter(function (p) { return bucket(p) === 'done'; }).sort(function (a, c) { return new Date(c.decided_at || 0) - new Date(a.decided_at || 0); });
+    var done = rows.filter(function (p) { return !p.is_test && bucket(p) === 'done'; }).sort(function (a, c) { return new Date(c.decided_at || 0) - new Date(a.decided_at || 0); });
     h += '<details class="rct-grp rct-donebox" data-g="done"><summary><span>Not now<span class="rct-cnt">' + done.length + '</span></span></summary><div class="rct-dbody">' +
       (done.length ? done.slice(0, 30).map(row).join('') + (done.length > 30 ? '<p class="rct-hint">Showing the latest 30.</p>' : '') : '<p class="rct-hint">No one yet.</p>') + '</div></details>';
     }
@@ -574,18 +575,19 @@
         var b = bucket(p), sv = statusText(p), cls = b === 'look' ? 'rct-green' : b === 'no' ? 'rct-amber' : b === 'done' ? 'rct-grey' : (p.stage === 'interview_booked' || p.stage === 'hired' || p.stage === 'offer') ? 'rct-green' : 'rct-teal';
         var main1 = b === 'no' ? 'Probably no' : sv, why = b === 'no' ? flags(p).map(function (f0) { return FLAG_SHORT[f0.k]; }).join(', ') : '';
         if (p.stage === 'new') {
-          var ab = autoBucket(p), cur = p.look_ok ? 'look' : p.no_ok ? 'no' : 'auto';
+          var ab = autoBucket(p), cur = p.is_test ? 'test' : p.look_ok ? 'look' : p.no_ok ? 'no' : 'auto';
           return '<td><select class="rct-pill rct-pillsel ' + cls + '" data-bk="' + esc(p.id) + '" aria-label="Worth a look or Probably no for ' + esc(p.name || 'this person') + '">' +
             '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>Automatic: ' + (ab === 'look' ? 'Worth a look' : 'Probably no') + '</option>' +
             '<option value="look"' + (cur === 'look' ? ' selected' : '') + '>Worth a look, by hand</option>' +
-            '<option value="no"' + (cur === 'no' ? ' selected' : '') + '>Probably no, by hand</option></select>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
+            '<option value="no"' + (cur === 'no' ? ' selected' : '') + '>Probably no, by hand</option><option value="test"' + (cur === 'test' ? ' selected' : '') + '>Test, messages only to you</option></select>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
         }
         return '<td><button type="button" class="rct-pill rct-pillbtn ' + cls + '" data-cf="status" data-cv="' + esc(sv) + '">' + esc(main1) + '</button>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
       }
       case 'acts': {
         var id = esc(p.id);
         if (p.stage === 'new') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="short" data-id="' + id + '">Shortlist</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button></td>';
-        if (p.stage === 'screening') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + id + '">Booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + id + '">Invite again</button></td>';
+        if (p.stage === 'screening') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + id + '">Booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + id + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
+        if (p.stage === 'interview_booked') return '<td class="rct-c-acts">' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
         if (p.stage === 'not_now' || p.stage === 'rejected') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + id + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + id + '">Put back</button></td>';
         return '<td class="rct-c-acts"></td>';
       }
@@ -593,7 +595,7 @@
     return '<td></td>';
   }
   function renderList() {
-    var all = rows.filter(laneOk), list = sortedRows(listRows()), doneN = rows.filter(function (p) { return bucket(p) === 'done'; }).length;
+    var all = rows.filter(laneOk), list = sortedRows(listRows()), doneN = rows.filter(function (p) { return !p.is_test && bucket(p) === 'done'; }).length;
     var h = '<div class="rct-tcount">Showing ' + list.length + ' of ' + all.length +
       (S.lane ? '' : (S.showDone ? '. Not now people are included. <button type="button" class="rct-linkbtn" data-act="toggledone">Hide them</button>' : '. Not now people (' + doneN + ') are hidden. <button type="button" class="rct-linkbtn" data-act="toggledone">Show them</button>')) +
       '. Click a value to filter by it, or use the funnel on a column.' + (Object.keys(S.filters).length ? ' <button type="button" class="rct-linkbtn" data-act="clearfilters">Clear all filters</button>' : '') + '</div>';
@@ -935,6 +937,12 @@
   async function setBucket(id, to) {
     var p = personById(id); if (!p) return;
     try {
+      // Kate, 16 Nov 2026: a Test row is for trying Shortlist: its interviewer WhatsApp goes only to Kate's test number and the row is left out of the counts (migrations/recruit_test_row.sql)
+      if (to === 'test') {
+        var rt = await sb.rpc('recruit_set_test', { p_id: p.id, p_flag: true }); if (rt.error) throw new Error(rt.error.message);
+        p.is_test = true; render(); toast(firstName(p.name) + ' is a Test row now. Shortlist sends the WhatsApp only to you, and the row is left out of the counts.'); return;
+      }
+      if (p.is_test) { var rf = await sb.rpc('recruit_set_test', { p_id: p.id, p_flag: false }); if (rf.error) throw new Error(rf.error.message); p.is_test = false; }
       var r = await sb.rpc('recruit_set_bucket', { p_id: p.id, p_to: to }); if (r.error) throw new Error(r.error.message);
       p.look_ok = to === 'look'; p.no_ok = to === 'no'; render();
       toast(to === 'look' ? firstName(p.name) + ' is in Worth a look now.' : to === 'no' ? firstName(p.name) + ' is in Probably no now.' : firstName(p.name) + ' is back to the automatic checks.');
@@ -1078,11 +1086,12 @@
   // so those get no WhatsApp. The roles are the setting notify_roles (the database checks the same list); Not stated is left out on purpose.
   function notifyRole(r) { var l = setting('notify_roles', ['Front Desk / Reception', 'Hair Assistant', 'Other']); return l.indexOf(r) >= 0; }
   async function notifyShortlist(id) {
-    var p = personById(id); if (!p || !notifyRole(roleGroup(p)) || !setting('notify_enabled', false)) return;
+    var p = personById(id); if (!p || !(p.is_test || (notifyRole(roleGroup(p)) && setting('notify_enabled', false)))) return;
     try {
       var r = await sb.rpc('recruit_shortlist_notify', { p_id: p.id, p_role: roleGroup(p) });
       if (r.error) throw new Error(r.error.message);
       var d = r.data || {}, who = (d.names || []).join(' and ');
+      if (d.test) { toast('Test sent to your own number' + (d.mode === 'text' ? ', as plain text (Meta has not approved the template yet, so it only arrives if you wrote to the main number in the last 24 hours).' : '.')); return; }
       if (d.queued) toast(who + ' will get the WhatsApp to interview ' + firstName(p.name) + (d.sends_now ? ' now.' : ' from ' + (d.hour_from || 9) + ':00 in the morning (Dubai).'));
       else if ((d.skipped || []).length && d.skipped.every(function (x) { return x.reason === 'already told'; })) toast('The interviewers were already told about ' + firstName(p.name) + '.');
       else if (d.reason === 'template_not_approved') toast('Shortlisted. The WhatsApp to the interviewers did not go: the message is not approved by Meta yet.');
@@ -1141,6 +1150,8 @@
       if (a === 'short') { var wasNew = p && p.stage === 'new'; shortDialog(id); if (wasNew) notifyShortlist(id); }
       else if (a === 'invite') { if (await setStage([id], 'screening', 'Moved to Screening.')) closeDlg(); }
       else if (a === 'booked') setStage([id], 'interview_booked', 'Moved to Interview booked.');
+      // Kate, 16 Nov 2026: after the interview (ate Jho and ate Frans for support roles, Coach Emma for stylists and beauticians) the next step is the Trade test (Jho, 16 Nov); No works as everywhere else
+      else if (a === 'passed') setStage([id], 'trade_test', firstName(p && p.name) + ' passed the interview. Moved to Trade test.');
       // No: the person is marked Not now (that also counts as reviewed), then the reply is offered. Nothing is sent by the site.
       else if (a === 'no') { if (await setStage([id], 'not_now', 'Not now for ' + firstName(p && p.name) + '.')) noDialog(id); }
       else if (a === 'reply') { markReviewed([id]); noDialog(id); }
