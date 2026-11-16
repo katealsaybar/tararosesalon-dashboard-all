@@ -43,6 +43,9 @@
   }
   function waitDays() { var n = +setting('wait_days', 14); return n > 0 ? n : 14; }
   function firstName(n) { return String(n || '').trim().split(/\s+/)[0] || 'there'; }
+  // Kate, 16 Nov 2026: who moved a person to their current status (decided_by, set by the database from the signed-in account) and when. Empty for a person nobody has moved.
+  function byWho(p) { return p && p.stage !== 'new' && p.decided_by ? firstName(p.decided_by) : ''; }
+  function byLine(p) { var w = byWho(p); return w ? 'by ' + w + (p.decided_at ? ', ' + fat(p.decided_at) : '') : ''; }
   function dayMs() { return 86400000; }
   function waited(p) { return Math.max(0, Math.floor((Date.now() - new Date(p.applied_at).getTime()) / dayMs())); }
   function fat(iso) {
@@ -116,7 +119,7 @@
   function stagePill(p) {
     if (p.stage === 'new') return '';
     var cls = p.stage === 'interview_booked' || p.stage === 'hired' || p.stage === 'offer' ? 'rct-green' : p.stage === 'not_now' || p.stage === 'rejected' ? 'rct-grey' : 'rct-teal';
-    return '<span class="rct-pill ' + cls + '">' + esc(STAGE_LABEL[p.stage] || p.stage) + '</span>';
+    return '<span class="rct-pill ' + cls + '"' + (byLine(p) ? ' title="' + esc(byLine(p)) + '"' : '') + '>' + esc(STAGE_LABEL[p.stage] || p.stage) + '</span>';
   }
   function stated(v) { return v ? esc(v) : '<span class="rct-ns">Not stated</span>'; }
   function placeOf(p) {
@@ -254,9 +257,9 @@
   function row(p) {
     var why = flags(p).map(function (f) { return f.t; }).join(' and ');
     var sub = p.stage === 'new' ? (why || (p.role_txt || '')) :
-              p.stage === 'screening' ? 'Invite sent ' + fat(p.decided_at) + ', not booked yet' :
-              p.stage === 'interview_booked' ? 'Interview booked, moved ' + fat(p.decided_at) :
-              p.stage === 'not_now' || p.stage === 'rejected' ? (STAGE_LABEL[p.stage] + ' ' + fat(p.decided_at)) : stageSub(p);
+              p.stage === 'screening' ? 'Invite sent ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '') + ', not booked yet' :
+              p.stage === 'interview_booked' ? 'Interview booked, moved ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '') :
+              p.stage === 'not_now' || p.stage === 'rejected' ? (STAGE_LABEL[p.stage] + ' ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '')) : stageSub(p) + (byLine(p) ? ' (' + byLine(p) + ')' : '');
     var acts = '', lookBtn = '<button type="button" class="rct-btn rct-sm" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button>';
     if (p.stage === 'new') acts = lookBtn + (bucket(p) === 'no' ? '<button type="button" class="rct-btn rct-sm" data-act="bk" data-to="look" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
                                   '<button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
@@ -308,7 +311,7 @@
       fig('booked', bk.length, 'Interview booked') + '</div>';
 
     h += '<div class="rct-bar"><label class="rct-find"><span class="rct-sr">Find someone</span><input type="search" id="rctFind" placeholder="Find someone by name, email or country" value="' + esc(q) + '" autocomplete="off"></label>' +
-         segHtml() + '<button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
+         segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
 
     if (!setting('booking_link', '') || !setting('templates_confirmed', false) || !setting('decline_confirmed', false)) {
       h += '<p class="rct-note rct-amberbox">' + (!setting('booking_link', '') ? 'The booking link is not set yet. ' : '') +
@@ -517,7 +520,7 @@
   var CV_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function igLabel(p) { var k = linkKind(p); return k ? linkName(p) : (p.source === 'form' ? 'None given' : 'Not stated'); }
   // Kate, 10 Nov 2026: which inbox the application arrived in (a person who wrote to both shows as Both)
-  function srcLabel(p) { var m = p.mailboxes || [], i = m.indexOf('info') >= 0, r = m.indexOf('recruitment') >= 0; return i && r ? 'Both inboxes' : i ? 'info@' : r ? 'recruitment@' : 'Not stated'; }
+  function srcLabel(p) { if (p.source === 'manual') return 'Added by hand'; var m = p.mailboxes || [], i = m.indexOf('info') >= 0, r = m.indexOf('recruitment') >= 0; return i && r ? 'Both inboxes' : i ? 'info@' : r ? 'recruitment@' : 'Not stated'; }
   function monthOf(p) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', month: 'long', year: 'numeric' }).format(new Date(p.applied_at)); } catch (e) { return ''; } }
 
   var COLS = [
@@ -613,7 +616,7 @@
             '<option value="look"' + (cur === 'look' ? ' selected' : '') + '>Worth a look, by hand</option>' +
             '<option value="no"' + (cur === 'no' ? ' selected' : '') + '>Probably no, by hand</option><option value="test"' + (cur === 'test' ? ' selected' : '') + '>Test, messages only to you</option></select>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
         }
-        return '<td><button type="button" class="rct-pill rct-pillbtn ' + cls + '" data-cf="status" data-cv="' + esc(sv) + '">' + esc(main1) + '</button>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
+        return '<td><button type="button" class="rct-pill rct-pillbtn ' + cls + '" data-cf="status" data-cv="' + esc(sv) + '">' + esc(main1) + '</button>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + (byLine(p) ? '<div class="rct-why">' + esc(byLine(p)) + '</div>' : '') + extraPills(p) + '</td>';
       }
       case 'acts': {
         var id = esc(p.id);
@@ -915,6 +918,61 @@
       '<a class="rct-btn rct-sm" href="' + esc(gmailUrl('', rp.subject)) + '" target="_blank" rel="noopener">Open Gmail with the subject ready</a>' +
       '<p class="rct-hint">Paste the copied reply into the message body and the addresses into Bcc, then send from the recruitment inbox. Sending stays your click.</p>'
       : '<div class="rct-btns"><button type="button" class="rct-btn" data-close>Close</button></div>'));
+  }
+  /* ---------- add a person by hand (Kate, 16 Nov 2026: walk-ins and anyone who is not in the inboxes; migrations/recruit_add_person.sql) ---------- */
+  var ADD_WHERE = ['Walked in at Saadiyat / Mamsha', 'Walked in at Khalifa City A', 'Walked in at Motor City', 'Walked in at Al Quoz', 'Phone call', 'Told us in person', 'Referred by a team member', 'Other'];
+  var CV_TYPES = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+  function addDialog() {
+    openDlg('Add a person',
+      '<p class="rct-hint">For someone who applied in person or by phone, so is not in the inboxes. Only the name is needed. They show as Added by hand and start in the New list.</p>' +
+      '<label class="rct-field"><span>Name</span><input type="text" id="rctAdN" maxlength="120" autocomplete="off"></label>' +
+      '<label class="rct-field"><span>Applying for</span><select id="rctAdR"><option value="">Not stated</option>' + ROLE_CHOICES.map(function (r) { return '<option>' + esc(r) + '</option>'; }).join('') + '</select></label>' +
+      '<label class="rct-field"><span>How they applied</span><select id="rctAdW"><option value="">Not stated</option>' + ADD_WHERE.map(function (r) { return '<option>' + esc(r) + '</option>'; }).join('') + '</select></label>' +
+      '<label class="rct-field"><span>Mobile or WhatsApp number</span><input type="text" id="rctAdP" inputmode="tel" maxlength="40" autocomplete="off"></label>' +
+      '<label class="rct-field"><span>Email (leave empty if they have none)</span><input type="text" id="rctAdE" inputmode="email" maxlength="200" autocomplete="off"></label>' +
+      '<label class="rct-field"><span>Emirate or city</span><input type="text" id="rctAdM" maxlength="80" autocomplete="off"></label>' +
+      '<label class="rct-field"><span>Experience (for example 3 years, or Fresh graduate)</span><input type="text" id="rctAdX" maxlength="120" autocomplete="off"></label>' +
+      '<label class="rct-field"><span>Link to their work (Instagram, portfolio)</span><input type="text" id="rctAdL" maxlength="500" autocomplete="off"></label>' +
+      '<label class="rct-field"><span>Notes</span><textarea id="rctAdA" rows="3" maxlength="1500"></textarea></label>' +
+      '<label class="rct-field"><span>CV (PDF, Word or a picture, up to 5 MB)</span><input type="file" id="rctAdC" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"></label>' +
+      '<label class="rct-field"><span>Photo</span><input type="file" id="rctAdF" accept="image/*"></label>' +
+      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="saveperson">Add person</button><button type="button" class="rct-btn" data-close>Cancel</button></div><p class="rct-say" id="rctSay" role="status"></p>');
+    var n = document.getElementById('rctAdN'); if (n) n.focus();
+  }
+  async function savePerson(btn) {
+    var say = document.getElementById('rctSay'), val = function (id) { var e = document.getElementById(id); return e ? (e.value || '').trim() : ''; };
+    var name = val('rctAdN'); if (!name) { if (say) say.textContent = 'Type their name first.'; return; }
+    var cvf = document.getElementById('rctAdC') && document.getElementById('rctAdC').files[0], phf = document.getElementById('rctAdF') && document.getElementById('rctAdF').files[0];
+    var ext = cvf ? (cvf.name.split('.').pop() || '').toLowerCase() : '';
+    if (cvf && (!CV_TYPES[ext] || cvf.size > 5242880)) { if (say) say.textContent = 'The CV must be a PDF, Word file or picture, up to 5 MB.'; return; }
+    var where = val('rctAdW'), notes = val('rctAdA'), about = [where, notes].filter(Boolean).join('. ');
+    btn.disabled = true; if (say) say.textContent = 'Saving.';
+    var id = null, issues = [];
+    try {
+      var r = await sb.rpc('recruit_add_person', { p_name: name, p_whatsapp: val('rctAdP'), p_email: val('rctAdE'), p_role: val('rctAdR'), p_emirate: val('rctAdM'), p_country: '', p_experience: val('rctAdX'), p_about: about, p_work_link: val('rctAdL') });
+      if (r.error) throw new Error(r.error.message);
+      var d = r.data || {}; id = d.id;
+      if (d.duplicate) {
+        await window.renderRecruitment(); closeDlg();
+        S.lane = null; S.filters = {}; q = ''; openRows[id] = true; render();
+        var dup = main() && main().querySelector('[data-id="' + id + '"]'); if (dup && dup.scrollIntoView) dup.scrollIntoView({ block: 'center' });
+        toast((d.name || name) + ' is already on the list (same email, number or name). Nothing was changed.'); return;
+      }
+    } catch (e) { console.error(e); btn.disabled = false; if (say) say.textContent = 'That did not save: ' + (e.message || 'try again'); return; }
+    if (cvf) {
+      try {
+        var path = id + '/' + Date.now() + '-' + cvf.name.replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80), bucket = sb.storage.from('recruit-cvs');
+        var up = await bucket.upload(path, cvf, { contentType: CV_TYPES[ext], upsert: false }); if (up.error) throw new Error(up.error.message);
+        var rc = await sb.rpc('recruit_set_cv', { p_id: id, p_path: path, p_name: cvf.name });
+        if (rc.error) { try { await bucket.remove([path]); } catch (e0) { /* stray file, harmless */ } throw new Error(rc.error.message); }
+      } catch (e1) { console.error(e1); issues.push('the CV did not attach (' + (e1.message || 'error') + ')'); }
+    }
+    await window.renderRecruitment();
+    var pn = personById(id);
+    if (phf && pn) { try { await savePhoto(pn, phf); } catch (e2) { console.error(e2); issues.push('the photo did not attach (' + (e2.message || 'error') + ')'); } }
+    closeDlg(); S.lane = null; S.filters = {}; q = ''; openRows[id] = true; render();
+    var el2 = main() && main().querySelector('[data-id="' + id + '"]'); if (el2 && el2.scrollIntoView) el2.scrollIntoView({ block: 'center' });
+    toast(name + ' is added to New.' + (issues.length ? ' But ' + issues.join(' and ') + '. Open the person to add it again.' : ''));
   }
   function settingsDialog() {
     openDlg('Booking link and replies',
@@ -1286,6 +1344,8 @@
       else if (a === 'copybulk') { var rp2 = replyParts(null, true), res2 = await copyRich(rp2.html, rp2.text); t.textContent = res2 === 'rich' ? 'Reply copied, with formatting' : res2 === 'plain' ? 'Reply copied as plain text' : 'Copy did not work here'; }
       else if (a === 'copyemails') { var em = bulkReviewed(g).map(function (x) { return x.email; }).filter(Boolean).join(', '); try { await navigator.clipboard.writeText(em); t.textContent = 'Copied'; } catch (err) { t.textContent = 'Copy did not work here'; } }
       else if (a === 'settings') settingsDialog();
+      else if (a === 'addperson') addDialog();
+      else if (a === 'saveperson') await savePerson(t);
       else if (a === 'usedefault') { document.getElementById('rctDec').value = DEFAULT_DECLINE; document.getElementById('rctSub').value = DEFAULT_SUBJECT; var sy = document.getElementById('rctSay'); if (sy) sy.textContent = 'The approved wording is back in the box. Press Save to keep it.'; }
       else if (a === 'savesettings') {
         var say = document.getElementById('rctSay'); if (say) say.textContent = 'Saving.';

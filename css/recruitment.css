@@ -155,6 +155,8 @@
 .rct-aboutfull{margin:0;font-size:14.5px;overflow-wrap:anywhere;white-space:pre-wrap}
 .rct-prev{width:100%;border:1px solid var(--border);border-radius:12px;background:#F1ECE3;display:block}
 .rct-field input[type=text]{width:100%;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);padding:10px 12px;font-size:15px}
+.rct-field select{width:100%;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);color:inherit;padding:10px 12px;font-size:15px}
+.rct-field input[type=file]{padding:8px}
 
 /* probably no */
 .rct details.rct-grp{border:1px solid var(--border);border-radius:14px;background:var(--surface)}
