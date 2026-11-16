@@ -412,7 +412,8 @@ function rctDirect_(m, fromAddr, subject, body, at, mailbox, msgId) {
     const c = new RegExp('(?:from|based in|living in|currently in|located in|residing in|relocat\\w* from|hairstylist from|hairdresser from)\\s+(' + RCT_COUNTRIES.join('|') + ')', 'i').exec(text);
     if (c) country = RCT_COUNTRIES.filter(function (x) { return x.toLowerCase() === c[1].toLowerCase(); })[0] || c[1];
   }
-  const yrs = /(\d{1,2})\s*\+?\s*(?:years|yrs)/i.exec(text);
+  // 16 Nov 2026: years in other languages too (French ans / années, Spanish años, Italian anni, German Jahre, Portuguese anos, Arabic, Russian) and a single "1 year"
+  const yrs = /(\d{1,2})\s*\+?\s*(?:years?|yrs?|ans|années?|annees?|años?|anni|jahre[n]?|anos|سنة|سنوات|سنين|лет|года?)(?![a-z])/i.exec(text);
   const ig = /instagram\.com\/([A-Za-z0-9._]+)/i.exec(text) || /instagram[^\n]{0,40}?@([A-Za-z0-9._]{2,30})/i.exec(text);
   const wa = /(\+?\d[\d ()-]{8,16}\d)/.exec(body.slice(0, 3000));
   const otherLink = /(https?:\/\/(?:www\.)?(?:tiktok\.com|facebook\.com|linkedin\.com|youtu\.?be)[^\s)>"]+)/i.exec(text);

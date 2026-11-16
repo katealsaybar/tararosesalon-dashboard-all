@@ -236,7 +236,7 @@
   function card(p) {
     var emp = empType(p), bits = [roleGroup(p), emp, p.experience || ''].filter(function (x) { return x && x !== 'Not stated'; });
     return '<article class="rct-card rct-cardc">' +
-      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3><span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + (p.look_ok && autoBucket(p) === 'no' ? '<span class="rct-pill rct-teal">Moved here by hand</span>' : '') + extraPills(p) + '</div></div></div></div>' +
+      '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3>' + '<button type="button" class="rct-pen" data-act="rename" data-id="' + esc(p.id) + '" title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg></button>' + '<span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + (p.look_ok && autoBucket(p) === 'no' ? '<span class="rct-pill rct-teal">Moved here by hand</span>' : '') + extraPills(p) + '</div></div></div></div>' +
       '<div class="rct-chips">' + checkChips(p) + '</div>' +
       '<div class="rct-btns rct-btns3"><button type="button" class="rct-btn rct-pri" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
       '<button type="button" class="rct-btn" data-act="no" data-id="' + esc(p.id) + '">No</button>' +
@@ -467,6 +467,25 @@
       p.role_set = to === 'auto' ? null : to; render(); toast(to === 'auto' ? firstName(p.name) + ': back to automatic.' : firstName(p.name) + ' is set to ' + to + '.');
     } catch (e) { console.error(e); render(); toast('That did not save: ' + (e.message || 'try again')); }
   }
+  // Kate, 16 Nov 2026: "allow me to be able to edit name". A pencil next to the name opens a small box; the typed name is locked in the database (recruit_set_name), so the next mailbox
+  // import cannot put the old one back. An empty box clears it and lets the imported name return.
+  function renameDialog(id) {
+    var p = personById(id); if (!p) return;
+    openDlg('Edit name',
+      '<label class="rct-field"><span>Name</span><input type="text" id="rctNameIn" maxlength="120" autocomplete="off" value="' + esc(p.name || '') + '"></label>' +
+      '<p class="rct-hint">Saved names are kept, a new email from the same person will not change them. Leave it empty to go back to the name in the email.</p>' +
+      '<p class="rct-amberbox" id="rctNameSay" hidden></p>' +
+      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="renamesave" data-id="' + esc(p.id) + '">Save name</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
+    var i = document.getElementById('rctNameIn'); if (i) { i.focus(); i.select(); }
+  }
+  async function renameSave(id) {
+    var p = personById(id), inp = document.getElementById('rctNameIn'), say = document.getElementById('rctNameSay'); if (!p || !inp) return;
+    var v = inp.value.replace(/\s+/g, ' ').trim();
+    try {
+      var r = await sb.rpc('recruit_set_name', { p_id: p.id, p_name: v }); if (r.error) throw new Error(r.error.message);
+    } catch (e) { console.error(e); if (say) { say.hidden = false; say.textContent = 'That did not save: ' + (e.message || 'try again'); } return; }
+    p.name = v || p.name; closeDlg(); render(); toast(v ? 'Name saved: ' + v + '.' : 'Cleared. The name from the email comes back with the next sync.');
+  }
   function empType(p) {
     var s = [p.paths, p.role_txt].join(' '), n = [];
     if (/Path One/i.test(s)) n.push('Employed');
@@ -491,7 +510,9 @@
   function photoLabel(p) { return !p.photo ? 'No photo' : p.photo_bad ? 'Photo not professional' : 'Has photo'; }
   // Kate, 11 Nov 2026: a direct email carries its CV as an attached file, so there is no file link, and Coach Emma has no access to info@ to open the email, so the page does not
   // link into Gmail. It says "In the email" (not clickable) until the attachments are stored on the dashboard.
-  function inEmail(p) { return p.source === 'email' && !cvUrl(p) && !deadCv(p) && !p.cv_file; }
+  // Kate, 16 Nov 2026: "In the email" was wrong for people who attached nothing (Osas, Panagiotis, Shawn, Ahmad all wrote "I can send my CV" or forgot it). The script looks at a new
+  // email every 5 minutes, so only the first 2 hours can still be waiting; after that no stored file means no CV came, and it says No CV.
+  function inEmail(p) { return p.source === 'email' && !cvUrl(p) && !deadCv(p) && !p.cv_file && (Date.now() - new Date(p.applied_at).getTime()) < 2 * 3600 * 1000; }
   function cvLabel(p) { return cvUrl(p) || p.cv_file ? 'Has CV' : deadCv(p) ? 'CV link broken' : inEmail(p) ? 'CV in the email' : 'No CV'; }
   var CV_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function igLabel(p) { var k = linkKind(p); return k ? linkName(p) : (p.source === 'form' ? 'None given' : 'Not stated'); }
@@ -553,7 +574,7 @@
   function cell(c, p) {
     switch (c.k) {
       case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
-      case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
+      case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + '<button type="button" class="rct-pen" data-act="rename" data-id="' + esc(p.id) + '" title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
       case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
       case 'photo': return '<td>' + cellBtn(!p.photo ? '<span class="rct-ns">No photo</span>' : p.photo_bad ? '<span class="rct-badph">Photo not professional</span>' : 'Has photo', 'photo', photoLabel(p)) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
@@ -569,7 +590,7 @@
         var cu = cvUrl(p);
         return '<td>' + (cu ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><a class="rct-ig" href="' + esc(cu) + '" target="_blank" rel="noopener">CV</a></span>'
           : p.cv_file ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '" title="' + esc(p.cv_file_name || 'CV') + '">CV</button></span>'
-          : inEmail(p) ? cellBtn('<span class="rct-ns rct-nw">In the email</span>', 'cv', cvLabel(p))
+          : inEmail(p) ? cellBtn('<span class="rct-ns rct-nw">Checking the email</span>', 'cv', cvLabel(p))
           : cellBtn('<span class="rct-ns rct-nw">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>', 'cv', cvLabel(p))) + '</td>';
       }
       case 'exp': return '<td>' + cellBtn(esc(p.experience || 'Not stated'), 'exp', p.experience || 'Not stated') + '</td>';
@@ -1254,6 +1275,8 @@
       else if (a === 'notapp') setNotApplicant(id, true);
       else if (a === 'notappback') setNotApplicant(id, false);
       else if (a === 'cvfile') openCvFile(id);
+      else if (a === 'rename') renameDialog(id);
+      else if (a === 'renamesave') renameSave(id);
       else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
       else if (a === 'pgnext') { S.page += 1; render(); }
@@ -1261,6 +1284,7 @@
       else if (a === 'moreno') { shownNo[g] = (shownNo[g] || PAGE) + PAGE; render(); }
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target && e.target.id === 'rctRoles') { e.preventDefault(); e.target.blur(); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target && e.target.id === 'rctNameIn') { e.preventDefault(); var b = document.querySelector('[data-act="renamesave"]'); if (b) renameSave(b.getAttribute('data-id')); } });
     document.addEventListener('change', async function (e) {
       if (e.target && e.target.id === 'rctRoles') {
         var v = e.target.value.replace(/\s*[,;]\s*/g, ', ').replace(/^[,\s]+|[,\s]+$/g, ''), was = settings.open_roles_text;
