@@ -791,9 +791,11 @@
   // apps-script/send-recruitment-mail.gs after recruit_queue_email() queues it (migrations/recruit_shortlist_email.sql).
   var SL_SUBJECT = 'Thank you for applying to Tara Rose';
   var SL_BODY = '{greeting}\n\nThank you for applying to Tara Rose. We have shortlisted your application, and a member of our team will phone you to arrange your interview.\n\nPlease keep an eye out for a call from us.\n\nWe look forward to speaking with you.';
+  // Kate, 16 Nov 2026: this email is signed by the Recruitment Team, not by Coach Emma ("fix mo yung email sign off, wag si coach emma"). Its own sign-off block, no longer the last
+  // block of the No reply (that one stays Emma-Louise Usher).
+  var SL_SIGN = 'Warm regards,\nRecruitment Team\nTara Rose Salons';
   function shortlistEmailParts(p) {
-    var dec = declineBlocks(setting('decline_template', DEFAULT_DECLINE) || DEFAULT_DECLINE), sig = dec.length > 1 ? dec[dec.length - 1] : '';
-    return replyParts(p, false, null, SL_BODY + (sig ? '\n\n' + sig : ''), SL_SUBJECT);
+    return replyParts(p, false, null, SL_BODY + '\n\n' + SL_SIGN, SL_SUBJECT);
   }
   // Rich text on the clipboard so it pastes formatted into Gmail; plain text is the fallback part. Returns 'rich', 'plain' or ''.
   async function copyRich(html, text) {
@@ -855,7 +857,7 @@
     if (lineOpenRole(p)) {
       var rp = shortlistEmailParts(p), t2 = rp.text;
       openDlg('Tell ' + esc(firstName(p.name)) + ' to keep their line open',
-        '<div><div class="rct-lab">Reply, ready to send</div><pre class="rct-reply" id="rctReply">' + esc(t2) + '</pre>' + NO_WORDS() + '</div>' +
+        '<div><div class="rct-lab">Reply, ready to send</div><pre class="rct-reply" id="rctReply">' + esc(t2) + '</pre></div>' +
         (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : '') +
         '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="invite" data-id="' + esc(p.id) + '">Mark as invited</button><button type="button" class="rct-btn" data-act="copy">Copy reply</button></div>' +
         (p.email && !p.bounced ? '<a class="rct-btn rct-sm" href="' + esc(composeUrl(p.email, rp.subject, t2)) + '" target="_blank" rel="noopener">Open in Gmail from the recruitment inbox</a>' : '') +
