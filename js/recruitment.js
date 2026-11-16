@@ -442,7 +442,7 @@
     try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
   }
   // Kate, 11 Nov 2026: "kung di mo ma determine ako na lang mag set": the dropdown in the Applying for cell sets it by hand (role_override), whatever the text says.
-  var ROLE_CHOICES = ['Hairdresser / Hair Stylist', 'Hair Assistant', 'Beautician', 'Front Desk / Reception', 'Other'];
+  var ROLE_CHOICES = ['Hairdresser / Hair Stylist', 'Hair Assistant', 'Beautician', 'Front Desk / Reception', 'Admin', 'Other'];   // Kate, 16 Nov 2026: Admin added (Supriya Gonsalves, Admin/Manager)
   function roleGroup(p) {
     if (p.role_set) return p.role_set;
     var t = [p.role_txt, p.specialist, String(p.about || ''), cvFileName(p).replace(/[_.]+/g, ' ')].join(' ').replace(PATH_WORDS, ' ');
