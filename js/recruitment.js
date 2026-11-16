@@ -271,7 +271,7 @@
               p.stage === 'interview_booked' ? 'Interview booked, moved ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '') :
               p.stage === 'not_now' || p.stage === 'rejected' ? (STAGE_LABEL[p.stage] + ' ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '')) : stageSub(p) + (byLine(p) ? ' (' + byLine(p) + ')' : '');
     var acts = '', lookBtn = '<button type="button" class="rct-btn rct-sm" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button>';
-    if (usesPipe(p)) acts = lookBtn + pipeActs(p, false);
+    if (usesPipe(p)) acts = lookBtn + pipeActs(p);
     else if (p.stage === 'new') acts = lookBtn + (bucket(p) === 'no' ? '<button type="button" class="rct-btn rct-sm" data-act="bk" data-to="look" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
                                   '<button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'screening') acts = statusSelect(p) + '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
@@ -638,14 +638,12 @@
       }
       case 'acts': {
         var id = esc(p.id);
-        if (usesPipe(p)) return '<td class="rct-c-acts">' + pipeActs(p, true) + '</td>';
-        if (p.stage === 'new') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="short" data-id="' + id + '">Shortlist</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button></td>';
-        if (p.stage === 'screening') return '<td class="rct-c-acts">' + statusSelect(p) + '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + id + '">Booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + id + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
-        if (p.stage === 'interview_booked') return '<td class="rct-c-acts">' + statusSelect(p) + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
+        if (usesPipe(p)) return '<td class="rct-c-acts">' + pipeActs(p) + '</td>';
+        if (p.stage === 'new') return '<td class="rct-c-acts">' + sideActs(p) + '</td>';
+        if (p.stage === 'screening' || p.stage === 'interview_booked' || p.stage === 'not_now' || p.stage === 'rejected') return '<td class="rct-c-acts">' + sideActs(p) + '</td>';
         if (p.stage === 'trade_test') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="ttgood" data-id="' + id + '">Trade test good</button><button type="button" class="rct-btn rct-sm" data-act="ttbad" data-id="' + id + '">Not good</button></td>';
         if (p.stage === 'offer') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="hire" data-id="' + id + '">Set starting date</button></td>';
         if (p.stage === 'hired') return '<td class="rct-c-acts">' + (p.start_date ? '<span class="rct-pill rct-green">Starts ' + esc(fdate(p.start_date)) + '</span>' : '') + '</td>';
-        if (p.stage === 'not_now' || p.stage === 'rejected') return '<td class="rct-c-acts">' + statusSelect(p) + '<button type="button" class="rct-btn rct-sm" data-act="reply" data-id="' + id + '">Reply</button><button type="button" class="rct-btn rct-sm" data-act="back" data-id="' + id + '">Put back</button></td>';
         return '<td class="rct-c-acts"></td>';
       }
     }
@@ -1313,9 +1311,9 @@
      Each step has its own email, shown as a draft to copy or open in Gmail (nothing is sent by the page; only the Shortlist email is automatic). The wording is a draft until it has
      passed /brand-review. {greeting} is the Hi line, {details} the trade test note, {startdate} the start date, [Confirm my start date]({accept_url}) the applicant's own accept link. */
   var PIPE = {
-    screening:      { next: [['interview_pass', 'Interview passed', 1], ['interview_fail', 'Interview not passed']] },
+    screening:      { pair: 1, next: [['interview_pass', 'Interview passed', 1], ['interview_fail', 'Interview not passed']] },
     interview_pass: { next: [['trade_test', 'Trade test scheduled', 1]] },
-    trade_test:     { next: [['trade_pass', 'Trade test passed', 1], ['trade_fail', 'Trade test not passed']] },
+    trade_test:     { pair: 1, next: [['trade_pass', 'Trade test passed', 1], ['trade_fail', 'Trade test not passed']] },
     trade_pass:     { next: [['offer_to_send', 'For offer letter', 1]] },
     offer_to_send:  { next: [['offer_sent', 'Offer letter sent', 1]] },
     offer_sent:     { next: [['start_pending', 'Set start date', 1]] },
@@ -1378,13 +1376,38 @@
     try { if (to === 'start_pending') await acceptUrl(p); } catch (e) { console.error(e); toast('The accept link did not load: ' + (e.message || 'try again')); return; }
     stageEmailDialog(p, to, lead || 'This is the email for <b>' + esc(STAGE_LABEL[to]) + '</b>.');
   }
-  // the buttons for the next steps of a person (small = the list's narrow cell)
-  function pipeActs(p, sm) {
+  // Kate, 16 Nov 2026 (mock-up option 3, "pangit din tlga layout nung buttons sa status"): the Application Status cell is one tidy block. Top line: the status dropdown and an envelope
+  // that opens that step's email. Under it, one clear action: Passed and Not passed side by side at the two decision steps (interview, trade test), one next-step button at every other
+  // step, nothing at the end. Going back, Not now and Back to New are in the dropdown.
+  var ICON_MAIL = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m4 7 8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function scBtn(cls, act, id, label, to, title) {
+    return '<button type="button" class="rct-btn ' + cls + '" data-act="' + act + '" data-id="' + id + '"' + (to ? ' data-to="' + to + '"' : '') + (title ? ' title="' + esc(title) + '"' : '') + '>' + label + '</button>';
+  }
+  function scTop(p, mail) {
+    var key = p.stage === 'offer' ? 'offer_to_send' : p.stage;
+    // at Shortlisted the email is the keep-your-line-open one (it goes out by itself when the person is shortlisted; this only shows it again)
+    var act = mail && PE[key] ? 'mvmail' : mail && p.stage === 'screening' ? 'short' : '';
+    return '<div class="rct-sc-top">' + statusSelect(p) +
+      (act ? '<button type="button" class="rct-ico" data-act="' + act + '" data-id="' + esc(p.id) + '" title="Open the email for this step" aria-label="Open the email for this step">' + ICON_MAIL + '</button>' : '') + '</div>';
+  }
+  function pipeActs(p) {
     var cfg = PIPE[p.stage]; if (!cfg) return '';
-    var id = esc(p.id), cl = 'rct-btn' + (sm ? ' rct-sm' : '');
-    var s = statusSelect(p) + (sm ? '' : cfg.next.map(function (n) { return '<button type="button" class="' + cl + (n[2] ? ' rct-pri' : '') + '" data-act="mv" data-to="' + n[0] + '" data-id="' + id + '">' + esc(n[1]) + '</button>'; }).join(''));
-    if (PE[p.stage === 'offer' ? 'offer_to_send' : p.stage]) s += '<button type="button" class="' + cl + '" data-act="mvmail" data-id="' + id + '">Email</button>';
-    return s;
+    var id = esc(p.id), b = '';
+    if (cfg.pair) b = '<div class="rct-sc-pair">' + scBtn('rct-pri', 'mv', id, '&#10003; Passed', cfg.next[0][0], cfg.next[0][1]) + scBtn('rct-no', 'mv', id, '&#10007; Not passed', cfg.next[1][0], cfg.next[1][1]) + '</div>';
+    else if (cfg.next.length) b = scBtn('rct-pri', 'mv', id, esc(cfg.next[0][1]) + ' &rarr;', cfg.next[0][0]);
+    return '<div class="rct-sc">' + scTop(p, true) + b + '</div>';
+  }
+  // the same block for the people who are not in the hiring steps yet (New), still at Screening or Interview booked (roles that are not assistants or reception), or Not now
+  function sideActs(p) {
+    var id = esc(p.id), b = '', top = '';
+    if (p.stage === 'new') b = '<div class="rct-sc-pair">' + scBtn('rct-pri', 'short', id, 'Shortlist') + scBtn('rct-no', 'no', id, 'No') + '</div>';
+    else {
+      top = scTop(p, false);
+      if (p.stage === 'screening') b = scBtn('rct-pri', 'booked', id, 'Interview booked &rarr;');
+      else if (p.stage === 'interview_booked') b = '<div class="rct-sc-pair">' + scBtn('rct-pri', 'passed', id, '&#10003; Passed') + scBtn('rct-no', 'no', id, '&#10007; No') + '</div>';
+      else b = scBtn('', 'reply', id, 'Reply');
+    }
+    return '<div class="rct-sc">' + top + b + '</div>';
   }
   function usesPipe(p) { return !!PIPE[p.stage] && (p.stage !== 'screening' || lineOpenRole(p)); }
   // Kate, 16 Nov 2026 ("i should be able to change statuses beh, make it a drop down"): any status can be set by hand. Going back a step only sets the status (no email is offered, it is

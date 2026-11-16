@@ -109,7 +109,7 @@
 .rct-cwho{display:flex;gap:12px;align-items:center;min-width:0}
 .rct-tcount{font-size:14px;color:var(--muted)}
 .rct-tbox{border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:auto;max-height:min(70vh,760px)}
-.rct-table{--rct-aw:190px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
+.rct-table{--rct-aw:224px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
 .rct-table .rct-pill{white-space:nowrap;line-height:1.25;text-align:left;padding:3px 10px}
 .rct-table td{overflow-wrap:anywhere}
 .rct-table td.rct-c-acts{overflow-wrap:normal;white-space:normal;text-align:center;width:var(--rct-aw);min-width:var(--rct-aw);max-width:var(--rct-aw)}
@@ -290,6 +290,18 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 .rct-c-acts .ps-btn{min-height:34px;padding:5px 10px;font-size:12.5px;font-weight:600}
 .rct-acts .ps{max-width:230px;margin-right:6px}
 .rct-table td:has(.ps.open){z-index:60}
+/* Kate, 16 Nov 2026: the Application Status block (mock-up option 3): dropdown + envelope on top, then Passed / Not passed side by side or one next button */
+.rct-sc{display:flex;flex-direction:column;gap:6px;align-items:stretch;width:100%;text-align:center}
+.rct-sc-top{display:flex;gap:6px;align-items:center}
+.rct-c-acts .rct-sc-top .ps{flex:1 1 0;width:auto;min-width:0;margin:0}
+.rct-c-acts .rct-sc-top .ps-btn{padding:5px 8px 5px 10px;gap:5px}
+.rct-ico{flex:none;width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);display:grid;place-items:center;cursor:pointer;padding:0}
+.rct-ico:hover{border-color:var(--text)}
+.rct-ico svg{width:16px;height:16px}
+.rct-sc-pair{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rct-table .rct-c-acts .rct-sc .rct-btn,.rct-acts .rct-sc .rct-btn{display:flex;width:100%;min-height:34px;margin:0;justify-content:center;align-items:center;border-radius:10px;padding:4px 6px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.rct-sc .rct-btn.rct-no{color:var(--rct-red)}
+.rct-acts .rct-sc{width:230px}
 .rct-pillsel{appearance:auto;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:600;padding:5px 8px;max-width:190px}
 .rct-gone{margin:18px 0 8px;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:10px 14px}
 .rct-gone summary{cursor:pointer;font-weight:600}
