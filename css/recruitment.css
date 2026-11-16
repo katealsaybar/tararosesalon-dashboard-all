@@ -17,6 +17,8 @@
 .rct-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600;white-space:nowrap}
 .rct-red{background:var(--rct-redbg);color:var(--rct-red)}.rct-amber{background:var(--rct-amberbg);color:var(--rct-amber)}.rct-green{background:var(--rct-greenbg);color:var(--rct-green)}.rct-teal{background:var(--rct-tealbg);color:var(--rct-teal)}.rct-grey{background:var(--surface2);color:var(--muted)}
 .rct-warn,.rct-amberbox{background:var(--rct-amberbg);color:var(--rct-amber);border-radius:12px;padding:10px 14px;font-size:14.5px;margin:0}
+.rct-amberbox.rct-slim{padding:3px 12px;font-size:13px;line-height:1.35;border-radius:10px;margin-top:-8px}
+.rct-amberbox.rct-slim .rct-linkbtn{min-height:0;padding:0 2px;font-size:13px}
 .rct-linkbtn{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;padding:0 4px;font-weight:600;min-height:44px;display:inline-flex;align-items:center}
 
 /* figures */
@@ -33,6 +35,12 @@
 .rct-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .rct-find{flex:1 1 260px;min-width:0}
 .rct-find input,.rct-field input,.rct-field textarea{width:100%;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);padding:10px 12px;font-size:15px}
+.rct-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rct-find.rct-hiring{display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);padding:0 0 0 12px}
+.rct-hiring .rct-hl{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+.rct-find.rct-hiring input{border:0;background:transparent;padding:10px 12px 10px 0;min-width:0;flex:1 1 auto;outline-offset:2px}
+.rct-find.rct-hiring:focus-within{border-color:var(--accent)}
+@media (max-width:700px){.rct-fields{grid-template-columns:1fr}}
 .rct-note{font-size:13.5px;color:var(--muted);margin:0}
 .rct-hint{font-size:13px;color:var(--muted);margin:0}
 .rct-lab{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:6px}

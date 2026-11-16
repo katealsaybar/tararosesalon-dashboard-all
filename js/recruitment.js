@@ -312,6 +312,12 @@
     h += '<div class="rct-pills rct-top"><span class="rct-pill rct-grey">Checked every 5 minutes from the two inboxes</span></div>';
     if (loadErr) { el.innerHTML = h + '<p class="rct-warn">' + esc(loadErr) + '</p></div>'; return; }
     if (!C) { el.innerHTML = h + '<p class="slv-muted">Loading.</p></div>'; return; }
+    // Kate, 16 Nov 2026: this notice sits right under "Checked every 5 minutes" and is a thin strip, not a tall box.
+    if (!setting('booking_link', '') || !setting('templates_confirmed', false)) {
+      h += '<p class="rct-note rct-amberbox rct-slim">' + (!setting('booking_link', '') ? 'The booking link is not set yet. ' : '') +
+           (!setting('templates_confirmed', false) ? 'The invite reply is still placeholder text until you save your own. ' : '') +
+           '<button type="button" class="rct-linkbtn" data-act="settings">Set them now</button></p>';
+    }
 
     var look = by('look'), no = by('no'), late = lateList(), inv = by('invited'), bk = by('booked');
     h += '<div class="rct-figs">' +
@@ -321,18 +327,13 @@
       fig('invited', inv.length, 'Invited, not booked yet') +
       fig('booked', bk.length, 'Interview booked') + '</div>';
 
-    h += '<div class="rct-bar"><label class="rct-find"><span class="rct-sr">Find someone</span><input type="search" id="rctFind" placeholder="Find someone by name, email or country" value="' + esc(q) + '" autocomplete="off"></label>' +
+    // Kate, 16 Nov 2026 ("ipag kasya mo to sa taas kasama nung isa pang search bar"): the hiring roles box is one slim field beside the Find someone search, not a box of its own.
+    // The explanation that used to sit under it is the field's tooltip.
+    h += '<div class="rct-fields"><label class="rct-find"><span class="rct-sr">Find someone</span><input type="search" id="rctFind" placeholder="Find someone by name, email or country" value="' + esc(q) + '" autocomplete="off"></label>' +
+         '<label class="rct-find rct-hiring" title="Type what is needed and press Enter. Anyone applying for a role that is not in this list moves to Probably no. Leave it empty and nobody is moved because of their role."><span class="rct-hl">Hiring now</span>' +
+         '<input type="text" id="rctRoles" class="rct-rolein" value="' + esc(openText()) + '" placeholder="Roles, separated by commas, then Enter. For example Hair stylist, Receptionist" autocomplete="off" aria-label="What we are hiring for right now. Anyone applying for a role not in this list moves to Probably no."></label></div>';
+    h += '<div class="rct-bar">' +
          segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
-
-    if (!setting('booking_link', '') || !setting('templates_confirmed', false)) {
-      h += '<p class="rct-note rct-amberbox">' + (!setting('booking_link', '') ? 'The booking link is not set yet. ' : '') +
-           (!setting('templates_confirmed', false) ? 'The invite reply is still placeholder text until you save your own. ' : '') +
-           '<button type="button" class="rct-linkbtn" data-act="settings">Set them now</button></p>';
-    }
-
-    h += '<div class="rct-roles"><label class="rct-lab" for="rctRoles">What we are hiring for right now</label>' +
-      '<input type="text" id="rctRoles" class="rct-rolein" value="' + esc(openText()) + '" placeholder="Type the roles, separated by commas, for example Hair stylist, Receptionist" autocomplete="off">' +
-      '<p class="rct-hint">Type what is needed and press Enter. Anyone applying for a role that is not in this list moves to Probably no. Leave it empty and nobody is moved because of their role.</p></div>';
 
     if (S.lane) h += laneBarHtml();
     if (S.mode === 'list') {
