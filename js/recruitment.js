@@ -185,6 +185,8 @@
     var s = '', cv = cvUrl(p);
     if (cv) s += '<a href="' + esc(cv) + '" target="_blank" rel="noopener">CV</a>';
     else if (p.cv_file) s += '<button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '">CV (' + esc(p.cv_file_name || 'attached file') + ')</button>';
+    // Kate, 16 Nov 2026 ("paki attach nang maayos now na nung cv nya"): a CV that did not come through (a picture of a CV, a link that died, a paper copy) can be attached by hand.
+    if (!cv && !p.cv_file) s += '<label class="rct-linkbtn rct-attach">Attach CV<input type="file" class="rct-sr" data-attach="' + esc(p.id) + '" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"></label>';
     if (p.email) s += '<a href="https://mail.google.com/mail/?authuser=recruitment@tararosesalon.com#search/' + encodeURIComponent(p.email) + '" target="_blank" rel="noopener">Their emails in Gmail</a>';
     var wa = String(p.whatsapp || '').replace(/\D/g, '');
     if (wa.length >= 9) s += '<a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">WhatsApp</a>';
@@ -946,6 +948,15 @@
       '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="saveperson">Add person</button><button type="button" class="rct-btn" data-close>Cancel</button></div><p class="rct-say" id="rctSay" role="status"></p>');
     var n = document.getElementById('rctAdN'); if (n) n.focus();
   }
+  // Uploads a CV to the private bucket and attaches it (recruit_set_cv). Throws a readable error; a stray file is removed when the attach is refused.
+  async function uploadCv(p, file, ext) {
+    var path = p.id + '/' + Date.now() + '-' + file.name.replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80), bucket = sb.storage.from('recruit-cvs');
+    var up = await bucket.upload(path, file, { contentType: CV_TYPES[ext], upsert: false }); if (up.error) throw new Error(up.error.message);
+    var rc = await sb.rpc('recruit_set_cv', { p_id: p.id, p_path: path, p_name: file.name });
+    if (rc.error) { try { await bucket.remove([path]); } catch (e0) { /* stray file, harmless */ } throw new Error(rc.error.message); }
+    var old = rc.data && rc.data.old; if (old && old !== path) { try { await bucket.remove([old]); } catch (e1) { /* harmless */ } }
+    p.cv_file = path; p.cv_file_name = file.name;
+  }
   async function savePerson(btn) {
     var say = document.getElementById('rctSay'), val = function (id) { var e = document.getElementById(id); return e ? (e.value || '').trim() : ''; };
     var name = val('rctAdN'); if (!name) { if (say) say.textContent = 'Type their name first.'; return; }
@@ -968,10 +979,7 @@
     } catch (e) { console.error(e); btn.disabled = false; if (say) say.textContent = 'That did not save: ' + (e.message || 'try again'); return; }
     if (cvf) {
       try {
-        var path = id + '/' + Date.now() + '-' + cvf.name.replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80), bucket = sb.storage.from('recruit-cvs');
-        var up = await bucket.upload(path, cvf, { contentType: CV_TYPES[ext], upsert: false }); if (up.error) throw new Error(up.error.message);
-        var rc = await sb.rpc('recruit_set_cv', { p_id: id, p_path: path, p_name: cvf.name });
-        if (rc.error) { try { await bucket.remove([path]); } catch (e0) { /* stray file, harmless */ } throw new Error(rc.error.message); }
+        await uploadCv({ id: id }, cvf, ext);
       } catch (e1) { console.error(e1); issues.push('the CV did not attach (' + (e1.message || 'error') + ')'); }
     }
     await window.renderRecruitment();
@@ -1301,6 +1309,15 @@
   function bind() {
     var el = main(); if (!el || el.__rctBound) return;
     el.__rctBound = true;
+    document.addEventListener('change', async function (e) {
+      var i = e.target; if (!i || !i.getAttribute || !i.getAttribute('data-attach') || !main() || !main().contains(i)) return;
+      var p = personById(i.getAttribute('data-attach')), f = i.files && i.files[0]; if (!p || !f) return;
+      var ext = (f.name.split('.').pop() || '').toLowerCase();
+      if (!CV_TYPES[ext] || f.size > 5242880) { i.value = ''; toast('The CV must be a PDF, Word file or picture, up to 5 MB.'); return; }
+      try { await uploadCv(p, f, ext); toast('CV attached to ' + (p.name || 'this person') + '.'); render(); }
+      catch (err) { console.error(err); toast('The CV did not attach: ' + (err.message || 'try again')); }
+      i.value = '';
+    });
     document.addEventListener('click', async function (e) {
       var pop = popEl();
       if (!pop.hidden && !pop.contains(e.target) && !(e.target.closest && e.target.closest('[data-fcol]'))) closePop();
