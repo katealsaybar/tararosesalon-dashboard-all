@@ -29,6 +29,8 @@ const ORG_CHART = [
           children: [
             { name: 'Hanneh Rose Rejas', role: 'Social Media Manager', photo: 'assets/org-chart/hanneh-rose-rejas.png' },
             { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA', photo: 'assets/org-chart/kate-alsaybar.png' },
+            // Kate, 16 Nov 2026: David is the Tech and Automations Head (no longer Paid Media with Leaders in Digital Media).
+            { name: 'David Nagtzaam', role: 'Tech and Automations Head', photo: 'assets/org-chart/david-nagtzaam.png' },
             {
               name: 'Emma-Louise Usher',
               role: 'General Manager',
