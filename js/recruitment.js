@@ -769,7 +769,7 @@
     return String(s).replace(/\{greeting\}/g, greeting).replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '$1').replace(/\*\*(.+?)\*\*/g, '$1');
   }
   // greeting: the text for the {greeting} line. Returns { subject, text, html } for one person, or for a bulk send (there = true).
-  function replyParts(p, there, greetingOverride, tplOverride, subjOverride) {
+  function replyParts(p, there, greetingOverride, tplOverride, subjOverride, sig) {
     var greeting = greetingOverride || greetingFor(p, there);
     var subject = subjOverride || String(setting('decline_subject', DEFAULT_SUBJECT) || DEFAULT_SUBJECT);
     var blocks = declineBlocks(tplOverride || setting('decline_template', DEFAULT_DECLINE) || DEFAULT_DECLINE);
@@ -782,20 +782,37 @@
     var signOff = sign.length ? '            <p style="margin:0;">' + mdInline(sign[0], greeting) + '</p>' : '';
     var nameDiv = sign.length > 1 ? RH_NAME.replace('Emma-Louise Usher', function () { return mdInline(sign[1], greeting); }) : '';
     var titleDivs = sign.slice(2).map(function (l) { return RH_TITLE.replace('General Manager, Tara Rose Salons', function () { return mdInline(l, greeting); }); });
-    var html = RH_HEAD.replace('Your application to Tara Rose Salons', function () { return esc(subject); }) + '\n' + paras.concat(signOff ? [signOff] : []).join('\n') + '\n' + RH_MID +
-      (nameDiv ? '\n' + nameDiv : '') + (titleDivs.length ? '\n' + titleDivs.join('\n') : '') + '\n' + RH_TAIL;
-    return { subject: subject, text: text, html: html };
+    var head = RH_HEAD.replace('Your application to Tara Rose Salons', function () { return esc(subject); });
+    if (sig) head = head.replace('.rule { border-color:#45464F !important; }', function () { return '.rule { border-color:#45464F !important; }\n    .sigrule { border-color:#FAF8F4 !important; }\n    .logo { filter:invert(1); }'; });
+    var html = head + '\n' + paras.concat(signOff ? [signOff] : []).join('\n') + '\n' + RH_MID +
+      (sig ? '\n' + sig.html : (nameDiv ? '\n' + nameDiv : '') + (titleDivs.length ? '\n' + titleDivs.join('\n') : '')) + '\n' + RH_TAIL;
+    return { subject: subject, text: text, html: html, textFull: sig ? text + '\n' + sig.text : text };
   }
   // Kate, 16 Nov 2026: the automatic email to a shortlisted support-role applicant (brand review of the wording: no BLOCK, soft notes applied; the number that will call is left out on purpose).
   // Same formatted layout and the same recruitment signature as the No reply (its last block), so changing the signature there changes it here. Sent from recruitment@ by
   // apps-script/send-recruitment-mail.gs after recruit_queue_email() queues it (migrations/recruit_shortlist_email.sql).
   var SL_SUBJECT = 'Thank you for applying to Tara Rose';
   var SL_BODY = '{greeting}\n\nThank you for applying to Tara Rose. We have shortlisted your application, and a member of our team will phone you to arrange your interview.\n\nPlease keep an eye out for a call from us.\n\nWe look forward to speaking with you.';
-  // Kate, 16 Nov 2026: this email is signed by the Recruitment Team, not by Coach Emma ("fix mo yung email sign off, wag si coach emma"). Its own sign-off block, no longer the last
-  // block of the No reply (that one stays Emma-Louise Usher).
-  var SL_SIGN = 'Warm regards,\nRecruitment Team\nTara Rose Salons';
+  // Kate, 16 Nov 2026: this email is signed by the Recruitment Team, not by Coach Emma ("fix mo yung email sign off, wag si coach emma"), laid out exactly like the signature in the
+  // recruitment@ Gmail ("gayahin yung format mismo"): logo, Recruitment (bold serif) Team (grey), globe + website link, black rule, the salon line, the branches, the hiring line.
+  // The brand name reads Tara Rose Salons with the s ("tara rose salons ah, with an s sa dulo"), and so does the logo (the SALONS logo, not the SALON one in the Gmail signature).
+  // The text that goes into Gmail by hand ends at "Warm regards," because Gmail adds this signature under it by itself; the automatic email carries the whole block.
+  var SL_SITE = 'https://www.tararosesalon.com/en/ae/';
+  var SL_LOGO = 'https://trk-salon-os.com/assets/email-logo-tp.png';
+  var SL_GLOBE = 'https://img.newoldstamp.com/t/8/w.png';
+  var SL_SIG_TEXT = 'Recruitment Team\ntararosesalon.com/en/ae/\n\nTara Rose Salons\nKhalifa City A | Saadiyat | Motor City | Al Quoz\nWe\u2019re hiring across Dubai & Abu Dhabi \u2192 tararosesalon.com/careers';
+  var SL_SIG_HTML =
+    '            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:350px;max-width:100%;">\n' +
+    '              <tr><td style="padding:0 0 8px 0;"><img class="logo" src="' + SL_LOGO + '" alt="Tara Rose Salons" width="110" style="display:block;width:110px;height:auto;border:0;"></td></tr>\n' +
+    '              <tr><td style="font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;font-size:20px;line-height:1.25;font-weight:bold;"><span class="ink" style="color:#030303;">Recruitment</span> <span style="color:#9B9B9B;">Team</span></td></tr>\n' +
+    '              <tr><td style="padding:2px 0 6px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.4;"><img src="' + SL_GLOBE + '" alt="" width="14" height="14" style="display:inline-block;vertical-align:middle;border:0;"> <a class="ink" href="' + SL_SITE + '" style="color:#030303;text-decoration:underline;">tararosesalon.com/en/ae/</a></td></tr>\n' +
+    '              <tr><td class="sigrule" style="border-top:2px solid #030303;height:0;font-size:0;line-height:0;">&nbsp;</td></tr>\n' +
+    '              <tr><td class="ink" style="padding:8px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#030303;">Tara Rose Salons</td></tr>\n' +
+    '              <tr><td class="ink" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#030303;">Khalifa City A | Saadiyat | Motor City | Al Quoz</td></tr>\n' +
+    '              <tr><td class="ink" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#030303;white-space:nowrap;">We\u2019re hiring across Dubai &amp; Abu Dhabi \u2192 <a href="' + CAREERS_URL + '" style="color:#1155CC;text-decoration:underline;">tararosesalon.com/careers</a></td></tr>\n' +
+    '            </table>';
   function shortlistEmailParts(p) {
-    return replyParts(p, false, null, SL_BODY + '\n\n' + SL_SIGN, SL_SUBJECT);
+    return replyParts(p, false, null, SL_BODY + '\n\nWarm regards,', SL_SUBJECT, { html: SL_SIG_HTML, text: SL_SIG_TEXT });
   }
   // Rich text on the clipboard so it pastes formatted into Gmail; plain text is the fallback part. Returns 'rich', 'plain' or ''.
   async function copyRich(html, text) {
@@ -857,11 +874,12 @@
     if (lineOpenRole(p)) {
       var rp = shortlistEmailParts(p), t2 = rp.text;
       openDlg('Tell ' + esc(firstName(p.name)) + ' to keep their line open',
-        '<div><div class="rct-lab">Reply, ready to send</div><pre class="rct-reply" id="rctReply">' + esc(t2) + '</pre></div>' +
+        '<div><div class="rct-lab">Reply, ready to send</div><pre class="rct-reply" id="rctReply">' + esc(t2) + '</pre><p class="rct-hint">In Gmail the Recruitment Team signature is added under Warm regards by itself.</p></div>' +
         (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : '') +
         '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="invite" data-id="' + esc(p.id) + '">Mark as invited</button><button type="button" class="rct-btn" data-act="copy">Copy reply</button></div>' +
         (p.email && !p.bounced ? '<a class="rct-btn rct-sm" href="' + esc(composeUrl(p.email, rp.subject, t2)) + '" target="_blank" rel="noopener">Open in Gmail from the recruitment inbox</a>' : '') +
         autoMailNote(p) +
+        '<div><div class="rct-lab">How the automatic email looks</div>' + previewFrame(rp.html, 520) + '</div>' +
         '<p class="rct-hint">The dashboard does not send this by hand. Send the reply (or let the automatic email go), then press Mark as invited so they move to Screening.</p>');
       return;
     }
@@ -1171,7 +1189,7 @@
     if (!p.is_test && (!p.email || p.bounced)) { toastLine(p.bounced ? 'No automatic email: their address bounced.' : 'No automatic email: no email address.'); return; }
     try {
       var rp = shortlistEmailParts(p);
-      var r = await sb.rpc('recruit_queue_email', { p_id: p.id, p_role: roleGroup(p), p_subject: rp.subject, p_html: rp.html, p_text: rp.text });
+      var r = await sb.rpc('recruit_queue_email', { p_id: p.id, p_role: roleGroup(p), p_subject: rp.subject, p_html: rp.html, p_text: rp.textFull || rp.text });
       if (r.error) throw new Error(r.error.message);
       var d = r.data || {};
       if (d.queued && d.test) toastLine('A test of the applicant email goes to your own address within 5 minutes.');
