@@ -178,6 +178,36 @@ function rctPickCv_(m) {
 function rctAttInfo_(m) {
   try { return m.getAttachments({ includeInlineImages: true, includeAttachments: true }).map(function (a) { return a.getName() + ' ' + Math.round(a.getSize() / 1024) + 'KB'; }).join('; '); } catch (e) { return 'unreadable: ' + e; }
 }
+// 16 Nov 2026 (Kate: "wala na nanaman cv oh"): GmailApp does not return some attachments at all (18 of 37 direct emails shown as No CV had a real file: phone pictures of a CV, docx,
+// a pdf; GmailApp saw none of them even with includeInlineImages), but the Gmail API lists every part with a file name. So when GmailApp finds nothing usable the same message is read
+// through the Gmail advanced service (enabled in the manifest: Gmail v1, scope gmail.readonly, nothing new to authorise) and its parts are walked. Same rules as rctPickCv_: CV-type
+// files only, 10 MB at most, pictures of 40 KB or more, a file named like a CV first, then pdf / doc / docx, then the largest picture.
+function rctScoreCv_(name, size) {
+  const ext = (String(name || '').split('.').pop() || '').toLowerCase();
+  if (!RCT_CV_EXT[ext] || size <= 0 || size > RCT_CV_MAX) return 0;
+  const doc = ext === 'pdf' || ext === 'doc' || ext === 'docx';
+  if (!doc && size < 40 * 1024) return 0;
+  return (/\bcv\b|resume|résumé|curriculum/i.test(name) ? 4 : 0) + (doc ? 2 : 1) + size / 1e9;
+}
+function rctApiParts_(msgId) {
+  const msg = Gmail.Users.Messages.get('me', msgId, { format: 'full' }), found = [];
+  (function walk(p) {
+    if (!p) return;
+    const fn = String(p.filename || ''), b = p.body || {};
+    if (fn && (b.attachmentId || b.data)) found.push({ name: fn, size: Number(b.size) || 0, attId: b.attachmentId || '', data: b.data || '' });
+    (p.parts || []).forEach(walk);
+  })(msg.payload);
+  return found;
+}
+// returns { name, bytes() } for the best CV file of the message, or null; rctPickCvApi_.seen says what the API listed (for the log)
+function rctPickCvApi_(msgId) {
+  const found = rctApiParts_(msgId);
+  rctPickCvApi_.seen = found.map(function (x) { return x.name + ' ' + Math.round(x.size / 1024) + 'KB'; }).join('; ');
+  let best = null, bestScore = 0;
+  found.forEach(function (x) { const sc = rctScoreCv_(x.name, x.size); if (sc > bestScore) { best = x; bestScore = sc; } });
+  if (!best) return null;
+  return { name: best.name, bytes: function () { return Utilities.base64DecodeWebSafe(best.data || Gmail.Users.Messages.Attachments.get('me', msgId, best.attId).data); } };
+}
 function rctUploadCvs_(jobs, t0) {
   const res = { direct_emails: jobs.length, uploaded: 0, already: 0, no_attachment: 0, refused: 0, failed: 0, left_for_next_run: 0 }, errs = [], refused = [];
   if (!jobs.length) return res;
@@ -194,18 +224,24 @@ function rctUploadCvs_(jobs, t0) {
     if (stored[j.id]) { res.already++; continue; }
     if (Date.now() - t0 > RCT_BUDGET_MS) { res.left_for_next_run = jobs.length - k; break; }
     const a = rctPickCv_(j.m);
-    if (!a) {
+    let pick = a ? { name: String(a.getName()), bytes: function () { return a.copyBlob().getBytes(); } } : null, apiErr = '';
+    if (!pick) {
+      rctPickCvApi_.seen = '';
+      try { pick = rctPickCvApi_(j.id); if (pick) res.via_api = (res.via_api || 0) + 1; } catch (e) { apiErr = ' | Gmail API: ' + e; }
+    }
+    if (!pick) {
       res.no_attachment++;
       // say WHY nothing was kept: no attachment at all, or files that were refused (type or size), so the next change is based on facts
-      const seen = rctAttInfo_(j.m);
+      const seen = (rctAttInfo_(j.m) || '') + (rctPickCvApi_.seen ? ' | API saw: ' + rctPickCvApi_.seen : '') + apiErr;
       if (seen) { res.refused++; if (refused.length < 12) refused.push(j.id + ' | ' + seen); }
+      rctPickCvApi_.seen = '';
       continue;
     }
     try {
       const r = UrlFetchApp.fetch(url, { method: 'post', muteHttpExceptions: true, contentType: 'application/octet-stream',
-        headers: { apikey: key, 'x-push-pass': pass, 'x-msg-id': j.id, 'x-file-name': encodeURIComponent(a.getName()) }, payload: a.copyBlob().getBytes() });
+        headers: { apikey: key, 'x-push-pass': pass, 'x-msg-id': j.id, 'x-file-name': encodeURIComponent(pick.name) }, payload: pick.bytes() });
       if (r.getResponseCode() === 200) res.uploaded++;
-      else { res.failed++; if (errs.length < 5) errs.push(j.id + ' ' + a.getName() + ': ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 120)); }
+      else { res.failed++; if (errs.length < 5) errs.push(j.id + ' ' + pick.name + ': ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 120)); }
     } catch (e) { res.failed++; if (errs.length < 5) errs.push(j.id + ': ' + e); }
   }
   if (errs.length) console.log('CV uploads that failed (first 5):\n' + errs.join('\n'));
