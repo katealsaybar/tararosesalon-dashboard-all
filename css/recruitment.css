@@ -101,12 +101,13 @@
 .rct-cwho{display:flex;gap:12px;align-items:center;min-width:0}
 .rct-tcount{font-size:14px;color:var(--muted)}
 .rct-tbox{border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:auto;max-height:min(70vh,760px)}
-.rct-table{border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
+.rct-table{--rct-aw:200px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
 .rct-table .rct-pill{white-space:nowrap;line-height:1.25;text-align:left;padding:3px 10px}
 .rct-table td{overflow-wrap:anywhere}
-.rct-table td.rct-c-acts{overflow-wrap:normal;white-space:nowrap}
+.rct-table td.rct-c-acts{overflow-wrap:normal;white-space:normal;width:var(--rct-aw);min-width:var(--rct-aw);max-width:var(--rct-aw)}
+.rct-table thead th:nth-child(1){width:var(--rct-aw);min-width:var(--rct-aw);max-width:var(--rct-aw)}
 /* Kate, 10 Nov 2026: the row buttons (Shortlist, No, Booked...) were too big for a table row: shorter and narrower. */
-.rct-table .rct-c-acts .rct-btn{display:inline-flex;margin:0 4px 0 0;width:auto;min-height:30px;border-radius:9px;padding:2px 9px;font-size:13px;border-width:1px}
+.rct-table .rct-c-acts .rct-btn{display:inline-flex;margin:0 4px 4px 0;width:auto;min-height:30px;border-radius:9px;padding:2px 9px;font-size:13px;border-width:1px}
 .rct-table thead th{position:sticky;top:0;z-index:5;background:var(--surface2);text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:0;border-bottom:1.5px solid var(--border);white-space:nowrap}
 .rct-th{display:flex;align-items:center;gap:2px;padding:6px 2px 6px 8px;min-height:46px}
 .rct-th.rct-sorted{color:var(--text)}
@@ -120,7 +121,7 @@
 .rct-table tbody td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle;background:var(--surface)}
 .rct-table tbody tr:hover td{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
 /* Kate, 10 Nov 2026: the strip between the photo and the name. A table column may shrink below its width to its contents (8 + 44 = 52), while the name column is frozen at left:56px, so 4px of the scrolled columns showed through. Padding 4px on the right makes the contents exactly 56. */
-.rct-table td.rct-c-av,.rct-table thead th:nth-child(1){width:56px;min-width:56px;max-width:56px}
+.rct-table td.rct-c-av,.rct-table thead th:nth-child(2){width:56px;min-width:56px;max-width:56px}
 .rct-table td.rct-c-av{padding-right:4px}
 .rct-table td.rct-c-name{min-width:112px}
 .rct-table td.rct-c-cv{overflow-wrap:normal;white-space:nowrap;min-width:92px}
@@ -132,10 +133,19 @@
 .rct-table tr.rct-dtl td{background:var(--bg)}
 .rct-table tr.rct-dtl .rct-rowdetail{background:var(--surface2)}
 /* like Google Sheets: wider than its box (a narrower window or a phone), it scrolls sideways inside the box, the header stays on top, photo and name stay frozen */
-.rct-table td.rct-c-av,.rct-table thead th:nth-child(1){position:sticky;left:0;z-index:3}
-.rct-table td.rct-c-name,.rct-table thead th:nth-child(2){position:sticky;left:56px;z-index:3;box-shadow:6px 0 8px -6px rgba(0,0,0,.25)}
-.rct-table thead th:nth-child(1),.rct-table thead th:nth-child(2){z-index:7}
-.rct-table tbody tr:hover td.rct-c-av,.rct-table tbody tr:hover td.rct-c-name{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+/* Kate, 16 Nov 2026: Application Status is the first frozen column, then the photo and the name (the first two: status, name). On a phone only the photo and name stay frozen. */
+.rct-table td.rct-c-acts,.rct-table thead th:nth-child(1){position:sticky;left:0;z-index:3}
+.rct-table td.rct-c-av,.rct-table thead th:nth-child(2){position:sticky;left:var(--rct-aw);z-index:3}
+.rct-table td.rct-c-name,.rct-table thead th:nth-child(3){position:sticky;left:calc(var(--rct-aw) + 56px);z-index:3;box-shadow:6px 0 8px -6px rgba(0,0,0,.25)}
+.rct-table thead th:nth-child(1),.rct-table thead th:nth-child(2),.rct-table thead th:nth-child(3){z-index:7}
+.rct-table tbody tr:hover td.rct-c-acts,.rct-table tbody tr:hover td.rct-c-av,.rct-table tbody tr:hover td.rct-c-name{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+@media (max-width:700px){
+  .rct-table td.rct-c-acts,.rct-table thead th:nth-child(1){position:static}
+  .rct-table td.rct-c-av,.rct-table thead th:nth-child(2){left:0}
+  .rct-table td.rct-c-name,.rct-table thead th:nth-child(3){left:56px}
+  .rct-table{--rct-aw:0px}
+  .rct-table td.rct-c-acts,.rct-table thead th:nth-child(1){width:auto;min-width:170px;max-width:none}
+}
 .rct-pop{position:fixed;z-index:3500;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 60px -16px rgba(0,0,0,.45);padding:10px;display:grid;gap:8px;max-width:calc(100vw - 16px)}
 .rct-pop[hidden]{display:none}
 .rct-sortrow{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -233,7 +243,7 @@
 .rct-badph{color:var(--rct-amber)}
 /* Kate, 11 Nov 2026: the Look panel under a List row stays in view when the table is scrolled right: it is as wide as the visible table (--rct-vw, set by the page) and sticks to the left edge */
 .rct-table tr.rct-dtl td{padding:0}
-.rct-dtlin{position:sticky;left:0;box-sizing:border-box;width:var(--rct-vw,100%);padding:8px 8px 8px 64px}
+.rct-dtlin{position:sticky;left:0;box-sizing:border-box;width:var(--rct-vw,100%);padding:8px 8px 8px calc(var(--rct-aw) + 64px)}
 /* Kate, 11 Nov 2026: the CV viewer (a stored CV opens inside the page, never on a supabase.co link) */
 .rct-dlg.rct-wide{width:min(980px,calc(100vw - 24px))}
 .rct-cvframe{display:block;width:100%;height:calc(100vh - 190px);min-height:360px;border:0;border-radius:12px;background:#fff}
