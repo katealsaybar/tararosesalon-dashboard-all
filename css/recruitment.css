@@ -101,10 +101,10 @@
 .rct-cwho{display:flex;gap:12px;align-items:center;min-width:0}
 .rct-tcount{font-size:14px;color:var(--muted)}
 .rct-tbox{border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:auto;max-height:min(70vh,760px)}
-.rct-table{--rct-aw:200px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
+.rct-table{--rct-aw:156px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:14px}
 .rct-table .rct-pill{white-space:nowrap;line-height:1.25;text-align:left;padding:3px 10px}
 .rct-table td{overflow-wrap:anywhere}
-.rct-table td.rct-c-acts{overflow-wrap:normal;white-space:normal;width:var(--rct-aw);min-width:var(--rct-aw);max-width:var(--rct-aw)}
+.rct-table td.rct-c-acts{overflow-wrap:normal;white-space:normal;text-align:center;width:var(--rct-aw);min-width:var(--rct-aw);max-width:var(--rct-aw)}
 .rct-table thead th:nth-child(1){width:var(--rct-aw);min-width:var(--rct-aw);max-width:var(--rct-aw)}
 /* Kate, 10 Nov 2026: the row buttons (Shortlist, No, Booked...) were too big for a table row: shorter and narrower. */
 .rct-table .rct-c-acts .rct-btn{display:inline-flex;margin:0 4px 4px 0;width:auto;min-height:30px;border-radius:9px;padding:2px 9px;font-size:13px;border-width:1px}
@@ -121,9 +121,9 @@
 .rct-table tbody td{padding:8px;border-bottom:1px solid var(--border);vertical-align:middle;background:var(--surface)}
 .rct-table tbody tr:hover td{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
 /* Kate, 10 Nov 2026: the strip between the photo and the name. A table column may shrink below its width to its contents (8 + 44 = 52), while the name column is frozen at left:56px, so 4px of the scrolled columns showed through. Padding 4px on the right makes the contents exactly 56. */
-.rct-table td.rct-c-av,.rct-table thead th:nth-child(2){width:56px;min-width:56px;max-width:56px}
+.rct-table td.rct-c-av{width:56px;min-width:56px;max-width:56px}
 .rct-table td.rct-c-av{padding-right:4px}
-.rct-table td.rct-c-name{min-width:112px}
+.rct-table td.rct-c-name{min-width:150px}
 .rct-table td.rct-c-cv{overflow-wrap:normal;white-space:nowrap;min-width:92px}
 .rct-cellbtn{border:0;background:transparent;padding:2px 4px;margin:-2px -4px;border-radius:6px;cursor:pointer;text-align:left;font-weight:inherit;color:inherit;white-space:normal}
 .rct-cellbtn:hover{background:var(--rct-tealbg);color:var(--rct-teal)}
@@ -135,14 +135,20 @@
 /* like Google Sheets: wider than its box (a narrower window or a phone), it scrolls sideways inside the box, the header stays on top, photo and name stay frozen */
 /* Kate, 16 Nov 2026: Application Status is the first frozen column, then the photo and the name (the first two: status, name). On a phone only the photo and name stay frozen. */
 .rct-table td.rct-c-acts,.rct-table thead th:nth-child(1){position:sticky;left:0;z-index:3}
-.rct-table td.rct-c-av,.rct-table thead th:nth-child(2){position:sticky;left:var(--rct-aw);z-index:3}
-.rct-table td.rct-c-name,.rct-table thead th:nth-child(3){position:sticky;left:calc(var(--rct-aw) + 56px);z-index:3;box-shadow:6px 0 8px -6px rgba(0,0,0,.25)}
-.rct-table thead th:nth-child(1),.rct-table thead th:nth-child(2),.rct-table thead th:nth-child(3){z-index:7}
+.rct-table td.rct-c-av{position:sticky;left:var(--rct-aw);z-index:3}
+.rct-table td.rct-c-name{position:sticky;left:calc(var(--rct-aw) + 56px);z-index:3;box-shadow:6px 0 8px -6px rgba(0,0,0,.25)}
+.rct-table thead th.rct-thname{position:sticky;left:var(--rct-aw);z-index:7;box-shadow:6px 0 8px -6px rgba(0,0,0,.25)}
+.rct-table thead th:nth-child(1){z-index:7}
+/* the Name title is centred over the photo and the name together, the Application Status title over its buttons; the funnel stays at the right edge */
+.rct-thname .rct-th,.rct-thacts .rct-th{justify-content:center;position:relative}
+.rct-thname .rct-th{padding-left:34px;padding-right:34px}
+.rct-thname .rct-fbtn{position:absolute;right:2px;top:50%;margin-top:-17px}
 .rct-table tbody tr:hover td.rct-c-acts,.rct-table tbody tr:hover td.rct-c-av,.rct-table tbody tr:hover td.rct-c-name{background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
 @media (max-width:700px){
   .rct-table td.rct-c-acts,.rct-table thead th:nth-child(1){position:static}
-  .rct-table td.rct-c-av,.rct-table thead th:nth-child(2){left:0}
-  .rct-table td.rct-c-name,.rct-table thead th:nth-child(3){left:56px}
+  .rct-table td.rct-c-av{left:0}
+  .rct-table td.rct-c-name{left:56px}
+  .rct-table thead th.rct-thname{left:0}
   .rct-table{--rct-aw:0px}
   .rct-table td.rct-c-acts,.rct-table thead th:nth-child(1){width:auto;min-width:170px;max-width:none}
 }

@@ -657,8 +657,9 @@
       '. Click a value to filter by it, or use the funnel on a column.' + (Object.keys(S.filters).length ? ' <button type="button" class="rct-linkbtn" data-act="clearfilters">Clear all filters</button>' : '') + '</div>';
     h += '<div class="rct-tbox" id="rctTbox"><table class="rct-table"><thead><tr>';
     COLS.forEach(function (c) {
+      if (c.k === 'av') return;   // Kate, 16 Nov 2026: the photo has no title of its own, the Name title spans the photo and the name and sits in the middle of the two
       var sorted = S.sort.col === c.k, act = !!S.filters[c.k] || sorted;
-      h += '<th><div class="rct-th' + (sorted ? ' rct-sorted' : '') + '">' + esc(c.t) + (sorted ? '<span class="rct-sortmark">' + (S.sort.dir === 'asc' ? '&#9650;' : '&#9660;') + '</span>' : '') +
+      h += '<th' + (c.k === 'name' ? ' colspan="2" class="rct-thname"' : c.k === 'acts' ? ' class="rct-thacts"' : '') + '><div class="rct-th' + (sorted ? ' rct-sorted' : '') + '">' + esc(c.t) + (sorted ? '<span class="rct-sortmark">' + (S.sort.dir === 'asc' ? '&#9650;' : '&#9660;') + '</span>' : '') +
         (c.nofilter ? '' : '<button type="button" class="rct-fbtn' + (act ? ' rct-act' : '') + '" data-fcol="' + c.k + '" aria-label="Filter and sort ' + esc(c.t) + '" aria-haspopup="true">' + ICON_FILTER + '</button>') + '</div></th>';
     });
     h += '</tr></thead><tbody>';
