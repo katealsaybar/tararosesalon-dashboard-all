@@ -844,20 +844,20 @@
 
   function autoMailNote(p) {
     return setting('shortlist_email_enabled', false) && notifyRole(roleGroup(p)) && p.email && !p.bounced
-      ? '<p class="rct-amberbox">They are also getting an automatic email from the recruitment inbox saying the team will phone them. The invite below is only if you want them to book a time.</p>' : '';
+      ? '<p class="rct-amberbox">This same email also goes to them automatically from the recruitment inbox, so there is nothing to send by hand.</p>' : '';
   }
+  // Kate, 16 Nov 2026: the invite is not a Zoom booking link. Everyone shortlisted is only told to keep their line open and that someone from the team will reach out,
+  // so the reply here is the same wording as the automatic shortlist email (SL_BODY plus the recruitment signature). The booking link is no longer part of this dialog.
   function shortDialog(id) {
     var p = personById(id); if (!p) return;
-    var txt = fill(setting('invite_template', ''), p), hasLink = !!setting('booking_link', '');
-    openDlg('Invite ' + esc(firstName(p.name)) + ' to interview',
-      '<div><div class="rct-lab">Booking link</div>' + (hasLink ? '<p class="rct-linkline">' + esc(setting('booking_link', '')) + '</p>' : '<p class="rct-amberbox">Not set yet. <button type="button" class="rct-linkbtn" data-act="settings">Set the booking link</button></p>') + '</div>' +
-      '<div><div class="rct-lab">Reply, ready to send</div><pre class="rct-reply" id="rctReply">' + esc(txt) + '</pre>' +
-      (setting('templates_confirmed', false) ? '' : '<p class="rct-hint">Placeholder wording until you save your own under Booking link and replies. Every template goes through the brand review before it is used.</p>') + '</div>' +
+    var rp = shortlistEmailParts(p), txt = rp.text;
+    openDlg('Tell ' + esc(firstName(p.name)) + ' to keep their line open',
+      '<div><div class="rct-lab">Reply, ready to send</div><pre class="rct-reply" id="rctReply">' + esc(txt) + '</pre>' + NO_WORDS() + '</div>' +
       (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : '') +
       '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="invite" data-id="' + esc(p.id) + '">Mark as invited</button><button type="button" class="rct-btn" data-act="copy">Copy reply</button></div>' +
-      (p.email && !p.bounced ? '<a class="rct-btn rct-sm" href="' + esc(composeUrl(p.email, 'Your application to Tara Rose', txt)) + '" target="_blank" rel="noopener">Open in Gmail from the recruitment inbox</a>' : '') +
+      (p.email && !p.bounced ? '<a class="rct-btn rct-sm" href="' + esc(composeUrl(p.email, rp.subject, txt)) + '" target="_blank" rel="noopener">Open in Gmail from the recruitment inbox</a>' : '') +
       autoMailNote(p) +
-      '<p class="rct-hint">The dashboard does not send this invite. Send the reply, then press Mark as invited so they move to Screening.</p>');
+      '<p class="rct-hint">The dashboard does not send this by hand. Send the reply (or let the automatic email go), then press Mark as invited so they move to Screening.</p>');
   }
   // Only people someone has looked at: the reply says "I have reviewed your application", so it must be true for every one of them.
   function bulkReviewed(g) { return (noGroups()[g] || []).filter(isReviewed); }
