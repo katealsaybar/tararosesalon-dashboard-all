@@ -1072,6 +1072,22 @@
     if (msg) toast(msg, true);
     return true;
   }
+  // Kate, 16 Nov 2026: Shortlist on a Front Desk / Reception or Hair Assistant applicant also tells the interviewers (ate Jho and ate Frans) on WhatsApp, from the main number,
+  // through the staff WhatsApp queue (migrations/recruit_shortlist_notify.sql). It never blocks the Shortlist itself, and the database sends it once per person.
+  var NOTIFY_ROLES = { 'Front Desk / Reception': 1, 'Hair Assistant': 1 };
+  async function notifyShortlist(id) {
+    var p = personById(id); if (!p || !NOTIFY_ROLES[roleGroup(p)] || !setting('notify_enabled', false)) return;
+    try {
+      var r = await sb.rpc('recruit_shortlist_notify', { p_id: p.id, p_role: roleGroup(p) });
+      if (r.error) throw new Error(r.error.message);
+      var d = r.data || {}, who = (d.names || []).join(' and ');
+      if (d.queued) toast(who + ' will get the WhatsApp to interview ' + firstName(p.name) + (d.sends_now ? ' now.' : ' from ' + (d.hour_from || 9) + ':00 in the morning (Dubai).'));
+      else if ((d.skipped || []).length && d.skipped.every(function (x) { return x.reason === 'already told'; })) toast('The interviewers were already told about ' + firstName(p.name) + '.');
+      else if (d.reason === 'template_not_approved') toast('Shortlisted. The WhatsApp to the interviewers did not go: the message is not approved by Meta yet.');
+      else if (d.reason && d.reason !== 'role' && d.reason !== 'off') toast('Shortlisted. The WhatsApp to the interviewers did not go (' + d.reason.replace(/_/g, ' ') + ').');
+      else if ((d.skipped || []).length) toast('Shortlisted. WhatsApp did not go to ' + d.skipped.map(function (x) { return x.name + ' (' + x.reason + ')'; }).join(', ') + '.');
+    } catch (e) { console.error(e); toast('Shortlisted, but the WhatsApp to the interviewers did not go: ' + (e.message || 'try again')); }
+  }
   async function undo() {
     var prev = UNDO.pop(); if (!prev) return;
     var groups = {};
@@ -1120,7 +1136,7 @@
         closePop(); render(); return;
       }
       var a = t.getAttribute('data-act'), id = t.getAttribute('data-id'), g = t.getAttribute('data-g'), p = id ? personById(id) : null;
-      if (a === 'short') shortDialog(id);
+      if (a === 'short') { var wasNew = p && p.stage === 'new'; shortDialog(id); if (wasNew) notifyShortlist(id); }
       else if (a === 'invite') { if (await setStage([id], 'screening', 'Moved to Screening.')) closeDlg(); }
       else if (a === 'booked') setStage([id], 'interview_booked', 'Moved to Interview booked.');
       // No: the person is marked Not now (that also counts as reviewed), then the reply is offered. Nothing is sent by the site.
@@ -1223,6 +1239,14 @@
       console.error(e); C = null; loadErr = 'The applicants could not be read just now (' + (e.message || 'unknown') + '). Refresh the page to try again.';
     }
     if (main() && main().offsetParent !== null) render();
+    // the link in the interviewers' WhatsApp: ?view=recruitment&cand=<id> opens that person's details (and the CV button) once
+    try {
+      var cand = new URLSearchParams(location.search).get('cand'), cp = cand && personById(cand);
+      if (cp && !openRows[cp.id] && !renderRecruitment.__candDone) {
+        renderRecruitment.__candDone = true; S.lane = null; S.filters = {}; openRows[cp.id] = true; render();
+        var cel = main() && main().querySelector('[data-id="' + cp.id + '"]'); if (cel && cel.scrollIntoView) cel.scrollIntoView({ block: 'center' });
+      }
+    } catch (e) { /* the link is a convenience, never an error */ }
   };
   // only used by the local test harness (it sets window.__RCT_TEST__ first); nothing on the live site sets it
   if (window.__RCT_TEST__) window.__rctTest = { replyParts: replyParts, greetingFor: greetingFor, setSettings: function (s) { settings = s; } };
