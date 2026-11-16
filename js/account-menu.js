@@ -2,7 +2,7 @@
    (name, email, level, View as, Reports, Light mode, Sign out) and adds three shortcuts she used to reach through Team Home > Tools:
      1. This page: Live / Under construction / Hidden, with a note, for the page she is on (the same page_status_set as Hide Pages & Under Construction, so the two stay in step);
      2. Rearrange menu: opens Rearrange Menu (sections, sub-sections, pages; nav-layout.js);
-     3. Page access for a person: opens one page, or several, for one person whatever their level (dashboard_users.extra_pages, through page_access_people and
+     3. Page access for a person: opens one page, or several, for one person or several people at once, whatever their level (dashboard_users.extra_pages, through page_access_people and
         page_access_person_set; pages.js trsPageOpen honours extras at every level below 5).
    Kate, 12 Nov 2026 (second pass, "i meant ALL"): the same three shortcuts are in Team Home's own account menu and in every page that uses it (trsAcctExtras.mount, loaded by hub.js KB.loadAcct, Level 6 only);
    the Search page and Marketing, which have a bare Sign out button of their own, get the whole menu (trsAccountMenu with an anchor).
@@ -166,15 +166,33 @@
     else if (a === 'out') { if (typeof doLogout === 'function') doLogout(); }
   }
 
-  /* ── Page access for a person ────────────────────────────────────────── */
-  var A = { people: [], who: 0, q: '', only: true, root: null };
+  /* ── Page access for a person (one or several people at once, Kate 16 Nov 2026: "i should be able to select multiple") ───────────────────────── */
+  var A = { people: [], sel: {}, q: '', pq: '', only: true, root: null };
 
-  function person() { return A.people[A.who] || null; }
+  function selected() { return A.people.filter(function (p) { return A.sel[p.email]; }); }
   function hasExtra(p, id) { return (p.pages || []).indexOf(id) >= 0; }
+  function firstOf(p) { return (p.name || p.email || 'They').split(/[\s(]/)[0]; }
+  function joinNames(ps) { var n = ps.map(firstOf); return n.length < 2 ? (n[0] || '') : n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1]; }
+  // how one page stands for the people ticked: who has it opened for them alone, who already gets it from their level, who still lacks it
+  function standing(pg, ps) {
+    var own = [], lvl = [], lack = [];
+    ps.forEach(function (p) { if (hasExtra(p, pg.id)) own.push(p); else if (trsPageOpen(pg.id, p.level, [])) lvl.push(p); else lack.push(p); });
+    return { own: own, lvl: lvl, lack: lack };
+  }
+
+  function peopleRows() {
+    var needle = A.pq.trim().toLowerCase();
+    var rows = A.people.filter(function (p) { return !needle || ((p.name || '') + ' ' + (p.email || '')).toLowerCase().indexOf(needle) >= 0; }).map(function (p) {
+      return '<label class="acm-row acm-prow" data-email="' + esc(p.email) + '"><input type="checkbox"' + (A.sel[p.email] ? ' checked' : '') + ' aria-label="' + esc(p.name || p.email) + '">' +
+        '<span class="acm-nm">' + esc(p.name || p.email) + '<small>Level ' + lvNo(p.level) + ', ' + esc(LV_NAME[p.level] || '') + '</small></span></label>';
+    }).join('');
+    return rows || '<p class="acm-empty">Nobody matches that search.</p>';
+  }
 
   function accessRows() {
-    var p = person(), needle = A.q.trim().toLowerCase(), cur = curView(), groups = [], by = {};
-    if (!p) return '<p class="acm-empty">No one on the dashboard list yet.</p>';
+    var ps = selected(), needle = A.q.trim().toLowerCase(), cur = curView(), groups = [], by = {};
+    if (!A.people.length) return '<p class="acm-empty">No one on the dashboard list yet.</p>';
+    if (!ps.length) return '<p class="acm-empty">Tick one or more people above to see their pages.</p>';
     pageList().forEach(function (pg) {
       if (needle && (pg.label + ' ' + (pg.group || '') + ' ' + (pg.sub || '')).toLowerCase().indexOf(needle) < 0) return;
       var g = pg.group || 'Other';
@@ -184,16 +202,19 @@
     if (!groups.length) return '<p class="acm-empty">Nothing matches that search.</p>';
     var html = groups.map(function (g) {
       var rows = by[g].map(function (pg) {
-        var own = hasExtra(p, pg.id);
-        var hidden = statusOf(pg.id) === 'hidden';
-        var byLevel = !own && trsPageOpen(pg.id, p.level, []);   // already opened by their level (and the ticks on Page Access)
-        if (byLevel && A.only) return '';
-        var note = hidden ? 'Hidden: only you can open it' : byLevel ? 'Their level already opens it' : '';
-        return '<label class="acm-row' + (hidden || byLevel ? ' dim' : '') + (pg.id === cur ? ' here' : '') + '" data-id="' + esc(pg.id) + '">' +
-          '<input type="checkbox"' + (own || byLevel ? ' checked' : '') + (hidden || byLevel ? ' disabled' : '') + ' aria-label="' + esc(pg.label) + '">' +
+        var st = standing(pg, ps), n = ps.length, hidden = statusOf(pg.id) === 'hidden';
+        var done = st.own.length + st.lvl.length;                    // people for whom the page is already open, by their own tick or by their level
+        var allByLevel = st.lvl.length === n;                         // nothing to do for anyone ticked
+        if (allByLevel && A.only) return '';
+        var all = done === n, some = done > 0 && !all;
+        var note = hidden ? 'Hidden: only you can open it' : allByLevel ? (n > 1 ? 'Their levels already open it' : 'Their level already opens it') : '';
+        var tag = note ? '<em class="acm-note">' + note + '</em>'
+          : st.own.length === n ? '<em class="acm-own">Opened for them</em>'
+          : n > 1 && done ? '<em class="acm-note">Open for ' + done + ' of ' + n + '</em>' : st.own.length ? '<em class="acm-own">Opened for them</em>' : '';
+        return '<label class="acm-row' + (hidden || allByLevel ? ' dim' : '') + (pg.id === cur ? ' here' : '') + '" data-id="' + esc(pg.id) + '">' +
+          '<input type="checkbox"' + (all ? ' checked' : '') + (some ? ' data-some="1"' : '') + (hidden || allByLevel ? ' disabled' : '') + ' aria-label="' + esc(pg.label) + '">' +
           '<span class="acm-nm">' + esc(pg.label) + (pg.sub ? '<small>' + esc(pg.sub) + '</small>' : '') + '</span>' +
-          (pg.id === cur ? '<em class="acm-here">You are here</em>' : '') +
-          (note ? '<em class="acm-note">' + note + '</em>' : own ? '<em class="acm-own">Opened for them</em>' : '') + '</label>';
+          (pg.id === cur ? '<em class="acm-here">You are here</em>' : '') + tag + '</label>';
       }).join('');
       return rows ? '<div class="acm-grp">' + esc(g) + '</div>' + rows : '';
     }).join('');
@@ -201,17 +222,21 @@
   }
 
   function accessHead() {
-    var p = person();
-    var scoped = p && p.scope ? '<p class="acm-warn">This is a ' + esc(p.scope === 'BAH' ? 'Bahrain' : p.scope) + ' sign-in: only that branch’s pages show, whatever is ticked.</p>' : '';
-    return scoped;
+    return selected().filter(function (p) { return p.scope; }).map(function (p) {
+      return '<p class="acm-warn">' + esc(firstOf(p)) + ' has a ' + esc(p.scope === 'BAH' ? 'Bahrain' : p.scope) + ' sign-in: only that branch’s pages show, whatever is ticked.</p>';
+    }).join('');
   }
 
   function paintAccess() {
     var r = A.root; if (!r) return;
-    r.querySelector('.acm-list').innerHTML = accessRows();
+    var ps = selected(), l = r.querySelector('.acm-pages');
+    l.innerHTML = accessRows();
+    l.querySelectorAll('input[data-some]').forEach(function (cb) { cb.indeterminate = true; });   // some of the people ticked have it, not all
     r.querySelector('.acm-scope').innerHTML = accessHead();
-    var p = person(), n = p ? (p.pages || []).length : 0;
-    r.querySelector('.acm-count').textContent = p ? (n ? n + ' page' + (n > 1 ? 's' : '') + ' opened for ' + (p.name || 'them').split(/[\s(]/)[0] + ' alone' : 'Nothing opened for ' + (p.name || 'them').split(/[\s(]/)[0] + ' alone yet') : '';
+    var cnt = r.querySelector('.acm-count');
+    if (!ps.length) cnt.textContent = 'Nobody ticked yet';
+    else if (ps.length === 1) { var n = (ps[0].pages || []).length, f = firstOf(ps[0]); cnt.textContent = n ? n + ' page' + (n > 1 ? 's' : '') + ' opened for ' + f + ' alone' : 'Nothing opened for ' + f + ' alone yet'; }
+    else cnt.textContent = ps.length + ' people ticked: ' + joinNames(ps) + '. A tick opens the page for all of them.';
   }
 
   function aSay(t, bad) {
@@ -224,7 +249,7 @@
     var root = document.createElement('div');
     root.className = 'acm'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Page access for a person');
     root.innerHTML = '<div class="acm-card"><div class="acm-head"><div><div class="acm-title">Page access for a person</div>' +
-      '<div class="acm-sub">Open pages for one person, whatever their level.</div></div><button type="button" class="acm-x" aria-label="Close">&times;</button></div>' +
+      '<div class="acm-sub">Open pages for one person or several, whatever their level.</div></div><button type="button" class="acm-x" aria-label="Close">&times;</button></div>' +
       '<div class="acm-body"><p class="acm-load">Loading the team…</p></div></div>';
     document.body.appendChild(root); A.root = root;
     function shut() { document.removeEventListener('keydown', onKey, true); root.remove(); A.root = null; }
@@ -235,32 +260,44 @@
     var r = await S.sb.rpc('page_access_people');
     var body = root.querySelector('.acm-body');
     if (r.error || !Array.isArray(r.data)) { body.innerHTML = '<p class="acm-warn">Could not load the team: ' + esc((r.error && r.error.message) || 'try again') + '.</p>'; return; }
-    A.people = r.data; A.who = 0; A.q = ''; A.only = true;
+    A.people = r.data; A.sel = {}; A.q = ''; A.pq = ''; A.only = true;
     body.innerHTML =
-      '<label class="acm-lab" for="acmWho">Person</label>' +
-      '<select id="acmWho" class="acm-sel">' + A.people.map(function (p, i) {
-        return '<option value="' + i + '">' + esc(p.name || p.email) + ' · Level ' + lvNo(p.level) + ', ' + esc(LV_NAME[p.level] || '') + '</option>';
-      }).join('') + '</select>' +
+      '<label class="acm-lab" for="acmPq">People (tick one or more)</label>' +
+      '<input type="search" id="acmPq" class="acm-q" placeholder="Search people" aria-label="Search people" autocomplete="off">' +
+      '<div class="acm-list acm-plist" role="group" aria-label="People"></div>' +
       '<div class="acm-count" aria-live="polite"></div><div class="acm-scope"></div>' +
-      '<input type="search" class="acm-q" placeholder="Search pages" aria-label="Search pages" autocomplete="off">' +
+      '<input type="search" class="acm-q acm-pgq" placeholder="Search pages" aria-label="Search pages" autocomplete="off">' +
       '<label class="acm-only"><input type="checkbox" id="acmOnly" checked> Only pages they cannot open yet</label>' +
-      '<div class="acm-list" role="group" aria-label="Pages"></div>' +
+      '<div class="acm-list acm-pages" role="group" aria-label="Pages"></div>' +
       '<div class="acm-say" role="status" aria-live="polite"></div>' +
       '<p class="acm-fine">The page opens for them whatever their level. A page whose numbers are held back by the database for a higher level can still say “Level 3 and above” until that page’s data is opened too; tell me which page and it gets done. Someone not on this list is added first in <a href="/hub/roster">Staff Roster &amp; Access</a>.</p>';
-    paintAccess();
-    var here = root.querySelector('.acm-row.here'); if (here) here.scrollIntoView({ block: 'nearest' });
-    body.querySelector('#acmWho').addEventListener('change', function (e) { A.who = +e.target.value; A.q = ''; body.querySelector('.acm-q').value = ''; aSay(''); paintAccess(); });
-    body.querySelector('.acm-q').addEventListener('input', function (e) { A.q = e.target.value; paintAccess(); });
+    function paintPeople() { body.querySelector('.acm-plist').innerHTML = peopleRows(); }
+    paintPeople(); paintAccess();
+    body.querySelector('#acmPq').addEventListener('input', function (e) { A.pq = e.target.value; paintPeople(); });
+    body.querySelector('.acm-plist').addEventListener('change', function (e) {
+      var row = e.target.closest && e.target.closest('.acm-prow'); if (!row) return;
+      var em = row.getAttribute('data-email'); if (e.target.checked) A.sel[em] = true; else delete A.sel[em];
+      aSay(''); paintAccess();
+    });
+    body.querySelector('.acm-pgq').addEventListener('input', function (e) { A.q = e.target.value; paintAccess(); });
     body.querySelector('#acmOnly').addEventListener('change', function (e) { A.only = e.target.checked; paintAccess(); });
-    body.querySelector('.acm-list').addEventListener('change', async function (e) {
-      var cb = e.target, row = cb.closest && cb.closest('.acm-row'), p = person(); if (!row || !p) return;
-      var id = row.getAttribute('data-id'), on = cb.checked;
+    body.querySelector('.acm-pages').addEventListener('change', async function (e) {
+      var cb = e.target, row = cb.closest && cb.closest('.acm-row'), ps = selected(); if (!row || !ps.length) return;
+      var id = row.getAttribute('data-id'), on = cb.checked, st = standing({ id: id }, ps);
+      var todo = on ? st.lack : st.own;                      // turning on: only those who lack it; turning off: only those who hold it by their own tick
+      if (!todo.length) { paintAccess(); return; }
       cb.disabled = true;
-      var res = await S.sb.rpc('page_access_person_set', { p_email: p.email, p_page: id, p_on: on });
-      if (res.error) { cb.checked = !on; cb.disabled = false; aSay('Not saved: ' + (res.error.message || 'try again') + '.', true); return; }
-      p.pages = (p.pages || []).filter(function (x) { return x !== id; });
-      if (on) p.pages.push(id);
-      aSay((p.name || 'They').split(/[\s(]/)[0] + (on ? ' can now open ' : ' no longer has ') + trsPageLabel(id) + (on ? '.' : ' opened for them alone.'));
+      var done = [], failed = [], msg = '';
+      for (var i = 0; i < todo.length; i++) {
+        var res = await S.sb.rpc('page_access_person_set', { p_email: todo[i].email, p_page: id, p_on: on });
+        if (res.error) { failed.push(todo[i]); msg = res.error.message || ''; continue; }
+        todo[i].pages = (todo[i].pages || []).filter(function (x) { return x !== id; });
+        if (on) todo[i].pages.push(id);
+        done.push(todo[i]);
+      }
+      var label = trsPageLabel(id);
+      if (failed.length) aSay('Not saved for ' + joinNames(failed) + ': ' + (msg || 'try again') + '.' + (done.length ? ' Saved for ' + joinNames(done) + '.' : ''), true);
+      else aSay(joinNames(done) + (on ? ' can now open ' + label + '.' : (done.length > 1 ? ' no longer have ' : ' no longer has ') + label + ' opened for them alone.'));
       paintAccess();
     });
   }

@@ -640,9 +640,9 @@
     if (KB._acct) return KB._acct;
     var needPages = typeof TRS_PAGES === 'undefined';
     function js(src) { return new Promise(function (ok) { var sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }); }
-    var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/css/account-menu.css?v=fa57d46e'; document.head.appendChild(css);
+    var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/css/account-menu.css?v=abc986e2'; document.head.appendChild(css);
     KB._acct = (needPages ? js('/js/pages.js?v=8c32be72') : Promise.resolve())
-      .then(function () { return js('/js/account-menu.js?v=4c13e7f1'); })
+      .then(function () { return js('/js/account-menu.js?v=39e1bb7f'); })
       .then(function () { if (needPages && typeof trsAccessLoad === 'function') return trsAccessLoad(c); });
     return KB._acct;
   };
