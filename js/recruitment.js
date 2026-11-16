@@ -313,10 +313,9 @@
     h += '<div class="rct-bar"><label class="rct-find"><span class="rct-sr">Find someone</span><input type="search" id="rctFind" placeholder="Find someone by name, email or country" value="' + esc(q) + '" autocomplete="off"></label>' +
          segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
 
-    if (!setting('booking_link', '') || !setting('templates_confirmed', false) || !setting('decline_confirmed', false)) {
+    if (!setting('booking_link', '') || !setting('templates_confirmed', false)) {
       h += '<p class="rct-note rct-amberbox">' + (!setting('booking_link', '') ? 'The booking link is not set yet. ' : '') +
            (!setting('templates_confirmed', false) ? 'The invite reply is still placeholder text until you save your own. ' : '') +
-           (!setting('decline_confirmed', false) ? 'The signature on the No email (Emma-Louise Usher, General Manager) is not confirmed yet. ' : '') +
            '<button type="button" class="rct-linkbtn" data-act="settings">Set them now</button></p>';
     }
 
@@ -776,6 +775,12 @@
     var greeting = greetingOverride || greetingFor(p, there);
     var subject = subjOverride || String(setting('decline_subject', DEFAULT_SUBJECT) || DEFAULT_SUBJECT);
     var blocks = declineBlocks(tplOverride || setting('decline_template', DEFAULT_DECLINE) || DEFAULT_DECLINE);
+    // Kate, 16 Nov 2026 ("edit, make recruitment sign off instead of emma louise"): the No reply is signed by the Recruitment Team like the shortlist email. A last block with
+    // line breaks in the saved wording (the old sign-off, name, title) is dropped and replaced by Warm regards, plus the Recruitment Team signature.
+    if (!tplOverride && !sig) {
+      if (blocks.length > 1 && blocks[blocks.length - 1].indexOf('\n') >= 0) blocks.pop();
+      blocks.push('Warm regards,'); sig = { html: SL_SIG_HTML, text: SL_SIG_TEXT };
+    }
     var sign = blocks.length > 1 ? blocks.pop().split('\n') : [];
     var text = blocks.concat(sign.length ? [sign.join('\n')] : []).map(function (b) { return plainInline(b, greeting); }).join('\n\n');
     var paras = blocks.map(function (b, i) {
@@ -789,7 +794,8 @@
     if (sig) head = head.replace('.rule { border-color:#45464F !important; }', function () { return '.rule { border-color:#45464F !important; }\n    .sigrule { border-color:#FAF8F4 !important; }\n    .logo { filter:invert(1); }'; });
     var html = head + '\n' + paras.concat(signOff ? [signOff] : []).join('\n') + '\n' + RH_MID +
       (sig ? '\n' + sig.html : (nameDiv ? '\n' + nameDiv : '') + (titleDivs.length ? '\n' + titleDivs.join('\n') : '')) + '\n' + RH_TAIL;
-    return { subject: subject, text: text, html: html, textFull: sig ? text + '\n' + sig.text : text };
+    var htmlCopy = head + '\n' + paras.concat(signOff ? [signOff] : []).join('\n') + '\n' + RH_TAIL;
+    return { subject: subject, text: text, html: html, htmlCopy: htmlCopy, textFull: sig ? text + '\n' + sig.text : text };
   }
   // Kate, 16 Nov 2026: the automatic email to a shortlisted support-role applicant (brand review of the wording: no BLOCK, soft notes applied; the number that will call is left out on purpose).
   // Same formatted layout and the same recruitment signature as the No reply (its last block), so changing the signature there changes it here. Sent from recruitment@ by
@@ -848,7 +854,8 @@
   function gmailUrl(to, subject) {
     return 'https://mail.google.com/mail/?authuser=recruitment@tararosesalon.com&view=cm&fs=1' + (to ? '&to=' + encodeURIComponent(to) : '') + '&su=' + encodeURIComponent(subject);
   }
-  var NO_WORDS = function () { return setting('decline_confirmed', false) ? '' : '<p class="rct-amberbox">The signature (Emma-Louise Usher, General Manager) is not confirmed yet. Check it under Booking link and replies and tick Signature confirmed.</p>'; };
+  // Kate, 16 Nov 2026: the No email is signed by the Recruitment Team too, so there is no signature to confirm any more.
+  var NO_WORDS = function () { return ''; };
   // The No for one person: marks nothing itself (the caller already did), shows the email and offers Copy reply and Open in Gmail.
   function noDialog(id) {
     var p = personById(id); if (!p) return;
@@ -979,9 +986,8 @@
       '<label class="rct-field"><span>Booking link (the calendar page candidates choose a time on)</span><input type="url" id="rctLink" value="' + esc(setting('booking_link', '')) + '" placeholder="https://"></label>' +
       '<label class="rct-field"><span>Invite reply. {first} becomes their first name and {link} the booking link.</span><textarea id="rctInv" rows="6">' + esc(setting('invite_template', '')) + '</textarea></label>' +
       '<label class="rct-field"><span>The No email: subject</span><input type="text" id="rctSub" value="' + esc(setting('decline_subject', DEFAULT_SUBJECT)) + '"></label>' +
-      '<label class="rct-field"><span>The No email: wording. The first line {greeting} becomes Hi and their first name (or Hi there,). Use **bold** and [link text]({careers_url}). The last block is the signature: sign-off, name, title.</span><textarea id="rctDec" rows="14">' + esc(setting('decline_template', DEFAULT_DECLINE)) + '</textarea></label>' +
+      '<label class="rct-field"><span>The No email: wording. The first line {greeting} becomes Hi and their first name (or Hi there,). Use **bold** and [link text]({careers_url}). The Recruitment Team signature is added under it by itself (a last block with the old sign-off lines is ignored).</span><textarea id="rctDec" rows="14">' + esc(setting('decline_template', DEFAULT_DECLINE)) + '</textarea></label>' +
       '<div><button type="button" class="rct-btn rct-sm" data-act="usedefault">Put the approved wording back</button></div>' +
-      '<label class="rct-check"><input type="checkbox" id="rctSig"' + (setting('decline_confirmed', false) ? ' checked' : '') + '> Signature confirmed by Emma-Louise (name and title)</label>' +
       '<label class="rct-check"><input type="checkbox" id="rctOk"' + (setting('templates_confirmed', false) ? ' checked' : '') + '> The invite reply above is the final wording (it has been through the brand review)</label>' +
       '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="savesettings">Save</button><button type="button" class="rct-btn" data-close>Cancel</button></div><p class="rct-say" id="rctSay" role="status"></p>');
   }
@@ -1340,8 +1346,8 @@
       else if (a === 'bulk') bulkDialog(g);
       else if (a === 'bulkgo') { var ids = bulkReviewed(g).map(function (x) { return x.id; }); if (ids.length && await setStage(ids, 'not_now', 'Not now for ' + pl(ids.length, 'person', 'people') + '.')) closeDlg(); }
       else if (a === 'copy') { var r = document.getElementById('rctReply'); try { await navigator.clipboard.writeText(r ? r.textContent : ''); t.textContent = 'Copied'; } catch (err) { t.textContent = 'Select the text and copy'; } }
-      else if (a === 'copyno') { var rp1 = replyParts(p, false), res1 = await copyRich(rp1.html, rp1.text); t.textContent = res1 === 'rich' ? 'Copied, with formatting' : res1 === 'plain' ? 'Copied as plain text' : 'Copy did not work here'; }
-      else if (a === 'copybulk') { var rp2 = replyParts(null, true), res2 = await copyRich(rp2.html, rp2.text); t.textContent = res2 === 'rich' ? 'Reply copied, with formatting' : res2 === 'plain' ? 'Reply copied as plain text' : 'Copy did not work here'; }
+      else if (a === 'copyno') { var rp1 = replyParts(p, false), res1 = await copyRich(rp1.htmlCopy, rp1.text); t.textContent = res1 === 'rich' ? 'Copied, with formatting' : res1 === 'plain' ? 'Copied as plain text' : 'Copy did not work here'; }
+      else if (a === 'copybulk') { var rp2 = replyParts(null, true), res2 = await copyRich(rp2.htmlCopy, rp2.text); t.textContent = res2 === 'rich' ? 'Reply copied, with formatting' : res2 === 'plain' ? 'Reply copied as plain text' : 'Copy did not work here'; }
       else if (a === 'copyemails') { var em = bulkReviewed(g).map(function (x) { return x.email; }).filter(Boolean).join(', '); try { await navigator.clipboard.writeText(em); t.textContent = 'Copied'; } catch (err) { t.textContent = 'Copy did not work here'; } }
       else if (a === 'settings') settingsDialog();
       else if (a === 'addperson') addDialog();
@@ -1355,7 +1361,6 @@
           await saveSetting('decline_template', document.getElementById('rctDec').value);
           await saveSetting('decline_subject', (document.getElementById('rctSub').value || '').trim() || DEFAULT_SUBJECT);
           await saveSetting('templates_confirmed', !!document.getElementById('rctOk').checked);
-          await saveSetting('decline_confirmed', !!document.getElementById('rctSig').checked);
           closeDlg(); render(); toast('Saved.');
         } catch (err) { console.error(err); if (say) say.textContent = 'That did not save: ' + err.message; }
       }
