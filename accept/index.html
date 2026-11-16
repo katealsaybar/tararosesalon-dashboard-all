@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Confirm your start date | Tara Rose Salons</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="shortcut icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Kate, 16 Nov 2026: the page an applicant lands on from the "Finalise start date" email. Nothing changes until they press the button (a mail scanner only opens the link). */
+:root{--bg:#FAF8F4;--card:#FFFFFF;--ink:#2D2E37;--mute:#5E5F68;--line:#E4DFD6;--btn:#99F6E4;--btnink:#2D2E37}
+@media (prefers-color-scheme:dark){:root{--bg:#16161A;--card:#202026;--ink:#FAF8F4;--mute:#B4B4BC;--line:#33333B;--btn:#99F6E4;--btnink:#2D2E37}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'Inter',system-ui,sans-serif}
+main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.card{width:100%;max-width:460px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px 28px;text-align:center}
+.brand{font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:20px;letter-spacing:.02em;margin:0 0 20px}
+h1{font-family:'Playfair Display',Georgia,serif;font-size:24px;line-height:1.25;margin:0 0 12px}
+p{margin:0 0 16px;color:var(--mute)}
+.date{display:block;font-size:20px;font-weight:700;color:var(--ink);margin:0 0 20px}
+button{appearance:none;border:0;border-radius:14px;background:var(--btn);color:var(--btnink);font:inherit;font-weight:700;padding:14px 26px;min-height:48px;cursor:pointer}
+button[disabled]{opacity:.55;cursor:default}
+.small{font-size:14px;margin:18px 0 0}
+</style>
+</head>
+<body>
+<main>
+  <div class="card" role="status" aria-live="polite">
+    <p class="brand">Tara Rose Salons</p>
+    <div id="view"></div>
+  </div>
+</main>
+<script>
+(function () {
+  var FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/recruit-accept';
+  var view = document.getElementById('view');
+  var token = (new URLSearchParams(location.search).get('t') || '').trim();
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fdate(d) { try { return new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(String(d).slice(0, 10) + 'T12:00:00')); } catch (e) { return ''; } }
+  function show(h) { view.innerHTML = h; }
+  function problem(msg) { show('<h1>This link needs a hand</h1><p>' + msg + '</p><p class="small">Reply to our email and the Recruitment Team will sort it out with you.</p>'); }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) { problem('We could not read this link. It may have been cut short when it was copied.'); return; }
+  show('<h1>Confirm your start date</h1><p>Press the button below and we will know the date works for you.</p><button type="button" id="go">Confirm my start date</button>');
+  document.getElementById('go').addEventListener('click', async function () {
+    var b = this; b.disabled = true; b.textContent = 'One moment...';
+    try {
+      var r = await fetch(FN, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: token }) });
+      var d = await r.json();
+      if (d && d.ok) {
+        var hi = d.name ? ', ' + esc(d.name) : '';
+        show('<h1>' + (d.already ? 'You are all set' + hi : 'Thank you' + hi) + '</h1>' +
+          (d.start_date ? '<p>Your start date is</p><span class="date">' + esc(fdate(d.start_date)) + '</span>' : '') +
+          '<p>' + (d.already ? 'You had already confirmed this. ' : '') + 'We are looking forward to welcoming you to the Tara Rose team.</p>');
+      } else if (d && d.reason === 'not_waiting') {
+        problem('We are not waiting for a start date from you right now.');
+      } else { problem('We could not find this link.'); }
+    } catch (e) { b.disabled = false; b.textContent = 'Confirm my start date'; var n = document.getElementById('oops'); if (!n) { n = document.createElement('p'); n.id = 'oops'; n.className = 'small'; b.parentNode.appendChild(n); } n.textContent = 'Something went wrong on our side. Please try again in a minute.'; }
+  });
+})();
+</script>
+</body>
+</html>

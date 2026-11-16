@@ -15,7 +15,11 @@
 
   var ROLES = [['stylist', 'Hair stylist'], ['colourist', 'Colourist'], ['beauty', 'Beauty therapist'], ['nails', 'Nail technician'],
                ['front', 'Front desk'], ['barber', 'Barber'], ['braider', 'Hair braider']];
-  var STAGE_LABEL = { new: 'New', screening: 'Screening', interview_booked: 'Interview booked', trade_test: 'Trade test', offer: 'Offer', hired: 'Hired', not_now: 'Not now', rejected: 'Rejected' };
+  // Kate, 16 Nov 2026 (hiring steps for assistants and reception, now for everyone after the interview): Shortlist, Interview done (pass or fail), Trade test scheduled, Trade test done
+  // (pass or fail), For offer letter (to send, sent), Finalise start date (pending, accepted by the applicant), Hired. A fail is the last status. 'offer' is the old name of 'offer_to_send'.
+  var STAGE_LABEL = { new: 'New', screening: 'Shortlisted', interview_booked: 'Interview booked', interview_pass: 'Interview done (pass)', interview_fail: 'Interview done (fail)',
+    trade_test: 'Trade test scheduled', trade_fail: 'Trade test done (fail)', trade_pass: 'Trade test done (pass)', offer: 'For offer letter (to send)', offer_to_send: 'For offer letter (to send)',
+    offer_sent: 'For offer letter (sent)', start_pending: 'Finalise start date (pending)', start_accepted: 'Finalise start date (accepted)', hired: 'Hired', not_now: 'Not now', rejected: 'Rejected' };
   var PAGE = 10;   // Kate, 10 Nov 2026: 10 cards at a time in Grid (Show 10 more); the List has its own Rows per page (10, 20, 50, 100)
   var C = null, loadErr = '', rows = [], gone = [], settings = {}, me = '', q = '', shownLook = PAGE, shownNo = {}, bound = false, toastTimer = null, openRows = {};
   var UNDO = [];
@@ -96,7 +100,7 @@
     if (p.stage === 'new') return p.look_ok ? 'look' : (p.no_ok || flags(p).length) ? 'no' : 'look';
     if (p.stage === 'screening') return 'invited';
     if (p.stage === 'interview_booked') return 'booked';
-    if (p.stage === 'not_now' || p.stage === 'rejected') return 'done';
+    if (p.stage === 'not_now' || p.stage === 'rejected' || p.stage === 'interview_fail' || p.stage === 'trade_fail') return 'done';
     return 'later';
   }
   function isLate(p) { return p.stage === 'new' && !p.replied_at && waited(p) >= waitDays(); }
@@ -116,9 +120,13 @@
     if (p.candidate_replied_at && p.stage === 'new') s += '<span class="rct-pill rct-teal">Replied ' + esc(fat(p.candidate_replied_at)) + '</span>';
     return s;
   }
+  function stageCls(p) {
+    var g = ['interview_booked', 'interview_pass', 'trade_pass', 'offer', 'offer_to_send', 'offer_sent', 'start_accepted', 'hired'], gr = ['not_now', 'rejected', 'interview_fail', 'trade_fail'];
+    return g.indexOf(p.stage) >= 0 ? 'rct-green' : gr.indexOf(p.stage) >= 0 ? 'rct-grey' : 'rct-teal';
+  }
   function stagePill(p) {
     if (p.stage === 'new') return '';
-    var cls = p.stage === 'interview_booked' || p.stage === 'hired' || p.stage === 'offer' ? 'rct-green' : p.stage === 'not_now' || p.stage === 'rejected' ? 'rct-grey' : 'rct-teal';
+    var cls = stageCls(p);
     return '<span class="rct-pill ' + cls + '"' + (byLine(p) ? ' title="' + esc(byLine(p)) + '"' : '') + '>' + esc(STAGE_LABEL[p.stage] || p.stage) + '</span>';
   }
   function stated(v) { return v ? esc(v) : '<span class="rct-ns">Not stated</span>'; }
@@ -251,19 +259,20 @@
   // Kate, 16 Nov 2026 (ate Jho's steps for the support roles): Trade test (4 to 5 hours, on a busy day, about twice a week), then Good or Not good, then the Offer letter and the starting date.
   function fdate(d) { try { return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(String(d).slice(0, 10) + 'T12:00:00')); } catch (e) { return ''; } }
   function stageSub(p) {
-    if (p.stage === 'trade_test') return 'Trade test: 4 to 5 hours on a busy day, then report whether it was good';
-    if (p.stage === 'offer') return 'Offer: ask for the offer letter, then set the starting date';
-    if (p.stage === 'hired') return 'Hired' + (p.start_date ? ', starts ' + fdate(p.start_date) : '');
-    return STAGE_LABEL[p.stage] || '';
+    var l = STAGE_LABEL[p.stage] || '';
+    if (p.stage === 'trade_test' && p.stage_note) return l + ': ' + p.stage_note;
+    if ((p.stage === 'start_pending' || p.stage === 'start_accepted' || p.stage === 'hired') && p.start_date) return l + ', starts ' + fdate(p.start_date);
+    return l;
   }
   function row(p) {
     var why = flags(p).map(function (f) { return f.t; }).join(' and ');
     var sub = p.stage === 'new' ? (why || (p.role_txt || '')) :
-              p.stage === 'screening' ? 'Invite sent ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '') + ', not booked yet' :
+              p.stage === 'screening' ? (lineOpenRole(p) ? 'Shortlisted ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '') + ', interview with the coordinators next' : 'Invite sent ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '') + ', not booked yet') :
               p.stage === 'interview_booked' ? 'Interview booked, moved ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '') :
               p.stage === 'not_now' || p.stage === 'rejected' ? (STAGE_LABEL[p.stage] + ' ' + fat(p.decided_at) + (byWho(p) ? ' by ' + byWho(p) : '')) : stageSub(p) + (byLine(p) ? ' (' + byLine(p) + ')' : '');
     var acts = '', lookBtn = '<button type="button" class="rct-btn rct-sm" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button>';
-    if (p.stage === 'new') acts = lookBtn + (bucket(p) === 'no' ? '<button type="button" class="rct-btn rct-sm" data-act="bk" data-to="look" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
+    if (usesPipe(p)) acts = lookBtn + pipeActs(p, false);
+    else if (p.stage === 'new') acts = lookBtn + (bucket(p) === 'no' ? '<button type="button" class="rct-btn rct-sm" data-act="bk" data-to="look" data-id="' + esc(p.id) + '">Worth a look</button>' : '') + '<button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
                                   '<button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'screening') acts = '<button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + esc(p.id) + '">Interview booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + esc(p.id) + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
     else if (p.stage === 'interview_booked') acts = '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + esc(p.id) + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + esc(p.id) + '">No</button>';
@@ -614,7 +623,7 @@
         return '<td><button type="button" class="rct-pill rct-pillbtn ' + cl + '" data-cf="wait" data-cv="' + esc(waitBucket(p)) + '">' + d + ' day' + (d === 1 ? '' : 's') + '</button></td>';
       }
       case 'status': {
-        var b = bucket(p), sv = statusText(p), cls = b === 'look' ? 'rct-green' : b === 'no' ? 'rct-amber' : b === 'done' ? 'rct-grey' : (p.stage === 'interview_booked' || p.stage === 'hired' || p.stage === 'offer') ? 'rct-green' : 'rct-teal';
+        var b = bucket(p), sv = statusText(p), cls = b === 'look' ? 'rct-green' : b === 'no' ? 'rct-amber' : b === 'done' ? 'rct-grey' : stageCls(p);
         var main1 = b === 'no' ? 'Probably no' : sv, why = b === 'no' ? flags(p).map(function (f0) { return FLAG_SHORT[f0.k]; }).join(', ') : '';
         if (p.stage === 'new') {
           var ab = autoBucket(p), cur = p.is_test ? 'test' : p.look_ok ? 'look' : p.no_ok ? 'no' : 'auto';
@@ -627,6 +636,7 @@
       }
       case 'acts': {
         var id = esc(p.id);
+        if (usesPipe(p)) return '<td class="rct-c-acts">' + pipeActs(p, true) + '</td>';
         if (p.stage === 'new') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm rct-pri" data-act="short" data-id="' + id + '">Shortlist</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button></td>';
         if (p.stage === 'screening') return '<td class="rct-c-acts"><button type="button" class="rct-btn rct-sm" data-act="booked" data-id="' + id + '">Booked</button><button type="button" class="rct-btn rct-sm" data-act="short" data-id="' + id + '">Invite again</button>' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
         if (p.stage === 'interview_booked') return '<td class="rct-c-acts">' + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="passed" data-id="' + id + '">Passed</button><button type="button" class="rct-btn rct-sm" data-act="no" data-id="' + id + '">No</button>' + '</td>';
@@ -1295,6 +1305,120 @@
     p.stage = 'hired'; p.start_date = inp.value; p.decided_by = me; p.decided_at = new Date().toISOString();
     closeDlg(); render(); toast(firstName(p.name) + ' is hired, starting ' + fdate(inp.value) + '.');
   }
+
+  /* ---------- hiring steps (Kate, 16 Nov 2026) ----------
+     Each step has its own email, shown as a draft to copy or open in Gmail (nothing is sent by the page; only the Shortlist email is automatic). The wording is a draft until it has
+     passed /brand-review. {greeting} is the Hi line, {details} the trade test note, {startdate} the start date, [Confirm my start date]({accept_url}) the applicant's own accept link. */
+  var PIPE = {
+    screening:      { next: [['interview_pass', 'Interview passed', 1], ['interview_fail', 'Interview not passed']] },
+    interview_pass: { next: [['trade_test', 'Trade test scheduled', 1]] },
+    trade_test:     { next: [['trade_pass', 'Trade test passed', 1], ['trade_fail', 'Trade test not passed']] },
+    trade_pass:     { next: [['offer_to_send', 'For offer letter', 1]] },
+    offer_to_send:  { next: [['offer_sent', 'Offer letter sent', 1]] },
+    offer_sent:     { next: [['start_pending', 'Set start date', 1]] },
+    start_pending:  { next: [['start_accepted', 'They accepted']] },
+    start_accepted: { next: [['hired', 'Mark as hired']] },
+    hired:          { next: [] },
+    interview_fail: { next: [], reopen: 1 },
+    trade_fail:     { next: [], reopen: 1 }
+  };
+  PIPE.offer = PIPE.offer_to_send;
+  var FAIL_LINK = '[careers page]({careers_url})';
+  var PE = {
+    interview_pass: { subject: 'Your interview with Tara Rose Salons',
+      body: '{greeting}\n\nThank you for taking the time to speak with our team. We enjoyed meeting you, and we would like to take you to the next step.\n\nThat is a trade test, so we can see you work and you can see how we work. We will be in touch soon with the day, the time and the salon.\n\nIf anything changes on your side before then, just reply to this email.' },
+    interview_fail: { subject: 'An update on your interview with Tara Rose Salons',
+      body: '{greeting}\n\nThank you for speaking with our team about joining Tara Rose Salons. We gave your interview careful thought, and we would rather give you a clear answer than leave you waiting.\n\n**We will not be taking things further at this time.**\n\nWe know this is not the news you were hoping for, and we are grateful for the time you gave us. We wish you every success. If another role comes up that suits you, we would love you to talk to us again through our ' + FAIL_LINK + '.' },
+    trade_test: { subject: 'Your trade test at Tara Rose Salons',
+      body: '{greeting}\n\nYour trade test is booked: **{details}**.\n\nIt is a practical session with our team, so we can see how you work and you can get a feel for our salon.\n\nIf you cannot make it, reply to this email as soon as you can and we will talk it through.' },
+    trade_fail: { subject: 'An update on your trade test at Tara Rose Salons',
+      body: '{greeting}\n\nThank you for spending your trade test with our team. We gave it careful thought, and we would rather give you a clear answer than leave you waiting.\n\n**We will not be taking things further at this time.**\n\nWe know this is not the news you were hoping for, and we are grateful for the time you gave us. We wish you every success. If another role comes up that suits you, we would love you to talk to us again through our ' + FAIL_LINK + '.' },
+    trade_pass: { subject: 'Your trade test at Tara Rose Salons',
+      body: '{greeting}\n\nThank you for your trade test. It went well, and we would like you to join the Tara Rose team.\n\nWe will send your offer letter shortly. If you have any questions before then, just reply to this email.' },
+    offer_to_send: { subject: 'Your offer letter from Tara Rose Salons',
+      body: '{greeting}\n\nWe are putting your offer letter together now, and it will reach you soon.\n\nIf you have any questions in the meantime, just reply to this email.' },
+    offer_sent: { subject: 'Your offer letter from Tara Rose Salons',
+      body: '{greeting}\n\nWe have sent your offer letter. Please read it through, and reply to this email with any questions.\n\nOnce you have had a chance to read it, we will be in touch about your start date.' },
+    start_pending: { subject: 'Your start date at Tara Rose Salons',
+      body: '{greeting}\n\nWe would love you to start on **{startdate}**.\n\nPlease confirm the date works for you: [Confirm my start date]({accept_url})\n\nIf that date does not suit you, reply to this email and we will talk it through.' },
+    start_accepted: { subject: 'Your start date at Tara Rose Salons',
+      body: '{greeting}\n\nThank you for confirming. We have your start date as **{startdate}**, and we are looking forward to welcoming you.\n\nIf anything changes before then, just reply to this email.' },
+    hired: { subject: 'Welcome to Tara Rose Salons',
+      body: '{greeting}\n\nWelcome to the Tara Rose team. We are so glad you are here.\n\nIf you need anything, reply to this email and we will help.' }
+  };
+  var ACCEPT = {};   // person id -> their accept link, filled by acceptUrl()
+  function stageEmailParts(p, to) {
+    var e = PE[to]; if (!e) return null;
+    var url = ACCEPT[p.id] || '', body = e.body.replace(/\{details\}/g, String(p.stage_note || '').trim() || 'details to follow').replace(/\{startdate\}/g, p.start_date ? fdate(p.start_date) : 'a date to follow').replace(/\{accept_url\}/g, url || 'https://trk-salon-os.com/');
+    var rp = replyParts(p, false, null, body + '\n\nWarm regards,', e.subject, { html: SL_SIG_HTML, text: SL_SIG_TEXT });
+    if (url) { rp.text = rp.text.replace('Confirm my start date', 'Confirm my start date: ' + url); rp.textFull = rp.textFull.replace('Confirm my start date', 'Confirm my start date: ' + url); }
+    return rp;
+  }
+  async function acceptUrl(p) {
+    if (ACCEPT[p.id]) return ACCEPT[p.id];
+    var r = await sb.rpc('recruit_accept_link', { p_id: p.id }); if (r.error) throw new Error(r.error.message);
+    ACCEPT[p.id] = 'https://trk-salon-os.com/accept/?t=' + encodeURIComponent(r.data); return ACCEPT[p.id];
+  }
+  function stageEmailDialog(p, to, lead) {
+    var rp = stageEmailParts(p, to); if (!rp) return;
+    var canMail = !!p.email && !p.bounced;
+    openDlg(esc(STAGE_LABEL[to]) + ': email for ' + esc(firstName(p.name)),
+      '<p>' + lead + ' Nothing has been sent. Copy the email into a new message from the recruitment inbox, or open Gmail with the address and subject ready.</p>' +
+      (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : (!p.email ? '<p class="rct-amberbox">No email address on file.</p>' : '')) +
+      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="copyst" data-to="' + esc(to) + '" data-id="' + esc(p.id) + '">Copy reply</button>' +
+      (canMail ? '<a class="rct-btn" href="' + esc(gmailUrl(p.email, rp.subject)) + '" target="_blank" rel="noopener">Open in Gmail</a>' : '<button type="button" class="rct-btn" disabled>Open in Gmail</button>') + '</div>' +
+      '<div><div class="rct-lab">How the email looks</div>' + previewFrame(rp.html) + '</div>' +
+      '<p class="rct-hint">Copy reply pastes with the formatting into Gmail. Sending stays your click.</p>');
+  }
+  async function showStageEmail(id, to, lead) {
+    var p = personById(id); if (!p || !PE[to]) return;
+    try { if (to === 'start_pending') await acceptUrl(p); } catch (e) { console.error(e); toast('The accept link did not load: ' + (e.message || 'try again')); return; }
+    stageEmailDialog(p, to, lead || 'This is the email for <b>' + esc(STAGE_LABEL[to]) + '</b>.');
+  }
+  // the buttons for the next steps of a person (small = the list's narrow cell)
+  function pipeActs(p, sm) {
+    var cfg = PIPE[p.stage]; if (!cfg) return '';
+    var id = esc(p.id), cl = 'rct-btn' + (sm ? ' rct-sm' : '');
+    var s = cfg.next.map(function (n) { return '<button type="button" class="' + cl + (n[2] ? ' rct-pri' : '') + '" data-act="mv" data-to="' + n[0] + '" data-id="' + id + '">' + esc(n[1]) + '</button>'; }).join('');
+    if (PE[p.stage === 'offer' ? 'offer_to_send' : p.stage]) s += '<button type="button" class="' + cl + '" data-act="mvmail" data-id="' + id + '">Email</button>';
+    if (cfg.reopen) s += '<button type="button" class="' + cl + '" data-act="back" data-id="' + id + '">Put back</button>';
+    return s;
+  }
+  function usesPipe(p) { return !!PIPE[p.stage] && (p.stage !== 'screening' || lineOpenRole(p)); }
+  async function moveTo(id, to) {
+    var p = personById(id); if (!p) return;
+    if (to === 'trade_test' || to === 'start_pending') { moveDialog(id, to); return; }
+    var ok = await setStage([id], to, firstName(p.name) + ' is now: ' + STAGE_LABEL[to] + '.');
+    if (ok && PE[to]) await showStageEmail(id, to, 'Moved to <b>' + esc(STAGE_LABEL[to]) + '</b>.');
+  }
+  function moveDialog(id, to) {
+    var p = personById(id); if (!p) return;
+    if (to === 'trade_test') {
+      openDlg('Trade test for ' + esc(firstName(p.name)),
+        '<p>Put in when and where, exactly as it should read in the email.</p>' +
+        '<label class="rct-field"><span>When and where</span><input type="text" id="rctNote" maxlength="160" placeholder="Friday 20 November, 10am, Saadiyat" value="' + esc(p.stage_note || '') + '"></label>' +
+        '<p class="rct-amberbox" id="rctMvSay" hidden></p>' +
+        '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="mvsave" data-to="trade_test" data-id="' + esc(p.id) + '">Save and show the email</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
+    } else {
+      openDlg('Start date for ' + esc(firstName(p.name)),
+        '<p>Put in the start date you are offering. The email carries a button so ' + esc(firstName(p.name)) + ' can confirm it, and the status updates by itself when they do.</p>' +
+        '<label class="rct-field"><span>Start date</span><input type="date" id="rctStart2" value="' + esc(String(p.start_date || '').slice(0, 10)) + '"></label>' +
+        '<p class="rct-amberbox" id="rctMvSay" hidden></p>' +
+        '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="mvsave" data-to="start_pending" data-id="' + esc(p.id) + '">Save and show the email</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
+    }
+  }
+  async function moveSave(id, to) {
+    var p = personById(id), say = document.getElementById('rctMvSay'); if (!p) return;
+    var note = null, start = null;
+    if (to === 'trade_test') { note = String((document.getElementById('rctNote') || {}).value || '').trim(); if (!note) { if (say) { say.hidden = false; say.textContent = 'Put in when and where first.'; } return; } }
+    else { start = (document.getElementById('rctStart2') || {}).value; if (!start) { if (say) { say.hidden = false; say.textContent = 'Pick the start date first.'; } return; } }
+    try {
+      var r = await sb.rpc('recruit_move', { p_id: p.id, p_stage: to, p_note: note, p_start: start }); if (r.error) throw new Error(r.error.message);
+      if (to === 'start_pending') await acceptUrl(p);
+    } catch (e) { console.error(e); if (say) { say.hidden = false; say.textContent = 'That did not save: ' + (e.message || 'try again'); } return; }
+    p.stage = to; if (note !== null) p.stage_note = note; if (start) p.start_date = start; p.decided_by = me; p.decided_at = new Date().toISOString();
+    closeDlg(); render(); stageEmailDialog(p, to, 'Moved to <b>' + esc(STAGE_LABEL[to]) + '</b>.');
+  }
   async function undo() {
     var prev = UNDO.pop(); if (!prev) return;
     var groups = {};
@@ -1356,11 +1480,15 @@
       else if (a === 'invite') { if (await setStage([id], 'screening', 'Moved to Screening.')) closeDlg(); }
       else if (a === 'booked') setStage([id], 'interview_booked', 'Moved to Interview booked.');
       // Kate, 16 Nov 2026: after the interview (ate Jho and ate Frans for support roles, Coach Emma for stylists and beauticians) the next step is the Trade test (Jho, 16 Nov); No works as everywhere else
-      else if (a === 'ttgood') setStage([id], 'offer', firstName(p && p.name) + ' passed the trade test. Moved to Offer: ask for the offer letter, then set the starting date.');
-      else if (a === 'ttbad') setStage([id], 'not_now', firstName(p && p.name) + ' did not pass the trade test. Not now.');
+      else if (a === 'mv') moveTo(id, t.getAttribute('data-to'));
+      else if (a === 'mvmail') showStageEmail(id, p && p.stage === 'offer' ? 'offer_to_send' : p && p.stage);
+      else if (a === 'mvsave') moveSave(id, t.getAttribute('data-to'));
+      else if (a === 'copyst') { var rps = stageEmailParts(p, t.getAttribute('data-to')), ress = rps ? await copyRich(rps.htmlCopy, rps.text) : ''; t.textContent = ress === 'rich' ? 'Copied, with formatting' : ress === 'plain' ? 'Copied as plain text' : 'Copy did not work here'; }
+      else if (a === 'ttgood') moveTo(id, 'trade_pass');
+      else if (a === 'ttbad') moveTo(id, 'trade_fail');
       else if (a === 'hire') hireDialog(id);
       else if (a === 'hiresave') hireSave(id);
-      else if (a === 'passed') setStage([id], 'trade_test', firstName(p && p.name) + ' passed the interview. Moved to Trade test.');
+      else if (a === 'passed') moveTo(id, 'interview_pass');
       // No: the person is marked Not now (that also counts as reviewed), then the reply is offered. Nothing is sent by the site.
       else if (a === 'no') { if (await setStage([id], 'not_now', 'Not now for ' + firstName(p && p.name) + '.')) noDialog(id); }
       else if (a === 'reply') { markReviewed([id]); noDialog(id); }
@@ -1455,6 +1583,8 @@
     bind(); loadErr = ''; shownLook = PAGE; shownNo = {};
     if (!C) render();
     try {
+      // Kate, 16 Nov 2026: Finalise start date (accepted) becomes Hired once the first day has passed; the database also does this daily, the page asks as well so it is never a day behind.
+      try { await sb.rpc('recruit_auto_hire'); } catch (e) { /* harmless, the daily job covers it */ }
       var r = await sb.rpc('recruit_get');
       if (r.error) throw new Error(r.error.message);
       C = r.data || null;
