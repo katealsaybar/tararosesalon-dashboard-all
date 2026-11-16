@@ -314,7 +314,8 @@
       return '<div class="cbl-tab' + (cur === b.id ? ' on' : '') + '"><a href="?view=novblasts" data-nvb="sel:' + esc(b.id) + '" style="padding-left:12px"><span>' + esc(b.data.short || b.data.title) + '</span><small>' + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + '</small></a>' +
         '<span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     }).join('') + '</div><p class="cbl-hint cbl-prog"><b>' + rev + ' of ' + bs.length + '</b> reviewed</p></div>';
-    return '<div class="nvb-pwrap">' + pillBtn('bl', 'Blasts', rev + ' of ' + bs.length + ' reviewed', o, '', blast(cur) && !isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o) + (o ? card : '') + '</div>';
+    var t1 = 0, r1 = !!(LIVE && LIVE.blasts); bs.forEach(function (b) { var c = lv(b.id); if (c && c.n) t1 += c.n; });   // Kate, 16 Nov 2026: "Blast 1, 1889 clients listed", then "5 of 5 reviewed"
+    return '<div class="nvb-pwrap">' + pillBtn('bl', 'Blast 1', r1 ? fmtN(t1) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && !isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o, '<span class="pp">' + rev + ' of ' + bs.length + ' reviewed</span>') + (o ? card : '') + '</div>';
   }
   // Blast 2, the reminders (Kate, 13 Nov 2026): its own pill under Blasts, one row per blast with the clients still to send, and the day it goes. Each row opens the blast like any other.
   function wave2Side() { try { return wave2Pill(); } catch (e) { console.error(e); return ''; } }   // a fault in this extra pill must never take the page down
@@ -328,7 +329,8 @@
         (c ? fmtN(c.n || 0) + ' clients, ' : '') + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + '</small></a><span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     }).join('') + '</div><p class="cbl-hint">The reminders to clients who got Blast 1 and have not booked, come in, written back or said STOP. About <b>' + (ready ? fmtN(tot) : '…') + '</b> messages, one per client, at most <b>AED ' +
       (ready ? fmtN(Math.round(tot * RATE_AED)) : '…') + '</b>.</p></div>';
-    return '<div class="nvb-pwrap">' + pillBtn('w2', 'Blast 2, reminders', ready ? fmtN(tot) + ' clients' : (liveErr ? '?' : '…'), o, '', blast(cur) && isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o) + (o ? card : '') + '</div>';
+    var rev2 = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length;
+    return '<div class="nvb-pwrap">' + pillBtn('w2', 'Blast 2', ready ? fmtN(tot) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o, '<span class="pp">' + rev2 + ' of ' + bs.length + ' reviewed</span>') + (o ? card : '') + '</div>';
   }
   var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
   function resultsSide() {   // the Results pill sits under Blasts (the last pill) and opens the report in the main panel, like All blasts
