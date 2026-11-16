@@ -598,7 +598,7 @@
       }
       case 'cv': {
         var cu = cvUrl(p);
-        return '<td>' + (cu ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><a class="rct-ig" href="' + esc(cu) + '" target="_blank" rel="noopener">CV</a></span>'
+        return '<td class="rct-c-cv">' + (cu ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><a class="rct-ig" href="' + esc(cu) + '" target="_blank" rel="noopener">CV</a></span>'
           : p.cv_file ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '" title="' + esc(p.cv_file_name || 'CV') + '">CV</button></span>'
           : inEmail(p) ? cellBtn('<span class="rct-ns rct-nw">Checking the email</span>', 'cv', cvLabel(p))
           : cellBtn('<span class="rct-ns rct-nw">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>', 'cv', cvLabel(p))) + '</td>';

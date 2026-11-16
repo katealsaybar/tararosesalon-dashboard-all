@@ -123,6 +123,7 @@
 .rct-table td.rct-c-av,.rct-table thead th:nth-child(1){width:56px;min-width:56px;max-width:56px}
 .rct-table td.rct-c-av{padding-right:4px}
 .rct-table td.rct-c-name{min-width:112px}
+.rct-table td.rct-c-cv{overflow-wrap:normal;white-space:nowrap;min-width:92px}
 .rct-cellbtn{border:0;background:transparent;padding:2px 4px;margin:-2px -4px;border-radius:6px;cursor:pointer;text-align:left;font-weight:inherit;color:inherit;white-space:normal}
 .rct-cellbtn:hover{background:var(--rct-tealbg);color:var(--rct-teal)}
 .rct-pillbtn{border:0;cursor:pointer}
