@@ -285,6 +285,11 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 /* Kate, 11 Nov 2026: the Status dropdown in a List row (Worth a look / Probably no by hand) and the Not applicants section */
 .rct-c-acts .rct-stsel{display:block;width:100%;max-width:100%;margin:0 0 6px;font-size:12.5px;padding:5px 4px}
 .rct-acts .rct-stsel{max-width:230px}
+/* the site turns every select into a pill menu (assets/pill-select.js): the pill fills the Application Status column, sits on its own line above the buttons, and an open menu rises above the frozen columns of the rows below */
+.rct-c-acts .ps{display:flex;width:100%;margin:0 0 6px}
+.rct-c-acts .ps-btn{min-height:34px;padding:5px 10px;font-size:12.5px;font-weight:600}
+.rct-acts .ps{max-width:230px;margin-right:6px}
+.rct-table td:has(.ps.open){z-index:60}
 .rct-pillsel{appearance:auto;border:0;cursor:pointer;font:inherit;font-size:13px;font-weight:600;padding:5px 8px;max-width:190px}
 .rct-gone{margin:18px 0 8px;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:10px 14px}
 .rct-gone summary{cursor:pointer;font-weight:600}
