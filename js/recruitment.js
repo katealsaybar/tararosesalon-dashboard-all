@@ -20,6 +20,7 @@
   var STAGE_LABEL = { new: 'New', screening: 'Shortlisted', interview_booked: 'Interview booked', interview_pass: 'Interview done (pass)', interview_fail: 'Interview done (fail)',
     trade_test: 'Trade test scheduled', trade_fail: 'Trade test done (fail)', trade_pass: 'Trade test done (pass)', offer: 'For offer letter (to send)', offer_to_send: 'For offer letter (to send)',
     offer_sent: 'For offer letter (sent)', start_pending: 'Finalise start date (pending)', start_accepted: 'Finalise start date (accepted)', hired: 'Hired', not_now: 'Not now', rejected: 'Rejected' };
+  var STAGE_ORDER = ['new', 'screening', 'interview_booked', 'interview_pass', 'interview_fail', 'trade_test', 'trade_pass', 'trade_fail', 'offer', 'offer_to_send', 'offer_sent', 'start_pending', 'start_accepted', 'hired', 'not_now', 'rejected'];
   var PAGE = 10;   // Kate, 10 Nov 2026: 10 cards at a time in Grid (Show 10 more); the List has its own Rows per page (10, 20, 50, 100)
   var C = null, loadErr = '', rows = [], gone = [], settings = {}, me = '', q = '', shownLook = PAGE, shownNo = {}, bound = false, toastTimer = null, openRows = {};
   var UNDO = [];
@@ -542,7 +543,8 @@
 
   var COLS = [
     // Kate, 16 Nov 2026: Application Status is the first column (frozen, with the photo and name) so the next step is always in view.
-    { k: 'acts', t: 'Application Status', nofilter: true },
+    // Kate, 17 Nov 2026: "application status can also be filtered". The funnel filters by the step the person is at (the dropdown in the cell) and sorts by how far along they are.
+    { k: 'acts', t: 'Application Status', val: function (p) { return STAGE_LABEL[p.stage] || p.stage; }, sort: function (p) { var i = STAGE_ORDER.indexOf(p.stage); return i < 0 ? 99 : i; }, kind: 'num', asc: 'Earliest step first', desc: 'Latest step first' },
     { k: 'av', t: '', nofilter: true },
     { k: 'name', t: 'Name', val: function (p) { return p.name || 'Name not stated'; }, sort: function (p) { return String(p.name || '').toLowerCase(); }, kind: 'text' },
     { k: 'photo', t: 'Profile photo', val: photoLabel, sort: function (p) { return !p.photo ? 2 : p.photo_bad ? 1 : 0; }, kind: 'num', asc: 'Good photo first', desc: 'No photo first' },
