@@ -165,4 +165,22 @@ window.TRS_PAGES = /*PAGES*/[
   };
   // id -> title for every page a person can star or search for (the retired one shows the title of the page it became).
   window.trsPageTitles = function () { var m = {}; TRS_PAGES.forEach(function (p) { m[p.id] = window.trsPageLabel(p.id); }); return m; };
+  // Kate, 16 Nov 2026: Date created and Date modified on every dashboard, report and KB article, written like 03 May 2026. Months are spelt here, not by
+  // Intl, because en-GB prints September as "Sept" in some browsers. A day ("2026-05-03", or a timestamp, read in Dubai time) in, the words out.
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  window.trsDateLabel = function (v) {
+    if (!v) return '';
+    var s = String(v), m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (!m) {
+      var d = new Date(s);
+      if (isNaN(d.getTime())) return '';
+      m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(new Date(d.getTime() + 4 * 3600000).toISOString().slice(0, 10));
+    }
+    return m[3] + ' ' + MON[+m[2] - 1] + ' ' + m[1];
+  };
+  // { created, modified } (already in words) for a dashboard page or report, or null when no dates are stored for it (js/page-dates.js, generated).
+  window.trsPageDates = function (id) {
+    var d = window.TRS_PAGE_DATES && window.TRS_PAGE_DATES[window.trsLive(id)];
+    return d ? { created: window.trsDateLabel(d[0]), modified: window.trsDateLabel(d[1]) } : null;
+  };
 })();

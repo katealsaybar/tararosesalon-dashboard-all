@@ -43,6 +43,8 @@
   .rp-nm a::after{content:"";position:absolute;inset:0;border-radius:var(--radius)}
   .rp-nm a:focus-visible{outline:none}
   .rp-bl{font-size:12.5px;line-height:1.4;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  /* Kate, 16 Nov 2026: Date created / Date modified on every report box (js/page-dates.js). */
+  .rp-dt{margin-top:auto;display:flex;flex-direction:column;gap:1px;font-size:11px;line-height:1.35;color:var(--muted2)}
   .rp-star{position:absolute;top:8px;right:8px;z-index:2;width:34px;height:34px;border-radius:50%;border:0;background:none;cursor:pointer;display:grid;place-items:center;color:var(--muted2)}
   .rp-star:hover{background:var(--surface2);color:var(--text)}
   .rp-star:focus-visible{outline:2px solid var(--accent)}
@@ -76,7 +78,8 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 <script src="/js/auth.js?v=3823f956"></script>
-<script src="/js/pages.js?v=d01a834a"></script>
+<script src="/js/page-dates.js?v=0cbd8bd1"></script>
+<script src="/js/pages.js?v=fa67d04d"></script>
 <script src="/assets/theme-fade.js"></script>
 <script src="/hub/hub.js?v=69cfcabf"></script>
 <script>
@@ -212,7 +215,7 @@ KB.ready.then(async function () {
     TRS_PAGES.forEach(function (p) {
       if (p.retired || p.inside || !trsPageOpen(p.id, KB.level, KB.extra) || (scope && !p.scope)) return;
       items.push({ key: 'd:' + p.id, alias: ALIAS['d:' + p.id] || null, group: (p.sub === 'Targets' ? 'Targets' : DASH_GROUP[p.group]) || 'Numbers', title: trsPageLabel(p.id),
-        blurb: BLURB[p.id] || '', href: '/?view=' + trsSlugOf(p.id), svg: ICON[p.id] || '', words: p.words || '' });
+        blurb: BLURB[p.id] || '', dates: trsPageDates(p.id), href: '/?view=' + trsSlugOf(p.id), svg: ICON[p.id] || '', words: p.words || '' });
     });
   }
   // Team Home's other rows. A row that opens a dashboard page is already a box above.
@@ -238,6 +241,7 @@ KB.ready.then(async function () {
     var icon = it.svg ? '<svg viewBox="0 0 24 24">' + it.svg + '</svg>' : esc(it.init || it.title.charAt(0));
     return '<div class="rp-box"><span class="rp-ic" style="--c:' + COLOR[it.group] + '" aria-hidden="true">' + icon + '</span>' +
       '<div class="rp-nm"><a href="' + esc(it.href) + '">' + esc(it.title) + '</a></div><div class="rp-bl">' + esc(it.blurb) + '</div>' +
+      (it.dates ? '<div class="rp-dt"><span>Date created: ' + esc(it.dates.created) + '</span><span>Date modified: ' + esc(it.dates.modified) + '</span></div>' : '') +
       '<button type="button" class="rp-star' + (o ? ' on' : '') + '" data-k="' + esc(it.key) + '" aria-pressed="' + o + '" aria-label="' + (o ? 'Remove ' : 'Add ') + esc(it.title) + (o ? ' from' : ' to') + ' favourites" title="' + (o ? 'In your favourites' : 'Add to favourites') + '">' + STAR_SVG + '</button></div>';
   }
   function paint() {

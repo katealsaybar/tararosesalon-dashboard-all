@@ -54,6 +54,23 @@
     if (!st || !target || !target.parentNode) return;
     target.parentNode.insertBefore(window.trsStatusNotice(view), target);
   };
+  // Kate, 16 Nov 2026: "Date created / Date modified" under every page's title. One quiet line placed just before the page's block (like the notice above),
+  // so a page that redraws itself does not wipe it. The dates come from js/page-dates.js; a page with none draws nothing.
+  window.trsDatesLine = function (id) {
+    var d = typeof trsPageDates === 'function' ? trsPageDates(id) : null;
+    if (!d) return null;
+    var el = document.createElement('p');
+    el.className = 'pg-dates';
+    el.innerHTML = '<span>Date created: <b>' + esc(d.created) + '</b></span><span>Date modified: <b>' + esc(d.modified) + '</b></span>';
+    return el;
+  };
+  window.trsDatesBanner = function (view) {
+    Array.prototype.forEach.call(document.querySelectorAll('.pg-dates'), function (n) { n.parentNode.removeChild(n); });
+    var target = document.getElementById('view-' + view), el = target && target.parentNode ? window.trsDatesLine(view) : null;
+    if (!el) return;
+    // Called after trsStatusBanner, so inserting just before the page's block puts it after the status notice: the notice stays first under the header.
+    target.parentNode.insertBefore(el, target);
+  };
   // The notice itself, for a page that is not a dashboard view (the Complaints Pipeline page puts it above its own content); null when the id is live.
   window.trsStatusNotice = function (id) {
     var st = typeof trsPageStatus === 'function' ? trsPageStatus(id) : '';

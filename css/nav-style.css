@@ -106,6 +106,9 @@ aside.sidebar .nav-sub .nav-flag-hidden::before{background:color-mix(in srgb,var
 .pg-status{margin:18px 0 8px;padding:4px 12px;border-radius:8px;font-size:12.5px;line-height:1.35;border:1px solid var(--border);color:var(--text)}
 .pg-status-construction{background:rgba(214,158,46,.14);border-color:rgba(214,158,46,.55)}
 .pg-status-hidden{background:color-mix(in srgb,var(--text) 6%,transparent)}
+/* Kate, 16 Nov 2026: Date created / Date modified under the page title (page-status.js trsDatesLine). Quiet on purpose; the two dates share a line and wrap on a phone. */
+.pg-dates{margin:10px 0 6px;display:flex;flex-wrap:wrap;gap:2px 18px;font-size:12px;line-height:1.4;color:var(--muted,var(--text));opacity:.78}
+.pg-dates b{font-weight:600;color:var(--text)}
 
 /* Kate, 9 Nov 2026: the sidebar's pages are real links now (<a class="nav-sub" href="/?view=...">), so right-click offers Open link in new tab. They must look exactly as the rows
    did: a zero-specificity rule, so every .nav-sub rule above and in index.html, nav-collapse.css and mobile.css (flex rows, stars, tags, the active fill) still wins. */
