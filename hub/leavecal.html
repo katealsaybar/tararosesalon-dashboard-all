@@ -273,6 +273,9 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
 /* the roster table is its own scroll area, like a sheet: the header stays on top, the names stay on the left, the months have room, soft lines tell them apart */
 .card.tw.fix.sickw{padding:0;overflow:auto;max-height:calc(100vh - var(--tb,160px) - 24px);scrollbar-gutter:stable}
 .sickw .sickT{min-width:1340px}
+/* when the whole table fits the page (no sideways scroll needed) the page scrolls instead of the table, so the header row follows the page and stops under the filter bar like the planner's day row; fitSticky() sets .pg */
+.card.tw.fix.sickw.pg{overflow:visible;max-height:none}
+.sickw.pg .sickT th,.sickw.pg .offT th{top:var(--tb,160px)}
 .sickw .sickT th{top:0;z-index:6}
 .sickw .sickT td:first-child,.sickw .sickT th:first-child{position:sticky;left:0;z-index:3;background:var(--surface);box-shadow:1px 0 0 var(--border);min-width:236px}
 .sickw .sickT th:first-child{z-index:9}
@@ -764,6 +767,8 @@ function drawSide(idx){
   if(!d.hol.length&&!d.lv.length)s.appendChild(el('div','empty','Nobody off and no holiday on the layers shown.'));
 }
 
+function fitSticky(){document.querySelectorAll('.card.sickw').forEach(function(w){w.classList.remove('pg');if(w.scrollWidth<=w.clientWidth+1)w.classList.add('pg')})}
+var fitT=0;window.addEventListener('resize',function(){clearTimeout(fitT);fitT=setTimeout(fitSticky,120)});
 function draw(){
   hideTip();buildFilters();buildLayers();
   var idx=index();buildTiles();
@@ -771,6 +776,7 @@ function draw(){
   if(S.view==='planner')drawPlanner(c);else if(S.view==='year')drawYear(c,idx);else if(S.view==='month')drawMonth(c,idx);else drawList(c);
   document.querySelector('.main').classList.toggle('stack',S.view==='planner');
   drawSide(idx);drawSick();drawOff();drawCov();drawHolT();
+  fitSticky();
 }
 
 /* on = every branch shown traded every day, off = none did, part = some did, tbc = no data yet */
