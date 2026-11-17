@@ -211,7 +211,10 @@ const STAFF_PROFILES = {
   // Kate, 17 Sep 2026, confirmed off Phorest's Staff list: Marjorie Sevilla, an
   // Assistant, not a stylist — the all-zero ledger rows under her name are exactly
   // what an assistant's row looks like, not a misread.
-  'MARGIE':    { photo: 'marjorie-sevilla.png', role: 'Assistant', branch: 'AQ' },   // Kate, 17 Nov 2026: cutout added
+  // Kate, 17 Nov 2026: MARGIE is Margie Villamor, a resigned Assistant at Al Quoz (Phorest 9 Aug 2023 to 5 Jan 2026, resigned 13 Oct 2026), not Marjorie Sevilla as the 17 Sep note above says.
+  // Marjorie Sevilla is a present Assistant at Al Quoz and has her own MARJORIE row. Resigned assistants stay on the Assistants card here, like Eden, so no resigned flag.
+  'MARGIE':    { photo: 'margie-villamor.png', role: 'Assistant', branch: 'AQ' },
+  'MARJORIE':  { photo: 'marjorie-sevilla.png', role: 'Assistant', branch: 'AQ' },
   // Kate, 7 Sep 2026: held with no card, pending visa + trade test. IG handle
   // added 19 Sep 2026 (instagram.com/andygladstone_hair); card photo 21 Sep 2026.
   'ANDREA':    { photo: 'andrea.png', role: 'Stylist', branch: 'AQ', ig: 'andygladstone_hair' },
@@ -589,7 +592,7 @@ const STAFF_SURNAMES = {
   // all — Marjorie Sevilla, an Assistant at Al Quoz, same as the other assistants
   // below. Was flagged unresolved above until now.
   'MARCELLA':  'Savicic',      // Kate, 8 Oct 2026: left; stylist, Motor City and Al Quoz (archived in Phorest)
-  'MARGIE':    'Sevilla',
+  'MARGIE':    'Villamor',   // Kate, 17 Nov 2026: Margie Villamor, resigned (was Sevilla, which is Marjorie)
   'NEEKA':     'Kainth',
   'NIMI':      'Firth',        // Kate, 8 Oct 2026: left; Style Director, Al Quoz (archived in Phorest)
   'SHIELA':    'Avena',
