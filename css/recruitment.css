@@ -22,8 +22,8 @@
 .rct-linkbtn{border:0;background:none;color:inherit;text-decoration:underline;cursor:pointer;padding:0 4px;font-weight:600;min-height:44px;display:inline-flex;align-items:center}
 
 /* figures */
-.rct-figs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-@media (max-width:760px){.rct-figs{grid-template-columns:repeat(2,minmax(0,1fr))}.rct-figs .rct-fig:first-child{grid-column:1 / -1}}
+.rct-figs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.rct-figs{grid-template-columns:repeat(2,minmax(0,1fr))}.rct-figs .rct-fig.rct-main{grid-column:1 / -1}}
 .rct-fig{display:grid;gap:2px;text-align:left;border:1.5px solid var(--border);border-radius:16px;background:var(--surface);padding:12px 14px;cursor:pointer;min-height:84px;align-content:center;box-shadow:var(--shadow)}
 .rct-fig:hover,.rct-fig:focus-visible{border-color:var(--text)}
 .rct-n{font-family:'Playfair Display',Georgia,serif;font-size:2rem;font-weight:600;line-height:1.1}
@@ -109,7 +109,7 @@
 .rct-cwho{display:flex;gap:12px;align-items:center;min-width:0}
 .rct-tcount{font-size:14px;color:var(--muted)}
 .rct-tbox{border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:auto;max-height:min(70vh,760px)}
-.rct-table{--rct-aw:224px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:13.5px;line-height:1.45}
+.rct-table{--rct-aw:196px;border-collapse:separate;border-spacing:0;width:100%;min-width:860px;font-size:13.5px;line-height:1.45}
 .rct-table .rct-pill{white-space:nowrap;line-height:1.25;text-align:left;padding:3px 10px}
 .rct-table td{overflow-wrap:anywhere}
 .rct-table td.rct-c-acts{overflow-wrap:normal;white-space:normal;text-align:center;width:var(--rct-aw);min-width:var(--rct-aw);max-width:var(--rct-aw)}
@@ -133,7 +133,9 @@
 /* Kate, 10 Nov 2026: the strip between the photo and the name. A table column may shrink below its width to its contents (8 + 44 = 52), while the name column is frozen at left:56px, so 4px of the scrolled columns showed through. Padding 4px on the right makes the contents exactly 56. */
 .rct-table td.rct-c-av{width:56px;min-width:56px;max-width:56px}
 .rct-table td.rct-c-av{padding-right:4px}
-.rct-table td.rct-c-name{min-width:190px}
+.rct-table td.rct-c-name{width:150px;min-width:150px;max-width:150px}
+/* Kate, 17 Nov 2026 ("for the sticky columns, pls make them narrower"): the frozen part (status, photo, name) was about 500px, now about 400px, so more of the other columns shows. A long name wraps to a second line. */
+.rct-table tbody td.rct-c-name:not(.rct-c-acts):not(.rct-c-av){padding-left:10px;padding-right:10px}
 /* Kate, 17 Nov 2026: the table looked tight, so rows are airier (14px above and below, 16px at the sides of the scrolling columns, 1.45 line height), the font is a touch smaller (13.5px) and the name column is wider so a name no longer wraps over three lines. The status and photo columns keep their widths: they are frozen and the offsets depend on them. */
 .rct-table tbody td:not(.rct-c-acts):not(.rct-c-av){padding-left:16px;padding-right:16px}
 .rct-table td.rct-c-cv{overflow-wrap:normal;white-space:nowrap;min-width:92px}
