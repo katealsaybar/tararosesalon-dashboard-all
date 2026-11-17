@@ -343,7 +343,9 @@
     return g;
   }
   function fig(key, n, label, cls) {
-    return '<button type="button" class="rct-fig ' + (cls || '') + (S.lane === key ? ' rct-sel' : '') + '" data-fig="' + key + '" aria-pressed="' + (S.lane === key) + '"><span class="rct-n">' + n + '</span><span class="rct-l">' + label + '</span></button>';
+    // Kate, 17 Nov 2026 ("unclickable pls fix"): Total applications is the box that is lit while no other box is picked, so it looks and feels like the others; pressing it brings everyone back.
+    var on = key === 'all' ? !S.lane : S.lane === key;
+    return '<button type="button" class="rct-fig ' + (cls || '') + (on ? ' rct-sel' : '') + '" data-fig="' + key + '" aria-pressed="' + on + '"><span class="rct-n">' + n + '</span><span class="rct-l">' + label + '</span></button>';
   }
 
   function found() {
