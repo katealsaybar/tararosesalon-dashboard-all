@@ -632,9 +632,9 @@
      October's lost_drill: name and number copy on click, a Chat link to respond.io), Money from the bookings is projected vs actual spend (nov_campaign_money), delivery by blast, branch and
      day, by day, and a send log with filters and XLSX / CSV (nov_send_log_get). Results count a client's LATEST message only (a resent message replaces the first). No deposit section: none of
      the November offers asks for a deposit (buy one get one beauty, 25% off a first hair visit, two reminders). */
-  var MON = null, monBusy = false, monErr = false, rsV = { money: 'visual', del: 'visual' };
+  var MON = null, monBusy = false, monErr = false, rsV = { money: 'visual', del: 'visual', byb: 'visual' };
   var LOG = { rows: [], total: 0, loaded: false, busy: false, err: false, sel: { blast: '', branch: 'all', status: 'all', outcome: 'all', q: '', page: 1, per: 10 }, open: {} };
-  try { if (localStorage.getItem('nvb-money-view') === 'table') rsV.money = 'table'; if (localStorage.getItem('nvb-del-view') === 'table') rsV.del = 'table'; } catch (e) { /* fine without storage */ }
+  try { if (localStorage.getItem('nvb-money-view') === 'table') rsV.money = 'table'; if (localStorage.getItem('nvb-del-view') === 'table') rsV.del = 'table'; if (localStorage.getItem('nvb-byb-view') === 'table') rsV.byb = 'table'; } catch (e) { /* fine without storage */ }
   var NV_DRILL = { sent: 'Accepted by respond.io', reached: 'Delivered or read', read: 'Read', delivered: 'Delivered, not read yet', unconfirmed: 'Not confirmed yet', failed: 'Failed', checked: 'Status-checked',
     never_checked: 'Not status-checked yet', stop: 'STOP', replied: 'Wrote back', queued: 'Still queued', ahead: 'Booked ahead, to 30 November', late: 'Booked after 30 November, outside the offer', appts: 'Booked ahead, with their appointments', came_in: 'Already came in, nothing booked',
     paid: 'Paid at the till since the message', since: 'Booked since the message or came in', bsince: 'Booked since the message', dep_paid: 'Booked ahead, deposit paid', dep_today: 'Booked for today, no deposit needed', dep_need: 'Booked ahead, deposit likely needed, not paid', dep_none: 'Booked ahead, short service, no deposit needed', dep_nodep: 'Booked ahead, no deposit needed', dep_need_1: 'Deposit likely needed, today or tomorrow', dep_need_2: 'Deposit likely needed, in 2 to 3 days', dep_need_3: 'Deposit likely needed, in 4 to 7 days', dep_need_4: 'Deposit likely needed, in 8 to 14 days', dep_need_5: 'Deposit likely needed, later',
@@ -795,6 +795,7 @@
     if (k === 'dmx') dmClose();
     else if (k === 'money') { rsV.money = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-money-view', rsV.money); } catch (e) { /* fine */ } render(true); }
     else if (k === 'del') { rsV.del = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-del-view', rsV.del); } catch (e) { /* fine */ } render(true); }
+    else if (k === 'byb') { rsV.byb = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-byb-view', rsV.byb); } catch (e) { /* fine */ } render(true); }
     else if (k === 'logrow') { LOG.open[x] = !LOG.open[x]; paintLog(); }
     else if (k === 'logpage') { LOG.sel.page = Math.max(1, +x || 1); LOG.open = {}; loadLog(); }
     else if (k === 'logsave') logSave(x);
@@ -944,6 +945,67 @@
     return '<div class="cbl-card nvb-rs-sec" id="nvr-2"><div class="nvb-hd"><h3>2. Did the message arrive?</h3>' + toggle + '</div><p class="nvb-rs-lead">Whether the messages reached the phones: read, delivered, not confirmed yet, or failed. The by-blast bars are under section 2.</p>' + cards + inner +
       '<p class="nvb-small nvb-rs-note">From respond.io\'s delivery report for each message, read again every few minutes while the statuses arrive; Meta keeps updating a status for 24 hours. A client who wrote back still counts by what happened to the message.</p></div>';
   }
+  /* 5. By blast (Kate, 17 Nov 2026: "palitan ang section 5"; mockup docs/mockups/nov-performance-per-blast.html). One card per audience: the first message, its reminder, and a space
+     kept for Blast 3. Replaces the two wide By blast tables and Cost by blast. The reminders are the R_ blasts in RES.blasts; their bookings need migrations/nov_results_blast2_money.sql
+     (until it is applied they show "Not readable yet" for bookings and keep every delivery figure). Numbers open the clients behind them (nn, nov_drill). Ratios stay plain. */
+  var BB_GROUPS = [
+    { name: 'Hair to beauty', offer: 'Buy one get one beauty, to 30 Nov 2026', b1: 'A', b2: 'R_A' },
+    { name: 'Beauty to hair', offer: '25% off the new-client hair visit, to 30 Nov 2026', b1: 'B', b2: 'R_B' },
+    { name: 'Hair and beauty, occasional', offer: 'Buy one get one beauty, to 30 Nov 2026', b1: 'E3', b2: 'R_E3' },
+    { name: 'Due, hair', offer: 'A reminder, no offer', b1: 'F', b2: 'R_C1' },
+    { name: 'Due, beauty', offer: 'A reminder, no offer', b1: 'F2', b2: 'R_D1' },
+    { name: 'Newly due, hair', offer: 'A reminder, no offer. Phorest overdue list, not in Blast 1', b1: null, b2: 'R_C2' }
+  ];
+  function dmy(iso) { var d = dubaiDay(iso); return d && d.length === 10 ? d.slice(8, 10) + ' ' + MN[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4) : ''; }
+  function hm(iso) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)); } catch (e) { return ''; } }
+  function bbDots(per) { var n = Math.round(per), h = ''; for (var i = 0; i < 100; i++) h += '<i' + (i < n ? ' class="f"' : '') + '></i>'; return '<div class="nvb-bb-dots" aria-hidden="true">' + h + '</div>'; }
+  function bbFig(r, id, ok, r2) {
+    var reached = (r.read || 0) + (r.delivered || 0), m = r.money || null, boc = m && m.booked_or_in != null ? m.booked_or_in : null, can = ok && boc != null;
+    return { reached: reached, boc: boc, can: can, per: can && r.sent ? boc * 100 / r.sent : 0, cpb: can && boc > 0 ? reached * r2 / boc : null, m: m };
+  }
+  function bbCol(id, byId, st, ok, r2) {
+    var w = id && id.indexOf('R_') === 0 ? 2 : 1, r = id ? byId[id] : null, head = '<div class="nvb-bb-wv">' + (id ? (w === 2 ? 'Blast 2, reminder' : 'Blast 1') : 'Blast 1') + '</div>';
+    if (!id) return '<div class="nvb-bb-col">' + head + '<div class="nvb-bb-when">Not in Blast 1</div><div class="nvb-bb-slot"><b>No first message</b>These clients had no Blast 1. Their first text was the reminder.</div></div>';
+    if (!r || !r.sent) return '<div class="nvb-bb-col">' + head + '<div class="nvb-bb-when">Not sent</div><div class="nvb-bb-slot"><b>Nothing sent</b>No message of this audience has gone out.</div></div>';
+    var cx = { b: id }, f = bbFig(r, id, ok, r2), pct = r.sent ? Math.round(f.reached * 100 / r.sent) : 0;
+    var days = RES && RES.today && r.first ? Math.round((new Date(RES.today) - new Date(dubaiDay(r.first))) / 864e5) : null;
+    var tag = w === 2 && days != null && days < 4 ? '<span class="nvb-bb-pill">' + (days < 1 ? 'Sent today' : days + (days === 1 ? ' day in' : ' days in')) + '</span>' : (r.sent < 30 ? '<span class="nvb-bb-pill">Too few to compare</span>' : '');
+    var hero = f.can ? '<span class="n">' + (Math.round(f.per * 10) / 10).toFixed(1) + '</span><span class="u">per 100</span>' : '<span class="n">&ndash;</span><span class="u">not readable yet</span>';
+    var ofn = f.can ? nn(f.boc, 'since', cx) + ' of ' + nn(r.sent, 'sent', cx) + ' clients booked or came in' : (ok ? 'Bookings for this message are not counted yet' : 'Bookings and sales are not up to date');
+    var key = '<span>Reached <b>' + pct + '%</b></span><span>' + (f.cpb ? '<b>AED ' + money2(f.cpb) + '</b> a booking' : '<b>' + (f.can ? 'No booking yet' : '&ndash;') + '</b>') + '</span>';
+    var row = function (l, v) { return '<div><span>' + l + '</span>' + v + '</div>'; };
+    var more = row('Messaged', nn(r.sent, 'sent', cx)) + row('Reached', nn(f.reached, 'reached', cx)) + row('Failed', nn(r.failed, 'failed', cx)) + row('STOP', nn(r.stop, 'stop', cx)) +
+      row('Wrote back', st.replies === 'no' ? '<b>not readable yet</b>' : nn(r.replied, 'replied', cx)) + row('Paid at the till since', w === 1 && f.m ? '<b>AED ' + money0(f.m.paid_aed) + '</b>' : '<b>' + (w === 2 ? 'not worked out' : '&ndash;') + '</b>');
+    return '<div class="nvb-bb-col">' + head + '<div class="nvb-bb-when">Sent ' + dmy(r.first) + ', ' + hm(r.first) + '</div><div class="nvb-bb-tags">' + tag + '</div>' +
+      '<div class="nvb-bb-hero">' + hero + '</div><div class="nvb-bb-ofn">' + ofn + '</div>' + (f.can ? bbDots(f.per) : '<div class="nvb-bb-dots ph"></div>') +
+      '<div class="nvb-bb-key">' + key + '</div><details class="nvb-bb-more"><summary>More</summary><div class="nvb-bb-ml">' + more + '</div></details></div>';
+  }
+  function bySec(a, st, bkok, slok, r2) {
+    var byId = {}, ok = bkok && slok, tbl = rsV.byb === 'table', body = '';
+    (RES && RES.blasts ? RES.blasts : []).forEach(function (x) { byId[x.id] = x; });
+    var toggle = '<div class="tp-seg nvb-seg nvb-bb-tog" role="group" aria-label="View"><button type="button" class="' + (tbl ? '' : 'on') + '" data-nvr="byb:visual">Visual</button><button type="button" class="' + (tbl ? 'on' : '') + '" data-nvr="byb:table">Table</button></div>';
+    if (!tbl) {
+      body = BB_GROUPS.map(function (g) {
+        return '<div class="nvb-bb-grp"><div class="nvb-bb-gh"><h4>' + esc(g.name) + '</h4><span>' + esc(g.offer) + '</span></div><div class="nvb-bb-pair">' + bbCol(g.b1, byId, st, ok, r2) + bbCol(g.b2, byId, st, ok, r2) +
+          '<div class="nvb-bb-col nvb-bb-b3"><div class="nvb-bb-wv">Blast 3, last reminder</div><div class="nvb-bb-when">Not sent yet</div><div class="nvb-bb-slot"><b>Space kept for Blast 3</b>It fills in here, next to the first message and the reminder, once it has gone out.</div></div></div></div>';
+      }).join('');
+    } else {
+      var heads = [['Blast', ''], ['Wave', ''], ['Sent', ''], ['Messaged', 'n'], ['Reached', 'n'], ['STOP', 'n'], ['Booked or came in', 'n'], ['Per 100 messaged', 'n'], ['Cost per booking', 'n'], ['Paid since, AED', 'n']], rows = [];
+      BB_GROUPS.forEach(function (g) {
+        [g.b1, g.b2].forEach(function (id) {
+          var r = id ? byId[id] : null; if (!r || !r.sent) return;
+          var w = id.indexOf('R_') === 0 ? 2 : 1, f = bbFig(r, id, ok, r2), cx = { b: id };
+          rows.push({ c: [esc(g.name + (w === 2 ? ', reminder' : '')), w === 2 ? 'Blast 2' : 'Blast 1', dmy(r.first) + ', ' + hm(r.first), nn(r.sent, 'sent', cx), nn(f.reached, 'reached', cx), nn(r.stop, 'stop', cx),
+            f.can ? nn(f.boc, 'since', cx) : 'Not yet', f.can ? (Math.round(f.per * 10) / 10).toFixed(1) : 'Not yet', f.cpb ? 'AED ' + money2(f.cpb) : (f.can ? 'none yet' : 'Not yet'), w === 1 && f.m ? money0(f.m.paid_aed) : 'Not yet'] });
+        });
+      });
+      rows.push({ t: true, c: ['Blast 3', '', 'Not sent yet', '', '', '', '', '', '', ''] });
+      body = rsTable(heads, rows) + '<p class="nvb-small nvb-rs-note">There is no grand total on purpose. A client who booked after the reminder is counted in her Blast 1 row and in her reminder row, so adding the two would count her twice.</p>';
+    }
+    return rsSec('5. By blast', 'Which blast did the most? One message per client, so clients and messages are the same number. Failed is shown on its own, never counted as delivered. Left is the first message, then the reminder, then a space kept for Blast 3. Every figure with a dotted underline opens the clients behind it.',
+      toggle + body,
+      'Booked or came in is a ceiling, not proof the message caused it. Per 100 messaged and cost per booking are worked-out figures, so they stay plain. Cost is an estimate at AED ' + r2 + ' a delivered message. A client who booked after the reminder sits in her first-message card and in her reminder card.');
+  }
   function resultsMain() {
     if (!RES) return '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026</div><h2>Results</h2></div></div><p class="slv-muted">' + (resErr ? 'The results could not be read just now. Open the page again in a minute.' : 'Loading…') + '</p>';
     var a = RA(), rows = resRows(), st = resState(), r1 = RES.rates.oct, r2 = RES.rates.nov;
@@ -982,28 +1044,14 @@
       'Rate: October used AED ' + r1 + ' a message (about USD 0.046, measured). The page assumes AED ' + r2 + ' (about USD 0.058, one vendor source). Both are shown until the Meta invoice or the respond.io usage report replaces them. WhatsApp does not charge failed messages, so delivered only is the likelier bill, and Cost per booking uses it.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, cost AED 1,068 on every message accepted.');
 
     // 3 did the message arrive
-    out += delSec(rows, all2, a, st);
+    out += delSec(rows, rows.concat([a]), a, st);
 
     out += depSec(st, a, bkok);
 
     // 7 money
     out += moneySec(st, a, bkok, slok, r2);
-    // 2 by blast
-    var head2 = [['Blast', ''], ['Audience', 'n'], ['Accepted by respond.io', 'n'], ['Delivered or read', 'n'], ['Read', 'n'], ['Not confirmed', 'n'], ['Failed', 'n'], ['Failed % of accepted', 'n'], ['Failed % of checked', 'n'], ['STOP', 'n'], ['Wrote back', 'n']];
-    var all2 = rows.concat([a]);
-    var body2 = all2.map(function (x) {
-      var rd = x.read + x.delivered, ck = rd + x.failed, tot = x.id === 'ALL', cx = { b: x.id };
-      return { t: tot, c: [esc(tot ? 'All' : x.name), tot ? fmtN(aud) : fmtN(x.audience), nn(x.sent, 'sent', cx), nn(rd, 'reached', cx), nn(x.read, 'read', cx), nn(x.unconfirmed, 'unconfirmed', cx), '<span class="f">' + nn(x.failed, 'failed', cx) + '</span>', pc1(x.failed, x.sent), ck ? pc1(x.failed, ck) : 'none checked', nn(x.stop, 'stop', cx), st.replies === 'no' ? '<span class="nvb-rs-dash" title="Not readable yet">Not yet</span>' : nn(x.replied, 'replied', cx)] };
-    });
-    var bars = '<div class="nvb-rs-bars">' + rows.map(function (x) { return rsBar(x, { b: x.id }); }).join('') + '</div>' + BAR_LEG;
-    var head3 = [['AED spent', ''], ['Every message accepted, ' + r1, 'n'], ['Every message accepted, ' + r2, 'n'], ['Delivered or read, ' + r1, 'n'], ['Delivered or read, ' + r2, 'n']].concat(bkok && slok ? [['Booked or came in', 'n'], ['Cost per booking, delivered ' + r2, 'n']] : []);
-    var body3 = all2.map(function (x) {
-      var rd = x.read + x.delivered, tot = x.id === 'ALL', mm = x.money || {};
-      return { t: tot, c: [esc(tot ? 'All' : x.name), money2(x.sent * r1), money2(x.sent * r2), money2(rd * r1), money2(rd * r2)].concat(bkok && slok ? [nn(mm.booked_or_in, 'since', { b: x.id }), mm.booked_or_in > 0 ? money2(rd * r2 / mm.booked_or_in) : 'none yet'] : []) };
-    });
-    out += rsSec('5. By blast', 'One message per client, so clients and messages are the same number. Failed is shown on its own, never counted as delivered.', rsTable(head2, body2) +
-      '<p class="nvb-small nvb-rs-note">Not confirmed means respond.io took it and nothing more has been read yet (' + fmtN(a.never_checked) + ' of ' + fmtN(a.unconfirmed) + ' have never been status-checked). ' + (st.replies === 'no' ? 'Wrote back is not readable yet, see section 5.' : '') + '</p>' + bars) +
-      rsSec('Cost by blast, AED', 'Every message accepted is the page\'s own cost basis. Delivered or read is the likelier bill. Low delivered figures on a blast mostly mean its messages are not status-checked yet.', rsTable(head3, body3));
+    // 5 by blast (Kate, 17 Nov 2026): one card per audience, bySec above
+    out += bySec(a, st, bkok, slok, r2);
 
 
     // 8 branch
