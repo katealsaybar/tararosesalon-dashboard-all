@@ -106,6 +106,7 @@ function opdCtText(r) {
   if (r._amb) return 'Several clients share this name';
   return [r._ph, r._em].filter(Boolean).join(' / ').replace(/ \/ /g, ' ').trim();
 }
+const DPC_W = { l: 118, b: 124, c: 170, ct: 210, a: 86, u: 86, age: 86, s: 206, todo: 400 };   // column widths, so What to do is wide and the table scrolls sideways with the first column frozen
 const OPD_COLS = [
   { k: 'l', l: 'Deposit paid', t: 'date', raw: r => r.l, disp: r => opdD(r.l) },
   { k: 'b', l: 'Salon', t: 'text', raw: r => dpcName(r.b), disp: r => dpcName(r.b) },
@@ -213,6 +214,7 @@ function opdPaint() {
     return `<button type="button" class="spv-schip ${k === 'needs' ? 'needs' : ''}" data-ost="${k}" aria-pressed="${OPD.status === k}">${n} <span class="c">${c}</span></button>`; }).join('');
   const rows = opdVisible(), shown = rows.slice(0, OPD.shown), rest = rows.length - shown.length;
   const bookOk = dpcBookOk(), cols = opdCols(), ct = bookOk;   // the Client Book and the contact details are Level 5 only
+  const tw = cols.reduce((t, c) => t + (DPC_W[c.k] || 120), 0), colg = cols.map(c => `<col style="width:${DPC_W[c.k] || 120}px">`).join('');
   const fbtn = c => { const on = OPD.sort && OPD.sort.k === c.k || !!OPD.f[c.k];
     return `<button type="button" class="opd-fb${on ? ' on' : ''}" data-opdfc="${c.k}" aria-label="Filter ${c.l}" aria-haspopup="true"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button>`; };
   const head = cols.map(c => `<th class="${c.t === 'num' ? 'r' : ''}"><span class="opd-th"><span>${c.l}${OPD.sort && OPD.sort.k === c.k ? (OPD.sort.dir > 0 ? ' ↑' : ' ↓') : ''}</span>${fbtn(c)}</span></th>`).join('');
@@ -239,7 +241,7 @@ function opdPaint() {
     `<div class="spv-bar"><input class="spv-search" id="opdQ" type="search" placeholder="Search a client" aria-label="Search a client" value="${dpcEsc(OPD.q)}"><div class="spv-status-set" role="group" aria-label="Status">${chips}</div></div>` +
     `<div class="opd-colbar" aria-label="Column filters">${colbar}</div>` +
     `<div class="spv-sumline">Showing <b>${rows.length}</b> client${rows.length === 1 ? '' : 's'}, AED <b>${dpcM0(sumAmt(rows))}</b> open${dirty ? ' · <button type="button" class="spv-clear" data-act="oclear">Clear filters</button>' : ''}</div>` +
-    `<div class="spv-card spv-tw"><table class="spv-tbl spv-opd"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
+    `<div class="spv-card spv-tw"><table class="spv-tbl spv-opd" style="--opd-w:${tw}px"><colgroup>${colg}</colgroup><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
     `<div class="spv-more-row"${rest > 0 ? '' : ' hidden'}><button class="spv-morebtn" type="button" data-act="omore">Show ${Math.min(30, rest)} more (${rest} left)</button></div></div>` + outLine +
     `<div class="spv-callout"><b>A deposit waiting for a booking is normal.</b> Phorest sales do not carry the appointment date, so a client with a booking still ahead shows as Waiting. Only <b>Came back</b>, <b>Part used</b> and <b>No visit, over 14 days</b> need a person.</div>` +
     `<div class="spv-note">How it is read: a deposit is a "Deposit" line in Phorest (a refund nets it off). It counts as taken off when a later bill for the same client at the same salon carries an A(...) tender. These are candidates only. Check the client in Phorest before telling her anything. Bahrain is left out, as on the Stripe tab.</div></div>`;
@@ -446,7 +448,14 @@ function dpcCss() {
 #depositContent .spv-tab .n[hidden]{display:none}
 #depositContent .opd-cards .spv-sc.quiet{grid-column:span 3}
 #depositContent .opd-cards .spv-sc.act{grid-column:span 3}
-#depositContent table.spv-opd{min-width:1120px}
+#depositContent table.spv-opd{table-layout:fixed;min-width:var(--opd-w,1120px);width:max(100%,var(--opd-w,1120px))}
+#depositContent .spv-opd td.num{white-space:nowrap}
+/* the first column is frozen on a wide table: it needs a solid colour, or the next column shows through it (the status tints are see-through in dark mode) */
+#depositContent .spv-opd th:first-child{background:var(--surface)}
+#depositContent .spv-opd tr.opd-row td:first-child{background:var(--surface)}
+#depositContent .spv-opd tr.opd-row.notco td:first-child{background:linear-gradient(var(--s-bad-bg),var(--s-bad-bg)),var(--surface)}
+#depositContent .spv-opd tr.opd-row.nostripe td:first-child{background:linear-gradient(var(--s-info-bg),var(--s-info-bg)),var(--surface)}
+#depositContent .spv-opd tr.opd-row.wrong td:first-child{background:linear-gradient(var(--s-warn-bg),var(--s-warn-bg)),var(--surface)}
 #depositContent .spv-opd td{vertical-align:top}
 #depositContent .spv-opd th.r{text-align:right}
 #depositContent .spv-opd tr.opd-row.notco td{background:var(--s-bad-bg)}#depositContent .spv-opd tr.opd-row.nostripe td{background:var(--s-info-bg)}#depositContent .spv-opd tr.opd-row.wrong td{background:var(--s-warn-bg)}
@@ -454,11 +463,12 @@ function dpcCss() {
 #depositContent .opd-cl{font-weight:600}
 #depositContent .opd-cl a.spv-bk{text-decoration:underline;text-decoration-style:solid;cursor:pointer}
 #depositContent .opd-ct{font-size:13.5px;min-width:170px;word-break:break-word}#depositContent .opd-ct a{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}
-#depositContent .opd-todo{font-size:13.5px;color:var(--muted);max-width:42ch}
+#depositContent .opd-todo{font-size:13.5px;color:var(--muted)}
 @media(max-width:1000px){#depositContent .opd-cards .spv-sc,#depositContent .opd-cards .spv-sc.quiet,#depositContent .opd-cards .spv-sc.act{grid-column:span 6}}
 @media(max-width:760px){
 #depositContent .opd-cards .spv-sc,#depositContent .opd-cards .spv-sc.quiet,#depositContent .opd-cards .spv-sc.act{grid-column:span 1}
-#depositContent table.spv-opd{min-width:0}
+#depositContent table.spv-opd{min-width:0;width:100%;table-layout:auto}
+#depositContent .spv-opd colgroup{display:none}
 #depositContent .spv-opd thead{display:none}
 #depositContent .spv-opd,#depositContent .spv-opd tbody,#depositContent .spv-opd tr,#depositContent .spv-opd td{display:block;width:100%}
 #depositContent .spv-opd tr.opd-row{padding:10px 14px 10px 18px;border-bottom:1px solid var(--border)}
