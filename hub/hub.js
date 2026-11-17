@@ -167,13 +167,7 @@
     // Kate, 9 Nov 2026: applicant triage for Kate and Coach Emma only (a dashboard page, ?view=recruitment; Level 5 or dashboard_users.extra_pages 'recruitment'; migrations/recruitment.sql).
     { key: 'recruitment', via: 'dashboards', min: 5, ic: 'people', dept: 'Tools', title: 'Recruitment', href: '/?view=recruitment', rule: 'var(--accent-mint)',
       blurb: 'Every applicant from the recruitment and info inboxes: who is worth a look, who is waiting for an answer, and who to say no to.' },
-    // Kate, 16 Nov 2026: who is on leave, sick leave and absences, usual day offs and public holidays for the four UAE salons (Level 4 and up; leave_calendar() in migrations/leave_calendar.sql).
-    { key: 'leavecal', dept: 'People', title: 'Leave & Holiday Calendar', href: '/hub/leavecal', live: true, rule: 'var(--accent-mint)',
-      blurb: 'Who is on leave, sick leave and absences, the usual day offs and the public holidays for the four UAE salons.' },
-    // Kate, 17 Nov 2026: Phorest's Day and Week calendar (stylists across, time down the side) for the four UAE salons; Levels 2, 3 and 5, shows client names (service_calendar() in migrations/service_calendar.sql).
-    { key: 'servicecal', dept: 'Numbers', title: 'Service Calendar', href: '/hub/servicecal', live: true, rule: 'var(--accent-lavender)',
-      words: 'calendar appointments schedule day week stylist time phorest services performed chair booked bookings who did what when',
-      blurb: 'Every service at each salon by stylist and time, like the Phorest calendar, for any day.' },
+    // Kate, 17 Nov 2026: the Leave & Holiday Calendar (key leavecal, /hub/leavecal) and the Service Calendar (key servicecal, /hub/servicecal) have no Team Home card now: they are in the dashboard menu, Tools > HR (index.html). The pages and their kb_sections rows are unchanged, so access is the same.
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
     // Kate, 28 Oct 2026: which dashboard pages each level opens, as tick boxes (Level 5 only; saved in public.page_access, defaults from pages.js).
