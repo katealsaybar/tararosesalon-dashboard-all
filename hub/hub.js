@@ -203,6 +203,8 @@
     // Kate, 9 Nov 2026: two Tools pages that had a sidebar row and no row here.
     { key: 'stripe-deposits', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Tools', title: 'Stripe vs Phorest', href: '/?view=stripedeposits', rule: 'var(--accent-mint)',
       blurb: 'Deposits paid on Stripe checked against Phorest: which are paid, which were not checked out, and which landed on the wrong branch.' },
+    { key: 'deposit-check', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Tools', title: 'Deposit Checking', href: '/?view=depositcheck', rule: 'var(--accent-mint)',
+      blurb: 'Deposits clients paid that have not been taken off a bill yet, so the front desk can check them before a client pays twice.' },
     { key: 'nov-blasts', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Tools', title: 'Database Blasts, November 2026', href: '/?view=novblasts', rule: 'var(--accent-butter)',
       blurb: 'How the November database blasts did: sent, delivered, replies and bookings.' }
   ];
@@ -644,7 +646,7 @@
     var needPages = typeof TRS_PAGES === 'undefined';
     function js(src) { return new Promise(function (ok) { var sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }); }
     var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/css/account-menu.css?v=abc986e2'; document.head.appendChild(css);
-    KB._acct = (needPages ? js('/js/pages.js?v=fa67d04d') : Promise.resolve())
+    KB._acct = (needPages ? js('/js/pages.js?v=856db8af') : Promise.resolve())
       .then(function () { return js('/js/account-menu.js?v=39e1bb7f'); })
       .then(function () { if (needPages && typeof trsAccessLoad === 'function') return trsAccessLoad(c); });
     return KB._acct;

@@ -6,7 +6,8 @@
 -- CANDIDATES, not proof: the sales lines carry no appointment date, so a client with a booking still ahead is simply 'waiting'. The page says so.
 -- Same lock and same speed approach as stripe_vs_phorest: the matching is worked out ahead and kept (open_deposits_cache), refreshed hourly at minute 50
 -- by cron, and the page reads it in milliseconds. Nothing is written back to Phorest or Stripe.
--- Who may open it: the same people as Stripe vs Phorest (stripe_guard(): Level 3 and 5, and anyone given 'stripedeposits' in dashboard_users.extra_pages).
+-- Who may open it: its own page, Deposit Checking ('depositcheck'): Level 3 and 5, and anyone given 'depositcheck' in dashboard_users.extra_pages (deposit_guard(), below).
+-- It was first a tab on Stripe vs Phorest (guarded by stripe_guard()); Kate moved it to its own page the same day.
 
 create table if not exists public.open_deposits_cache (
   branch text not null, client_id text not null, client_name text,
@@ -52,12 +53,25 @@ end $fn$;
 revoke all on function public.open_deposits_refresh(text) from public, anon, authenticated;
 -- select cron.schedule('open-deposits-refresh-hourly', '50 * * * *', $$ select public.open_deposits_refresh(); $$);   -- applied live 17 Nov 2026; first fill by salon, 101 clients in 90 days (KCA 46, SAA 33, MC 13, AQ 9)
 
+create or replace function public.deposit_guard() returns text language plpgsql stable security definer set search_path to 'public' as $$
+declare m record;
+begin
+  select * into m from public.dashboard_me() limit 1;
+  if m.name is null or not (m.level in (3, 5) or 'depositcheck' = any (coalesce(m.extra_pages, '{}'::text[]))) then
+    raise exception 'Not open to your account';
+  end if;
+  return m.name;
+end $$;
+
 create or replace function public.open_deposits() returns jsonb
 language plpgsql stable security definer set search_path to 'public' as $$
-declare who text := public.stripe_guard();
+declare who text := public.deposit_guard();
 begin
   return jsonb_build_object('ok', true, 'at', (select max(computed_at) from open_deposits_cache),
     'rows', coalesce((select jsonb_agg(jsonb_build_object('b', branch, 'id', client_id, 'n', client_name, 'f', first_dep, 'l', last_dep,
               'a', dep_net, 'u', a_used, 'v', first_visit_after) order by last_dep) from open_deposits_cache), '[]'::jsonb));
 end $$;
 grant execute on function public.open_deposits() to authenticated;
+
+-- the page is marked Under construction (page_status), applied live 17 Nov 2026:
+-- insert into public.page_status (page_id, status, updated_at, updated_by) values ('depositcheck', 'construction', now(), 'kate@tararosesalon.com') on conflict (page_id) do update set status = 'construction', updated_at = now();

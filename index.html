@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=fa67d04d"></script>
+<script src="js/pages.js?v=856db8af"></script>
 <script src="js/page-dates.js?v=0cbd8bd1"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
@@ -3661,7 +3661,9 @@ table.tp-cmp td.bad{color:var(--bad)}
       // November Blasts (2 Nov 2026): one file, only that page needs it. 5 Nov 2026: plus the spreadsheet export, the Results send log saves as XLSX and CSV.
       nvb: [LGX, 'js/nov-blasts.js?v=2b97e87d'],
       // Stripe vs Phorest (9 Nov 2026): one file, reads stripe_vs_phorest(); the header's Branch and Period drive it.
-      spv: ['js/stripe-phorest.js?v=370b222e'],
+      spv: ['js/stripe-phorest.js?v=a458b008'],
+      // Deposit Checking (17 Nov 2026): its own page, one file, reads open_deposits(); the header's Branch and Period drive it.
+      dpc: ['js/deposit-check.js?v=93322447'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'js/active-deals.js?v=a7878905'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -3931,6 +3933,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" href="/?view=novblasts" onclick="if(trsPlain(event)){event.preventDefault();showView('novblasts', this)}">Database Blasts, November 2026</a>
     <!-- Kate, 9 Nov 2026: Stripe vs Phorest, the four Stripe accounts checked against Phorest (stripe-phorest.js; Level 3 and up, and Belle by her own extra page). -->
     <a class="nav-sub" href="/?view=stripedeposits" onclick="if(trsPlain(event)){event.preventDefault();showView('stripedeposits', this)}">Stripe vs Phorest</a>
+    <!-- Kate, 17 Nov 2026: Deposit Checking, deposits not yet taken off a bill (deposit-check.js; Level 3 and up, and anyone given the page in extra_pages). -->
+    <a class="nav-sub" href="/?view=depositcheck" onclick="if(trsPlain(event)){event.preventDefault();showView('depositcheck', this)}">Deposit Checking</a>
     <a class="nav-sub" href="/?view=complaintlog" onclick="if(trsPlain(event)){event.preventDefault();showView('complaintlog', this)}">Log a Client Complaint</a>
     <a class="nav-sub" data-cmp-pipeline data-status-id="complaintspipeline" href="/hub/complaint?view=board">Complaints Pipeline</a>
     <a class="nav-sub" data-tool-link data-nav-key="l:location.href='/targets/'" href="/targets/">Target Calculator</a>
@@ -4600,6 +4604,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="stripeContent"></main>
   </div>
 
+  <!-- DEPOSIT CHECKING (Kate, 17 Nov 2026): every deposit a client paid that has not been taken off a bill yet, from open_deposits() (migrations/open_deposits_17nov.sql).
+       deposit-check.js draws it; the header's Branch and Period drive it (pages.js filtered + nopulse, dashboard.js NOPULSE_REDRAW). Level 3 and up, and anyone given the page in extra_pages. -->
+  <div id="view-depositcheck" style="display:none">
+    <main id="depositContent"></main>
+  </div>
+
   <!-- ACTIVE DEALS PERFORMANCE (Kate, 23 Oct 2026): how many times each deal on the active deals brochure was bought at the till, in the Wellness
        Voucher Performance format. No filters of its own: it reads the masthead's Branch and Period (pages.js filtered + nopulse, dashboard.js
        NOPULSE_REDRAW). Level 2 and above, no client names. active_deals_performance() (migrations/active_deals_performance.sql); active-deals.js draws it. -->
@@ -4814,7 +4824,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=7b4719d6"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=c6fce4b1"></script>
+<script src="js/dashboard.js?v=c76cbab5"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5471,6 +5481,7 @@ function showView(view, el){
   if (view === 'recruitment') renderRecruitment();
   if (view === 'novblasts') renderNovBlasts();
   if (view === 'stripedeposits') renderStripePhorest();
+  if (view === 'depositcheck') renderDepositCheck();
   if (view === 'dealsperf') renderDealsPerf();
   if (view === 'discountsvouchers') renderDiscountsVouchers();
   if (view === 'googleads') renderGoogleAds();
