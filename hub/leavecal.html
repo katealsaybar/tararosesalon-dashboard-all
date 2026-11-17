@@ -354,7 +354,7 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
 .pl-c.today{background:rgba(92,224,200,.14);box-shadow:inset 2px 0 0 #5CE0C8,inset -2px 0 0 #5CE0C8}
 .pl-c.sel{box-shadow:inset 0 0 0 1px var(--muted2)}
 .pl-c.sel.today{box-shadow:inset 2px 0 0 #5CE0C8,inset -2px 0 0 #5CE0C8}
-.pl-bars{position:absolute;inset:4px 0 0 0;display:grid;grid-template-columns:repeat(31,minmax(0,1fr));grid-auto-rows:18px;row-gap:2px}
+.pl-bars{pointer-events:none;position:absolute;inset:4px 0 0 0;display:grid;grid-template-columns:repeat(31,minmax(0,1fr));grid-auto-rows:18px;row-gap:2px}
 .wkrow{position:relative;margin-bottom:4px}
 .wkbg{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0 4px}
 .wkbg .mc{min-height:0;height:100%}
@@ -441,7 +441,7 @@ var HOL=[
  {n:'National Day',f:'2026-12-02',t:'2026-12-03',note:'Fixed date, two days.'}
 ];
 
-var S={br:['SAA','KCA','MC','AQ'],view:'planner',everyone:true,res:false,F:{},sort:null,F2:{},sort2:null,m:+TODAY.slice(5,7)-1,y:Math.min(2027,Math.max(2026,+TODAY.slice(0,4))),sel:TODAY,layers:{hol:true,app:true,plan:true,req:true,inf:false,blk:true},q:''};
+var S={br:['SAA','KCA','MC','AQ'],view:'planner',everyone:true,res:false,F:{},sort:null,F2:{},sort2:null,m:+TODAY.slice(5,7)-1,y:Math.min(2027,Math.max(2026,+TODAY.slice(0,4))),sel:TODAY,dep:[],layers:{hol:true,app:true,plan:true,req:true,inf:false,blk:true},q:''};
 
 function P(s){var a=s.split('-');return Date.UTC(+a[0],+a[1]-1,+a[2])}
 function iso(t){return new Date(t).toISOString().slice(0,10)}
@@ -452,7 +452,14 @@ function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cl
 function brAll(){return S.br.length===4}
 function brOK(b){return b==='X'?brAll():S.br.indexOf(b)>=0}
 function isRes(n,b){var f=rfind(n,b);return !!(f&&f.res)}
-function leaveShown(){return LV.filter(function(l){return S.layers[l.s]&&brOK(l.b)&&(S.res||!isRes(l.n,l.b))&&(!S.q||l.n.toLowerCase().indexOf(S.q)>-1)})}
+/* departments, from the position (leadership is head office, except Accounts and Admin) */
+var DEPS=[['stylists','Stylists'],['assistants','Assistants'],['frontdesk','Front desk'],['beauticians','Beauticians'],['coordinators','Salon coordinators'],['accounts','Accounts'],['callcentre','Call centre'],['leadership','Leadership']];
+var DEPOF={'Stylist':'stylists','Junior Stylist':'stylists','Senior Stylist':'stylists','Style Director':'stylists','Creative Director':'stylists','Assistant':'assistants','Receptionist':'frontdesk','Beautician':'beauticians','Salon Coordinator':'coordinators','Head Coordinator':'coordinators','Accounts and Admin':'accounts','Office/Admin':'callcentre'};
+function deptOf(n,b){var r=rfind(n,b);if(!r)return '';if(r.ho&&r.p!=='Accounts and Admin')return 'leadership';return DEPOF[r.p]||''}
+function depOK(n,b){return !S.dep.length||S.dep.indexOf(deptOf(n,b))>=0}
+function lvOK(l){return brOK(l.b)&&depOK(l.n,l.b)}
+function depLabel(){return S.dep.length?DEPS.filter(function(d){return S.dep.indexOf(d[0])>=0}).map(function(d){return d[1]}).join(' + '):'All departments'}
+function leaveShown(){return LV.filter(function(l){return S.layers[l.s]&&lvOK(l)&&(S.res||!isRes(l.n,l.b))&&(!S.q||l.n.toLowerCase().indexOf(S.q)>-1)})}
 
 function index(){
   var m={};
@@ -473,20 +480,22 @@ function buildFilters(){
   var vHtml='<span class="gseg">'+VIEWS.map(function(v){return '<button type="button" class="gchip" aria-pressed="'+(S.view===v[0])+'" data-v="v:'+v[0]+'">'+v[1]+'</button>'}).join('')+'</span>';
   var html='<div class="f-row"><span class="f-lbl">Branch</span><div class="chipset">'+bHtml+'</div></div>'+
     '<div class="f-row"><span class="f-lbl">Staff</span><div class="chipset">'+chipRow([{v:'r0',label:'Present staff',on:!S.res},{v:'r1',label:'Include resigned staff',on:S.res}])+'</div></div>'+
+    '<div class="f-row"><span class="f-lbl">Department</span><div class="chipset">'+'<span class="gseg"><button type="button" class="gchip" aria-pressed="'+(!S.dep.length)+'" data-v="d:all">All departments</button></span><span class="sep">&middot;</span>'+chipRow(DEPS.map(function(d){return {v:'d:'+d[0],label:d[1],on:S.dep.indexOf(d[0])>=0}}))+'</div></div>'+
     '<div class="f-row"><span class="f-lbl">Year</span><div class="chipset">'+yHtml+'</div></div>'+
     '<div class="f-row"><span class="f-lbl">View</span><div class="chipset">'+vHtml+'</div></div>';
   document.getElementById('filters').innerHTML=html;
   document.getElementById('fSheetBody').innerHTML='<div class="filters">'+html+'</div>';
   document.getElementById('mastBranch').innerHTML='<b>'+brLabel()+'</b>';
-  document.getElementById('mastRange').textContent=S.y+', '+(S.res?'including resigned staff':'present staff')+', data up to '+fmt(RANGE_TO);
+  document.getElementById('mastRange').textContent=S.y+', '+(S.dep.length?depLabel()+', ':'')+(S.res?'including resigned staff':'present staff')+', data up to '+fmt(RANGE_TO);
   var vl=VIEWS.filter(function(v){return v[0]===S.view})[0][1];
-  document.getElementById('fSheetSum').textContent=(brAll()?'All':S.br.length>1?S.br.length+' branches':BRN.filter(function(b){return b[0]===S.br[0]})[0][1])+' \u00b7 '+(S.res?'incl. resigned':'present')+' \u00b7 '+vl;
+  document.getElementById('fSheetSum').textContent=(brAll()?'All':S.br.length>1?S.br.length+' branches':BRN.filter(function(b){return b[0]===S.br[0]})[0][1])+' \u00b7 '+(S.dep.length?(S.dep.length>1?S.dep.length+' departments':depLabel())+' \u00b7 ':'')+(S.res?'incl. resigned':'present')+' \u00b7 '+vl;
 }
 function onGlobalChip(e){
   var b=e.target.closest('.gchip');if(!b)return;var v=b.getAttribute('data-v');if(!v)return;
   if(v==='__all')S.br=['SAA','KCA','MC','AQ'];
   else if(v.charAt(0)==='y'){S.y=+v.slice(1);if(S.sel.slice(0,4)!==String(S.y))S.sel=S.y+'-01-01'}
   else if(v.slice(0,2)==='v:')S.view=v.slice(2);
+  else if(v.slice(0,2)==='d:'){var dv=v.slice(2);if(dv==='all')S.dep=[];else if(S.dep.indexOf(dv)>=0)S.dep=S.dep.filter(function(x){return x!==dv});else S.dep=S.dep.concat(dv)}
   else if(v==='r0'||v==='r1')S.res=(v==='r1');
   else{
     if(brAll())S.br=[v];
@@ -499,7 +508,7 @@ function onGlobalChip(e){
 
 function buildLayers(){
   var L=document.getElementById('layers');L.innerHTML='';
-  var cnt={blk:BLK.length,app:LV.filter(function(l){return l.s==='app'&&brOK(l.b)}).length,plan:LV.filter(function(l){return l.s==='plan'&&brOK(l.b)}).length,req:LV.filter(function(l){return l.s==='req'&&brOK(l.b)}).length,inf:LV.filter(function(l){return l.s==='inf'&&brOK(l.b)}).length,hol:HOL.length};
+  var cnt={blk:BLK.length,app:LV.filter(function(l){return l.s==='app'&&lvOK(l)}).length,plan:LV.filter(function(l){return l.s==='plan'&&lvOK(l)}).length,req:LV.filter(function(l){return l.s==='req'&&lvOK(l)}).length,inf:LV.filter(function(l){return l.s==='inf'&&lvOK(l)}).length,hol:HOL.length};
   [['hol','Public holidays','hol',cnt.hol],['app','Approved leave','app',cnt.app],['plan','Planned','plan',cnt.plan],['blk','Blocked days (no leave)','blk',cnt.blk],['req','Waiting for approval','req',cnt.req]].forEach(function(x){
     var b=el('button','lay');b.setAttribute('aria-pressed',S.layers[x[0]]);
     b.appendChild(el('span','sw '+x[2]));b.appendChild(document.createTextNode(x[1]+' '));b.appendChild(el('small','',x[3]));
@@ -510,8 +519,8 @@ function buildTiles(){
   var T=document.getElementById('tiles');T.innerHTML='';
   var idx=index(),td=idx[TODAY]||{hol:[],lv:[]};
   var next=HOL.filter(function(h){return h.f>TODAY})[0];
-  var wait=LV.filter(function(l){return l.s==='req'&&brOK(l.b)});
-  var apr=LV.filter(function(l){return l.s==='app'&&brOK(l.b)}).reduce(function(a,l){return a+nd(l.f,l.t)},0);
+  var wait=LV.filter(function(l){return l.s==='req'&&lvOK(l)});
+  var apr=LV.filter(function(l){return l.s==='app'&&lvOK(l)}).reduce(function(a,l){return a+nd(l.f,l.t)},0);
   function tile(k,v,s){var t=el('div','tile');t.appendChild(el('div','k',k));t.appendChild(el('div','v',v));t.appendChild(el('div','s',s));T.appendChild(t)}
   tile('Off today ('+fmt(TODAY).replace(/ \d{4}$/,'')+')',td.lv.length,td.lv.length?td.lv.map(function(l){return l.n.split(' ')[0]}).join(', ')+'':'Nobody on the layers shown');
   tile('Next public holiday',next?(nd(TODAY,next.f)-1)+' days':'none',next?next.n+', '+rng(next.f,next.t)+' (expected)':'');
@@ -623,9 +632,10 @@ function lanesFor(its,a,b){
   segs.forEach(function(g){var i=0;while(ends[i]!==undefined&&ends[i]>=g.s)i++;g.lane=i;ends[i]=g.e});
   return {segs:segs,n:ends.length};
 }
+/* the bars layer lets the mouse through to the day cells (today's line, day click); the bars themselves still take it */
 function barEl(g){
   var it=g.it,e=el('div','bar '+it.k+(g.cl?' cl':'')+(g.cr?' cr':''),it.label);
-  e.style.gridColumn=(g.s+1)+' / span '+(g.e-g.s+1);e.style.gridRow=String(g.lane+1);
+  e.style.pointerEvents='auto';e.style.gridColumn=(g.s+1)+' / span '+(g.e-g.s+1);e.style.gridRow=String(g.lane+1);
   e.style.setProperty('--bc','var(--c-'+it.b+')');
   e.addEventListener('mouseenter',function(ev){showTip(ev,it)});
   e.addEventListener('mousemove',moveTip);
@@ -879,6 +889,7 @@ function drawSick(){
   function shown(r){
     var f=rfind(r.n,r.b);
     if(!S.res&&((f&&f.res)||r.res))return false;
+    if(!depOK(r.n,r.b))return false;
     if((r.b==='X'||!r.b)&&f&&f.a&&f.a.length)return f.a.some(function(x){return S.br.indexOf(x)>=0});
     return brOK(r.b||'X');
   }
@@ -964,7 +975,7 @@ function drawOff(){
   curT='off';
   var t=document.getElementById('offT');t.innerHTML='';
   var BORD={SAA:1,KCA:2,MC:3,AQ:4},PRANK={'Style Director':1,'Senior Stylist':2,'Stylist':3,'Junior Stylist':4,'Beautician':5,'Assistant':6,'Salon Coordinator':7,'Receptionist':8,'Office/Admin':9};
-  var data=DAYOFF.filter(function(x){return brOK(x.b)}).map(function(x){
+  var data=DAYOFF.filter(function(x){return brOK(x.b)&&depOK(x.n,x.b)}).map(function(x){
     var pp=personByName(x.n,x.b),v={name:pp.n||x.n,pos:pp.r||'',branch:BR[x.b]};
     DN.forEach(function(d,i){v[d.toLowerCase()]=x.s[i]});v.off=offText(x);v.weeks=x.w;
     return {r:{n:x.n,b:x.b},x:x,pp:pp,v:v};
@@ -1038,9 +1049,9 @@ function todayTip(cell){
 /* XLSX and CSV for each report (report-export.js and ledger-export.js, the same writers as the other reports). A model is
    { name, csv, sheets:[{ name, title, subtitle, blocks:[{ cols:[{label,fmt}], rows:[{cells}] }] }] }; each follows the filters on screen. */
 var STATUS_LBL={req:'Waiting for approval',app:'Approved',plan:'Planned'};
-function filterLine(){return brLabel()+', '+(S.res?'including resigned staff':'present staff')+', data up to '+fmt(RANGE_TO)}
+function filterLine(){return brLabel()+', '+(S.dep.length?depLabel()+', ':'')+(S.res?'including resigned staff':'present staff')+', data up to '+fmt(RANGE_TO)}
 window.lcExpLeave=function(){
-  var rows=LV.filter(function(l){return brOK(l.b)&&(S.res||!isRes(l.n,l.b))}).sort(function(a,b){return a.f<b.f?-1:a.f>b.f?1:a.n.localeCompare(b.n)}).map(function(l){
+  var rows=LV.filter(function(l){return lvOK(l)&&(S.res||!isRes(l.n,l.b))}).sort(function(a,b){return a.f<b.f?-1:a.f>b.f?1:a.n.localeCompare(b.n)}).map(function(l){
     var pp=personByName(l.n,l.b);
     return {cells:[pp.n||l.n,pp.r||'',BR[l.b]||BR.X,l.ty,l.f,l.t,nd(l.f,l.t),STATUS_LBL[l.s]||l.s,l.src||'']};
   });
