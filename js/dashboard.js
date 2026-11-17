@@ -433,6 +433,26 @@ function reviewsViewSwitch(prev, next) {
     reviewsDefaultRange();
   }
 }
+// Deposit Checking opens on All time (Kate, 17 Nov 2026: "make default All time ang Deposit Checking"), because an open deposit stays open until it is taken off, whatever the month it was paid in.
+// Same shape as Reviews above: only when the dashboard is still on its own default (This month), anything picked is kept, and leaving puts This month back if the window is still the All time
+// this page set. Called from showView, and again from loadData for a link straight to ?view=depositcheck, which opens the page before the default window exists.
+let DEPCHECK_STASH = null;
+function depositCheckViewSwitch(prev, next) {
+  if (prev === next) return;
+  if (prev === 'depositcheck' && DEPCHECK_STASH) {
+    const st = DEPCHECK_STASH; DEPCHECK_STASH = null;
+    if (st.range && activePeriodKey() === 'All time') { dateFrom = st.range.from; dateTo = st.range.to; periodPick = null; paintFilterChips(); renderDashboard(); }
+  }
+  if (next === 'depositcheck') { DEPCHECK_STASH = {}; depositCheckDefaultRange(); }
+}
+function depositCheckDefaultRange() {
+  if (!DEPCHECK_STASH || DEPCHECK_STASH.range || !dateFrom || !dateTo || activePeriodKey() !== 'This month') return;
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const a = teamAllTime(t);
+  DEPCHECK_STASH.range = { from: dateFrom, to: dateTo };
+  dateFrom = a.from; dateTo = a.to; periodPick = null;
+  if (typeof paintFilterChips === 'function') paintFilterChips();
+}
 // Split out because a link straight to ?view=reviews can open the page before the
 // default window exists; loadData() calls it again once it does.
 let REVIEWS_KEEP_MONTH = false;
@@ -5707,6 +5727,7 @@ async function loadData() {
     // update never re-seeds over a range picked since.
     applyPeriodParam();
     if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'reviews') reviewsDefaultRange();
+    if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'depositcheck') depositCheckDefaultRange();
   }
   else {
     // Taking an update: a window that ended on the old last day of data moves on to the new one.

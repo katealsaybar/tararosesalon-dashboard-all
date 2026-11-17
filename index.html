@@ -4824,7 +4824,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=7b4719d6"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=c76cbab5"></script>
+<script src="js/dashboard.js?v=fd63ab00"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5320,6 +5320,7 @@ function showView(view, el){
   // Reviews opens on All branches + 90 days unless something was already picked, and
   // hands the defaults back on the way out. Before anything below reads the window.
   if (typeof reviewsViewSwitch === 'function') reviewsViewSwitch(CURRENT_VIEW, view);
+  if (typeof depositCheckViewSwitch === 'function') depositCheckViewSwitch(CURRENT_VIEW, view);
   ALL_VIEWS.forEach(v=>{
     const node=document.getElementById('view-'+v);
     if(node) node.style.display='none';
