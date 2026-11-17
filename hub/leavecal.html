@@ -61,7 +61,7 @@ body{overflow-x:hidden}
 .why .try{margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)}
 h2{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted2);margin:26px 0 10px;font-weight:700}
 
-.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
 .tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;min-width:0}
 .tile .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted2);font-weight:700}
 .tile .v{font-size:26px;font-weight:600;line-height:1.2;margin-top:4px}
@@ -539,10 +539,23 @@ function buildTiles(){
   var next=HOL.filter(function(h){return h.f>TODAY})[0];
   var wait=LV.filter(function(l){return l.s==='req'&&lvOK(l)});
   var apr=LV.filter(function(l){return l.s==='app'&&lvOK(l)}).reduce(function(a,l){return a+nd(l.f,l.t)},0);
-  function tile(k,v,s){var t=el('div','tile');t.appendChild(el('div','k',k));t.appendChild(el('div','v',v));t.appendChild(el('div','s',s));T.appendChild(t)}
-  tile('Off today ('+fmt(TODAY).replace(/ \d{4}$/,'')+')',td.lv.length,td.lv.length?td.lv.map(function(l){return l.n.split(' ')[0]}).join(', ')+'':'Nobody on the layers shown');
+  function tile(k,v,s,full){var t=el('div','tile');t.appendChild(el('div','k',k));t.appendChild(el('div','v',v));t.appendChild(el('div','s',s));if(full)t.title=full;T.appendChild(t)}
+  /* on leave today = leave on the layers shown; off today = their usual day off from the Phorest rosters, and not on leave today */
+  var onL={},lvNames=[];td.lv.forEach(function(l){var f=(rfind(l.n,l.b)||{}).n||l.n;if(!onL[f]){onL[f]=1;lvNames.push(f.split(' ')[0])}});
+  var dw=(new Date(P(TODAY)).getUTCDay()+6)%7,offNames=[];
+  DAYOFF.forEach(function(x){
+    if(!brOK(x.b)||!depOK(x.n,x.b))return;
+    var f=rfind(x.n,x.b)||{},full=f.n||x.n;
+    if(!S.res&&f.res)return;
+    var o=offList(x);if(!o.length||o.length>=4||x.s[dw]>25)return;
+    if(onL[full])return;
+    offNames.push(full.split(' ')[0])});
+  offNames.sort();
+  var offShow=offNames.length>8?offNames.slice(0,8).join(', ')+' and '+(offNames.length-8)+' more':offNames.join(', ');
+  tile('Off today ('+fmt(TODAY).replace(/ \d{4}$/,'')+')',offNames.length,offNames.length?offShow+'. Usual day off, from the Phorest rosters':'Nobody has their usual day off',offNames.join(', '));
   tile('Next public holiday',next?(nd(TODAY,next.f)-1)+' days':'none',next?next.n+', '+rng(next.f,next.t)+' (expected)':'');
   var ob=wait.filter(overlapBlk);tile('Waiting for approval',wait.length,wait.length?('Needs an answer in Bayzat'+(ob.length?'. '+ob.map(function(l){return l.n.split(' ')[0]}).join(', ')+' overlaps blocked days':'')):'Nothing waiting');
+  tile('On leave today ('+fmt(TODAY).replace(/ \d{4}$/,'')+')',lvNames.length,lvNames.length?lvNames.join(', '):'Nobody on the layers shown');
   tile('Approved leave days',apr,apr?'From the approved list':'None approved yet');
 }
 
