@@ -26,11 +26,11 @@ on conflict (key) do nothing;
 -- Samples recruit_reminder: Frances / 4 / 3 days / https://trk-salon-os.com/?view=recruitment
 insert into public.staff_wa_templates (key, kind, label, respond_name, language, body, footer, vars, sort) values
 ('recruit_claim', 'campaign', 'Applicants taken (Recruitment)', 'tr_recruit_claim', 'en_GB',
-$b$Hi {{1}}, {{2}} now has {{3}} on the Recruitment page, so please leave those with them and you will not both be working on the same people. Details: {{4}}
+$b$Hi {{1}}, {{2}} has now claimed {{3}} on the Recruitment page. Please leave this with them, so you are not both working on the same people. Details: {{4}}
 
 Thank you.$b$, 'Tara Rose Salons', array['first_name', 'holder', 'what', 'link'], 21),
 ('recruit_reminder', 'campaign', 'Daily Recruitment reminder', 'tr_recruit_reminder', 'en_GB',
-$b$Hi {{1}}, a daily reminder to open the Recruitment page. Shortlisted applicants still without a final outcome: {{2}}. The longest has been waiting {{3}}. Please mark each one Hired or Not passed. If someone did not pass, the regret letter takes only a few clicks. Open it here: {{4}}
+$b$Hi {{1}}, a daily reminder to open the Recruitment page. Shortlisted applicants still without a final outcome: {{2}}. The longest has been waiting {{3}}. Please mark each one as Hired or Not passed. If someone did not pass, the regret letter takes only a few clicks. Open the page here: {{4}}
 
 Thank you.$b$, 'Tara Rose Salons', array['first_name', 'open_count', 'longest_wait', 'link'], 22)
 on conflict (key) do nothing;
