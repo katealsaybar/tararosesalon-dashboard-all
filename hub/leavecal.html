@@ -526,7 +526,7 @@ function buildLayers(){
     b.onclick=function(){S.layers[x[0]]=!S.layers[x[0]];draw()};L.appendChild(b)});
   L.appendChild(el('span','lay-sep'));
   TYPES.forEach(function(x){
-    var n=LV.filter(function(l){return l.c===x[0]&&lvOK(l)}).length;
+    var n=LV.filter(function(l){return l.c===x[0]&&lvOK(l)&&!((x[0]==='SL'||x[0]==='ABS')&&l.s==='inf')}).length;
     if(x[0]==='SL'||x[0]==='ABS'){SICK.forEach(function(r){if(!sickOK(r))return;var o=x[0]==='SL'?r.sl:r.ab;for(var k in (o||{}))n+=o[k]})}
     var b=el('button','lay');b.setAttribute('aria-pressed',S.tys[x[0]]);
     var w=el('span','sw ty');w.style.background='var(--t-'+x[0]+')';b.appendChild(w);b.appendChild(document.createTextNode(x[1]+' '));b.appendChild(el('small','',n));
@@ -676,7 +676,7 @@ function monthChips(mon){
   return out;
 }
 function chipEl(x,mon){
-  var pp=personByName(x.n,x.r.b),full=pp.n||x.n,first=full.split(' ')[0];
+  var pp=personByName(x.n,x.r.b),full=pp.n||x.n,fw=full.split(' '),first=(/^ma\.?$/i.test(fw[0])&&fw[1])?fw[1]:fw[0];
   var e=el('span','pl-chip '+x.t,first+' · '+x.d+(x.t==='SL'?' SL':' absent'));
   e.style.setProperty('--bc','var(--t-'+x.t+')');
   e.addEventListener('mouseenter',function(ev){chipTip(ev,x,mon,pp)});
@@ -721,7 +721,7 @@ function drawPlanner(c){
     var dim=new Date(Date.UTC(S.y,m+1,0)).getUTCDate(),mm=('0'+(m+1)).slice(-2);
     var L=lanesFor(its,S.y+'-'+mm+'-01',S.y+'-'+mm+'-'+dim);
     var row=el('div','pl-row'),lab=el('div','pl-lab',MON[m].slice(0,3));lab.onclick=function(){S.m=m;S.view='month';draw()};row.appendChild(lab);
-    var body=el('div','pl-body'),laneH=Math.max(L.n,2)*20+8;body.style.minHeight=laneH+'px';
+    var body=el('div','pl-body'),laneH=Math.max(L.n,1)*20+8;body.style.minHeight=laneH+'px';
     var bg=el('div','pl-bg');
     for(var d=1;d<=31;d++){(function(d){
       var s=S.y+'-'+mm+'-'+('0'+d).slice(-2),x=d>dim,dd=idx[s];
