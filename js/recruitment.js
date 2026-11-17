@@ -266,6 +266,7 @@
       '<div class="rct-fact"><span>Experience</span><b>' + stated(p.experience) + '</b></div>' +
       '<div class="rct-fact"><span>Applying for</span><b>' + roleSelect(p) + '<div class="rct-roleraw">' + roleLine(p) + '</div></b></div>' +
       (p.reviewed_by && p.reviewed_at && p.reviewed_by !== 'earlier decision' ? '<div class="rct-fact"><span>First looked at</span><b>' + esc(firstName(p.reviewed_by)) + ', ' + esc(fat(p.reviewed_at)) + '</b></div>' : '') +
+      '<div class="rct-fact"><span>Assigned to</span><b>' + (p.assigned_to ? '' : '<span class="rct-ns">Nobody yet</span> ') + asgHtml(p) + '</b></div>' +
       '<div class="rct-fact"><span>Last change</span><b>' + (editLine(p) || '<span class="rct-ns">No changes yet</span>') + ' <button type="button" class="rct-linkbtn" data-act="hist" data-id="' + esc(p.id) + '">Who changed what</button></b></div>' +
       '<div class="rct-fact"><span>Applied</span><b>' + esc(fat(p.applied_at)) + ' <span class="rct-src">(' + (p.source === 'form' ? 'website form' : 'email') + (p.merged > 1 ? ', ' + p.merged + ' emails merged' : '') + ')</span></b></div>' +
       '</div>';
@@ -303,6 +304,7 @@
     return '<article class="rct-card rct-cardc">' +
       '<div class="rct-ctop"><div class="rct-cwho">' + avatar(p, true) + '<div class="rct-cname"><h3>' + esc(p.name || 'Name not stated') + '</h3>' + '<button type="button" class="rct-pen" data-act="rename" data-id="' + esc(p.id) + '" title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg></button>' + '<span class="rct-csub">' + esc(bits.join(' \u00b7 ')) + '</span><div class="rct-pills rct-cpills">' + waitPill(p) + (p.look_ok && autoBucket(p) === 'no' ? '<span class="rct-pill rct-teal">Moved here by hand</span>' : '') + extraPills(p) + '</div></div></div></div>' +
       '<div class="rct-chips">' + checkChips(p) + '</div>' +
+      '<div class="rct-asgrow">' + asgHtml(p) + '</div>' +
       '<div class="rct-btns rct-btns3"><button type="button" class="rct-btn rct-pri" data-act="short" data-id="' + esc(p.id) + '">Shortlist</button>' +
       '<button type="button" class="rct-btn" data-act="no" data-id="' + esc(p.id) + '">No</button>' +
       '<button type="button" class="rct-btn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '">' + (openRows[p.id] ? 'Hide' : 'Look') + '</button></div>' +
@@ -615,6 +617,7 @@
     { k: 'wait', t: 'Waiting', val: waitBucket, sort: function (p) { return (p.stage === 'new' && !p.replied_at) ? waited(p) : -1; }, kind: 'num', asc: 'Shortest wait first', desc: 'Longest wait first' },
     { k: 'status', t: 'Status', val: statusText, sort: function (p) { return statusText(p).toLowerCase(); }, kind: 'text' },
     // Kate, 17 Nov 2026: who made the last change on the person (ate Jho, ate Frances, Coach Emma, Kate) and what it was; filter by person, sort by latest.
+    { k: 'asg', t: 'Assigned to', val: function (p) { return p.assigned_to ? firstName(p.assigned_to) : 'Nobody yet'; }, sort: function (p) { return p.assigned_to ? firstName(p.assigned_to).toLowerCase() : '~'; }, kind: 'text' },
     { k: 'edit', t: 'Last change', val: editedLabel, sort: function (p) { var e = lastEdit(p); return e ? new Date(e.at).getTime() : 0; }, kind: 'num', asc: 'Oldest change first', desc: 'Latest change first' }
   ];
   function colBy(k) { return COLS.filter(function (c) { return c.k === k; })[0]; }
@@ -655,8 +658,9 @@
   function cell(c, p) {
     switch (c.k) {
       case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
-      case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + '<button type="button" class="rct-pen" data-act="rename" data-id="' + esc(p.id) + '" title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
+      case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + '<button type="button" class="rct-pen" data-act="rename" data-id="' + esc(p.id) + '" title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '<div class="rct-asgrow">' + asgHtml(p) + '</div></td>';
       case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
+      case 'asg': return '<td>' + (p.assigned_to ? cellBtn(esc(firstName(p.assigned_to)) + (p.assigned_mine ? ' (you)' : ''), 'asg', firstName(p.assigned_to)) : cellBtn('<span class="rct-ns">Nobody yet</span>', 'asg', 'Nobody yet')) + '</td>';
       case 'edit': { var le = lastEdit(p); return '<td class="rct-c-edit">' + (le ? cellBtn('<b>' + esc(firstName(le.by)) + '</b>', 'edit', editedLabel(p)) + '<div class="rct-why">' + esc(le.what) + ', ' + esc(fat(le.at)) + '</div>' : '<span class="rct-ns">No changes yet</span>') + '</td>'; }
       case 'photo': return '<td>' + cellBtn(!p.photo ? '<span class="rct-ns">No photo</span>' : p.photo_bad ? '<span class="rct-badph">Photo not professional</span>' : 'Has photo', 'photo', photoLabel(p)) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
@@ -1438,6 +1442,60 @@
     try { if (to === 'start_pending') await acceptUrl(p); } catch (e) { console.error(e); toast('The accept link did not load: ' + (e.message || 'try again')); return; }
     stageEmailDialog(p, to, lead || 'This is the email for <b>' + esc(STAGE_LABEL[to]) + '</b>.');
   }
+  // Kate, 17 Nov 2026 ("add assign to self button pala, kasi baka mag unahan ate jho at ate frances sa pag tingin ng applicants ... pag napindot na nung isa, mag notify samin lahat real time"):
+  // Assign to me takes a person. The database refuses a second person (and says who has them), writes the claim into the history, and puts a popup notice on the bell of everyone else who
+  // can open Recruitment, on whatever page of the dashboard they are. The bell and this page both listen for it live (site_notice_ping), so nobody waits for a refresh.
+  function asgHtml(p) {
+    var id = esc(p.id);
+    if (!p.assigned_to) return '<button type="button" class="rct-asg" data-act="assign" data-id="' + id + '" title="Take this person so the others know you are on them">Assign to me</button>';
+    if (p.assigned_mine) return '<span class="rct-asgpill rct-asgme">Yours</span><button type="button" class="rct-linkbtn rct-asgx" data-act="unassign" data-id="' + id + '">Let go</button>';
+    return '<span class="rct-asgpill" title="Taken ' + esc(fat(p.assigned_at)) + '">With ' + esc(firstName(p.assigned_to)) + '</span><button type="button" class="rct-linkbtn rct-asgx" data-act="takeover" data-id="' + id + '">Take over</button>';
+  }
+  async function assignTo(id, force) {
+    var p = personById(id); if (!p) return;
+    try {
+      var r = await sb.rpc('recruit_assign', { p_id: p.id, p_take: true, p_force: !!force }); if (r.error) throw new Error(r.error.message);
+      var d = r.data || {};
+      if (force) closeDlg();
+      if (d.ok) {
+        p.assigned_to = me; p.assigned_mine = true; p.assigned_at = new Date().toISOString(); render();
+        toast(d.already ? firstName(p.name) + ' is already yours.' : firstName(p.name) + ' is yours now. The others have been told.');
+      } else {
+        p.assigned_to = d.taken_by || p.assigned_to; p.assigned_mine = false; p.assigned_at = d.at || p.assigned_at; render();
+        toast(firstName(d.taken_by || 'Someone') + ' already took ' + firstName(p.name) + '.');
+      }
+    } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
+  async function assignLet(id) {
+    var p = personById(id); if (!p) return;
+    try {
+      var r = await sb.rpc('recruit_assign', { p_id: p.id, p_take: false, p_force: false }); if (r.error) throw new Error(r.error.message);
+      if (r.data && r.data.ok) { p.assigned_to = null; p.assigned_mine = false; p.assigned_at = null; render(); toast(firstName(p.name) + ' is free again.'); }
+      else { toast('Only ' + firstName((r.data && r.data.taken_by) || 'the person who took them') + ' can let go of ' + firstName(p.name) + '.'); }
+    } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
+  function takeoverAsk(id) {
+    var p = personById(id); if (!p) return;
+    openDlg('Take over ' + esc(firstName(p.name)),
+      '<p>' + esc(firstName(p.assigned_to)) + ' took ' + esc(firstName(p.name)) + (p.assigned_at ? ' on ' + esc(fat(p.assigned_at)) : '') + '. If you take over, ' + esc(firstName(p.assigned_to)) + ' and the others are told.</p>' +
+      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="takeoverok" data-id="' + esc(p.id) + '">Take over</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
+  }
+  // live: someone claimed a person (a row in site_notice_ping), so read the list again unless the reader is typing or a popup is open
+  var liveOn = false, liveT = 0;
+  function liveStart() {
+    if (liveOn || typeof sb === 'undefined' || !sb || typeof sb.channel !== 'function') return; liveOn = true;
+    try {
+      sb.channel('trs-recruit-live').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'site_notice_ping' }, function () {
+        clearTimeout(liveT);
+        liveT = setTimeout(function () {
+          var m = main(); if (!m || m.offsetParent === null) return;
+          var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && m.contains(ae)) return;
+          if (dlg().open) return;
+          window.renderRecruitment();
+        }, 500);
+      }).subscribe();
+    } catch (e) { liveOn = false; }
+  }
   // Kate, 17 Nov 2026 ("patingin ako ng email formats ng lahat ng to ... dapat nakikita rin sya sa recruitment page, listed"): every email the page can send or copy, one after the other in hiring
   // order, with the subject, when it goes out, the words, and how the formatted email looks. Built from the SAME text the buttons use (PE, SL_BODY, the saved No wording), so this list can
   // never drift from what a person really gets. The person in it is a sample, nothing is sent and nothing is saved.
@@ -1492,13 +1550,13 @@
     var T = function (k, l) { return { key: k, label: l, fmt: 'text' }; };
     var cols = [T('st', 'Application status'), T('nm', 'Name'), T('em', 'Email'), T('wa', 'WhatsApp'), T('pl', 'Based in'), T('ig', 'Link to work'), T('cv', 'CV'), T('ph', 'Profile photo'),
       T('ex', 'Experience'), T('ro', 'Applying for'), T('et', 'Employment type'), T('ap', 'Applied'), T('sr', 'Came from'), T('wt', 'Days waiting (new, no reply)'), T('s2', 'Worth a look or Probably no'),
-      T('lb', 'Last change by'), T('lw', 'Last change'), T('ld', 'Last change date'), T('rv', 'First looked at by')];
+      T('as', 'Assigned to'), T('lb', 'Last change by'), T('lw', 'Last change'), T('ld', 'Last change date'), T('rv', 'First looked at by')];
     var d10 = function (iso) { return iso ? String(iso).slice(0, 10) : ''; };
     var rows = list.map(function (p) {
       var le = lastEdit(p), b = bucket(p);
       return { cells: [STAGE_LABEL[p.stage] || p.stage, p.name || 'Name not stated', p.email || '', p.whatsapp || '', placeShort(p), igLabel(p), cvLabel(p), photoLabel(p), p.experience || 'Not stated', roleGroup(p), empType(p),
         d10(p.applied_at), srcLabel(p), (p.stage === 'new' && !p.replied_at) ? waited(p) : '', p.stage === 'new' ? (b === 'no' ? 'Probably no' : 'Worth a look') : '',
-        le ? firstName(le.by) : '', le ? le.what : '', le ? d10(le.at) : '', p.reviewed_by && p.reviewed_by !== 'earlier decision' ? firstName(p.reviewed_by) : ''] };
+        p.assigned_to ? firstName(p.assigned_to) : '', le ? firstName(le.by) : '', le ? le.what : '', le ? d10(le.at) : '', p.reviewed_by && p.reviewed_by !== 'earlier decision' ? firstName(p.reviewed_by) : ''] };
     });
     return { name: 'recruitment' + (S.lane ? '-' + S.lane : ''), sheets: [{ name: 'Applicants', title: 'Recruitment', subtitle: rows.length + ' people, with the filters set on the page',
       blocks: [{ cols: cols, rows: rows }],
@@ -1714,6 +1772,10 @@
       else if (a === 'cvfile') openCvFile(id);
       else if (a === 'rename') renameDialog(id);
       else if (a === 'hist') showHistory(id);
+      else if (a === 'assign') assignTo(id, false);
+      else if (a === 'unassign') assignLet(id);
+      else if (a === 'takeover') takeoverAsk(id);
+      else if (a === 'takeoverok') assignTo(id, true);
       else if (a === 'emails') emailFormatsDialog();
       else if (a === 'renamesave') renameSave(id);
       else if (a === 'photobulk') pickBulk();
@@ -1785,6 +1847,7 @@
       console.error(e); C = null; loadErr = 'The applicants could not be read just now (' + (e.message || 'unknown') + '). Refresh the page to try again.';
     }
     if (main() && main().offsetParent !== null) render();
+    if (C) liveStart();
     // the link in the interviewers' WhatsApp: ?view=recruitment&cand=<id> opens that person's details (and the CV button) once
     try {
       var cand = new URLSearchParams(location.search).get('cand'), cp = cand && personById(cand);

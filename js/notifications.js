@@ -308,6 +308,9 @@
     mo.observe(document.body, { childList: true, subtree: true });
     setTimeout(function () { floatOk = true; mount(); }, 4000);
     refresh();
+    // Kate, 17 Nov 2026: a notice can ring the bell at once. The database adds an empty row to site_notice_ping when it makes a notice that matters now (a person taken on Recruitment); this listens for
+    // it and reads the list again straight away. If the live connection cannot start, the 60 second check below still finds the notice.
+    getClient(function (c) { try { if (c.channel) c.channel('trs-notice-live').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'site_notice_ping' }, function () { setTimeout(refresh, 400); }).subscribe(); } catch (e) { /* the 60 second check covers it */ } });
     timer = setInterval(tick, POLL_MS);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
     window.addEventListener('focus', tick);

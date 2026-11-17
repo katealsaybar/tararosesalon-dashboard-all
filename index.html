@@ -3591,7 +3591,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/social-calendar.css?v=00f39fec">
 <link rel="stylesheet" href="css/campaign-blasts.css?v=6788beac">
 <link rel="stylesheet" href="css/landing-review.css?v=995b9507">
-<link rel="stylesheet" href="css/recruitment.css?v=610af1a4">
+<link rel="stylesheet" href="css/recruitment.css?v=f3fac02e">
 <link rel="stylesheet" href="css/nov-blasts.css?v=98749086">
 <link rel="stylesheet" href="css/active-deals.css?v=f6158902">
 <link rel="stylesheet" href="css/discounts-vouchers.css?v=ef15eb90">
@@ -3657,7 +3657,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cbl: ['js/campaign-blasts.js?v=876d8d2e'],
       // Landing Page Review (9 Nov 2026): one file, only that page needs it.
       lpr: ['js/landing-review.js?v=a64e7cf9'],
-      rct: ['js/report-export.js?v=d7b73ae8', 'js/recruitment.js?v=be98e1de'],
+      rct: ['js/report-export.js?v=d7b73ae8', 'js/recruitment.js?v=4a19000f'],
       // November Blasts (2 Nov 2026): one file, only that page needs it. 5 Nov 2026: plus the spreadsheet export, the Results send log saves as XLSX and CSV.
       nvb: [LGX, 'js/nov-blasts.js?v=2b97e87d'],
       // Stripe vs Phorest (9 Nov 2026): one file, reads stripe_vs_phorest(); the header's Branch and Period drive it.
@@ -4426,7 +4426,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=61b9fb0d&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=3482b167&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -6096,5 +6096,5 @@ addEventListener('load', sizeTopbar);
 <script src="js/search.js?v=49ba352f"></script>
 <script src="js/visits.js?v=e33b3a0d"></script>
 <!-- Kate, 9 Nov 2026: the notification bell, on every signed-in page. -->
-<script src="/js/notifications.js?v=a52ed9df"></script>
+<script src="/js/notifications.js?v=b9ee12e6"></script>
 </body>
