@@ -669,11 +669,30 @@ function monthChips(mon){
   return out;
 }
 function chipEl(x,mon){
-  var f=rfind(x.n,x.r.b),full=f?f.n:x.n,first=full.split(' ')[0];
+  var pp=personByName(x.n,x.r.b),full=pp.n||x.n,first=full.split(' ')[0];
   var e=el('span','pl-chip '+x.t,first+' · '+x.d+(x.t==='SL'?' SL':' absent'));
   e.style.setProperty('--bc','var(--t-'+x.t+')');
-  e.title=full+': '+x.d+(x.d===1?' day':' days')+(x.t==='SL'?' sick leave with a medical certificate':' absent (sick without a medical certificate)')+', '+MON[mon-1]+' '+S.y+'. Counted per month, no dates.';
+  e.addEventListener('mouseenter',function(ev){chipTip(ev,x,mon,pp)});
+  e.addEventListener('mousemove',moveTip);
+  e.addEventListener('mouseleave',hideTip);
+  e.addEventListener('click',function(ev){ev.stopPropagation();if(tipEl)hideTip();else chipTip(ev,x,mon,pp)});
   return e;
+}
+/* the same card the bars use, for a sick leave or absence count */
+function chipTip(ev,x,mon,pp){
+  hideTip();
+  var t=el('div','tip'),full=pp.n||x.n,ph=el('div','tip-ph');
+  if(pp.p){var im=el('img');im.src=pp.p;im.alt='';im.onerror=function(){im.replaceWith(el('div','tip-ini',full.charAt(0)))};ph.appendChild(im)}
+  else ph.appendChild(el('div','tip-ini',full.charAt(0)));
+  t.appendChild(ph);
+  var tx=el('div','tip-tx');
+  tx.appendChild(el('b','',full));
+  tx.appendChild(el('div','m',(pp.r?pp.r+' · ':'')+(BR[x.r.b]||BR.X)));
+  var d=el('div','');d.appendChild(el('span','badge '+(x.t==='SL'?'app':'off'),x.t==='SL'?'Sick leave (SL)':'Absent'));tx.appendChild(d);
+  tx.appendChild(el('div','',MON[mon-1]+' '+S.y+(x.t==='SL'?': sick with a medical certificate':': sick without a medical certificate')));
+  tx.appendChild(el('div','dur',x.d+(x.d===1?' day':' days')));
+  tx.appendChild(el('div','m',"Counted per month, no dates. From Jumera's sheets."));
+  t.appendChild(tx);document.body.appendChild(t);tipEl=t;moveTip(ev);
 }
 /* the bars layer lets the mouse through to the day cells (today's line, day click); the bars themselves still take it */
 function barEl(g){
