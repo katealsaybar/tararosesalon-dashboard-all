@@ -3,7 +3,7 @@
 // sync_appointments.py" in the cowork repo, which stays as the manual and backfill route.
 // UAE only (the four salons): Bahrain is a separate Phorest business with its own login.
 // Body (all optional): { from, to, days_back, days_fwd }. Default window = today - 1 day to today + 3 days (the frequent run). The nightly run asks for
-// days_back 7, days_fwd 21. Dates are Dubai days.
+// days_back 3, days_fwd 115: far enough ahead to see a rebooking made on the day of a visit (booked_at, the appointment's createdAt; Rebooked in the KPI doc). Dates are Dubai days.
 // For each branch: pull the window, upsert every appointment stamped with this run's time, then delete the rows in the window that this run did not touch
 // (moved, cancelled or deleted in Phorest). A branch that failed part-way is NOT swept, so a Phorest hiccup never empties the calendar.
 // The client is kept as first name + last initial only. Price is not stored. The answer holds counts only, never a name.
@@ -69,7 +69,7 @@ async function branch(code: string, bid: string, f: string, t: string, runIso: s
       rows.push({
         branch: code, appt_id: x.appointmentId, date: x.appointmentDate, start_time: String(x.startTime).slice(0, 8), end_time: String(x.endTime).slice(0, 8),
         staff_id: x.staffId || null, staff_name: staff[x.staffId] || 'Former staff', service: String(x.serviceName || '').trim(), state: x.state || '',
-        staff_request: !!x.staffRequest, client_id: x.clientId || null, client_name: '', synced_at: runIso,
+        staff_request: !!x.staffRequest, client_id: x.clientId || null, client_name: '', booked_at: x.createdAt || null, synced_at: runIso,
       });
     }
     c0 = addDays(c1, 1);

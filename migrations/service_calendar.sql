@@ -106,3 +106,10 @@ update public.kb_sections set min_level = 2, staff_dept = 'Reception', skip_leve
 --    Tammy = Tamryn; BUSINESS and ASSISTANTS are not stylists), and 'ledger_all': the whole salon that day without BUSINESS. Both only for people on the dashboard list (level 2 and up in the database).
 -- The page counts a client once per stylist and day: new + asked for = New client request, new = New, returning + asked for = Request, returning = Salon, and Total is their sum (calculations of KPIs doc).
 -- Checked 8 to 15 Nov 2026, four salons, 29 salon-days, per stylist, against the ledger: NCR 15 vs 16, New 92 vs 81, Request 384 vs 370, Salon 323 vs 257, Total 814 vs 721.
+
+-- 17 Nov 2026 (Kate: "ituloy mo na yung Rebooked"), applied live. phorest_appointments.booked_at is when the booking was made in Phorest (the API's createdAt), loaded for every row from 1 Sep 2026
+-- (23,426 rows to 12 Mar 2027), with an index on (client_id, date). service_calendar() returns a 12th value per row, is_rebooked: the client has a LATER appointment with the SAME stylist that was booked on
+-- the day of this visit (Dubai day). Rebooked is counted per stylist, client and day, like the other client types (calculations of KPIs doc: only a booking made the same day counts).
+--   alter table public.phorest_appointments add column if not exists booked_at timestamptz;
+--   create index if not exists phorest_appointments_client on public.phorest_appointments (client_id, date);
+-- Checked 8 to 15 Nov 2026, four salons, 29 salon-days, per stylist: same-stylist rule 183 against the ledger's 175; any stylist 235; Phorest's own rebooking report 329.

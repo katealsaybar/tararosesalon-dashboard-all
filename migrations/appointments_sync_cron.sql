@@ -13,3 +13,7 @@
 --   select cron.schedule('appointments-sync-nightly', '30 20 * * *', $cmd$ ... body := '{"days_back":7,"days_fwd":21}'::jsonb, timeout_milliseconds := 150000); $cmd$);
 -- To stop it: select cron.unschedule('appointments-sync'); select cron.unschedule('appointments-sync-nightly');
 -- A branch that fails part-way is never swept, so a Phorest outage leaves the last good rows in place. A run answers with counts only (no names).
+
+-- 17 Nov 2026 (Rebooked needs the bookings made far ahead), applied live: the nightly pass (job 51) now runs days_back 3, days_fwd 115 (timeout 300 s; a 118-day run took well under that, all four salons ok), and
+-- a new job 59, appointments-sync-ahead, runs at minute 7 of every hour from 09:07 to 23:07 Dubai (5 to 19 UTC) with days_back 0, days_fwd 115, so a rebooking made today shows within the hour.
+--   select cron.schedule('appointments-sync-ahead', '7 5-19 * * *', $cmd$ ... body := '{"days_back":0,"days_fwd":115}'::jsonb, timeout_milliseconds := 300000); $cmd$);

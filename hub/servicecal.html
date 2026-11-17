@@ -242,6 +242,7 @@ button.cl:hover{text-decoration-color:var(--text)}
 .cttbl .z{color:var(--muted2)}
 .cttbl .g{display:block;font-size:11.5px;font-weight:400;color:var(--muted2)}
 .cttbl .g.diff{color:var(--warn)}
+.cttbl .pc{font-size:11.5px;font-weight:400;color:var(--muted2);margin-left:4px}
 .cttbl{display:table;width:100%}.cttbl thead{display:table-header-group}.cttbl tbody{display:table-row-group}.cttbl tr{display:table-row;width:auto;padding:0;border:0}.cttbl th,.cttbl td{display:table-cell;width:auto}
 @media (max-width:760px){.cttbl{font-size:13px}.cttbl th,.cttbl td{padding:6px 4px}.cttbl td:first-child{white-space:normal;max-width:96px;word-break:break-word}.ct{padding:2px 10px 10px}}
 
@@ -383,13 +384,13 @@ button.cl:hover{text-decoration-color:var(--text)}
     (D.photos || []).forEach(function (ph, i) { if (ph) PH[D.branch + '|' + (D.staff[i] || 'Unknown')] = ph; });
     var rows = D.a.map(function (r) {
       var nm = D.staff[r[3]] || 'Unknown';
-      return {b:D.branch, d:r[0], s:mm(r[1]), e:mm(r[2]), st:nm, sk:D.branch + '|' + nm, sv:String(r[4]).replace(/\s+/g,' ').trim(), state:r[5], req:!!r[6], cn:r[7] || '', cid:r[8] || '', nw:!!r[9], ck:r[10] || '', cat:cat(r[4])};
+      return {b:D.branch, d:r[0], s:mm(r[1]), e:mm(r[2]), st:nm, sk:D.branch + '|' + nm, sv:String(r[4]).replace(/\s+/g,' ').trim(), state:r[5], req:!!r[6], cn:r[7] || '', cid:r[8] || '', nw:!!r[9], ck:r[10] || '', rb:!!r[11], cat:cat(r[4])};
     });
     /* client type (the KPI definitions), counted per stylist, client and day, so a client seen by two stylists counts for each, like the ledgers:
        new to the brand + asked for a stylist = New client request; new, no request = New; returning + asked for = Request; returning, no request = Salon */
     var g = {};
-    rows.forEach(function (r) { r.gk = r.sk + '|' + r.d + '|' + (r.ck || r.cn); var o = g[r.gk] || (g[r.gk] = {nw:false, req:false}); o.nw = o.nw || r.nw; o.req = o.req || r.req; });
-    rows.forEach(function (r) { var o = g[r.gk]; r.ty = o.nw ? (o.req ? 'ncr' : 'new') : (o.req ? 'req' : 'salon'); });
+    rows.forEach(function (r) { r.gk = r.sk + '|' + r.d + '|' + (r.ck || r.cn); var o = g[r.gk] || (g[r.gk] = {nw:false, req:false, rb:false}); o.nw = o.nw || r.nw; o.req = o.req || r.req; o.rb = o.rb || r.rb; });
+    rows.forEach(function (r) { var o = g[r.gk]; r.ty = o.nw ? (o.req ? 'ncr' : 'new') : (o.req ? 'req' : 'salon'); r.rbk = o.rb; });   // rbk: she booked a later appointment with this stylist on the day of the visit
     return rows;
   }
   async function fetchBranch(b, f, t){
@@ -595,7 +596,7 @@ button.cl:hover{text-decoration-color:var(--text)}
   /* ---- client types per stylist (KPI definitions), with the ledger beside each figure when there is one */
   var TYL = {new:'New', ncr:'New client request', req:'Request', salon:'Salon'};
   var CTROWS = [];
-  function ctCounts(rows){ var seen = {}, c = {total:0, new:0, ncr:0, req:0, salon:0}; rows.forEach(function (r) { if (seen[r.gk]) return; seen[r.gk] = 1; c.total++; c[r.ty]++; }); return c; }
+  function ctCounts(rows){ var seen = {}, c = {total:0, new:0, ncr:0, req:0, salon:0, rb:0}; rows.forEach(function (r) { if (seen[r.gk]) return; seen[r.gk] = 1; c.total++; c[r.ty]++; if (r.rbk) c.rb++; }); return c; }
   function ledSum(list){ var o = null; list.forEach(function (l) { if (!l) return; o = o || [0, 0, 0, 0, 0, 0]; for (var k = 0; k < 6; k++) o[k] += +l[k] || 0; }); return o; }
   function renderCT(){
     var box = document.getElementById('ctBox'); if (!box) return;
@@ -615,26 +616,27 @@ button.cl:hover{text-decoration-color:var(--text)}
     lines.push(tot);
     var anyLed = lines.some(function (l) { return l.led; });
     CTROWS = lines;
-    var KEYS = ['total', 'new', 'ncr', 'req', 'salon'];
-    var tip = {total:'New client requests + requests + salon clients + new clients', new:'New to the brand (first paid visit at any salon), did not ask for a stylist', ncr:'New to the brand and asked for a stylist', req:'Returning client who asked for a stylist', salon:'Returning client, did not ask for a stylist'};
+    var KEYS = ['total', 'new', 'ncr', 'req', 'salon', 'rb'];
+    var tip = {total:'New client requests + requests + salon clients + new clients', new:'New to the brand (first paid visit at any salon), did not ask for a stylist', ncr:'New to the brand and asked for a stylist', req:'Returning client who asked for a stylist', salon:'Returning client, did not ask for a stylist', rb:'Booked a later appointment with the same stylist on the day of the visit (the share is of her clients)'};
     var body = lines.map(function (l, i) {
       var c = ctCounts(l.rows), cells = KEYS.map(function (k, j) {
         var lv = l.led ? l.led[j] : null, diff = lv != null && lv !== c[k];
-        return '<td class="r">' + (c[k] ? '<button type="button" class="ctn" data-ct="' + k + '" data-ctrow="' + i + '" title="Show their services in the List">' + c[k] + '</button>' : '<span class="z">0</span>') + (lv != null ? '<span class="g' + (diff ? ' diff' : '') + '">ledger ' + lv + '</span>' : '') + '</td>';
+        return '<td class="r">' + (c[k] ? '<button type="button" class="ctn" data-ct="' + k + '" data-ctrow="' + i + '" title="Show their services in the List">' + c[k] + '</button>' : '<span class="z">0</span>') + (k === 'rb' && c.total ? '<span class="pc">' + Math.round(100 * c.rb / c.total) + '%</span>' : '') + (lv != null ? '<span class="g' + (diff ? ' diff' : '') + '">ledger ' + lv + '</span>' : '') + '</td>';
       }).join('');
       return '<tr' + (l.total ? ' class="tot"' : '') + '><td>' + esc(l.label) + '</td>' + cells + '</tr>';
     }).join('');
     box.innerHTML = '<details class="ct" open><summary>Client types' + (S.view === 'week' ? ' · ' + esc(S.staff ? stLabel(S.staff) : '') : '') + '</summary>'
-      + '<p class="ct-note">Per stylist, like the ledgers: a client seen by two stylists counts for each. <b>New</b> is her first paid visit at any salon; <b>NCR</b> is new and asked for a stylist; <b>Request</b> is returning and asked for a stylist; <b>Salon</b> is returning with no request. '
+      + '<p class="ct-note">Per stylist, like the ledgers: a client seen by two stylists counts for each. <b>New</b> is her first paid visit at any salon; <b>NCR</b> is new and asked for a stylist; <b>Request</b> is returning and asked for a stylist; <b>Salon</b> is returning with no request; <b>Rebooked</b> is a client who booked her next visit with the same stylist on the day she came in. '
       + (anyLed ? 'The grey figure is the ledger (typed by the team), orange where it is different. ' : '') + 'Tap a number to see those clients in the List.</p>'
-      + '<div class="tw"><table class="cttbl"><thead><tr><th>' + (S.view === 'day' ? 'Stylist' : 'Day') + '</th>' + ['Total', 'New', 'NCR', 'Request', 'Salon'].map(function (h, j) { return '<th class="r" title="' + tip[KEYS[j]] + '">' + h + '</th>'; }).join('') + '</tr></thead><tbody>' + body + '</tbody></table></div></details>';
+      + '<div class="tw"><table class="cttbl"><thead><tr><th>' + (S.view === 'day' ? 'Stylist' : 'Day') + '</th>' + ['Total', 'New', 'NCR', 'Request', 'Salon', 'Rebooked'].map(function (h, j) { return '<th class="r" title="' + tip[KEYS[j]] + '">' + h + '</th>'; }).join('') + '</tr></thead><tbody>' + body + '</tbody></table></div></details>';
   }
   function listWith(lf, from, to){ S.pendLf = lf; if (from) { S.from = from; S.to = to; } S.view = 'list'; S.showAll = false; load(); }
   function ctOpen(i, k){
     var l = CTROWS[i]; if (!l) return;
     var lf = {};
     if (l.st) lf.st = {vals:new Set([l.st])};
-    if (k !== 'total') lf.ty = {vals:new Set([TYL[k]])};
+    if (k === 'rb') lf.rb = {vals:new Set(['Yes'])};
+    else if (k !== 'total') lf.ty = {vals:new Set([TYL[k]])};
     listWith(lf, l.d || null, l.d || null);
   }
 
@@ -650,6 +652,7 @@ button.cl:hover{text-decoration-color:var(--text)}
            {k:'sv', l:'Service', t:'text', raw:function (r) { return r.sv; }, disp:function (r) { return r.sv; }},
            {k:'cn', l:'Client', t:'text', raw:function (r) { return r.cn; }, disp:function (r) { return r.cn; }},
            {k:'ty', l:'Client type', t:'text', raw:function (r) { return TYL[r.ty]; }, disp:function (r) { return TYL[r.ty]; }},
+           {k:'rb', l:'Rebooked', t:'text', raw:function (r) { return r.rbk ? 'Yes' : 'No'; }, disp:function (r) { return r.rbk ? 'Yes' : 'No'; }},
            {k:'len', l:'Length', t:'num', raw:function (r) { return r.e - r.s; }, disp:function (r) { return dur(r.e - r.s); }},
            {k:'state', l:'Status', t:'text', raw:function (r) { return (STATES[r.state] || ['', r.state])[1]; }, disp:function (r) { return (STATES[r.state] || ['', r.state])[1]; }});
     return c;
@@ -691,7 +694,7 @@ button.cl:hover{text-decoration-color:var(--text)}
           if (many) tds.push('<td>' + dlabel(r.d, true) + '</td>');
           tds.push('<td>' + fmt(r.s) + '</td>');
           if (mb) tds.push('<td>' + r.b + '</td>');
-          tds.push('<td>' + esc(r.st) + '</td>', '<td><span class="cdot"></span>' + esc(r.sv) + '</td>', '<td>' + (r.req ? '<span class="star">★</span> ' : '') + clientLink(r) + '</td>', '<td>' + TYL[r.ty] + '</td>', '<td>' + dur(r.e - r.s) + '</td>', '<td><span class="badge ' + st[0] + '">' + st[1] + '</span></td>');
+          tds.push('<td>' + esc(r.st) + '</td>', '<td><span class="cdot"></span>' + esc(r.sv) + '</td>', '<td>' + (r.req ? '<span class="star">★</span> ' : '') + clientLink(r) + '</td>', '<td>' + TYL[r.ty] + '</td>', '<td>' + (r.rbk ? 'Yes' : 'No') + '</td>', '<td>' + dur(r.e - r.s) + '</td>', '<td><span class="badge ' + st[0] + '">' + st[1] + '</span></td>');
           return '<tr class="row c-' + r.cat + '" data-id="' + r.i + '">' + tds.join('') + '</tr>'; }).join('') || '<tr><td colspan="' + cols.length + '" style="text-align:center;color:var(--muted);padding:26px">No services match.</td></tr>')
       + '</tbody></table></div>' + (rows.length > 40 && !S.showAll ? '<button class="btn more" type="button" id="more">Show all ' + rows.length + '</button>' : '');
   }
