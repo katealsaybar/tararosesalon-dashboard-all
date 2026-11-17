@@ -8,7 +8,8 @@
 // Needs from dashboard.js (shared script scope): sb, sel, dateFrom, dateTo, dateToIso, BH_BRANCHES.
 const SPV_STORE = 'trs-stripe-phorest';
 function spvSave() { try { localStorage.setItem(SPV_STORE, JSON.stringify({ note: SPV.note, view: SPV.view })); } catch (e) {} }
-const SPV = { view: 'visual', status: 'all', q: '', fPh: '', fSt: '', sort: 'smart', shown: 20, open: null, salon: 'ALL', note: ['', '', ''] };
+const SPV = { view: 'visual', status: 'all', q: '', fPh: '', fSt: '', sort: 'smart', shown: 20, open: null, salon: 'ALL', note: ['', '', ''], tab: 'stripe' };
+try { if (new URLSearchParams(location.search).get('tab') === 'deposits') SPV.tab = 'deposits'; } catch (e) {}   // a link can open the Open deposits tab: /?view=stripedeposits&tab=deposits
 try { const s = JSON.parse(localStorage.getItem(SPV_STORE) || '{}'); if (s.view === 'table' || s.view === 'visual') SPV.view = s.view; if (Array.isArray(s.note)) SPV.note = [0, 1, 2].map(i => String(s.note[i] || '').slice(0, 200)); } catch (e) {}
 const SPV_BR = { KCA: 'Khalifa City A', AQ: 'Al Quoz', SAA: 'Saadiyat', MC: 'Motor City' };
 const SPV_ORDER = ['KCA', 'AQ', 'SAA', 'MC'];
@@ -81,6 +82,7 @@ async function renderStripePhorest(force) {
   try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) {}
   const [a, b] = spvRange(), key = a + '|' + b, seq = ++spvSeq;
   SPV.open = null; SPV.shown = 20;
+  if (SPV.tab === 'deposits') { opdRender(force); return; }   // Open deposits tab (17 Nov 2026): its own data, below
   if (!force && spvData && spvKey === key) { spvPaint(); return; }
   el.innerHTML = '<p class="spv-q">Reading Stripe and Phorest…</p>';
   try {
@@ -89,6 +91,7 @@ async function renderStripePhorest(force) {
     if (seq !== spvSeq) return;
     if (!data || !data.ok) throw new Error('no report');
     spvData = data; spvKey = key; spvRows = spvBuild(data);
+    opdLoad(false);   // the Open deposits count on its tab, read quietly in the background
   } catch (e) {
     if (seq !== spvSeq) return;
     console.error(e);
@@ -245,7 +248,7 @@ function spvPaint() {
   const sum = `Showing <b>${rows.length}</b> row${rows.length === 1 ? '' : 's'}, ${money} · ${sn}${SPV.salon !== 'ALL' ? ' · ' + spvName(SPV.salon) : ''}${dirty ? ' · <button type="button" class="spv-clear" data-act="clear">Clear filters</button>' : ''}`;
   const synced = d.synced_at ? new Date(d.synced_at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 
-  el.innerHTML =
+  el.innerHTML = spvTabs() +
     `<div class="spv-head"><div class="spv-eyebrow">Finance · Stripe deposits</div><h1>Stripe and Phorest, side by side</h1>` +
     `<p>Every Stripe payment from the four salons in one list, checked against what the front desk rang through in Phorest. You only need to look at <b>Not checked out</b>, <b>Wrong branch</b>, <b>Not in Stripe</b> and <b>Check</b>.</p>` +
     `<div class="spv-card spv-whycard"><div class="spv-eyebrow">Why this page</div>` +
@@ -285,6 +288,7 @@ function spvGo(o) {
   const t = document.getElementById('spvPay'); if (t) t.scrollIntoView({ block: 'start' });
 }
 function spvWire(el) {
+  spvWireTabs(el);
   el.querySelectorAll('[data-go]').forEach(b => { b.onclick = () => { try { spvGo(JSON.parse(b.getAttribute('data-go'))); } catch (e) {} }; });
   el.querySelectorAll('.spv-schip').forEach(b => { b.onclick = () => { SPV.status = b.getAttribute('data-st'); SPV.shown = 20; SPV.open = null; spvPaint(); }; });
   el.querySelectorAll('tr.spv-row').forEach(tr => {
@@ -305,6 +309,146 @@ function spvWire(el) {
   [['spvFPh', 'fPh'], ['spvFSt', 'fSt']].forEach(([id, k]) => { const i = document.getElementById(id); if (!i) return;
     i.oninput = () => { SPV[k] = i.value.trim(); SPV.shown = 20; SPV.open = null; const pos = i.selectionStart; spvPaint(); const n = document.getElementById(id); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }; });
   el.querySelectorAll('[data-note]').forEach(i => { i.oninput = () => { SPV.note[+i.getAttribute('data-note')] = i.value; try { spvSave(); } catch (e) {} }; });
+}
+
+// ── OPEN DEPOSITS (Kate, 17 Nov 2026): the second tab. Built from the local mockup docs/mockups/open-deposits.html in the cowork repo ────────────
+// One function (migrations/open_deposits_17nov.sql): open_deposits() reads open_deposits_cache, worked out hourly from the Phorest sales lines.
+// A deposit is a 'Deposit' line; it counts as taken off when a later bill of the same client at the same salon carries an A(...) tender.
+// These are CANDIDATES: the sales lines carry no appointment date, so a client with a booking still ahead shows as Waiting. The header's Branch drives it;
+// the Period does not (a deposit stays open until it is taken off, whatever the week). Same access as the Stripe tab.
+const OPD = { status: 'all', q: '', shown: 30 };
+const OPD_NAME = { came: 'Came back, not deducted', part: 'Part used', old: 'No visit, over 14 days', wait: 'Waiting', small: 'Under AED 50' };
+const OPD_CLS = { came: 'notco', part: 'nostripe', old: 'wrong', wait: 'waiting', small: 'waiting' };   // reuse the Stripe tab's badge and dot colours
+const OPD_RANK = { came: 0, part: 1, old: 2, wait: 3, small: 4 };
+let opdData = null, opdRows = [], opdLoading = null, opdCtState = '';   // opdCtState: '' not asked, 'busy', 'done'
+
+function opdStatus(r, todayIso) {
+  const age = Math.round((Date.parse(todayIso) - Date.parse(r.l)) / 864e5);
+  r.age = age;
+  if (r.a < 50) return 'small';
+  if (r.v && !(r.u > 0)) return 'came';
+  if (r.u > 0) return 'part';
+  return age > 14 ? 'old' : 'wait';
+}
+function opdBuild(d) {
+  const today = dateToIso(new Date());
+  return (d.rows || []).map(x => { const r = { b: x.b, id: x.id, c: x.n || 'No name', f: x.f, l: x.l, a: +x.a || 0, u: +x.u || 0, v: x.v || null }; r.o = spvR2(r.a - r.u); r.s = opdStatus(r, today); return r; })
+    .sort((x, y) => OPD_RANK[x.s] - OPD_RANK[y.s] || (x.l > y.l ? 1 : x.l < y.l ? -1 : 0));
+}
+function opdNeedCount() { const c = spvCodes(); return opdRows.filter(r => c.includes(r.b) && r.s !== 'wait' && r.s !== 'small').length; }
+function opdLoad(force) {
+  if (opdData && !force) return Promise.resolve(true);
+  if (opdLoading) return opdLoading;
+  opdLoading = (async () => {
+    try {
+      const { data, error } = await sb.rpc('open_deposits');
+      if (error) throw error;
+      if (!data || !data.ok) throw new Error('no report');
+      opdData = data; opdRows = opdBuild(data); opdCtState = '';
+      const n = document.getElementById('spvTabN'); if (n) n.textContent = opdNeedCount();
+      return true;
+    } catch (e) { console.error(e); return e; } finally { opdLoading = null; }
+  })();
+  return opdLoading;
+}
+function spvTabs() {
+  return `<div class="spv-tabs" role="tablist">` +
+    `<button type="button" class="spv-tab" role="tab" data-tab="stripe" aria-selected="${SPV.tab !== 'deposits'}">Stripe payments</button>` +
+    `<button type="button" class="spv-tab" role="tab" data-tab="deposits" aria-selected="${SPV.tab === 'deposits'}">Open deposits <span class="n" id="spvTabN"${opdData ? '' : ' hidden'}>${opdData ? opdNeedCount() : ''}</span></button></div>`;
+}
+function spvWireTabs(el) {
+  el.querySelectorAll('[data-tab]').forEach(b => { b.onclick = () => { const t = b.getAttribute('data-tab'); if (t === SPV.tab) return; SPV.tab = t; renderStripePhorest(false); }; });
+}
+async function opdRender(force) {
+  const el = document.getElementById('stripeContent');
+  if (!el) return;
+  if (!opdData || force) el.innerHTML = spvTabs() + '<p class="spv-q">Reading the deposits…</p>';
+  const seq = spvSeq, res = await opdLoad(!!force);
+  if (seq !== spvSeq || SPV.tab !== 'deposits') return;
+  if (res !== true) {
+    const denied = /Not open/i.test(String(res && res.message));
+    el.innerHTML = spvTabs() + '<div class="spv-empty"><b>' + (denied ? 'This page is not open to your account.' : 'The deposits did not load.') + '</b>' + (denied ? '' : 'Refresh to try again.') + '</div>';
+    spvWireTabs(el); return;
+  }
+  opdPaint();
+}
+// Phone and email beside the client, at Level 5 only (the same rule and the same function as Top Clients: drill_client_contacts refuses anyone lower, as Client Book does).
+// Asked once per load for every row; a client name shared by several Phorest profiles shows a note instead of a guess.
+async function opdContacts() {
+  if (typeof TRS_LEVEL === 'undefined' || TRS_LEVEL < 5 || !opdRows.length || opdCtState) return;
+  opdCtState = 'busy';
+  const rows = opdRows, today = dateToIso(new Date());
+  try {
+    const { data, error } = await sb.rpc('drill_client_contacts', { p_items: rows.map(r => [r.c, r.b, r.f, today]) });
+    if (error) throw error;
+    (data || []).forEach(x => { const r = rows[x.i]; if (r) { r._amb = !!x.a; r._ph = x.m || ''; r._em = x.e || ''; } });
+    opdCtState = 'done';
+  } catch (e) { opdCtState = 'done'; console.warn('contacts', e && e.message); }
+  if (SPV.tab === 'deposits' && rows === opdRows) opdPaint();
+}
+function opdCtCell(r) {
+  if (opdCtState !== 'done') return '<span class="spv-dim">Reading…</span>';
+  if (r._amb) return '<span class="spv-dim">Several clients share this name. Open the Client Book.</span>';
+  const ph = String(r._ph || '').split(' / ').filter(Boolean).map(x => `<a href="tel:${spvEsc(x.replace(/[^\d+]/g, ''))}">${spvEsc(x)}</a>`).join('<br>');
+  const em = String(r._em || '').split(' / ').filter(Boolean).map(x => `<a href="mailto:${spvEsc(x)}" title="${spvEsc(x)}">${spvEsc(x)}</a>`).join('<br>');
+  return (ph || em) ? ph + (ph && em ? '<br>' : '') + em : '<span class="spv-dim">–</span>';
+}
+function opdBase() { const c = spvCodes(); return opdRows.filter(r => c.includes(r.b)); }
+function opdTodo(r) {
+  const f = spvEsc(spvFirst(r.c)), sal = spvName(r.b);
+  if (r.s === 'came') return `${f} came back on ${spvFd(r.v)} and no deposit came off. Ask the ${sal} front desk whether ${f} paid twice. If so, refund ${f}.`;
+  if (r.s === 'part') return `Part of the deposit came off, AED ${spvM0(r.o)} is left. Check whether the rest is for a later visit.`;
+  if (r.s === 'old') return `No visit for ${r.age} days. Check the booking: no-show (deposit kept), moved, or a refund owed.`;
+  if (r.s === 'small') return 'Small amount, most likely a rounding or test line. Ignore unless the client says otherwise.';
+  return 'Booking not reached yet, or not seen by Phorest sales. Nothing to do.';
+}
+function opdVisible() {
+  const st = OPD.status, q = OPD.q.toLowerCase();
+  return opdBase().filter(r => (st === 'all' || (st === 'needs' ? (r.s !== 'wait' && r.s !== 'small') : r.s === st)) && (!q || r.c.toLowerCase().includes(q)));
+}
+function opdPaint() {
+  const el = document.getElementById('stripeContent');
+  if (!el || !opdData) return;
+  const base = opdBase(), by = k => base.filter(r => r.s === k), sumAmt = l => spvR2(l.reduce((t, r) => t + r.o, 0));
+  const K = [['came', 'act bad', 'Possible double charge. Ask the front desk first.'], ['part', 'act info', 'Some of the deposit came off, some is left.'], ['old', 'act warn', 'No-show, moved, or a refund owed.'], ['wait', 'quiet', 'Normal. A booking may still be ahead.']];
+  const cards = K.map(([k, cls, why]) => { const l = by(k);
+    return `<button type="button" class="spv-sc ${cls}" data-od='${k}' aria-pressed="${OPD.status === k}"><span class="spv-lbl"><i class="spv-dot ${OPD_CLS[k]}"></i>${OPD_NAME[k]}</span><span class="spv-big">${l.length}</span><span class="spv-amt">AED ${spvM0(sumAmt(l))}</span><span class="spv-why2">${why}</span>${cls.startsWith('act') && l.length ? '<span class="spv-cta">Show these &rsaquo;</span>' : ''}</button>`; }).join('');
+  const CH = [['all', 'All'], ['needs', 'Needs checking'], ['came', 'Came back'], ['part', 'Part used'], ['old', 'Over 14 days'], ['wait', 'Waiting'], ['small', 'Under AED 50']];
+  const chips = CH.map(([k, n]) => { const c = base.filter(r => k === 'all' || (k === 'needs' ? (r.s !== 'wait' && r.s !== 'small') : r.s === k)).length;
+    return `<button type="button" class="spv-schip ${k === 'needs' ? 'needs' : ''}" data-ost="${k}" aria-pressed="${OPD.status === k}">${n} <span class="c">${c}</span></button>`; }).join('');
+  const rows = opdVisible(), shown = rows.slice(0, OPD.shown), rest = rows.length - shown.length;
+  const bookOk = spvBookOk(), ct = bookOk;   // the Client Book and the contact details are Level 5 only
+  const body = shown.map(r => {
+    const nm = bookOk ? `<a class="spv-bk" href="/?view=clientbook&amp;cbq=${encodeURIComponent(r.c)}" target="_blank" rel="noopener" title="Find ${spvEsc(r.c)} in the Client Book">${spvEsc(r.c)}</a>` : spvEsc(r.c);
+    return `<tr class="opd-row ${OPD_CLS[r.s]}"><td data-l="Deposit paid" class="num">${spvFd(r.l)}${r.f !== r.l ? `<span class="spv-sub">first ${spvFd(r.f)}</span>` : ''}</td>` +
+      `<td data-l="Salon">${spvName(r.b)}</td><td data-l="Client" class="opd-cl">${nm}${r.v ? `<span class="spv-sub">came back ${spvFd(r.v)}</span>` : ''}</td>` +
+      (ct ? `<td data-l="Contact details" class="opd-ct">${opdCtCell(r)}</td>` : '') +
+      `<td class="r num" data-l="Deposit">${spvM0(r.a)}</td><td class="r num" data-l="Taken off">${spvM0(r.u)}</td><td class="r num" data-l="Days open"><b>${r.age}</b></td>` +
+      `<td data-l="Status"><span class="spv-badge ${OPD_CLS[r.s]}"><i class="spv-dot ${OPD_CLS[r.s]}"></i>${OPD_NAME[r.s]}</span></td><td data-l="What to do" class="opd-todo">${opdTodo(r)}</td></tr>`;
+  }).join('') || `<tr><td colspan="${ct ? 9 : 8}" class="spv-empty2"><b>Nothing here.</b>No deposits match these filters. That is good news if you were looking for problems.</td></tr>`;
+  const upd = opdData.at ? new Date(opdData.at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+  const dirty = OPD.status !== 'all' || OPD.q;
+  el.innerHTML = spvTabs() +
+    `<div class="spv-head"><div class="spv-eyebrow">Tools · Deposits</div><h1>Open deposits</h1>` +
+    `<p>Every deposit a client paid that has not been taken off a bill yet. The one that matters most is a client who <b>came back and paid in full</b>, because she may have paid twice.</p>` +
+    `<div class="spv-card spv-whycard"><p><b>Why this:</b> a deposit should come off the client's bill when she is checked out. This page shows the deposits that have not been taken off yet, so the front desk can check them.</p>` +
+    `<p><b>If we do nothing:</b> a missed deduction is only found when the client mentions it.</p></div></div>` +
+    `<div class="spv-cards opd-cards">${cards}</div>` +
+    `<div class="spv-sec" id="opdList"><h2>Every open deposit</h2><p class="spv-lead">Deposits from the last 90 days at the salons picked in the header. Tap a card to filter the list.${upd ? ' Last worked out ' + upd + '.' : ''}</p>` +
+    `<div class="spv-bar"><input class="spv-search" id="opdQ" type="search" placeholder="Search a client" aria-label="Search a client" value="${spvEsc(OPD.q)}"><div class="spv-status-set" role="group" aria-label="Status">${chips}</div></div>` +
+    `<div class="spv-sumline">Showing <b>${rows.length}</b> client${rows.length === 1 ? '' : 's'}, AED <b>${spvM0(sumAmt(rows))}</b> open${dirty ? ' · <button type="button" class="spv-clear" data-act="oclear">Clear filters</button>' : ''}</div>` +
+    `<div class="spv-card spv-tw"><table class="spv-tbl spv-opd"><thead><tr><th>Deposit paid</th><th>Salon</th><th>Client</th>${ct ? '<th>Contact details</th>' : ''}<th class="r">Deposit</th><th class="r">Taken off</th><th class="r">Days open</th><th>Status</th><th>What to do</th></tr></thead><tbody>${body}</tbody></table>` +
+    `<div class="spv-more-row"${rest > 0 ? '' : ' hidden'}><button class="spv-morebtn" type="button" data-act="omore">Show ${Math.min(30, rest)} more (${rest} left)</button></div></div>` +
+    `<div class="spv-callout"><b>A deposit waiting for a booking is normal.</b> Phorest sales do not carry the appointment date, so a client with a booking still ahead shows as Waiting. Only <b>Came back</b>, <b>Part used</b> and <b>No visit, over 14 days</b> need a person.</div>` +
+    `<div class="spv-note">How it is read: a deposit is a "Deposit" line in Phorest (a refund nets it off). It counts as taken off when a later bill for the same client at the same salon carries an A(...) tender. These are candidates only. Check the client in Phorest before telling her anything. Bahrain is left out, as on the Stripe tab.</div></div>`;
+  spvWireTabs(el);
+  opdContacts();
+  el.querySelectorAll('[data-od]').forEach(b => { b.onclick = () => { const k = b.getAttribute('data-od'); OPD.status = OPD.status === k ? 'all' : k; OPD.shown = 30; opdPaint(); if (OPD.status !== 'all') { const t = document.getElementById('opdList'); if (t) t.scrollIntoView({ block: 'start' }); } }; });
+  el.querySelectorAll('[data-ost]').forEach(b => { b.onclick = () => { OPD.status = b.getAttribute('data-ost'); OPD.shown = 30; opdPaint(); }; });
+  const q = document.getElementById('opdQ');
+  if (q) q.oninput = () => { OPD.q = q.value.trim(); OPD.shown = 30; const pos = q.selectionStart; opdPaint(); const n = document.getElementById('opdQ'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } };
+  const clr = el.querySelector('[data-act="oclear"]'); if (clr) clr.onclick = () => { OPD.status = 'all'; OPD.q = ''; OPD.shown = 30; opdPaint(); };
+  const more = el.querySelector('[data-act="omore"]'); if (more) more.onclick = () => { OPD.shown += 30; opdPaint(); };
 }
 
 // ── STYLE (scoped; the colours match the approved mockup, light and dark) ───────────────
@@ -475,6 +619,35 @@ function spvCss() {
 #stripeContent .spv-dgrid{grid-template-columns:1fr}
 }
 @media(min-width:761px){#stripeContent .spv-pay td.dt .slp{display:none}}
+#stripeContent .spv-tabs{display:flex;gap:4px;margin:6px 0 0;border-bottom:1px solid var(--border)}
+#stripeContent .spv-tab{border:0;background:none;color:var(--muted);font:inherit;font-size:15px;padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+#stripeContent .spv-tab[aria-selected="true"]{color:var(--text);font-weight:600;border-bottom-color:var(--accent)}
+#stripeContent .spv-tab .n{display:inline-block;margin-left:6px;font-size:12px;background:var(--s-bad);color:var(--s-bad-on);border-radius:999px;padding:1px 8px;font-weight:700}
+#stripeContent .spv-tab .n[hidden]{display:none}
+#stripeContent .opd-cards .spv-sc.quiet{grid-column:span 3}
+#stripeContent .opd-cards .spv-sc.act{grid-column:span 3}
+#stripeContent table.spv-opd{min-width:1120px}
+#stripeContent .spv-opd td{vertical-align:top}
+#stripeContent .spv-opd th.r{text-align:right}
+#stripeContent .spv-opd tr.opd-row.notco td{background:var(--s-bad-bg)}#stripeContent .spv-opd tr.opd-row.nostripe td{background:var(--s-info-bg)}#stripeContent .spv-opd tr.opd-row.wrong td{background:var(--s-warn-bg)}
+#stripeContent .spv-opd tr.opd-row.notco td:first-child{box-shadow:inset 5px 0 0 var(--s-bad)}
+#stripeContent .opd-cl{font-weight:600}
+#stripeContent .opd-cl a.spv-bk{text-decoration:underline;text-decoration-style:solid;cursor:pointer}
+#stripeContent .opd-ct{font-size:13.5px;min-width:170px;word-break:break-word}#stripeContent .opd-ct a{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}
+#stripeContent .opd-todo{font-size:13.5px;color:var(--muted);max-width:42ch}
+@media(max-width:1000px){#stripeContent .opd-cards .spv-sc,#stripeContent .opd-cards .spv-sc.quiet,#stripeContent .opd-cards .spv-sc.act{grid-column:span 6}}
+@media(max-width:760px){
+#stripeContent .opd-cards .spv-sc,#stripeContent .opd-cards .spv-sc.quiet,#stripeContent .opd-cards .spv-sc.act{grid-column:span 1}
+#stripeContent table.spv-opd{min-width:0}
+#stripeContent .spv-opd thead{display:none}
+#stripeContent .spv-opd,#stripeContent .spv-opd tbody,#stripeContent .spv-opd tr,#stripeContent .spv-opd td{display:block;width:100%}
+#stripeContent .spv-opd tr.opd-row{padding:10px 14px 10px 18px;border-bottom:1px solid var(--border)}
+#stripeContent .spv-opd tr.opd-row td{border:0;padding:3px 0;text-align:left!important;background:none!important;box-shadow:none!important}
+#stripeContent .spv-opd td[data-l]::before{content:attr(data-l) ": ";color:var(--muted2);font-size:12.5px}
+#stripeContent .spv-opd tr.opd-row.notco{background:var(--s-bad-bg);box-shadow:inset 5px 0 0 var(--s-bad)}
+#stripeContent .spv-opd tr.opd-row.nostripe{background:var(--s-info-bg)}#stripeContent .spv-opd tr.opd-row.wrong{background:var(--s-warn-bg)}
+#stripeContent .opd-todo{max-width:none}
+}
 `;
   document.head.appendChild(st);
 }
