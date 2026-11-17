@@ -1882,6 +1882,9 @@
       if (t.hasAttribute('data-mode')) { setMode(t.getAttribute('data-mode')); return; }
       if (t.hasAttribute('data-fcol')) { var fc = t.getAttribute('data-fcol'); if (!pop.hidden && popCol === fc) closePop(); else openPop(fc, t); return; }
       if (t.hasAttribute('data-sort')) { S.sort = { col: popCol, dir: t.getAttribute('data-sort') }; var sc0 = popCol; renderKeep(); reopenPop(sc0); return; }
+      // Kate, 17 Nov 2026 ("i cant check all and assign to ate jho"): a row's tick box also carries data-sel (the person's id), and it fell into the filter popup's Select all / Clear selection code below,
+      // which wrote a filter for a column that was not open and broke the next list (Cannot read properties of undefined, reading 'val'). Row tick boxes are handled by their own listener; leave them alone here.
+      if (t.hasAttribute('data-sel') && t.tagName === 'INPUT') return;
       if (t.hasAttribute('data-sel')) {
         var allOn = t.getAttribute('data-sel') === 'all', pc = popCol;
         if (allOn) delete S.filters[pc]; else { var none = {}; pop.__vals.forEach(function (v) { none[v] = false; }); S.filters[pc] = none; }
