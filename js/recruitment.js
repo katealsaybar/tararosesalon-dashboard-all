@@ -346,10 +346,10 @@
     by('no').forEach(function (p) { g[flags(p)[0].k].push(p); });
     return g;
   }
-  function fig(key, n, label, cls) {
+  function fig(key, n, label, cls, sub) {
     // Kate, 17 Nov 2026 ("unclickable pls fix"): Total applications is the box that is lit while no other box is picked, so it looks and feels like the others; pressing it brings everyone back.
     var on = key === 'all' ? !S.lane : S.lane === key;
-    return '<button type="button" class="rct-fig ' + (cls || '') + (on ? ' rct-sel' : '') + '" data-fig="' + key + '" aria-pressed="' + on + '"><span class="rct-n">' + n + '</span><span class="rct-l">' + label + '</span></button>';
+    return '<button type="button" class="rct-fig ' + (cls || '') + (on ? ' rct-sel' : '') + '" data-fig="' + key + '" aria-pressed="' + on + '"><span class="rct-n">' + n + '</span><span class="rct-l">' + label + (sub ? '<small class="rct-since">' + sub + '</small>' : '') + '</span></button>';
   }
 
   function found() {
@@ -382,7 +382,7 @@
     // Kate, 17 Nov 2026 ("walang total applications. binilang ko 407"): a sixth box with the total, first in the row. It counts everyone on the list (Not now and Hired included, Test rows and Not an applicant left out); clicking it shows everyone.
     var total = rows.length;   // the same people the list counts ("Showing 407 of 407"), so the box and the line under it always agree
     h += '<div class="rct-figs">' +
-      fig('all', total, 'Total applications') +
+      fig('all', total, 'Total applications', '', rows.length ? 'since ' + fdate(rows.reduce(function (m, p) { return p.applied_at && p.applied_at < m ? p.applied_at : m; }, rows[0].applied_at)) : '') +
       fig('look', look.length, 'Worth a look, need your yes or no', 'rct-main') +
       fig('no', no.length, 'Probably no, flagged for you') +
       fig('late', late.length, 'Waiting ' + waitDays() + ' days or more with no reply', late.length ? 'rct-warnfig' : '') +
@@ -401,7 +401,7 @@
     if (S.mode === 'list') {
       var bxOld = document.getElementById('rctTbox'), keepPos = bxOld ? [bxOld.scrollTop, bxOld.scrollLeft] : null;
       h += renderList() + goneHtml() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. Apart from the automatic shortlist email for support roles, the dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
-      el.innerHTML = h + '</div>';
+      el.innerHTML = h + '</div>' + bulkBarHtml();
       var bxNew = document.getElementById('rctTbox'); if (bxNew && keepPos) { bxNew.scrollTop = keepPos[0]; bxNew.scrollLeft = keepPos[1]; }
       fitDetail();
       return;
@@ -656,7 +656,7 @@
   function cellBtn(txt, col, val) { return '<button type="button" class="rct-cellbtn" data-cf="' + col + '" data-cv="' + esc(val) + '">' + txt + '</button>'; }
   function cell(c, p) {
     switch (c.k) {
-      case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
+      case 'av': return '<td class="rct-c-av"><label class="rct-selbox" title="Select for bulk actions"><input type="checkbox" data-sel="' + esc(p.id) + '"' + (SEL[p.id] ? ' checked' : '') + ' aria-label="Select ' + esc(p.name || 'this person') + '"></label>' + avatar(p) + '</td>';
       case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + '<button type="button" class="rct-pen" data-act="rename" data-id="' + esc(p.id) + '" title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '<div class="rct-asgrow">' + asgHtml(p) + '</div></td>';
       case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
       case 'asg': return '<td>' + (p.assigned_to ? cellBtn(esc(firstName(p.assigned_to)) + (p.assigned_mine ? ' (you)' : ''), 'asg', firstName(p.assigned_to)) : cellBtn('<span class="rct-ns">Nobody yet</span>', 'asg', 'Nobody yet')) + '</td>';
@@ -1516,6 +1516,80 @@
     window.addEventListener('scroll', function (e) { if (ddOpen && !(e.target.closest && e.target.closest('.ps-menu'))) ddClose(); }, true);
     window.addEventListener('resize', function () { ddClose(); });
   }
+  // Kate, 17 Nov 2026 ("add bulk actions pls kasi may mga i aassign na ko kay ate frans and ate jho"): tick people in the List (shift-click ticks a run), and a bar at the bottom offers Assign to
+  // (Kate gives people to ate Jho, ate Frances or herself; everyone else can only take unassigned people for themselves), Let go, Status and Preferred location for all of them at once.
+  // A status set in bulk sends no emails (use the envelope on a person for that). The ticks stay while you filter and page; Clear removes them.
+  var SEL = {}, lastSel = -1;
+  function selIds() { var ok = {}; rows.forEach(function (p) { ok[p.id] = 1; }); return Object.keys(SEL).filter(function (id) { return ok[id]; }); }
+  var BULK_STATUS = [['interview_pass', 'Interview: pass'], ['interview_fail', 'Interview: fail'], ['trade_pass', 'Trade test: pass'], ['trade_fail', 'Trade test: fail'], ['offer_to_send', 'Offer letter: to send'],
+    ['offer_sent', 'Offer letter: sent'], ['start_accepted', 'Start date: accepted'], ['hired', 'Hired'], ['not_now', 'Not now'], ['new', 'Back to New']];
+  function bulkBarHtml() {
+    var ids = selIds(); if (!ids.length) return '';
+    var team = (C && C.team) || [], isOwner = (C && C.my_level) >= 5, h = '<div class="rct-bulk" role="region" aria-label="Bulk actions"><b>' + ids.length + ' selected</b>' +
+      '<button type="button" class="rct-linkbtn" data-act="selpage">This page</button><button type="button" class="rct-linkbtn" data-act="selall">All ' + listRows().length + ' shown</button><span class="rct-bsep"></span><span class="rct-bl">Assign to</span>';
+    var mine = team.filter(function (u) { return u.name === me; })[0];
+    (isOwner ? team : (mine ? [mine] : [])).forEach(function (u) {
+      h += '<button type="button" class="rct-btn rct-sm' + (u.name === me ? ' rct-pri' : '') + '" data-act="bassign" data-to="' + esc(u.email) + '">' + (u.name === me ? 'Me' : esc(firstName(u.name))) + '</button>';
+    });
+    h += '<button type="button" class="rct-btn rct-sm" data-act="bletgo">Let go</button><span class="rct-bsep"></span>' +
+      '<select class="rct-bsel" data-bulk="status" aria-label="Set the status of the selected people"><option value="">Status...</option>' + BULK_STATUS.map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + '</option>'; }).join('') + '</select>' +
+      '<select class="rct-bsel" data-bulk="pref" aria-label="Set the preferred location of the selected people"><option value="">Preferred location...</option><option value="Dubai">Dubai</option><option value="Abu Dhabi">Abu Dhabi</option><option value="Either">Either</option><option value="-">Not stated</option></select>' +
+      '<span class="rct-bsep"></span><button type="button" class="rct-linkbtn" data-act="bclear">Clear</button></div>';
+    return h;
+  }
+  // the ticks changed: redraw only the bar and the boxes, not the whole table
+  function bulkRefresh() {
+    var m = main(); if (!m) return;
+    [].forEach.call(m.querySelectorAll('input[data-sel]'), function (c) { c.checked = !!SEL[c.getAttribute('data-sel')]; });
+    var old = m.querySelector('.rct-bulk'); if (old) old.remove();
+    var html = bulkBarHtml(); if (html) m.insertAdjacentHTML('beforeend', html);
+  }
+  function bulkTick(cb, shift) {
+    var id = cb.getAttribute('data-sel'), boxes = [].slice.call(main().querySelectorAll('input[data-sel]')), i = boxes.indexOf(cb);
+    if (shift && lastSel >= 0 && lastSel < boxes.length) {
+      var lo = Math.min(lastSel, i), hi = Math.max(lastSel, i);
+      for (var k = lo; k <= hi; k++) { var kid = boxes[k].getAttribute('data-sel'); if (cb.checked) SEL[kid] = 1; else delete SEL[kid]; }
+    } else if (cb.checked) SEL[id] = 1; else delete SEL[id];
+    lastSel = i; bulkRefresh();
+  }
+  function bulkDone(msg) { SEL = {}; lastSel = -1; toast(msg); return window.renderRecruitment(); }
+  async function bulkAssign(toEmail) {
+    var ids = selIds(); if (!ids.length) return;
+    var u = ((C && C.team) || []).filter(function (x) { return x.email === toEmail; })[0], self = !u || u.name === me;
+    try {
+      var r = await sb.rpc('recruit_assign_many', { p_ids: ids, p_to: self ? null : toEmail, p_take: true }); if (r.error) throw new Error(r.error.message);
+      var d = r.data || {}, who = self ? 'you' : firstName(u.name);
+      await bulkDone((d.changed || 0) + ' assigned to ' + who + (d.skipped ? '. ' + d.skipped + ' already held by someone else, left alone' : '') + (d.changed ? '. The others have been told.' : '.'));
+    } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
+  async function bulkLetGo() {
+    var ids = selIds(); if (!ids.length) return;
+    try {
+      var r = await sb.rpc('recruit_assign_many', { p_ids: ids, p_to: null, p_take: false }); if (r.error) throw new Error(r.error.message);
+      var d = r.data || {};
+      await bulkDone((d.changed || 0) + ' let go' + (d.skipped ? '. ' + d.skipped + ' were not assigned to you, left alone.' : '.'));
+    } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
+  async function bulkPref(v) {
+    var ids = selIds(); if (!ids.length) return;
+    try {
+      var r = await sb.rpc('recruit_set_pref_many', { p_ids: ids, p_loc: v === '-' ? null : v }); if (r.error) throw new Error(r.error.message);
+      await bulkDone((r.data && r.data.changed || 0) + ' set to ' + (v === '-' ? 'Not stated' : v) + '.');
+    } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
+  }
+  function bulkStatusAsk(v) {
+    var ids = selIds(); if (!ids.length) return;
+    var lab = (BULK_STATUS.filter(function (o) { return o[0] === v; })[0] || [v, v])[1];
+    openDlg('Set ' + ids.length + ' people to ' + esc(lab),
+      '<p>Everyone selected moves to <b>' + esc(lab) + '</b>. No emails are sent (use the envelope on a person to send one). You can undo it from the message that appears.</p>' +
+      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="bstatusok" data-to="' + esc(v) + '">Set ' + ids.length + ' people</button><button type="button" class="rct-btn" data-close>Cancel</button></div>');
+  }
+  async function bulkStatusDo(v) {
+    var ids = selIds(); if (!ids.length) return; closeDlg();
+    var lab = (BULK_STATUS.filter(function (o) { return o[0] === v; })[0] || [v, v])[1];
+    var ok = await setStage(ids, v, ids.length + ' people are now: ' + lab + '.');
+    if (ok) { SEL = {}; lastSel = -1; render(); }
+  }
   // Kate, 17 Nov 2026 ("add assign to self button pala, kasi baka mag unahan ate jho at ate frances sa pag tingin ng applicants ... pag napindot na nung isa, mag notify samin lahat real time"):
   // Assign to me takes a person. The database refuses a second person (and says who has them), writes the claim into the history, and puts a popup notice on the bell of everyone else who
   // can open Recruitment, on whatever page of the dashboard they are. The bell and this page both listen for it live (site_notice_ping), so nobody waits for a refresh.
@@ -1775,6 +1849,7 @@
   function bind() {
     var el = main(); if (!el || el.__rctBound) return;
     el.__rctBound = true;
+    el.addEventListener('click', function (e) { var cb = e.target && e.target.closest && e.target.closest('input[data-sel]'); if (cb) bulkTick(cb, e.shiftKey); });
     document.addEventListener('change', async function (e) {
       var i = e.target; if (!i || !i.getAttribute || !i.getAttribute('data-attach') || !main() || !main().contains(i)) return;
       var p = personById(i.getAttribute('data-attach')), f = i.files && i.files[0]; if (!p || !f) return;
@@ -1864,6 +1939,12 @@
       else if (a === 'rename') renameDialog(id);
       else if (a === 'hist') showHistory(id);
       else if (a === 'assign') assignTo(id, false);
+      else if (a === 'bassign') bulkAssign(t.getAttribute('data-to'));
+      else if (a === 'bletgo') bulkLetGo();
+      else if (a === 'bclear') { SEL = {}; lastSel = -1; bulkRefresh(); }
+      else if (a === 'selpage') { [].forEach.call(main().querySelectorAll('input[data-sel]'), function (c) { SEL[c.getAttribute('data-sel')] = 1; }); bulkRefresh(); }
+      else if (a === 'selall') { listRows().forEach(function (p) { SEL[p.id] = 1; }); bulkRefresh(); }
+      else if (a === 'bstatusok') bulkStatusDo(t.getAttribute('data-to'));
       else if (a === 'unassign') assignLet(id);
       else if (a === 'takeover') takeoverAsk(id);
       else if (a === 'takeoverok') assignTo(id, true);
@@ -1885,6 +1966,7 @@
         catch (err) { console.error(err); settings.open_roles_text = was; render(); toast('That did not save: ' + err.message); }
         return;
       }
+      if (e.target && e.target.getAttribute && e.target.getAttribute('data-bulk')) { var bk = e.target.getAttribute('data-bulk'), bv = e.target.value; e.target.value = ''; if (bv) { if (bk === 'status') bulkStatusAsk(bv); else bulkPref(bv); } return; }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-rs')) { setRole(e.target.getAttribute('data-rs'), e.target.value); return; }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-ss')) { changeStatus(e.target.getAttribute('data-ss'), e.target.value); return; }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-pl')) { setPref(e.target.getAttribute('data-pl'), e.target.value); return; }

@@ -353,3 +353,16 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 /* Kate, 17 Nov 2026: Preferred location */
 .rct-prefsel{min-width:112px;max-width:170px}
 .rct-prefnone{color:var(--muted)}
+/* Kate, 17 Nov 2026: bulk actions, and the since line on the Total box */
+.rct-since{display:block;font-size:12px;opacity:.75;margin-top:1px}
+.rct-c-av{position:relative}
+.rct-selbox{position:absolute;left:4px;top:6px;z-index:2;width:22px;height:22px;display:grid;place-items:center;cursor:pointer}
+.rct-selbox input{width:18px;height:18px;margin:0;cursor:pointer;accent-color:var(--accent)}
+.rct-bulk{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:min(1040px,calc(100vw - 24px));padding:10px 14px;border-radius:18px;background:var(--surface);color:var(--text);border:1.5px solid var(--border);box-shadow:0 14px 40px -8px rgba(0,0,0,.4)}
+.rct-bulk b{font-size:14px;white-space:nowrap}
+.rct-bl{font-size:13px;color:var(--muted)}
+.rct-bsep{width:1px;align-self:stretch;background:var(--border);margin:0 4px}
+.rct-bulk .rct-linkbtn{min-height:0;font-size:13px}
+.rct-bsel{font-size:13px}
+body:has(.rct-bulk) #rctToast{bottom:96px}
+@media (max-width:700px){.rct-bulk{bottom:8px;gap:6px;padding:8px 10px}.rct-bsep{display:none}}
