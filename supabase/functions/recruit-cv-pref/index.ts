@@ -6,6 +6,8 @@
 // an address in Dubai gives Dubai, in Abu Dhabi gives Abu Dhabi, in another emirate (Sharjah, Ajman, Ras Al Khaimah, Fujairah, Umm Al Quwain) or outside the UAE gives Either (Kate: "either").
 // Source "CV address". Never replaces a value that is already there (a wish, Based in, or by hand). Nationality, visa, passport and birth lines are skipped.
 // Same pass check as recruit-cv-upload (x-push-pass, table push_passes). POST { ids: [uuid, ...up to 4], dry?: true }. dry = read and report, write nothing.
+// Kate, 17 Nov 2026 ("Yes, automate"): the cron (every 10 minutes, header x-cron-secret = internal_secrets recruit_cv_pref_cron) posts { auto: true } and the function picks the next up to 4 people
+// whose stored CV has not been read yet (pref_cv_read is not the current cv_file; a new CV attached later is read again). Nobody set by hand is picked.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 import { strFromU8, unzipSync } from "npm:fflate@0.8.2";
@@ -140,15 +142,44 @@ async function readOne(id: string, dry: boolean) {
   return { id, status: r.error ? "apply failed: " + r.error.message.slice(0, 60) : r.data ? "written" : "left alone", loc: f.loc, via: f.via, snip: f.snip };
 }
 
+async function authed(req: Request): Promise<boolean> {
+  const cron = req.headers.get("x-cron-secret") || "";
+  if (cron) {
+    const c = await sb.from("internal_secrets").select("value").eq("name", "recruit_cv_pref_cron").maybeSingle();
+    return !c.error && !!c.data && c.data.value === cron;
+  }
+  const pass = req.headers.get("x-push-pass") || "";
+  if (!UUID.test(pass)) return false;
+  const ok = await sb.from("push_passes").select("token").eq("token", pass).eq("active", true).maybeSingle();
+  return !ok.error && !!ok.data;
+}
+
+// the next people to read: a stored PDF or Word CV not read yet, with a blank or a guessed (Based in, CV address) preferred location, never one set by hand
+async function nextUnread(n: number): Promise<string[]> {
+  const r = await sb.from("recruit_applicants").select("id, cv_file, cv_file_name, pref_cv_read, pref_loc, pref_src")
+    .not("cv_file", "is", null).order("applied_at", { ascending: false }).limit(400);
+  if (r.error || !r.data) return [];
+  return r.data.filter((p) => {
+    const nm = String(p.cv_file_name || p.cv_file || "").toLowerCase();
+    return /\.(pdf|docx)$/.test(nm) && p.pref_cv_read !== p.cv_file && p.pref_src !== "By hand" && (!p.pref_loc || p.pref_src === "Based in" || p.pref_src === "CV address");
+  }).slice(0, n).map((p) => p.id);
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return out(405, { error: "POST only" });
-  const pass = req.headers.get("x-push-pass") || "";
-  if (!UUID.test(pass)) return out(401, { error: "bad pass" });
-  const ok = await sb.from("push_passes").select("token").eq("token", pass).eq("active", true).maybeSingle();
-  if (ok.error || !ok.data) return out(401, { error: "bad pass" });
-  let ids: string[] = []; let dry = false;
-  try { const b = await req.json(); ids = (b.ids || []).map(String).filter((x: string) => UUID.test(x)).slice(0, 4); dry = b.dry === true; } catch { return out(400, { error: "bad body" }); }
+  if (!(await authed(req))) return out(401, { error: "bad pass" });
+  let ids: string[] = []; let dry = false; let auto = false;
+  try { const b = await req.json(); ids = (b.ids || []).map(String).filter((x: string) => UUID.test(x)).slice(0, 4); dry = b.dry === true; auto = b.auto === true; } catch { return out(400, { error: "bad body" }); }
+  if (auto) ids = await nextUnread(4);
   const results = [];
-  for (const id of ids) results.push(await readOne(id, dry));
-  return out(200, { dry, results });
+  for (const id of ids) {
+    const res = await readOne(id, dry);
+    results.push(res);
+    // remember which CV was read, so the next run moves on (a transient failure is tried again)
+    if (auto && !dry && !/^(apply failed|file missing|could not open)/.test(res.status)) {
+      const cf = await sb.from("recruit_applicants").select("cv_file").eq("id", id).maybeSingle();
+      if (cf.data) await sb.from("recruit_applicants").update({ pref_cv_read: cf.data.cv_file }).eq("id", id);
+    }
+  }
+  return out(200, { dry, auto, results });
 });
