@@ -1,0 +1,173 @@
+/* Daily reports (Kate, 17 Nov 2026). The page for the cloud sync of the Phorest reports. Looks like Marketing Spend (marketing-spend.css): a why wall, the answer
+   in one sentence, a ladder to choose what to run, the steps with live numbers, then the board. Built from docs/mockups/daily-reports-buttons.html (v3).
+   Everything is scoped to #dailyReportsContent; tokens are the dashboard's own. Owner only (Level 5). */
+#dailyReportsContent{--ms-teal:#3AA892;--ms-teal-deep:#0F6E56;--ms-coral:#E07A5F;--ms-violet:#A78BFA}
+[data-theme="dark"] #dailyReportsContent{--ms-teal:#5FB3A8;--ms-teal-deep:#7FD1C4}
+#dailyReportsContent .dr-eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#dailyReportsContent .dr-sec{margin-top:26px}
+#dailyReportsContent .dr-h{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:22px;margin:2px 0 4px;color:var(--text)}
+#dailyReportsContent .dr-sub{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.5;max-width:70ch}
+#dailyReportsContent .dr-cl{font-weight:600;text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:3px;cursor:pointer}
+#dailyReportsContent .dr-btn{border:0;background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:9px 20px;min-height:40px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+#dailyReportsContent .dr-btn:hover{filter:brightness(1.1)}
+#dailyReportsContent .dr-btn:disabled{opacity:.45;cursor:default;filter:none}
+#dailyReportsContent .dr-btn.big{padding:11px 26px;min-height:46px;font-size:16px}
+#dailyReportsContent .dr-btn.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+#dailyReportsContent .dr-btn.sm{padding:6px 16px;min-height:36px;font-size:14px}
+#dailyReportsContent .dr-lnk{border:0;background:none;color:var(--muted);font:inherit;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:2px 0}
+#dailyReportsContent .dr-lnk:hover{color:var(--text)}
+#dailyReportsContent .dr-lnk:disabled{opacity:.4;cursor:default}
+#dailyReportsContent .dr-chip{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:5px 13px;font:inherit;font-size:13.5px;cursor:pointer;white-space:nowrap;min-height:32px}
+#dailyReportsContent .dr-chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:600}
+
+/* 1. why wall */
+#dailyReportsContent .dr-why{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 6px}
+#dailyReportsContent .dr-why-i{border-top:2px solid var(--ms-teal);padding:10px 2px 0}
+#dailyReportsContent .dr-why-n{font-family:'Playfair Display',Georgia,serif;font-size:15px;color:var(--ms-teal-deep)}
+#dailyReportsContent .dr-why-t{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px}
+#dailyReportsContent .dr-why-b{font-size:14px;line-height:1.5;color:var(--text)}
+
+/* 2. the answer */
+#dailyReportsContent .dr-answer{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(20px,2.6vw,27px);line-height:1.35;margin:4px 0 14px;color:var(--text);max-width:34em}
+#dailyReportsContent .dr-answer b{font-weight:600;color:var(--ms-teal-deep);white-space:nowrap}
+#dailyReportsContent .dr-answer .dr-bad{color:var(--ms-coral);font-weight:600}
+#dailyReportsContent .dr-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#dailyReportsContent .dr-stat{border:0;border-top:2px solid var(--ms-teal);background:none;text-align:left;padding:10px 2px 2px;cursor:pointer;font:inherit;color:var(--text)}
+#dailyReportsContent .dr-stat.look{border-top-color:var(--ms-coral)}
+#dailyReportsContent .dr-stat-l{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#dailyReportsContent .dr-stat-v{font-family:'Playfair Display',Georgia,serif;font-size:clamp(26px,3vw,36px);line-height:1.1;margin:4px 0 2px;color:var(--text);font-variant-numeric:tabular-nums}
+#dailyReportsContent .dr-stat-n{font-size:12.5px;line-height:1.4;color:var(--muted)}
+#dailyReportsContent .dr-pic{margin:18px 0 4px}
+#dailyReportsContent .dr-pic-t{font-size:13px;color:var(--muted);margin-bottom:8px}
+#dailyReportsContent .dr-track{display:flex;height:18px;border-radius:9px;overflow:hidden;background:color-mix(in srgb,var(--ms-teal) 24%,transparent)}
+#dailyReportsContent .dr-track i{display:block;height:100%;transition:width .5s cubic-bezier(.16,1,.3,1)}
+#dailyReportsContent .dr-track .s{background:var(--ms-teal)}
+#dailyReportsContent .dr-track .l{background:var(--ms-coral)}
+#dailyReportsContent .dr-pic-k{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+#dailyReportsContent .dr-pic-k i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* 3. choose what to run */
+#dailyReportsContent .dr-ladder{display:grid;gap:8px}
+#dailyReportsContent .dr-rung{display:grid;grid-template-columns:minmax(150px,250px) 1fr auto;gap:8px 14px;align-items:center;text-align:left;font:inherit;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;cursor:pointer;transition:border-color .2s,background .2s}
+#dailyReportsContent .dr-rung:hover{border-color:var(--muted2)}
+#dailyReportsContent .dr-rung[aria-checked="true"]{border-color:var(--ms-teal);background:color-mix(in srgb,var(--ms-teal) 10%,var(--surface))}
+#dailyReportsContent .dr-rung-l{font-size:14px;font-weight:600}
+#dailyReportsContent .dr-rung-s{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px}
+#dailyReportsContent .dr-rung-bar{height:10px;border-radius:5px;background:var(--border2);overflow:hidden}
+#dailyReportsContent .dr-rung-bar i{display:block;height:100%;border-radius:5px;background:var(--ms-teal);transition:width .5s cubic-bezier(.16,1,.3,1)}
+#dailyReportsContent .dr-rung-v{font-family:'Playfair Display',Georgia,serif;font-size:19px;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+#dailyReportsContent .dr-rung-v small{display:block;font-size:12px;color:var(--muted);font-family:'Inter',system-ui,sans-serif}
+#dailyReportsContent .dr-run{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:12px}
+#dailyReportsContent .dr-notice{font-size:14px;color:var(--muted);flex:1 1 240px}
+#dailyReportsContent .dr-prog{flex:1 1 100%}
+#dailyReportsContent .dr-prog .t{font-size:13.5px;color:var(--muted);margin-bottom:6px}
+#dailyReportsContent .dr-prog .track{height:6px;border-radius:99px;background:var(--border2);overflow:hidden}
+#dailyReportsContent .dr-prog .fill{height:100%;background:var(--ms-teal);transition:width .6s}
+
+/* 4. the steps */
+#dailyReportsContent .dr-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+#dailyReportsContent .dr-step{border:1px solid var(--border);border-radius:12px;padding:12px 12px 10px;background:var(--surface)}
+#dailyReportsContent .dr-step.attn{border-color:var(--ms-coral)}
+#dailyReportsContent .dr-step-n{font-family:'Playfair Display',Georgia,serif;font-size:13px;color:var(--ms-teal-deep)}
+#dailyReportsContent .dr-step.attn .dr-step-n{color:var(--ms-coral)}
+#dailyReportsContent .dr-step-t{font-size:13.5px;font-weight:600;margin:2px 0 4px}
+#dailyReportsContent .dr-step-v{font-family:'Playfair Display',Georgia,serif;font-size:21px;line-height:1.15;font-variant-numeric:tabular-nums}
+#dailyReportsContent .dr-step-d{font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:4px}
+
+/* 5. what stands out */
+#dailyReportsContent .dr-two{display:grid;grid-template-columns:3fr 2fr;gap:14px}
+#dailyReportsContent .dr-two.one{grid-template-columns:1fr}
+#dailyReportsContent .dr-list{margin:0;padding-left:18px;font-size:14px;line-height:1.6}
+#dailyReportsContent .dr-list li{margin:0 0 6px}
+#dailyReportsContent .dr-ask{border:1px dashed var(--muted2);border-radius:12px;padding:12px 14px}
+#dailyReportsContent .dr-ask h4{margin:0 0 6px;font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:17px}
+#dailyReportsContent .dr-ask p{margin:0 0 8px;font-size:14px}
+
+/* 6. the board */
+#dailyReportsContent .dr-board{border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden}
+#dailyReportsContent .dr-brow{display:grid;grid-template-columns:minmax(170px,1.5fr) repeat(5,minmax(62px,1fr)) 84px;gap:6px;align-items:center;padding:10px 14px;border-top:1px solid var(--border2)}
+#dailyReportsContent .dr-brow.bhead{border-top:0;background:var(--surface2);padding-top:12px;padding-bottom:10px;align-items:end}
+#dailyReportsContent .dr-bh{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12.5px;font-weight:600;text-align:center}
+#dailyReportsContent .dr-bgroup{padding:10px 14px 6px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--border)}
+#dailyReportsContent .dr-bname b{display:block;font-weight:600;font-size:14.5px}
+#dailyReportsContent .dr-bname span{display:block;font-size:12.5px;color:var(--muted);line-height:1.35;margin-top:1px}
+#dailyReportsContent .dr-ro{display:inline-block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--border);border-radius:999px;padding:0 7px;color:var(--muted2);margin-left:6px;font-weight:600}
+#dailyReportsContent .dr-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:48px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;border-radius:10px;cursor:pointer;padding:4px 2px;font-size:12px}
+#dailyReportsContent .dr-cell:hover:not(:disabled){border-color:var(--muted2)}
+#dailyReportsContent .dr-cell:disabled{cursor:default}
+#dailyReportsContent .dr-cell .w{font-size:12px;color:var(--muted);line-height:1.2}
+#dailyReportsContent .dr-cell .cc{display:none;font-size:10.5px;letter-spacing:.08em;font-weight:700;color:var(--muted2)}
+#dailyReportsContent .dr-cell.done,#dailyReportsContent .dr-cell.dry{background:color-mix(in srgb,var(--ms-teal) 12%,var(--surface));border-color:transparent}
+#dailyReportsContent .dr-cell.done .w,#dailyReportsContent .dr-cell.dry .w{color:var(--ms-teal-deep);font-weight:600}
+#dailyReportsContent .dr-cell.held,#dailyReportsContent .dr-cell.failed{background:color-mix(in srgb,var(--ms-coral) 14%,var(--surface));border-color:var(--ms-coral)}
+#dailyReportsContent .dr-cell.held .w,#dailyReportsContent .dr-cell.failed .w{color:var(--ms-coral);font-weight:700}
+#dailyReportsContent .dr-cell.need{background:color-mix(in srgb,var(--ms-coral) 10%,var(--surface));border-color:transparent}
+#dailyReportsContent .dr-cell.need .w{color:var(--ms-coral);font-weight:600}
+#dailyReportsContent .dr-cell.run,#dailyReportsContent .dr-cell.queued{border-color:var(--ms-violet);background:color-mix(in srgb,var(--ms-violet) 14%,var(--surface))}
+#dailyReportsContent .dr-cell.na{background:transparent;border-style:dashed;opacity:.5}
+#dailyReportsContent .dr-cell.off{opacity:.3}
+#dailyReportsContent .dr-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+#dailyReportsContent .dr-dot.done{background:var(--ms-teal)}
+#dailyReportsContent .dr-dot.run,#dailyReportsContent .dr-dot.queued{background:var(--ms-violet);animation:drpulse 1s ease-in-out infinite}
+#dailyReportsContent .dr-dot.dry{background:var(--ms-teal);opacity:.5}
+#dailyReportsContent .dr-dot.held{background:var(--ms-coral)}
+#dailyReportsContent .dr-dot.failed{background:var(--ms-coral);border-radius:2px}
+#dailyReportsContent .dr-dot.need{background:var(--ms-coral);border-radius:2px;transform:rotate(45deg) scale(.85)}
+#dailyReportsContent .dr-dot.idle{border:2px solid var(--muted2)}
+#dailyReportsContent .dr-dot.na{background:var(--border)}
+@keyframes drpulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){#dailyReportsContent .dr-dot.run,#dailyReportsContent .dr-dot.queued{animation:none}#dailyReportsContent .dr-rung,#dailyReportsContent .dr-rung-bar i,#dailyReportsContent .dr-track i{transition:none}}
+#dailyReportsContent .dr-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);padding:12px 14px;border-top:1px solid var(--border);background:var(--surface2)}
+#dailyReportsContent .dr-legend span{display:inline-flex;gap:6px;align-items:center}
+
+/* the last 14 days */
+#dailyReportsContent .dr-strip{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:6px}
+#dailyReportsContent .dr-day{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;border-radius:12px;padding:8px 2px 9px;cursor:pointer;min-width:0}
+#dailyReportsContent .dr-day:hover{border-color:var(--muted2)}
+#dailyReportsContent .dr-day[aria-pressed="true"]{border-color:var(--ms-teal);background:color-mix(in srgb,var(--ms-teal) 10%,var(--surface))}
+#dailyReportsContent .dr-day .wd{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2);font-weight:600}
+#dailyReportsContent .dr-day .dn{font-family:'Playfair Display',Georgia,serif;font-size:19px;line-height:1}
+#dailyReportsContent .dr-day.wk{background:var(--surface2)}
+#dailyReportsContent .dr-stripnote{margin-top:10px;font-size:13px;color:var(--muted)}
+
+/* what happened */
+#dailyReportsContent .dr-log{list-style:none;margin:0;padding:0}
+#dailyReportsContent .dr-log li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--border2);font-size:14px}
+#dailyReportsContent .dr-log li:first-child{border-top:0}
+#dailyReportsContent .dr-log .when{color:var(--muted2);font-size:13px;white-space:nowrap;min-width:170px}
+#dailyReportsContent .dr-log li>span:last-child{min-width:0;overflow-wrap:anywhere}   /* a long error message wraps instead of pushing the page sideways */
+
+/* folded fine print */
+#dailyReportsContent details.dr-more{border:1px solid var(--border);border-radius:12px;background:var(--surface);margin-top:26px}
+#dailyReportsContent details.dr-more>summary{cursor:pointer;list-style:none;padding:14px 18px;font-family:'Playfair Display',Georgia,serif;font-size:19px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#dailyReportsContent details.dr-more>summary::-webkit-details-marker{display:none}
+#dailyReportsContent details.dr-more>summary::after{content:'+';font-family:'Inter',system-ui,sans-serif;font-size:20px;color:var(--muted)}
+#dailyReportsContent details.dr-more[open]>summary::after{content:'\2212'}
+#dailyReportsContent .dr-more-b{padding:0 18px 16px;font-size:14px;line-height:1.55}
+#dailyReportsContent .dr-more-b p{margin:0 0 8px;max-width:80ch}
+#dailyReportsContent .dr-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);opacity:0;background:var(--accent);color:var(--accent-fg);border-radius:12px;padding:10px 18px;font-size:14px;max-width:min(520px,92vw);transition:.25s;z-index:900;pointer-events:none}
+#dailyReportsContent .dr-toast.on{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:900px){
+  #dailyReportsContent .dr-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #dailyReportsContent .dr-two{grid-template-columns:1fr}
+  #dailyReportsContent .dr-strip{grid-template-columns:repeat(7,minmax(0,1fr))}
+  #dailyReportsContent .dr-brow.bhead{display:none}
+  #dailyReportsContent .dr-brow{grid-template-columns:repeat(5,1fr);padding:12px 14px}
+  #dailyReportsContent .dr-bname,#dailyReportsContent .dr-bact{grid-column:1/-1}
+  #dailyReportsContent .dr-bact .dr-btn{width:100%}
+  #dailyReportsContent .dr-cell .cc{display:block}
+}
+@media (max-width:720px){
+  #dailyReportsContent .dr-why{grid-template-columns:1fr;gap:4px}
+  #dailyReportsContent .dr-why-i{display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:6px;padding:7px 0 6px}
+  #dailyReportsContent .dr-why-n{grid-row:1/3;font-size:14px;line-height:1.3}
+  #dailyReportsContent .dr-why-t{margin:0 0 1px;line-height:1.3}
+  #dailyReportsContent .dr-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #dailyReportsContent .dr-rung{grid-template-columns:1fr auto}
+  #dailyReportsContent .dr-rung-bar{grid-column:1 / -1;order:3}
+  #dailyReportsContent .dr-btn.big{width:100%}
+  #dailyReportsContent .dr-log li{flex-direction:column;gap:2px}
+  #dailyReportsContent .dr-log .when{min-width:0}
+}
+@media (max-width:420px){#dailyReportsContent .dr-steps{grid-template-columns:1fr}}

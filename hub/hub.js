@@ -209,6 +209,9 @@
       blurb: 'Deposits paid on Stripe checked against Phorest: which are paid, which were not checked out, and which landed on the wrong branch.' },
     { key: 'deposit-check', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Tools', title: 'Deposit Checking', href: '/?view=depositcheck', rule: 'var(--accent-mint)',
       blurb: 'Deposits clients paid that have not been taken off a bill yet, so the front desk can check them before a client pays twice.' },
+    // Kate, 17 Nov 2026: the cloud sync of the Phorest reports and its Run buttons (daily-reports.js; the owner only).
+    { key: 'daily-reports', via: 'dashboards', min: 5, ic: 'dashboards', dept: 'Tools', title: 'Daily reports', href: '/?view=dailyreports', rule: 'var(--accent-mint)',
+      blurb: 'The daily Phorest numbers fetched, checked and saved in the cloud five times a day, with buttons to sync now and a plain list of anything that needs a second look.' },
     { key: 'nov-blasts', via: 'dashboards', min: 3, ic: 'campaigns', dept: 'Tools', title: 'Database Blasts, November 2026', href: '/?view=novblasts', rule: 'var(--accent-butter)',
       blurb: 'How the November database blasts did: sent, delivered, replies and bookings.' }
   ];
@@ -650,7 +653,7 @@
     var needPages = typeof TRS_PAGES === 'undefined';
     function js(src) { return new Promise(function (ok) { var sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }); }
     var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/css/account-menu.css?v=abc986e2'; document.head.appendChild(css);
-    KB._acct = (needPages ? js('/js/pages.js?v=856db8af') : Promise.resolve())
+    KB._acct = (needPages ? js('/js/pages.js?v=8adcd067') : Promise.resolve())
       .then(function () { return js('/js/account-menu.js?v=39e1bb7f'); })
       .then(function () { if (needPages && typeof trsAccessLoad === 'function') return trsAccessLoad(c); });
     return KB._acct;
