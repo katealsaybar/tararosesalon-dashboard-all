@@ -315,10 +315,10 @@ function opdPaint() {
     `<div class="spv-cards opd-cards">${cards}</div>` +
     `<div class="spv-sec" id="opdList"><h2>Every open deposit</h2><p class="spv-lead">Deposits from the last 90 days at the salons and period picked in the header. Tap a card to filter the list. Every column header has a filter menu, like Google Sheets.${upd ? ' Last worked out ' + upd + '.' : ''}</p>` +
     `<div class="spv-bar"><input class="spv-search" id="opdQ" type="search" placeholder="Search a client" aria-label="Search a client" value="${dpcEsc(OPD.q)}"><div class="spv-status-set" role="group" aria-label="Status">${chips}</div>` +
-    `<div class="opd-save" role="group" aria-label="Download"><button type="button" class="spv-schip" data-osave="xlsx" title="What is on screen, with a Summary tab">Save as XLSX</button><button type="button" class="spv-schip" data-osave="csv" title="What is on screen, one list">Save as CSV</button></div></div>` +
+    `</div>` +
     `<div class="opd-colbar" aria-label="Column filters">${colbar}</div>` +
-    `<div class="spv-sumline">Showing <b>${rows.length}</b> client${rows.length === 1 ? '' : 's'}, AED <b>${dpcM0(sumAmt(rows))}</b> open${OPD.q ? ' · <span class="spv-dim">searching all dates, not only the Period</span>' : ''}${dirty ? ' · <button type="button" class="spv-clear" data-act="oclear">Clear filters</button>' : ''}</div>` +
-    `<div class="spv-card spv-tw"><table class="spv-tbl spv-opd" style="--opd-w:${tw}px"><colgroup>${colg}</colgroup><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
+    `<div class="spv-sumline">Showing <b>${rows.length}</b> client${rows.length === 1 ? '' : 's'}, AED <b>${dpcM0(sumAmt(rows))}</b> open${OPD.q ? ' · <span class="spv-dim">searching all dates, not only the Period</span>' : ''}${dirty ? ' · <button type="button" class="spv-clear" data-act="oclear">Clear filters</button>' : ''}<div class="opd-save" role="group" aria-label="Download"><button type="button" class="spv-schip" data-osave="xlsx" title="What is on screen, with a Summary tab">Save as XLSX</button><button type="button" class="spv-schip" data-osave="csv" title="What is on screen, one list">Save as CSV</button></div></div>` +
+    `<div class="spv-card spv-tw opd-box"><table class="spv-tbl spv-opd" style="--opd-w:${tw}px"><colgroup>${colg}</colgroup><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
     `<div class="spv-more-row"${rest > 0 ? '' : ' hidden'}><button class="spv-morebtn" type="button" data-act="omore">Show ${Math.min(30, rest)} more (${rest} left)</button></div></div>` + outLine +
     `<div class="spv-callout"><b>A deposit before the appointment is normal.</b> A client with an appointment booked in Phorest shows as Waiting, with the date and what she is booked for. Only <b>Came back</b>, <b>Part used</b> and <b>No visit, nothing booked</b> need a person.</div>` +
     `<div class="spv-note">How it is read: a deposit is a "Deposit" line in Phorest (a refund nets it off). It counts as taken off when a later bill for the same client at the same salon carries an A(...) tender. The next appointment is the earliest one in the Phorest diary from today, matched by client name (two clients with one name can mix). These are candidates only. Check the client in Phorest before telling her anything. Bahrain is left out, as on the Stripe tab.</div></div>`;
@@ -560,6 +560,12 @@ function dpcCss() {
 }
 
 #depositContent .opd-th{display:inline-flex;align-items:center;gap:6px}
+/* a sticky header row (Kate, 17 Nov 2026): the table is a scroll box as tall as the screen under the top bar, like Lost Clients, so the headings stay in view while the list scrolls */
+#depositContent .opd-box{overflow:auto;max-height:calc(100vh - var(--topbar-cond-h,104px) - 28px);overscroll-behavior-x:contain}
+#depositContent .opd-box thead th{position:sticky;top:0;z-index:5;background:var(--surface);box-shadow:0 1px 0 var(--border)}
+#depositContent .opd-box thead th:first-child{left:0;z-index:6}
+#depositContent .opd-box tbody td:first-child:not([colspan]){position:sticky;left:0}
+#depositContent .opd-box tbody td:first-child{z-index:3}
 #depositContent .spv-opd tr.opd-det td{padding:0 14px 16px;background:var(--surface2);white-space:normal}
 #depositContent .spv-opd tr.opd-row.open td{border-bottom-color:transparent}
 #depositContent .opd-wide{grid-column:1/-1}
@@ -568,9 +574,9 @@ function dpcCss() {
 #depositContent .opd-vl li{display:flex;gap:12px;justify-content:space-between;padding:2px 0;font-size:14px}
 #depositContent .opd-vl em{font-style:normal;color:var(--muted2)}
 #depositContent .opd-vl .p{font-variant-numeric:tabular-nums;white-space:nowrap}
-#depositContent .opd-save{display:flex;gap:6px;margin-left:auto}
+#depositContent .opd-save{display:flex;gap:6px;margin-left:auto;align-items:center}
 #depositContent .opd-save .spv-schip{font-weight:600}
-@media(max-width:760px){#depositContent .opd-save{margin-left:0;width:100%}#depositContent .opd-save .spv-schip{flex:1 1 0;justify-content:center}}
+@media(max-width:760px){#depositContent .opd-box{overflow:visible;max-height:none}#depositContent .opd-save{margin-left:0;width:100%}#depositContent .opd-save .spv-schip{flex:1 1 0;justify-content:center}}
 #depositContent .spv-opd th.r .opd-th{justify-content:flex-end}
 #depositContent .opd-fb{border:0;background:none;color:var(--muted2);cursor:pointer;padding:3px;border-radius:6px;line-height:0}
 #depositContent .opd-fb:hover{background:var(--surface2)}
