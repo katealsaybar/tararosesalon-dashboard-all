@@ -88,6 +88,9 @@ const STAFF_PROFILES = {
   // Same card style as the stylists, in colour, head inside the block. Not every assistant has one yet: Chona, Pearl, Kathy, Ercely, Luningning, Eden.
   'ESTHER':    { photo: 'esther.png', role: 'Assistant', branch: 'KCA' },
   'PEARL':     { photo: 'pearl.png', role: 'Assistant', branch: 'KCA' },   // Kate, 17 Nov 2026: cutout added
+  // Kate, 17 Nov 2026: there are two Mays. May Manguiat is an Assistant (Saadiyat, also rostered at Khalifa City A), so she has her own full-name key, like ROBYN GARGAN,
+  // because MAY is May Fernandez (Junior Stylist, Khalifa City A). Anything the ledger writes as plain MAY still reads as May Fernandez.
+  'MAY MANGUIAT': { photo: 'may-manguiat.png', role: 'Assistant', branch: 'SAA' },
   // Kate, 19 Sep 2026, confirmed off Phorest's own Staff list (Category: Assistant):
   // "laila pabico is an assistant pls mark her off as such". Filed here rather than
   // under Saadiyat — Kate confirmed she genuinely covers both (422 KCA vs 378 SAA
@@ -510,6 +513,7 @@ const STAFF_SURNAMES = {
   'MARJORIE':  'Sevilla',
   'MARY JOY':  'Galos',
   'MAY':       'Fernandez',
+  'MAY MANGUIAT': 'Manguiat',
   'MEVIL':     'Miraflor',
   'MIMI':      'Vertudes',
   'MJ':        'Galos',
