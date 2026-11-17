@@ -98,3 +98,11 @@ update public.kb_sections set min_level = 2, staff_dept = 'Reception', skip_leve
 -- 17 Nov 2026 (Kate: "should have staff pics in here"), applied live. service_calendar() also returns 'photos': for each name in 'staff', the repo path of that person's cutout (assets/staff/..., assets/org-chart/...) from
 -- leave_calendar_people.photo, matched with extra spaces ignored, or '' when there is none (53 of the 55 stylists with a visit in November had one; the page shows an initial for the rest).
 --   'photos', (select jsonb_agg(coalesce((select p.photo from public.leave_calendar_people p where coalesce(p.photo,'') <> '' and regexp_replace(trim(p.name),'\s+',' ','g') = regexp_replace(trim(s.n),'\s+',' ','g') limit 1), '') order by s.si) from s)
+
+-- 17 Nov 2026 (Kate: client types from Phorest by the KPI definitions, the ledger beside them), applied live. service_calendar() now also returns:
+--  * per row, the 10th value is_new (her first paid visit at any salon is this day, from the materialized view door_first_visits, which is keyed by the Phorest client id; a client not on that list is new only for
+--    days after the list was last worked out) and the 11th an opaque client key (left(md5(client id), 10)) so a client is counted once without sending the id;
+--  * 'ledger': the team's ledger per stylist per day (branch_staff_daily total, new_client, ncr, req, salon, rebooked), matched to the Phorest stylist by first name inside the salon (Virginia = Virginija,
+--    Tammy = Tamryn; BUSINESS and ASSISTANTS are not stylists), and 'ledger_all': the whole salon that day without BUSINESS. Both only for people on the dashboard list (level 2 and up in the database).
+-- The page counts a client once per stylist and day: new + asked for = New client request, new = New, returning + asked for = Request, returning = Salon, and Total is their sum (calculations of KPIs doc).
+-- Checked 8 to 15 Nov 2026, four salons, 29 salon-days, per stylist, against the ledger: NCR 15 vs 16, New 92 vs 81, Request 384 vs 370, Salon 323 vs 257, Total 814 vs 721.
