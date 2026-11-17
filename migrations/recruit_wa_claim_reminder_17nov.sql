@@ -9,7 +9,7 @@
 --                                   what ("Frances now has 30 applicants"). Nobody is told about themselves. If the same person took something for the same interviewer in the last 15 minutes
 --                                   it does not send again (ticking people one by one would otherwise send ten messages); the bell still shows every one.
 --   2. reminder_enabled   (false)  recruit_daily_reminder(): cron at 06:00 UTC = 10:00 Dubai. Counts the shortlisted people with NO final outcome yet (Shortlisted, Interview booked,
---                                   Interview pass, Trade test, Trade pass, Offer letter, Finalise start date) and WhatsApps the interviewers once a day. It sends nothing when the count is 0.
+--                                   Interview pass, Trade test, Trade pass, Offer letter, Finalise start date) and WhatsApps ate Jho (23), ate Frans (26) and Coach Emma, Emma-Louise Usher (28, added 17 Nov at Kate's request), once a day. It sends nothing when the count is 0.
 --                                   The message asks them to mark each person Hired or Not passed and says the regret letter is a few clicks. Test people are left out.
 --                                   One message per person per day (batch recruit-reminder-<Dubai date>), so running it twice never doubles it.
 -- Undo: select cron.unschedule('recruit-daily-reminder'); drop function recruit_daily_reminder, recruit_claim_notify, _recruit_wa_queue; delete the two templates and the three settings.
@@ -17,7 +17,7 @@
 insert into public.recruit_settings (key, value) values
   ('claim_wa_enabled',   'false'::jsonb),
   ('reminder_enabled',   'false'::jsonb),
-  ('reminder_staff_ids', '[23, 26]'::jsonb)
+  ('reminder_staff_ids', '[23, 26, 28]'::jsonb)
 on conflict (key) do nothing;
 
 -- The Meta templates, to be created in respond.io on the main number (Settings, Channels, WhatsApp Brand Account, Templates), category Utility, English (UK), footer Tara Rose Salons.
