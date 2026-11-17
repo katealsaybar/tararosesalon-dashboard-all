@@ -465,8 +465,8 @@ function brOK(b){return b==='X'?brAll():S.br.indexOf(b)>=0}
 function isRes(n,b){var f=rfind(n,b);return !!(f&&f.res)}
 /* departments, from the position (leadership is head office, except Accounts and Admin) */
 var DEPS=[['stylists','Stylists'],['assistants','Assistants'],['frontdesk','Front desk'],['beauticians','Beauticians'],['coordinators','Salon coordinators'],['accounts','Accounts'],['callcentre','Call centre'],['leadership','Leadership']];
-var DEPOF={'Stylist':'stylists','Junior Stylist':'stylists','Senior Stylist':'stylists','Style Director':'stylists','Creative Director':'stylists','Assistant':'assistants','Receptionist':'frontdesk','Beautician':'beauticians','Salon Coordinator':'coordinators','Head Coordinator':'coordinators','Accounts and Admin':'accounts','Office/Admin':'callcentre'};
-function deptOf(n,b){var r=rfind(n,b);if(!r)return '';if(r.ho&&r.p!=='Accounts and Admin')return 'leadership';return DEPOF[r.p]||''}
+var DEPOF={'Stylist':'stylists','Junior Stylist':'stylists','Senior Stylist':'stylists','Style Director':'stylists','Creative Director':'stylists','Assistant':'assistants','Receptionist':'frontdesk','Beautician':'beauticians','Salon Coordinator':'coordinators','Head Coordinator':'coordinators','Accounts and Admin':'accounts','Office/Admin':'accounts'};
+function deptOf(n,b){var r=rfind(n,b);if(!r)return '';if(r.dp)return r.dp;if(r.ho&&r.p!=='Accounts and Admin')return 'leadership';return DEPOF[r.p]||''}
 function depOK(n,b){return !S.dep.length||S.dep.indexOf(deptOf(n,b))>=0}
 function lvOK(l){return brOK(l.b)&&depOK(l.n,l.b)}
 function depLabel(){return S.dep.length?DEPS.filter(function(d){return S.dep.indexOf(d[0])>=0}).map(function(d){return d[1]}).join(' + '):'All departments'}
