@@ -102,6 +102,8 @@ const STAFF_PROFILES = {
   'ARA':       { photo: 'ara.png', role: 'Assistant', branch: 'KCA' },
   'ABBIE':     { photo: 'abbie.png', role: 'Receptionist', branch: 'KCA' },
   'MAAN':      { photo: 'maan.png', role: 'Receptionist', branch: 'AQ' },
+  // Kate, 17 Nov 2026: Lorainne Palmon (front desk), cutout added. Phorest rosters her at Saadiyat (369 of 378 hours, 24 Aug to 15 Nov 2026), so Saadiyat is the tidy default, not a ruling.
+  'LORAINNE':  { photo: 'lorraine.png', role: 'Receptionist', branch: 'SAA' },
 
   // -- Mamsha Al Saadiyat --
   // Kate, 8 Oct 2026: Emma and Ashleigh are educators now. `role` stays Style Director because
