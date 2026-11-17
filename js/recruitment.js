@@ -22,7 +22,7 @@
     offer_sent: 'For offer letter (sent)', start_pending: 'Finalise start date (pending)', start_accepted: 'Finalise start date (accepted)', hired: 'Hired', not_now: 'Not now', rejected: 'Rejected' };
   var STAGE_ORDER = ['new', 'screening', 'interview_booked', 'interview_pass', 'interview_fail', 'trade_test', 'trade_pass', 'trade_fail', 'offer', 'offer_to_send', 'offer_sent', 'start_pending', 'start_accepted', 'hired', 'not_now', 'rejected'];
   var PAGE = 10;   // Kate, 10 Nov 2026: 10 cards at a time in Grid (Show 10 more); the List has its own Rows per page (10, 20, 50, 100)
-  var C = null, loadErr = '', rows = [], gone = [], settings = {}, me = '', q = '', shownLook = PAGE, shownNo = {}, bound = false, toastTimer = null, openRows = {};
+  var C = null, loadErr = '', rows = [], gone = [], settings = {}, settingsMeta = {}, me = '', q = '', shownLook = PAGE, shownNo = {}, bound = false, toastTimer = null, openRows = {};
   var UNDO = [];
 
   function setting(k, d) { return settings[k] == null ? d : settings[k]; }
@@ -85,6 +85,9 @@
     return r;
   }
   function editLine(p) { var e = lastEdit(p); return e ? esc(e.what) + ' by ' + esc(firstName(e.by)) + ', ' + esc(fat(e.at)) : ''; }
+  // Kate, 17 Nov 2026: a setting (booking link, replies, hiring roles) shows who last CHANGED it. The database only stamps a name when the value really changed.
+  function setBy(k) { var m = settingsMeta[k]; return m && m.by ? 'Last changed by ' + firstName(m.by) + (m.at ? ', ' + fat(m.at) : '') : ''; }
+  function setNote(k) { var t = setBy(k); return t ? '<small class="rct-sethist">' + esc(t) + '</small>' : ''; }
   async function showHistory(id) {
     var p = personById(id); if (!p) return;
     openDlg('Who changed what: ' + esc(firstName(p.name)), '<p class="rct-hint">Loading.</p>');
@@ -262,6 +265,7 @@
       '<div class="rct-fact"><span>Link to work</span><b>' + igHtml(p) + '</b></div>' +
       '<div class="rct-fact"><span>Experience</span><b>' + stated(p.experience) + '</b></div>' +
       '<div class="rct-fact"><span>Applying for</span><b>' + roleSelect(p) + '<div class="rct-roleraw">' + roleLine(p) + '</div></b></div>' +
+      (p.reviewed_by && p.reviewed_at && p.reviewed_by !== 'earlier decision' ? '<div class="rct-fact"><span>First looked at</span><b>' + esc(firstName(p.reviewed_by)) + ', ' + esc(fat(p.reviewed_at)) + '</b></div>' : '') +
       '<div class="rct-fact"><span>Last change</span><b>' + (editLine(p) || '<span class="rct-ns">No changes yet</span>') + ' <button type="button" class="rct-linkbtn" data-act="hist" data-id="' + esc(p.id) + '">Who changed what</button></b></div>' +
       '<div class="rct-fact"><span>Applied</span><b>' + esc(fat(p.applied_at)) + ' <span class="rct-src">(' + (p.source === 'form' ? 'website form' : 'email') + (p.merged > 1 ? ', ' + p.merged + ' emails merged' : '') + ')</span></b></div>' +
       '</div>';
@@ -379,7 +383,7 @@
     // The explanation that used to sit under it is the field's tooltip.
     h += '<div class="rct-fields"><label class="rct-find"><span class="rct-sr">Find someone</span><input type="search" id="rctFind" placeholder="Find someone by name, email or country" value="' + esc(q) + '" autocomplete="off"></label>' +
          '<label class="rct-find rct-hiring" title="Type what is needed and press Enter. Anyone applying for a role that is not in this list moves to Probably no. Leave it empty and nobody is moved because of their role."><span class="rct-hl">Hiring now</span>' +
-         '<input type="text" id="rctRoles" class="rct-rolein" value="' + esc(openText()) + '" placeholder="Roles, separated by commas, then Enter. For example Hair stylist, Receptionist" autocomplete="off" aria-label="What we are hiring for right now. Anyone applying for a role not in this list moves to Probably no."></label></div>';
+         '<input type="text" id="rctRoles" class="rct-rolein" value="' + esc(openText()) + '" placeholder="Roles, separated by commas, then Enter. For example Hair stylist, Receptionist" autocomplete="off" aria-label="What we are hiring for right now. Anyone applying for a role not in this list moves to Probably no."></label></div>' + (setBy('open_roles_text') ? '<p class="rct-hint rct-hiringby">Hiring now: ' + esc(setBy('open_roles_text').replace(/^Last/, 'last')) + '</p>' : '');
     h += '<div class="rct-bar">' +
          segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
 
@@ -1060,12 +1064,12 @@
   }
   function settingsDialog() {
     openDlg('Booking link and replies',
-      '<label class="rct-field"><span>Booking link (the calendar page candidates choose a time on)</span><input type="url" id="rctLink" value="' + esc(setting('booking_link', '')) + '" placeholder="https://"></label>' +
-      '<label class="rct-field"><span>Invite reply. {first} becomes their first name and {link} the booking link.</span><textarea id="rctInv" rows="6">' + esc(setting('invite_template', '')) + '</textarea></label>' +
-      '<label class="rct-field"><span>The No email: subject</span><input type="text" id="rctSub" value="' + esc(setting('decline_subject', DEFAULT_SUBJECT)) + '"></label>' +
-      '<label class="rct-field"><span>The No email: wording. The first line {greeting} becomes Hi and their first name (or Hi there,). Use **bold** and [link text]({careers_url}). The Recruitment Team signature is added under it by itself (a last block with the old sign-off lines is ignored).</span><textarea id="rctDec" rows="14">' + esc(setting('decline_template', DEFAULT_DECLINE)) + '</textarea></label>' +
+      '<label class="rct-field"><span>Booking link (the calendar page candidates choose a time on)</span><input type="url" id="rctLink" value="' + esc(setting('booking_link', '')) + '" placeholder="https://">' + setNote('booking_link') + '</label>' +
+      '<label class="rct-field"><span>Invite reply. {first} becomes their first name and {link} the booking link.</span><textarea id="rctInv" rows="6">' + esc(setting('invite_template', '')) + '</textarea>' + setNote('invite_template') + '</label>' +
+      '<label class="rct-field"><span>The No email: subject</span><input type="text" id="rctSub" value="' + esc(setting('decline_subject', DEFAULT_SUBJECT)) + '">' + setNote('decline_subject') + '</label>' +
+      '<label class="rct-field"><span>The No email: wording. The first line {greeting} becomes Hi and their first name (or Hi there,). Use **bold** and [link text]({careers_url}). The Recruitment Team signature is added under it by itself (a last block with the old sign-off lines is ignored).</span><textarea id="rctDec" rows="14">' + esc(setting('decline_template', DEFAULT_DECLINE)) + '</textarea>' + setNote('decline_template') + '</label>' +
       '<div><button type="button" class="rct-btn rct-sm" data-act="usedefault">Put the approved wording back</button></div>' +
-      '<label class="rct-check"><input type="checkbox" id="rctOk"' + (setting('templates_confirmed', false) ? ' checked' : '') + '> The invite reply above is the final wording (it has been through the brand review)</label>' +
+      '<label class="rct-check"><input type="checkbox" id="rctOk"' + (setting('templates_confirmed', false) ? ' checked' : '') + '> The invite reply above is the final wording (it has been through the brand review)' + setNote('templates_confirmed') + '</label>' +
       '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="savesettings">Save</button><button type="button" class="rct-btn" data-close>Cancel</button></div><p class="rct-say" id="rctSay" role="status"></p>');
   }
 
@@ -1532,9 +1536,16 @@
     prev.forEach(function (x) { var p = personById(x.id); if (p) { p.stage = x.stage; p.decided_by = x.by; p.decided_at = x.at; } });
     render(); toast('Undone.');
   }
+  // Kate, 17 Nov 2026: Save in the dialog only writes the values that really changed, so a setting is never marked as changed by someone who only opened the dialog.
+  async function saveIfChanged(k, v, dflt) {
+    var cur = settings[k] == null ? dflt : settings[k];
+    if (JSON.stringify(cur) === JSON.stringify(v)) return;
+    await saveSetting(k, v);
+  }
   async function saveSetting(k, v) {
     var r = await sb.rpc('recruit_settings_set', { p_key: k, p_value: v });
     if (r.error) throw new Error(r.error.message);
+    if (JSON.stringify(settings[k]) !== JSON.stringify(v)) settingsMeta[k] = { by: me, at: new Date().toISOString() };
     settings[k] = v;
   }
 
@@ -1610,11 +1621,11 @@
       else if (a === 'savesettings') {
         var say = document.getElementById('rctSay'); if (say) say.textContent = 'Saving.';
         try {
-          await saveSetting('booking_link', (document.getElementById('rctLink').value || '').trim());
-          await saveSetting('invite_template', document.getElementById('rctInv').value);
-          await saveSetting('decline_template', document.getElementById('rctDec').value);
-          await saveSetting('decline_subject', (document.getElementById('rctSub').value || '').trim() || DEFAULT_SUBJECT);
-          await saveSetting('templates_confirmed', !!document.getElementById('rctOk').checked);
+          await saveIfChanged('booking_link', (document.getElementById('rctLink').value || '').trim(), '');
+          await saveIfChanged('invite_template', document.getElementById('rctInv').value, '');
+          await saveIfChanged('decline_template', document.getElementById('rctDec').value, DEFAULT_DECLINE);
+          await saveIfChanged('decline_subject', (document.getElementById('rctSub').value || '').trim() || DEFAULT_SUBJECT, DEFAULT_SUBJECT);
+          await saveIfChanged('templates_confirmed', !!document.getElementById('rctOk').checked, false);
           closeDlg(); render(); toast('Saved.');
         } catch (err) { console.error(err); if (say) say.textContent = 'That did not save: ' + err.message; }
       }
@@ -1694,7 +1705,7 @@
       if (r.error) throw new Error(r.error.message);
       C = r.data || null;
       if (!C) throw new Error('No data came back.');
-      var allRows = C.rows || []; rows = allRows.filter(function (p) { return !p.not_app; }); gone = allRows.filter(function (p) { return p.not_app; }); settings = C.settings || {}; me = C.me || '';
+      var allRows = C.rows || []; rows = allRows.filter(function (p) { return !p.not_app; }); gone = allRows.filter(function (p) { return p.not_app; }); settings = C.settings || {}; settingsMeta = C.settings_meta || {}; me = C.me || '';
       await loadPhotoUrls();
     } catch (e) {
       console.error(e); C = null; loadErr = 'The applicants could not be read just now (' + (e.message || 'unknown') + '). Refresh the page to try again.';
