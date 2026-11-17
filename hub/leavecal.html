@@ -19,7 +19,7 @@
 <style>
 /* Leave & Holiday Calendar (Kate, 16 Nov 2026). Tokens hub.css does not have; the rest (bg, surface, border, text, muted, accent) come from hub.css. */
 :root{--hl:#FDE9A8;--hol:#1A1A1A;--hol-fg:#FBF7F0;--ok:#0F8A72;--wk:transparent;
-  --c-SAA:#548235;--c-KCA:#2F5597;--c-MC:#ED7D31;--c-AQ:#7030A0;--c-X:#8A847C;--amber:#D9A400;--red:#C0392B;--green:#2E8B57;--blk:#9A948C}
+  --c-SAA:#548235;--c-KCA:#2F5597;--c-MC:#ED7D31;--c-AQ:#7030A0;--c-X:#8A847C;--amber:#D9A400;--red:#C0392B;--green:#2E8B57;--blk:#9A948C;--t-VL:#2F7DC0;--t-SL:#2E8B57;--t-ABS:#C0392B;--t-EL:#E08A1E}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hl:rgba(242,193,78,.22);--hol:#99F6E4;--hol-fg:#2D2E37;--ok:#99F6E4}}
 :root[data-theme="dark"]{--hl:rgba(242,193,78,.22);--hol:#99F6E4;--hol-fg:#2D2E37;--ok:#99F6E4}
 .wrap{max-width:1400px}
@@ -363,6 +363,8 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
 .blegend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 0 2px;font-size:12.5px;color:var(--muted)}
 .blegend i{display:inline-block;width:26px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
 .sw.blk{background:var(--blk)}
+.sw.ty{border-radius:4px}
+.lay-sep{flex-basis:100%;height:0}
 @media (max-width:760px){.bar{font-size:10.5px;padding:0 3px}}
 .side{top:calc(var(--tb,160px) + 10px)}
 /* today is a thin mint line, not a filled block (Kate: the tinted column floated and did nothing); the legend names it */
@@ -421,7 +423,10 @@ var ROSTER=D.people||[];
 var RBY={};ROSTER.forEach(function(r){RBY[r.n]=r});
 var ALIAS=D.alias||{};
 var KIND={approved:'app',planned:'plan',requested:'req'};
-var LV=(D.entries||[]).map(function(e){return {n:e.n,b:e.b||'X',ty:e.ty,f:e.f,t:e.t,s:KIND[e.s]||'plan',src:e.src}});
+/* leave type: VL vacation (Leave and Vacation), SL sick with a medical certificate, ABS absent (sick without one, unauthorised), EL emergency */
+var TYPES=[['VL','Vacation leave (VL)'],['SL','Sick leave (SL)'],['ABS','Absence, unauthorised'],['EL','Emergency leave (EL)']];
+function tyCode(t){t=String(t||'').toLowerCase();return /sick|^sl$/.test(t)?'SL':/absen|unauth/.test(t)?'ABS':/emerg|^el$/.test(t)?'EL':'VL'}
+var LV=(D.entries||[]).map(function(e){return {c:tyCode(e.ty),n:e.n,b:e.b||'X',ty:e.ty,f:e.f,t:e.t,s:KIND[e.s]||'plan',src:e.src}});
 var BLK=(D.blocked||[]).map(function(b){return {f:b.f,t:b.t}});
 var SICK=(D.sick||[]).map(function(s){var r=RBY[ALIAS[s.n]||s.n];return {n:s.n,b:r&&r.b?r.b:'X',sl:s.sl||undefined,ab:s.ab||undefined}});
 var DAYOFF=(D.dayoffs||[]).map(function(x){return {n:x.n,b:x.b,w:x.w,s:x.s}});
@@ -441,7 +446,7 @@ var HOL=[
  {n:'National Day',f:'2026-12-02',t:'2026-12-03',note:'Fixed date, two days.'}
 ];
 
-var S={br:['SAA','KCA','MC','AQ'],view:'planner',everyone:true,res:false,F:{},sort:null,F2:{},sort2:null,m:+TODAY.slice(5,7)-1,y:Math.min(2027,Math.max(2026,+TODAY.slice(0,4))),sel:TODAY,dep:[],layers:{hol:true,app:true,plan:true,req:true,inf:false,blk:true},q:''};
+var S={br:['SAA','KCA','MC','AQ'],view:'planner',everyone:true,res:false,F:{},sort:null,F2:{},sort2:null,m:+TODAY.slice(5,7)-1,y:Math.min(2027,Math.max(2026,+TODAY.slice(0,4))),sel:TODAY,dep:[],tys:{VL:true,SL:true,ABS:true,EL:true},layers:{hol:true,app:true,plan:true,req:true,inf:false,blk:true},q:''};
 
 function P(s){var a=s.split('-');return Date.UTC(+a[0],+a[1]-1,+a[2])}
 function iso(t){return new Date(t).toISOString().slice(0,10)}
@@ -459,7 +464,7 @@ function deptOf(n,b){var r=rfind(n,b);if(!r)return '';if(r.ho&&r.p!=='Accounts a
 function depOK(n,b){return !S.dep.length||S.dep.indexOf(deptOf(n,b))>=0}
 function lvOK(l){return brOK(l.b)&&depOK(l.n,l.b)}
 function depLabel(){return S.dep.length?DEPS.filter(function(d){return S.dep.indexOf(d[0])>=0}).map(function(d){return d[1]}).join(' + '):'All departments'}
-function leaveShown(){return LV.filter(function(l){return S.layers[l.s]&&lvOK(l)&&(S.res||!isRes(l.n,l.b))&&(!S.q||l.n.toLowerCase().indexOf(S.q)>-1)})}
+function leaveShown(){return LV.filter(function(l){return S.layers[l.s]&&S.tys[l.c]&&lvOK(l)&&(S.res||!isRes(l.n,l.b))&&(!S.q||l.n.toLowerCase().indexOf(S.q)>-1)})}
 
 function index(){
   var m={};
@@ -513,6 +518,12 @@ function buildLayers(){
     var b=el('button','lay');b.setAttribute('aria-pressed',S.layers[x[0]]);
     b.appendChild(el('span','sw '+x[2]));b.appendChild(document.createTextNode(x[1]+' '));b.appendChild(el('small','',x[3]));
     b.onclick=function(){S.layers[x[0]]=!S.layers[x[0]];draw()};L.appendChild(b)});
+  L.appendChild(el('span','lay-sep'));
+  TYPES.forEach(function(x){
+    var n=LV.filter(function(l){return l.c===x[0]&&lvOK(l)}).length;
+    var b=el('button','lay');b.setAttribute('aria-pressed',S.tys[x[0]]);
+    var w=el('span','sw ty');w.style.background='var(--t-'+x[0]+')';b.appendChild(w);b.appendChild(document.createTextNode(x[1]+' '));b.appendChild(el('small','',n));
+    b.onclick=function(){S.tys[x[0]]=!S.tys[x[0]];draw()};L.appendChild(b)});
 }
 
 function buildTiles(){
@@ -532,7 +543,7 @@ function dotsFor(d){
   var w=el('div','dots');if(!d)return w;
   var seen={},k=0;
   d.lv.forEach(function(l){if(k>=4)return;var key=l.n;if(seen[key])return;seen[key]=1;k++;
-    var i=el('i',l.s);i.style.background='var(--c-'+l.b+')';i.style.color='var(--c-'+l.b+')';w.appendChild(i)});
+    var i=el('i',l.s);i.style.background='var(--t-'+l.c+')';i.style.color='var(--t-'+l.c+')';w.appendChild(i)});
   if(d.lv.length>4)w.appendChild(el('em','','+'+(d.lv.length-4)));
   return w;
 }
@@ -636,7 +647,7 @@ function lanesFor(its,a,b){
 function barEl(g){
   var it=g.it,e=el('div','bar '+it.k+(g.cl?' cl':'')+(g.cr?' cr':''),it.label);
   e.style.pointerEvents='auto';e.style.gridColumn=(g.s+1)+' / span '+(g.e-g.s+1);e.style.gridRow=String(g.lane+1);
-  e.style.setProperty('--bc','var(--c-'+it.b+')');
+  e.style.setProperty('--bc',it.l?'var(--t-'+it.l.c+')':'var(--c-'+it.b+')');
   e.addEventListener('mouseenter',function(ev){showTip(ev,it)});
   e.addEventListener('mousemove',moveTip);
   e.addEventListener('mouseleave',hideTip);
@@ -714,7 +725,7 @@ function drawSide(idx){
   s.appendChild(el('div','d',['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dd]+(S.sel===TODAY?' (today)':'')+(isWk(S.sel)?'. Weekend.':'')));
   d.hol.forEach(function(h){var i=el('div','item');var b=el('b','',h.n);i.appendChild(b);i.appendChild(el('span','badge hol','Public holiday'));i.appendChild(workBadge(h));i.appendChild(el('div','m',h.note));s.appendChild(i)});
   d.lv.forEach(function(l){
-    var i=el('div','item'),dt=el('span','dot');dt.style.background='var(--c-'+l.b+')';i.appendChild(dt);i.appendChild(el('b','',l.n));
+    var i=el('div','item'),dt=el('span','dot');dt.style.background='var(--t-'+l.c+')';i.appendChild(dt);i.appendChild(el('b','',l.n));
     i.appendChild(el('span','badge '+l.s,{req:'Waiting',app:'Approved',plan:'Planned',inf:'Inferred'}[l.s]));
     i.appendChild(el('div','m',BR[l.b]+' · '+l.ty+' · '+rng(l.f,l.t)+' ('+nd(l.f,l.t)+' days)'));
     i.appendChild(el('div','m',srcLine(l)));if(l.s!=='inf'&&overlapBlk(l)){var w=el('div','m','Overlaps blocked days (no leave allowed)');w.style.color='var(--red)';i.appendChild(w)}s.appendChild(i)});
