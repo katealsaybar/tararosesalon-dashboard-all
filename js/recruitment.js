@@ -373,7 +373,7 @@
 
     var look = by('look'), no = by('no'), late = lateList(), inv = by('invited'), bk = by('booked');
     // Kate, 17 Nov 2026 ("walang total applications. binilang ko 407"): a sixth box with the total, first in the row. It counts everyone on the list (Not now and Hired included, Test rows and Not an applicant left out); clicking it shows everyone.
-    var total = rows.filter(function (p) { return !p.is_test; }).length;
+    var total = rows.length;   // the same people the list counts ("Showing 407 of 407"), so the box and the line under it always agree
     h += '<div class="rct-figs">' +
       fig('all', total, 'Total applications') +
       fig('look', look.length, 'Worth a look, need your yes or no', 'rct-main') +
@@ -1575,7 +1575,7 @@
       if (t.hasAttribute('data-close')) { closeDlg(); return; }
       if (t.hasAttribute('data-undo')) { undo(); return; }
       // a tile (or the Show everyone button) filters BOTH Grid and List by that lane; tap it again to clear
-      if (t.hasAttribute('data-fig') || t.hasAttribute('data-lane')) { var k0 = t.getAttribute('data-fig') || t.getAttribute('data-lane'); S.lane = (k0 === 'all' || S.lane === k0) ? null : k0; S.filters = {}; closePop(); render(); return; }
+      if (t.hasAttribute('data-fig') || t.hasAttribute('data-lane')) { var k0 = t.getAttribute('data-fig') || t.getAttribute('data-lane'); S.lane = (k0 === 'all' || S.lane === k0) ? null : k0; S.filters = {}; closePop(); render(); var fg = main() && main().querySelector('.rct-figs'); if (fg && t.hasAttribute('data-fig')) { var y = fg.getBoundingClientRect().top + window.pageYOffset - 130; if (y > 0) window.scrollTo({ top: y, behavior: 'smooth' }); } return; }
       if (t.hasAttribute('data-mode')) { setMode(t.getAttribute('data-mode')); return; }
       if (t.hasAttribute('data-fcol')) { var fc = t.getAttribute('data-fcol'); if (!pop.hidden && popCol === fc) closePop(); else openPop(fc, t); return; }
       if (t.hasAttribute('data-sort')) { S.sort = { col: popCol, dir: t.getAttribute('data-sort') }; var sc0 = popCol; renderKeep(); reopenPop(sc0); return; }
