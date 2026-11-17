@@ -94,3 +94,7 @@ update public.kb_sections set min_level = 2, staff_dept = 'Reception', skip_leve
 -- which refuses anyone under Level 5 itself, and shows the Client Book card (contact, client note, visit notes) in a window. The Client Book keeps its UAE clients under the branch code 'UAE'.
 --   v_book := coalesce((select m.level from public.dashboard_me() m limit 1), 0) >= 5;
 --   ... jsonb_build_array(date, start, end, staff index, service, state, staff_request, client_name, case when v_book then client_id else null end) ...
+
+-- 17 Nov 2026 (Kate: "should have staff pics in here"), applied live. service_calendar() also returns 'photos': for each name in 'staff', the repo path of that person's cutout (assets/staff/..., assets/org-chart/...) from
+-- leave_calendar_people.photo, matched with extra spaces ignored, or '' when there is none (53 of the 55 stylists with a visit in November had one; the page shows an initial for the rest).
+--   'photos', (select jsonb_agg(coalesce((select p.photo from public.leave_calendar_people p where coalesce(p.photo,'') <> '' and regexp_replace(trim(p.name),'\s+',' ','g') = regexp_replace(trim(s.n),'\s+',' ','g') limit 1), '') order by s.si) from s)

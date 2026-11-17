@@ -103,8 +103,8 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
 .upd{font-size:12.5px;color:var(--muted2);margin-left:auto}
 
 .cal{position:relative;overflow:auto;max-height:76vh;border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)}
-.cal-in{min-width:calc(56px + var(--n)*118px)}
-.grid{display:grid;grid-template-columns:56px repeat(var(--n),minmax(118px,1fr))}
+.cal-in{min-width:calc(56px + var(--n)*150px)}
+.grid{display:grid;grid-template-columns:56px repeat(var(--n),minmax(150px,1fr))}
 .chead{position:sticky;top:0;z-index:12;background:var(--surface2);border-bottom:1px solid var(--border)}
 .chead>div{padding:8px 8px 7px;border-left:1px solid var(--border);min-width:0}
 .chead .corner{position:sticky;left:0;z-index:13;background:var(--surface2);border-left:0}
@@ -218,6 +218,16 @@ button.cl:hover{text-decoration-color:var(--text)}
 .cw-visit p{margin:4px 0}.cw-visit .svc{color:var(--muted);font-size:13px}
 .cw-pill{display:inline-block;border:1px solid var(--border);border-radius:999px;padding:1px 9px;font-size:12px;margin-left:6px}
 
+/* staff photos (Kate, 17 Nov 2026): the cutout at its own shape, no circle, no crop; same treatment as the Leave & Holiday Calendar */
+.stf-ph{height:44px;width:auto;max-width:44px;object-fit:contain;display:block;flex:0 0 auto}
+.stf-ini{height:44px;width:36px;border-radius:8px;background:var(--surface2);color:var(--muted);display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex:0 0 auto}
+.chh{display:flex;align-items:center;gap:8px;min-width:0}
+.chx{min-width:0;flex:1 1 auto}
+.chead .n3{margin-top:5px}
+#staffPick .stf-ph{height:36px;max-width:36px}#staffPick .stf-ini{height:36px;width:30px}
+.dd-st{display:flex;align-items:center;gap:10px}
+.dd-st .stf-ph{height:38px;max-width:38px}.dd-st .stf-ini{height:38px;width:32px}
+
 @media (max-width:760px){
   .cards{grid-template-columns:1fr 1fr}.sc .big{font-size:27px}
   .pg h1{font-size:26px}
@@ -325,6 +335,7 @@ button.cl:hover{text-decoration-color:var(--text)}
   var TODAY = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dubai'}).format(new Date());
 
   var S = {br:['SAA'], from:addDays(TODAY, -1), to:addDays(TODAY, -1), view:'day', staff:null, hideCat:{}, hideState:{}, q:'', sort:null, lf:{}, showAll:false, mi:0, sortChair:false, note:''};
+  var PH = {};              // stylist key (salon|name) -> photo path, the cutout (assets/staff/...)
   var W = null;             // the loaded rows: {rows, synced, first, last}
   var CACHE = {};
   var MQ = matchMedia('(max-width:760px)');
@@ -351,6 +362,7 @@ button.cl:hover{text-decoration-color:var(--text)}
 
   /* ---- data */
   function parse(D){
+    (D.photos || []).forEach(function (ph, i) { if (ph) PH[D.branch + '|' + (D.staff[i] || 'Unknown')] = ph; });
     return D.a.map(function (r) {
       var nm = D.staff[r[3]] || 'Unknown';
       return {b:D.branch, d:r[0], s:mm(r[1]), e:mm(r[2]), st:nm, sk:D.branch + '|' + nm, sv:String(r[4]).replace(/\s+/g,' ').trim(), state:r[5], req:!!r[6], cn:r[7] || '', cid:r[8] || '', cat:cat(r[4])};
@@ -393,6 +405,11 @@ button.cl:hover{text-decoration-color:var(--text)}
       ends[l] = r.e; r._l = l; cluster.push(r); cEnd = Math.max(cEnd, r.e);
     });
     flush(); return a;
+  }
+  /* staff photo: the cutout at its own shape, never a circle or a crop (Kate); an initial in a rounded square when there is no photo or it does not load */
+  function avatar(sk, name){
+    var u = PH[sk] ? '/' + encodeURI(PH[sk]) : '', ini = esc(String(name || '?').trim().charAt(0).toUpperCase());
+    return u ? '<img class="stf-ph" src="' + u + '" alt="" loading="lazy" data-i="' + ini + '">' : '<span class="stf-ini">' + ini + '</span>';
   }
   function stLabel(sk){ var r = W.rows.filter(function (x) { return x.sk === sk; })[0]; return r ? r.st + (multi() ? ' · ' + r.b : '') : sk; }
   function stName(sk){ var r = W.rows.filter(function (x) { return x.sk === sk; })[0]; return r ? r.st : sk; }
@@ -462,11 +479,11 @@ button.cl:hover{text-decoration-color:var(--text)}
         if (!list.length) { sp.hidden = true; }
         else {
           if (!list.some(function (x) { return x.id === S.staff; })) S.staff = list.slice().sort(function (a,b) { return b.n - a.n; })[0].id;
-          sp.innerHTML = '<select class="pill" id="staffSel" aria-label="Stylist">' + list.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === S.staff ? ' selected' : '') + '>' + esc(stLabel(x.id)) + '</option>'; }).join('') + '</select>';
+          sp.innerHTML = avatar(S.staff, stName(S.staff)) + '<select class="pill" id="staffSel" aria-label="Stylist">' + list.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === S.staff ? ' selected' : '') + '>' + esc(stLabel(x.id)) + '</option>'; }).join('') + '</select>';
         }
       } else {
         var cols = dayStaff(); if (S.mi >= cols.length) S.mi = 0;
-        sp.innerHTML = '<button class="navbtn" type="button" data-nav="-1" aria-label="Previous stylist">‹</button><select class="pill" id="mSel" aria-label="Stylist">' + cols.map(function (n, k) { return '<option value="' + k + '"' + (k === S.mi ? ' selected' : '') + '>' + esc(stLabel(n)) + '</option>'; }).join('') + '</select><button class="navbtn" type="button" data-nav="1" aria-label="Next stylist">›</button>';
+        sp.innerHTML = '<button class="navbtn" type="button" data-nav="-1" aria-label="Previous stylist">‹</button>' + avatar(cols[S.mi], stName(cols[S.mi])) + '<select class="pill" id="mSel" aria-label="Stylist">' + cols.map(function (n, k) { return '<option value="' + k + '"' + (k === S.mi ? ' selected' : '') + '>' + esc(stLabel(n)) + '</option>'; }).join('') + '</select><button class="navbtn" type="button" data-nav="1" aria-label="Next stylist">›</button>';
       }
     } else sp.hidden = true;
     var u = document.getElementById('upd');
@@ -520,7 +537,7 @@ button.cl:hover{text-decoration-color:var(--text)}
       el.innerHTML = '<div class="empty">' + msg + '</div>'; return;
     }
     var head = '<div class="grid chead"><div class="corner"></div>' + cols.map(function (c) {
-      return '<button type="button" class="ch' + (c.today ? ' is-today' : '') + '" ' + c.hd + '><div class="n1">' + esc(c.t1) + '</div><div class="n2">' + (esc(c.t2) || '&nbsp;') + '</div><div class="n3">' + c.rows.length + ' service' + (c.rows.length === 1 ? '' : 's') + ' · ' + dur(union(c.rows)) + '</div></button>';
+      return '<button type="button" class="ch' + (c.today ? ' is-today' : '') + '" ' + c.hd + '><div class="chh">' + (c.ph || '') + '<div class="chx"><div class="n1">' + esc(c.t1) + '</div><div class="n2">' + (esc(c.t2) || '&nbsp;') + '</div></div></div><div class="n3">' + c.rows.length + ' service' + (c.rows.length === 1 ? '' : 's') + ' · ' + dur(union(c.rows)) + '</div></button>';
     }).join('') + '</div>';
     var gut = ''; for (var m = T0; m <= T1; m += 60) gut += '<span style="top:' + ((m - T0) * PX) + 'px">' + fmt(m).replace(':00', '') + '</span>';
     var body = '<div class="grid cbody"><div class="gut">' + gut + '</div>' + cols.map(function (c) {
@@ -538,7 +555,7 @@ button.cl:hover{text-decoration-color:var(--text)}
     var all = dayRows(), ids = dayStaff();
     if (S.sortChair) { var t = function (n) { return union(all.filter(function (r) { return r.sk === n && visible(r); })); }; ids.sort(function (a,b) { return t(b) - t(a); }); }
     if (mobile()) ids = ids[S.mi] !== undefined ? [ids[S.mi]] : [];
-    return ids.map(function (n) { var mine = all.filter(function (r) { return r.sk === n; }), fl = firstLast(stName(n)); return {t1:fl[0], t2:fl[1] + (multi() ? (fl[1] ? ' · ' : '') + mine[0].b : ''), all:mine, rows:mine.filter(visible), hd:'data-staff="' + esc(n) + '" title="See ' + esc(stName(n)) + '’s week"'}; });
+    return ids.map(function (n) { var mine = all.filter(function (r) { return r.sk === n; }), fl = firstLast(stName(n)); return {ph:avatar(n, stName(n)), t1:fl[0], t2:fl[1] + (multi() ? (fl[1] ? ' · ' : '') + mine[0].b : ''), all:mine, rows:mine.filter(visible), hd:'data-staff="' + esc(n) + '" title="See ' + esc(stName(n)) + '’s week"'}; });
   }
   function weekCols(){
     var mine = weekRows();
@@ -719,7 +736,7 @@ button.cl:hover{text-decoration-color:var(--text)}
     var r = W.rows[i]; if (!r) return;
     var st = STATES[r.state] || ['paid', r.state], dlg = document.getElementById('dlg'); dlg.className = 'dlg c-' + r.cat;
     dlg.innerHTML = '<div class="top"><h3>' + esc(r.sv) + '</h3><div class="when">' + dlabel(r.d, true) + ' · ' + fmt(r.s) + ' to ' + fmt(r.e) + ' · ' + dur(r.e - r.s) + '</div></div>'
-      + '<dl><dt>Stylist</dt><dd>' + esc(r.st) + (r.req ? ' <span class="star">★</span> asked for' : '') + '</dd><dt>Client</dt><dd>' + clientLink(r) + '</dd><dt>Status</dt><dd>' + st[1] + '</dd><dt>Group</dt><dd>' + CATS[r.cat] + '</dd><dt>Salon</dt><dd>' + BR_FULL[r.b] + '</dd></dl>'
+      + '<dl><dt>Stylist</dt><dd class="dd-st">' + avatar(r.sk, r.st) + '<span>' + esc(r.st) + (r.req ? ' <span class="star">★</span> asked for' : '') + '</span></dd><dt>Client</dt><dd>' + clientLink(r) + '</dd><dt>Status</dt><dd>' + st[1] + '</dd><dt>Group</dt><dd>' + CATS[r.cat] + '</dd><dt>Salon</dt><dd>' + BR_FULL[r.b] + '</dd></dl>'
       + '<div class="act"><button class="btn pri" type="button" data-act="week" data-staff="' + esc(r.sk) + '">' + esc(firstLast(r.st)[0]) + '’s week</button><button class="btn" type="button" data-act="close">Close</button></div>';
     document.getElementById('scrim').hidden = false; dlg.querySelector('.btn.pri').focus();
   }
@@ -793,6 +810,7 @@ button.cl:hover{text-decoration-color:var(--text)}
     document.addEventListener('input', function (e) {
       if (e.target.id === 'q') { S.q = e.target.value; var p = e.target.selectionStart; renderList(); var q = document.getElementById('q'); q.focus(); q.setSelectionRange(p, p); }
     });
+    document.addEventListener('error', function (e) { var im = e.target; if (im && im.tagName === 'IMG' && im.classList.contains('stf-ph')) { var sp = document.createElement('span'); sp.className = 'stf-ini'; sp.textContent = im.dataset.i || '?'; im.replaceWith(sp); } }, true);
     document.getElementById('scrim').addEventListener('click', function (e) { if (e.target.id === 'scrim') closeDetail(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { var cw = document.getElementById('cwscrim'); if (cw && !cw.hidden) { closeClient(); return; } closeDetail(); closePop(); } });
     document.getElementById('cwscrim').addEventListener('click', function (e) { if (e.target.id === 'cwscrim') closeClient(); var m = e.target.closest('[data-cw]'); if (!m) return; if (m.dataset.cw === 'close') closeClient(); if (m.dataset.cw === 'more') { [].forEach.call(document.querySelectorAll('#cwd [data-more]'), function (v) { v.hidden = false; }); m.remove(); } });
