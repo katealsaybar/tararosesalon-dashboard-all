@@ -107,6 +107,10 @@ const STAFF_PROFILES = {
   'MAAN':      { photo: 'maan.png', role: 'Receptionist', branch: 'AQ' },
   // Kate, 17 Nov 2026: Lorainne Palmon (front desk), cutout added. Phorest rosters her at Saadiyat (369 of 378 hours, 24 Aug to 15 Nov 2026), so Saadiyat is the tidy default, not a ruling.
   'LORAINNE':  { photo: 'lorraine.png', role: 'Receptionist', branch: 'SAA' },
+  // Kate, 17 Nov 2026: Kris Asuncion (assistant) and Vanessa Jacinto (front desk), cutouts added. Branches follow the Leave and Holiday Calendar roster (Kris Khalifa City A, Vanessa Khalifa City A);
+  // Phorest rosters Kris more at Saadiyat (303 of 457 hours, 24 Aug to 15 Nov 2026), so tidy defaults, not rulings.
+  'KRIS':      { photo: 'kris.png', role: 'Assistant', branch: 'KCA' },
+  'VANESSA':   { photo: 'vanessa.png', role: 'Receptionist', branch: 'KCA' },
 
   // -- Mamsha Al Saadiyat --
   // Kate, 8 Oct 2026: Emma and Ashleigh are educators now. `role` stays Style Director because
@@ -575,6 +579,7 @@ const STAFF_SURNAMES = {
   'JOYCE':     'Dy',
   'KAISHA':    'Balbuena',
   'KRIS':      'Asuncion',
+  'VANESSA':   'Jacinto',
   'LAILA':     'Pabico',
   'LIBERTY':   'Caparas',
   'LORAINNE':  'Palmon',
