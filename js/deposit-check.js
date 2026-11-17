@@ -87,6 +87,7 @@ function opdCtCell(r) {
 function opdRange() { const a = typeof dateFrom !== 'undefined' && dateFrom ? dateToIso(dateFrom) : '', b = typeof dateTo !== 'undefined' && dateTo ? dateToIso(dateTo) : ''; return [a, b]; }
 const opdInPeriod = r => { const [a, b] = opdRange(); return (!a || r.l >= a) && (!b || r.l <= b); };
 function opdBase() { const c = dpcCodes(); return opdRows.filter(r => c.includes(r.b) && opdInPeriod(r)); }
+function opdAllPeriods() { const c = dpcCodes(); return opdRows.filter(r => c.includes(r.b)); }   // a search looks at every date (Kate, 17 Nov 2026: a client searched by name must not vanish because of the header's Period)
 function opdOutside() { const c = dpcCodes(); return opdRows.filter(r => c.includes(r.b) && !opdInPeriod(r)); }
 
 function opdTodo(r) {
@@ -138,7 +139,7 @@ function opdPass(c, r, f) {
 const opdCmp = (c, a, b) => { const x = c.raw(a), y = c.raw(b); return c.t === 'num' ? (x - y) || 0 : String(x).localeCompare(String(y), undefined, { numeric: true }); };
 function opdVisible() {
   const st = OPD.status, q = OPD.q.toLowerCase(), cols = opdCols();
-  let rows = opdBase().filter(r => (st === 'all' || (st === 'needs' ? (r.s !== 'wait' && r.s !== 'small') : r.s === st)) && (!q || r.c.toLowerCase().includes(q))
+  let rows = (q ? opdAllPeriods() : opdBase()).filter(r => (st === 'all' || (st === 'needs' ? (r.s !== 'wait' && r.s !== 'small') : r.s === st)) && (!q || r.c.toLowerCase().includes(q))
     && cols.every(c => !OPD.f[c.k] || opdPass(c, r, OPD.f[c.k])));
   if (OPD.sort) { const c = cols.find(x => x.k === OPD.sort.k); if (c) rows = rows.slice().sort((a, b) => opdCmp(c, a, b) * OPD.sort.dir); }
   return rows;
@@ -316,7 +317,7 @@ function opdPaint() {
     `<div class="spv-bar"><input class="spv-search" id="opdQ" type="search" placeholder="Search a client" aria-label="Search a client" value="${dpcEsc(OPD.q)}"><div class="spv-status-set" role="group" aria-label="Status">${chips}</div>` +
     `<div class="opd-save" role="group" aria-label="Download"><button type="button" class="spv-schip" data-osave="xlsx" title="What is on screen, with a Summary tab">Save as XLSX</button><button type="button" class="spv-schip" data-osave="csv" title="What is on screen, one list">Save as CSV</button></div></div>` +
     `<div class="opd-colbar" aria-label="Column filters">${colbar}</div>` +
-    `<div class="spv-sumline">Showing <b>${rows.length}</b> client${rows.length === 1 ? '' : 's'}, AED <b>${dpcM0(sumAmt(rows))}</b> open${dirty ? ' · <button type="button" class="spv-clear" data-act="oclear">Clear filters</button>' : ''}</div>` +
+    `<div class="spv-sumline">Showing <b>${rows.length}</b> client${rows.length === 1 ? '' : 's'}, AED <b>${dpcM0(sumAmt(rows))}</b> open${OPD.q ? ' · <span class="spv-dim">searching all dates, not only the Period</span>' : ''}${dirty ? ' · <button type="button" class="spv-clear" data-act="oclear">Clear filters</button>' : ''}</div>` +
     `<div class="spv-card spv-tw"><table class="spv-tbl spv-opd" style="--opd-w:${tw}px"><colgroup>${colg}</colgroup><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
     `<div class="spv-more-row"${rest > 0 ? '' : ' hidden'}><button class="spv-morebtn" type="button" data-act="omore">Show ${Math.min(30, rest)} more (${rest} left)</button></div></div>` + outLine +
     `<div class="spv-callout"><b>A deposit before the appointment is normal.</b> A client with an appointment booked in Phorest shows as Waiting, with the date and what she is booked for. Only <b>Came back</b>, <b>Part used</b> and <b>No visit, nothing booked</b> need a person.</div>` +
