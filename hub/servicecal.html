@@ -201,6 +201,23 @@ th{cursor:default}
 .lf-pop-act button.ok{background:var(--accent);color:var(--accent-fg);border-color:transparent}
 @media (max-width:760px){.lf-colbar{display:flex}}
 
+/* the client name opens the client's Client Book card (Level 6 as people see it, Level 5 in the database; for everyone else it stays plain text) */
+button.cl{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:3px;text-align:left}
+button.cl:hover{text-decoration-color:var(--text)}
+.blk .m button.cl{display:none}
+.scrim.cw{z-index:70}
+.dlg.cwd{width:min(560px,100%);max-height:88vh;display:flex;flex-direction:column;--cc:var(--muted2);--cc-bg:var(--surface2)}
+.cw-b{padding:12px 18px;overflow:auto;font-size:14.5px}
+.cw-m{color:var(--muted);margin:6px 0}
+.cw-eye{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin:12px 0 4px}
+.cw-eye:first-child{margin-top:0}
+.cw-kv{margin:3px 0}.cw-kv>span:first-child{display:inline-block;min-width:78px;color:var(--muted2);font-size:12.5px}
+.cw-note{background:var(--surface2);border-radius:10px;padding:8px 12px;margin:2px 0 6px}
+.cw-visit{border-top:1px solid var(--border2);padding:8px 0}
+.cw-visit b{font-weight:600}.cw-visit .at{color:var(--muted2);font-size:12.5px;margin-left:8px}
+.cw-visit p{margin:4px 0}.cw-visit .svc{color:var(--muted);font-size:13px}
+.cw-pill{display:inline-block;border:1px solid var(--border);border-radius:999px;padding:1px 9px;font-size:12px;margin-left:6px}
+
 @media (max-width:760px){
   .cards{grid-template-columns:1fr 1fr}.sc .big{font-size:27px}
   .pg h1{font-size:26px}
@@ -234,6 +251,7 @@ th{cursor:default}
   <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
 </div>
 <div class="scrim" id="scrim" hidden><div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-label="Service detail"></div></div>
+<div class="scrim cw" id="cwscrim" hidden><div class="dlg cwd" id="cwd" role="dialog" aria-modal="true" aria-label="Client Book card"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/auth.js?v=3823f956"></script>
@@ -335,7 +353,7 @@ th{cursor:default}
   function parse(D){
     return D.a.map(function (r) {
       var nm = D.staff[r[3]] || 'Unknown';
-      return {b:D.branch, d:r[0], s:mm(r[1]), e:mm(r[2]), st:nm, sk:D.branch + '|' + nm, sv:String(r[4]).replace(/\s+/g,' ').trim(), state:r[5], req:!!r[6], cn:r[7] || '', cat:cat(r[4])};
+      return {b:D.branch, d:r[0], s:mm(r[1]), e:mm(r[2]), st:nm, sk:D.branch + '|' + nm, sv:String(r[4]).replace(/\s+/g,' ').trim(), state:r[5], req:!!r[6], cn:r[7] || '', cid:r[8] || '', cat:cat(r[4])};
     });
   }
   async function fetchBranch(b, f, t){
@@ -582,7 +600,7 @@ th{cursor:default}
           if (many) tds.push('<td>' + dlabel(r.d, true) + '</td>');
           tds.push('<td>' + fmt(r.s) + '</td>');
           if (mb) tds.push('<td>' + r.b + '</td>');
-          tds.push('<td>' + esc(r.st) + '</td>', '<td><span class="cdot"></span>' + esc(r.sv) + '</td>', '<td>' + (r.req ? '<span class="star">★</span> ' : '') + esc(r.cn) + '</td>', '<td>' + dur(r.e - r.s) + '</td>', '<td><span class="badge ' + st[0] + '">' + st[1] + '</span></td>');
+          tds.push('<td>' + esc(r.st) + '</td>', '<td><span class="cdot"></span>' + esc(r.sv) + '</td>', '<td>' + (r.req ? '<span class="star">★</span> ' : '') + clientLink(r) + '</td>', '<td>' + dur(r.e - r.s) + '</td>', '<td><span class="badge ' + st[0] + '">' + st[1] + '</span></td>');
           return '<tr class="row c-' + r.cat + '" data-id="' + r.i + '">' + tds.join('') + '</tr>'; }).join('') || '<tr><td colspan="' + cols.length + '" style="text-align:center;color:var(--muted);padding:26px">No services match.</td></tr>')
       + '</tbody></table></div>' + (rows.length > 40 && !S.showAll ? '<button class="btn more" type="button" id="more">Show all ' + rows.length + '</button>' : '');
   }
@@ -652,12 +670,56 @@ th{cursor:default}
     qEl.focus();
   }
 
+  /* ---- client name -> the Client Book card (client_book_card, Level 5 in the database). The client id only arrives for that level. */
+  function clientLink(r){
+    if (!r.cid || !r.cn) return esc(r.cn) || '-';
+    return '<button type="button" class="cl" data-act="client" data-cid="' + esc(r.cid) + '" data-name="' + esc(r.cn) + '" title="Open the Client Book card">' + esc(r.cn) + '</button>';
+  }
+  var CBDAY = function (iso) { if (!iso) return 'No date'; var d = String(iso).slice(0, 10); return dlabel(d, true).replace(/^\w+ /, ''); };
+  var CBN = function (s) { return esc(s).replace(/\r?\n/g, '<br>'); };
+  function cwCard(c){
+    var email = c.email_status === 'real' ? esc(c.email) : '<span class="cw-m">' + (c.email_status === 'no email' ? 'No email on file' : 'Shared email, not theirs (' + esc(c.email || '') + ')') + '</span>';
+    var note = c.note && c.note.notes && String(c.note.notes).trim() ? c.note : null, visits = c.visits || [];
+    var br = (c.branches || []).map(function (b) { return esc(BR_FULL[b] || b); }).join(', ');
+    var vh = visits.map(function (v, n) {
+      var items = (v.items || []).map(function (x) { var bad = x.state === 'CANCELED' ? 'Cancelled' : x.state === 'NO_SHOW' ? 'No show' : ''; return esc(x.desc || 'Service') + (x.st ? ' with ' + esc(x.st) : '') + (bad ? '<span class="cw-pill">' + bad + '</span>' : ''); });
+      return '<div class="cw-visit"' + (n >= 8 ? ' hidden data-more="1"' : '') + '><b>' + esc(CBDAY(v.date)) + '</b><span class="at">' + esc(String(v.at || '').trim()) + '</span>'
+        + (v.notes && String(v.notes).trim() ? '<p>' + CBN(v.notes) + '</p>' : '') + (items.length ? '<div class="svc">' + items.join(' · ') + '</div>' : '')
+        + (v.images ? '<div class="svc">' + v.images + ' photo' + (v.images === 1 ? '' : 's') + ' on this visit in Phorest, not copied here</div>' : '') + '</div>';
+    }).join('');
+    return '<div class="cw-eye">Contact</div>'
+      + '<p class="cw-kv"><span>Phone</span> ' + (c.mobile ? esc(c.mobile) : '<span class="cw-m">None on file</span>') + '</p>'
+      + '<p class="cw-kv"><span>Email</span> ' + email + '</p>'
+      + '<p class="cw-kv"><span>Branches</span> ' + (br || '<span class="cw-m">Not matched</span>') + '</p>'
+      + (c.archived ? '<p class="cw-kv"><span class="cw-pill" style="margin:0">Archived in Phorest</span></p>' : '')
+      + '<p class="cw-kv"><span>Phorest ID</span> ' + esc(c.id) + '</p>'
+      + '<div class="cw-eye">Client note</div>' + (note ? '<div class="cw-note">' + CBN(note.notes) + (note.archived ? '<span class="cw-pill">archived note</span>' : '') + '</div>' : '<p class="cw-m">No note on the client card.</p>')
+      + '<div class="cw-eye">Visit notes' + (visits.length ? ' (' + visits.length + ')' : '') + '</div>'
+      + (visits.length ? vh + (visits.length > 8 ? '<button type="button" class="btn" data-cw="more" style="margin-top:8px">Show all ' + visits.length + ' visits</button>' : '') : '<p class="cw-m">No visit has a note.</p>');
+  }
+  async function openClient(cid, nm){
+    var sc = document.getElementById('cwscrim'), box = document.getElementById('cwd');
+    box.innerHTML = '<div class="top"><h3>' + esc(nm) + '</h3><div class="when">From the Client Book</div></div><div class="cw-b"><p class="cw-m">Loading the card…</p></div><div class="act"><button class="btn" type="button" data-cw="close">Close</button></div>';
+    sc.hidden = false;
+    var body = function (h) { var b = box.querySelector('.cw-b'); if (b) b.innerHTML = h; };
+    try {
+      var r = await KB.client.rpc('client_book_card', {p_branch:'UAE', p_id:cid});
+      if (r.error) throw r.error;
+      if (!r.data) { body('<p class="cw-m">This client is not in the Client Book yet.</p>'); return; }
+      var c = r.data, full = [c.first, c.last].filter(function (x) { return x && /[\p{L}\p{N}]/u.test(x); }).join(' ').trim() || nm;
+      box.querySelector('.top h3').textContent = full;
+      body(cwCard(c));
+      box.querySelector('.act').insertAdjacentHTML('afterbegin', '<a class="btn pri" style="text-decoration:none;display:inline-flex;align-items:center" href="/?view=clientbook&cbq=' + encodeURIComponent(full) + '" target="_blank" rel="noopener">Open in Client Book</a>');
+    } catch (e) { body('<p class="cw-m">The card did not load. Close this and try again.</p>'); }
+  }
+  function closeClient(){ var sc = document.getElementById('cwscrim'); if (sc) sc.hidden = true; }
+
   /* ---- detail */
   function openDetail(i){
     var r = W.rows[i]; if (!r) return;
     var st = STATES[r.state] || ['paid', r.state], dlg = document.getElementById('dlg'); dlg.className = 'dlg c-' + r.cat;
     dlg.innerHTML = '<div class="top"><h3>' + esc(r.sv) + '</h3><div class="when">' + dlabel(r.d, true) + ' · ' + fmt(r.s) + ' to ' + fmt(r.e) + ' · ' + dur(r.e - r.s) + '</div></div>'
-      + '<dl><dt>Stylist</dt><dd>' + esc(r.st) + (r.req ? ' <span class="star">★</span> asked for' : '') + '</dd><dt>Client</dt><dd>' + (esc(r.cn) || '-') + '</dd><dt>Status</dt><dd>' + st[1] + '</dd><dt>Group</dt><dd>' + CATS[r.cat] + '</dd><dt>Salon</dt><dd>' + BR_FULL[r.b] + '</dd></dl>'
+      + '<dl><dt>Stylist</dt><dd>' + esc(r.st) + (r.req ? ' <span class="star">★</span> asked for' : '') + '</dd><dt>Client</dt><dd>' + clientLink(r) + '</dd><dt>Status</dt><dd>' + st[1] + '</dd><dt>Group</dt><dd>' + CATS[r.cat] + '</dd><dt>Salon</dt><dd>' + BR_FULL[r.b] + '</dd></dl>'
       + '<div class="act"><button class="btn pri" type="button" data-act="week" data-staff="' + esc(r.sk) + '">' + esc(firstLast(r.st)[0]) + '’s week</button><button class="btn" type="button" data-act="close">Close</button></div>';
     document.getElementById('scrim').hidden = false; dlg.querySelector('.btn.pri').focus();
   }
@@ -704,6 +766,7 @@ th{cursor:default}
       else if (d.state) { S.hideState[d.state] = !S.hideState[d.state]; render(); }
       else if (d.nav) { var n = dayStaff().length; S.mi = (S.mi + +d.nav + n) % n; render(); }
       else if (t.closest('.chead') && d.staff) { openWeek(d.staff, S.from); }
+      else if (d.act === 'client') { openClient(d.cid, d.name); }
       else if (t.classList.contains('blk') || t.classList.contains('row')) { openDetail(+d.id); }
       else if (d.lfc) { openPop(t, d.lfc); }
       else if (d.lfclear) { S.sort = null; S.lf = {}; S.showAll = false; renderList(); }
@@ -718,6 +781,7 @@ th{cursor:default}
     });
     document.getElementById('dlg').addEventListener('click', function (e) {
       var t = e.target.closest('button'); if (!t) return;
+      if (t.dataset.act === 'client') { openClient(t.dataset.cid, t.dataset.name); return; }
       if (t.dataset.act === 'close') closeDetail();
       if (t.dataset.act === 'week') { closeDetail(); var r = W.rows.filter(function (x) { return x.sk === t.dataset.staff; })[0]; openWeek(t.dataset.staff, r ? r.d : S.from); }
     });
@@ -730,7 +794,8 @@ th{cursor:default}
       if (e.target.id === 'q') { S.q = e.target.value; var p = e.target.selectionStart; renderList(); var q = document.getElementById('q'); q.focus(); q.setSelectionRange(p, p); }
     });
     document.getElementById('scrim').addEventListener('click', function (e) { if (e.target.id === 'scrim') closeDetail(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeDetail(); closePop(); } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { var cw = document.getElementById('cwscrim'); if (cw && !cw.hidden) { closeClient(); return; } closeDetail(); closePop(); } });
+    document.getElementById('cwscrim').addEventListener('click', function (e) { if (e.target.id === 'cwscrim') closeClient(); var m = e.target.closest('[data-cw]'); if (!m) return; if (m.dataset.cw === 'close') closeClient(); if (m.dataset.cw === 'more') { [].forEach.call(document.querySelectorAll('#cwd [data-more]'), function (v) { v.hidden = false; }); m.remove(); } });
     document.addEventListener('mousedown', function (e) { if (POP && !POP.contains(e.target) && !e.target.closest('[data-lfc]')) closePop(); });
     MQ.addEventListener('change', function () { if (W) render(); });
     window.addEventListener('resize', setTb);

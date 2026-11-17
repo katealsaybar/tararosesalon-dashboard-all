@@ -88,3 +88,9 @@ $$;
 -- service_calendar() now asks the same question as every Team Home page, kb_can_read_for(email, 'servicecal'), so the kb_sections row below (and Page Access) decide who reads it.
 update public.kb_sections set min_level = 2, staff_dept = 'Reception', skip_levels = '{}' where key = 'servicecal';
 -- (the function body changed only in its first line: the old test "kb_level() is null or < 2 or = 4" became "kb_me_email() is null or not kb_can_read_for(kb_me_email(), 'servicecal')")
+
+-- 17 Nov 2026 (Kate: "make the client name clickable, the pop up from the Client Book"), applied live. service_calendar() sends the Phorest client id as the 9th value of each row, and ONLY to the
+-- Client Book level (dashboard_me() level 5 in the database, Level 6 as people see it; everyone else gets null there and the name stays plain text). The page then calls client_book_card('UAE', id),
+-- which refuses anyone under Level 5 itself, and shows the Client Book card (contact, client note, visit notes) in a window. The Client Book keeps its UAE clients under the branch code 'UAE'.
+--   v_book := coalesce((select m.level from public.dashboard_me() m limit 1), 0) >= 5;
+--   ... jsonb_build_array(date, start, end, staff index, service, state, staff_request, client_name, case when v_book then client_id else null end) ...
