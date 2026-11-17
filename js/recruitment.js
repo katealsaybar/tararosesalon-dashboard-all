@@ -73,7 +73,8 @@
     recruit_set_test: function (a) { return a.p_flag ? 'Marked as a Test row' : 'Took off the Test mark'; },
     recruit_set_stage: function (a) { return a.p_stage === 'new' ? 'Status: back to New' : 'Status: ' + (STAGE_LABEL[a.p_stage] || a.p_stage); },
     recruit_move: function (a) { return 'Status: ' + (STAGE_LABEL[a.p_stage] || a.p_stage); },
-    recruit_set_hired: function () { return 'Status: Hired'; }
+    recruit_set_hired: function () { return 'Status: Hired'; },
+    recruit_set_pref: function (a) { return a.p_loc ? 'Preferred location: ' + a.p_loc : 'Preferred location: cleared'; }
   };
   // every saving call goes through here: when the database accepts it, the row on the page shows the same "last change" the database just wrote (the next load reads it back)
   async function rpcEdit(name, args) {
@@ -266,6 +267,7 @@
       '<div class="rct-fact"><span>Experience</span><b>' + stated(p.experience) + '</b></div>' +
       '<div class="rct-fact"><span>Applying for</span><b>' + roleSelect(p) + '<div class="rct-roleraw">' + roleLine(p) + '</div></b></div>' +
       (p.reviewed_by && p.reviewed_at && p.reviewed_by !== 'earlier decision' ? '<div class="rct-fact"><span>First looked at</span><b>' + esc(firstName(p.reviewed_by)) + ', ' + esc(fat(p.reviewed_at)) + '</b></div>' : '') +
+      (p.stage === 'new' ? '<div class="rct-fact"><span>Status</span><b>' + statusSelect(p) + '</b></div>' : '') +
       '<div class="rct-fact"><span>Assigned to</span><b>' + (p.assigned_to ? '' : '<span class="rct-ns">Nobody yet</span> ') + asgHtml(p) + '</b></div>' +
       '<div class="rct-fact"><span>Last change</span><b>' + (editLine(p) || '<span class="rct-ns">No changes yet</span>') + ' <button type="button" class="rct-linkbtn" data-act="hist" data-id="' + esc(p.id) + '">Who changed what</button></b></div>' +
       '<div class="rct-fact"><span>Applied</span><b>' + esc(fat(p.applied_at)) + ' <span class="rct-src">(' + (p.source === 'form' ? 'website form' : 'email') + (p.merged > 1 ? ', ' + p.merged + ' emails merged' : '') + ')</span></b></div>' +
@@ -606,6 +608,7 @@
     { k: 'av', t: '', nofilter: true },
     { k: 'name', t: 'Name', val: function (p) { return p.name || 'Name not stated'; }, sort: function (p) { return String(p.name || '').toLowerCase(); }, kind: 'text' },
     { k: 'photo', t: 'Profile photo', val: photoLabel, sort: function (p) { return !p.photo ? 2 : p.photo_bad ? 1 : 0; }, kind: 'num', asc: 'Good photo first', desc: 'No photo first' },
+    { k: 'pref', t: 'Preferred location', val: prefLabel, sort: function (p) { return prefLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'place', t: 'Based in', val: countryShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'ig', t: 'Link to work', val: igLabel, sort: function (p) { return (linkKind(p) ? '0' : '1') + igLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return cvUrl(p) || p.cv_file ? 0 : inEmail(p) ? 1 : deadCv(p) ? 2 : 3; }, kind: 'text' },
@@ -663,6 +666,7 @@
       case 'asg': return '<td>' + (p.assigned_to ? cellBtn(esc(firstName(p.assigned_to)) + (p.assigned_mine ? ' (you)' : ''), 'asg', firstName(p.assigned_to)) : cellBtn('<span class="rct-ns">Nobody yet</span>', 'asg', 'Nobody yet')) + '</td>';
       case 'edit': { var le = lastEdit(p); return '<td class="rct-c-edit">' + (le ? cellBtn('<b>' + esc(firstName(le.by)) + '</b>', 'edit', editedLabel(p)) + '<div class="rct-why">' + esc(le.what) + ', ' + esc(fat(le.at)) + '</div>' : '<span class="rct-ns">No changes yet</span>') + '</td>'; }
       case 'photo': return '<td>' + cellBtn(!p.photo ? '<span class="rct-ns">No photo</span>' : p.photo_bad ? '<span class="rct-badph">Photo not professional</span>' : 'Has photo', 'photo', photoLabel(p)) + '</td>';
+      case 'pref': return '<td>' + prefSelect(p) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
       case 'ig': {
         var kk = linkKind(p);
@@ -963,7 +967,8 @@
   // Kate, 16 Nov 2026: for Front Desk / Reception and Hair Assistant applicants (ONLY these) the invite is not a Zoom booking link: they are told to keep their line open and that
   // someone from the team will reach out, the same wording as the automatic shortlist email (SL_BODY plus the recruitment signature). Everyone else (stylists, beauticians, Other,
   // Not stated) keeps Coach Emma's own Zoom invite with the booking link.
-  function lineOpenRole(p) { var g = roleGroup(p); return g === 'Front Desk / Reception' || g === 'Hair Assistant'; }
+  // Kate, 17 Nov 2026 ("ate jho handles beautician applications pala, include mo na sya sa pipeline nila ate frans and ate jho"): beauticians are in ate Jho's and ate Frances's line now, with the hiring steps and the keep-your-line-open email.
+  function lineOpenRole(p) { var g = roleGroup(p); return g === 'Front Desk / Reception' || g === 'Hair Assistant' || g === 'Beautician'; }
   function shortDialog(id) {
     var p = personById(id); if (!p) return;
     if (lineOpenRole(p)) {
@@ -1324,7 +1329,7 @@
   // through the staff WhatsApp queue (migrations/recruit_shortlist_notify.sql). It never blocks the Shortlist itself, and the database sends it once per person.
   // Kate, 16 Nov 2026: ate Jho and ate Frans interview the support roles (front desk, reception, assistants and any other staff type); Coach Emma interviews stylists and beauticians herself,
   // so those get no WhatsApp. The roles are the setting notify_roles (the database checks the same list); Not stated is left out on purpose.
-  function notifyRole(r) { var l = setting('notify_roles', ['Front Desk / Reception', 'Hair Assistant', 'Other']); return l.indexOf(r) >= 0; }
+  function notifyRole(r) { var l = setting('notify_roles', ['Front Desk / Reception', 'Hair Assistant', 'Other', 'Beautician']); return l.indexOf(r) >= 0; }
   async function notifyShortlist(id) {
     var p = personById(id); if (!p || !(p.is_test || (notifyRole(roleGroup(p)) && setting('notify_enabled', false)))) return;
     try {
@@ -1496,6 +1501,25 @@
       }).subscribe();
     } catch (e) { liveOn = false; }
   }
+  // Kate, 17 Nov 2026 ("we should also add another column for preferred loc if abu dhabi or dubai"; the 11am meeting: an address can say Abu Dhabi while the role is in Dubai): which emirate the
+  // person wants to work in. It is read from what they wrote and from their CV (the dropdown says which), and a person can set it by hand; a hand-set value is never replaced by a reading.
+  var PREF_LIST = ['Dubai', 'Abu Dhabi', 'Either'];
+  function prefLabel(p) { return p.pref_loc || 'Not stated'; }
+  function prefSelect(p) {
+    var cur = p.pref_loc || '', why = p.pref_src ? 'From: ' + p.pref_src : 'Not stated. Pick one if you know.';
+    return '<select class="rct-pill rct-pillsel rct-prefsel' + (cur ? '' : ' rct-prefnone') + '" data-pl="' + esc(p.id) + '" title="' + esc(why) + '" aria-label="Preferred location of ' + esc(p.name || 'this person') + '">' +
+      '<option value=""' + (cur ? '' : ' selected') + '>Not stated</option>' +
+      PREF_LIST.map(function (x) { return '<option value="' + x + '"' + (cur === x ? ' selected' : '') + '>' + (x === 'Either' ? 'Either (Dubai or Abu Dhabi)' : x) + '</option>'; }).join('') + '</select>' +
+      (p.pref_src && cur ? '<div class="rct-why">' + esc(p.pref_src) + '</div>' : '');
+  }
+  async function setPref(id, v) {
+    var p = personById(id); if (!p) return;
+    try {
+      var r = await rpcEdit('recruit_set_pref', { p_id: p.id, p_loc: v || null }); if (r.error) throw new Error(r.error.message);
+      p.pref_loc = v || null; p.pref_src = v ? 'By hand' : null; render();
+      toast(v ? firstName(p.name) + ': preferred location is ' + v + '.' : firstName(p.name) + ': preferred location cleared.');
+    } catch (e) { console.error(e); render(); toast('That did not save: ' + (e.message || 'try again')); }
+  }
   // Kate, 17 Nov 2026 ("patingin ako ng email formats ng lahat ng to ... dapat nakikita rin sya sa recruitment page, listed"): every email the page can send or copy, one after the other in hiring
   // order, with the subject, when it goes out, the words, and how the formatted email looks. Built from the SAME text the buttons use (PE, SL_BODY, the saved No wording), so this list can
   // never drift from what a person really gets. The person in it is a sample, nothing is sent and nothing is saved.
@@ -1504,7 +1528,7 @@
     ACCEPT.__sample = 'https://trk-salon-os.com/accept/?t=example';
     var HAND = 'By hand: the envelope next to this status in the table opens it, ready to copy into Gmail.';
     var list = [
-      { t: 'Shortlisted', when: 'By itself, from the recruitment inbox, when ate Jho or ate Frances shortlists a Front Desk / Reception, Hair Assistant or Other applicant (once the automatic email is switched on). Stylists and beauticians get the invite from Booking link and replies instead.', rp: shortlistEmailParts(sp) },
+      { t: 'Shortlisted', when: 'By itself, from the recruitment inbox, when ate Jho or ate Frances shortlists a Front Desk / Reception, Hair Assistant, Beautician or Other applicant (once the automatic email is switched on). Stylists get the invite from Booking link and replies instead.', rp: shortlistEmailParts(sp) },
       { t: 'Interview: pass', when: HAND, rp: stageEmailParts(sp, 'interview_pass') },
       { t: 'Interview: fail', when: HAND, rp: stageEmailParts(sp, 'interview_fail') },
       { t: 'Trade test: scheduled', when: HAND + ' The day, time and salon are what you type when you set the trade test.', rp: stageEmailParts(sp, 'trade_test') },
@@ -1548,13 +1572,13 @@
   function rctExport() {
     var list = sortedRows(listRows()); if (!list.length) return null;
     var T = function (k, l) { return { key: k, label: l, fmt: 'text' }; };
-    var cols = [T('st', 'Application status'), T('nm', 'Name'), T('em', 'Email'), T('wa', 'WhatsApp'), T('pl', 'Based in'), T('ig', 'Link to work'), T('cv', 'CV'), T('ph', 'Profile photo'),
+    var cols = [T('st', 'Application status'), T('nm', 'Name'), T('em', 'Email'), T('wa', 'WhatsApp'), T('pl', 'Based in'), T('pf', 'Preferred location'), T('ig', 'Link to work'), T('cv', 'CV'), T('ph', 'Profile photo'),
       T('ex', 'Experience'), T('ro', 'Applying for'), T('et', 'Employment type'), T('ap', 'Applied'), T('sr', 'Came from'), T('wt', 'Days waiting (new, no reply)'), T('s2', 'Worth a look or Probably no'),
       T('as', 'Assigned to'), T('lb', 'Last change by'), T('lw', 'Last change'), T('ld', 'Last change date'), T('rv', 'First looked at by')];
     var d10 = function (iso) { return iso ? String(iso).slice(0, 10) : ''; };
     var rows = list.map(function (p) {
       var le = lastEdit(p), b = bucket(p);
-      return { cells: [STAGE_LABEL[p.stage] || p.stage, p.name || 'Name not stated', p.email || '', p.whatsapp || '', placeShort(p), igLabel(p), cvLabel(p), photoLabel(p), p.experience || 'Not stated', roleGroup(p), empType(p),
+      return { cells: [STAGE_LABEL[p.stage] || p.stage, p.name || 'Name not stated', p.email || '', p.whatsapp || '', placeShort(p), prefLabel(p), igLabel(p), cvLabel(p), photoLabel(p), p.experience || 'Not stated', roleGroup(p), empType(p),
         d10(p.applied_at), srcLabel(p), (p.stage === 'new' && !p.replied_at) ? waited(p) : '', p.stage === 'new' ? (b === 'no' ? 'Probably no' : 'Worth a look') : '',
         p.assigned_to ? firstName(p.assigned_to) : '', le ? firstName(le.by) : '', le ? le.what : '', le ? d10(le.at) : '', p.reviewed_by && p.reviewed_by !== 'earlier decision' ? firstName(p.reviewed_by) : ''] };
     });
@@ -1587,7 +1611,7 @@
   // the same block for the people who are not in the hiring steps yet (New), still at Screening or Interview booked (roles that are not assistants or reception), or Not now
   function sideActs(p) {
     var id = esc(p.id), b = '', top = '';
-    if (p.stage === 'new') b = '<div class="rct-sc-pair">' + scBtn('rct-pri', 'short', id, 'Shortlist') + scBtn('rct-no', 'no', id, 'No') + '</div>';
+    if (p.stage === 'new') { top = '<div class="rct-sc-top">' + statusSelect(p) + '</div>'; b = '<div class="rct-sc-pair">' + scBtn('rct-pri', 'short', id, 'Shortlist') + scBtn('rct-no', 'no', id, 'No') + '</div>'; }
     else {
       top = scTop(p, false);
       if (p.stage === 'screening') b = scBtn('rct-pri', 'booked', id, 'Interview booked &rarr;');
@@ -1607,15 +1631,19 @@
   function statusSelect(p) {
     var cur = p.stage === 'offer' ? 'offer_to_send' : p.stage;
     var keys = SEL_ORDER.filter(function (k) { return k !== 'interview_booked' || cur === 'interview_booked' || !lineOpenRole(p); });
-    var extra = [['not_now', 'Not now'], ['new', 'Back to New']];
+    // Kate, 17 Nov 2026 ("we should have ability na mag laktaw ng application status ndi yung na stuck sa shortlist"): a person at New can be set straight to any step (a walk-in, a referral, someone
+    // already interviewed), so nobody has to be pushed through Shortlisted first. Choosing Shortlisted still runs the normal shortlist steps.
+    var extra = cur === 'new' ? [['not_now', 'Not now']] : [['not_now', 'Not now'], ['new', 'Back to New']];
     if (cur === 'rejected') extra.unshift(['rejected', 'Rejected']);
     var opts = keys.map(function (k) { return [k, SEL_LABEL[k] || STAGE_LABEL[k]]; }).concat(extra);
+    if (cur === 'new') opts.unshift(['new', 'New: skip ahead to...']);
     return '<select class="rct-pill rct-pillsel rct-stsel ' + stageCls(p) + '" data-ss="' + esc(p.id) + '" aria-label="Change the status of ' + esc(p.name || 'this person') + '">' +
       opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
   }
   async function changeStatus(id, to) {
     var p = personById(id); if (!p) return;
     var from = p.stage === 'offer' ? 'offer_to_send' : p.stage; if (to === from || to === 'rejected') { render(); return; }
+    if (from === 'new' && to === 'screening') { render(); shortDialog(id); return; }   // Shortlisted from New is the Shortlist button
     if (to === 'new') { await setStage([id], 'new', firstName(p.name) + ' is back in the list.'); return; }
     if (to === 'not_now') { if (await setStage([id], 'not_now', 'Not now for ' + firstName(p.name) + '.')) noDialog(id); return; }
     var quiet = (STAGE_RANK[to] || 0) < (STAGE_RANK[from] || 0);
@@ -1796,6 +1824,7 @@
       }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-rs')) { setRole(e.target.getAttribute('data-rs'), e.target.value); return; }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-ss')) { changeStatus(e.target.getAttribute('data-ss'), e.target.value); return; }
+      if (e.target && e.target.getAttribute && e.target.getAttribute('data-pl')) { setPref(e.target.getAttribute('data-pl'), e.target.value); return; }
       if (e.target && e.target.getAttribute && e.target.getAttribute('data-bk')) { setBucket(e.target.getAttribute('data-bk'), e.target.value); return; }
       if (e.target && e.target.id === 'rctPageSize') { var n = parseInt(e.target.value, 10); if (SIZES.indexOf(n) >= 0) { S.pageSize = n; S.page = 0; savePageSize(n); render(); } }
     });

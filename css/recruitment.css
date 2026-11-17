@@ -350,3 +350,6 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 .rct-asgpill{font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;background:var(--surface2);white-space:nowrap}
 .rct-asgme{background:var(--rct-greenbg);color:var(--rct-green)}
 .rct-asgx{font-size:12px !important;min-height:0 !important}
+/* Kate, 17 Nov 2026: Preferred location */
+.rct-prefsel{min-width:112px;max-width:170px}
+.rct-prefnone{color:var(--muted)}
