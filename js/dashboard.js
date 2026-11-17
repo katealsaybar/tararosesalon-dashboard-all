@@ -5762,6 +5762,9 @@ async function loadData() {
     getLatestCompleteDate('branch_staff_daily'),
     getLatestCompleteDate('phorest_staff_daily'),
   ]);
+  // Kate, 17 Nov 2026: "it should include not only the date today but the last time it got synced". The cloud sync
+  // replaces a day's rows each run, so the newest created_at on the newest days is when Phorest was last pulled.
+  if (phorestInfo && phorestInfo.date) phorestInfo.syncedAt = await getLastSyncStamp('phorest_staff_daily', phorestInfo.date);
   renderFreshnessBadge(ledgerInfo, phorestInfo);
   // Comparison's presets stop at the last day Phorest synced (compare.js).
   window._freshness = { ledgerInfo, phorestInfo };
@@ -5889,6 +5892,27 @@ async function getLatestCompleteDate(table) {
 // tax. The chip now says what each feed is (Branch sheets, Phorest sales) and the dates are "up to" dates; the meaning,
 // who is late and the time zone sit in the panel that opens on a tap (or a hover on a desktop). `feed` is what
 // search.js looks for, so it does not depend on the words.
+// When the feed was last pulled: the newest created_at among the rows from `fromDate` on (the index on date keeps it a few rows).
+// Null when it cannot be read, and the line then shows only the date as before.
+async function getLastSyncStamp(table, fromDate) {
+  try {
+    const { data, error } = await sb.from(table).select('created_at').gte('date', fromDate).order('created_at', { ascending: false }).limit(1);
+    return error || !data || !data[0] ? null : (data[0].created_at || null);
+  } catch (_) { return null; }
+}
+
+// "5:37 pm" if it was today in Dubai, "16 Nov, 9:01 pm" if it was an earlier day. UAE time whatever the viewer's computer says.
+function syncedLabel(stamp) {
+  const d = new Date(stamp);
+  if (!stamp || isNaN(d)) return '';
+  const tz = 'Asia/Dubai';
+  const time = d.toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s?[AP]M$/i, m => ' ' + m.trim().toLowerCase());
+  const day = d.toLocaleDateString('en-CA', { timeZone: tz }), now = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+  if (day === now) return time;
+  const dt = new Date(day + 'T00:00:00');
+  return `${dt.getDate()} ${MON_SHORT[dt.getMonth()]}, ${time}`;
+}
+
 function freshnessLine(label, info, feed) {
   if (!info || !info.date) return `<span class="fl stale" data-feed="${feed}">${label}: <b>no syncs yet</b></span>`;
   const synced = new Date(info.date + 'T00:00:00');
@@ -5915,7 +5939,9 @@ function freshnessLine(label, info, feed) {
       }).join('\n')
     : '';
   // The hover title is gone: the panel says the same in words a phone can reach.
-  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}">${label}: up to <b>${dateStr}</b> (${age})${flag}</span>`;
+  const synced = info.syncedAt ? syncedLabel(info.syncedAt) : '';
+  const syncedBit = synced ? `, synced <b>${synced}</b>` : '';
+  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}">${label}: up to <b>${dateStr}</b> (${age}${syncedBit})${flag}</span>`;
 }
 
 // "19 and 20 Oct", "30 Sep and 1 Oct": the missing days for one branch, same month folded together.
@@ -5942,7 +5968,7 @@ function freshnessPanelHtml(ledgerInfo) {
   const late = [...byBranch].map(([b, dates]) =>
     `<p class="mf-late"><b>Late:</b> ${escapeHtml(BRANCH_INFO[b]?.name || b)} has not sent ${freshnessDays(dates)}. Ask the branch coordinator to send it.</p>`);
   return `<p><b>Branch sheets</b> are the daily sheets each branch types in. Client counts and rebooking come from them.</p>`
-    + `<p><b>Phorest sales</b> come straight from the till. Takings come from here.</p>`
+    + `<p><b>Phorest sales</b> come straight from the till. Takings come from here. They are pulled at 9 am, 1 pm, 5 pm, 9 pm and 1 am, and the time shown is the last pull.</p>`
     + (late.length ? late.join('') : '<p class="mf-ok">Everything is up to date.</p>')
     + '<p class="mf-tz">All times are UAE time.</p>';
 }
