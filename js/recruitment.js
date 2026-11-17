@@ -51,6 +51,52 @@
   // Kate, 16 Nov 2026: who moved a person to their current status (decided_by, set by the database from the signed-in account) and when. Empty for a person nobody has moved.
   function byWho(p) { return p && p.stage !== 'new' && p.decided_by ? firstName(p.decided_by) : ''; }
   function byLine(p) { var w = byWho(p); return w ? 'by ' + w + (p.decided_at ? ', ' + fat(p.decided_at) : '') : ''; }
+  // Kate, 17 Nov 2026 ("since may access na si ate frans and ate jho sa recruitment page, dapat pag may binago sila nakareflect ang name nila"): the LAST change on a person, whoever made it
+  // and whatever it was (status, Applying for, name, Worth a look, photo, CV, Not an applicant, Test). The database writes it (edited_by, edited_at, edited_what) from the signed-in
+  // account's name, never from this page. A person moved before this existed shows the move that decided_by holds.
+  function lastEdit(p) {
+    if (!p) return null;
+    if (p.edited_at && p.edited_by) return { by: p.edited_by, at: p.edited_at, what: p.edited_what || 'Changed' };
+    if (p.stage !== 'new' && p.decided_by && p.decided_at) return { by: p.decided_by, at: p.decided_at, what: 'Status: ' + (STAGE_LABEL[p.stage] || p.stage) };
+    return null;
+  }
+  function editedLabel(p) { var e = lastEdit(p); return e ? firstName(e.by) : 'No changes yet'; }
+  var EDIT_WHAT = {
+    recruit_set_role: function (a) { return a.p_to ? 'Applying for: ' + a.p_to : 'Applying for: back to automatic'; },
+    recruit_set_name: function (a) { return a.p_name ? 'Edited the name' : 'Name: cleared, the imported name returns'; },
+    recruit_set_bucket: function (a) { return a.p_to === 'look' ? 'Moved to Worth a look' : a.p_to === 'no' ? 'Moved to Probably no' : 'Back to the automatic checks'; },
+    recruit_set_not_applicant: function (a) { return a.p_flag ? 'Marked as not an applicant' : 'Put back as an applicant'; },
+    recruit_set_photo: function (a, p) { return p && p.photo ? 'Changed the photo' : 'Added a photo'; },
+    recruit_clear_photo: function () { return 'Removed the photo'; },
+    recruit_set_photo_flag: function (a) { return a.p_flag ? 'Marked the photo not professional' : 'Took off the not professional mark'; },
+    recruit_set_cv: function (a, p) { return p && p.cv_file ? 'Changed the CV' : 'Attached a CV'; },
+    recruit_set_test: function (a) { return a.p_flag ? 'Marked as a Test row' : 'Took off the Test mark'; },
+    recruit_set_stage: function (a) { return a.p_stage === 'new' ? 'Status: back to New' : 'Status: ' + (STAGE_LABEL[a.p_stage] || a.p_stage); },
+    recruit_move: function (a) { return 'Status: ' + (STAGE_LABEL[a.p_stage] || a.p_stage); },
+    recruit_set_hired: function () { return 'Status: Hired'; }
+  };
+  // every saving call goes through here: when the database accepts it, the row on the page shows the same "last change" the database just wrote (the next load reads it back)
+  async function rpcEdit(name, args) {
+    var r = await sb.rpc(name, args);
+    if (!r.error && EDIT_WHAT[name]) {
+      var ids = args.p_ids || [args.p_id], now = new Date().toISOString();
+      ids.forEach(function (id) { var p = personById(id); if (p) { p.edited_by = me; p.edited_at = now; p.edited_what = EDIT_WHAT[name](args, p); } });
+    }
+    return r;
+  }
+  function editLine(p) { var e = lastEdit(p); return e ? esc(e.what) + ' by ' + esc(firstName(e.by)) + ', ' + esc(fat(e.at)) : ''; }
+  async function showHistory(id) {
+    var p = personById(id); if (!p) return;
+    openDlg('Who changed what: ' + esc(firstName(p.name)), '<p class="rct-hint">Loading.</p>');
+    var body = document.querySelector('#rctDlg .rct-db');
+    try {
+      var r = await sb.rpc('recruit_history', { p_id: p.id }); if (r.error) throw new Error(r.error.message);
+      var l = r.data || [];
+      var tf = function (iso) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)); } catch (e) { return ''; } };
+      if (body) body.innerHTML = l.length ? '<ul class="rct-hist">' + l.map(function (x) { return '<li><b>' + esc(firstName(x.by)) + '</b> ' + esc(x.what) + '<span>' + esc(tf(x.at)) + '</span></li>'; }).join('') + '</ul>' +
+        '<p class="rct-hint">Newest first. The time is Dubai time.</p>' : '<p class="rct-hint">Nobody has changed anything on this person yet.</p>';
+    } catch (e) { console.error(e); if (body) body.innerHTML = '<p class="rct-amberbox">That did not load: ' + esc(e.message || 'try again') + '</p>'; }
+  }
   function dayMs() { return 86400000; }
   function waited(p) { return Math.max(0, Math.floor((Date.now() - new Date(p.applied_at).getTime()) / dayMs())); }
   function fat(iso) {
@@ -216,6 +262,7 @@
       '<div class="rct-fact"><span>Link to work</span><b>' + igHtml(p) + '</b></div>' +
       '<div class="rct-fact"><span>Experience</span><b>' + stated(p.experience) + '</b></div>' +
       '<div class="rct-fact"><span>Applying for</span><b>' + roleSelect(p) + '<div class="rct-roleraw">' + roleLine(p) + '</div></b></div>' +
+      '<div class="rct-fact"><span>Last change</span><b>' + (editLine(p) || '<span class="rct-ns">No changes yet</span>') + ' <button type="button" class="rct-linkbtn" data-act="hist" data-id="' + esc(p.id) + '">Who changed what</button></b></div>' +
       '<div class="rct-fact"><span>Applied</span><b>' + esc(fat(p.applied_at)) + ' <span class="rct-src">(' + (p.source === 'form' ? 'website form' : 'email') + (p.merged > 1 ? ', ' + p.merged + ' emails merged' : '') + ')</span></b></div>' +
       '</div>';
   }
@@ -484,7 +531,7 @@
   async function setRole(id, to) {
     var p = personById(id); if (!p) return;
     try {
-      var r = await sb.rpc('recruit_set_role', { p_id: p.id, p_to: to === 'auto' ? null : to }); if (r.error) throw new Error(r.error.message);
+      var r = await rpcEdit('recruit_set_role', { p_id: p.id, p_to: to === 'auto' ? null : to }); if (r.error) throw new Error(r.error.message);
       p.role_set = to === 'auto' ? null : to; render(); toast(to === 'auto' ? firstName(p.name) + ': back to automatic.' : firstName(p.name) + ' is set to ' + to + '.');
     } catch (e) { console.error(e); render(); toast('That did not save: ' + (e.message || 'try again')); }
   }
@@ -503,7 +550,7 @@
     var p = personById(id), inp = document.getElementById('rctNameIn'), say = document.getElementById('rctNameSay'); if (!p || !inp) return;
     var v = inp.value.replace(/\s+/g, ' ').trim();
     try {
-      var r = await sb.rpc('recruit_set_name', { p_id: p.id, p_name: v }); if (r.error) throw new Error(r.error.message);
+      var r = await rpcEdit('recruit_set_name', { p_id: p.id, p_name: v }); if (r.error) throw new Error(r.error.message);
     } catch (e) { console.error(e); if (say) { say.hidden = false; say.textContent = 'That did not save: ' + (e.message || 'try again'); } return; }
     p.name = v || p.name; closeDlg(); render(); toast(v ? 'Name saved: ' + v + '.' : 'Cleared. The name from the email comes back with the next sync.');
   }
@@ -557,7 +604,9 @@
     { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
     { k: 'src', t: 'Came from', val: srcLabel, sort: function (p) { return srcLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'wait', t: 'Waiting', val: waitBucket, sort: function (p) { return (p.stage === 'new' && !p.replied_at) ? waited(p) : -1; }, kind: 'num', asc: 'Shortest wait first', desc: 'Longest wait first' },
-    { k: 'status', t: 'Status', val: statusText, sort: function (p) { return statusText(p).toLowerCase(); }, kind: 'text' }
+    { k: 'status', t: 'Status', val: statusText, sort: function (p) { return statusText(p).toLowerCase(); }, kind: 'text' },
+    // Kate, 17 Nov 2026: who made the last change on the person (ate Jho, ate Frances, Coach Emma, Kate) and what it was; filter by person, sort by latest.
+    { k: 'edit', t: 'Last change', val: editedLabel, sort: function (p) { var e = lastEdit(p); return e ? new Date(e.at).getTime() : 0; }, kind: 'num', asc: 'Oldest change first', desc: 'Latest change first' }
   ];
   function colBy(k) { return COLS.filter(function (c) { return c.k === k; })[0]; }
   // Kate, 11 Nov 2026: the List remembers the column filters, the sort, the tile picked and Show/Hide Not now people in this browser (localStorage trs-rct-view, the dashboard's trs-*
@@ -599,6 +648,7 @@
       case 'av': return '<td class="rct-c-av">' + avatar(p) + '</td>';
       case 'name': return '<td class="rct-c-name"><button type="button" class="rct-cellbtn" data-act="look" data-id="' + esc(p.id) + '" aria-expanded="' + !!openRows[p.id] + '"><b>' + esc(p.name || 'Name not stated') + '</b></button>' + '<button type="button" class="rct-pen" data-act="rename" data-id="' + esc(p.id) + '" title="Edit name" aria-label="Edit name"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg></button>' + (p.bounced ? '<div><span class="rct-pill rct-red">Email bounced</span></div>' : '') + '</td>';
       case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
+      case 'edit': { var le = lastEdit(p); return '<td class="rct-c-edit">' + (le ? cellBtn('<b>' + esc(firstName(le.by)) + '</b>', 'edit', editedLabel(p)) + '<div class="rct-why">' + esc(le.what) + ', ' + esc(fat(le.at)) + '</div>' : '<span class="rct-ns">No changes yet</span>') + '</td>'; }
       case 'photo': return '<td>' + cellBtn(!p.photo ? '<span class="rct-ns">No photo</span>' : p.photo_bad ? '<span class="rct-badph">Photo not professional</span>' : 'Has photo', 'photo', photoLabel(p)) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
       case 'ig': {
@@ -971,7 +1021,7 @@
   async function uploadCv(p, file, ext) {
     var path = p.id + '/' + Date.now() + '-' + file.name.replace(/[^A-Za-z0-9._-]+/g, '_').slice(-80), bucket = sb.storage.from('recruit-cvs');
     var up = await bucket.upload(path, file, { contentType: CV_TYPES[ext], upsert: false }); if (up.error) throw new Error(up.error.message);
-    var rc = await sb.rpc('recruit_set_cv', { p_id: p.id, p_path: path, p_name: file.name });
+    var rc = await rpcEdit('recruit_set_cv', { p_id: p.id, p_path: path, p_name: file.name });
     if (rc.error) { try { await bucket.remove([path]); } catch (e0) { /* stray file, harmless */ } throw new Error(rc.error.message); }
     var old = rc.data && rc.data.old; if (old && old !== path) { try { await bucket.remove([old]); } catch (e1) { /* harmless */ } }
     p.cv_file = path; p.cv_file_name = file.name;
@@ -1052,12 +1102,12 @@
     var blob = await squareJpeg(file), path = p.id + '/' + Date.now() + '.jpg', bucket = sb.storage.from('recruit-photos');
     var up = await bucket.upload(path, blob, { contentType: 'image/jpeg', upsert: false });
     if (up.error) throw new Error(up.error.message);
-    var r = await sb.rpc('recruit_set_photo', { p_id: p.id, p_path: path });
+    var r = await rpcEdit('recruit_set_photo', { p_id: p.id, p_path: path });
     if (r.error) { try { await bucket.remove([path]); } catch (e) { /* stray file, harmless */ } throw new Error(r.error.message); }
     var old = r.data && r.data.old;
     if (old && old !== path) { try { await bucket.remove([old]); } catch (e) { /* harmless */ } delete PHOTO[old]; }
     p.photo = path;
-    if (p.photo_bad) { try { var rf = await sb.rpc('recruit_set_photo_flag', { p_id: p.id, p_flag: false }); if (!rf.error) p.photo_bad = false; } catch (e) { /* the old mark stays, harmless */ } }
+    if (p.photo_bad) { try { var rf = await rpcEdit('recruit_set_photo_flag', { p_id: p.id, p_flag: false }); if (!rf.error) p.photo_bad = false; } catch (e) { /* the old mark stays, harmless */ } }
     var s2 = await bucket.createSignedUrl(path, 3600); if (s2.data && s2.data.signedUrl) PHOTO[path] = s2.data.signedUrl;
   }
   function fileInput(multiple) {
@@ -1076,7 +1126,7 @@
     var p = personById(id); if (!p || !p.photo) return;
     var flag = !p.photo_bad;
     try {
-      var r = await sb.rpc('recruit_set_photo_flag', { p_id: p.id, p_flag: flag }); if (r.error) throw new Error(r.error.message);
+      var r = await rpcEdit('recruit_set_photo_flag', { p_id: p.id, p_flag: flag }); if (r.error) throw new Error(r.error.message);
       p.photo_bad = flag; if (dlg().open && photoFor === String(p.id)) { closeDlg(); photoFor = null; }
       render(); toast(flag ? firstName(p.name) + '\u2019s photo is marked not professional. Probably no.' : 'Mark taken off ' + firstName(p.name) + '.');
     } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
@@ -1113,11 +1163,11 @@
     try {
       // Kate, 16 Nov 2026: a Test row is for trying Shortlist: its interviewer WhatsApp goes only to Kate's test number and the row is left out of the counts (migrations/recruit_test_row.sql)
       if (to === 'test') {
-        var rt = await sb.rpc('recruit_set_test', { p_id: p.id, p_flag: true }); if (rt.error) throw new Error(rt.error.message);
+        var rt = await rpcEdit('recruit_set_test', { p_id: p.id, p_flag: true }); if (rt.error) throw new Error(rt.error.message);
         p.is_test = true; render(); toast(firstName(p.name) + ' is a Test row now. Shortlist sends the WhatsApp only to you, and the row is left out of the counts.'); return;
       }
-      if (p.is_test) { var rf = await sb.rpc('recruit_set_test', { p_id: p.id, p_flag: false }); if (rf.error) throw new Error(rf.error.message); p.is_test = false; }
-      var r = await sb.rpc('recruit_set_bucket', { p_id: p.id, p_to: to }); if (r.error) throw new Error(r.error.message);
+      if (p.is_test) { var rf = await rpcEdit('recruit_set_test', { p_id: p.id, p_flag: false }); if (rf.error) throw new Error(rf.error.message); p.is_test = false; }
+      var r = await rpcEdit('recruit_set_bucket', { p_id: p.id, p_to: to }); if (r.error) throw new Error(r.error.message);
       p.look_ok = to === 'look'; p.no_ok = to === 'no'; render();
       toast(to === 'look' ? firstName(p.name) + ' is in Worth a look now.' : to === 'no' ? firstName(p.name) + ' is in Probably no now.' : firstName(p.name) + ' is back to the automatic checks.');
     } catch (e) { console.error(e); render(); toast('That did not save: ' + (e.message || 'try again')); }
@@ -1126,7 +1176,7 @@
   async function setNotApplicant(id, flag) {
     var p = flag ? personById(id) : gone.filter(function (x) { return String(x.id) === String(id); })[0]; if (!p) return;
     try {
-      var r = await sb.rpc('recruit_set_not_applicant', { p_id: p.id, p_flag: flag }); if (r.error) throw new Error(r.error.message);
+      var r = await rpcEdit('recruit_set_not_applicant', { p_id: p.id, p_flag: flag }); if (r.error) throw new Error(r.error.message);
       p.not_app = flag;
       if (flag) { rows = rows.filter(function (x) { return x !== p; }); gone.push(p); } else { gone = gone.filter(function (x) { return x !== p; }); rows.push(p); }
       render(); toast(flag ? (p.name || 'They') + ' is out of the list. Find them under Not applicants at the bottom.' : (p.name || 'They') + ' is back in the list.');
@@ -1192,7 +1242,7 @@
   async function clearPhoto(id) {
     var p = personById(id); if (!p || !p.photo) return;
     try {
-      var r = await sb.rpc('recruit_clear_photo', { p_id: p.id });
+      var r = await rpcEdit('recruit_clear_photo', { p_id: p.id });
       if (r.error) throw new Error(r.error.message);
       var old = r.data && r.data.old; if (old) { try { await sb.storage.from('recruit-photos').remove([old]); } catch (e) { /* harmless */ } delete PHOTO[old]; }
       p.photo = null; if (dlg().open && photoFor === String(p.id)) { closeDlg(); photoFor = null; } render(); toast('Photo removed. Back to initials.');
@@ -1247,7 +1297,7 @@
   async function setStage(ids, stage, msg) {
     var prev = ids.map(function (id) { var p = personById(id); return { id: id, stage: p ? p.stage : 'new', by: p ? p.decided_by : null, at: p ? p.decided_at : null }; });
     try {
-      var r = await sb.rpc('recruit_set_stage', { p_ids: ids, p_stage: stage });
+      var r = await rpcEdit('recruit_set_stage', { p_ids: ids, p_stage: stage });
       if (r.error) throw new Error(r.error.message);
     } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); return false; }
     var now = new Date().toISOString();
@@ -1303,7 +1353,7 @@
     var p = personById(id), inp = document.getElementById('rctStart'), say = document.getElementById('rctStartSay'); if (!p || !inp) return;
     if (!inp.value) { if (say) { say.hidden = false; say.textContent = 'Pick the starting date first.'; } return; }
     try {
-      var r = await sb.rpc('recruit_set_hired', { p_id: p.id, p_start: inp.value }); if (r.error) throw new Error(r.error.message);
+      var r = await rpcEdit('recruit_set_hired', { p_id: p.id, p_start: inp.value }); if (r.error) throw new Error(r.error.message);
     } catch (e) { console.error(e); if (say) { say.hidden = false; say.textContent = 'That did not save: ' + (e.message || 'try again'); } return; }
     p.stage = 'hired'; p.start_date = inp.value; p.decided_by = me; p.decided_at = new Date().toISOString();
     closeDlg(); render(); toast(firstName(p.name) + ' is hired, starting ' + fdate(inp.value) + '.');
@@ -1465,7 +1515,7 @@
     if (to === 'trade_test') { note = String((document.getElementById('rctNote') || {}).value || '').trim(); if (!note) { if (say) { say.hidden = false; say.textContent = 'Put in when and where first.'; } return; } }
     else { start = (document.getElementById('rctStart2') || {}).value; if (!start) { if (say) { say.hidden = false; say.textContent = 'Pick the start date first.'; } return; } }
     try {
-      var r = await sb.rpc('recruit_move', { p_id: p.id, p_stage: to, p_note: note, p_start: start }); if (r.error) throw new Error(r.error.message);
+      var r = await rpcEdit('recruit_move', { p_id: p.id, p_stage: to, p_note: note, p_start: start }); if (r.error) throw new Error(r.error.message);
       if (to === 'start_pending') await acceptUrl(p);
     } catch (e) { console.error(e); if (say) { say.hidden = false; say.textContent = 'That did not save: ' + (e.message || 'try again'); } return; }
     p.stage = to; if (note !== null) p.stage_note = note; if (start) p.start_date = start; p.decided_by = me; p.decided_at = new Date().toISOString();
@@ -1477,7 +1527,7 @@
     var groups = {};
     prev.forEach(function (x) { (groups[x.stage] = groups[x.stage] || []).push(x.id); });
     try {
-      for (var st in groups) { var r = await sb.rpc('recruit_set_stage', { p_ids: groups[st], p_stage: st }); if (r.error) throw new Error(r.error.message); }
+      for (var st in groups) { var r = await rpcEdit('recruit_set_stage', { p_ids: groups[st], p_stage: st }); if (r.error) throw new Error(r.error.message); }
     } catch (e) { console.error(e); toast('Undo did not save: ' + (e.message || 'try again')); return; }
     prev.forEach(function (x) { var p = personById(x.id); if (p) { p.stage = x.stage; p.decided_by = x.by; p.decided_at = x.at; } });
     render(); toast('Undone.');
@@ -1579,6 +1629,7 @@
       else if (a === 'notappback') setNotApplicant(id, false);
       else if (a === 'cvfile') openCvFile(id);
       else if (a === 'rename') renameDialog(id);
+      else if (a === 'hist') showHistory(id);
       else if (a === 'renamesave') renameSave(id);
       else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }

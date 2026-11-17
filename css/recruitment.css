@@ -317,3 +317,8 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 .rct-pen{border:0;background:transparent;color:var(--muted,#9aa0b4);cursor:pointer;padding:2px 4px;margin-left:2px;border-radius:6px;vertical-align:middle;line-height:1;opacity:.55}
 .rct-pen svg{width:14px;height:14px;display:block}
 .rct-pen:hover,.rct-pen:focus-visible{opacity:1;background:var(--rct-tealbg);color:var(--rct-teal)}
+/* Kate, 17 Nov 2026: Last change column and the Who changed what list */
+.rct-c-edit{min-width:150px}
+.rct-hist{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:0}
+.rct-hist li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line,rgba(127,127,127,.25));font-size:15px;line-height:1.35}
+.rct-hist li span{color:var(--muted);white-space:nowrap;font-size:13px}
