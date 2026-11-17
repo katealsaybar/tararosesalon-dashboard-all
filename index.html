@@ -3961,12 +3961,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/hub/pagestatus'" href="/hub/pagestatus">Hide Pages &amp; Under Construction</a>
     <!-- Kate, 9 Nov 2026: Notices (write a notice for the bell, Level 5) had a Tools door row and no menu row, so Rearrange Menu could not list it. data-tool-min is the OLD level number. -->
     <a class="nav-sub" data-tool-min="5" data-nav-sub="Backend" data-nav-key="l:location.href='/hub/notices'" href="/hub/notices">Notices</a>
-    <!-- Kate, 17 Nov 2026: HR, in Tools. Leave & Holiday Calendar (Level 4 and up) and Service Calendar (Levels 2, 3 and 5; Accounts skipped, it shows client names) are Team Home pages, so links out;
-         their Team Home cards stay. data-tool-min is the OLD level number, the same as their kb_sections rows (leavecal 4, servicecal 2 skipping 4); data-tool-skip hides the row from those levels.
+    <!-- Kate, 17 Nov 2026: HR, in Tools. Leave & Holiday Calendar (Level 4 and up) and Service Calendar (Level 2 and up as people see the numbers; it shows client names) are Team Home pages, so links out;
+         their Team Home cards stay. data-tool-min is the OLD level number, the same as their kb_sections rows (leavecal 4, servicecal 2); data-tool-skip (still supported) hides a row from the levels it lists.
          data-nav-sub="HR" puts them in an HR sub-section when a saved Rearrange Menu layout has one. -->
     <div class="nav-subhead">HR</div>
     <a class="nav-sub" data-tool-min="4" data-nav-sub="HR" data-nav-key="l:location.href='/hub/leavecal'" href="/hub/leavecal">Leave &amp; Holiday Calendar</a>
-    <a class="nav-sub" data-tool-min="2" data-tool-skip="4" data-nav-sub="HR" data-nav-key="l:location.href='/hub/servicecal'" href="/hub/servicecal">Service Calendar</a>
+    <a class="nav-sub" data-tool-min="2" data-nav-sub="HR" data-nav-key="l:location.href='/hub/servicecal'" href="/hub/servicecal">Service Calendar</a>
   </div>
 
   <!-- Logout button -->

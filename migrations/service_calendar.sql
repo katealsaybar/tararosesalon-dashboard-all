@@ -82,3 +82,9 @@ returns text[] language sql immutable as $$
                'phorest_client_since','phorest_appt_requests','phorest_visit_clients','ledger_ncr_clients',
                'phorest_appointments']
 $$;
+
+-- 17 Nov 2026 (Kate: "open to everyone Level 2 and up"), applied live. Level numbers as people see them: 2 Reception & Call Centre, 3 Leadership, 4 Executives & Marketing,
+-- 5 Accounts & Admin, 6 Kate. In the database that is Level 1 with a Front Desk or Call Centre department (staff_dept 'Reception'), and old Levels 2 to 5, with nobody skipped.
+-- service_calendar() now asks the same question as every Team Home page, kb_can_read_for(email, 'servicecal'), so the kb_sections row below (and Page Access) decide who reads it.
+update public.kb_sections set min_level = 2, staff_dept = 'Reception', skip_levels = '{}' where key = 'servicecal';
+-- (the function body changed only in its first line: the old test "kb_level() is null or < 2 or = 4" became "kb_me_email() is null or not kb_can_read_for(kb_me_email(), 'servicecal')")

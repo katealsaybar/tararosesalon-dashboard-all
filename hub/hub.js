@@ -167,7 +167,12 @@
     // Kate, 9 Nov 2026: applicant triage for Kate and Coach Emma only (a dashboard page, ?view=recruitment; Level 5 or dashboard_users.extra_pages 'recruitment'; migrations/recruitment.sql).
     { key: 'recruitment', via: 'dashboards', min: 5, ic: 'people', dept: 'Tools', title: 'Recruitment', href: '/?view=recruitment', rule: 'var(--accent-mint)',
       blurb: 'Every applicant from the recruitment and info inboxes: who is worth a look, who is waiting for an answer, and who to say no to.' },
-    // Kate, 17 Nov 2026: the Leave & Holiday Calendar (key leavecal, /hub/leavecal) and the Service Calendar (key servicecal, /hub/servicecal) have no Team Home card now: they are in the dashboard menu, Tools > HR (index.html). The pages and their kb_sections rows are unchanged, so access is the same.
+    // Kate, 17 Nov 2026: the Leave & Holiday Calendar (key leavecal, /hub/leavecal) has no Team Home card: it is in the dashboard menu, Tools > HR (index.html).
+    // The Service Calendar (key servicecal, /hub/servicecal) is open to Level 2 and up as people see the numbers (Reception & Call Centre, Leadership, Executives, Accounts, Kate), and Reception and Call Centre
+    // are not on the dashboard list, so it keeps a Team Home card as their door; the dashboard menu has it too, Tools > HR. Access is the kb_sections row 'servicecal' (migrations/service_calendar.sql).
+    { key: 'servicecal', dept: 'Tools', title: 'Service Calendar', href: '/hub/servicecal', live: true, rule: 'var(--accent-lavender)',
+      words: 'calendar appointments schedule day week stylist time phorest services performed chair booked bookings who did what when',
+      blurb: 'Every service at each salon by stylist and time, like the Phorest calendar, for any day.' },
     { key: 'access', dept: 'People', title: 'Staff Roster & Access', href: '/hub/roster', live: true, rule: 'var(--accent-mint)',
       blurb: 'Everyone who can sign in: their level, team and when they were last in.' },
     // Kate, 28 Oct 2026: which dashboard pages each level opens, as tick boxes (Level 5 only; saved in public.page_access, defaults from pages.js).
