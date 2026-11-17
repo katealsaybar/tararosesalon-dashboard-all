@@ -242,8 +242,8 @@
   }
   function linksHtml(p) {
     var s = '', cv = cvUrl(p);
-    if (cv) s += '<a href="' + esc(cv) + '" target="_blank" rel="noopener">CV</a>';
-    else if (p.cv_file) s += '<button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '">CV (' + esc(p.cv_file_name || 'attached file') + ')</button>';
+    if (cv) s += '<a href="' + esc(cv) + '" target="_blank" rel="noopener"' + (cvIsWord(p) ? ' title="' + CV_WORD_TIP + '"' : '') + '>' + (cvIsWord(p) ? '↓ ' : '') + 'CV' + (cvIsWord(p) ? ' (Word)' : '') + '</a>';
+    else if (p.cv_file) s += '<button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '"' + (cvIsWord(p) ? ' title="' + CV_WORD_TIP + '"' : '') + '>' + (cvIsWord(p) ? '↓ ' : '') + 'CV (' + esc(p.cv_file_name || 'attached file') + ')</button>';
     // Kate, 16 Nov 2026 ("paki attach nang maayos now na nung cv nya"): a CV that did not come through (a picture of a CV, a link that died, a paper copy) can be attached by hand.
     if (!cv && !p.cv_file) s += '<label class="rct-linkbtn rct-attach">Attach CV<input type="file" class="rct-sr" data-attach="' + esc(p.id) + '" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"></label>';
     if (p.email) s += '<a href="https://mail.google.com/mail/?authuser=recruitment@tararosesalon.com#search/' + encodeURIComponent(p.email) + '" target="_blank" rel="noopener">Their emails in Gmail</a>';
@@ -293,8 +293,8 @@
     else if (k) h.push(u ? chip('nt', linkName(p), 'a', ' href="' + esc(u) + '" target="_blank" rel="noopener"') : chip('nt', linkName(p), 'span'));
     else h.push(p.source === 'form' ? chip('x', 'No Instagram or Facebook', 'span') : chip('nt', 'No link given', 'span'));
     var cu = cvUrl(p);
-    if (cu) h.push(chip('ok', 'CV', 'a', ' href="' + esc(cu) + '" target="_blank" rel="noopener"'));
-    else if (p.cv_file) h.push(chip('ok', 'CV', 'button', ' data-act="cvfile" data-id="' + esc(p.id) + '"'));
+    if (cu) h.push(chip('ok', cvIsWord(p) ? 'CV ↓' : 'CV', 'a', ' href="' + esc(cu) + '" target="_blank" rel="noopener"' + (cvIsWord(p) ? ' title="' + CV_WORD_TIP + '"' : '')));
+    else if (p.cv_file) h.push(chip('ok', cvIsWord(p) ? 'CV ↓' : 'CV', 'button', ' data-act="cvfile" data-id="' + esc(p.id) + '"' + (cvIsWord(p) ? ' title="' + CV_WORD_TIP + '"' : '')));
     else if (deadCv(p)) h.push(chip('x', 'CV link broken', 'span'));
     else if (inEmail(p)) h.push(chip('nt', 'CV in the email', 'span'));
     else h.push(chip('x', 'No CV', 'span'));
@@ -592,6 +592,15 @@
   function inEmail(p) { return p.source === 'email' && !cvUrl(p) && !deadCv(p) && !p.cv_file && (Date.now() - new Date(p.applied_at).getTime()) < 2 * 3600 * 1000; }
   function cvLabel(p) { return cvUrl(p) || p.cv_file ? 'Has CV' : deadCv(p) ? 'CV link broken' : inEmail(p) ? 'CV in the email' : 'No CV'; }
   var CV_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3v5h5M9 13h6M9 17h6" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  // Kate, 17 Nov 2026 ("we also have cvs na need i download (word document). can u indicate that in there like an arrow down symbol"): a Word CV (a link or a stored file ending .doc or .docx) cannot be
+  // read in the browser, it downloads to the computer, so it shows a down arrow instead of the page icon, and the title says so.
+  function cvIsWord(p) {
+    var u = cvUrl(p);
+    if (u) return /\.docx?$/i.test(u.split(/[?#]/)[0]);
+    return !!p.cv_file && /\.docx?$/i.test(String(p.cv_file_name || p.cv_file || ''));
+  }
+  var CV_WORD_TIP = 'Word document: it downloads to your computer';
+  var DL_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" fill="none" stroke="#9aa0b4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function igLabel(p) { var k = linkKind(p); return k ? linkName(p) : (p.source === 'form' ? 'None given' : 'Not stated'); }
   // Kate, 10 Nov 2026: which inbox the application arrived in (a person who wrote to both shows as Both)
   function srcLabel(p) { if (p.source === 'manual') return 'Added by hand'; var m = p.mailboxes || [], i = m.indexOf('info') >= 0, r = m.indexOf('recruitment') >= 0; return i && r ? 'Both inboxes' : i ? 'info@' : r ? 'recruitment@' : 'Not stated'; }
@@ -674,8 +683,8 @@
       }
       case 'cv': {
         var cu = cvUrl(p);
-        return '<td class="rct-c-cv">' + (cu ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><a class="rct-ig" href="' + esc(cu) + '" target="_blank" rel="noopener">CV</a></span>'
-          : p.cv_file ? '<span class="rct-lk"><span class="rct-lki" title="CV">' + CV_ICON + '</span><button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '" title="' + esc(p.cv_file_name || 'CV') + '">CV</button></span>'
+        return '<td class="rct-c-cv">' + (cu ? '<span class="rct-lk"><span class="rct-lki" title="' + (cvIsWord(p) ? CV_WORD_TIP : 'CV') + '">' + (cvIsWord(p) ? DL_ICON : CV_ICON) + '</span><a class="rct-ig" href="' + esc(cu) + '" target="_blank" rel="noopener"' + (cvIsWord(p) ? ' title="' + CV_WORD_TIP + '"' : '') + '>CV</a></span>'
+          : p.cv_file ? '<span class="rct-lk"><span class="rct-lki" title="' + (cvIsWord(p) ? CV_WORD_TIP : 'CV') + '">' + (cvIsWord(p) ? DL_ICON : CV_ICON) + '</span><button type="button" class="rct-linkbtn" data-act="cvfile" data-id="' + esc(p.id) + '" title="' + esc((cvIsWord(p) ? CV_WORD_TIP + ': ' : '') + (p.cv_file_name || 'CV')) + '">CV</button></span>'
           : inEmail(p) ? cellBtn('<span class="rct-ns rct-nw">Checking the email</span>', 'cv', cvLabel(p))
           : cellBtn('<span class="rct-ns rct-nw">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>', 'cv', cvLabel(p))) + '</td>';
       }
