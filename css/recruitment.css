@@ -381,4 +381,5 @@ body:has(.rct-bulk) #rctToast{bottom:96px}
 .rct-table thead th.rct-thph{width:96px;min-width:96px;max-width:96px}
 .rct-table td.rct-c-ph .rct-cellbtn{text-align:center;font-size:20px;line-height:1;margin:0 auto;padding:6px 10px}
 .rct-phok{color:var(--rct-green);font-weight:700}.rct-phx{color:var(--rct-red);font-weight:700}.rct-phbad{color:var(--rct-amber)}
-.rct-thph .rct-th{flex-wrap:wrap;justify-content:center;padding:6px 4px;row-gap:2px;text-align:center}
+.rct-thph .rct-th{display:block;padding:6px 4px;text-align:center;white-space:normal;overflow-wrap:normal}
+.rct-thph .rct-th .rct-fbtn{display:block;margin:4px auto 0}
