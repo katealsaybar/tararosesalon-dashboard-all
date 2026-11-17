@@ -104,8 +104,6 @@ const STAFF_PROFILES = {
   'MAAN':      { photo: 'maan.png', role: 'Receptionist', branch: 'AQ' },
   // Kate, 17 Nov 2026: Lorainne Palmon (front desk), cutout added. Phorest rosters her at Saadiyat (369 of 378 hours, 24 Aug to 15 Nov 2026), so Saadiyat is the tidy default, not a ruling.
   'LORAINNE':  { photo: 'lorraine.png', role: 'Receptionist', branch: 'SAA' },
-  // Kate, 17 Nov 2026: Zandra Competente (assistant), cutout added; Phorest lists her at Khalifa City A and Saadiyat, KCA is the tidy default.
-  'ZANDRA':    { photo: 'zandra.png', role: 'Assistant', branch: 'KCA' },
 
   // -- Mamsha Al Saadiyat --
   // Kate, 8 Oct 2026: Emma and Ashleigh are educators now. `role` stays Style Director because
@@ -238,7 +236,7 @@ const STAFF_PROFILES = {
   // Kate, 24 Sep 2026: Zandra is an Assistant (still Active in Phorest), not a
   // former stylist, so she's off the Former Stylists grid and folds into KCA's
   // Assistants card like the rest.
-  'ZANDRA':   { role: 'Assistant', branch: 'KCA' },
+  'ZANDRA':   { photo: 'zandra.png', role: 'Assistant', branch: 'KCA' },   // Kate, 17 Nov 2026: cutout added
   'BEATRIZ':  { photoFull: 'stylist/photos/SAA/beatriz chaparro.png', role: 'Senior Stylist', branch: 'SAA', ig: 'chroniclesofamessyhair', resigned: true },
   'ZARA':     { photoFull: 'stylist/photos/SAA/zara lhouvum.png', role: 'Style Director', branch: 'SAA', ig: 'zaralvhair', resigned: true },
   'BLOSSOM':  { photoFull: 'stylist/photos/SAA/blossom day.png', role: 'Style Director', branch: 'SAA', ig: 'blossomsmagic', resigned: true },
