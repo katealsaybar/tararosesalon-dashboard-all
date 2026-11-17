@@ -3955,6 +3955,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" data-tool-min="5" data-nav-key="l:location.href='/hub/pagestatus'" href="/hub/pagestatus">Hide Pages &amp; Under Construction</a>
     <!-- Kate, 9 Nov 2026: Notices (write a notice for the bell, Level 5) had a Tools door row and no menu row, so Rearrange Menu could not list it. data-tool-min is the OLD level number. -->
     <a class="nav-sub" data-tool-min="5" data-nav-sub="Backend" data-nav-key="l:location.href='/hub/notices'" href="/hub/notices">Notices</a>
+    <!-- Kate, 17 Nov 2026: HR, in Tools. Leave & Holiday Calendar (Level 4 and up) and Service Calendar (Levels 2, 3 and 5; Accounts skipped, it shows client names) are Team Home pages, so links out;
+         their Team Home cards stay. data-tool-min is the OLD level number, the same as their kb_sections rows (leavecal 4, servicecal 2 skipping 4); data-tool-skip hides the row from those levels.
+         data-nav-sub="HR" puts them in an HR sub-section when a saved Rearrange Menu layout has one. -->
+    <div class="nav-subhead">HR</div>
+    <a class="nav-sub" data-tool-min="4" data-nav-sub="HR" data-nav-key="l:location.href='/hub/leavecal'" href="/hub/leavecal">Leave &amp; Holiday Calendar</a>
+    <a class="nav-sub" data-tool-min="2" data-tool-skip="4" data-nav-sub="HR" data-nav-key="l:location.href='/hub/servicecal'" href="/hub/servicecal">Service Calendar</a>
   </div>
 
   <!-- Logout button -->
@@ -5029,7 +5035,7 @@ function tidyNav(){
   // Tools' two links out (Target Calculator, Post Approvals) are for Levels 3 and 5 only, as their Team Home cards are (only: [3, 5]).
   document.querySelectorAll('#sidebar .nav-sub[data-tool-link]').forEach(el => { el.style.display = (TRS_LEVEL === 3 || TRS_LEVEL === 5) ? '' : 'none'; });
   // Upload Portal, Staff Campaign Messages and Staff Payroll WhatsApp (Kate, 30 Oct 2026): links out, shown from the level in data-tool-min (old numbering, as kb_sections).
-  document.querySelectorAll('#sidebar .nav-sub[data-tool-min]').forEach(el => { el.style.display = TRS_LEVEL >= Number(el.dataset.toolMin) ? '' : 'none'; });
+  document.querySelectorAll('#sidebar .nav-sub[data-tool-min]').forEach(el => { el.style.display = TRS_LEVEL >= Number(el.dataset.toolMin) && !String(el.dataset.toolSkip || '').split(',').includes(String(TRS_LEVEL)) ? '' : 'none'; });   // data-tool-skip (17 Nov 2026): levels that do not get the row, as kb_sections.skip_levels
   // Complaints Pipeline (Kate, 30 Oct 2026) is a Team Home page, so it is a link out. It shows to whoever sees Log a Client Complaint (Level 2 and up); the page and the
   // database then decide whether you are leadership or a branch coordinator, and say so if you are not.
   // Kate, 4 Nov 2026: the Pipeline can be hidden on its own from Hide Pages & Under Construction (pages.js trsToolOpen).

@@ -1,0 +1,15 @@
+-- Appointments sync schedule (Kate, 17 Nov 2026). Applied live 17 Nov 2026 (jobs 50 and 51). The function is supabase/functions/appointments-sync (verify_jwt on).
+-- It needs the secret row below (random, service role only) and the Phorest secrets already on the project (PHOREST_UAE_USERNAME, PHOREST_UAE_PASSWORD, PHOREST_UAE_BUSINESS_ID).
+-- The secret value is not in this file. Same pattern as complaint-tag-sync: the gateway wants a JWT (the public anon key) and x-cron-secret must match internal_secrets.
+--
+--   insert into public.internal_secrets (name, value) values ('appointments_sync_cron', encode(extensions.gen_random_bytes(24), 'hex')) on conflict (name) do nothing;
+--
+-- Every 15 minutes from 08:00 to 23:59 Dubai (04:00 to 19:59 UTC): yesterday to three days ahead, so today's calendar is never more than 15 minutes old.
+--   select cron.schedule('appointments-sync', '*/15 4-19 * * *', $cmd$ select net.http_post(
+--       url := 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/appointments-sync',
+--       headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer <the public anon key>','x-cron-secret',(select value from public.internal_secrets where name='appointments_sync_cron')),
+--       body := '{"days_back":1,"days_fwd":3}'::jsonb, timeout_milliseconds := 120000); $cmd$);
+-- A wider pass at 00:30 Dubai (20:30 UTC): seven days back to three weeks ahead, which also drops anything Phorest moved or cancelled in that window.
+--   select cron.schedule('appointments-sync-nightly', '30 20 * * *', $cmd$ ... body := '{"days_back":7,"days_fwd":21}'::jsonb, timeout_milliseconds := 150000); $cmd$);
+-- To stop it: select cron.unschedule('appointments-sync'); select cron.unschedule('appointments-sync-nightly');
+-- A branch that fails part-way is never swept, so a Phorest outage leaves the last good rows in place. A run answers with counts only (no names).
