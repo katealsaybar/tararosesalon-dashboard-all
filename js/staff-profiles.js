@@ -87,7 +87,7 @@ const STAFF_PROFILES = {
   // Kate, 16 Nov 2026: cutouts for the assistants and front desk (esther, laila, apol, maria, ivy, liberty, dorah, lhang-ann, and jessa at the front desk).
   // Same card style as the stylists, in colour, head inside the block. Not every assistant has one yet: Chona, Pearl, Kathy, Ercely, Luningning, Eden.
   'ESTHER':    { photo: 'esther.png', role: 'Assistant', branch: 'KCA' },
-  'PEARL':     { role: 'Assistant', branch: 'KCA' },
+  'PEARL':     { photo: 'pearl.png', role: 'Assistant', branch: 'KCA' },   // Kate, 17 Nov 2026: cutout added
   // Kate, 19 Sep 2026, confirmed off Phorest's own Staff list (Category: Assistant):
   // "laila pabico is an assistant pls mark her off as such". Filed here rather than
   // under Saadiyat — Kate confirmed she genuinely covers both (422 KCA vs 378 SAA
