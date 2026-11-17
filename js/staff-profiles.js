@@ -204,7 +204,7 @@ const STAFF_PROFILES = {
   // Kate, 17 Sep 2026, confirmed off Phorest's Staff list: Marjorie Sevilla, an
   // Assistant, not a stylist — the all-zero ledger rows under her name are exactly
   // what an assistant's row looks like, not a misread.
-  'MARGIE':    { role: 'Assistant', branch: 'AQ' },
+  'MARGIE':    { photo: 'marjorie.png', role: 'Assistant', branch: 'AQ' },   // Kate, 17 Nov 2026: cutout added
   // Kate, 7 Sep 2026: held with no card, pending visa + trade test. IG handle
   // added 19 Sep 2026 (instagram.com/andygladstone_hair); card photo 21 Sep 2026.
   'ANDREA':    { photo: 'andrea.png', role: 'Stylist', branch: 'AQ', ig: 'andygladstone_hair' },
