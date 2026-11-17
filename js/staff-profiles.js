@@ -647,6 +647,7 @@ const STAFF_SURNAMES = {
   'LOUISE':    'Williams',
   'LUCIE':     'Rogers',
   'MARIA':     'Lascanu',
+  'LHANG':     'Ballener',   // Kate, 17 Nov 2026: Lhang Ann Ballener (her Phorest surname is a literal ".")
   'MARICEL':   'Rebato-Sape',   // Kate, 14 Oct 2026: she signs Rebato, Phorest has Sape
   'MARISSA':   'Dizon',
   'MELCA':     'Reynolds',
