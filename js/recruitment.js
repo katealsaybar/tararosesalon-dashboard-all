@@ -364,6 +364,7 @@
   window.addEventListener('resize', fitDetail);
   function render() {
     var el = main(); if (!el) return;
+    ddClose();
     saveView();
     var h = '<div class="rct">';
     h += '<h2>Recruitment</h2><p class="rct-lead">Who is worth Emma’s time today, and who is still waiting for an answer.</p>';
@@ -535,12 +536,7 @@
   }
   // Kate, 11 Nov 2026: the employment type they are interested in, from the path(s) ticked on the form. More than one path shows as "A + B"; no path (a direct email) is Not stated.
   function autoRole(p) { var was = p.role_set; p.role_set = null; var g = roleGroup(p); p.role_set = was; return g; }
-  function roleSelect(p) {
-    var cur = p.role_set || 'auto';
-    return '<select class="rct-pill rct-pillsel rct-rolesel" data-rs="' + esc(p.id) + '" aria-label="Applying for, ' + esc(p.name || 'this person') + '">' +
-      '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>' + (autoRole(p) === 'Not stated' ? 'Not stated (set it)' : esc(autoRole(p)) + ' (automatic)') + '</option>' +
-      ROLE_CHOICES.map(function (x) { return '<option value="' + esc(x) + '"' + (cur === x ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select>';
-  }
+  function roleSelect(p) { return lazyDD('rs', p); }
   async function setRole(id, to) {
     var p = personById(id); if (!p) return;
     try {
@@ -698,10 +694,7 @@
         var main1 = b === 'no' ? 'Probably no' : sv, why = b === 'no' ? flags(p).map(function (f0) { return FLAG_SHORT[f0.k]; }).join(', ') : '';
         if (p.stage === 'new') {
           var ab = autoBucket(p), cur = p.is_test ? 'test' : p.look_ok ? 'look' : p.no_ok ? 'no' : 'auto';
-          return '<td><select class="rct-pill rct-pillsel ' + cls + '" data-bk="' + esc(p.id) + '" aria-label="Worth a look or Probably no for ' + esc(p.name || 'this person') + '">' +
-            '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>Automatic: ' + (ab === 'look' ? 'Worth a look' : 'Probably no') + '</option>' +
-            '<option value="look"' + (cur === 'look' ? ' selected' : '') + '>Worth a look, by hand</option>' +
-            '<option value="no"' + (cur === 'no' ? ' selected' : '') + '>Probably no, by hand</option><option value="test"' + (cur === 'test' ? ' selected' : '') + '>Test, messages only to you</option></select>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
+          return '<td>' + lazyDD('bk', p) + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + extraPills(p) + '</td>';
         }
         return '<td><button type="button" class="rct-pill rct-pillbtn ' + cls + '" data-cf="status" data-cv="' + esc(sv) + '">' + esc(main1) + '</button>' + (why ? '<div class="rct-why">' + esc(why) + '</div>' : '') + (byLine(p) ? '<div class="rct-why">' + esc(byLine(p)) + '</div>' : '') + extraPills(p) + '</td>';
       }
@@ -1447,6 +1440,82 @@
     try { if (to === 'start_pending') await acceptUrl(p); } catch (e) { console.error(e); toast('The accept link did not load: ' + (e.message || 'try again')); return; }
     stageEmailDialog(p, to, lead || 'This is the email for <b>' + esc(STAGE_LABEL[to]) + '</b>.');
   }
+  // Kate, 17 Nov 2026 ("super bagal i click. pls fix"): with 100 rows the page had about 370 <select> boxes, and the site's pill-select script rebuilt every one of them (a button, a menu
+  // watcher and a layout read each) after every click, so one click took 2 to 3.5 seconds. These four dropdowns are now drawn directly as the same pill button the site draws, carrying only the
+  // chosen label; the list of choices is built when the button is pressed. Same look, same choices, same actions.
+  var DD_CHEV = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 3.5 5 7l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function ddInfo(kind, p) {
+    var nm = esc(p.name || 'this person');
+    if (kind === 'ss') { var s = statusInfo(p); return { cur: s.cur, opts: s.opts, label: 'Change the status of ' + nm }; }
+    if (kind === 'rs') {
+      var ar = autoRole(p);
+      return { cur: p.role_set || 'auto', label: 'Applying for, ' + nm,
+        opts: [['auto', ar === 'Not stated' ? 'Not stated (set it)' : ar + ' (automatic)']].concat(ROLE_CHOICES.map(function (x) { return [x, x]; })) };
+    }
+    if (kind === 'pl') return { cur: p.pref_loc || '', label: 'Preferred location of ' + nm, title: p.pref_src ? 'From: ' + p.pref_src : 'Not stated. Pick one if you know.',
+      opts: [['', 'Not stated'], ['Dubai', 'Dubai'], ['Abu Dhabi', 'Abu Dhabi'], ['Either', 'Either (Dubai or Abu Dhabi)']] };
+    var ab = autoBucket(p);   // 'bk': Worth a look or Probably no, for a person at New
+    return { cur: p.is_test ? 'test' : p.look_ok ? 'look' : p.no_ok ? 'no' : 'auto', label: 'Worth a look or Probably no for ' + nm,
+      opts: [['auto', 'Automatic: ' + (ab === 'look' ? 'Worth a look' : 'Probably no')], ['look', 'Worth a look, by hand'], ['no', 'Probably no, by hand'], ['test', 'Test, messages only to you']] };
+  }
+  function lazyDD(kind, p) {
+    var f = ddInfo(kind, p), hit = f.opts.filter(function (o) { return o[0] === f.cur; })[0] || f.opts[0];
+    return '<span class="ps rct-dd"><button type="button" class="ps-btn' + (kind === 'pl' && !f.cur ? ' rct-prefnone' : '') + '" data-dd="' + kind + '" data-id="' + esc(p.id) + '" aria-haspopup="listbox" aria-expanded="false" aria-label="' + f.label + '"' +
+      (f.title ? ' title="' + esc(f.title) + '"' : '') + '><span>' + esc(hit ? hit[1] : '') + '</span>' + DD_CHEV + '</button></span>';
+  }
+  var ddOpen = null;
+  function ddClose(refocus) {
+    if (!ddOpen) return;
+    var o = ddOpen; ddOpen = null;
+    if (o.menu.parentNode) o.menu.remove();
+    o.wrap.classList.remove('open'); o.btn.setAttribute('aria-expanded', 'false');
+    if (refocus && o.btn.isConnected) o.btn.focus();
+  }
+  function ddPick(kind, id, v) {
+    if (kind === 'ss') changeStatus(id, v); else if (kind === 'rs') setRole(id, v); else if (kind === 'pl') setPref(id, v); else setBucket(id, v);
+  }
+  function ddToggle(btn) {
+    if (ddOpen && ddOpen.btn === btn) { ddClose(true); return; }
+    ddClose();
+    var kind = btn.getAttribute('data-dd'), id = btn.getAttribute('data-id'), p = personById(id); if (!p) return;
+    var f = ddInfo(kind, p), wrap = btn.parentNode, menu = document.createElement('div');
+    menu.className = 'ps-menu'; menu.setAttribute('role', 'listbox'); menu.setAttribute('aria-label', btn.getAttribute('aria-label') || '');
+    menu.innerHTML = f.opts.map(function (o) { return '<button type="button" role="option" data-v="' + esc(o[0]) + '" aria-selected="' + (o[0] === f.cur) + '"' + (o[0] === f.cur ? ' class="on"' : '') + '>' + esc(o[1]) + '</button>'; }).join('');
+    wrap.appendChild(menu); wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+    var r = btn.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+    menu.style.minWidth = Math.round(r.width) + 'px'; menu.style.maxWidth = (vw - 16) + 'px';
+    var below = vh - r.bottom - 12, above = r.top - 12, up = below < Math.min(menu.scrollHeight, 220) && above > below;
+    menu.style.maxHeight = Math.max(140, Math.min(320, up ? above : below)) + 'px';
+    var mw = menu.offsetWidth, mh = menu.offsetHeight, top = up ? r.top - 6 - mh : r.bottom + 6, left = r.left;
+    if (left + mw > vw - 8) left = Math.max(8, r.right - mw);
+    menu.style.top = top + 'px'; menu.style.left = left + 'px';
+    var m = menu.getBoundingClientRect();   // inside a transformed box "fixed" is measured from that box: nudge so the list still sits on its button
+    if (Math.abs(m.top - top) > 1 || Math.abs(m.left - left) > 1) { menu.style.top = (2 * top - m.top) + 'px'; menu.style.left = (2 * left - m.left) + 'px'; }
+    var on = menu.querySelector('button.on') || menu.querySelector('button');
+    if (on) { menu.scrollTop = Math.max(0, on.offsetTop - menu.clientHeight / 2); on.focus({ preventScroll: true }); }
+    ddOpen = { btn: btn, wrap: wrap, menu: menu };
+    menu.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('button[data-v]'); if (!b) return;
+      e.stopPropagation(); var v = b.getAttribute('data-v'); ddClose(true);
+      if (v !== f.cur) ddPick(kind, id, v);
+    });
+    menu.addEventListener('keydown', function (e) {
+      var bs = [].slice.call(menu.querySelectorAll('button')), i = bs.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.preventDefault(); ddClose(true); }
+      else if (e.key === 'Tab') ddClose();
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); var n = bs[e.key === 'ArrowDown' ? Math.min(i + 1, bs.length - 1) : Math.max(i - 1, 0)]; if (n) n.focus(); }
+    });
+  }
+  if (!window.__rctDD) {
+    window.__rctDD = true;
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-dd]');
+      if (b) { e.stopPropagation(); ddToggle(b); return; }
+      if (ddOpen && !ddOpen.wrap.contains(e.target)) ddClose();
+    }, true);
+    window.addEventListener('scroll', function (e) { if (ddOpen && !(e.target.closest && e.target.closest('.ps-menu'))) ddClose(); }, true);
+    window.addEventListener('resize', function () { ddClose(); });
+  }
   // Kate, 17 Nov 2026 ("add assign to self button pala, kasi baka mag unahan ate jho at ate frances sa pag tingin ng applicants ... pag napindot na nung isa, mag notify samin lahat real time"):
   // Assign to me takes a person. The database refuses a second person (and says who has them), writes the claim into the history, and puts a popup notice on the bell of everyone else who
   // can open Recruitment, on whatever page of the dashboard they are. The bell and this page both listen for it live (site_notice_ping), so nobody waits for a refresh.
@@ -1505,13 +1574,7 @@
   // person wants to work in. It is read from what they wrote and from their CV (the dropdown says which), and a person can set it by hand; a hand-set value is never replaced by a reading.
   var PREF_LIST = ['Dubai', 'Abu Dhabi', 'Either'];
   function prefLabel(p) { return p.pref_loc || 'Not stated'; }
-  function prefSelect(p) {
-    var cur = p.pref_loc || '', why = p.pref_src ? 'From: ' + p.pref_src : 'Not stated. Pick one if you know.';
-    return '<select class="rct-pill rct-pillsel rct-prefsel' + (cur ? '' : ' rct-prefnone') + '" data-pl="' + esc(p.id) + '" title="' + esc(why) + '" aria-label="Preferred location of ' + esc(p.name || 'this person') + '">' +
-      '<option value=""' + (cur ? '' : ' selected') + '>Not stated</option>' +
-      PREF_LIST.map(function (x) { return '<option value="' + x + '"' + (cur === x ? ' selected' : '') + '>' + (x === 'Either' ? 'Either (Dubai or Abu Dhabi)' : x) + '</option>'; }).join('') + '</select>' +
-      (p.pref_src && cur ? '<div class="rct-why">' + esc(p.pref_src) + '</div>' : '');
-  }
+  function prefSelect(p) { return lazyDD('pl', p) + (p.pref_src && p.pref_loc ? '<div class="rct-why">' + esc(p.pref_src) + '</div>' : ''); }
   async function setPref(id, v) {
     var p = personById(id); if (!p) return;
     try {
@@ -1628,7 +1691,7 @@
   // shorter wording inside the dropdown so the chosen status fits the column; the Status column and the emails use the full names
   var SEL_LABEL = { interview_pass: 'Interview: pass', interview_fail: 'Interview: fail', trade_test: 'Trade test: scheduled', trade_pass: 'Trade test: pass', trade_fail: 'Trade test: fail',
     offer_to_send: 'Offer letter: to send', offer_sent: 'Offer letter: sent', start_pending: 'Start date: pending', start_accepted: 'Start date: accepted' };
-  function statusSelect(p) {
+  function statusInfo(p) {
     var cur = p.stage === 'offer' ? 'offer_to_send' : p.stage;
     var keys = SEL_ORDER.filter(function (k) { return k !== 'interview_booked' || cur === 'interview_booked' || !lineOpenRole(p); });
     // Kate, 17 Nov 2026 ("we should have ability na mag laktaw ng application status ndi yung na stuck sa shortlist"): a person at New can be set straight to any step (a walk-in, a referral, someone
@@ -1637,9 +1700,9 @@
     if (cur === 'rejected') extra.unshift(['rejected', 'Rejected']);
     var opts = keys.map(function (k) { return [k, SEL_LABEL[k] || STAGE_LABEL[k]]; }).concat(extra);
     if (cur === 'new') opts.unshift(['new', 'New: skip ahead to...']);
-    return '<select class="rct-pill rct-pillsel rct-stsel ' + stageCls(p) + '" data-ss="' + esc(p.id) + '" aria-label="Change the status of ' + esc(p.name || 'this person') + '">' +
-      opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+    return { cur: cur, opts: opts };
   }
+  function statusSelect(p) { return lazyDD('ss', p); }
   async function changeStatus(id, to) {
     var p = personById(id); if (!p) return;
     var from = p.stage === 'offer' ? 'offer_to_send' : p.stage; if (to === from || to === 'rejected') { render(); return; }
