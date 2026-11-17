@@ -1,7 +1,7 @@
 // Deposit Checking (Kate, 17 Nov 2026): every deposit a client paid that has not been taken off a bill yet, per salon. Its own page, in Tools > Operations, next to Stripe vs Phorest.
 // Built from the local mockup docs/mockups/open-deposits.html in the cowork repo. One function (migrations/open_deposits_17nov.sql): open_deposits() reads open_deposits_cache,
 // worked out hourly from the Phorest sales lines (a 'Deposit' line is a deposit; it counts as taken off when a later bill of the same client at the same salon carries an A(...) tender).
-// CANDIDATES, not proof: the sales lines carry no appointment date, so a client with a booking still ahead shows as Waiting.
+// CANDIDATES, not proof. The next appointment (and what she is booked for) is the earliest booking in client_bookings (the Phorest diary, read each morning), matched by client name.
 // Kate's rulings applied: the header's Branch and Period drive it (the Period is read against the deposit's paid date), every column header has the Google Sheets filter menu,
 // dates are DD MMM YYYY, 10px side margins on a phone, dark mode. Phone and email beside the client and the Client Book link are Level 5 only (the Top Clients rule).
 // Needs from dashboard.js (shared script scope): sb, sel, dateFrom, dateTo, dateToIso, TRS_LEVEL. Nothing is written to Phorest or Stripe.
@@ -29,7 +29,7 @@ function dpcCodes() {   // the salons picked in the header; the four when All (B
 const dpcBookOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // the Client Book is a Level 5 page
 
 const OPD = { status: 'all', q: '', shown: 30, f: {}, sort: null, open: null };
-const OPD_NAME = { came: 'Came back, not deducted', part: 'Part used', old: 'No visit, over 14 days', wait: 'Waiting', small: 'Under AED 50' };
+const OPD_NAME = { came: 'Came back, not deducted', part: 'Part used', old: 'No visit, nothing booked', wait: 'Waiting', small: 'Under AED 50' };
 const OPD_CLS = { came: 'notco', part: 'nostripe', old: 'wrong', wait: 'waiting', small: 'waiting' };   // reuse the Stripe tab's badge and dot colours
 const OPD_RANK = { came: 0, part: 1, old: 2, wait: 3, small: 4 };
 let opdData = null, opdRows = [], opdLoading = null, opdCtState = '';   // opdCtState: '' not asked, 'busy', 'done'
@@ -40,11 +40,11 @@ function opdStatus(r, todayIso) {
   if (r.a < 50) return 'small';
   if (r.v && !(r.u > 0)) return 'came';
   if (r.u > 0) return 'part';
-  return age > 14 ? 'old' : 'wait';
+  return age > 14 && !r.na ? 'old' : 'wait';   // an appointment booked in Phorest means she is just waiting for it
 }
 function opdBuild(d) {
   const today = dateToIso(new Date());
-  return (d.rows || []).map(x => { const r = { b: x.b, id: x.id, c: x.n || 'No name', f: x.f, l: x.l, a: +x.a || 0, u: +x.u || 0, v: x.v || null }; r.o = dpcR2(r.a - r.u); r.s = opdStatus(r, today); return r; })
+  return (d.rows || []).map(x => { const r = { b: x.b, id: x.id, c: x.n || 'No name', f: x.f, l: x.l, a: +x.a || 0, u: +x.u || 0, v: x.v || null, na: x.na || null, ns: x.ns || '', nst: x.nst || '' }; r.o = dpcR2(r.a - r.u); r.s = opdStatus(r, today); return r; })
     .sort((x, y) => OPD_RANK[x.s] - OPD_RANK[y.s] || (x.l > y.l ? 1 : x.l < y.l ? -1 : 0));
 }
 function opdNeedCount() { const c = dpcCodes(); return opdRows.filter(r => c.includes(r.b) && r.s !== 'wait' && r.s !== 'small').length; }
@@ -93,9 +93,10 @@ function opdTodo(r) {
   const f = dpcEsc(dpcFirst(r.c)), sal = dpcName(r.b);
   if (r.s === 'came') return `${f} came back on ${opdD(r.v)} and no deposit came off. Ask the ${sal} front desk whether ${f} paid twice. If so, refund ${f}.`;
   if (r.s === 'part') return `Part of the deposit came off, AED ${dpcM0(r.o)} is left. Check whether the rest is for a later visit.`;
-  if (r.s === 'old') return `No visit for ${r.age} days. Check the booking: no-show (deposit kept), moved, or a refund owed.`;
+  if (r.s === 'old') return `No visit for ${r.age} days and nothing booked in Phorest. Check: no-show (deposit kept), moved, or a refund owed.`;
   if (r.s === 'small') return 'Small amount, most likely a rounding or test line. Ignore unless the client says otherwise.';
-  return 'Booking not reached yet, or not seen by Phorest sales. Nothing to do.';
+  if (r.na) return `Booked for ${opdD(r.na)}. The deposit should come off at checkout. Nothing to do yet.`;
+  return 'Nothing booked in Phorest yet, but it is early. Nothing to do yet.';
 }
 // Kate, 17 Nov 2026: every header row follows Google Sheets filtering (sort, filter by condition, filter by values, the same menu logic as drill.js), dates are DD MMM YYYY,
 // and the header's Branch and Period drive the list (the Period is read against the deposit's paid date; deposits outside it are counted in a line under the list).
@@ -106,7 +107,8 @@ function opdCtText(r) {
   if (r._amb) return 'Several clients share this name';
   return [r._ph, r._em].filter(Boolean).join(' / ').replace(/ \/ /g, ' ').trim();
 }
-const DPC_W = { l: 118, b: 124, c: 170, ct: 210, a: 86, u: 86, age: 86, s: 206, todo: 400 };   // column widths, so What to do is wide and the table scrolls sideways with the first column frozen
+const DPC_W = { l: 118, b: 124, c: 170, ct: 210, a: 86, u: 86, age: 86, na: 150, ns: 280, s: 206, todo: 400 };   // column widths, so What to do is wide and the table scrolls sideways with the first column frozen
+const opdBookText = r => r.na ? [r.ns, r.nst ? 'with ' + r.nst : ''].filter(Boolean).join(' · ') : '';
 const OPD_COLS = [
   { k: 'l', l: 'Deposit paid', t: 'date', raw: r => r.l, disp: r => opdD(r.l) },
   { k: 'b', l: 'Salon', t: 'text', raw: r => dpcName(r.b), disp: r => dpcName(r.b) },
@@ -115,6 +117,8 @@ const OPD_COLS = [
   { k: 'a', l: 'Deposit', t: 'num', raw: r => r.a, disp: r => dpcM0(r.a) },
   { k: 'u', l: 'Taken off', t: 'num', raw: r => r.u, disp: r => dpcM0(r.u) },
   { k: 'age', l: 'Days open', t: 'num', raw: r => r.age, disp: r => String(r.age) },
+  { k: 'na', l: 'Next appointment', t: 'date', raw: r => r.na || '', disp: r => r.na ? opdD(r.na) : 'Nothing booked' },
+  { k: 'ns', l: 'Booked for', t: 'text', raw: r => opdBookText(r), disp: r => opdBookText(r) },
   { k: 's', l: 'Status', t: 'text', raw: r => OPD_NAME[r.s], disp: r => OPD_NAME[r.s] },
   { k: 'todo', l: 'What to do', t: 'text', raw: r => OPD_PLAIN(opdTodo(r)), disp: r => OPD_PLAIN(opdTodo(r)) }
 ];
@@ -234,11 +238,12 @@ function opdDetRow(r, n) {
     const shown = visits.slice(0, 3), more = visits.length - shown.length;
     const svc = shown.length
       ? shown.map(v => `<div class="opd-visit"><b>${opdD(v.d)}</b><ul class="opd-vl">${v.rows.map(l => `<li><span>${dpcEsc(l.item)}${l.staff && !/^BUSINESS/i.test(l.staff) ? `<em> · ${dpcEsc(l.staff)}</em>` : ''}</span><span class="p">AED ${dpcM0(l.t)}</span></li>`).join('')}</ul></div>`).join('') + (more > 0 ? `<div class="spv-dim">${more} more visit${more === 1 ? '' : 's'} not shown.</div>` : '')
-      : `<span class="spv-dim">${f} has not been rung through since the deposit, so there is no service to read yet.</span>`;
+      : r.na ? `<div><b>${opdD(r.na)}</b>${r.ns ? ': ' + dpcEsc(r.ns) : ''}${r.nst ? ' with ' + dpcEsc(r.nst) : ''}. ${f} has not been rung through since the deposit, so this booking is most likely what it is for.</div>`
+      : `<span class="spv-dim">${f} has not been rung through since the deposit and has nothing booked in Phorest, so there is no service to read yet.</span>`;
     inner = `<div class="spv-dgrid"><div><small>Deposit paid</small>${depHtml}</div><div><small>Taken off</small>${offHtml}</div>` +
       `<div><small>Days open</small>${r.age} day${r.age === 1 ? '' : 's'} since the last deposit, ${opdD(r.l)}</div>` +
-      `<div class="opd-wide"><small>${shown.length ? `What ${f} had when she came back, most likely what the deposit was for` : 'What the deposit is for'}</small>${svc}</div>` +
-      `<div class="spv-next">Phorest sales show what was rung through, not what was booked, so this is the best read of the service. The booking itself is in the Phorest diary.</div></div>`;
+      `<div class="opd-wide"><small>${shown.length ? `What ${f} had when she came back, most likely what the deposit was for` : r.na ? 'Booked next, most likely what the deposit is for' : 'What the deposit is for'}</small>${svc}</div>` +
+      `<div class="spv-next">What she had comes from Phorest sales (what was rung through). The next appointment comes from the Phorest diary, read each morning and matched by client name, so it is the best read of the service, not a promise.</div></div>`;
   }
   return `<tr class="opd-det"><td colspan="${n}">${inner}</td></tr>`;
 }
@@ -259,7 +264,7 @@ function opdSave(kind) {
     { name: 'Summary', blocks: [{ cols: [{ label: 'Deposit Checking', fmt: 'text' }, { label: '', fmt: 'text' }], rows: [
       { cells: ['Salons', brs] }, { cells: ['Deposits paid', per] }, { cells: ['Rows', filtered ? 'Filtered: ' + rows.length + ' of ' + base.length : String(rows.length)] },
       { cells: ['Report made', today] },
-      { cells: ['How it is read', 'A deposit is a Deposit line in the Phorest sales lines (a refund nets it off). It counts as taken off when a later bill of the same client at the same salon carries an A(...) tender. Candidates only: the sales lines carry no appointment date, so a client with a booking still ahead shows as Waiting. Days open counts from the last deposit.'] }] }] },
+      { cells: ['How it is read', 'A deposit is a Deposit line in the Phorest sales lines (a refund nets it off). It counts as taken off when a later bill of the same client at the same salon carries an A(...) tender. Candidates only. Next appointment is the earliest booking in the Phorest diary from today, matched by client name. Days open counts from the last deposit.'] }] }] },
     { name: 'Open deposits', blocks: [{ cols: cols.map(c => ({ label: c.l, fmt: fmt(c) })), rows: rows.map(r => ({ cells: cols.map(c => val(c, r)) })).concat(rows.length ? [total] : []) }] }
   ] });
   const name = 'deposit-checking-' + today;
@@ -273,10 +278,10 @@ function opdPaint() {
   if (!el || !opdData) return;
   opdClosePop();
   const base = opdBase(), by = k => base.filter(r => r.s === k), sumAmt = l => dpcR2(l.reduce((t, r) => t + r.o, 0));
-  const K = [['came', 'act bad', 'Possible double charge. Ask the front desk first.'], ['part', 'act info', 'Some of the deposit came off, some is left.'], ['old', 'act warn', 'No-show, moved, or a refund owed.'], ['wait', 'quiet', 'Normal. A booking may still be ahead.']];
+  const K = [['came', 'act bad', 'Possible double charge. Ask the front desk first.'], ['part', 'act info', 'Some of the deposit came off, some is left.'], ['old', 'act warn', 'Over 14 days, no appointment booked. No-show, moved, or a refund owed.'], ['wait', 'quiet', 'Normal. She is booked, or it is not time yet.']];
   const cards = K.map(([k, cls, why]) => { const l = by(k);
     return `<button type="button" class="spv-sc ${cls}" data-od='${k}' aria-pressed="${OPD.status === k}"><span class="spv-lbl"><i class="spv-dot ${OPD_CLS[k]}"></i>${OPD_NAME[k]}</span><span class="spv-big">${l.length}</span><span class="spv-amt">AED ${dpcM0(sumAmt(l))}</span><span class="spv-why2">${why}</span>${cls.startsWith('act') && l.length ? '<span class="spv-cta">Show these &rsaquo;</span>' : ''}</button>`; }).join('');
-  const CH = [['all', 'All'], ['needs', 'Needs checking'], ['came', 'Came back'], ['part', 'Part used'], ['old', 'Over 14 days'], ['wait', 'Waiting'], ['small', 'Under AED 50']];
+  const CH = [['all', 'All'], ['needs', 'Needs checking'], ['came', 'Came back'], ['part', 'Part used'], ['old', 'Nothing booked'], ['wait', 'Waiting'], ['small', 'Under AED 50']];
   const chips = CH.map(([k, n]) => { const c = base.filter(r => k === 'all' || (k === 'needs' ? (r.s !== 'wait' && r.s !== 'small') : r.s === k)).length;
     return `<button type="button" class="spv-schip ${k === 'needs' ? 'needs' : ''}" data-ost="${k}" aria-pressed="${OPD.status === k}">${n} <span class="c">${c}</span></button>`; }).join('');
   const rows = opdVisible(), shown = rows.slice(0, OPD.shown), rest = rows.length - shown.length;
@@ -293,6 +298,7 @@ function opdPaint() {
       `<td data-l="Salon">${dpcName(r.b)}</td><td data-l="Client" class="opd-cl">${nm}${r.v ? `<span class="spv-sub">came back ${opdD(r.v)}</span>` : ''}</td>` +
       (ct ? `<td data-l="Contact details" class="opd-ct">${opdCtCell(r)}</td>` : '') +
       `<td class="r num" data-l="Deposit">${nb(dpcM0(r.a))}</td><td class="r num" data-l="Taken off">${nb(dpcM0(r.u))}</td><td class="r num" data-l="Days open">${nb('<b>' + r.age + '</b>')}</td>` +
+      `<td data-l="Next appointment" class="num">${r.na ? opdD(r.na) : '<span class="spv-dim">Nothing booked</span>'}</td><td data-l="Booked for" class="opd-bk">${r.na ? dpcEsc(opdBookText(r)) : '<span class="spv-dim">\u2013</span>'}</td>` +
       `<td data-l="Status"><span class="spv-badge ${OPD_CLS[r.s]}"><i class="spv-dot ${OPD_CLS[r.s]}"></i>${OPD_NAME[r.s]}</span></td><td data-l="What to do" class="opd-todo">${opdTodo(r)}</td></tr>`;
     return OPD.open === rk ? rowHtml + opdDetRow(r, cols.length) : rowHtml;
   }).join('') || `<tr><td colspan="${cols.length}" class="spv-empty2"><b>Nothing here.</b>No deposits match these filters. That is good news if you were looking for problems.</td></tr>`;
@@ -313,8 +319,8 @@ function opdPaint() {
     `<div class="spv-sumline">Showing <b>${rows.length}</b> client${rows.length === 1 ? '' : 's'}, AED <b>${dpcM0(sumAmt(rows))}</b> open${dirty ? ' · <button type="button" class="spv-clear" data-act="oclear">Clear filters</button>' : ''}</div>` +
     `<div class="spv-card spv-tw"><table class="spv-tbl spv-opd" style="--opd-w:${tw}px"><colgroup>${colg}</colgroup><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
     `<div class="spv-more-row"${rest > 0 ? '' : ' hidden'}><button class="spv-morebtn" type="button" data-act="omore">Show ${Math.min(30, rest)} more (${rest} left)</button></div></div>` + outLine +
-    `<div class="spv-callout"><b>A deposit waiting for a booking is normal.</b> Phorest sales do not carry the appointment date, so a client with a booking still ahead shows as Waiting. Only <b>Came back</b>, <b>Part used</b> and <b>No visit, over 14 days</b> need a person.</div>` +
-    `<div class="spv-note">How it is read: a deposit is a "Deposit" line in Phorest (a refund nets it off). It counts as taken off when a later bill for the same client at the same salon carries an A(...) tender. These are candidates only. Check the client in Phorest before telling her anything. Bahrain is left out, as on the Stripe tab.</div></div>`;
+    `<div class="spv-callout"><b>A deposit before the appointment is normal.</b> A client with an appointment booked in Phorest shows as Waiting, with the date and what she is booked for. Only <b>Came back</b>, <b>Part used</b> and <b>No visit, nothing booked</b> need a person.</div>` +
+    `<div class="spv-note">How it is read: a deposit is a "Deposit" line in Phorest (a refund nets it off). It counts as taken off when a later bill for the same client at the same salon carries an A(...) tender. The next appointment is the earliest one in the Phorest diary from today, matched by client name (two clients with one name can mix). These are candidates only. Check the client in Phorest before telling her anything. Bahrain is left out, as on the Stripe tab.</div></div>`;
   opdContacts();
   el.querySelectorAll('[data-opdfc]').forEach(b => { b.onclick = e => { e.stopPropagation(); opdOpenPop(b, b.getAttribute('data-opdfc')); }; });
   el.querySelectorAll('[data-od]').forEach(b => { b.onclick = () => { const k = b.getAttribute('data-od'); OPD.status = OPD.status === k ? 'all' : k; OPD.shown = 30; opdPaint(); if (OPD.status !== 'all') { const t = document.getElementById('opdList'); if (t) t.scrollIntoView({ block: 'start' }); } }; });
@@ -533,6 +539,7 @@ function dpcCss() {
 #depositContent .spv-opd tr.opd-row.notco td{background:var(--s-bad-bg)}#depositContent .spv-opd tr.opd-row.nostripe td{background:var(--s-info-bg)}#depositContent .spv-opd tr.opd-row.wrong td{background:var(--s-warn-bg)}
 #depositContent .spv-opd tr.opd-row.notco td:first-child{box-shadow:inset 5px 0 0 var(--s-bad)}
 #depositContent .opd-cl{font-weight:600}
+#depositContent .opd-bk{font-size:13.5px;color:var(--muted)}
 #depositContent .opd-cl a.spv-bk{text-decoration:underline;text-decoration-style:solid;cursor:pointer}
 #depositContent .opd-ct{font-size:13.5px;min-width:170px;word-break:break-word}#depositContent .opd-ct a{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}
 #depositContent .opd-todo{font-size:13.5px;color:var(--muted)}

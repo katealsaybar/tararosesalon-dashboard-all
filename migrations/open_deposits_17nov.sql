@@ -95,3 +95,9 @@ begin
               order by x.date, x.id limit 120) l), '[]'::jsonb));
 end $$;
 grant execute on function public.open_deposit_detail(text, text, date) to authenticated;
+
+-- Next appointment (17 Nov 2026: "next appointment date wala beh dapat meron"): the earliest booking from today in client_bookings (the Phorest diary, read each morning) for the same salon,
+-- matched by client name (stl_client_key), with what she is booked for and with whom. Applied live 17 Nov 2026; 60 of the 101 clients had one. A booked client is 'waiting' on the page, not overdue.
+alter table public.open_deposits_cache add column if not exists next_appt date, add column if not exists next_services text, add column if not exists next_staff text;
+-- open_deposits_refresh() above gains a 'bk' CTE and a lateral join that fill next_appt, next_services and next_staff; open_deposits() returns them as na, ns, nst.
+-- (The live definitions are the ones in the database; this file keeps the first version of the refresh body.)
