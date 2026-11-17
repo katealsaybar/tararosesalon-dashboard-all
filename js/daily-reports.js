@@ -28,10 +28,10 @@ const DR = { day: null, mode: null, sq: {}, latest: [], fin: {}, runs: [], busy:
 const drEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const drToday = () => new Date(Date.now() + 4 * 3600e3).toISOString().slice(0, 10);   // Dubai is UTC+4 all year
 const drAdd = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-const drFull = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${+m[3]} ${DR_MO[+m[2] - 1]} ${m[1]}` : ''; };
+const drFull = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? `${m[3]} ${DR_MO[+m[2] - 1]} ${m[1]}` : ''; };
 const drDow = iso => new Date(iso + 'T00:00:00Z').getUTCDay();
 const drTime = iso => { try { return new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Dubai', hour: 'numeric', minute: '2-digit', hour12: true }).replace(' am', ' am').replace(' pm', ' pm'); } catch (e) { return ''; } };
-const drWhen = iso => { try { const d = new Date(new Date(iso).getTime() + 4 * 3600e3); return `${DR_WD[d.getUTCDay()]} ${d.getUTCDate()} ${DR_MO[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${drTime(iso)}`; } catch (e) { return ''; } };
+const drWhen = iso => { try { const d = new Date(new Date(iso).getTime() + 4 * 3600e3); return `${String(d.getUTCDate()).padStart(2, '0')} ${DR_MO[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${drTime(iso)}`; } catch (e) { return ''; } };
 
 function drHeaderDay() {
   const t = drToday(); let d = (typeof dateTo !== 'undefined' && dateTo) ? dateToIso(dateTo) : '';
@@ -188,7 +188,7 @@ function drPaint() {
   let strip = '';
   for (let i = 13; i >= 0; i--) {
     const k = drAdd(drToday(), -i), w = drDow(k), n = (perDate[k] || new Set()).size, hand = (DR.fin[k] || new Set()).size, need = k === drToday() ? 15 : 25, st = (n >= need - 1 || hand >= 4) ? 'done' : (n || hand) ? 'need' : 'idle';
-    strip += `<button class="dr-day${w === 0 || w === 6 ? ' wk' : ''}" type="button" data-day="${k}" aria-pressed="${k === day}" aria-label="${DR_WD[w]} ${drFull(k)}"><span class="wd">${DR_WD[w]}</span><span class="dn">${k.slice(8)}</span><span class="dr-dot ${st}"></span></button>`;
+    strip += `<button class="dr-day${w === 0 || w === 6 ? ' wk' : ''}" type="button" data-day="${k}" aria-pressed="${k === day}" aria-label="${drFull(k)}"><span class="wd">${DR_WD[w]}</span><span class="dn">${k.slice(8)}</span><span class="dr-dot ${st}"></span></button>`;
   }
   // the log
   const who = r => r.trigger === 'schedule' ? 'The cloud, on its own' : (r.requested_by ? String(r.requested_by).split('@')[0].replace(/^./, ch => ch.toUpperCase()) + ', with the button' : 'The button');
@@ -252,6 +252,8 @@ async function drRun(scope, what) {
 }
 
 try { NOPULSE_REDRAW.dailyreports = 'renderDailyReports'; } catch (e) {}   // the header's Branch or Period changed: redraw this page alone (registered here so dashboard.js is untouched)
+// Kate, 17 Nov 2026: every page gets the mini side nav ("On this page", jump-nav.js). Each .dr-sec starts with its eyebrow, which names the section.
+try { if (typeof jnAdd === 'function' && !window._drJn) { window._drJn = 1; jnAdd('dailyreports', { sel: '#dailyReportsContent .dr-sec > .dr-eyebrow', full: true }); } } catch (e) {}
 async function renderDailyReports() {
   const el = document.getElementById('dailyReportsContent'); if (!el) return;
   try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) {}

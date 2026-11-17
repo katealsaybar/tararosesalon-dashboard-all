@@ -51,13 +51,18 @@
  },
  "contentcalendar": {
   "created": "2026-11-11",
-  "fp": "c5387dd20bb3",
+  "fp": "f874987ace53",
   "modified": "2026-11-12"
  },
  "dailyperf": {
   "created": "2026-10-13",
   "fp": "8d1edf601e8e",
   "modified": "2026-11-10"
+ },
+ "dailyreports": {
+  "created": "2026-11-17",
+  "fp": "8508154a0fe6",
+  "modified": "2026-11-17"
  },
  "dashboard": {
   "created": "2026-04-10",
@@ -68,6 +73,11 @@
   "created": "2026-10-23",
   "fp": "094bf68db74a",
   "modified": "2026-11-10"
+ },
+ "depositcheck": {
+  "created": "2026-11-17",
+  "fp": "4e5d5fae16bf",
+  "modified": "2026-11-17"
  },
  "discountsvouchers": {
   "created": "2026-10-23",
@@ -88,6 +98,11 @@
   "created": "2026-11-09",
   "fp": "f7efb3e4a5a9",
   "modified": "2026-11-09"
+ },
+ "leavecal": {
+  "created": "2026-11-17",
+  "fp": "cb45f6a0e6a3",
+  "modified": "2026-11-17"
  },
  "ledgerActuals": {
   "created": "2026-08-14",
@@ -161,7 +176,7 @@
  },
  "recruitment": {
   "created": "2026-11-09",
-  "fp": "25d42d96aa0d",
+  "fp": "a3961a490cf9",
   "modified": "2026-11-17"
  },
  "retention": {
@@ -173,6 +188,11 @@
   "created": "2026-04-13",
   "fp": "a8e0c1ee91b3",
   "modified": "2026-11-10"
+ },
+ "servicecal": {
+  "created": "2026-11-17",
+  "fp": "957536e48a1f",
+  "modified": "2026-11-17"
  },
  "services": {
   "created": "2026-06-01",
@@ -206,7 +226,7 @@
  },
  "stripedeposits": {
   "created": "2026-11-09",
-  "fp": "027c0111bd21",
+  "fp": "9b4ed277c751",
   "modified": "2026-11-17"
  },
  "stylists": {
