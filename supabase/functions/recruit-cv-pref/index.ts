@@ -2,6 +2,9 @@
 // Reads the stored CV files (PDF and Word, the recruit-cvs bucket) and writes the emirate a person says they want to work in (Dubai, Abu Dhabi, Either) through recruit_apply_pref.
 // Only what the CV SAYS about wanting or being willing to work somewhere counts: a "Preferred location: ..." line, or a sentence with words like looking for, seeking, willing to,
 // relocate, open to, interested in. An address or "Location: Dubai" is where they live, not a wish, so it is ignored. A value set by hand is never replaced.
+// Kate, 17 Nov 2026 ("keri mo bang mag parse ng ganito? kasi kita naman sa resume kung saan sila nakatira"): when the CV states no wish, the address at the top of the CV is used, but ONLY to fill a blank:
+// an address in Dubai gives Dubai, in Abu Dhabi gives Abu Dhabi, in another emirate (Sharjah, Ajman, Ras Al Khaimah, Fujairah, Umm Al Quwain) or outside the UAE gives Either (Kate: "either").
+// Source "CV address". Never replaces a value that is already there (a wish, Based in, or by hand). Nationality, visa, passport and birth lines are skipped.
 // Same pass check as recruit-cv-upload (x-push-pass, table push_passes). POST { ids: [uuid, ...up to 4], dry?: true }. dry = read and report, write nothing.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
@@ -85,8 +88,32 @@ export function preferenceOf(raw: string): { loc: "Dubai" | "Abu Dhabi" | "Eithe
   return { loc: null, via: "", snip: "" };
 }
 
+// ---- address fallback (Kate, 17 Nov 2026) ----
+const AD_PLACE = /(?:abu[\s-]*dhabi|abudhabi|abu[\s-]*dabi|mus+afah|khalifa\s*city|\bal\s*ain\b|mohammed\s*bin\s*zayed|mbz\s*city|baniyas|shakhbout|al\s*reem|yas\s*island|saadiyat|ابوظبي|ابو ظبي)/i;
+const DX_PLACE = /(?:dubai|dubayy|\bdeira\b|bur\s*dubai|\bkarama\b|\bsatwa\b|jumeirah|\bjlt\b|al\s*barsha|al\s*quoz|mirdif|silicon\s*oasis|discovery\s*gardens|international\s*city|jebel\s*ali|business\s*bay|hor\s*al\s*anz|al\s*qusais|al\s*rashidiya|دبي)/i;
+const OTHER_PLACE = /\b(?:sharjah|ajman|ras\s*al\s*khaimah|rak|fujairah|fujeirah|umm\s*al\s*quwain|uaq|philippines|india|pakistan|nepal|bangladesh|sri\s*lanka|indonesia|egypt|kenya|uganda|nigeria|ghana|ethiopia|morocco|tunisia|algeria|lebanon|jordan|syria|iraq|iran|yemen|sudan|russia|ukraine|uzbekistan|kazakhstan|kyrgyz\w*|turkey|south\s*africa|zimbabwe|zambia|malawi|tanzania|rwanda|cameroon|ivory\s*coast|mauritius|madagascar|saudi|ksa|kuwait|oman|bahrain|qatar|united\s*kingdom|uk|usa|united\s*states|canada|brazil|colombia|mexico|thailand|vietnam|malaysia|singapore|china|armenia|belarus|moldova)\b/i;
+const SKIP_LINE = /nationalit|citizen|passport|\bvisa\b|\bborn\b|birth|\bdob\b|licen[cs]e|religion|marital|languag|father|mother|\bage\b/;
+const WORK_LINE = /\b(?:worked|working|employed|experience|company|llc|ltd|hotel|restaurant|cafe|salon|spa|clinic|school|present|till date|to date)\b/;
+const ADDR_LABEL = /^(?:current\s*|permanent\s*|home\s*|mailing\s*)?(?:address|location|residence|residing|resident|city|country|based in|place of residence|p\.?o\.? ?box)\b/;
+
+export function addressOf(raw: string): { loc: "Dubai" | "Abu Dhabi" | "Either" | null; snip: string } {
+  const text = fold(raw.replace(/[‘’`´]/g, "'")).replace(/[ \t\u00a0]+/g, " ");
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const take: string[] = [];
+  lines.forEach((l, i) => { if (((i < 9 && !WORK_LINE.test(l)) || ADDR_LABEL.test(l)) && !SKIP_LINE.test(l) && l.length < 160) take.push(l); });
+  // a CV that came out as one long line: only its first 500 characters
+  const win = lines.length < 4 ? text.slice(0, 500) : take.join("\n");
+  const a = AD_PLACE.exec(win), d = DX_PLACE.exec(win);
+  if (a && d) return { loc: "Either", snip: a[0] + " + " + d[0] };
+  if (a) return { loc: "Abu Dhabi", snip: a[0] };
+  if (d) return { loc: "Dubai", snip: d[0] };
+  const o = OTHER_PLACE.exec(win);
+  if (o) return { loc: "Either", snip: o[0] };
+  return { loc: null, snip: "" };
+}
+
 async function readOne(id: string, dry: boolean) {
-  const p = await sb.from("recruit_applicants").select("id, cv_file, cv_file_name, pref_src").eq("id", id).maybeSingle();
+  const p = await sb.from("recruit_applicants").select("id, cv_file, cv_file_name, pref_src, pref_loc").eq("id", id).maybeSingle();
   if (p.error || !p.data || !p.data.cv_file) return { id, status: "no file" };
   if (p.data.pref_src === "By hand") return { id, status: "set by hand, left alone" };
   const name = (p.data.cv_file_name || p.data.cv_file || "").toLowerCase();
@@ -99,7 +126,15 @@ async function readOne(id: string, dry: boolean) {
   try { text = ext === "pdf" ? await pdfText(bytes) : docxText(bytes); } catch (e) { return { id, status: "could not open: " + String((e as Error).message || e).slice(0, 50) }; }
   if (text.trim().length < 40) return { id, status: "no text in the file (scanned?)" };
   const f = preferenceOf(text);
-  if (!f.loc) return { id, status: "read, nothing stated" };
+  if (!f.loc) {
+    // no wish in the CV: the address at the top fills a blank, nothing else
+    if (p.data.pref_loc) return { id, status: "read, nothing stated (already has a value)" };
+    const ad = addressOf(text);
+    if (!ad.loc) return { id, status: "read, nothing stated, no address found" };
+    if (dry) return { id, status: "found address (dry)", loc: ad.loc, via: "address", snip: ad.snip };
+    const r2 = await sb.rpc("recruit_apply_pref", { p_id: id, p_loc: ad.loc, p_src: "CV address" });
+    return { id, status: r2.error ? "apply failed: " + r2.error.message.slice(0, 60) : r2.data ? "written" : "left alone", loc: ad.loc, via: "address", snip: ad.snip };
+  }
   if (dry) return { id, status: "found (dry)", loc: f.loc, via: f.via, snip: f.snip };
   const r = await sb.rpc("recruit_apply_pref", { p_id: id, p_loc: f.loc, p_src: "CV" });
   return { id, status: r.error ? "apply failed: " + r.error.message.slice(0, 60) : r.data ? "written" : "left alone", loc: f.loc, via: f.via, snip: f.snip };
