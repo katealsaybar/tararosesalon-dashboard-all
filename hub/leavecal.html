@@ -726,7 +726,7 @@ function drawPlanner(c){
     for(var d=1;d<=31;d++){(function(d){
       var s=S.y+'-'+mm+'-'+('0'+d).slice(-2),x=d>dim,dd=idx[s];
       var cell=el('div','pl-c'+(x?' x':'')+(!x&&dd&&dd.hol.length?' h':'')+(!x&&S.layers.blk&&isBlk(s)?' b':'')+(s===TODAY?' today':'')+(s===S.sel?' sel':''));
-      if(!x){cell.onclick=function(){S.sel=s;draw()};cell.title=fmt(s)+(s===TODAY?' (today)':'');if(s===TODAY)todayTip(cell)}bg.appendChild(cell)})(d)}
+      if(!x){cell.onclick=function(){S.sel=s;draw()};dayTip(cell,s,dd)}bg.appendChild(cell)})(d)}
     var bars=el('div','pl-bars');L.segs.forEach(function(g){bars.appendChild(barEl(g))});
     body.appendChild(bg);body.appendChild(bars);
     var ch=monthChips(m+1);
@@ -1109,12 +1109,13 @@ function drawHolT(){
 /* a holiday date up to the last day Phorest data covers, with no staff rows, is a day nobody traded */
 HOL.forEach(function(h){for(var t=P(h.f);t<=P(h.t);t+=864e5){var k=iso(t);if(k>RANGE_TO)continue;var d=PH[k]=PH[k]||{};['SAA','KCA','MC','AQ'].forEach(function(b){if(d[b]==null)d[b]=0})}});
 
-/* hover the today line: the date, in the same card the bars use */
-function todayTip(cell){
+/* hover any day in the planner: the weekday and the date, in the same card the bars use (and Today, or the holiday, when it is one) */
+function dayTip(cell,s,dd){
   cell.addEventListener('mouseenter',function(ev){
     hideTip();var t=el('div','tip'),tx=el('div','tip-tx');
-    tx.appendChild(el('b','','Today'));
-    tx.appendChild(el('div','m',['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(P(TODAY)).getUTCDay()]+', '+fmt(TODAY)));
+    tx.appendChild(el('b','',['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(P(s)).getUTCDay()]+', '+fmt(s)));
+    if(s===TODAY)tx.appendChild(el('div','m','Today'));
+    if(dd&&dd.hol&&dd.hol.length)tx.appendChild(el('div','m',dd.hol.map(function(h){return h.n}).join(', ')+' (public holiday, expected)'));
     t.appendChild(tx);document.body.appendChild(t);tipEl=t;moveTip(ev);
   });
   cell.addEventListener('mousemove',moveTip);
