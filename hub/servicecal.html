@@ -169,6 +169,38 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--surface2)}
 .dlg dd{margin:0}
 .dlg .act{padding:8px 18px 16px;display:flex;gap:8px;flex-wrap:wrap}
 
+/* Google Sheets style header menus on the List (Kate, 17 Nov 2026): sort, filter by condition, filter by values. Same menu as Deposit Checking. */
+.lf-th{display:inline-flex;align-items:center;gap:6px}
+.lf-fb{border:0;background:none;color:var(--muted2);cursor:pointer;padding:3px;border-radius:6px;line-height:0}
+.lf-fb:hover{background:var(--surface2)}
+.lf-fb.on{color:var(--text);background:var(--mark,#FDE9A8)}
+th.r .lf-th{justify-content:flex-end}
+th{cursor:default}
+.lf-colbar{display:none;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px;scrollbar-width:none}
+.lf-colbar button{flex:0 0 auto;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:5px 13px;font-size:13.5px;cursor:pointer;white-space:nowrap;min-height:34px;color:var(--text);font-family:inherit}
+.lf-colbar button.on{border-color:var(--accent);font-weight:600}
+.lf-sum{font-size:14px;color:var(--muted);margin:2px 0 10px}
+.lf-clear{border:0;background:none;color:var(--text);text-decoration:underline;cursor:pointer;font:inherit;padding:0 4px}
+.lf-pop{position:fixed;z-index:80;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:10px;display:flex;flex-direction:column;gap:6px;overflow:auto;font-size:14px;color:var(--text)}
+.lf-pop [hidden]{display:none}
+.lf-pop-sort button{display:block;width:100%;text-align:left;border:0;background:none;color:inherit;font:inherit;padding:7px 8px;border-radius:8px;cursor:pointer}
+.lf-pop-sort button:hover,.lf-pop-sel button:hover{background:var(--surface2)}
+.lf-pop-l{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-top:4px}
+.lf-pop select,.lf-pop input[type=text],.lf-pop input[type=date],.lf-pop input[type=time],.lf-pop input[type=search]{width:100%;font:inherit;font-size:13.5px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 8px}
+.lf-pop-in{display:grid;gap:6px}
+.lf-pop-sel{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted2)}
+.lf-pop-sel button{border:0;background:none;color:var(--text);text-decoration:underline;font:inherit;cursor:pointer;padding:2px 6px;border-radius:6px}
+.lf-pop-list{max-height:170px;overflow:auto;border:1px solid var(--border2);border-radius:8px;padding:4px}
+.lf-pop-v{display:flex;gap:8px;align-items:center;padding:3px 4px;font-size:13.5px}
+.lf-pop-v span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lf-pop-v em{font-style:normal;color:var(--muted2);font-size:12.5px}
+.lf-pop-more{margin:6px;color:var(--muted2);font-size:13px}
+.lf-pop-act{display:flex;gap:6px;align-items:center}
+.lf-pop-act span{flex:1}
+.lf-pop-act button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;font:inherit;cursor:pointer;color:inherit}
+.lf-pop-act button.ok{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+@media (max-width:760px){.lf-colbar{display:flex}}
+
 @media (max-width:760px){
   .cards{grid-template-columns:1fr 1fr}.sc .big{font-size:27px}
   .pg h1{font-size:26px}
@@ -274,7 +306,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--surface2)}
   }
   var TODAY = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dubai'}).format(new Date());
 
-  var S = {br:['SAA'], from:addDays(TODAY, -1), to:addDays(TODAY, -1), view:'day', staff:null, hideCat:{}, hideState:{}, q:'', sortKey:'ds', sortDir:1, showAll:false, mi:0, sortChair:false, note:''};
+  var S = {br:['SAA'], from:addDays(TODAY, -1), to:addDays(TODAY, -1), view:'day', staff:null, hideCat:{}, hideState:{}, q:'', sort:null, lf:{}, showAll:false, mi:0, sortChair:false, note:''};
   var W = null;             // the loaded rows: {rows, synced, first, last}
   var CACHE = {};
   var MQ = matchMedia('(max-width:760px)');
@@ -314,7 +346,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--surface2)}
     return (CACHE[key] = {rows:parse(r.data), synced:r.data.synced, first:r.data.first, last:r.data.last, t:Date.now()});
   }
   async function load(){
-    normalise();
+    normalise(); S.lf = {}; S.sort = null; closePop();   // column filters belong to the rows that were on screen
     var sp = span(), box = document.getElementById('calMain');
     if (box) box.innerHTML = '<div class="empty">Loading the calendar…</div>';
     var res = await Promise.all(S.br.map(function (b) { return fetchBranch(b, sp[0], sp[1]); }));
@@ -498,19 +530,126 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--surface2)}
     });
   }
 
-  /* ---- list */
+  /* ---- list: every column header has the Google Sheets menu (sort, filter by condition, filter by values) */
+  var two = function (n) { return (n < 10 ? '0' : '') + n; };
+  var hhmm = function (m) { return two(Math.floor(m / 60)) + ':' + two(m % 60); };
+  function listCols(){
+    var c = [];
+    if (!single()) c.push({k:'d', l:'Day', t:'date', raw:function (r) { return r.d; }, disp:function (r) { return dlabel(r.d, true); }});
+    c.push({k:'s', l:'Time', t:'time', raw:function (r) { return hhmm(r.s); }, disp:function (r) { return fmt(r.s); }});
+    if (multi()) c.push({k:'b', l:'Salon', t:'text', raw:function (r) { return r.b; }, disp:function (r) { return r.b; }});
+    c.push({k:'st', l:'Stylist', t:'text', raw:function (r) { return r.st; }, disp:function (r) { return r.st; }},
+           {k:'sv', l:'Service', t:'text', raw:function (r) { return r.sv; }, disp:function (r) { return r.sv; }},
+           {k:'cn', l:'Client', t:'text', raw:function (r) { return r.cn; }, disp:function (r) { return r.cn; }},
+           {k:'len', l:'Length', t:'num', raw:function (r) { return r.e - r.s; }, disp:function (r) { return dur(r.e - r.s); }},
+           {k:'state', l:'Status', t:'text', raw:function (r) { return (STATES[r.state] || ['', r.state])[1]; }, disp:function (r) { return (STATES[r.state] || ['', r.state])[1]; }});
+    return c;
+  }
+  function pass(c, r, f){
+    if (!f) return true;
+    if (f.vals && !f.vals.has(c.disp(r))) return false;
+    if (f.op) {
+      var v = c.raw(r);
+      if (c.t === 'num') { var a = f.a, b = f.b; return f.op === 'eq' ? v === a : f.op === 'gt' ? v > a : f.op === 'ge' ? v >= a : f.op === 'lt' ? v < a : f.op === 'le' ? v <= a : f.op === 'bt' ? (v >= Math.min(a, b) && v <= Math.max(a, b)) : true; }
+      if (c.t === 'date' || c.t === 'time') { var d = String(v || ''); return f.op === 'eq' ? d === f.a : f.op === 'af' ? d >= f.a : f.op === 'bf' ? d <= f.a : f.op === 'bt' ? (d >= f.a && d <= f.b) : true; }
+      var t = String(v).toLowerCase(), q = String(f.a || '').toLowerCase();
+      return f.op === 'ct' ? t.indexOf(q) >= 0 : f.op === 'nc' ? t.indexOf(q) < 0 : f.op === 'eq' ? t === q : f.op === 'sw' ? t.indexOf(q) === 0 : true;
+    }
+    return true;
+  }
+  function cmp(c, a, b){ var x = c.raw(a), y = c.raw(b); return c.t === 'num' ? (x - y) || 0 : String(x).localeCompare(String(y), undefined, {numeric:true}); }
+  function listBase(){ var q = S.q.trim().toLowerCase(); return rangeRows().filter(visible).filter(function (r) { return !q || (r.st + ' ' + r.sv + ' ' + r.cn).toLowerCase().indexOf(q) >= 0; }); }
+  function listRows(cols){
+    var rows = listBase().filter(function (r) { return cols.every(function (c) { return !S.lf[c.k] || pass(c, r, S.lf[c.k]); }); });
+    var sc = S.sort && cols.filter(function (c) { return c.k === S.sort.k; })[0];
+    rows.sort(function (a, b) { var o = sc ? cmp(sc, a, b) * S.sort.dir : 0; return o || (a.d < b.d ? -1 : a.d > b.d ? 1 : 0) || a.s - b.s || a.i - b.i; });
+    return rows;
+  }
   function renderList(){
-    var q = S.q.trim().toLowerCase(), many = !single(), mb = multi();
-    var rows = rangeRows().filter(visible).filter(function (r) { return !q || (r.st + ' ' + r.sv + ' ' + r.cn).toLowerCase().indexOf(q) >= 0; });
-    var keyf = {ds:function (r) { return r.d + String(1000 + r.s); }, b:function (r) { return r.b; }, st:function (r) { return r.st; }, sv:function (r) { return r.sv; }, cn:function (r) { return r.cn; }, state:function (r) { return r.state; }, len:function (r) { return r.e - r.s; }}[S.sortKey] || function (r) { return r.d + String(1000 + r.s); };
-    rows.sort(function (a,b) { var x = keyf(a), y = keyf(b); return (x < y ? -1 : x > y ? 1 : a.s - b.s) * S.sortDir; });
-    var shown = S.showAll ? rows : rows.slice(0, 40), cols = 6 + (many ? 1 : 0) + (mb ? 1 : 0);
-    function th(k, l){ return '<th data-sort="' + k + '" ' + (S.sortKey === k ? 'aria-sort="' + (S.sortDir > 0 ? 'ascending' : 'descending') + '"' : '') + '>' + l + '</th>'; }
-    document.getElementById('calMain').innerHTML = '<div class="bar"><input class="search" id="q" type="search" placeholder="Search stylist, service or client" value="' + esc(S.q) + '"><span style="color:var(--muted);font-size:14px">' + rows.length + ' service' + (rows.length === 1 ? '' : 's') + ' · ' + (single() ? dlabel(S.from, true) : dlabel(S.from) + ' to ' + dlabel(S.to, true)) + ' · ' + brLabel() + '</span></div>'
-      + '<div class="tw"><table><thead><tr>' + th('ds', many ? 'Day and time' : 'Time') + (mb ? th('b', 'Salon') : '') + th('st','Stylist') + th('sv','Service') + th('cn','Client') + th('len','Length') + th('state','Status') + '</tr></thead><tbody>'
-      + (shown.map(function (r) { var st = STATES[r.state] || ['', r.state];
-          return '<tr class="row c-' + r.cat + '" data-id="' + r.i + '"><td>' + (many ? dlabel(r.d) + ', ' : '') + fmt(r.s) + '</td>' + (mb ? '<td>' + r.b + '</td>' : '') + '<td>' + esc(r.st) + '</td><td><span class="cdot"></span>' + esc(r.sv) + '</td><td>' + (r.req ? '<span class="star">★</span> ' : '') + esc(r.cn) + '</td><td>' + dur(r.e - r.s) + '</td><td><span class="badge ' + st[0] + '">' + st[1] + '</span></td></tr>'; }).join('') || '<tr><td colspan="' + cols + '" style="text-align:center;color:var(--muted);padding:26px">No services match.</td></tr>')
+    var cols = listCols(), mb = multi(), many = !single();
+    var all = listBase(), rows = listRows(cols);
+    var shown = S.showAll ? rows : rows.slice(0, 40);
+    var fbtn = function (c) { var on = (S.sort && S.sort.k === c.k) || !!S.lf[c.k];
+      return '<button type="button" class="lf-fb' + (on ? ' on' : '') + '" data-lfc="' + c.k + '" aria-label="Filter ' + c.l + '" aria-haspopup="true"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button>'; };
+    var head = cols.map(function (c) { return '<th class="' + (c.t === 'num' ? 'r' : '') + '"><span class="lf-th"><span>' + c.l + (S.sort && S.sort.k === c.k ? (S.sort.dir > 0 ? ' ↑' : ' ↓') : '') + '</span>' + fbtn(c) + '</span></th>'; }).join('');
+    var colbar = cols.map(function (c) { var on = (S.sort && S.sort.k === c.k) || !!S.lf[c.k]; return '<button type="button" class="' + (on ? 'on' : '') + '" data-lfc="' + c.k + '" aria-haspopup="true">' + c.l + ' ▾</button>'; }).join('');
+    var dirty = !!S.sort || Object.keys(S.lf).length > 0;
+    document.getElementById('calMain').innerHTML = '<div class="bar"><input class="search" id="q" type="search" placeholder="Search stylist, service or client" value="' + esc(S.q) + '"></div>'
+      + '<div class="lf-colbar" aria-label="Column filters">' + colbar + '</div>'
+      + '<div class="lf-sum">Showing <b>' + rows.length + '</b>' + (rows.length !== all.length ? ' of ' + all.length : '') + ' service' + (all.length === 1 ? '' : 's') + ' · ' + (single() ? dlabel(S.from, true) : dlabel(S.from) + ' to ' + dlabel(S.to, true)) + ' · ' + brLabel() + (dirty ? ' · <button type="button" class="lf-clear" data-lfclear="1">Clear filters</button>' : '') + '</div>'
+      + '<div class="tw"><table><thead><tr>' + head + '</tr></thead><tbody>'
+      + (shown.map(function (r) { var st = STATES[r.state] || ['', r.state], tds = [];
+          if (many) tds.push('<td>' + dlabel(r.d, true) + '</td>');
+          tds.push('<td>' + fmt(r.s) + '</td>');
+          if (mb) tds.push('<td>' + r.b + '</td>');
+          tds.push('<td>' + esc(r.st) + '</td>', '<td><span class="cdot"></span>' + esc(r.sv) + '</td>', '<td>' + (r.req ? '<span class="star">★</span> ' : '') + esc(r.cn) + '</td>', '<td>' + dur(r.e - r.s) + '</td>', '<td><span class="badge ' + st[0] + '">' + st[1] + '</span></td>');
+          return '<tr class="row c-' + r.cat + '" data-id="' + r.i + '">' + tds.join('') + '</tr>'; }).join('') || '<tr><td colspan="' + cols.length + '" style="text-align:center;color:var(--muted);padding:26px">No services match.</td></tr>')
       + '</tbody></table></div>' + (rows.length > 40 && !S.showAll ? '<button class="btn more" type="button" id="more">Show all ' + rows.length + '</button>' : '');
+  }
+
+  /* the menu on a header: sort, filter by condition, filter by values (a checklist with search) */
+  var POP = null;
+  function closePop(){ if (POP) { POP.remove(); POP = null; } }
+  function openPop(btn, key){
+    var was = POP && POP.dataset.k === key; closePop(); if (was) return;
+    var cols = listCols(), c = cols.filter(function (x) { return x.k === key; })[0]; if (!c) return;
+    var cur0 = S.lf[key] || {}, map = {}, order = [];
+    listBase().forEach(function (r) { var d = c.disp(r); if (!map[d]) { map[d] = {d:d, n:0, raw:c.raw(r)}; order.push(d); } map[d].n++; });
+    var list = order.map(function (d) { return map[d]; });
+    list.sort(c.t === 'num' ? function (a, b) { return a.raw - b.raw; } : c.t === 'date' || c.t === 'time' ? function (a, b) { return String(a.raw).localeCompare(String(b.raw)); } : function (a, b) { return a.d.localeCompare(b.d, undefined, {numeric:true}); });
+    var sel = new Set(cur0.vals ? Array.from(cur0.vals) : list.map(function (x) { return x.d; }));
+    var ops = c.t === 'num' ? [['', 'No condition'], ['eq', 'Is equal to'], ['gt', 'Greater than'], ['ge', 'Greater than or equal to'], ['lt', 'Less than'], ['le', 'Less than or equal to'], ['bt', 'Is between']]
+      : c.t === 'date' ? [['', 'No condition'], ['eq', 'Is on'], ['af', 'Is on or after'], ['bf', 'Is on or before'], ['bt', 'Is between']]
+      : c.t === 'time' ? [['', 'No condition'], ['eq', 'Is at'], ['af', 'Is at or after'], ['bf', 'Is at or before'], ['bt', 'Is between']]
+      : [['', 'No condition'], ['ct', 'Contains'], ['nc', 'Does not contain'], ['eq', 'Is exactly'], ['sw', 'Starts with']];
+    var it = c.t === 'date' ? 'date' : c.t === 'time' ? 'time' : 'text';
+    var up = c.t === 'num' ? 'smallest to largest' : c.t === 'date' ? 'oldest to newest' : c.t === 'time' ? 'earliest to latest' : 'A to Z';
+    var dn = c.t === 'num' ? 'largest to smallest' : c.t === 'date' ? 'newest to oldest' : c.t === 'time' ? 'latest to earliest' : 'Z to A';
+    var pop = document.createElement('div'); pop.className = 'lf-pop'; pop.dataset.k = key; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Filter ' + c.l);
+    pop.innerHTML = '<div class="lf-pop-sort"><button type="button" data-ps="1">Sort ' + up + '</button><button type="button" data-ps="-1">Sort ' + dn + '</button></div>'
+      + '<div class="lf-pop-l">Filter by condition</div>'
+      + '<select class="lf-pop-op">' + ops.map(function (o) { return '<option value="' + o[0] + '"' + ((cur0.op || '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'
+      + '<div class="lf-pop-in"><input class="lf-pop-a" type="' + it + '" value="' + esc(cur0.a == null ? '' : cur0.a) + '"><input class="lf-pop-b" type="' + it + '" value="' + esc(cur0.b == null ? '' : cur0.b) + '"></div>'
+      + '<div class="lf-pop-l">Filter by values</div>'
+      + '<input class="lf-pop-q" type="search" placeholder="Search" aria-label="Search values">'
+      + '<div class="lf-pop-sel"><button type="button" data-pa="1">Select all</button><span>·</span><button type="button" data-pa="0">Clear</button></div>'
+      + '<div class="lf-pop-list"></div>'
+      + '<div class="lf-pop-act"><button type="button" data-pr>Reset</button><span></span><button type="button" data-pc>Cancel</button><button type="button" class="ok" data-pk>OK</button></div>';
+    document.body.appendChild(pop); POP = pop;
+    var opEl = pop.querySelector('.lf-pop-op'), aEl = pop.querySelector('.lf-pop-a'), bEl = pop.querySelector('.lf-pop-b'), qEl = pop.querySelector('.lf-pop-q'), listEl = pop.querySelector('.lf-pop-list');
+    var showIn = function () { aEl.hidden = !opEl.value; bEl.hidden = opEl.value !== 'bt'; };
+    var drawList = function () {
+      var q = qEl.value.trim().toLowerCase(), sh = list.filter(function (x) { return !q || x.d.toLowerCase().indexOf(q) >= 0; });
+      listEl.innerHTML = sh.slice(0, 400).map(function (x) { return '<label class="lf-pop-v"><input type="checkbox" data-v="' + esc(x.d) + '"' + (sel.has(x.d) ? ' checked' : '') + '><span>' + esc(x.d === '' ? '(blank)' : x.d) + '</span><em>' + x.n + '</em></label>'; }).join('')
+        + (sh.length > 400 ? '<p class="lf-pop-more">' + (sh.length - 400) + ' more: search to narrow them down.</p>' : '') + (sh.length ? '' : '<p class="lf-pop-more">Nothing matches.</p>');
+    };
+    showIn(); drawList();
+    var rc = btn.getBoundingClientRect(), W = Math.min(300, window.innerWidth - 16), phone = window.innerWidth <= 760;
+    pop.style.width = W + 'px'; pop.style.left = (phone ? 8 : Math.max(8, Math.min(rc.right - W, window.innerWidth - W - 8))) + 'px';
+    var mh = Math.min(460, window.innerHeight - 16), tp = Math.max(8, Math.min(rc.bottom + 4, window.innerHeight - mh - 8));   // always fully on screen, also from a chip near the bottom of a phone
+    pop.style.top = tp + 'px'; pop.style.maxHeight = Math.min(mh, window.innerHeight - tp - 8) + 'px';
+    opEl.addEventListener('change', showIn);
+    qEl.addEventListener('input', drawList);
+    pop.addEventListener('change', function (e) { var cb = e.target.closest && e.target.closest('input[data-v]'); if (cb) { if (cb.checked) sel.add(cb.dataset.v); else sel.delete(cb.dataset.v); } });
+    pop.addEventListener('click', function (e) {
+      var t = e.target; S.showAll = false;
+      var ps = t.closest('[data-ps]'); if (ps) { S.sort = {k:key, dir:+ps.dataset.ps}; closePop(); renderList(); return; }
+      var pa = t.closest('[data-pa]'); if (pa) { var q = qEl.value.trim().toLowerCase(); list.forEach(function (x) { if (!q || x.d.toLowerCase().indexOf(q) >= 0) { if (pa.dataset.pa === '1') sel.add(x.d); else sel.delete(x.d); } }); drawList(); return; }
+      if (t.closest('[data-pr]')) { delete S.lf[key]; if (S.sort && S.sort.k === key) S.sort = null; closePop(); renderList(); return; }
+      if (t.closest('[data-pc]')) { closePop(); return; }
+      if (t.closest('[data-pk]')) {
+        var op = opEl.value, a = aEl.value.trim(), b = bEl.value.trim(), cond = null;
+        if (op) {
+          if (c.t === 'num') { var na = parseFloat(a.replace(/,/g, '')), nb = parseFloat(b.replace(/,/g, '')); if (isFinite(na) && (op !== 'bt' || isFinite(nb))) cond = {op:op, a:na, b:nb}; }
+          else if (c.t === 'date' || c.t === 'time') { if (a && (op !== 'bt' || b)) cond = {op:op, a:a, b:b}; }
+          else if (a) cond = {op:op, a:a};
+        }
+        var vals = sel.size === list.length ? null : new Set(sel);   // everything ticked is no filter at all
+        if (!cond && !vals) delete S.lf[key]; else S.lf[key] = Object.assign({}, cond || {}, {vals:vals});
+        closePop(); renderList();
+      }
+    });
+    qEl.focus();
   }
 
   /* ---- detail */
@@ -557,7 +696,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--surface2)}
     try { if (localStorage.getItem('trs-filters') === 'closed' && matchMedia('(min-width:761px)').matches) setBar(false, false); } catch (e) {}
 
     document.getElementById('calMain').parentNode.addEventListener('click', function (e) {
-      var t = e.target.closest('button, tr.row, th'); if (!t || t.classList.contains('gchip')) return;
+      var t = e.target.closest('button, tr.row'); if (!t || t.classList.contains('gchip')) return;
       var d = t.dataset;
       if (d.v) return;
       if (d.day && !d.act) { S.view = 'day'; S.from = S.to = d.day; S.staff = null; S.mi = 0; load(); }
@@ -566,7 +705,8 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--surface2)}
       else if (d.nav) { var n = dayStaff().length; S.mi = (S.mi + +d.nav + n) % n; render(); }
       else if (t.closest('.chead') && d.staff) { openWeek(d.staff, S.from); }
       else if (t.classList.contains('blk') || t.classList.contains('row')) { openDetail(+d.id); }
-      else if (d.sort) { if (S.sortKey === d.sort) S.sortDir *= -1; else { S.sortKey = d.sort; S.sortDir = 1; } render(); }
+      else if (d.lfc) { openPop(t, d.lfc); }
+      else if (d.lfclear) { S.sort = null; S.lf = {}; S.showAll = false; renderList(); }
       else if (t.id === 'more') { S.showAll = true; render(); }
       else if (d.act === 'list') { S.view = 'list'; render(); }
       else if (d.act === 'sortchair') { S.sortChair = !S.sortChair; render(); }
@@ -590,7 +730,8 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--surface2)}
       if (e.target.id === 'q') { S.q = e.target.value; var p = e.target.selectionStart; renderList(); var q = document.getElementById('q'); q.focus(); q.setSelectionRange(p, p); }
     });
     document.getElementById('scrim').addEventListener('click', function (e) { if (e.target.id === 'scrim') closeDetail(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDetail(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeDetail(); closePop(); } });
+    document.addEventListener('mousedown', function (e) { if (POP && !POP.contains(e.target) && !e.target.closest('[data-lfc]')) closePop(); });
     MQ.addEventListener('change', function () { if (W) render(); });
     window.addEventListener('resize', setTb);
     if (window.ResizeObserver) new ResizeObserver(setTb).observe(tbar);
