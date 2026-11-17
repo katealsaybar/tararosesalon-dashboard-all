@@ -5939,8 +5939,8 @@ function freshnessLine(label, info, feed) {
       }).join('\n')
     : '';
   // The hover title is gone: the panel says the same in words a phone can reach.
-  const synced = info.syncedAt ? syncedLabel(info.syncedAt) : '';
-  const syncedBit = synced ? `, synced <b>${synced}</b>` : '';
+  const pulledAt = info.syncedAt ? syncedLabel(info.syncedAt) : '';
+  const syncedBit = pulledAt ? `, synced <b>${pulledAt}</b>` : '';
   return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}">${label}: up to <b>${dateStr}</b> (${age}${syncedBit})${flag}</span>`;
 }
 
