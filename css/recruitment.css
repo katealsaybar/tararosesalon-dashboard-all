@@ -366,3 +366,13 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 .rct-bsel{font-size:13px}
 body:has(.rct-bulk) #rctToast{bottom:96px}
 @media (max-width:700px){.rct-bulk{bottom:8px;gap:6px;padding:8px 10px}.rct-bsep{display:none}}
+/* Kate, 17 Nov 2026 ("????" with grey boxes where the dropdowns should be): the table dropdowns carry their own pill styling now, so they look right even when the site's pill-select stylesheet is not on the page yet (a tab holding a half-updated copy of the page showed plain grey buttons with a giant arrow). Same look as pill-select's. */
+.rct-dd{position:relative;display:inline-flex;max-width:100%;vertical-align:middle}
+.rct-dd .ps-btn{appearance:none;display:inline-flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-width:0;font:inherit;font-weight:500;line-height:1.3;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:8px 14px;cursor:pointer;text-align:left}
+.rct-dd .ps-btn>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rct-dd .ps-btn svg{width:10px;height:10px;flex:none;opacity:.6}
+.rct-dd .ps-btn:hover,.rct-dd.open .ps-btn{border-color:var(--text)}
+.rct-dd .ps-menu{position:fixed;z-index:10000;display:flex;flex-direction:column;gap:2px;padding:6px;border-radius:16px;background:var(--surface);border:1px solid var(--border);color:var(--text);box-shadow:0 2px 4px rgba(26,26,26,.07),0 18px 40px -10px rgba(26,26,26,.22);max-height:320px;overflow-y:auto;font-family:inherit}
+.rct-dd .ps-menu button{appearance:none;border:0;background:transparent;color:inherit;text-align:left;white-space:nowrap;font:inherit;font-size:13.5px;font-weight:500;padding:7px 14px;border-radius:999px;cursor:pointer;flex:none}
+.rct-dd .ps-menu button:hover{background:var(--surface2)}
+.rct-dd .ps-menu button.on{background:var(--accent);color:var(--accent-fg,#fff);font-weight:700}
