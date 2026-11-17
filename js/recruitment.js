@@ -613,12 +613,13 @@
     { k: 'av', t: '', nofilter: true },
     { k: 'name', t: 'Name', val: function (p) { return p.name || 'Name not stated'; }, sort: function (p) { return String(p.name || '').toLowerCase(); }, kind: 'text' },
     { k: 'photo', t: 'Profile photo', val: photoLabel, sort: function (p) { return !p.photo ? 2 : p.photo_bad ? 1 : 0; }, kind: 'num', asc: 'Good photo first', desc: 'No photo first' },
+    // Kate, 17 Nov 2026 ("put applying for column after has profile photo column"): Applying for sits right after Profile photo.
+    { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleGroup(p).toLowerCase(); }, kind: 'text' },
     { k: 'pref', t: 'Preferred location', val: prefLabel, sort: function (p) { return prefLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'place', t: 'Based in', val: countryShort, sort: function (p) { return placeShort(p).toLowerCase(); }, kind: 'text' },
     { k: 'ig', t: 'Link to work', val: igLabel, sort: function (p) { return (linkKind(p) ? '0' : '1') + igLabel(p).toLowerCase(); }, kind: 'text' },
     { k: 'cv', t: 'CV', val: cvLabel, sort: function (p) { return cvUrl(p) || p.cv_file ? 0 : inEmail(p) ? 1 : deadCv(p) ? 2 : 3; }, kind: 'text' },
     { k: 'exp', t: 'Experience', val: function (p) { return p.experience || 'Not stated'; }, sort: expNum, kind: 'num', asc: 'Fewest years first', desc: 'Most years first' },
-    { k: 'role', t: 'Applying for', val: roleGroup, sort: function (p) { return roleGroup(p).toLowerCase(); }, kind: 'text' },
     { k: 'emp', t: 'Employment type', val: empType, sort: function (p) { return empType(p).toLowerCase(); }, kind: 'text' },
     { k: 'applied', t: 'Applied', val: monthOf, sort: function (p) { return new Date(p.applied_at).getTime(); }, kind: 'num', asc: 'Oldest first', desc: 'Newest first' },
     { k: 'src', t: 'Came from', val: srcLabel, sort: function (p) { return srcLabel(p).toLowerCase(); }, kind: 'text' },
@@ -670,7 +671,8 @@
       case 'src': return '<td>' + cellBtn(esc(srcLabel(p)), 'src', srcLabel(p)) + '</td>';
       case 'asg': return '<td>' + (p.assigned_to ? cellBtn(esc(firstName(p.assigned_to)) + (p.assigned_mine ? ' (you)' : ''), 'asg', firstName(p.assigned_to)) : cellBtn('<span class="rct-ns">Nobody yet</span>', 'asg', 'Nobody yet')) + '</td>';
       case 'edit': { var le = lastEdit(p); return '<td class="rct-c-edit">' + (le ? cellBtn('<b>' + esc(firstName(le.by)) + '</b>', 'edit', editedLabel(p)) + '<div class="rct-why">' + esc(le.what) + ', ' + esc(fat(le.at)) + '</div>' : '<span class="rct-ns">No changes yet</span>') + '</td>'; }
-      case 'photo': return '<td>' + cellBtn(!p.photo ? '<span class="rct-ns">No photo</span>' : p.photo_bad ? '<span class="rct-badph">Photo not professional</span>' : 'Has photo', 'photo', photoLabel(p)) + '</td>';
+      // Kate, 17 Nov 2026 ("has profile photo? check or x lang, i narrow down mo this column"): a check for a good photo, an x for no photo or one that is not professional. The words stay in the tooltip and the filter list.
+      case 'photo': return '<td class="rct-c-ph">' + cellBtn(!p.photo ? '<span class="rct-phx" role="img" aria-label="No photo" title="No photo">&#10007;</span>' : p.photo_bad ? '<span class="rct-phx rct-phbad" role="img" aria-label="Photo not professional" title="Photo not professional">&#10007;</span>' : '<span class="rct-phok" role="img" aria-label="Has photo" title="Has photo">&#10003;</span>', 'photo', photoLabel(p)) + '</td>';
       case 'pref': return '<td>' + prefSelect(p) + '</td>';
       case 'place': return '<td>' + cellBtn(esc(placeShort(p)), 'place', countryShort(p)) + '</td>';
       case 'ig': {
@@ -729,7 +731,7 @@
     COLS.forEach(function (c) {
       if (c.k === 'av') return;   // Kate, 16 Nov 2026: the photo has no title of its own, the Name title spans the photo and the name and sits in the middle of the two
       var sorted = S.sort.col === c.k, act = !!S.filters[c.k] || sorted;
-      h += '<th' + (c.k === 'name' ? ' colspan="2" class="rct-thname"' : c.k === 'acts' ? ' class="rct-thacts"' : '') + '><div class="rct-th' + (sorted ? ' rct-sorted' : '') + '">' + esc(c.t) + (sorted ? '<span class="rct-sortmark">' + (S.sort.dir === 'asc' ? '&#9650;' : '&#9660;') + '</span>' : '') +
+      h += '<th' + (c.k === 'name' ? ' colspan="2" class="rct-thname"' : c.k === 'acts' ? ' class="rct-thacts"' : c.k === 'photo' ? ' class="rct-thph"' : '') + '><div class="rct-th' + (sorted ? ' rct-sorted' : '') + '">' + esc(c.t) + (sorted ? '<span class="rct-sortmark">' + (S.sort.dir === 'asc' ? '&#9650;' : '&#9660;') + '</span>' : '') +
         (c.nofilter ? '' : '<button type="button" class="rct-fbtn' + (act ? ' rct-act' : '') + '" data-fcol="' + c.k + '" aria-label="Filter and sort ' + esc(c.t) + '" aria-haspopup="true">' + ICON_FILTER + '</button>') + '</div></th>';
     });
     h += '</tr></thead><tbody>';
