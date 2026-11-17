@@ -332,3 +332,14 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 .rct-efsub{margin:8px 0 4px;font-size:14.5px}
 .rct-eftext{white-space:pre-wrap;word-break:break-word;font:inherit;font-size:14px;line-height:1.5;background:var(--surface2);border-radius:10px;padding:10px 12px;margin:6px 0 8px}
 .rct-ef details summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0}
+/* Kate, 17 Nov 2026: the sidebar on the Email formats popup */
+.rct-efwrap{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;align-items:start}
+.rct-efnav{position:sticky;top:76px;display:grid;gap:2px;max-height:calc(100vh - 130px);overflow:auto}
+.rct-efnav button{display:flex;align-items:center;gap:8px;text-align:left;border:0;background:transparent;border-radius:10px;padding:7px 10px;font-size:13.5px;line-height:1.25;cursor:pointer;color:var(--text)}
+.rct-efnav button span{flex:none;width:20px;height:20px;border-radius:50%;background:var(--surface2);display:grid;place-items:center;font-size:11.5px;font-weight:600}
+.rct-efnav button:hover{background:var(--surface2)}
+.rct-efnav button.rct-efon{background:color-mix(in srgb,var(--accent) 14%,var(--surface));font-weight:600}
+.rct-efnav button.rct-efon span{background:var(--accent);color:#fff}
+.rct-efbody .rct-ef:first-child{border-top:0;padding-top:0}
+.rct-ef{scroll-margin-top:82px}
+@media (max-width:720px){.rct-efwrap{grid-template-columns:minmax(0,1fr)}.rct-efnav{top:62px;z-index:2;grid-auto-flow:column;grid-auto-columns:max-content;overflow-x:auto;max-height:none;background:var(--surface);padding:6px 0;border-bottom:1px solid var(--border)}}

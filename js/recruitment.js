@@ -797,6 +797,7 @@
   function openDlg(title, body) {
     var d = dlg();
     d.classList.remove('rct-wide');
+    d.onscroll = null;
     d.innerHTML = '<div class="rct rct-dh"><h2>' + title + '</h2><button type="button" class="rct-x" data-close aria-label="Close">&times;</button></div><div class="rct rct-db">' + body + '</div>';
     if (!d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
   }
@@ -1454,18 +1455,33 @@
       { t: 'Start date: pending', when: HAND + ' It carries a button the person presses to confirm the date.', rp: stageEmailParts(sp, 'start_pending') },
       { t: 'Start date: accepted', when: HAND, rp: stageEmailParts(sp, 'start_accepted') },
       { t: 'Hired', when: HAND, rp: stageEmailParts(sp, 'hired') },
-      { t: 'Not now / Rejected (the No reply)', when: 'By hand: the Reply button on a Not now or Rejected person, or No for the group. The wording is the one saved in Booking link and replies.', rp: replyParts(sp, false) }
+      { t: 'Not now / Rejected (the No reply)', nav: 'No reply', when: 'By hand: the Reply button on a Not now or Rejected person, or No for the group. The wording is the one saved in Booking link and replies.', rp: replyParts(sp, false) }
     ];
-    var h = '<p class="rct-hint">These are the emails the page uses, in hiring order. The person here is a sample (Aisha Khan). Nothing is sent from this list. To change the Shortlisted invite for stylists or the No wording, use Booking link and replies.</p>';
+    var intro = '<p class="rct-hint">These are the emails the page uses, in hiring order. The person here is a sample (Aisha Khan). Nothing is sent from this list. To change the Shortlisted invite for stylists or the No wording, use Booking link and replies.</p>';
+    // Kate, 17 Nov 2026 ("a small sidebar navi sa gilid so we can easily navigate each type"): a narrow list on the left stays in view while the emails scroll; a click jumps to that email and the one being read is marked.
+    var nav = '<nav class="rct-efnav" aria-label="Jump to an email">', body = '';
     list.forEach(function (x, i) {
       var rp = x.rp; if (!rp) return;
-      h += '<section class="rct-ef"><h3>' + (i + 1) + '. ' + esc(x.t) + '</h3><p class="rct-hint">' + esc(x.when) + '</p>' +
+      nav += '<button type="button" data-efgo="' + i + '"' + (i === 0 ? ' class="rct-efon"' : '') + '><span>' + (i + 1) + '</span>' + esc(x.nav || x.t) + '</button>';
+      body += '<section class="rct-ef" id="rctEf' + i + '" data-ef="' + i + '"><h3>' + (i + 1) + '. ' + esc(x.t) + '</h3><p class="rct-hint">' + esc(x.when) + '</p>' +
         '<div class="rct-efsub"><b>Subject:</b> ' + esc(rp.subject) + '</div>' +
         '<pre class="rct-eftext">' + esc(rp.textFull || rp.text) + '</pre>' +
         '<details><summary>How it looks</summary>' + previewFrame(rp.html) + '</details></section>';
     });
-    openDlg('Email formats', h);
-    var d = dlg(); d.classList.add('rct-wide');
+    nav += '</nav>';
+    openDlg('Email formats', intro + '<div class="rct-efwrap">' + nav + '<div class="rct-efbody">' + body + '</div></div>');
+    var d = dlg(); d.classList.add('rct-wide'); d.scrollTop = 0;
+    var navEl = d.querySelector('.rct-efnav'), secs = [].slice.call(d.querySelectorAll('.rct-ef'));
+    function mark(i) { [].forEach.call(navEl.querySelectorAll('button'), function (b) { b.classList.toggle('rct-efon', b.getAttribute('data-efgo') === String(i)); }); var on = navEl.querySelector('.rct-efon'); if (on && on.scrollIntoView && navEl.scrollWidth > navEl.clientWidth) on.scrollIntoView({ block: 'nearest', inline: 'center' }); }
+    navEl.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-efgo]'); if (!b) return;
+      var sec = d.querySelector('#rctEf' + b.getAttribute('data-efgo')); if (sec) { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); mark(b.getAttribute('data-efgo')); }
+    });
+    d.onscroll = function () {
+      var top = d.getBoundingClientRect().top + 150, cur = 0;
+      secs.forEach(function (sc, i) { if (sc.getBoundingClientRect().top <= top) cur = i; });
+      mark(cur);
+    };
   }
   // Kate, 17 Nov 2026 ("no xlsx and csv buttons for downloads"): the house rule for every report (report-export.js, 10 Nov 2026). Every person the filters, the box picked and the search match, in the
   // order the table shows them, not only the page on screen. Contact details are in the file because the page shows them to the same people.
