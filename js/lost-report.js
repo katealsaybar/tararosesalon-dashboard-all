@@ -492,7 +492,7 @@ function lrRecInner() {
     ${lrRecMsgs()}
     <div class="lr-scroll"><table class="slv-table lr-tbl"><thead><tr><th>Day</th><th>Messages sent</th><th>Spent (estimate)</th><th>Replied</th><th>STOP</th><th>Booked ahead</th><th>Booked since</th><th>Messages per booking</th><th>Cost per booking</th></tr></thead><tbody>
       ${rows.map(x => `<tr><td>${lcEsc(lrDay(x.day))}</td><td>${lcNum(x.sent)}</td><td>${lrAed(x.cost_aed)}</td><td>${lcNum(x.replied)}</td><td>${lcNum(x.stop)}</td><td>${lcNum(x.booked_ahead)}</td><td>${lcNum(x.booked_since)}</td><td>${f1(x.messages_per_booking)}</td><td>${aed2(x.cost_per_booking)}</td></tr>`).join('')}</tbody></table></div>
-    <p class="slv-note">Saved every night at midnight (Dubai), so you can see the cost of a booking come down as more clients say yes. Booked since is the clients with a booking from today on plus the ones who already came in after our message, each counted once. Spent is the estimate at AED ${(+r.rate).toFixed(2)} a message, and every message counts, including the second one some clients were sent.</p>`;
+    <p class="slv-note">Saved every night at midnight (Dubai), so you can see the cost of a booking come down as more clients say yes. Booked since is counted from the first message: the clients with a booking up to 31 Oct plus the ones who already came in after it, each counted once. Spent is the estimate at AED ${(+r.rate).toFixed(2)} a message, and every message counts, including the second one some clients were sent.</p>`;
 }
 function lrMoneySet(v) {
   lrMoneyView = v === 'table' ? 'table' : 'visual';
