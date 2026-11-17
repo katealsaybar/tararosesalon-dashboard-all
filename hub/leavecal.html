@@ -658,9 +658,9 @@ function sickOK(r){
   if((r.b==='X'||!r.b)&&f&&f.a&&f.a.length)return f.a.some(function(x){return S.br.indexOf(x)>=0});
   return brOK(r.b||'X');
 }
-function inferredIn(r,mon){
+function inferredIn(r,mon,ty){
   var me=(rfind(r.n,r.b)||{}).n||r.n;
-  return LV.some(function(l){return l.s==='inf'&&l.c==='SL'&&+l.f.slice(5,7)===mon&&((rfind(l.n,l.b)||{}).n||l.n)===me})
+  return LV.some(function(l){return l.s==='inf'&&l.c===ty&&+l.f.slice(5,7)===mon&&((rfind(l.n,l.b)||{}).n||l.n)===me})
 }
 function monthChips(mon){
   if(S.y!==+TODAY.slice(0,4)||!S.layers.sick)return [];
@@ -670,7 +670,7 @@ function monthChips(mon){
     [['SL',r.sl],['ABS',r.ab]].forEach(function(t){
       var d=t[1]&&t[1][mon];
       /* a month whose days are inferred from Phorest and drawn as bars does not repeat as a chip */
-      if(d&&t[0]==='SL'&&S.layers.inf&&inferredIn(r,mon))return;
+      if(d&&S.layers.inf&&inferredIn(r,mon,t[0]))return;
       if(d&&S.tys[t[0]])out.push({n:r.n,r:r,t:t[0],d:d})})});
   out.sort(function(a,b){return (a.t<b.t?-1:a.t>b.t?1:0)||a.n.localeCompare(b.n)});
   return out;
