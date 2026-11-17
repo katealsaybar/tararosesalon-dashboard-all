@@ -1570,7 +1570,8 @@
     try {
       var r = await sb.rpc('recruit_assign_many', { p_ids: ids, p_to: self ? null : toEmail, p_take: true }); if (r.error) throw new Error(r.error.message);
       var d = r.data || {}, who = self ? 'you' : firstName(u.name);
-      await bulkDone((d.changed || 0) + ' assigned to ' + who + (d.skipped ? '. ' + d.skipped + ' already held by someone else, left alone' : '') + (d.changed ? '. The others have been told.' : '.'));
+      var wa = d.changed ? await claimWhatsApp(self ? null : toEmail, d.changed, null, null) : '';
+      await bulkDone((d.changed || 0) + ' assigned to ' + who + (d.skipped ? '. ' + d.skipped + ' already held by someone else, left alone' : '') + (d.changed ? '. The others have been told.' : '.') + wa);
     } catch (e) { console.error(e); toast('That did not save: ' + (e.message || 'try again')); }
   }
   async function bulkLetGo() {
@@ -1604,6 +1605,20 @@
   // Kate, 17 Nov 2026 ("add assign to self button pala, kasi baka mag unahan ate jho at ate frances sa pag tingin ng applicants ... pag napindot na nung isa, mag notify samin lahat real time"):
   // Assign to me takes a person. The database refuses a second person (and says who has them), writes the claim into the history, and puts a popup notice on the bell of everyone else who
   // can open Recruitment, on whatever page of the dashboard they are. The bell and this page both listen for it live (site_notice_ping), so nobody waits for a refresh.
+  // Kate, 17 Nov 2026 ("to notify through whatsapp"): after an assign the OTHER interviewers also get a WhatsApp from the main number (migrations/recruit_wa_claim_reminder_17nov.sql),
+  // through the staff WhatsApp queue. Off until the setting claim_wa_enabled is true and Meta has approved the template. It never blocks the assign: this only returns a sentence for the toast.
+  async function claimWhatsApp(holderEmail, n, label, id) {
+    if (!n || !setting('claim_wa_enabled', false)) return '';
+    try {
+      var r = await sb.rpc('recruit_claim_notify', { p_holder_email: holderEmail || null, p_count: n, p_label: label || null, p_id: id || null });
+      if (r.error) throw new Error(r.error.message);
+      var d = r.data || {};
+      if (d.queued) return ' ' + (d.names || []).join(' and ') + ' will also get a WhatsApp' + (d.sends_now ? ' now.' : ' from ' + (d.hour_from || 9) + ':00 in the morning (Dubai).');
+      if (d.reason === 'template_not_approved') return ' The WhatsApp did not go: the message is not approved by Meta yet.';
+      if (d.reason && d.reason !== 'off' && d.reason !== 'nothing') return ' The WhatsApp did not go (' + String(d.reason).replace(/_/g, ' ') + ').';
+      return '';
+    } catch (e) { console.error(e); return ' The WhatsApp did not go: ' + (e.message || 'try again') + '.'; }
+  }
   function asgHtml(p) {
     var id = esc(p.id);
     if (!p.assigned_to) return '<button type="button" class="rct-asg" data-act="assign" data-id="' + id + '" title="Take this person so the others know you are on them">Assign to me</button>';
@@ -1618,7 +1633,8 @@
       if (force) closeDlg();
       if (d.ok) {
         p.assigned_to = me; p.assigned_mine = true; p.assigned_at = new Date().toISOString(); render();
-        toast(d.already ? firstName(p.name) + ' is already yours.' : firstName(p.name) + ' is yours now. The others have been told.');
+        var wa = d.already ? '' : await claimWhatsApp(null, 1, p.name, p.id);
+        toast(d.already ? firstName(p.name) + ' is already yours.' : firstName(p.name) + ' is yours now. The others have been told.' + wa);
       } else {
         p.assigned_to = d.taken_by || p.assigned_to; p.assigned_mine = false; p.assigned_at = d.at || p.assigned_at; render();
         toast(firstName(d.taken_by || 'Someone') + ' already took ' + firstName(p.name) + '.');
