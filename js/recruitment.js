@@ -388,7 +388,7 @@
          '<label class="rct-find rct-hiring" title="Type what is needed and press Enter. Anyone applying for a role that is not in this list moves to Probably no. Leave it empty and nobody is moved because of their role."><span class="rct-hl">Hiring now</span>' +
          '<input type="text" id="rctRoles" class="rct-rolein" value="' + esc(openText()) + '" placeholder="Roles, separated by commas, then Enter. For example Hair stylist, Receptionist" autocomplete="off" aria-label="What we are hiring for right now. Anyone applying for a role not in this list moves to Probably no."></label></div>' + (setBy('open_roles_text') ? '<p class="rct-hint rct-hiringby">Hiring now: ' + esc(setBy('open_roles_text').replace(/^Last/, 'last')) + '</p>' : '');
     h += '<div class="rct-bar">' +
-         segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button></div>';
+         segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button><button type="button" class="rct-btn rct-sm" data-act="emails">Email formats</button>' + (typeof rexButtons === 'function' ? rexButtons('rctExport') : '') + '</div>';
 
     if (S.lane) h += laneBarHtml();
     if (S.mode === 'list') {
@@ -1435,6 +1435,58 @@
     try { if (to === 'start_pending') await acceptUrl(p); } catch (e) { console.error(e); toast('The accept link did not load: ' + (e.message || 'try again')); return; }
     stageEmailDialog(p, to, lead || 'This is the email for <b>' + esc(STAGE_LABEL[to]) + '</b>.');
   }
+  // Kate, 17 Nov 2026 ("patingin ako ng email formats ng lahat ng to ... dapat nakikita rin sya sa recruitment page, listed"): every email the page can send or copy, one after the other in hiring
+  // order, with the subject, when it goes out, the words, and how the formatted email looks. Built from the SAME text the buttons use (PE, SL_BODY, the saved No wording), so this list can
+  // never drift from what a person really gets. The person in it is a sample, nothing is sent and nothing is saved.
+  function emailFormatsDialog() {
+    var sp = { id: '__sample', name: 'Aisha Khan', stage_note: 'Tuesday 24 Nov, 10:00 at Saadiyat', start_date: '2026-12-01', email: '', bounced: false };
+    ACCEPT.__sample = 'https://trk-salon-os.com/accept/?t=example';
+    var HAND = 'By hand: the envelope next to this status in the table opens it, ready to copy into Gmail.';
+    var list = [
+      { t: 'Shortlisted', when: 'By itself, from the recruitment inbox, when ate Jho or ate Frances shortlists a Front Desk / Reception, Hair Assistant or Other applicant (once the automatic email is switched on). Stylists and beauticians get the invite from Booking link and replies instead.', rp: shortlistEmailParts(sp) },
+      { t: 'Interview: pass', when: HAND, rp: stageEmailParts(sp, 'interview_pass') },
+      { t: 'Interview: fail', when: HAND, rp: stageEmailParts(sp, 'interview_fail') },
+      { t: 'Trade test: scheduled', when: HAND + ' The day, time and salon are what you type when you set the trade test.', rp: stageEmailParts(sp, 'trade_test') },
+      { t: 'Trade test: pass', when: HAND, rp: stageEmailParts(sp, 'trade_pass') },
+      { t: 'Trade test: fail', when: HAND, rp: stageEmailParts(sp, 'trade_fail') },
+      { t: 'Offer letter: to send', when: HAND, rp: stageEmailParts(sp, 'offer_to_send') },
+      { t: 'Offer letter: sent', when: HAND, rp: stageEmailParts(sp, 'offer_sent') },
+      { t: 'Start date: pending', when: HAND + ' It carries a button the person presses to confirm the date.', rp: stageEmailParts(sp, 'start_pending') },
+      { t: 'Start date: accepted', when: HAND, rp: stageEmailParts(sp, 'start_accepted') },
+      { t: 'Hired', when: HAND, rp: stageEmailParts(sp, 'hired') },
+      { t: 'Not now / Rejected (the No reply)', when: 'By hand: the Reply button on a Not now or Rejected person, or No for the group. The wording is the one saved in Booking link and replies.', rp: replyParts(sp, false) }
+    ];
+    var h = '<p class="rct-hint">These are the emails the page uses, in hiring order. The person here is a sample (Aisha Khan). Nothing is sent from this list. To change the Shortlisted invite for stylists or the No wording, use Booking link and replies.</p>';
+    list.forEach(function (x, i) {
+      var rp = x.rp; if (!rp) return;
+      h += '<section class="rct-ef"><h3>' + (i + 1) + '. ' + esc(x.t) + '</h3><p class="rct-hint">' + esc(x.when) + '</p>' +
+        '<div class="rct-efsub"><b>Subject:</b> ' + esc(rp.subject) + '</div>' +
+        '<pre class="rct-eftext">' + esc(rp.textFull || rp.text) + '</pre>' +
+        '<details><summary>How it looks</summary>' + previewFrame(rp.html) + '</details></section>';
+    });
+    openDlg('Email formats', h);
+    var d = dlg(); d.classList.add('rct-wide');
+  }
+  // Kate, 17 Nov 2026 ("no xlsx and csv buttons for downloads"): the house rule for every report (report-export.js, 10 Nov 2026). Every person the filters, the box picked and the search match, in the
+  // order the table shows them, not only the page on screen. Contact details are in the file because the page shows them to the same people.
+  function rctExport() {
+    var list = sortedRows(listRows()); if (!list.length) return null;
+    var T = function (k, l) { return { key: k, label: l, fmt: 'text' }; };
+    var cols = [T('st', 'Application status'), T('nm', 'Name'), T('em', 'Email'), T('wa', 'WhatsApp'), T('pl', 'Based in'), T('ig', 'Link to work'), T('cv', 'CV'), T('ph', 'Profile photo'),
+      T('ex', 'Experience'), T('ro', 'Applying for'), T('et', 'Employment type'), T('ap', 'Applied'), T('sr', 'Came from'), T('wt', 'Days waiting (new, no reply)'), T('s2', 'Worth a look or Probably no'),
+      T('lb', 'Last change by'), T('lw', 'Last change'), T('ld', 'Last change date'), T('rv', 'First looked at by')];
+    var d10 = function (iso) { return iso ? String(iso).slice(0, 10) : ''; };
+    var rows = list.map(function (p) {
+      var le = lastEdit(p), b = bucket(p);
+      return { cells: [STAGE_LABEL[p.stage] || p.stage, p.name || 'Name not stated', p.email || '', p.whatsapp || '', placeShort(p), igLabel(p), cvLabel(p), photoLabel(p), p.experience || 'Not stated', roleGroup(p), empType(p),
+        d10(p.applied_at), srcLabel(p), (p.stage === 'new' && !p.replied_at) ? waited(p) : '', p.stage === 'new' ? (b === 'no' ? 'Probably no' : 'Worth a look') : '',
+        le ? firstName(le.by) : '', le ? le.what : '', le ? d10(le.at) : '', p.reviewed_by && p.reviewed_by !== 'earlier decision' ? firstName(p.reviewed_by) : ''] };
+    });
+    return { name: 'recruitment' + (S.lane ? '-' + S.lane : ''), sheets: [{ name: 'Applicants', title: 'Recruitment', subtitle: rows.length + ' people, with the filters set on the page',
+      blocks: [{ cols: cols, rows: rows }],
+      legend: [['Application status', 'The step the person is at in the hiring steps.'], ['Last change', 'The last thing anyone changed on that person, and who.'], ['Worth a look or Probably no', 'Only for people still at New.']] }] };
+  }
+  window.rctExport = rctExport;
   // Kate, 16 Nov 2026 (mock-up option 3, "pangit din tlga layout nung buttons sa status"): the Application Status cell is one tidy block. Top line: the status dropdown and an envelope
   // that opens that step's email. Under it, one clear action: Passed and Not passed side by side at the two decision steps (interview, trade test), one next-step button at every other
   // step, nothing at the end. Going back, Not now and Back to New are in the dropdown.
@@ -1644,6 +1696,7 @@
       else if (a === 'cvfile') openCvFile(id);
       else if (a === 'rename') renameDialog(id);
       else if (a === 'hist') showHistory(id);
+      else if (a === 'emails') emailFormatsDialog();
       else if (a === 'renamesave') renameSave(id);
       else if (a === 'photobulk') pickBulk();
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }

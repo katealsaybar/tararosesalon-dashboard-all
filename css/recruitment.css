@@ -326,3 +326,9 @@ a.rct-chip:hover,button.rct-chip:hover{filter:brightness(1.1);text-decoration:un
 .rct-hist li span{color:var(--muted);white-space:nowrap;font-size:13px}
 .rct-sethist{display:block;margin-top:4px;color:var(--muted);font-size:13px}
 .rct-hiringby{margin:4px 0 0}
+/* Kate, 17 Nov 2026: the Email formats list */
+.rct-ef{border-top:1px solid var(--border);padding:14px 0 10px}
+.rct-ef h3{margin:0 0 4px;font-size:17px}
+.rct-efsub{margin:8px 0 4px;font-size:14.5px}
+.rct-eftext{white-space:pre-wrap;word-break:break-word;font:inherit;font-size:14px;line-height:1.5;background:var(--surface2);border-radius:10px;padding:10px 12px;margin:6px 0 8px}
+.rct-ef details summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0}
