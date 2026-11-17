@@ -365,6 +365,9 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
 .sw.blk{background:var(--blk)}
 .sw.ty{border-radius:4px}
 .lay-sep{flex-basis:100%;height:0}
+.pl-chips{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:3px 4px;padding:0 5px 5px}
+.pl-chip{font-size:11px;line-height:16px;padding:0 7px;border-radius:999px;color:#fff;background:var(--bc);white-space:nowrap;cursor:default}
+.pl-chip.ABS{box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
 @media (max-width:760px){.bar{font-size:10.5px;padding:0 3px}}
 .side{top:calc(var(--tb,160px) + 10px)}
 /* today is a thin mint line, not a filled block (Kate: the tinted column floated and did nothing); the legend names it */
@@ -446,7 +449,7 @@ var HOL=[
  {n:'National Day',f:'2026-12-02',t:'2026-12-03',note:'Fixed date, two days.'}
 ];
 
-var S={br:['SAA','KCA','MC','AQ'],view:'planner',everyone:true,res:false,F:{},sort:null,F2:{},sort2:null,m:+TODAY.slice(5,7)-1,y:Math.min(2027,Math.max(2026,+TODAY.slice(0,4))),sel:TODAY,dep:[],tys:{VL:true,SL:true,ABS:true,EL:true},layers:{hol:true,app:true,plan:true,req:true,inf:false,blk:true},q:''};
+var S={br:['SAA','KCA','MC','AQ'],view:'planner',everyone:true,res:false,F:{},sort:null,F2:{},sort2:null,m:+TODAY.slice(5,7)-1,y:Math.min(2027,Math.max(2026,+TODAY.slice(0,4))),sel:TODAY,dep:[],tys:{VL:true,SL:true,ABS:true,EL:true},layers:{hol:true,app:true,plan:true,req:true,inf:false,blk:true,sick:true},q:''};
 
 function P(s){var a=s.split('-');return Date.UTC(+a[0],+a[1]-1,+a[2])}
 function iso(t){return new Date(t).toISOString().slice(0,10)}
@@ -521,6 +524,7 @@ function buildLayers(){
   L.appendChild(el('span','lay-sep'));
   TYPES.forEach(function(x){
     var n=LV.filter(function(l){return l.c===x[0]&&lvOK(l)}).length;
+    if(x[0]==='SL'||x[0]==='ABS'){SICK.forEach(function(r){if(!sickOK(r))return;var o=x[0]==='SL'?r.sl:r.ab;for(var k in (o||{}))n+=o[k]})}
     var b=el('button','lay');b.setAttribute('aria-pressed',S.tys[x[0]]);
     var w=el('span','sw ty');w.style.background='var(--t-'+x[0]+')';b.appendChild(w);b.appendChild(document.createTextNode(x[1]+' '));b.appendChild(el('small','',n));
     b.onclick=function(){S.tys[x[0]]=!S.tys[x[0]];draw()};L.appendChild(b)});
@@ -643,6 +647,31 @@ function lanesFor(its,a,b){
   segs.forEach(function(g){var i=0;while(ends[i]!==undefined&&ends[i]>=g.s)i++;g.lane=i;ends[i]=g.e});
   return {segs:segs,n:ends.length};
 }
+/* sick leave and absences are only held as counts per person per month (Jumera's sheets), so they sit under the month as one chip per person, not on a day */
+function sickOK(r){
+  var f=rfind(r.n,r.b);
+  if(!S.res&&(f&&f.res))return false;
+  if(!depOK(r.n,r.b))return false;
+  if((r.b==='X'||!r.b)&&f&&f.a&&f.a.length)return f.a.some(function(x){return S.br.indexOf(x)>=0});
+  return brOK(r.b||'X');
+}
+function monthChips(mon){
+  if(S.y!==+TODAY.slice(0,4)||!S.layers.sick)return [];
+  var out=[];
+  SICK.forEach(function(r){
+    if(!sickOK(r))return;
+    [['SL',r.sl],['ABS',r.ab]].forEach(function(t){
+      var d=t[1]&&t[1][mon];if(d&&S.tys[t[0]])out.push({n:r.n,r:r,t:t[0],d:d})})});
+  out.sort(function(a,b){return (a.t<b.t?-1:a.t>b.t?1:0)||a.n.localeCompare(b.n)});
+  return out;
+}
+function chipEl(x,mon){
+  var f=rfind(x.n,x.r.b),full=f?f.n:x.n,first=full.split(' ')[0];
+  var e=el('span','pl-chip '+x.t,first+' · '+x.d+(x.t==='SL'?' SL':' absent'));
+  e.style.setProperty('--bc','var(--t-'+x.t+')');
+  e.title=full+': '+x.d+(x.d===1?' day':' days')+(x.t==='SL'?' sick leave with a medical certificate':' absent (sick without a medical certificate)')+', '+MON[mon-1]+' '+S.y+'. Counted per month, no dates.';
+  return e;
+}
 /* the bars layer lets the mouse through to the day cells (today's line, day click); the bars themselves still take it */
 function barEl(g){
   var it=g.it,e=el('div','bar '+it.k+(g.cl?' cl':'')+(g.cr?' cr':''),it.label);
@@ -663,14 +692,17 @@ function drawPlanner(c){
     var dim=new Date(Date.UTC(S.y,m+1,0)).getUTCDate(),mm=('0'+(m+1)).slice(-2);
     var L=lanesFor(its,S.y+'-'+mm+'-01',S.y+'-'+mm+'-'+dim);
     var row=el('div','pl-row'),lab=el('div','pl-lab',MON[m].slice(0,3));lab.onclick=function(){S.m=m;S.view='month';draw()};row.appendChild(lab);
-    var body=el('div','pl-body');body.style.height=(Math.max(L.n,2)*20+8)+'px';
+    var body=el('div','pl-body'),laneH=Math.max(L.n,2)*20+8;body.style.minHeight=laneH+'px';
     var bg=el('div','pl-bg');
     for(var d=1;d<=31;d++){(function(d){
       var s=S.y+'-'+mm+'-'+('0'+d).slice(-2),x=d>dim,dd=idx[s];
       var cell=el('div','pl-c'+(x?' x':'')+(!x&&dd&&dd.hol.length?' h':'')+(!x&&S.layers.blk&&isBlk(s)?' b':'')+(s===TODAY?' today':'')+(s===S.sel?' sel':''));
       if(!x){cell.onclick=function(){S.sel=s;draw()};cell.title=fmt(s)+(s===TODAY?' (today)':'');if(s===TODAY)todayTip(cell)}bg.appendChild(cell)})(d)}
     var bars=el('div','pl-bars');L.segs.forEach(function(g){bars.appendChild(barEl(g))});
-    body.appendChild(bg);body.appendChild(bars);row.appendChild(body);pl.appendChild(row)})(m)}
+    body.appendChild(bg);body.appendChild(bars);
+    var ch=monthChips(m+1);
+    if(ch.length){var cw=el('div','pl-chips');cw.style.marginTop=laneH+'px';ch.forEach(function(x){cw.appendChild(chipEl(x,m+1))});body.appendChild(cw)}
+    row.appendChild(body);pl.appendChild(row)})(m)}
   wrap.appendChild(pl);c.appendChild(wrap);
 }
 
