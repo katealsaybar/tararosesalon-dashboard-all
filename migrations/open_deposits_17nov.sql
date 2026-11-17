@@ -75,3 +75,23 @@ grant execute on function public.open_deposits() to authenticated;
 
 -- the page is marked Under construction (page_status), applied live 17 Nov 2026:
 -- insert into public.page_status (page_id, status, updated_at, updated_by) values ('depositcheck', 'construction', now(), 'kate@tararosesalon.com') on conflict (page_id) do update set status = 'construction', updated_at = now();
+
+-- Click a number on Deposit Checking to see what the deposit was for (17 Nov 2026): the bills behind one client's open deposit at one salon. Same guard. Phorest sales hold what was rung
+-- through, not what was booked, so 'lines' (everything rung through for her after the deposit, except the sale that carries a Deposit line itself, first 120 lines) is the best read of the service.
+create or replace function public.open_deposit_detail(p_branch text, p_client text, p_from date) returns jsonb
+language plpgsql stable security definer set search_path to 'public' as $$
+declare who text := public.deposit_guard();
+begin
+  if p_branch is null or p_branch not in ('KCA','AQ','SAA','MC') or p_client is null or p_from is null then
+    raise exception 'Not open to your account';
+  end if;
+  return jsonb_build_object(
+    'deposits', coalesce((select jsonb_agg(jsonb_build_object('d', l.date, 'item', l.item, 't', l.total, 'pay', l.payment_raw) order by l.date, l.id)
+        from sales_transaction_lines l where l.branch = p_branch and l.client_id = p_client and l.date >= p_from and l.item ilike 'Deposit%'), '[]'::jsonb),
+    'lines', coalesce((select jsonb_agg(jsonb_build_object('d', l.date, 'sale', l.sale_id, 'item', l.item, 'staff', l.employee_name, 't', l.total, 'pay', l.payment_raw) order by l.date, l.id)
+        from (select * from sales_transaction_lines x
+              where x.branch = p_branch and x.client_id = p_client and x.date >= p_from and x.item not ilike 'Deposit%'
+                and x.sale_id not in (select y.sale_id from sales_transaction_lines y where y.branch = p_branch and y.client_id = p_client and y.date >= p_from and y.item ilike 'Deposit%')
+              order by x.date, x.id limit 120) l), '[]'::jsonb));
+end $$;
+grant execute on function public.open_deposit_detail(text, text, date) to authenticated;

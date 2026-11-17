@@ -28,7 +28,7 @@ function dpcCodes() {   // the salons picked in the header; the four when All (B
 
 const dpcBookOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 5;   // the Client Book is a Level 5 page
 
-const OPD = { status: 'all', q: '', shown: 30, f: {}, sort: null };
+const OPD = { status: 'all', q: '', shown: 30, f: {}, sort: null, open: null };
 const OPD_NAME = { came: 'Came back, not deducted', part: 'Part used', old: 'No visit, over 14 days', wait: 'Waiting', small: 'Under AED 50' };
 const OPD_CLS = { came: 'notco', part: 'nostripe', old: 'wrong', wait: 'waiting', small: 'waiting' };   // reuse the Stripe tab's badge and dot colours
 const OPD_RANK = { came: 0, part: 1, old: 2, wait: 3, small: 4 };
@@ -199,6 +199,73 @@ function opdOpenPop(btn, key) {
   });
   qEl.focus();
 }
+// ── CLICK A NUMBER, SEE WHAT THE DEPOSIT WAS FOR (Kate, 17 Nov 2026: "numbers should be clickable too to show what service is this deposit for"). The Deposit, Taken off and Days open figures open the
+// bills behind them (open_deposit_detail(): the Deposit lines, and what was rung through for this client at this salon after the deposit). Phorest sales show what was rung through, not what was
+// booked, so what she had when she came back is the best read of the service; a client who has not come back has no service to read yet.
+const OPD_DET = {};
+const opdKey = r => r.b + '|' + r.id;
+const OPD_PAY = { S: 'Stripe', CC: 'Card', C: 'Cash', A: 'Account', V: 'Voucher', T: 'Tabby' };
+const opdPayText = raw => String(raw || '').split(',').map(x => { const m = /^\s*([A-Za-z]+)\((-?[\d.]+)\)\s*$/.exec(x); return m ? (OPD_PAY[m[1]] || m[1]) + ' AED ' + dpcM0(+m[2]) : ''; }).filter(Boolean).join(', ');
+const opdPaySum = raw => { let t = 0; String(raw || '').replace(/(?:^|,)\s*[A-Za-z]+\((-?[\d.]+)\)/g, (_, n) => { t += +n; return ''; }); return dpcR2(t); };
+const opdAUsed = raw => { let t = 0; String(raw || '').replace(/(?:^|,)\s*A\((-?[\d.]+)\)/g, (_, n) => { t += +n; return ''; }); return dpcR2(t); };
+async function opdToggle(key) {
+  OPD.open = OPD.open === key ? null : key;
+  const r = opdRows.find(x => opdKey(x) === key);
+  if (OPD.open && r && !OPD_DET[key]) {
+    OPD_DET[key] = { busy: true }; opdPaint();
+    try {
+      const { data, error } = await sb.rpc('open_deposit_detail', { p_branch: r.b, p_client: r.id, p_from: r.f });
+      if (error) throw error;
+      OPD_DET[key] = { data };
+    } catch (e) { console.error(e); OPD_DET[key] = { err: true }; }
+  }
+  opdPaint();
+}
+function opdDetRow(r, n) {
+  const det = OPD_DET[opdKey(r)] || {}, f = dpcEsc(dpcFirst(r.c));
+  let inner;
+  if (det.err) inner = '<div class="spv-next">The bills did not load. Close this and open it again.</div>';
+  else if (!det.data) inner = '<div class="spv-next">Reading the bills…</div>';
+  else {
+    const dp = det.data.deposits || [], lines = det.data.lines || [], visits = [], by = {};
+    lines.forEach(l => { if (!by[l.sale]) { by[l.sale] = { d: l.d, rows: [], pay: l.pay }; visits.push(by[l.sale]); } by[l.sale].rows.push(l); });
+    const depHtml = dp.length ? dp.map(x => `<div>${opdD(x.d)}: AED ${dpcM0(x.t)}${x.t < 0 ? ' (refund)' : ''}<span class="spv-sub">${dpcEsc(opdPayText(x.pay))}${Math.abs(opdPaySum(x.pay) - (+x.t || 0)) > 0.5 ? ' (the whole bill it was paid with)' : ''}</span></div>`).join('') : '<span class="spv-dim">None found</span>';
+    const offHtml = visits.map(v => ({ v, a: opdAUsed(v.pay) })).filter(x => x.a).map(x => `<div>${opdD(x.v.d)}: AED ${dpcM0(x.a)} came off</div>`).join('') || '<span class="spv-dim">Nothing has come off yet</span>';
+    const shown = visits.slice(0, 3), more = visits.length - shown.length;
+    const svc = shown.length
+      ? shown.map(v => `<div class="opd-visit"><b>${opdD(v.d)}</b><ul class="opd-vl">${v.rows.map(l => `<li><span>${dpcEsc(l.item)}${l.staff && !/^BUSINESS/i.test(l.staff) ? `<em> · ${dpcEsc(l.staff)}</em>` : ''}</span><span class="p">AED ${dpcM0(l.t)}</span></li>`).join('')}</ul></div>`).join('') + (more > 0 ? `<div class="spv-dim">${more} more visit${more === 1 ? '' : 's'} not shown.</div>` : '')
+      : `<span class="spv-dim">${f} has not been rung through since the deposit, so there is no service to read yet.</span>`;
+    inner = `<div class="spv-dgrid"><div><small>Deposit paid</small>${depHtml}</div><div><small>Taken off</small>${offHtml}</div>` +
+      `<div><small>Days open</small>${r.age} day${r.age === 1 ? '' : 's'} since the last deposit, ${opdD(r.l)}</div>` +
+      `<div class="opd-wide"><small>${shown.length ? `What ${f} had when she came back, most likely what the deposit was for` : 'What the deposit is for'}</small>${svc}</div>` +
+      `<div class="spv-next">Phorest sales show what was rung through, not what was booked, so this is the best read of the service. The booking itself is in the Phorest diary.</div></div>`;
+  }
+  return `<tr class="opd-det"><td colspan="${n}">${inner}</td></tr>`;
+}
+// ── SAVE AS XLSX / CSV (Kate, 17 Nov 2026: "no xlsx and csv buttons for downloads"). What is on screen: the salons and period in the header, the card or chip picked, the column filters
+// and the sort. The file builder is ledger-export.js (the lgx group, loaded with this page). The CSV is the list; the XLSX has a Summary tab as well. Contact details only exist at Level 5.
+function opdSave(kind) {
+  if (typeof lgxBuild !== 'function') return;
+  const cols = opdCols(), rows = opdVisible(), base = opdBase(), today = dateToIso(new Date());
+  const [pa, pb] = opdRange();
+  const brs = dpcCodes().map(c => dpcName(c)).join(', ');
+  const per = pa ? opdD(pa) + ' to ' + opdD(pb || today) : 'All time';
+  const fmt = c => c.t === 'num' ? (c.k === 'age' ? 'num' : 'aed') : 'text';
+  const val = (c, r) => c.t === 'num' ? c.raw(r) : c.disp(r);
+  const sum = k => dpcR2(rows.reduce((t, r) => t + (+r[k] || 0), 0));
+  const total = { total: true, cells: cols.map((c, i) => i === 0 ? 'Total' : c.k === 'a' ? sum('a') : c.k === 'u' ? sum('u') : '') };
+  const filtered = rows.length !== base.length;
+  const built = lgxBuild({ sheets: [
+    { name: 'Summary', blocks: [{ cols: [{ label: 'Deposit Checking', fmt: 'text' }, { label: '', fmt: 'text' }], rows: [
+      { cells: ['Salons', brs] }, { cells: ['Deposits paid', per] }, { cells: ['Rows', filtered ? 'Filtered: ' + rows.length + ' of ' + base.length : String(rows.length)] },
+      { cells: ['Report made', today] },
+      { cells: ['How it is read', 'A deposit is a Deposit line in the Phorest sales lines (a refund nets it off). It counts as taken off when a later bill of the same client at the same salon carries an A(...) tender. Candidates only: the sales lines carry no appointment date, so a client with a booking still ahead shows as Waiting. Days open counts from the last deposit.'] }] }] },
+    { name: 'Open deposits', blocks: [{ cols: cols.map(c => ({ label: c.l, fmt: fmt(c) })), rows: rows.map(r => ({ cells: cols.map(c => val(c, r)) })).concat(rows.length ? [total] : []) }] }
+  ] });
+  const name = 'deposit-checking-' + today;
+  if (kind === 'csv') lgxSave(new Blob(['\uFEFF' + lgxCsv(built[1])], { type: 'text/csv;charset=utf-8' }), name + '.csv');
+  else lgxSave(lgxXlsxBlob(built), name + '.xlsx');
+}
 if (!window.__opdPopWired) { window.__opdPopWired = 1; document.addEventListener('click', e => { if (opdPop && !opdPop.contains(e.target) && !(e.target.closest && e.target.closest('[data-opdfc]'))) opdClosePop(); }); }
 
 function opdPaint() {
@@ -221,11 +288,13 @@ function opdPaint() {
   const colbar = cols.map(c => { const on = OPD.sort && OPD.sort.k === c.k || !!OPD.f[c.k]; return `<button type="button" class="spv-schip${on ? ' opd-on' : ''}" data-opdfc="${c.k}" aria-haspopup="true">${c.l} ▾</button>`; }).join('');
   const body = shown.map(r => {
     const nm = bookOk ? `<a class="spv-bk" href="/?view=clientbook&amp;cbq=${encodeURIComponent(r.c)}" target="_blank" rel="noopener" title="Find ${dpcEsc(r.c)} in the Client Book">${dpcEsc(r.c)}</a>` : dpcEsc(r.c);
-    return `<tr class="opd-row ${OPD_CLS[r.s]}"><td data-l="Deposit paid" class="num">${opdD(r.l)}${r.f !== r.l ? `<span class="spv-sub">first ${opdD(r.f)}</span>` : ''}</td>` +
+    const rk = opdKey(r), nb = t => `<button type="button" class="spv-fig" data-odet="${dpcEsc(rk)}" aria-expanded="${OPD.open === rk}" title="Show what this deposit was for">${t}</button>`;
+    const rowHtml = `<tr class="opd-row ${OPD_CLS[r.s]}${OPD.open === rk ? ' open' : ''}"><td data-l="Deposit paid" class="num">${opdD(r.l)}${r.f !== r.l ? `<span class="spv-sub">first ${opdD(r.f)}</span>` : ''}</td>` +
       `<td data-l="Salon">${dpcName(r.b)}</td><td data-l="Client" class="opd-cl">${nm}${r.v ? `<span class="spv-sub">came back ${opdD(r.v)}</span>` : ''}</td>` +
       (ct ? `<td data-l="Contact details" class="opd-ct">${opdCtCell(r)}</td>` : '') +
-      `<td class="r num" data-l="Deposit">${dpcM0(r.a)}</td><td class="r num" data-l="Taken off">${dpcM0(r.u)}</td><td class="r num" data-l="Days open"><b>${r.age}</b></td>` +
+      `<td class="r num" data-l="Deposit">${nb(dpcM0(r.a))}</td><td class="r num" data-l="Taken off">${nb(dpcM0(r.u))}</td><td class="r num" data-l="Days open">${nb('<b>' + r.age + '</b>')}</td>` +
       `<td data-l="Status"><span class="spv-badge ${OPD_CLS[r.s]}"><i class="spv-dot ${OPD_CLS[r.s]}"></i>${OPD_NAME[r.s]}</span></td><td data-l="What to do" class="opd-todo">${opdTodo(r)}</td></tr>`;
+    return OPD.open === rk ? rowHtml + opdDetRow(r, cols.length) : rowHtml;
   }).join('') || `<tr><td colspan="${cols.length}" class="spv-empty2"><b>Nothing here.</b>No deposits match these filters. That is good news if you were looking for problems.</td></tr>`;
   const upd = opdData.at ? new Date(opdData.at).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
   const dirty = OPD.status !== 'all' || OPD.q || OPD.sort || Object.keys(OPD.f).length > 0;
@@ -238,7 +307,8 @@ function opdPaint() {
     `<p><b>If we do nothing:</b> a missed deduction is only found when the client mentions it.</p></div></div>` +
     `<div class="spv-cards opd-cards">${cards}</div>` +
     `<div class="spv-sec" id="opdList"><h2>Every open deposit</h2><p class="spv-lead">Deposits from the last 90 days at the salons and period picked in the header. Tap a card to filter the list. Every column header has a filter menu, like Google Sheets.${upd ? ' Last worked out ' + upd + '.' : ''}</p>` +
-    `<div class="spv-bar"><input class="spv-search" id="opdQ" type="search" placeholder="Search a client" aria-label="Search a client" value="${dpcEsc(OPD.q)}"><div class="spv-status-set" role="group" aria-label="Status">${chips}</div></div>` +
+    `<div class="spv-bar"><input class="spv-search" id="opdQ" type="search" placeholder="Search a client" aria-label="Search a client" value="${dpcEsc(OPD.q)}"><div class="spv-status-set" role="group" aria-label="Status">${chips}</div>` +
+    `<div class="opd-save" role="group" aria-label="Download"><button type="button" class="spv-schip" data-osave="xlsx" title="What is on screen, with a Summary tab">Save as XLSX</button><button type="button" class="spv-schip" data-osave="csv" title="What is on screen, one list">Save as CSV</button></div></div>` +
     `<div class="opd-colbar" aria-label="Column filters">${colbar}</div>` +
     `<div class="spv-sumline">Showing <b>${rows.length}</b> client${rows.length === 1 ? '' : 's'}, AED <b>${dpcM0(sumAmt(rows))}</b> open${dirty ? ' · <button type="button" class="spv-clear" data-act="oclear">Clear filters</button>' : ''}</div>` +
     `<div class="spv-card spv-tw"><table class="spv-tbl spv-opd" style="--opd-w:${tw}px"><colgroup>${colg}</colgroup><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` +
@@ -252,6 +322,8 @@ function opdPaint() {
   const q = document.getElementById('opdQ');
   if (q) q.oninput = () => { OPD.q = q.value.trim(); OPD.shown = 30; const pos = q.selectionStart; opdPaint(); const n = document.getElementById('opdQ'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } };
   const clr = el.querySelector('[data-act="oclear"]'); if (clr) clr.onclick = () => { OPD.status = 'all'; OPD.q = ''; OPD.sort = null; OPD.f = {}; OPD.shown = 30; opdPaint(); };
+  el.querySelectorAll('[data-odet]').forEach(b => { b.onclick = () => opdToggle(b.getAttribute('data-odet')); });
+  el.querySelectorAll('[data-osave]').forEach(b => { b.onclick = () => opdSave(b.getAttribute('data-osave')); });
   const more = el.querySelector('[data-act="omore"]'); if (more) more.onclick = () => { OPD.shown += 30; opdPaint(); };
 }
 
@@ -480,6 +552,17 @@ function dpcCss() {
 }
 
 #depositContent .opd-th{display:inline-flex;align-items:center;gap:6px}
+#depositContent .spv-opd tr.opd-det td{padding:0 14px 16px;background:var(--surface2);white-space:normal}
+#depositContent .spv-opd tr.opd-row.open td{border-bottom-color:transparent}
+#depositContent .opd-wide{grid-column:1/-1}
+#depositContent .opd-visit{margin:6px 0 10px}
+#depositContent .opd-vl{list-style:none;margin:4px 0 0;padding:0;max-width:640px}
+#depositContent .opd-vl li{display:flex;gap:12px;justify-content:space-between;padding:2px 0;font-size:14px}
+#depositContent .opd-vl em{font-style:normal;color:var(--muted2)}
+#depositContent .opd-vl .p{font-variant-numeric:tabular-nums;white-space:nowrap}
+#depositContent .opd-save{display:flex;gap:6px;margin-left:auto}
+#depositContent .opd-save .spv-schip{font-weight:600}
+@media(max-width:760px){#depositContent .opd-save{margin-left:0;width:100%}#depositContent .opd-save .spv-schip{flex:1 1 0;justify-content:center}}
 #depositContent .spv-opd th.r .opd-th{justify-content:flex-end}
 #depositContent .opd-fb{border:0;background:none;color:var(--muted2);cursor:pointer;padding:3px;border-radius:6px;line-height:0}
 #depositContent .opd-fb:hover{background:var(--surface2)}
