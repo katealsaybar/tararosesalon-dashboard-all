@@ -76,6 +76,8 @@ async function prdRetailSold(w) {
 // "For every AED 100 of retail sold, AED X of retail stock came in." Shown on All only:
 // Phorest does not split retail sold by team, and beauty stock against all retail
 // sold would read as a figure it is not.
+// Retail price = cost price x 1.75 (ate Tine, 18 Nov 2026). Use it wherever retail stock at cost needs a retail value.
+const PRD_RETAIL_MARKUP = 1.75;
 function prdSoldStrip(d, retailBought) {
   if (!d.sold) return '';
   if (prdDept !== 'all') return `<div class="w13-tile prd-sold"><div class="slv-note">Retail sold is not split by team in Phorest, so stock bought against retail sold shows on All.</div></div>`;
@@ -85,6 +87,7 @@ function prdSoldStrip(d, retailBought) {
     <div class="prd-sold-row">
       <span><b class="w13-val">${prdAed(d.sold.aed)}</b><span class="slv-note">retail sold, ex VAT (Phorest)</span></span>
       <span><b class="w13-val">${prdAed(retailBought)}</b><span class="slv-note">retail stock bought, at cost</span></span>
+      <span><b class="w13-val">${prdAed(retailBought * PRD_RETAIL_MARKUP)}</b><span class="slv-note">the same stock at retail (cost x 1.75, ate Tine)</span></span>
       ${per100 !== null ? `<span><b class="w13-val">AED ${per100}</b><span class="slv-note">of stock in for every AED 100 sold</span></span>` : ''}
     </div>
   </div>`;
