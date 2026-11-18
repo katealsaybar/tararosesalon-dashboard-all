@@ -42,7 +42,7 @@ window.TRS_PAGE_DATES = /*DATES*/{
   "wvperf": ["2026-09-29", "2026-11-09"],
   "campaignblasts": ["2026-10-30", "2026-11-13"],
   "contentcalendar": ["2026-11-11", "2026-11-12"],
-  "landingreview": ["2026-11-09", "2026-11-09"],
+  "landingreview": ["2026-11-09", "2026-11-18"],
   "recruitment": ["2026-11-09", "2026-11-17"],
   "novblasts": ["2026-11-02", "2026-11-17"],
   "stripedeposits": ["2026-11-09", "2026-11-17"],
