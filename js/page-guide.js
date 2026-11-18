@@ -96,7 +96,24 @@
     for (var i = 0; i < list.length; i++) if (vis(list[i])) return list[i];
     return null;
   }
+  function inFrame(frameId, sel) {
+    var f = document.getElementById(frameId), d = null;
+    try { d = f && f.contentDocument; } catch (e) { return null; }
+    if (!d || !d.body) return null;
+    var list = d.querySelectorAll(sel);
+    for (var i = 0; i < list.length; i++) if (vis(list[i])) return list[i];
+    return null;
+  }
   var OWN = {
+    // Find a Stylist (Kate, 18 Nov 2026: "i-apply mo na rin sa Find a Stylist"): the Team Home page in a same-origin frame, three questions about the client, then names.
+    findstylist: [
+      { id: 'fs-card', need: 1, find: function () { return inFrame('findStylistFrame', '.mx-doc'); },
+        title: 'Three quick questions', text: 'Tell it which salon she is booking, what she is booking, and what kind of appointment she wants. Tap an option to move on. At the end you get the stylists to offer her.' },
+      { id: 'fs-skip', find: function () { return inFrame('findStylistFrame', '.mx-skip'); },
+        title: 'Not sure yet?', text: 'If she has not said which salon, tap Any salon works for her to skip that question. You can change an answer later from the chips that appear above the question.' },
+      { id: 'fs-checklist', find: function () { return inFrame('findStylistFrame', '.mx-lead a'); },
+        title: 'Who does what', text: 'Just want to check what a stylist does? The full checklist lists every stylist and what she does. It opens on its own page.' }
+    ],
     servicecal: [
       { id: 'svc-view', find: function () { return inShadow('serviceCalContent', '#vbar'); },
         title: 'Day, Week or List', text: 'Switch the view here. Day shows every stylist for one day, Week shows one stylist across the days, List is every service in a table. Use the arrows to move to another day.' },
@@ -134,7 +151,14 @@
   var DROP = ['svc-legend', 'lv-export', 'export', 'search', 'lv-tiles', 'search', 'sections', 'menu', 'figure', 'switch', 'why', 'nav', 'filters'];
   var MAX = 6, MIN = 3;
 
-  function vis(el) { return !!(el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'); }
+  function vis(el) { var w = el && el.ownerDocument && el.ownerDocument.defaultView || window; return !!(el && el.getClientRects().length && w.getComputedStyle(el).visibility !== 'hidden'); }
+  // The rectangle of a part on the dashboard page. A part inside a same-origin frame (Find a Stylist) reports its place inside the frame, so the frame's own place is added.
+  function rectOf(el) {
+    var r = el.getBoundingClientRect(), w = el.ownerDocument && el.ownerDocument.defaultView, fe = w && w !== window ? w.frameElement : null;
+    if (!fe) return r;
+    var f = fe.getBoundingClientRect();
+    return { left: r.left + f.left, top: r.top + f.top, right: r.right + f.left, bottom: r.bottom + f.top, width: r.width, height: r.height };
+  }
   function first(v, sel) {
     var root = document.getElementById('view-' + v) || document, list = root.querySelectorAll(sel);
     for (var i = 0; i < list.length; i++) if (vis(list[i]) && !list[i].closest('.dr-box, dialog, [hidden], .pg-box')) return list[i];
@@ -189,7 +213,7 @@
 
   function stepsFor(v) {
     var base = STEPS;
-    if (OWN[v]) base = STEPS.filter(function (x) { return x.id === 'sections' || x.id === 'search' || (x.id === 'filters' && v !== 'contentcalendar' && v !== 'leavecal'); }).concat(OWN[v]);
+    if (OWN[v]) base = STEPS.filter(function (x) { return x.id === 'sections' || x.id === 'search' || (x.id === 'filters' && v !== 'contentcalendar' && v !== 'leavecal' && v !== 'findstylist'); }).concat(OWN[v]);
     var all = [];
     for (var i = 0; i < base.length; i++) { var el = base[i].find(v); if (el) all.push({ s: base[i], el: el }); }
     var drop = 0;
@@ -230,7 +254,7 @@
       if (self.stop) return;
       var st = self.steps[self.i], el = st.el;
       if (!el.isConnected || !vis(el)) { var f = st.s.find(v); if (f) st.el = el = f; }
-      var r = el.getBoundingClientRect(), pad = 6, vw = window.innerWidth, vh = window.innerHeight;
+      var r = rectOf(el), pad = 6, vw = window.innerWidth, vh = window.innerHeight;
       spot.style.cssText = 'left:' + (r.left - pad) + 'px;top:' + (r.top - pad) + 'px;width:' + (r.width + pad * 2) + 'px;height:' + (r.height + pad * 2) + 'px';
       if (vw <= 760) { box.style.left = ''; box.style.top = ''; box.classList.add('pg-phone'); return; }   // on a phone the card is a bottom sheet (CSS)
       box.classList.remove('pg-phone');
@@ -250,7 +274,7 @@
       // bring the part into view above the card, then place the spotlight; a part inside the fixed top bar needs no scroll
       var el = st.el;
       if (!el.isConnected || !vis(el)) { var f2 = st.s.find(v); if (f2) st.el = el = f2; }   // a page that redraws its parts (the Service Calendar does) leaves the old element behind
-      var r = el.getBoundingClientRect();
+      var r = rectOf(el);
       var fixedTop = !!el.closest('#topbar, .topbar, #sidebar, .sidebar, .lg-side');
       if (!fixedTop && (r.top < 90 || r.bottom > window.innerHeight * (window.innerWidth <= 760 ? 0.5 : 0.8))) {
         // the page itself scrolls (the dashboard has no inner scroll box), so scroll the window; a tall part goes just under the sticky bars
