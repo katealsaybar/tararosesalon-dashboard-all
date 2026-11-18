@@ -1,8 +1,8 @@
 {
  "attrition": {
   "created": "2026-10-19",
-  "fp": "3807796bfdf9",
-  "modified": "2026-11-03"
+  "fp": "cab909d5d829",
+  "modified": "2026-11-18"
  },
  "campaignblasts": {
   "created": "2026-10-30",
@@ -11,28 +11,28 @@
  },
  "clientbook": {
   "created": "2026-10-22",
-  "fp": "7e35651c1f5c",
-  "modified": "2026-11-11"
+  "fp": "cab756acd21c",
+  "modified": "2026-11-18"
  },
  "clientmix": {
   "created": "2026-10-08",
-  "fp": "dba79070a891",
-  "modified": "2026-11-03"
+  "fp": "75f1d8b70bc9",
+  "modified": "2026-11-18"
  },
  "clients": {
   "created": "2026-06-01",
-  "fp": "b85f53d9a98b",
-  "modified": "2026-11-10"
+  "fp": "6ca049d46838",
+  "modified": "2026-11-18"
  },
  "compare": {
   "created": "2026-09-24",
-  "fp": "0b8251d8c3db",
-  "modified": "2026-11-10"
+  "fp": "de2e9a8fe78b",
+  "modified": "2026-11-18"
  },
  "complaintchats": {
   "created": "2026-11-12",
-  "fp": "2d1cfd3445d8",
-  "modified": "2026-11-13"
+  "fp": "c5d081ddf696",
+  "modified": "2026-11-18"
  },
  "complaintlog": {
   "created": "2026-10-22",
@@ -41,23 +41,23 @@
  },
  "complaints": {
   "created": "2026-10-22",
-  "fp": "8a584cc82e36",
-  "modified": "2026-11-13"
+  "fp": "d68d53d1dd0b",
+  "modified": "2026-11-18"
  },
  "complaintsdetail": {
   "created": "2026-11-12",
-  "fp": "4d5800de0b74",
-  "modified": "2026-11-13"
+  "fp": "e5011d682d64",
+  "modified": "2026-11-18"
  },
  "contentcalendar": {
   "created": "2026-11-11",
-  "fp": "f874987ace53",
+  "fp": "94dd9f1b82e6",
   "modified": "2026-11-12"
  },
  "dailyperf": {
   "created": "2026-10-13",
-  "fp": "8d1edf601e8e",
-  "modified": "2026-11-10"
+  "fp": "e4241bc958d5",
+  "modified": "2026-11-18"
  },
  "dailyreports": {
   "created": "2026-11-17",
@@ -66,13 +66,13 @@
  },
  "dashboard": {
   "created": "2026-04-10",
-  "fp": "f2a76f41f768",
+  "fp": "e253427b88d2",
   "modified": "2026-11-11"
  },
  "dealsperf": {
   "created": "2026-10-23",
-  "fp": "094bf68db74a",
-  "modified": "2026-11-10"
+  "fp": "6ad9dcfe1ce6",
+  "modified": "2026-11-18"
  },
  "depositcheck": {
   "created": "2026-11-17",
@@ -81,13 +81,18 @@
  },
  "discountsvouchers": {
   "created": "2026-10-23",
-  "fp": "4c2389b51f12",
-  "modified": "2026-11-10"
+  "fp": "1cb3abf82b36",
+  "modified": "2026-11-18"
+ },
+ "findstylist": {
+  "created": "2026-11-18",
+  "fp": "33998e5b1343",
+  "modified": "2026-11-18"
  },
  "glowclub": {
   "created": "2026-10-22",
-  "fp": "a42f44f05c17",
-  "modified": "2026-10-28"
+  "fp": "2f30491eacdc",
+  "modified": "2026-11-18"
  },
  "googleads": {
   "created": "2026-10-06",
@@ -96,7 +101,7 @@
  },
  "landingreview": {
   "created": "2026-11-09",
-  "fp": "80f9b724dca0",
+  "fp": "0e54453bd011",
   "modified": "2026-11-18"
  },
  "leavecal": {
@@ -106,33 +111,33 @@
  },
  "ledgerActuals": {
   "created": "2026-08-14",
-  "fp": "7fe4f6c3c8d6",
-  "modified": "2026-10-27"
+  "fp": "41419c7008e0",
+  "modified": "2026-11-18"
  },
  "ledgerFinancials": {
   "created": "2026-08-14",
-  "fp": "77346092a7d0",
-  "modified": "2026-10-27"
+  "fp": "329c0c8c719a",
+  "modified": "2026-11-18"
  },
  "ledgerStylist": {
   "created": "2026-08-14",
-  "fp": "5ef40565189a",
-  "modified": "2026-10-27"
+  "fp": "61261f7ba80b",
+  "modified": "2026-11-18"
  },
  "ledgerTargets": {
   "created": "2026-08-14",
-  "fp": "dcd381eb8831",
-  "modified": "2026-10-27"
+  "fp": "505dce1e40d2",
+  "modified": "2026-11-18"
  },
  "lostclients": {
   "created": "2026-10-02",
-  "fp": "fd7b91f140b4",
-  "modified": "2026-11-09"
+  "fp": "e4b0afd6fc9f",
+  "modified": "2026-11-18"
  },
  "lostlists": {
   "created": "2026-10-09",
-  "fp": "118aca7a2b22",
-  "modified": "2026-11-17"
+  "fp": "71673e8e38e6",
+  "modified": "2026-11-18"
  },
  "marketingspend": {
   "created": "2026-10-23",
@@ -146,13 +151,13 @@
  },
  "novblasts": {
   "created": "2026-11-02",
-  "fp": "2387188338b3",
-  "modified": "2026-11-17"
+  "fp": "68e171eded53",
+  "modified": "2026-11-18"
  },
  "one2ones": {
   "created": "2026-10-22",
-  "fp": "a68a7b5f6744",
-  "modified": "2026-11-03"
+  "fp": "f9b20c306673",
+  "modified": "2026-11-18"
  },
  "orgchart": {
   "created": "2026-09-21",
@@ -161,13 +166,13 @@
  },
  "overyears": {
   "created": "2026-10-09",
-  "fp": "b0497055e0a7",
-  "modified": "2026-11-11"
+  "fp": "992cf2472684",
+  "modified": "2026-11-18"
  },
  "products": {
   "created": "2026-09-28",
-  "fp": "744e0d4c4841",
-  "modified": "2026-10-14"
+  "fp": "bc84ae1f0132",
+  "modified": "2026-11-18"
  },
  "quarterreport": {
   "created": "2026-11-11",
@@ -176,28 +181,28 @@
  },
  "recruitment": {
   "created": "2026-11-09",
-  "fp": "7cd5daedd07a",
-  "modified": "2026-11-17"
+  "fp": "fcd3b630f588",
+  "modified": "2026-11-18"
  },
  "retention": {
   "created": "2026-11-03",
-  "fp": "3ef939b536a6",
-  "modified": "2026-11-04"
+  "fp": "62a5751a03c2",
+  "modified": "2026-11-18"
  },
  "reviews": {
   "created": "2026-04-13",
-  "fp": "a8e0c1ee91b3",
+  "fp": "de885fe52b52",
   "modified": "2026-11-10"
  },
  "servicecal": {
   "created": "2026-11-17",
-  "fp": "957536e48a1f",
+  "fp": "b276a34e298b",
   "modified": "2026-11-17"
  },
  "services": {
   "created": "2026-06-01",
-  "fp": "f714caecf035",
-  "modified": "2026-11-10"
+  "fp": "f13c0bff1920",
+  "modified": "2026-11-18"
  },
  "social": {
   "created": "2026-10-06",
@@ -206,13 +211,13 @@
  },
  "stafflevels": {
   "created": "2026-09-28",
-  "fp": "517b472def84",
-  "modified": "2026-11-10"
+  "fp": "b85c653cf98e",
+  "modified": "2026-11-18"
  },
  "staffperf": {
   "created": "2026-09-16",
-  "fp": "483793b14b55",
-  "modified": "2026-11-11"
+  "fp": "4693c25896ae",
+  "modified": "2026-11-18"
  },
  "staffweeks": {
   "created": "2026-09-29",
@@ -221,7 +226,7 @@
  },
  "stockcost": {
   "created": "2026-11-12",
-  "fp": "91188974f29f",
+  "fp": "a65fe2934ba4",
   "modified": "2026-11-12"
  },
  "stripedeposits": {
@@ -236,12 +241,12 @@
  },
  "supplierpay": {
   "created": "2026-11-13",
-  "fp": "0cf14a46b3fe",
+  "fp": "7df9a87312df",
   "modified": "2026-11-13"
  },
  "supplierspend": {
   "created": "2026-10-21",
-  "fp": "b8b2843f946b",
+  "fp": "eaee30fd132f",
   "modified": "2026-11-12"
  },
  "team": {
@@ -266,7 +271,7 @@
  },
  "wvperf": {
   "created": "2026-09-29",
-  "fp": "1c82a20fe5f6",
+  "fp": "1d85cd3264b4",
   "modified": "2026-11-09"
  }
 }
