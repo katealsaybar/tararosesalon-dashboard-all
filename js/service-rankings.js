@@ -259,7 +259,8 @@ function srClientsView(f, label) {
     const d = r.data || {}, rows = d.rows || [];
     return {
       cols: [{ k: 'client', l: 'Client' }, { k: 'salon', l: 'Salon' }, { k: 'units', l: 'Units', t: 'num' }, { k: 'visits', l: 'Visits', t: 'num' }, { k: 'last', l: 'Last visit', t: 'date' }, { k: 'items', l: 'Service names' }],
-      rows: rows.map(x => ({ client: x.client_name, salon: srName(x.branch), units: x.units, visits: x.visits, last: x.last_day, items: x.items })),
+      rows: rows.map(x => ({ client: x.client_name, salon: srName(x.branch), units: x.units, visits: x.visits, last: x.last_day, items: x.items,
+        _dn: { client: (typeof PD !== 'undefined' && PD.clientHistory) ? PD.clientHistory({ cur: srCur(), label: 'Service Rankings' }, { client: x.client_name, cid: x.client_id }) : null } })),   // her name opens her own window: visits, bookings, and phone and email at Level 5 (pulse-drill.js)
       sub: lcNum(d.total_clients) + ' different people · ' + lcNum(d.total_units) + ' units · ' + srPeriodText(),
       note: (rows.length >= 500 ? 'The first 500 people are listed, most units first. ' : '') + (d.walkin_units ? lcNum(d.walkin_units) + ' units were walk-ins and are not listed.' : '')
     };
