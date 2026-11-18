@@ -349,9 +349,9 @@
         if (current() !== v) return;                        // the person has already moved on
         if (document.querySelector('.dr-box')) { if (tries++ < 20) setTimeout(wait, 400); return; }
         var steps = stepsFor(v);
-        if (OWN[v] && tries < 18 && OWN[v].some(function (x) { return x.need && !x.find(v); })) { tries++; setTimeout(wait, 400); return; }   // the calendar draws after its data arrives
+        if (OWN[v] && tries < 45 && OWN[v].some(function (x) { return x.need && !x.find(v); })) { tries++; setTimeout(wait, 400); return; }   // the calendar draws after its data arrives
         if (steps.length >= MIN && pageParts(steps) >= 1) { if (!run || run.v !== v) setTimeout(function () { if (current() === v && !document.querySelector('.dr-box')) open(v, stepsFor(v).length >= MIN && pageParts(stepsFor(v)) >= 1 ? stepsFor(v) : steps); }, 650); return; }
-        if (tries++ < 18) setTimeout(wait, 400);
+        if (tries++ < 45) setTimeout(wait, 400);
       })();
     });
   }
