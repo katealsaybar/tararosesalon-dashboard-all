@@ -313,13 +313,17 @@ function ordOffsets() {
 window.addEventListener('resize', () => { if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'orders') ordOffsets(); });
 // Kate, 18 Nov 2026 (component 37): the pinned toolbars follow the masthead and the chip row as they really are, not as measured once. Hide filters, the compact
 // masthead on scroll, a phone rotation or a late-loading font all change their height, so a ResizeObserver watches both and the offsets are re-read each time.
-let ordRO = null;
+let ordRO = null, ordMO = null, ordRaf = 0;
+const ordOnOrders = () => typeof CURRENT_VIEW === 'undefined' || CURRENT_VIEW === 'orders';
 function ordWatch() {
-  if (typeof ResizeObserver === 'undefined') return;
   if (ordRO) ordRO.disconnect();
-  ordRO = new ResizeObserver(() => { if (typeof CURRENT_VIEW === 'undefined' || CURRENT_VIEW === 'orders') ordOffsets(); });
-  [document.getElementById('topbar'), document.querySelector('#view-orders .jn-rail'), document.querySelector('#ordersContent .ord-bar:not(.ord-bar-plain)')].forEach(e => { if (e) ordRO.observe(e); });
+  if (ordMO) ordMO.disconnect();
+  const mast = document.getElementById('topbar'), jn = document.querySelector('#view-orders .jn-rail'), bar = document.querySelector('#ordersContent .ord-bar:not(.ord-bar-plain)');
+  if (typeof ResizeObserver !== 'undefined') { ordRO = new ResizeObserver(() => { if (ordOnOrders()) ordOffsets(); }); [mast, jn, bar].forEach(e => { if (e) ordRO.observe(e); }); }
+  // jump-nav.js moves the chip row's pin (--jn-top) when the masthead condenses or Hide filters is pressed, without any change of size: watch that too
+  if (typeof MutationObserver !== 'undefined' && jn) { ordMO = new MutationObserver(() => { if (ordOnOrders()) ordOffsets(); }); ordMO.observe(jn, { attributes: true, attributeFilter: ['style', 'class'] }); }
 }
+window.addEventListener('scroll', () => { if (ordRaf || !ordOnOrders()) return; ordRaf = requestAnimationFrame(() => { ordRaf = 0; ordOffsets(); }); }, { passive: true });
 
 // ── HOW IT IS WORKED OUT, ABOUT THIS PAGE: centred, one short idea per card (component 36) ──
 function ordPaintHow() {
