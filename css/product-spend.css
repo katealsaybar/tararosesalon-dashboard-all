@@ -1,0 +1,82 @@
+/* Products, Top products by spend (product-spend.js, Kate, 18 Nov 2026), from the local mockup docs/mockups/top-products-by-spend.html. Tokens come from the page, so light and dark follow the site. */
+:root{--ps-ret:#8E7BDD;--ps-pro:#0F6E56}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ps-ret:#C4B5FD;--ps-pro:#5ED1B4}}
+:root[data-theme="dark"]{--ps-ret:#C4B5FD;--ps-pro:#5ED1B4}
+#psRoot .ps-sp{flex:1}
+.ps-sec{margin-top:30px;scroll-margin-top:calc(var(--sx-top,104px) + var(--bh,0px) + 10px)}
+.ps-sec>h3,.ps-how>h3{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:500;margin:0 0 4px;line-height:1.2}
+.ps-filters{display:flex;flex-wrap:wrap;gap:8px 12px;margin:10px 0 4px}
+.ps-ans{margin-top:14px;padding:16px 20px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.ps-ans-k{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+.ps-ans-t{font-family:'Playfair Display',Georgia,serif;font-size:24px;line-height:1.3;margin-top:4px}
+.ps-ans-s{font-size:14px;color:var(--muted);margin-top:6px}
+.ps-learn{margin:12px 0 14px;max-width:78ch}
+.ps-learn p{margin:4px 0;font-size:14.5px;color:var(--muted)}
+.ps-learn p b{color:var(--text)}
+.ps-learn .ex{background:var(--surface2,var(--border2));padding:8px 12px;border-radius:8px;color:var(--text)}
+.ps-learn .watch{border-left:3px solid var(--accent);padding:3px 0 3px 12px;color:var(--text)}
+/* the biggest ten, as bars */
+.ps-vis{display:flex;flex-direction:column}
+.ps-vr{display:grid;grid-template-columns:30px minmax(0,300px) minmax(0,1fr) 210px;column-gap:14px;align-items:center;padding:9px 0;border-top:1px solid var(--border2)}
+.ps-vr:first-child{border-top:0}
+.ps-vk{font-size:13px;color:var(--muted2);font-variant-numeric:tabular-nums}
+.ps-vn{font-weight:600;line-height:1.3;min-width:0;overflow-wrap:anywhere}
+.ps-vn em{display:block;font-style:normal;font-weight:400;font-size:13px;color:var(--muted2)}
+.ps-vb{height:16px;background:var(--surface2,var(--border2));border-radius:999px;overflow:hidden}
+.ps-vb i{display:block;height:100%;border-radius:999px}
+.ps-vb i.retail,.ps-legend i.retail{background:var(--ps-ret)}
+.ps-vb i.professional,.ps-legend i.professional{background:var(--ps-pro)}
+.ps-vv{text-align:right;font-variant-numeric:tabular-nums}
+.ps-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);margin:10px 0 0}
+.ps-legend i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+.ps-conc{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 0}
+.ps-nb{flex:1 1 200px;padding:12px 16px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.ps-nb>span{font-size:13px;color:var(--muted)}
+.ps-nb b{font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:500;display:block;line-height:1.1;font-variant-numeric:tabular-nums}
+.ps-nb small{display:block;font-size:13px;color:var(--muted2)}
+/* the toolbar of the table: pinned under the masthead and the chips while that section is on screen */
+.ps-bar{position:sticky;top:var(--sx-top,104px);z-index:24;background:var(--bg);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:6px 0;margin-bottom:10px;box-shadow:0 -14px 0 var(--bg)}
+.ps-bar::after{content:"";position:absolute;left:0;right:0;top:100%;height:18px;background:linear-gradient(var(--bg),transparent);pointer-events:none}
+.ps-phone{display:none}
+.ps-card{background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.ps-stf{display:flex;align-items:flex-start;gap:8px}
+.ps-rk{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:999px;background:var(--border2);color:var(--muted);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.ps-pn{display:inline-flex;flex-direction:column;line-height:1.3;min-width:0}
+.ps-pn em{font-style:normal;font-size:13px;color:var(--muted2);font-weight:400}
+.ps-ty{display:inline-block;font-size:13px;border-radius:999px;padding:0 9px;background:var(--border2);color:var(--muted);vertical-align:1px}
+.ps-ty.retail{background:rgba(142,123,221,.18);color:var(--text)}
+.ps-ty.professional{background:var(--good-bg,rgba(15,110,86,.12));color:var(--good,#0F6E56)}
+.ps-fp{display:inline-flex;align-items:baseline;justify-content:flex-end;gap:6px}
+.ps-pcs{display:inline-block;min-width:4.4em;text-align:right;color:var(--muted2);font-size:13px}
+.ps-pager{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--muted);flex-wrap:wrap}
+.ps-pager .cm-pill:disabled{opacity:.4;cursor:default}
+.ps-pgn{min-width:5.5em;text-align:center;color:var(--text);font-variant-numeric:tabular-nums}
+/* How it is worked out, About this page: centred, one short idea per card (component 36) */
+.ps-how{margin-top:34px;text-align:center}
+.ps-pick{display:inline-flex;max-width:100%;overflow-x:auto;margin:8px auto 14px}
+.ps-howcard{max-width:560px;margin:0 auto;padding:14px 18px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.ps-hc-t{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+.ps-hc-m{margin:4px 0 6px;font-size:15px}
+.ps-hc-big{font-family:'Playfair Display',Georgia,serif;font-size:30px;line-height:1.15;margin:4px 0;font-variant-numeric:tabular-nums}
+.ps-hc-cv{font-size:13px;color:var(--muted2);white-space:normal;overflow-wrap:anywhere}
+@media(max-width:760px){
+  .ps-vr{grid-template-columns:26px minmax(0,1fr) auto;row-gap:6px;column-gap:8px}
+  .ps-vr .ps-vb{grid-column:2/4;grid-row:2}
+  .ps-vr .ps-vk{grid-row:1;grid-column:1}
+  .ps-ans-t{font-size:20px}
+  .ps-bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border2)}
+  .ps-bar::-webkit-scrollbar{display:none}
+  .ps-bar::after{display:none}
+  .ps-phone{display:inline-flex}
+  .ps-pager{flex-wrap:wrap}.ps-pager #psPgTxt{flex:1 1 100%}
+  .ps-learn p,.ps-pcs,.ps-pn em,.ps-vn em,.ps-nb small,.ps-hc-cv,.ps-legend{font-size:13px}
+}
+
+/* the heading label sits on the numbers' right edge, the funnel on its left */
+#psTbl th.r .sx-th{flex-direction:row-reverse}
+#psRoot .slv-eyebrow,.ps-ans-k{font-size:13px}
+#psRoot .rex-bar{white-space:nowrap}
+@media(max-width:760px){
+  #psRoot .dn{display:inline-flex;align-items:center;min-height:44px;padding:0 2px}
+  .ps-bar>*{flex:0 0 auto}
+}
