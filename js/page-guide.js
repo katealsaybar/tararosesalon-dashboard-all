@@ -56,7 +56,7 @@
         title: 'Day, Week or List', text: 'Switch the view here. Day shows every stylist for one day, Week shows one stylist across the days, List is every service in a table. Use the arrows to move to another day.' },
       { id: 'svc-tiles', find: function () { return inShadow('serviceCalContent', '#cards'); },
         title: 'The day at a glance', text: 'These tiles count the services, the chair time and the busiest moment. Tap a tile to jump to the services behind it.' },
-      { id: 'svc-cal', find: function () { return inShadow('serviceCalContent', '#cal, #calMain'); },
+      { id: 'svc-cal', need: 1, find: function () { return inShadow('serviceCalContent', '#cal'); },
         title: 'Read the calendar', text: 'Each block is one service. Solid is done and paid, striped is the client in the chair now, dashed is booked and still to come. Tap a block for the detail, or a stylist\u2019s name for her week.' },
       { id: 'svc-legend', find: function () { return inShadow('serviceCalContent', '#legend'); },
         title: 'Show or hide a kind', text: 'Tap a colour to hide or show that kind of service. Tap it again to bring it back.' }
@@ -64,7 +64,7 @@
     contentcalendar: [
       { id: 'cc-bar', find: function () { var b = document.getElementById('calRow'); return vis(b) ? b : null; },
         title: 'Months, days and views', text: 'Use the arrows to move between months and Today to come back. Daily, Week, Month and List change how the calendar is drawn.' },
-      { id: 'cc-frame', find: function () { var f = document.getElementById('calFrame'); return vis(f) ? f : null; },
+      { id: 'cc-frame', need: 1, find: function () { var f = document.getElementById('calFrame'); return vis(f) ? f : null; },
         title: 'Every post, on its day', text: 'Each coloured block is a post, on the day it went out. At the top of the calendar are Filters, the summary of the month, and Download XLSX and CSV.' }
     ]
   };
@@ -248,6 +248,7 @@
         if (current() !== v) return;                        // the person has already moved on
         if (document.querySelector('.dr-box')) { if (tries++ < 20) setTimeout(wait, 400); return; }
         var steps = stepsFor(v);
+        if (OWN[v] && tries < 18 && OWN[v].some(function (x) { return x.need && !x.find(v); })) { tries++; setTimeout(wait, 400); return; }   // the calendar draws after its data arrives
         if (steps.length >= MIN && pageParts(steps) >= 1) { if (!run || run.v !== v) setTimeout(function () { if (current() === v && !document.querySelector('.dr-box')) open(v, stepsFor(v).length >= MIN && pageParts(stepsFor(v)) >= 1 ? stepsFor(v) : steps); }, 650); return; }
         if (tries++ < 18) setTimeout(wait, 400);
       })();
