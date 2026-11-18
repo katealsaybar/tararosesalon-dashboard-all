@@ -1334,8 +1334,11 @@
   // Kate, 16 Nov 2026: ate Jho and ate Frans interview the support roles (front desk, reception, assistants and any other staff type); Coach Emma interviews stylists and beauticians herself,
   // so those get no WhatsApp. The roles are the setting notify_roles (the database checks the same list); Not stated is left out on purpose.
   function notifyRole(r) { var l = setting('notify_roles', ['Front Desk / Reception', 'Hair Assistant', 'Other', 'Beautician']); return l.indexOf(r) >= 0; }
+  // Kate, 18 Nov 2026 ("add emma to all hairdresser applications"): a Shortlist on a Hairdresser / Hair Stylist also WhatsApps Coach Emma only (settings notify_emma_roles and notify_emma_ids;
+  // the database picks the people from the role, migrations/recruit_emma_hairdresser_wa_18nov.sql). ate Jho and ate Frances do not get the stylists.
+  function emmaRole(r) { var l = setting('notify_emma_roles', ['Hairdresser / Hair Stylist']); return l.indexOf(r) >= 0; }
   async function notifyShortlist(id) {
-    var p = personById(id); if (!p || !(p.is_test || (notifyRole(roleGroup(p)) && setting('notify_enabled', false)))) return;
+    var p = personById(id); if (!p || !(p.is_test || ((notifyRole(roleGroup(p)) || emmaRole(roleGroup(p))) && setting('notify_enabled', false)))) return;
     try {
       var r = await sb.rpc('recruit_shortlist_notify', { p_id: p.id, p_role: roleGroup(p) });
       if (r.error) throw new Error(r.error.message);
