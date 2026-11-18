@@ -217,7 +217,7 @@ function ordPaint() {
       ${ordAboutHtml()}`;
     document.getElementById('ordPgSel').value = String(ORD.n);
   }
-  ordPaintAnswer(); ordPaintNotes(); ordT.shown = ORD.n; ordT.page = 0; ordTL.draw(); ordTS.draw(); ordT.draw(); ordPaintHow(); ordDrawAbout(); ordOffsets();
+  ordPaintAnswer(); ordPaintNotes(); ordT.shown = ORD.n; ordT.page = 0; ordTL.draw(); ordTS.draw(); ordT.draw(); ordPaintHow(); ordDrawAbout(); ordOffsets(); ordWatch();
 }
 function ordAboutHtml() { return '<section class="ord-how ord-about" id="ordAbout"><h3>About this page</h3><div class="sc-seg ord-pick" id="ordAPick" role="group" aria-label="About this page"></div><div class="ord-hcard" id="ordACard"></div></section>'; }
 
@@ -311,6 +311,15 @@ function ordOffsets() {
   document.querySelectorAll('#ordersContent .ord-sec').forEach(s => { const b = s.querySelector('.ord-bar:not(.ord-bar-plain)'); s.style.setProperty('--bh', (b ? b.offsetHeight : 0) + 'px'); });
 }
 window.addEventListener('resize', () => { if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'orders') ordOffsets(); });
+// Kate, 18 Nov 2026 (component 37): the pinned toolbars follow the masthead and the chip row as they really are, not as measured once. Hide filters, the compact
+// masthead on scroll, a phone rotation or a late-loading font all change their height, so a ResizeObserver watches both and the offsets are re-read each time.
+let ordRO = null;
+function ordWatch() {
+  if (typeof ResizeObserver === 'undefined') return;
+  if (ordRO) ordRO.disconnect();
+  ordRO = new ResizeObserver(() => { if (typeof CURRENT_VIEW === 'undefined' || CURRENT_VIEW === 'orders') ordOffsets(); });
+  [document.getElementById('topbar'), document.querySelector('#view-orders .jn-rail'), document.querySelector('#ordersContent .ord-bar:not(.ord-bar-plain)')].forEach(e => { if (e) ordRO.observe(e); });
+}
 
 // ── HOW IT IS WORKED OUT, ABOUT THIS PAGE: centred, one short idea per card (component 36) ──
 function ordPaintHow() {
