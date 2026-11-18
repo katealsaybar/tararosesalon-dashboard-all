@@ -104,7 +104,35 @@
     for (var i = 0; i < list.length; i++) if (vis(list[i])) return list[i];
     return null;
   }
+  var NAVSTEP = STEPS.filter(function (x) { return x.id === 'nav'; })[0];
+  function nth(v, sel, n) {
+    var root = document.getElementById('view-' + v), list = root ? root.querySelectorAll(sel) : [];
+    return list[n] && vis(list[n]) ? list[n] : null;
+  }
   var OWN = {
+    // Quarterly Report (Kate, 18 Nov 2026: "i-apply mo na rin sa Quarterly Report"): its own Quarter and Branch chips (the header filter is not used), the seven numbers
+    // with target, last year and the share of target, the same seven branch by branch, the Reflect and Think questions, then Save as PDF and the downloads.
+    quarterreport: [
+      { id: 'qr-pick', need: 1, find: function (v) { return first(v, '.qr-filters'); },
+        title: 'Pick the quarter and the salon',
+        text: function (el) {
+          var q = el.querySelector('.qr-fg'), n = q ? names(q, '.qr-chip', 20) : [];
+          return 'Choose the quarter' + (n.length > 1 ? ', from ' + n[0] + ' back to ' + n[n.length - 1] + ',' : '') + ' and then All branches or one salon. The seven numbers change with them. A quarter that is still open shows its target to date, not the whole quarter.';
+        } },
+      { id: 'qr-nav', find: NAVSTEP.find, title: NAVSTEP.title, text: NAVSTEP.text },
+      { id: 'qr-numbers', need: 1, find: function (v) { return nth(v, '.qr-jt', 0); },
+        title: 'The seven numbers', text: 'These are the seven numbers for the quarter you picked. Each shows the figure, its target, the same dates last year and how far it is from target. Tap any figure to open the list behind it.' },
+      { id: 'qr-branches', find: function (v) { return nth(v, '.qr-jt', 1); },
+        title: 'Branch by branch',
+        text: function (el) {
+          var n = names(el, 'th', 8).filter(function (x) { return !/^number$/i.test(x); });
+          return 'The same seven numbers side by side' + (n.length ? ': read across to compare ' + orList(n) : '') + '. Tap any figure here to open the list behind it too.';
+        } },
+      { id: 'qr-reflect', find: function (v) { return first(v, '.qr-reflect'); },
+        title: 'Before you decide anything', text: 'Answer What did you notice? in your own words, then write one sentence on what you know now that you did not know last quarter. Your commitment comes last.' },
+      { id: 'qr-tools', find: function (v) { return first(v, '.qr-tools'); },
+        title: 'Take it with you', text: 'Save this report as a PDF, or download it as XLSX or CSV.' }
+    ],
     // Find a Stylist (Kate, 18 Nov 2026: "i-apply mo na rin sa Find a Stylist"): the Team Home page in a same-origin frame, three questions about the client, then names.
     findstylist: [
       { id: 'fs-card', need: 1, find: function () { return inFrame('findStylistFrame', '.mx-doc'); },
@@ -148,7 +176,7 @@
     ]
   };
   // when there are more than MAX steps, the ones lowest in this list are dropped first (the reading order above is kept)
-  var DROP = ['svc-legend', 'lv-export', 'export', 'search', 'lv-tiles', 'search', 'sections', 'menu', 'figure', 'switch', 'why', 'nav', 'filters'];
+  var DROP = ['svc-legend', 'lv-export', 'export', 'qr-tools', 'search', 'lv-tiles', 'search', 'sections', 'menu', 'figure', 'switch', 'why', 'nav', 'filters'];
   var MAX = 6, MIN = 3;
 
   function vis(el) { var w = el && el.ownerDocument && el.ownerDocument.defaultView || window; return !!(el && el.getClientRects().length && w.getComputedStyle(el).visibility !== 'hidden'); }
