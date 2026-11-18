@@ -85,6 +85,7 @@ const JN_PAGES = {
   staffweeks:     { sel: '.w13-grid', label: el => { const p = el.previousElementSibling; if (p && p.classList.contains('slv-eyebrow')) return p.textContent; return el.querySelector('.w13-card.beauty') ? 'Beauty' : 'Hair'; } },
   stafflevels:    { sel: '#stylistLevelsContent > section.slv-card', labels: ['The level', 'At this level'] },
   clients:        { sel: 'h3' },
+  servicecal:     { shadow: '#serviceCalContent', sel: '[data-jn]', full: true },
   clientmix:      { sel: '#cmCards, .cm-two, #cmListTitle', labels: ['The mix', 'By item', 'The clients'] },
   retention:      { sel: '#retentionContent [data-jn]' },   // The answer, By salon (more than one salon picked), By stylist: each carries data-jn
   lostclients:    { sel: '#lcBody > section.slv-card', labels: ['The totals', 'The client list'] },

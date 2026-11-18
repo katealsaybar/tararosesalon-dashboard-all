@@ -77,7 +77,7 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
 .eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
 .pg h1{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:32px;line-height:1.15;margin:4px 0 8px}
 .pg .lead{margin:0;color:var(--muted);max-width:70ch;font-size:15.5px}
-.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:16px}
 .sc{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px 10px;cursor:pointer;box-shadow:var(--shadow);min-width:0;color:var(--text)}
 .sc:hover{border-color:var(--muted2)}
 .sc .lbl{font-size:13px;font-weight:600}
@@ -121,6 +121,8 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
   background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(var(--border2) 1px,transparent 1px);
   background-size:100% var(--hh),100% calc(var(--hh)/2)}
 .col.off{background-color:var(--surface2)}
+.blk.ot{box-shadow:inset -3px 0 0 var(--warn)}
+.otb{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:0 3px;margin-right:3px;vertical-align:1px}
 .offshift{position:absolute;left:0;right:0;pointer-events:none;background:repeating-linear-gradient(135deg,transparent 0 5px,var(--border) 5px 6px);opacity:.6;z-index:0}
 .offshift b{position:absolute;top:6px;left:0;right:0;text-align:center;font-size:12px;font-weight:600;color:var(--muted)}
 .chead .n4{font-size:11.5px;color:var(--muted2);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -405,7 +407,7 @@ button.cl:hover{text-decoration-color:var(--text)}
     var r = await KB.client.rpc('service_calendar', {p_branch:b, p_from:f, p_to:t});
     if (r.error || !r.data) return null;
     var led = {}, ledAll = {}, sh = {};
-    (r.data.shifts || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) sh[b + '|' + nm + '|' + x[0]] = {k:x[2], s:x[3] ? mm(x[3]) : 0, e:x[4] ? mm(x[4]) : 0, n:x[5] || ''}; });   // stylist|date -> the rota entry
+    (r.data.shifts || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) sh[b + '|' + nm + '|' + x[0]] = {k:x[2], s:x[3] ? mm(x[3]) : 0, e:x[4] ? mm(x[4]) : 0, n:pretty(x[5])}; });   // stylist|date -> the rota entry
     (r.data.ledger || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) led[b + '|' + nm + '|' + x[0]] = x.slice(2); });   // stylist|date -> [total, new, ncr, req, salon, rebooked]
     (r.data.ledger_all || []).forEach(function (x) { ledAll[b + '|' + x[0]] = x.slice(1); });                                          // salon|date  -> [total, new, ncr, req, salon, rebooked]
     return (CACHE[key] = {rows:parse(r.data), led:led, ledAll:ledAll, sh:sh, synced:r.data.synced, first:r.data.first, last:r.data.last, t:Date.now()});
@@ -543,7 +545,7 @@ button.cl:hover{text-decoration-color:var(--text)}
       var per = ds.map(function (d) { return [d, vis.filter(function (r) { return r.d === d; }).length]; }).sort(function (a,b) { return b[1] - a[1]; })[0];
       var chair = ds.reduce(function (t, d) { return t + union(vis.filter(function (r) { return r.d === d; })); }, 0);
       h = tile('Services', vis.length, esc(S.staff ? stLabel(S.staff) : ''), 'list') + tile('Days worked', Object.keys(dd).length, 'of ' + ds.length, 'none')
-        + tile('Chair time', dur(chair), 'booked, overlaps counted once', 'none') + tile('Busiest day', per && per[1] ? dlabel(per[0]) : '-', per && per[1] ? per[1] + ' services' : '', 'busyday');
+        + tile('Chair time', dur(chair), 'booked, overlaps counted once', 'none') + tile('Busiest day', per && per[1] ? dlabel(per[0]) : '-', per && per[1] ? per[1] + ' services' : '', 'busyday') + otTile();
     } else if (S.view === 'list') {
       var all = rangeRows().filter(visible), st = {}; all.forEach(function (r) { st[r.sk] = 1; });
       h = tile('Services', all.length, single() ? dlabel(S.from, true) : dlabel(S.from) + ' to ' + dlabel(S.to), 'none') + tile('Stylists', Object.keys(st).length, 'with at least one service', 'none')
@@ -552,7 +554,7 @@ button.cl:hover{text-decoration-color:var(--text)}
       var v2 = dayRows().filter(visible), s2 = {}; v2.forEach(function (r) { s2[r.sk] = 1; });
       var bz = busiest(v2), perStaff = Object.keys(s2).reduce(function (t, n) { return t + union(v2.filter(function (r) { return r.sk === n; })); }, 0);
       h = tile('Services', v2.length, dlabel(S.from, true) + ' · ' + brLabel(), 'list') + tile('Stylists working', Object.keys(s2).length, 'with at least one service', 'sortchair')
-        + tile('Chair time booked', dur(perStaff), 'all stylists added up', 'sortchair') + tile('Busiest time', v2.length ? fmt(bz.at) : '-', v2.length ? bz.n + ' services at once' : '', 'busy');
+        + tile('Chair time booked', dur(perStaff), 'all stylists added up', 'sortchair') + tile('Busiest time', v2.length ? fmt(bz.at) : '-', v2.length ? bz.n + ' services at once' : '', 'busy') + otTile();
     }
     document.getElementById('cards').innerHTML = h;
   }
@@ -560,9 +562,10 @@ button.cl:hover{text-decoration-color:var(--text)}
   /* ---- grid */
   function block(r){
     var h = Math.max((r.e - r.s) * PX - 1, 17), top = (r.s - T0) * PX, w = 100 / r._n;
+    var sh = shiftOf(r.sk, r.d), ot = !!(sh && sh.k === 'WORKING' && r.e > sh.e);
     var sm = h < 36, who = r.cn ? esc(r.cn) : '', st = STATES[r.state] || ['paid', r.state], time = fmt(r.s) + ' - ' + fmt(r.e);
-    return '<button type="button" class="blk c-' + r.cat + ' s-' + st[0] + (sm ? ' sm' : '') + '" data-id="' + r.i + '" style="top:' + top + 'px;height:' + h + 'px;--minh:' + Math.max(h, 52) + 'px;left:calc(' + (r._l * w) + '% + 1px);width:calc(' + w + '% - 3px)" aria-label="' + esc(r.sv) + ', ' + time + ', ' + who + '">'
-      + '<div class="t">' + esc(r.sv) + '</div><div class="m">' + (r.req ? '<span class="star">★</span> ' : '') + (sm ? '' : time + ' · ') + who + '</div></button>';
+    return '<button type="button" class="blk c-' + r.cat + ' s-' + st[0] + (sm ? ' sm' : '') + (ot ? ' ot' : '') + '" data-id="' + r.i + '" style="top:' + top + 'px;height:' + h + 'px;--minh:' + Math.max(h, 52) + 'px;left:calc(' + (r._l * w) + '% + 1px);width:calc(' + w + '% - 3px)" aria-label="' + esc(r.sv) + ', ' + time + ', ' + who + '">'
+      + '<div class="t">' + (ot ? '<span class="otb">OT</span>' : '') + esc(r.sv) + '</div><div class="m">' + (r.req ? '<span class="star">★</span> ' : '') + (sm ? '' : time + ' · ') + who + '</div></button>';
   }
   function renderGrid(cols){
     var el = document.getElementById('calMain');
@@ -614,7 +617,7 @@ button.cl:hover{text-decoration-color:var(--text)}
     if (!c.sh) return '';
     if (c.sh.k === 'OFF') return '<div class="n4 off">' + esc(c.sh.n || 'Off') + '</div>';
     var o = otOf(c.sh, c.all);
-    return '<div class="n4" title="Rostered shift in Phorest">Shift ' + fmt(c.sh.s).replace(':00', '') + ' - ' + fmt(c.sh.e).replace(':00', '') + (o.late ? ' <span class="ot">+' + dur(o.late) + ' past</span>' : '') + '</div>';
+    return '<div class="n4" title="Rostered shift in Phorest">Shift ' + fmt(c.sh.s).replace(':00', '') + ' - ' + fmt(c.sh.e).replace(':00', '') + (o.late ? ' <span class="ot">OT +' + dur(o.late) + '</span>' : '') + '</div>';
   }
   function bands(c){
     if (!c.sh) return '';
@@ -641,9 +644,29 @@ button.cl:hover{text-decoration-color:var(--text)}
       return '<tr><td>' + esc(l.label) + '</td><td>' + fmt(l.sh.s) + ' - ' + fmt(l.sh.e) + '</td><td>' + fmt(l.o.first) + '</td><td>' + fmt(l.o.last) + '</td><td class="r' + (l.o.late ? ' late' : '') + '">' + (l.o.late ? '+' + dur(l.o.late) : '-') + '</td></tr>';
     }).join('');
     box.innerHTML = '<details class="ct" open><summary>Shifts and overtime' + (S.view === 'week' ? ' · ' + esc(S.staff ? stLabel(S.staff) : '') : '') + '</summary>'
-      + '<p class="ct-note">The shift is the rota in Phorest. <b>Past shift</b> is how long after the shift end her last booked service finishes. ' + (nLate.length ? nLate.length + ' of ' + lines.length + ' ' + (S.view === 'day' ? 'stylists' : 'days') + ' ran past the shift, ' + dur(tot) + ' in all. ' : 'Nobody ran past the shift. ')
+      + '<p class="ct-note">The shift is the rota in Phorest. <b>Overtime</b> is how long after the shift end her last booked service finishes. ' + (nLate.length ? nLate.length + ' of ' + lines.length + ' ' + (S.view === 'day' ? 'stylists' : 'days') + ' ran past the shift, ' + dur(tot) + ' in all. ' : 'Nobody ran past the shift. ')
       + 'It is worked out from bookings, not from a clock-out, so a stylist who stays late with nothing booked, or a rota changed after the day, does not show here.</p>'
-      + '<div class="tw"><table class="cttbl shtbl"><thead><tr><th>' + (S.view === 'day' ? 'Stylist' : 'Day') + '</th><th>Shift</th><th>First service</th><th>Last service ends</th><th class="r">Past shift</th></tr></thead><tbody>' + body + '</tbody></table></div></details>';
+      + '<div class="tw"><table class="cttbl shtbl"><thead><tr><th>' + (S.view === 'day' ? 'Stylist' : 'Day') + '</th><th>Shift</th><th>First service</th><th>Last service ends</th><th class="r">Overtime</th></tr></thead><tbody>' + body + '</tbody></table></div></details>';
+  }
+
+  function pretty(n){ n = String(n || '').trim(); if (/^[A-Z]+(_[A-Z]+)+$/.test(n)) { n = n.replace(/_/g, ' ').toLowerCase(); n = n.charAt(0).toUpperCase() + n.slice(1); } return n; }
+  /* the stylist-days that have a rostered shift and bookings (the rows of the Shifts and overtime box, and the Overtime tile) */
+  function otLines(){
+    var lines = [];
+    if (!W || S.view === 'list') return lines;
+    if (S.view === 'day') {
+      var dr = dayRows();
+      dayStaff().forEach(function (sk) { var sh = shiftOf(sk, S.from); if (sh && sh.k === 'WORKING') lines.push({label:stLabel(sk), sh:sh, o:otOf(sh, dr.filter(function (r) { return r.sk === sk; }))}); });
+    } else {
+      var wr = weekRows();
+      days().forEach(function (d) { var sh = shiftOf(S.staff, d); if (sh && sh.k === 'WORKING') { var x = wr.filter(function (r) { return r.d === d; }); if (x.length) lines.push({label:dlabel(d, true), sh:sh, o:otOf(sh, x)}); } });
+    }
+    return lines;
+  }
+  function otTile(){
+    var ls = otLines(), late = ls.filter(function (l) { return l.o.late > 0; }), tot = late.reduce(function (t, l) { return t + l.o.late; }, 0);
+    if (!ls.length) return tile('Overtime', '-', 'no rota shift for these bookings', 'none');
+    return tile('Overtime', late.length ? dur(tot) : 'None', late.length ? late.length + ' of ' + ls.length + (S.view === 'day' ? ' stylists' : ' days') + ' ran past the shift' : 'nobody ran past the shift', 'ot');
   }
   var CTROWS = [];
   function ctCounts(rows){ var seen = {}, c = {total:0, new:0, ncr:0, req:0, salon:0, rb:0}; rows.forEach(function (r) { if (seen[r.gk]) return; seen[r.gk] = 1; c.total++; c[r.ty]++; if (r.rbk) c.rb++; }); return c; }
@@ -920,6 +943,7 @@ button.cl:hover{text-decoration-color:var(--text)}
       else if (t.id === 'more') { S.showAll = true; render(); }
       else if (d.act === 'list') { S.view = 'list'; render(); }
       else if (d.act === 'sortchair') { S.sortChair = !S.sortChair; render(); }
+      else if (d.act === 'ot') { var ob = LVD.getElementById('shBox'); if (ob) ob.scrollIntoView({behavior:'smooth', block:'start'}); }
       else if (d.act === 'busy') { flashBand(busiest(dayRows().filter(visible)).at); }
       else if (d.act === 'busyday') {
         var b = days().map(function (x) { return [x, weekRows().filter(function (r) { return r.d === x && visible(r); }).length]; }).sort(function (a,c) { return c[1] - a[1]; })[0];
