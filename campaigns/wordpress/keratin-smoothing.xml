@@ -10,7 +10,7 @@
   <title>Keratin &amp; Smoothing</title>
   <link>https://www.tararosesalon.com</link>
   <description>Tara Rose landing page, for import</description>
-  <pubDate>Wed, 18 Nov 2026 07:08:44 +0000</pubDate>
+  <pubDate>Wed, 18 Nov 2026 07:43:23 +0000</pubDate>
   <language>en-GB</language>
   <wp:wxr_version>1.2</wp:wxr_version>
   <wp:base_site_url>https://www.tararosesalon.com</wp:base_site_url>
@@ -19,7 +19,7 @@
   <item>
     <title><![CDATA[Keratin & Smoothing]]></title>
     <link>https://www.tararosesalon.com/?page_id=9003</link>
-    <pubDate>Wed, 18 Nov 2026 07:08:43 +0000</pubDate>
+    <pubDate>Wed, 18 Nov 2026 07:43:23 +0000</pubDate>
     <dc:creator><![CDATA[trs-import]]></dc:creator>
     <guid isPermaLink="false">https://www.tararosesalon.com/?page_id=9003</guid>
     <description></description>
@@ -1699,8 +1699,8 @@ document.addEventListener("keydown",function(e){var c=e.target&&e.target.closest
 ]]></content:encoded>
     <excerpt:encoded><![CDATA[]]></excerpt:encoded>
     <wp:post_id>9003</wp:post_id>
-    <wp:post_date><![CDATA[2026-11-18 11:08:43]]></wp:post_date>
-    <wp:post_date_gmt><![CDATA[2026-11-18 07:08:43]]></wp:post_date_gmt>
+    <wp:post_date><![CDATA[2026-11-18 11:43:23]]></wp:post_date>
+    <wp:post_date_gmt><![CDATA[2026-11-18 07:43:23]]></wp:post_date_gmt>
     <wp:comment_status><![CDATA[closed]]></wp:comment_status>
     <wp:ping_status><![CDATA[closed]]></wp:ping_status>
     <wp:post_name><![CDATA[keratin-smoothing]]></wp:post_name>

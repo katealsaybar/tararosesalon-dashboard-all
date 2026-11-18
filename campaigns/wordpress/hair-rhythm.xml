@@ -10,7 +10,7 @@
   <title>The Hair Rhythm</title>
   <link>https://www.tararosesalon.com</link>
   <description>Tara Rose landing page, for import</description>
-  <pubDate>Wed, 18 Nov 2026 07:08:44 +0000</pubDate>
+  <pubDate>Wed, 18 Nov 2026 07:43:23 +0000</pubDate>
   <language>en-GB</language>
   <wp:wxr_version>1.2</wp:wxr_version>
   <wp:base_site_url>https://www.tararosesalon.com</wp:base_site_url>
@@ -19,7 +19,7 @@
   <item>
     <title><![CDATA[The Hair Rhythm]]></title>
     <link>https://www.tararosesalon.com/?page_id=9001</link>
-    <pubDate>Wed, 18 Nov 2026 07:08:43 +0000</pubDate>
+    <pubDate>Wed, 18 Nov 2026 07:43:23 +0000</pubDate>
     <dc:creator><![CDATA[trs-import]]></dc:creator>
     <guid isPermaLink="false">https://www.tararosesalon.com/?page_id=9001</guid>
     <description></description>
@@ -3580,8 +3580,8 @@ document.addEventListener("click",function(e){var a=e.target.closest&&e.target.c
 <!-- /wp:html -->]]></content:encoded>
     <excerpt:encoded><![CDATA[]]></excerpt:encoded>
     <wp:post_id>9001</wp:post_id>
-    <wp:post_date><![CDATA[2026-11-18 11:08:43]]></wp:post_date>
-    <wp:post_date_gmt><![CDATA[2026-11-18 07:08:43]]></wp:post_date_gmt>
+    <wp:post_date><![CDATA[2026-11-18 11:43:23]]></wp:post_date>
+    <wp:post_date_gmt><![CDATA[2026-11-18 07:43:23]]></wp:post_date_gmt>
     <wp:comment_status><![CDATA[closed]]></wp:comment_status>
     <wp:ping_status><![CDATA[closed]]></wp:ping_status>
     <wp:post_name><![CDATA[the-hair-rhythm]]></wp:post_name>
@@ -3607,7 +3607,7 @@ document.addEventListener("click",function(e){var a=e.target.closest&&e.target.c
   <item>
     <title><![CDATA[The Hair Rhythm, offer terms]]></title>
     <link>https://www.tararosesalon.com/?page_id=9002</link>
-    <pubDate>Wed, 18 Nov 2026 07:08:43 +0000</pubDate>
+    <pubDate>Wed, 18 Nov 2026 07:43:23 +0000</pubDate>
     <dc:creator><![CDATA[trs-import]]></dc:creator>
     <guid isPermaLink="false">https://www.tararosesalon.com/?page_id=9002</guid>
     <description></description>
@@ -4567,8 +4567,8 @@ ol.clauses>li a{color:var(--accent-text)}
 <!-- /wp:generateblocks/element -->]]></content:encoded>
     <excerpt:encoded><![CDATA[]]></excerpt:encoded>
     <wp:post_id>9002</wp:post_id>
-    <wp:post_date><![CDATA[2026-11-18 11:08:43]]></wp:post_date>
-    <wp:post_date_gmt><![CDATA[2026-11-18 07:08:43]]></wp:post_date_gmt>
+    <wp:post_date><![CDATA[2026-11-18 11:43:23]]></wp:post_date>
+    <wp:post_date_gmt><![CDATA[2026-11-18 07:43:23]]></wp:post_date_gmt>
     <wp:comment_status><![CDATA[closed]]></wp:comment_status>
     <wp:ping_status><![CDATA[closed]]></wp:ping_status>
     <wp:post_name><![CDATA[the-hair-rhythm-terms]]></wp:post_name>

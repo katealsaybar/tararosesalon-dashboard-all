@@ -73,11 +73,11 @@ footer{padding:36px 0 56px;color:var(--mute);font-size:14px}
 <h2>Four steps, for each page</h2>
 <ol class="steps">
   <li><b>Download the import file</b> for the page above. It is one <code>.xml</code> file.</li>
-  <li>In WordPress admin go to <b>Tools, Import, WordPress</b>. If it offers to install the importer, say yes. Choose the file, pick yourself under <b>Assign posts to an existing user</b>, and tick <b>Download and import file attachments</b>. Run it. It takes a minute or two because it fetches the images.</li>
+  <li>In WordPress admin go to <b>Tools, Import, WordPress</b>. If it offers to install the importer, say yes. Choose the file, pick yourself under <b>Assign posts to an existing user</b>, tick <b>Download and import file attachments</b>, and <b>untick Rewrite URLs</b> (it is ticked by default and it turns every in-page link into a link to the home page). Run it. It takes a minute or two because it fetches the images.</li>
   <li>Open the new <b>private</b> page. Check it next to the review page (the link on the card), on a phone and on a laptop.</li>
   <li>Fill in the three things below, then publish when Kate says go. Purge LiteSpeed after.</li>
 </ol>
-<p class="note">Importing the same file twice makes a second copy of the page, not a replacement. Delete the old one. The images are not copied twice.</p>
+<p class="note">Importing the same file twice makes a second copy of the page, not a replacement. Delete the old one.</p>
 
 <h2>Three things only you can fill in</h2>
 <div class="fill">
@@ -91,6 +91,8 @@ footer{padding:36px 0 56px;color:var(--mute);font-size:14px}
 <p>Install <b>WordPress Importer</b> from Plugins, Add New. If images fail, the server could not reach trk-salon-os.com: run the import again, or tell Kate.</p></details>
 <details><summary>I would rather paste the page in by hand</summary>
 <p>Use <b>Copy the blocks</b> on the card. Make a new private page, open the three dots menu, choose <b>Code editor</b>, paste, and switch back to the Visual editor. Import the file once anyway to bring the images in. Then in the page settings switch the site header, navigation, title and footer off, because the page has its own.</p></details>
+<details><summary>The menu and buttons on the page jump to the home page</summary>
+<p>Rewrite URLs was left ticked on the import screen. Delete the imported page and its images are fine to keep. Import the file again with <b>Rewrite URLs</b> unticked.</p></details>
 <details><summary>The editor says a block is invalid</summary>
 <p>Do not fix it by hand and do not choose &ldquo;Attempt block recovery&rdquo;. Tell Kate: the build has to change, not the page.</p></details>
 <details><summary>The page copy changed after I imported</summary>
