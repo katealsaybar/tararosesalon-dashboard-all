@@ -16,7 +16,7 @@
 // BHD_TO_AED, TRS_LEVEL; from lost-clients.js lcEsc, lcNum, lcDayY; from client-mix.js CM_FAMS, cmFam; from drill.js TRSD; sheet-table.js TRSheet; why-wall.js whyWall.
 const SR_STORE = 'trs-service-rankings';
 const SR = { fam: 'all', cat: null, rank: 'rev', n: 10 };
-let srData = null, srPrev = null, srSal = null, srSeq = 0, srBusy = false, srT = null, srTS = null, srTF = null, srHK = 'chg';
+let srPrevState = 'none', srData = null, srPrev = null, srSal = null, srSeq = 0, srBusy = false, srT = null, srTS = null, srTF = null, srHK = 'chg';
 const srCache = {};
 const SR_FIRST = '2021-08-01';
 const SR_LIMIT = 1000;
@@ -74,14 +74,14 @@ function srPrevRange() {
     pa = srIso(ps); pb = srIso(pe);
     if (months === 1) { label = monthName(ps); short = SR_MON[ps.getMonth()]; }
     else if (months === 12 && da.getMonth() === 0) { label = String(ps.getFullYear()); short = label; }
-    else { label = 'the ' + months + ' months before'; short = 'before'; }
+    else { label = 'the ' + months + ' months before'; short = 'prior period'; }
   } else if (da.getDate() === 1 && da.getMonth() === db.getMonth() && da.getFullYear() === db.getFullYear()) {
     const ps = new Date(da.getFullYear(), da.getMonth() - 1, 1), days = Math.round((db - da) / 864e5);
     const pe = new Date(ps.getFullYear(), ps.getMonth(), 1 + days), end = new Date(ps.getFullYear(), ps.getMonth() + 1, 0);
     pa = srIso(ps); pb = srIso(pe > end ? end : pe); label = monthName(ps); short = SR_MON[ps.getMonth()];
   } else {
     const len = Math.round((db - da) / 864e5) + 1;
-    pb = srIso(new Date(da.getTime() - 864e5)); pa = srIso(new Date(da.getTime() - len * 864e5)); label = 'the period before'; short = 'before';
+    pb = srIso(new Date(da.getTime() - 864e5)); pa = srIso(new Date(da.getTime() - len * 864e5)); label = 'the period before'; short = 'prior period';
   }
   if (pa < SR_FIRST) return null;
   return [pa, pb, label, short];
@@ -180,24 +180,30 @@ async function renderServiceRankings() {
 async function srLoad() {
   const seq = ++srSeq, cur = srRange(), prev = srPrevRange(), codes = srCodes();
   if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'services') trSyncUrl(null);
-  srBusy = true; srPaintBusy();
-  const prevP = prev ? srFetch(prev, codes).catch(e => { console.error(e); return null; }) : Promise.resolve(null);
+  srBusy = true; srPrevState = prev ? 'loading' : 'none'; srPaintBusy();
+  const prevP = prev ? srFetch(prev, codes).catch(e => { console.error('Service Rankings, the period before', e); return null; }) : Promise.resolve(null);
   try {
     const d = await srFetch(cur, codes);
     if (seq !== srSeq) return;
     srData = d; srPrev = null; srSal = null; srBusy = false;
     srPaint();
-    prevP.then(p => { if (seq === srSeq && p) { srPrev = p; srPaint(); } });
-    // By salon: one call per salon (more than one salon in the picture); the page is already drawn when they arrive
+    const p = await prevP;
+    if (seq !== srSeq) return;
+    srPrev = p; srPrevState = p ? 'ok' : (prev ? 'failed' : 'none'); srPaint();
+    // By salon: one call per salon, two at a time (ten heavy calls at once on a long window made the comparison time out), the current period first
     const list = srSalonCodes();
-    if (!srBah() && list.length > 1) {
-      Promise.all(list.map(c => Promise.all([srCall(cur, c), prev ? srCall(prev, c).catch(() => null) : null]).then(([a, p]) => ({ c, a, p }))))
-        .then(r => { if (seq === srSeq) { srSal = r; srPaintSalon(); srPaintHow(); } }).catch(e => { console.error(e); if (seq === srSeq) { srSal = []; srPaintSalon(); } });
-    }
+    if (!srBah() && list.length > 1) await srSalonLoad(seq, cur, prev, list);
   } catch (e) {
     console.error(e);
     if (seq === srSeq) { srBusy = false; const b = document.getElementById('srBody'); if (b) b.innerHTML = '<p class="slv-muted" style="margin-top:16px">The ranking did not load. <button type="button" class="cm-pill" onclick="srLoad()">Try again</button></p>'; }
   }
+}
+async function srSalonLoad(seq, cur, prev, list) {
+  const out = list.map(c => ({ c, a: null, p: null }));
+  const run = async tasks => { for (let i = 0; i < tasks.length; i += 2) { await Promise.all(tasks.slice(i, i + 2).map(f => f())); if (seq !== srSeq) return false; } return true; };
+  if (!await run(out.map(s => async () => { try { s.a = await srCall(cur, s.c); } catch (e) { console.error('Service Rankings, ' + s.c, e); } }))) return;
+  srSal = out.filter(s => s.a); srPaintSalon();
+  if (prev) { if (!await run(out.map(s => async () => { try { s.p = await srCall(prev, s.c); } catch (e) { s.p = null; } }))) return; srSal = out.filter(s => s.a); srPaintSalon(); }
 }
 function srPaintBusy() { const b = document.getElementById('srBody'); if (b) b.classList.toggle('cm-busy', srBusy); }
 
@@ -230,7 +236,8 @@ function srRows() {
   return rows;
 }
 const srChgV = r => !r.hasPrev ? undefined : SR.rank === 'units' ? srPct(r.u, r.pu) : srPct(r.rev, r.pr);
-const srShort = () => { const p = srPrevRange(); return p ? p[3] : 'before'; };
+const srPrevMsg = () => srPrevState === 'loading' ? 'comparing…' : srPrevState === 'failed' ? 'the comparison did not load' : 'no earlier data to compare';
+const srShort = () => { const p = srPrevRange(); return p ? p[3] : 'prior period'; };
 function srChgCell(p, spec) {
   if (p === undefined) return '<span class="sr-d">–</span>';
   if (p === null) return srNum('<span class="sr-d new">new</span>', spec);
@@ -401,13 +408,13 @@ function srPaintFams() {
   const t = srTot(), fm = srFams(), box = document.getElementById('srFamList'); if (!box) return;
   const show = fm.filter(f => t.rev > 0 && f.rev / t.rev >= 0.005), mx = Math.max.apply(null, show.map(f => f.rev).concat([1]));
   box.innerHTML = show.map(f => { const p = t.hasPrev ? srPct(f.rev, f.pr) : undefined;
-    return `<button type="button" class="sr-fr${SR.fam === f.k ? ' on' : ''}" role="listitem" onclick="srFamFromList('${f.k}')"><span class="fn">${lcEsc(cmFam(f.k).name)}</span><span class="fbw"><i style="width:${100 * f.rev / mx}%"></i></span><span class="fv">${srCur()} ${lcNum(f.rev)}<em>${srPf(f.rev, t.rev)}</em></span><span class="fch ${p === undefined ? '' : p === null ? 'nw' : p >= 0.05 ? 'up' : p <= -0.05 ? 'dn' : ''}">${p === undefined ? '' : p === null ? 'new' : srSgn(p)}</span></button>`; }).join('');
-  const tiles = [['Revenue, ex VAT', srCur() + ' ' + srNum(lcNum(t.rev), srAllSpec('services')), t.hasPrev ? vs(srPct(t.rev, t.pr)) : 'no earlier data to compare'],
+    return `<button type="button" class="sr-fr${SR.fam === f.k ? ' on' : ''}" role="listitem" onclick="srFamFromList('${f.k}')"><span class="sr-fn">${lcEsc(cmFam(f.k).name)}</span><span class="sr-fbw"><i style="width:${100 * f.rev / mx}%"></i></span><span class="sr-fv">${srCur()} ${lcNum(f.rev)}<em>${srPf(f.rev, t.rev)}</em></span><span class="sr-fch ${p === undefined ? '' : p === null ? 'nw' : p >= 0.05 ? 'up' : p <= -0.05 ? 'dn' : ''}">${p === undefined ? '' : p === null ? 'new' : srSgn(p)}</span></button>`; }).join('');
+  const tiles = [['Revenue, ex VAT', srCur() + ' ' + srNum(lcNum(t.rev), srAllSpec('services')), t.hasPrev ? vs(srPct(t.rev, t.pr)) : srPrevMsg()],
     ['Units', srNum(lcNum(t.u), srAllSpec('clients')), t.hasPrev ? vs(srPct(t.u, t.pu)) : ''],
     ['Services sold', srNum(lcNum(t.n) + (t.n >= SR_LIMIT ? '+' : ''), srAllSpec('services')), 'different services in the period'],
     ['Clients', srNum(lcNum(t.cl), srAllSpec('clients')), (srCodes() || []).length > 1 ? 'counted once per salon, so a client at two salons counts twice' : 'different people, any of these services']];
   function vs(p) { return p === null ? 'no sales in the period before' : srChgCell(p, srAllSpec('services')) + ' on ' + lcEsc((srPrevRange() || [])[2] || 'the period before'); }
-  document.getElementById('srTiles').innerHTML = tiles.map(x => `<div class="sr-tile"><div class="k">${x[0]}</div><div class="v">${x[1]}</div><div class="n">${x[2]}</div></div>`).join('');
+  document.getElementById('srTiles').innerHTML = tiles.map(x => `<div class="sr-tile"><div class="sr-tk">${x[0]}</div><div class="sr-tv">${x[1]}</div><div class="sr-tn">${x[2]}</div></div>`).join('');
   // what to watch: the biggest riser and drop among services that mattered in the period before
   const rows = srAll().filter(r => r.hasPrev && r.pr > 0 && r.pr >= (t.pr || 0) * 0.003).map(r => ({ r, p: srPct(r.rev, r.pr) })).sort((a, b) => b.p - a.p), w = document.getElementById('srW1');
   if (rows.length > 1) { const up = rows[0], dn = rows[rows.length - 1];
@@ -539,11 +546,11 @@ function srPaintHow() {
   const rows = srAll().slice().sort((a, b) => b.rev - a.rev), r = rows[0], t = srTot(), card = document.getElementById('srHowCard');
   if (!r) { card.innerHTML = ''; return; }
   const n = lcNum; let m, big, cv;
-  if (srHK === 'chg') { const p = r.hasPrev ? srPct(r.rev, r.pr) : undefined; m = 'How much more or less this service made than in the period before.'; big = p === undefined ? 'no earlier data to compare' : p === null ? lcEsc(r.name) + ' had no sales in the period before' : '(' + n(r.rev) + ' − ' + n(r.pr) + ') ÷ ' + n(r.pr) + ' = ' + srSgn(p); cv = 'Shown for ' + lcEsc(r.name) + ', ' + lcEsc(srScope()) + '. Revenue is ex VAT. "new" means it had no sales in the period before. Rank by Units changes the column to units.'; }
+  if (srHK === 'chg') { const p = r.hasPrev ? srPct(r.rev, r.pr) : undefined; m = 'How much more or less this service made than in the period before.'; big = p === undefined ? srPrevMsg() : p === null ? lcEsc(r.name) + ' had no sales in the period before' : '(' + n(r.rev) + ' − ' + n(r.pr) + ') ÷ ' + n(r.pr) + ' = ' + srSgn(p); cv = 'Shown for ' + lcEsc(r.name) + ', ' + lcEsc(srScope()) + '. Revenue is ex VAT. "new" means it had no sales in the period before. Rank by Units changes the column to units.'; }
   else if (srHK === 'share') { m = 'This service\'s part of everything made from services.'; big = n(r.rev) + ' ÷ ' + n(t.rev) + ' = ' + srPf(r.rev, t.rev); cv = 'Shown for ' + lcEsc(r.name) + '. The total is every service. With Rank by Units it is a share of units.'; }
   else if (srHK === 'avg') { m = 'What one sale of this service brings in on average, sizes and all.'; big = n(r.rev) + ' ÷ ' + n(r.u) + ' units = ' + srCur() + ' ' + n(r.u ? r.rev / r.u : 0); cv = 'Shown for ' + lcEsc(r.name) + '. A package line counts as a unit with no revenue of its own, which pulls the average down a little.'; }
   else { m = 'How many different people had this service, counted once each.'; big = n(r.cl) + ' people, ' + n(r.u) + ' units'; cv = 'Shown for ' + lcEsc(r.name) + '. One person can have it more than once, so units are higher than clients. Across salons one person can count twice.'; }
-  card.innerHTML = `<div class="t">${lcEsc(HOWS.find(h => h[0] === srHK)[1])}</div><p class="m">${m}</p><div class="big">${big}</div><div class="cv">${cv}</div>`;
+  card.innerHTML = `<div class="sr-hc-t">${lcEsc(HOWS.find(h => h[0] === srHK)[1])}</div><p class="sr-hc-m">${m}</p><div class="sr-hc-big">${big}</div><div class="sr-hc-cv">${cv}</div>`;
 }
 
 // the table's sticky offsets (under the masthead and the "On this page" chips), read from the page, never guessed
