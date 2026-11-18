@@ -21,8 +21,8 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=0190ccf3"></script>
-<script src="js/page-dates.js?v=4b5b90ff"></script>
+<script src="js/pages.js?v=5c5f5528"></script>
+<script src="js/page-dates.js?v=e140a68e"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 18 Nov 2026: the XLSX and CSV buttons for the WHOLE page, drawn in the masthead (js/page-export.js; showView calls TRSExport.sync). -->
 <script src="js/page-export.js?v=09eeddca"></script>
@@ -3601,6 +3601,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/client-mix.css?v=9925ddc9">
 <link rel="stylesheet" href="css/sheet-table.css?v=5598ca63">   <!-- the table with Google Sheets heading menus (sheet-table.js) -->
 <link rel="stylesheet" href="css/service-rankings.css?v=a868eb70">
+<link rel="stylesheet" href="css/orders.css?v=58a252a7">   <!-- Orders and Receipts (orders.js) -->
 <link rel="stylesheet" href="css/lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="css/lost-queue.css?v=5a7f8366">
 <link rel="stylesheet" href="css/send-schedule.css?v=88a70391">
@@ -3628,7 +3629,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=759948a4"></script>
 <!-- Kate, 18 Nov 2026: the first-time guide on every report (page-guide.js, page_guide_* in Supabase). showView() calls TRSGuide.maybe(view). -->
-<script src="/js/page-guide.js?v=ef7965f6"></script>
+<script src="/js/page-guide.js?v=82740718"></script>
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -3710,6 +3711,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=c4e7c627'],
       // Supplier Spend (13 Nov 2026): who we buy from, what Accounts paid beside what Phorest received; reads spend_report.
       ss:  ['js/report-export.js?v=d7b73ae8', 'js/supplier-spend.js?v=aab0d891'],
+      // Orders and Receipts (18 Nov 2026): one file, the Google Sheets table (sheet-table.js) and the report export; reads orders_get.
+      od:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=337142d1', 'js/orders.js?v=a5667a83'],
       // Stock Cost (12 Nov 2026): the Stock Cost 2026 Excel as a page that fills itself; reads stock_cost_report, stock_cost_lines, stock_cost_cap_set.
       skc: ['js/report-export.js?v=d7b73ae8', 'js/stock-cost.js?v=4d19fda6'],
       // Retention (3 Nov 2026): one file, reads retention_report and drill_retention_clients.
@@ -3903,6 +3906,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="nav-sub nav-parent">Stock &amp; Supplier Spend</div>
     <a class="nav-sub lvl2" href="/?view=supplierspend" onclick="if(trsPlain(event)){event.preventDefault();showView('supplierspend', this)}">Weekly Product Plan</a>
     <a class="nav-sub lvl2" href="/?view=supplier-spend" onclick="if(trsPlain(event)){event.preventDefault();showView('supplierpay', this)}">Supplier Spend</a>
+    <a class="nav-sub lvl2" href="/?view=orders-and-receipts" onclick="if(trsPlain(event)){event.preventDefault();showView('orders', this)}">Orders and Receipts</a>   <!-- Kate, 18 Nov 2026: next to Supplier Spend; reads orders_get (Level 5 or the extra page orders) -->
     <a class="nav-sub lvl2" href="/?view=stockcost" onclick="if(trsPlain(event)){event.preventDefault();showView('stockcost', this)}">Stock Cost</a>
     <div class="nav-subhead">Targets</div>
     <a class="nav-sub" href="/?view=ledgerTargets" onclick="if(trsPlain(event)){event.preventDefault();showView('ledgerTargets', this)}">Daily Target Sheet</a>
@@ -4478,7 +4482,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=beed62ce&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=59993203&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -4801,6 +4805,12 @@ table.tp-cmp td.bad{color:var(--bad)}
        (stock_order_lines), plus the brands still waiting for a supplier. Level 4 and up, the same spend_access() gate as the Weekly
        Product Plan. supplier-spend.js draws it (inside a shadow root) from spend_report(); the Branch picks the salons and the
        Period picks the month. -->
+  <div id="view-orders" style="display:none">
+    <!-- Orders and Receipts (Kate, 18 Nov 2026): one row per order from the info@ mailbox, from orders_get() (migrations/orders_receipts.sql). The masthead's Branch and Period
+         drive it (pages.js filtered + nopulse, NOPULSE_REDRAW). orders.js draws it. Level 5 or the extra page orders. -->
+    <main id="ordersContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <div id="view-supplierpay" style="display:none">
     <div id="supplierpayWhy" style="max-width:1100px;margin:0 auto;padding:0 10px"></div>
     <main id="supplierSpendContent" style="padding:10px 0 48px"></main>
@@ -4943,12 +4953,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     'Kate writes down the one thing this campaign proved, before the next campaign is planned.');
 })();
 </script>
-<script src="js/jump-nav.js?v=4f9e0d28"></script>
+<script src="js/jump-nav.js?v=0377bedf"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=7b4719d6"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=8b89bca7"></script>
+<script src="js/dashboard.js?v=2ce5f231"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5691,6 +5701,7 @@ function showView(view, el){
   if (view === 'products') renderProducts();
   if (view === 'supplierspend') renderSpend();
   if (view === 'supplierpay') renderSupplierSpend();
+  if (view === 'orders') renderOrders();
   if (view === 'stockcost') renderStockCost();
   if (view === 'branchperf')    renderBranchPerformance();
   if (view === 'compare')       renderCompare();

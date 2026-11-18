@@ -68,6 +68,7 @@ OWN = {
     'products': ['js/products.js'],
     'supplierspend': ['js/spend.js'],
     'supplierpay': ['js/supplier-spend.js'],
+    'orders': ['js/orders.js', 'css/orders.css'],
     'stockcost': ['js/stock-cost.js'],
     'googleads': ['js/google-ads.js'],
     'metaads': ['js/meta-ads.js'],

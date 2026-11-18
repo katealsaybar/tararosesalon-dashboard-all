@@ -1,0 +1,106 @@
+/* Orders and Receipts (orders.js, Kate, 18 Nov 2026), from the local mockup docs/mockups/orders-receipts.html. Shell classes follow Service Rankings; everything is ord- so nothing collides with a kit class. Tokens come from the page, so light and dark follow the site. */
+
+#ordersContent .ord-sp{flex:1}
+.ord-sec{margin-top:30px;scroll-margin-top:calc(var(--sx-top,104px) + 10px)}
+.ord-sec>h3,.ord-how>h3{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:500;margin:0 0 4px;line-height:1.2}
+.ord-learn{margin:4px 0 14px;max-width:78ch}
+.ord-learn p{margin:4px 0;font-size:14.5px;color:var(--muted)}
+.ord-learn p b{color:var(--text)}
+.ord-learn .watch{border-left:3px solid var(--accent);padding:3px 0 3px 12px;color:var(--text)}
+.ord-ans{margin-top:18px;padding:16px 20px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.ord-ans-k{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+.ord-ans-t{font-family:'Playfair Display',Georgia,serif;font-size:24px;line-height:1.3;margin-top:4px}
+.ord-ans-s{font-size:14px;color:var(--muted);margin-top:6px}
+.ord-hint{font-size:12.5px;color:var(--muted2);margin:8px 0 0;flex:1 1 280px}
+/* the toolbar of the top services: pinned under the masthead and the chips while that section is on screen */
+.ord-bar{position:sticky;top:var(--sx-top,104px);z-index:24;background:var(--bg);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:6px 0;margin-bottom:10px;box-shadow:0 -12px 0 var(--bg)}
+.ord-bar-plain{position:static;box-shadow:none}
+.ord-phone{display:none}
+.ord-card{background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.ord-pager{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--muted);flex-wrap:wrap}
+.ord-pager .cm-pill:disabled{opacity:.4;cursor:default}
+.ord-pgn{min-width:5.5em;text-align:center;color:var(--text);font-variant-numeric:tabular-nums}
+.ord-how{margin-top:34px;text-align:center}
+.ord-pick{display:inline-flex;max-width:100%;overflow-x:auto;margin:8px auto 14px}
+.ord-hcard{max-width:640px;margin:0 auto;padding:14px 18px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.ord-hc-t{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+.ord-hc-m{margin:4px 0 6px}
+.ord-hc-big{font-family:'Playfair Display',Georgia,serif;font-size:30px;line-height:1.15;margin:4px 0;font-variant-numeric:tabular-nums}
+.ord-hc-cv{font-size:13px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
+@media(max-width:760px){
+  .ord-bar:not(.ord-bar-plain){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .ord-bar::-webkit-scrollbar{display:none}
+  .ord-phone{display:inline-flex}
+  .ord-pager{flex-wrap:wrap}.ord-pager #ordPgTxt{flex:1 1 100%}
+  .ord-ans-t{font-size:20px}}
+
+.ord-muted{color:var(--muted2)}
+.ord-key{font-size:13px;color:var(--muted);margin:2px 0 8px}
+.ord-empty{margin-top:22px;padding:22px 24px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px;max-width:640px;margin-left:auto;margin-right:auto;text-align:center}
+.ord-ek{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px}
+.ord-empty p{margin:0;font-size:16px;line-height:1.5}
+/* status, receipt and discount: small one-line pills and buttons, never chunky */
+.ord-st{display:inline-block;border:0;border-radius:999px;padding:1px 10px;font:inherit;font-size:13px;line-height:1.4;white-space:nowrap;background:var(--surface2,var(--border2));color:var(--muted)}
+.ord-st.ord-ok{background:color-mix(in srgb,var(--good,#0F8A72) 16%,transparent);color:var(--good,#0F8A72)}
+.ord-st.ord-look{background:var(--warn-bg,#FAEEDA);color:var(--warn,#8A5A0C);font-weight:600;cursor:pointer;white-space:normal;max-width:360px;text-align:left;border-radius:14px;padding:2px 12px}
+p.ord-st.ord-look{display:block;max-width:none;cursor:default}
+.ord-rc{border:0;cursor:pointer;font:inherit;font-size:13px;line-height:1.4;padding:1px 10px;border-radius:999px;white-space:nowrap;background:var(--surface2,var(--border2));color:var(--muted)}
+.ord-rc.ord-pdf{background:color-mix(in srgb,var(--accent-mint,#99F6E4) 45%,transparent);color:var(--text)}
+.ord-rc:hover,.ord-lk:hover{text-decoration:underline}
+.ord-lk{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ord-dsc{border:0;background:none;padding:0;font:inherit;font-weight:600;cursor:pointer;color:var(--good,#0F8A72);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ord-dsc.ord-warn,.ord-warn{color:var(--warn,#8A5A0C)}
+dt.ord-dsc,dd.ord-dsc{cursor:default}
+tr.ord-rowlook td:first-child{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}
+/* How it is worked out and About this page: centred, one idea per card */
+.ord-how{max-width:720px;margin-left:auto;margin-right:auto;text-align:center}
+.ord-pick{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;border:0;background:none;overflow:visible}
+.ord-hcard{max-width:560px;padding:22px 24px}
+.ord-hc-m{font-size:17px;line-height:1.5;max-width:34ch;margin:4px auto 6px}
+.ord-hc-big{font-size:32px;line-height:1.2;margin:16px 0 10px}
+.ord-hc-cv{font-size:14px;margin-top:4px}
+.ord-about{margin-top:26px}
+/* the order window */
+.ord-modal{position:fixed;inset:0;z-index:600;background:rgba(20,16,14,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.ord-dlg{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:16px;width:min(760px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;box-shadow:0 18px 50px -12px rgba(0,0,0,.4)}
+.ord-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+.ord-top h3{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:21px;font-weight:500;line-height:1.25}
+.ord-sub{font-size:13px;color:var(--muted);margin-top:3px}
+.ord-dbody{padding:14px 20px 20px;overflow:auto}
+.ord-dbody h4{margin:18px 0 8px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);font-weight:600}
+.ord-xline{margin:0 0 12px}
+.ord-steps{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+.ord-step{display:inline-flex;flex-direction:column;border:1px solid var(--border);border-radius:14px;padding:4px 12px;font-size:13px;line-height:1.35;color:var(--muted2)}
+.ord-step b{font-weight:600}.ord-step i{font-style:normal}
+.ord-step.on{background:color-mix(in srgb,var(--accent-mint,#99F6E4) 30%,transparent);color:var(--text);border-color:transparent}
+.ord-bt{width:100%;border-collapse:collapse;font-size:14px}
+.ord-bt th{font-size:13px;padding:6px 8px;text-align:left;color:var(--muted2);font-weight:600}
+.ord-bt td{padding:7px 8px;border-top:1px solid var(--border2,var(--border))}
+.ord-bt .r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ord-dnote{display:block;font-size:13px;color:var(--good,#0F8A72);font-weight:600}
+.ord-dnote2{font-size:14px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+.ord-tot{display:grid;grid-template-columns:1fr auto;gap:4px 24px;max-width:420px;margin:12px 0 0 auto;font-size:14.5px}
+.ord-tot dt{color:var(--muted)}
+.ord-tot dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.ord-tot .ord-big{font-size:17px;color:var(--text);font-weight:600;border-top:1px solid var(--border);padding-top:6px}
+.ord-msg{border-left:2px solid var(--border);padding:2px 0 2px 12px;margin:0 0 16px}
+.ord-mh{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:13px;color:var(--muted)}
+.ord-mh b{color:var(--text)}
+.ord-ms{font-weight:600;margin-top:4px}
+.ord-mb{font-size:14.5px;line-height:1.55;margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ord-ma{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+.ord-att{border:1px solid var(--border);background:var(--surface2,var(--border2));border-radius:999px;padding:2px 12px;font-size:13px}
+@media(max-width:760px){
+  .ord-st,.ord-rc,.ord-dsc{min-height:44px}
+  .ord-rc{padding:0 14px}
+  .ord-st.ord-look{min-height:44px;padding:6px 14px}
+  .ord-lk{min-height:44px}
+  .ord-pick button{min-height:44px}
+  .ord-modal{padding:0;align-items:flex-end}
+  .ord-dlg{border-radius:16px 16px 0 0;max-height:92vh}
+  .ord-bt thead{display:none}
+  .ord-bt tr{display:block;border-top:1px solid var(--border);padding:6px 0}
+  .ord-bt td{display:flex;justify-content:space-between;gap:12px;border:0;padding:2px 0}
+  .ord-bt td::before{content:attr(data-l);color:var(--muted2);font-size:13px}
+  .ord-tot{max-width:none}
+}

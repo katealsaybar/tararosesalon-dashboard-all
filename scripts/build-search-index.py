@@ -63,7 +63,7 @@ OUT = at('search-index.js')
 # One page script, one page. A file that draws several pages is handled below.
 FILE_VIEWS = {
     'compare.js': 'compare', 'quarterly-report.js': 'quarterreport', 'daily-performance.js': 'dailyperf', 'daily-addons.js': 'dailyperf', 'google-ads.js': 'googleads', 'meta-ads.js': 'metaads', 'marketing-spend.js': 'marketingspend', 'tool-spend.js': 'toolspend', 'website.js': 'website',
-    'social.js': 'social', 'social-calendar.js': 'social', 'products.js': 'products', 'spend.js': 'supplierspend', 'supplier-spend.js': 'supplierpay', 'stock-cost.js': 'stockcost', 'org-chart.js': 'orgchart',
+    'social.js': 'social', 'social-calendar.js': 'social', 'products.js': 'products', 'spend.js': 'supplierspend', 'orders.js': 'orders', 'supplier-spend.js': 'supplierpay', 'stock-cost.js': 'stockcost', 'org-chart.js': 'orgchart',
     'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'one2ones.js': 'one2ones', 'attrition.js': 'attrition', 'client-book.js': 'clientbook', 'complaint-chats.js': 'complaintchats', 'complaints-detail.js': 'complaintsdetail', 'complaints.js': 'complaints', 'complaint-log.js': 'complaintlog',
     'top-clients.js': 'clients',
     # Added 14 Oct 2026: these pages had no entry here, so their text was not in the index at all.
@@ -139,6 +139,7 @@ PAGE_ANCHORS = {
     'services': ['Where the money came from, by family'],
     'wvblast': ['Everyone on the list', 'Blast 4: the last push'],
     'products': ['Retail stock bought against retail sold'],
+    'orders': ['2 By supplier', '3 Every order and invoice'],
     'googleads': ['Every campaign that ran'],
     'metaads': ['Each campaign, biggest spend first'],
     'marketingspend': ['What is and is not in these numbers', 'Invoices to download'],
