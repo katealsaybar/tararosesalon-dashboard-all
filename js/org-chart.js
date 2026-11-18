@@ -22,15 +22,11 @@ const ORG_CHART = [
       photo: 'assets/org-chart/tara-rose-kidd.png',
       children: [
         { name: 'Daisy Charlotte Cropper', role: 'Managing Director, Tara Rose Bahrain', photo: 'assets/org-chart/daisy-charlotte-cropper.png' },
-        { name: 'Mette Haxthausen', role: 'Executive Partner (Salon Consultant)', photo: 'assets/org-chart/mette-haxthausen.png' },
         {
           name: 'Core Team',
           role: 'Department',
+          // Kate, 18 Nov 2026: Emma, Mette, Kate, David and Hanneh are ONE group ("emkdh"), so Mette sits in the Core Team with the other four, not above it.
           children: [
-            { name: 'Hanneh Rose Rejas', role: 'Social Media Manager', photo: 'assets/org-chart/hanneh-rose-rejas.png' },
-            { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA', photo: 'assets/org-chart/kate-alsaybar.png' },
-            // Kate, 16 Nov 2026: David is the Tech and Automations Head (no longer Paid Media with Leaders in Digital Media).
-            { name: 'David Nagtzaam', role: 'Tech and Automations Head', photo: 'assets/org-chart/david-nagtzaam.png' },
             {
               name: 'Emma-Louise Usher',
               role: 'General Manager',
@@ -71,6 +67,11 @@ const ORG_CHART = [
                 },
               ],
             },
+            { name: 'Mette Haxthausen', role: 'Executive Partner (Salon Consultant)', photo: 'assets/org-chart/mette-haxthausen.png' },
+            { name: 'Kate Alsaybar', role: 'Operations and Performance Manager, EA', photo: 'assets/org-chart/kate-alsaybar.png' },
+            // Kate, 16 Nov 2026: David is the Tech and Automations Head (no longer Paid Media with Leaders in Digital Media).
+            { name: 'David Nagtzaam', role: 'Tech and Automations Head', photo: 'assets/org-chart/david-nagtzaam.png' },
+            { name: 'Hanneh Rose Rejas', role: 'Social Media Manager', photo: 'assets/org-chart/hanneh-rose-rejas.png' },
           ],
         },
         {
