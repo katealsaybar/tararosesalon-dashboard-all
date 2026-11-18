@@ -1,0 +1,63 @@
+{
+ "built": "18 Nov 2026, 11:08",
+ "pages": [
+  {
+   "key": "hair-rhythm",
+   "name": "The Hair Rhythm",
+   "review": "/campaigns/hair-rhythm/",
+   "ready": true,
+   "status": "Ready to review",
+   "xml": "hair-rhythm.xml",
+   "blocks": "hair-rhythm.blocks.html",
+   "terms_blocks": "hair-rhythm-terms.blocks.html",
+   "pages": 2,
+   "images": 39,
+   "image_mb": 13.0,
+   "xml_kb": 421,
+   "slug": "the-hair-rhythm",
+   "robots": "noindex,nofollow",
+   "yoast_title": true
+  },
+  {
+   "key": "keratin-smoothing",
+   "name": "Keratin & Smoothing",
+   "review": "/campaigns/keratin-smoothing/",
+   "ready": true,
+   "status": "Copy still changing",
+   "xml": "keratin-smoothing.xml",
+   "blocks": "keratin-smoothing.blocks.html",
+   "terms_blocks": null,
+   "pages": 1,
+   "images": 37,
+   "image_mb": 7.2,
+   "xml_kb": 300,
+   "slug": "keratin-smoothing",
+   "robots": "noindex,nofollow",
+   "yoast_title": false
+  },
+  {
+   "key": "extensions",
+   "name": "Extensions",
+   "review": "/campaigns/extensions/",
+   "ready": true,
+   "status": "Copy still changing",
+   "xml": "extensions.xml",
+   "blocks": "extensions.blocks.html",
+   "terms_blocks": null,
+   "pages": 1,
+   "images": 31,
+   "image_mb": 8.5,
+   "xml_kb": 432,
+   "slug": "extensions",
+   "robots": "noindex,nofollow",
+   "yoast_title": true
+  },
+  {
+   "key": "blonde-standard",
+   "name": "Blonde Standard",
+   "review": "/campaigns/blonde-standard/",
+   "ready": false,
+   "status": "Being built"
+  }
+ ]
+}

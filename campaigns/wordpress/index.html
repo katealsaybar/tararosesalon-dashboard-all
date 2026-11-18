@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>WordPress Hand-off</title>
+<meta name="description" content="One import file per landing page. Download it, import it in WordPress, and the page, its images and its settings arrive as a private draft.">
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:300 600;font-display:swap;src:url(/campaigns/hair-rhythm/assets/fonts/inter-300.woff2) format('woff2')}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:500;font-display:swap;src:url(/campaigns/hair-rhythm/assets/fonts/playfair-display-500.woff2) format('woff2')}
+@font-face{font-family:'Playfair Display';font-style:italic;font-weight:500;font-display:swap;src:url(/campaigns/hair-rhythm/assets/fonts/playfair-display-500-italic.woff2) format('woff2')}
+:root{--bg:#FAF8F4;--card:#fff;--ink:#2D2E37;--mute:#6B6C74;--line:rgba(45,46,55,.12);--mint:#99F6E4;--green:#1C7563;--gold:#8A5A00;--goldbg:#FFF1D6}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:300 17px/1.6 Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:0 20px}
+header{padding:44px 0 8px}
+.eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--green);margin:0 0 14px}
+h1{font:500 clamp(30px,5vw,44px)/1.12 'Playfair Display',Georgia,serif;margin:0 0 14px}
+h1 em{font-style:italic;color:var(--green)}
+.lead{font-size:18px;color:var(--mute);margin:0;max-width:640px}
+h2{font:500 26px/1.2 'Playfair Display',Georgia,serif;margin:44px 0 16px}
+ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px 16px 62px}
+ol.steps li::before{content:counter(s);position:absolute;left:18px;top:14px;width:30px;height:30px;border-radius:50%;background:var(--mint);color:#0F4D40;font-weight:600;display:grid;place-items:center;font-size:15px}
+ol.steps b{font-weight:600}
+code{font:500 .9em ui-monospace,Consolas,monospace;background:rgba(45,46,55,.07);padding:2px 6px;border-radius:6px;word-break:break-all}
+.note{font-size:15px;color:var(--mute);margin:12px 2px 0}
+.cards{display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px}
+.card h3{font:500 24px/1.2 'Playfair Display',Georgia,serif;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chip{font:600 13px/1 Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:7px 11px;border-radius:999px;background:rgba(153,246,228,.45);color:#0F4D40}
+.chip.warn{background:var(--goldbg);color:var(--gold)}
+.chip.off{background:rgba(45,46,55,.08);color:var(--mute)}
+.facts{font-size:15px;color:var(--mute);margin:0 0 16px}
+.btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{appearance:none;border:0;cursor:pointer;font:600 15px/1 Inter,sans-serif;letter-spacing:.02em;padding:15px 22px;border-radius:999px;text-decoration:none;display:inline-flex;gap:8px;align-items:center;min-height:48px}
+.btn.main{background:var(--mint);color:#0B3F34}
+.btn.main:hover{background:#7DEFD9}
+.btn.alt{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.alt:hover{border-color:var(--ink)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+a.link{color:var(--green);font-size:15px;font-weight:500}
+.btn:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.fill{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:6px 18px}
+.fill div{padding:12px 0;border-bottom:1px solid var(--line)}
+.fill div:last-child{border:0}
+.fill b{font-weight:600}
+details{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 18px;margin-top:12px}
+summary{cursor:pointer;font-weight:600;display:block;min-height:44px;padding:9px 0}
+details p{margin:10px 0 0;font-size:16px}
+footer{padding:36px 0 56px;color:var(--mute);font-size:14px}
+.facts{font-size:15px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:14px 20px;border-radius:14px;font-size:15px;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);z-index:9}
+.toast.on{opacity:1;transform:translateX(-50%)}
+@media (max-width:560px){body{font-size:16px}.card{padding:18px}.btn{width:100%;justify-content:center}}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="eyebrow">Tara Rose &middot; WordPress hand-off</p>
+  <h1>Put a landing page on WordPress <em>in one import</em></h1>
+  <p class="lead">Download the file for a page, import it, and the page, its images and its settings arrive as a private draft. Nothing is built by hand and nothing goes live by itself.</p>
+</header>
+
+<h2>The pages</h2>
+<div class="cards" id="cards"><p class="note">Loading the list&hellip;</p></div>
+<p class="note" id="built"></p>
+
+<h2>Four steps, for each page</h2>
+<ol class="steps">
+  <li><b>Download the import file</b> for the page above. It is one <code>.xml</code> file.</li>
+  <li>In WordPress admin go to <b>Tools, Import, WordPress</b>. If it offers to install the importer, say yes. Choose the file, pick yourself under <b>Assign posts to an existing user</b>, and tick <b>Download and import file attachments</b>. Run it. It takes a minute or two because it fetches the images.</li>
+  <li>Open the new <b>private</b> page. Check it next to the review page (the link on the card), on a phone and on a laptop.</li>
+  <li>Fill in the three things below, then publish when Kate says go. Purge LiteSpeed after.</li>
+</ol>
+<p class="note">Importing the same file twice makes a second copy of the page, not a replacement. Delete the old one. The images are not copied twice.</p>
+
+<h2>Three things only you can fill in</h2>
+<div class="fill">
+  <div><b>The form address.</b> In the page, search for <code>__FORM_ENDPOINT__</code> (it is in the last Custom HTML block) and put the address that receives the booking form. Until then the form does nothing and says it is a preview.</div>
+  <div><b>Page address and language.</b> The slug is set. Choose the parent page and set the language to English in WPML.</div>
+  <div><b>Search engines.</b> The pages arrive set to <i>noindex</i>. Switching that off in Yoast is the launch decision, so leave it until Kate says.</div>
+</div>
+
+<h2>If something does not work</h2>
+<details><summary>The import is missing the importer, or fails on images</summary>
+<p>Install <b>WordPress Importer</b> from Plugins, Add New. If images fail, the server could not reach trk-salon-os.com: run the import again, or tell Kate.</p></details>
+<details><summary>I would rather paste the page in by hand</summary>
+<p>Use <b>Copy the blocks</b> on the card. Make a new private page, open the three dots menu, choose <b>Code editor</b>, paste, and switch back to the Visual editor. Import the file once anyway to bring the images in. Then in the page settings switch the site header, navigation, title and footer off, because the page has its own.</p></details>
+<details><summary>The editor says a block is invalid</summary>
+<p>Do not fix it by hand and do not choose &ldquo;Attempt block recovery&rdquo;. Tell Kate: the build has to change, not the page.</p></details>
+<details><summary>The page copy changed after I imported</summary>
+<p>The files here are rebuilt from the review page, so download again. The date under the cards shows when it was last built. Do not edit the copy in WordPress, it will be overwritten next time.</p></details>
+
+<footer>These pages are drafts for the team. Not for clients, not for search engines.</footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+  var cards=document.getElementById('cards'), built=document.getElementById('built'), toast=document.getElementById('toast'), tt;
+  function say(m){toast.textContent=m;toast.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('on')},3800)}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  async function copyText(t){
+    try{await navigator.clipboard.writeText(t);return true}catch(e){}
+    var a=document.createElement('textarea');a.value=t;a.setAttribute('readonly','');a.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(a);a.select();
+    var ok=false;try{ok=document.execCommand('copy')}catch(e){}a.remove();return ok;
+  }
+  function render(m){
+    built.textContent='Files built '+m.built+' (Dubai time) from the review pages. Download again if a page was changed after that.';
+    cards.innerHTML=m.pages.map(function(p){
+      if(!p.ready) return '<div class="card"><h3>'+esc(p.name)+' <span class="chip off">Being built</span></h3><p class="facts">Not ready yet.</p><div class="btns"><a class="link" href="'+esc(p.review)+'" target="_blank" rel="noopener">Open the review page</a></div></div>';
+      var warn=p.status!=='Ready to review';
+      return '<div class="card" id="'+esc(p.key)+'"><h3>'+esc(p.name)+' <span class="chip'+(warn?' warn':'')+'">'+esc(p.status)+'</span></h3>'+
+        '<p class="facts">'+p.pages+(p.pages>1?' pages (landing and terms)':' page')+' &middot; '+p.images+' images, '+p.image_mb+' MB &middot; address <code>/'+esc(p.slug)+'/</code> &middot; arrives private and noindex</p>'+
+        '<div class="btns"><a class="btn main" href="'+esc(p.xml)+'" download>Download import file</a>'+
+        '<button class="btn alt" type="button" data-copy="'+esc(p.blocks)+'">Copy the blocks</button>'+
+        (p.terms_blocks?'<button class="btn alt" type="button" data-copy="'+esc(p.terms_blocks)+'">Copy terms blocks</button>':'')+
+        '<a class="link" href="'+esc(p.review)+'" target="_blank" rel="noopener">Review page &#8599;</a></div></div>';
+    }).join('');
+  }
+  cards.addEventListener('click',function(e){
+    var b=e.target.closest('[data-copy]'); if(!b) return;
+    var old=b.textContent; b.disabled=true; b.textContent='Copying...';
+    fetch(b.getAttribute('data-copy'),{cache:'no-store'}).then(function(r){if(!r.ok) throw 0;return r.text()}).then(copyText).then(function(ok){
+      say(ok?'Copied. In WordPress, open the Code editor and paste.':'Could not copy. Use the import file instead.');
+    }).catch(function(){say('Could not load the file.')}).then(function(){b.disabled=false;b.textContent=old});
+  });
+  fetch('manifest.json',{cache:'no-store'}).then(function(r){return r.json()}).then(render).catch(function(){cards.innerHTML='<p class="note">Could not load the list. Refresh the page.</p>'});
+})();
+</script>
+</body>
+</html>

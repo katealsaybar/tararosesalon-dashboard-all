@@ -88,6 +88,7 @@
         '<div class="lpr-mid"><span class="lpr-status lpr-s-' + s.k + '">' + esc(s.t) + '</span>' +
           '<div class="lpr-ghost"><span>' + esc(meta) + '</span>' + (p.earlier ? '<a href="' + esc(p.earlier) + '" target="_blank" rel="noopener">Earlier version</a>' : '') + '</div></div>' +
         '<a class="lpr-btn" href="' + esc(openUrl(p)) + '" target="_blank" rel="noopener">Open and comment</a>' +
+        '<a class="lpr-wp" href="/campaigns/wordpress/#' + esc(p.slug) + '" target="_blank" rel="noopener">For WordPress</a>' +
         '<details><summary>What has been said' + (C ? ' (' + (st.open.length + st.done.length) + ')' : '') + '</summary>' + said + '</details>' +
       '</div></article>';
   }
@@ -98,13 +99,20 @@
   function render() {
     var el = main(); if (!el) return;
     var shown = PAGES.filter(visible);
+    var unreviewed = C ? PAGES.filter(function (p) { return !stats(p).any; }).length : 0;
     var chips = [['all', 'All pages'], ['new', 'Not reviewed yet'], ['open', 'With open comments']].map(function (f) {
       return '<button type="button" class="lpr-chip" data-f="' + f[0] + '" aria-pressed="' + (filter === f[0]) + '">' + f[1] + '</button>';
     }).join('');
     el.innerHTML = '<div class="lpr">' +
       '<h2>Landing Page Review</h2>' +
       '<p class="lpr-lead">The campaign landing pages, as clients will see them. All of them are still drafts. Open one, drop a comment on the exact spot you want changed, and Kate, Hanneh, and Coach Emma see it straight away.</p>' +
+      whyWall([
+        ['Why this page', 'These pages are where a client decides to book. A comment pinned on the exact spot gives one clean list of changes instead of a chat to decode.'],
+        ['Why now', C ? (unreviewed ? unreviewed + ' of ' + PAGES.length + ' pages have no comment yet, and the move to WordPress has started.' : 'Every page has had a comment. The next step is the move to WordPress.') : 'The four drafts are up for review and the move to WordPress has started.'],
+        ['If we do nothing', 'The pages reach WordPress with questions still open, and the fixes happen on the live page.']
+      ], 'Open each page marked Not reviewed yet and pin every change you want. Kate, before the pages go to WordPress.') +
       '<div class="lpr-how"><div><b>1</b><span>Tap <strong>Open and comment</strong> on a page.</span></div><div><b>2</b><span>On the page, tap <strong>+ Add a comment</strong>.</span></div><div><b>3</b><span>Tap the spot, write what to change, post.</span></div></div>' +
+      '<div class="lpr-wpbar"><div><b>Moving a page to WordPress?</b><span>One import file per page. David and Alissa download it, import it, and the page, its images and its settings arrive as a private draft.</span></div><a class="lpr-btn" href="/campaigns/wordpress/" target="_blank" rel="noopener">WordPress hand-off</a></div>' +
       '<div class="lpr-bar"><div class="lpr-filters" role="group" aria-label="Show">' + chips + '</div>' +
         '<div class="lpr-seg" role="group" aria-label="Layout">' +
           '<button type="button" data-m="list" aria-pressed="' + (mode === 'list') + '" title="List layout (V)" aria-label="List layout">' + ICON_LIST + '</button>' +

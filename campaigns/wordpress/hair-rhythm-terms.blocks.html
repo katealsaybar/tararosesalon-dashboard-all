@@ -1,0 +1,954 @@
+<!-- wp:html -->
+<style id="hr-styles">
+<!--
+/* WordPress reset. From the Wellness Voucher build and the components kit (W01). It sits BEFORE the page CSS, at
+   element strength, so every page rule still wins over it. It undoes the GeneratePress element styles that would
+   otherwise bleed into the page (bare p/ul/blockquote/heading margins, body 15px, container padding). */
+body{font-size:16px}
+p,h1,h2,h3,h4,h5,h6,ul,ol,li,dl,dd,figure,blockquote,table{margin:0;padding:0;margin-block:0}
+h1,h2,h3,h4,h5,h6{font-family:inherit;font-weight:bold;line-height:inherit;color:inherit;text-transform:none;letter-spacing:normal}
+h1{font-size:2em}h2{font-size:1.5em}h3{font-size:1.17em}h4{font-size:1em}h5{font-size:.83em}h6{font-size:.67em}
+blockquote{border:0;font-size:inherit;font-style:normal;position:static}
+button{padding:0;font:revert;color:revert;letter-spacing:revert;text-transform:revert;line-height:revert}
+.site-content,.content-area,.site-main,.inside-article,.entry-content,.site.grid-container,.container.grid-container{padding:0!important;margin:0!important;max-width:none!important;width:100%!important;float:none!important}
+.entry-header,.page-header,.post-image,.featured-image{display:none!important}
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;letter-spacing:normal}
+table,td,th{border:0}
+/* GeneratePress gives form controls the theme font and a 24px line-height; the review page left them at the browser default. */
+input,select,textarea{font:revert;line-height:revert;letter-spacing:revert;color:revert}
+/* WordPress's Details block adds a block gap between its parts (is-layout-flow). The review page has none. */
+details.wp-block-details>*{margin-block-start:0;margin-block-end:0}
+
+@font-face{font-family:'HR Inter';font-style:normal;font-weight:300 600;font-display:swap;src:url(https://www.tararosesalon.com/wp-content/themes/tara-rose-salon/assets/ae/fonts/inter-300.woff2) format('woff2')}
+@font-face{font-family:'HR Playfair Display';font-style:normal;font-weight:400;font-display:swap;src:url(https://www.tararosesalon.com/wp-content/uploads/generatepress/fonts/playfair-display/PlayfairDisplay-Regular.woff2) format('woff2')}
+@font-face{font-family:'HR Playfair Display';font-style:normal;font-weight:500;font-display:swap;src:url(https://www.tararosesalon.com/wp-content/themes/tara-rose-salon/assets/ae/fonts/playfair-display-500.woff2) format('woff2')}
+@font-face{font-family:'HR Playfair Display';font-style:italic;font-weight:400 500;font-display:swap;src:url(https://www.tararosesalon.com/wp-content/themes/tara-rose-salon/assets/ae/fonts/playfair-display-500-italic.woff2) format('woff2')}
+:where(.hr-run,.hr-loose){display:contents}
+div:where(.hr-small){display:inline;font-size:smaller}
+div:where(.hr-strong){display:inline;font-weight:bolder}
+
+/* css/voucher-base.css */
+:root{--paper:#FAF8F4; --cream:#F1ECE3; --stone-soft:#EFEBE3; --stone:#E7E2D8; --sand:#E7DFD2;
+  --ink:#2D2E37; --ink-deep:#1C1B18; --ink-soft:#74747B; --hair:rgba(45,46,55,.11);
+  --accent:#99F6E4; --accent-deep:#7DE6D2; --accent-text:#1C7563; --accent-soft:#EEF3C7;
+  --lime:#EEF3C7; --lavender:#C4B5FD; --coral:#FF9B9B; --err:#C9685F;
+  --r-lg:22px; --r-md:16px; --r-sm:14px; --r-pill:100px;
+  --ease:cubic-bezier(.22,.61,.36,1); --dur:.3s;
+  --fd:"HR Playfair Display",Georgia,serif; --fb:"HR Inter",system-ui,-apple-system,sans-serif;
+  --maxw:1180px; --pad-x:26px; --sec-y:96px;}
+@media (max-width:900px){:root{--sec-y:64px;}}
+@media (max-width:600px){:root{--sec-y:48px; --pad-x:20px;}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important; transition-duration:.01ms!important;}}
+*,*::before,*::after{margin:0; padding:0; box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--fb); color:var(--ink); background:var(--paper); line-height:1.62; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; font-feature-settings:"kern","liga","calt"; overflow-x:hidden;}
+h1,h2,h3,h4{font-optical-sizing:auto;}
+img{max-width:100%; display:block;}
+a{color:inherit; text-decoration:none;}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 var(--pad-x);}
+section{padding:var(--sec-y) 0;}
+.skip{position:absolute; top:-100px; left:16px; z-index:999; background:var(--ink); color:var(--paper); padding:12px 20px; border-radius:var(--r-pill); font-family:var(--fb); font-size:13px; font-weight:500;}
+.skip:focus{top:12px;}
+:focus-visible{outline:2px solid var(--accent-text); outline-offset:3px; border-radius:3px;}
+.hr-eyebrow{font-family:var(--fb); font-size:11px; font-weight:500; letter-spacing:.4em; text-transform:uppercase; color:var(--ink-soft);}
+.hr-h-1{font-family:var(--fd); font-weight:500; font-size:clamp(42px,min(6.2vw,9vh),80px); line-height:1.0; letter-spacing:-.018em; text-wrap:balance;}
+.hr-pill{display:inline-flex; align-items:center; gap:10px; font-family:var(--fb); font-size:13px; font-weight:500; letter-spacing:.04em; padding:14px 26px; border-radius:var(--r-pill); border:none; cursor:pointer; text-decoration:none; background:var(--ink); color:var(--paper); transition:transform var(--dur) var(--ease),background var(--dur) var(--ease),box-shadow var(--dur) var(--ease); box-shadow:0 1px 2px rgba(45,46,55,.10);}
+.hr-pill:hover{transform:translateY(-2px); background:#3b3c47; box-shadow:0 11px 24px -10px rgba(45,46,55,.42);}
+.pill--accent{background:var(--accent); color:var(--ink); box-shadow:0 1px 2px rgba(61,140,127,.20);}
+.pill--accent:hover{background:var(--accent-deep); box-shadow:0 12px 26px -10px rgba(61,140,127,.5);}
+.trs-nav{position:sticky; top:0; z-index:60; background:rgba(250,248,244,.86); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid var(--hair); transition:box-shadow .4s var(--ease),background .4s var(--ease);}
+.trs-nav .navrow{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; height:74px;}
+.trs-nav .brand{display:flex; flex-direction:column; align-items:center; line-height:1; justify-self:center; padding:0 clamp(18px,2.6vw,44px);}
+.trs-nav .brand__tick{width:34px; height:2px; background:var(--accent-deep); margin-bottom:8px;}
+.trs-nav .brand__wm{font-family:var(--fd); font-weight:500; font-size:21px; letter-spacing:.32em; color:var(--ink);}
+.trs-nav .brand :is(small,div:where(.hr-small),span:where(.hr-small)){display:block; font-family:var(--fb); font-weight:500; font-size:8.5px; letter-spacing:.44em; color:var(--ink-soft); margin-top:5px; text-align:center;}
+.trs-nav .nav__cta{justify-self:start; padding:11px 20px; font-size:12px;}
+.trs-nav .nav-link{justify-self:end; font-family:var(--fb); font-size:11.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft);}
+.trs-nav .nav-link:hover{color:var(--ink);}
+@media (max-width:600px){.trs-nav .nav-link{display:none;}.trs-nav .nav__cta{font-size:11px; padding:10px 16px;}.trs-nav .brand__wm{font-size:18px;}}
+@media (prefers-reduced-motion:no-preference){@keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(153,246,228,.5) } 50%{ box-shadow:0 0 0 7px rgba(153,246,228,0) } }}
+.hr-dark{background:var(--ink-deep); color:#fff;}
+.hr-dark .hr-eyebrow{color:rgba(255,255,255,.55);}
+.hr-dark h2,.hr-dark h3{color:#fff;}
+.hr-sec-head{max-width:640px; margin-bottom:44px;}
+.hr-sec-head .hr-eyebrow{display:block; margin-bottom:14px;}
+.hr-sec-head h2{font-family:var(--fd); font-weight:500; font-size:clamp(31px,4.4vw,52px); line-height:1.05; letter-spacing:-.012em; color:var(--ink); text-wrap:balance;}
+.hr-dark .hr-sec-head h2{color:#fff;}
+.hr-grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+@media (max-width:860px){.hr-grid-3{grid-template-columns:1fr;}}
+.foot{background:#161512; color:#fff; padding:84px 0 32px;}
+.foot .row{display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:48px; padding-bottom:42px; border-bottom:1px solid rgba(255,255,255,.1);}
+.foot h4{font-family:var(--fb); font-size:11px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:rgba(255,255,255,.55); margin-bottom:18px;}
+.foot p,.foot a{font-family:var(--fb); font-size:13.5px; color:rgba(255,255,255,.72); line-height:1.72; font-weight:300;}
+.foot a:hover{color:#fff;}
+.foot .brand__wm{font-family:var(--fd); font-weight:500; font-size:24px; letter-spacing:.28em; color:#fff; margin-bottom:6px; display:block;}
+.foot .sig{font-family:var(--fd); font-style:italic; color:var(--accent); font-size:16px; margin-top:22px; display:block;}
+.foot__legal{padding:20px 0; border-top:1px solid rgba(255,255,255,.1); color:rgba(255,255,255,.55); font-size:12px; line-height:1.7; margin-top:24px;}
+.foot__legal a{color:rgba(255,255,255,.72); text-decoration:underline;}
+.foot .subrow{padding-top:24px; display:flex; justify-content:space-between; color:rgba(255,255,255,.5); font-size:11.5px; letter-spacing:.06em;}
+.foot .subrow a{color:rgba(255,255,255,.5);}
+.foot .permit{font-size:12px; color:rgba(255,255,255,.5); line-height:1.7; margin-top:14px;}
+@media (max-width:780px){.foot .row{grid-template-columns:1fr; gap:32px;}.foot .subrow{flex-direction:column; gap:8px;}}
+[aria-invalid="true"]{border-color:#8E2F20 !important;}
+@media (max-width:760px){.trs-nav .brand,.trs-nav .nav-link{min-height:44px; display:inline-flex; align-items:center}footer a{display:inline-block; padding:11px 0; line-height:1.25}}
+div:where(.entry-content) > section{border-top:1px solid var(--hair)}
+div:where(.entry-content) > section.hr-dark{border-top:0}
+div:where(.entry-content) > section.hr-dark + section{border-top:0}
+[id]{scroll-margin-top:84px}
+::selection{background:var(--accent);color:var(--ink)}
+::-moz-selection{background:var(--accent);color:var(--ink)}
+.foot .soc-grp{margin:14px 0 4px;font-size:10.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent,#99F6E4)}
+.foot .soc-grp:first-of-type{margin-top:0}
+.foot .row{flex-wrap:wrap}
+:root{--primary: #2D2E37;
+--on-primary: #FAF8F4;
+--accent: #99F6E4;
+--accent-deep: #7DE6D2;
+--accent-text: #1C7563;
+--accent-dark: #256A5B;
+--on-accent: #0E2A25;
+--canvas: #FAF8F4;
+--canvas-dark: #1C1B18;
+--surface: #F1ECE3;
+--surface-soft: #EFEBE3;
+--sand: #E7DFD2;
+--ink: #2D2E37;
+--ink-deep: #1C1B18;
+--on-dark: #FFFFFF;
+--taupe: #6B6459;
+--taupe-soft: #9A9287;
+--hairline: rgba(45,46,55,.12);
+--pillar-lime: #EEF3C7;
+--pillar-lavender: #C4B5FD;
+--pillar-coral: #FF9B9B;
+--accent-lift: #8FF0DC;
+--accent-mid: #7CE8D2;
+--accent-drop: #62DCC4;
+--accent-lift-h: #9CF4E4;
+--accent-mid-h: #89ECDA;
+--accent-drop-h: #70E2CC;
+--disabled: #E4E1DA;
+--ghost-top: #FFFFFF;
+--ghost-bottom: #F5F2EC;
+--scrim: rgba(28,27,24,.5);
+--text-muted: #74747B;
+--sh-rim-light: inset 0 1px 0 rgba(255,255,255,.72), inset 0 -1px 0 rgba(28,26,22,.05);
+--sh-rim-dark: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.22);
+--sh-subtle-sm: 0 1px 2px rgba(28,26,22,.04);
+--sh-subtle-md: 0 2px 6px -2px rgba(28,26,22,.06);
+--sh-subtle-lg: 0 6px 16px -6px rgba(28,26,22,.08);
+--sh-subtle-xl: 0 12px 32px -12px rgba(28,26,22,.10);
+--sh-regular-sm: 0 1px 2px rgba(28,26,22,.06), 0 1px 1px rgba(28,26,22,.04);
+--sh-regular-md: 0 2px 4px rgba(28,26,22,.05), 0 6px 14px -6px rgba(28,26,22,.10);
+--sh-regular-lg: 0 2px 4px rgba(28,26,22,.05), 0 14px 30px -12px rgba(28,26,22,.14);
+--sh-regular-xl: 0 4px 8px rgba(28,26,22,.05), 0 26px 54px -20px rgba(28,26,22,.18);
+--sh-strong-sm: 0 1px 2px rgba(28,26,22,.10), 0 2px 4px rgba(28,26,22,.08);
+--sh-strong-md: 0 2px 4px rgba(28,26,22,.10), 0 10px 20px -8px rgba(28,26,22,.18);
+--sh-strong-lg: 0 3px 6px rgba(28,26,22,.10), 0 20px 40px -14px rgba(28,26,22,.24);
+--sh-strong-xl: 0 4px 10px rgba(28,26,22,.12), 0 34px 66px -22px rgba(28,26,22,.30);
+--r-xs: 6px;
+--r-sm: 10px;
+--r-md: 12px;
+--r-lg: 16px;
+--r-pill: 100px;
+--r-full: 999px;
+--sp-xxs: 2px;
+--sp-xs: 6px;
+--sp-sm: 8px;
+--sp-md: 12px;
+--sp-lg: 16px;
+--sp-xl: 20px;
+--sp-xxl: 24px;
+--sp-xxxl: 36px;
+--sp-section: 96px;
+--sp-section-md: 72px;
+--sp-section-sm: 52px;
+--fs-display: clamp(46px,7.6vw,104px);
+--fs-heading-xl: clamp(42px,6.4vw,74px);
+--fs-heading-lg: clamp(31px,4.4vw,52px);
+--fs-heading-md: clamp(26px,3.6vw,40px);
+--fs-heading-sm: clamp(20px,2.6vw,26px);
+--fs-lede: clamp(16px,1.7vw,18.5px);
+--fs-body: 16px;
+--fs-body-sm: 14.5px;
+--fs-link: 13px;
+--fs-eyebrow: 11.5px;
+--fs-caption: 11px;
+--ff-display: "HR Playfair Display", Georgia, serif;
+--ff-heading: "HR Playfair Display", Georgia, serif;
+--ff-body: HR Inter, system-ui, sans-serif;
+--ff-eyebrow: HR Inter, system-ui, sans-serif;
+--ff-caption: HR Inter, system-ui, sans-serif;
+--color-canvas:            var(--canvas);
+--color-canvas-soft:       var(--surface);
+--color-surface:           var(--surface);
+--color-surface-elevated:  var(--surface-soft);
+--color-foreground:        var(--ink);
+--color-foreground-muted:  var(--taupe);
+--color-foreground-soft:   var(--taupe-soft);
+--color-on-primary:        var(--on-primary);
+--color-border:            var(--hairline);
+--color-accent:            var(--accent);
+--color-accent-text:       var(--accent-text);
+--color-accent-strong:     var(--accent-dark);
+--color-on-accent:         var(--on-accent);
+--color-disabled:          var(--disabled);
+--color-scrim:             var(--scrim);
+--paper:      var(--canvas);
+--cream:      var(--surface);
+--stone-soft: var(--surface-soft);
+--ink-soft:   var(--taupe);
+--hair:       var(--hairline);
+--fd:         var(--ff-display);
+--fb:         var(--ff-body);}
+:root{--maxw:1180px; --maxw-prose:760px; --pad-x:26px; --sec-y:96px;
+--r-lg:22px; --r-md:16px; --r-sm:14px; --r-pill:100px;
+--ease:cubic-bezier(.22,.61,.36,1);
+--dur-fast:.15s; --dur:.3s; --dur-slow:.7s;
+--stone-soft:var(--surface-soft);
+--fs-h3:clamp(26px,3.6vw,40px);
+--fs-h4:clamp(28px,4.4vw,48px);
+--fs-h5:clamp(22px,3vw,30px);
+--fs-h6:clamp(20px,2.6vw,26px);
+--sh-rgb:45,46,55;
+--sh-cta-rgb:61,140,127;
+--sh-btn:        0 1px 2px rgba(var(--sh-rgb),.10), 0 6px 16px -8px rgba(var(--sh-rgb),.16);
+--sh-btn-hover:  0 2px 6px rgba(var(--sh-rgb),.12), 0 16px 30px -12px rgba(var(--sh-rgb),.42);
+--sh-cta:        0 1px 2px rgba(var(--sh-cta-rgb),.16), 0 6px 18px -8px rgba(var(--sh-cta-rgb),.32);
+--sh-cta-hover:  0 2px 6px rgba(var(--sh-cta-rgb),.18), 0 18px 34px -12px rgba(var(--sh-cta-rgb),.50);
+--sh-card:       0 1px 3px rgba(var(--sh-rgb),.05), 0 14px 34px -22px rgba(var(--sh-rgb),.18);
+--sh-card-hover: 0 3px 8px rgba(var(--sh-rgb),.06), 0 26px 50px -24px rgba(var(--sh-rgb),.26);
+--sh-media:      0 1px 2px rgba(var(--sh-rgb),.04), 0 18px 44px -28px rgba(var(--sh-rgb),.14);
+--sh-hero:       0 2px 6px rgba(var(--sh-rgb),.10), 0 24px 48px -24px rgba(var(--sh-rgb),.45);
+--sh-nav:        0 8px 30px -18px rgba(var(--sh-rgb),.28);}
+@media (max-width:900px){:root{--sec-y:64px}}
+@media (max-width:600px){:root{--sec-y:48px; --pad-x:20px}}
+.hr-pill{display:inline-flex; align-items:center; justify-content:center; gap:10px;
+font-family:var(--fb); font-size:13px; font-weight:500; letter-spacing:.04em;
+padding:14px 26px; border-radius:var(--r-pill);
+border:1.5px solid transparent;   
+cursor:pointer; text-decoration:none;
+background:var(--ink); color:var(--paper); box-shadow:var(--sh-btn);
+transition:transform var(--dur) var(--ease), background var(--dur) var(--ease),
+border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);}
+.hr-pill:hover{transform:translateY(-2px); background:#3B3C47; box-shadow:var(--sh-btn-hover);}
+.hr-pill:active{transform:translateY(0);}
+.pill--accent{background:var(--accent); color:var(--ink); box-shadow:var(--sh-cta);}
+.pill--accent:hover{background:var(--accent-deep); box-shadow:var(--sh-cta-hover);}
+.wrap{margin-inline:auto; padding-inline:var(--pad-x);}
+section{padding-block:var(--sec-y);}
+.hr-h-1{font-family:var(--fd); font-weight:500; font-size:clamp(42px,6.4vw,74px);
+line-height:1.02; letter-spacing:-.012em; text-wrap:balance;}
+.hr-sec-head h2{font-family:var(--fd); font-weight:500; font-size:clamp(31px,4.4vw,52px);
+line-height:1.05; letter-spacing:-.012em; text-wrap:balance;}
+.hr-eyebrow{font-family:var(--fb); font-size:11px; font-weight:500;
+letter-spacing:.4em; text-transform:uppercase;}
+body{font-weight:400; line-height:1.62;}
+:focus-visible{outline:2px solid var(--accent-dark); outline-offset:2px;
+box-shadow:0 0 0 4px rgba(153,246,228,.45); border-radius:3px;}
+body{overflow-x:clip}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important;
+transition-duration:.01ms !important; scroll-behavior:auto !important;}}
+:root{--r-lg:16px; --r-md:12px; --r-sm:10px;
+--sh-card:       0 1px 2px rgba(var(--sh-rgb),.04);
+--sh-card-hover: 0 1px 2px rgba(var(--sh-rgb),.05), 0 14px 32px -18px rgba(var(--sh-rgb),.20);
+--sh-media:      0 1px 2px rgba(var(--sh-rgb),.05), 0 20px 44px -30px rgba(var(--sh-rgb),.18);
+--sh-hero:       0 1px 2px rgba(var(--sh-rgb),.06), 0 24px 50px -28px rgba(var(--sh-rgb),.28);}
+REVISED (Tara, 14 Jul): the first pass stripped turquoise off the label layer
+and it went austere. The discipline is right for PROSE - body copy in a warm
+taupe is what reads expensive. But the label layer is where the brand lives,and it keeps its colour. So: turquoise on the structure,warm neutral on the
+words,and the CTA still wins because it is the only FILLED turquoise thing. */
+.hr-eyebrow,.soc-grp{color:var(--accent-text);}
+.foot h4,.foot h3,.foot .hr-eyebrow,.foot .soc-grp,.hr-dark .soc-grp{color:var(--accent-deep);}
+.hr-lede{color:var(--taupe);}
+.brand__tick{background:var(--accent)}
+.hr-sec-head .hr-eyebrow::after{background:var(--accent)}
+.hr-h-1{font-weight:400; letter-spacing:-.022em; line-height:1.03}
+.hr-sec-head h2{font-weight:400; letter-spacing:-.016em}
+.hr-eyebrow{font-size:11.5px; font-weight:600; letter-spacing:.2em}
+.hr-dark,section.hr-dark{position:relative; isolation:isolate}
+.hr-dark::before{content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+background:
+radial-gradient(115% 85% at 86% 10%, rgba(201,169,140,.18), transparent 58%),
+radial-gradient(100% 90% at 6% 88%, rgba(125,230,210,.20), transparent 60%),
+radial-gradient(70% 60% at 50% 108%, rgba(153,246,228,.10), transparent 65%);}
+.hr-dark > *{position:relative}
+@media (max-width:900px){:root{--sec-y:64px; --pad-x:22px}.hr-grid-3{grid-template-columns:1fr}}
+@media (max-width:640px){:root{--sec-y:52px; --pad-x:20px}.hr-h-1{font-size:clamp(31px,8.6vw,42px); line-height:1.08}.hr-sec-head h2{font-size:clamp(25px,6.6vw,32px); line-height:1.14}.hr-lede{font-size:16px; line-height:1.58}.hr-eyebrow{font-size:10.5px; letter-spacing:.16em}button,select,input,.hr-pill,.soc{min-height:44px}.foot a{display:inline-flex; align-items:center}}
+.hr-pill{font-size:12.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+padding:15px 30px;}
+.pill--accent{box-shadow:0 1px 2px rgba(var(--sh-cta-rgb),.16), 0 6px 18px -8px rgba(var(--sh-cta-rgb),.32)}
+.pill--accent:hover{box-shadow:0 2px 6px rgba(var(--sh-cta-rgb),.18), 0 18px 34px -12px rgba(var(--sh-cta-rgb),.5)}
+.hr-dark .pill--accent{background:var(--accent); color:var(--ink);}
+.trs-nav .nav__cta{padding:11px 20px; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em}
+.wrap .hr-eyebrow,.hr-sec-head .hr-eyebrow,span.hr-eyebrow{color:var(--accent-text)}
+.hr-dark .hr-eyebrow{color:var(--accent)}
+@media (max-width:640px){.trs-nav .nav__cta{min-height:44px; padding:0 16px; display:inline-flex; align-items:center; font-size:10.5px; letter-spacing:.1em;
+white-space:nowrap; border-radius:var(--r-pill);}.navrow{gap:10px}}
+@media (max-width:640px){.hr-lede{font-size:15px; line-height:1.55;}section{padding-block:44px}.hr-sec-head{margin-bottom:22px}.hr-sec-head h2{font-size:clamp(26px,7vw,34px); line-height:1.1; letter-spacing:-.02em}h3{letter-spacing:-.01em}.hr-attr{display:block; margin-top:16px; padding-top:12px; border-top:1px solid var(--hair);
+font-size:10.5px; letter-spacing:.18em; text-transform:uppercase}}
+.pill--accent{background:linear-gradient(178deg, #A8F8E8 0%, #99F6E4 46%, #86EFDA 100%);
+color:#12312B;                                  
+border:1px solid rgba(24,90,78,.28);            
+box-shadow:
+inset 0 1px 0 rgba(255,255,255,.55),          
+inset 0 -1px 0 rgba(24,90,78,.10),            
+0 1px 1px rgba(24,90,78,.10),
+0 6px 14px -8px rgba(24,90,78,.30);           
+font-size:11.5px; font-weight:600;
+letter-spacing:.16em; text-transform:uppercase;
+padding:17px 34px;
+transition:transform .32s var(--ease), box-shadow .32s var(--ease),
+background .32s var(--ease), border-color .32s var(--ease);}
+.pill--accent:hover{background:linear-gradient(178deg, #B4FAEC 0%, #A3F8E9 46%, #90F2DF 100%);
+border-color:rgba(24,90,78,.40);
+box-shadow:
+inset 0 1px 0 rgba(255,255,255,.65),
+inset 0 -1px 0 rgba(24,90,78,.12),
+0 1px 1px rgba(24,90,78,.10),
+0 12px 24px -10px rgba(24,90,78,.36);
+transform:translateY(-1px);}
+.pill--accent:active{transform:translateY(0);
+box-shadow:inset 0 2px 4px rgba(24,90,78,.20), 0 1px 1px rgba(24,90,78,.10);}
+.hr-pill{border:1px solid rgba(255,255,255,.06);
+box-shadow:
+inset 0 1px 0 rgba(255,255,255,.10),
+0 1px 1px rgba(var(--sh-rgb),.14),
+0 6px 14px -8px rgba(var(--sh-rgb),.34);
+letter-spacing:.16em; font-size:11.5px; padding:17px 34px;}
+.trs-nav .nav__cta{padding:11px 20px; font-size:10.5px; letter-spacing:.14em;
+box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(24,90,78,.14);}
+.hr-attr,span.hr-attr{font-family:var(--fb)!important;
+font-style:normal!important;
+font-weight:500;
+font-size:11px;
+letter-spacing:.14em;
+text-transform:uppercase;
+color:var(--taupe);}
+.hr-dark .hr-attr{color:rgba(255,255,255,.55)}
+.hr-lede{font-size:clamp(16px,1.7vw,18.5px); line-height:1.6;
+color:var(--ink-soft); font-weight:300;}
+h1,h2,h3,.hr-h-1{font-feature-settings:"kern" 1, "liga" 1; text-rendering:optimizeLegibility;}
+p{hanging-punctuation:first last}
+.pill--accent,.trs-nav .nav__cta{background:linear-gradient(178deg, var(--accent-lift) 0%, var(--accent-mid) 52%, var(--accent-drop) 100%);
+color:var(--on-accent);
+border:1px solid rgba(14,42,37,.22);
+box-shadow:
+inset 0 1px 0 rgba(255,255,255,.42),
+0 1px 2px rgba(14,42,37,.14),
+0 10px 22px -10px rgba(14,42,37,.38);}
+.pill--accent:hover,.trs-nav .nav__cta:hover{background:linear-gradient(178deg, var(--accent-lift-h) 0%, var(--accent-mid-h) 52%, var(--accent-drop-h) 100%);
+box-shadow:
+inset 0 1px 0 rgba(255,255,255,.5),
+0 1px 2px rgba(14,42,37,.14),
+0 16px 30px -12px rgba(14,42,37,.44);}
+.hr-dark .pill--accent,.trs-nav .nav__cta{background-image:linear-gradient(178deg, var(--accent-lift) 0%, var(--accent-mid) 52%, var(--accent-drop) 100%);
+background-color:var(--accent-mid);
+color:var(--on-accent);
+border:1px solid rgba(14,42,37,.22);
+box-shadow:
+inset 0 1px 0 rgba(255,255,255,.42),
+0 1px 2px rgba(14,42,37,.16),
+0 12px 26px -10px rgba(14,42,37,.42);}
+.hr-dark .pill--accent:hover,.trs-nav .nav__cta:hover{background-image:linear-gradient(178deg, var(--accent-lift-h) 0%, var(--accent-mid-h) 52%, var(--accent-drop-h) 100%);
+box-shadow:
+inset 0 1px 0 rgba(255,255,255,.52),
+0 1px 2px rgba(14,42,37,.16),
+0 18px 34px -12px rgba(14,42,37,.48);}
+:root{--sh-h:28,26,22;
+--sh-subtle-sm: 0 1px 2px rgba(var(--sh-h),.04);
+--sh-subtle-md: 0 2px 6px -2px rgba(var(--sh-h),.06);
+--sh-subtle-lg: 0 6px 16px -6px rgba(var(--sh-h),.08);
+--sh-subtle-xl: 0 12px 32px -12px rgba(var(--sh-h),.10);
+--sh-reg-sm: 0 1px 2px rgba(var(--sh-h),.06), 0 1px 1px rgba(var(--sh-h),.04);
+--sh-reg-md: 0 2px 4px rgba(var(--sh-h),.05), 0 6px 14px -6px rgba(var(--sh-h),.10);
+--sh-reg-lg: 0 2px 4px rgba(var(--sh-h),.05), 0 14px 30px -12px rgba(var(--sh-h),.14);
+--sh-reg-xl: 0 4px 8px rgba(var(--sh-h),.05), 0 26px 54px -20px rgba(var(--sh-h),.18);
+--sh-strong-sm: 0 1px 2px rgba(var(--sh-h),.10), 0 2px 4px rgba(var(--sh-h),.08);
+--sh-strong-md: 0 2px 4px rgba(var(--sh-h),.10), 0 10px 20px -8px rgba(var(--sh-h),.18);
+--sh-strong-lg: 0 3px 6px rgba(var(--sh-h),.10), 0 20px 40px -14px rgba(var(--sh-h),.24);
+--sh-strong-xl: 0 4px 10px rgba(var(--sh-h),.12), 0 34px 66px -22px rgba(var(--sh-h),.30);
+--rim-light: inset 0 1px 0 rgba(255,255,255,.72), inset 0 -1px 0 rgba(var(--sh-h),.05);
+--rim-dark:  inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.22);}
+@media (min-width:601px) and (max-width:1023px){:root{--sec-y:72px; --pad-x:32px}.hr-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1024px) and (max-width:1279px){:root{--pad-x:32px}.hr-grid-3{gap:14px}}
+.hr-pill:not(.pill--accent):not(.pill--ghost){background-image:linear-gradient(178deg, #FFFFFF 0%, var(--ghost-bottom) 100%);
+background-color:var(--ghost-bottom);
+color:var(--ink);
+border:1px solid rgba(45,46,55,.16);
+box-shadow: var(--rim-light), var(--sh-subtle-md);}
+.hr-pill:not(.pill--accent):not(.pill--ghost):hover{background-image:linear-gradient(178deg, #FFFFFF 0%, var(--surface-soft) 100%);
+border-color:rgba(45,46,55,.32);
+box-shadow: var(--rim-light), var(--sh-reg-md);
+transform:translateY(-1px);}
+.brand__tick{width:14px; height:14px; border-radius:50%; flex-shrink:0;
+background:linear-gradient(178deg, var(--accent-lift), var(--accent-drop));
+box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(14,42,37,.18);
+position:relative;}
+@media (max-width:640px){.hr-sec-head{text-align:center}h1,h2,.hr-h-1,.hr-sec-head h2{text-align:center;
+text-wrap:balance;
+margin-inline:auto;
+max-width:16ch;}.hr-eyebrow{display:block; text-align:center; border-top:none; padding-top:0;
+margin:0 auto 16px; letter-spacing:.24em; font-size:10px;}.hr-sec-head h2::after{content:""; display:block; width:44px; height:1px; margin:20px auto 0;
+background:linear-gradient(90deg, transparent, var(--accent-text), transparent);}.hr-attr{text-align:center}}
+@media (max-width:640px){.hr-sec-head .hr-eyebrow{text-align:center; display:block; margin-inline:auto;}}
+input[type=text],input[type=tel],input[type=email],input[type=number],select,textarea{min-height:52px; padding:14px 16px;
+font-family:var(--fb); font-size:15.5px; line-height:1.3;
+color:var(--ink); background:#fff;
+border:1px solid rgba(45,46,55,.20); border-radius:var(--r-sm);
+box-shadow:inset 0 1px 2px rgba(28,26,22,.05);
+appearance:none; -webkit-appearance:none;
+transition:border-color .2s var(--ease), box-shadow .2s var(--ease);}
+select{padding-right:38px;
+background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B6459' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+background-repeat:no-repeat; background-position:right 14px center;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent-text);
+box-shadow:inset 0 1px 2px rgba(28,26,22,.04), 0 0 0 3px rgba(153,246,228,.30);
+outline:none;}
+input::placeholder,textarea::placeholder{color:var(--taupe-soft)}
+input[type=checkbox]{min-height:0; padding:0}
+body{overflow-x:clip}
+.trs-nav .nav__cta{min-height:44px; padding:13px 20px}
+img,svg,video,table,pre{max-width:100%}
+input[type=checkbox],input[type=radio]{appearance:none; -webkit-appearance:none;
+flex:0 0 auto; width:22px; height:22px; min-height:22px; margin:0;
+border:1.5px solid rgba(45,46,55,.30);
+background:#fff;
+box-shadow:inset 0 1px 2px rgba(28,26,22,.05);
+cursor:pointer; position:relative;
+transition:border-color .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease);}
+input[type=checkbox]{border-radius:6px}
+input[type=radio]{border-radius:50%}
+input[type=checkbox]:hover,input[type=radio]:hover{border-color:var(--accent-text)}
+input[type=checkbox]:checked,input[type=radio]:checked{background-image:linear-gradient(178deg, var(--accent-lift), var(--accent-drop));
+border-color:rgba(14,42,37,.30);
+box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(14,42,37,.18);}
+input[type=checkbox]:checked::after{content:""; position:absolute; left:7.5px; top:3.5px;
+width:5px; height:10px;
+border:solid var(--on-accent); border-width:0 2px 2px 0;
+transform:rotate(45deg);}
+input[type=radio]:checked::after{content:""; position:absolute; inset:5px;
+border-radius:50%; background:var(--on-accent);}
+input[type=checkbox]:focus-visible,input[type=radio]:focus-visible{outline:2px solid var(--accent-dark); outline-offset:2px;}
+label:has(input[type=checkbox]),label:has(input[type=radio]){display:flex; align-items:flex-start; gap:12px;
+min-height:52px; padding:13px 16px;
+border:1px solid var(--hair); border-radius:var(--r-sm);
+background:var(--paper);
+box-shadow:var(--rim-light), var(--sh-subtle-sm);
+cursor:pointer; font-size:15px; line-height:1.45;
+transition:border-color .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease);}
+label:has(input[type=checkbox]):hover,label:has(input[type=radio]):hover{border-color:var(--accent-text);
+box-shadow:var(--rim-light), var(--sh-reg-sm);}
+label:has(input:checked){border-color:var(--accent-text);
+background:linear-gradient(178deg, #FFFFFF, #F2FCF9);
+box-shadow:var(--rim-light), 0 0 0 1px rgba(58,168,146,.28), var(--sh-reg-sm);}
+.hr-pill:active{transform:translateY(0);
+box-shadow:inset 0 2px 5px rgba(14,42,37,.22), 0 1px 1px rgba(14,42,37,.10);}
+.hr-pill:disabled,.hr-pill[aria-disabled=true],button:disabled{background-image:none !important;
+background-color:var(--disabled) !important;
+color:var(--taupe-soft) !important;
+border-color:rgba(45,46,55,.10) !important;
+box-shadow:none !important;
+transform:none !important;
+cursor:not-allowed;
+pointer-events:auto;}
+.hr-pill:disabled:hover,button:disabled:hover{background-color:var(--disabled) !important; transform:none !important; box-shadow:none !important;}
+@keyframes trs-spin{ to{ transform:rotate(360deg) } }
+.hr-dark .pill--accent:disabled,.trs-nav .nav__cta:disabled,button.hr-pill:disabled{background-color:var(--disabled) !important;
+background-image:none !important;
+color:var(--taupe-soft) !important;
+border-color:rgba(45,46,55,.10) !important;
+box-shadow:none !important;}
+input,select,textarea{font-size:16px}
+.hr-pill,button.hr-pill{line-height:1;
+padding-block:0;
+height:52px;
+display:inline-flex; align-items:center; justify-content:center;}
+.trs-nav .nav__cta{height:44px; padding:0 20px}
+.hr-pill{padding-inline:32px}
+.hr-grid-3 > *{min-width:0}
+:focus-visible{outline:none;
+box-shadow:0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-accent-strong);
+border-radius:4px;}
+.hr-dark :focus-visible{box-shadow:0 0 0 2px var(--ink-deep), 0 0 0 4px var(--color-accent);}
+.pill--accent{background-image:linear-gradient(178deg, var(--accent-lift) 0%, var(--accent-mid) 52%, var(--accent-drop) 100%)!important;
+background-color:var(--accent-mid)!important;
+color:var(--on-accent)!important;
+border:1px solid rgba(14,42,37,.22)!important;
+box-shadow:var(--sh-rim-light), 0 1px 2px rgba(14,42,37,.16), 0 12px 26px -10px rgba(14,42,37,.42)!important;}
+.pill--accent:hover{background-image:linear-gradient(178deg, var(--accent-lift-h) 0%, var(--accent-mid-h) 52%, var(--accent-drop-h) 100%)!important;}
+.pill--accent:disabled,button.pill--accent:disabled{background-image:none!important; background-color:var(--disabled)!important;
+color:var(--taupe-soft)!important; border-color:rgba(45,46,55,.10)!important;
+box-shadow:none!important;}
+.trs-nav .nav__cta{white-space:nowrap; padding:0 18px}
+input,select,textarea,input[type="text"],input[type="email"],input[type="tel"]{font-size: 16px !important;}
+.navrow:has(> .nav__cta):has(> .nav-link) > .nav-link{order:1; justify-self:start}
+.navrow:has(> .nav__cta):has(> .nav-link) > .brand{order:2}
+.navrow:has(> .nav__cta):has(> .nav-link) > .nav__cta{order:3; justify-self:end}
+@media (min-width:1025px){.trs-nav .wrap.navrow{max-width:min(1420px, 100% - 48px)}.navrow > *{min-width:0}.navrow:has(> .nav__zone-l){grid-template-columns:auto 1fr auto; column-gap:32px}.navrow:has(> .nav__zone-l) > .brand{order:1; justify-self:start;
+padding-left:0; padding-right:0}}
+.trs-nav{position:sticky; top:0; z-index:60;
+background:color-mix(in srgb, var(--canvas) 88%, transparent);
+backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+border-bottom:1px solid var(--hairline);
+transition:box-shadow .4s var(--ease), background .4s var(--ease);}
+.trs-nav .brand{display:inline-flex; flex-direction:column; align-items:center;
+text-decoration:none; font-style:normal; line-height:1;}
+.trs-nav .brand__tick{width:34px; height:2px; border-radius:0;
+background:var(--accent-dark, var(--accent)); margin:0 0 8px;}
+.trs-nav .brand__wm{font-family:var(--ff-display); font-weight:500; font-style:normal;
+font-size:19px; letter-spacing:.3em; color:var(--ink);
+white-space:nowrap;}
+.trs-nav .brand :is(small,div:where(.hr-small),span:where(.hr-small)){display:block; margin-top:5px;
+font-family:var(--ff-body); font-style:normal; font-weight:500;
+font-size:9.5px; letter-spacing:.22em; text-transform:uppercase;
+color:var(--taupe); white-space:nowrap;}
+@media (max-width:560px){.navrow:has(> .nav__cta):has(> .nav-link){grid-template-columns:1fr auto; column-gap:12px}.navrow:has(> .nav__cta):has(> .nav-link) > .nav-link{display:none}.navrow:has(> .nav__cta):has(> .nav-link) > .brand{justify-self:start}.navrow:has(> .nav__cta):has(> .nav-link) > .nav__cta{justify-self:end}.navrow:has(> .nav__cta):has(> .nav-link) > .brand .brand__wm{font-size:16px; letter-spacing:.2em}.navrow:has(> .nav__cta):has(> .nav-link) > .nav__cta{font-size:10px; padding-inline:13px; letter-spacing:.06em}}
+@media (min-width:1025px){.navrow:has(> .nav-links){grid-template-columns:auto 1fr auto; column-gap:30px}.navrow:has(> .nav-links) > .brand{order:1; justify-self:start; padding-inline:0}.navrow:has(> .nav-links) > .nav__cta{order:3; justify-self:end}}
+@media (min-width:561px){.navrow:has(> .nav__cta):has(> .nav-link){display:flex; align-items:center; gap:24px}.navrow:has(> .nav__cta):has(> .nav-link) > .brand{order:1; margin-right:auto; justify-self:start}.navrow:has(> .nav__cta):has(> .nav-link) > .nav-link{order:2}.navrow:has(> .nav__cta):has(> .nav-link) > .nav__cta{order:3}}
+@media (min-width:768px) and (max-width:1024px){.navrow:has(> .nav__zone-l){grid-template-columns:auto 1fr; column-gap:16px}.navrow:has(> .nav__zone-l) > .brand{order:1; justify-self:start; padding-inline:0}}
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;
+padding:12px 20px;border-radius:0 0 10px 0;font-family:var(--ff-body);font-size:14px;font-weight:500}
+.skip:focus{left:0}
+.soc[href=]{display:none !important;}
+.soc[href*="instagram"],.soc[href*="facebook"],.soc[href*="linkedin"],.soc[href*="youtube"],.soc[href*="tiktok"],.soc[href*="spotify"]{display:inline-flex; align-items:center; gap:9px;}
+.soc[href*="instagram"]::before,.soc[href*="facebook"]::before,.soc[href*="linkedin"]::before,.soc[href*="youtube"]::before,.soc[href*="tiktok"]::before,.soc[href*="spotify"]::before{content:""; flex:0 0 auto; width:15px; height:15px; background:currentColor; -webkit-mask:center/contain no-repeat; mask:center/contain no-repeat;}
+.soc[href*="instagram"]::before{-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z'/></svg>");}
+.soc[href*="facebook"]::before{-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z'/></svg>");}
+.soc[href*="linkedin"]::before{-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z'/></svg>");}
+.soc[href*="youtube"]::before{-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z'/></svg>");}
+.soc[href*="tiktok"]::before{-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'/></svg>");}
+.soc[href*="spotify"]::before{-webkit-mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z'/></svg>"); mask-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z'/></svg>");}
+.nav-link{display:inline-flex; align-items:center; min-height:24px;}
+@media (max-width:834px){.nav-link{min-height:44px;}}
+input[type="checkbox"],input[type="radio"]{min-width:24px; min-height:24px;}
+.foot p > a:only-child,.foot .soc,.subrow a{display:inline-flex; align-items:center; min-height:24px;}
+img{height:auto;}
+.trs-nav .brand__wm,.foot .brand__wm{font-family:var(--fb) !important; font-weight:400}
+.foot__legal{border-top:0; margin-top:0}
+@media (min-width:1024px){.foot .row{grid-template-columns:1.4fr 1fr 1fr 1fr; gap:40px}}
+@media (min-width:781px) and (max-width:1023px){.foot .row{grid-template-columns:1fr 1fr}}
+.soc--linktree{display:inline-flex; align-items:center; gap:9px}
+.soc--linktree::before{content:""; flex:0 0 auto; width:15px; height:15px; background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13.7 5.9 17.5 2l2.2 2.3-4 3.8h5.6v3.2h-5.6l4 3.9-2.2 2.2-5.4-5.4-5.4 5.4-2.2-2.2 4-3.9H2.8V8.1h5.6l-4-3.8L6.6 2l3.8 3.9V0h3.3zM10.4 16.1h3.3V24h-3.3z'/></svg>") center/contain no-repeat; mask:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M13.7 5.9 17.5 2l2.2 2.3-4 3.8h5.6v3.2h-5.6l4 3.9-2.2 2.2-5.4-5.4-5.4 5.4-2.2-2.2 4-3.9H2.8V8.1h5.6l-4-3.8L6.6 2l3.8 3.9V0h3.3zM10.4 16.1h3.3V24h-3.3z'/></svg>") center/contain no-repeat}
+/* css/the-hair-rhythm.css */
+.trs-nav .brand__wm{font-family:var(--fb); font-weight:400;}
+.foot .brand__wm{font-family:var(--fb); font-weight:400;}
+.hr-eyebrow{font-size:12.5px; letter-spacing:.3em;}
+.trs-nav .nav-link{font-size:12.5px;}
+body{overflow-x:clip;}
+/* inline 0 */
+.thead{padding:72px 0 64px;text-align:center}
+.thead .hr-eyebrow{display:block;margin-bottom:14px}
+.thead h1{font-family:var(--fd);font-weight:500;font-size:clamp(36px,6.4vw,60px);line-height:1.05;letter-spacing:-.012em;color:#fff;margin:0}
+.thead h1 em{color:var(--accent)}
+.thead .tlede{max-width:56ch;margin:20px auto 0;font-family:var(--fb);font-size:16.5px;font-weight:300;line-height:1.65;color:rgba(255,255,255,.82)}
+.thead .tmicro{margin-top:22px;font-family:var(--fb);font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.tback{display:inline-block;margin-top:26px;font-family:var(--fb);font-size:13.5px;font-weight:500;color:#fff;text-decoration:underline;text-underline-offset:4px}
+.tsec{background:var(--paper);padding:56px 0 76px}
+.tcol{max-width:720px;margin:0 auto;padding:0 20px}
+ol.clauses{list-style:none;counter-reset:t;margin:0;padding:0}
+ol.clauses>li{counter-increment:t;position:relative;padding:54px 0 30px;margin:0 0 30px;border-bottom:1px solid var(--hair);font-family:var(--fb);font-size:15px;font-weight:300;line-height:1.72;color:var(--ink-soft)}
+ol.clauses>li:last-child{border-bottom:0;margin-bottom:0}
+ol.clauses>li::before{content:counter(t);position:absolute;left:0;top:0;width:38px;height:38px;border-radius:50%;background:var(--paper);border:1px solid var(--hair);box-shadow:0 1px 2px rgba(45,46,55,.05),0 10px 22px -14px rgba(45,46,55,.22);display:flex;align-items:center;justify-content:center;font-family:var(--fb);font-weight:600;font-size:15px;color:var(--accent-text)}
+ol.clauses>li :is(strong,div:where(.hr-strong),span:where(.hr-strong)).th{display:block;font-family:var(--fd);font-weight:500;font-size:24px;line-height:1.2;color:var(--ink);margin-bottom:10px}
+ol.clauses>li p{margin:0 0 10px}
+ol.clauses>li p:last-child{margin-bottom:0}
+ol.clauses>li a{color:var(--accent-text)}
+.tscroll{overflow-x:auto;margin:16px 0 14px;border:1px solid var(--hair);border-radius:var(--r-md);background:var(--stone-soft)}
+.tscroll table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.45}
+.tscroll th{padding:12px 14px;text-align:left;font-family:var(--fb);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);border-bottom:1px solid var(--hair);white-space:nowrap}
+.tscroll td{padding:12px 14px;color:var(--ink);border-top:1px solid var(--hair);vertical-align:top}
+.tscroll tr:first-child td{border-top:0}
+.tscroll td b{font-weight:600}
+.promise-q{margin:14px 0 0;padding:16px 18px;border-left:3px solid var(--accent-deep);background:var(--stone-soft);border-radius:0 var(--r-sm) var(--r-sm) 0;font-family:var(--fd);font-size:19px;line-height:1.45;color:var(--ink)}
+@media (max-width:560px){.thead{padding:52px 0 48px}ol.clauses>li{font-size:14.5px;padding-top:48px;padding-bottom:24px;margin-bottom:24px}ol.clauses>li::before{width:34px;height:34px;font-size:14px}ol.clauses>li :is(strong,div:where(.hr-strong),span:where(.hr-strong)).th{font-size:21px}.tscroll th,.tscroll td{padding:10px 11px}.promise-q{font-size:17px}}
+@media (max-width:480px){.trs-nav .nav-link{display:none}.trs-nav .navrow{grid-template-columns:1fr auto 1fr}.trs-nav .nav__cta{padding-inline:14px;font-size:9.5px;letter-spacing:.06em;white-space:nowrap}.trs-nav .brand{padding:0 6px}.trs-nav .brand__wm{font-size:15px;letter-spacing:.18em}}
+@media (max-width:380px){.trs-nav .nav__cta{padding-inline:10px;font-size:8.5px;letter-spacing:.04em;min-height:38px}.trs-nav .brand__wm{font-size:13px;letter-spacing:.14em}.trs-nav .brand :is(small,div:where(.hr-small),span:where(.hr-small)){font-size:8px}.trs-nav .brand{padding:0 4px}}
+@media (max-width:380px){.trs-nav .navrow{padding-inline:12px}.trs-nav .nav__cta{padding-inline:8px;font-size:8px;letter-spacing:.03em}.trs-nav .brand__wm{font-size:12px;letter-spacing:.12em}}
+@media (max-width:480px){html body .trs-nav .nav__cta{font-size:12px !important;letter-spacing:.04em;padding-inline:16px;min-height:42px}html body .trs-nav .nav__cta .nb{display:none}}
+-->
+</style>
+<!-- /wp:html -->
+
+<!-- wp:generateblocks/text {"uniqueId":"8701c683","tagName":"a","htmlAttributes":{"href":"#main"},"className":"skip"} -->
+<a class="gb-text skip" href="#main">Skip to content</a>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/element {"uniqueId":"0e49fb25","tagName":"nav","htmlAttributes":{"aria-label":"Primary"},"className":"trs-nav"} -->
+<nav class="trs-nav" aria-label="Primary"><!-- wp:generateblocks/element {"uniqueId":"9637b4a0","tagName":"div","className":"wrap navrow"} -->
+<div class="wrap navrow"><!-- wp:generateblocks/text {"uniqueId":"0285fb63","tagName":"a","htmlAttributes":{"href":"https://www.tararosesalon.com/en/ae/the-hair-rhythm/#book"},"className":"hr-pill pill\u002d\u002daccent nav__cta"} -->
+<a class="gb-text hr-pill pill--accent nav__cta" href="https://www.tararosesalon.com/en/ae/the-hair-rhythm/#book">Book<span class="nb"> an appointment</span></a>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/element {"uniqueId":"636b4f93","tagName":"a","htmlAttributes":{"aria-label":"Tara Rose, home","href":"https://www.tararosesalon.com/"},"className":"brand"} -->
+<a class="brand" aria-label="Tara Rose, home" href="https://www.tararosesalon.com/"><!-- wp:generateblocks/text {"uniqueId":"1b25c207","tagName":"span","className":"brand__tick"} -->
+<span class="gb-text brand__tick"></span>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"c63a6171","tagName":"span","className":"brand__wm"} -->
+<span class="gb-text brand__wm">TARA ROSE</span>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/element {"uniqueId":"4720672b","tagName":"div","className":"hr-small"} -->
+<div class="hr-small"><!-- wp:generateblocks/text {"uniqueId":"7e34920c","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">UAE</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element --></a>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"5eff32d1","tagName":"a","htmlAttributes":{"href":"https://www.tararosesalon.com/en/ae/the-hair-rhythm/"},"className":"nav-link"} -->
+<a class="gb-text nav-link" href="https://www.tararosesalon.com/en/ae/the-hair-rhythm/">Back to The Hair Rhythm →</a>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element --></nav>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"f49f6873","tagName":"section","className":"hr-dark thead"} -->
+<section class="hr-dark thead"><!-- wp:generateblocks/element {"uniqueId":"3472e62a","tagName":"div","className":"wrap"} -->
+<div class="wrap"><!-- wp:generateblocks/text {"uniqueId":"03d1c37d","tagName":"span","className":"hr-eyebrow"} -->
+<span class="gb-text hr-eyebrow">The Hair Rhythm By Tara Rose</span>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"2d41bc4f","tagName":"h1"} -->
+<h1 class="gb-text">Terms &amp; <em>Conditions.</em></h1>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"218e70df","tagName":"p","className":"tlede"} -->
+<p class="gb-text tlede">These terms apply to The Hair Rhythm, available at all four Tara Rose salons: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"c14ef4a0","tagName":"div","className":"tmicro"} -->
+<div class="gb-text tmicro">All prices in AED</div>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"3cd15389","tagName":"a","htmlAttributes":{"href":"https://www.tararosesalon.com/en/ae/the-hair-rhythm/"},"className":"tback"} -->
+<a class="gb-text tback" href="https://www.tararosesalon.com/en/ae/the-hair-rhythm/">← Back to The Hair Rhythm</a>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element --></section>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"1d7701a2","tagName":"section","className":"tsec"} -->
+<section class="tsec"><!-- wp:generateblocks/element {"uniqueId":"9e5a03f9","tagName":"div","className":"tcol"} -->
+<div class="tcol"><!-- wp:generateblocks/element {"uniqueId":"b174dac7","tagName":"ol","className":"clauses"} -->
+<ol class="clauses"><!-- wp:generateblocks/element {"uniqueId":"eae3c451","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"cbe1db3c","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"8d5077be","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Where it applies.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"6be6b932","tagName":"p"} -->
+<p class="gb-text">The Hair Rhythm is available at all four Tara Rose salons: Khalifa City A and Mamsha Al Saadiyat in Abu Dhabi, Al Quoz 1 and Motor City in Dubai.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"525b784e","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"755f76ee","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"92b3a81b","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">How prices work.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"2d4a109c","tagName":"p"} -->
+<p class="gb-text">Every price shown is a starting price for short or fine hair, in AED.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"820f0154","tagName":"p"} -->
+<p class="gb-text">Prices shown are guide prices. Your salon confirms the final price for your length and thickness. Colour maintenance is priced the same way, by your hair length.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"0533a862","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"0590cbc7","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"8397e8ff","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Prepaid packages.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"8ed12816","tagName":"p"} -->
+<p class="gb-text">The Blow-dry Edit, the Blow-dry Series, Four Weeks of Blow-dries and Treatment Courses are paid once and booked with your salon as you need them, at any of the four salons. We do our best to keep you with the same stylist.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"ff69e7c5","tagName":"p"} -->
+<p class="gb-text">Four Weeks of Blow-dries is two blow-dries a week across four weeks, with the slots held in advance.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"76f8423a","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"6f450c7f","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"7380a863","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Who it is for and what is not included.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"f44c8177","tagName":"p"} -->
+<p class="gb-text">The Hair Rhythm prices apply to our junior stylists and stylists. Senior stylists and style directors are not part of The Hair Rhythm, and their services are priced separately.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"0418961f","tagName":"p"} -->
+<p class="gb-text">Colour maintenance is not available for bleach, scalp bleach, platinum, maximum brightness or anything that needs bleaching. If your hair is bleached, please book a consultation first. A toner after a root colour is booked on its own, at its regular price.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"35c1028d","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"341d6e35","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"ade303f4","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Paying.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"03310f63","tagName":"p"} -->
+<p class="gb-text">Your salon replies on WhatsApp during salon hours, 9am to 8pm, with your price and a secure payment link.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"f76e9248","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"90f81901","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"778d8c1e","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">How long they last.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"6a1fcfea","tagName":"div","className":"tscroll"} -->
+<div class="tscroll"><!-- wp:html -->
+<table><thead><tr><th>Package</th><th>Sessions</th><th>Valid</th></tr></thead><tbody>
+<tr><td>The Blow-dry Edit</td><td>3 blow-dries</td><td><b>1 month</b> from purchase</td></tr>
+<tr><td>The Blow-dry Series</td><td>4 blow-dries</td><td><b>1 month</b> from purchase</td></tr>
+<tr><td>Treatment Course of three</td><td>3 treatments</td><td><b>3 months</b> from purchase</td></tr>
+<tr><td>Treatment Course of five</td><td>5 treatments</td><td><b>6 months</b> from purchase</td></tr>
+<tr><td>Four Weeks of Blow-dries</td><td>8 blow-dries</td><td><b>6 weeks</b> from your first booking</td></tr>
+</tbody></table>
+<!-- /wp:html --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"e9f3e9c8","tagName":"p"} -->
+<p class="gb-text">Sessions not used by then expire.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"a728eec7","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"0d26449b","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"fbe64720","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">December and public holidays.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"ff6403a5","tagName":"p"} -->
+<p class="gb-text">Prepaid sessions cannot be booked in December or on a public holiday.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"041c8e65","tagName":"p"} -->
+<p class="gb-text">The days of December and the public holidays that fall inside your validity do not count against it. Your validity is extended by those days, so you do not lose a session to them.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"9193f6b7","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"d1a4837c","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"f61bacfe","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Refunds and missed appointments.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"4db4fc8a","tagName":"p"} -->
+<p class="gb-text">Prepaid sessions are not refundable.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"6b84f887","tagName":"p"} -->
+<p class="gb-text">An appointment missed without 48 hours’ notice counts as a used session.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"c35565c1","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"27606c39","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"e02a7b54","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Other offers and vouchers.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"ec12abd4","tagName":"p"} -->
+<p class="gb-text">The Hair Rhythm cannot be combined with other offers or vouchers.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"819298fa","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"8def1976","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"4fa287b1","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Moving an appointment.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"714bec37","tagName":"p"} -->
+<p class="gb-text">We ask for 48 hours’ notice to move or cancel an appointment. Short notice follows our <a href="https://www.tararosesalon.com/en/ae/deposit-policy/" target="_blank" rel="noopener">booking and deposit policy</a>.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"59bfbbbb","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"5c6cdd06","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"42d6c4c2","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Deposits.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"50370ad6","tagName":"p"} -->
+<p class="gb-text">Some appointments need a deposit to hold your time, such as a longer or higher-value service, or any appointment of more than two hours. We tell you before anything is confirmed.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"1ae1bce2","tagName":"p"} -->
+<p class="gb-text">A deposit is never added on top: it comes off your price on the day. Booking your next visit before you leave the salon needs no deposit, and a same-day booking never does.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"3f73d1d6","tagName":"p"} -->
+<p class="gb-text">You can move an appointment up to two times with at least 48 hours’ notice, and your deposit moves with you. With less notice it is not refundable. The full details are in our <a href="https://www.tararosesalon.com/en/ae/deposit-policy/" target="_blank" rel="noopener">booking and deposit policy</a>.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"1acd7d65","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"a722e763","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"73d3d70c","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">The Tara Rose Confidence Promise.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"12829ffd","tagName":"p"} -->
+<p class="gb-text">It applies to every colour and treatment service.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"88ace2a0","tagName":"p","className":"promise-q"} -->
+<p class="gb-text promise-q">If something does not feel right within seven days of any colour or treatment service, we invite you back to refine it. No blame, just care.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"90322515","tagName":"p"} -->
+<p class="gb-text">Refine, never refund.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"eeddbd13","tagName":"li"} -->
+<li><!-- wp:generateblocks/element {"uniqueId":"dc9c53f1","tagName":"div","className":"th hr-strong"} -->
+<div class="th hr-strong"><!-- wp:generateblocks/text {"uniqueId":"317956c2","tagName":"span","className":"hr-loose"} -->
+<span class="gb-text hr-loose">Your details.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"71c5a414","tagName":"p"} -->
+<p class="gb-text">Tara Rose Salon is the data controller. We use what you send only to arrange your appointment, and it lands with our team, never a personal inbox. You can access, correct or delete your details any time at <a href="mailto:privacy@tararosesalon.com">privacy@tararosesalon.com</a>. See our <a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy Policy</a>.</p>
+<!-- /wp:generateblocks/text --></li>
+<!-- /wp:generateblocks/element --></ol>
+<!-- /wp:generateblocks/element --></div>
+<!-- /wp:generateblocks/element --></section>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"7e4a38b8","tagName":"footer","className":"foot"} -->
+<footer class="foot"><!-- wp:generateblocks/element {"uniqueId":"bdbc7a67","tagName":"div","className":"wrap"} -->
+<div class="wrap"><!-- wp:generateblocks/element {"uniqueId":"bbe88240","tagName":"div","className":"row"} -->
+<div class="row"><!-- wp:generateblocks/element {"uniqueId":"e7311b70","tagName":"div"} -->
+<div><!-- wp:generateblocks/text {"uniqueId":"0f14ac59","tagName":"span","className":"brand__wm"} -->
+<span class="gb-text brand__wm">TARA ROSE</span>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"24652cee","tagName":"p"} -->
+<p class="gb-text">Tara Rose. We see the woman. Not just the hair.</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"c133492a","tagName":"span","className":"sig"} -->
+<span class="gb-text sig">We see you.</span>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"661d6b10","tagName":"div"} -->
+<div><!-- wp:generateblocks/text {"uniqueId":"3b812684","tagName":"h3"} -->
+<h3 class="gb-text">The Hair Rhythm</h3>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"6f13c8b7","tagName":"p"} -->
+<p class="gb-text"><a href="https://www.tararosesalon.com/en/ae/the-hair-rhythm/#start">What is on offer</a></p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"4aba1aab","tagName":"p"} -->
+<p class="gb-text"><a href="https://www.tararosesalon.com/en/ae/the-hair-rhythm/#book">Book an appointment</a></p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"7602d6fb","tagName":"p"} -->
+<p class="gb-text"><a href="https://www.tararosesalon.com/en/ae/the-hair-rhythm/#promise">The Confidence Promise</a></p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"73098183","tagName":"p"} -->
+<p class="gb-text"><a href="https://www.tararosesalon.com/en/ae/the-hair-rhythm-terms/">Offer terms</a></p>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"ebd0f2f5","tagName":"div"} -->
+<div><!-- wp:generateblocks/text {"uniqueId":"a5da65d6","tagName":"h3"} -->
+<h3 class="gb-text">Locations</h3>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"5a4311ec","tagName":"p"} -->
+<p class="gb-text">Khalifa City A, Abu Dhabi</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"2aac9829","tagName":"p"} -->
+<p class="gb-text">Mamsha Al Saadiyat, Abu Dhabi</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"db008fa6","tagName":"p"} -->
+<p class="gb-text">Al Quoz 1, Dubai</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"c286daf7","tagName":"p"} -->
+<p class="gb-text">Motor City, Dubai</p>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"dd70e6d2","tagName":"div"} -->
+<div><!-- wp:generateblocks/text {"uniqueId":"7701ddc7","tagName":"h3"} -->
+<h3 class="gb-text">Connect</h3>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"fa3768fc","tagName":"p","className":"soc-grp"} -->
+<p class="gb-text soc-grp">Tara Rose Salon</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"aaf8d47c","tagName":"p"} -->
+<p class="gb-text"><a href="https://instagram.com/tararosesalon" target="_blank" rel="noopener" class="soc">Instagram</a></p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"f9fdae07","tagName":"p"} -->
+<p class="gb-text"><a href="https://facebook.com/tararosesalon" target="_blank" rel="noopener" class="soc">Facebook</a></p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"54c808f4","tagName":"p"} -->
+<p class="gb-text"><a href="https://www.tiktok.com/@tararosesalon" target="_blank" rel="noopener" class="soc">TikTok</a></p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"0b2a2bbf","tagName":"p"} -->
+<p class="gb-text"><a href="https://linktr.ee/tararosesalon" target="_blank" rel="noopener" class="soc soc--linktree">Linktree</a></p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"b946ab1e","tagName":"p","className":"soc-grp"} -->
+<p class="gb-text soc-grp">Tara Rose Kidd</p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"22b34de4","tagName":"p"} -->
+<p class="gb-text"><a href="https://linkedin.com/company/tara-rose-salon" target="_blank" rel="noopener" class="soc">LinkedIn</a></p>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"79527950","tagName":"p"} -->
+<p class="gb-text"><a href="https://youtube.com/@tararosesalons" target="_blank" rel="noopener" class="soc">YouTube</a></p>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/element {"uniqueId":"0a5f6fa5","tagName":"div","className":"foot__legal"} -->
+<div class="foot__legal"><!-- wp:generateblocks/text {"uniqueId":"af3ccdb4","tagName":"p"} -->
+<p class="gb-text">Tara Rose Salon. Dubai and Abu Dhabi, United Arab Emirates. By submitting any form on this site you agree to our <a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy Policy</a>. Contact: <a href="mailto:info@tararosesalon.com">info@tararosesalon.com</a></p>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element -->
+
+<!-- wp:generateblocks/text {"uniqueId":"528ec703","tagName":"div","className":"subrow"} -->
+<div class="gb-text subrow"><span>© 2026 Tara Rose Salon.</span> <span><a href="https://www.tararosesalon.com/en/ae/privacy-policy/">Privacy</a> · <a href="https://www.tararosesalon.com/en/ae/terms-and-conditions/">Terms</a> · <a href="https://www.tararosesalon.com/en/ae/cookies-policy/">Cookies</a></span></div>
+<!-- /wp:generateblocks/text -->
+
+<!-- wp:generateblocks/text {"uniqueId":"171839cc","tagName":"p","className":"permit"} -->
+<p class="gb-text permit">The Hair Rhythm By Tara Rose, at all four salons in Abu Dhabi and Dubai. Your salon confirms the final price.</p>
+<!-- /wp:generateblocks/text --></div>
+<!-- /wp:generateblocks/element --></footer>
+<!-- /wp:generateblocks/element -->

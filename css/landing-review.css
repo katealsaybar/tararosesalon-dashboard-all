@@ -74,3 +74,14 @@
   .lpr-list .lpr-mid{flex-direction:column;align-items:flex-start;gap:8px}
   .lpr-list .lpr-ghost{justify-content:space-between;width:100%}
 }
+
+/* WordPress hand-off (Kate, 18 Nov 2026): a strip under the how-to row and a quiet second button on each card, both to /campaigns/wordpress/ */
+.lpr-wpbar{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin:0 0 18px}
+.lpr-wpbar>div{flex:1 1 280px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.lpr-wpbar b{font-weight:600}
+.lpr-wpbar span{color:var(--muted);font-size:14px}
+.lpr .lpr-wpbar .lpr-btn{flex:0 0 auto;min-height:44px;padding:12px 18px}
+.lpr .lpr-wp{display:flex;align-items:center;justify-content:center;min-height:44px;text-align:center;text-decoration:none;color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-size:14px;font-weight:600}
+.lpr .lpr-wp:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (hover:hover){.lpr .lpr-wp:hover{border-color:var(--text)}}
+@media (max-width:760px){.lpr .lpr-wpbar .lpr-btn{width:100%}}
