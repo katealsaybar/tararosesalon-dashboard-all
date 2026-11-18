@@ -63,7 +63,7 @@
       title: 'Jump to any section',
       text: function (el, c) {
         var n = names(el, 'a, button', 5), list = n.length >= 2 ? ' (' + orList(n.slice(0, 4)) + (n.length > 4 ? ' and more' : '') + ')' : '';
-        return (el.getBoundingClientRect().width < 260 ? 'The list on the side' : 'The chips under the title') + ' are the sections of ' + c.label + list + '. Tap one to jump there. The one you are reading lights up.';
+        return (el.getBoundingClientRect().width < 260 ? 'The list on the side shows' : 'The chips under the title show') + ' the sections of ' + c.label + list + '. Tap one to jump there. The one you are reading lights up.';
       } },
     { id: 'switch', find: function (v) { return findSwitch(v); },
       title: 'Switch the view',
