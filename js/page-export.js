@@ -83,8 +83,16 @@
 
   window.TRSExport = { register: register, has: has, sync: sync, run: run, pop: openPop };
 
-  // Pages that have a page-level export. Kate, 18 Nov 2026: Service Rankings first; other reports join only when she asks (each one needs its page-level fn to cover every table on it).
+  // Pages that have a page-level export. Each fn covers EVERY table on its page (a page with several tables returns one workbook, one sheet per table).
   // A new page: add its line here, or call TRSExport.register from its own file. [view id, global fn, name of the tab the CSV holds, script group to load first]
-  [['services', 'srExportPage', 'Top services']
+  [['services', 'srExportPage', 'Top services'],
+   ['dashboard', 'pulseExportModel', null, 'px'], ['staffperf', 'spfExportModel', null, 'rx'], ['reviews', 'reviewsExportModel', null, 'rv'], ['dailyperf', 'dpExport'],
+   ['overyears', 'otyExport'], ['quarterreport', 'qrExport'], ['compare', 'cmpExport'],
+   ['staffweeks', 'w13Export'], ['stafflevels', 'slvExport'], ['clients', 'tcExport'], ['clientbook', 'cbExport'],
+   ['complaints', 'cqExport'], ['complaintchats', 'ccExport'], ['complaintsdetail', 'cdExport'], ['recruitment', 'rctExport'],
+   ['team', 'tpExport'], ['teamquad', 'tpQExport'],
+   ['googleads', 'gadsExport'], ['metaads', 'madsExport'], ['website', 'webExport'], ['social', 'socExportPage', 'Daily numbers'], ['marketingspend', 'mspendExport'], ['toolspend', 'tsExport'],
+   ['supplierspend', 'spendExport'], ['supplierpay', 'supplierSpendExport'], ['stockcost', 'stockCostExport'],
+   ['leavecal', 'lcExpAll', 'Leave']
   ].forEach(function (p) { register(p[0], p[1], { csv: p[2] || '', lazy: p[3] || '' }); });
 })();

@@ -25,7 +25,7 @@
 <script src="js/page-dates.js?v=e140a68e"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 18 Nov 2026: the XLSX and CSV buttons for the WHOLE page, drawn in the masthead (js/page-export.js; showView calls TRSExport.sync). -->
-<script src="js/page-export.js?v=09eeddca"></script>
+<script src="js/page-export.js?v=ae6f817b"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=39e1bb7f"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
@@ -3673,7 +3673,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
-      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=ed3bd9e2', 'js/meta-ads.js?v=9e3fd1f4', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=c47da80a', 'js/social.js?v=a22519a9', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=72c753cd'],
+      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=ed3bd9e2', 'js/meta-ads.js?v=9e3fd1f4', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=c47da80a', 'js/social.js?v=a22519a9', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=150715e7'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
       wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/team-performance.js?v=f87c34f7', 'js/report-export.js?v=d7b73ae8', 'js/staff-weeks.js?v=0e21c912'],
       lv:  ['js/report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/stylist-levels.js?v=0ed71a8c'],
@@ -3693,7 +3693,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Deposit Checking (17 Nov 2026): its own page, one file, reads open_deposits(); the header's Branch and Period drive it.
       dpc: [LGX, 'js/deposit-check.js?v=91de0a48'],
       // Leave & Holiday Calendar (17 Nov 2026): one file, and the spreadsheet export its XLSX and CSV buttons use.
-      lvc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/leave-cal.js?v=097f64b1'],
+      lvc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/leave-cal.js?v=5eee01fc'],
       // Service Calendar (17 Nov 2026): one file; the client name opens the Client Book card, read from client_book_card().
       svc: [LGX, 'js/service-cal.js?v=fd09888c'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.

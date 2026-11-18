@@ -828,6 +828,13 @@ async function renderLeaveCal() {
       subtitle:'Expected dates from press estimates, not a Cabinet announcement. Working? is read from Phorest visits for '+brLabel()+': Yes = every branch shown had visits, No = none did, Some branches = part, No data yet = the date has not happened.',
       blocks:[{cols:[{label:'Holiday',fmt:'text'},{label:'From',fmt:'text'},{label:'To',fmt:'text'},{label:'Days',fmt:'num'},{label:'Working?',fmt:'text'},{label:'Phorest visits',fmt:'text'},{label:'Note',fmt:'text'}],rows:rows}]}]};
   };
+  // The whole page in one workbook (Kate, 18 Nov 2026: one XLSX and CSV in the shell masthead, js/page-export.js): Leave, Sick and absences, Day offs, Coverage, Public holidays,
+  // each built by the report's own export above. The CSV is the Leave tab.
+  window.lcExpAll=function(){
+    var parts=[window.lcExpLeave(),window.lcExpSick(),window.lcExpOff(),window.lcExpHol()],sheets=[];
+    parts.forEach(function(m){if(m&&m.sheets)m.sheets.forEach(function(sh){sheets.push(sh)})});
+    return {name:'leave-calendar',csv:0,sheets:sheets};
+  };
   
   buildFilters();
   draw();

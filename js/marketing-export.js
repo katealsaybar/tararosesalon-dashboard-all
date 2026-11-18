@@ -117,6 +117,15 @@ function socExport() {
   return { name: ['social', w.from, 'to', w.to].join('-'), csv: 0, sheets };
 }
 
+// The whole Social page in one workbook (Kate, 18 Nov 2026, js/page-export.js): what socExport writes (daily numbers, posts, followers, to the website) and the calendar's posts
+// (scalExport, social-calendar.js) as a tab of its own. Either may be empty; the CSV is the first tab.
+function socExportPage() {
+  const a = socExport(), b = typeof scalExport === 'function' ? scalExport() : null;
+  const sheets = (a ? a.sheets : []).concat(b && b.sheets ? b.sheets.map(s => Object.assign({}, s, { name: 'Calendar posts' })) : []);
+  if (!sheets.length) return null;
+  return { name: a ? a.name : b.name, csv: 0, sheets };
+}
+
 // ── Marketing Spend ────────────────────────────────────────────────────────────
 function mspendExport() {
   if (typeof mspendData === 'undefined' || !mspendData) return null;
