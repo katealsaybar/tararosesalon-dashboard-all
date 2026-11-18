@@ -18,27 +18,73 @@
   // Reading order. NAV steps first (where am I, how do I get to another report, how do I find anything), then the parts of THIS page. Kate, 18 Nov 2026: the
   // navigation instructions were not clear on some reports, because only the parts the page happened to have were explained and its own tabs, view buttons and
   // table menus were never found. Each step has a one-line plain instruction that says what to tap and what happens.
+  // What a tapped number opens, by page (Kate, 18 Nov 2026: "yung navigation guide must be specific din to what is being represented / reported / shown").
+  // Only where it is certain; any other page says "rows". Everything else in a step is read from the page itself: its name and group (pages.js), the real
+  // section names in its list, the real labels on its view buttons, a real figure and the real column headings.
+  var OPENS = {
+    clients: 'clients', clientmix: 'clients', retention: 'clients', clientbook: 'clients', lostclients: 'clients', lostlists: 'clients', novblasts: 'clients',
+    complaints: 'complaints', complaintsdetail: 'complaints', complaintchats: 'chats', reviews: 'reviews', services: 'services', products: 'products',
+    supplierpay: 'invoices', recruitment: 'applicants', glowclub: 'members', stripedeposits: 'deposits', depositcheck: 'deposits',
+    team: 'staff', teamquad: 'staff', staffperf: 'staff', attrition: 'staff', stafflevels: 'stylists', wvperf: 'redemptions', wvblast: 'messages', campaignblasts: 'messages'
+  };
+  function info(v) {
+    var o = null, list = window.TRS_PAGES || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === v) { o = list[i]; break; }
+    var label = o ? o.label : 'this page', where = o && o.group ? o.group + (o.sub ? ', ' + o.sub : '') : '';
+    return { label: label, where: where, opens: OPENS[v] || 'rows' };
+  }
+  function names(el, sel, n) {
+    var out = [], list = el.querySelectorAll(sel);
+    for (var i = 0; i < list.length && out.length < n; i++) {
+      var t = (list[i].textContent || '').replace(/[\u2191\u2193\u25be\u25bc]/g, '').replace(/\s+/g, ' ').trim();
+      if (t && t.length <= 28 && !/^on this page$/i.test(t) && out.indexOf(t) < 0) out.push(t);
+    }
+    return out;
+  }
+  function orList(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' or ' + a[a.length - 1]; }
+
+  // Reading order. NAV steps first (where am I, how do I get to another report, how do I find anything), then the parts of THIS page. Each step is one plain
+  // instruction that says what to tap and what happens, worded with this page's own name and contents.
   var STEPS = [
     { id: 'sections', nav: 1, find: function (v) { var s = document.getElementById('sidebar'); if (s && s.getBoundingClientRect().left >= 0 && vis(s)) return s; var b = document.getElementById('navBtn'); return vis(b) ? b : null; },
       title: 'Your reports live here',
-      text: function (el) { return el.id === 'sidebar' ? 'This list has every report. Tap a name to open it, or a group heading to fold or open the group.' : (window.innerWidth <= 760 ? 'Tap Menu to open the list of every report. Tap a name in it to open that report.' : 'Tap Sections to open the list of every report. Tap a name in it to open that report.'); } },
+      text: function (el, c) {
+        var where = c.where ? c.label + ' is in ' + c.where + '. ' : '';
+        return where + (el.id === 'sidebar' ? 'This list has every report. Tap a name to open it, or a group heading to fold or open the group.'
+          : (window.innerWidth <= 760 ? 'Tap Menu to open the list of every report, then a name to open it.' : 'Tap Sections to open the list of every report, then a name to open it.'));
+      } },
     { id: 'search', nav: 1, find: function (v) { var b = document.getElementById('gsTrig'); return vis(b) ? b : null; },
-      title: 'Find anything fast', text: 'Type a report, a name or a question and jump straight to it. Press the / key to start typing from anywhere.' },
+      title: 'Find anything fast', text: function (el, c) { return 'Looking for something that is not on ' + c.label + '? Type a report, a name or a question and jump straight to it. Press the / key to start typing from anywhere.'; } },
     { id: 'filters', find: function (v) { var w = document.getElementById('filtersWrap'); return vis(w) && !w.classList.contains('closed') ? w : null; },
-      title: 'Pick a salon and a period', text: 'Choose them here and every number on this page changes with them. Hide filters tucks this bar away when you want more room.' },
+      title: 'Pick a salon and a period', text: function (el, c) { return 'Choose them here and every number on ' + c.label + ' changes with them. Hide filters tucks this bar away when you want more room.'; } },
     { id: 'why', find: function (v) { return first(v, '.why-wall, .ms-why'); },
-      title: 'Start here', text: 'Three short lines: why this page matters, why now, and what happens if we do nothing. Then the one action for this week.' },
+      title: 'Start here', text: function (el, c) { return 'Why ' + c.label + ' matters, why now, and what happens if we do nothing. Then the one action for this week.'; } },
     { id: 'nav', find: function (v) { return firstGlobal('.lg-side .side-nav, .jn-rail .side-nav, .jn-rail .jn-nav, .jn-rail'); },
       title: 'Jump to any section',
-      text: function (el) { return el.getBoundingClientRect().width < 260 ? 'The list on the side has every section of this page. Tap one to jump there. The one you are reading lights up.' : 'The chips under the title are every section of this page. Tap one to jump there. The one you are reading lights up.'; } },
+      text: function (el, c) {
+        var n = names(el, 'a, button', 5), list = n.length >= 2 ? ' (' + orList(n.slice(0, 4)) + (n.length > 4 ? ' and more' : '') + ')' : '';
+        return (el.getBoundingClientRect().width < 260 ? 'The list on the side' : 'The chips under the title') + ' are the sections of ' + c.label + list + '. Tap one to jump there. The one you are reading lights up.';
+      } },
     { id: 'switch', find: function (v) { return findSwitch(v); },
-      title: 'Switch the view', text: 'This page has more than one view. Tap a button to switch. Your salon and period stay as they are.' },
+      title: 'Switch the view',
+      text: function (el, c) {
+        var n = names(el, 'button, [role="tab"], a', 4);
+        return (n.length >= 2 ? 'Tap ' + orList(n) + ' to see ' + c.label + ' another way.' : c.label + ' has more than one view. Tap a button to switch.') + ' Your salon and period stay as they are.';
+      } },
     { id: 'figure', find: function (v) { return first(v, '.dn[data-dn], [data-drill], .fig'); },
-      title: 'Numbers open up', text: 'Tap an underlined number to open the rows behind it, so you can see exactly who or what makes it. Esc or Back closes it.' },
+      title: 'Numbers open up',
+      text: function (el, c) {
+        var t = (el.textContent || '').trim(), ex = t && t.length <= 12 && /\d/.test(t) ? ', like ' + t + ',' : '';
+        return 'Tap an underlined number' + ex + ' to open the ' + c.opens + ' behind it, so you can see exactly what makes it. Esc or Back closes it.';
+      } },
     { id: 'menu', find: function (v) { return first(v, 'th button[aria-haspopup="true"], th .dr-fb, th [data-fc], th .lc-thb, th .lc-fn, th .lc-sort, th .w13-fb, th [class*="-fb"]'); },
-      title: 'Every heading has a menu', text: 'Tap the little arrow on a heading to sort the column, or to filter it by value or by condition, the same way you would in Google Sheets.' },
+      title: 'Every heading has a menu',
+      text: function (el) {
+        var tb = el.closest('table'), n = tb ? names(tb, 'th', 3) : [];
+        return 'Tap the little arrow on a heading' + (n.length ? ', such as ' + orList(n) + ',' : '') + ' to sort the column, or to filter it by value or by condition, the same way you would in Google Sheets.';
+      } },
     { id: 'export', find: function (v) { return first(v, '.rex-bar') || buttonByText(v, /^(save as )?(xlsx|csv)$/i); },
-      title: 'Need it in a sheet?', text: 'Download this report as XLSX or CSV from here.' }
+      title: 'Need it in a sheet?', text: function (el, c) { return 'Download ' + c.label + ' as XLSX or CSV from here.'; } }
   ];
   // Pages whose real parts the generic finders cannot see: Service Calendar is drawn in a shadow root, Content Calendar is a frame with its own bar in the
   // masthead. Kate, 18 Nov 2026: "i-apply mo na rin sa Service Calendar", "wala rin sa content calendar". They keep the two navigation steps (and the
@@ -61,6 +107,22 @@
       { id: 'svc-legend', find: function () { return inShadow('serviceCalContent', '#legend'); },
         title: 'Show or hide a kind', text: 'Tap a colour to hide or show that kind of service. Tap it again to bring it back.' }
     ],
+    // Leave & Holiday Calendar (Kate, 18 Nov 2026: "i-apply mo na rin sa Leave Calendar"): drawn in a shadow root with its own filter bar, its own
+    // "On this page" list, tiles, a calendar where a tap on a day shows who is off, and tables with Sheets-style heading menus.
+    leavecal: [
+      { id: 'lv-filters', need: 1, find: function () { return inShadow('leaveCalContent', '#filters'); },
+        title: 'Choose who and when', text: 'Pick a salon, a department, a person and a year here. Everything on the page follows them. Hide filters tucks the bar away.' },
+      { id: 'lv-rail', find: function () { return inShadow('leaveCalContent', '.rail'); },
+        title: 'Jump to any section', text: 'These are the sections of this page: the calendar, sick leave and absences, usual day offs and public holidays. Tap one to jump there. The one you are reading lights up.' },
+      { id: 'lv-tiles', need: 1, find: function () { return inShadow('leaveCalContent', '#tiles'); },
+        title: 'Quick answers', text: 'These tiles answer the quick questions: who is off today, the next public holiday, and what is still waiting for approval in Bayzat.' },
+      { id: 'lv-cal', need: 1, find: function () { return inShadow('leaveCalContent', '#cal'); },
+        title: 'Tap a day', text: 'Each day shows who is off. Tap a day to see the names and the reason in the panel beside it. Use the arrows to change month and Today to come back.' },
+      { id: 'lv-menu', find: function () { return inShadow('leaveCalContent', '.lt thead th, .lt th'); },
+        title: 'Every heading has a menu', text: 'Tap a table heading to sort the column, or to filter it by value or by condition, the same way you would in Google Sheets.' },
+      { id: 'lv-export', find: function () { return inShadow('leaveCalContent', '.rex-bar'); },
+        title: 'Need it in a sheet?', text: 'Each section has its own XLSX and CSV download.' }
+    ],
     contentcalendar: [
       { id: 'cc-bar', find: function () { var b = document.getElementById('calRow'); return vis(b) ? b : null; },
         title: 'Months, days and views', text: 'Use the arrows to move between months and Today to come back. Daily, Week, Month and List change how the calendar is drawn.' },
@@ -69,7 +131,7 @@
     ]
   };
   // when there are more than MAX steps, the ones lowest in this list are dropped first (the reading order above is kept)
-  var DROP = ['svc-legend', 'export', 'search', 'sections', 'menu', 'figure', 'switch', 'why', 'nav', 'filters'];
+  var DROP = ['svc-legend', 'lv-export', 'export', 'search', 'lv-tiles', 'search', 'sections', 'menu', 'figure', 'switch', 'why', 'nav', 'filters'];
   var MAX = 6, MIN = 3;
 
   function vis(el) { return !!(el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'); }
@@ -127,7 +189,7 @@
 
   function stepsFor(v) {
     var base = STEPS;
-    if (OWN[v]) base = STEPS.filter(function (x) { return x.id === 'sections' || x.id === 'search' || (x.id === 'filters' && v !== 'contentcalendar'); }).concat(OWN[v]);
+    if (OWN[v]) base = STEPS.filter(function (x) { return x.id === 'sections' || x.id === 'search' || (x.id === 'filters' && v !== 'contentcalendar' && v !== 'leavecal'); }).concat(OWN[v]);
     var all = [];
     for (var i = 0; i < base.length; i++) { var el = base[i].find(v); if (el) all.push({ s: base[i], el: el }); }
     var drop = 0;
@@ -181,7 +243,8 @@
       var st = self.steps[self.i], n = self.steps.length;
       root.querySelector('.pg-k').textContent = 'How this page works · ' + (self.i + 1) + ' of ' + n;
       root.querySelector('.pg-t').textContent = st.s.title;
-      root.querySelector('.pg-b').textContent = typeof st.s.text === 'function' ? st.s.text(st.el) : st.s.text;
+      var body = ''; try { body = typeof st.s.text === 'function' ? st.s.text(st.el, info(v)) : st.s.text; } catch (e) { body = ''; }   // a wording problem must never break the card
+      root.querySelector('.pg-b').textContent = body;
       root.querySelector('[data-back]').hidden = self.i === 0;
       root.querySelector('[data-next]').textContent = self.i === n - 1 ? 'Done for now' : 'Next';
       // bring the part into view above the card, then place the spotlight; a part inside the fixed top bar needs no scroll
