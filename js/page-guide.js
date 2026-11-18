@@ -40,8 +40,36 @@
     { id: 'export', find: function (v) { return first(v, '.rex-bar') || buttonByText(v, /^(save as )?(xlsx|csv)$/i); },
       title: 'Need it in a sheet?', text: 'Download this report as XLSX or CSV from here.' }
   ];
+  // Pages whose real parts the generic finders cannot see: Service Calendar is drawn in a shadow root, Content Calendar is a frame with its own bar in the
+  // masthead. Kate, 18 Nov 2026: "i-apply mo na rin sa Service Calendar", "wala rin sa content calendar". They keep the two navigation steps (and the
+  // header filter for Service Calendar, whose Branch and Period are the shell's) and then explain what is really on that page. Texts follow the page's own
+  // "How to read it" note.
+  function inShadow(host, sel) {
+    var h = document.getElementById(host), r = h && h.shadowRoot; if (!r) return null;
+    var list = r.querySelectorAll(sel);
+    for (var i = 0; i < list.length; i++) if (vis(list[i])) return list[i];
+    return null;
+  }
+  var OWN = {
+    servicecal: [
+      { id: 'svc-view', find: function () { return inShadow('serviceCalContent', '#vbar'); },
+        title: 'Day, Week or List', text: 'Switch the view here. Day shows every stylist for one day, Week shows one stylist across the days, List is every service in a table. Use the arrows to move to another day.' },
+      { id: 'svc-tiles', find: function () { return inShadow('serviceCalContent', '#cards'); },
+        title: 'The day at a glance', text: 'These tiles count the services, the chair time and the busiest moment. Tap a tile to jump to the services behind it.' },
+      { id: 'svc-cal', find: function () { return inShadow('serviceCalContent', '#cal, #calMain'); },
+        title: 'Read the calendar', text: 'Each block is one service. Solid is done and paid, striped is the client in the chair now, dashed is booked and still to come. Tap a block for the detail, or a stylist\u2019s name for her week.' },
+      { id: 'svc-legend', find: function () { return inShadow('serviceCalContent', '#legend'); },
+        title: 'Show or hide a kind', text: 'Tap a colour to hide or show that kind of service. Tap it again to bring it back.' }
+    ],
+    contentcalendar: [
+      { id: 'cc-bar', find: function () { var b = document.getElementById('calRow'); return vis(b) ? b : null; },
+        title: 'Months, days and views', text: 'Use the arrows to move between months and Today to come back. Daily, Week, Month and List change how the calendar is drawn.' },
+      { id: 'cc-frame', find: function () { var f = document.getElementById('calFrame'); return vis(f) ? f : null; },
+        title: 'Every post, on its day', text: 'Each coloured block is a post, on the day it went out. At the top of the calendar are Filters, the summary of the month, and Download XLSX and CSV.' }
+    ]
+  };
   // when there are more than MAX steps, the ones lowest in this list are dropped first (the reading order above is kept)
-  var DROP = ['export', 'search', 'sections', 'menu', 'figure', 'switch', 'why', 'nav', 'filters'];
+  var DROP = ['svc-legend', 'export', 'search', 'sections', 'menu', 'figure', 'switch', 'why', 'nav', 'filters'];
   var MAX = 6, MIN = 3;
 
   function vis(el) { return !!(el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'); }
@@ -98,8 +126,10 @@
   function current() { try { return typeof CURRENT_VIEW !== 'undefined' ? CURRENT_VIEW : null; } catch (e) { return null; } }
 
   function stepsFor(v) {
+    var base = STEPS;
+    if (OWN[v]) base = STEPS.filter(function (x) { return x.id === 'sections' || x.id === 'search' || (x.id === 'filters' && v !== 'contentcalendar'); }).concat(OWN[v]);
     var all = [];
-    for (var i = 0; i < STEPS.length; i++) { var el = STEPS[i].find(v); if (el) all.push({ s: STEPS[i], el: el }); }
+    for (var i = 0; i < base.length; i++) { var el = base[i].find(v); if (el) all.push({ s: base[i], el: el }); }
     var drop = 0;
     while (all.length > MAX && drop < DROP.length) {
       var id = DROP[drop++];
@@ -137,7 +167,7 @@
     function pos() {
       if (self.stop) return;
       var st = self.steps[self.i], el = st.el;
-      if (!document.contains(el) || !vis(el)) { var f = st.s.find(v); if (f) st.el = el = f; }
+      if (!el.isConnected || !vis(el)) { var f = st.s.find(v); if (f) st.el = el = f; }
       var r = el.getBoundingClientRect(), pad = 6, vw = window.innerWidth, vh = window.innerHeight;
       spot.style.cssText = 'left:' + (r.left - pad) + 'px;top:' + (r.top - pad) + 'px;width:' + (r.width + pad * 2) + 'px;height:' + (r.height + pad * 2) + 'px';
       if (vw <= 760) { box.style.left = ''; box.style.top = ''; box.classList.add('pg-phone'); return; }   // on a phone the card is a bottom sheet (CSS)
