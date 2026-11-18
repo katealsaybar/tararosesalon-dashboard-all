@@ -5390,6 +5390,24 @@ window.addEventListener('message', async e => {
   try { const { data, error } = await sb.rpc('content_calendar_post_stats', { p_from: from, p_to: to }); if (error) throw error; rows = Array.isArray(data) ? data : []; } catch (err) { rows = []; }
   try { f.contentWindow.postMessage({ type: 'trs-cal-post-stats', from, to, rows }, CAL_ORIGIN); } catch (err) {}
 });
+// Kate, 18 Nov 2026: the story and post viewer used to open inside the frame, which is taller than the screen, so its bottom ran off the window and it looked cut off and short.
+// While a viewer is open the frame (trs-cal-lb, open true) is stretched over the whole window, and put back exactly as it was when it closes. Only the frame this page holds is heard.
+// If the frame reloads while open, it is put back too, so it can never stay stuck over the dashboard.
+function calLbFull(on) {
+  const f = document.getElementById('calFrame'); if (!f) return;
+  if (on) {
+    if (f.dataset.keepStyle === undefined) f.dataset.keepStyle = f.getAttribute('style') || '';
+    f.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;max-width:none;min-height:0;z-index:2147483000;border:none;border-radius:0;display:block;background:transparent';
+  } else if (f.dataset.keepStyle !== undefined) {
+    f.setAttribute('style', f.dataset.keepStyle); delete f.dataset.keepStyle;
+  }
+}
+window.addEventListener('message', e => {
+  const f = document.getElementById('calFrame');
+  if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data || e.data.type !== 'trs-cal-lb') return;
+  calLbFull(e.data.open === true);
+});
+document.getElementById('calFrame')?.addEventListener('load', () => calLbFull(false));
 function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
   // opens Daily. Before the scope check, so a Bahrain sign-in is sent on to its own page like any other page it may not open.
