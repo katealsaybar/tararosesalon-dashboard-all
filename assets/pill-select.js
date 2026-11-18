@@ -182,7 +182,7 @@
     var typed = '', typedAt = 0;
     wrap.addEventListener('keydown', function (e) {
       if (!menu) return;
-      var bs = [].slice.call(menu.querySelectorAll('button:not(:disabled)')), i = bs.indexOf(document.activeElement);
+      var bs = [].slice.call(menu.querySelectorAll('button:not(:disabled)')), i = bs.indexOf((wrap.getRootNode && wrap.getRootNode().activeElement) || document.activeElement);
       if (e.key === 'Escape') { e.preventDefault(); close(true); }
       else if (e.key === 'Tab') close();
       else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {

@@ -546,6 +546,13 @@ async function renderLeaveCal() {
     L.forEach(function(x){fmenu.checked[x.key]=ex.indexOf(x.key)<0});
     fmDraw(true);
   }
+  /* The site's soft pill menu (assets/pill-select.js) does not reach into a shadow root: give this root its CSS once and enhance the selects drawn here (Kate, 18 Nov 2026, "dropdown is not brand aligned"). */
+  function pillIn(el){
+    if (!window.TRSPillSelect || !el) return;
+    var rt = el.getRootNode && el.getRootNode();
+    if (rt && rt.querySelector && !rt.querySelector('#pill-select-css-sh')) { var st = document.createElement('style'); st.id = 'pill-select-css-sh'; var src = document.getElementById('pill-select-css'); st.textContent = src ? src.textContent : ''; rt.insertBefore(st, rt.firstChild); }
+    [].forEach.call(el.querySelectorAll('select'), window.TRSPillSelect.enhance);
+  }
   function escH(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
   function fmDraw(place){
     curT=fmenu.t;
@@ -566,7 +573,7 @@ async function renderLeaveCal() {
         (vis.length?vis.map(function(x){return '<label><input type="checkbox" data-v="'+escH(x.key)+'"'+(fmenu.checked[x.key]?' checked':'')+'><span title="'+escH(x.key)+'">'+escH(x.key)+'</span><em>'+x.n+'</em></label>'}).join(''):'<div style="padding:6px;color:var(--muted)">No values match.</div>')+'</div>';
     }
     h+='</div><div class="btns"><button type="button" class="go ghost" data-m="cancel">Cancel</button><button type="button" class="go" data-m="ok">OK</button></div>';
-    box.innerHTML=h;box.style.display='block';
+    box.innerHTML=h;box.style.display='block';pillIn(box);
     if(place){
       var r=fmenu.btn.getBoundingClientRect(),w=288,left=Math.max(8,Math.min(r.left-8,window.innerWidth-w-8));
       box.style.left=left+'px';box.style.top=Math.min(r.bottom+4,Math.max(8,window.innerHeight-120))+'px';

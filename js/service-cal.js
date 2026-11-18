@@ -96,6 +96,13 @@ async function renderServiceCal() {
   function dlabel(d, long){ var t = dt(d); return (long ? '' : DOW[t.getUTCDay()] + ' ') + t.getUTCDate() + ' ' + MON[t.getUTCMonth()] + (long ? ' ' + t.getUTCFullYear() : ''); }
   function weekStart(d){ var w = (dt(d).getUTCDay() + 6) % 7; return addDays(d, -w); }   // Monday
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  /* The site's soft pill menu (assets/pill-select.js) does not reach into a shadow root: give this root its CSS once and enhance the selects drawn here (Kate, 18 Nov 2026, "dropdown is not brand aligned"). */
+  function pillIn(el){
+    if (!window.TRSPillSelect || !el) return;
+    var rt = el.getRootNode && el.getRootNode();
+    if (rt && rt.querySelector && !rt.querySelector('#pill-select-css-sh')) { var st = document.createElement('style'); st.id = 'pill-select-css-sh'; var src = document.getElementById('pill-select-css'); st.textContent = src ? src.textContent : ''; rt.insertBefore(st, rt.firstChild); }
+    [].forEach.call(el.querySelectorAll('select'), window.TRSPillSelect.enhance);
+  }
   function firstLast(n){ var p = n.trim().split(/\s+/); return [p[0] || '', p.slice(1).join(' ')]; }
   function dubaiNow(){
     var p = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
@@ -247,6 +254,10 @@ async function renderServiceCal() {
         sp.innerHTML = '<button class="navbtn" type="button" data-nav="-1" aria-label="Previous stylist">‹</button>' + avatar(cols[S.mi], stName(cols[S.mi])) + '<select class="pill" id="mSel" aria-label="Stylist">' + cols.map(function (n, k) { return '<option value="' + k + '"' + (k === S.mi ? ' selected' : '') + '>' + esc(stLabel(n)) + '</option>'; }).join('') + '</select><button class="navbtn" type="button" data-nav="1" aria-label="Next stylist">›</button>';
       }
     } else sp.hidden = true;
+    pillIn(sp);
+    var ssel = LVD.getElementById('staffSel'), msel = LVD.getElementById('mSel');
+    if (ssel) ssel.onchange = function () { S.staff = ssel.value; render(); };
+    if (msel) msel.onchange = function () { S.mi = +msel.value; render(); };
     var u = LVD.getElementById('upd');
     if (W && W.synced) {
       var t = new Date(W.synced), p = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dubai'}).format(t);
@@ -532,7 +543,7 @@ async function renderServiceCal() {
       listEl.innerHTML = sh.slice(0, 400).map(function (x) { return '<label class="lf-pop-v"><input type="checkbox" data-v="' + esc(x.d) + '"' + (sel.has(x.d) ? ' checked' : '') + '><span>' + esc(x.d === '' ? '(blank)' : x.d) + '</span><em>' + x.n + '</em></label>'; }).join('')
         + (sh.length > 400 ? '<p class="lf-pop-more">' + (sh.length - 400) + ' more: search to narrow them down.</p>' : '') + (sh.length ? '' : '<p class="lf-pop-more">Nothing matches.</p>');
     };
-    showIn(); drawList();
+    pillIn(pop); showIn(); drawList();
     var rc = btn.getBoundingClientRect(), W = Math.min(300, window.innerWidth - 16), phone = window.innerWidth <= 760;
     pop.style.width = W + 'px'; pop.style.left = (phone ? 8 : Math.max(8, Math.min(rc.right - W, window.innerWidth - W - 8))) + 'px';
     var mh = Math.min(460, window.innerHeight - 16), tp = Math.max(8, Math.min(rc.bottom + 4, window.innerHeight - mh - 8));   // always fully on screen, also from a chip near the bottom of a phone
@@ -668,8 +679,6 @@ async function renderServiceCal() {
       if (t.dataset.act === 'week') { closeDetail(); var r = W.rows.filter(function (x) { return x.sk === t.dataset.staff; })[0]; openWeek(t.dataset.staff, r ? r.d : S.from); }
     });
     LVD.addEventListener('change', function (e) {
-      if (e.target.id === 'staffSel') { S.staff = e.target.value; render(); }
-      if (e.target.id === 'mSel') { S.mi = +e.target.value; render(); }
     });
     LVD.addEventListener('input', function (e) {
       if (e.target.id === 'q') { S.q = e.target.value; var p = e.target.selectionStart; renderList(); var q = LVD.getElementById('q'); q.focus(); q.setSelectionRange(p, p); }

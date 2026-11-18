@@ -3606,7 +3606,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/drill.css?v=547da3fe">   <!-- the figure that opens the list behind it (drill.js) -->
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
-<script src="/assets/pill-select.js?v=7bd2fc3a"></script>
+<script src="/assets/pill-select.js?v=759948a4"></script>
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -3670,9 +3670,9 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Deposit Checking (17 Nov 2026): its own page, one file, reads open_deposits(); the header's Branch and Period drive it.
       dpc: [LGX, 'js/deposit-check.js?v=91de0a48'],
       // Leave & Holiday Calendar (17 Nov 2026): one file, and the spreadsheet export its XLSX and CSV buttons use.
-      lvc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/leave-cal.js?v=48933e15'],
+      lvc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/leave-cal.js?v=097f64b1'],
       // Service Calendar (17 Nov 2026): one file; the client name opens the Client Book card, read from client_book_card().
-      svc: [LGX, 'js/service-cal.js?v=b3fe1d1a'],
+      svc: [LGX, 'js/service-cal.js?v=fd09888c'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'js/active-deals.js?v=a7878905'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -4445,7 +4445,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=66e39ea4&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=845f4c0c&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
