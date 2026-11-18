@@ -260,12 +260,28 @@ function srClientsView(f, label) {
     const d = r.data || {}, rows = d.rows || [];
     return {
       cols: [{ k: 'client', l: 'Client' }, { k: 'salon', l: 'Salon' }, { k: 'units', l: 'Units', t: 'num' }, { k: 'visits', l: 'Visits', t: 'num' }, { k: 'last', l: 'Last visit', t: 'date' }, { k: 'items', l: 'Service names' }],
-      rows: rows.map(x => ({ client: x.client_name, salon: srName(x.branch), units: x.units, visits: x.visits, last: x.last_day, items: x.items,
-        _dn: { client: (typeof PD !== 'undefined' && PD.clientHistory) ? PD.clientHistory({ cur: srCur(), label: 'Service Rankings' }, { client: x.client_name, cid: x.client_id }) : null } })),   // her name opens her own window: visits, bookings, and phone and email at Level 5 (pulse-drill.js)
+      rows: rows.map(x => { const dates = srDatesSpec(x, (x.items || '').split(' · ').concat(f.names || []), f.item || f.stem || (f.fam ? cmFam(f.fam).name : 'services'));
+        return { client: x.client_name, salon: srName(x.branch), units: x.units, visits: x.visits, last: x.last_day, items: x.items,
+          _dn: { client: (typeof PD !== 'undefined' && PD.clientHistory) ? PD.clientHistory({ cur: srCur(), label: 'Service Rankings' }, { client: x.client_name, cid: x.client_id }) : null, units: dates, visits: dates } }; }),   // her name opens her own window: visits, bookings, and phone and email at Level 5 (pulse-drill.js)
       sub: lcNum(d.total_clients) + ' different people · ' + lcNum(d.total_units) + ' units · ' + srPeriodText(),
       note: (rows.length >= 500 ? 'The first 500 people are listed, most units first. ' : '') + (d.walkin_units ? lcNum(d.walkin_units) + ' units were walk-ins and are not listed.' : '')
     };
   } };
+}
+// WHICH DATES: this client's lines for the service, from drill_client_lines (the one the Spent windows use), kept to the names of the service (Kate, 18 Nov 2026:
+// "when i click units it should show which dates"). Units and Visits in the clients list open it.
+function srDatesSpec(x, names, title) {
+  const [a, b] = srRange(), clean = s => String(s || '').replace(/\s*\(Refund\)\s*$/i, '').trim().toLowerCase();
+  const set = new Set(names.filter(Boolean).map(clean));
+  return { title: x.client_name + ', ' + title, sub: srName(x.branch) + ' · ' + srPeriodText(), cur: srCur(), sk: srSlug(x.client_name + ' ' + title + ' dates'), views: [{ id: 'dates', label: 'Dates', load: async () => {
+    const r = await sb.rpc('drill_client_lines', { p_from: a, p_to: b, p_branches: [x.branch], p_client: x.client_name, p_employees: null, p_ckey: x.client_id || null });
+    if (r.error) throw r.error;
+    const rows = (r.data.rows || []).filter(l => !l.r && set.has(clean(l.i)));
+    return { cols: [{ k: 'd', l: 'Date', t: 'date' }, { k: 'b', l: 'Salon' }, { k: 'i', l: 'Service name' }, { k: 'n', l: 'Net', t: 'aed' }],
+      rows: rows.map(l => ({ d: l.d, b: srName(l.b), i: l.i, n: (Number(l.n) || 0) * srFx() })),
+      foot: rows.length ? { d: '', b: '', i: lcNum(rows.length) + ' line' + (rows.length === 1 ? '' : 's'), n: rows.reduce((s, l) => s + (Number(l.n) || 0) * srFx(), 0) } : null,
+      empty: 'No lines found for these names.', note: 'From Phorest’s sales lines, the newest 500 of her lines in the Period. One line is one unit.' };
+  } }] };
 }
 // A row of the table: its names, who, how it is worked out, against the period before. First = the view that opens first.
 function srSvcSpec(r, first) {
@@ -273,7 +289,7 @@ function srSvcSpec(r, first) {
   const views = {
     names: { id: 'names', label: 'Sizes and names', load: async () => {
       const vsum = r.v.reduce((s, v) => s + v.units, 0), vrev = r.v.reduce((s, v) => s + (Number(v.rev) || 0), 0) * srFx(), rest = r.u - vsum, restRev = r.rev - vrev;
-      const rows = r.v.map(v => ({ item: v.item, units: v.units, rev: (Number(v.rev) || 0) * srFx(), _dn: can ? { units: { title: v.item, sub: r.name + ' · ' + srPeriodText(), sk: srSlug(r.name + ' ' + v.item), views: [srClientsView({ stem: r.name, category: r.cat, item: v.item })] } } : null }));
+      const rows = r.v.map(v => ({ item: v.item, units: v.units, rev: (Number(v.rev) || 0) * srFx(), _dn: can ? { units: { title: v.item, sub: r.name + ' · ' + srPeriodText(), sk: srSlug(r.name + ' ' + v.item), views: [srClientsView({ stem: r.name, category: r.cat, item: v.item, names: [v.item] })] } } : null }));
       if (rest > 0) rows.push({ item: 'Other names', units: rest, rev: Math.max(0, restRev) });
       return { cols: [{ k: 'item', l: 'Item name in Phorest' }, { k: 'units', l: 'Units', t: 'num' }, { k: 'rev', l: 'Revenue', t: 'aed' }], rows,
         foot: { item: r.name + ', ' + srScope(), units: r.u, rev: r.rev }, note: 'Every size and package line of this service is one row. A package line shows no revenue of its own.' };
@@ -281,7 +297,7 @@ function srSvcSpec(r, first) {
     salon: { id: 'salon', label: 'By salon', load: async () => {
       const codes = Object.keys(r.bu || {}).filter(c => r.bu[c] > 0).sort((a, b) => r.bu[b] - r.bu[a]);
       return { cols: [{ k: 'salon', l: 'Salon' }, { k: 'units', l: 'Units', t: 'num' }, { k: 'share', l: 'Share of units', t: 'pct' }],
-        rows: codes.map(c => ({ salon: srName(c), units: r.bu[c], share: r.u ? 100 * r.bu[c] / r.u : 0, _dn: can ? { units: { title: srName(c), sub: r.name + ' · ' + srPeriodText(), sk: srSlug(r.name + ' ' + c), views: [srClientsView({ stem: r.name, category: r.cat, branch: c })] } } : null })),
+        rows: codes.map(c => ({ salon: srName(c), units: r.bu[c], share: r.u ? 100 * r.bu[c] / r.u : 0, _dn: can ? { units: { title: srName(c), sub: r.name + ' · ' + srPeriodText(), sk: srSlug(r.name + ' ' + c), views: [srClientsView({ stem: r.name, category: r.cat, branch: c, names: r.v.map(v => v.item) })] } } : null })),
         foot: { salon: 'All salons', units: r.u, share: 100 } };
     } },
     sep: { id: 'sep', label: 'Against ' + (pv ? pv[3] : 'before'), load: async () => {
@@ -299,7 +315,7 @@ function srSvcSpec(r, first) {
         note: 'Revenue is ex VAT.' };
     } }
   };
-  views.clients = can ? srClientsView({ stem: r.name, category: r.cat }, 'Clients') : null;
+  views.clients = can ? srClientsView({ stem: r.name, category: r.cat, names: r.v.map(v => v.item) }, 'Clients') : null;
   const order = first === 'clients' && can ? ['clients', 'names', 'salon', 'sep', 'how'] : first === 'sep' ? ['sep', 'names', 'salon', 'how', 'clients'] : first === 'how' ? ['how', 'names', 'salon', 'sep', 'clients'] : ['names', 'clients', 'salon', 'sep', 'how'];
   const single = srSalonCodes().length < 2 || srBah();
   return { title: r.name, sub: lcNum(r.u) + ' units · ' + srAed(r.rev) + ' · ' + r.cat + ' · ' + srPeriodText(), cur: srCur(), sk: srSlug(r.name),
