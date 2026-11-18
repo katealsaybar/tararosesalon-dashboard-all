@@ -21,7 +21,7 @@
   var STEPS = [
     { id: 'sections', nav: 1, find: function (v) { var s = document.getElementById('sidebar'); if (s && s.getBoundingClientRect().left >= 0 && vis(s)) return s; var b = document.getElementById('navBtn'); return vis(b) ? b : null; },
       title: 'Your reports live here',
-      text: function (el) { return el.id === 'sidebar' ? 'This list has every report. Tap a name to open it, or a group heading to fold or open the group.' : 'Tap Sections to open the list of every report. Tap a name in it to open that report.'; } },
+      text: function (el) { return el.id === 'sidebar' ? 'This list has every report. Tap a name to open it, or a group heading to fold or open the group.' : (window.innerWidth <= 760 ? 'Tap Menu to open the list of every report. Tap a name in it to open that report.' : 'Tap Sections to open the list of every report. Tap a name in it to open that report.'); } },
     { id: 'search', nav: 1, find: function (v) { var b = document.getElementById('gsTrig'); return vis(b) ? b : null; },
       title: 'Find anything fast', text: 'Type a report, a name or a question and jump straight to it. Press the / key to start typing from anywhere.' },
     { id: 'filters', find: function (v) { var w = document.getElementById('filtersWrap'); return vis(w) && !w.classList.contains('closed') ? w : null; },
