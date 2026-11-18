@@ -137,17 +137,6 @@
     }
     return all;
   }
-  function scroller(el) {
-    var n = el;
-    while (n) {
-      if (n.nodeType === 1) {
-        var cs = getComputedStyle(n);
-        if (/(auto|scroll)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight + 4 && n !== document.body && n !== document.documentElement) return n;
-      }
-      n = n.parentElement || (n.getRootNode && n.getRootNode().host) || null;
-    }
-    return null;
-  }
   function pageParts(steps) { return steps.filter(function (x) { return !x.s.nav; }).length; }
 
   // ---- the card ----
@@ -201,12 +190,9 @@
       var r = el.getBoundingClientRect();
       var fixedTop = !!el.closest('#topbar, .topbar, #sidebar, .sidebar, .lg-side');
       if (!fixedTop && (r.top < 90 || r.bottom > window.innerHeight * (window.innerWidth <= 760 ? 0.5 : 0.8))) {
-        // the dashboard scrolls inside its own box on some pages (and a part can sit in a shadow root), so find the box that really scrolls
-        var sc = scroller(el), want = r.height > window.innerHeight * 0.5 ? 130 : window.innerHeight * 0.3;
-        try {
-          if (sc) sc.scrollTo({ top: sc.scrollTop + r.top - sc.getBoundingClientRect().top - want, behavior: 'instant' });
-          else window.scrollTo({ top: window.scrollY + r.top - want, behavior: 'instant' });
-        } catch (e) {}
+        // the page itself scrolls (the dashboard has no inner scroll box), so scroll the window; a tall part goes just under the sticky bars
+        var want = r.height > window.innerHeight * 0.5 ? 130 : window.innerHeight * 0.3;
+        try { window.scrollTo({ top: window.scrollY + r.top - want, behavior: 'instant' }); } catch (e) {}
       }
       pos(); setTimeout(pos, 320); setTimeout(pos, 700);
     }
