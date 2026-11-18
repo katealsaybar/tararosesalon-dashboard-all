@@ -122,11 +122,11 @@
       var cols = [];
       for (var c = 0; c < w; c++) {
         var vals = data.map(function (r) { return r[c] == null ? '' : r[c]; }).filter(function (x) { return x !== ''; });
-        var num = vals.length > 0 && vals.every(function (x) { return NUM.test(x.replace(/%$/, '')); });
+        var num = vals.length > 0 && vals.every(function (x) { return NUM.test(x.replace(/%$/, '').replace(/^AED\s*/i, '')); });
         var pct = num && vals.every(function (x) { return /%$/.test(x); });
         cols.push({ label: heads[c] || ('Column ' + (c + 1)), fmt: pct ? 'pct' : num ? 'num' : 'text', num: num });
       }
-      var rowsOut = data.map(function (r) { return { cells: cols.map(function (col, c) { var x = r[c] == null ? '' : r[c]; return col.num && x !== '' ? Number(x.replace(/,/g, '').replace(/%$/, '')) : x; }) }; });
+      var rowsOut = data.map(function (r) { return { cells: cols.map(function (col, c) { var x = r[c] == null ? '' : r[c]; return col.num && x !== '' ? Number(x.replace(/^AED\s*/i, '').replace(/,/g, '').replace(/%$/, '')) : x; }) }; });
       var title = headingOf(t) || (label || view) + ' table ' + (i + 1);
       var nm = title.replace(/[\\/?*\[\]:]/g, ' ').slice(0, 31).trim() || ('Table ' + (i + 1)), base = nm, k = 2;
       while (used[nm.toLowerCase()]) nm = base.slice(0, 28) + ' ' + (k++);
@@ -173,7 +173,9 @@
   // Org Chart, Content Calendar, Find a Stylist, Landing Page Review and the complaint log form (no tables), and the Ledgers pages (their own toolbar writes the formulas).
   // Pages whose own button runs a save routine of its own: Client's Last Visit saves the whole filtered list with each client's visits added (lcSaveFile), Retention saves both lists (retDownload).
   register('lostclients', null, { custom: function (kind) { return typeof lcSaveFile === 'function' ? lcSaveFile(kind) : undefined; } });
-  register('retention', null, { custom: function (kind) { return typeof retDownload === 'function' ? retDownload(kind) : undefined; } });
+  register('retention', null, { custom: function (kind) {
+    if (typeof retData === 'undefined' || !retData || !retData.ok) { var t = 'Nothing to download for this Period yet: Retention looks forward, so pick a Period that ended at least 2 months ago.'; if (typeof lgxToast === 'function') lgxToast(t, true); else alert(t); return; }
+    return typeof retDownload === 'function' ? retDownload(kind) : undefined; } });
   // Client Mix draws family cards first, and tables only once a family is picked: the cards' figures (cmCards) as a Families tab, then whatever tables the page shows.
   window.__cmExport = function () {
     var c = typeof cmCards !== 'undefined' ? cmCards : null; if (!c || !(c.fams || []).length) return null;
