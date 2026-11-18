@@ -96,6 +96,7 @@ tr.ord-rowlook td:first-child{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}
   .ord-st.ord-look{min-height:44px;padding:6px 14px}
   .ord-lk{min-height:44px}
   .ord-pick button{min-height:44px}
+  tr.ord-rowlook td:first-child{box-shadow:none}.ord-card tbody tr{padding-left:12px}tr.ord-rowlook{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}   /* the accent sits on the card, not on the first cell, so it never covers the date */
   .ord-modal{padding:0;align-items:flex-end}
   .ord-dlg{border-radius:16px 16px 0 0;max-height:92vh}
   .ord-bt thead{display:none}
