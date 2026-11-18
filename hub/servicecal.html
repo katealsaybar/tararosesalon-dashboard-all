@@ -121,6 +121,12 @@ body.sheet-open .fscrim,body.sheet-open .fsheet{display:flex}
   background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(var(--border2) 1px,transparent 1px);
   background-size:100% var(--hh),100% calc(var(--hh)/2)}
 .col.off{background-color:var(--surface2)}
+.offshift{position:absolute;left:0;right:0;pointer-events:none;background:repeating-linear-gradient(135deg,transparent 0 5px,var(--border) 5px 6px);opacity:.6;z-index:0}
+.offshift b{position:absolute;top:6px;left:0;right:0;text-align:center;font-size:12px;font-weight:600;color:var(--muted)}
+.chead .n4{font-size:11.5px;color:var(--muted2);margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chead .n4.off{color:var(--warn);font-weight:600}
+.chead .n4 .ot{color:var(--warn);font-weight:600}
+.shtbl .late{color:var(--warn);font-weight:600}
 .blk{position:absolute;overflow:hidden;border-radius:7px;border:1px solid var(--cc);border-left-width:5px;background:var(--cc-bg);padding:2px 5px;cursor:pointer;line-height:1.2;font-size:12px;text-align:left;color:var(--text);font-family:inherit}
 .blk:hover{z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.22);overflow:visible;min-height:var(--minh)}
 .blk .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -304,7 +310,7 @@ button.cl:hover{text-decoration-color:var(--text)}
     '<div class="tools"><span id="staffPick" hidden></span><span class="upd" id="upd"></span></div>' +
     '<div class="tools" style="margin-top:0"><div class="legend" id="legend"></div></div>' +
     '<div class="tools" style="margin-top:0"><div class="legend" id="stlegend"></div><span style="font-size:13px;color:var(--muted)"><span class="star">★</span> client asked for this stylist</span></div>' +
-    '<div id="ctBox"></div>' +
+    '<div id="ctBox"></div><div id="shBox"></div>' +
     '<div id="calMain"></div>' +
     '<div class="foot"><p><b>How to read it:</b> a solid block is a service that is done and paid. Striped means the client is in the chair now. Dashed means booked and still to come. Click a block for the detail, click a stylist’s name for her week.</p>' +
     '<p>Branch and Period come from the bar at the top. One day shows the Day view; a longer period shows each stylist across the days, or the List. Up to 4 weeks at a time.</p>' +
@@ -398,10 +404,11 @@ button.cl:hover{text-decoration-color:var(--text)}
     if (c && !(live && Date.now() - c.t > 120000)) return c;
     var r = await KB.client.rpc('service_calendar', {p_branch:b, p_from:f, p_to:t});
     if (r.error || !r.data) return null;
-    var led = {}, ledAll = {};
+    var led = {}, ledAll = {}, sh = {};
+    (r.data.shifts || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) sh[b + '|' + nm + '|' + x[0]] = {k:x[2], s:x[3] ? mm(x[3]) : 0, e:x[4] ? mm(x[4]) : 0, n:x[5] || ''}; });   // stylist|date -> the rota entry
     (r.data.ledger || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) led[b + '|' + nm + '|' + x[0]] = x.slice(2); });   // stylist|date -> [total, new, ncr, req, salon, rebooked]
     (r.data.ledger_all || []).forEach(function (x) { ledAll[b + '|' + x[0]] = x.slice(1); });                                          // salon|date  -> [total, new, ncr, req, salon, rebooked]
-    return (CACHE[key] = {rows:parse(r.data), led:led, ledAll:ledAll, synced:r.data.synced, first:r.data.first, last:r.data.last, t:Date.now()});
+    return (CACHE[key] = {rows:parse(r.data), led:led, ledAll:ledAll, sh:sh, synced:r.data.synced, first:r.data.first, last:r.data.last, t:Date.now()});
   }
   async function load(){
     normalise(); S.lf = S.pendLf || {}; S.pendLf = null; S.sort = null; closePop();   // column filters belong to the rows that were on screen (a click on a client type number brings its own)
@@ -409,10 +416,10 @@ button.cl:hover{text-decoration-color:var(--text)}
     if (box) box.innerHTML = '<div class="empty">Loading the calendar…</div>';
     var res = await Promise.all(S.br.map(function (b) { return fetchBranch(b, sp[0], sp[1]); }));
     if (res.some(function (x) { return !x; })) { if (box) box.innerHTML = '<div class="empty">The calendar could not be loaded. Try again in a moment.</div>'; return; }
-    var rows = [], synced = null, first = null, last = null, led = {}, ledAll = {};
-    res.forEach(function (x) { Object.assign(led, x.led); Object.assign(ledAll, x.ledAll); rows = rows.concat(x.rows); if (x.synced && (!synced || x.synced < synced)) synced = x.synced; first = !first || (x.first && x.first < first) ? x.first : first; last = !last || (x.last && x.last > last) ? x.last : last; });
+    var rows = [], synced = null, first = null, last = null, led = {}, ledAll = {}, sh = {};
+    res.forEach(function (x) { Object.assign(sh, x.sh); Object.assign(led, x.led); Object.assign(ledAll, x.ledAll); rows = rows.concat(x.rows); if (x.synced && (!synced || x.synced < synced)) synced = x.synced; first = !first || (x.first && x.first < first) ? x.first : first; last = !last || (x.last && x.last > last) ? x.last : last; });
     rows.forEach(function (r, i) { r.i = i; });
-    W = {rows:rows, led:led, ledAll:ledAll, synced:synced, first:first, last:last};
+    W = {rows:rows, led:led, ledAll:ledAll, sh:sh, synced:synced, first:first, last:last};
     render();
   }
 
@@ -565,12 +572,12 @@ button.cl:hover{text-decoration-color:var(--text)}
       el.innerHTML = '<div class="empty">' + msg + '</div>'; return;
     }
     var head = '<div class="grid chead"><div class="corner"></div>' + cols.map(function (c) {
-      return '<button type="button" class="ch' + (c.today ? ' is-today' : '') + '" ' + c.hd + '><div class="chh">' + (c.ph || '') + '<div class="chx"><div class="n1">' + esc(c.t1) + '</div><div class="n2">' + (esc(c.t2) || '&nbsp;') + '</div></div></div><div class="n3">' + c.rows.length + ' service' + (c.rows.length === 1 ? '' : 's') + ' · ' + dur(union(c.rows)) + '</div></button>';
+      return '<button type="button" class="ch' + (c.today ? ' is-today' : '') + '" ' + c.hd + '><div class="chh">' + (c.ph || '') + '<div class="chx"><div class="n1">' + esc(c.t1) + '</div><div class="n2">' + (esc(c.t2) || '&nbsp;') + '</div></div></div><div class="n3">' + c.rows.length + ' service' + (c.rows.length === 1 ? '' : 's') + ' · ' + dur(union(c.rows)) + '</div>' + shiftHead(c) + '</button>';
     }).join('') + '</div>';
     var gut = ''; for (var m = T0; m <= T1; m += 60) gut += '<span style="top:' + ((m - T0) * PX) + 'px">' + fmt(m).replace(':00', '') + '</span>';
     var body = '<div class="grid cbody"><div class="gut">' + gut + '</div>' + cols.map(function (c) {
       var lr = lanes(c.all);
-      return '<div class="col' + (c.all.length ? '' : ' off') + '">' + lr.map(function (r) { return c.rows.indexOf(r) >= 0 ? block(r) : ''; }).join('') + '</div>';
+      return '<div class="col' + (c.all.length ? '' : ' off') + '">' + bands(c) + lr.map(function (r) { return c.rows.indexOf(r) >= 0 ? block(r) : ''; }).join('') + '</div>';
     }).join('') + '</div>';
     el.innerHTML = '<div class="cal" id="cal"><div class="cal-in" style="--n:' + cols.length + ';--h:' + H + 'px;--hh:' + HH + 'px">' + head + body + '</div></div>';
     var nm = dubaiNow();
@@ -583,18 +590,61 @@ button.cl:hover{text-decoration-color:var(--text)}
     var all = dayRows(), ids = dayStaff();
     if (S.sortChair) { var t = function (n) { return union(all.filter(function (r) { return r.sk === n && visible(r); })); }; ids.sort(function (a,b) { return t(b) - t(a); }); }
     if (mobile()) ids = ids[S.mi] !== undefined ? [ids[S.mi]] : [];
-    return ids.map(function (n) { var mine = all.filter(function (r) { return r.sk === n; }), fl = firstLast(stName(n)); return {ph:avatar(n, stName(n)), t1:fl[0], t2:fl[1] + (multi() ? (fl[1] ? ' · ' : '') + mine[0].b : ''), all:mine, rows:mine.filter(visible), hd:'data-staff="' + esc(n) + '" title="See ' + esc(stName(n)) + '’s week"'}; });
+    return ids.map(function (n) { var mine = all.filter(function (r) { return r.sk === n; }), fl = firstLast(stName(n)); return {sh:shiftOf(n, S.from), ph:avatar(n, stName(n)), t1:fl[0], t2:fl[1] + (multi() ? (fl[1] ? ' · ' : '') + mine[0].b : ''), all:mine, rows:mine.filter(visible), hd:'data-staff="' + esc(n) + '" title="See ' + esc(stName(n)) + '’s week"'}; });
   }
   function weekCols(){
     var mine = weekRows();
     return days().map(function (d) {
       var x = mine.filter(function (r) { return r.d === d; }), dl = dlabel(d).split(' ');
-      return {t1:dl[0] + ' ' + dl[1], t2:dl[2], all:x, rows:x.filter(visible), today:d === TODAY, hd:'data-day="' + d + '" title="Open ' + dlabel(d, true) + '"'};
+      return {sh:shiftOf(S.staff, d), t1:dl[0] + ' ' + dl[1], t2:dl[2], all:x, rows:x.filter(visible), today:d === TODAY, hd:'data-day="' + d + '" title="Open ' + dlabel(d, true) + '"'};
     });
   }
 
   /* ---- client types per stylist (KPI definitions), with the ledger beside each figure when there is one */
   var TYL = {new:'New', ncr:'New client request', req:'Request', salon:'Salon'};
+
+  /* ---- the rota (phorest_shifts): shift hours, days off and overtime. Overtime here = the last booked service ends after the rostered shift end */
+  function shiftOf(sk, d){ return (W && W.sh && W.sh[sk + '|' + d]) || null; }
+  function otOf(sh, rows){
+    if (!sh || sh.k !== 'WORKING' || !rows.length) return {late:0, early:0, first:null, last:null};
+    var f = Math.min.apply(null, rows.map(function (r) { return r.s; })), l = Math.max.apply(null, rows.map(function (r) { return r.e; }));
+    return {late:Math.max(0, l - sh.e), early:Math.max(0, sh.s - f), first:f, last:l};
+  }
+  function shiftHead(c){
+    if (!c.sh) return '';
+    if (c.sh.k === 'OFF') return '<div class="n4 off">' + esc(c.sh.n || 'Off') + '</div>';
+    var o = otOf(c.sh, c.all);
+    return '<div class="n4" title="Rostered shift in Phorest">Shift ' + fmt(c.sh.s).replace(':00', '') + ' - ' + fmt(c.sh.e).replace(':00', '') + (o.late ? ' <span class="ot">+' + dur(o.late) + ' past</span>' : '') + '</div>';
+  }
+  function bands(c){
+    if (!c.sh) return '';
+    if (c.sh.k === 'OFF') return '<div class="offshift" style="top:0;height:' + H + 'px"><b>' + esc(c.sh.n || 'Off') + '</b></div>';
+    var o = '', a = (c.sh.s - T0) * PX, z = (c.sh.e - T0) * PX;
+    if (a > 0) o += '<div class="offshift" style="top:0;height:' + Math.min(a, H) + 'px"></div>';
+    if (z < H) o += '<div class="offshift" style="top:' + Math.max(z, 0) + 'px;height:' + (H - Math.max(z, 0)) + 'px"></div>';
+    return o;
+  }
+  function renderSH(){
+    var box = document.getElementById('shBox'); if (!box) return;
+    if (!W || S.view === 'list') { box.innerHTML = ''; return; }
+    var lines = [];
+    if (S.view === 'day') {
+      var dr = dayRows();
+      dayStaff().forEach(function (sk) { var sh = shiftOf(sk, S.from); if (sh && sh.k === 'WORKING') lines.push({label:stLabel(sk), sh:sh, o:otOf(sh, dr.filter(function (r) { return r.sk === sk; }))}); });
+    } else {
+      var wr = weekRows();
+      days().forEach(function (d) { var sh = shiftOf(S.staff, d); if (sh && sh.k === 'WORKING') { var x = wr.filter(function (r) { return r.d === d; }); if (x.length) lines.push({label:dlabel(d, true), sh:sh, o:otOf(sh, x)}); } });
+    }
+    if (!lines.length) { box.innerHTML = ''; return; }
+    var nLate = lines.filter(function (l) { return l.o.late > 0; }), tot = nLate.reduce(function (t, l) { return t + l.o.late; }, 0);
+    var body = lines.map(function (l) {
+      return '<tr><td>' + esc(l.label) + '</td><td>' + fmt(l.sh.s) + ' - ' + fmt(l.sh.e) + '</td><td>' + fmt(l.o.first) + '</td><td>' + fmt(l.o.last) + '</td><td class="r' + (l.o.late ? ' late' : '') + '">' + (l.o.late ? '+' + dur(l.o.late) : '-') + '</td></tr>';
+    }).join('');
+    box.innerHTML = '<details class="ct" open><summary>Shifts and overtime' + (S.view === 'week' ? ' · ' + esc(S.staff ? stLabel(S.staff) : '') : '') + '</summary>'
+      + '<p class="ct-note">The shift is the rota in Phorest. <b>Past shift</b> is how long after the shift end her last booked service finishes. ' + (nLate.length ? nLate.length + ' of ' + lines.length + ' ' + (S.view === 'day' ? 'stylists' : 'days') + ' ran past the shift, ' + dur(tot) + ' in all. ' : 'Nobody ran past the shift. ')
+      + 'It is worked out from bookings, not from a clock-out, so a stylist who stays late with nothing booked, or a rota changed after the day, does not show here.</p>'
+      + '<div class="tw"><table class="cttbl shtbl"><thead><tr><th>' + (S.view === 'day' ? 'Stylist' : 'Day') + '</th><th>Shift</th><th>First service</th><th>Last service ends</th><th class="r">Past shift</th></tr></thead><tbody>' + body + '</tbody></table></div></details>';
+  }
   var CTROWS = [];
   function ctCounts(rows){ var seen = {}, c = {total:0, new:0, ncr:0, req:0, salon:0, rb:0}; rows.forEach(function (r) { if (seen[r.gk]) return; seen[r.gk] = 1; c.total++; c[r.ty]++; if (r.rbk) c.rb++; }); return c; }
   function ledSum(list){ var o = null; list.forEach(function (l) { if (!l) return; o = o || [0, 0, 0, 0, 0, 0]; for (var k = 0; k < 6; k++) o[k] += +l[k] || 0; }); return o; }
@@ -825,6 +875,7 @@ button.cl:hover{text-decoration-color:var(--text)}
     renderTiles();
     if (S.view === 'list') renderList(); else renderGrid(S.view === 'week' ? weekCols() : dayCols());
     renderCT();
+    renderSH();
     setTb();
   }
   function flashBand(m){
