@@ -80,6 +80,7 @@ SPECIAL = {'dashboard.js', 'branch-ledger.js', 'team-performance.js'}
 # Scripts that draw no page text of their own, and why. A new script has to land in
 # FILE_VIEWS, SPECIAL or here, or the build fails.
 NOT_PAGES = {
+    'page-guide.js': 'the first-time guide card on every report (shows until Got it, do not show again)',
     'phone-fold.js': 'phone-only folds on the Clients pages', 'metric-glossary.js': 'the one copy of what each metric means', 'auth.js': 'sign-in helpers', 'page-comments.js': 'the reviewers comment tool on the public campaign pages (draws only for a signed-in Level 3 or 5), not a dashboard page', 'mobile.js': 'phone layer', 'nav-collapse.js': 'sidebar behaviour',
     'nav-stars.js': 'stars beside sidebar links', 'search.js': 'the search itself',
     'search-index.js': 'the output of this file', 'voice-mic.js': 'the mic button on every search bar', 'visits.js': 'remembers what was opened',

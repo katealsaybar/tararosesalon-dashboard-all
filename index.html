@@ -3587,6 +3587,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/send-schedule.css?v=88a70391">
 <link rel="stylesheet" href="css/jump-nav.css?v=e099d37d">
 <link rel="stylesheet" href="css/why-wall.css?v=a9e824b4">
+<link rel="stylesheet" href="css/page-guide.css?v=e025ac1a">
 <link rel="stylesheet" href="css/wv-blast.css?v=9b1a775f">
 <link rel="stylesheet" href="css/target-links.css?v=5f45ddf2">
 <link rel="stylesheet" href="css/glow-club.css?v=ce0bc189">
@@ -3607,6 +3608,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=759948a4"></script>
+<!-- Kate, 18 Nov 2026: the first-time guide on every report (page-guide.js, page_guide_* in Supabase). showView() calls TRSGuide.maybe(view). -->
+<script src="/js/page-guide.js?v=3ff5b60c"></script>
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -4843,6 +4846,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 
 
 <footer style="text-align:center;">
+  <button type="button" class="pg-again" data-guide-again>Show the guide for this page again</button>
+  <br>
   Tara Rose Ladies Salon internal dashboard. Confidential.
   <br><br>
   <span style="opacity:0.7;">
@@ -5636,6 +5641,8 @@ function showView(view, el){
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
   if (el && el.dataset && el.dataset.lands) el = document.getElementById(el.dataset.lands) || el;
   if (el) el.classList.add('active');
+  // Kate, 18 Nov 2026: first-time guide (js/page-guide.js). Shows until the person presses Got it, do not show again; skipped while previewing another level.
+  if (window.TRSGuide) TRSGuide.maybe(view);
 
   window.scrollTo(0, 0);
   setHeaderSectionLabel(VIEW_SECTION_LABELS[view] || 'Organisation Pulse');
