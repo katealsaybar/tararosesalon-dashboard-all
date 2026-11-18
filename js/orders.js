@@ -323,7 +323,7 @@ function ordWatch() {
   // jump-nav.js moves the chip row's pin (--jn-top) when the masthead condenses or Hide filters is pressed, without any change of size: watch that too
   if (typeof MutationObserver !== 'undefined' && jn) { ordMO = new MutationObserver(() => { if (ordOnOrders()) ordOffsets(); }); ordMO.observe(jn, { attributes: true, attributeFilter: ['style', 'class'] }); }
 }
-window.addEventListener('scroll', () => { if (ordRaf || !ordOnOrders()) return; ordRaf = requestAnimationFrame(() => { ordRaf = 0; ordOffsets(); }); }, { passive: true });
+window.addEventListener('scroll', () => { if (ordRaf || !ordOnOrders()) return; ordRaf = requestAnimationFrame(() => { ordRaf = 0; if (!ordMO && document.querySelector('#view-orders .jn-rail')) ordWatch(); ordOffsets(); }); }, { passive: true });   // the chip row is built after the first paint, so the style observer attaches here once it exists
 
 // ── HOW IT IS WORKED OUT, ABOUT THIS PAGE: centred, one short idea per card (component 36) ──
 function ordPaintHow() {
