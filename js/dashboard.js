@@ -5941,7 +5941,20 @@ function freshnessLine(label, info, feed) {
   // The hover title is gone: the panel says the same in words a phone can reach.
   const pulledAt = info.syncedAt ? syncedLabel(info.syncedAt) : '';
   const syncedBit = pulledAt ? `, synced <b>${pulledAt}</b>` : '';
-  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}">${label}: up to <b>${dateStr}</b> (${age}${syncedBit})${flag}</span>`;
+  // Phorest only (Kate, 18 Nov 2026): a pull before the salons have sold anything writes today's rows with every figure at zero,
+  // so "synced 9:03 am" sat beside "up to 17 Nov" and read as a sync that did not work. Say what today looks like instead.
+  // The badge itself still moves only when every UAE branch has real figures for the day.
+  let todayBit = '';
+  if (feed === 'phorest' && info.complete && info.date) {
+    const dubaiToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
+    const g = (info.gaps || []).find(x => x.date === dubaiToday);
+    if (g && info.date < dubaiToday) {
+      const total = (typeof UAE_ACTIVE !== 'undefined' && UAE_ACTIVE.length) || 4;
+      const inCount = total - g.missing.length;
+      todayBit = inCount <= 0 ? ", today's sales not in yet" : `, today: ${inCount} of ${total} salons in so far`;
+    }
+  }
+  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}">${label}: up to <b>${dateStr}</b> (${age}${syncedBit}${todayBit})${flag}</span>`;
 }
 
 // "19 and 20 Oct", "30 Sep and 1 Oct": the missing days for one branch, same month folded together.
@@ -5968,7 +5981,7 @@ function freshnessPanelHtml(ledgerInfo) {
   const late = [...byBranch].map(([b, dates]) =>
     `<p class="mf-late"><b>Late:</b> ${escapeHtml(BRANCH_INFO[b]?.name || b)} has not sent ${freshnessDays(dates)}. Ask the branch coordinator to send it.</p>`);
   return `<p><b>Branch sheets</b> are the daily sheets each branch types in. Client counts and rebooking come from them.</p>`
-    + `<p><b>Phorest sales</b> come straight from the till. Takings come from here. They are pulled at 9 am, 1 pm, 5 pm, 9 pm and 1 am, and the time shown is the last pull.</p>`
+    + `<p><b>Phorest sales</b> come straight from the till. Takings come from here. They are pulled at 9 am, 11 am, 1 pm, 5 pm, 9 pm and 1 am, and the time shown is the last pull. The date moves on to today once every salon has sold something, so early in the morning it still shows yesterday.</p>`
     + (late.length ? late.join('') : '<p class="mf-ok">Everything is up to date.</p>')
     + '<p class="mf-tz">All times are UAE time.</p>';
 }
