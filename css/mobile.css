@@ -68,6 +68,15 @@
     max-width:min(52vw,220px);min-width:0;flex-shrink:1;font-size:12.5px;letter-spacing:.02em;text-transform:none;color:var(--text)}
   #fSheetBtn.off{display:none}
   #fSheetBtn svg{flex-shrink:0}
+  /* Download this page (Kate, 18 Nov 2026): one round 44px icon beside the search bar opens the XLSX / CSV card (page-export.js); the computer's two pills stay off. */
+  .mast-dl{display:none!important}
+  .mast-right{align-items:stretch}   /* the wrapper must not size the actions to their natural width, or the Filters pill stops shrinking and the row overflows */
+  .mast-acts{justify-content:flex-end}
+  /* The search bar and the download icon share one row: .mast is a wrapping flex row on a phone (the header row takes a whole line, the search bar fills the rest, the icon is 44px). The icon's bottom 4px sit in the bar's own 4px bottom padding, so the bar is no taller than before (search bar 34px + its 4px and 2px margins = 40px). */
+  .mast{display:flex;flex-wrap:wrap;align-items:center;column-gap:8px}
+  .mast > .mast-top{flex:0 0 100%}
+  .mast > .gs-trig{flex:1 1 0;width:auto;min-width:0}
+  #mastDlM:not([hidden]){order:10;margin:0 0 -4px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;color:var(--text)}
   #fSheetSum{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   /* "Door" when clients are counted through the door (Kate, 1 Oct 2026); never truncated. */
   #fSheetDoor{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--text);color:var(--bg)}

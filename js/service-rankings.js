@@ -651,4 +651,11 @@ function srExportTable(kind) {
     legend: [['Revenue', 'Ex VAT. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.'], ['Clients', 'Different people. A client at two salons counts once in each salon.']] }] };
 }
 const srExportSal = () => srExportTable('sal');
+// The whole page in one workbook (Kate, 18 Nov 2026: one XLSX and CSV in the masthead, js/page-export.js): Top services, By salon, By family, then Sizes. Each tab is the
+// table's own export (the rows left after its heading filters, every column), so nothing is worked out a second way. The CSV is the first tab, Top services.
+function srExportPage() {
+  const main = srExport(); if (!main) return null;
+  const tab = (m, name) => m && m.sheets && m.sheets[0] ? [Object.assign({}, m.sheets[0], { name })] : [];
+  return { name: main.name, csv: 0, sheets: tab(main, 'Top services').concat(tab(srExportTable('sal'), 'By salon'), tab(srExportTable('fam'), 'By family'), main.sheets.slice(1)) };
+}
 const srExportFam = () => srExportTable('fam');

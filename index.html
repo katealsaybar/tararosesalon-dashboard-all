@@ -24,6 +24,8 @@
 <script src="js/pages.js?v=0190ccf3"></script>
 <script src="js/page-dates.js?v=4b5b90ff"></script>
 <script src="js/page-status.js?v=ef748096"></script>
+<!-- Kate, 18 Nov 2026: the XLSX and CSV buttons for the WHOLE page, drawn in the masthead (js/page-export.js; showView calls TRSExport.sync). -->
+<script src="js/page-export.js?v=e4ed9850"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=39e1bb7f"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
@@ -2289,6 +2291,21 @@ footer{text-align:center;padding:18px 28px;border-top:1px solid var(--border);fo
 /* Staff Dashboards bar: the spacer already pushes the controls right, so the download buttons sit with them (a second auto margin split the gap and left the month floating mid-bar). Kate, 11 Nov 2026. */
 #spfBar .rex-bar{margin-left:0}
 .rex-row{display:flex;justify-content:flex-end;margin:0 0 8px}
+/* Download this page, in the masthead (Kate, 18 Nov 2026; js/page-export.js). The actions and the two buttons stack in one column on the right, so the buttons sit in the free space under
+   the actions and can never overlap them when the actions wrap. A computer shows the two pills; a phone shows one 44px icon beside the search bar (#mastDlM) that opens a card (css/mobile.css). */
+.mast-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:0;flex-shrink:1}
+.mast-dl{display:flex;gap:6px;justify-content:flex-end}
+.mast-dl[hidden],.mast-dlm[hidden]{display:none!important}
+.mast-dlm{display:none}
+@media(min-width:761px){.mast-dl .tglr{min-height:28px;padding:4px 12px;font-size:11px;display:inline-flex;align-items:center;gap:6px}
+  .topbar.stuck .mast-dl .tglr{min-height:28px;padding:4px 12px}}
+.mast-dl .tglr[disabled]{opacity:.5;cursor:default}
+.mast-dl-pop{position:fixed;z-index:9500;display:flex;flex-direction:column;gap:8px;min-width:220px;max-width:calc(100vw - 20px);padding:12px;border:1px solid var(--border);border-radius:16px;
+  background:var(--surface);color:var(--text);box-shadow:0 12px 32px -8px rgba(0,0,0,.35)}
+.mast-dl-k{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mast-dl-pb{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;min-height:44px;padding:6px 16px;font-size:14px;font-weight:600;text-align:left;border-radius:999px}
+.mast-dl-pb span{font-size:13px;font-weight:400;color:var(--muted)}
+.mast-dl-pb[disabled]{opacity:.5}
 @media(max-width:700px){.w13-zoom{flex-direction:column;align-items:stretch}.w13-zoom .sc-seg{justify-content:space-between}.w13-zoom .sc-seg button{flex:1;padding-left:4px;padding-right:4px}.w13-pan{justify-content:space-between}}
 /* Controls beside the chart title: the key and the Daily / Weekly toggle. */
 .w13-chart-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 16px}
@@ -3579,7 +3596,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/team-performance.css?v=c23a9f7a">
 <link rel="stylesheet" href="css/nav-collapse.css?v=7809b314">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="css/mobile.css?v=a4af2688">
+<link rel="stylesheet" href="css/mobile.css?v=a3e5d437">
 <link rel="stylesheet" href="css/search.css?v=ad896c51">
 <link rel="stylesheet" href="css/client-mix.css?v=9925ddc9">
 <link rel="stylesheet" href="css/sheet-table.css?v=5598ca63">   <!-- the table with Google Sheets heading menus (sheet-table.js) -->
@@ -3651,7 +3668,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cl:  [LGX, 'js/report-export.js?v=d7b73ae8', 'js/lost-clients.js?v=221c2b8a', 'js/lost-lists.js?v=49982eb0', 'js/lost-consults.js?v=8dd97a9d', 'js/lost-review-file.js?v=de965c04',
             'js/send-schedule.js?v=3abf6266', 'js/lost-queue.js?v=4d4924ab', 'js/lost-waves.js?v=c142e140', 'js/lost-blast.js?v=2c1c9a59',
             'js/lost-report.js?v=d4ec80de', 'js/wv-blast.js?v=22a9b944', 'js/wv-last.js?v=5f1b7d69', 'js/wv-depth.js?v=e4188c8d', 'js/wv-lastsend.js?v=cf678e57', 'js/wv-remind.js?v=61840cb2', 'js/wv-messages.js?v=356bebe0', 'js/top-clients.js?v=18466b79', 'js/client-mix.js?v=2b34310a',
-            'js/sheet-table.js?v=337142d1', 'js/service-rankings.js?v=abda1b13'],
+            'js/sheet-table.js?v=337142d1', 'js/service-rankings.js?v=771fb291'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
@@ -4015,6 +4032,7 @@ table.tp-cmp td.bad{color:var(--bad)}
                     text-decoration:underline;cursor:pointer;white-space:nowrap">Print</a>
         </div>
       </div>
+      <div class="mast-right">
       <div class="mast-acts">
         <!-- Kate, 1 Oct 2026: back to Team Home (the hub), first in the row and in mint so it's easy to find. -->
         <a class="tglr" id="homeBtn" href="/hub/" title="Team Home"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span class="hb-txt">Team Home</span></a>
@@ -4028,7 +4046,16 @@ table.tp-cmp td.bad{color:var(--bad)}
                 aria-label="Filters"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span id="fSheetSum">All</span></button>
       </div>
+      <!-- Kate, 18 Nov 2026: download this page, in the free space under the actions. Shown only while the page has an export (js/page-export.js). -->
+      <div class="mast-dl" id="mastDl" role="group" aria-label="Download this page" hidden>
+        <button class="tglr mast-dlb" type="button" data-k="xlsx" onclick="TRSExport.run('xlsx',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>XLSX</button>
+        <button class="tglr mast-dlb" type="button" data-k="csv" onclick="TRSExport.run('csv',this)">CSV</button>
+      </div>
+      </div>
     </div>
+    <!-- Kate, 18 Nov 2026: phones only. One icon beside the search bar opens the two files (a card under it); the actions row has no room left (js/page-export.js, css/mobile.css). -->
+    <button class="tglr mast-dlm" id="mastDlM" type="button" hidden aria-haspopup="true" aria-expanded="false" aria-label="Download this page"
+            onclick="TRSExport.pop(this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg></button>
     <div class="mast-rule">
       <span id="mastBranch">UAE Branches</span>
       <span id="mastRange"></span>
@@ -5484,6 +5511,8 @@ function showView(view, el){
   // Kate, 16 Nov 2026: Date created / Date modified under the page title (page-status.js, js/page-dates.js).
   if (typeof trsDatesBanner === 'function') trsDatesBanner(view);
   if (typeof trsStatusMast === 'function') trsStatusMast(view);
+  // Kate, 18 Nov 2026: the masthead's XLSX and CSV for the whole page, only while this page has an export (js/page-export.js).
+  if (window.TRSExport) TRSExport.sync(view);
   // Google Reviews sizes its iframe to its content; ask again now it's visible.
   if (view === 'reviews' && typeof postReviewsTheme === 'function') postReviewsTheme();
   if (view === 'reviews' && typeof postReviewsBranch === 'function') postReviewsBranch();
