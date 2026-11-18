@@ -33,6 +33,11 @@ function ccShell() {
     <p class="cq-sub">Clients who wrote to us in a chat in a way that sounds like a complaint, and who are not on Client Complaints yet. Found by reading the chats in respond.io, 3 Aug to 12 Nov 2026. Levels 3 and up.</p>
     <div id="ccRec" class="cq-gone"></div>
     <div id="ccMain">
+      ${whyWall([
+        ['Why this page', 'These chats sound like a complaint but never reached Phorest, so nobody has logged them. Each one needs a decision.'],
+        ['Why now', 'The chats were read through 12 Nov 2026, so the list is set and every one waiting can be decided today.'],
+        ['If we do nothing', 'A client who only complained in a chat stays unlogged, and we lose her without ever knowing why.']],
+        'Coach Emma works through the chats still marked To decide, red ones first, about 1 minute each, by Friday.')}
       <div class="cq-intro">
         <p><b>What is this?</b>The chats that sound like a complaint. Each one is a person, the words she wrote, and the chat around it.</p>
         <p><b>Why it matters</b>A client who only complained in a chat never reached Phorest, so nobody logged it, and we lose her quietly.</p>

@@ -156,6 +156,11 @@ function lcShell(body) {
       <h2>Client’s Last Visit</h2>
       <p>Clients who used to come in and haven't been back, by branch, highest spend first. For reference and outreach planning. <b>Lost</b> means no visit at the branch picked (at any branch on All) in the window, and nobody with a booking from today on or seen at another branch. The people we are messaging, and how it is going, are on <a href="?view=lostlists" onclick="if(!trsPlain(event))return;event.preventDefault();showView('lostlists', document.querySelector('#sidebar .nav-sub[onclick*=&quot;lostlists&quot;]'))">Lost Clients</a>.</p>
     </section>
+    ${whyWall([
+      ['Why this page', 'These are clients who used to come in and have not been back. They already know us, so they are the easiest bookings to win back.'],
+      ['Why now', 'Anyone with a booking from today on, or seen at another branch, is taken off the list, so what is left are the clients who have really gone quiet.'],
+      ['If we do nothing', 'They book somewhere else and we never find out why they went.']],
+      'The salon coordinator opens her branch\'s regulars gone 90 days or more and marks who the stylists will message first, before the next Lost Client Blasts wave opens.')}
     <div class="sc-bar w13-bar lc-bar">
       <div class="lc-grp"><div class="slv-eyebrow">Visits</div>${seg('seg', Object.entries(LC_SEG).map(([k, s]) => [k, s.short]))}</div>
       <div class="lc-grp"><div class="slv-eyebrow">Days away</div>${seg('days', LC_DAYS.map(d => [d, `${d}+`]).concat([['all', 'All time'], ['custom', 'Custom']]))}</div>

@@ -80,6 +80,11 @@ function cbShell() {
   <div class="cb">
     <h1>Client Book</h1>
     <p class="cb-sub">Every Phorest client with their phone, email, client note and the notes on their visits. Search by name, phone number or email, then tap a client to open the card. Level 6 only. This is a copy taken from Phorest on 21 Oct 2026, so anything typed in Phorest after that is not here.</p>
+    ${whyWall([
+      ['Why this page', 'It is where a client\'s contact details, her client note and the notes written on her visits sit together, so you know who she is before you reach out.'],
+      ['Why now', 'The list is a copy taken on 21 Oct 2026, so it shows how each client stood on that date and nothing newer.'],
+      ['If we do nothing', 'Client notes and visit notes stay scattered, and we meet a client without what we already know about her.']],
+      'Kate opens three client cards from different branches and checks the notes read correctly, before anyone relies on this copy.')}
     <div class="cb-bar">
       <input id="cbQ" class="cb-in" type="search" inputmode="search" autocomplete="off" placeholder="Name, phone number or email" aria-label="Search clients" value="${cbEsc(CB.q)}">
       <select id="cbB" class="cb-sel" aria-label="Branch">${opts}</select>

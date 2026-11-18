@@ -162,6 +162,11 @@ function prdPaint(el) {
       <h2>Products</h2>
       <p>What we spend on stock, week by week, split into retail (to sell) and professional (used on clients). Counted the day the order arrived.</p>
     </section>
+    ${whyWall([
+      ['Why this page', 'What we spend on stock each week, retail to sell against professional used on clients, so spend does not creep up unseen.'],
+      ['Why now', 'Spend is counted the day an order arrives, so a heavy week shows up as soon as the stock is in.'],
+      ['If we do nothing', 'Over-ordering shows only later, when the month looks expensive and the money is already spent.']],
+      'Kate picks the week with the highest spend and asks the salon coordinator what was ordered, before the next order goes in.')}
     ${olderYears}
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">

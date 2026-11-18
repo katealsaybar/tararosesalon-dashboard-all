@@ -204,7 +204,11 @@ async function renderStylistLevels() {
       ${levels.map((l, j) => `<button type="button" role="tab" aria-selected="${j === i}" class="${j === i ? 'on' : ''}" onclick="slvSet('${slvEsc(l.level)}')"><span class="slv-step">${j + 1}</span>${slvEsc(l.level)}</button>`).join('')}
     </div>
     </div>
-    ${whyWall([], 'Ask one person close to the next level which number in the last column she wants to start with.')}
+    ${whyWall([
+      ['Why this page', 'Each level has a minimum that holds it and an aim to grow into, so you can see exactly what moving up looks like.'],
+      ['Why now', 'The aims are the same for every stylist, so any month is a good time to pick the one number you want to grow.'],
+      ['If we do nothing', 'The next level stays a mystery, and good work does not turn into the next step as quickly as it could.']],
+      'Ask one person close to the next level which number in the last column she wants to start with.')}
     <section class="slv-card">
       <div class="rex-row">${typeof rexButtons === 'function' ? rexButtons('slvExport') : ''}</div>
       <div class="slv-head">

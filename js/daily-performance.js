@@ -1497,7 +1497,11 @@ function dpDraw(host, win) {
   const rawAll = dpRawFor(mk, dpSel()), noT = M.notarget ? 'This measure has no target' : 'No target is set for this measure at the branches picked';
   host.innerHTML = `<div class="dpf">
     <h1>Daily Performance</h1>
-    <p class="why-oneline">How each branch did on each day against that day’s target. A red or pale day is where to ask what happened.</p>
+    ${whyWall([
+        ['Why this page', 'How each salon did on each day against that day’s target. A red or pale day is where to ask what happened.'],
+        ['Why now', 'The latest open day for each salon is up top, so a weak day can be looked at while the team still remembers it.'],
+        ['If we do nothing', 'A weak day is explained away at month end, and the same weekday keeps missing without anyone looking at it.']],
+        'Salon coordinator: open the weakest day shown for your salon, ask the team what happened and agree one fix before that weekday comes round again.')}
     <p class="dp-deck">How each branch did, day by day, against its daily target. Unsure of a term? <button type="button" class="dp-linkbtn" data-jump="dpHow">How to read this page</button>.</p>
     ${dpControls(win)}
     <p class="dp-note" style="margin:0 0 4px"><b>${dpEsc(range)}</b> · ${idxs.length} day${idxs.length === 1 ? '' : 's'}${win.note ? ' · ' + dpEsc(win.note) : ''}${dpUnit === 'day' ? '' : ' · ' + dpEsc('the Trend, Bars and Day by day cards draw one point per ' + U[1] + ', each the total of its open days against the total of their targets (a rate or a bill: the average)')}${dpOffPage() ? ' · Bahrain is not on this page yet, so the UAE branches show' : ''}${M.help ? ' · <b>' + dpEsc(M.label) + '</b>: ' + dpEsc(M.help) : ''}</p>

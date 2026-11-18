@@ -77,6 +77,11 @@ function gcPaint() {
   el.innerHTML = `
     <section class="gc-intro"><h2>Glow Club Performance</h2>
       <p>The monthly membership, counted from the till: Silver AED 1,250, Gold AED 1,750 and Platinum AED 2,800 a month, with the perks each member used.</p></section>
+    ${whyWall([
+      ['Why this page', 'Glow Club is a monthly membership. This page counts from the till who bought, who renewed and which perks were used.'],
+      ['Why now', 'The Active, last 60 days figure shows early whether members are still coming, while there is time to act.'],
+      ['If we do nothing', 'A member who stops using her perks stops renewing, and her monthly income quietly goes.']],
+      'Kate reads Active, last 60 days and takes any drop to Coach Emma, before the month closes.')}
     <div class="gc-fresh">
       <span class="gc-chip">From the till, VAT included, no client names</span>
       <span class="gc-chip">Sales from <b>${gcEsc(gcDay(d.first))}</b></span>

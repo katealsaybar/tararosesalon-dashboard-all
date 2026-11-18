@@ -72,7 +72,11 @@ function o2Spec(title, people, sub) {
 function o2Draw() {
   const host = document.getElementById('one2onesContent');
   if (!host) return;
-  const head = `<div class="o2-head"><h2>1-to-1s &amp; Goals</h2><p>Who has had a 1-to-1, and whose goals are set. Open a name to write it up or read what was agreed.</p></div>`;
+  const head = `<div class="o2-head"><h2>1-to-1s &amp; Goals</h2><p>Who has had a 1-to-1, and whose goals are set. Open a name to write it up or read what was agreed.</p></div>` + whyWall([
+    ['Why this page', 'A 1-to-1 and set goals are how each person hears what she does well and where she can grow next. This page shows who has had one, so nobody is missed.'],
+    ['Why now', 'The 1-to-1 count is for the current month and the goals are signed once for the year, so this is where each person stands today.'],
+    ['If we do nothing', 'People wait longer to hear how they are doing, goals stay unset, and the growth conversation slips.']],
+    'Coach Emma books a 1-to-1 for everyone under No 1-to-1 yet, before this month closes.');
   if (!o2Data) { host.innerHTML = head + `<p class="o2-empty">${o2Esc(o2Msg || 'Loading…')}</p>`; return; }
   const all = o2Staff(), month = o2Data.month, year = String(o2Data.year || '').slice(0, 4);
   const n = f => all.filter(f).length;

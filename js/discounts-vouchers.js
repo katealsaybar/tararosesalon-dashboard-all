@@ -155,7 +155,11 @@ function dvPaint() {
   const expRem = dvSum(rs, r => r[5]), expN = dvSum(rs, r => r[6]), liveRem = dvSum(rs, r => r[7]), liveN = dvSum(rs, r => r[9]), soon = dvSum(rs, r => r[8]);
   const used = orig ? 1 - rem / orig : 0;
   const disc = dvData.discounts, act = dvCount(disc, 'act'), arc = dvCount(disc, 'arc');
-  let h = head + dvOfferedSection();
+  let h = head + whyWall([
+    ['Why this page', 'What each salon offers, which discounts exist and how much is left on the vouchers we have issued.'],
+    ['Why now', 'Expired vouchers still carry money and many discounts have no end date, so someone has to decide on them.'],
+    ['If we do nothing', 'Open-ended discounts stay open, expired vouchers sit on the books, and nobody decides.']],
+    'Kate takes the Worth a look list to Coach Emma and settles what to do with the expired vouchers, before the next blast is queued.') + dvOfferedSection();
   if (!issued) {
     const key = typeof activePeriodKey === 'function' ? activePeriodKey() : '';
     const named = key && key !== 'Custom' && key !== 'Month' && key !== 'Year';

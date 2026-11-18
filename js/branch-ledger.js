@@ -2037,12 +2037,19 @@ async function renderLedgerActuals() {
 
   if (typeof lgxRegisterActuals === 'function') lgxRegisterActuals(series, ctx);
 
+  // Why wall (Kate 18 Nov 2026): the standfirst and the note fold into "How to read this page", the page opens on the wall.
+  const laStand = ctx.applies
+    ? `${escapeHtml(series.windows.month.label)} actuals against ${escapeHtml(series.windows.month.label)} targets, with ${escapeHtml(series.windows.prev.label)} beside them as last month, group first and then branch by branch.`
+    : `${escapeHtml(series.windows.month.label)} actuals only, with ${escapeHtml(series.windows.prev.label)} beside them as last month, group first and then branch by branch. No target sheet is loaded for this month.`;
   host.innerHTML =
-    lgHeader('Ledgers · Actuals vs Targets',
-      ctx.applies
-        ? `${escapeHtml(series.windows.month.label)} actuals against ${escapeHtml(series.windows.month.label)} targets, with ${escapeHtml(series.windows.prev.label)} beside them as last month, group first and then branch by branch.`
-        : `${escapeHtml(series.windows.month.label)} actuals only, with ${escapeHtml(series.windows.prev.label)} beside them as last month, group first and then branch by branch. No target sheet is loaded for this month.`,
-      ctx) +
+    lgHeader('Ledgers · Actuals vs Targets', laStand, ctx, {
+      wall: whyWall([
+        ['Why this page', 'The month so far against its target and last month, for the group first and then each salon, line by line.'],
+        ['Why now', 'While the month is still open, a gap can still be closed. The small pace word beside each line says if you are ahead or behind where you should be today.'],
+        ['If we do nothing', 'A salon that is behind on one line hides inside a healthy group total, and nobody sees it until the month has closed.']],
+        'Salon coordinator: find the one line in your salon marked behind pace and choose one action for it today.'),
+      how: [laStand].concat(ctx.applies ? [ctx.note] : [])
+    }) +
     lgMonthRow() +
     lgGrainRow() +
     (typeof lgxPageBar === 'function' ? lgxPageBar() : '') +
@@ -2585,14 +2592,22 @@ async function renderLedgerFinancials() {
       `<div class="foot"><b>Read the Unexplained column.</b> A tick means the report and this page agree once courses and uncredited service are taken off. A number is a real gap: use the by-day table below to find the day.</div>`);
   }
 
+  // Why wall (Kate 18 Nov 2026): the standfirst and the note fold into "How to read this page", the page opens on the wall.
+  const fnStand = `Phorest's own month-end totals next to ours. Check they match before anyone quotes a figure.`;
+  const fnCtx = { applies: true, label: w.month.label, rangeLabel: `${shortD(w.month.from)} – ${shortD(w.month.to)}`,
+    note: `${escapeHtml(w.month.label)}, ${lgMonthBasis(w)}, against ${escapeHtml(w.prev.label)}. `
+      + `The Sales block is monthly because the report is, and Month above picks which month. `
+      + `<b>Split</b> is the drill-down: once a branch's total looks wrong, Weekly or Daily adds a `
+      + `second table showing which ${lgGrain === 'daily' ? 'day' : 'week'} it went wrong on.` };
   host.innerHTML =
-    lgHeader('Financial Totals',
-      `Phorest's own month-end totals next to ours. Check they match before anyone quotes a figure.`,
-      { applies: true, label: w.month.label, rangeLabel: `${shortD(w.month.from)} – ${shortD(w.month.to)}`,
-        note: `${escapeHtml(w.month.label)}, ${lgMonthBasis(w)}, against ${escapeHtml(w.prev.label)}. `
-          + `The Sales block is monthly because the report is, and Month above picks which month. `
-          + `<b>Split</b> is the drill-down: once a branch's total looks wrong, Weekly or Daily adds a `
-          + `second table showing which ${lgGrain === 'daily' ? 'day' : 'week'} it went wrong on.` }) +
+    lgHeader('Financial Totals', fnStand, fnCtx, {
+      wall: whyWall([
+        ['Why this page', 'Phorest’s own month-end totals sit next to this dashboard’s, so you can see if the two agree before a figure is quoted.'],
+        ['Why now', 'Month-end is when totals get quoted and used. The Unexplained column shows if a gap is left once courses and uncredited service are taken off.'],
+        ['If we do nothing', 'A gap nobody has traced ends up in a report as a real number, and the next conversation about money starts from a figure we cannot stand behind.']],
+        'Kate: check Unexplained for each salon once the month has closed, and chase any number that is not a tick before it is quoted.'),
+      how: [fnStand, fnCtx.note]
+    }) +
     lgMonthRow() +
     lgGrainRow() +
     (typeof lgxPageBar === 'function' ? lgxPageBar() : '') +
@@ -2828,12 +2843,19 @@ async function renderLedgerStylist() {
       : `<strong>Everyone here has a target for ${escapeHtml(series.windows.month.label)}.</strong>`)
     + awayNote + noTgtNote + `</div>`;
 
+  // Why wall (Kate 18 Nov 2026): the standfirst and the note fold into "How to read this page", the page opens on the wall.
+  const lsStand = showTargets
+    ? `Every stylist against her own target — services, treatment and retail, grouped branch then department the way her tab runs.`
+    : `Every stylist's services, treatment and retail for ${escapeHtml(series.windows.month.label)}, grouped branch then department the way her tab runs. No target sheet for this month, so the target columns are out.`;
   host.innerHTML =
-    lgHeader('Ledgers · Daily Stylist Target',
-      showTargets
-        ? `Every stylist against her own target — services, treatment and retail, grouped branch then department the way her tab runs.`
-        : `Every stylist's services, treatment and retail for ${escapeHtml(series.windows.month.label)}, grouped branch then department the way her tab runs. No target sheet for this month, so the target columns are out.`,
-      ctx) +
+    lgHeader('Ledgers · Daily Stylist Target', lsStand, ctx, {
+      wall: whyWall([
+        ['Why this page', 'Each stylist’s services, treatment and retail next to her own target, grouped by salon and department.'],
+        ['Why now', 'The month is still being made, so the coaching conversation can still change where each stylist lands.'],
+        ['If we do nothing', 'A stylist who is a little short on treatment or retail goes unnoticed, and a few quiet add-ons per week are lost to clients who would have loved them.']],
+        'Salon coordinator: pick one stylist in your salon, find her smallest gap and agree one add-on to offer on her next clients today.'),
+      how: [lsStand].concat(ctx.applies ? [ctx.note] : [])
+    }) +
     lgMonthRow() +
     lgGrainRow() +
     (typeof lgxPageBar === 'function' ? lgxPageBar('lsAll') : '') +

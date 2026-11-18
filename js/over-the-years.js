@@ -589,7 +589,11 @@ function otyDraw() {
   host.innerHTML = `<div class="oty">
     <div class="oty-eb"><i style="background:var(--accent)"></i>Numbers · Business · Over the years</div>
     <h1>${otyD.years.length} years, <em>season by season.</em></h1>
-    <p class="why-oneline">How the business has grown. Judge this year against the same days last year, not last month.</p>
+    ${whyWall([
+        ['Why this page', 'How the business has grown, year by year and season by season, with this year set against the same days of the years before.'],
+        ['Why now', 'This year is still running, so its seasons can be read against earlier years while there is still time to act on them.'],
+        ['If we do nothing', 'A quiet month gets blamed on the team when it is only the season, and plans get made on the wrong story.']],
+        'Kate: find the one season where this year trails the same days last year, before next month’s targets are set.')}
     <p class="oty-deck">Where the business has grown, which branch carried it, and how this year's seasons sit against the years before.</p>
     ${otyControls()}
     ${otyTiles(rows)}

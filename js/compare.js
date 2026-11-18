@@ -430,7 +430,11 @@ function cmpControlsHtml() {
   return `
     <div class="lg-head">
       <h1>Two windows, side by side</h1>
-      <p class="why-oneline">Two stretches of time side by side, so you can see what changed and where to look first.</p>
+      ${whyWall([
+        ['Why this page', 'Two stretches of time side by side, for one salon or two, so you can see what changed and where to look first.'],
+        ['Why now', 'Whenever a month, a campaign or a change has run its course, this is where you check if it moved anything. B is read against A, so the change column is B minus A.'],
+        ['If we do nothing', 'Changes get judged by feel, so a good month is credited to the wrong thing and a real slip goes unseen.']],
+        'Coach Emma: set A to last month and B to this month, and pick the one change that moved most, before the next blast is queued.')}
       <p class="lg-stand">Pick a branch and dates for each side. Same branch across two periods, two branches over one period, or any mix. B is read against A, so the change column is B minus A.</p>
     </div>
     <div class="cmp-presets">${chips}</div>

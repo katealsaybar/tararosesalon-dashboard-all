@@ -134,10 +134,8 @@ function lqbWhy(cur) {
   const now = st(cur) === 'open' ? `Wave ${cur} is open now, so its clients can be messaged today.`
     : allDone ? 'All four waves have gone out, so nothing is waiting to send.'
     : 'No wave is open right now. The next one goes out when a Level 5 person opens it.';
-  return whyWall([
-    ['Why this page', 'A client who has gone quiet already knows us, so she is the easiest booking we can still win.'],
-    ['Why now', now],
-    ['If we do nothing', 'She books somewhere else and we never hear why.']]);
+  // 18 Nov 2026: the page's Why wall now opens every tab (lost-lists.js, renderLostListsPage), so this keeps only the wave line, not a second wall.
+  return `<p class="slv-muted lqb-now"><b>Right now.</b> ${now}</p>`;
 }
 function lqbPaint(host) {
   const areaRows = lqRows.filter(r => r._ch === 'whatsapp');

@@ -145,6 +145,11 @@ function srShell() {
       <h2>Service Rankings</h2>
       <p>The services clients book most, by revenue or by units. Every size of a service is one row, and each service carries Phorest's own category. Click a row to see its sizes.</p>
     </section>
+    ${whyWall([
+      ['Why this page', 'Which services clients book most, by revenue or by units, with every size of a service counted as one row.'],
+      ['Why now', 'It opens on last month by default, so you see what carried a month that has just closed.'],
+      ['If we do nothing', 'We plan time, stock and promotions on a guess, and the services clients love most get no extra push.']],
+      'Coach Emma reads the top three services by revenue and asks each salon coordinator if the diary has room for them next week.')}
     <div class="sc-bar w13-bar lc-bar tc-bar cm-bar">
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(srRange()).map(k => [k, k])))}</div>
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', SR_PERIODS)}</div>

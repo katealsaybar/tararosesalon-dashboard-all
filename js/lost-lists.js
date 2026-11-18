@@ -101,6 +101,11 @@ function renderLostListsPage() {
   if (!el || !(typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2)) return;
   el.innerHTML = `<section class="slv-intro"><h2>Lost Client Blasts, October 2026</h2>
     <p>Coach Emma's outreach lists: who is lost, who is ready on WhatsApp and who is text only. <b>Lost</b> means she has not been in for 6 months (183 days), at any of our salons. The branch picked is the one she last came to. A client with a booking from today on is held back, not counted as lost. Smoothing not back counts the 6 months from her last smoothing. The full list by last visit and spend is on <a href="?view=lostclients" onclick="if(!trsPlain(event))return;event.preventDefault();showView('lostclients', document.querySelector('#sidebar .nav-sub[onclick*=&quot;lostclients&quot;]'))">Client’s Last Visit</a>.</p></section>
+    ${whyWall([
+      ['Why this page', 'A client who has not visited for 6 months already knows us, so a kind message is the cheapest way to win her back. This page holds who to message, what to say and how it went.'],
+      ['Why now', 'The October messages go out in four waves, one at a time, so each wave is checked before the next one opens.'],
+      ['If we do nothing', 'The clients we could still win back keep drifting, and each one is a booking we do not get.']],
+      'Coach Emma checks that every salon coordinator has marked her branch reviewed, before the next wave is opened.')}
     ${(() => { const rail = typeof lqRailHtml === 'function' ? lqRailHtml() : '', body = '<div id="llHost"></div><div id="lqHost" hidden></div>';
       return rail ? `<div class="lg-shell lg-shell-wide ll-shell">${rail}<div class="lg-doc">${body}</div></div>` : body; })()}`;
   if (!(typeof lqAcct === 'function' && lqAcct())) renderLostLists(document.getElementById('llHost'));   // Level 4 gets the Performance report only, so the lists are never fetched

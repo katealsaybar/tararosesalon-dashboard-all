@@ -140,7 +140,11 @@ function adPaint() {
   adM = { buckets, unit, brs, cats, cash, total, offs, rowsO };
 
   const unitName = { day: 'day', week: 'week', month: 'month' }[unit];
-  let h = head;
+  let h = head + whyWall([
+    ['Why this page', 'It counts how many times each deal on the active deals brochure was bought at the till, so we see which deals sell and which do not.'],
+    ['Why now', 'No deal on the slides has an end date, so this is how we see whether they keep selling.'],
+    ['If we do nothing', 'A deal that sells nothing stays on the brochure, and a good one never gets more push.']],
+    'Coach Emma answers the first question under Waiting on a word, the Blonding and Balayage names, by Friday.');
   h += `<section class="ad-card" id="ad-headline"><div class="ad-hero"><div>
       <div class="ad-cap">Brochure deals sold</div><div class="ad-big">${total} <small>sales, ${adAed(cash)}</small></div>
       <div class="ad-track"><div class="ad-fill" style="width:${Math.round(withSale / AD_TOTAL_DEALS * 100)}%"></div></div>

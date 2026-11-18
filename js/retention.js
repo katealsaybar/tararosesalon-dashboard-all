@@ -252,7 +252,7 @@ async function renderRetention() {
   retData = d;
   if (!d || !d.ok) {
     const days = d && d.days ? d.days : 0;
-    el.innerHTML = retBasisRow() + `<p class="rt-q">Clients who came in during the Period, and how many came back in the 2 months after.</p><div class="rt-empty"><b>Retention looks forward from the Period.</b><br>It needs a Period that ended at least 30 days ago (${days ? retN(days) + ' days of follow-up so far' : 'this one has none yet'}). Pick Month, Last month or Custom with dates from earlier, for example 1 May to 31 Jul, or read the Staff KPI, which needs no Period.</div>`;
+    el.innerHTML = retWhy() + retBasisRow() + `<p class="rt-q">Clients who came in during the Period, and how many came back in the 2 months after.</p><div class="rt-empty"><b>Retention looks forward from the Period.</b><br>It needs a Period that ended at least 30 days ago (${days ? retN(days) + ' days of follow-up so far' : 'this one has none yet'}). Pick Month, Last month or Custom with dates from earlier, for example 1 May to 31 Jul, or read the Staff KPI, which needs no Period.</div>`;
     return;
   }
   retPaint();
@@ -274,7 +274,7 @@ function retPaint() {
   const pct = (v, spec) => retNum(Math.round(v) + '%', spec);
   const per = `${retDay(s.from)} to ${retDay(s.to)}`;
   const ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
-  let h = retBasisRow() + `<p class="rt-q">Clients who came in during the Period (${retEsc(per)}), and how many came back in the 2 months after (${retEsc(ret)}).</p>`;
+  let h = retWhy() + retBasisRow() + `<p class="rt-q">Clients who came in during the Period (${retEsc(per)}), and how many came back in the 2 months after (${retEsc(ret)}).</p>`;
   h += '<div class="rt-save"><span class="rt-saved" id="retSaved"></span><button type="button" class="rt-mini" data-save="xlsx" title="Both lists: by salon and by person">Save as xlsx</button><button type="button" class="rt-mini" data-save="csv" title="The list of people, as filtered">Save as csv</button></div>';
   h += `<div class="rt-hero" data-jn="The answer"><div class="rt-big">${retNum(Math.round(retP(t.back, t.cohort)) + '<small>%</small>', one('clients who came in, then came back', {}, t.back, t.cohort))}</div>
     <p><b>${retNum(retN(t.back), retSpec(`${w}: clients who came back`, {}, t.back, t.cohort, 'back'))} of ${retNum(retN(t.cohort), retAllSpec(`${w}: clients who came in`, {}, t.cohort))}</b> clients who came in ${retEsc(per)} came back by ${retEsc(retDay(s.ret_to))} (${retEsc(w)}).
@@ -383,6 +383,14 @@ function retMore(row) {
 }
 
 // Basis: the Period the header says, or the stylist KPI's own rolling window (Kate, 3 Nov 2026: this page must match the other dashboards that show Retention %).
+// The Why wall (Kate, 18 Nov 2026): opens the page in every state that shows a number (By Period, Staff KPI, and the "needs a Period" note).
+function retWhy() {
+  return whyWall([
+    ['Why this page', 'It shows how many clients who came in came back in the next 2 months, by salon and by stylist. That is the clearest sign we looked after her well.'],
+    ['Why now', 'It looks at the 2 months after the Period at the top, so a Period that closed only weeks ago will still rise.'],
+    ['If we do nothing', 'New clients drift away after one visit and we only learn about it months later.']],
+    'Coach Emma opens the salon with the lowest back figure and agrees with its coordinator who follows up the new clients who did not return, before this month closes.');
+}
 function retBasisRow() {
   const on = k => RET.basis === k;
   return `<div class="rt-fl"><span class="rt-lbl">Basis</span><button class="rt-chip" type="button" data-basis="period" aria-pressed="${on('period')}" title="Clients who came in during the Period at the top, and who came back in the 2 months after.">By Period</button><span class="rt-sep">·</span><button class="rt-chip" type="button" data-basis="kpi" aria-pressed="${on('kpi')}" title="The measure behind Retention % on Staff Dashboards, the 1-to-1s and the Pulse: regulars seen 3 to 6 months ago who came back to the same stylist in the last 3 months. The Period at the top is not used.">Staff KPI (Retention %)</button></div>`;
@@ -396,7 +404,7 @@ function retPaintKpi() {
   const n = sum(pl, 'rn_e'), back = sum(pl, 'rsame_e'), backAny = sum(pl, 'rany_e');
   const per = `${retDay(s.from)} to ${retDay(s.to)}`, ret = `${retDay(s.ret_from)} to ${retDay(s.ret_to)}`;
   const one = (title, extra, b, t) => retSpec(`${w}: ${title}`, extra, b, t);
-  let h = retBasisRow();
+  let h = retWhy() + retBasisRow();
   h += `<p class="rt-q">The measure behind <b>Retention %</b> on Staff Dashboards, the 1-to-1s and the Pulse: regulars a stylist or beautician saw 3 to 6 months ago (${retEsc(per)}) who came back to the same person in the last 3 months (${retEsc(ret)}). It looks back from the latest data, so the Period at the top is not used here. The Branch picks people by their home salon, the way the Pulse does.</p>`;
   h += '<div class="rt-save"><span class="rt-saved" id="retSaved"></span><button type="button" class="rt-mini" data-save="xlsx" title="Both lists: by salon and by person">Save as xlsx</button><button type="button" class="rt-mini" data-save="csv" title="The list of people, as filtered">Save as csv</button></div>';
   h += `<div class="rt-hero" data-jn="The answer"><div class="rt-big">${retNum(Math.round(retP(back, n)) + '<small>%</small>', one('regulars, back to the same stylist or beautician', {}, back, n))}</div>

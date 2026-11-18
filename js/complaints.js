@@ -323,6 +323,11 @@ function cqShell() {
     <div id="cqRec" class="cq-gone"></div>
     <div id="cqMain">
     <p class="cq-sub">Every complaint written into a Phorest client card or visit note, read one by one and sorted by branch, year, kind and how it was resolved. Levels 3 and up. It shows what staff wrote down, not every complaint that happened, and it is a copy from 21 Oct 2026.</p>
+    ${whyWall([
+      ['Why this page', 'Every complaint we know about, by salon, year, kind and how it ended, so we fix patterns and not only single cases.'],
+      ['Why now', 'Complaints logged here are followed until they end, so an overdue reply shows up first.'],
+      ['If we do nothing', 'A client who was unhappy and heard nothing back does not tell us twice. She just books somewhere else.']],
+      'Coach Emma opens every complaint still marked open and makes sure each one has a next step written on it, by Friday.')}
     <div class="cq-intro" id="cqIntro">
       <p><b>What is this?</b>Every complaint we know about, wherever it was found. Click one and it opens like the pipeline.</p>
       <p><b>Why it matters</b>Phorest notes show what staff wrote down, not everything a client told us. Every complaint is looked up in respond.io first (WhatsApp, Instagram and Facebook), so her own words sit beside it.</p>

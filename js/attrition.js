@@ -151,6 +151,11 @@ function atShell() {
   <div class="at">
     <h1>Staff attrition</h1>
     <p class="at-sub">Stylists and beauticians who left, from the Phorest roster and the ledger. The leave date is the last day she had sales, because Phorest archives are tidied long after people go. Assistants, reception and admin are not counted.</p>
+    ${whyWall([
+      ['Why this page', 'Every stylist who leaves takes her regulars and months of training with her. This page shows how many left, how fast, and after how long.'],
+      ['Why now', 'It reads the last day each person had sales, so someone who has gone quiet shows here without waiting for the roster to be tidied.'],
+      ['If we do nothing', 'The same early exits repeat, and we only notice once her clients have already moved on.']],
+      'Coach Emma checks the Stopped selling names with each branch, before this month closes.')}
     <div class="at-bar">
       <div class="at-grp">${chips(AT_DEPTS, AT.dept, 'dept')}</div>
       <select class="at-sel" onchange="atPick('branch',this.value)" aria-label="Branch">${branches.map(([k, l]) => `<option value="${k}"${AT.branch === k ? ' selected' : ''}>${atEsc(l)}</option>`).join('')}</select>

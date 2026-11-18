@@ -1415,6 +1415,11 @@
     var onRes = cur === RESID && tab === 'messages';
     el.innerHTML = '<div class="nvb"><header class="nvb-head"><div class="eyebrow">Tools · 2026</div><h1>November 2026 Blasts</h1>' +
       '<div class="nvb-chipsrow">' + stateChip() + '<span class="chip">Every message ends 30 November</span><span class="chip">UAE salons</span></div>' +
+      whyWall([
+        ['Why this page', 'The November blasts in one place: the messages Coach Emma approves, the list Kate checks before sending, and what the call centre says when a client replies.'],
+        ['Why now', 'Every November message ends on 30 Nov 2026, so a blast that goes late has less time left to be used.'],
+        ['If we do nothing', 'A blast goes out unchecked, or a client replies and the call centre has no words ready, and the offer ends unused.']],
+        'Coach Emma approves every message still waiting on this page, before Kate queues the next blast.') +
       (liveErr ? '<p class="nvb-err">The counts could not be read just now, so the numbers show a question mark. Open the page again in a minute.</p>' : '') +
       (errMsg ? '<p class="nvb-err">' + esc(errMsg) + '</p>' : '') + (onRes ? '' : numsHtml()) + '</header>' + (onRes ? '' : railHtml(true) + tabsHtml()) + body + (big && tab === 'messages' ? bigCalHtml() : '') + (bigflow && tab === 'messages' && cur !== ALLID && cur !== RESID && blast(cur) ? flowBigHtml(blast(cur)) : '') + (termsFor && tab === 'messages' ? termsModalHtml() : '') + (sndM && tab === 'messages' ? sndModalHtml() : '') + '</div>';
     sndBindInputs(); buildRail();

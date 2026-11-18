@@ -174,6 +174,11 @@ function cmShell() {
       <h2>Client Mix</h2>
       <p>How many different clients had colour, hair treatments, nails or beauty, or bought retail, and how many units that came to. Click a card, then see exactly who they were. Click more than one card to see the clients who had all of them.</p>
     </section>
+    ${whyWall([
+      ['Why this page', 'It shows which clients came for colour, hair treatments, nails, beauty or retail, and who they were. That is how we see which services a client has not tried yet.'],
+      ['Why now', 'It follows the Branch and dates picked at the top, so you can read any month the moment it has closed.'],
+      ['If we do nothing', 'A client who only ever has one service never hears about the others, so her spend stays small.']],
+      'The salon coordinator opens the colour card, leaves out Hair treatments, and hands that list to the stylists, before this month closes.')}
     <div class="cm-tabs" role="tablist">
       <button type="button" class="cm-tab${CM.tab === 'mix' ? ' on' : ''}" data-t="mix" onclick="cmTab('mix')">Client Mix</button>
       <button type="button" class="cm-tab${CM.tab === 'roster' ? ' on' : ''}" data-t="roster" onclick="cmTab('roster')">Service roster</button>

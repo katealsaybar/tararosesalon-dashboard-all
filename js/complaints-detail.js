@@ -88,6 +88,11 @@ function cdShell() {
   return cqCss() + `<div class="cq"><div id="cdRec" class="cq-gone"></div><div id="cdMain">
     <h1>Detailed complaints</h1>
     <p class="cq-sub">Every complaint on one table, with every column: what happened, where it was found, where it is now, how it ended, who did the service and whether the client left a Google review. Filter it, sort it, and take it into a spreadsheet. Click a row to open it with her chat and her profile. Levels 3 and up.</p>
+    ${whyWall([
+      ['Why this page', 'Every complaint on one table, so you can ask which stylist, service or salon keeps coming up.'],
+      ['Why now', 'The chat complaints Coach Emma or Kate confirmed now sit here with the rest, so this is the full picture in one place.'],
+      ['If we do nothing', 'Each complaint is read on its own and the pattern behind several of them stays hidden.']],
+      'Kate filters the table by salon and kind, then takes one repeat pattern to Coach Emma, by Friday.')}
     <div class="cq-intro">
       <p><b>What is this?</b>One row per complaint, newest first, from Phorest notes, the ones staff logged and the chat complaints that were confirmed.</p>
       <p><b>Why it matters</b>The archive reads one complaint at a time. This is for the questions that need all of them: which stylist, which service, which branch, how it ended.</p>

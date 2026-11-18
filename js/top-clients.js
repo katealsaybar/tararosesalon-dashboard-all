@@ -157,6 +157,11 @@ function tcShell(body) {
       <h2>Top Clients</h2>
       <p>Who spends the most, by branch, and when we last saw them. For reference and for knowing who to look after first.</p>
     </section>
+    ${whyWall([
+      ['Why this page', 'These are the clients who spend the most, and when we last saw each one. They are the ones to look after first.'],
+      ['Why now', 'The board shows every salon\'s top clients by when we last saw them, so a regular who has gone quiet shows up while she can still be won back.'],
+      ['If we do nothing', 'A big spender drifts away and nobody notices until her revenue is already gone.']],
+      'Each salon coordinator opens the top clients last seen 61 to 120 days ago and asks the stylist who knows her to reach out, before this month closes.')}
     <div class="sc-bar w13-bar lc-bar tc-bar">
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Branch</div>${seg('branch', [['all', 'All']].concat(lcBranchKeys(tcRange()).map(k => [k, k])))}</div>
       <div class="lc-grp lc-grp-branch"><div class="slv-eyebrow">Period</div>${seg('period', TC_PERIODS)}</div>
