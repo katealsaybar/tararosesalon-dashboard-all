@@ -37,7 +37,9 @@
 .sr-rk{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:999px;background:var(--border2);color:var(--muted);font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;flex:0 0 auto}
 .sr-sv{display:inline-flex;flex-direction:column;line-height:1.25}
 .sr-sv em{font-style:normal;font-size:12px;color:var(--muted2)}
-.sr-pager{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--muted)}
+.sr-pager{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--muted);flex-wrap:wrap}
+.sr-pager .cm-pill:disabled{opacity:.4;cursor:default}
+.sr-pgn{min-width:5.5em;text-align:center;color:var(--text);font-variant-numeric:tabular-nums}
 .sr-how{margin-top:34px;text-align:center}
 .sr-pick{display:inline-flex;max-width:100%;overflow-x:auto;margin:8px auto 14px}
 .sr-howcard{max-width:640px;margin:0 auto;padding:14px 18px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}

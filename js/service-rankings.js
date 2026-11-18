@@ -152,7 +152,8 @@ function srPickFam(f) { SR.fam = f || 'all'; SR.cat = null; srT.clear(); srT.sho
 function srPickCat(c) { SR.cat = c || null; srT.clear(); srT.shown = SR.n; srPaintTop(); srSync(); }
 function srSync() { if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'services') trSyncUrl(null); }
 function srRankBy(k) { SR.rank = k === 'units' ? 'units' : 'rev'; srSave(); srT.clear(); srPaint(); srSync(); }
-function srRowsPick(n) { SR.n = n; srSave(); srT.shown = n; srT.draw(); srOffsets(); srSync(); }
+function srRowsPick(n) { SR.n = n; srSave(); srT.shown = n; srT.page = 0; srT.draw(); srOffsets(); srSync(); }
+function srPage(d) { srT.page += d; srT.draw(); srOffsets(); const s = document.getElementById('srBar'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'start' }); }
 
 function srShell() {
   return `
@@ -361,7 +362,8 @@ function srPaint() {
           <button type="button" class="cm-pill" id="srCopy" onclick="srCopy()">Copy list for Sheets</button>${typeof rexButtons === 'function' ? rexButtons('srExport') : ''}
         </div>
         <div class="sr-card"><table id="srTbl"></table></div>
-        <div class="sr-pager"><span id="srPgTxt"></span><span class="sr-sp"></span><span class="slv-eyebrow">Rows</span><select id="srPgSel" aria-label="Rows to show" onchange="srRowsPick(+this.value)"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select></div>
+        <div class="sr-pager"><span id="srPgTxt"></span><span class="sr-sp"></span><span class="slv-eyebrow">Rows</span><select id="srPgSel" aria-label="Rows to show" onchange="srRowsPick(+this.value)"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
+          <button type="button" class="cm-pill" id="srPrev" onclick="srPage(-1)">‹ Previous</button><span class="sr-pgn" id="srPgN"></span><button type="button" class="cm-pill" id="srNext" onclick="srPage(1)">Next ›</button></div>
         <p class="sr-hint" id="srHint"></p>
       </section>
       <section class="sr-sec" data-jn="By salon" id="srSalSec" hidden>
@@ -447,8 +449,10 @@ function srBuildTables() {
       return { svc: 'Total of ' + rows.length + ' services', rev: srNum(lcNum(a), sp), u: srNum(lcNum(u), srGroupSpec({ title: (SR.fam === 'all' ? 'All services' : cmFam(SR.fam).name) + ', ' + srScope(), fam: SR.fam, first: 'clients' })), chg: x === undefined ? '' : srChgCell(x, sp), avg: srNum(lcNum(u ? a / u : 0), sp) }; },
     after: (T, rows, all) => {
       const c = document.getElementById('srClear'); if (c) c.hidden = !T.active();
-      const n = Math.min(T.shown, rows.length), pg = document.getElementById('srPgTxt');
-      if (pg) pg.textContent = 'Showing ' + n + ' of ' + rows.length + ' services' + (srData && (srData.rows || []).length >= SR_LIMIT ? ' (the biggest ' + lcNum(SR_LIMIT) + ' by revenue)' : '');
+      const pages = T.pages(rows.length), from = rows.length ? T.page * T.shown + 1 : 0, to = Math.min(rows.length, (T.page + 1) * T.shown), pg = document.getElementById('srPgTxt');
+      if (pg) pg.textContent = from + ' to ' + to + ' of ' + rows.length + ' services' + (srData && (srData.rows || []).length >= SR_LIMIT ? ' (the biggest ' + lcNum(SR_LIMIT) + ' by revenue)' : '');
+      const pv = document.getElementById('srPrev'), nx = document.getElementById('srNext'), pn = document.getElementById('srPgN');
+      if (pv) pv.disabled = T.page <= 0; if (nx) nx.disabled = T.page >= pages - 1; if (pn) pn.textContent = 'Page ' + (T.page + 1) + ' of ' + pages;
     } });
   srTS = TRSheet.table({ id: 'sal', el: '#srSalTbl', rows: srSalRows,
     cols: [

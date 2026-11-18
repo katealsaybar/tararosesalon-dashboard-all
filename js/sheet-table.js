@@ -9,7 +9,8 @@
 //            raw   the value to sort and compare, disp the text the "Filter by values" list shows, cell the html drawn (a figure can be TRSD.num html)
 //            x     tucked away until the "All columns" button is on; sub is a second line under the heading (a function is called on every draw)
 //     limit  rows shown at first (T.shown), total(rowsAfterFilters) => { colKey: html } for the last row, after(T, rows, all) after each draw
-//   T.draw()  T.rows()  T.active()  T.toggleMore()  T.f (filters)  T.sort  T.shown  T.more
+//   T.draw()  T.rows()  T.active()  T.clear()  T.toggleMore()  T.f (filters)  T.sort  T.shown (rows on a page)  T.page (0 = first)  T.pages(n)  T.more
+//   after() is where the page draws its pager: "1 to 10 of 27", the Rows choice, Previous, "Page 1 of 3", Next. A filter or a sort goes back to page 1.
 //
 // Every column has the same menu: Sort A to Z and Z to A (smallest and largest on numbers), Filter by condition (type, value, between),
 // Filter by values (search, Select all, Clear, a tick list that shows only what the other columns leave, Reset, Cancel, OK), a green funnel on the heading
@@ -41,7 +42,7 @@
   }
 
   function table(cfg) {
-    const T = { cfg, id: cfg.id, f: {}, sort: null, shown: cfg.limit || 9999, more: false };
+    const T = { cfg, id: cfg.id, f: {}, sort: null, shown: cfg.limit || 9999, page: 0, more: false };   // shown = rows on a page, page = which page (0 is the first)
     REG[cfg.id] = T;
     T.vis = () => cfg.cols.filter(c => (!c.x || T.more) && !(c.hide && c.hide()));
     T.rows = () => {
@@ -54,7 +55,8 @@
       return rows;
     };
     T.active = () => !!T.sort || Object.keys(T.f).length > 0;
-    T.clear = () => { T.f = {}; T.sort = null; };
+    T.clear = () => { T.f = {}; T.sort = null; T.page = 0; };
+    T.pages = n => Math.max(1, Math.ceil(n / T.shown));
     T.toggleMore = () => {
       T.more = !T.more;
       if (!T.more) cfg.cols.forEach(c => { if (c.x) { delete T.f[c.k]; if (T.sort && T.sort.k === c.k) T.sort = null; } });
@@ -62,7 +64,10 @@
     };
     T.draw = () => {
       const el = $(cfg.el); if (!el) return;
-      const rows = T.rows(), all = cfg.rows(), shown = rows.slice(0, T.shown), cols = T.vis();
+      const rows = T.rows(), all = cfg.rows(), cols = T.vis();
+      if (T.page > T.pages(rows.length) - 1) T.page = T.pages(rows.length) - 1;
+      if (T.page < 0) T.page = 0;
+      const shown = rows.slice(T.page * T.shown, (T.page + 1) * T.shown);
       const head = cols.map((c, i) => {
         const on = (T.sort && T.sort.k === c.k) || T.f[c.k];
         const sub = typeof c.sub === 'function' ? c.sub() : c.sub;
@@ -119,16 +124,16 @@
     pop.addEventListener('change', e => { const cb = e.target.closest('input[data-v]'); if (cb) { cb.checked ? sel.add(cb.dataset.v) : sel.delete(cb.dataset.v); } });
     pop.addEventListener('click', e => {
       const t = e.target, ps = t.closest('[data-ps]'), pa = t.closest('[data-pa]');
-      if (ps) { T.sort = { k: key, dir: +ps.dataset.ps }; closePop(); T.draw(); return; }
+      if (ps) { T.sort = { k: key, dir: +ps.dataset.ps }; T.page = 0; closePop(); T.draw(); return; }
       if (pa) { const q = qE.value.trim().toLowerCase(); list.forEach(x => { if (!q || x.d.toLowerCase().indexOf(q) >= 0) { pa.dataset.pa === '1' ? sel.add(x.d) : sel.delete(x.d); } }); drawList(); return; }
-      if (t.closest('[data-pr]')) { delete T.f[key]; if (T.sort && T.sort.k === key) T.sort = null; closePop(); T.draw(); return; }
+      if (t.closest('[data-pr]')) { delete T.f[key]; if (T.sort && T.sort.k === key) T.sort = null; T.page = 0; closePop(); T.draw(); return; }
       if (t.closest('[data-pc]')) { closePop(); return; }
       if (t.closest('[data-pk]')) {
         const op = opE.value, a = aE.value.trim(), b = bE.value.trim(); let cond = null;
         if (op) { if (c.t === 'num') { const na = parseFloat(a), nb = parseFloat(b); if (isFinite(na) && (op !== 'bt' || isFinite(nb))) cond = { op, a: na, b: nb }; } else if (a) cond = { op, a }; }
         const vals = sel.size === list.length ? null : new Set(sel);
         if (!cond && !vals) delete T.f[key]; else T.f[key] = Object.assign({}, cond || {}, { vals });
-        closePop(); T.draw();
+        T.page = 0; closePop(); T.draw();
       }
     });
     qE.focus();
