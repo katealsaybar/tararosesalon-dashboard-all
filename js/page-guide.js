@@ -110,6 +110,19 @@
     return list[n] && vis(list[n]) ? list[n] : null;
   }
   var OWN = {
+    // Org Chart (Kate, 18 Nov 2026: "i-apply mo na rin sa Org Chart"): one box per team, a box per person with photo, name and role, lines for who reports to whom, and zoom buttons.
+    orgchart: [
+      { id: 'oc-teams', need: 1, find: function (v) { return first(v, '.oc-section'); },
+        title: 'One block per team',
+        text: function (el) {
+          var root = document.getElementById('view-orgchart'), n = root ? names(root, '.section-label', 5) : [];
+          return 'The chart is split by team' + (n.length ? ' (' + orList(n.slice(0, 4)) + (n.length > 4 ? ' and more' : '') + ')' : '') + '. Scroll down to see each one, with the head of the team at the top and the people under them below.';
+        } },
+      { id: 'oc-node', find: function (v) { return first(v, '.oc-node'); },
+        title: 'Who is who', text: 'Each box is one person, with a photo, a name and a role. The lines join each person to who they report to.' },
+      { id: 'oc-zoom', find: function (v) { return first(v, '.oc-zoom-controls'); },
+        title: 'Zoom', text: 'Tap − to zoom out and see a whole team at once, or + to zoom in and read the names.' }
+    ],
     // Quarterly Report (Kate, 18 Nov 2026: "i-apply mo na rin sa Quarterly Report"): its own Quarter and Branch chips (the header filter is not used), the seven numbers
     // with target, last year and the share of target, the same seven branch by branch, the Reflect and Think questions, then Save as PDF and the downloads.
     quarterreport: [
