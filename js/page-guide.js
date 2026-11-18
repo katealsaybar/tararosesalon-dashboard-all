@@ -3,7 +3,7 @@
 //
 // ONE shared component, no per-page tours. When a page opens, showView() calls TRSGuide.maybe(view). It looks for the real parts of that page (the header
 // filter, the Why wall, the "On this page" nav, a clickable figure, a table heading menu, the XLSX and CSV buttons), keeps the ones that are really there
-// (three to five, never a blank), and shows them one at a time over a dimmed page. A page with fewer than two of them shows no guide.
+// (up to six, never a blank), and shows them one at a time over a dimmed page. A page needs at least one real part of its own (besides the shell's Sections list and search) or it shows no guide.
 //   Next / Back                  move through the steps
 //   Got it, do not show again    the ONLY thing that hides it for good: per person and per page, stored in Supabase (page_guide_seen via page_guide_get,
 //                                page_guide_dismiss, page_guide_reset; migrations/page_guide.sql), with localStorage as the fast copy so it does not flash
@@ -15,21 +15,34 @@
   if (window.TRSGuide) return;
 
   var LS = 'trs-guide-done:';
+  // Reading order. NAV steps first (where am I, how do I get to another report, how do I find anything), then the parts of THIS page. Kate, 18 Nov 2026: the
+  // navigation instructions were not clear on some reports, because only the parts the page happened to have were explained and its own tabs, view buttons and
+  // table menus were never found. Each step has a one-line plain instruction that says what to tap and what happens.
   var STEPS = [
+    { id: 'sections', nav: 1, find: function (v) { var s = document.getElementById('sidebar'); if (s && s.getBoundingClientRect().left >= 0 && vis(s)) return s; var b = document.getElementById('navBtn'); return vis(b) ? b : null; },
+      title: 'Your reports live here',
+      text: function (el) { return el.id === 'sidebar' ? 'This list has every report. Tap a name to open it, or a group heading to fold or open the group.' : 'Tap Sections to open the list of every report. Tap a name in it to open that report.'; } },
+    { id: 'search', nav: 1, find: function (v) { var b = document.getElementById('gsTrig'); return vis(b) ? b : null; },
+      title: 'Find anything fast', text: 'Type a report, a name or a question and jump straight to it. Press the / key to start typing from anywhere.' },
     { id: 'filters', find: function (v) { var w = document.getElementById('filtersWrap'); return vis(w) && !w.classList.contains('closed') ? w : null; },
-      title: 'Pick a salon and a period', text: 'Choose them here and every number on this page changes with it.' },
+      title: 'Pick a salon and a period', text: 'Choose them here and every number on this page changes with them. Hide filters tucks this bar away when you want more room.' },
     { id: 'why', find: function (v) { return first(v, '.why-wall, .ms-why'); },
-      title: 'Start here', text: 'Three short lines: why this page matters, why now, and what happens if we do nothing. Then this week’s one action.' },
+      title: 'Start here', text: 'Three short lines: why this page matters, why now, and what happens if we do nothing. Then the one action for this week.' },
     { id: 'nav', find: function (v) { return firstGlobal('.lg-side .side-nav, .jn-rail .side-nav, .jn-rail .jn-nav, .jn-rail'); },
-      title: 'Jump to any section', text: 'Tap a name to go straight to it. The one you are reading lights up.' },
-    { id: 'figure', find: function (v) { return first(v, '.dn[data-dn], [data-drill]'); },
-      title: 'Numbers open up', text: 'An underlined number opens the rows behind it, so you can see exactly who or what makes it.' },
-    { id: 'menu', find: function (v) { return first(v, 'th button[aria-haspopup="true"], th .dr-fb, th [data-fc]'); },
-      title: 'Every heading has a menu', text: 'Sort it, or filter it by value or by condition, the same way you would in Google Sheets.' },
-    { id: 'export', find: function (v) { return first(v, '.rex-bar'); },
+      title: 'Jump to any section',
+      text: function (el) { return el.getBoundingClientRect().width < 260 ? 'The list on the side has every section of this page. Tap one to jump there. The one you are reading lights up.' : 'The chips under the title are every section of this page. Tap one to jump there. The one you are reading lights up.'; } },
+    { id: 'switch', find: function (v) { return findSwitch(v); },
+      title: 'Switch the view', text: 'This page has more than one view. Tap a button to switch. Your salon and period stay as they are.' },
+    { id: 'figure', find: function (v) { return first(v, '.dn[data-dn], [data-drill], .fig'); },
+      title: 'Numbers open up', text: 'Tap an underlined number to open the rows behind it, so you can see exactly who or what makes it. Esc or Back closes it.' },
+    { id: 'menu', find: function (v) { return first(v, 'th button[aria-haspopup="true"], th .dr-fb, th [data-fc], th .lc-thb, th .lc-fn, th .lc-sort, th .w13-fb, th [class*="-fb"]'); },
+      title: 'Every heading has a menu', text: 'Tap the little arrow on a heading to sort the column, or to filter it by value or by condition, the same way you would in Google Sheets.' },
+    { id: 'export', find: function (v) { return first(v, '.rex-bar') || buttonByText(v, /^(save as )?(xlsx|csv)$/i); },
       title: 'Need it in a sheet?', text: 'Download this report as XLSX or CSV from here.' }
   ];
-  var MAX = 5, MIN = 2;
+  // when there are more than MAX steps, the ones lowest in this list are dropped first (the reading order above is kept)
+  var DROP = ['export', 'search', 'sections', 'menu', 'figure', 'switch', 'why', 'nav', 'filters'];
+  var MAX = 6, MIN = 3;
 
   function vis(el) { return !!(el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'); }
   function first(v, sel) {
@@ -40,6 +53,22 @@
   function firstGlobal(sel) {
     var list = document.querySelectorAll(sel);
     for (var i = 0; i < list.length; i++) if (vis(list[i])) return list[i];
+    return null;
+  }
+  function buttonByText(v, re) {
+    var root = document.getElementById('view-' + v) || document, list = root.querySelectorAll('button, a');
+    for (var i = 0; i < list.length; i++) if (vis(list[i]) && re.test((list[i].textContent || '').trim()) && !list[i].closest('.dr-box, dialog, [hidden], .pg-box')) return list[i];
+    return null;
+  }
+  // The page's own tabs or view buttons (not the shell's Branch and Period chips): a tab list, a segmented control, or a group of two or more
+  // buttons that say which one is on (aria-pressed).
+  function findSwitch(v) {
+    var root = document.getElementById('view-' + v); if (!root) return null;
+    var ok = function (el) { return vis(el) && el.querySelectorAll('button, [role="tab"], a').length >= 2 && !el.closest('#filtersWrap, #topbar, .dr-box, dialog, [hidden], .pg-box, th, table'); };
+    var list = root.querySelectorAll('[role="tablist"], .seg, .tp-seg, [class*="-seg"], .tabs, [class*="tabbar"], [class*="tab-bar"], [class*="-tabs"]');
+    for (var i = 0; i < list.length; i++) if (ok(list[i])) return list[i];
+    var pr = root.querySelectorAll('button[aria-pressed]');
+    for (var k = 0; k < pr.length; k++) { var g = pr[k].parentElement; if (g && ok(g) && g.querySelectorAll('button[aria-pressed]').length >= 2) return g; }
     return null;
   }
 
@@ -69,13 +98,16 @@
   function current() { try { return typeof CURRENT_VIEW !== 'undefined' ? CURRENT_VIEW : null; } catch (e) { return null; } }
 
   function stepsFor(v) {
-    var out = [];
-    for (var i = 0; i < STEPS.length && out.length < MAX; i++) {
-      var el = STEPS[i].find(v);
-      if (el) out.push({ s: STEPS[i], el: el });
+    var all = [];
+    for (var i = 0; i < STEPS.length; i++) { var el = STEPS[i].find(v); if (el) all.push({ s: STEPS[i], el: el }); }
+    var drop = 0;
+    while (all.length > MAX && drop < DROP.length) {
+      var id = DROP[drop++];
+      all = all.filter(function (x) { return x.s.id !== id || all.length <= MAX; });
     }
-    return out;
+    return all;
   }
+  function pageParts(steps) { return steps.filter(function (x) { return !x.s.nav; }).length; }
 
   // ---- the card ----
   function close() {
@@ -119,7 +151,7 @@
       var st = self.steps[self.i], n = self.steps.length;
       root.querySelector('.pg-k').textContent = 'How this page works · ' + (self.i + 1) + ' of ' + n;
       root.querySelector('.pg-t').textContent = st.s.title;
-      root.querySelector('.pg-b').textContent = st.s.text;
+      root.querySelector('.pg-b').textContent = typeof st.s.text === 'function' ? st.s.text(st.el) : st.s.text;
       root.querySelector('[data-back]').hidden = self.i === 0;
       root.querySelector('[data-next]').textContent = self.i === n - 1 ? 'Done for now' : 'Next';
       // bring the part into view above the card, then place the spotlight; a part inside the fixed top bar needs no scroll
@@ -168,7 +200,7 @@
         if (current() !== v) return;                        // the person has already moved on
         if (document.querySelector('.dr-box')) { if (tries++ < 20) setTimeout(wait, 400); return; }
         var steps = stepsFor(v);
-        if (steps.length >= MIN) { if (!run || run.v !== v) setTimeout(function () { if (current() === v && !document.querySelector('.dr-box')) open(v, stepsFor(v).length >= MIN ? stepsFor(v) : steps); }, 650); return; }
+        if (steps.length >= MIN && pageParts(steps) >= 1) { if (!run || run.v !== v) setTimeout(function () { if (current() === v && !document.querySelector('.dr-box')) open(v, stepsFor(v).length >= MIN && pageParts(stepsFor(v)) >= 1 ? stepsFor(v) : steps); }, 650); return; }
         if (tries++ < 18) setTimeout(wait, 400);
       })();
     });
