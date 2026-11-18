@@ -116,10 +116,10 @@
         title: 'One block per team',
         text: function (el) {
           var root = document.getElementById('view-orgchart'), n = root ? names(root, '.section-label', 5) : [];
-          return 'The chart is split by team' + (n.length ? ' (' + orList(n.slice(0, 4)) + (n.length > 4 ? ' and more' : '') + ')' : '') + '. Scroll down to see each one, with the head of the team at the top and the people under them below.';
+          return 'The chart is split by team' + (n.length ? ' (' + orList(n.slice(0, 4)) + (n.length > 4 ? ' and more' : '') + ')' : '') + '. Scroll down to see each one.';
         } },
       { id: 'oc-node', find: function (v) { return first(v, '.oc-node'); },
-        title: 'Who is who', text: 'Each box is one person, with a photo, a name and a role. The lines join each person to who they report to.' },
+        title: 'Who is who', text: 'Each box is one person, with a photo, a name and a role.' },
       { id: 'oc-zoom', find: function (v) { return first(v, '.oc-zoom-controls'); },
         title: 'Zoom', text: 'Tap − to zoom out and see a whole team at once, or + to zoom in and read the names.' }
     ],
