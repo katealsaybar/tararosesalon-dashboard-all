@@ -230,6 +230,9 @@
   // its `min` level; every other row when kb_access() opened its own key.
   KB.opens = function (s) {
     if (s.only && s.only.indexOf(KB.level) < 0) return false;
+    // Kate, 18 Nov 2026: the Service Calendar showed twice on Tools (the HR row from the dashboard menu and this card under More). The card is only the door for people who are
+    // not on the dashboard list (Reception and Call Centre), so anyone who gets the HR row does not get this one.
+    if (s.key === 'servicecal' && KB.allowed.indexOf('dashboards') >= 0 && typeof trsPageOpen === 'function' && trsPageOpen('servicecal', KB.level, KB.extra)) return false;
     // Kate, 4 Nov 2026: a card for a tool that Hide Pages & Under Construction can switch off (statusId, pages.js trsToolOpen).
     if (s.statusId && typeof trsToolOpen === 'function' && !trsToolOpen(s.statusId, KB.level)) return false;
     // Kate, 22 Oct 2026: Level 1 opens Wellness Voucher Performance; it is its own page (KB.ready points the row at it), not a dashboard view.
