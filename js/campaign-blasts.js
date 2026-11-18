@@ -570,4 +570,24 @@
     syncUrl();
     Promise.all([loadLive(), loadPC()]).then(function () { if (main() && main().offsetParent !== null) render(true); });   // the counts and the page comments come a moment after the page
   };
+  // XLSX and CSV from the masthead (Kate, 18 Nov 2026, js/page-export.js): every blast in send order with its audience, landing page, Coach Emma's review and the two messages,
+  // and the comments left on them. What the plan holds (D), nothing worked out a second way. The CSV is the Blasts tab.
+  window.cblExport = function () {
+    if (!D || !D.items || !D.items.length) return null;
+    var txt = function (x) { return typeof x === 'string' ? x : (x && typeof x === 'object' && typeof x.t === 'string') ? x.t : ''; };
+    var items = D.items.slice().sort(byDate), cmts = [];
+    var rows = items.map(function (b) {
+      var dt = b.data || {};
+      (b.comments || []).forEach(function (c) { cmts.push({ cells: [dt.title || b.id, c.by || '', c.at ? fat(c.at) : '', c.body || ''] }); });
+      return { cells: [dt.title || b.id, b.send_date, ft(b.send_time), dt.n == null ? null : Number(dt.n), dt.who || '', dt.gets || '', dt.page_name || '', dt.page_url || '', lab(b.review),
+        b.review_by || '', b.review_at ? fat(b.review_at) : '', b.locked ? 'Yes' : '', (b.comments || []).length, txt(dt.warm), txt(dt.std)] };
+    });
+    var sheets = [{ name: 'Blasts', title: 'Campaign Blasts', subtitle: items.length + ' blast' + (items.length === 1 ? '' : 's') + ' in send order. Nothing here sends a message: it is the plan and the review.',
+      blocks: [{ cols: [{ label: 'Blast', fmt: 'text' }, { label: 'Send date', fmt: 'text' }, { label: 'Send time', fmt: 'text' }, { label: 'Clients', fmt: 'num' }, { label: 'Who', fmt: 'text' }, { label: 'She gets', fmt: 'text' },
+        { label: 'Landing page', fmt: 'text' }, { label: 'Page address', fmt: 'text' }, { label: 'Review', fmt: 'text' }, { label: 'Reviewed by', fmt: 'text' }, { label: 'Reviewed', fmt: 'text' }, { label: 'Time locked', fmt: 'text' },
+        { label: 'Comments', fmt: 'num' }, { label: 'Warm message', fmt: 'text' }, { label: 'Standard message', fmt: 'text' }], rows: rows }] }];
+    if (cmts.length) sheets.push({ name: 'Comments', title: 'Comments on the blasts', subtitle: 'Newest last, as left on the page.',
+      blocks: [{ cols: [{ label: 'Blast', fmt: 'text' }, { label: 'By', fmt: 'text' }, { label: 'When', fmt: 'text' }, { label: 'Comment', fmt: 'text' }], rows: cmts }] });
+    return { name: 'campaign-blasts', csv: 0, sheets: sheets };
+  };
 })();

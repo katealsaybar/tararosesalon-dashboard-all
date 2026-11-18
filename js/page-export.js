@@ -165,12 +165,19 @@
    ['team', 'tpExport'], ['teamquad', 'tpQExport'],
    ['googleads', 'gadsExport'], ['metaads', 'madsExport'], ['website', 'webExport'], ['social', 'socExportPage', 'Daily numbers'], ['marketingspend', 'mspendExport'], ['toolspend', 'tsExport'],
    ['supplierspend', 'spendExport'], ['supplierpay', 'supplierSpendExport'], ['stockcost', 'stockCostExport'],
-   ['leavecal', 'lcExpAll', 'Leave']
+   ['leavecal', 'lcExpAll', 'Leave'], ['dailyreports', 'drExport', 'This day'], ['campaignblasts', 'cblExport', 'Blasts'], ['novblasts', 'nvbExport', 'Plan']
   ].forEach(function (p) { register(p[0], p[1], { csv: p[2] || '', lazy: p[3] || '' }); });
   // One workbook from several of the page's own table exports.
   registerMulti('orders', ['ordExport', 'ordExportSup', 'ordExportLook'], { csv: 'Orders' });
   // The rest: no export of their own, so the tables as the page shows them (domModel above). Not here on purpose: Service Calendar and the calendar grids (no table to export),
   // Org Chart, Content Calendar, Find a Stylist, Landing Page Review and the complaint log form (no tables), and the Ledgers pages (their own toolbar writes the formulas).
+  // Wellness Voucher Blasts draws five pages in one view (Overall, Blast 1 to 4). Blast 3's page holds the send list, which has its own save of every row the filters leave (wvSaveFile);
+  // the others draw figures, so they get the tables on screen if there are any.
+  window.__domExport_wvblast = function () { return domModel('wvblast', 'Wellness Voucher Blasts'); };
+  register('wvblast', null, { custom: function (kind, btn) {
+    if (document.getElementById('wvList') && typeof wvSaveFile === 'function') return wvSaveFile(kind);
+    return typeof rexRun === 'function' ? rexRun('__domExport_wvblast', kind, btn) : undefined;
+  } });
   // Pages whose own button runs a save routine of its own: Client's Last Visit saves the whole filtered list with each client's visits added (lcSaveFile), Retention saves both lists (retDownload).
   register('lostclients', null, { custom: function (kind) { return typeof lcSaveFile === 'function' ? lcSaveFile(kind) : undefined; } });
   register('retention', null, { custom: function (kind) {
@@ -187,8 +194,7 @@
     return { name: 'client-mix', csv: 0, sheets: [fams].concat(d ? d.sheets : []) };
   };
   register('clientmix', '__cmExport', { csv: 'Families' });
-  // Checked on the live site 18 Nov 2026: each of these draws real tables, so domModel returns them. Daily reports, the Wellness Voucher pages, Campaign Blasts and Database Blasts draw cards, not tables,
-  // so they have no button (a button that did nothing would be worse).
+  // Checked on the live site 18 Nov 2026: each of these draws real tables, so domModel returns them. (Wellness Voucher Performance is a page inside a frame: its own buttons only.)
   [['lostlists', 'Lost Client Blasts'], ['stripedeposits', 'Stripe vs Phorest'], ['depositcheck', 'Deposit Checking'], ['glowclub', 'Glow Club Performance'],
    ['dealsperf', 'Active Deals Performance'], ['discountsvouchers', 'Discounts and Vouchers'], ['products', 'Products'], ['attrition', 'Attrition'], ['one2ones', '1-to-1s and Goals']
   ].forEach(function (p) { registerDom(p[0], p[1]); });

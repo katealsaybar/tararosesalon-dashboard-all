@@ -1539,4 +1539,27 @@
     loadResults().then(function () { if (main() && main().offsetParent !== null && !sndM) render(true); }); resPoll();   // the Results pill and view (nov_results, counts only)
     if (isL5()) { loadSend().then(function () { if (main() && main().offsetParent !== null && !sndM) render(true); }); sndStartPoll(); progPoll(); }   // the send control (Level 5) reads its own state
   };
+  // XLSX and CSV from the masthead (Kate, 18 Nov 2026, js/page-export.js): the plan (each blast, its date, audience and review) and, when the results have loaded, the results by
+  // blast, by branch and by day. What the page holds (D, LIVE, RES), nothing worked out a second way. The send log keeps its own XLSX and CSV (they follow its filters). The CSV is the first tab.
+  window.nvbExport = function () {
+    var n = function (x) { return x == null || x === '' ? null : Number(x); };
+    var bl = D && D.items ? blasts() : [];
+    if (!bl.length && !(RES && RES.blasts)) return null;
+    var sheets = [];
+    if (bl.length) sheets.push({ name: 'Plan', title: 'Database Blasts, November 2026: the plan', subtitle: bl.length + ' blast' + (bl.length === 1 ? '' : 's') + '. Audience is counted live from the till; Review is Coach Emma’s.',
+      blocks: [{ cols: [{ label: 'Blast', fmt: 'text' }, { label: 'Send date', fmt: 'text' }, { label: 'Send time', fmt: 'text' }, { label: 'Clients', fmt: 'num' }, { label: 'Template', fmt: 'text' }, { label: 'Review', fmt: 'text' }, { label: 'Reviewed by', fmt: 'text' }],
+        rows: bl.map(function (b) { var d = b.data || {}, a = lv(b.id); return { cells: [d.title || b.id, d.date || b.send_date || '', d.time || b.send_time || '', a ? n(a.n) : null, typeof d.tpl === 'string' ? (TPL_ST[d.tpl] || d.tpl) : '', lab(b.review), b.review_by || ''] }; }) }] });
+    if (RES && RES.blasts && RES.blasts.length) {
+      var all = RES.blasts.filter(function (x) { return x.id === 'ALL'; }), rest = RES.blasts.filter(function (x) { return x.id !== 'ALL'; });
+      sheets.push({ name: 'Results by blast', title: 'Results by blast', subtitle: 'One message per client, and a client counts once, by her latest message. Read live from the database' + (RES.at ? ' as of ' + fat(RES.at) : '') + '.',
+        blocks: [{ cols: [{ label: 'Blast', fmt: 'text' }, { label: 'Audience', fmt: 'num' }, { label: 'Accepted by respond.io', fmt: 'num' }, { label: 'Read', fmt: 'num' }, { label: 'Delivered, not read', fmt: 'num' }, { label: 'Not confirmed yet', fmt: 'num' },
+          { label: 'Failed', fmt: 'num' }, { label: 'Wrote back', fmt: 'num' }, { label: 'STOP', fmt: 'num' }, { label: 'Booked or came in', fmt: 'num' }, { label: 'Paid since the message (AED)', fmt: 'aed' }],
+          rows: all.concat(rest).map(function (x) { var m = x.money || {}; return { cells: [x.id === 'ALL' ? 'All blasts' : (x.name || x.id), n(x.audience), n(x.sent), n(x.read), n(x.delivered), n(x.unconfirmed), n(x.failed), n(x.replied), n(x.stop), n(m.booked_or_in), n(m.paid_aed)] }; }) }] });
+      if ((RES.branches || []).length) sheets.push({ name: 'By branch', title: 'Results by branch', blocks: [{ cols: [{ label: 'Branch', fmt: 'text' }, { label: 'Accepted', fmt: 'num' }, { label: 'Delivered or read', fmt: 'num' }, { label: 'Not confirmed yet', fmt: 'num' }, { label: 'Failed', fmt: 'num' }],
+        rows: RES.branches.map(function (x) { return { cells: [BR[x.branch] || x.branch || 'Unknown', n(x.sent), n(x.reached), n(x.unconfirmed), n(x.failed)] }; }) }] });
+      if ((RES.days || []).length) sheets.push({ name: 'By day sent', title: 'Results by day sent', blocks: [{ cols: [{ label: 'Day', fmt: 'text' }, { label: 'Accepted', fmt: 'num' }, { label: 'Delivered or read', fmt: 'num' }, { label: 'Not confirmed yet', fmt: 'num' }, { label: 'Failed', fmt: 'num' }],
+        rows: RES.days.map(function (x) { return { cells: [x.d, n(x.sent), n(x.reached), n(x.unconfirmed), n(x.failed)] }; }) }] });
+    }
+    return sheets.length ? { name: 'database-blasts-november-2026', csv: 0, sheets: sheets } : null;
+  };
 })();

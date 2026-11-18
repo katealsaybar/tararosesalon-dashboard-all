@@ -263,3 +263,26 @@ async function renderDailyReports() {
   await drLoad(); drPaint();
   if (DR.busy) drStartPoll();
 }
+
+// ── DOWNLOAD (Kate, 18 Nov 2026: the masthead's XLSX and CSV, js/page-export.js) ───────────────────────────────────────────────────────────────────────────
+// Three tabs from what the page already holds: the day on screen (each report in each salon, in the words the page uses), the newest sync of each report and salon in the
+// last 14 days, and the last 12 runs. The CSV is the first tab.
+function drExport() {
+  if (!DR.sq || DR.err) return null;
+  const day = drDay(), salons = drSalons(), r2 = x => (x == null || x === '') ? null : Number(x);
+  const grid = DR_ROWS.map(row => ({ cells: [row.name].concat(salons.map(b => {
+    const st = drState(row.id, b), sq = DR.sq[row.id + '|' + b];
+    return DR_WORD[st] + (sq && sq.rows != null && st === 'done' ? ' (' + sq.rows + ' rows)' : '');
+  })) }));
+  const lat = (DR.latest || []).slice().sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : String(a.report + a.branch).localeCompare(b.report + b.branch)).map(r =>
+    ({ cells: [drFull(r.date), drWhat(r.report), DR_NAME[r.branch] || r.branch, drWhen(r.synced_at), r2(r.rows)] }));
+  const runs = (DR.runs || []).map(r => { const sc = r.scope || {}; return { cells: [r.id, drWhen(r.created_at), r.trigger || '', r.requested_by || '', r.status || '', (sc.dates || []).map(drFull).join(', '), r.summary || '', r.started_at ? drWhen(r.started_at) : '', r.finished_at ? drWhen(r.finished_at) : ''] }; });
+  const sub = `Phorest reports, ${salons.map(b => DR_NAME[b]).join(', ')}.`;
+  const sheets = [{ name: 'This day', title: 'Daily reports, ' + drFull(day), subtitle: sub + ' Not yet = nothing has come in for that report; Chase = reception has to fill it in; Look = the check held it back.',
+    blocks: [{ cols: [{ label: 'Report', fmt: 'text' }].concat(salons.map(b => ({ label: DR_NAME[b], fmt: 'text' }))), rows: grid }] }];
+  if (lat.length) sheets.push({ name: 'Last 14 days', title: 'Newest sync for each report and salon, last 14 days', subtitle: sub,
+    blocks: [{ cols: [{ label: 'Report date', fmt: 'text' }, { label: 'Report', fmt: 'text' }, { label: 'Salon', fmt: 'text' }, { label: 'Synced', fmt: 'text' }, { label: 'Rows', fmt: 'num' }], rows: lat }] });
+  if (runs.length) sheets.push({ name: 'Sync runs', title: 'The last sync runs', subtitle: 'Newest first.',
+    blocks: [{ cols: [{ label: 'Run', fmt: 'num' }, { label: 'Asked', fmt: 'text' }, { label: 'Trigger', fmt: 'text' }, { label: 'Asked by', fmt: 'text' }, { label: 'Status', fmt: 'text' }, { label: 'Dates', fmt: 'text' }, { label: 'Summary', fmt: 'text' }, { label: 'Started', fmt: 'text' }, { label: 'Finished', fmt: 'text' }], rows: runs }] });
+  return { name: ['daily-reports', day].join('-'), csv: 0, sheets };
+}
