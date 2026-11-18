@@ -64,7 +64,7 @@ OWN = {
     'lostlists': ['js/lost-lists.js', 'js/lost-queue.js', 'js/lost-waves.js', 'js/lost-blast.js', 'js/lost-report.js',
                   'js/send-schedule.js', 'css/lost-lists.css', 'css/lost-queue.css', 'css/send-schedule.css'],
     'reviews': ['js/reviews-export.js'],
-    'services': ['js/service-rankings.js'],
+    'services': ['js/service-rankings.js', 'js/sheet-table.js', 'css/service-rankings.css', 'css/sheet-table.css'],
     'products': ['js/products.js'],
     'supplierspend': ['js/spend.js'],
     'supplierpay': ['js/supplier-spend.js'],

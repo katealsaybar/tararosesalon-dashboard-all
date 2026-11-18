@@ -1,0 +1,50 @@
+/* A table with Google Sheets heading menus (sheet-table.js, Kate, 18 Nov 2026). Soft corners: the menu is 16px, every control in it is a pill. */
+.sx-wrap{overflow-x:clip}
+/* a table wider than the page scrolls inside its own box, so its heading row sticks to that box and not to the page */
+.sx-wrap.sc{overflow:auto;max-height:78vh}
+.sx-wrap.sc .sx-t th{top:0}
+.sx-t{border-collapse:separate;border-spacing:0;width:100%;font-size:14.5px}
+.sx-t th{position:sticky;top:calc(var(--sx-top,0px) + var(--bh,0px));background:var(--surface,var(--bg));text-align:left;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;z-index:2}
+.sx-t td{padding:9px 12px;border-bottom:1px solid var(--border2);vertical-align:middle;background:var(--surface,var(--bg))}
+.sx-t th.r,.sx-t td.r{text-align:right;font-variant-numeric:tabular-nums}
+.sx-t td.fc,.sx-t th.fc{position:sticky;left:0;z-index:3}
+.sx-t tr.tot td{font-weight:600;border-top:1px solid var(--border);background:var(--surface2,var(--bg))}
+.sx-th{display:inline-flex;align-items:center;gap:6px}
+.sx-t th.r .sx-th{justify-content:flex-end}
+.sx-tl{display:flex;flex-direction:column;line-height:1.25}
+.sx-tl small{font-size:11px;letter-spacing:0;text-transform:none;font-weight:400;color:var(--muted2)}
+.sx-fb{border:0;background:none;color:var(--muted2);cursor:pointer;padding:4px;border-radius:999px;line-height:0}
+@media(hover:hover){.sx-fb:hover{background:var(--surface2,var(--border2))}}
+.sx-fb.on{color:var(--good);background:var(--good-bg)}
+.sx-none{text-align:center;color:var(--muted);padding:22px}
+.sx-pop{position:fixed;z-index:560;background:var(--surface,var(--bg));color:var(--text);border:1px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.35);padding:8px;display:flex;flex-direction:column;gap:6px;overflow:auto;font-size:14px;text-transform:none;letter-spacing:0;font-weight:400}
+.sx-pop [hidden]{display:none}
+.sx-pop button,.sx-pop select,.sx-pop input{font:inherit;color:var(--text)}
+.sx-sort button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 12px;border-radius:999px;cursor:pointer}
+@media(hover:hover){.sx-sort button:hover,.sx-sel button:hover{background:var(--surface2,var(--border2))}}
+.sx-l{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin-top:4px;padding:0 4px}
+.sx-pop select,.sx-pop input[type=text],.sx-pop input[type=search]{width:100%;font-size:13.5px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:7px 12px}
+.sx-sel{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted2)}
+.sx-sel button{border:0;background:none;text-decoration:underline;cursor:pointer;padding:2px 8px;border-radius:999px}
+.sx-list{max-height:170px;overflow:auto;border:1px solid var(--border2);border-radius:16px;padding:4px}
+.sx-v{display:flex;gap:8px;align-items:center;padding:3px 6px;font-size:13.5px}
+.sx-v span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sx-v em{font-style:normal;color:var(--muted2);font-size:12.5px}
+.sx-act{display:flex;gap:6px;align-items:center}.sx-act span{flex:1}
+.sx-act button{border:1px solid var(--border);background:var(--surface,var(--bg));border-radius:999px;padding:7px 14px;cursor:pointer}
+.sx-act button.ok{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+@media(max-width:760px){
+  .sx-wrap.sc{overflow:visible;max-height:none}
+  .sx-t thead{display:none}
+  .sx-t,.sx-t tbody,.sx-t tr,.sx-t td{display:block;width:100%}
+  .sx-t tbody tr{padding:10px 12px;border-bottom:1px solid var(--border)}
+  .sx-t td{border:0;padding:3px 0;text-align:left!important;position:static!important;background:none!important}
+  .sx-t td[data-l]::before{content:attr(data-l) ": ";color:var(--muted2);font-size:13px}
+  .sx-t td.fc::before{content:""!important}
+  .sx-t td.fc{font-weight:600;font-size:16px}
+  .sx-t tr.tot{background:var(--surface2,var(--border2))}
+  .sx-fb{min-width:44px;min-height:44px}
+  .sx-sort button,.sx-act button,.sx-sel button{min-height:44px}
+  .sx-v{min-height:44px}.sx-v input{width:22px;height:22px}
+  .sx-pop select,.sx-pop input[type=text],.sx-pop input[type=search]{min-height:44px}
+}

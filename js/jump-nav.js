@@ -89,7 +89,7 @@ const JN_PAGES = {
   clientmix:      { sel: '#cmCards, .cm-two, #cmListTitle', labels: ['The mix', 'By item', 'The clients'] },
   retention:      { sel: '#retentionContent [data-jn]' },   // The answer, By salon (more than one salon picked), By stylist: each carries data-jn
   lostclients:    { sel: '#lcBody > section.slv-card', labels: ['The totals', 'The client list'] },
-  services:       { sel: '#srBody .w13-tiles, #srBody h3', labels: ['The numbers', 'Top services'] },
+  services:       { sel: '#serviceRankingsContent [data-jn]' },   // The numbers, Top services, By salon (more than one salon), By family: each carries data-jn
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },
   googleads:      { sel: 'h3' },
   metaads:        { sel: 'h3' },

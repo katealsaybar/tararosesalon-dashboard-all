@@ -21,8 +21,8 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=6f2bda24"></script>
-<script src="js/page-dates.js?v=841c2339"></script>
+<script src="js/pages.js?v=0190ccf3"></script>
+<script src="js/page-dates.js?v=4b5b90ff"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=39e1bb7f"></script>
@@ -3582,6 +3582,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/mobile.css?v=a4af2688">
 <link rel="stylesheet" href="css/search.css?v=ad896c51">
 <link rel="stylesheet" href="css/client-mix.css?v=9925ddc9">
+<link rel="stylesheet" href="css/sheet-table.css?v=5598ca63">   <!-- the table with Google Sheets heading menus (sheet-table.js) -->
+<link rel="stylesheet" href="css/service-rankings.css?v=ae84be71">
 <link rel="stylesheet" href="css/lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="css/lost-queue.css?v=5a7f8366">
 <link rel="stylesheet" href="css/send-schedule.css?v=88a70391">
@@ -3649,7 +3651,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cl:  [LGX, 'js/report-export.js?v=d7b73ae8', 'js/lost-clients.js?v=221c2b8a', 'js/lost-lists.js?v=49982eb0', 'js/lost-consults.js?v=8dd97a9d', 'js/lost-review-file.js?v=de965c04',
             'js/send-schedule.js?v=3abf6266', 'js/lost-queue.js?v=4d4924ab', 'js/lost-waves.js?v=c142e140', 'js/lost-blast.js?v=2c1c9a59',
             'js/lost-report.js?v=d4ec80de', 'js/wv-blast.js?v=22a9b944', 'js/wv-last.js?v=5f1b7d69', 'js/wv-depth.js?v=e4188c8d', 'js/wv-lastsend.js?v=cf678e57', 'js/wv-remind.js?v=61840cb2', 'js/wv-messages.js?v=356bebe0', 'js/top-clients.js?v=18466b79', 'js/client-mix.js?v=2b34310a',
-            'js/service-rankings.js?v=518dfeb8'],
+            'js/sheet-table.js?v=7c499921', 'js/service-rankings.js?v=17746111'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
@@ -4449,7 +4451,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=845f4c0c&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=beed62ce&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -4547,10 +4549,8 @@ table.tp-cmp td.bad{color:var(--bad)}
 
   <!-- SERVICES -->
   <div id="view-services" style="display:none">
-    <!-- Service Rankings (Kate, 8 Oct 2026): rebuilt on the Client Mix footing, with its own
-         controls (the masthead filters are hidden here), from service_rankings over
-         sales_transaction_lines sorted by Phorest's categories. service-rankings.js draws it.
-         The old page (Per Branch and Combined) is gone. -->
+    <!-- Service Rankings (Kate, 8 Oct 2026; revamped 18 Nov 2026): the masthead's Branch and Period drive it (pages.js filtered + nopulse, NOPULSE_REDRAW),
+         Bahrain is its own view in BHD or AED, from service_rankings over sales_transaction_lines sorted by Phorest's categories. service-rankings.js draws it. -->
     <main id="serviceRankingsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
   </div>
 
@@ -4916,12 +4916,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     'Kate writes down the one thing this campaign proved, before the next campaign is planned.');
 })();
 </script>
-<script src="js/jump-nav.js?v=c566fc9a"></script>
+<script src="js/jump-nav.js?v=4f9e0d28"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=7b4719d6"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=8e1a70fa"></script>
+<script src="js/dashboard.js?v=8b89bca7"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -6061,7 +6061,7 @@ function trSyncUrl(sectionId){
   if (CURRENT_VIEW === 'stafflevels' && typeof slvUrlParts === 'function') parts.push(...slvUrlParts());
   // Staff Dashboards: department, month, sort, basis and the person (index.html, spfUrlParts).
   if (CURRENT_VIEW === 'staffperf' && typeof spfUrlParts === 'function') parts.push(...spfUrlParts());
-  // Service Rankings: branch, period, rank, family (service-rankings.js).
+  // Service Rankings: rank, family, category and rows beside the masthead's branch and period (service-rankings.js).
   if (CURRENT_VIEW === 'services' && typeof srUrlParts === 'function') parts.push(...srUrlParts());
   // Podium Race and Staff Quadrant: department, league or chart, basis, rebooking source (team-performance.js).
   if ((CURRENT_VIEW === 'team' || CURRENT_VIEW === 'teamquad') && typeof tpUrlParts === 'function') parts.push(...tpUrlParts());
