@@ -65,7 +65,7 @@ export function parseBsPro(text) {
     if (m) continue;
     if ((m = /^(?:DISCOUNT|Discount)\b.*?-?([\d,]+\.\d{2})\s*$/.exec(l))) { disc += num(m[1]); continue; }
     if ((m = ROW.exec(l))) {
-      lines.push({ code: '', name: cur.join(' ').replace(/\s+/g, ' ').trim(), qty: num(m[1]), unit: num(m[2]), total: num(m[4]), disc: 0, note: 'before VAT' });
+      lines.push({ code: '', name: cur.join(' ').replace(/\s+/g, ' ').trim(), qty: num(m[1]), unit: num(m[2]), total: num(m[4]), disc: 0, note: '' });
       cur = []; continue;
     }
     cur.push(l);
@@ -96,7 +96,7 @@ export function parseDbd(text) {
   let bad = 0, total = null, sub = null, disc = null, vat = null, net = null, pend = null;
   const add = (unit, qty, name, tot, code) => {
     if (Math.abs(unit * qty - tot) > NEAR) { bad++; return; }
-    lines.push({ code, name: name.replace(/\s+/g, ' ').trim(), qty, unit, total: tot, disc: 0, note: 'before the account discount and VAT' });
+    lines.push({ code, name: name.replace(/\s+/g, ' ').trim(), qty, unit, total: tot, disc: 0, note: '' });
   };
   for (const l of L) {
     let m;
