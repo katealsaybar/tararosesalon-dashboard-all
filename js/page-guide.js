@@ -204,8 +204,8 @@
         // the dashboard scrolls inside its own box on some pages (and a part can sit in a shadow root), so find the box that really scrolls
         var sc = scroller(el), want = r.height > window.innerHeight * 0.5 ? 130 : window.innerHeight * 0.3;
         try {
-          if (sc) sc.scrollTo({ top: sc.scrollTop + r.top - sc.getBoundingClientRect().top - want, behavior: 'auto' });
-          else window.scrollTo({ top: window.scrollY + r.top - want, behavior: 'auto' });
+          if (sc) sc.scrollTo({ top: sc.scrollTop + r.top - sc.getBoundingClientRect().top - want, behavior: 'instant' });
+          else window.scrollTo({ top: window.scrollY + r.top - want, behavior: 'instant' });
         } catch (e) {}
       }
       pos(); setTimeout(pos, 320); setTimeout(pos, 700);
