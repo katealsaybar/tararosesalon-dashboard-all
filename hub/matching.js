@@ -149,7 +149,7 @@
     function reset() { st = {br: null, brAny: false, cat: null, svc: null, vibe: null, vibeAny: false, style: null}; }
     main.innerHTML = '<div class="kb-shell">' + rail('find') + '<div class="mx mx-find"><div class="mx-doc">' +
       '<p class="mx-eyebrow">Team Home · Clients</p><h1>Find a stylist for her</h1>' +
-      '<p class="mx-lead">Three quick questions, and it gives you the names to offer her. Want to check who does what? Open the <a href="/hub/matching">full checklist</a>.</p>' +
+      '<p class="mx-lead">Three quick questions, and it gives you the names to offer her. Want to check who does what? Open the <a href="/hub/matching"' + (document.documentElement.classList.contains('mx-embed') ? ' target="_top"' : '') + '>full checklist</a>.</p>' +
       '<div class="mx-trail" id="mxTrail"></div><div id="mxApp"></div><p class="mx-foot" id="mxLast"></p></div></div></div>';
     app = document.getElementById('mxApp'); trailEl = document.getElementById('mxTrail');
     main.addEventListener('click', function (e) {

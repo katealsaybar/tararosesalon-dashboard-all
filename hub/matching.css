@@ -217,3 +217,12 @@ body.mx-previewing .mx-btn.edit{opacity:.4;pointer-events:none}
   .mx-addhere{left:170px}
   .mx-btn{padding:10px 18px}
 }
+
+/* ---------- Embedded in the dashboard (Kate, 18 Nov 2026) ----------
+   index.html shows Find a stylist in a frame with ?embed=1 (Tools > Operations), so the dashboard's own sidebar and top bar are the navigation.
+   The page's header, mini sidebar and footer are dropped; the card sits at the top, the page is only as tall as it needs (the dashboard sizes the frame). */
+html.mx-embed .kb-head,html.mx-embed .kb-foot,html.mx-embed .kb-side{display:none!important}
+html.mx-embed body{min-height:0;background:transparent}
+html.mx-embed body.mx-page .wrap{max-width:none;padding:6px 0 24px}
+html.mx-embed .kb-shell{display:block}
+html.mx-embed .kb-head+#mxMain{padding-top:0}

@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=390d3ec6"></script>
+<script src="js/pages.js?v=6235194d"></script>
 <script src="js/page-dates.js?v=cd6b4e3e"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
@@ -3955,8 +3955,9 @@ table.tp-cmp td.bad{color:var(--bad)}
          and this page shows it in a frame (view-contentcalendar) so the main sidebar stays. data-nav-key is the key this row had as a link out, kept so the layout she saved still finds it;
          data-nav-sub drops it in her Marketing sub-section. -->
     <a class="nav-sub" data-nav-sub="Marketing" data-nav-key="l:window.open('https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/calendar/', '_blank', 'noopener')" href="/?view=contentcalendar" onclick="if(trsPlain(event)){event.preventDefault();showView('contentcalendar', this)}">Content Calendar</a>
-    <!-- Kate, 4 Nov 2026: Find a Stylist (Client to Staff Matching) in Tools. A Team Home page, so a link out; its Team Home card stays under Clients. -->
-    <a class="nav-sub" data-tool-min="1" data-nav-key="l:location.href='/hub/find-stylist'" href="/hub/find-stylist">Find a Stylist</a>
+    <!-- Kate, 4 Nov 2026: Find a Stylist (Client to Staff Matching) in Tools. Kate, 18 Nov 2026: now a dashboard page, so the main sidebar stays: the Team Home page (hub/find-stylist, still the door
+         from its Team Home card) shown in a frame with ?embed=1 (view-findstylist). Its row has a new key (the old one was the link out) and data-nav-sub="Operations", so a menu she saved lists it in Operations. -->
+    <a class="nav-sub" data-tool-min="1" data-nav-sub="Operations" href="/?view=findstylist" onclick="if(trsPlain(event)){event.preventDefault();showView('findstylist', this)}">Find a Stylist</a>
     <!-- Upload Portal and the two WhatsApp senders (Kate, 30 Oct 2026): Team Home pages, so links out. data-tool-min is the OLD level number, the same as their kb_sections rows
          (uploads 4, staff-campaign 5, staff-wa 5); the pages and the database still decide who may open or send. -->
     <a class="nav-sub" data-tool-min="4" data-nav-key="l:location.href='/upload/'" href="/upload/">Upload Portal</a>
@@ -4636,6 +4637,14 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- SERVICE CALENDAR (Kate, 17 Nov 2026): the Team Home page (hub/servicecal, still the door for Reception and Call Centre) as a dashboard page with the main sidebar. service-cal.js draws it into a shadow root inside this box (its own Branch, Period and View filters). -->
   <div id="view-servicecal" style="display:none">
     <main id="serviceCalContent"></main>
+  </div>
+
+  <!-- FIND A STYLIST (Kate, 18 Nov 2026): Team Home's Client to Staff Matching page (hub/find-stylist) in a same-origin frame with ?embed=1 (no header, mini sidebar or footer), so the main sidebar stays.
+       The three questions and the names come from the matching_* functions in Supabase, which decide who may read; the frame grows to the page's own height (showView) and follows the dashboard's light or dark.
+       data-src, not src: loaded on first open only. -->
+  <div id="view-findstylist" style="display:none">
+    <iframe id="findStylistFrame" title="Find a stylist" scrolling="no" data-src="/hub/find-stylist?embed=1"
+      style="width:100%;height:calc(100vh - 160px);min-height:560px;border:none;display:block;background:transparent"></iframe>
   </div>
 
   <!-- DAILY REPORTS (Kate, 17 Nov 2026): the cloud sync of the Phorest reports. daily-reports.js reads sync_runs, sync_squares and sync_latest and the owner's Run buttons call the
@@ -5391,6 +5400,24 @@ function showView(view, el){
       cf.setAttribute('src', cf.dataset.src + '&theme=' + calTheme());
       new MutationObserver(() => { try { cf.contentWindow.postMessage({ type: 'trs-theme', theme: calTheme() }, 'https://katealsaybar.github.io'); } catch (e) {} })
         .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
+  }
+  // Kate, 18 Nov 2026: Find a Stylist. The frame loads on first opening; it takes the page's height (so the dashboard is the only scrollbar) and the dashboard's light or dark, then follows both.
+  if (view === 'findstylist') {
+    const ff = document.getElementById('findStylistFrame');
+    if (ff && !ff.getAttribute('src') && ff.dataset.src) {
+      const fsTheme = () => document.documentElement.getAttribute('data-theme');
+      ff.addEventListener('load', () => {
+        try {
+          const d = ff.contentDocument, root = d.documentElement;
+          const paint = () => { const t = fsTheme(); if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme'); };
+          const fit = () => { if (d.body) ff.style.height = Math.max(560, d.body.scrollHeight) + 'px'; };
+          paint(); fit();
+          new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+          new d.defaultView.ResizeObserver(fit).observe(d.body);
+        } catch (e) {}
+      });
+      ff.setAttribute('src', ff.dataset.src);
     }
   }
   if (view === 'wvperf') {
