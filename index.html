@@ -834,8 +834,8 @@ aside.sidebar{
 .nav-sub.lvl2,.nav-sub.lvl3,.nav-sub.lvl4{
   border-left:1px solid var(--border);border-radius:0 8px 8px 0}
 .nav-sub.lvl2{margin-left:10px;padding-left:11px}
-/* A heading row that holds pages under it (Stock & Supplier Spend, 12 Nov 2026): it is not a page, so it is not a link. */
-.nav-sub.nav-parent{cursor:default;pointer-events:none;color:var(--muted2);font-weight:600}
+/* A heading row that holds pages under it (Stock & Supplier Spend, 12 Nov 2026): it is not a page, so it is not a link. It folds its pages when clicked (nav-collapse.js). 18 Nov 2026: pointer-events:none here also killed the fold arrow, so it could not be opened. */
+.nav-sub.nav-parent{cursor:pointer;user-select:none;color:var(--muted2);font-weight:600}
 .nav-sub.lvl3{margin-left:18px;padding-left:11px;font-size:15px}
 .nav-sub.lvl4{margin-left:26px;padding-left:11px;font-size:14.5px;letter-spacing:.01em}
 /* The active pill is a filled lozenge, so its own left border would show as a
@@ -3881,7 +3881,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" href="/?view=services" onclick="if(trsPlain(event)){event.preventDefault();showView('services', this)}">Service Rankings</a>
     <a class="nav-sub" href="/?view=products" onclick="if(trsPlain(event)){event.preventDefault();showView('products', this)}">Products</a>
     <!-- Kate, 12 Nov 2026: Stock & Supplier Spend holds two pages, the Weekly Product Plan and Stock Cost. -->
-    <div class="nav-sub nav-parent" role="presentation">Stock &amp; Supplier Spend</div>
+    <div class="nav-sub nav-parent">Stock &amp; Supplier Spend</div>
     <a class="nav-sub lvl2" href="/?view=supplierspend" onclick="if(trsPlain(event)){event.preventDefault();showView('supplierspend', this)}">Weekly Product Plan</a>
     <a class="nav-sub lvl2" href="/?view=supplier-spend" onclick="if(trsPlain(event)){event.preventDefault();showView('supplierpay', this)}">Supplier Spend</a>
     <a class="nav-sub lvl2" href="/?view=stockcost" onclick="if(trsPlain(event)){event.preventDefault();showView('stockcost', this)}">Stock Cost</a>
@@ -6256,7 +6256,7 @@ addEventListener('load', sizeTopbar);
 <!-- Kate, 9 Nov 2026: Rearrange Menu. Puts the rows in her own saved order BEFORE nav-collapse.js builds the folds from them (nav-layout.js). -->
 <script src="js/nav-layout.js?v=14cd1d3a"></script>
 <!-- Collapsible sidebar sections. After the inline script: it wraps showView(). -->
-<script src="js/nav-collapse.js?v=4df04ef3"></script>
+<script src="js/nav-collapse.js?v=def15ed1"></script>
 <script src="js/nav-stars.js?v=c575eba8"></script>
 <script src="js/scroll-edges.js?v=95c16c04"></script>
 <script src="js/count-up.js?v=f80eaa82"></script>

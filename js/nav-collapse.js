@@ -133,6 +133,7 @@
     for (let n = parent.nextElementSibling; n && n.classList.contains('lvl2'); n = n.nextElementSibling) kids.push(n);
     if (!kids.length) return;
     const id = 'p:' + parent.textContent.trim();
+    const isHeading = parent.classList.contains('nav-parent');
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'nav-kids-btn';
@@ -142,10 +143,11 @@
       kids.forEach(k => k.classList.toggle('nav-kid-hidden', !open));
       parent.classList.toggle('kids-folded', !open);
       btn.setAttribute('aria-expanded', String(open));
+      if (isHeading) parent.setAttribute('aria-expanded', String(open));
       btn.setAttribute('aria-label', (open ? 'Hide ' : 'Show ') + kids.map(k => k.textContent.trim()).join(' and '));
     };
     set(!!opened[id]);
-    btn.addEventListener('click', e => {
+    const toggleKids = e => {
       // The arrow folds, it does not navigate, and on a narrow screen it must
       // not close the panel either (the aside's own click handler would).
       // Kate, 9 Nov 2026: the row is a real link now, and a button inside a link follows it in Chrome unless the click is cancelled.
@@ -157,8 +159,18 @@
       save();
       parent.classList.toggle('kids-folded', !open);       // the arrow turns at once
       btn.setAttribute('aria-expanded', String(open));
+      if (isHeading) parent.setAttribute('aria-expanded', String(open));
       glide(parent, () => kids, o => kids.forEach(k => k.classList.toggle('nav-kid-hidden', !o)), open);
-    });
+    };
+    btn.addEventListener('click', toggleKids);
+    // A heading that is not a page (.nav-parent, Stock & Supplier Spend) has nothing to open, so the whole row folds,
+    // not just the small arrow (Kate, 18 Nov 2026: "di na napipindot"). Enter or Space on it does the same.
+    if (isHeading) {
+      parent.setAttribute('role', 'button');
+      parent.setAttribute('tabindex', '0');
+      parent.addEventListener('click', toggleKids);
+      parent.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') toggleKids(e); });
+    }
     parent._navKidsSet = open => { set(open); if (open) { opened[id] = 1; save(); } };
     kids.forEach(k => { k._navParent = parent; });
   });
