@@ -23,8 +23,6 @@
   :host{display:block}
   .pg{padding:0 0 10px;font:15px/1.5 Inter,system-ui,sans-serif;color:var(--text)}
   .msg{color:var(--muted);padding:26px 0}
-  .wip{background:rgba(214,158,46,.14);border:1px solid rgba(214,158,46,.55);border-radius:10px;padding:9px 13px;font-size:13.5px;margin:0 0 16px}
-  .wip b{font-weight:600}
   .hrow{display:flex;gap:12px 18px;align-items:flex-start;flex-wrap:wrap;justify-content:space-between;margin:0 0 4px}
   h1.t{margin:0 0 4px;font-size:clamp(21px,3.4vw,28px);font-weight:600;letter-spacing:-.01em;line-height:1.15}
   .sub{margin:0 0 14px;color:var(--muted);max-width:78ch;font-size:14px}
@@ -177,8 +175,7 @@
   /* ---------- the page ---------- */
   function head() {
     const um = unmapped().length;
-    return '<div class="wip"><b>Under construction.</b> The page is new and still being checked against Accounts’ own sheet. Read it, but do not quote a figure from it yet without telling Kate.</div>' +
-      '<div class="hrow"><div><h1 class="t">Supplier Spend</h1>' +
+    return '<div class="hrow"><div><h1 class="t">Supplier Spend</h1>' +
       '<p class="sub">Who we buy from and how much. What Accounts paid sits beside what Phorest received, so you can see where the two do not agree. Branch and Period at the top of the page pick the salons and the month.</p></div>' +
       '<span class="dl" role="group" aria-label="Download this report"><button type="button" onclick="rexRun(\'supplierSpendExport\',\'xlsx\',this)" title="Download as an Excel file">XLSX</button><button type="button" onclick="rexRun(\'supplierSpendExport\',\'csv\',this)" title="Download as a CSV file">CSV</button></span></div>' +
       '<div class="tabs" role="tablist">' +
