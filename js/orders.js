@@ -82,6 +82,7 @@ function ordFinish(key, docs) {
   const inv = docs.find(d => d.kind === 'invoice' && d.amount != null), any = docs.find(d => d.amount != null);
   g.inv = inv ? Number(inv.amount) : null;
   g.a = g.buy && g.buy.total != null ? Number(g.buy.total) : inv ? Number(inv.amount) : any ? Number(any.amount) : null;
+  if (g.buy && g.buy.total == null && g.a != null) g.buy.total = g.a;   // the total may sit on another email of the same order (the confirmation or the invoice): the window must always show it
   g.disc = g.buy ? g.buy.disc : 0;
   g.items = g.buy ? g.buy.lines.length : 0;
   g.units = g.buy ? g.buy.lines.reduce((t, l) => t + (Number(l.qty) || 0), 0) : 0;
