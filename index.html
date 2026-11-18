@@ -5415,19 +5415,29 @@ window.addEventListener('message', async e => {
 // Kate, 18 Nov 2026: the story and post viewer used to open inside the frame, which is taller than the screen, so its bottom ran off the window and it looked cut off and short.
 // While a viewer is open the frame (trs-cal-lb, open true) is stretched over the whole window, and put back exactly as it was when it closes. Only the frame this page holds is heard.
 // If the frame reloads while open, it is put back too, so it can never stay stuck over the dashboard.
+// Kate, 18 Nov 2026: the frame is no longer a short box with its own scroll. The calendar page reports how tall its content is (trs-cal-h) and the frame is set to that, so the dashboard's own page
+// scrolls and the whole month shows. While the frame is stretched over the window (a panel or viewer open) the page behind keeps its height, so closing does not throw the scroll position.
+function calApplyH() {
+  const f = document.getElementById('calFrame');
+  if (!f || f.dataset.keepStyle !== undefined || !f.dataset.autoH) return;
+  f.style.height = Math.max(520, Number(f.dataset.autoH) + 4) + 'px'; f.style.minHeight = '0';
+}
 function calLbFull(on) {
-  const f = document.getElementById('calFrame'); if (!f) return;
+  const f = document.getElementById('calFrame'), box = document.getElementById('view-contentcalendar'); if (!f) return;
   if (on) {
-    if (f.dataset.keepStyle === undefined) f.dataset.keepStyle = f.getAttribute('style') || '';
+    if (f.dataset.keepStyle === undefined) { f.dataset.keepStyle = f.getAttribute('style') || ''; if (box) box.style.minHeight = f.offsetHeight + 'px'; }
     f.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;max-width:none;min-height:0;z-index:2147483000;border:none;border-radius:0;display:block;background:transparent';
   } else if (f.dataset.keepStyle !== undefined) {
     f.setAttribute('style', f.dataset.keepStyle); delete f.dataset.keepStyle;
+    if (box) box.style.minHeight = '';
+    calApplyH();
   }
 }
 window.addEventListener('message', e => {
   const f = document.getElementById('calFrame');
-  if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data || e.data.type !== 'trs-cal-lb') return;
-  calLbFull(e.data.open === true);
+  if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data) return;
+  if (e.data.type === 'trs-cal-lb') calLbFull(e.data.open === true);
+  else if (e.data.type === 'trs-cal-h') { const h = Number(e.data.h); if (h >= 200 && h <= 20000) { f.dataset.autoH = String(Math.ceil(h)); calApplyH(); } }
 });
 document.getElementById('calFrame')?.addEventListener('load', () => calLbFull(false));
 function showView(view, el){
