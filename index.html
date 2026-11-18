@@ -646,11 +646,11 @@ body.scoped #gsTrig, body.scoped #trs-ask{display:none!important}
 /* How old the two feeds are. The date is stamped by the freshness check, the age
    is worked out from it, so it stays true tomorrow instead of quietly lying.
    Anything two days or older turns amber: that is the point of putting it here. */
-.mast-fresh{display:flex;flex-wrap:wrap;gap:0 14px;justify-content:flex-end}
+.mast-fresh{display:flex;flex-wrap:wrap;gap:0 14px;justify-content:flex-start;flex:1 1 100%}
 .mast-fresh b{font-weight:700;color:var(--text)}
 .mast-fresh .stale,.mast-fresh .stale b{color:var(--warn)}
-/* Today's note (dashboard.js freshnessTodayNote): its own row under the chips, right-aligned, quieter than the dates. Kate, 18 Nov 2026. */
-.mast-fresh .fl-today{flex-basis:100%;text-align:right;color:var(--muted2);letter-spacing:.16em;margin-top:2px}
+/* Today's note (dashboard.js freshnessTodayNote): its own slim row under the chips, left-aligned on the same edge as the chips (the row is a full-width line, chips start at the left edge like UAE Branches above), quieter than the dates. Kate, 18 Nov 2026. */
+.mast-fresh .fl-today{flex-basis:100%;text-align:left;color:var(--muted2);line-height:1.3}
 /* Kate, 23 Oct 2026 (ALD1-02): the line opens a panel saying what the two dates are and who is late (dashboard.js,
    freshnessPanelHtml). Tap on a phone, hover on a desktop. The "i" is the cue; the whole line is the target, and the
    hit area is padded without making the row taller. */
