@@ -176,6 +176,7 @@
   window.__domExport_wvblast = function () { return domModel('wvblast', 'Wellness Voucher Blasts'); };
   register('wvblast', null, { custom: function (kind, btn) {
     if (document.getElementById('wvList') && typeof wvSaveFile === 'function') return wvSaveFile(kind);
+    if (!domModel('wvblast', 'Wellness Voucher Blasts')) { var t = 'This page is figures, with no table to save. Blast 3: the 600 top spenders has the send list, and that one downloads.'; if (typeof lgxToast === 'function') lgxToast(t, true); else alert(t); return; }
     return typeof rexRun === 'function' ? rexRun('__domExport_wvblast', kind, btn) : undefined;
   } });
   // Pages whose own button runs a save routine of its own: Client's Last Visit saves the whole filtered list with each client's visits added (lcSaveFile), Retention saves both lists (retDownload).
