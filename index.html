@@ -5390,6 +5390,28 @@ window.addEventListener('message', async e => {
   try { const { data, error } = await sb.rpc('content_calendar_post_stats', { p_from: from, p_to: to }); if (error) throw error; rows = Array.isArray(data) ? data : []; } catch (err) { rows = []; }
   try { f.contentWindow.postMessage({ type: 'trs-cal-post-stats', from, to, rows }, CAL_ORIGIN); } catch (err) {}
 });
+// Kate, 18 Nov 2026: Attach video. A story before 12 Nov, or one with copyrighted music, has no saved file (migrations/story_media_attach.sql). In the viewer the frame sends the file the person picked
+// (trs-cal-attach: net, at, key, file); this page, with the signed-in session, puts it in the private bucket story-media under manual/ (storage rule: Level 3 and up) and ties it to the story with
+// story_media_attach (also Level 3 and up), then answers trs-cal-attached. If the second step fails the uploaded file is removed again. Only the frame this page holds is heard.
+window.addEventListener('message', async e => {
+  const f = document.getElementById('calFrame');
+  if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data || e.data.type !== 'trs-cal-attach') return;
+  const d = e.data, file = d.file, when = Date.parse(d.at);
+  const reply = (ok, error) => { try { f.contentWindow.postMessage({ type: 'trs-cal-attached', ok, error: error || null, net: d.net, at: d.at }, CAL_ORIGIN); } catch (err) {} };
+  const ext = file && { 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[file.type];
+  if (!(file instanceof Blob) || !ext) return reply(false, 'Use an MP4, MOV or WebM video, or a JPG, PNG or WebP picture.');
+  if (file.size > 60 * 1024 * 1024) return reply(false, 'That file is over 60 MB. Trim or compress it first.');
+  if (!['instagram', 'facebook'].includes(d.net) || isNaN(when)) return reply(false, 'That story could not be identified.');
+  const key = d.key && /^\d{5,30}$/.test(String(d.key)) ? String(d.key) : null, dt = new Date(when);
+  const path = 'manual/' + d.net + '/' + dt.getUTCFullYear() + '/' + String(dt.getUTCMonth() + 1).padStart(2, '0') + '/' + crypto.randomUUID().replace(/-/g, '').slice(0, 24) + '.' + ext;
+  try {
+    const up = await sb.storage.from('story-media').upload(path, file, { contentType: file.type, upsert: false });
+    if (up.error) throw up.error;
+    const { error } = await sb.rpc('story_media_attach', { p_network: d.net, p_posted_at: dt.toISOString(), p_story_key: key, p_path: path, p_is_video: file.type.indexOf('video/') === 0, p_bytes: file.size });
+    if (error) { try { await sb.storage.from('story-media').remove([path]); } catch (x) {} throw error; }
+    reply(true);
+  } catch (err) { reply(false, 'Could not save it: ' + String((err && err.message) || err).slice(0, 140)); }
+});
 // Kate, 18 Nov 2026: the story and post viewer used to open inside the frame, which is taller than the screen, so its bottom ran off the window and it looked cut off and short.
 // While a viewer is open the frame (trs-cal-lb, open true) is stretched over the whole window, and put back exactly as it was when it closes. Only the frame this page holds is heard.
 // If the frame reloads while open, it is put back too, so it can never stay stuck over the dashboard.
