@@ -388,7 +388,7 @@ function srPaint() {
           <p><b>Why it matters.</b> A salon that sells a service well already knows how. The others can ask it what it does at the desk.</p>
           <p class="watch"><b>What to watch.</b> <span id="srW3"></span></p></div>
         <div class="sr-bar sr-bar-plain"><button type="button" class="cm-pill" onclick="srToggleMore('sal')">All columns</button><button type="button" class="cm-pill sr-phone" data-sxcm="sal">Sort and filter</button>
-          <span class="sr-hint">A client who visits two salons counts once in each salon, so salon clients do not add up to the total.</span></div>
+          <span class="sr-hint">A client who visits two salons counts once in each salon, so salon clients do not add up to the total.</span>${typeof rexButtons === 'function' ? rexButtons('srExportSal') : ''}</div>
         <div class="sr-card"><table id="srSalTbl"></table></div>
       </section>
       <section class="sr-sec" data-jn="By family">
@@ -396,7 +396,7 @@ function srPaint() {
         <div class="sr-learn"><p><b>What is this?</b> The same figures for each family of services (Colour, Cut &amp; style, Hair treatments and so on), counting every service in it.</p>
           <p><b>Why it matters.</b> It shows which part of the menu carries the month and which part is moving.</p>
           <p class="watch"><b>What to watch.</b> <span id="srW4"></span></p></div>
-        <div class="sr-bar sr-bar-plain"><button type="button" class="cm-pill" onclick="srToggleMore('fam')">All columns</button><button type="button" class="cm-pill sr-phone" data-sxcm="fam">Sort and filter</button></div>
+        <div class="sr-bar sr-bar-plain"><button type="button" class="cm-pill" onclick="srToggleMore('fam')">All columns</button><button type="button" class="cm-pill sr-phone" data-sxcm="fam">Sort and filter</button><span class="sr-sp"></span>${typeof rexButtons === 'function' ? rexButtons('srExportFam') : ''}</div>
         <div class="sr-card"><table id="srFamTbl"></table></div>
       </section>
       <section class="sr-how" id="srHow"><h3>How it is worked out</h3><div class="sc-seg sr-pick" id="srPick" role="group" aria-label="Which figure"></div><div class="sr-howcard" id="srHowCard"></div></section>
@@ -628,3 +628,27 @@ function srExport() {
     blocks: [{ cols: [{ label: 'Rank', fmt: 'num' }, { label: 'Service', fmt: 'text' }, { label: 'Phorest category', fmt: 'text' }, { label: 'Item name in Phorest', fmt: 'text' }, { label: 'Units', fmt: 'num' }, { label: 'Revenue (' + cur + ', ex VAT)', fmt: 'aed' }], rows: sz }] });
   return { name: ['service-rankings', srScope(), a, 'to', b, SR.fam !== 'all' ? SR.fam : '', SR.cat || '', SR.rank === 'units' ? 'by-units' : ''].filter(Boolean).map(srSlug).join('-'), csv: 0, sheets };
 }
+
+// XLSX and CSV for By salon and By family (Kate, 18 Nov 2026: "no xlsx csv here?"): the rows the table shows after its heading filters, with every column (also the tucked-away ones).
+function srExportTable(kind) {
+  if (!srData) return null;
+  const T = kind === 'sal' ? srTS : srTF, rows = T ? T.rows() : []; if (!rows.length) return null;
+  const cur = srCur(), r2 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100, prev = srPrevRange(), pl = prev ? prev[2] : 'the period before';
+  const [a, b] = srRange(), chg = r => r.pr === null || r.pr === undefined ? null : r2(srPct(r.rev, r.pr)), tr = srTot();
+  let cols, lines, title;
+  if (kind === 'sal') {
+    title = 'Service Rankings by salon';
+    cols = [{ key: 'name', label: 'Salon', fmt: 'text' }, { key: 'rev', label: 'Revenue (' + cur + ', ex VAT)', fmt: 'aed' }, { key: 'u', label: 'Units', fmt: 'num' }, { key: 'chg', label: 'Change in revenue on ' + pl + ' %', fmt: 'pct' },
+      { key: 'cl', label: 'Clients', fmt: 'num' }, { key: 'avg', label: 'Average per unit (' + cur + ')', fmt: 'aed' }, { key: 'top', label: 'Top service here', fmt: 'text' }, { key: 'col', label: 'Colour share of revenue', fmt: 'pct' }];
+    lines = rows.map(r => ({ cells: [r.name, r2(r.rev), r.u, chg(r), r.cl, r.u ? r2(r.rev / r.u) : null, r.top ? r.top.name : '', r2(r.colourShare)] }));
+  } else {
+    title = 'Service Rankings by family';
+    cols = [{ key: 'name', label: 'Family', fmt: 'text' }, { key: 'rev', label: 'Revenue (' + cur + ', ex VAT)', fmt: 'aed' }, { key: 'u', label: 'Units', fmt: 'num' }, { key: 'chg', label: 'Change in revenue on ' + pl + ' %', fmt: 'pct' },
+      { key: 'share', label: 'Share of revenue', fmt: 'pct' }, { key: 'avg', label: 'Average per unit (' + cur + ')', fmt: 'aed' }];
+    lines = rows.map(r => ({ cells: [cmFam(r.k).name, r2(r.rev), r.u, chg(r), tr.rev ? r2(100 * r.rev / tr.rev) : null, r.u ? r2(r.rev / r.u) : null] }));
+  }
+  return { name: ['service-rankings', kind === 'sal' ? 'by-salon' : 'by-family', srScope(), a, 'to', b].map(srSlug).join('-'), csv: 0, sheets: [{ name: title.slice(0, 31), title, subtitle: srScope() + ' · ' + a + ' to ' + b + (srPrev ? ' · set against ' + pl : '') + '. Revenue is ex VAT.', blocks: [{ cols, rows: lines }],
+    legend: [['Revenue', 'Ex VAT. Retail is on Products; deposits, vouchers, refunds and prepaid courses are left out.'], ['Clients', 'Different people. A client at two salons counts once in each salon.']] }] };
+}
+const srExportSal = () => srExportTable('sal');
+const srExportFam = () => srExportTable('fam');
