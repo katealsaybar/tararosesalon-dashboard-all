@@ -196,7 +196,9 @@
       root.querySelector('[data-back]').hidden = self.i === 0;
       root.querySelector('[data-next]').textContent = self.i === n - 1 ? 'Done for now' : 'Next';
       // bring the part into view above the card, then place the spotlight; a part inside the fixed top bar needs no scroll
-      var el = st.el, r = el.getBoundingClientRect();
+      var el = st.el;
+      if (!el.isConnected || !vis(el)) { var f2 = st.s.find(v); if (f2) st.el = el = f2; }   // a page that redraws its parts (the Service Calendar does) leaves the old element behind
+      var r = el.getBoundingClientRect();
       var fixedTop = !!el.closest('#topbar, .topbar, #sidebar, .sidebar, .lg-side');
       if (!fixedTop && (r.top < 90 || r.bottom > window.innerHeight * (window.innerWidth <= 760 ? 0.5 : 0.8))) {
         // the dashboard scrolls inside its own box on some pages (and a part can sit in a shadow root), so find the box that really scrolls
