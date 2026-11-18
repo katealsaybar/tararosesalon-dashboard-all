@@ -365,7 +365,7 @@ function ordStepsHtml(g) {
 function ordBuyHtml(g) {
   const b = g.buy;
   let h = '';
-  if (!b) h += `<h4>What was bought</h4><p class="ord-muted">${g.type === 'Order' ? 'The items are in the attached file (Excel or PDF), which this page does not read yet. It will list every product with its quantity and price.' : 'No items are listed in this email.'}</p>`;
+  if (!b) h += `<h4>What was bought</h4><p class="ord-muted">${g.docs.some(d => d.file_path) ? 'The items are in the PDF of this order. Open it under The emails below. This page could not read its lines.' : g.type === 'Order' ? 'The items are in the attached file (Excel or PDF), which this page does not read yet. It will list every product with its quantity and price.' : 'No items are listed in this email.'}</p>`;
   else {
     h += `<h4>What was bought</h4><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Price AED</th><th class="r">Total AED</th></tr></thead><tbody>` +
       b.lines.map(l => `<tr><td data-l="Product">${ordEsc(l.name)}${l.note ? ` <span class="ord-dnote">${ordEsc(l.note)}</span>` : ''}</td><td class="r" data-l="Qty">${l.qty == null ? '-' : ordEsc(l.qty)}</td><td class="r" data-l="Price AED">${l.unit == null ? '-' : ordAed(+l.unit)}</td><td class="r" data-l="Total AED">${l.total == null ? '-' : ordAed(+l.total)}</td></tr>`).join('') + '</tbody></table>';
@@ -382,7 +382,17 @@ function ordMsgHtml(d) {
   const ours = d.kind === 'order' || d.kind === 'reply', files = (d.file_names || '').split(/;\s*/).filter(Boolean);
   return `<div class="ord-msg"><div class="ord-mh"><b>${ordEsc(ORD_KINDNAME[d.kind] || d.kind)}</b><span>${ours ? 'from us to ' + ordEsc(d.supplier) : 'from ' + ordEsc(d.supplier)}</span><span>${ordEsc(ordTime(d.at))}</span></div>` +
     (d.subject ? `<div class="ord-ms">${ordEsc(d.subject)}</div>` : '') + `<div class="ord-mb">${ordEsc(d.body || d.note || '')}</div>` +
-    (files.length ? `<div class="ord-ma">${files.map(n => `<span class="ord-att">${ordEsc(n)}</span>`).join('')}</div>` : '') + '</div>';
+    (d.file_path ? `<div class="ord-ma"><button type="button" class="cm-pill ord-openpdf" data-p="${ordEsc(d.file_path)}" onclick="ordFile(this)">Open the PDF${d.file_name ? ' (' + ordEsc(d.file_name) + ')' : ''}</button></div>`
+      : files.length ? `<div class="ord-ma">${files.map(n => `<span class="ord-att">${ordEsc(n)}</span>`).join('')}</div>` : '') + '</div>';
+}
+// The supplier's PDF is kept in the private bucket order-files (migrations/orders_files.sql); a signed link that lasts an hour opens it. Level 5 or the extra page orders only.
+async function ordFile(b) {
+  const w = window.open('', '_blank');
+  try {
+    const { data, error } = await sb.storage.from('order-files').createSignedUrl(b.dataset.p, 3600);
+    if (error || !data || !data.signedUrl) throw error || new Error('no link');
+    if (w) { w.opener = null; w.location.href = data.signedUrl; } else window.location.href = data.signedUrl;
+  } catch (e) { console.error(e); if (w) w.close(); if (typeof lgxToast === 'function') lgxToast('The PDF did not open. Try again, or ask Kate.', true); }
 }
 function ordOpen(key) {
   const g = ordByKey[key]; if (!g) return;
