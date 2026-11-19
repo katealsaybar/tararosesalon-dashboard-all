@@ -42,6 +42,9 @@ const SVC_CSS2 = `
 .sc.dnc{cursor:pointer}
 .sc.dnc:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 .sc.dnc .big{display:inline-block;border-bottom:1.5px dotted var(--muted2);align-self:flex-start}
+.chead .n5{margin-top:3px}
+.mdl{display:inline-block;font-size:11.5px;color:var(--muted2)}
+.mdl.m2,.mdl.m3{border:1px solid var(--border);border-radius:999px;padding:0 8px;color:var(--text);background:var(--surface)}
 .ans{margin:8px 0 6px;font-size:18px;line-height:1.45;color:var(--text);max-width:80ch}
 .why-wall{margin:14px 0 4px}
 .vbar{position:sticky;top:calc(var(--tbh,0px) + var(--jnh,0px));z-index:24;background:var(--bg);box-shadow:0 -14px 0 var(--bg);padding:8px 0;margin:10px 0 4px}
@@ -88,7 +91,7 @@ const SVC_CSS2 = `
   #staffPick .ps{flex:1 1 0;min-width:0}
   #staffPick .ps-btn{width:100%;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ct>summary,.ct-def>summary{display:flex;align-items:center;min-height:44px}
-  .ab h2,.why-wall-t{font-size:13px}
+  .ab h2,.why-wall-t,.mdl{font-size:13px}
   .gseg .gchip{min-height:44px;padding:0 16px}
   .navbtn{width:44px;height:44px}
   .lg,.sg{min-height:44px}
@@ -230,6 +233,7 @@ async function renderServiceCal() {
 
   var S = {br:['SAA'], from:addDays(TODAY, -1), to:addDays(TODAY, -1), view:'day', staff:null, hideCat:{}, hideState:{}, q:'', sort:null, lf:{}, showAll:false, mi:0, sortChair:false, note:''};
   var PH = {};              // stylist key (salon|name) -> photo path, the cutout (assets/staff/...)
+  var MODELS = null;        // employment model by stylist name (lower case) -> 1, 2 or 3; null unless the account may see it (Level 4 and up) and the database has it
   var W = null;             // the loaded rows: {rows, synced, first, last}
   var CACHE = {};
   var MQ = matchMedia('(max-width:760px)');
@@ -440,6 +444,10 @@ async function renderServiceCal() {
     else { var mine = W.rows.filter(function (r) { return r.sk === sk; }), b = mine.filter(function (r) { return r.cat === 'beauty' || r.cat === 'nails'; }).length; res = mine.length > 0 && b / mine.length >= 0.6; }
     return (BEA[sk] = res);
   }
+  /* the employment model (Model 1, 2 or 3 rent a chair; Jumera's list, 19 Nov 2026), only for Level 4 and up: the database answers null to anyone else, and then nothing about it is drawn */
+  function modelNo(sk){ return MODELS ? (MODELS[String(stName(sk)).toLowerCase().trim()] || 1) : 0; }
+  function lineModel(l){ var r0 = l.rows && l.rows[0]; return modelNo(r0 ? r0.sk : S.staff); }
+  function modelHead(c){ return c.mdl ? '<div class="n5"><span class="mdl m' + c.mdl + '">Model ' + c.mdl + '</span></div>' : ''; }
   function nStaff(rs){ var m = {}; rs.forEach(function (r) { m[r.sk] = 1; }); return Object.keys(m).length; }
   /* a tile opens the list behind its figure (Kate, 19 Nov 2026: "clickable numbers"); a tile with nothing behind it stays plain */
   function tile(lbl, big, sub, spec){
@@ -465,9 +473,10 @@ async function renderServiceCal() {
     var by = {}; rows.forEach(function (r) { (by[r.sk] = by[r.sk] || []).push(r); });
     var keys = Object.keys(by).sort(byName), brs = {}; rows.forEach(function (r) { brs[r.b] = 1; });
     var many = Object.keys(brs).length > 1, cols = [{ k: 'st', l: 'Stylist', t: 'text' }];
+    if (MODELS) cols.push({ k: 'mdl', l: 'Model', t: 'text' });
     if (many) cols.push({ k: 'b', l: 'Salon', t: 'text' });
     cols.push({ k: 'n', l: 'Services', t: 'num' }, { k: 'chair', l: 'Chair time (min)', t: 'num' });
-    var out = keys.map(function (k) { var rs = by[k], sp = winServices(stName(k) + ', ' + title.toLowerCase(), sub, rs); return { st: stName(k), b: rs[0].b, n: rs.length, chair: chairOf(rs), _dn: { n: sp, chair: sp } }; });
+    var out = keys.map(function (k) { var rs = by[k], sp = winServices(stName(k) + ', ' + title.toLowerCase(), sub, rs); return { st: stName(k), mdl: MODELS ? 'Model ' + modelNo(k) : '', b: rs[0].b, n: rs.length, chair: chairOf(rs), _dn: { n: sp, chair: sp } }; });
     if (byChair) out.sort(function (a, b) { return b.chair - a.chair || a.st.localeCompare(b.st); });
     var foot = { st: /beautician/i.test(title) ? 'All beauticians shown' : 'All stylists shown', b: '', n: rows.length, chair: out.reduce(function (t, x) { return t + x.chair; }, 0) };
     return { title: title, sub: sub, sk: 'svc-' + slug(title + ' ' + sub), views: [{ id: 'stylists', label: 'Stylists (' + keys.length + ')', load: async function () { return { cols: cols, rows: out, foot: foot }; } }] };
@@ -532,7 +541,7 @@ async function renderServiceCal() {
       el.innerHTML = '<div class="empty">' + msg + '</div>'; return;
     }
     var head = '<div class="grid chead"><div class="corner"></div>' + cols.map(function (c) {
-      return '<button type="button" class="ch' + (c.today ? ' is-today' : '') + '" ' + c.hd + '><div class="chh">' + (c.ph || '') + '<div class="chx"><div class="n1">' + esc(c.t1) + '</div><div class="n2">' + (esc(c.t2) || '&nbsp;') + '</div></div></div><div class="n3">' + c.rows.length + ' service' + (c.rows.length === 1 ? '' : 's') + ' · ' + dur(union(c.rows)) + '</div>' + shiftHead(c) + '</button>';
+      return '<button type="button" class="ch' + (c.today ? ' is-today' : '') + '" ' + c.hd + '><div class="chh">' + (c.ph || '') + '<div class="chx"><div class="n1">' + esc(c.t1) + '</div><div class="n2">' + (esc(c.t2) || '&nbsp;') + '</div></div></div><div class="n3">' + c.rows.length + ' service' + (c.rows.length === 1 ? '' : 's') + ' · ' + dur(union(c.rows)) + '</div>' + shiftHead(c) + modelHead(c) + '</button>';
     }).join('') + '</div>';
     var gut = ''; for (var m = T0; m <= T1; m += 60) gut += '<span style="top:' + ((m - T0) * PX) + 'px">' + fmt(m).replace(':00', '') + '</span>';
     var body = '<div class="grid cbody"><div class="gut">' + gut + '</div>' + cols.map(function (c) {
@@ -550,7 +559,7 @@ async function renderServiceCal() {
     var all = dayRows(), ids = dayStaff();
     if (S.sortChair) { var t = function (n) { return union(all.filter(function (r) { return r.sk === n && visible(r); })); }; ids.sort(function (a,b) { return t(b) - t(a); }); }
     if (mobile()) ids = ids[S.mi] !== undefined ? [ids[S.mi]] : [];
-    return ids.map(function (n) { var mine = all.filter(function (r) { return r.sk === n; }), fl = firstLast(stName(n)); return {sh:shiftOf(n, S.from), ph:avatar(n, stName(n)), t1:fl[0], t2:fl[1] + (multi() ? (fl[1] ? ' · ' : '') + mine[0].b : ''), all:mine, rows:mine.filter(visible), hd:'data-staff="' + esc(n) + '" title="See ' + esc(stName(n)) + '’s week"'}; });
+    return ids.map(function (n) { var mine = all.filter(function (r) { return r.sk === n; }), fl = firstLast(stName(n)); return {mdl:modelNo(n), sh:shiftOf(n, S.from), ph:avatar(n, stName(n)), t1:fl[0], t2:fl[1] + (multi() ? (fl[1] ? ' · ' : '') + mine[0].b : ''), all:mine, rows:mine.filter(visible), hd:'data-staff="' + esc(n) + '" title="See ' + esc(stName(n)) + '’s week"'}; });
   }
   function weekCols(){
     var mine = weekRows();
@@ -599,6 +608,7 @@ async function renderServiceCal() {
       var rng = function (l) { return fmt(l.sh.s) + ' - ' + fmt(l.sh.e); };
       SHT = tableOf('svcSH', { el: '#shT', rows: function () { return SHLINES; }, after: pagerAfter(function () { return S.view === 'day' ? 'stylists' : 'days'; }), cols: [
         { k: 'who', l: function () { return S.view === 'day' ? 'Stylist' : 'Day'; }, t: 'txt', raw: function (l) { return l.label; }, disp: function (l) { return l.label; }, cell: function (l) { return esc(l.label); } },
+        { k: 'model', l: 'Model', t: 'txt', hide: function () { return !MODELS; }, raw: function (l) { return 'Model ' + lineModel(l); }, disp: function (l) { return 'Model ' + lineModel(l); }, cell: function (l) { return 'Model ' + lineModel(l); } },
         { k: 'shift', l: 'Shift', t: 'txt', raw: rng, sk: function (l) { return l.sh.s; }, disp: rng, cell: rng },
         { k: 'first', l: 'First service', t: 'txt', raw: function (l) { return fmt(l.o.first); }, sk: function (l) { return l.o.first; }, disp: function (l) { return fmt(l.o.first); }, cell: function (l) { return fmt(l.o.first); } },
         { k: 'last', l: 'Last service ends', t: 'txt', raw: function (l) { return fmt(l.o.last); }, sk: function (l) { return l.o.last; }, disp: function (l) { return fmt(l.o.last); }, cell: function (l) { return fmt(l.o.last); } },
@@ -747,8 +757,8 @@ async function renderServiceCal() {
     if (!SHLINES.length) return null;
     var T = SHT ? SHT.rows() : SHLINES, ux = !!(W && W.hasUtil);
     return xs('Shifts and overtime', 'Service Calendar: shifts and overtime', scopeText() + '. Overtime is how long after the shift end the last booked service finishes.',
-      [{ label: S.view === 'day' ? 'Stylist' : 'Day', fmt: 'text' }, { label: 'Shift starts', fmt: 'text' }, { label: 'Shift ends', fmt: 'text' }, { label: 'First service', fmt: 'text' }, { label: 'Last service ends', fmt: 'text' }].concat(ux ? [{ label: 'Hours rendered', fmt: 'num' }, { label: 'Booked hours (Phorest)', fmt: 'num' }, { label: 'Utilisation (%)', fmt: 'num' }] : [], [{ label: 'Overtime (min)', fmt: 'num' }]),
-      T.map(function (l) { var r2 = function (x) { return x == null ? null : Math.round(x * 100) / 100; }; return [l.label, fmt(l.sh.s), fmt(l.sh.e), fmt(l.o.first), fmt(l.o.last)].concat(ux ? [l.u ? r2(l.u.av) : null, l.u ? r2(l.u.bk) : null, l.u ? r2(l.u.pct) : null] : [], [l.o.late]); }), [['Overtime', 'From bookings, not a clock-out.'], ['Hours rendered', 'The hours the rota gives her that day, breaks taken out (Phorest Utilisation report). Not a clock-in.'], ['Utilisation', 'Phorest, hours booked divided by hours rendered; passes 100% when bookings overlap.']]);
+      [{ label: S.view === 'day' ? 'Stylist' : 'Day', fmt: 'text' }, { label: 'Shift starts', fmt: 'text' }, { label: 'Shift ends', fmt: 'text' }, { label: 'First service', fmt: 'text' }, { label: 'Last service ends', fmt: 'text' }].concat(ux ? [{ label: 'Hours rendered', fmt: 'num' }, { label: 'Booked hours (Phorest)', fmt: 'num' }, { label: 'Utilisation (%)', fmt: 'num' }] : [], [{ label: 'Overtime (min)', fmt: 'num' }], MODELS ? [{ label: 'Employment model', fmt: 'text' }] : []),
+      T.map(function (l) { var r2 = function (x) { return x == null ? null : Math.round(x * 100) / 100; }; return [l.label, fmt(l.sh.s), fmt(l.sh.e), fmt(l.o.first), fmt(l.o.last)].concat(ux ? [l.u ? r2(l.u.av) : null, l.u ? r2(l.u.bk) : null, l.u ? r2(l.u.pct) : null] : [], [l.o.late], MODELS ? ['Model ' + lineModel(l)] : []); }), [['Overtime', 'From bookings, not a clock-out.'], ['Hours rendered', 'The hours the rota gives her that day, breaks taken out (Phorest Utilisation report). Not a clock-in.'], ['Utilisation', 'Phorest, hours booked divided by hours rendered; passes 100% when bookings overlap.']]);
   }
   function svcExportCT(){ var s = ctSheet(); return s ? { name: xname('client-types'), csv: 0, sheets: [s] } : null; }
   function svcExportSH(){ var s = shSheet(); return s ? { name: xname('shifts'), csv: 0, sheets: [s] } : null; }
@@ -822,7 +832,7 @@ async function renderServiceCal() {
     var r = W.rows[i]; if (!r) return;
     var st = STATES[r.state] || ['paid', r.state], dlg = LVD.getElementById('dlg'); dlg.className = 'dlg c-' + r.cat;
     dlg.innerHTML = '<div class="top"><h3>' + esc(r.sv) + '</h3><div class="when">' + dlabel(r.d, true) + ' · ' + fmt(r.s) + ' to ' + fmt(r.e) + ' · ' + dur(r.e - r.s) + '</div></div>'
-      + '<dl><dt>Stylist</dt><dd class="dd-st">' + avatar(r.sk, r.st) + '<span>' + esc(r.st) + (r.req ? ' <span class="star">★</span> asked for' : '') + '</span></dd><dt>Client</dt><dd>' + clientLink(r) + '</dd><dt>Status</dt><dd>' + st[1] + '</dd><dt>Group</dt><dd>' + CATS[r.cat] + '</dd>' + priceRow(r) + '<dt>Salon</dt><dd>' + BR_FULL[r.b] + '</dd></dl>'
+      + '<dl><dt>Stylist</dt><dd class="dd-st">' + avatar(r.sk, r.st) + '<span>' + esc(r.st) + (MODELS ? ' <span class="cw-pill">Model ' + modelNo(r.sk) + '</span>' : '') + (r.req ? ' <span class="star">★</span> asked for' : '') + '</span></dd><dt>Client</dt><dd>' + clientLink(r) + '</dd><dt>Status</dt><dd>' + st[1] + '</dd><dt>Group</dt><dd>' + CATS[r.cat] + '</dd>' + priceRow(r) + '<dt>Salon</dt><dd>' + BR_FULL[r.b] + '</dd></dl>'
       + '<div class="act"><button class="btn pri" type="button" data-act="week" data-staff="' + esc(r.sk) + '">' + esc(firstLast(r.st)[0]) + '’s week</button><button class="btn" type="button" data-act="close">Close</button></div>';
     LVD.getElementById('scrim').hidden = false; dlg.querySelector('.btn.pri').focus();
   }
@@ -960,5 +970,6 @@ async function renderServiceCal() {
   wire(); setTb();
   SVC.refresh = function () { if (shellKey() === SHELLKEY) return; syncShell(); S.staff = null; S.mi = 0; S.showAll = false; apply(); load(); };
   if (window.ResizeObserver) { const ro = new ResizeObserver(svcSetTb); ro.observe(shadow.getElementById('topbar')); ro.observe(shadow.getElementById('vbar')); ro.observe(shadow.getElementById('rail')); [].forEach.call(document.querySelectorAll('.jn-rail'), function (r) { ro.observe(r); }); const dtb = document.getElementById('topbar'); if (dtb) ro.observe(dtb); }
+  try { var mr = await sb.rpc('service_calendar_models'); MODELS = (!mr.error && mr.data && typeof mr.data === 'object') ? mr.data : null; } catch (e) { MODELS = null; }
   await load();
 }
