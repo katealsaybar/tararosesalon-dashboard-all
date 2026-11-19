@@ -133,7 +133,8 @@ const SVC_CSS2 = `
 @media (max-width:760px){
   .ov{padding:12px 10px 10px}
   .ov-plot,.ov-x{grid-template-columns:24px minmax(0,1fr);gap:0 6px}
-  .ov-cols,.ov-xs{gap:2px}
+  .ov-cols,.ov-xs{gap:4px}
+  .ovc i{max-width:44px}
   .ov-xs span.od{visibility:hidden}
   .ov-xs .ap{display:none}
   .ov-h .top{margin-left:0;flex-basis:100%}
@@ -602,11 +603,12 @@ async function renderServiceCal() {
   function renderOverview(){
     var el = LVD.getElementById('ovBox'); if (!el) return;
     if (!W) { el.innerHTML = ''; return; }
+    OVSTEP = window.matchMedia('(max-width:760px)').matches ? 60 : 30;
     var rows = ovRows();
     if (!rows.length) { OV = null; el.innerHTML = '<div class="ov-h"><b>Busiest times</b><span class="s">Nothing booked for ' + esc(scopeText()) + ', so there are no busy times to show.</span></div>'; return; }
     var o = OV = ovBuild(rows), yMax = Math.max(1, Math.ceil(o.max)), pk = o.slots.filter(function (x) { return x.avg === o.max; })[0];
     var who = S.view === 'week' && S.staff ? stName(S.staff) + ' · ' : '';
-    var sub = o.nd === 1 ? 'Services at once, every 30 minutes · ' + esc(scopeText()) : who + 'Average services at once on a typical day, every 30 minutes · ' + esc(scopeText()) + ' · ' + o.nd + ' days with bookings';
+    var sub = o.nd === 1 ? 'Services at once, ' + (OVSTEP === 60 ? 'every hour' : 'every 30 minutes') + ' · ' + esc(scopeText()) : who + 'Average services at once on a typical day, ' + (OVSTEP === 60 ? 'every hour' : 'every 30 minutes') + ' · ' + esc(scopeText()) + ' · ' + o.nd + ' days with bookings';
     var ys = [0, yMax / 2, yMax].filter(function (v, i, a) { return v === Math.round(v) && a.indexOf(v) === i; });
     var cols = o.slots.map(function (sl, i) {
       var h = sl.avg / yMax * 100, tip = ovTip(o, sl);
@@ -615,7 +617,7 @@ async function renderServiceCal() {
     var xs = o.slots.map(function (sl) {
       if (sl.m % 60) return '<span></span>';
       var hr = Math.floor(sl.m / 60), lab = ((hr + 11) % 12 + 1) + '<span class="ap"> ' + (hr >= 12 ? 'PM' : 'AM') + '</span>';
-      return '<span class="' + ((hr - 9) % 2 ? 'od' : 'ev') + '">' + lab + '</span>';
+      return '<span class="' + ((hr - 9) % 2 && OVSTEP === 30 ? 'od' : 'ev') + '">' + lab + '</span>';
     }).join('');
     el.innerHTML = '<div class="ov-h"><b>Busiest times</b><span class="s">' + sub + '</span><span class="top">Busiest: ' + fmt(pk.m) + ' to ' + fmt(pk.m + OVSTEP) + ' · ' + (o.nd === 1 ? pk.peak + ' at once' : ovNum(pk.avg) + ' at once on average') + '</span></div>'
       + '<div class="ov-plot"><div class="ov-y">' + ys.map(function (v) { return '<span style="bottom:' + (v / yMax * 100) + '%">' + v + '</span>'; }).join('') + '</div><div class="ov-cols" id="ovCols">' + cols + '</div></div>'
@@ -635,6 +637,7 @@ async function renderServiceCal() {
   function wireOverview(){
     var box = LVD.getElementById('ovBox'); if (!box) return;
     var hoverOk = function () { return window.matchMedia('(hover:hover)').matches; };
+    try { window.matchMedia('(max-width:760px)').addEventListener('change', function () { if (W) renderOverview(); }); } catch (e) { /* older browser: it redraws on the next change of view */ }
     box.addEventListener('mouseover', function (e) { var b = e.target.closest && e.target.closest('.ovc'); if (b && hoverOk()) ovHover(b); });
     box.addEventListener('mouseout', function (e) { var b = e.target.closest && e.target.closest('.ovc'); var hc = LVD.getElementById('ovHc'); if (b && hc && hoverOk() && !(e.relatedTarget && b.contains(e.relatedTarget))) hc.hidden = true; });
     box.addEventListener('focusin', function (e) { var b = e.target.closest && e.target.closest('.ovc'); if (b && hoverOk()) ovHover(b); });
