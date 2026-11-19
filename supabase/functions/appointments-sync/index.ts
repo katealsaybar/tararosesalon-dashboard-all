@@ -1,7 +1,9 @@
 // Appointments sync (Kate, 17 Nov 2026). Keeps phorest_appointments (the rows behind the Service Calendar page, hub/servicecal.html) in step with Phorest
 // through the day, with no laptop: Phorest's official API (/branch/{id}/appointment, /staff, /client-batch), the same calls as "phorest data export/appointments/
 // sync_appointments.py" in the cowork repo, which stays as the manual and backfill route.
-// UAE only (the four salons): Bahrain is a separate Phorest business with its own login.
+// The four UAE salons use the UAE Phorest login; Bahrain (code BAH, opened 9 Aug 2026) is a separate Phorest business with its own login, added 19 Nov 2026
+// (secrets PHOREST_BAH_USERNAME, PHOREST_BAH_PASSWORD, PHOREST_BAH_BUSINESS_ID; the shorter _USER / _PASS are also read). Its one salon is found from /branch.
+// A day is a Dubai day for the window; Phorest's start and end times are each salon's own clock. Body { only: "BAH" } runs one business (backfill).
 // Body (all optional): { from, to, days_back, days_fwd }. Default window = today - 1 day to today + 3 days (the frequent run). The nightly run asks for
 // days_back 3, days_fwd 115: far enough ahead to see a rebooking made on the day of a visit (booked_at, the appointment's createdAt; Rebooked in the KPI doc). Dates are Dubai days.
 // For each branch: pull the window, upsert every appointment stamped with this run's time, then delete the rows in the window that this run did not touch
@@ -13,7 +15,7 @@
 // role only), the same pattern as complaint-tag-sync. The public anon key alone is refused (401).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const BRANCHES: Record<string, string> = {
+const UAE_BRANCHES: Record<string, string> = {
   AQ: '3lBkqsMGyr2ipZCvxCuZfg',
   KCA: 'iH0_oL3aKdXSnwOn19V0_w',
   MC: 'jK2EFWbtnJ_D2Fkg4Grd_w',
@@ -21,18 +23,21 @@ const BRANCHES: Record<string, string> = {
 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const env = (...names: string[]) => { for (const n of names) { const v = Deno.env.get(n); if (v) return v; } return ''; };
-const USER = env('PHOREST_UAE_USERNAME', 'PHOREST_UAE_USER', 'PHOREST_API_USER');
-const PASS = env('PHOREST_UAE_PASSWORD', 'PHOREST_UAE_PASS', 'PHOREST_API_PASS');
-const BID = env('PHOREST_UAE_BUSINESS_ID', 'PHOREST_BUSINESS_ID');
-const BASE = `https://platform.phorest.com/third-party-api-server/api/business/${BID}`;
-const AUTH = 'Basic ' + btoa(`${USER}:${PASS}`);
+type Biz = { key: string; base: string; auth: string; ok: boolean };
+const mk = (key: string, user: string, pass: string, bid: string): Biz => ({
+  key, ok: !!(user && pass && bid),
+  base: `https://platform.phorest.com/third-party-api-server/api/business/${bid}`,
+  auth: 'Basic ' + btoa(`${user}:${pass}`),
+});
+const UAE = mk('UAE', env('PHOREST_UAE_USERNAME', 'PHOREST_UAE_USER', 'PHOREST_API_USER'), env('PHOREST_UAE_PASSWORD', 'PHOREST_UAE_PASS', 'PHOREST_API_PASS'), env('PHOREST_UAE_BUSINESS_ID', 'PHOREST_BUSINESS_ID'));
+const BAH = mk('BAH', env('PHOREST_BAH_USERNAME', 'PHOREST_BAH_USER'), env('PHOREST_BAH_PASSWORD', 'PHOREST_BAH_PASS'), env('PHOREST_BAH_BUSINESS_ID'));
 
 const supa = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
-async function api(path: string): Promise<any> {
+async function api(biz: Biz, path: string): Promise<any> {
   let last = 0;
   for (let i = 0; i < 4; i++) {
-    const r = await fetch(BASE + path, { headers: { Authorization: AUTH, Accept: 'application/json' } });
+    const r = await fetch(biz.base + path, { headers: { Authorization: biz.auth, Accept: 'application/json' } });
     if (r.ok) return await r.json();
     last = r.status;
     if ([429, 500, 502, 503, 504].includes(r.status) && i < 3) { await sleep(1500 * (i + 1)); continue; }
@@ -40,11 +45,11 @@ async function api(path: string): Promise<any> {
   }
   throw new Error(`phorest ${last} ${path.split('?')[0]}`);
 }
-async function paged(path: string, key: string, size: number): Promise<any[]> {
+async function paged(biz: Biz, path: string, key: string, size: number): Promise<any[]> {
   const out: any[] = [];
   const sep = path.includes('?') ? '&' : '?';
   for (let p = 0; ; p++) {
-    const d = await api(`${path}${sep}size=${size}&page=${p}`);
+    const d = await api(biz, `${path}${sep}size=${size}&page=${p}`);
     out.push(...(d._embedded?.[key] || []));
     if (p + 1 >= (d.page?.totalPages || 0)) break;
   }
@@ -58,13 +63,13 @@ const shortName = (c: any) => {
   return (fn + (ln ? ' ' + ln[0].toUpperCase() + '.' : '')).trim();
 };
 
-async function branch(code: string, bid: string, f: string, t: string, runIso: string) {
+async function branch(biz: Biz, code: string, bid: string, f: string, t: string, runIso: string) {
   const staff: Record<string, string> = {};
-  for (const s of await paged(`/branch/${bid}/staff`, 'staffs', 200)) staff[s.staffId] = `${s.firstName || ''} ${s.lastName || ''}`.trim();
+  for (const s of await paged(biz, `/branch/${bid}/staff`, 'staffs', 200)) staff[s.staffId] = `${s.firstName || ''} ${s.lastName || ''}`.trim();
   const rows: any[] = [];
   for (let c0 = f; c0 <= t;) {
     const c1 = addDays(c0, 13) < t ? addDays(c0, 13) : t;
-    for (const x of await paged(`/branch/${bid}/appointment?from_date=${c0}&to_date=${c1}`, 'appointments', 100)) {
+    for (const x of await paged(biz, `/branch/${bid}/appointment?from_date=${c0}&to_date=${c1}`, 'appointments', 100)) {
       if (x.deleted || !x.startTime || !x.endTime) continue;
       rows.push({
         branch: code, appt_id: x.appointmentId, date: x.appointmentDate, start_time: String(x.startTime).slice(0, 8), end_time: String(x.endTime).slice(0, 8),
@@ -85,7 +90,7 @@ async function branch(code: string, bid: string, f: string, t: string, runIso: s
   const need = ids.filter((i) => !names[i]);
   for (let i = 0; i < need.length; i += 100) {
     const grp = need.slice(i, i + 100);
-    const d = await api('/client-batch?' + grp.map((x) => `client_id=${encodeURIComponent(x)}`).join('&'));
+    const d = await api(biz, '/client-batch?' + grp.map((x) => `client_id=${encodeURIComponent(x)}`).join('&'));
     for (const c of d._embedded?.clients || []) names[c.clientId] = shortName(c);
   }
   for (const r of rows) r.client_name = (r.client_id && names[r.client_id]) || '';
@@ -105,7 +110,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 });
   const { data: sec } = await supa.from('internal_secrets').select('value').eq('name', 'appointments_sync_cron').maybeSingle();
   if (!sec?.value || req.headers.get('x-cron-secret') !== sec.value) return J({ error: 'unauthorised' }, 401);
-  if (!USER || !PASS || !BID) return J({ error: 'Phorest secrets are not set on this project', have: Object.keys(Deno.env.toObject()).filter((k) => /phorest/i.test(k)), need: ['PHOREST_UAE_USERNAME', 'PHOREST_UAE_PASSWORD', 'PHOREST_UAE_BUSINESS_ID'] }, 500);   // names only, never values
+  if (!UAE.ok && !BAH.ok) return J({ error: 'Phorest secrets are not set on this project', have: Object.keys(Deno.env.toObject()).filter((k) => /phorest/i.test(k)) }, 500);   // names only, never values
 
   let b: any = {};
   try { b = await req.json(); } catch { /* no body */ }
@@ -117,9 +122,25 @@ Deno.serve(async (req) => {
 
   const runIso = new Date(Date.now() - 1000).toISOString();   // one second back so this run's rows are never swept by their own stamp
   const out: Record<string, unknown> = {};
-  await Promise.all(Object.entries(BRANCHES).map(async ([code, bid]) => {
-    try { out[code] = await branch(code, bid, f, t, runIso); } catch (e) { out[code] = { error: String(e).slice(0, 160) }; }
-  }));
+  const only = String(b.only || '').toUpperCase();
+  const jobs: Promise<void>[] = [];
+  if (UAE.ok && (!only || only === 'UAE')) {
+    for (const [code, bid] of Object.entries(UAE_BRANCHES)) {
+      jobs.push((async () => { try { out[code] = await branch(UAE, code, bid, f, t, runIso); } catch (e) { out[code] = { error: String(e).slice(0, 160) }; } })());
+    }
+  }
+  if (!only || only === 'BAH') {
+    if (!BAH.ok) out.BAH = { skipped: 'the Bahrain Phorest secrets are not set' };
+    else jobs.push((async () => {
+      try {
+        const brs = await paged(BAH, '/branch', 'branches', 50);
+        const one = brs.find((x: any) => /bahrain/i.test(String(x.name || ''))) || (brs.length === 1 ? brs[0] : null);
+        if (!one) throw new Error('no single Bahrain branch in /branch (' + brs.length + ' branches)');
+        out.BAH = await branch(BAH, 'BAH', one.branchId, f, t, runIso);
+      } catch (e) { out.BAH = { error: String(e).slice(0, 160) }; }
+    })());
+  }
+  await Promise.all(jobs);
   const failed = Object.values(out).some((v: any) => v?.error);
   return J({ window: [f, t], branches: out, ok: !failed }, failed ? 207 : 200);
 });

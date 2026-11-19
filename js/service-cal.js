@@ -191,8 +191,11 @@ async function renderServiceCal() {
 
   var PX = 1.1, T0 = 540, T1 = 1260;           // 9:00 AM to 9:00 PM, 1.1px a minute
   var HH = 60 * PX, H = (T1 - T0) * PX, MAXDAYS = 28;
-  var BRN = [['SAA','Saadiyat'], ['KCA','Khalifa City A'], ['MC','Motor City'], ['AQ','Al Quoz']];
-  var BR_FULL = {SAA:'Saadiyat / Mamsha', KCA:'Khalifa City A', MC:'Motor City', AQ:'Al Quoz'};
+  var BRN = [['SAA','Saadiyat'], ['KCA','Khalifa City A'], ['MC','Motor City'], ['AQ','Al Quoz'], ['BAH','Bahrain']];   // Bahrain (Kate, 19 Nov 2026): its own Phorest business, BHD, Bahrain's clock; picked alone from the header's Bahrain chip, never mixed with the UAE
+  var UAE_CODES = ['SAA','KCA','MC','AQ'];
+  var BR_FULL = {SAA:'Saadiyat / Mamsha', KCA:'Khalifa City A', MC:'Motor City', AQ:'Al Quoz', BAH:'Bahrain'};
+  function isBah(){ return S.br.length === 1 && S.br[0] === 'BAH'; }
+  function zone(){ return isBah() ? 'Asia/Bahrain' : 'Asia/Dubai'; }
   var CATS = {colour:'Colour', cut:'Cut and style', treat:'Treatments', nails:'Nails', beauty:'Beauty', other:'Other'};
   var STATES = {PAID:['paid','Done'], CHECKED_IN:['in','In the chair'], BOOKED:['booked','Booked']};
   var VIEWS = [['day','Day'], ['week','Week'], ['list','List']];
@@ -225,8 +228,8 @@ async function renderServiceCal() {
     [].forEach.call(el.querySelectorAll('select'), window.TRSPillSelect.enhance);
   }
   function firstLast(n){ var p = n.trim().split(/\s+/); return [p[0] || '', p.slice(1).join(' ')]; }
-  function dubaiNow(){
-    var p = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
+  function dubaiNow(tz){
+    var p = new Intl.DateTimeFormat('en-GB', {timeZone:tz || 'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
     return +p[0].value * 60 + +p[2].value;
   }
   var TODAY = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dubai'}).format(new Date());
@@ -238,7 +241,7 @@ async function renderServiceCal() {
   var CACHE = {};
   var MQ = matchMedia('(max-width:760px)');
   function mobile(){ return MQ.matches; }
-  function brAll(){ return S.br.length === BRN.length; }
+  function brAll(){ return S.br.length === UAE_CODES.length && S.br.indexOf('BAH') < 0; }
   function multi(){ return S.br.length > 1; }
   function brLabel(){ return brAll() ? 'UAE Branches' : S.br.map(function (b) { return BRN.filter(function (x) { return x[0] === b; })[0][1]; }).join(', '); }
   function single(){ return S.from === S.to; }
@@ -252,7 +255,7 @@ async function renderServiceCal() {
   function syncShell(){
     SHELLKEY = shellKey();
     var codes = (typeof sel !== 'undefined' && sel.branch && sel.branch.indexOf('all') < 0) ? sel.branch.filter(function (c) { return BRN.some(function (b) { return b[0] === c; }); }) : [];
-    S.br = codes.length ? codes : BRN.map(function (b) { return b[0]; });
+    S.br = codes.indexOf('BAH') >= 0 ? ['BAH'] : codes.length ? codes : UAE_CODES.slice();
     var a = (typeof dateFrom !== 'undefined' && dateFrom) ? dateToIso(dateFrom) : TODAY, z = (typeof dateTo !== 'undefined' && dateTo) ? dateToIso(dateTo) : TODAY;
     if (z < a) z = a;
     S.note = '';
@@ -293,6 +296,7 @@ async function renderServiceCal() {
     if (c && !(live && Date.now() - c.t > 120000)) return c;
     var r = await sb.rpc('service_calendar', {p_branch:b, p_from:f, p_to:t});
     if (r.error || !r.data) return null;
+    if (b === 'BAH' && r.data.staff) r.data.staff = r.data.staff.map(function (n) { return String(n).replace(/\s+\.$/, ''); });   // Phorest Bahrain keeps a dot as the surname ('Charlene .'): the Utilisation join is done in the database on the raw name, so only the display is cleaned
     var led = {}, ledAll = {}, sh = {}, ut = {};
     (r.data.shifts || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) sh[b + '|' + nm + '|' + x[0]] = {k:x[2], s:x[3] ? mm(x[3]) : 0, e:x[4] ? mm(x[4]) : 0, n:pretty(x[5])}; });   // stylist|date -> the rota entry
     (r.data.ledger || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) led[b + '|' + nm + '|' + x[0]] = x.slice(2); });   // stylist|date -> [total, new, ncr, req, salon, rebooked]
@@ -428,8 +432,8 @@ async function renderServiceCal() {
     if (msel) msel.onchange = function () { S.mi = +msel.value; render(); };
     var u = LVD.getElementById('upd');
     if (W && W.synced) {
-      var t = new Date(W.synced), p = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dubai'}).format(t);
-      var hm = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false}).format(t).split(':');
+      var t = new Date(W.synced), p = new Intl.DateTimeFormat('en-CA', {timeZone:zone()}).format(t);
+      var hm = new Intl.DateTimeFormat('en-GB', {timeZone:zone(), hour:'2-digit', minute:'2-digit', hour12:false}).format(t).split(':');
       u.textContent = 'Phorest times updated ' + dlabel(p, true) + ', ' + fmt(+hm[0] * 60 + +hm[1]);
     } else u.textContent = '';
   }
@@ -457,7 +461,7 @@ async function renderServiceCal() {
   }
   /* ---- the windows behind the figures: stylists, days, services. The last one is a single service, which has nothing behind it. */
   function chairOf(rs){ var by = {}; rs.forEach(function (r) { (by[r.sk + '|' + r.d] = by[r.sk + '|' + r.d] || []).push(r); }); return Object.keys(by).reduce(function (t, k) { return t + union(by[k]); }, 0); }
-  function clientSpec(r){ return (r.cid && typeof PD !== 'undefined' && PD.clientHistory) ? PD.clientHistory({ cur: 'AED', label: 'Service Calendar' }, { client: r.cn, cid: r.cid }) : null; }
+  function clientSpec(r){ return (r.cid && typeof PD !== 'undefined' && PD.clientHistory) ? PD.clientHistory({ cur: r.b === 'BAH' ? 'BHD' : 'AED', label: 'Service Calendar' }, { client: r.cn, cid: r.cid }) : null; }
   function winServices(title, sub, rows){
     var list = rows.slice().sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : a.s - b.s || a.i - b.i; }), days = {}, brs = {};
     list.forEach(function (r) { days[r.d] = 1; brs[r.b] = 1; });
@@ -549,7 +553,7 @@ async function renderServiceCal() {
       return '<div class="col' + (c.all.length ? '' : ' off') + '">' + bands(c) + lr.map(function (r) { return c.rows.indexOf(r) >= 0 ? block(r) : ''; }).join('') + '</div>';
     }).join('') + '</div>';
     el.innerHTML = '<div class="cal" id="cal"><div class="cal-in" style="--n:' + cols.length + ';--h:' + H + 'px;--hh:' + HH + 'px">' + head + body + '</div></div>';
-    var nm = dubaiNow();
+    var nm = dubaiNow(zone());
     if (S.view === 'day' && S.from === TODAY && nm > T0 && nm < T1) {
       var d = LVD.createElement('div'); d.className = 'now'; d.style.top = (nm - T0) * PX + 'px'; d.innerHTML = '<b>' + fmt(nm) + '</b>';
       el.querySelector('.cbody').appendChild(d);
@@ -827,10 +831,10 @@ async function renderServiceCal() {
   function closeClient(){ var sc = LVD.getElementById('cwscrim'); if (sc) sc.hidden = true; }
 
   /* ---- detail */
-  /* the price Phorest holds on the booking, after Group (Kate, 19 Nov 2026); hidden until the sync has filled it, and a 0 says so instead of showing AED 0 */
+  /* the price Phorest holds on the booking, after Group (Kate, 19 Nov 2026); hidden until the sync has filled it, and a 0 says so instead of showing AED 0; Bahrain's price is in BHD */
   function priceRow(r){
     if (r.pr == null) return '';
-    return '<dt>Price</dt><dd>' + (r.pr > 0 ? 'AED ' + r.pr.toLocaleString('en-GB', { minimumFractionDigits: r.pr % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '<span class="cw-m">No price on the booking in Phorest</span>') + '</dd>';
+    return '<dt>Price</dt><dd>' + (r.pr > 0 ? (r.b === 'BAH' ? 'BHD ' : 'AED ') + r.pr.toLocaleString('en-GB', { minimumFractionDigits: r.pr % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '<span class="cw-m">No price on the booking in Phorest</span>') + '</dd>';
   }
   function openDetail(i){
     var r = W.rows[i]; if (!r) return;
