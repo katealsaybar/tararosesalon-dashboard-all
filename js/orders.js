@@ -364,6 +364,10 @@ function ordDrawAbout() {
 }
 
 // ── THE ORDER WINDOW: steps, what was bought, the discount, the emails ───────────────
+function ordStepsText(g) {   // the same steps as the row of boxes, written as one line for the download
+  const el = document.createElement('div'); el.innerHTML = ordStepsHtml(g);
+  return [...el.querySelectorAll('.ord-step')].map(x => x.querySelector('b').textContent + ' ' + x.querySelector('i').textContent).join(' · ');
+}
 function ordStepsHtml(g) {
   const seen = {}, has = {}; g.docs.forEach(d => { has[d.kind] = 1; });
   g.docs.forEach(d => {
@@ -489,6 +493,9 @@ async function ordFile(b) {
 function ordOpen(key) {
   const g = ordByKey[key]; if (!g) return;
   ordClose();
+  ordCur = g;
+  // Kate, 19 Nov 2026: Back to the list it came from, then XLSX, CSV, Close (the buttons of every site window). Back shows only when a list window is open underneath.
+  const under = document.querySelector('.dr-modal'), back = !!under, backTxt = under ? ((under.querySelector('h3') || {}).textContent || 'the list') : '';
   const pdfs = g.docs.filter(ordKindPdf), hasBuy = !!(g.buy || g.oos.length || g.discPct);
   // the PDF to show first: the latest invoice, else the latest PDF
   const first = pdfs.filter(d => d.kind === 'invoice').pop() || pdfs[pdfs.length - 1];
@@ -500,8 +507,8 @@ function ordOpen(key) {
   } else left = ordBuyHtml(g);
   const m = document.createElement('div');
   m.className = 'ord-modal'; m.id = 'ordModal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Order');
-  m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><button type="button" class="cm-pill" onclick="ordClose()">Close</button></div>
-    <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div></div></div>`;
+  m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><div class="ord-hb">${back ? `<button type="button" class="cm-pill ord-back" onclick="ordClose()" title="Back to ${ordEsc(backTxt)}" aria-label="Back to ${ordEsc(backTxt)}">‹ Back<span class="ord-bk-l"> to ${ordEsc(backTxt)}</span></button>` : ''}${typeof rexButtons === 'function' ? rexButtons('ordExportOne') : ''}<button type="button" class="cm-pill" onclick="ordClose()">Close</button></div></div>
+    <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div><p class="ord-last">This is the last step: a single order line has nothing behind it.</p></div></div>`;
   m.addEventListener('click', e => { if (e.target === m) ordClose(); });
   document.body.appendChild(m);
   const c = m.querySelector('button'); if (c) c.focus();
@@ -510,6 +517,7 @@ function ordOpen(key) {
 }
 function ordClose() {
   const m = document.getElementById('ordModal'); if (m) m.remove();
+  ordCur = null;
   if (ordBlobUrl) { const u = ordBlobUrl; ordBlobUrl = ''; setTimeout(() => { try { URL.revokeObjectURL(u); } catch (e) { /* harmless */ } }, 1000); }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ordModal')) { e.stopPropagation(); ordClose(); } }, true);
@@ -528,6 +536,30 @@ function ordExport() {
     legend: [['Total', 'The order total from the email. An invoice with no amount in the email text shows a dash.'], ['Discount', 'The AED the supplier took off, or the percentage applied when the email only says that.']] }];
   if (items.length) sheets.push({ name: 'Items', title: 'What was bought', subtitle: `${ordScopeText()} · ${a} to ${b}`, blocks: [{ cols: [{ label: 'Started', fmt: 'text' }, { label: 'Supplier', fmt: 'text' }, { label: 'Reference', fmt: 'text' }, { label: 'Product', fmt: 'text' }, { label: 'Qty', fmt: 'num' }, { label: 'Price (AED)', fmt: 'aed' }, { label: 'Line total (AED)', fmt: 'aed' }, { label: 'Discount note', fmt: 'text' }], rows: items }] });
   return { name: ['orders-and-receipts', ordScopeText(), a, 'to', b].map(ordSlug).join('-'), csv: 0, sheets };
+}
+// One order, for the XLSX and CSV in its window: the summary, what was bought (with the discount and total), what was out of stock and every email. The CSV holds What was bought when
+// there are lines, else the emails.
+function ordExportOne() {
+  const g = ordCur; if (!g) return null;
+  const sheets = [], sub = g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type;
+  const sum = [['Supplier', g.s], ['Reference', g.r || ''], ['Type', g.type], ['Salon', ordName(g.b)], ['Started', ordDay(g.start)], ['Status', g.st], ['Total (AED)', g.a == null ? '' : ordAed(g.a)],
+    ['Discount', g.disc ? 'AED ' + ordAed(g.disc) : g.discPct ? g.discPct + '% applied' : 'none'], ['Needs a look', g.x || ''], ['Steps', ordStepsText(g)], ['Receipt', g.f]];
+  sheets.push({ name: 'Order', title: sub, subtitle: ordName(g.b) + ' · started ' + ordDay(g.start), blocks: [{ cols: [{ label: 'Detail', fmt: 'text' }, { label: 'Value', fmt: 'text' }], rows: sum.map(r => ({ cells: r })) }] });
+  let csv = 0;
+  if (g.buy && g.buy.lines.length) {
+    const L = g.buy.lines, rows = L.map(l => ({ cells: [l.name, l.qty == null ? null : ordR2(+l.qty), l.unit == null ? null : ordR2(+l.unit), l.total == null ? null : ordR2(+l.total), l.note || ''] }));
+    rows.push({ cells: ['Total (' + L.length + ' lines)', ordR2(L.reduce((t, l) => t + (Number(l.qty) || 0), 0)), null, ordR2(L.reduce((t, l) => t + (Number(l.total) || 0), 0)), ''] });
+    if (g.buy.disc) rows.push({ cells: ['Discount taken off', null, null, ordR2(-g.buy.disc), ''] });
+    if (g.buy.deliv != null) rows.push({ cells: ['Delivery', null, null, ordR2(+g.buy.deliv), ''] });
+    if (g.buy.total != null) rows.push({ cells: ['Order total', null, null, ordR2(+g.buy.total), ''] });
+    csv = sheets.length;
+    sheets.push({ name: 'What was bought', title: 'What was bought', subtitle: sub, blocks: [{ cols: [{ label: 'Product', fmt: 'text' }, { label: 'Qty', fmt: 'num' }, { label: 'Price (AED)', fmt: 'aed' }, { label: 'Line total (AED)', fmt: 'aed' }, { label: 'Discount note', fmt: 'text' }], rows }] });
+  }
+  if (g.oos.length) sheets.push({ name: 'Out of stock', title: 'Ordered but not supplied', subtitle: sub, blocks: [{ cols: [{ label: 'Product', fmt: 'text' }, { label: 'Ordered', fmt: 'num' }, { label: 'Supplied', fmt: 'num' }], rows: g.oos.map(l => ({ cells: [l.name, Number(l.qty) || 0, 0] })) }] });
+  if (!csv) csv = sheets.length;
+  sheets.push({ name: 'The emails', title: 'The emails', subtitle: sub, blocks: [{ cols: [{ label: 'Received', fmt: 'text' }, { label: 'Step', fmt: 'text' }, { label: 'From', fmt: 'text' }, { label: 'To', fmt: 'text' }, { label: 'Subject', fmt: 'text' }, { label: 'The email', fmt: 'text' }, { label: 'File', fmt: 'text' }],
+    rows: g.docs.map(d => { const ours = d.kind === 'order' || d.kind === 'reply'; return { cells: [ordTime(d.at), ORD_KINDNAME[d.kind] || d.kind, ours ? 'Tara Rose Salon' : d.supplier, ours ? d.supplier : 'Tara Rose Salon', d.subject || '', d.body || d.note || '', d.file_name || d.file_names || ''] }; }) }] });
+  return { name: ['order', g.s, g.r || g.start].map(ordSlug).join('-'), csv, sheets };
 }
 function ordExportSup() {
   const rows = ordTS ? ordTS.rows() : []; if (!rows.length) return null;

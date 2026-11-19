@@ -69,6 +69,10 @@ tr.ord-rowlook td:first-child{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}
 .ord-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--border)}
 .ord-top h3{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:21px;font-weight:500;line-height:1.25}
 .ord-sub{font-size:13px;color:var(--muted);margin-top:3px}
+.ord-hb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
+.ord-hb .cm-pill,.ord-hb .rex-btn{white-space:nowrap;box-sizing:border-box;height:34px}
+.ord-hb .rex-bar{display:inline-flex;gap:6px}
+.ord-last{margin:18px 0 0;font-size:13px;color:var(--muted2);text-align:center}
 .ord-dbody{padding:14px 20px 20px;overflow:auto}
 .ord-dbody h4{margin:18px 0 8px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);font-weight:600}
 .ord-xline{margin:0 0 12px}
@@ -155,6 +159,9 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
   tr.ord-rowlook td:first-child{box-shadow:none}.ord-card tbody tr{padding-left:12px}tr.ord-rowlook{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}   /* the accent sits on the card, not on the first cell, so it never covers the date */
   .ord-modal{padding:0;align-items:flex-end}
   .ord-dlg{border-radius:16px 16px 0 0;max-height:92vh}
+  .ord-top{flex-direction:column;gap:8px}.ord-hb{justify-content:flex-start;width:100%}
+  .ord-hb .cm-pill,.ord-hb .rex-btn{height:44px}
+  .ord-bk-l{display:none}
   .ord-ac,.ord-seg button,.ord-pbar a.cm-pill,.ord-vcard .cm-pill{min-height:44px}
   .ord-gmh{min-height:44px;flex-wrap:wrap}
   .ord-gmw{flex:1 1 calc(100% - 60px)}
