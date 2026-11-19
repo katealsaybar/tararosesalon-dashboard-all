@@ -145,7 +145,7 @@ function ordShell() {
       ['Why this page', 'Orders, invoices and statements all arrive in one shared inbox, so nobody can see in one place what was ordered, what was billed and what is still waiting for a receipt.'],
       ['Why now', 'Cristine now places every salon\'s order from one place each Monday, so the whole week\'s paperwork lands in one inbox and can be read as one list before Zenoti.'],
       ['If we do nothing', 'A wrong discount on an invoice is only caught if someone happens to read that email. An overdue statement shows up as a supplier chasing us.']],
-      'Kate checks the first twenty rows against Jumera\'s Supplier Balance sheet once the mailbox script has run. No date yet: it waits for that first run.')}
+      'Kate checks the first twenty orders against Jumera\'s Supplier Balance sheet. No date set yet.')}
     <div id="ordBody"><p class="slv-muted" style="margin-top:16px">Loading orders…</p></div>`;
 }
 async function renderOrders() {
@@ -188,38 +188,39 @@ function ordPaint() {
         <div class="ord-learn"><p><b>What is this?</b> The orders that ask for a decision: a wrong discount, an overdue statement, items out of stock, an invoice about to fall due.</p>
           <p><b>Why it matters.</b> These are the ones that cost money or stock if nobody opens them this week.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW1"></span></p></div>
-        <div class="ord-bar ord-bar-plain"><button type="button" class="cm-pill ord-phone" data-sxcm="look">Sort and filter</button><span class="ord-sp"></span>${typeof rexButtons === 'function' ? rexButtons('ordExportLook') : ''}</div>
+        <div class="ord-bar"><button type="button" class="cm-pill ord-phone" data-sxcm="look" aria-label="Sort and filter">Filter</button><span class="ord-sp"></span><button type="button" class="cm-pill" id="ordClearLook" hidden onclick="ordTL.clear();ordTL.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExportLook') : ''}</div>
         <div class="ord-card"><table id="ordTblLook"></table></div>
+        ${ordPagerHtml('look')}
       </section>
       <section class="ord-sec" data-jn="By supplier">
         <h3>2 By supplier</h3>
         <div class="ord-learn"><p><b>What is this?</b> One row per supplier in the Period: what they supply, how many orders and invoices, what they invoiced and what they took off.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW2"></span></p></div>
-        <div class="ord-bar ord-bar-plain"><button type="button" class="cm-pill" onclick="ordToggleMore('sup')">All columns</button><button type="button" class="cm-pill ord-phone" data-sxcm="sup">Sort and filter</button><span class="ord-sp"></span>${typeof rexButtons === 'function' ? rexButtons('ordExportSup') : ''}</div>
+        <div class="ord-bar"><button type="button" class="cm-pill" onclick="ordToggleMore('sup')">All columns</button><button type="button" class="cm-pill ord-phone" data-sxcm="sup" aria-label="Sort and filter">Filter</button><span class="ord-sp"></span><button type="button" class="cm-pill" id="ordClearSup" hidden onclick="ordTS.clear();ordTS.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExportSup') : ''}</div>
         <div class="ord-card"><table id="ordTblSup"></table></div>
+        ${ordPagerHtml('sup')}
       </section>
       <section class="ord-sec" data-jn="Every order" id="ordEverySec">
         <h3>3 Every order and invoice</h3>
         <div class="ord-learn"><p><b>What is this?</b> One row per order, invoice or statement. An order is tracked once: its confirmation, shipping note, delivery and invoice are steps inside the same row.</p>
           <p><b>Why it matters.</b> You see what was bought, how many, the total and any discount without opening five emails.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW3"></span></p></div>
+        <div class="ord-seg-row"><div class="sc-seg" role="group" aria-label="Type"><button type="button" class="on" data-ord-kind="" onclick="ordKind('')">All</button><button type="button" data-ord-kind="Order" onclick="ordKind('Order')">Orders</button><button type="button" data-ord-kind="Invoice" onclick="ordKind('Invoice')">Invoices</button><button type="button" data-ord-kind="Statement" onclick="ordKind('Statement')">Statements</button></div></div>
         <div class="ord-bar" id="ordBar">
-          <div class="sc-seg" role="group" aria-label="Type"><button type="button" class="on" data-ord-kind="" onclick="ordKind('')">All</button><button type="button" data-ord-kind="Order" onclick="ordKind('Order')">Orders</button><button type="button" data-ord-kind="Invoice" onclick="ordKind('Invoice')">Invoices</button><button type="button" data-ord-kind="Statement" onclick="ordKind('Statement')">Statements</button></div>
           <button type="button" class="cm-pill" id="ordMore" onclick="ordToggleMore('doc')">All columns</button>
-          <button type="button" class="cm-pill ord-phone" data-sxcm="doc">Sort and filter</button>
+          <button type="button" class="cm-pill ord-phone" data-sxcm="doc" aria-label="Sort and filter">Filter</button>
           <span class="ord-sp"></span>
           <button type="button" class="cm-pill" id="ordClear" hidden onclick="ordT.clear();ordT.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExport') : ''}
         </div>
         <p class="ord-key"><span class="ord-st ord-look">Orange</span> means it needs a look. Hover it, or see section 1, for why.</p>
         <div class="ord-card"><table id="ordTbl"></table></div>
-        <div class="ord-pager"><span id="ordPgTxt"></span><span class="ord-sp"></span><span class="slv-eyebrow">Rows</span><select id="ordPgSel" aria-label="Rows to show" onchange="ordRowsPick(+this.value)"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
-          <button type="button" class="cm-pill" id="ordPrev" onclick="ordPage(-1)">‹ Previous</button><span class="ord-pgn" id="ordPgN"></span><button type="button" class="cm-pill" id="ordNext" onclick="ordPage(1)">Next ›</button></div>
+        ${ordPagerHtml('doc')}
       </section>
       <section class="ord-how" id="ordHow"><h3>How it is worked out</h3><div class="sc-seg ord-pick" id="ordPick" role="group" aria-label="Which figure"></div><div class="ord-hcard" id="ordHCard"></div></section>
       ${ordAboutHtml()}`;
-    document.getElementById('ordPgSel').value = String(ORD.n);
+    document.querySelectorAll('#ordersContent .ord-pgsel').forEach(x => { x.value = String(ORD.n); });
   }
-  ordPaintAnswer(); ordPaintNotes(); ordT.shown = ORD.n; ordT.page = 0; ordTL.draw(); ordTS.draw(); ordT.draw(); ordPaintHow(); ordDrawAbout(); ordOffsets(); ordWatch();
+  ordPaintAnswer(); ordPaintNotes(); [ordT, ordTL, ordTS].forEach(T => { T.shown = ORD.n; T.page = 0; }); ordTL.draw(); ordTS.draw(); ordT.draw(); ordPaintHow(); ordDrawAbout(); ordOffsets(); ordWatch();
 }
 function ordAboutHtml() { return '<section class="ord-how ord-about" id="ordAbout"><h3>About this page</h3><div class="sc-seg ord-pick" id="ordAPick" role="group" aria-label="About this page"></div><div class="ord-hcard" id="ordACard"></div></section>'; }
 
@@ -263,12 +264,12 @@ function ordBuildTables() {
   const supCol = () => ({ k: 's', l: 'Supplier', t: 'txt', raw: g => g.s, disp: g => g.s, cell: g => '<b>' + ordEsc(g.s) + '</b>' });
   const salCol = () => ({ k: 'b', l: 'Salon', t: 'txt', raw: g => ordName(g.b), disp: g => ordName(g.b), cell: g => ordEsc(ordName(g.b)) });
   const amtCol = () => ({ k: 'a', l: 'Total', sub: 'AED', t: 'num', raw: g => g.a == null ? -1 : g.a, disp: g => g.a == null ? '' : ordAed(g.a), cell: g => g.a == null ? '<span class="ord-muted">-</span>' : ordNum('AED ' + ordAed(g.a), ordListSpec(g.s + ' ' + (g.r || g.type), { s: g.s, kind: g.type === 'Order' ? 'order' : g.type === 'Invoice' ? 'inv' : 'stmt' })) });
-  ordTL = TRSheet.table({ id: 'ordlook', el: '#ordTblLook', rows: () => ordScope().filter(g => g.x),
+  ordTL = TRSheet.table({ id: 'ordlook', el: '#ordTblLook', rows: () => ordScope().filter(g => g.x), limit: ORD.n,
     cols: [dateCol(), supCol(),
       { k: 'x', l: 'Why it needs a look', t: 'txt', raw: g => g.x, disp: g => g.x, cell: g => `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.x)}</button>` },
       { k: 'k', l: 'Type', t: 'txt', raw: g => g.type, disp: g => g.type, cell: g => ordEsc(g.type) }, salCol(), amtCol()],
-    total: rows => ({ d: rows.length + ' to look at' }) });
-  ordTS = TRSheet.table({ id: 'ordsup', el: '#ordTblSup', rows: ordSupRows,
+    total: rows => ({ d: rows.length + ' to look at' }), after: (T, rows) => ordAfter('look', T, rows, 'to look at') });
+  ordTS = TRSheet.table({ id: 'ordsup', el: '#ordTblSup', rows: ordSupRows, limit: ORD.n,
     cols: [
       { k: 's', l: 'Supplier', t: 'txt', raw: r => r.s, disp: r => r.s, cell: r => '<b>' + ordEsc(r.s) + '</b>' },
       { k: 'n', l: 'Tracked', t: 'num', raw: r => r.n, disp: r => r.n, cell: r => ordFig(r.n, r.s, { s: r.s }) },
@@ -279,7 +280,7 @@ function ordBuildTables() {
       { k: 'l', l: 'Latest', t: 'txt', raw: r => ordDay(r.last), disp: r => ordDay(r.last), sk: r => Date.parse(r.last), cell: r => ordDay(r.last) },
       { k: 'p', l: 'Receipts kept', t: 'num', x: 1, raw: r => r.pdf, disp: r => r.pdf, cell: r => ordFig(r.pdf, r.s + ', with a PDF kept', { s: r.s, file: 1 }) },
       { k: 'w', l: 'Needs a look', t: 'num', x: 1, raw: r => r.look, disp: r => r.look, cell: r => ordFig(r.look, r.s + ', needs a look', { s: r.s, look: 1 }) }],
-    total: rows => { let n = 0, o = 0, v = 0, a = 0, q = 0; rows.forEach(r => { n += r.n; o += r.ord; v += r.inv; a += r.amt; q += r.disc; }); return { s: rows.length + ' suppliers', n: ordFig(n, 'Everything tracked', {}), o: ordFig(o, 'Orders', { kind: 'order' }), v: ordFig(v, 'Invoices', { kind: 'inv' }), m: ordMoney(a, 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(q, 'Orders with a discount', { disc: 1 }) }; } });
+    total: rows => { let n = 0, o = 0, v = 0, a = 0, q = 0; rows.forEach(r => { n += r.n; o += r.ord; v += r.inv; a += r.amt; q += r.disc; }); return { s: rows.length + ' suppliers', n: ordFig(n, 'Everything tracked', {}), o: ordFig(o, 'Orders', { kind: 'order' }), v: ordFig(v, 'Invoices', { kind: 'inv' }), m: ordMoney(a, 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(q, 'Orders with a discount', { disc: 1 }) }; }, after: (T, rows) => ordAfter('sup', T, rows, 'suppliers') });
   ordT = TRSheet.table({ id: 'ordall', el: '#ordTbl', limit: ORD.n,
     rows: () => ordScope().filter(g => !ORD.kind || g.type === ORD.kind),
     cols: [dateCol(), supCol(), salCol(),
@@ -294,23 +295,31 @@ function ordBuildTables() {
       { k: 'g', l: 'Category', t: 'txt', x: 1, raw: g => g.cat, disp: g => g.cat, cell: g => ordEsc(g.cat) }],
     rowCls: g => g.x ? 'ord-rowlook' : '',
     total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }) }),
-    after: (T, rows) => {
-      const c = document.getElementById('ordClear'); if (c) c.hidden = !T.active();
-      const from = rows.length ? T.page * T.shown + 1 : 0, to = Math.min(rows.length, (T.page + 1) * T.shown), pages = T.pages(rows.length);
-      const pg = document.getElementById('ordPgTxt'); if (pg) pg.textContent = from + ' to ' + to + ' of ' + rows.length + ' tracked';
-      const pv = document.getElementById('ordPrev'), nx = document.getElementById('ordNext'), pn = document.getElementById('ordPgN');
-      if (pv) pv.disabled = T.page <= 0; if (nx) nx.disabled = T.page >= pages - 1; if (pn) pn.textContent = 'Page ' + (T.page + 1) + ' of ' + pages;
-    } });
+    after: (T, rows) => ordAfter('doc', T, rows, 'tracked') });
 }
 function ordKind(k) { ORD.kind = k; ordT.page = 0; document.querySelectorAll('[data-ord-kind]').forEach(b => b.classList.toggle('on', b.dataset.ordKind === k)); ordT.draw(); ordOffsets(); }
-function ordRowsPick(n) { ORD.n = n; ordSave(); ordT.shown = n; ordT.page = 0; ordT.draw(); ordOffsets(); }
-function ordPage(d) { ordT.page += d; ordT.draw(); ordOffsets(); const s = document.getElementById('ordBar'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'start' }); }
+// A table with a Rows choice has pages (Kate, 18 Nov 2026): Previous, Page x of y, Next, on every table of the page. One Rows choice is remembered for all three.
+const ordTab = k => k === 'look' ? ordTL : k === 'sup' ? ordTS : ordT;
+function ordPagerHtml(k) {
+  return `<div class="ord-pager" id="ordPg-${k}"><span class="ord-pgt"></span><span class="ord-sp"></span><span class="slv-eyebrow">Rows</span><select class="ord-pgsel" aria-label="Rows to show" onchange="ordRowsPick('${k}',+this.value)"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
+    <button type="button" class="cm-pill ord-prev" onclick="ordPage('${k}',-1)">‹ Previous</button><span class="ord-pgn"></span><button type="button" class="cm-pill ord-next" onclick="ordPage('${k}',1)">Next ›</button></div>`;
+}
+function ordAfter(k, T, rows, noun) {
+  const c = document.getElementById(k === 'doc' ? 'ordClear' : k === 'look' ? 'ordClearLook' : 'ordClearSup'); if (c) c.hidden = !T.active();
+  const el = document.getElementById('ordPg-' + k); if (!el) return;
+  const from = rows.length ? T.page * T.shown + 1 : 0, to = Math.min(rows.length, (T.page + 1) * T.shown), pages = T.pages(rows.length);
+  el.querySelector('.ord-pgt').textContent = from + ' to ' + to + ' of ' + rows.length + ' ' + noun;
+  el.querySelector('.ord-prev').disabled = T.page <= 0; el.querySelector('.ord-next').disabled = T.page >= pages - 1; el.querySelector('.ord-pgn').textContent = 'Page ' + (T.page + 1) + ' of ' + pages;
+  el.hidden = rows.length <= 10;   // a short list needs no pager
+}
+function ordRowsPick(k, n) { ORD.n = n; ordSave(); const T = ordTab(k); T.shown = n; T.page = 0; T.draw(); ordOffsets(); }
+function ordPage(k, d) { const T = ordTab(k); T.page += d; T.draw(); ordOffsets(); const b = document.getElementById('ordPg-' + k).closest('.ord-sec').querySelector('.ord-bar'); if (b && b.scrollIntoView) b.scrollIntoView({ block: 'start' }); }
 function ordToggleMore(w) { const T = w === 'sup' ? ordTS : ordT; T.toggleMore(); }
 function ordOffsets() {
   const jn = document.querySelector('#view-orders .jn-rail'), root = document.documentElement.style;
   const top = jn ? parseFloat(getComputedStyle(jn).top) || 0 : 0;
   root.setProperty('--sx-top', (top + (jn ? jn.offsetHeight : 0)) + 'px');
-  document.querySelectorAll('#ordersContent .ord-sec').forEach(s => { const b = s.querySelector('.ord-bar:not(.ord-bar-plain)'); s.style.setProperty('--bh', (b ? b.offsetHeight : 0) + 'px'); });
+  document.querySelectorAll('#ordersContent .ord-sec').forEach(s => { const b = s.querySelector('.ord-bar'); s.style.setProperty('--bh', (b ? b.offsetHeight : 0) + 'px'); });
 }
 window.addEventListener('resize', () => { if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'orders') ordOffsets(); });
 // Kate, 18 Nov 2026 (component 37): the pinned toolbars follow the masthead and the chip row as they really are, not as measured once. Hide filters, the compact
@@ -320,8 +329,8 @@ const ordOnOrders = () => typeof CURRENT_VIEW === 'undefined' || CURRENT_VIEW ==
 function ordWatch() {
   if (ordRO) ordRO.disconnect();
   if (ordMO) ordMO.disconnect();
-  const mast = document.getElementById('topbar'), jn = document.querySelector('#view-orders .jn-rail'), bar = document.querySelector('#ordersContent .ord-bar:not(.ord-bar-plain)');
-  if (typeof ResizeObserver !== 'undefined') { ordRO = new ResizeObserver(() => { if (ordOnOrders()) ordOffsets(); }); [mast, jn, bar].forEach(e => { if (e) ordRO.observe(e); }); }
+  const mast = document.getElementById('topbar'), jn = document.querySelector('#view-orders .jn-rail'), bars = [...document.querySelectorAll('#ordersContent .ord-bar')];
+  if (typeof ResizeObserver !== 'undefined') { ordRO = new ResizeObserver(() => { if (ordOnOrders()) ordOffsets(); }); [mast, jn, ...bars].forEach(e => { if (e) ordRO.observe(e); }); }
   // jump-nav.js moves the chip row's pin (--jn-top) when the masthead condenses or Hide filters is pressed, without any change of size: watch that too
   if (typeof MutationObserver !== 'undefined' && jn) { ordMO = new MutationObserver(() => { if (ordOnOrders()) ordOffsets(); }); ordMO.observe(jn, { attributes: true, attributeFilter: ['style', 'class'] }); }
 }
@@ -342,8 +351,8 @@ function ordPaintHow() {
 }
 const ORD_ABOUT = {
   one: ['One row per order', 'An order is one row. Its confirmation, shipping note and invoice are steps inside it.', 'Open a row to see the items, discount and emails.'],
-  data: ['What this shows', 'Every supplier order, invoice and statement that reaches the info mailbox.', 'A small script reads new mail every 5 minutes.'],
-  items: ['Items and discounts', 'They show where the supplier email lists them, like Falconpack.', 'Excel and PDF files are read in a later step.'],
+  data: ['What this shows', 'Every supplier order, invoice and statement that reaches the info mailbox.', 'New mail is read about every 10 minutes.'],
+  items: ['Items and discounts', 'They show where the email, its PDF or its Excel order form lists them.', 'Some suppliers still have no items. Nothing is invented.'],
   who: ['Who sees it', 'Kate, and anyone she adds, like Recruitment with Coach Emma.', 'Not for the whole team.'],
   not: ['Not here yet', 'Payment status. The emails say what was billed, not what was paid.', 'Phone and WhatsApp orders are not here.']
 };

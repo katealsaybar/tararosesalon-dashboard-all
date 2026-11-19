@@ -14,10 +14,13 @@
 .ord-hint{font-size:12.5px;color:var(--muted2);margin:8px 0 0;flex:1 1 280px}
 /* the toolbar of the top services: pinned under the masthead and the chips while that section is on screen */
 .ord-bar{position:sticky;top:var(--sx-top,104px);z-index:24;background:var(--bg);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:6px 0;margin-bottom:10px;box-shadow:0 -14px 0 var(--bg)}
-.ord-bar-plain{position:static;box-shadow:none}
 .ord-phone{display:none}
+.ord-bar .cm-pill,.ord-bar .rex-btn{white-space:nowrap;flex:none;box-sizing:border-box;height:34px}   /* one height for every control of a toolbar */
+.ord-bar .rex-bar{display:inline-flex;gap:6px;align-items:center}
+.ord-seg-row{margin:12px 0 2px}
 .ord-card{background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
 .ord-pager{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--muted);flex-wrap:wrap}
+.ord-pager[hidden]{display:none}
 .ord-pager .cm-pill:disabled{opacity:.4;cursor:default}
 .ord-pgn{min-width:5.5em;text-align:center;color:var(--text);font-variant-numeric:tabular-nums}
 .ord-how{margin-top:34px;text-align:center}
@@ -28,10 +31,10 @@
 .ord-hc-big{font-family:'Playfair Display',Georgia,serif;font-size:30px;line-height:1.15;margin:4px 0;font-variant-numeric:tabular-nums}
 .ord-hc-cv{font-size:13px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
 @media(max-width:760px){
-  .ord-bar:not(.ord-bar-plain){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-  .ord-bar::-webkit-scrollbar{display:none}
+  .ord-bar{gap:6px 8px}   /* wraps on a phone: nothing is cut off at the right */
+  .ord-seg-row .sc-seg{display:flex;width:100%}.ord-seg-row .sc-seg button{flex:1}
   .ord-phone{display:inline-flex}
-  .ord-pager{flex-wrap:wrap}.ord-pager #ordPgTxt{flex:1 1 100%}
+  .ord-pager{flex-wrap:wrap}.ord-pager .ord-pgt{flex:1 1 100%}
   .ord-ans-t{font-size:20px}}
 
 .ord-muted{color:var(--muted2)}
@@ -144,9 +147,9 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
   .ord-vframe{height:70vh}
 }
 @media(max-width:760px){
-  .ord-st,.ord-rc,.ord-dsc{min-height:44px}
+  button.ord-st,.ord-rc,.ord-dsc{min-height:44px}
   .ord-rc{padding:0 14px}
-  .ord-st.ord-look{min-height:44px;padding:6px 14px}
+  button.ord-st.ord-look{min-height:44px;padding:6px 14px}
   .ord-lk{min-height:44px}
   .ord-pick button{min-height:44px}
   tr.ord-rowlook td:first-child{box-shadow:none}.ord-card tbody tr{padding-left:12px}tr.ord-rowlook{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}   /* the accent sits on the card, not on the first cell, so it never covers the date */
