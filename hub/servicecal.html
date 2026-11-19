@@ -329,8 +329,9 @@ button.cl:hover{text-decoration-color:var(--text)}
 
   var PX = 1.1, T0 = 540, T1 = 1260;           // 9:00 AM to 9:00 PM, 1.1px a minute
   var HH = 60 * PX, H = (T1 - T0) * PX, MAXDAYS = 28;
-  var BRN = [['SAA','Saadiyat'], ['KCA','Khalifa City A'], ['MC','Motor City'], ['AQ','Al Quoz']];
-  var BR_FULL = {SAA:'Saadiyat / Mamsha', KCA:'Khalifa City A', MC:'Motor City', AQ:'Al Quoz'};
+  var BRN = [['SAA','Saadiyat'], ['KCA','Khalifa City A'], ['MC','Motor City'], ['AQ','Al Quoz'], ['BAH','Bahrain']];   // Bahrain (Kate, 19 Nov 2026): its own Phorest business and clock; picked alone, never mixed with the UAE
+  var UAE_CODES = ['SAA','KCA','MC','AQ'];
+  var BR_FULL = {SAA:'Saadiyat / Mamsha', KCA:'Khalifa City A', MC:'Motor City', AQ:'Al Quoz', BAH:'Bahrain'};
   var CATS = {colour:'Colour', cut:'Cut and style', treat:'Treatments', nails:'Nails', beauty:'Beauty', other:'Other'};
   var STATES = {PAID:['paid','Done'], CHECKED_IN:['in','In the chair'], BOOKED:['booked','Booked']};
   var VIEWS = [['day','Day'], ['week','Week'], ['list','List']];
@@ -356,8 +357,8 @@ button.cl:hover{text-decoration-color:var(--text)}
   function weekStart(d){ var w = (dt(d).getUTCDay() + 6) % 7; return addDays(d, -w); }   // Monday
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function firstLast(n){ var p = n.trim().split(/\s+/); return [p[0] || '', p.slice(1).join(' ')]; }
-  function dubaiNow(){
-    var p = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
+  function dubaiNow(tz){
+    var p = new Intl.DateTimeFormat('en-GB', {timeZone:tz || 'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false}).formatToParts(new Date());
     return +p[0].value * 60 + +p[2].value;
   }
   var TODAY = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dubai'}).format(new Date());
@@ -368,7 +369,8 @@ button.cl:hover{text-decoration-color:var(--text)}
   var CACHE = {};
   var MQ = matchMedia('(max-width:760px)');
   function mobile(){ return MQ.matches; }
-  function brAll(){ return S.br.length === BRN.length; }
+  function brAll(){ return S.br.length === UAE_CODES.length && S.br.indexOf('BAH') < 0; }
+  function zone(){ return S.br.length === 1 && S.br[0] === 'BAH' ? 'Asia/Bahrain' : 'Asia/Dubai'; }
   function multi(){ return S.br.length > 1; }
   function brLabel(){ return brAll() ? 'UAE Branches' : S.br.map(function (b) { return BRN.filter(function (x) { return x[0] === b; })[0][1]; }).join(', '); }
   function single(){ return S.from === S.to; }
@@ -407,6 +409,7 @@ button.cl:hover{text-decoration-color:var(--text)}
     if (c && !(live && Date.now() - c.t > 120000)) return c;
     var r = await KB.client.rpc('service_calendar', {p_branch:b, p_from:f, p_to:t});
     if (r.error || !r.data) return null;
+    if (b === 'BAH' && r.data.staff) r.data.staff = r.data.staff.map(function (n) { return String(n).replace(/\s+\.$/, ''); });   // Phorest Bahrain keeps a dot as the surname ('Charlene .'): display only
     var led = {}, ledAll = {}, sh = {};
     (r.data.shifts || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) sh[b + '|' + nm + '|' + x[0]] = {k:x[2], s:x[3] ? mm(x[3]) : 0, e:x[4] ? mm(x[4]) : 0, n:pretty(x[5])}; });   // stylist|date -> the rota entry
     (r.data.ledger || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) led[b + '|' + nm + '|' + x[0]] = x.slice(2); });   // stylist|date -> [total, new, ncr, req, salon, rebooked]
@@ -484,7 +487,7 @@ button.cl:hover{text-decoration-color:var(--text)}
   function onGlobalChip(e){
     var b = e.target.closest('.gchip'); if (!b) return; var v = b.getAttribute('data-v'); if (!v) return;
     S.showAll = false; S.mi = 0;
-    if (v === '__all') S.br = BRN.map(function (x) { return x[0]; });
+    if (v === '__all') S.br = UAE_CODES.slice();
     else if (v.slice(0,2) === 'v:') {
       var nv = v.slice(2);
       if (nv === 'day' && !single()) S.to = S.from = S.to;         // Day shows one day: the last day of the period
@@ -496,10 +499,10 @@ button.cl:hover{text-decoration-color:var(--text)}
       else { S.custom = false; var p = presets().filter(function (x) { return x[0] === k; })[0]; S.from = p[2]; S.to = p[3]; if (S.view === 'day' && !single()) S.view = 'week'; if (single() && S.view === 'week' && k !== 'thisweek') S.view = 'day'; }
     }
     else {
-      if (brAll()) S.br = [v];
+      if (v === 'BAH' || brAll() || S.br.indexOf('BAH') >= 0) S.br = [v];   // Bahrain stands alone: its figures are in BHD
       else if (S.br.indexOf(v) >= 0) S.br = S.br.filter(function (x) { return x !== v; });
       else S.br = S.br.concat(v);
-      if (!S.br.length) S.br = BRN.map(function (x) { return x[0]; });
+      if (!S.br.length) S.br = UAE_CODES.slice();
     }
     S.staff = null;
     load();
@@ -526,8 +529,8 @@ button.cl:hover{text-decoration-color:var(--text)}
     } else sp.hidden = true;
     var u = document.getElementById('upd');
     if (W && W.synced) {
-      var t = new Date(W.synced), p = new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Dubai'}).format(t);
-      var hm = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Dubai', hour:'2-digit', minute:'2-digit', hour12:false}).format(t).split(':');
+      var t = new Date(W.synced), p = new Intl.DateTimeFormat('en-CA', {timeZone:zone()}).format(t);
+      var hm = new Intl.DateTimeFormat('en-GB', {timeZone:zone(), hour:'2-digit', minute:'2-digit', hour12:false}).format(t).split(':');
       u.textContent = 'Phorest times updated ' + dlabel(p, true) + ', ' + fmt(+hm[0] * 60 + +hm[1]);
     } else u.textContent = '';
   }
@@ -584,7 +587,7 @@ button.cl:hover{text-decoration-color:var(--text)}
       return '<div class="col' + (c.all.length ? '' : ' off') + '">' + bands(c) + lr.map(function (r) { return c.rows.indexOf(r) >= 0 ? block(r) : ''; }).join('') + '</div>';
     }).join('') + '</div>';
     el.innerHTML = '<div class="cal" id="cal"><div class="cal-in" style="--n:' + cols.length + ';--h:' + H + 'px;--hh:' + HH + 'px">' + head + body + '</div></div>';
-    var nm = dubaiNow();
+    var nm = dubaiNow(zone());
     if (S.view === 'day' && S.from === TODAY && nm > T0 && nm < T1) {
       var d = document.createElement('div'); d.className = 'now'; d.style.top = (nm - T0) * PX + 'px'; d.innerHTML = '<b>' + fmt(nm) + '</b>';
       el.querySelector('.cbody').appendChild(d);
