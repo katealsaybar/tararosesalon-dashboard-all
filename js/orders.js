@@ -127,12 +127,14 @@ function ordListSpec(title, f) {
     return { cols: [{ k: 'd', l: 'Started', t: 'date' }, { k: 's', l: 'Supplier' }, { k: 'ty', l: 'Type' }, { k: 'b', l: 'Salon' }, { k: 'r', l: 'Reference' }, { k: 'a', l: 'Total', t: 'aed' },
       { k: 'q', l: 'Discount', t: 'html' }, { k: 'st', l: 'Status', t: 'html' }],
       rows: rows.map(g => ({ d: g.start, s: g.s, ty: g.type, b: ordName(g.b), r: g.r || '-', a: g.a, q: g.disc ? '- AED ' + ordAed(g.disc) : g.discPct ? g.discPct + '% applied' : '-', st: ordOpenBtn(g, g.st) })),
-      foot: rows.length ? { d: '', s: rows.length + ' tracked', ty: '', b: '', r: '', a: rows.reduce((t, g) => t + (g.inv || 0), 0), q: '', st: '' } : null,
-      note: 'Each row is one order, invoice or statement, counted once. The total row adds the invoices that show an amount. Tap a status to open it: items, discount, steps and emails.' };
+      // The total row adds the Total column, so a list of orders no longer ends on AED 0. A list opened from an Invoiced figure adds the invoiced amounts, the figure it came from.
+      foot: rows.length ? { d: '', s: rows.length + ' tracked', ty: '', b: '', r: '', a: rows.reduce((t, g) => t + ((f.amt || f.kind === 'inv' ? g.inv : g.a) || 0), 0), q: '', st: '' } : null,
+      note: 'Each row is one order, invoice or statement, counted once. The total row adds the Total column' + (f.amt || f.kind === 'inv' ? ' (the invoiced amounts)' : '') + '. Tap a status to open it: items, discount, steps and emails.' };
   } }] };
 }
 const ordFig = (n, title, f) => ordNum(ordN(n), n ? ordListSpec(title, f) : null);
-const ordMoney = (v, title, f) => v ? ordNum('AED ' + ordAed(v), ordListSpec(title, f)) : '<span class="ord-muted">-</span>';
+// The column header already says AED, so the cell is the bare amount (Kate, 19 Nov 2026: "AED AED"). unit = true only where the header mixes AED and %.
+const ordMoney = (v, title, f, unit) => v ? ordNum((unit ? 'AED ' : '') + ordAed(v), ordListSpec(title, f)) : '<span class="ord-muted">-</span>';
 
 // ── LOAD ─────────────────────────────────────────────────────────────────────────────
 function ordShell() {
@@ -263,7 +265,7 @@ function ordBuildTables() {
   const dateCol = () => ({ k: 'd', l: 'Started', t: 'txt', raw: g => ordDay(g.start), disp: g => ordDay(g.start), sk: g => Date.parse(g.start), cell: g => ordDay(g.start) });
   const supCol = () => ({ k: 's', l: 'Supplier', t: 'txt', raw: g => g.s, disp: g => g.s, cell: g => '<b>' + ordEsc(g.s) + '</b>' });
   const salCol = () => ({ k: 'b', l: 'Salon', t: 'txt', raw: g => ordName(g.b), disp: g => ordName(g.b), cell: g => ordEsc(ordName(g.b)) });
-  const amtCol = () => ({ k: 'a', l: 'Total', sub: 'AED', t: 'num', raw: g => g.a == null ? -1 : g.a, disp: g => g.a == null ? '' : ordAed(g.a), cell: g => g.a == null ? '<span class="ord-muted">-</span>' : ordNum('AED ' + ordAed(g.a), ordListSpec(g.s + ' ' + (g.r || g.type), { s: g.s, kind: g.type === 'Order' ? 'order' : g.type === 'Invoice' ? 'inv' : 'stmt' })) });
+  const amtCol = () => ({ k: 'a', l: 'Total', sub: 'AED', t: 'num', raw: g => g.a == null ? -1 : g.a, disp: g => g.a == null ? '' : ordAed(g.a), cell: g => g.a == null ? '<span class="ord-muted">-</span>' : `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordAed(g.a)}</button>` });   // one order's total opens that order (it used to open every order of the supplier under this order's name)
   ordTL = TRSheet.table({ id: 'ordlook', el: '#ordTblLook', rows: () => ordScope().filter(g => g.x), limit: ORD.n,
     cols: [dateCol(), supCol(),
       { k: 'x', l: 'Why it needs a look', t: 'txt', raw: g => g.x, disp: g => g.x, cell: g => `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.x)}</button>` },
@@ -294,7 +296,7 @@ function ordBuildTables() {
       { k: 'e', l: 'What it says', t: 'txt', x: 1, raw: g => g.n, disp: g => g.n, cell: g => ordEsc(g.n) },
       { k: 'g', l: 'Category', t: 'txt', x: 1, raw: g => g.cat, disp: g => g.cat, cell: g => ordEsc(g.cat) }],
     rowCls: g => g.x ? 'ord-rowlook' : '',
-    total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }) }),
+    total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }, true) }),
     after: (T, rows) => ordAfter('doc', T, rows, 'tracked') });
 }
 function ordKind(k) { ORD.kind = k; ordT.page = 0; document.querySelectorAll('[data-ord-kind]').forEach(b => b.classList.toggle('on', b.dataset.ordKind === k)); ordT.draw(); ordOffsets(); }
