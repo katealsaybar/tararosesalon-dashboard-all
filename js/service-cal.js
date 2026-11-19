@@ -106,7 +106,9 @@ const SVC_CSS2 = `
   .ab{margin-top:22px}
 }
 
-/* Overview (Kate, 19 Nov 2026): the tiles, then the busiest times as standing bars. Bars lift, glow and answer on hover (dashboard-report-builder component 42); a tap answers on a phone. */
+/* Overview (Kate, 19 Nov 2026): the tiles, then the busiest times as standing bars. Bars fade from violet at the bottom to pink at the top over the full plot height, so a low bar stays violet and a busy one reaches pink; the same two brand shades in light and dark (Kate, 19 Nov 2026). Bars lift, glow and answer on hover (dashboard-report-builder component 42); a tap answers on a phone. */
+/* sheet-table.js marks a table that scrolls with the class sc, the same name as the tiles: without this the scroll box takes the tile's padding, rows show through above the sticky heading row and the Shift times are cut (Kate, 19 Nov 2026: "may putolski"). */
+.tw.sc{display:block;padding:0;cursor:auto;text-align:left;box-shadow:var(--shadow)}
 .ov{position:relative;margin:12px 0 6px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px 16px 10px}
 .ov-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;margin:0 0 10px}
 .ov-h b{font-size:15px}
@@ -118,10 +120,9 @@ const SVC_CSS2 = `
 .ov-cols{display:flex;align-items:flex-end;gap:4px;height:150px;border-bottom:1px solid var(--border);background-image:linear-gradient(var(--border2) 1px,transparent 1px);background-size:100% 50%;background-repeat:repeat-y}
 .ovc{flex:1 1 0;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center;border:0;background:none;padding:0;cursor:pointer;font:inherit;color:inherit}
 .ovc.z{cursor:default}
-.ovc i{display:block;width:100%;max-width:28px;border-radius:6px 6px 0 0;background:color-mix(in srgb,var(--accent) 50%,var(--surface));transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
-.ovc.pk i{background:var(--accent)}
+.ovc i{display:block;width:100%;max-width:28px;border-radius:6px 6px 0 0;background:linear-gradient(to top,#7C5CD4,#C2456B) bottom/100% calc(10000% / var(--hp,100)) no-repeat;transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
 .ovc:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:6px}
-@media(hover:hover){.ovc:not(.z):hover i,.ovc:not(.z):focus-visible i{transform:translateY(-3px);filter:brightness(1.12);box-shadow:0 0 0 1px var(--accent),0 0 14px color-mix(in srgb,var(--accent) 55%,transparent)}}
+@media(hover:hover){.ovc:not(.z):hover i,.ovc:not(.z):focus-visible i{transform:translateY(-3px);filter:brightness(1.12);box-shadow:0 0 0 1px #C2456B,0 0 14px rgba(194,69,107,.55)}}
 @media(prefers-reduced-motion:reduce){.ovc i{transition:none}.ovc:not(.z):hover i,.ovc:not(.z):focus-visible i{transform:none}}
 .ov-x{display:grid;grid-template-columns:30px minmax(0,1fr);gap:0 8px;margin-top:4px}
 .ov-xs{display:flex;gap:4px}
@@ -680,7 +681,7 @@ async function renderServiceCal() {
     var ys = [0, yMax / 2, yMax].filter(function (v, i, a) { return v === Math.round(v) && a.indexOf(v) === i; });
     var cols = o.slots.map(function (sl, i) {
       var h = sl.avg / yMax * 100, tip = ovTip(o, sl);
-      return '<button type="button" class="ovc' + (sl.peak ? '' : ' z') + (sl.peak && sl.avg === o.max ? ' pk' : '') + '" data-ov="' + i + '" data-tip="' + esc(tip) + '" aria-label="' + esc(tip) + '"' + (sl.peak ? '' : ' tabindex="-1"') + '><i style="height:' + h.toFixed(1) + '%"></i></button>';
+      return '<button type="button" class="ovc' + (sl.peak ? '' : ' z') + (sl.peak && sl.avg === o.max ? ' pk' : '') + '" data-ov="' + i + '" data-tip="' + esc(tip) + '" aria-label="' + esc(tip) + '"' + (sl.peak ? '' : ' tabindex="-1"') + '><i style="height:' + h.toFixed(1) + '%;--hp:' + Math.max(h, 0.1).toFixed(1) + '"></i></button>';
     }).join('');
     var xs = o.slots.map(function (sl) {
       if (sl.m % 60) return '<span></span>';
