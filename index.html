@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=cafd4428"></script>
+<script src="js/pages.js?v=9d5792f0"></script>
 <script src="js/page-dates.js?v=1ae0fea3"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 18 Nov 2026: the XLSX and CSV buttons for the WHOLE page, drawn in the masthead (js/page-export.js; showView calls TRSExport.sync). -->
@@ -5144,14 +5144,15 @@ let DASHBOARD_OPEN = false;
 let TRS_SCOPE = null;
 let TRS_LEVEL = null;   // dashboard_users.level, from dashboard_me()
 let TRS_EXTRA = [];     // dashboard_users.extra_pages: pages opened for this person alone (Kate, 21 Oct 2026)
-const SCOPE_VIEWS = new Set(TRS_PAGES.filter(p => p.scope).map(p => p.id));   // pages.js
+// Kate, 19 Nov 2026: which pages a Bahrain sign-in opens is now the Bahrain ticks on the Page Access page (pages.js trsPageOpen); scope in pages.js is only
+// where they start. The menu hides every page here first, so no UAE page flashes, and enterDashboard() brings back the ones trsPageOpen opens.
 function applyScope(code){
   TRS_SCOPE = code;
   sel.branch = [code]; pendingSel.branch = [code];
   document.body.classList.add('scoped');
   document.querySelectorAll('#sidebar .nav-sub[onclick*="showView"]').forEach(el => {
     const m = /showView\('([^']+)'/.exec(el.getAttribute('onclick') || '');
-    if (m && !SCOPE_VIEWS.has(m[1])) el.style.display = 'none';
+    if (m) { el.style.display = 'none'; el.dataset.scopeHid = '1'; }
   });
   // Team Performance's second tab plots rebooking, which Bahrain's ledger has yet to supply.
   tidyNav();
@@ -5241,6 +5242,8 @@ async function enterDashboard(role, meAsk){
   // (client names and numbers, ad spend). A page the level does not reach leaves the menu; the page and its data refuse it too.
   // Kate, 21 Oct 2026: coordinators (Level 2) and accounts (Level 4) each get their own list (lv in pages.js), not every page below their level.
   TRS_PAGES.forEach(p => { if (!trsPageOpen(p.id, TRS_LEVEL, TRS_EXTRA)) hideNav(p.id); });
+  // Kate, 19 Nov 2026: a Bahrain sign-in's menu was hidden whole by applyScope(); the pages its ticks open come back here.
+  if (TRS_SCOPE) TRS_PAGES.forEach(p => { if (!trsPageOpen(p.id, TRS_LEVEL, TRS_EXTRA)) return; const n = document.querySelector(`#sidebar .nav-sub[onclick*="showView('${p.id}'"]`); if (n && n.dataset.scopeHid) { n.style.display = ''; delete n.dataset.scopeHid; } });
   // Kate, 3 Nov 2026: the Under construction / Hidden tags in the menu (page-status.js; the status itself loads with trsAccessLoad above).
   if (typeof trsStatusNav === 'function') trsStatusNav();
   tidyNav();
@@ -5488,7 +5491,7 @@ function showView(view, el){
   // Branch Performance was folded into Daily Performance (Kate, 16 Oct 2026, "daily lang matira"): an old star, link or button
   // opens Daily. Before the scope check, so a Bahrain sign-in is sent on to its own page like any other page it may not open.
   if (view === 'branchperf') { view = 'dailyperf'; el = document.querySelector(`[onclick*="showView('dailyperf'"]`); }
-  if (TRS_SCOPE && !SCOPE_VIEWS.has(view)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
+  if (TRS_SCOPE && !trsPageOpen(view, TRS_LEVEL, TRS_EXTRA)) { view = 'dashboard'; el = document.querySelector(`[onclick*="showView('dashboard'"]`); }
   // The lowest level for each page is in pages.js (min): Wellness Voucher Performance and Lost Clients 2, the Blast and the three
   // Content pages 3. The page's data refuses the rest as well.
   // Kate, 21 Oct 2026: a page that is not on this person's list opens their own landing page (the Pulse, the Daily Target Sheet or Financial Totals).

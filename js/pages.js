@@ -140,20 +140,29 @@ window.TRS_PAGES = /*PAGES*/[
     if (p.lv) return p.lv.indexOf(level) >= 0;
     return (p.min || 1) <= level;
   };
+  // Kate, 19 Nov 2026: Bahrain has its own Level 1 to 5 ticks on the Page Access page. A Bahrain-scoped sign-in (TRS_SCOPE in the dashboard, KB.access.scope in
+  // Team Home) reads them under 'bh:<page>' (and 'bh:fd:<page>' for Reception & Call Centre); with none saved, a page is open when it carries scope in this
+  // file and the UAE rule opens it at that level, which is what a Bahrain sign-in could open before this.
+  window.trsBahScoped = function () {
+    try { if (typeof TRS_SCOPE !== 'undefined' && TRS_SCOPE) return true; } catch (e) {}
+    return !!(window.KB && KB.access && KB.access.scope);
+  };
   window.trsPageOpen = function (id, level, extras) {
     var p = by[window.trsLive(id)];
     if (!p) return true;
+    var bah = window.trsBahScoped();
     // Kate, 3 Nov 2026: a hidden page opens for Level 5 (Kate) only, whatever else says; this includes View as, which acts as the level it previews.
     if ((!level || level < 5) && window.trsPageStatus(p.id) === 'hidden') return false;
-    if (!level) return (p.min || 1) <= 1;
+    if (!level) return (p.min || 1) <= 1 && (!bah || !!p.scope);
     if (level >= 5) return true;
     // Kate, 9 Nov 2026: a page marked "extras": 1 (Recruitment) opens from a person's own extras at any level, so Coach Emma (Level 3) gets it without the rest of Level 3.
     // Kate, 12 Nov 2026: "give specific page access to someone regardless of his/her level" (account menu, Level 5): a page in a person's own extras opens at any level below 5.
     if (extras && extras.indexOf(p.id) >= 0) return true;
     // Kate, 28 Oct 2026: staff are one level inside (1) but the Page Access page keeps separate ticks for Reception & Call Centre (shown as Level 2),
     // saved under 'fd:<page>'; TRS_STAFF_FD says this person is one of them (set at sign-in by hub.js and index.html).
-    var ov = window.TRS_ACCESS && window.TRS_ACCESS[(level === 1 && window.TRS_STAFF_FD ? 'fd:' : '') + p.id];
+    var ov = window.TRS_ACCESS && window.TRS_ACCESS[(bah ? 'bh:' : '') + (level === 1 && window.TRS_STAFF_FD ? 'fd:' : '') + p.id];
     if (ov && ov[level] !== undefined && ov[level] !== null) return !!ov[level];
+    if (bah && !p.scope) return false;
     return window.trsPageDefault(p.id, level);
   };
   // The page a person lands on when none is asked for (or the one asked for is not theirs): the Pulse for executives, the

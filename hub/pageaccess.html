@@ -16,26 +16,40 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/hub/hub.css?v=24715f8d">
 <link rel="stylesheet" href="/css/scrollbars.css?v=a903788b">
+<link rel="stylesheet" href="/css/why-wall.css?v=a9e824b4">
 <style>
 /* Kate, 28 Oct 2026: Page Access, Level 5 only. One row per dashboard page, one tick box per level; the boxes start ticked from pages.js and a
-   change is saved the moment it is clicked (public.page_access). */
+   change is saved the moment it is clicked (public.page_access).
+   Kate, 19 Nov 2026: every page has two groups of ticks, UAE (Levels 1 to 5) and Bahrain (Levels 1 to 5), a tag that says where it opens (Both countries,
+   UAE only, Bahrain only, Neither), four clickable counts, a Where filter, Google Sheets style heading menus and XLSX and CSV. Bahrain ticks are saved
+   under the page id 'bh:<page>' (and 'bh:fd:<page>' for Reception & Call Centre), so the table needed no change. */
+:root{--pa-top:100px;--pa-h1:36px;--ok:#0F8A72;--funnel:#188f4a;--uae:#7C5CD4;--bahrain:#0F8A72}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ok:#99F6E4;--funnel:#6ee7a0;--uae:#C4B5FD;--bahrain:#99F6E4}}
+[data-theme="dark"]{--ok:#99F6E4;--funnel:#6ee7a0;--uae:#C4B5FD;--bahrain:#99F6E4}
 .pa-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0 8px}
 .pa-bar .kb-search{flex:1 1 260px;max-width:420px}
 .pa-btn{font:inherit;font-size:13px;font-weight:600;padding:8px 16px;min-height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
 .pa-btn:hover{border-color:var(--text)}
 .pa-btn:disabled{opacity:.5;cursor:default}
+.pa-btn[aria-pressed="true"]{background:var(--surface2);border-color:var(--text)}
 .pa-status{min-height:22px;font-size:13px;color:var(--muted);margin:2px 0 10px}
 .pa-status.err{color:#B3402A;font-weight:600}
+.pa-status.warn{color:var(--warn);font-weight:600}
 .pa-wrap{border:1px solid var(--border);border-radius:14px;background:var(--surface)}
-.pa-col{max-width:880px;margin:0 auto}
-.pa-short,.pa-legend{display:none}
-.pa-tbl{width:100%;border-collapse:separate;border-spacing:0;min-width:560px}
-.pa-tbl th,.pa-tbl td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-size:14px}
-.pa-tbl th:first-child,.pa-tbl td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
-.pa-tbl thead th{position:sticky;top:calc(var(--pa-top,100px) - 1px);background:var(--surface);z-index:2;font-size:12.5px;font-weight:700;vertical-align:bottom;line-height:1.25}
+.pa-col{max-width:1100px;margin:0 auto}
+.pa-legend,.phoneonly{display:none}
+.pa-tbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.pa-tbl th,.pa-tbl td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:center;font-size:14px}
+.pa-tbl th:first-child,.pa-tbl td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;padding-left:12px;width:210px}
+.pa-tbl thead th{background:var(--surface);z-index:2;font-size:12.5px;font-weight:700;vertical-align:bottom;line-height:1.25}
+.pa-tbl thead tr.h1 th{position:sticky;top:calc(var(--pa-top) - 1px)}
+.pa-tbl thead tr.h2 th{position:sticky;top:calc(var(--pa-top) + var(--pa-h1) - 2px);vertical-align:top;padding-top:8px}
 .pa-tbl thead th:first-child{z-index:3;border-top-left-radius:13px}
 .pa-tbl thead th:last-child{border-top-right-radius:13px}
-.pa-tbl th small{display:block;font-weight:500;color:var(--muted);margin-top:2px}
+.pa-tbl th small{display:block;font-weight:500;color:var(--muted);margin-top:2px;font-size:11.5px;min-height:2.6em;overflow-wrap:anywhere}
+.pa-cty{font-size:12px!important;letter-spacing:.14em;text-transform:uppercase;border-bottom:2px solid var(--uae)!important}
+.pa-cty.bh{border-bottom-color:var(--bahrain)!important}
+.pa-tbl .bh-first,.pa-tbl .bh-col.first{border-left:1px solid var(--border)}
 .pa-tbl tr.pa-grp td{background:var(--bg);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding-top:14px;cursor:pointer;user-select:none}
 .pa-tbl tr.pa-grp:hover td{color:var(--text)}
 .pa-tbl tr.pa-grp:focus-visible td{outline:2px solid var(--text);outline-offset:-2px}
@@ -50,76 +64,154 @@
 .pa-name a:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:4px}
 .pa-name a svg{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
 .pa-name a:hover svg{opacity:1}
-.pa-tbl td.pa-c,.pa-tbl thead th:not(:first-child){width:112px}
 .pa-tbl tbody tr:not(.pa-grp):hover td{background:color-mix(in srgb,var(--text) 7%,var(--surface))}
 .pa-tbl tbody tr:not(.pa-grp):hover td.pa-chg{background:rgba(214,158,46,.24)}
 .pa-tbl input[type=checkbox]{width:22px;height:22px;accent-color:var(--text);cursor:pointer;vertical-align:middle}
 .pa-tbl td.pa-chg{background:rgba(214,158,46,.14)}
 .pa-tbl td.pa-chg::after{content:'changed';display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
 .pa-five{color:var(--muted);font-size:12.5px}
-.pa-hint{font-size:13px;color:var(--muted);margin:10px 0 0;max-width:760px}
-/* The heading row sticks under the site header while the page scrolls (--pa-top is that header's height, set below).
-   Phones: no sideways scroll; the Level columns shrink to L1 to L4 (spelled out in the line above the table) and the page name wraps. */
-@media(max-width:700px){
-  .pa-tbl{min-width:0}
+.pa-tag{display:block;width:fit-content;font-size:11.5px;font-weight:600;line-height:1;padding:4px 9px;border-radius:999px;border:1px solid var(--border);margin-top:4px;color:var(--muted)}
+.pa-tag.both{border-color:var(--ok);color:var(--ok)}
+.pa-tag.uae{border-color:var(--uae);color:var(--uae)}
+.pa-tag.bah{border-color:var(--bahrain);color:var(--bahrain)}
+.pa-nodata{display:block;font-size:12px;color:var(--warn);margin-top:3px}
+.pa-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0 4px}
+.pa-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;min-width:0}
+.pa-card .k{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pa-card .v{font-family:'Playfair Display',Georgia,serif;font-size:28px;line-height:1.2}
+.pa-card .s{font-size:12.5px;color:var(--muted)}
+.fig{font:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;color:inherit;text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:4px;text-align:left}
+.fig:hover,.fig:focus-visible{text-decoration-color:var(--text);outline:0}
+.pa-hint{font-size:13px;color:var(--muted);margin:12px 0 0;max-width:760px}
+.pa-hint summary{cursor:pointer;min-height:32px;display:flex;align-items:center;font-weight:600}
+.pa-hint ul{margin:4px 0 0;padding-left:18px}.pa-hint li{margin:3px 0}
+/* heading menus: the dashboard's Google Sheets look (pill buttons, 16px list) */
+.pa-th{display:flex;align-items:center;justify-content:center;gap:4px;min-height:30px}
+.pa-th.l{justify-content:flex-start}
+.pa-l1{font-weight:700;font-size:12.5px;padding:0 8px;cursor:default}
+.pa-mb{border:0;background:none;cursor:pointer;min-height:30px;border-radius:999px;color:var(--text);font:inherit;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:0 8px}
+.pa-mb:hover{background:var(--surface2)}
+.pa-mb svg{width:12px;height:12px;fill:currentColor;color:var(--muted)}
+.pa-mb.on svg{color:var(--funnel);width:14px;height:14px}
+.menu{position:fixed;z-index:60;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:6px;width:272px;max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);overflow:auto;text-align:left;font-weight:500;font-size:14px}
+.menu[hidden]{display:none}
+.menu .mi{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:9px 12px;min-height:40px;border-radius:999px;cursor:pointer;font-size:14px}
+.menu .mi:hover,.menu .mi.sel{background:var(--surface2)}
+.menu .mi.sel{font-weight:700}
+.menu .ms{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px 12px 2px}
+.menu hr{border:0;border-top:1px solid var(--border);margin:6px 4px}
+.menu input[type=text],.menu input[type=search]{width:calc(100% - 16px);margin:4px 8px;min-height:38px;border:1px solid var(--border);border-radius:999px;padding:0 14px;background:var(--bg);color:var(--text);font:inherit;font-size:14px}
+.menu .vl{max-height:190px;overflow:auto;padding:2px 4px}
+.menu .vl label{display:flex;align-items:center;gap:10px;padding:6px 10px;min-height:36px;border-radius:999px;cursor:pointer}
+.menu .vl label:hover{background:var(--surface2)}
+.menu .vl input{width:18px;height:18px;accent-color:var(--text)}
+.menu .mf{display:flex;gap:8px;justify-content:flex-end;padding:6px 8px 4px}
+.menu .mf button{min-height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:13px}
+.menu .mf .ok{background:var(--text);color:var(--bg);border-color:var(--text)}
+.menu .lnk{border:0;background:none;color:var(--muted);cursor:pointer;font-size:12.5px;text-decoration:underline;padding:4px 12px}
+.scrim{position:fixed;inset:0;background:rgba(20,20,28,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:10px}
+.scrim[hidden]{display:none}
+.dlg{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);width:min(560px,100%);max-height:calc(100vh - 20px);overflow:auto;padding:18px}
+.dlg h3{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:20px;margin:0 0 2px}
+.dlg .sub{font-size:13px;color:var(--muted);margin-bottom:10px}
+.dlg ul{list-style:none;margin:0;padding:0}.dlg li{padding:9px 2px;border-bottom:1px solid var(--border);font-size:14.5px;display:flex;justify-content:space-between;gap:10px}
+.dlg li small{color:var(--muted)}
+.dlg .note{font-size:12.5px;color:var(--muted);margin-top:10px}
+.dlg .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+@media(hover:hover){.pa-card:hover{border-color:var(--text)}}
+/* Phones: one country at a time (a tick grid cannot become cards without losing the grid), 10px side margin, 44px taps, nothing under 13px. */
+@media(max-width:1000px){.pa-tbl thead th small{display:none}}
+@media(max-width:760px){
+  .pa-sum{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pa-tbl{table-layout:auto}
   .pa-tbl th,.pa-tbl td{padding:10px 2px}
-  .pa-tbl th:first-child,.pa-tbl td:first-child{padding-left:12px;padding-right:6px}
+  .pa-tbl th:first-child,.pa-tbl td:first-child{padding-left:12px;padding-right:6px;width:auto}
   .pa-tbl td:first-child{position:static}
-  .pa-tbl td.pa-c,.pa-tbl thead th:not(:first-child){width:48px}
-  .pa-tbl th small{display:none}
-  .pa-full{display:none}.pa-short{display:inline}
+  .pa-tbl td.pa-c,.pa-tbl thead tr.h2 th:not(:first-child){width:48px}
+  .pa-tbl thead th{font-size:13px;padding-top:0;padding-bottom:0}
+  .pa-tbl thead th.pa-cty{display:none}
+  .pa-tbl td.pa-c{cursor:pointer}
   .pa-tbl input[type=checkbox]{width:26px;height:26px}
-  .pa-tbl tr.pa-grp td{padding-left:12px}
-  .pa-five{font-size:10.5px;line-height:1.2}
+  .pa-tbl tr.pa-grp td{padding-left:12px;font-size:13px}
+  .pa-th{min-height:44px}.pa-l1{font-size:13px}
+  .pa-mb{min-height:44px;min-width:44px;padding:0 4px;font-size:13px}
+  .pa-tag,.pa-note,.pa-nodata,.pa-card .k,.pa-card .s,.pa-five,.pa-status,.dlg .sub,.dlg .note,.menu .ms,.menu .lnk,.pa-tbl td.pa-chg::after,.pa-grp .pa-n{font-size:13px}
+  .why-wall-t{font-size:13px}
   .pa-bar .kb-search{flex:1 1 100%;max-width:none}
-  .pa-btn{flex:1 1 auto;padding:8px 12px}
-  .pa-legend{display:block;font-size:12.5px;color:var(--muted);margin:0 0 10px}
+  .pa-btn{flex:1 1 auto;padding:8px 12px;min-height:44px}
+  .fig{min-height:44px;min-width:44px}
+  .pa-hint summary{min-height:44px}
+  .phoneonly{display:flex}
+  .cty-sw{display:flex;gap:8px;margin:0 0 10px}
+  .cty-sw .pa-btn{flex:1}
+  body[data-cty="uae"] .bh-col,body[data-cty="uae"] .bh-th{display:none}
+  body[data-cty="bah"] .uae-col,body[data-cty="bah"] .uae-th{display:none}
+  .pa-legend{display:block;font-size:13px;color:var(--muted);margin:0 0 10px}
 }
 </style>
 </head>
-<body class="kb-wait">
+<body class="kb-wait" data-cty="uae">
 <header class="kb-head" id="kbHead" data-title="Team Home"></header>
 <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+<div class="menu" id="menu" hidden></div>
+<div class="scrim" id="scrim" hidden><div class="dlg" role="dialog" aria-modal="true" aria-label="Pages" id="dlg"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
-<script src="/js/pages.js?v=cafd4428"></script>
+<script src="/js/pages.js?v=9d5792f0"></script>
 <script src="/hub/hub.js?v=b106ff0c"></script>
 <script src="/js/visits.js?v=e33b3a0d"></script>
+<script src="/js/why-wall.js?v=4805dd60"></script>
+<script src="/js/ledger-export.js?v=67737bd9"></script>
+<script src="/js/report-export.js?v=d7b73ae8"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain');
-  var LV = [1, 11, 2, 3, 4];   // 11 is Level 2 Reception & Call Centre: saved under page 'fd:<id>' at internal level 1
-  // Kate, 28 Oct 2026: the numbers shown are the new ones (1 Stylists & Beauticians, 2 Reception & Call Centre, 3 Leadership, 4 Executives & Marketing,
-  // 5 Accounts & Admin, 6 Kate); the grid's columns are still the old internal levels 1 to 4, so internal 1 (all staff) is one column "Level 1 and 2".
-  var NAMES = { 1: 'Stylists & Beauticians: own staff link only', 11: 'Reception & Call Centre', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
-  var DISP = { 1: '1', 11: '2', 2: '3', 3: '4', 4: '5' }, SHORT = { 1: 'L1', 11: 'L2', 2: 'L3', 3: 'L4', 4: 'L5' };
-  // The staff are one level inside (1), so Reception & Call Centre keep their own ticks under 'fd:<page>' (pages.js reads them when TRS_STAFF_FD is set).
-  function pid(id, l) { return l === 11 ? 'fd:' + id : id; }
+  // The columns are the old internal levels 1 to 4 (11 is Level 2 Reception & Call Centre, saved under 'fd:<id>' at internal level 1; internal 1 itself, the
+  // staff, is Level 1 and has no tick: their own staff link). Shown as Level 2 Reception & Call Centre, 3 Leadership, 4 Executives & Marketing, 5 Accounts & Admin.
+  var LV = [11, 2, 3, 4];
+  var NAMES = { 1: 'Stylists & Beauticians', 11: 'Reception & Call Centre', 2: 'Leadership', 3: 'Executives & Marketing', 4: 'Accounts & Admin' };
+  var DISP = { 11: '2', 2: '3', 3: '4', 4: '5' }, SHORT = { 11: 'L2', 2: 'L3', 3: 'L4', 4: 'L5' };
+  var CTY = { u: 'UAE', b: 'Bahrain' };
+  // Pages with no Bahrain numbers yet: js/dashboard.js NO_BAH_VIEWS (keep the two in step), so a Bahrain tick on one of them warns that the page will open empty.
+  var NO_BAH = { dailyperf: 1, quarterreport: 1, clientmix: 1, retention: 1, stripedeposits: 1, depositcheck: 1, leavecal: 1, orders: 1 };
+  // UAE: 'fd:<id>' for Reception & Call Centre. Bahrain: the same with 'bh:' in front, so nothing in page_access had to change.
+  function pid(c, id, l) { return (c === 'b' ? 'bh:' : '') + (l === 11 ? 'fd:' : '') + id; }
   function lvl(l) { return l === 11 ? 1 : l; }
-  var q = '', statusTimer = null, shut = {}, DOCS = [];
+  var q = '', statusTimer = null, shut = {}, DOCS = [], F = {}, S = null, where = 'all', menuKey = null, menuDraft = null;
   try { shut = JSON.parse(localStorage.getItem('trs-pa-shut') || '{}') || {}; } catch (e) { shut = {}; }
   function keepShut() { try { localStorage.setItem('trs-pa-shut', JSON.stringify(shut)); } catch (e) {} }
-  function setTop() { var h = document.getElementById('kbHead'); document.documentElement.style.setProperty('--pa-top', (h ? Math.round(h.getBoundingClientRect().height) : 100) + 'px'); }
+  function setTop() {
+    var h = document.getElementById('kbHead'), r1 = document.querySelector('#paTbl thead tr.h1 th.pa-cty');
+    document.documentElement.style.setProperty('--pa-top', (h ? Math.round(h.getBoundingClientRect().height) : 100) + 'px');
+    document.documentElement.style.setProperty('--pa-h1', (r1 ? Math.round(r1.getBoundingClientRect().height) : 0) + 'px');
+  }
   window.addEventListener('resize', setTop);
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function say(t, err) {
-    var el = document.getElementById('paStatus'); if (!el) return;
-    el.textContent = t; el.className = 'pa-status' + (err ? ' err' : '');
+  function $(id) { return document.getElementById(id); }
+  function say(t, cls) {
+    var el = $('paStatus'); if (!el) return;
+    el.textContent = t; el.className = 'pa-status' + (cls ? ' ' + cls : '');
     clearTimeout(statusTimer);
-    if (!err) statusTimer = setTimeout(function () { el.textContent = ''; }, 4000);
+    if (cls !== 'warn') statusTimer = setTimeout(function () { el.textContent = ''; }, 4500);
   }
   // A saved tick, if there is one, else the built-in default (the box that is checked from the start).
-  function saved(id, l) { var o = window.TRS_ACCESS && window.TRS_ACCESS[pid(id, l)], k = lvl(l); return (o && o[k] !== undefined && o[k] !== null) ? !!o[k] : null; }
-  // Documents are the Team Home sections (SOPs, induction, front desk, HR forms ...): id 'kb:<section key>', Levels 2 to 4 only (Level 1 staff
-  // are opened team by team, not from here). Their starting ticks come from kb_sections (kb_section_defaults), a saved tick wins over them.
-  function dflt(id, l) {
-    if (String(id).indexOf('kb:') !== 0) return trsPageDefault(id, lvl(l));
-    var d = DOCS.filter(function (x) { return 'kb:' + x.key === id; })[0];
-    return !!d && d.min <= l && (d.skip || []).indexOf(l) < 0;
+  function saved(c, id, l) { var o = window.TRS_ACCESS && window.TRS_ACCESS[pid(c, id, l)], k = lvl(l); return (o && o[k] !== undefined && o[k] !== null) ? !!o[k] : null; }
+  // Documents are the Team Home sections (SOPs, induction, front desk, HR forms ...): id 'kb:<section key>', Levels 3 to 5 only (Level 1 and 2 staff
+  // are opened team by team, not from here), UAE only: a Document is not split by country. Their starting ticks come from kb_sections (kb_section_defaults).
+  // Bahrain starts with the pages already marked for a Bahrain sign-in (scope in pages.js), at the levels that open them for the UAE.
+  function dflt(c, id, l) {
+    if (String(id).indexOf('kb:') === 0) {
+      var d = DOCS.filter(function (x) { return 'kb:' + x.key === id; })[0], n = lvl(l);
+      return !!d && d.min <= n && (d.skip || []).indexOf(n) < 0;
+    }
+    var u = trsPageDefault(id, lvl(l));
+    if (c === 'u') return u;
+    var p = window.trsPage && trsPage(id);
+    return !!(p && p.scope) && u;
   }
-  function eff(id, l) { var s = saved(id, l); return s === null ? dflt(id, l) : s; }
+  function eff(c, id, l) { var s = saved(c, id, l); return s === null ? dflt(c, id, l) : s; }
   function pages() {
     var docs = DOCS.map(function (d) {
       var sec = (window.KB && KB.SECTIONS || []).filter(function (x) { return x.key === d.key; })[0];
@@ -127,94 +219,244 @@
     });
     return TRS_PAGES.filter(function (p) { return !p.retired; }).concat(docs);
   }
-  // Level 1 (stylists, beauticians) do not open the dashboard: their access is their own staff link, so there is no page tick for them.
-  function lvOf(p) { return p.doc ? [2, 3, 4] : [11, 2, 3, 4]; }
-  function nameOf(id) { id = String(id).replace(/^fd:/, ''); var p = pages().filter(function (x) { return x.id === id; })[0]; return p ? p.label : trsPageLabel(id); }
+  function lvOf(p) { return p.doc ? [2, 3, 4] : LV; }
+  function nameOf(id) { id = String(id).replace(/^(bh:)?(fd:)?/, ''); var p = pages().filter(function (x) { return x.id === id; })[0]; return p ? p.label : trsPageLabel(id); }
+  function labelOf(id) { var p = pages().filter(function (x) { return x.id === id; })[0]; return p ? p.label : id; }
+  function anyOn(p, c) { return LV.some(function (l) { return eff(c, p.id, l); }); }
+  function tagOf(p) { var u = anyOn(p, 'u'), b = anyOn(p, 'b'); return u && b ? 'both' : u ? 'uae' : b ? 'bah' : 'none'; }
+  var TAGTXT = { both: 'Both countries', uae: 'UAE only', bah: 'Bahrain only', none: 'Neither' };
   // Kate, 3 Nov 2026: a page's name opens that page in a new window (Documents have no page address, so they stay plain text).
   var OPEN_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>';
+  var DOWN = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4z"/></svg>';
+  var FUNNEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>';
   function nameLink(p) {
     if (p.doc) return esc(p.label);
     return '<a href="/?view=' + encodeURIComponent(trsSlugOf(p.id)) + '" target="_blank" rel="noopener" title="Open this page in a new window" aria-label="' + esc(p.label) + ' (opens in a new window)">' + esc(p.label) + OPEN_ICON + '</a>';
   }
-  function table() {
-    var list = pages(), groups = [], by = {};
+
+  /* ---------- filters and sort: Google Sheets logic on every column ---------- */
+  function cellText(p, key) {
+    if (key === 'page') return p.label;
+    var c = key.charAt(0), l = +key.slice(1);
+    if (p.doc) return c === 'b' ? 'n/a' : (l === 11 ? 'by team' : (eff(c, p.id, l) ? 'Ticked' : 'Not ticked'));
+    return eff(c, p.id, l) ? 'Ticked' : 'Not ticked';
+  }
+  function passes(p, key) {
+    var f = F[key]; if (!f) return true;
+    var v = cellText(p, key);
+    if (f.cond) {
+      if (key === 'page') {
+        var t = (f.text || '').toLowerCase(), lo = v.toLowerCase();
+        if (f.cond === 'contains' && lo.indexOf(t) < 0) return false;
+        if (f.cond === 'not' && lo.indexOf(t) >= 0) return false;
+        if (f.cond === 'is' && lo !== t) return false;
+      } else {
+        if (f.cond === 'ticked' && v !== 'Ticked') return false;
+        if (f.cond === 'notticked' && v !== 'Not ticked') return false;
+      }
+    }
+    if (f.vals && !f.vals[v]) return false;
+    return true;
+  }
+  function active(key) { var f = F[key]; return !!f && (!!f.cond || !!f.vals); }
+  function rowsFor(except) {
     var needle = q.trim().toLowerCase();
-    list.forEach(function (p) {
-      if (needle && (p.label + ' ' + (p.group || '') + ' ' + (p.sub || '')).toLowerCase().indexOf(needle) < 0) return;
-      var g = p.group || 'Other';
-      if (!by[g]) { by[g] = []; groups.push(g); }
-      by[g].push(p);
+    return pages().filter(function (p) {
+      if (needle && (p.label + ' ' + (p.group || '') + ' ' + (p.sub || '')).toLowerCase().indexOf(needle) < 0) return false;
+      if (where !== 'all' && (p.doc || tagOf(p) !== where)) return false;
+      for (var k in F) { if (k !== except && !passes(p, k)) return false; }
+      return true;
     });
-    if (!groups.length) return '<tr><td colspan="' + (LV.length + 1) + '" style="text-align:left">Nothing matches that search.</td></tr>';
+  }
+  function sorted(rows) {
+    if (!S) return rows;
+    return rows.slice().sort(function (a, b) {
+      var x = cellText(a, S.key), y = cellText(b, S.key), r;
+      if (S.key === 'page') r = x.localeCompare(y); else r = (x === 'Ticked' ? 0 : 1) - (y === 'Ticked' ? 0 : 1);
+      return S.dir === 'a' ? r : -r;
+    });
+  }
+  function mbtn(key, label, txt) {
+    var on = active(key) || (S && S.key === key);
+    return '<button type="button" class="pa-mb' + (on ? ' on' : '') + '" data-menu="' + key + '" aria-label="Menu for ' + esc(label) + '" aria-haspopup="true">' + txt + (active(key) ? FUNNEL : DOWN) + '</button>';
+  }
+  function head() {
+    var h = '<tr class="h1"><th rowspan="2" class="l"><div class="pa-th l">' + mbtn('page', 'Page', 'Page') + '</div><small>Level 6 (you) opens every page</small></th>' +
+      '<th colspan="5" class="pa-cty uae-th">UAE</th><th colspan="5" class="pa-cty bh bh-th bh-first">Bahrain</th></tr><tr class="h2">';
+    ['u', 'b'].forEach(function (c) {
+      var cls = c === 'u' ? 'uae-th' : 'bh-th';
+      h += '<th class="' + cls + (c === 'b' ? ' bh-first' : '') + '"><div class="pa-th"><span class="pa-l1" title="Their own staff link">L1</span></div><small>' + NAMES[1] + '</small></th>';
+      LV.forEach(function (l) {
+        h += '<th class="' + cls + '"><div class="pa-th">' + mbtn(c + l, CTY[c] + ' Level ' + DISP[l], SHORT[l]) + '</div><small>' + esc(NAMES[l]) + '</small></th>';
+      });
+    });
+    return h + '</tr>';
+  }
+  function cells(p, c) {
+    var cls = c === 'u' ? 'uae-col' : 'bh-col', out = '';
+    var lab = function (l) { return ' data-label="' + CTY[c] + ' Level ' + l + '"'; };
+    if (p.doc && c === 'b') {
+      return [1, 2, 3, 4, 5].map(function (n) { return '<td class="pa-c ' + cls + (n === 1 ? ' first' : '') + '"' + lab(n) + '><span class="pa-five" title="Documents are not split by country">n/a</span></td>'; }).join('');
+    }
+    out += '<td class="pa-c ' + cls + (c === 'b' ? ' first' : '') + '"' + lab(1) + '><span class="pa-five" title="' + (p.doc ? 'Opened team by team' : 'Their own staff link') + '">' + (p.doc ? 'by team' : 'own link') + '</span></td>';
+    LV.forEach(function (l) {
+      if (p.doc && l === 11) { out += '<td class="pa-c ' + cls + '"' + lab(2) + '><span class="pa-five">by team</span></td>'; return; }
+      var chg = saved(c, p.id, l) !== null && saved(c, p.id, l) !== dflt(c, p.id, l);
+      out += '<td class="pa-c ' + cls + (chg ? ' pa-chg' : '') + '"' + lab(DISP[l]) + '><input type="checkbox" data-c="' + c + '" data-l="' + l + '"' + (eff(c, p.id, l) ? ' checked' : '') +
+        ' aria-label="' + esc(p.label) + ', ' + CTY[c] + ' Level ' + DISP[l] + ' ' + esc(NAMES[l]) + '"></td>';
+    });
+    return out;
+  }
+  function table() {
+    var rows = sorted(rowsFor(null)), groups = [], by = {};
+    var needle = q.trim() || where !== 'all' || Object.keys(F).length;
+    rows.forEach(function (p) { var g = p.group || 'Other'; if (!by[g]) { by[g] = []; groups.push(g); } by[g].push(p); });
+    if (!groups.length) return '<tr><td colspan="11" style="text-align:left;padding:14px 12px">Nothing matches that search or filter.</td></tr>';
     var out = [];
     groups.forEach(function (g) {
-      var closed = !!shut[g] && !needle;   // a search always shows what it found
-      out.push('<tr class="pa-grp' + (closed ? ' pa-shut' : '') + '" data-g="' + esc(g) + '" tabindex="0" role="button" aria-expanded="' + (closed ? 'false' : 'true') + '"><td colspan="' + (LV.length + 1) + '">' +
+      var closed = !!shut[g] && !needle;   // a search or a filter always shows what it found
+      out.push('<tr class="pa-grp' + (closed ? ' pa-shut' : '') + '" data-g="' + esc(g) + '" tabindex="0" role="button" aria-expanded="' + (closed ? 'false' : 'true') + '"><td colspan="11">' +
         '<span class="pa-chev" aria-hidden="true">&#9662;</span>' + esc(g) + '<span class="pa-n">' + by[g].length + ' page' + (by[g].length > 1 ? 's' : '') + '</span></td></tr>');
       if (closed) return;
       by[g].forEach(function (p) {
+        var t = p.doc ? '' : tagOf(p), nodata = !p.doc && NO_BAH[p.id] && anyOn(p, 'b');
         out.push('<tr data-id="' + esc(p.id) + '"><td><span class="pa-name">' + nameLink(p) + '</span>' +
           (p.sub && g === 'Numbers' ? '<span class="pa-note">' + esc(p.sub) + '</span>' : '') +
-          (p.inside ? '<span class="pa-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') + '</td>' +
-          LV.map(function (l) {
-            if (p.doc && (l === 1 || l === 11)) return '<td class="pa-c"><span class="pa-five">by team</span></td>';
-            if (l === 1) return '<td class="pa-c"><span class="pa-five" title="Their own staff link">own link</span></td>';
-            var chg = saved(p.id, l) !== null && saved(p.id, l) !== dflt(p.id, l);
-            return '<td class="pa-c' + (chg ? ' pa-chg' : '') + '"><input type="checkbox" data-l="' + l + '"' + (eff(p.id, l) ? ' checked' : '') +
-              ' aria-label="' + esc(p.label) + ', Level ' + DISP[l] + ' ' + esc(NAMES[l]) + '"></td>';
-          }).join('') + '</tr>');
+          (p.inside ? '<span class="pa-note">Inside ' + esc(trsPageLabel(p.inside)) + '</span>' : '') +
+          (t ? '<span class="pa-tag ' + t + '">' + TAGTXT[t] + '</span>' : '') +
+          (nodata ? '<span class="pa-nodata">Ticked for Bahrain, but this page has UAE numbers only today</span>' : '') + '</td>' + cells(p, 'u') + cells(p, 'b') + '</tr>');
       });
     });
     return out.join('');
   }
   function allGroups() { var g = [], seen = {}; pages().forEach(function (p) { var k = p.group || 'Other'; if (!seen[k]) { seen[k] = 1; g.push(k); } }); return g; }
-  function paintFold() {
-    var b = document.getElementById('paFold'); if (!b) return;
-    var any = allGroups().some(function (g) { return !shut[g]; });
-    b.textContent = any ? 'Collapse all sections' : 'Expand all sections';
-  }
   function changedCount() {
     var n = 0;
-    pages().forEach(function (p) { lvOf(p).forEach(function (l) { var s = saved(p.id, l); if (s !== null && s !== dflt(p.id, l)) n++; }); });
+    pages().forEach(function (p) { ['u', 'b'].forEach(function (c) { if (p.doc && c === 'b') return; lvOf(p).forEach(function (l) { var s = saved(c, p.id, l); if (s !== null && s !== dflt(c, p.id, l)) n++; }); }); });
     return n;
   }
-  function paintCount() {
-    var b = document.getElementById('paReset'); if (!b) return;
-    var n = changedCount();
-    b.disabled = !n; b.textContent = n ? 'Reset ' + n + ' change' + (n > 1 ? 's' : '') + ' to the starting ticks' : 'Nothing changed from the starting ticks';
+  function summary() {
+    var n = { both: 0, uae: 0, bah: 0, none: 0 }, total = 0;
+    pages().forEach(function (p) { if (p.doc) return; n[tagOf(p)]++; total++; });
+    var defs = [['both', 'Opens in both', 'Bahrain and UAE can both open it'], ['uae', 'UAE only', 'Bahrain cannot open it'], ['bah', 'Bahrain only', 'The UAE team cannot open it'], ['none', 'Neither', 'Only you (Level 6) can open it']];
+    $('paSum').innerHTML = defs.map(function (d) {
+      return '<div class="pa-card"><div class="k">' + d[1] + '</div><div class="v"><button type="button" class="fig" data-tag="' + d[0] + '" aria-label="' + d[1] + ': ' + n[d[0]] + ' pages, open the list">' + n[d[0]] + '</button></div><div class="s">' + d[2] + '</div></div>';
+    }).join('');
+    $('whereBar').innerHTML = [['all', 'All ' + total + ' pages'], ['both', 'Both countries'], ['uae', 'UAE only'], ['bah', 'Bahrain only'], ['none', 'Neither']].map(function (w) {
+      return '<button type="button" class="pa-btn" data-where="' + w[0] + '" aria-pressed="' + (where === w[0]) + '">' + w[1] + '</button>';
+    }).join('');
   }
   function draw() {
-    document.getElementById('paBody').innerHTML = table();
-    paintCount();
-    paintFold();
+    $('paTbl').tHead.innerHTML = head();
+    $('paBody').innerHTML = table();
+    summary();
+    var b = $('paReset'), n = changedCount();
+    b.disabled = !n; b.textContent = n ? 'Reset ' + n + ' change' + (n > 1 ? 's' : '') + ' to the starting ticks' : 'Nothing changed from the starting ticks';
+    var any = allGroups().some(function (g) { return !shut[g]; });
+    $('paFold').textContent = any ? 'Collapse all sections' : 'Expand all sections';
+    setTop();
   }
-  async function save(id, l, val, box) {
-    var def = dflt(id, l);
+
+  /* ---------- heading menu: sort, filter by condition, filter by values ---------- */
+  function openMenu(btn, key) {
+    var m = $('menu'), f = F[key] || {}, all = {}, vals = [];
+    menuKey = key;
+    rowsFor(key).forEach(function (p) { var v = cellText(p, key); if (!all[v]) { all[v] = 1; vals.push(v); } });
+    vals.sort(function (a, b) { return a.localeCompare(b); });
+    menuDraft = { cond: f.cond || '', text: f.text || '', vals: {} };
+    vals.forEach(function (v) { menuDraft.vals[v] = f.vals ? !!f.vals[v] : true; });
+    var isPage = key === 'page';
+    var conds = isPage ? [['', 'None'], ['contains', 'Text contains'], ['not', 'Text does not contain'], ['is', 'Text is exactly']] : [['', 'None'], ['ticked', 'Is ticked'], ['notticked', 'Is not ticked']];
+    m.innerHTML = '<div class="ms">Sort</div>' +
+      '<button type="button" class="mi' + (S && S.key === key && S.dir === 'a' ? ' sel' : '') + '" data-mi="sa">' + (isPage ? 'Sort A to Z' : 'Sort ticked first') + '</button>' +
+      '<button type="button" class="mi' + (S && S.key === key && S.dir === 'd' ? ' sel' : '') + '" data-mi="sd">' + (isPage ? 'Sort Z to A' : 'Sort not ticked first') + '</button>' +
+      '<hr><div class="ms">Filter by condition</div>' +
+      conds.map(function (c) { return '<button type="button" class="mi' + (menuDraft.cond === c[0] ? ' sel' : '') + '" data-cond="' + c[0] + '">' + c[1] + '</button>'; }).join('') +
+      (isPage ? '<input type="text" id="mText" placeholder="Value or text" value="' + esc(menuDraft.text) + '" aria-label="Condition text"' + (menuDraft.cond ? '' : ' hidden') + '>' : '') +
+      '<hr><div class="ms">Filter by values</div><input type="search" id="mSearch" placeholder="Search values" aria-label="Search values">' +
+      '<div><button type="button" class="lnk" data-mi="all">Select all</button><button type="button" class="lnk" data-mi="none">Clear</button></div><div class="vl" id="mVals"></div>' +
+      '<div class="mf"><button type="button" data-mi="cancel">Cancel</button><button type="button" class="ok" data-mi="ok">OK</button></div>';
+    m.hidden = false; paintVals('');
+    var r = btn.getBoundingClientRect(), w = Math.min(272, innerWidth - 20);
+    m.style.left = Math.max(10, Math.min(innerWidth - w - 10, r.left - 120)) + 'px';
+    m.style.top = Math.min(r.bottom + 6, Math.max(10, innerHeight - m.offsetHeight - 10)) + 'px';
+  }
+  function paintVals(term) {
+    var box = $('mVals'); if (!box) return; term = term.toLowerCase();
+    box.innerHTML = Object.keys(menuDraft.vals).filter(function (v) { return !term || v.toLowerCase().indexOf(term) >= 0; }).map(function (v) {
+      return '<label><input type="checkbox" data-v="' + esc(v) + '"' + (menuDraft.vals[v] ? ' checked' : '') + '>' + esc(v) + '</label>';
+    }).join('') || '<div class="lnk">No values</div>';
+  }
+  function closeMenu() { $('menu').hidden = true; menuKey = null; }
+  function applyMenu() {
+    var key = menuKey, all = Object.keys(menuDraft.vals), on = all.filter(function (v) { return menuDraft.vals[v]; });
+    var f = { cond: menuDraft.cond, text: ($('mText') && $('mText').value) || '' };
+    if (on.length < all.length) { f.vals = {}; on.forEach(function (v) { f.vals[v] = 1; }); }
+    if (!f.cond && !f.vals) delete F[key]; else F[key] = f;
+    closeMenu(); draw();
+  }
+
+  /* ---------- saving ---------- */
+  async function save(c, id, l, val, box) {
+    var def = dflt(c, id, l);
     var send = (val === def) ? null : val;   // back on the starting tick: remove the saved change instead of storing a copy of the default
     box.disabled = true;
-    var r = await KB.client.rpc('page_access_set', { p_page: pid(id, l), p_level: lvl(l), p_allowed: send });
+    var r = await KB.client.rpc('page_access_set', { p_page: pid(c, id, l), p_level: lvl(l), p_allowed: send });
     box.disabled = false;
-    if (r.error) { box.checked = !val; say('Not saved: ' + (r.error.message || 'try again') + '.', true); return; }
-    var o = window.TRS_ACCESS[pid(id, l)] || (window.TRS_ACCESS[pid(id, l)] = {});
+    if (r.error) { box.checked = !val; say('Not saved: ' + (r.error.message || 'try again') + '.', 'err'); return; }
+    var o = window.TRS_ACCESS[pid(c, id, l)] || (window.TRS_ACCESS[pid(c, id, l)] = {});
     if (send === null) delete o[lvl(l)]; else o[lvl(l)] = send;
     var td = box.closest('td'); if (td) td.classList.toggle('pa-chg', send !== null);
-    say('Saved: ' + nameOf(id) + ', Level ' + DISP[l] + ' ' + NAMES[l] + ', ' + (val ? 'can open it' : 'cannot open it') + '.');
-    paintCount();
+    var lead = 'Saved: ' + nameOf(id) + ', ' + CTY[c] + ' Level ' + DISP[l] + ' ' + NAMES[l] + ', ';
+    if (c === 'b' && val && NO_BAH[id]) say(lead + 'can open it. Note: it has UAE numbers only today, so Bahrain will see an empty page.', 'warn');
+    else say(lead + (val ? 'can open it' : 'cannot open it') + '.');
+    draw();
   }
   async function resetAll() {
     var jobs = [];
-    pages().forEach(function (p) { lvOf(p).forEach(function (l) { var s = saved(p.id, l); if (s !== null) jobs.push([pid(p.id, l), lvl(l)]); }); });
+    pages().forEach(function (p) { ['u', 'b'].forEach(function (c) { if (p.doc && c === 'b') return; lvOf(p).forEach(function (l) { if (saved(c, p.id, l) !== null) jobs.push([pid(c, p.id, l), lvl(l)]); }); }); });
     if (!jobs.length) return;
     if (!confirm('Put every box back to how it started? ' + jobs.length + ' saved change' + (jobs.length > 1 ? 's' : '') + ' will be removed.')) return;
-    var b = document.getElementById('paReset'); b.disabled = true;
+    var b = $('paReset'); b.disabled = true;
     for (var i = 0; i < jobs.length; i++) {
       var r = await KB.client.rpc('page_access_set', { p_page: jobs[i][0], p_level: jobs[i][1], p_allowed: null });
-      if (r.error) { say('Stopped at ' + nameOf(jobs[i][0]) + ': ' + (r.error.message || 'try again') + '.', true); draw(); return; }
+      if (r.error) { say('Stopped at ' + nameOf(jobs[i][0]) + ': ' + (r.error.message || 'try again') + '.', 'err'); draw(); return; }
       delete window.TRS_ACCESS[jobs[i][0]][jobs[i][1]];
     }
     say('Every box is back to how it started.');
     draw();
   }
+
+  /* ---------- downloads (report-export.js): the rows the heading filters leave ---------- */
+  window.paExport = function () {
+    var cols = [{ key: 'g', label: 'Group', fmt: 'text' }, { key: 'p', label: 'Page', fmt: 'text' }, { key: 't', label: 'Where it opens', fmt: 'text' }];
+    ['u', 'b'].forEach(function (c) { LV.forEach(function (l) { cols.push({ key: c + l, label: CTY[c] + ' Level ' + DISP[l] + ' ' + NAMES[l], fmt: 'text' }); }); });
+    var rows = sorted(rowsFor(null)).map(function (p) {
+      var cells = [p.group || 'Other', p.label, p.doc ? 'Documents are not split by country' : TAGTXT[tagOf(p)]];
+      ['u', 'b'].forEach(function (c) { LV.forEach(function (l) { cells.push(p.doc && (c === 'b' || l === 11) ? 'n/a' : (eff(c, p.id, l) ? 'Yes' : 'No')); }); });
+      return { cells: cells };
+    });
+    return { name: 'page-access', csv: 0, sheets: [{ name: 'Page Access', title: 'Page Access', subtitle: rows.length + ' page' + (rows.length === 1 ? '' : 's') + ' · UAE and Bahrain, Levels 2 to 5 (Level 1 opens its own staff link only, Level 6 opens everything)', blocks: [{ cols: cols, rows: rows }] }] };
+  };
+
+  /* ---------- a figure opens the pages behind it (the last step: a single page has nothing behind it) ---------- */
+  function showWindow(tag) {
+    var list = pages().filter(function (p) { return !p.doc && tagOf(p) === tag; });
+    $('dlg').innerHTML = '<h3>' + TAGTXT[tag] + '</h3><div class="sub">' + list.length + ' page' + (list.length === 1 ? '' : 's') + '</div><ul>' +
+      list.map(function (p) { return '<li><span>' + esc(p.label) + '</span><small>' + esc(p.group) + '</small></li>'; }).join('') + '</ul>' +
+      '<div class="note">This is the last step: a single page has nothing behind it.</div><div class="bt"><button class="pa-btn" type="button" data-w="xlsx">XLSX</button><button class="pa-btn" type="button" data-w="csv">CSV</button><button class="pa-btn" type="button" data-w="close">Close</button></div>';
+    $('dlg')._rows = list; $('scrim').hidden = false; $('dlg').querySelector('[data-w="close"]').focus();
+  }
+  function closeWin() { $('scrim').hidden = true; }
+  function winExport(kind) {
+    var rows = $('dlg')._rows || [], tag = $('dlg').querySelector('h3').textContent;
+    window.paWinExport = function () {
+      return { name: 'page-access-' + tag.toLowerCase().replace(/[^a-z0-9]+/g, '-'), csv: 0, sheets: [{ name: 'Pages', title: tag, subtitle: rows.length + ' pages',
+        blocks: [{ cols: [{ key: 'p', label: 'Page', fmt: 'text' }, { key: 'g', label: 'Group', fmt: 'text' }], rows: rows.map(function (p) { return { cells: [p.label, p.group || 'Other'] }; }) }] }] };
+    };
+    if (typeof rexRun === 'function') rexRun('paWinExport', kind, null);
+  }
+
   KB.ready.then(async function () {
     // Level 5 only, and not while "View as" is on: previewing another level must not let that level change its own pages.
     if (KB.realLevel !== 5 || KB.viewAs) {
@@ -224,39 +466,86 @@
     try { var dr = await KB.client.rpc('kb_section_defaults'); DOCS = (!dr.error && Array.isArray(dr.data)) ? dr.data : []; } catch (e) { DOCS = []; }
     main.innerHTML =
       KB.titleIcon('page-access', 'Page Access') +
-      '<p class="kb-meta">Tick the reports each level can open. The ticks you see now are where each page starts; a change is saved as soon as you click it and takes effect the next time that person opens or refreshes the dashboard.</p>' +
-      '<div class="pa-col"><div class="pa-bar"><div class="kb-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
+      '<p class="kb-meta">Tick the reports each level can open, for the UAE team and for the Bahrain team separately. A change is saved as soon as you click it and takes effect the next time that person opens or refreshes the dashboard.</p>' +
+      whyWall([
+        ['Why this page', 'Bahrain is its own salon with its own team. Each report needs to say which country can open it, so nobody in Bahrain lands on UAE-only numbers.'],
+        ['Why now', 'Bahrain’s pages are going live one at a time (Service Calendar went on 19 Nov 2026), and Bahrain sign-ins could open only three pages.'],
+        ['If we do nothing', 'Who sees what stays inside the code, and every change to Bahrain’s menu waits for someone to edit it.']
+      ], 'Kate ticks the Bahrain columns for the pages the Bahrain team needs, before the next Bahrain page goes live.') +
+      '<div class="pa-col"><div class="pa-sum" id="paSum" aria-label="Where each page opens"></div>' +
+      '<div class="pa-bar"><div class="kb-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
         '<input type="search" id="paFilter" placeholder="Search pages" autocomplete="off" aria-label="Search pages"></div>' +
-        '<button type="button" class="pa-btn" id="paFold"></button><button type="button" class="pa-btn" id="paReset"></button></div>' +
+        '<button type="button" class="pa-btn" id="paFold"></button><button type="button" class="pa-btn" id="paReset"></button>' +
+        '<button type="button" class="pa-btn" id="paXlsx" title="Download as an Excel file">XLSX</button><button type="button" class="pa-btn" id="paCsv" title="Download as a CSV file">CSV</button></div>' +
+      '<div class="pa-bar" id="whereBar" role="group" aria-label="Where it opens"></div>' +
       '<div class="pa-status" id="paStatus" role="status" aria-live="polite"></div>' +
-      '<p class="pa-legend"><b>L1</b> Stylists &amp; Beauticians (their own staff link only, no page ticks) · <b>L2</b> Reception &amp; Call Centre · <b>L3</b> Leadership · <b>L4</b> Executives &amp; Marketing · <b>L5</b> Accounts &amp; Admin. You (Level 6) always open everything.</p>' +
-      '<div class="pa-wrap"><table class="pa-tbl"><thead><tr><th>Page <small>Level 6 (you) always opens every page</small></th>' +
-        LV.map(function (l) { return '<th><span class="pa-full">Level ' + DISP[l] + '</span><span class="pa-short">' + SHORT[l] + '</span><small>' + esc(NAMES[l]) + '</small></th>'; }).join('') + '</tr></thead><tbody id="paBody"></tbody></table></div>' +
-      '<p class="pa-hint">This decides what each level sees: the menu, Team Home, search and direct links. The numbers themselves are still protected by the database. A page ticked for a level that is below what its data asks for will open and then say it needs a higher level, so tell Claude to open that data as well. Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents (the sections under “Documents”) are guarded by the database itself, so a tick there really opens or closes the text for that level; Level 1 and 2 staff are opened team by team, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</p>' + '</div>';
+      '<div class="cty-sw phoneonly" role="group" aria-label="Country"><button type="button" class="pa-btn" id="ctyU" aria-pressed="true">UAE</button><button type="button" class="pa-btn" id="ctyB" aria-pressed="false">Bahrain</button></div>' +
+      '<p class="pa-legend"><b>L1</b> Stylists &amp; Beauticians (their own staff link only, no page ticks) · <b>L2</b> Reception &amp; Call Centre · <b>L3</b> Leadership · <b>L4</b> Executives &amp; Marketing · <b>L5</b> Accounts &amp; Admin. You (Level 6) always open everything, in both countries.</p>' +
+      '<div class="pa-wrap"><table class="pa-tbl" id="paTbl"><thead></thead><tbody id="paBody"></tbody></table></div>' +
+      '<details class="pa-hint"><summary>How this works</summary><ul>' +
+        '<li>UAE ticks are what each level opens today. Bahrain ticks are for people who sign in as the Bahrain team.</li>' +
+        '<li>Bahrain starts with the pages already marked for a Bahrain sign-in, at the levels that open them for the UAE.</li>' +
+        '<li>A tick decides what is drawn. The numbers themselves are still protected by the database, so a page with no Bahrain numbers yet opens empty.</li>' +
+        '<li>Anyone given a page of their own on the Staff Roster keeps it whatever is ticked here. Documents are not split by country, and the dashboard door, Wellness Voucher approvals and the Upload Portal are not on this page.</li></ul></details></div>';
     setTop();
     draw();
-    document.getElementById('paFilter').addEventListener('input', function (e) { q = e.target.value; draw(); });
-    document.getElementById('paReset').addEventListener('click', resetAll);
-    document.getElementById('paFold').addEventListener('click', function () {
+    $('paFilter').addEventListener('input', function (e) { q = e.target.value; draw(); });
+    $('paReset').addEventListener('click', resetAll);
+    $('paFold').addEventListener('click', function () {
       var any = allGroups().some(function (g) { return !shut[g]; });
       allGroups().forEach(function (g) { if (any) shut[g] = 1; else delete shut[g]; });
       keepShut(); draw();
     });
+    $('paXlsx').addEventListener('click', function (e) { if (typeof rexRun === 'function') rexRun('paExport', 'xlsx', e.currentTarget); });
+    $('paCsv').addEventListener('click', function (e) { if (typeof rexRun === 'function') rexRun('paExport', 'csv', e.currentTarget); });
+    $('whereBar').addEventListener('click', function (e) { var b = e.target.closest('[data-where]'); if (!b) return; where = b.getAttribute('data-where'); draw(); });
+    $('ctyU').addEventListener('click', function () { document.body.setAttribute('data-cty', 'uae'); $('ctyU').setAttribute('aria-pressed', 'true'); $('ctyB').setAttribute('aria-pressed', 'false'); setTop(); });
+    $('ctyB').addEventListener('click', function () { document.body.setAttribute('data-cty', 'bah'); $('ctyB').setAttribute('aria-pressed', 'true'); $('ctyU').setAttribute('aria-pressed', 'false'); setTop(); });
     function flip(tr) {
       var g = tr.getAttribute('data-g'); if (shut[g]) delete shut[g]; else shut[g] = 1;
       keepShut(); draw();
       var back = document.querySelector('tr.pa-grp[data-g="' + g.replace(/"/g, '\\"') + '"]'); if (back) back.focus();
     }
-    document.getElementById('paBody').addEventListener('click', function (e) { var tr = e.target.closest && e.target.closest('tr.pa-grp'); if (tr) flip(tr); });
-    document.getElementById('paBody').addEventListener('keydown', function (e) {
+    $('paBody').addEventListener('click', function (e) {
+      var tr = e.target.closest && e.target.closest('tr.pa-grp'); if (tr) { flip(tr); return; }
+      var td = e.target.closest && e.target.closest('td.pa-c');   // a tap anywhere in the cell ticks the box (44px target on a phone)
+      if (td && e.target.type !== 'checkbox') { var b = td.querySelector('input[type=checkbox]'); if (b && !b.disabled) b.click(); }
+    });
+    $('paBody').addEventListener('keydown', function (e) {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       var tr = e.target.closest && e.target.closest('tr.pa-grp'); if (tr) { e.preventDefault(); flip(tr); }
     });
-    document.getElementById('paBody').addEventListener('change', function (e) {
+    $('paBody').addEventListener('change', function (e) {
       var box = e.target; if (!box || box.type !== 'checkbox') return;
       var tr = box.closest('tr'); if (!tr) return;
-      save(tr.getAttribute('data-id'), +box.getAttribute('data-l'), box.checked, box);
+      save(box.getAttribute('data-c'), tr.getAttribute('data-id'), +box.getAttribute('data-l'), box.checked, box);
     });
+    $('paTbl').tHead.addEventListener('click', function (e) { var b = e.target.closest('[data-menu]'); if (b) openMenu(b, b.getAttribute('data-menu')); });
+    $('menu').addEventListener('click', function (e) {
+      var t = e.target.closest('[data-mi],[data-cond]'); if (!t) return;
+      if (t.hasAttribute('data-cond')) {
+        menuDraft.cond = t.getAttribute('data-cond');
+        [].forEach.call($('menu').querySelectorAll('[data-cond]'), function (b) { b.classList.toggle('sel', b === t); });
+        var tx = $('mText'); if (tx) tx.hidden = !menuDraft.cond;
+        return;
+      }
+      var a = t.getAttribute('data-mi');
+      if (a === 'sa' || a === 'sd') { S = { key: menuKey, dir: a === 'sa' ? 'a' : 'd' }; closeMenu(); draw(); }
+      else if (a === 'all' || a === 'none') { Object.keys(menuDraft.vals).forEach(function (v) { menuDraft.vals[v] = a === 'all'; }); paintVals(($('mSearch') || {}).value || ''); }
+      else if (a === 'cancel') closeMenu();
+      else if (a === 'ok') applyMenu();
+    });
+    $('menu').addEventListener('change', function (e) { var v = e.target.getAttribute('data-v'); if (v !== null) menuDraft.vals[v] = e.target.checked; });
+    $('menu').addEventListener('input', function (e) { if (e.target.id === 'mSearch') paintVals(e.target.value); });
+    document.addEventListener('click', function (e) {
+      if (!$('menu').hidden && !e.target.closest('#menu') && !e.target.closest('[data-menu]')) closeMenu();
+      var f = e.target.closest('.fig'); if (f) { showWindow(f.getAttribute('data-tag')); return; }
+      var w = e.target.closest('[data-w]');
+      if (w) { var a = w.getAttribute('data-w'); if (a === 'close') closeWin(); else winExport(a); return; }
+      if (e.target === $('scrim')) closeWin();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeMenu(); closeWin(); } });
+    if (window.ResizeObserver) new ResizeObserver(setTop).observe($('kbHead'));
   });
 })();
 </script>
