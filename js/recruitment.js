@@ -155,8 +155,8 @@
     return 'later';
   }
   function isLate(p) { return p.stage === 'new' && !p.replied_at && waited(p) >= waitDays(); }
-  function by(b) { return rows.filter(function (p) { return !p.is_test && bucket(p) === b; }).sort(function (a, c) { return new Date(a.applied_at) - new Date(c.applied_at); }); }
-  function lateList() { return rows.filter(function (p) { return !p.is_test && isLate(p); }).sort(function (a, c) { return new Date(a.applied_at) - new Date(c.applied_at); }); }
+  function by(b) { return rows.filter(function (p) { return !p.is_test && stepOk(p) && bucket(p) === b; }).sort(function (a, c) { return new Date(a.applied_at) - new Date(c.applied_at); }); }
+  function lateList() { return rows.filter(function (p) { return !p.is_test && stepOk(p) && isLate(p); }).sort(function (a, c) { return new Date(a.applied_at) - new Date(c.applied_at); }); }
 
   /* ---------- pieces ---------- */
   function waitPill(p) {
@@ -403,7 +403,7 @@
   function render() {
     var el = main(); if (!el) return;
     ddClose();
-    saveView(); urlSync();
+    saveView(); urlSync(); setTimeout(plStick, 0);   // keeps the pinned strip under the masthead after every draw
     document.body.classList.toggle('rct-wide', S.mode === 'pipe');   // lifts the shell's 1180px cap to 1760px from 1240px up (css/recruitment.css); index.html showView takes it off again on any other page
     el.style.maxWidth = S.mode === 'pipe' ? '1760px' : '1100px';   // the Pipeline board needs the width of the screen; Grid and List keep their column
     var h = '<div class="rct">';
@@ -439,7 +439,8 @@
          segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button><button type="button" class="rct-btn rct-sm" data-act="emails">Email formats</button>' + (typeof rexButtons === 'function' ? rexButtons('rctExport') : '') + '</div>';
 
     if (S.lane) h += laneBarHtml();
-    if (S.mode === 'pipe') { el.innerHTML = h + pipeHtml() + goneHtml() + '</div>'; return; }
+    h += plStripHtml();
+    if (S.mode === 'pipe') { el.innerHTML = h + pipeHtml() + goneHtml() + '</div>'; plStick(); return; }
     if (S.mode === 'list') {
       var bxOld = document.getElementById('rctTbox'), keepPos = bxOld ? [bxOld.scrollTop, bxOld.scrollLeft] : null;
       h += renderList() + goneHtml() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. Apart from the automatic shortlist email for support roles, the dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
@@ -481,14 +482,14 @@
     h += '</section>';
     }
 
-    var prog = rows.filter(function (p) { var b = bucket(p); return !p.is_test && (b === 'invited' || b === 'booked' || b === 'later') && (!S.lane || b === S.lane); });
+    var prog = rows.filter(function (p) { var b = bucket(p); return !p.is_test && stepOk(p) && (b === 'invited' || b === 'booked' || b === 'later') && (!S.lane || b === S.lane); });
     if (!S.lane || S.lane === 'invited' || S.lane === 'booked') {
     h += '<section class="rct-sec"><div class="rct-sech"><h2>In progress<span class="rct-cnt">' + prog.length + '</span></h2></div><div class="rct-card rct-list">' +
       (prog.length ? prog.map(row).join('') : '<p class="rct-hint">No one yet.</p>') + '</div></section>';
     }
 
     if (!S.lane) {
-    var done = rows.filter(function (p) { return !p.is_test && bucket(p) === 'done'; }).sort(function (a, c) { return new Date(c.decided_at || 0) - new Date(a.decided_at || 0); });
+    var done = rows.filter(function (p) { return !p.is_test && stepOk(p) && bucket(p) === 'done'; }).sort(function (a, c) { return new Date(c.decided_at || 0) - new Date(a.decided_at || 0); });
     h += '<details class="rct-grp rct-donebox" data-g="done"><summary><span>Not now<span class="rct-cnt">' + done.length + '</span></span></summary><div class="rct-dbody">' +
       (done.length ? done.slice(0, 30).map(row).join('') + (done.length > 30 ? '<p class="rct-hint">Showing the latest 30.</p>' : '') : '<p class="rct-hint">No one yet.</p>') + '</div></details>';
     }
@@ -512,7 +513,7 @@
   ];
   var PL_PLAN = { screening: 5, interview_booked: 7, interview_pass: 5, trade_test: 7, trade_pass: 5, offer: 3, offer_to_send: 3, offer_sent: 5, start_pending: 7, start_accepted: 7 };
   var PL_CLOSED = [['not_now', 'Not now'], ['rejected', 'Rejected'], ['interview_fail', 'Interview not passed'], ['trade_fail', 'Trade test not passed']];
-  var PLS = { cur: 'new', lim: {}, only: false }, PL_STEP = 5;
+  var PLS = { cur: 'new', lim: {}, only: false, step: null }, PL_STEP = 5;
   function plColOf(p) { for (var i = 0; i < PL_COLS.length; i++) if (PL_COLS[i].st.indexOf(p.stage) >= 0) return PL_COLS[i]; return null; }
   function plPlan(p) { return p.stage === 'new' ? waitDays() : (PL_PLAN[p.stage] || 7); }
   function plDays(p) { return p.stage === 'new' ? waited(p) : Math.max(0, Math.floor((Date.now() - new Date(p.decided_at || p.applied_at).getTime()) / dayMs())); }
@@ -529,19 +530,23 @@
   }
   function plCv(p) {
     var id = esc(p.id);
-    if (p.cv_file) return '<button type="button" class="rct-pill rct-plcv" data-act="cvfile" data-id="' + id + '" title="Open the CV">CV</button>';
-    if (cvUrl(p)) return '<a class="rct-pill rct-plcv" href="' + esc(cvUrl(p)) + '" target="_blank" rel="noopener" title="Open the CV link">CV</a>';
-    return '<span class="rct-pill rct-grey">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>';
+    if (p.cv_file) return '<button type="button" class="rct-pcv" data-act="cvfile" data-id="' + id + '" title="Open the CV">CV</button>';
+    if (cvUrl(p)) return '<a class="rct-pcv" href="' + esc(cvUrl(p)) + '" target="_blank" rel="noopener" title="Open the CV link">CV</a>';
+    return '<span class="rct-pnocv">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>';
   }
+  // Kate, 19 Nov 2026 ("too long and chunky", mockup docs/mockups/recruitment-pipeline-cards.html): a card is three slim lines (name and days, role and CV, status and the one next button);
+  // place, years, who has her and Look come up on hover (always shown on a phone). The envelope of the status block is left out of the card; it stays in Grid and List.
   function plCard(p) {
-    var lv = plLevel(p), d = plDays(p), id = esc(p.id);
-    var pill = p.stage === 'new' ? waitPill(p) : '<span class="rct-pill ' + ['rct-grey', 'rct-amber', 'rct-red'][lv] + '">' + (d === 0 ? 'Moved today' : pl(d, 'day', 'days') + ' here') + '</span>';
+    var lv = plLevel(p), d = plDays(p), id = esc(p.id), nm = p.name || 'Name not stated';
+    var days = p.stage === 'new' ? (p.replied_at ? 'We replied' : d + 'd waiting') : d === 0 ? 'today' : d + 'd';
     var place = placeShort(p), bits = [roleGroup(p), place !== 'Not stated' ? place : '', p.experience || ''].filter(function (x) { return x && x !== 'Not stated'; });
-    var flag = p.stage === 'new' && bucket(p) === 'no' ? '<span class="rct-pill rct-plflag">' + esc((flags(p)[0] && FLAG_SHORT[flags(p)[0].k]) || 'Flagged') + '</span>' : '';
-    return '<article class="rct-plcard' + (lv ? ' rct-pl' + lv : '') + '"><div class="rct-plt">' + avatar(p) + '<div class="rct-plw"><button type="button" class="rct-plname" data-act="look" data-id="' + id + '" aria-expanded="' + !!openRows[p.id] + '" title="Look at this person">' + esc(p.name || 'Name not stated') + '</button><small title="' + esc(bits.join(' · ')) + '">' + esc(bits[0] || '') + '</small></div>' + plCv(p) + '</div>' +
-      '<div class="rct-pills rct-plpills">' + pill + (p.stage === 'new' ? '' : stagePill(p)) + flag + extraPills(p) + '</div>' +
-      '<div class="rct-asgrow">' + asgHtml(p) + '</div>' +
-      '<div class="rct-c-acts rct-plact">' + (usesPipe(p) ? pipeActs(p) : sideActs(p)) + '</div>' +
+    var flag = p.stage === 'new' && bucket(p) === 'no' ? esc((flags(p)[0] && FLAG_SHORT[flags(p)[0].k]) || 'Flagged') : '';
+    var acts = (usesPipe(p) ? pipeActs(p) : sideActs(p)).replace('&#10007; Not passed', '&#10007;<span class="rct-sr"> Not passed</span>');
+    return '<article class="rct-plcard' + (lv ? ' rct-pl' + lv : '') + '" tabindex="0">' +
+      '<div class="rct-pc1">' + avatar(p) + '<button type="button" class="rct-plname" data-act="look" data-id="' + id + '" aria-expanded="' + !!openRows[p.id] + '" title="' + esc(nm) + ': look at this person">' + esc(nm) + '</button><span class="rct-pd' + (lv ? ' rct-pd' + lv : '') + '">' + esc(days) + '</span></div>' +
+      '<div class="rct-pc2"><span class="rct-prole" title="' + esc(bits.join(' · ')) + '">' + esc(bits[0] || '') + '</span>' + plCv(p) + '</div>' +
+      '<div class="rct-c-acts rct-plact">' + acts + '</div>' +
+      '<div class="rct-pmore"><b>' + esc(nm) + '</b><br>' + esc(bits.slice(1).join(' · ') || 'Place not stated') + (flag ? '<br><span class="rct-pflag">' + flag + '</span>' : '') + extraPills(p) + '<div class="rct-asgrow">' + asgHtml(p) + '</div></div>' +
       (openRows[p.id] ? detailHtml(p) : '') + '</article>';
   }
   function plColHtml(c, pool) {
@@ -560,8 +565,7 @@
     if (!shown.length) body = '<div class="rct-plnone">Nobody here' + (PLS.only || S.lane || q.trim().length >= 2 ? ' with these filters' : '') + '.</div>';
     if (list.length > shown.length) body += '<button type="button" class="rct-plmore" data-act="plmore" data-k="' + c.k + '">Show ' + Math.min(PL_STEP, list.length - shown.length) + ' more (' + (list.length - shown.length) + ' left)</button>';
     var avg = mine.length ? Math.round(mine.reduce(function (a, p) { return a + plDays(p); }, 0) / mine.length) : 0, late = mine.filter(function (p) { return plLevel(p) > 0; }).length;
-    return '<div class="rct-plcol' + (PLS.cur === c.k ? ' rct-cur' : '') + '" data-k="' + c.k + '"><div class="rct-plch"><h3>' + esc(c.t) + '</h3><span class="rct-plc">' + list.length + '</span></div>' +
-      '<div class="rct-pls">' + (mine.length ? 'Average ' + pl(avg, 'day', 'days') + ' here' + (late ? ' · ' + late + ' past plan' : '') : 'Nobody in this step') + '</div>' + body + '</div>';
+    return '<div class="rct-plcol' + (PLS.cur === c.k ? ' rct-cur' : '') + (PLS.step && PLS.step !== c.k ? ' rct-pdim' : '') + '" data-k="' + c.k + '"><div class="rct-plch" title="' + esc(mine.length ? 'Average ' + pl(avg, 'day', 'days') + ' here' + (late ? ', ' + late + ' past plan' : '') : 'Nobody in this step') + '"><h3>' + esc(c.t) + '</h3><span class="rct-plc">' + list.length + '</span></div>' + body + '</div>';
   }
   function plTip(c, mine) {
     var plan = c.k === 'new' ? waitDays() : (PL_PLAN[c.st[0]] || 7), avg = mine.length ? mine.reduce(function (a, p) { return a + plDays(p); }, 0) / mine.length : 0, diff = Math.round(avg) - plan;
@@ -604,6 +608,26 @@
   }
   window.addEventListener('scroll', plSpy, { passive: true });
   // the bar answers on hover (lift and glow are in the css): a small card with the sentence from the row's own numbers; a tap does the same on a phone (Kate, 19 Nov 2026)
+  // The stage strip (Kate, 19 Nov 2026: "the strip isnt sticky headered, it should be"): one slim segment for each hiring step above List, Grid and Pipeline, the count, and a red dot when
+  // anyone in that step is past plan. Tapping a step shows only that step (Pipeline dims the other columns, List and Grid keep only its people). It pins under the masthead, and under
+  // the On this page chips when those are showing; plStick() keeps that offset current as the masthead condenses.
+  function stepOk(p) { if (!PLS.step) return true; var c = plColOf(p); return !!c && c.k === PLS.step; }
+  function plStripHtml() {
+    var base = rows.filter(function (p) { return !p.is_test; });
+    return '<div class="rct-strip" id="rctStrip" role="group" aria-label="Hiring step">' + PL_COLS.map(function (c) {
+      var l = base.filter(function (p) { return c.st.indexOf(p.stage) >= 0; }), lt = l.filter(function (p) { return plLevel(p) > 0; }).length;
+      return '<button type="button" class="rct-sseg" data-act="plstep" data-k="' + c.k + '" aria-pressed="' + (PLS.step === c.k) + '" title="' + esc(plTip(c, l)) + '"><b>' + esc(c.t) + '</b><span>' + n0(l.length) + (lt ? '<i title="' + lt + ' past plan"></i>' : '') + '</span></button>';
+    }).join('') + '</div>';
+  }
+  function n0(v) { return Number(v).toLocaleString('en-GB'); }
+  function plStick() {
+    var s = document.getElementById('rctStrip'); if (!s) return;
+    var tb = document.getElementById('topbar'), top = tb ? Math.max(0, tb.getBoundingClientRect().bottom) : 0;
+    var jn = document.querySelector('#view-recruitment .jn-rail'); if (jn && jn.getClientRects().length) top = Math.max(top, jn.getBoundingClientRect().bottom);
+    s.style.setProperty('--rct-st', Math.round(top) + 'px');
+  }
+  window.addEventListener('scroll', plStick, { passive: true });
+  window.addEventListener('resize', plStick);
   var plHC = null, plHT = null;
   function plHov(row, x) {
     if (!row || !row.getAttribute('data-tip')) return;
@@ -654,6 +678,7 @@
   var ICON_FILTER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 
   function laneOk(p) {
+    if (!stepOk(p)) return false;
     // Kate, 19 Nov 2026 (Sepora was in Not now, so Find someone showed nobody): while a search is typed, Not now people are searched too and the count says so.
     if (!S.lane) return bucket(p) !== 'done' || S.showDone || q.trim().length >= 2;
     if (S.lane === 'late') return isLate(p);
@@ -2234,6 +2259,7 @@
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
       else if (a === 'pgnext') { S.page += 1; render(); }
       else if (a === 'morelook') { shownLook += PAGE; render(); }
+      else if (a === 'plstep') { var sk = t.getAttribute('data-k'); PLS.step = PLS.step === sk ? null : sk; if (PLS.step) PLS.cur = PLS.step; shownLook = PAGE; S.page = 0; render(); }
       else if (a === 'plonly') { PLS.only = !PLS.only; PLS.lim = {}; render(); }
       else if (a === 'plcur') { PLS.cur = t.getAttribute('data-k'); render(); }
       else if (a === 'plmore') { var pk = t.getAttribute('data-k'); PLS.lim[pk] = (PLS.lim[pk] || PL_STEP) + PL_STEP; render(); }
