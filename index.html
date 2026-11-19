@@ -21,7 +21,7 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=9d5792f0"></script>
+<script src="js/pages.js?v=79a6354f"></script>
 <script src="js/page-dates.js?v=760eb72f"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
@@ -3886,6 +3886,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" href="/?view=quarterreport" onclick="if(trsPlain(event)){event.preventDefault();showView('quarterreport', this)}">Quarterly Report</a>
     <a class="nav-sub" href="/?view=compare" onclick="if(trsPlain(event)){event.preventDefault();showView('compare', this)}">Comparison</a>
     <a class="nav-sub" href="/?view=dailyperf" onclick="if(trsPlain(event)){event.preventDefault();showView('dailyperf', this)}">Daily Performance</a>
+    <!-- Kate, 19 Nov 2026: Service Calendar moved from Tools > HR to Numbers > Business, after Daily Performance (the two day-level pages). Same people as before (old levels 2, 3, 4 and 5), now decided by pages.js like the rest of Numbers. -->
+    <a class="nav-sub" href="/?view=servicecal" onclick="if(trsPlain(event)){event.preventDefault();showView('servicecal', this)}">Service Calendar</a>
     <a class="nav-sub" href="/?view=overyears" onclick="if(trsPlain(event)){event.preventDefault();showView('overyears', this)}">Over the Years</a>
     <a class="nav-sub" href="/?view=ledgerFinancials" onclick="if(trsPlain(event)){event.preventDefault();showView('ledgerFinancials', this)}">Financial Totals</a>
     <div class="nav-subhead">Team Performance</div>
@@ -4007,7 +4009,6 @@ table.tp-cmp td.bad{color:var(--bad)}
          data-nav-sub="HR" puts them in an HR sub-section when a saved Rearrange Menu layout has one. -->
     <div class="nav-subhead">HR</div>
     <a class="nav-sub" data-tool-min="4" data-nav-sub="HR" href="/?view=leavecal" onclick="if(trsPlain(event)){event.preventDefault();showView('leavecal', this)}">Leave &amp; Holiday Calendar</a>
-    <a class="nav-sub" data-tool-min="2" data-nav-sub="HR" href="/?view=servicecal" onclick="if(trsPlain(event)){event.preventDefault();showView('servicecal', this)}">Service Calendar</a>
   </div>
 
   <!-- Logout button -->
