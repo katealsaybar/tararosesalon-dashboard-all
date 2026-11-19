@@ -868,9 +868,33 @@ async function renderServiceCal() {
   function ctCounts(rows){ var seen = {}, c = {total:0, new:0, ncr:0, req:0, salon:0, rb:0}; rows.forEach(function (r) { if (seen[r.gk]) return; seen[r.gk] = 1; c.total++; c[r.ty]++; if (r.rbk) c.rb++; }); return c; }
   function ledSum(list){ var o = null; list.forEach(function (l) { if (!l) return; o = o || [0, 0, 0, 0, 0, 0]; for (var k = 0; k < 6; k++) o[k] += +l[k] || 0; }); return o; }
   var CTKEYS = ['total', 'new', 'ncr', 'req', 'salon', 'rb'], CTHEAD = ['Total', 'New', 'NCR', 'Request', 'Salon', 'Rebooked'];
+  /* Client types (Kate, 19 Nov 2026: "why not a pop up window showing me who those 3 clients were"): a number opens a window over the page with the clients counted in it, one row each, so the table and the ledger figures stay where they are. The same first-row rule as ctCounts decides who is in it. */
+  var CTWHO = {total:'Clients', new:'New clients', ncr:'NCR clients', req:'Request clients', salon:'Salon clients', rb:'Rebooked clients'};
+  function winClients(l, k){
+    var seen = {}, firsts = [];
+    l.rows.forEach(function (r) { if (seen[r.gk]) return; seen[r.gk] = 1; firsts.push(r); });
+    firsts = firsts.filter(function (r) { return k === 'total' || (k === 'rb' ? r.rbk : r.ty === k); });
+    var days = {}, brs = {}, sts = {};
+    firsts.forEach(function (r) { days[r.d] = 1; brs[r.b] = 1; sts[r.sk] = 1; });
+    var cols = [];
+    if (Object.keys(days).length > 1) cols.push({ k: 'd', l: 'Day', t: 'date' });
+    cols.push({ k: 't', l: 'First service (24 hour)', t: 'text' });
+    if (Object.keys(brs).length > 1) cols.push({ k: 'b', l: 'Salon', t: 'text' });
+    if (Object.keys(sts).length > 1) cols.push({ k: 'st', l: 'Stylist', t: 'text' });
+    cols.push({ k: 'cn', l: 'Client', t: 'text' }, { k: 'ty', l: 'Client type', t: 'text' }, { k: 'n', l: 'Services', t: 'num' }, { k: 'sv', l: 'What she had', t: 'text' }, { k: 'rb', l: 'Rebooked', t: 'text' });
+    firsts.sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : a.s - b.s || String(a.cn).localeCompare(String(b.cn)); });
+    var out = firsts.map(function (f) {
+      var mine = l.rows.filter(function (r) { return r.gk === f.gk; }).sort(function (a, b) { return a.s - b.s; });
+      return { d: f.d, t: hhmm(f.s), b: f.b, st: f.st, cn: (f.req ? '★ ' : '') + (f.cn || '-'), ty: TYL[f.ty], n: mine.length, sv: mine.map(function (r) { return r.sv; }).join(', '), rb: f.rbk ? 'Yes' : 'No',
+        _dn: { cn: clientSpec(f), n: winServices(f.cn + ', ' + dfull(f.d), scopeText(), mine) } };
+    });
+    var sub = scopeText();
+    return { title: CTWHO[k] + ', ' + l.label, sub: sub, tip: 'See who those ' + firsts.length + ' client' + (firsts.length === 1 ? ' was' : 's were'), sk: 'svc-' + slug('clients ' + k + ' ' + l.label + ' ' + sub),
+      views: [{ id: 'clients', label: 'Clients (' + firsts.length + ')', load: async function () { return { cols: cols, rows: out, note: '★ is a client who asked for the stylist. Tap a client for their history, or the Services number for the services behind it. The ledger figure under a number is a total typed by the team, with no names behind it.' }; } }] };
+  }
   function ctCell(l, k, j){
     var c = l.c, lv = l.led ? l.led[j] : null, diff = lv != null && lv !== c[k];
-    return (c[k] ? '<button type="button" class="ctn" data-ct="' + k + '" data-ctrow="' + l.i + '" title="Show their services in the List">' + c[k] + '</button>' : '<span class="z">0</span>')
+    return (c[k] ? (typeof TRSD !== 'undefined' ? TRSD.num(String(c[k]), winClients(l, k)) : '<button type="button" class="ctn" data-ct="' + k + '" data-ctrow="' + l.i + '" title="Show their services in the List">' + c[k] + '</button>') : '<span class="z">0</span>')
       + (k === 'rb' && c.total ? '<span class="pc">' + Math.round(100 * c.rb / c.total) + '%</span>' : '') + (lv != null ? '<span class="g' + (diff ? ' diff' : '') + '">ledger ' + lv + '</span>' : '');
   }
   function renderCT(){
@@ -893,7 +917,7 @@ async function renderServiceCal() {
     CTROWS = lines; CTLINES = lines.filter(function (l) { return !l.total; });
     var anyLed = lines.some(function (l) { return l.led; });
     box.innerHTML = '<details class="ct"' + (S.openCT ? ' open' : '') + '><summary id="sec-types" data-sec-target>Client types' + (S.view === 'week' ? ' · ' + esc(S.staff ? stLabel(S.staff) : '') : '') + '</summary>'
-      + '<p class="ct-note">Per stylist, like the ledgers. Tap a number to see those clients in the List.' + (anyLed ? ' Orange ledger figures are where the ledger differs.' : '') + '</p>'
+      + '<p class="ct-note">Per stylist, like the ledgers. Tap a number to see who those clients were.' + (anyLed ? ' Orange ledger figures are where the ledger differs.' : '') + '</p>'
       + '<details class="ct-def"><summary>What each type means</summary><ul><li><b>New</b>: first paid visit at any salon, no stylist asked for.</li><li><b>NCR</b>: new, and asked for a stylist.</li><li><b>Request</b>: returning, asked for a stylist.</li><li><b>Salon</b>: returning, no request.</li><li><b>Rebooked</b>: booked the next visit with the same stylist on the day.</li><li><b>Ledger</b>: the grey figure is a total typed by the team, with no names behind it, so it stays plain.</li></ul></details>'
       + '<div class="ct-h"><button type="button" class="sc-btn sxcm" data-sxcm="svcCT">Sort and filter</button>' + rex('svcExportCT') + '</div>'
       + '<div class="tw"><table id="ctT"></table></div>' + pagerHtml('svcCT', CTT ? CTT.shown : 10) + '</details>';
