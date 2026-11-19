@@ -83,9 +83,9 @@ const STAFF_PROFILES = {
   // as "CHONA/ ESTHER" or "ESTHER/PEARL" for the week — that used to render as its
   // own combined Staff Card ("two different people, not one"). Removed; each
   // assistant already has her own row below, which is the correct card.
-  'CHONA':     { role: 'Assistant', branch: 'KCA' },
+  'CHONA':     { photo: 'chona.png', role: 'Assistant', branch: 'KCA' },   // Kate, 19 Nov 2026: cutout added
   // Kate, 16 Nov 2026: cutouts for the assistants and front desk (esther, laila, apol, maria, ivy, liberty, dorah, lhang-ann, and jessa at the front desk).
-  // Same card style as the stylists, in colour, head inside the block. Not every assistant has one yet: Chona, Kathy, Luningning, Eden.
+  // Same card style as the stylists, in colour, head inside the block. Not every assistant has one yet: Kathy, Luningning, Eden.
   'ESTHER':    { photo: 'esther.png', role: 'Assistant', branch: 'KCA' },
   'PEARL':     { photo: 'pearl.png', role: 'Assistant', branch: 'KCA' },   // Kate, 17 Nov 2026: cutout added
   // Kate, 17 Nov 2026: there are two Mays. May Manguiat is an Assistant (Saadiyat, also rostered at Khalifa City A), so she has her own full-name key, like ROBYN GARGAN,
