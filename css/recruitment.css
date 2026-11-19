@@ -531,3 +531,4 @@ body:has(.rct-bulk) #rctToast{bottom:96px}
   .rct-plt .rct-plcv{margin-left:auto;align-self:flex-start}
   .rct-plcard .rct-linkbtn,.rct-plcard .rct-asgx{min-height:44px}
 }
+@media (min-width:761px){.rct-plw small{-webkit-line-clamp:1;white-space:nowrap;text-overflow:ellipsis;display:block}}   /* one line: the role; place and years are in the tooltip and in the List (Kate, 19 Nov 2026: still too long) */

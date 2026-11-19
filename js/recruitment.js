@@ -538,7 +538,7 @@
     var pill = p.stage === 'new' ? waitPill(p) : '<span class="rct-pill ' + ['rct-grey', 'rct-amber', 'rct-red'][lv] + '">' + (d === 0 ? 'Moved today' : pl(d, 'day', 'days') + ' here') + '</span>';
     var place = placeShort(p), bits = [roleGroup(p), place !== 'Not stated' ? place : '', p.experience || ''].filter(function (x) { return x && x !== 'Not stated'; });
     var flag = p.stage === 'new' && bucket(p) === 'no' ? '<span class="rct-pill rct-plflag">' + esc((flags(p)[0] && FLAG_SHORT[flags(p)[0].k]) || 'Flagged') + '</span>' : '';
-    return '<article class="rct-plcard' + (lv ? ' rct-pl' + lv : '') + '"><div class="rct-plt">' + avatar(p) + '<div class="rct-plw"><button type="button" class="rct-plname" data-act="look" data-id="' + id + '" aria-expanded="' + !!openRows[p.id] + '" title="Look at this person">' + esc(p.name || 'Name not stated') + '</button><small>' + esc(bits.join(' · ')) + '</small></div>' + plCv(p) + '</div>' +
+    return '<article class="rct-plcard' + (lv ? ' rct-pl' + lv : '') + '"><div class="rct-plt">' + avatar(p) + '<div class="rct-plw"><button type="button" class="rct-plname" data-act="look" data-id="' + id + '" aria-expanded="' + !!openRows[p.id] + '" title="Look at this person">' + esc(p.name || 'Name not stated') + '</button><small title="' + esc(bits.join(' · ')) + '">' + esc(bits[0] || '') + '</small></div>' + plCv(p) + '</div>' +
       '<div class="rct-pills rct-plpills">' + pill + (p.stage === 'new' ? '' : stagePill(p)) + flag + extraPills(p) + '</div>' +
       '<div class="rct-asgrow">' + asgHtml(p) + '</div>' +
       '<div class="rct-c-acts rct-plact">' + (usesPipe(p) ? pipeActs(p) : sideActs(p)) + '</div>' +
