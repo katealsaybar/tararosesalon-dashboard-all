@@ -15,6 +15,8 @@
 // Needs from dashboard.js (shared script scope): sb, sel, dateFrom, dateTo, dateToIso, BRANCH_INFO; sheet-table.js TRSheet; why-wall.js whyWall; drill.js TRSD;
 // report-export.js rexButtons. Own helpers below, so it does not lean on another page's file.
 const ORD_STORE = 'trs-orders';
+// The mini side nav (Kate, 19 Nov 2026: "walang mini sidebar navi"): the shared "On this page" rail, a column in the gutter from 1100px and a pinned row of chips under the masthead below that (lgShell, jump-nav.js).
+const ORD_RAIL = [['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
 const ORD = { n: 10, kind: '' };
 let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '';
 try { const s = JSON.parse(localStorage.getItem(ORD_STORE) || '{}'); if ([10, 20, 50, 100].includes(s.n)) ORD.n = s.n; } catch (e) {}
@@ -183,9 +185,9 @@ function ordPaint() {
   if (!ordRows || !ordRows.length) { body.innerHTML = '<section class="ord-empty"><div class="ord-ek">Nothing here yet</div><p>The info mailbox script has not sent any orders. Once it has been installed and has run, every order, invoice and statement appears here by itself.</p></section>' + ordAboutHtml(); ordDrawAbout(); return; }
   if (!body.dataset.drawn) {
     body.dataset.drawn = '1';
-    body.innerHTML = `
-      <section class="ord-ans" aria-label="The answer in one line"><div class="ord-ans-k">The answer in one line</div><div class="ord-ans-t" id="ordAns"></div><div class="ord-ans-s" id="ordAns2"></div></section>
-      <section class="ord-sec" data-jn="Needs a look">
+    const ans = `<section class="ord-ans" aria-label="The answer in one line"><div class="ord-ans-k">The answer in one line</div><div class="ord-ans-t" id="ordAns"></div><div class="ord-ans-s" id="ordAns2"></div></section>`;
+    const secs = `
+      <section class="ord-sec" id="ordSecLook" data-jn="Needs a look">
         <h3>1 Needs a look</h3>
         <div class="ord-learn"><p><b>What is this?</b> The orders that ask for a decision: a wrong discount, an overdue statement, items out of stock, an invoice about to fall due.</p>
           <p><b>Why it matters.</b> These are the ones that cost money or stock if nobody opens them this week.</p>
@@ -194,7 +196,7 @@ function ordPaint() {
         <div class="ord-card"><table id="ordTblLook"></table></div>
         ${ordPagerHtml('look')}
       </section>
-      <section class="ord-sec" data-jn="By supplier">
+      <section class="ord-sec" id="ordSecSup" data-jn="By supplier">
         <h3>2 By supplier</h3>
         <div class="ord-learn"><p><b>What is this?</b> One row per supplier in the Period: what they supply, how many orders and invoices, what they invoiced and what they took off.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW2"></span></p></div>
@@ -207,8 +209,8 @@ function ordPaint() {
         <div class="ord-learn"><p><b>What is this?</b> One row per order, invoice or statement. An order is tracked once: its confirmation, shipping note, delivery and invoice are steps inside the same row.</p>
           <p><b>Why it matters.</b> You see what was bought, how many, the total and any discount without opening five emails.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW3"></span></p></div>
-        <div class="ord-seg-row"><div class="sc-seg" role="group" aria-label="Type"><button type="button" class="on" data-ord-kind="" onclick="ordKind('')">All</button><button type="button" data-ord-kind="Order" onclick="ordKind('Order')">Orders</button><button type="button" data-ord-kind="Invoice" onclick="ordKind('Invoice')">Invoices</button><button type="button" data-ord-kind="Statement" onclick="ordKind('Statement')">Statements</button></div></div>
         <div class="ord-bar" id="ordBar">
+          <div class="ord-seg-row"><div class="sc-seg" role="group" aria-label="Type"><button type="button" class="on" data-ord-kind="" onclick="ordKind('')">All</button><button type="button" data-ord-kind="Order" onclick="ordKind('Order')">Orders</button><button type="button" data-ord-kind="Invoice" onclick="ordKind('Invoice')">Invoices</button><button type="button" data-ord-kind="Statement" onclick="ordKind('Statement')">Statements</button></div></div>
           <button type="button" class="cm-pill" id="ordMore" onclick="ordToggleMore('doc')">All columns</button>
           <button type="button" class="cm-pill ord-phone" data-sxcm="doc" aria-label="Sort and filter">Filter</button>
           <span class="ord-sp"></span>
@@ -220,6 +222,7 @@ function ordPaint() {
       </section>
       <section class="ord-how" id="ordHow"><h3>How it is worked out</h3><div class="sc-seg ord-pick" id="ordPick" role="group" aria-label="Which figure"></div><div class="ord-hcard" id="ordHCard"></div></section>
       ${ordAboutHtml()}`;
+    body.innerHTML = ans + (typeof lgShell === 'function' ? lgShell(ORD_RAIL, secs, 'lg-shell-wide') : secs);
     document.querySelectorAll('#ordersContent .ord-pgsel').forEach(x => { x.value = String(ORD.n); });
   }
   ordPaintAnswer(); ordPaintNotes(); [ordT, ordTL, ordTS].forEach(T => { T.shown = ORD.n; T.page = 0; }); ordTL.draw(); ordTS.draw(); ordT.draw(); ordPaintHow(); ordDrawAbout(); ordOffsets(); ordWatch();
@@ -318,25 +321,25 @@ function ordRowsPick(k, n) { ORD.n = n; ordSave(); const T = ordTab(k); T.shown 
 function ordPage(k, d) { const T = ordTab(k); T.page += d; T.draw(); ordOffsets(); const b = document.getElementById('ordPg-' + k).closest('.ord-sec').querySelector('.ord-bar'); if (b && b.scrollIntoView) b.scrollIntoView({ block: 'start' }); }
 function ordToggleMore(w) { const T = w === 'sup' ? ordTS : ordT; T.toggleMore(); }
 function ordOffsets() {
-  const jn = document.querySelector('#view-orders .jn-rail'), root = document.documentElement.style;
-  const top = jn ? parseFloat(getComputedStyle(jn).top) || 0 : 0;
-  root.setProperty('--sx-top', (top + (jn ? jn.offsetHeight : 0)) + 'px');
+  const side = document.querySelector('#ordersContent .lg-side'), mast = document.getElementById('topbar'), root = document.documentElement.style;
+  const edge = mast && getComputedStyle(mast).position === 'fixed' ? Math.max(0, Math.round(mast.getBoundingClientRect().bottom)) : 0;
+  // below the gutter width the rail is a pinned row of chips: the toolbars sit under it. In the gutter it takes no height at the top.
+  const nav = side && side.querySelector('.side-nav'), row = !!(nav && getComputedStyle(nav).display === 'flex' && getComputedStyle(side).position === 'sticky');
+  const top = row ? (parseFloat(getComputedStyle(side).top) || edge) : edge;
+  root.setProperty('--sx-top', (top + (row ? side.offsetHeight : 0)) + 'px');
   document.querySelectorAll('#ordersContent .ord-sec').forEach(s => { const b = s.querySelector('.ord-bar'); s.style.setProperty('--bh', (b ? b.offsetHeight : 0) + 'px'); });
 }
 window.addEventListener('resize', () => { if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'orders') ordOffsets(); });
-// Kate, 18 Nov 2026 (component 37): the pinned toolbars follow the masthead and the chip row as they really are, not as measured once. Hide filters, the compact
-// masthead on scroll, a phone rotation or a late-loading font all change their height, so a ResizeObserver watches both and the offsets are re-read each time.
-let ordRO = null, ordMO = null, ordRaf = 0;
+// Kate, 18 Nov 2026 (component 37): the pinned toolbars follow the masthead and the rail as they really are, not as measured once. Hide filters, the compact
+// masthead on scroll, a phone rotation or a late-loading font all change their height, so a ResizeObserver watches them and the offsets are re-read each time.
+let ordRO = null, ordRaf = 0;
 const ordOnOrders = () => typeof CURRENT_VIEW === 'undefined' || CURRENT_VIEW === 'orders';
 function ordWatch() {
   if (ordRO) ordRO.disconnect();
-  if (ordMO) ordMO.disconnect();
-  const mast = document.getElementById('topbar'), jn = document.querySelector('#view-orders .jn-rail'), bars = [...document.querySelectorAll('#ordersContent .ord-bar')];
-  if (typeof ResizeObserver !== 'undefined') { ordRO = new ResizeObserver(() => { if (ordOnOrders()) ordOffsets(); }); [mast, jn, ...bars].forEach(e => { if (e) ordRO.observe(e); }); }
-  // jump-nav.js moves the chip row's pin (--jn-top) when the masthead condenses or Hide filters is pressed, without any change of size: watch that too
-  if (typeof MutationObserver !== 'undefined' && jn) { ordMO = new MutationObserver(() => { if (ordOnOrders()) ordOffsets(); }); ordMO.observe(jn, { attributes: true, attributeFilter: ['style', 'class'] }); }
+  const mast = document.getElementById('topbar'), side = document.querySelector('#ordersContent .lg-side'), bars = [...document.querySelectorAll('#ordersContent .ord-bar')];
+  if (typeof ResizeObserver !== 'undefined') { ordRO = new ResizeObserver(() => { if (ordOnOrders()) ordOffsets(); }); [mast, side, ...bars].forEach(e => { if (e) ordRO.observe(e); }); }
 }
-window.addEventListener('scroll', () => { if (ordRaf || !ordOnOrders()) return; ordRaf = requestAnimationFrame(() => { ordRaf = 0; if (!ordMO && document.querySelector('#view-orders .jn-rail')) ordWatch(); ordOffsets(); }); }, { passive: true });   // the chip row is built after the first paint, so the style observer attaches here once it exists
+window.addEventListener('scroll', () => { if (ordRaf || !ordOnOrders()) return; ordRaf = requestAnimationFrame(() => { ordRaf = 0; ordOffsets(); }); }, { passive: true });
 
 // ── HOW IT IS WORKED OUT, ABOUT THIS PAGE: centred, one short idea per card (component 36) ──
 function ordPaintHow() {

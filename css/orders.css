@@ -17,7 +17,8 @@
 .ord-phone{display:none}
 .ord-bar .cm-pill,.ord-bar .rex-btn{white-space:nowrap;flex:none;box-sizing:border-box;height:34px}   /* one height for every control of a toolbar */
 .ord-bar .rex-bar{display:inline-flex;gap:6px;align-items:center}
-.ord-seg-row{margin:12px 0 2px}
+.ord-seg-row{display:flex;align-items:center}
+.ord-bar .ord-seg-row .sc-seg{box-sizing:border-box;min-height:34px;align-items:center}
 .ord-card{background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
 .ord-pager{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--muted);flex-wrap:wrap}
 .ord-pager[hidden]{display:none}
@@ -32,8 +33,8 @@
 .ord-hc-cv{font-size:13px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
 @media(max-width:760px){
   .ord-bar{gap:6px 8px}   /* wraps on a phone: nothing is cut off at the right */
-  .ord-seg-row .sc-seg{display:flex;width:100%}.ord-seg-row .sc-seg button{flex:1}
-  .ord-phone{display:inline-flex}
+  .ord-bar .ord-seg-row{flex:1 1 100%}.ord-seg-row .sc-seg{display:flex;width:100%}.ord-seg-row .sc-seg button{flex:1}
+  .ord-phone{display:inline-flex;align-items:center;justify-content:center}
   .ord-pager{flex-wrap:wrap}.ord-pager .ord-pgt{flex:1 1 100%}
   .ord-ans-t{font-size:20px}}
 
