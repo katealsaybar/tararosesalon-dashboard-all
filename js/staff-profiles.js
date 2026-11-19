@@ -325,7 +325,7 @@ const STAFF_PROFILES = {
   'FARWA':   { photoFull: 'stylist/photos/BAH/farwa.png', role: 'Assistant', branch: 'BAH', blank: true },
   'SIMI':    { photoFull: 'stylist/photos/BAH/simi.png', role: 'Beauty Therapist', branch: 'BAH', blank: true },
   'CHARLENE':{ photoFull: 'stylist/photos/BAH/charlene.png', role: 'Beauty Therapist', branch: 'BAH', blank: true },
-  'FAYE':    { photoFull: 'stylist/photos/KCA/faye madi.png', role: 'Junior Stylist', branch: 'KCA', blank: true, resigned: true },
+  'FAYE':    { photoFull: 'stylist/photos/KCA/faye madi.png', role: 'Junior Stylist', branch: 'KCA', ig: 'fayemaddie_pablo', resigned: true },
   'HAFEZ':   { photoFull: 'stylist/photos/other/hafez abou hwijj.png', role: 'Barber', branch: 'other', resigned: true },
   'JANE':    { photoFull: 'stylist/photos/MC/jane astrande.png', role: 'Junior Stylist', branch: 'MC', resigned: true },
   'KELSEY':  { photoFull: 'stylist/photos/SAA/kelsey lewis.png', role: 'Stylist', branch: 'SAA', ig: 'kelseylewis_hair', resigned: true },

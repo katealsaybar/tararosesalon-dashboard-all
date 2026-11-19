@@ -268,7 +268,7 @@ const STYLIST_PHOTOS = {
   "Kerryn":  "BAH/kerryn.png",
   "Farwa":   "BAH/farwa.png",
   "Simi":    "BAH/simi.png",
-  "Faye":    "KCA/faye madi.png",   // placeholder, no photo or IG; Marasy Jan 2021 to May 2022, then KCA — Kate, 15 Oct 2026
+  "Faye":    "KCA/faye madi.png",   // real B&W headshot from Kate, 19 Nov 2026; Marasy Jan 2021 to May 2022, then KCA
   "Hafez":   "other/hafez abou hwijj.png",   // Fratelli and AQ, Nov 2023 to Jan 2025; real B&W headshot from Kate, 18 Oct 2026 (no IG)
   "Jane":    "MC/jane astrande.png",   // real B&W headshot from Kate, 18 Oct 2026 (no IG); MC and AQ, Nov 2022 to Nov 2024
   "Kelsey":  "SAA/kelsey lewis.png",   // real B&W headshot (made in ChatGPT from her video selfie); SAA Dec 2022 to Sep 2023 — Kate, 15 Oct 2026
@@ -369,6 +369,7 @@ const STYLIST_IG = {
   "Nataleah":   "https://www.instagram.com/hairbynats19/",
   "Rany":       "https://www.instagram.com/rannyhairstyle/",
   "Rhi":        "https://www.instagram.com/hairbyrhiabudhabi/",   // Rhi George (Phorest) = Rhi Hurley (ROSES, Jan 2022 and Jan 2023 features); Kate, 15 Oct 2026
+  "Faye":       "https://www.instagram.com/fayemaddie_pablo/",   // Hairby_faye; Kate confirmed it is her, 19 Nov 2026
   "Michelle":   "https://www.instagram.com/alinea.michelle/",
   "Mihaela":    "https://www.instagram.com/dare.to_hair/",
   "Dina":       "https://www.instagram.com/beautybydina_bp/",

@@ -2774,7 +2774,6 @@ button.soc-plat:focus-visible{outline:2px solid var(--accent);outline-offset:2px
 [data-theme="light"] img[src$="oliver%20green.png"]{content:url("stylist/photos/AQ/oliver%20green.light.png")}
 [data-theme="light"] img[src$="josh%20thomas.png"]{content:url("stylist/photos/AQ/josh%20thomas.light.png")}
 [data-theme="light"] img[src$="alex%20duncan.png"]{content:url("stylist/photos/KCA/alex%20duncan.light.png")}
-[data-theme="light"] img[src$="faye%20madi.png"]{content:url("stylist/photos/KCA/faye%20madi.light.png")}
 [data-theme="light"] img[src$="lucie%20rogers.png"]{content:url("stylist/photos/SAA/lucie%20rogers.light.png")}
 [data-theme="light"] img[src$="farwa.png"]{content:url("stylist/photos/BAH/farwa.light.png")}
 [data-theme="light"] img[src$="simi.png"]{content:url("stylist/photos/BAH/simi.light.png")}
@@ -4497,7 +4496,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=7dd5b194&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=e348f9e4&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -4919,7 +4918,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/ledger-targets.js?v=14d8143e"></script>
 <!-- After ledger-targets.js: the Supabase target layer overrides its lookups per month. -->
 <script src="js/ledger-targets-db.js?v=a344975f"></script>
-<script src="js/staff-profiles.js?v=50bfbc36"></script>
+<script src="js/staff-profiles.js?v=316e8cf2"></script>
 <!-- The Clients pages (lost-clients through service-rankings, 13 files) load on first use with ledger-export.js: see trsLazy in the boot script.
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
 <!-- Before dashboard.js: the shared jump list, lgRail and lgShell and lgJump (moved out of branch-ledger.js) and the automatic list on pages that name their sections. -->
