@@ -233,6 +233,9 @@
     l.innerHTML = accessRows();
     l.querySelectorAll('input[data-some]').forEach(function (cb) { cb.indeterminate = true; });   // some of the people ticked have it, not all
     r.querySelector('.acm-scope').innerHTML = accessHead();
+    r.querySelector('.acm-chips').innerHTML = ps.map(function (p) {
+      return '<button type="button" class="acm-chip" data-email="' + esc(p.email) + '" title="Untick ' + esc(p.name || p.email) + '">' + esc(p.name || p.email) + '<b aria-hidden="true">&times;</b></button>';
+    }).join('');
     var cnt = r.querySelector('.acm-count');
     if (!ps.length) cnt.textContent = 'Nobody ticked yet';
     else if (ps.length === 1) { var n = (ps[0].pages || []).length, f = firstOf(ps[0]); cnt.textContent = n ? n + ' page' + (n > 1 ? 's' : '') + ' opened for ' + f + ' alone' : 'Nothing opened for ' + f + ' alone yet'; }
@@ -264,6 +267,7 @@
     body.innerHTML =
       '<label class="acm-lab" for="acmPq">People (tick one or more)</label>' +
       '<input type="search" id="acmPq" class="acm-q" placeholder="Search people" aria-label="Search people" autocomplete="off">' +
+      '<div class="acm-chips" aria-label="Ticked people"></div>' +
       '<div class="acm-list acm-plist" role="group" aria-label="People"></div>' +
       '<div class="acm-count" aria-live="polite"></div><div class="acm-scope"></div>' +
       '<input type="search" class="acm-q acm-pgq" placeholder="Search pages" aria-label="Search pages" autocomplete="off">' +
@@ -278,6 +282,10 @@
       var row = e.target.closest && e.target.closest('.acm-prow'); if (!row) return;
       var em = row.getAttribute('data-email'); if (e.target.checked) A.sel[em] = true; else delete A.sel[em];
       aSay(''); paintAccess();
+    });
+    body.querySelector('.acm-chips').addEventListener('click', function (e) {
+      var c = e.target.closest && e.target.closest('.acm-chip'); if (!c) return;
+      delete A.sel[c.getAttribute('data-email')]; aSay(''); paintPeople(); paintAccess();
     });
     body.querySelector('.acm-pgq').addEventListener('input', function (e) { A.q = e.target.value; paintAccess(); });
     body.querySelector('#acmOnly').addEventListener('change', function (e) { A.only = e.target.checked; paintAccess(); });
