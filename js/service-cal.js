@@ -337,12 +337,13 @@ async function renderServiceCal() {
     var r = await sb.rpc('service_calendar', {p_branch:b, p_from:f, p_to:t});
     if (r.error || !r.data) return null;
     if (b === 'BAH' && r.data.staff) r.data.staff = r.data.staff.map(function (n) { return String(n).replace(/\s+\.$/, ''); });   // Phorest Bahrain keeps a dot as the surname ('Charlene .'): the Utilisation join is done in the database on the raw name, so only the display is cleaned
-    var led = {}, ledAll = {}, sh = {}, ut = {};
+    var led = {}, ledAll = {}, sh = {}, ut = {}, mk = {};
     (r.data.shifts || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) sh[b + '|' + nm + '|' + x[0]] = {k:x[2], s:x[3] ? mm(x[3]) : 0, e:x[4] ? mm(x[4]) : 0, n:pretty(x[5])}; });   // stylist|date -> the rota entry
     (r.data.ledger || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) led[b + '|' + nm + '|' + x[0]] = x.slice(2); });   // stylist|date -> [total, new, ncr, req, salon, rebooked]
     (r.data.util || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) ut[b + '|' + nm + '|' + x[0]] = {av:+x[2], bk:+x[3], pct:(x[4] == null ? null : +x[4])}; });   // stylist|date -> Phorest's Utilisation report: hours the rota gave her, hours booked, percent
+    (r.data.makeup || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) (mk[b + '|' + nm + '|' + x[0]] = mk[b + '|' + nm + '|' + x[0]] || []).push({st:mm(x[2]), en:mm(x[3]), label:x[4]}); });   // stylist|date -> the blocks the team set as Owed Hrs
     (r.data.ledger_all || []).forEach(function (x) { ledAll[b + '|' + x[0]] = x.slice(1); });                                          // salon|date  -> [total, new, ncr, req, salon, rebooked]
-    return (CACHE[key] = {rows:parse(r.data), led:led, ledAll:ledAll, sh:sh, ut:ut, synced:r.data.synced, first:r.data.first, last:r.data.last, t:Date.now()});
+    return (CACHE[key] = {rows:parse(r.data), led:led, ledAll:ledAll, sh:sh, ut:ut, mk:mk, hasMk:Array.isArray(r.data.makeup), synced:r.data.synced, first:r.data.first, last:r.data.last, t:Date.now()});
   }
   async function load(){
     apply(); S.pendRange = null; if (window.TRSheet) TRSheet.closePop(); [CTT, SHT, LST].forEach(function (T) { if (T) T.clear(); });   // heading filters belong to the rows that were on screen (a click on a client type number brings its own, S.pendLf)
@@ -350,10 +351,10 @@ async function renderServiceCal() {
     if (box) box.innerHTML = '<div class="empty">Loading the calendar…</div>';
     var res = await Promise.all(S.br.map(function (b) { return fetchBranch(b, sp[0], sp[1]); }));
     if (res.some(function (x) { return !x; })) { if (box) box.innerHTML = '<div class="empty">The calendar could not be loaded. Try again in a moment.</div>'; return; }
-    var rows = [], synced = null, first = null, last = null, led = {}, ledAll = {}, sh = {}, ut = {};
-    res.forEach(function (x) { Object.assign(ut, x.ut); Object.assign(sh, x.sh); Object.assign(led, x.led); Object.assign(ledAll, x.ledAll); rows = rows.concat(x.rows); if (x.synced && (!synced || x.synced < synced)) synced = x.synced; first = !first || (x.first && x.first < first) ? x.first : first; last = !last || (x.last && x.last > last) ? x.last : last; });
+    var rows = [], synced = null, first = null, last = null, led = {}, ledAll = {}, sh = {}, ut = {}, mk = {}, hasMk = false;
+    res.forEach(function (x) { hasMk = hasMk || x.hasMk; Object.assign(mk, x.mk); Object.assign(ut, x.ut); Object.assign(sh, x.sh); Object.assign(led, x.led); Object.assign(ledAll, x.ledAll); rows = rows.concat(x.rows); if (x.synced && (!synced || x.synced < synced)) synced = x.synced; first = !first || (x.first && x.first < first) ? x.first : first; last = !last || (x.last && x.last > last) ? x.last : last; });
     rows.forEach(function (r, i) { r.i = i; });
-    W = {rows:rows, led:led, ledAll:ledAll, sh:sh, ut:ut, hasUtil:Object.keys(ut).length > 0, synced:synced, first:first, last:last}; BEA = {};
+    W = {rows:rows, led:led, ledAll:ledAll, sh:sh, ut:ut, mk:mk, hasMk:hasMk, hasUtil:Object.keys(ut).length > 0, synced:synced, first:first, last:last}; BEA = {};
     render();
   }
 
@@ -732,7 +733,7 @@ async function renderServiceCal() {
     var nLate = lines.filter(function (l) { return l.o.late > 0; }), tot = nLate.reduce(function (t, l) { return t + l.o.late; }, 0), day = S.view === 'day';
     box.innerHTML = '<details class="ct"' + (S.openSH ? ' open' : '') + '><summary id="sec-shifts" data-sec-target>Shifts and overtime' + (S.view === 'week' ? ' · ' + esc(S.staff ? stLabel(S.staff) : '') : '') + '</summary>'
       + '<p class="ct-note">' + (nLate.length ? nLate.length + ' of ' + lines.length + ' ' + (day ? 'stylists' : 'days') + ' ran past the shift, ' + dur(tot) + ' in all.' : 'Nobody ran past the shift.') + ' Overtime is how long after the shift end her last booked service finishes.</p>'
-      + '<details class="ct-def"><summary>How these are worked out</summary><p><b>Overtime</b>: the shift is the rota in Phorest. Overtime comes from bookings, not a clock-out, so a stylist who stays late with nothing booked does not show here.</p><p><b>Hours rendered</b>: the time she actually spent with clients in the chair, paid services only and overlaps counted once. Today it counts what is paid so far.</p>' + (W && W.hasUtil ? '<p><b>Utilisation</b>: hours rendered divided by the hours the rota gave her that day, breaks taken out (Phorest’s Utilisation report).</p>' : '') + '</details>'
+      + '<details class="ct-def"><summary>How these are worked out</summary><p><b>Overtime</b>: the shift is the rota in Phorest. Overtime comes from bookings, not a clock-out, so a stylist who stays late with nothing booked does not show here.</p><p><b>Hours rendered</b>: the time she actually spent with clients in the chair, paid services only and overlaps counted once. Today it counts what is paid so far.</p>' + (W && W.hasMk ? '<p><b>Make up hours</b>: the time the team blocked off in the Phorest calendar as Owed Hrs.</p>' : '') + '' + (W && W.hasUtil ? '<p><b>Utilisation</b>: hours rendered divided by the hours the rota gave her that day, breaks taken out (Phorest’s Utilisation report).</p>' : '') + '</details>'
       + '<div class="ct-h"><button type="button" class="sc-btn sxcm" data-sxcm="svcSH">Sort and filter</button>' + rex('svcExportSH') + '</div>'
       + '<div class="tw"><table id="shT"></table></div>' + pagerHtml('svcSH', SHT ? SHT.shown : 10) + '</details>';
     if (!SHT) {
@@ -745,6 +746,7 @@ async function renderServiceCal() {
         { k: 'last', l: 'Last service ends', t: 'txt', raw: function (l) { return fmt(l.o.last); }, sk: function (l) { return l.o.last; }, disp: function (l) { return fmt(l.o.last); }, cell: function (l) { return fmt(l.o.last); } },
         { k: 'hrs', l: 'Hours rendered', t: 'num', raw: function (l) { return l.chair; }, disp: function (l) { return l.chair > 0 ? dur(l.chair) : '-'; }, cell: function (l) { return l.chair > 0 ? utFig(l, dur(l.chair)) : '-'; } },
         { k: 'util', l: 'Utilisation', t: 'num', hide: noUtil, raw: function (l) { return utPct(l) == null ? 0 : utPct(l); }, disp: function (l) { return utPct(l) == null ? '-' : Math.round(utPct(l)) + '%'; }, cell: function (l) { return utPct(l) == null ? '-' : utFig(l, Math.round(utPct(l)) + '%'); } },
+        { k: 'mkh', l: 'Make up hours', t: 'num', hide: noMk, raw: function (l) { return mkMin(l); }, disp: function (l) { return mkMin(l) ? dur(mkMin(l)) : '-'; }, cell: function (l) { return mkMin(l) ? mkFig(l, dur(mkMin(l))) : '-'; } },
         { k: 'ot', l: 'Overtime', t: 'num', raw: function (l) { return l.o.late; }, disp: function (l) { return l.o.late ? '+' + dur(l.o.late) : '-'; }, cell: function (l) { if (!l.o.late) return '-'; var html = '<span class="late">+' + dur(l.o.late) + '</span>'; return typeof TRSD !== 'undefined' ? TRSD.num(html, winServices('Services ending after the shift, ' + l.label, scopeText(), l.rows.filter(function (r) { return r.e > l.sh.e; }))) : html; } }
       ] });
     }
@@ -765,6 +767,16 @@ async function renderServiceCal() {
     var sp = winServices('Services, ' + l.label, scopeText(), done); sp.tip = 'In the chair with clients ' + dur(l.chair) + (l.u && l.u.av > 0 ? ' of ' + hrs(l.u.av) + ' on the rota' : '') + ': see the services';
     return TRSD.num(html, sp);
   }
+  /* Make up hours (Kate, 19 Nov 2026): the time the team blocks off in the Phorest calendar as Owed Hrs, kept in phorest_makeup_blocks */
+  function noMk(){ return !(W && W.hasMk); }
+  function mkOf(sk, d){ return (W && W.mk && W.mk[sk + '|' + d]) || []; }
+  function mkMin(l){ return (l.mk || []).reduce(function (t, x) { return t + Math.max(0, x.en - x.st); }, 0); }
+  function mkFig(l, html){
+    if (typeof TRSD === 'undefined' || !(l.mk || []).length) return html;
+    var sub = scopeText(), cols = [{ k: 'd', l: 'Day', t: 'text' }, { k: 'from', l: 'From (24 hour)', t: 'text' }, { k: 'to', l: 'To (24 hour)', t: 'text' }, { k: 'label', l: 'Label on the block', t: 'text' }, { k: 'len', l: 'Length (min)', t: 'num' }];
+    var rows = l.mk.map(function (x) { return { d: l.label, from: hhmm(x.st), to: hhmm(x.en), label: x.label, len: x.en - x.st }; });
+    return TRSD.num(html, { title: 'Make up hours, ' + l.label, sub: sub, tip: 'See the blocks', sk: 'svc-' + slug('makeup ' + l.label + ' ' + sub), views: [{ id: 'mk', label: 'Blocks (' + rows.length + ')', load: async function () { return { cols: cols, rows: rows, note: 'This is the last step: a block set as Owed Hrs in the Phorest calendar.' }; } }] });
+  }
   function utOf(sk, d){ return (W && W.ut && W.ut[sk + '|' + d]) || null; }
   function hrs(h){ return dur(Math.round(h * 60)); }   // 9 -> 9h, 7.95 -> 7h 57m
   function otLines(){
@@ -772,10 +784,10 @@ async function renderServiceCal() {
     if (!W || S.view === 'list') return lines;
     if (S.view === 'day') {
       var dr = dayRows();
-      dayStaff().forEach(function (sk) { var sh = shiftOf(sk, S.from); if (sh && sh.k === 'WORKING') { var mine = dr.filter(function (r) { return r.sk === sk; }); lines.push({label:stLabel(sk), sh:sh, o:otOf(sh, mine), rows:mine, chair:chairDone(mine), u:utOf(sk, S.from)}); } });
+      dayStaff().forEach(function (sk) { var sh = shiftOf(sk, S.from); if (sh && sh.k === 'WORKING') { var mine = dr.filter(function (r) { return r.sk === sk; }); lines.push({label:stLabel(sk), sh:sh, o:otOf(sh, mine), rows:mine, chair:chairDone(mine), u:utOf(sk, S.from), mk:mkOf(sk, S.from)}); } });
     } else {
       var wr = weekRows();
-      days().forEach(function (d) { var sh = shiftOf(S.staff, d); if (sh && sh.k === 'WORKING') { var x = wr.filter(function (r) { return r.d === d; }); if (x.length) lines.push({label:dfull(d), sh:sh, o:otOf(sh, x), rows:x, chair:chairDone(x), u:utOf(S.staff, d)}); } });
+      days().forEach(function (d) { var sh = shiftOf(S.staff, d); if (sh && sh.k === 'WORKING') { var x = wr.filter(function (r) { return r.d === d; }); if (x.length) lines.push({label:dfull(d), sh:sh, o:otOf(sh, x), rows:x, chair:chairDone(x), u:utOf(S.staff, d), mk:mkOf(S.staff, d)}); } });
     }
     return lines;
   }
@@ -890,10 +902,10 @@ async function renderServiceCal() {
   }
   function shSheet(){
     if (!SHLINES.length) return null;
-    var T = SHT ? SHT.rows() : SHLINES, ux = !!(W && W.hasUtil);
+    var T = SHT ? SHT.rows() : SHLINES, ux = !!(W && W.hasUtil), mx = !!(W && W.hasMk);
     return xs('Shifts and overtime', 'Service Calendar: shifts and overtime', scopeText() + '. Overtime is how long after the shift end the last booked service finishes.',
-      [{ label: S.view === 'day' ? 'Stylist' : 'Day', fmt: 'text' }, { label: 'Shift starts', fmt: 'text' }, { label: 'Shift ends', fmt: 'text' }, { label: 'First service', fmt: 'text' }, { label: 'Last service ends', fmt: 'text' }, { label: 'Hours rendered (chair time, hours)', fmt: 'num' }].concat(ux ? [{ label: 'Hours on the rota (Phorest)', fmt: 'num' }, { label: 'Utilisation (%)', fmt: 'num' }] : [], [{ label: 'Overtime (min)', fmt: 'num' }]),
-      T.map(function (l) { var r2 = function (x) { return x == null ? null : Math.round(x * 100) / 100; }; return [l.label, fmt(l.sh.s), fmt(l.sh.e), fmt(l.o.first), fmt(l.o.last), r2(l.chair / 60)].concat(ux ? [l.u ? r2(l.u.av) : null, r2(utPct(l))] : [], [l.o.late]); }), [['Overtime', 'From bookings, not a clock-out.'], ['Hours rendered', 'Time actually spent with clients in the chair: paid services, overlaps counted once.'], ['Utilisation', 'Hours rendered divided by the hours the rota gave her that day, breaks taken out (Phorest Utilisation report).']]);
+      [{ label: S.view === 'day' ? 'Stylist' : 'Day', fmt: 'text' }, { label: 'Shift starts', fmt: 'text' }, { label: 'Shift ends', fmt: 'text' }, { label: 'First service', fmt: 'text' }, { label: 'Last service ends', fmt: 'text' }, { label: 'Hours rendered (chair time, hours)', fmt: 'num' }].concat(ux ? [{ label: 'Hours on the rota (Phorest)', fmt: 'num' }, { label: 'Utilisation (%)', fmt: 'num' }] : [], mx ? [{ label: 'Make up hours (min)', fmt: 'num' }] : [], [{ label: 'Overtime (min)', fmt: 'num' }]),
+      T.map(function (l) { var r2 = function (x) { return x == null ? null : Math.round(x * 100) / 100; }; return [l.label, fmt(l.sh.s), fmt(l.sh.e), fmt(l.o.first), fmt(l.o.last), r2(l.chair / 60)].concat(ux ? [l.u ? r2(l.u.av) : null, r2(utPct(l))] : [], mx ? [mkMin(l)] : [], [l.o.late]); }), [['Overtime', 'From bookings, not a clock-out.'], ['Hours rendered', 'Time actually spent with clients in the chair: paid services, overlaps counted once.'], ['Utilisation', 'Hours rendered divided by the hours the rota gave her that day, breaks taken out (Phorest Utilisation report).']]);
   }
   function svcExportCT(){ var s = ctSheet(); return s ? { name: xname('client-types'), csv: 0, sheets: [s] } : null; }
   function svcExportSH(){ var s = shSheet(); return s ? { name: xname('shifts'), csv: 0, sheets: [s] } : null; }
