@@ -85,7 +85,7 @@ const STAFF_PROFILES = {
   // assistant already has her own row below, which is the correct card.
   'CHONA':     { role: 'Assistant', branch: 'KCA' },
   // Kate, 16 Nov 2026: cutouts for the assistants and front desk (esther, laila, apol, maria, ivy, liberty, dorah, lhang-ann, and jessa at the front desk).
-  // Same card style as the stylists, in colour, head inside the block. Not every assistant has one yet: Chona, Pearl, Kathy, Ercely, Luningning, Eden.
+  // Same card style as the stylists, in colour, head inside the block. Not every assistant has one yet: Chona, Kathy, Luningning, Eden.
   'ESTHER':    { photo: 'esther.png', role: 'Assistant', branch: 'KCA' },
   'PEARL':     { photo: 'pearl.png', role: 'Assistant', branch: 'KCA' },   // Kate, 17 Nov 2026: cutout added
   // Kate, 17 Nov 2026: there are two Mays. May Manguiat is an Assistant (Saadiyat, also rostered at Khalifa City A), so she has her own full-name key, like ROBYN GARGAN,
@@ -190,7 +190,7 @@ const STAFF_PROFILES = {
   // at Saadiyat too. Emma, 14 Oct 2026: she has moved to Saadiyat for good, so
   // Saadiyat is her branch now and Motor City is dropped.
   'VIRGINIJA': { photo: 'virginija.png', role: 'Stylist', branch: 'SAA', ig: 'hair_by_virginia_dxb' },
-  'ERCELY':    { role: 'Assistant', branch: 'MC' },
+  'ERCELY':    { photo: 'ercely.png', role: 'Assistant', branch: 'MC' },   // Kate, 19 Nov 2026: cutout added (for the Leave Calendar)
 
   // -- Al Quoz --
   'RUTH':      { photo: 'ruth.png',      role: 'Style Director', branch: 'AQ',   ig: 'rainbowsby_ruth' },
