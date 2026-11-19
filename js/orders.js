@@ -382,20 +382,51 @@ function ordStepsHtml(g) {
   const names = g.type === 'Order' ? ['Quoted', 'Ordered', 'Confirmed', 'Shipped', 'Delivered', 'Invoiced'].filter(n => seen[n] || ['Ordered', 'Shipped', 'Delivered', 'Invoiced'].includes(n)) : Object.keys(seen);
   return '<div class="ord-steps" aria-label="Steps">' + names.map(n => `<span class="ord-step${seen[n] ? ' on' : ''}"><b>${ordEsc(n)}</b><i>${seen[n] ? ordDay(seen[n]) : 'not seen'}</i></span>`).join('') + '</div>';
 }
+// ── TRANSLATE TO ENGLISH (Kate, 19 Nov 2026) ─────────────────────────────────────────
+// Some suppliers (Falconpack) write the product names in Arabic. The button sits on the What was bought line, far right above Total AED, and only shows when a name has Arabic in it.
+// It swaps every product name in the window for its English and back. Each name is asked for once and kept, so a second click is instant. Only product names leave the page, nothing about the salon.
+const ordHasAr = s => /[\u0590-\u08FF\uFB50-\uFEFF]/.test(String(s || ''));
+const ordTrCache = {};
+async function ordTranslateOne(t) {
+  if (ordTrCache[t]) return ordTrCache[t];
+  const r = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=' + encodeURIComponent(t));
+  if (!r.ok) throw new Error('translate ' + r.status);
+  const j = await r.json(), out = (j[0] || []).map(x => x[0]).join('').replace(/\s+/g, ' ').trim();
+  if (!out) throw new Error('translate empty');
+  return (ordTrCache[t] = out);
+}
+async function ordTranslate(btn) {
+  const box = btn.closest('.ord-buy'); if (!box) return;
+  const names = [...box.querySelectorAll('.ord-bt .ord-nm')];
+  if (btn.dataset.on === '1') {   // back to what the supplier wrote
+    names.forEach(n => { if (n.dataset.o != null) n.textContent = n.dataset.o; n.removeAttribute('title'); });
+    btn.dataset.on = ''; btn.textContent = 'Translate to English'; return;
+  }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Translating...';
+  try {
+    const todo = names.filter(n => ordHasAr(n.dataset.o != null ? n.dataset.o : n.textContent));
+    const res = await Promise.all(todo.map(n => ordTranslateOne(n.dataset.o != null ? n.dataset.o : n.textContent)));
+    todo.forEach((n, i) => { if (n.dataset.o == null) n.dataset.o = n.textContent; n.textContent = res[i]; n.title = n.dataset.o; });
+    btn.dataset.on = '1'; btn.textContent = 'Show original';
+  } catch (e) {
+    console.error(e); btn.textContent = 'Could not translate, try again';
+    setTimeout(() => { if (btn.dataset.on !== '1') btn.textContent = old; }, 3500);
+  } finally { btn.disabled = false; }
+}
 function ordBuyHtml(g) {
   const b = g.buy;
   let h = '';
   if (!b) h += `<h4>What was bought</h4><p class="ord-muted">${g.docs.some(d => d.file_path) ? 'The items are in the file of this order. Open it under The emails below. This page could not read its lines.' : g.type === 'Order' ? 'The items are in the attached file (Excel or PDF), which this page does not read yet. It will list every product with its quantity and price.' : 'No items are listed in this email.'}</p>`;
   else {
-    h += `<h4>What was bought</h4><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Price AED</th><th class="r">Total AED</th></tr></thead><tbody>` +
-      b.lines.map(l => `<tr><td data-l="Product">${ordEsc(l.name)}${l.note ? ` <span class="ord-dnote">${ordEsc(l.note)}</span>` : ''}</td><td class="r" data-l="Qty">${l.qty == null ? '-' : ordEsc(l.qty)}</td><td class="r" data-l="Price AED">${l.unit == null ? '-' : ordAed(+l.unit)}</td><td class="r" data-l="Total AED">${l.total == null ? '-' : ordAed(+l.total)}</td></tr>`).join('') + '</tbody></table>';
+    h += `<div class="ord-bh"><h4>What was bought</h4>${b.lines.some(l => ordHasAr(l.name)) ? '<button type="button" class="cm-pill ord-tr" onclick="ordTranslate(this)" title="Show the product names in English">Translate to English</button>' : ''}</div><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Price AED</th><th class="r">Total AED</th></tr></thead><tbody>` +
+      b.lines.map(l => `<tr><td data-l="Product"><span class="ord-nm">${ordEsc(l.name)}</span>${l.note ? ` <span class="ord-dnote">${ordEsc(l.note)}</span>` : ''}</td><td class="r" data-l="Qty">${l.qty == null ? '-' : ordEsc(l.qty)}</td><td class="r" data-l="Price AED">${l.unit == null ? '-' : ordAed(+l.unit)}</td><td class="r" data-l="Total AED">${l.total == null ? '-' : ordAed(+l.total)}</td></tr>`).join('') + '</tbody></table>';
     h += '<dl class="ord-tot">' + (b.sub != null ? `<dt>Items after discounts</dt><dd>AED ${ordAed(+b.sub)}</dd>` : '') +
       (b.disc ? `<dt class="ord-dsc">Discount taken off</dt><dd class="ord-dsc">- AED ${ordAed(b.disc)}</dd>` : (b.sub != null ? '<dt>Discount</dt><dd>none</dd>' : '')) +
       (b.deliv != null ? `<dt>Delivery</dt><dd>${+b.deliv ? 'AED ' + ordAed(+b.deliv) : 'free'}</dd>` : '') + (b.vat != null ? `<dt>VAT included</dt><dd>AED ${ordAed(+b.vat)}</dd>` : '') +
       (b.total != null ? `<dt class="ord-big">Total</dt><dd class="ord-big">AED ${ordAed(+b.total)}</dd>` : '') + '</dl>';
   }
   if (g.discPct) h += `<dl class="ord-tot"><dt class="ord-dsc ord-warn">Discount applied</dt><dd class="ord-dsc ord-warn">${g.discPct}%</dd>${g.discShould != null ? `<dt>Discount agreed</dt><dd>${g.discShould}%</dd>` : ''}</dl><p class="ord-dnote2">The AED difference is on the invoice PDF, which this page does not read yet.</p>`;
-  if (g.oos.length) h += '<h4>Out of stock, not supplied</h4><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Ordered</th><th class="r">Supplied</th></tr></thead><tbody>' + g.oos.map(l => `<tr><td data-l="Product">${ordEsc(l.name)}</td><td class="r" data-l="Ordered">${ordEsc(l.qty)}</td><td class="r" data-l="Supplied">0</td></tr>`).join('') + '</tbody></table>';
+  if (g.oos.length) h += '<h4>Out of stock, not supplied</h4><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Ordered</th><th class="r">Supplied</th></tr></thead><tbody>' + g.oos.map(l => `<tr><td data-l="Product"><span class="ord-nm">${ordEsc(l.name)}</span></td><td class="r" data-l="Ordered">${ordEsc(l.qty)}</td><td class="r" data-l="Supplied">0</td></tr>`).join('') + '</tbody></table>';
   return '<div class="ord-buy">' + h + '</div>';
 }
 // ── THE KEPT FILES: a PDF shows INSIDE the dashboard, an Excel form downloads ────────
