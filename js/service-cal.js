@@ -26,6 +26,10 @@ const SVC_CSS2 = `
 @media (max-width:760px){.rail button{min-height:44px}}
 /* The page takes the width of the screen (index.html body.svc-chrome lifts the shell cap to 1760px), so the day grid shows more stylists; the mini nav stays a column beside it. */
 .lvc{max-width:1760px}
+/* Hovering a block never makes it bigger, least of all a short one (Kate, 19 Nov 2026): it lifts a little and its edge lights up, which says "click me" for the detail. */
+.blk{transition:transform .12s ease,box-shadow .12s ease}
+.blk:hover,.blk:focus-visible{overflow:hidden;min-height:0;transform:translateY(-2px);box-shadow:0 0 0 2px var(--cc),0 6px 14px rgba(0,0,0,.28);z-index:5}
+@media (prefers-reduced-motion:reduce){.blk{transition:none}.blk:hover,.blk:focus-visible{transform:none}}
 .blk.s-in{background-image:none}
 .blk.s-in .t::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cc);margin-right:5px;vertical-align:1px}
 .blk.s-booked{background:color-mix(in srgb,var(--cc-bg) 45%,var(--surface));border-style:solid}
@@ -497,7 +501,7 @@ async function renderServiceCal() {
     var h = Math.max((r.e - r.s) * PX - 1, 17), top = (r.s - T0) * PX, w = 100 / r._n;
     var sh = shiftOf(r.sk, r.d), ot = !!(sh && sh.k === 'WORKING' && r.e > sh.e);
     var sm = h < 36, who = r.cn ? esc(r.cn) : '', st = STATES[r.state] || ['paid', r.state], time = fmt(r.s) + ' - ' + fmt(r.e);
-    return '<button type="button" class="blk c-' + r.cat + ' s-' + st[0] + (sm ? ' sm' : '') + (ot ? ' ot' : '') + '" data-id="' + r.i + '" style="top:' + top + 'px;height:' + h + 'px;--minh:' + Math.max(h, 52) + 'px;left:calc(' + (r._l * w) + '% + 1px);width:calc(' + w + '% - 3px)" aria-label="' + esc(r.sv) + ', ' + time + ', ' + who + '">'
+    return '<button type="button" class="blk c-' + r.cat + ' s-' + st[0] + (sm ? ' sm' : '') + (ot ? ' ot' : '') + '" data-id="' + r.i + '" title="' + esc(r.sv + ', ' + time + (who ? ', ' + who : '')) + '" style="top:' + top + 'px;height:' + h + 'px;--minh:' + Math.max(h, 52) + 'px;left:calc(' + (r._l * w) + '% + 1px);width:calc(' + w + '% - 3px)" aria-label="' + esc(r.sv) + ', ' + time + ', ' + who + '">'
       + '<div class="t">' + (ot ? '<span class="otb">OT</span>' : '') + esc(r.sv) + '</div><div class="m">' + (r.req ? '<span class="star">★</span> ' : '') + (sm ? '' : time + ' · ') + who + '</div></button>';
   }
   function renderGrid(cols){
