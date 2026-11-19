@@ -41,7 +41,7 @@ declare d text; a text := E'group by rollup (blast_id)
 begin
   d := pg_get_functiondef('public.nov_results_core()'::regprocedure);
   if position(a in d) = 0 then raise exception 'pattern not found'; end if;
-  b := E'group by rollup (blast_id) having blast_id is null or blast_id not like ''R\_%''
+  b := E'group by rollup (blast_id) having blast_id is null or blast_id not like ''R\\_%''
     union all';
   execute replace(d, a, b);
 end $do$;
