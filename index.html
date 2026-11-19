@@ -3630,7 +3630,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=759948a4"></script>
 <!-- Kate, 18 Nov 2026: the first-time guide on every report (page-guide.js, page_guide_* in Supabase). showView() calls TRSGuide.maybe(view). -->
-<script src="/js/page-guide.js?v=55d27d9c"></script>
+<script src="/js/page-guide.js?v=1178544f"></script>
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -3696,7 +3696,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Leave & Holiday Calendar (17 Nov 2026): one file, and the spreadsheet export its XLSX and CSV buttons use.
       lvc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/leave-cal.js?v=5eee01fc'],
       // Service Calendar (17 Nov 2026): one file; the client name opens the Client Book card, read from client_book_card(). 19 Nov 2026: its tables use the Sheets table and the XLSX and CSV buttons.
-      svc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/service-cal.js?v=45b18cdf'],
+      svc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/service-cal.js?v=a24c1405'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'js/active-deals.js?v=126d9fbd'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -4483,7 +4483,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=59993203&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=8e52c056&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -4954,7 +4954,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     'Kate writes down the one thing this campaign proved, before the next campaign is planned.');
 })();
 </script>
-<script src="js/jump-nav.js?v=0377bedf"></script>
+<script src="js/jump-nav.js?v=a53a307c"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=7b4719d6"></script>

@@ -156,14 +156,16 @@
         title: 'Who does what', text: 'Just want to check what a stylist does? The full checklist lists every stylist and what she does. It opens on its own page.' }
     ],
     servicecal: [
+      { id: 'svc-rail', find: function () { return inShadow('serviceCalContent', '#rail'); },
+        title: 'Jump to a section', text: 'On a computer this list sits on the left, on a phone it is a row of chips under the header. Tap Client types, Shifts and overtime, The calendar or About this page to jump there. The one you are reading lights up.' },
       { id: 'svc-view', find: function () { return inShadow('serviceCalContent', '#vbar'); },
         title: 'Day, Week or List', text: 'Switch the view here. Day shows every stylist for one day, Week shows one stylist across the days, List is every service in a table. Use the arrows to move to another day.' },
       { id: 'svc-tiles', find: function () { return inShadow('serviceCalContent', '#cards'); },
         title: 'The day at a glance', text: 'These tiles count the services, the chair time and the busiest moment. Tap a tile to jump to the services behind it.' },
       { id: 'svc-cal', need: 1, find: function () { return inShadow('serviceCalContent', '#cal'); },
-        title: 'Read the calendar', text: 'Each block is one service. Solid is done and paid, striped is the client in the chair now, dashed is booked and still to come. Tap a block for the detail, or a stylist\u2019s name for her week.' },
-      { id: 'svc-types', need: 1, find: function () { return inShadow('serviceCalContent', '#ctBox .sx-t'); },
-        title: 'Client types, stylist by stylist', text: 'Tap a number to see those clients in the List. Tap the funnel on a heading to sort or filter, and use XLSX or CSV to take the table with you.' },
+        title: 'Read the calendar', text: 'Each block is one service. A full block is done and paid, a block with a dot is the client in the chair now, a paler block is booked and still to come. Tap a block for the detail, or a stylist\u2019s name for her week.' },
+      { id: 'svc-types', need: 1, find: function () { return inShadow('serviceCalContent', '#sec-types'); },
+        title: 'Client types and Shifts', text: 'These two tables start closed. Tap the heading to open one: it shows 10 stylists a page, and Rows lets you pick 20, 50 or 100. Tap a number to see those clients in the List.' },
       { id: 'svc-legend', find: function () { return inShadow('serviceCalContent', '#legend'); },
         title: 'Show or hide a kind', text: 'Tap a colour to hide or show that kind of service. Tap it again to bring it back.' }
     ],
