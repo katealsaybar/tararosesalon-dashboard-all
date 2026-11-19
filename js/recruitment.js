@@ -365,7 +365,7 @@
   function render() {
     var el = main(); if (!el) return;
     ddClose();
-    saveView();
+    saveView(); urlSync();
     var h = '<div class="rct">';
     h += '<h2>Recruitment</h2><p class="rct-lead">Who is worth Emma’s time today, and who is still waiting for an answer.</p>';
     h += '<div class="rct-pills rct-top"><span class="rct-pill rct-grey">Checked every 5 minutes from the two inboxes</span></div>';
@@ -648,6 +648,62 @@
       if (v.d === true) S.showDone = true;
     } catch (e) { /* unreadable, start clean */ }
   })();
+
+  // Kate, 19 Nov 2026 ("if naka filter lang assigned to jho, will reflect, if assigned to frances lang will reflect din sa url, if both: assigned-to-frances+nobody"):
+  // the address follows the filters. ?view=recruitment&assigned-to=frances+nobody&application-status=shortlisted&tile=look&sort=applied-desc
+  // The parameter is the column's name as a slug, the values are the ticked values as slugs, + means "or". The tile and the sort ride along. A link that carries any of them
+  // opens the page already filtered (in the List, where the column filters live) and wins over the view this browser remembers. index.html trSyncUrl writes rctUrlParts().
+  function urlSlug(s) { return String(s).toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+  function urlVal(col, v) { return col === 'asg' && v === 'Nobody yet' ? 'nobody' : urlSlug(v); }
+  var URL_BY_NAME = {};
+  COLS.forEach(function (c) { if (c.nofilter || !c.t) return; var n = urlSlug(c.t); if (n !== 'tile' && n !== 'sort' && n !== 'cand' && n !== 'view') URL_BY_NAME[n] = c.k; });
+  var urlPending = null, urlCand = null, urlMiss = {};   // what the address brought: held until the rows are in (and the person to open, below)
+  (function readUrl() {
+    try {
+      var q = new URLSearchParams(location.search), f = {}, keep = [], any = false, tile = q.get('tile'), sort = q.get('sort'), sv = null;
+      urlCand = q.get('cand');
+      Object.keys(URL_BY_NAME).forEach(function (n) {
+        var raw = q.get(n); if (raw === null) return;
+        var vals = raw.split(/[\s+,]+/).filter(Boolean); if (!vals.length) return;
+        f[URL_BY_NAME[n]] = vals; keep.push(n + '=' + vals.join('+')); any = true;
+      });
+      if (tile && LANE_NAME[tile]) { keep.push('tile=' + tile); any = true; } else tile = null;
+      var m = sort && /^(.+)-(asc|desc)$/.exec(sort);
+      if (m && URL_BY_NAME[m[1]] && colBy(URL_BY_NAME[m[1]]).sort) { sv = { col: URL_BY_NAME[m[1]], dir: m[2] }; keep.push('sort=' + sort); any = true; }
+      if (any) urlPending = { filters: f, tile: tile, sort: sv, keep: keep };
+    } catch (e) { /* the link is a convenience, never an error */ }
+  })();
+  // Once the rows are in: turn each slug back into the real value (so a value nobody has any more shows nobody, which is true), and open the List for column filters.
+  function applyUrl() {
+    var u = urlPending; if (!u) return; urlPending = null;
+    S.lane = u.tile; S.filters = {}; urlMiss = {};
+    Object.keys(u.filters).forEach(function (k) {
+      var c = colBy(k), seen = {}, set = {}, hit = false;
+      rows.forEach(function (p) { seen[c.val(p)] = true; });
+      Object.keys(seen).forEach(function (v) { set[v] = u.filters[k].indexOf(urlVal(k, v)) >= 0; if (set[v]) hit = true; });
+      S.filters[k] = set;
+      if (!hit) urlMiss[k] = u.filters[k];   // nobody has that value: the page shows nobody, and the address keeps saying what was asked
+    });
+    // a link names the whole view: whatever this browser remembered (sort, Not now shown) does not leak into it
+    S.sort = u.sort || { col: 'wait', dir: 'desc' }; S.showDone = false;
+    if (Object.keys(u.filters).length) S.mode = 'list';
+    var st = u.filters.acts || []; if (st.indexOf('not-now') >= 0 || st.indexOf('rejected') >= 0) S.showDone = true;   // those people are hidden unless Not now is shown
+  }
+  window.rctUrlParts = function () {
+    if (urlPending) return urlPending.keep.slice();   // the rows are not in yet: say back what the link said
+    var parts = [];
+    if (S.lane) parts.push('tile=' + S.lane);
+    COLS.forEach(function (c) {
+      var set = S.filters[c.k]; if (!set || c.nofilter || !c.t) return;
+      var on = Object.keys(set).filter(function (v) { return set[v]; }).map(function (v) { return urlVal(c.k, v); }).filter(Boolean);
+      if (on.length) delete urlMiss[c.k];   // the person has ticked something real: the asked-for value no longer applies
+      if (!on.length && urlMiss[c.k]) on = urlMiss[c.k];
+      if (on.length) parts.push(urlSlug(c.t) + '=' + on.join('+'));
+    });
+    if (!(S.sort.col === 'wait' && S.sort.dir === 'desc') && colBy(S.sort.col)) parts.push('sort=' + urlSlug(colBy(S.sort.col).t) + '-' + S.sort.dir);
+    return parts;
+  };
+  function urlSync() { try { if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'recruitment') trSyncUrl(null); } catch (e) { /* fine without it */ } }
 
   function listRows(ignoreCol) {
     var t = q.trim().toLowerCase();
@@ -2049,6 +2105,7 @@
       C = r.data || null;
       if (!C) throw new Error('No data came back.');
       var allRows = C.rows || []; rows = allRows.filter(function (p) { return !p.not_app; }); gone = allRows.filter(function (p) { return p.not_app; }); settings = C.settings || {}; settingsMeta = C.settings_meta || {}; me = C.me || '';
+      applyUrl();   // a link with filters in it (see rctUrlParts) opens the page already filtered
       await loadPhotoUrls();
     } catch (e) {
       console.error(e); C = null; loadErr = 'The applicants could not be read just now (' + (e.message || 'unknown') + '). Refresh the page to try again.';
@@ -2057,7 +2114,7 @@
     if (C) liveStart();
     // the link in the interviewers' WhatsApp: ?view=recruitment&cand=<id> opens that person's details (and the CV button) once
     try {
-      var cand = new URLSearchParams(location.search).get('cand'), cp = cand && personById(cand);
+      var cand = urlCand || new URLSearchParams(location.search).get('cand'), cp = cand && personById(cand);
       if (cp && !openRows[cp.id] && !renderRecruitment.__candDone) {
         renderRecruitment.__candDone = true; S.lane = null; S.filters = {}; openRows[cp.id] = true; render();
         var cel = main() && main().querySelector('[data-id="' + cp.id + '"]'); if (cel && cel.scrollIntoView) cel.scrollIntoView({ block: 'center' });

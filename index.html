@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=5c5f5528"></script>
-<script src="js/page-dates.js?v=236e29a2"></script>
+<script src="js/page-dates.js?v=d7869475"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 18 Nov 2026: the XLSX and CSV buttons for the WHOLE page, drawn in the masthead (js/page-export.js; showView calls TRSExport.sync). -->
 <script src="js/page-export.js?v=9074a77d"></script>
@@ -3684,7 +3684,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cbl: ['js/campaign-blasts.js?v=2305e991'],
       // Landing Page Review (9 Nov 2026): one file, only that page needs it.
       lpr: ['js/landing-review.js?v=9ab8b1f6'],
-      rct: ['js/report-export.js?v=d7b73ae8', 'js/recruitment.js?v=bf56795d'],
+      rct: ['js/report-export.js?v=d7b73ae8', 'js/recruitment.js?v=94b64064'],
       // November Blasts (2 Nov 2026): one file, only that page needs it. 5 Nov 2026: plus the spreadsheet export, the Results send log saves as XLSX and CSV.
       nvb: [LGX, 'js/nov-blasts.js?v=45f539be'],
       // Stripe vs Phorest (9 Nov 2026): one file, reads stripe_vs_phorest(); the header's Branch and Period drive it.
@@ -6123,6 +6123,12 @@ function trSyncUrl(sectionId){
   if (CURRENT_VIEW === 'novblasts') {
     if (typeof nvbUrlParts === 'function') parts.push(...nvbUrlParts());
     else { const nb = new URLSearchParams(location.search).get('blast'); if (nb) parts.push('blast=' + encodeURIComponent(nb)); }
+  }
+  // Recruitment (Kate, 19 Nov 2026): the tile, the column filters and the sort ride in the address, for example &assigned-to=frances+nobody (recruitment.js, rctUrlParts).
+  // Until that script is loaded, keep everything the link brought (the filters, and cand= which opens one person), so the lazy load never reads an emptied address.
+  if (CURRENT_VIEW === 'recruitment') {
+    if (typeof rctUrlParts === 'function') parts.push(...rctUrlParts());
+    else new URLSearchParams(location.search).forEach(function (v, k) { if (k !== 'view') parts.push(encodeURIComponent(k) + '=' + v.split(/[\s+]+/).filter(Boolean).map(encodeURIComponent).join('+')); });
   }
   const q = parts.length ? '?' + parts.join('&') : '';
   const slug = location.pathname + q + (sectionId ? '#' + sectionId : '');
