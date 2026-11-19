@@ -173,7 +173,7 @@
     // "On this page" list, tiles, a calendar where a tap on a day shows who is off, and tables with Sheets-style heading menus.
     leavecal: [
       { id: 'lv-filters', need: 1, find: function () { return inShadow('leaveCalContent', '#filters'); },
-        title: 'Choose who and when', text: 'Pick a salon, a department, a person and a year here. Everything on the page follows them. Hide filters tucks the bar away.' },
+        title: 'Choose who and when', text: 'Branch and Year follow the filters at the top of the dashboard. Here you pick present or resigned staff, a department and the view. Everything on the page follows them. Hide filters tucks the bar away.' },
       { id: 'lv-rail', find: function () { return inShadow('leaveCalContent', '.rail'); },
         title: 'Jump to any section', text: 'These are the sections of this page: the calendar, sick leave and absences, usual day offs and public holidays. Tap one to jump there. The one you are reading lights up.' },
       { id: 'lv-tiles', need: 1, find: function () { return inShadow('leaveCalContent', '#tiles'); },

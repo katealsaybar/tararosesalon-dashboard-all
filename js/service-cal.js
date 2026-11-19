@@ -35,6 +35,12 @@ const SVC_CSS2 = `
 .offshift{background:var(--surface2);opacity:.75}
 .sg i.in{background:var(--muted2);opacity:.55}
 .sg i.booked{background:transparent;border-style:solid}
+.dn{cursor:pointer;border-bottom:1.5px dotted var(--muted2);padding-bottom:1px}
+@media(hover:hover){.dn:hover{border-bottom-style:solid;color:var(--accent)}}
+.dn:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:3px}
+.sc.dnc{cursor:pointer}
+.sc.dnc:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.sc.dnc .big{display:inline-block;border-bottom:1.5px dotted var(--muted2);align-self:flex-start}
 .ans{margin:8px 0 6px;font-size:18px;line-height:1.45;color:var(--text);max-width:80ch}
 .why-wall{margin:14px 0 4px}
 .vbar{position:sticky;top:calc(var(--tbh,0px) + var(--jnh,0px));z-index:24;background:var(--bg);box-shadow:0 -14px 0 var(--bg);padding:8px 0;margin:10px 0 4px}
@@ -417,29 +423,74 @@ async function renderServiceCal() {
   }
 
   /* ---- tiles */
-  function tile(lbl, big, sub, act){ return '<button class="sc" type="button" data-act="' + act + '"><span class="lbl">' + lbl + '</span><span class="big">' + big + '</span><span class="sub">' + sub + '</span></button>'; }
+  /* a tile opens the list behind its figure (Kate, 19 Nov 2026: "clickable numbers"); a tile with nothing behind it stays plain */
+  function tile(lbl, big, sub, spec){
+    var id = spec && typeof TRSD !== 'undefined' ? TRSD.reg(spec) : '';
+    var inner = '<span class="lbl">' + lbl + '</span><span class="big">' + big + '</span><span class="sub">' + sub + '</span>';
+    return id ? '<div class="sc dnc" role="button" tabindex="0" data-dn="' + id + '" title="See what is behind it">' + inner + '</div>' : '<div class="sc">' + inner + '</div>';
+  }
+  /* ---- the windows behind the figures: stylists, days, services. The last one is a single service, which has nothing behind it. */
+  function chairOf(rs){ var by = {}; rs.forEach(function (r) { (by[r.sk + '|' + r.d] = by[r.sk + '|' + r.d] || []).push(r); }); return Object.keys(by).reduce(function (t, k) { return t + union(by[k]); }, 0); }
+  function clientSpec(r){ return (r.cid && typeof PD !== 'undefined' && PD.clientHistory) ? PD.clientHistory({ cur: 'AED', label: 'Service Calendar' }, { client: r.cn, cid: r.cid }) : null; }
+  function winServices(title, sub, rows){
+    var list = rows.slice().sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : a.s - b.s || a.i - b.i; }), days = {}, brs = {};
+    list.forEach(function (r) { days[r.d] = 1; brs[r.b] = 1; });
+    var cols = [];
+    if (Object.keys(days).length > 1) cols.push({ k: 'd', l: 'Day', t: 'date' });
+    cols.push({ k: 't', l: 'Time (24 hour)', t: 'text' });
+    if (Object.keys(brs).length > 1) cols.push({ k: 'b', l: 'Salon', t: 'text' });
+    cols.push({ k: 'st', l: 'Stylist', t: 'text' }, { k: 'sv', l: 'Service', t: 'text' }, { k: 'cn', l: 'Client', t: 'text' }, { k: 'status', l: 'Status', t: 'text' }, { k: 'len', l: 'Length (min)', t: 'num' });
+    var out = list.map(function (r) { return { d: r.d, t: hhmm(r.s) + ' to ' + hhmm(r.e), b: r.b, st: r.st, sv: r.sv, cn: r.cn, status: stDisp(r), len: r.e - r.s, _dn: { cn: clientSpec(r) } }; });
+    return { title: title, sub: sub, sk: 'svc-' + slug(title + ' ' + sub), views: [{ id: 'services', label: 'Services (' + list.length + ')', load: async function () { return { cols: cols, rows: out, note: 'This is the last step: a single service has nothing behind it.' }; } }] };
+  }
+  function winStylists(title, sub, rows, byChair){
+    var by = {}; rows.forEach(function (r) { (by[r.sk] = by[r.sk] || []).push(r); });
+    var keys = Object.keys(by).sort(byName), brs = {}; rows.forEach(function (r) { brs[r.b] = 1; });
+    var many = Object.keys(brs).length > 1, cols = [{ k: 'st', l: 'Stylist', t: 'text' }];
+    if (many) cols.push({ k: 'b', l: 'Salon', t: 'text' });
+    cols.push({ k: 'n', l: 'Services', t: 'num' }, { k: 'chair', l: 'Chair time (min)', t: 'num' });
+    var out = keys.map(function (k) { var rs = by[k], sp = winServices(stName(k) + ', ' + title.toLowerCase(), sub, rs); return { st: stName(k), b: rs[0].b, n: rs.length, chair: chairOf(rs), _dn: { n: sp, chair: sp } }; });
+    if (byChair) out.sort(function (a, b) { return b.chair - a.chair || a.st.localeCompare(b.st); });
+    var foot = { st: 'All stylists shown', b: '', n: rows.length, chair: out.reduce(function (t, x) { return t + x.chair; }, 0) };
+    return { title: title, sub: sub, sk: 'svc-' + slug(title + ' ' + sub), views: [{ id: 'stylists', label: 'Stylists (' + keys.length + ')', load: async function () { return { cols: cols, rows: out, foot: foot }; } }] };
+  }
+  function winDays(title, sub, rows){
+    var by = {}; rows.forEach(function (r) { (by[r.d] = by[r.d] || []).push(r); });
+    var keys = Object.keys(by).sort();
+    var out = keys.map(function (d) { var rs = by[d], sp = winServices(dfull(d), sub, rs); return { d: d, n: rs.length, chair: chairOf(rs), _dn: { n: sp, chair: sp } }; });
+    var foot = { d: '', n: rows.length, chair: out.reduce(function (t, x) { return t + x.chair; }, 0) };
+    return { title: title, sub: sub, sk: 'svc-' + slug(title + ' ' + sub), views: [{ id: 'days', label: 'Days (' + keys.length + ')', load: async function () { return { cols: [{ k: 'd', l: 'Day', t: 'date' }, { k: 'n', l: 'Services', t: 'num' }, { k: 'chair', l: 'Chair time (min)', t: 'num' }], rows: out, foot: foot }; } }] };
+  }
+  function winOT(title, sub, lines){
+    var late = lines.filter(function (l) { return l.o.late > 0; });
+    var out = late.map(function (l) { return { who: l.label, shift: fmt(l.sh.s) + ' - ' + fmt(l.sh.e), last: fmt(l.o.last), late: l.o.late, _dn: { late: winServices('Services ending after the shift, ' + l.label, sub, l.rows.filter(function (r) { return r.e > l.sh.e; })) } }; });
+    var foot = { who: 'In all', shift: '', last: '', late: late.reduce(function (t, l) { return t + l.o.late; }, 0) };
+    return { title: title, sub: sub, sk: 'svc-' + slug(title + ' ' + sub), views: [{ id: 'ot', label: 'Overtime (' + late.length + ')', load: async function () { return { cols: [{ k: 'who', l: S.view === 'day' ? 'Stylist' : 'Day', t: 'text' }, { k: 'shift', l: 'Shift', t: 'text' }, { k: 'last', l: 'Last service ends', t: 'text' }, { k: 'late', l: 'Overtime (min)', t: 'num' }], rows: out, foot: foot }; } }] };
+  }
   function busiest(rows){
     var best = 0, at = T0;
     for (var m = T0; m < T1; m += 15) { var n = rows.filter(function (r) { return r.s <= m && r.e > m; }).length; if (n > best) { best = n; at = m; } }
     return {n:best, at:at};
   }
   function renderTiles(){
-    var h;
+    var h, sub = scopeText();
     if (S.view === 'week') {
       var vis = weekRows().filter(visible), ds = days(), dd = {}; vis.forEach(function (r) { dd[r.d] = 1; });
       var per = ds.map(function (d) { return [d, vis.filter(function (r) { return r.d === d; }).length]; }).sort(function (a,b) { return b[1] - a[1]; })[0];
-      var chair = ds.reduce(function (t, d) { return t + union(vis.filter(function (r) { return r.d === d; })); }, 0);
-      h = tile('Services', vis.length, esc(S.staff ? stLabel(S.staff) : ''), 'list') + tile('Days worked', Object.keys(dd).length, 'of ' + ds.length, 'none')
-        + tile('Chair time', dur(chair), 'booked, overlaps counted once', 'none') + tile('Busiest day', per && per[1] ? dlabel(per[0]) : '-', per && per[1] ? per[1] + ' services' : '', 'busyday') + otTile();
+      var chair = ds.reduce(function (t, d) { return t + union(vis.filter(function (r) { return r.d === d; })); }, 0), nm = S.staff ? stLabel(S.staff) : '';
+      var dws = vis.length ? winDays('Days worked, ' + nm, sub, vis) : null;
+      h = tile('Services', vis.length, esc(nm), vis.length ? winServices('Services, ' + nm, sub, vis) : null) + tile('Days worked', Object.keys(dd).length, 'of ' + ds.length, dws)
+        + tile('Chair time', dur(chair), 'booked, overlaps counted once', dws) + tile('Busiest day', per && per[1] ? dlabel(per[0]) : '-', per && per[1] ? per[1] + ' services' : '', per && per[1] ? winServices('Busiest day, ' + dfull(per[0]), nm, vis.filter(function (r) { return r.d === per[0]; })) : null) + otTile();
     } else if (S.view === 'list') {
       var all = rangeRows().filter(visible), st = {}; all.forEach(function (r) { st[r.sk] = 1; });
-      h = tile('Services', all.length, single() ? dfull(S.from) : dfull(S.from) + ' to ' + dfull(S.to), 'none') + tile('Stylists', Object.keys(st).length, 'with at least one service', 'none')
-        + tile('Done', all.filter(function (r) { return r.state === 'PAID'; }).length, 'paid', 'none') + tile('Still to come', all.filter(function (r) { return r.state !== 'PAID'; }).length, 'booked or in the chair', 'none');
+      var done = all.filter(function (r) { return r.state === 'PAID'; }), todo = all.filter(function (r) { return r.state !== 'PAID'; });
+      h = tile('Services', all.length, single() ? dlabel(S.from) : dlabel(S.from) + ' to ' + dlabel(S.to), all.length ? winServices('Services', sub, all) : null) + tile('Stylists', Object.keys(st).length, 'with at least one service', all.length ? winStylists('Stylists', sub, all) : null)
+        + tile('Done', done.length, 'paid', done.length ? winServices('Done', sub, done) : null) + tile('Still to come', todo.length, 'booked or in the chair', todo.length ? winServices('Still to come', sub, todo) : null);
     } else {
       var v2 = dayRows().filter(visible), s2 = {}; v2.forEach(function (r) { s2[r.sk] = 1; });
       var bz = busiest(v2), perStaff = Object.keys(s2).reduce(function (t, n) { return t + union(v2.filter(function (r) { return r.sk === n; })); }, 0);
-      h = tile('Services', v2.length, dlabel(S.from, true) + ' · ' + brLabel(), 'list') + tile('Stylists working', Object.keys(s2).length, 'with at least one service', 'sortchair')
-        + tile('Chair time booked', dur(perStaff), 'all stylists added up', 'sortchair') + tile('Busiest time', v2.length ? fmt(bz.at) : '-', v2.length ? bz.n + ' services at once' : '', 'busy') + otTile();
+      h = tile('Services', v2.length, dlabel(S.from) + ' · ' + brLabel(), v2.length ? winServices('Services', sub, v2) : null) + tile('Stylists working', Object.keys(s2).length, 'with at least one service', v2.length ? winStylists('Stylists working', sub, v2) : null)
+        + tile('Chair time booked', dur(perStaff), 'all stylists added up', v2.length ? winStylists('Chair time booked', sub, v2, true) : null) + tile('Busiest time', v2.length ? fmt(bz.at) : '-', v2.length ? bz.n + ' services at once' : '', v2.length ? winServices('Busiest time, ' + fmt(bz.at), sub, v2.filter(function (r) { return r.s <= bz.at && r.e > bz.at; })) : null) + otTile();
     }
     LVD.getElementById('cards').innerHTML = h;
   }
@@ -530,7 +581,7 @@ async function renderServiceCal() {
         { k: 'shift', l: 'Shift', t: 'txt', raw: rng, sk: function (l) { return l.sh.s; }, disp: rng, cell: rng },
         { k: 'first', l: 'First service', t: 'txt', raw: function (l) { return fmt(l.o.first); }, sk: function (l) { return l.o.first; }, disp: function (l) { return fmt(l.o.first); }, cell: function (l) { return fmt(l.o.first); } },
         { k: 'last', l: 'Last service ends', t: 'txt', raw: function (l) { return fmt(l.o.last); }, sk: function (l) { return l.o.last; }, disp: function (l) { return fmt(l.o.last); }, cell: function (l) { return fmt(l.o.last); } },
-        { k: 'ot', l: 'Overtime', t: 'num', raw: function (l) { return l.o.late; }, disp: function (l) { return l.o.late ? '+' + dur(l.o.late) : '-'; }, cell: function (l) { return l.o.late ? '<span class="late">+' + dur(l.o.late) + '</span>' : '-'; } }
+        { k: 'ot', l: 'Overtime', t: 'num', raw: function (l) { return l.o.late; }, disp: function (l) { return l.o.late ? '+' + dur(l.o.late) : '-'; }, cell: function (l) { if (!l.o.late) return '-'; var html = '<span class="late">+' + dur(l.o.late) + '</span>'; return typeof TRSD !== 'undefined' ? TRSD.num(html, winServices('Services ending after the shift, ' + l.label, scopeText(), l.rows.filter(function (r) { return r.e > l.sh.e; }))) : html; } }
       ] });
     }
     if (SHT) { SHT.draw(); bindPager(SHT); }
@@ -544,17 +595,17 @@ async function renderServiceCal() {
     if (!W || S.view === 'list') return lines;
     if (S.view === 'day') {
       var dr = dayRows();
-      dayStaff().forEach(function (sk) { var sh = shiftOf(sk, S.from); if (sh && sh.k === 'WORKING') lines.push({label:stLabel(sk), sh:sh, o:otOf(sh, dr.filter(function (r) { return r.sk === sk; }))}); });
+      dayStaff().forEach(function (sk) { var sh = shiftOf(sk, S.from); if (sh && sh.k === 'WORKING') { var mine = dr.filter(function (r) { return r.sk === sk; }); lines.push({label:stLabel(sk), sh:sh, o:otOf(sh, mine), rows:mine}); } });
     } else {
       var wr = weekRows();
-      days().forEach(function (d) { var sh = shiftOf(S.staff, d); if (sh && sh.k === 'WORKING') { var x = wr.filter(function (r) { return r.d === d; }); if (x.length) lines.push({label:dlabel(d, true), sh:sh, o:otOf(sh, x)}); } });
+      days().forEach(function (d) { var sh = shiftOf(S.staff, d); if (sh && sh.k === 'WORKING') { var x = wr.filter(function (r) { return r.d === d; }); if (x.length) lines.push({label:dfull(d), sh:sh, o:otOf(sh, x), rows:x}); } });
     }
     return lines;
   }
   function otTile(){
     var ls = otLines(), late = ls.filter(function (l) { return l.o.late > 0; }), tot = late.reduce(function (t, l) { return t + l.o.late; }, 0);
-    if (!ls.length) return tile('Overtime', '-', 'no rota shift for these bookings', 'none');
-    return tile('Overtime', late.length ? dur(tot) : 'None', late.length ? late.length + ' of ' + ls.length + (S.view === 'day' ? ' stylists' : ' days') + ' ran past the shift' : 'nobody ran past the shift', 'ot');
+    if (!ls.length) return tile('Overtime', '-', 'no rota shift for these bookings', null);
+    return tile('Overtime', late.length ? dur(tot) : 'None', late.length ? late.length + ' of ' + ls.length + (S.view === 'day' ? ' stylists' : ' days') + ' ran past the shift' : 'nobody ran past the shift', late.length ? winOT('Overtime', scopeText(), ls) : null);
   }
   var CTROWS = [];
   function ctCounts(rows){ var seen = {}, c = {total:0, new:0, ncr:0, req:0, salon:0, rb:0}; rows.forEach(function (r) { if (seen[r.gk]) return; seen[r.gk] = 1; c.total++; c[r.ty]++; if (r.rbk) c.rb++; }); return c; }
@@ -586,7 +637,7 @@ async function renderServiceCal() {
     var anyLed = lines.some(function (l) { return l.led; });
     box.innerHTML = '<details class="ct"' + (S.openCT ? ' open' : '') + '><summary id="sec-types" data-sec-target>Client types' + (S.view === 'week' ? ' · ' + esc(S.staff ? stLabel(S.staff) : '') : '') + '</summary>'
       + '<p class="ct-note">Per stylist, like the ledgers. Tap a number to see those clients in the List.' + (anyLed ? ' Orange ledger figures are where the ledger differs.' : '') + '</p>'
-      + '<details class="ct-def"><summary>What each type means</summary><ul><li><b>New</b>: first paid visit at any salon, no stylist asked for.</li><li><b>NCR</b>: new, and asked for a stylist.</li><li><b>Request</b>: returning, asked for a stylist.</li><li><b>Salon</b>: returning, no request.</li><li><b>Rebooked</b>: booked the next visit with the same stylist on the day.</li></ul></details>'
+      + '<details class="ct-def"><summary>What each type means</summary><ul><li><b>New</b>: first paid visit at any salon, no stylist asked for.</li><li><b>NCR</b>: new, and asked for a stylist.</li><li><b>Request</b>: returning, asked for a stylist.</li><li><b>Salon</b>: returning, no request.</li><li><b>Rebooked</b>: booked the next visit with the same stylist on the day.</li><li><b>Ledger</b>: the grey figure is a total typed by the team, with no names behind it, so it stays plain.</li></ul></details>'
       + '<div class="ct-h"><button type="button" class="sc-btn sxcm" data-sxcm="svcCT">Sort and filter</button>' + rex('svcExportCT') + '</div>'
       + '<div class="tw"><table id="ctT"></table></div>' + pagerHtml('svcCT', CTT ? CTT.shown : 10) + '</details>';
     if (!CTT) {

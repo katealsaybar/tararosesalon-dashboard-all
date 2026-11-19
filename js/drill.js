@@ -368,7 +368,8 @@
   })();
 
   document.addEventListener('click', e => {
-    const n = e.target.closest && e.target.closest('[data-dn]');
+    const tg = (e.composedPath && e.composedPath()[0]) || e.target;   // a figure drawn inside a shadow root is the event's real target, the document only sees the host
+    const n = tg.closest && tg.closest('[data-dn]');
     if (!n) return;
     e.stopPropagation(); e.preventDefault();
     const sp = lookup(n.dataset.dn);
@@ -376,7 +377,8 @@
   }, true);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && box) { if (pop) { closePop(); return; } if (spec && spec.panel && under.length) { goBack(); return; } close(); return; }
-    const n = e.target.closest && e.target.closest('[data-dn]');
+    const tg = (e.composedPath && e.composedPath()[0]) || e.target;
+    const n = tg.closest && tg.closest('[data-dn]');
     if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); const sp = lookup(n.dataset.dn); if (sp) open(sp, n); }
   });
 

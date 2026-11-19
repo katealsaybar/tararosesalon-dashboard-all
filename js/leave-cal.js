@@ -95,7 +95,7 @@ function lvcMissing(host, msg) { host.innerHTML = '<p style="padding:24px 28px;c
 async function renderLeaveCal() {
   const host = document.getElementById('leaveCalContent');
   if (!host) return;
-  if (LVC && LVC.host === host) { lvcPaintTheme(); lvcSetTb(); return; }
+  if (LVC && LVC.host === host) { lvcPaintTheme(); lvcSetTb(); if (LVC.refresh) LVC.refresh(); return; }
   host.innerHTML = '<p style="padding:24px 28px;color:var(--muted)">Loading…</p>';
   var HOLD = [["2026-01-01", "2026-01-01"], ["2026-03-20", "2026-03-22"], ["2026-05-26", "2026-05-26"], ["2026-05-27", "2026-05-29"], ["2026-06-16", "2026-06-16"], ["2026-08-25", "2026-08-25"], ["2026-12-02", "2026-12-03"]], dates = [];
     HOLD.forEach(function (r) { var a = new Date(r[0] + 'T00:00:00Z').getTime(), b = new Date(r[1] + 'T00:00:00Z').getTime(); for (var t = a; t <= b; t += 864e5) dates.push(new Date(t).toISOString().slice(0, 10)); });
@@ -189,10 +189,8 @@ async function renderLeaveCal() {
       chipRow(BRN.map(function(b){return {v:b[0],label:b[1],on:!brAll()&&S.br.indexOf(b[0])>=0}}));
     var yHtml=chipRow([2026,2027].map(function(y){return {v:'y'+y,label:String(y),on:S.y===y}}));
     var vHtml='<span class="gseg">'+VIEWS.map(function(v){return '<button type="button" class="gchip" aria-pressed="'+(S.view===v[0])+'" data-v="v:'+v[0]+'">'+v[1]+'</button>'}).join('')+'</span>';
-    var html='<div class="f-row"><span class="f-lbl">Branch</span><div class="chipset">'+bHtml+'</div></div>'+
-      '<div class="f-row"><span class="f-lbl">Staff</span><div class="chipset">'+chipRow([{v:'r0',label:'Present staff',on:!S.res},{v:'r1',label:'Include resigned staff',on:S.res}])+'</div></div>'+
+    var html='<div class="f-row"><span class="f-lbl">Staff</span><div class="chipset">'+chipRow([{v:'r0',label:'Present staff',on:!S.res},{v:'r1',label:'Include resigned staff',on:S.res}])+'</div></div>'+
       '<div class="f-row"><span class="f-lbl">Department</span><div class="chipset">'+'<span class="gseg"><button type="button" class="gchip" aria-pressed="'+(!S.dep.length)+'" data-v="d:all">All departments</button></span><span class="sep">&middot;</span>'+chipRow(DEPS.map(function(d){return {v:'d:'+d[0],label:d[1],on:S.dep.indexOf(d[0])>=0}}))+'</div></div>'+
-      '<div class="f-row"><span class="f-lbl">Year</span><div class="chipset">'+yHtml+'</div></div>'+
       '<div class="f-row"><span class="f-lbl">View</span><div class="chipset">'+vHtml+'</div></div>';
     LVD.getElementById('filters').innerHTML=html;
     LVD.getElementById('fSheetBody').innerHTML='<div class="filters">'+html+'</div>';
@@ -936,6 +934,19 @@ async function renderLeaveCal() {
   };
   
   buildFilters();
+  /* Branch and Year come from the dashboard's own sticky header (sel.branch and the year of the Period), like Service Calendar and Retention. This page keeps only Staff, Department and View. */
+  var SHK='';
+  function shellKey(){return ((typeof sel!=='undefined'&&sel.branch)?sel.branch.join(','):'')+'|'+((typeof dateTo!=='undefined'&&dateTo)?dateToIso(dateTo):'')}
+  function syncShell(){
+    SHK=shellKey();
+    var codes=(typeof sel!=='undefined'&&sel.branch&&sel.branch.indexOf('all')<0)?sel.branch.filter(function(c){return BRN.some(function(b){return b[0]===c})}):[];
+    S.br=codes.length?codes:BRN.map(function(b){return b[0]});
+    var y=(typeof dateTo!=='undefined'&&dateTo)?+dateToIso(dateTo).slice(0,4):S.y;
+    y=Math.min(2027,Math.max(2026,y));
+    if(y!==S.y){S.y=y;if(S.sel.slice(0,4)!==String(S.y))S.sel=S.y+'-01-01'}
+  }
+  LVC.refresh=function(){if(shellKey()===SHK)return;syncShell();draw()};
+  syncShell();
   drawWhy();
   [].forEach.call(LVD.querySelectorAll('details.lcdet'),function(d){d.addEventListener('toggle',function(){fitSticky()})});
   draw();
