@@ -156,6 +156,30 @@ const SVC_CSS2 = `
 .railmain > .ab{margin-top:32px}
 .why-wall{margin:14px 0 0}
 .ct{margin:0}
+
+/* Month view (Kate, 19 Nov 2026): one cell a day, solid tint for busy, today ringed. */
+.mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.mh{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2);font-weight:700;padding:0 4px}
+.mc{position:relative;min-height:96px;display:flex;flex-direction:column;gap:2px;min-width:0;border:1px solid var(--border);border-radius:12px;padding:8px 10px;background:color-mix(in srgb,var(--accent) var(--t,0%),var(--surface));transition:transform .12s ease,box-shadow .12s ease}
+.mc.out{border:0;background:none;min-height:0}
+.mc.today{box-shadow:0 0 0 2px var(--text)}
+@media(hover:hover){.mc:not(.out):hover{transform:translateY(-2px);box-shadow:0 0 0 1px var(--accent),0 6px 16px rgba(0,0,0,.22)}.mc.today:hover{box-shadow:0 0 0 2px var(--text),0 6px 16px rgba(0,0,0,.22)}}
+@media(prefers-reduced-motion:reduce){.mc{transition:none}.mc:not(.out):hover{transform:none}}
+.md{align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;min-width:28px;min-height:28px;text-align:left}
+.md:hover{text-decoration:underline}
+.mf{font-family:'Playfair Display',Georgia,serif;font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums;position:relative;z-index:1}
+.mu{font-family:'Inter',system-ui,sans-serif;font-size:12.5px;color:var(--muted)}
+.ms{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.mz{color:var(--muted2)}
+@media (max-width:760px){
+  .mgrid{gap:4px}
+  .mh{font-size:13px;padding:0 2px;letter-spacing:.04em}
+  .mc{min-height:68px;padding:4px 5px;border-radius:8px}
+  .md::after{content:"";position:absolute;inset:0}
+  .md{font-size:13px}
+  .mf{font-size:17px}
+  .mu,.ms{display:none}
+}
 `;
 /* The shell's own stylesheets for the shared pieces (the Sheets table, the Why wall), copied into the shadow root: a shadow root does not see the page's CSS. */
 function svcSharedCss() {
@@ -251,7 +275,7 @@ async function renderServiceCal() {
   function zone(){ return isBah() ? 'Asia/Bahrain' : 'Asia/Dubai'; }
   var CATS = {colour:'Colour', cut:'Cut and style', treat:'Treatments', nails:'Nails', beauty:'Beauty', other:'Other'};
   var STATES = {PAID:['paid','Done'], CHECKED_IN:['in','In the chair'], BOOKED:['booked','Booked']};
-  var VIEWS = [['day','Day'], ['week','Week'], ['list','List']];
+  var VIEWS = [['day','Day'], ['week','Week'], ['month','Month'], ['list','List']];
   var DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   function cat(s){
@@ -272,6 +296,12 @@ async function renderServiceCal() {
   function addDays(d, n){ var t = dt(d); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0,10); }
   function dlabel(d){ return dfull(d); }   // always DD MMM YYYY, no weekday in front and never without the year (Kate, 17 Nov 2026)
   function weekStart(d){ var w = (dt(d).getUTCDay() + 6) % 7; return addDays(d, -w); }   // Monday
+  var MONFULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function monthStart(d){ return d.slice(0, 8) + '01'; }
+  function monthEnd(d){ var t = dt(d); t.setUTCDate(1); t.setUTCMonth(t.getUTCMonth() + 1); t.setUTCDate(0); return t.toISOString().slice(0, 10); }
+  function addMonths(d, n){ var t = dt(monthStart(d)); t.setUTCMonth(t.getUTCMonth() + n); return t.toISOString().slice(0, 10); }
+  function monthName(d){ return MONFULL[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4); }
+  function rangeView(){ return S.view === 'list' || S.view === 'month'; }   // the views that look at the whole range of days, not one day or one stylist
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   /* The site's soft pill menu (assets/pill-select.js) does not reach into a shadow root: give this root its CSS once and enhance the selects drawn here (Kate, 18 Nov 2026, "dropdown is not brand aligned"). */
   function pillIn(el){
@@ -318,6 +348,7 @@ async function renderServiceCal() {
   }
   function apply(){
     if (S.pendRange) { S.from = S.pendRange[0]; S.to = S.pendRange[1]; return; }   // a figure in Client types opens the List for the day or days it counted, not the whole Period
+    if (S.view === 'month') { S.from = monthStart(S.day); S.to = monthEnd(S.day); return; }   // Month: the whole calendar month the day sits in, whatever the Period
     if (S.view === 'day' || R.from === R.to) S.from = S.to = S.day; else { S.from = R.from; S.to = R.to; }
   }
   function dfull(d){ var t = dt(d); return String(t.getUTCDate()).padStart(2, '0') + ' ' + MON[t.getUTCMonth()] + ' ' + t.getUTCFullYear(); }
@@ -448,14 +479,17 @@ async function renderServiceCal() {
     var h = '<span class="vl">View</span><span class="gseg">' + VIEWS.map(function (v) { return '<button type="button" class="gchip" aria-pressed="' + (S.view === v[0]) + '" data-v="v:' + v[0] + '">' + v[1] + '</button>'; }).join('') + '</span>';
     if (S.view === 'day') {
       h += '<span class="dstep">' + (R.to > R.from ? '<button class="navbtn" type="button" data-dstep="-1" aria-label="Previous day"' + (S.day <= R.from ? ' disabled' : '') + '>‹</button>' : '') + '<b>' + dfull(S.day) + ' · ' + esc(brLabel()) + '</b>' + (R.to > R.from ? '<button class="navbtn" type="button" data-dstep="1" aria-label="Next day"' + (S.day >= R.to ? ' disabled' : '') + '>›</button>' : '') + '</span>';
+    } else if (S.view === 'month') {
+      h += '<span class="dstep"><button class="navbtn" type="button" data-mstep="-1" aria-label="Previous month">‹</button><b>' + monthName(S.day) + ' · ' + esc(brLabel()) + '</b><button class="navbtn" type="button" data-mstep="1" aria-label="Next month"' + (addMonths(S.day, 1) > TODAY ? ' disabled' : '') + '>›</button></span>';
     } else h += '<span class="dstep"><b>' + (single() ? dfull(S.from) : dfull(S.from) + ' to ' + dfull(S.to)) + ' · ' + esc(brLabel()) + '</b></span>';
-    if (S.note) h += '<span class="vnote">' + esc(S.note) + '</span>';
+    if (S.note && S.view !== 'month') h += '<span class="vnote">' + esc(S.note) + '</span>';
     el.innerHTML = h;
   }
   function onViewBar(e){
-    var b = e.target.closest('.gchip, [data-dstep]'); if (!b) return;
+    var b = e.target.closest('.gchip, [data-dstep], [data-mstep]'); if (!b) return;
     S.showAll = false; S.mi = 0;
-    if (b.dataset.dstep) { S.day = addDays(S.day, +b.dataset.dstep); if (S.day < R.from) S.day = R.from; if (S.day > R.to) S.day = R.to; }
+    if (b.dataset.mstep) { S.day = addMonths(S.day, +b.dataset.mstep); if (monthStart(S.day) === monthStart(TODAY)) S.day = TODAY; }
+    else if (b.dataset.dstep) { S.day = addDays(S.day, +b.dataset.dstep); if (S.day < R.from) S.day = R.from; if (S.day > R.to) S.day = R.to; }
     else { var v = b.getAttribute('data-v'); if (!v || v.slice(0, 2) !== 'v:') return; S.view = v.slice(2); }
     S.staff = null;
     apply(); load();
@@ -566,7 +600,7 @@ async function renderServiceCal() {
       var dws = vis.length ? winDays('Days worked, ' + nm, sub, vis) : null;
       h = tile('Services', vis.length, esc(nm), vis.length ? winServices('Services, ' + nm, sub, vis) : null) + tile('Days worked', Object.keys(dd).length, 'of ' + ds.length, dws)
         + tile('Chair time', dur(chair), 'booked, overlaps counted once', dws) + tile('Busiest day', per && per[1] ? dlabel(per[0]) : '-', per && per[1] ? per[1] + ' services' : '', per && per[1] ? winServices('Busiest day, ' + dfull(per[0]), nm, vis.filter(function (r) { return r.d === per[0]; })) : null) + otTile();
-    } else if (S.view === 'list') {
+    } else if (rangeView()) {
       var all = rangeRows().filter(visible), st = {}; all.forEach(function (r) { st[r.sk] = 1; });
       var done = all.filter(function (r) { return r.state === 'PAID'; }), todo = all.filter(function (r) { return r.state !== 'PAID'; });
       h = tile('Services', all.length, single() ? dlabel(S.from) : dlabel(S.from) + ' to ' + dlabel(S.to), all.length ? winServices('Services', sub, all) : null) + tile('Stylists', nStaff(all.filter(function (r) { return !beautician(r.sk); })), 'hair, with at least one service', all.some(function (r) { return !beautician(r.sk); }) ? winStylists('Stylists', sub, all.filter(function (r) { return !beautician(r.sk); })) : null)
@@ -583,9 +617,29 @@ async function renderServiceCal() {
     LVD.getElementById('cards').innerHTML = h;
   }
 
+  /* ---- Month (Kate, 19 Nov 2026: "dagdagan mo ng Month, sa tabi ng week"): a calendar of the month, one cell a day. Branch comes from the header; the month is the one the day sits in, stepped with the arrows. A date opens that day, the figure opens its services; darker is busier (solid tint, no stripes). */
+  function renderMonth(){
+    var el = LVD.getElementById('calMain'); if (!el) return;
+    var rows = rangeRows().filter(visible), by = {}, max = 0;
+    rows.forEach(function (r) { (by[r.d] = by[r.d] || []).push(r); });
+    Object.keys(by).forEach(function (d) { if (by[d].length > max) max = by[d].length; });
+    if (!rows.length) { el.innerHTML = '<div class="empty">Nothing booked here for ' + monthName(S.day) + '.</div>'; return; }
+    var m0 = monthStart(S.day), m1 = monthEnd(S.day), g0 = weekStart(m0), g1 = addDays(weekStart(m1), 6), sub = scopeText();
+    var head = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(function (n) { return '<div class="mh">' + n + '</div>'; }).join('');
+    var cells = '';
+    for (var d = g0; d <= g1; d = addDays(d, 1)) {
+      if (d < m0 || d > m1) { cells += '<div class="mc out" aria-hidden="true"></div>'; continue; }
+      var rs = by[d] || [], n = rs.length, tint = n ? Math.round(6 + 24 * n / max) : 0;
+      var tip = n ? dfull(d) + ': ' + n + ' service' + (n === 1 ? '' : 's') + ', ' + nStaff(rs) + ' staff, ' + dur(chairOf(rs)) + ' in the chair.' : dfull(d) + ': nothing booked.';
+      var fig = n ? (typeof TRSD !== 'undefined' ? TRSD.num(n + '<span class="mu"> services</span>', winServices(dfull(d), sub, rs)) : n + '<span class="mu"> services</span>') : '<span class="mz">-</span>';
+      cells += '<div class="mc' + (d === TODAY ? ' today' : '') + '" style="--t:' + tint + '%" title="' + esc(tip) + '"><button type="button" class="md" data-day="' + d + '" aria-label="Open ' + dfull(d) + '">' + (+d.slice(8)) + '</button><div class="mf">' + fig + '</div>' + (n ? '<div class="ms">' + nStaff(rs) + ' staff · ' + dur(chairOf(rs)) + '</div>' : '') + '</div>';
+    }
+    el.innerHTML = '<div class="mgrid">' + head + cells + '</div><p class="ov-note">Darker days are busier. Click a date to open that day, or the figure to see its services.' + (S.view === 'month' && m1 > TODAY ? ' Days still to come show what is booked so far.' : '') + '</p>';
+  }
+
   /* ---- Overview, the busiest times (Kate, 19 Nov 2026): standing bars for every half hour, drawn from the same rows as the tiles, so Branch, Period, the stylist and the group and status chips all apply. One day shows the services at once; a longer period shows the average over the days that had bookings. */
   var OV = null, OVSTEP = 30;
-  function ovRows(){ return (S.view === 'week' ? weekRows() : S.view === 'list' ? rangeRows() : dayRows()).filter(visible); }
+  function ovRows(){ return (S.view === 'week' ? weekRows() : rangeView() ? rangeRows() : dayRows()).filter(visible); }
   function ovBuild(rows){
     var byDay = {}; rows.forEach(function (r) { (byDay[r.d] = byDay[r.d] || []).push(r); });
     var dk = Object.keys(byDay).sort(), slots = [], max = 0;
@@ -740,7 +794,7 @@ async function renderServiceCal() {
   }
   function renderSH(){
     var box = LVD.getElementById('shBox'); if (!box) return;
-    var lines = (!W || S.view === 'list') ? [] : otLines();
+    var lines = (!W || rangeView()) ? [] : otLines();
     if (!lines.length) { box.innerHTML = ''; return; }
     SHLINES = lines;
     var nLate = lines.filter(function (l) { return l.o.late > 0; }), tot = nLate.reduce(function (t, l) { return t + l.o.late; }, 0), day = S.view === 'day';
@@ -794,7 +848,7 @@ async function renderServiceCal() {
   function hrs(h){ return dur(Math.round(h * 60)); }   // 9 -> 9h, 7.95 -> 7h 57m
   function otLines(){
     var lines = [];
-    if (!W || S.view === 'list') return lines;
+    if (!W || rangeView()) return lines;
     if (S.view === 'day') {
       var dr = dayRows();
       dayStaff().forEach(function (sk) { var sh = shiftOf(sk, S.from); if (sh && sh.k === 'WORKING') { var mine = dr.filter(function (r) { return r.sk === sk; }); lines.push({label:stLabel(sk), sh:sh, o:otOf(sh, mine), rows:mine, chair:chairDone(mine), u:utOf(sk, S.from), mk:mkOf(sk, S.from)}); } });
@@ -820,7 +874,7 @@ async function renderServiceCal() {
   }
   function renderCT(){
     var box = LVD.getElementById('ctBox'); if (!box) return;
-    if (!W || S.view === 'list') { box.innerHTML = ''; return; }
+    if (!W || rangeView()) { box.innerHTML = ''; return; }
     var lines = [], tot;
     if (S.view === 'day') {
       var dr = dayRows();
@@ -1005,7 +1059,7 @@ async function renderServiceCal() {
     if (S.view === 'week') {
       var vw = weekRows().filter(visible), dd = {}; vw.forEach(function (r) { dd[r.d] = 1; });
       t = S.staff ? stName(S.staff) + ' did ' + vw.length + ' service' + (vw.length === 1 ? '' : 's') + ' over ' + Object.keys(dd).length + ' day' + (Object.keys(dd).length === 1 ? '' : 's') + ', ' + dfull(days()[0]) + ' to ' + dfull(days()[days().length - 1]) + '.' : 'No services in this week.';
-    } else if (S.view === 'list') {
+    } else if (rangeView()) {
       var va = rangeRows().filter(visible), ss = {}; va.forEach(function (r) { ss[r.sk] = 1; });
       t = va.length ? va.length + ' services by ' + nStaff(va.filter(function (r) { return !beautician(r.sk); })) + ' stylists and ' + nStaff(va.filter(function (r) { return beautician(r.sk); })) + ' beauticians, ' + scopeText() + '.' : 'Nothing booked for ' + scopeText() + '.';
     } else {
@@ -1022,7 +1076,7 @@ async function renderServiceCal() {
   /* ---- About this page: one button, one short card (component 36) */
   var ABOUT = [
     ['How to read it', 'A full block is done and paid. A block with a dot is the client in the chair now. A paler block is booked and still to come.', 'Tap a block for the detail, or a stylist’s name for her week.'],
-    ['Branch and Period', 'Both come from the filters at the top of the page. One day shows the Day view, longer shows the Week or List.', 'Up to 4 weeks at a time.'],
+    ['Branch and Period', 'Both come from the filters at the top of the page. One day shows the Day view, Week follows one stylist, Month draws the whole calendar month, and List shows every service.', 'Up to 4 weeks at a time.'],
     ['Where the times come from', 'Times come from Phorest and refresh once a day.', 'Today shows bookings as at the last update. Cancelled and no-show bookings are not shown.'],
     ['The groups', 'Colour, Cut and style, Treatments, Nails and Beauty are read from the service name.', 'A few odd names may sit in the wrong group.']
   ];
@@ -1057,7 +1111,7 @@ async function renderServiceCal() {
     renderTiles();
     renderOverview();
     renderAns();
-    if (S.view === 'list') renderList(); else renderGrid(S.view === 'week' ? weekCols() : dayCols());
+    if (S.view === 'list') renderList(); else if (S.view === 'month') renderMonth(); else renderGrid(S.view === 'week' ? weekCols() : dayCols());
     renderCT();
     renderSH();
     renderAbout();
