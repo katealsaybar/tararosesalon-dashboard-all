@@ -500,6 +500,8 @@ body.toolspend-chrome #mastBranch{display:none}
 /* "Dikit dikit na masyado" (Kate, 22 Oct 2026): with Email, Opt-out and First visit the fixed-width table was too tight. It is the Lost Clients
    blast list's table now (lost-lists.css .ll-wrap: a scroll box, columns size themselves, headings stay at the top), and Client and Visits are
    frozen at the left while the rest scrolls. Wide screens also get a wider page (the masthead follows, so they stay in line). */
+/* Service Calendar (Kate, 19 Nov 2026: "sikip tingnan nung calendar"): the day grid has a column for every stylist, so the page and the masthead above it use the width of the screen instead of the usual 1180px. */
+@media(min-width:1240px){body.svc-chrome .wrap,body.svc-chrome .topbar-in{max-width:1760px}}
 @media(min-width:1240px){body.lastvisit-chrome .wrap,body.lastvisit-chrome .topbar-in{max-width:1480px}body.lastvisit-chrome #lostClientsContent{max-width:1400px!important}}
 body.lastvisit-chrome .lc-wrap.ll-wrap th[class*="lc-c-"]{width:auto}
 body.lastvisit-chrome .lc-wrap.ll-wrap th:first-child,body.lastvisit-chrome .lc-wrap.ll-wrap td:first-child:not([colspan]){width:170px;min-width:170px;max-width:170px}
@@ -3696,7 +3698,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Leave & Holiday Calendar (17 Nov 2026): one file, and the spreadsheet export its XLSX and CSV buttons use.
       lvc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/leave-cal.js?v=324f85ea'],
       // Service Calendar (17 Nov 2026): one file; the client name opens the Client Book card, read from client_book_card(). 19 Nov 2026: its tables use the Sheets table and the XLSX and CSV buttons.
-      svc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/service-cal.js?v=0115b74a'],
+      svc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/service-cal.js?v=cf10877a'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'js/active-deals.js?v=126d9fbd'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -5644,6 +5646,7 @@ function showView(view, el){
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'complaintchats' || view === 'complaintsdetail' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
+  document.body.classList.toggle('svc-chrome', view === 'servicecal');
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintsdetail' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');
