@@ -177,10 +177,10 @@ async function renderServiceCal() {
     '<div class="cards" id="cards"></div>' +
     '<div class="vbar" id="vbar"></div>' +
     '<div class="tools"><span id="staffPick" hidden></span><span class="upd" id="upd"></span></div>' +
-    '<div class="tools" style="margin-top:0"><div class="legend" id="legend"></div></div>' +
-    '<div class="tools" style="margin-top:0"><div class="legend" id="stlegend"></div><span style="font-size:13px;color:var(--muted)"><span class="star">★</span> client asked for this stylist</span></div>' +
     '<div id="ctBox"></div><div id="shBox"></div>' +
     '<h2 class="sec-h" id="sec-cal" data-sec-target>The calendar</h2>' +
+    '<div class="tools" style="margin-top:0"><div class="legend" id="legend"></div></div>' +
+    '<div class="tools" style="margin-top:0"><div class="legend" id="stlegend"></div><span style="font-size:13px;color:var(--muted)"><span class="star">★</span> client asked for this stylist</span></div>' +
     '<div id="calMain"></div>' +
     '<section class="ab" id="about" data-sec-target><h2>About this page</h2><div class="ab-pick" id="abPick"></div><div class="ab-card" id="abCard"></div></section></div></div></div>' +
     '';
