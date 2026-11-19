@@ -3617,7 +3617,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/social-calendar.css?v=00f39fec">
 <link rel="stylesheet" href="css/campaign-blasts.css?v=6788beac">
 <link rel="stylesheet" href="css/landing-review.css?v=ed697634">
-<link rel="stylesheet" href="css/recruitment.css?v=cf6cb883">
+<link rel="stylesheet" href="css/recruitment.css?v=bfa76515">
 <link rel="stylesheet" href="css/nov-blasts.css?v=ed44f731">
 <link rel="stylesheet" href="css/active-deals.css?v=f6158902">
 <link rel="stylesheet" href="css/discounts-vouchers.css?v=ef15eb90">
@@ -3686,7 +3686,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cbl: ['js/campaign-blasts.js?v=2305e991'],
       // Landing Page Review (9 Nov 2026): one file, only that page needs it.
       lpr: ['js/landing-review.js?v=9ab8b1f6'],
-      rct: ['js/report-export.js?v=d7b73ae8', 'js/recruitment.js?v=0599110a'],
+      rct: ['js/report-export.js?v=d7b73ae8', 'js/recruitment.js?v=7c56d471'],
       // November Blasts (2 Nov 2026): one file, only that page needs it. 5 Nov 2026: plus the spreadsheet export, the Results send log saves as XLSX and CSV.
       nvb: [LGX, 'js/nov-blasts.js?v=45f539be'],
       // Stripe vs Phorest (9 Nov 2026): one file, reads stripe_vs_phorest(); the header's Branch and Period drive it.
@@ -5647,6 +5647,7 @@ function showView(view, el){
   document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'complaintchats' || view === 'complaintsdetail' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('svc-chrome', view === 'servicecal');
+  if (view !== 'recruitment') document.body.classList.remove('rct-wide');   // Recruitment's Pipeline layout widens the shell; every other page keeps the usual column
   document.body.classList.toggle('complaints-chrome', view === 'complaints' || view === 'complaintsdetail' || view === 'complaintlog');   // Client Complaints follows the masthead's Branch and Period chips (Kate, 22 Oct 2026); it opens on All time
   document.body.classList.toggle('upd-quiet', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts');
   document.body.classList.toggle('googleads-chrome', view === 'googleads');

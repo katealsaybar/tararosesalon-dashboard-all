@@ -404,6 +404,7 @@
     var el = main(); if (!el) return;
     ddClose();
     saveView(); urlSync();
+    document.body.classList.toggle('rct-wide', S.mode === 'pipe');   // lifts the shell's 1180px cap to 1760px from 1240px up (css/recruitment.css); index.html showView takes it off again on any other page
     el.style.maxWidth = S.mode === 'pipe' ? '1760px' : '1100px';   // the Pipeline board needs the width of the screen; Grid and List keep their column
     var h = '<div class="rct">';
     h += '<h2>Recruitment</h2><p class="rct-lead">Who is worth Emma’s time today, and who is still waiting for an answer.</p>';

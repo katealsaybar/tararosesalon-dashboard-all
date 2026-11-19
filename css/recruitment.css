@@ -485,3 +485,9 @@ body:has(.rct-bulk) #rctToast{bottom:96px}
 }
 @media (max-width:760px){.rct-plcard .rct-asg,.rct-plcard .rct-asgx{font-size:13px}}
 .rct-plstages button{flex:0 0 auto}
+/* Pipeline uses the width of the screen (Kate, 19 Nov 2026): the shell holds the page and its masthead to 1180px, so six columns were squeezed to 165px. Same lift as body.svc-chrome. */
+@media(min-width:1240px){body.rct-wide .wrap,body.rct-wide .topbar-in{max-width:1760px}}
+.rct-plname{overflow-wrap:break-word}
+.rct-plact .rct-sc-pair{grid-template-columns:minmax(0,1fr)}
+@media(min-width:1700px){body.rct-wide .rct-plact .rct-sc-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media(max-width:1440px){.rct-plact .rct-sc-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
