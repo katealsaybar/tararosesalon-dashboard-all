@@ -1,5 +1,7 @@
 -- Database Blasts, November, Results: Blast 2 bookings (Kate, 17 Nov 2026: "build na sa dashboard yung section 5").
--- WRITTEN ONLY. NOT APPLIED. Needs Kate's explicit word before it runs (no database writes without it).
+-- APPLIED 19 Nov 2026 on gvijxenafoowajqktqvd with Kate's word ("a, i-apply mo na"), as two migrations: this one, then nov_results_blast2_money_no_double_rc2.
+-- FOLLOW-UP FIX (applied right after): 4 clients had R_C2 as their FIRST message, so nov_client_facts already carried an R_C2 row and the union doubled it.
+--   The first select now has `having blast_id is null or blast_id not like 'R\_%'`, so R_ ids come only from the second select. The statement is included below.
 -- WHY: section 5 "By blast" now shows Blast 1 and its reminder side by side. nov_results_core already returns one row per blast_id for every sent message, so the reminders
 --      (R_A, R_B, R_E3, R_C1, R_D1, R_C2) arrive with sent, read, delivered, failed, stop and replied. What they do NOT carry is `money` (booked or came in, paid), because
 --      `money` is built from nov_client_facts, which holds one row per client under the blast of her FIRST message. So the reminder cards cannot show bookings.
@@ -30,4 +32,16 @@ begin
     || E'    from (select distinct blast_id, client_key from s where blast_id like ''R\\_%'') rj join public.nov_client_facts f on f.client_key = rj.client_key\n'
     || E'    group by rj.blast_id),');
   execute d;
+end $do$;
+
+-- Follow-up (applied 19 Nov 2026): stop the R_C2 row appearing twice.
+do $do$
+declare d text; a text := E'group by rollup (blast_id)
+    union all'; b text;
+begin
+  d := pg_get_functiondef('public.nov_results_core()'::regprocedure);
+  if position(a in d) = 0 then raise exception 'pattern not found'; end if;
+  b := E'group by rollup (blast_id) having blast_id is null or blast_id not like ''R\_%''
+    union all';
+  execute replace(d, a, b);
 end $do$;
