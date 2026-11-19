@@ -352,11 +352,49 @@
     return '<button type="button" class="rct-fig ' + (cls || '') + (on ? ' rct-sel' : '') + '" data-fig="' + key + '" aria-pressed="' + on + '"><span class="rct-n">' + n + '</span><span class="rct-l">' + label + (sub ? '<small class="rct-since">' + sub + '</small>' : '') + '</span></button>';
   }
 
+
+  // Kate, 19 Nov 2026 ("may applicant ba tayo Sepora ang name... ang hirap pala nung exact match"): Find someone now also shows close spellings, not only exact text.
+  // Names reach us spelled many ways (Sepora, Zipporah, Seporah), so each word typed is also matched by how it SOUNDS (ph = f, z = s, c = k, e = i, o = u, silent h, double letters)
+  // and by one or two letters off. Exact matches are always kept; close ones are added and named in a line above the results so nobody is surprised.
+  function fold(s) { s = String(s == null ? '' : s).toLowerCase(); try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) { /* old browser */ } return s; }
+  function sound(w) {
+    return fold(w).replace(/[^a-z0-9]/g, '').replace(/ph/g, 'f').replace(/ck/g, 'k').replace(/c([ei])/g, 's$1').replace(/[cq]/g, 'k').replace(/x/g, 'ks').replace(/z/g, 's')
+      .replace(/[yj]/g, 'i').replace(/h$/, '').replace(/([aeiou])h/g, '$1').replace(/e/g, 'i').replace(/o/g, 'u').replace(/(.)\1+/g, '$1');
+  }
+  function editDist(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    var prev = [], i, j; for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      var cur = [i], lo = i; for (j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1)); if (cur[j] < lo) lo = cur[j]; }
+      if (lo > max) return max + 1; prev = cur;
+    }
+    return prev[b.length];
+  }
+  function nameWords(p) { return fold([p.name, String(p.email || '').split('@')[0]].join(' ')).split(/[^a-z0-9]+/).filter(Boolean); }
+  // 0 = no match, 1 = exact (the old rule), 2 = close spelling
+  function findHit(p, t) {
+    if (!t) return 1;
+    if ([p.name, p.email, p.whatsapp, p.country, p.emirate].join(' ').toLowerCase().indexOf(t) >= 0) return 1;
+    var words = fold(t).split(/[^a-z0-9]+/).filter(Boolean); if (!words.length) return 0;
+    var nk = p.id + '|' + p.name + '|' + p.email, hw = NWC[nk] || (NWC[nk] = nameWords(p).map(function (w) { return [w, sound(w)]; })), exact = fold([p.name, p.email, p.whatsapp, p.country, p.emirate].join(' '));
+    var allSnd = hw.map(function (x) { return x[1]; }).join('');
+    return words.every(function (w) {
+      if (exact.indexOf(w) >= 0) return true;
+      if (w.length < 4 || /\d/.test(w)) return false;
+      var sw = sound(w), max = sw.length >= 7 ? 2 : 1;
+      if (sw.length >= 4 && allSnd.indexOf(sw) >= 0) return true;
+      return hw.some(function (x) { return x[1] === sw || (sw.length >= 4 && x[1].indexOf(sw) === 0) || editDist(sw, x[1], max) <= max; });
+    }) ? 2 : 0;
+  }
+  var closeNames = [], NWC = {};
+  function nearLine() { return closeNames.length ? 'Also showing close spellings: ' + closeNames.slice(0, 6).map(esc).join(', ') + (closeNames.length > 6 ? ' and ' + (closeNames.length - 6) + ' more' : '') + '.' : ''; }
+
   function found() {
-    var t = q.trim().toLowerCase();
-    return rows.filter(function (p) {
-      return [p.name, p.email, p.whatsapp, p.country, p.emirate].join(' ').toLowerCase().indexOf(t) >= 0;
-    }).sort(function (a, c) { return new Date(c.applied_at) - new Date(a.applied_at); });
+    var t = q.trim().toLowerCase(), hit = {};
+    var out = rows.filter(function (p) { hit[p.id] = findHit(p, t); return hit[p.id] > 0; })
+      .sort(function (a, c) { return (hit[a.id] - hit[c.id]) || (new Date(c.applied_at) - new Date(a.applied_at)); });
+    closeNames = out.filter(function (p) { return hit[p.id] === 2; }).map(function (p) { return p.name; });
+    return out;
   }
 
   // Kate, 11 Nov 2026: the Look panel is as wide as the visible table so it stays put when the table is scrolled right (see .rct-dtlin in the css)
@@ -408,7 +446,7 @@
     }
     if (q.trim().length >= 2) {
       var f = found();
-      h += '<section class="rct-sec"><div class="rct-sech"><h2>Found<span class="rct-cnt">' + f.length + '</span></h2></div>' +
+      h += '<section class="rct-sec"><div class="rct-sech"><h2>Found<span class="rct-cnt">' + f.length + '</span></h2></div>' + (closeNames.length ? '<p class="rct-hint">' + nearLine() + '</p>' : '') +
         (f.length ? '<div class="rct-card rct-list">' + f.slice(0, 40).map(row).join('') + (f.length > 40 ? '<p class="rct-hint">Showing the first 40. Type more to narrow it.</p>' : '') + '</div>' : '<div class="rct-empty">Nobody matches that.</div>') + '</section>';
       el.innerHTML = h + '</div>'; return;
     }
@@ -706,10 +744,11 @@
   function urlSync() { try { if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'recruitment') trSyncUrl(null); } catch (e) { /* fine without it */ } }
 
   function listRows(ignoreCol) {
-    var t = q.trim().toLowerCase();
+    var t = q.trim().toLowerCase(), near = [];
+    if (!ignoreCol) closeNames = near;
     return rows.filter(function (p) {
       if (!laneOk(p)) return false;
-      if (t.length >= 2 && [p.name, p.email, p.whatsapp, p.country, p.emirate].join(' ').toLowerCase().indexOf(t) < 0) return false;
+      if (t.length >= 2) { var h = findHit(p, t); if (!h) return false; if (h === 2 && !ignoreCol) near.push(p.name); }
       for (var k in S.filters) { if (k === ignoreCol) continue; var set = S.filters[k]; if (set && !set[colBy(k).val(p)]) return false; }
       return true;
     });
@@ -782,7 +821,7 @@
     var all = rows.filter(laneOk), list = sortedRows(listRows()), doneN = rows.filter(function (p) { return !p.is_test && bucket(p) === 'done'; }).length;
     var h = '<div class="rct-tcount">Showing ' + list.length + ' of ' + all.length +
       (S.lane ? '' : (S.showDone ? '. Not now people are included. <button type="button" class="rct-linkbtn" data-act="toggledone">Hide them</button>' : '. Not now people (' + doneN + ') are hidden. <button type="button" class="rct-linkbtn" data-act="toggledone">Show them</button>')) +
-      '. Click a value to filter by it, or use the funnel on a column.' + (Object.keys(S.filters).length ? ' <button type="button" class="rct-linkbtn" data-act="clearfilters">Clear all filters</button>' : '') + '</div>';
+      '. ' + (closeNames.length ? nearLine() + ' ' : '') + 'Click a value to filter by it, or use the funnel on a column.' + (Object.keys(S.filters).length ? ' <button type="button" class="rct-linkbtn" data-act="clearfilters">Clear all filters</button>' : '') + '</div>';
     h += '<div class="rct-tbox" id="rctTbox"><table class="rct-table"><thead><tr>';
     COLS.forEach(function (c) {
       if (c.k === 'av') return;   // Kate, 16 Nov 2026: the photo has no title of its own, the Name title spans the photo and the name and sits in the middle of the two
