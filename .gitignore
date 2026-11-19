@@ -15,3 +15,6 @@
 # Mobile audit output (scripts/mobile-audit.py): screenshots carry real figures and
 # staff names, and this is a public Pages repo.
 mobile-audit/
+
+# Kate, 19 Nov 2026: local export of the HR / client form PDFs. Staff-only; this repo is public, never commit them.
+forms-pdf/

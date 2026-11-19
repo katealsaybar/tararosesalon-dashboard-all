@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Form · Team Home</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="apple-touch-icon" href="/assets/favicon-96x96.png">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#2D2E37" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=24715f8d">
+<link rel="stylesheet" href="/css/scrollbars.css?v=a903788b">
+<style>
+  /* Kate, 19 Nov 2026: "the blob does not have an updated logo, I mean in the tab". A bare PDF opened from a blob: address
+     shows a plain globe in the tab and no name. This page holds the same PDF in a frame so the tab wears the Tara Rose
+     logo and the form's name. The PDF is read from kb_files exactly as on HR Forms & Waivers (same sign-in, same access). */
+  .fv-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 14px}
+  .fv-bar a{color:var(--text);font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+  .fv-bar b{font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(20px,2.4vw,26px)}
+  .fv-frame{display:block;width:100%;height:calc(100vh - 230px);min-height:560px;border:1px solid var(--border);border-radius:14px;background:#fff}
+  @media (max-width:640px){.fv-frame{height:calc(100vh - 260px);min-height:480px}}
+</style>
+</head>
+<body class="kb-wait">
+<!-- Opens one form from kb_files by code (?code=CL-01). Nothing of the PDFs is in this repo, which is public. -->
+<div class="wrap">
+  <header class="kb-head" id="kbHead" data-title="Team Home"></header>
+  <main id="kbMain"><p class="kb-msg">Loading…</p></main>
+  <footer class="kb-foot">For the Tara Rose Salons team only. <a href="/privacy/">Privacy</a></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/auth.js?v=3823f956"></script>
+<script src="/assets/theme-fade.js"></script>
+<script src="/hub/hub.js?v=b106ff0c"></script>
+<script>
+(function () {
+  var main = document.getElementById('kbMain'), esc = KB.esc;
+  if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search);
+  function msg(t) { main.innerHTML = '<p class="kb-msg">' + t + ' <a href="/hub/forms">Back to HR Forms &amp; Waivers</a></p>'; }
+  // A bytea comes back from PostgREST as "\x" followed by hex.
+  function bytes(hex) {
+    hex = String(hex || '').replace(/^\\x/, '');
+    var out = new Uint8Array(hex.length / 2);
+    for (var i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+    return out;
+  }
+  KB.ready.then(async function () {
+    var code = (new URLSearchParams(location.search).get('code') || '').toUpperCase();
+    if (!/^[A-Z]{2}-\d{2}$/.test(code)) { msg('That form isn’t here.'); return; }
+    var r = await KB.client.from('kb_files').select('code,title,filename,pdf').eq('code', code).maybeSingle();
+    if (r.error || !r.data || !r.data.pdf) { msg('That form isn’t open to your account, or it isn’t here.'); return; }
+    var f = r.data, url = URL.createObjectURL(new Blob([bytes(f.pdf)], { type: 'application/pdf' }));
+    var name = f.code + ' ' + f.title;
+    document.title = name + ' · Team Home';
+    main.innerHTML =
+      '<div class="fv-bar"><a href="/hub/forms">← HR Forms &amp; Waivers</a><b>' + esc(name) + '</b></div>' +
+      '<iframe class="fv-frame" title="' + esc(name) + '" src="' + url + '"></iframe>';
+  });
+})();
+</script>
+</body>
+</html>

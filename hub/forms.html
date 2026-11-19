@@ -59,7 +59,10 @@
   }
   async function act(btn) {
     var open = btn.dataset.act === 'open';
-    var tab = open ? window.open('', '_blank') : null;   // opened on the click, so it isn't blocked
+    // Kate, 19 Nov 2026: a bare blob: PDF tab had no logo and no name. View and Fill in now open the form in /hub/form
+    // (the same PDF in a frame, so the tab wears the Tara Rose logo and the form's name). Download is unchanged.
+    if (open) { window.open('/hub/form.html?code=' + encodeURIComponent(btn.dataset.code), '_blank'); return; }
+    var tab = null;
     var was = btn.textContent;
     btn.disabled = true; btn.textContent = 'Loading…';
     try {

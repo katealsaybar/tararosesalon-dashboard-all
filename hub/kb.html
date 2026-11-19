@@ -200,7 +200,7 @@
         '<details class="kb-toc" open><summary>Chapters <span>' + list.length + '</span></summary>' +
           '<nav aria-label="Chapters in ' + esc(sec.title) + '">' + toc(list, p.slug) + '</nav></details>' +
         '<div class="kb-read">' +
-          '<div class="kb-tools">' + pdfBtn('Download PDF') + KB.starBtn('p:' + p.slug, p.title) + '</div>' +
+          '<div class="kb-tools">' + (p.slug === WAIVERS ? '' : pdfBtn('Download PDF')) + KB.starBtn('p:' + p.slug, p.title) + '</div>' +
           '<article class="kb-doc kd" style="--kd-bar:' + BAR[(i >= 0 ? i : 0) % BAR.length] + '">' +
             '<header class="kd-head">' +
               '<p class="kd-eyebrow">' + esc(sec.title) + (p.group_name ? ' · ' + esc(p.group_name) : '') + '</p>' +
@@ -223,7 +223,46 @@
     if (matchMedia('(max-width:900px)').matches) det.open = false;
     var on = det.querySelector('a.on'); if (on && det.open) on.scrollIntoView({ block: 'center' });
     window.scrollTo(0, 0);
-    main.querySelector('.kb-pdf').addEventListener('click', function (e) { pagePdf(p, sec, i, list.length, e.currentTarget); });
+    if (p.slug === WAIVERS) waiverButtons();
+    else main.querySelector('.kb-pdf').addEventListener('click', function (e) { pagePdf(p, sec, i, list.length, e.currentTarget); });
+  }
+
+  // Kate, 19 Nov 2026: "ito kasi yung magulo". This chapter holds seven waivers on one page and used to download as one merged PDF.
+  // It now has no merged download: under each waiver heading sit that waiver's own form (Open form, Download PDF), read from kb_files
+  // exactly as on HR Forms & Waivers (Level 2 and up; anyone without access simply sees the text). Matched by the heading's first words.
+  var WAIVERS = 'front-desk-waivers-and-consent-forms';
+  var WAIVER_CODE = [['generic', 'CL-01'], ['skin test', 'CL-02'], ['tinting', 'CL-03'], ['waxing', 'CL-04'], ['eyelash', 'CL-05'], ['hair extensions', 'CL-06'], ['keratin', 'CL-07']];
+  function bytes(hex) {
+    hex = String(hex || '').replace(/^\\x/, '');
+    var out = new Uint8Array(hex.length / 2);
+    for (var i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+    return out;
+  }
+  async function waiverButtons() {
+    var r = await KB.client.from('kb_files').select('code,title,filename').in('code', WAIVER_CODE.map(function (w) { return w[1]; }));
+    if (r.error || !r.data || !r.data.length) return;
+    var by = {}; r.data.forEach(function (f) { by[f.code] = f; });
+    main.querySelectorAll('.kd-body h3').forEach(function (h) {
+      var t = h.textContent.trim().toLowerCase(), hit = WAIVER_CODE.filter(function (w) { return t.indexOf(w[0]) === 0; })[0], f = hit && by[hit[1]];
+      if (!f) return;
+      var d = document.createElement('p');
+      d.className = 'fm-acts'; d.style.margin = '0 0 16px';
+      d.innerHTML = '<a class="fm-btn" style="display:inline-flex;align-items:center;text-decoration:none" target="_blank" rel="noopener" href="/hub/form.html?code=' + encodeURIComponent(f.code) + '">Open form ' + esc(f.code) + '</a>' +
+        '<button type="button" class="fm-btn fm-dl" data-code="' + esc(f.code) + '" data-file="' + esc(f.filename) + '">Download PDF</button>';
+      h.insertAdjacentElement('afterend', d);
+    });
+    main.querySelectorAll('.fm-dl[data-code]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        var was = b.textContent; b.disabled = true; b.textContent = 'Loading…';
+        try {
+          var x = await KB.client.from('kb_files').select('pdf').eq('code', b.dataset.code).single();
+          if (x.error || !x.data || !x.data.pdf) throw new Error('not found');
+          var u = URL.createObjectURL(new Blob([bytes(x.data.pdf)], { type: 'application/pdf' })), a = document.createElement('a');
+          a.href = u; a.download = b.dataset.file; document.body.appendChild(a); a.click(); a.remove();
+        } catch (e) { alert('That form couldn’t be loaded. Try again, or tell Kate.'); }
+        b.disabled = false; b.textContent = was;
+      });
+    });
   }
 
   // Kate, 10 Nov 2026: "every time i click it does this, smooth transition only". A chapter, a pager link or a section link used to reload the whole page
