@@ -39,6 +39,11 @@ const LVC_CSS2 = `
 .ab-card p{margin:0}
 .ab-card .ab-cav{display:block;margin-top:6px;font-size:13px;color:var(--muted)}
 [id^="sec-"]{scroll-margin-top:calc(var(--tb,160px) + 16px)}
+/* On a wide screen the mini nav sits in the empty space to the left of the page instead of taking 180px from it (Kate, 19 Nov 2026: "ang sikip na kasi"); the main sidebar covers it when opened. */
+@media (min-width:1740px){
+  .withrail{display:block}
+  .rail{float:left;width:150px;margin:0 0 0 -182px}
+}
 @media (max-width:760px){
   .ans{font-size:16px}
   .ab h2,.why-wall-t{font-size:13px}

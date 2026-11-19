@@ -24,6 +24,11 @@ const SVC_CSS2 = `
   .rail button.on{background:none;border-left-color:var(--text);color:var(--text);font-weight:600}
 }
 @media (max-width:760px){.rail button{min-height:44px}}
+/* On a wide screen the mini nav sits in the empty space to the left of the page instead of taking 180px from it (Kate, 19 Nov 2026: "ang sikip na kasi"); the main sidebar covers it when opened. */
+@media (min-width:1740px){
+  .withrail{display:block}
+  .rail{float:left;width:150px;margin:0 0 0 -182px}
+}
 .blk.s-in{background-image:none}
 .blk.s-in .t::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cc);margin-right:5px;vertical-align:1px}
 .blk.s-booked{background:color-mix(in srgb,var(--cc-bg) 45%,var(--surface));border-style:solid}
