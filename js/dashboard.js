@@ -5917,25 +5917,38 @@ function syncedLabel(stamp) {
 // so "synced 9:03 am" sat beside "up to 17 Nov" and read as a sync that did not work. This is its own small line under the chips
 // (inside the chip it made the row too long and pushed the i onto a line of its own). Empty when today has nothing to say.
 // The date itself still moves only when every UAE branch has real figures for the day.
-function freshnessTodayNote(info) {
-  if (!info || !info.complete || !info.date) return '';
+// Kate, 19 Nov 2026: "di nanaman sya nag ssync nang maayos, nov 18 pa rin pero 11am naman". The pull was fine, the day was not complete:
+// the chip kept the last complete day beside a fresh pull time and read as a failed sync. Once at least one salon has sold today
+// the chip itself says today's date and how many salons are in. `info.date` and the complete-day rule are untouched, so Compare
+// and every page that reads window._freshness still stop on the last day every salon has.
+function phorestTodayPartial(info) {
+  if (!info || !info.complete || !info.date) return null;
   const dubaiToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
   const g = (info.gaps || []).find(x => x.date === dubaiToday);
-  if (!g || info.date >= dubaiToday) return '';
+  if (!g || info.date >= dubaiToday) return null;
   const total = (typeof UAE_ACTIVE !== 'undefined' && UAE_ACTIVE.length) || 4;
-  const inCount = total - g.missing.length;
-  return `<span class="fl fl-today" data-feed="phorest-today">Today: ${inCount <= 0 ? 'no sales in yet' : `${inCount} of ${total} salons in so far`}</span>`;
+  return { date: dubaiToday, inCount: total - g.missing.length, total };
+}
+
+// Under the chips only when nothing has been sold today yet; with one salon or more the chip says it.
+function freshnessTodayNote(info) {
+  const t = phorestTodayPartial(info);
+  if (!t || t.inCount > 0) return '';
+  return `<span class="fl fl-today" data-feed="phorest-today">Today: no sales in yet</span>`;
 }
 
 function freshnessLine(label, info, feed) {
   if (!info || !info.date) return `<span class="fl stale" data-feed="${feed}">${label}: <b>no syncs yet</b></span>`;
-  const synced = new Date(info.date + 'T00:00:00');
+  const part = feed === 'phorest' ? phorestTodayPartial(info) : null;
+  const showPart = !!(part && part.inCount > 0);
+  const synced = new Date((showPart ? part.date : info.date) + 'T00:00:00');
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diffDays = Math.round((today - synced) / 86400000);
   // The ledger of a day is only filled the day after (Kate, 23 Oct 2026), so today never counts:
   // Ledger 20 Oct read on the 23rd is 2 days behind (21 and 22 are missing), not "3 days ago".
   const behind = label === 'Ledger' ? Math.max(0, diffDays - 1) : null;
-  const age = behind !== null
+  const age = showPart ? `${part.inCount} of ${part.total} in`
+    : behind !== null
     ? (behind === 0 ? 'up to date' : behind === 1 ? '1 day behind' : `${behind} days behind`)
     : diffDays <= 0 ? 'today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
   const dateStr = `${synced.getDate()} ${MON_SHORT[synced.getMonth()]}`;
@@ -5955,7 +5968,7 @@ function freshnessLine(label, info, feed) {
   // The hover title is gone: the panel says the same in words a phone can reach.
   const pulledAt = info.syncedAt ? syncedLabel(info.syncedAt) : '';
   const syncedBit = pulledAt ? `, synced <b>${pulledAt}</b>` : '';
-  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}">${label}: up to <b>${dateStr}</b> (${age}${syncedBit})${flag}</span>`;
+  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}"${showPart ? ' data-partial="today"' : ''}>${label}: up to <b>${dateStr}</b> (${age}${syncedBit})${flag}</span>`;
 }
 
 // "19 and 20 Oct", "30 Sep and 1 Oct": the missing days for one branch, same month folded together.
@@ -5982,7 +5995,7 @@ function freshnessPanelHtml(ledgerInfo) {
   const late = [...byBranch].map(([b, dates]) =>
     `<p class="mf-late"><b>Late:</b> ${escapeHtml(BRANCH_INFO[b]?.name || b)} has not sent ${freshnessDays(dates)}. Ask the branch coordinator to send it.</p>`);
   return `<p><b>Branch sheets</b> are the daily sheets each branch types in. Client counts and rebooking come from them.</p>`
-    + `<p><b>Phorest sales</b> come straight from the till. Takings come from here. They are pulled at 9 am, 11 am, 1 pm, 5 pm, 9 pm and 1 am, and the time shown is the last pull. The date moves on to today once every salon has sold something, so early in the morning it still shows yesterday.</p>`
+    + `<p><b>Phorest sales</b> come straight from the till. Takings come from here. They are pulled at 9 am, 11 am, 1 pm, 5 pm, 9 pm and 1 am, and the time shown is the last pull. Today’s date shows as soon as one salon has sold something, with how many salons are in so far (1 of 4 in). Until then it still shows yesterday. The pages and reports keep using the last day every salon has.</p>`
     + (late.length ? late.join('') : '<p class="mf-ok">Everything is up to date.</p>')
     + '<p class="mf-tz">All times are UAE time.</p>';
 }
