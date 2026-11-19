@@ -9,6 +9,9 @@
 //            raw   the value to sort and compare, disp the text the "Filter by values" list shows, cell the html drawn (a figure can be TRSD.num html)
 //            x     tucked away until the "All columns" button is on; sub is a second line under the heading (a function is called on every draw)
 //     limit  rows shown at first (T.shown), total(rowsAfterFilters) => { colKey: html } for the last row, after(T, rows, all) after each draw
+//     root   a shadow root, when the table is drawn inside one (Service Calendar): the table is found there. Its heading buttons are heard at the document: composedPath() reaches into an open shadow root. The menu itself is drawn on the page,
+//            under css/sheet-table.css, so a page in a shadow root adds that stylesheet to its root.
+//     t: 'date' or 'time'  a column of ISO dates (2026-11-18) or 24 hour times (14:30) in raw(): the condition menu then says Is on, Is on or after, Is on or before, Is between.
 //   T.draw()  T.rows()  T.active()  T.clear()  T.toggleMore()  T.f (filters)  T.sort  T.shown (rows on a page)  T.page (0 = first)  T.pages(n)  T.more
 //   after() is where the page draws its pager: "1 to 10 of 27", the Rows choice, Previous, "Page 1 of 3", Next. A filter or a sort goes back to page 1.
 //
@@ -23,8 +26,11 @@
   let POP = null;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const $ = (s, r) => (r || document).querySelector(s);
+  // The real target of an event, also when it came from inside a shadow root (the document only sees the host).
+  const tg = e => (e.composedPath && e.composedPath()[0]) || e.target;
+  const cl = (e, q) => { const t = tg(e); return t && t.closest ? t.closest(q) : null; };
   function closePop() { if (POP) { POP.remove(); POP = null; } }
-  document.addEventListener('mousedown', e => { if (POP && !POP.contains(e.target) && !e.target.closest('[data-sxf],[data-sxcm]')) closePop(); });
+  document.addEventListener('mousedown', e => { if (POP && !POP.contains(tg(e)) && !cl(e, '[data-sxf],[data-sxcm]')) closePop(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
 
   function pass(c, r, f) {
@@ -35,6 +41,7 @@
         const a = f.a, b = f.b;
         return f.op === 'eq' ? v === a : f.op === 'gt' ? v > a : f.op === 'ge' ? v >= a : f.op === 'lt' ? v < a : f.op === 'le' ? v <= a : f.op === 'bt' ? (v >= Math.min(a, b) && v <= Math.max(a, b)) : true;
       }
+      if (c.t === 'date' || c.t === 'time') { const d = String(v || ''); return f.op === 'eq' ? d === f.a : f.op === 'af' ? d >= f.a : f.op === 'bf' ? d <= f.a : f.op === 'bt' ? (d >= f.a && d <= f.b) : true; }
       const t = String(v).toLowerCase(), q = String(f.a || '').toLowerCase();
       return f.op === 'ct' ? t.indexOf(q) >= 0 : f.op === 'nc' ? t.indexOf(q) < 0 : f.op === 'eq' ? t === q : f.op === 'sw' ? t.indexOf(q) === 0 : true;
     }
@@ -63,7 +70,7 @@
       T.draw();
     };
     T.draw = () => {
-      const el = $(cfg.el); if (!el) return;
+      const el = $(cfg.el, cfg.root); if (!el) return;
       const rows = T.rows(), all = cfg.rows(), cols = T.vis();
       if (T.page > T.pages(rows.length) - 1) T.page = T.pages(rows.length) - 1;
       if (T.page < 0) T.page = 0;
@@ -94,20 +101,24 @@
   function openPop(btn, T, key) {
     const was = POP && POP.dataset.k === key + T.id; closePop(); if (was) return;
     const c = T.cfg.cols.find(x => x.k === key); if (!c) return;
+    const ord = c.t === 'date' || c.t === 'time';
     const cur0 = T.f[key] || {}, map = {}, order = [];
     // filters cascade: the values list shows only what the other columns' filters leave
     T.cfg.rows().filter(r => T.cfg.cols.every(o => o.k === key || !T.f[o.k] || pass(o, r, T.f[o.k]))).forEach(r => {
       const d = String(c.disp(r)); if (!map[d]) { map[d] = { d, n: 0, raw: c.sk ? c.sk(r) : c.raw(r) }; order.push(d); } map[d].n++;
     });
-    const list = order.map(d => map[d]).sort((c.t === 'num' || c.sk) ? (a, b) => a.raw - b.raw : (a, b) => a.d.localeCompare(b.d, undefined, { numeric: true }));
+    const list = order.map(d => map[d]).sort((c.t === 'num' || c.sk) ? (a, b) => a.raw - b.raw : ord ? (a, b) => String(a.raw).localeCompare(String(b.raw)) : (a, b) => a.d.localeCompare(b.d, undefined, { numeric: true }));
     const sel = new Set(cur0.vals ? Array.from(cur0.vals) : list.map(x => x.d));
     const ops = c.t === 'num' ? [['', 'No condition'], ['eq', 'Is equal to'], ['gt', 'Greater than'], ['ge', 'Greater than or equal to'], ['lt', 'Less than'], ['le', 'Less than or equal to'], ['bt', 'Is between']]
+      : c.t === 'date' ? [['', 'No condition'], ['eq', 'Is on'], ['af', 'Is on or after'], ['bf', 'Is on or before'], ['bt', 'Is between']]
+      : c.t === 'time' ? [['', 'No condition'], ['eq', 'Is at'], ['af', 'Is at or after'], ['bf', 'Is at or before'], ['bt', 'Is between']]
       : [['', 'No condition'], ['ct', 'Contains'], ['nc', 'Does not contain'], ['eq', 'Is exactly'], ['sw', 'Starts with']];
-    const up = c.t === 'num' ? 'smallest to largest' : 'A to Z', dn = c.t === 'num' ? 'largest to smallest' : 'Z to A';
+    const it = c.t === 'date' ? 'date' : c.t === 'time' ? 'time' : 'text';
+    const up = c.t === 'num' ? 'smallest to largest' : c.t === 'date' ? 'oldest to newest' : c.t === 'time' ? 'earliest to latest' : 'A to Z', dn = c.t === 'num' ? 'largest to smallest' : c.t === 'date' ? 'newest to oldest' : c.t === 'time' ? 'latest to earliest' : 'Z to A';
     const pop = document.createElement('div'); pop.className = 'sx-pop'; pop.dataset.k = key + T.id;
     pop.innerHTML = `<div class="sx-sort"><button type="button" data-ps="1">Sort ${up}</button><button type="button" data-ps="-1">Sort ${dn}</button></div><div class="sx-l">Filter by condition</div>`
       + `<select class="op">${ops.map(o => `<option value="${o[0]}"${(cur0.op || '') === o[0] ? ' selected' : ''}>${o[1]}</option>`).join('')}</select>`
-      + `<input class="a" type="text" value="${esc(cur0.a == null ? '' : cur0.a)}"><input class="b" type="text" value="${esc(cur0.b == null ? '' : cur0.b)}">`
+      + `<input class="a" type="${it}" value="${esc(cur0.a == null ? '' : cur0.a)}"><input class="b" type="${it}" value="${esc(cur0.b == null ? '' : cur0.b)}">`
       + `<div class="sx-l">Filter by values</div><input class="q" type="search" placeholder="Search"><div class="sx-sel"><button type="button" data-pa="1">Select all</button><span>·</span><button type="button" data-pa="0">Clear</button></div><div class="sx-list"></div>`
       + `<div class="sx-act"><button type="button" data-pr>Reset</button><span></span><button type="button" data-pc>Cancel</button><button type="button" class="ok" data-pk>OK</button></div>`;
     document.body.appendChild(pop); POP = pop;
@@ -130,7 +141,7 @@
       if (t.closest('[data-pc]')) { closePop(); return; }
       if (t.closest('[data-pk]')) {
         const op = opE.value, a = aE.value.trim(), b = bE.value.trim(); let cond = null;
-        if (op) { if (c.t === 'num') { const na = parseFloat(a), nb = parseFloat(b); if (isFinite(na) && (op !== 'bt' || isFinite(nb))) cond = { op, a: na, b: nb }; } else if (a) cond = { op, a }; }
+        if (op) { if (c.t === 'num') { const na = parseFloat(a), nb = parseFloat(b); if (isFinite(na) && (op !== 'bt' || isFinite(nb))) cond = { op, a: na, b: nb }; } else if (ord) { if (a && (op !== 'bt' || b)) cond = { op, a, b }; } else if (a) cond = { op, a }; }
         const vals = sel.size === list.length ? null : new Set(sel);
         if (!cond && !vals) delete T.f[key]; else T.f[key] = Object.assign({}, cond || {}, { vals });
         T.page = 0; closePop(); T.draw();
@@ -138,7 +149,8 @@
     });
     qE.focus();
   }
-  document.addEventListener('click', e => { const b = e.target.closest('[data-sxf]'); if (!b) return; const T = REG[b.dataset.sxt]; if (T) openPop(b, T, b.dataset.sxf); });
+  function onTableClick(e) { const b = cl(e, '[data-sxf]'); if (!b) return; const T = REG[b.dataset.sxt]; if (T) openPop(b, T, b.dataset.sxf); }
+  document.addEventListener('click', onTableClick);
 
   // On a phone the table is cards with no heading row: this lists the columns and opens the same menu.
   function colMenu(T, b) {
@@ -148,10 +160,11 @@
     pop.innerHTML = '<div class="sx-l">Sort or filter by</div>' + T.vis().map(c => `<div class="sx-sort"><button type="button" data-cm="${c.k}">${lab(c)}${T.f[c.k] ? ' (filter on)' : ''}</button></div>`).join('');
     document.body.appendChild(pop); POP = pop;
     const rc = b.getBoundingClientRect(), W = Math.min(300, innerWidth - 16);
-    pop.style.width = W + 'px'; pop.style.left = '8px'; pop.style.top = Math.max(8, Math.min(rc.bottom + 4, innerHeight - 340)) + 'px'; pop.style.maxHeight = Math.min(420, innerHeight - 16) + 'px';
+    pop.style.width = W + 'px'; pop.style.left = '8px'; const tp = Math.max(8, Math.min(rc.bottom + 4, innerHeight - 340)); pop.style.top = tp + 'px'; pop.style.maxHeight = Math.min(420, innerHeight - tp - 8) + 'px';   // always fully on screen
     pop.addEventListener('click', ev => { const c = ev.target.closest('[data-cm]'); if (!c) return; closePop(); openPop(b, T, c.dataset.cm); });
   }
-  document.addEventListener('click', e => { const b = e.target.closest('[data-sxcm]'); if (!b) return; const T = REG[b.dataset.sxcm]; if (T) colMenu(T, b); });
+  function onColMenuClick(e) { const b = cl(e, '[data-sxcm]'); if (!b) return; const T = REG[b.dataset.sxcm]; if (T) colMenu(T, b); }
+  document.addEventListener('click', onColMenuClick);
 
   window.TRSheet = { table, closePop, get: id => REG[id] };
 })();

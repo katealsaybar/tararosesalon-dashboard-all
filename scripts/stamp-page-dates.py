@@ -65,6 +65,7 @@ OWN = {
                   'js/send-schedule.js', 'css/lost-lists.css', 'css/lost-queue.css', 'css/send-schedule.css'],
     'reviews': ['js/reviews-export.js'],
     'services': ['js/service-rankings.js', 'js/sheet-table.js', 'css/service-rankings.css', 'css/sheet-table.css'],
+    'servicecal': ['js/service-cal.js'],
     'products': ['js/products.js', 'js/product-spend.js', 'css/product-spend.css'],
     'supplierspend': ['js/spend.js'],
     'supplierpay': ['js/supplier-spend.js'],

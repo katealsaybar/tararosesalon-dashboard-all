@@ -165,11 +165,11 @@
    ['team', 'tpExport'], ['teamquad', 'tpQExport'],
    ['googleads', 'gadsExport'], ['metaads', 'madsExport'], ['website', 'webExport'], ['social', 'socExportPage', 'Daily numbers'], ['marketingspend', 'mspendExport'], ['toolspend', 'tsExport'],
    ['supplierspend', 'spendExport'], ['supplierpay', 'supplierSpendExport'], ['stockcost', 'stockCostExport'],
-   ['leavecal', 'lcExpAll', 'Leave'], ['dailyreports', 'drExport', 'This day'], ['campaignblasts', 'cblExport', 'Blasts'], ['novblasts', 'nvbExport', 'Plan']
+   ['leavecal', 'lcExpAll', 'Leave'], ['servicecal', 'svcExportPage', 'Services'], ['dailyreports', 'drExport', 'This day'], ['campaignblasts', 'cblExport', 'Blasts'], ['novblasts', 'nvbExport', 'Plan']
   ].forEach(function (p) { register(p[0], p[1], { csv: p[2] || '', lazy: p[3] || '' }); });
   // One workbook from several of the page's own table exports.
   registerMulti('orders', ['ordExport', 'ordExportSup', 'ordExportLook'], { csv: 'Orders' });
-  // The rest: no export of their own, so the tables as the page shows them (domModel above). Not here on purpose: Service Calendar and the calendar grids (no table to export),
+  // The rest: no export of their own, so the tables as the page shows them (domModel above). Not here on purpose: the calendar grids themselves (the Service Calendar exports its List, Client types and Shifts tables),
   // Org Chart, Content Calendar, Find a Stylist, Landing Page Review and the complaint log form (no tables), and the Ledgers pages (their own toolbar writes the formulas).
   // Wellness Voucher Blasts draws five pages in one view (Overall, Blast 1 to 4). Blast 3's page holds the send list, which has its own save of every row the filters leave (wvSaveFile);
   // the others draw figures, so they get the tables on screen if there are any.

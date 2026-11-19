@@ -162,6 +162,8 @@
         title: 'The day at a glance', text: 'These tiles count the services, the chair time and the busiest moment. Tap a tile to jump to the services behind it.' },
       { id: 'svc-cal', need: 1, find: function () { return inShadow('serviceCalContent', '#cal'); },
         title: 'Read the calendar', text: 'Each block is one service. Solid is done and paid, striped is the client in the chair now, dashed is booked and still to come. Tap a block for the detail, or a stylist\u2019s name for her week.' },
+      { id: 'svc-types', need: 1, find: function () { return inShadow('serviceCalContent', '#ctBox .sx-t'); },
+        title: 'Client types, stylist by stylist', text: 'Tap a number to see those clients in the List. Tap the funnel on a heading to sort or filter, and use XLSX or CSV to take the table with you.' },
       { id: 'svc-legend', find: function () { return inShadow('serviceCalContent', '#legend'); },
         title: 'Show or hide a kind', text: 'Tap a colour to hide or show that kind of service. Tap it again to bring it back.' }
     ],
