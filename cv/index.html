@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CV | Tara Rose Salons</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link rel="shortcut icon" href="../assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Kate, 19 Nov 2026: the page behind a "Copy link for someone without access" CV link from Recruitment. The link works for 7 days; the CV is fetched from the private store only while the link is valid. */
+:root{--bg:#FAF8F4;--card:#FFFFFF;--ink:#2D2E37;--mute:#5E5F68;--line:#E4DFD6;--btn:#99F6E4;--btnink:#2D2E37}
+@media (prefers-color-scheme:dark){:root{--bg:#16161A;--card:#202026;--ink:#FAF8F4;--mute:#B4B4BC;--line:#33333B;--btn:#99F6E4;--btnink:#2D2E37}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'Inter',system-ui,sans-serif}
+main{max-width:900px;margin:0 auto;padding:20px 16px 40px}
+.brand{font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:20px;letter-spacing:.02em;margin:0 0 16px;text-align:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px 20px}
+h1{font-family:'Playfair Display',Georgia,serif;font-size:22px;line-height:1.25;margin:0 0 12px}
+p{margin:0 0 14px;color:var(--mute)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:14px;background:var(--btn);color:var(--btnink);font-weight:700;text-decoration:none}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+iframe{width:100%;height:80vh;min-height:480px;border:1px solid var(--line);border-radius:12px;background:#fff}
+img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:12px}
+.small{font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <p class="brand">Tara Rose Salons</p>
+  <div class="card" id="view" role="status" aria-live="polite"><p>Opening the CV...</p></div>
+</main>
+<script>
+(function () {
+  var FN = 'https://gvijxenafoowajqktqvd.supabase.co/functions/v1/recruit-cv-share';
+  var view = document.getElementById('view');
+  var token = (new URLSearchParams(location.search).get('t') || '').trim();
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function problem(h, msg) { view.innerHTML = '<h1>' + h + '</h1><p>' + msg + '</p><p class="small">Ask the person who sent you this link to copy a fresh one from the Recruitment page.</p>'; }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) { problem('This link needs a hand', 'We could not read it. It may have been cut short when it was copied.'); return; }
+  fetch(FN, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: token }) }).then(async function (r) {
+    if (r.status === 410) { problem('This link has expired', 'CV links work for 7 days.'); return; }
+    if (!r.ok) { problem('We could not find this CV', 'The link may be wrong, or the CV may have been removed.'); return; }
+    var name = 'CV'; try { name = decodeURIComponent(r.headers.get('x-cv-name') || 'CV'); } catch (e) { /* keep CV */ }
+    var type = r.headers.get('content-type') || 'application/pdf';
+    var blob = await r.blob(), url = URL.createObjectURL(new Blob([blob], { type: type }));
+    var word = /\.docx?$/i.test(name);
+    document.title = name + ' | Tara Rose Salons';
+    view.innerHTML = '<h1>' + esc(name.replace(/\.[a-z0-9]+$/i, '')) + '</h1>' +
+      '<div class="acts">' + (word ? '' : '<a class="btn" href="' + url + '" target="_blank" rel="noopener">Open full screen</a>') +
+      '<a class="btn' + (word ? '' : ' alt') + '" href="' + url + '" download="' + esc(name) + '">Download</a></div>' +
+      (word ? '<p>This CV is a Word file, so it downloads. Open it in Word once it has downloaded.</p>' : /^image\//.test(type) ? '<img alt="CV" src="' + url + '">' : '<iframe title="CV" src="' + url + '"></iframe>') +
+      '<p class="small">This private link works for 7 days. Please do not forward it.</p>';
+  }).catch(function () { problem('Something went wrong', 'Please try again in a minute.'); });
+})();
+</script>
+</body>
+</html>

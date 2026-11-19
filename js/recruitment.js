@@ -1276,7 +1276,8 @@
       openDlg('CV: ' + esc(p.name || 'applicant'),
         '<p class="rct-pasteacts"><a class="rct-btn rct-sm" href="' + cvUrlLive + '" download="' + dl + '">Download</a>' +
         '<a class="rct-btn rct-sm" href="' + cvUrlLive + '" target="_blank" rel="noopener">Open in a new tab</a>' +
-        '<button type="button" class="rct-btn rct-sm" data-act="cvlink" data-id="' + esc(p.id) + '" title="A link to share on WhatsApp. Whoever opens it signs in to the dashboard first, and the CV opens for them.">Copy link to share</button></p>' +
+        '<button type="button" class="rct-btn rct-sm" data-act="cvlink" data-id="' + esc(p.id) + '" title="A link to share on WhatsApp. Whoever opens it signs in to the dashboard first, and the CV opens for them.">Copy link for the team</button>' +
+        '<button type="button" class="rct-btn rct-sm" data-act="cvlink7" data-id="' + esc(p.id) + '" title="A private link for someone with no dashboard access. It works for 7 days and opens only this CV.">Copy link for anyone (7 days)</button></p>' +
         (ext === 'pdf' ? '<iframe class="rct-cvframe" title="CV" src="' + cvUrlLive + '"></iframe>' : '<img class="rct-cvimg" alt="CV" src="' + cvUrlLive + '">'));
       dlg().classList.add('rct-wide');
     } catch (e) { console.error(e); toast('That CV did not open: ' + (e.message || 'try again')); }
@@ -2069,6 +2070,8 @@
       else if (a === 'notapp') setNotApplicant(id, true);
       else if (a === 'notappback') setNotApplicant(id, false);
       else if (a === 'cvfile') openCvFile(id);
+      // a private link for someone with no dashboard access: a fresh token that works for 7 days and opens only this CV (migrations/recruit_cv_share.sql, edge function recruit-cv-share, page /cv/)
+      else if (a === 'cvlink7') { try { var rs = await sb.rpc('recruit_cv_share_make', { p_id: p.id }); if (rs.error) throw new Error(rs.error.message); await navigator.clipboard.writeText('https://trk-salon-os.com/cv/?t=' + encodeURIComponent(rs.data)); t.textContent = 'Link copied'; toast('Link copied. It works for 7 days and opens only ' + firstName(p && p.name) + "'s CV, no sign-in needed."); } catch (err) { console.error(err); t.textContent = 'Did not work'; toast('That link could not be made: ' + (err.message || 'try again')); } }
       else if (a === 'cvlink') { try { await navigator.clipboard.writeText(cvShareLink(p)); t.textContent = 'Link copied'; toast('Link copied. Whoever opens it signs in to the dashboard, and ' + firstName(p && p.name) + "'s CV opens for them."); } catch (err) { t.textContent = 'Copy did not work here'; } }
       else if (a === 'rename') renameDialog(id);
       else if (a === 'hist') showHistory(id);
