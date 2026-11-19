@@ -1158,6 +1158,9 @@
     var nameDiv = sign.length > 1 ? RH_NAME.replace('Emma-Louise Usher', function () { return mdInline(sign[1], greeting); }) : '';
     var titleDivs = sign.slice(2).map(function (l) { return RH_TITLE.replace('General Manager, Tara Rose Salons', function () { return mdInline(l, greeting); }); });
     var head = RH_HEAD.replace('Your application to Tara Rose Salons', function () { return esc(subject); });
+    // Kate, 19 Nov 2026: the typed wordmark at the top (Playfair Display, which Gmail does not load, so it showed in Times-style Georgia) was not the brand. It is now the brand logo image,
+    // the same one the signature uses, so every email shows the real wordmark in every mail app.
+    head = head.replace(/<div class="ink" style="font-family:'Playfair Display',Georgia,serif;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#2D2E37;">Tara Rose Salons<\/div>/, function () { return '<img class="logo" src="' + SL_LOGO + '" alt="Tara Rose Salons" width="120" style="display:block;width:120px;height:auto;border:0;">'; });
     if (sig) head = head.replace('.rule { border-color:#45464F !important; }', function () { return '.rule { border-color:#45464F !important; }\n    .sigrule { border-color:#FAF8F4 !important; }\n    .logo { filter:invert(1); }'; });
     var html = head + '\n' + paras.concat(signOff ? [signOff] : []).join('\n') + '\n' + RH_MID +
       (sig ? '\n' + sig.html : (nameDiv ? '\n' + nameDiv : '') + (titleDivs.length ? '\n' + titleDivs.join('\n') : '')) + '\n' + RH_TAIL;
