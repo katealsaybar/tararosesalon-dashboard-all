@@ -267,9 +267,15 @@ async function renderServiceCal() {
   /* ---- data */
   function parse(D){
     (D.photos || []).forEach(function (ph, i) { if (ph) PH[D.branch + '|' + (D.staff[i] || 'Unknown')] = ph; });
+    /* a stylist the database could not match by name (Lhang Ann: Phorest spells her surname as a dot) still gets her photo from the profile list, only when that profile belongs to this salon (Kate, 19 Nov 2026) */
+    (D.staff || []).forEach(function (nm) {
+      var key = D.branch + '|' + nm; if (PH[key]) return;
+      try { var pf = typeof staffProfile === 'function' ? staffProfile(nm) : null; if (!pf && typeof STAFF_PROFILES !== 'undefined') pf = STAFF_PROFILES[String(nm).trim().split(/\s+/)[0].toUpperCase()] || null;   /* the first word, the key the ledger uses */
+        if (pf && (pf.photoFull || pf.photo) && (pf.branch === D.branch || (pf.alsoAt || []).indexOf(D.branch) >= 0)) PH[key] = pf.photoFull || ('assets/staff/' + pf.photo); } catch (e) {}
+    });
     var rows = D.a.map(function (r) {
       var nm = D.staff[r[3]] || 'Unknown';
-      return {b:D.branch, d:r[0], s:mm(r[1]), e:mm(r[2]), st:nm, sk:D.branch + '|' + nm, sv:String(r[4]).replace(/\s+/g,' ').trim(), state:r[5], req:!!r[6], cn:r[7] || '', cid:r[8] || '', nw:!!r[9], ck:r[10] || '', rb:!!r[11], cat:cat(r[4])};
+      return {b:D.branch, d:r[0], s:mm(r[1]), e:mm(r[2]), st:nm, sk:D.branch + '|' + nm, sv:String(r[4]).replace(/\s+/g,' ').trim(), state:r[5], req:!!r[6], cn:r[7] || '', cid:r[8] || '', nw:!!r[9], ck:r[10] || '', rb:!!r[11], pr:(r[12] == null ? null : +r[12]), cat:cat(r[4])};
     });
     /* client type (the KPI definitions), counted per stylist, client and day, so a client seen by two stylists counts for each, like the ledgers:
        new to the brand + asked for a stylist = New client request; new, no request = New; returning + asked for = Request; returning, no request = Salon */
@@ -782,11 +788,16 @@ async function renderServiceCal() {
   function closeClient(){ var sc = LVD.getElementById('cwscrim'); if (sc) sc.hidden = true; }
 
   /* ---- detail */
+  /* the price Phorest holds on the booking, after Group (Kate, 19 Nov 2026); hidden until the sync has filled it, and a 0 says so instead of showing AED 0 */
+  function priceRow(r){
+    if (r.pr == null) return '';
+    return '<dt>Price</dt><dd>' + (r.pr > 0 ? 'AED ' + r.pr.toLocaleString('en-GB', { minimumFractionDigits: r.pr % 1 ? 2 : 0, maximumFractionDigits: 2 }) : '<span class="cw-m">No price on the booking in Phorest</span>') + '</dd>';
+  }
   function openDetail(i){
     var r = W.rows[i]; if (!r) return;
     var st = STATES[r.state] || ['paid', r.state], dlg = LVD.getElementById('dlg'); dlg.className = 'dlg c-' + r.cat;
     dlg.innerHTML = '<div class="top"><h3>' + esc(r.sv) + '</h3><div class="when">' + dlabel(r.d, true) + ' · ' + fmt(r.s) + ' to ' + fmt(r.e) + ' · ' + dur(r.e - r.s) + '</div></div>'
-      + '<dl><dt>Stylist</dt><dd class="dd-st">' + avatar(r.sk, r.st) + '<span>' + esc(r.st) + (r.req ? ' <span class="star">★</span> asked for' : '') + '</span></dd><dt>Client</dt><dd>' + clientLink(r) + '</dd><dt>Status</dt><dd>' + st[1] + '</dd><dt>Group</dt><dd>' + CATS[r.cat] + '</dd><dt>Salon</dt><dd>' + BR_FULL[r.b] + '</dd></dl>'
+      + '<dl><dt>Stylist</dt><dd class="dd-st">' + avatar(r.sk, r.st) + '<span>' + esc(r.st) + (r.req ? ' <span class="star">★</span> asked for' : '') + '</span></dd><dt>Client</dt><dd>' + clientLink(r) + '</dd><dt>Status</dt><dd>' + st[1] + '</dd><dt>Group</dt><dd>' + CATS[r.cat] + '</dd>' + priceRow(r) + '<dt>Salon</dt><dd>' + BR_FULL[r.b] + '</dd></dl>'
       + '<div class="act"><button class="btn pri" type="button" data-act="week" data-staff="' + esc(r.sk) + '">' + esc(firstLast(r.st)[0]) + '’s week</button><button class="btn" type="button" data-act="close">Close</button></div>';
     LVD.getElementById('scrim').hidden = false; dlg.querySelector('.btn.pri').focus();
   }

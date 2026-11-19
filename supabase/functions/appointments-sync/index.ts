@@ -6,7 +6,7 @@
 // days_back 3, days_fwd 115: far enough ahead to see a rebooking made on the day of a visit (booked_at, the appointment's createdAt; Rebooked in the KPI doc). Dates are Dubai days.
 // For each branch: pull the window, upsert every appointment stamped with this run's time, then delete the rows in the window that this run did not touch
 // (moved, cancelled or deleted in Phorest). A branch that failed part-way is NOT swept, so a Phorest hiccup never empties the calendar.
-// The client is kept as first name + last initial only. Price is not stored. The answer holds counts only, never a name.
+// The client is kept as first name + last initial only. The price Phorest holds on the booking is stored from 19 Nov 2026 (price column). The answer holds counts only, never a name.
 // Cron: every 15 minutes between 08:00 and 23:59 Dubai (jobname appointments-sync), and a nightly wide pass (appointments-sync-nightly).
 // Secrets (already on the project): PHOREST_UAE_USERNAME, PHOREST_UAE_PASSWORD, PHOREST_UAE_BUSINESS_ID (the shorter _USER / _PASS and the older PHOREST_API_* names are also read).
 // AUTH: the gateway needs a valid JWT, and the header x-cron-secret must equal the value in table internal_secrets (name appointments_sync_cron, service
@@ -70,6 +70,7 @@ async function branch(code: string, bid: string, f: string, t: string, runIso: s
         branch: code, appt_id: x.appointmentId, date: x.appointmentDate, start_time: String(x.startTime).slice(0, 8), end_time: String(x.endTime).slice(0, 8),
         staff_id: x.staffId || null, staff_name: staff[x.staffId] || 'Former staff', service: String(x.serviceName || '').trim(), state: x.state || '',
         staff_request: !!x.staffRequest, client_id: x.clientId || null, client_name: '', booked_at: x.createdAt || null, synced_at: runIso,
+        price: x.price == null || x.price === '' ? null : Number(x.price),   // 19 Nov 2026: the price Phorest holds on the booking (AED); needs migrations/service_calendar_price.sql applied first
       });
     }
     c0 = addDays(c1, 1);
