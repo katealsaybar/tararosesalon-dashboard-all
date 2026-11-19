@@ -538,8 +538,8 @@
     var pill = p.stage === 'new' ? waitPill(p) : '<span class="rct-pill ' + ['rct-grey', 'rct-amber', 'rct-red'][lv] + '">' + (d === 0 ? 'Moved today' : pl(d, 'day', 'days') + ' here') + '</span>';
     var place = placeShort(p), bits = [roleGroup(p), place !== 'Not stated' ? place : '', p.experience || ''].filter(function (x) { return x && x !== 'Not stated'; });
     var flag = p.stage === 'new' && bucket(p) === 'no' ? '<span class="rct-pill rct-plflag">' + esc((flags(p)[0] && FLAG_SHORT[flags(p)[0].k]) || 'Flagged') + '</span>' : '';
-    return '<article class="rct-plcard' + (lv ? ' rct-pl' + lv : '') + '"><div class="rct-plt">' + avatar(p) + '<div class="rct-plw"><button type="button" class="rct-plname" data-act="look" data-id="' + id + '" aria-expanded="' + !!openRows[p.id] + '" title="Look at this person">' + esc(p.name || 'Name not stated') + '</button><small>' + esc(bits.join(' · ')) + '</small></div></div>' +
-      '<div class="rct-pills rct-plpills">' + pill + (p.stage === 'new' ? '' : stagePill(p)) + plCv(p) + flag + extraPills(p) + '</div>' +
+    return '<article class="rct-plcard' + (lv ? ' rct-pl' + lv : '') + '"><div class="rct-plt">' + avatar(p) + '<div class="rct-plw"><button type="button" class="rct-plname" data-act="look" data-id="' + id + '" aria-expanded="' + !!openRows[p.id] + '" title="Look at this person">' + esc(p.name || 'Name not stated') + '</button><small>' + esc(bits.join(' · ')) + '</small></div>' + plCv(p) + '</div>' +
+      '<div class="rct-pills rct-plpills">' + pill + (p.stage === 'new' ? '' : stagePill(p)) + flag + extraPills(p) + '</div>' +
       '<div class="rct-asgrow">' + asgHtml(p) + '</div>' +
       '<div class="rct-c-acts rct-plact">' + (usesPipe(p) ? pipeActs(p) : sideActs(p)) + '</div>' +
       (openRows[p.id] ? detailHtml(p) : '') + '</article>';
@@ -593,7 +593,7 @@
       }).join('') + '</div></section>';
     // the mini nav: from 1500px a vertical rail in the left gutter (the page keeps its left edge, the board grows to the right); below that the shell's row of chips (jump-nav.js, data-jn)
     var rail = '<aside class="rct-gutrail" aria-label="On this page"><nav class="rct-nav" aria-label="On this page"><div class="rct-navk">On this page</div>' +
-      [['jn-recruitment-pipeline', 'Pipeline'], ['jn-recruitment-hired-and-closed', 'Hired and closed'], ['jn-recruitment-how-long-people-wait', 'How long people wait']].map(function (x) { return '<a href="#' + x[0] + '" data-s="' + x[0] + '" onclick="lgJump(event,\'' + x[0] + '\')">' + x[1] + '</a>'; }).join('') + '</nav></aside>';
+      [['jn-recruitment-why-this-page', 'Why this page'], ['jn-recruitment-pipeline', 'Pipeline'], ['jn-recruitment-hired-and-closed', 'Hired and closed'], ['jn-recruitment-how-long-people-wait', 'How long people wait']].map(function (x) { return '<a href="#' + x[0] + '" data-s="' + x[0] + '" onclick="lgJump(event,\'' + x[0] + '\')">' + x[1] + '</a>'; }).join('') + '</nav></aside>';
     return '<div class="rct-shell">' + rail + h + '</div>';
   }
   function plSpy() {
@@ -627,11 +627,12 @@
   function whyHtml(late, rowsAll) {
     if (typeof whyWall !== 'function') return '';
     var near = rowsAll.filter(function (p) { return !p.is_test && ['interview_booked', 'interview_pass', 'trade_test', 'trade_pass', 'offer', 'offer_to_send', 'offer_sent'].indexOf(p.stage) >= 0; }).length;
-    return whyWall([
+    var wall = whyWall([
       ['Why this page', 'People who wait weeks for an answer tend to take another offer. This shows who is waiting on us and which step each person is at.'],
       ['Why now', pl(late, 'person has', 'people have') + ' waited ' + waitDays() + ' days or more with no reply, and ' + near + ' ' + (near === 1 ? 'is' : 'are') + ' at Interview, Trade test or Offer letter, the steps closest to a yes.'],
       ['If we do nothing', 'People go quiet without telling us. We only notice when the chair is still empty and the good applicant has started somewhere else.']
     ], 'Kate and Coach Emma clear the people waiting longest, starting with the amber and red cards in Pipeline. No date yet: Kate sets it.');
+    return wall.replace('<section class="why-wall"', '<section class="why-wall" data-jn="Why this page"');   // the Why wall is the first entry of On this page (Kate, 19 Nov 2026)
   }
 
   /* ---------- Grid or List ---------- */
