@@ -21,6 +21,7 @@ const UAE_BRANCHES: Record<string, string> = {
   MC: 'jK2EFWbtnJ_D2Fkg4Grd_w',
   SAA: 'oesxmNtsJYVoUCjv1Arp7g',
 };
+const MAKEUP = /\bowed\b|make[\s-]*up/i;   // the label the team types on a blocked-off make up block (Owed Hrs, Owed Hours); whole word, so "borrowed" does not count
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const env = (...names: string[]) => { for (const n of names) { const v = Deno.env.get(n); if (v) return v; } return ''; };
 type Biz = { key: string; base: string; auth: string; ok: boolean };
@@ -98,11 +99,32 @@ async function branch(biz: Biz, code: string, bid: string, f: string, t: string,
     const { error } = await supa.from('phorest_appointments').upsert(rows.slice(i, i + 500), { onConflict: 'branch,appt_id' });
     if (error) throw new Error('upsert ' + error.message.slice(0, 120));
   }
+  // Make up hours (19 Nov 2026): the team blocks the time off in the Phorest calendar as "Owed Hrs". Those blocks come from /break and are kept in phorest_makeup_blocks.
+  // Its own try, so a problem here never stops the appointments from syncing.
+  let mkRes: any = {};
+  try {
+    const blocks: any[] = [];
+    for (let c0 = f; c0 <= t;) {
+      const c1 = addDays(c0, 13) < t ? addDays(c0, 13) : t;
+      for (const x of await paged(biz, `/branch/${bid}/break?from_date=${c0}&to_date=${c1}`, 'breaks', 200)) {
+        if (!x.breakDate || !x.startTime || !x.endTime || !MAKEUP.test(String(x.label || ''))) continue;
+        blocks.push({ branch: code, break_id: x.breakId, staff_id: x.staffId || null, date: x.breakDate, start_time: String(x.startTime).slice(0, 8), end_time: String(x.endTime).slice(0, 8), label: String(x.label).trim(), synced_at: runIso });
+      }
+      c0 = addDays(c1, 1);
+    }
+    for (let i = 0; i < blocks.length; i += 500) {
+      const { error } = await supa.from('phorest_makeup_blocks').upsert(blocks.slice(i, i + 500), { onConflict: 'branch,break_id' });
+      if (error) throw new Error('upsert blocks ' + error.message.slice(0, 100));
+    }
+    const { error: be } = await supa.from('phorest_makeup_blocks').delete().eq('branch', code).gte('date', f).lte('date', t).lt('synced_at', runIso);
+    if (be) throw new Error('sweep blocks ' + be.message.slice(0, 100));
+    mkRes = { found: blocks.length };
+  } catch (e) { mkRes = { error: String(e).slice(0, 140) }; }
   // sweep: only after every page of this branch was read and written
   const { error: de, count } = await supa.from('phorest_appointments').delete({ count: 'exact' })
     .eq('branch', code).gte('date', f).lte('date', t).lt('synced_at', runIso);
   if (de) throw new Error('sweep ' + de.message.slice(0, 120));
-  return { appointments: rows.length, clients_asked: need.length, removed: count || 0 };
+  return { appointments: rows.length, clients_asked: need.length, removed: count || 0, makeup: mkRes };
 }
 
 Deno.serve(async (req) => {
