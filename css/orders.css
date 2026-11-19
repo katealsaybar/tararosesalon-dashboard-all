@@ -90,6 +90,59 @@ tr.ord-rowlook td:first-child{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}
 .ord-mb{font-size:14.5px;line-height:1.55;margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere}
 .ord-ma{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
 .ord-att{border:1px solid var(--border);background:var(--surface2,var(--border2));border-radius:999px;padding:2px 12px;font-size:13px}
+.ord-xtra{display:contents}
+/* the order window, two columns: the PDF (or What was bought) on the left, the emails like Gmail on the right, the last column (Kate, 19 Nov 2026) */
+.ord-dlg.ord-wide{width:min(1280px,100%)}
+.ord-cols{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px;align-items:start;margin-top:6px}
+.ord-cola{position:sticky;top:0;min-width:0}
+.ord-colb{min-width:0}
+.ord-cola>.ord-buy h4:first-child{margin-top:8px}
+.ord-seg{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.ord-seg button{border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:999px;padding:4px 14px;font:inherit;font-size:13.5px;cursor:pointer}
+.ord-seg button.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.ord-pane[hidden]{display:none}
+.ord-pbar{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:6px 0 10px}
+.ord-pn{min-width:0;font-weight:600;font-size:14.5px;overflow-wrap:anywhere}
+.ord-pbar a.cm-pill{display:inline-flex;align-items:center;text-decoration:none;flex:none}
+.ord-vframe{display:block;width:100%;height:calc(100vh - 290px);min-height:420px;border:1px solid var(--border);border-radius:10px;background:#fff}
+.ord-vcard{padding:18px;border:1px solid var(--border);border-radius:10px;background:var(--surface2,var(--border2))}
+.ord-vcard p{margin:0 0 8px;font-size:15px;line-height:1.5}
+.ord-vload{padding:18px 0}
+/* the emails, drawn like Gmail: the subject on top, one card per message, the newest open, a click opens or folds one */
+.ord-gm{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg)}
+.ord-gms{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:18px;line-height:1.3}
+.ord-gms span{min-width:0;overflow-wrap:anywhere}
+.ord-gms em{flex:none;font-style:normal;font-size:13px;background:var(--surface2,var(--border2));color:var(--muted);border-radius:999px;padding:1px 9px}
+.ord-gmm{border-bottom:1px solid var(--border)}
+.ord-gmm:last-child{border-bottom:0}
+.ord-gmh{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;cursor:pointer}
+.ord-gmh:hover{background:var(--surface2,var(--border2))}
+.ord-av{flex:none;width:36px;height:36px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px}
+.ord-gmw{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.ord-gmf{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ord-gmf b{font-size:14.5px}
+.ord-gmf i{font-style:normal;font-size:13px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:0 6px}
+.ord-gmt{font-size:13px;color:var(--muted)}
+.ord-gsn{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ord-gmm.open .ord-gsn{display:none}
+.ord-gmd{flex:none;font-size:13px;color:var(--muted);white-space:nowrap}
+.ord-gmb{display:none;padding:0 16px 16px 64px}
+.ord-gmm.open .ord-gmb{display:block}
+.ord-gmb .ord-mb{margin-top:0}
+.ord-gmb .ord-ma{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.ord-ac{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);padding:8px 10px;font:inherit;font-size:13px;cursor:pointer;min-width:0}
+button.ord-ac:hover{background:var(--surface2,var(--border2))}
+.ord-ac-off{cursor:default;color:var(--muted)}
+.ord-ai{flex:none;width:38px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--muted)}
+.ord-ai-pdf{background:#C5372C}
+.ord-ai-xls{background:#1E7B45}
+.ord-an{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.3}
+.ord-ak{flex:none;font-size:13px;color:var(--muted)}
+@media(max-width:1000px){
+  .ord-cols{grid-template-columns:1fr}
+  .ord-cola{position:static}
+  .ord-vframe{height:70vh}
+}
 @media(max-width:760px){
   .ord-st,.ord-rc,.ord-dsc{min-height:44px}
   .ord-rc{padding:0 14px}
@@ -99,6 +152,13 @@ tr.ord-rowlook td:first-child{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}
   tr.ord-rowlook td:first-child{box-shadow:none}.ord-card tbody tr{padding-left:12px}tr.ord-rowlook{box-shadow:inset 3px 0 0 var(--warn,#8A5A0C)}   /* the accent sits on the card, not on the first cell, so it never covers the date */
   .ord-modal{padding:0;align-items:flex-end}
   .ord-dlg{border-radius:16px 16px 0 0;max-height:92vh}
+  .ord-ac,.ord-seg button,.ord-pbar a.cm-pill,.ord-vcard .cm-pill{min-height:44px}
+  .ord-gmh{min-height:44px;flex-wrap:wrap}
+  .ord-gmw{flex:1 1 calc(100% - 60px)}
+  .ord-gmd{order:3;flex:1 1 100%;padding-left:48px;margin-top:-2px}
+  .ord-gmb{padding-left:16px}
+  .ord-gmb .ord-ma{grid-template-columns:1fr}
+  .ord-pbar{flex-wrap:wrap}
   .ord-bt thead{display:none}
   .ord-bt tr{display:block;border-top:1px solid var(--border);padding:6px 0}
   .ord-bt td{display:flex;justify-content:space-between;gap:12px;border:0;padding:2px 0}

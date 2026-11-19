@@ -56,6 +56,8 @@ const ORD_ORDERK = { order: 1, confirmation: 1, quotation: 1, shipped: 1, delive
 const ORD_RANK = { quotation: 1, order: 2, confirmation: 3, shipped: 4, delivered: 5, invoice: 6 };
 const ORD_RANKNAME = { 1: 'Quoted', 2: 'Ordered', 3: 'Confirmed', 4: 'Shipped', 5: 'Delivered', 6: 'Invoiced' };
 const ORD_KINDNAME = { order: 'Order sent', quotation: 'Quotation', confirmation: 'Order confirmed', shipped: 'Shipped', delivered: 'Delivered', invoice: 'Invoice', statement: 'Statement', notice: 'Notice', message: 'Message', reply: 'Our reply' };
+// a file is kept for the order: a PDF (Receipts kept) or an Excel order form (File kept)
+const ordIsKept = g => g.f === 'PDF kept' || g.f === 'File kept';
 const ordHasLines = d => Array.isArray(d.lines) && d.lines.length && d.lines.some(l => l && l.unit != null);
 
 function ordBuild(rows) {
@@ -88,7 +90,7 @@ function ordFinish(key, docs) {
   g.units = g.buy ? g.buy.lines.reduce((t, l) => t + (Number(l.qty) || 0), 0) : 0;
   let rk = 0; docs.forEach(d => { if ((ORD_RANK[d.kind] || 0) > rk) rk = ORD_RANK[d.kind]; });
   g.st = g.type === 'Order' ? ORD_RANKNAME[g.hasInv ? 6 : rk] : g.type === 'Statement' ? 'Statement' : g.type === 'Invoice' ? 'Invoiced' : (last.status || 'Notice');
-  g.f = docs.some(d => d.file_path) ? 'PDF kept' : docs.some(d => d.has_file) ? 'File in email' : 'Email only';
+  g.f = docs.some(d => d.file_path && /\.pdf$/i.test(d.file_name || d.file_path)) ? 'PDF kept' : docs.some(d => d.file_path) ? 'File kept' : docs.some(d => d.has_file) ? 'File in email' : 'Email only';
   // why it needs a look: a rule from the script, plus two that depend on today's date, so they are worked out here and never go stale
   const today = ordToday(), fl = [];
   docs.forEach(d => { if (d.flag && !/^Invoice due in/.test(d.flag) && fl.indexOf(d.flag) < 0) fl.push(d.flag); });
@@ -109,7 +111,7 @@ function ordMatch(g, f) {
   if (f.kind === 'inv' && !g.hasInv && g.type !== 'Invoice') return false;
   if (f.kind === 'stmt' && g.type !== 'Statement') return false;
   if (f.look && !g.x) return false;
-  if (f.file && g.f !== 'PDF kept') return false;
+  if (f.file && !ordIsKept(g)) return false;
   if (f.amt && g.a == null) return false;
   if (f.disc && !(g.disc > 0 || g.discPct > 0)) return false;
   return true;
@@ -245,13 +247,13 @@ function ordPaintNotes() {
 function ordSupRows() {
   const m = {}; ordScope().forEach(g => { (m[g.s] || (m[g.s] = [])).push(g); });
   return Object.keys(m).map(s => { const gs = m[s]; return { s, gs, n: gs.length, ord: gs.filter(g => g.type === 'Order').length, inv: gs.filter(g => g.hasInv || g.type === 'Invoice').length, amt: ordSumInv(gs), disc: ordSumDisc(gs),
-    last: gs.reduce((x, g) => g.last > x ? g.last : x, ''), pdf: gs.filter(g => g.f === 'PDF kept').length, look: gs.filter(g => g.x).length }; }).sort((a, b) => b.n - a.n);
+    last: gs.reduce((x, g) => g.last > x ? g.last : x, ''), pdf: gs.filter(g => ordIsKept(g)).length, look: gs.filter(g => g.x).length }; }).sort((a, b) => b.n - a.n);
 }
 function ordStatusPill(g) {
   if (g.x) return `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" title="${ordEsc('Needs a look: ' + g.x)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.st)}</button>`;
   return `<span class="ord-st${/Invoiced|Delivered|Shipped|Confirmed/.test(g.st) ? ' ord-ok' : ''}">${ordEsc(g.st)}</span>`;
 }
-const ordRcPill = g => `<button type="button" class="ord-rc${g.f === 'PDF kept' ? ' ord-pdf' : ''}" data-k="${ordEsc(g.key)}" title="Open this order: items, steps and emails" onclick="ordOpen(this.dataset.k)">${ordEsc(g.f)}</button>`;
+const ordRcPill = g => `<button type="button" class="ord-rc${ordIsKept(g) ? ' ord-pdf' : ''}" data-k="${ordEsc(g.key)}" title="Open this order: items, steps and emails" onclick="ordOpen(this.dataset.k)">${ordEsc(g.f)}</button>`;
 const ordDiscCell = g => g.disc ? `<button type="button" class="ord-dsc" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">- AED ${ordAed(g.disc)}</button>` : g.discPct ? `<button type="button" class="ord-dsc ord-warn" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">${g.discPct}% applied</button>` : '<span class="ord-muted">-</span>';
 const ordItemsCell = g => g.items ? `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">${g.items} item${g.items === 1 ? '' : 's'}${g.units && g.units !== g.items ? ', ' + g.units + ' units' : ''}</button>`
   : g.oos.length ? `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">out of stock list</button>` : g.type === 'Order' ? '<span class="ord-muted">in the file</span>' : '<span class="ord-muted">-</span>';
@@ -328,11 +330,11 @@ window.addEventListener('scroll', () => { if (ordRaf || !ordOnOrders()) return; 
 // ── HOW IT IS WORKED OUT, ABOUT THIS PAGE: centred, one short idea per card (component 36) ──
 function ordPaintHow() {
   const pick = document.getElementById('ordPick'); if (!pick) return;
-  const gs = ordScope(), lk = gs.filter(g => g.x), pdf = gs.filter(g => g.f === 'PDF kept');
+  const gs = ordScope(), lk = gs.filter(g => g.x), pdf = gs.filter(g => ordIsKept(g));
   const HOW = {
     look: ['Needs a look', 'A rule puts it here: an overdue statement, a wrong discount, items out of stock, or no invoice after a week.', ordFig(lk.length, 'Needs a look', { look: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' tracked', 'New rules are added by Kate.'],
     inv: ['Invoiced and discounts', 'The invoice total of each order, counted once. A discount is what the supplier took off.', ordMoney(ordSumInv(gs), 'Invoices with an amount', { kind: 'inv', amt: 1 }) + ' invoiced<br>' + ordMoney(ordSumDisc(gs), 'Orders with a discount', { disc: 1 }) + ' in discounts', 'An invoice with no amount in the email shows a dash.'],
-    rec: ['Receipts kept', 'A PDF in the email is kept and opens on this page.', ordFig(pdf.length, 'With a PDF kept', { file: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' have a file', 'File in email means the PDF is attached but not kept here yet.']
+    rec: ['Receipts kept', 'A PDF or an Excel order form in the email is kept. A PDF opens here, an Excel form downloads.', ordFig(pdf.length, 'With a PDF kept', { file: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' have a file', 'File in email means the PDF is attached but not kept here yet.']
   };
   pick.innerHTML = Object.keys(HOW).map(k => `<button type="button" class="${k === ordHK ? 'on' : ''}" onclick="ordHK='${k}';ordPaintHow()">${ordEsc(HOW[k][0])}</button>`).join('');
   const h = HOW[ordHK];
@@ -365,7 +367,7 @@ function ordStepsHtml(g) {
 function ordBuyHtml(g) {
   const b = g.buy;
   let h = '';
-  if (!b) h += `<h4>What was bought</h4><p class="ord-muted">${g.docs.some(d => d.file_path) ? 'The items are in the PDF of this order. Open it under The emails below. This page could not read its lines.' : g.type === 'Order' ? 'The items are in the attached file (Excel or PDF), which this page does not read yet. It will list every product with its quantity and price.' : 'No items are listed in this email.'}</p>`;
+  if (!b) h += `<h4>What was bought</h4><p class="ord-muted">${g.docs.some(d => d.file_path) ? 'The items are in the file of this order. Open it under The emails below. This page could not read its lines.' : g.type === 'Order' ? 'The items are in the attached file (Excel or PDF), which this page does not read yet. It will list every product with its quantity and price.' : 'No items are listed in this email.'}</p>`;
   else {
     h += `<h4>What was bought</h4><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Price AED</th><th class="r">Total AED</th></tr></thead><tbody>` +
       b.lines.map(l => `<tr><td data-l="Product">${ordEsc(l.name)}${l.note ? ` <span class="ord-dnote">${ordEsc(l.note)}</span>` : ''}</td><td class="r" data-l="Qty">${l.qty == null ? '-' : ordEsc(l.qty)}</td><td class="r" data-l="Price AED">${l.unit == null ? '-' : ordAed(+l.unit)}</td><td class="r" data-l="Total AED">${l.total == null ? '-' : ordAed(+l.total)}</td></tr>`).join('') + '</tbody></table>';
@@ -378,34 +380,129 @@ function ordBuyHtml(g) {
   if (g.oos.length) h += '<h4>Out of stock, not supplied</h4><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Ordered</th><th class="r">Supplied</th></tr></thead><tbody>' + g.oos.map(l => `<tr><td data-l="Product">${ordEsc(l.name)}</td><td class="r" data-l="Ordered">${ordEsc(l.qty)}</td><td class="r" data-l="Supplied">0</td></tr>`).join('') + '</tbody></table>';
   return '<div class="ord-buy">' + h + '</div>';
 }
-function ordMsgHtml(d) {
-  const ours = d.kind === 'order' || d.kind === 'reply', files = (d.file_names || '').split(/;\s*/).filter(Boolean);
-  return `<div class="ord-msg"><div class="ord-mh"><b>${ordEsc(ORD_KINDNAME[d.kind] || d.kind)}</b><span>${ours ? 'from us to ' + ordEsc(d.supplier) : 'from ' + ordEsc(d.supplier)}</span><span>${ordEsc(ordTime(d.at))}</span></div>` +
-    (d.subject ? `<div class="ord-ms">${ordEsc(d.subject)}</div>` : '') + `<div class="ord-mb">${ordEsc(d.body || d.note || '')}</div>` +
-    (d.file_path ? `<div class="ord-ma"><button type="button" class="cm-pill ord-openpdf" data-p="${ordEsc(d.file_path)}" onclick="ordFile(this)">Open the PDF${d.file_name ? ' (' + ordEsc(d.file_name) + ')' : ''}</button></div>`
-      : files.length ? `<div class="ord-ma">${files.map(n => `<span class="ord-att">${ordEsc(n)}</span>`).join('')}</div>` : '') + '</div>';
+// ── THE KEPT FILES: a PDF shows INSIDE the dashboard, an Excel form downloads ────────
+// Kate, 19 Nov 2026: "ndi updated yung url, naka supabase pa rin". The file is downloaded here with the signed-in session (the storage policy order_files_read) and shown from a blob,
+// so the address bar never leaves trk-salon-os.com and no supabase.co link is ever shown. Same way the Recruitment page opens a CV. The bucket is private; Level 5 or the extra page orders.
+const ORD_FTYPE = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls: 'application/vnd.ms-excel' };
+const ordExt = n => (String(n || '').split('.').pop() || '').toLowerCase();
+// a stored extra file is named <timestamp>-<name with dashes for spaces>: show it as a person would write it
+const ordPretty = n => String(n || '').replace(/^\d+-/, '').replace(/-+/g, ' ').replace(/\s+\.(xlsx?|pdf)$/i, '.$1').trim();
+let ordBlobUrl = '', ordCur = null;
+
+// ── THE ORDER WINDOW, TWO COLUMNS (Kate, 19 Nov 2026) ────────────────────────────────
+// Left: when a PDF is kept, the PDF and nothing else (a switch brings back What was bought). No PDF: What was bought. Right, the last column: the emails, drawn like Gmail.
+const ordKindPdf = d => d.file_path && ordExt(d.file_name || d.file_path) === 'pdf';
+const ordHue = s => { let h = 0; String(s).split('').forEach(c => { h = (h * 31 + c.charCodeAt(0)) % 360; }); return h; };
+
+// a Gmail style attachment card: a small type tile, the file name, what a click does
+function ordAttCard(path, name) {
+  const nm = name || ordPretty(String(path).split('/').pop()), x = ordExt(nm), pdf = x === 'pdf';
+  return `<button type="button" class="ord-ac" data-p="${ordEsc(path)}" data-n="${ordEsc(nm)}" onclick="ordFile(this)" title="${pdf ? 'Show this PDF on the left' : 'Download this Excel form'}"><span class="ord-ai ${pdf ? 'ord-ai-pdf' : 'ord-ai-xls'}">${pdf ? 'PDF' : 'XLS'}</span><span class="ord-an">${ordEsc(nm)}</span><span class="ord-ak">${pdf ? 'Show' : 'Download'}</span></button>`;
 }
-// The supplier's PDF is kept in the private bucket order-files (migrations/orders_files.sql); a signed link that lasts an hour opens it. Level 5 or the extra page orders only.
-async function ordFile(b) {
-  const w = window.open('', '_blank');
+function ordMsgHtml(d, open) {
+  const ours = d.kind === 'order' || d.kind === 'reply', files = (d.file_names || '').split(/;\s*/).filter(Boolean);
+  const from = ours ? 'Tara Rose Salon' : d.supplier, to = ours ? d.supplier : 'Tara Rose Salon';
+  const snip = String(d.note || d.body || '').replace(/\s+/g, ' ').trim().slice(0, 140);
+  const att = d.file_path ? ordAttCard(d.file_path, d.file_name) + (d.kind === 'order' ? `<span class="ord-xtra" data-pre="${ordEsc(String(d.file_path).split('/')[0])}"></span>` : '')
+    : files.map(n => `<span class="ord-ac ord-ac-off" title="In the email, not kept here"><span class="ord-ai ord-ai-${/\.pdf$/i.test(n) ? 'pdf' : /\.xlsx?$/i.test(n) ? 'xls' : 'oth'}">${ordEsc((ordExt(n) || 'file').slice(0, 4).toUpperCase())}</span><span class="ord-an">${ordEsc(n)}</span></span>`).join('');
+  return `<div class="ord-gmm${open ? ' open' : ''}"><div class="ord-gmh" role="button" tabindex="0" onclick="this.parentNode.classList.toggle('open')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.parentNode.classList.toggle('open')}">` +
+    `<span class="ord-av" style="background:hsl(${ordHue(from)} 42% 40%)">${ordEsc(from.charAt(0).toUpperCase())}</span>` +
+    `<span class="ord-gmw"><span class="ord-gmf"><b>${ordEsc(from)}</b><i>${ordEsc(ORD_KINDNAME[d.kind] || d.kind)}</i></span><span class="ord-gmt">to ${ordEsc(to)}</span><span class="ord-gsn">${ordEsc(snip)}</span></span>` +
+    `<span class="ord-gmd">${ordEsc(ordTime(d.at))}</span></div>` +
+    `<div class="ord-gmb"><div class="ord-mb">${ordEsc(d.body || d.note || '')}</div>${att ? `<div class="ord-ma">${att}</div>` : ''}</div></div>`;
+}
+function ordThreadHtml(g) {
+  const subj = (g.docs.find(d => d.subject) || {}).subject || '';
+  return `<div class="ord-gm"><div class="ord-gms"><span>${ordEsc(subj || 'The emails')}</span><em>${g.docs.length}</em></div>${g.docs.map((d, i) => ordMsgHtml(d, i === g.docs.length - 1)).join('')}</div>`;
+}
+// the other Excel forms of an order email sit in order-files/<folder>/extra/ (orders-file-upload, x-part extra): list them under the main file
+async function ordLoadExtras(m) {
+  const spans = [...m.querySelectorAll('.ord-xtra[data-pre]')].filter(s => s.dataset.pre);
+  for (const s of spans) {
+    try {
+      const r = await sb.storage.from('order-files').list(s.dataset.pre + '/extra', { limit: 20, sortBy: { column: 'name', order: 'asc' } });
+      if (!document.body.contains(s)) return;
+      s.innerHTML = (r.data || []).filter(x => x && x.name && /\.(xlsx?|pdf)$/i.test(x.name)).map(x => ordAttCard(s.dataset.pre + '/extra/' + x.name, ordPretty(x.name))).join('');
+    } catch (e) { console.error(e); }
+  }
+}
+// A phone cannot be trusted to draw a PDF inside a page (Android Chrome downloads it, iPhone Safari shows page 1 only): there the Download button comes first and "Show it here" is the choice.
+const ordPdfInline = () => navigator.pdfViewerEnabled !== false && !(window.matchMedia('(max-width:760px)').matches && window.matchMedia('(pointer:coarse)').matches);
+function ordPdfHtml(name, url) {
+  return `<div class="ord-pbar"><span class="ord-pn">${ordEsc(name)}</span><a class="cm-pill" href="${url}" download="${ordEsc(name)}">Download</a></div>` +
+    (ordPdfInline() ? `<iframe class="ord-vframe" title="${ordEsc(name)}" src="${url}#navpanes=0&view=FitH"></iframe>`
+      : `<div class="ord-vcard"><p>This PDF may not show well on a phone.</p><p class="ord-muted">Download it, or try showing it here.</p><button type="button" class="cm-pill" onclick="ordShowInline(this)">Show it here</button></div>`);
+}
+function ordShowInline(btn) {
+  const box = btn.closest('#ordPanePdf'), a = box && box.querySelector('.ord-pbar a'); if (!box || !a) return;
+  btn.closest('.ord-vcard').outerHTML = `<iframe class="ord-vframe" title="PDF" src="${a.getAttribute('href')}#navpanes=0&view=FitH"></iframe>`;
+}
+// the left column: switch between the PDF and What was bought
+function ordPane(which) {
+  const p = document.getElementById('ordPanePdf'), b = document.getElementById('ordPaneBuy'); if (!p || !b) return;
+  p.hidden = which !== 'pdf'; b.hidden = which !== 'buy';
+  document.querySelectorAll('#ordSeg button').forEach(x => x.classList.toggle('on', x.dataset.w === which));
+}
+async function ordLoadPdf(path, name) {
+  const box = document.getElementById('ordPanePdf'); if (!box) return;
+  ordPane('pdf');
+  document.querySelectorAll('#ordPdfPick button').forEach(x => x.classList.toggle('on', x.dataset.p === path));
+  box.innerHTML = `<p class="ord-muted ord-vload">Opening ${ordEsc(name)}...</p>`;
   try {
-    const { data, error } = await sb.storage.from('order-files').createSignedUrl(b.dataset.p, 3600);
-    if (error || !data || !data.signedUrl) throw error || new Error('no link');
-    if (w) { w.opener = null; w.location.href = data.signedUrl; } else window.location.href = data.signedUrl;
-  } catch (e) { console.error(e); if (w) w.close(); if (typeof lgxToast === 'function') lgxToast('The PDF did not open. Try again, or ask Kate.', true); }
+    const r = await sb.storage.from('order-files').download(path);
+    if (r.error || !r.data) throw r.error || new Error('no file');
+    if (!document.getElementById('ordPanePdf')) return;   // the window was closed meanwhile
+    if (ordBlobUrl) { try { URL.revokeObjectURL(ordBlobUrl); } catch (e) { /* harmless */ } }
+    ordBlobUrl = URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
+    box.innerHTML = ordPdfHtml(name, ordBlobUrl);
+  } catch (e) { console.error(e); box.innerHTML = '<p class="ord-muted">That PDF did not open. Try again, or ask Kate.</p>'; }
+}
+// a click on an attachment card: a PDF goes to the left column, an Excel form downloads under its own name
+async function ordFile(b) {
+  const path = b.dataset.p, name = b.dataset.n || ordPretty(String(path).split('/').pop()), ext = ordExt(name) || ordExt(path);
+  if (ext === 'pdf') {
+    await ordLoadPdf(path, name);
+    const a = document.getElementById('ordPanePdf'); if (a && a.scrollIntoView) a.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return;
+  }
+  if (b.disabled) return;
+  b.disabled = true;
+  try {
+    const r = await sb.storage.from('order-files').download(path);
+    if (r.error || !r.data) throw r.error || new Error('no file');
+    const u = URL.createObjectURL(new Blob([r.data], { type: ORD_FTYPE[ext] || 'application/octet-stream' }));
+    const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => { try { URL.revokeObjectURL(u); } catch (e) { /* harmless */ } }, 5000);
+    if (typeof lgxToast === 'function') lgxToast('Downloaded ' + name + '. Open it in Excel.');
+  } catch (e) { console.error(e); if (typeof lgxToast === 'function') lgxToast('That file did not open. Try again, or ask Kate.', true); }
+  finally { b.disabled = false; }
 }
 function ordOpen(key) {
   const g = ordByKey[key]; if (!g) return;
   ordClose();
+  const pdfs = g.docs.filter(ordKindPdf), hasBuy = !!(g.buy || g.oos.length || g.discPct);
+  // the PDF to show first: the latest invoice, else the latest PDF
+  const first = pdfs.filter(d => d.kind === 'invoice').pop() || pdfs[pdfs.length - 1];
+  let left;
+  if (pdfs.length) {
+    left = (hasBuy ? `<div class="ord-seg" id="ordSeg"><button type="button" class="on" data-w="pdf" onclick="ordPane('pdf')">PDF</button><button type="button" data-w="buy" onclick="ordPane('buy')">What was bought</button></div>` : '') +
+      (pdfs.length > 1 ? `<div class="ord-seg" id="ordPdfPick">${pdfs.map(d => `<button type="button" class="${d === first ? 'on' : ''}" data-p="${ordEsc(d.file_path)}" data-n="${ordEsc(d.file_name || '')}" onclick="ordLoadPdf(this.dataset.p,this.dataset.n||ordPretty(this.dataset.p.split('/').pop()))">${ordEsc((ORD_KINDNAME[d.kind] || d.kind) + ', ' + ordDay(d.date))}</button>`).join('')}</div>` : '') +
+      `<div id="ordPanePdf" class="ord-pane"></div><div id="ordPaneBuy" class="ord-pane" hidden>${ordBuyHtml(g)}</div>`;
+  } else left = ordBuyHtml(g);
   const m = document.createElement('div');
   m.className = 'ord-modal'; m.id = 'ordModal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Order');
-  m.innerHTML = `<div class="ord-dlg"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><button type="button" class="cm-pill" onclick="ordClose()">Close</button></div>
-    <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}${ordBuyHtml(g)}<h4>The emails</h4>${g.docs.map(ordMsgHtml).join('')}</div></div>`;
+  m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><button type="button" class="cm-pill" onclick="ordClose()">Close</button></div>
+    <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div></div></div>`;
   m.addEventListener('click', e => { if (e.target === m) ordClose(); });
   document.body.appendChild(m);
   const c = m.querySelector('button'); if (c) c.focus();
+  ordLoadExtras(m);
+  if (first) ordLoadPdf(first.file_path, first.file_name || ordPretty(String(first.file_path).split('/').pop()));
 }
-function ordClose() { const m = document.getElementById('ordModal'); if (m) m.remove(); }
+function ordClose() {
+  const m = document.getElementById('ordModal'); if (m) m.remove();
+  if (ordBlobUrl) { const u = ordBlobUrl; ordBlobUrl = ''; setTimeout(() => { try { URL.revokeObjectURL(u); } catch (e) { /* harmless */ } }, 1000); }
+}
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ordModal')) { e.stopPropagation(); ordClose(); } }, true);
 
 // ── DOWNLOADS (report-export.js draws the XLSX and CSV buttons) ──────────────────────
