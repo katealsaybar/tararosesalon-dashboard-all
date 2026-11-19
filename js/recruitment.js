@@ -511,7 +511,8 @@
   var ICON_FILTER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 
   function laneOk(p) {
-    if (!S.lane) return bucket(p) !== 'done' || S.showDone;
+    // Kate, 19 Nov 2026 (Sepora was in Not now, so Find someone showed nobody): while a search is typed, Not now people are searched too and the count says so.
+    if (!S.lane) return bucket(p) !== 'done' || S.showDone || q.trim().length >= 2;
     if (S.lane === 'late') return isLate(p);
     return bucket(p) === S.lane;
   }
@@ -820,7 +821,7 @@
   function renderList() {
     var all = rows.filter(laneOk), list = sortedRows(listRows()), doneN = rows.filter(function (p) { return !p.is_test && bucket(p) === 'done'; }).length;
     var h = '<div class="rct-tcount">Showing ' + list.length + ' of ' + all.length +
-      (S.lane ? '' : (S.showDone ? '. Not now people are included. <button type="button" class="rct-linkbtn" data-act="toggledone">Hide them</button>' : '. Not now people (' + doneN + ') are hidden. <button type="button" class="rct-linkbtn" data-act="toggledone">Show them</button>')) +
+      (S.lane ? '' : (q.trim().length >= 2 ? '. Not now people are searched too' : S.showDone ? '. Not now people are included. <button type="button" class="rct-linkbtn" data-act="toggledone">Hide them</button>' : '. Not now people (' + doneN + ') are hidden. <button type="button" class="rct-linkbtn" data-act="toggledone">Show them</button>')) +
       '. ' + (closeNames.length ? nearLine() + ' ' : '') + 'Click a value to filter by it, or use the funnel on a column.' + (Object.keys(S.filters).length ? ' <button type="button" class="rct-linkbtn" data-act="clearfilters">Clear all filters</button>' : '') + '</div>';
     h += '<div class="rct-tbox" id="rctTbox"><table class="rct-table"><thead><tr>';
     COLS.forEach(function (c) {
