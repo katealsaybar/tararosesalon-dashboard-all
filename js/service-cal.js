@@ -305,7 +305,11 @@ async function renderServiceCal() {
     var rows = [], synced = null, first = null, last = null, led = {}, ledAll = {}, sh = {}, ut = {};
     res.forEach(function (x) { Object.assign(ut, x.ut); Object.assign(sh, x.sh); Object.assign(led, x.led); Object.assign(ledAll, x.ledAll); rows = rows.concat(x.rows); if (x.synced && (!synced || x.synced < synced)) synced = x.synced; first = !first || (x.first && x.first < first) ? x.first : first; last = !last || (x.last && x.last > last) ? x.last : last; });
     rows.forEach(function (r, i) { r.i = i; });
+<<<<<<< HEAD
     W = {rows:rows, led:led, ledAll:ledAll, sh:sh, ut:ut, hasUtil:Object.keys(ut).length > 0, synced:synced, first:first, last:last};
+=======
+    W = {rows:rows, led:led, ledAll:ledAll, sh:sh, synced:synced, first:first, last:last}; BEA = {};
+>>>>>>> 7ddde7b7 (Kate, 19 Nov 2026: Service Calendar tells stylists and beauticians apart. "Stylists working" counted everyone on the floor, beauticians included, so it said 10 at Khalifa City A when 7 were stylists and 3 beauticians. It now counts the hair side (7) and a new tile, Beauticians working (3), comes right after it; each opens its own list (name, services, chair time, then that person's services). The List view has the same pair, and the line under the title says "by 7 stylists and 3 beauticians". A beautician is told by the role on her profile (Beauty Therapist, Nail Technician and their seniors); someone with no profile is told by what she does, mostly beauty and nails services. Checked in the signed-in site for Khalifa City A on 19 Nov: 7 plus 3 is 10, 28 plus 42 services is 70, Kimberly Casas (Senior Nail Technician) sits with the beauticians. Search index, stamps and page dates refreshed, all checks pass.)
     render();
   }
 
@@ -431,6 +435,16 @@ async function renderServiceCal() {
   }
 
   /* ---- tiles */
+  /* Beauticians are told from stylists by the role on her profile (Beauty Therapist, Nail Technician and their seniors); a person with no profile is told by what she does: mostly beauty and nails services */
+  var BEA = {};
+  function beautician(sk){
+    if (BEA[sk] != null) return BEA[sk];
+    var nm = stName(sk), pf = typeof staffProfile === 'function' ? staffProfile(nm) : null, res;
+    if (pf && pf.role) res = /beauty|nail/i.test(pf.role);
+    else { var mine = W.rows.filter(function (r) { return r.sk === sk; }), b = mine.filter(function (r) { return r.cat === 'beauty' || r.cat === 'nails'; }).length; res = mine.length > 0 && b / mine.length >= 0.6; }
+    return (BEA[sk] = res);
+  }
+  function nStaff(rs){ var m = {}; rs.forEach(function (r) { m[r.sk] = 1; }); return Object.keys(m).length; }
   /* a tile opens the list behind its figure (Kate, 19 Nov 2026: "clickable numbers"); a tile with nothing behind it stays plain */
   function tile(lbl, big, sub, spec){
     var id = spec && typeof TRSD !== 'undefined' ? TRSD.reg(spec) : '';
@@ -459,7 +473,7 @@ async function renderServiceCal() {
     cols.push({ k: 'n', l: 'Services', t: 'num' }, { k: 'chair', l: 'Chair time (min)', t: 'num' });
     var out = keys.map(function (k) { var rs = by[k], sp = winServices(stName(k) + ', ' + title.toLowerCase(), sub, rs); return { st: stName(k), b: rs[0].b, n: rs.length, chair: chairOf(rs), _dn: { n: sp, chair: sp } }; });
     if (byChair) out.sort(function (a, b) { return b.chair - a.chair || a.st.localeCompare(b.st); });
-    var foot = { st: 'All stylists shown', b: '', n: rows.length, chair: out.reduce(function (t, x) { return t + x.chair; }, 0) };
+    var foot = { st: /beautician/i.test(title) ? 'All beauticians shown' : 'All stylists shown', b: '', n: rows.length, chair: out.reduce(function (t, x) { return t + x.chair; }, 0) };
     return { title: title, sub: sub, sk: 'svc-' + slug(title + ' ' + sub), views: [{ id: 'stylists', label: 'Stylists (' + keys.length + ')', load: async function () { return { cols: cols, rows: out, foot: foot }; } }] };
   }
   function winDays(title, sub, rows){
@@ -492,12 +506,15 @@ async function renderServiceCal() {
     } else if (S.view === 'list') {
       var all = rangeRows().filter(visible), st = {}; all.forEach(function (r) { st[r.sk] = 1; });
       var done = all.filter(function (r) { return r.state === 'PAID'; }), todo = all.filter(function (r) { return r.state !== 'PAID'; });
-      h = tile('Services', all.length, single() ? dlabel(S.from) : dlabel(S.from) + ' to ' + dlabel(S.to), all.length ? winServices('Services', sub, all) : null) + tile('Stylists', Object.keys(st).length, 'with at least one service', all.length ? winStylists('Stylists', sub, all) : null)
+      h = tile('Services', all.length, single() ? dlabel(S.from) : dlabel(S.from) + ' to ' + dlabel(S.to), all.length ? winServices('Services', sub, all) : null) + tile('Stylists', nStaff(all.filter(function (r) { return !beautician(r.sk); })), 'hair, with at least one service', all.some(function (r) { return !beautician(r.sk); }) ? winStylists('Stylists', sub, all.filter(function (r) { return !beautician(r.sk); })) : null)
+        + tile('Beauticians', nStaff(all.filter(function (r) { return beautician(r.sk); })), 'beauty and nails, with at least one service', all.some(function (r) { return beautician(r.sk); }) ? winStylists('Beauticians', sub, all.filter(function (r) { return beautician(r.sk); })) : null)
         + tile('Done', done.length, 'paid', done.length ? winServices('Done', sub, done) : null) + tile('Still to come', todo.length, 'booked or in the chair', todo.length ? winServices('Still to come', sub, todo) : null);
     } else {
       var v2 = dayRows().filter(visible), s2 = {}; v2.forEach(function (r) { s2[r.sk] = 1; });
       var bz = busiest(v2), perStaff = Object.keys(s2).reduce(function (t, n) { return t + union(v2.filter(function (r) { return r.sk === n; })); }, 0);
-      h = tile('Services', v2.length, dlabel(S.from) + ' · ' + brLabel(), v2.length ? winServices('Services', sub, v2) : null) + tile('Stylists working', Object.keys(s2).length, 'with at least one service', v2.length ? winStylists('Stylists working', sub, v2) : null)
+      var hairR = v2.filter(function (r) { return !beautician(r.sk); }), beaR = v2.filter(function (r) { return beautician(r.sk); });
+      h = tile('Services', v2.length, dlabel(S.from) + ' · ' + brLabel(), v2.length ? winServices('Services', sub, v2) : null) + tile('Stylists working', nStaff(hairR), 'hair, with at least one service', hairR.length ? winStylists('Stylists working', sub, hairR) : null)
+        + tile('Beauticians working', nStaff(beaR), 'beauty and nails, with at least one service', beaR.length ? winStylists('Beauticians working', sub, beaR) : null)
         + tile('Chair time booked', dur(perStaff), 'all stylists added up', v2.length ? winStylists('Chair time booked', sub, v2, true) : null) + tile('Busiest time', v2.length ? fmt(bz.at) : '-', v2.length ? bz.n + ' services at once' : '', v2.length ? winServices('Busiest time, ' + fmt(bz.at), sub, v2.filter(function (r) { return r.s <= bz.at && r.e > bz.at; })) : null) + otTile();
     }
     LVD.getElementById('cards').innerHTML = h;
@@ -824,13 +841,13 @@ async function renderServiceCal() {
       t = S.staff ? stName(S.staff) + ' did ' + vw.length + ' service' + (vw.length === 1 ? '' : 's') + ' over ' + Object.keys(dd).length + ' day' + (Object.keys(dd).length === 1 ? '' : 's') + ', ' + dfull(days()[0]) + ' to ' + dfull(days()[days().length - 1]) + '.' : 'No services in this week.';
     } else if (S.view === 'list') {
       var va = rangeRows().filter(visible), ss = {}; va.forEach(function (r) { ss[r.sk] = 1; });
-      t = va.length ? va.length + ' services by ' + Object.keys(ss).length + ' stylists, ' + scopeText() + '.' : 'Nothing booked for ' + scopeText() + '.';
+      t = va.length ? va.length + ' services by ' + nStaff(va.filter(function (r) { return !beautician(r.sk); })) + ' stylists and ' + nStaff(va.filter(function (r) { return beautician(r.sk); })) + ' beauticians, ' + scopeText() + '.' : 'Nothing booked for ' + scopeText() + '.';
     } else {
       var v2 = dayRows().filter(visible), s2 = {}; v2.forEach(function (r) { s2[r.sk] = 1; });
       if (!v2.length) t = 'Nothing booked on ' + dfull(S.from) + ' at ' + brLabel() + '.';
       else {
         var bz = busiest(v2), ls = otLines(), late = ls.filter(function (l) { return l.o.late > 0; });
-        t = dfull(S.from) + ', ' + brLabel() + ': ' + v2.length + ' services by ' + Object.keys(s2).length + ' stylists, busiest at ' + fmt(bz.at) + ' with ' + bz.n + ' at once.'
+        t = dfull(S.from) + ', ' + brLabel() + ': ' + v2.length + ' services by ' + nStaff(v2.filter(function (r) { return !beautician(r.sk); })) + ' stylists and ' + nStaff(v2.filter(function (r) { return beautician(r.sk); })) + ' beauticians, busiest at ' + fmt(bz.at) + ' with ' + bz.n + ' at once.'
           + (ls.length ? (late.length ? ' ' + late.length + ' of ' + ls.length + ' ran past the shift.' : ' Nobody ran past the shift.') : '');
       }
     }

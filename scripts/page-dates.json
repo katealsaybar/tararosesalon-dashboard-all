@@ -201,7 +201,11 @@
  },
  "servicecal": {
   "created": "2026-11-17",
+<<<<<<< HEAD
   "fp": "9a8b289eda83",
+=======
+  "fp": "0869003cf194",
+>>>>>>> 7ddde7b7 (Kate, 19 Nov 2026: Service Calendar tells stylists and beauticians apart. "Stylists working" counted everyone on the floor, beauticians included, so it said 10 at Khalifa City A when 7 were stylists and 3 beauticians. It now counts the hair side (7) and a new tile, Beauticians working (3), comes right after it; each opens its own list (name, services, chair time, then that person's services). The List view has the same pair, and the line under the title says "by 7 stylists and 3 beauticians". A beautician is told by the role on her profile (Beauty Therapist, Nail Technician and their seniors); someone with no profile is told by what she does, mostly beauty and nails services. Checked in the signed-in site for Khalifa City A on 19 Nov: 7 plus 3 is 10, 28 plus 42 services is 70, Kimberly Casas (Senior Nail Technician) sits with the beauticians. Search index, stamps and page dates refreshed, all checks pass.)
   "modified": "2026-11-19"
  },
  "services": {
