@@ -180,8 +180,8 @@
         title: 'Quick answers', text: 'These tiles answer the quick questions: who is off today, the next public holiday, and what is still waiting for approval in Bayzat.' },
       { id: 'lv-cal', need: 1, find: function () { return inShadow('leaveCalContent', '#cal'); },
         title: 'Tap a day', text: 'Each day shows who is off. Tap a day to see the names and the reason in the panel beside it. Use the arrows to change month and Today to come back.' },
-      { id: 'lv-menu', find: function () { return inShadow('leaveCalContent', '.lt thead th, .lt th'); },
-        title: 'Every heading has a menu', text: 'Tap a table heading to sort the column, or to filter it by value or by condition, the same way you would in Google Sheets.' },
+      { id: 'lv-menu', find: function () { return inShadow('leaveCalContent', '#det-sick > summary'); },
+        title: 'Sick leave and day offs', text: 'These two tables start closed. Tap the heading to open one: it shows 10 people a page, Rows lets you pick 20, 50 or 100, and every table heading has a menu like Google Sheets.' },
       { id: 'lv-export', find: function () { return inShadow('leaveCalContent', '.rex-bar'); },
         title: 'Need it in a sheet?', text: 'Each section has its own XLSX and CSV download.' }
     ],
