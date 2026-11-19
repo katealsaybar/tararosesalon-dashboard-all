@@ -613,3 +613,7 @@ body:has(.rct-bulk) #rctToast{bottom:96px}
   .rct-plact .rct-sc-pair{display:grid;grid-template-columns:minmax(0,1fr) auto}
   .rct-plact .rct-sc-pair .rct-pri{width:100%}
 }
+/* Send from the page (Kate, 19 Nov 2026) */
+.rct-sendbox{display:grid;gap:10px}
+.rct-okbox{background:var(--rct-greenbg);color:var(--rct-green);border-radius:12px;padding:10px 14px;font-size:14.5px;margin:0}
+.rct-sendto{margin:0;font-size:15.5px}

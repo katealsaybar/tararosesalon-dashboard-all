@@ -1,8 +1,9 @@
 /* Recruitment (Kate, 9 Nov 2026), a dashboard page in Tools (?view=recruitment) for Kate and Coach Emma only. One list of applicants from the recruitment and info
    inboxes: Worth a look (every check passed), Probably no (flagged, opened by reason), Waiting (no reply yet), In progress and Not now. Mockup approved 9 Nov 2026
    (docs/mockups/recruitment-triage.html in the cowork repo). Data: recruit_get() / recruit_set_stage() / recruit_settings_set() (migrations/recruitment.sql), filled
-   every 5 minutes by apps-script/sync-recruitment-mailbox.gs. The page never sends email: Shortlist opens a ready reply (copy it, or open it in Gmail from the
-   recruitment inbox) and Mark as invited moves the person to Screening. Stage names are the TRS Recruitment/ labels already in the inboxes.
+   every 5 minutes by apps-script/sync-recruitment-mailbox.gs. Each email the page drafts has a Send button (19 Nov 2026, see "Send from the page" below): it queues the email
+   and a small script inside the recruitment@ mailbox sends it, so people without that mailbox can send. Copy reply and Open in Gmail stay as the fallback. Shortlist
+   opens a ready reply and Mark as invited moves the person to Screening. Stage names are the TRS Recruitment/ labels already in the inboxes.
    Access: Level 5, or dashboard_users.extra_pages holds 'recruitment' (pages.js trsPageOpen); the database checks the same. Needs sb and TRS_LEVEL. */
 (function () {
   function main() { return document.getElementById('recruitmentContent'); }
@@ -1228,13 +1229,15 @@
     var rp = replyParts(p, false);
     var canMail = !!p.email && !p.bounced;
     openDlg('No for ' + esc(firstName(p.name)),
-      '<p>' + esc(p.name || 'This person') + ' is marked <b>Not now</b>. Nothing has been sent. To tell them, copy the reply and paste it into a new email from the recruitment inbox, or open Gmail with the address and subject ready.</p>' +
+      '<p>' + esc(p.name || 'This person') + ' is marked <b>Not now</b>. Nothing has been sent yet. Send the email from here, or copy the reply and paste it into a new email from the recruitment inbox, or open Gmail with the address and subject ready.</p>' +
       NO_WORDS() +
       (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : (!p.email ? '<p class="rct-amberbox">No email address on file.</p>' : '')) +
-      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="copyno" data-id="' + esc(p.id) + '">Copy reply</button>' +
+      sendBox(p, 'no') +
+      '<div class="rct-btns"><button type="button" class="rct-btn' + (sendReady() ? '' : ' rct-pri') + '" data-act="copyno" data-id="' + esc(p.id) + '">Copy reply</button>' +
       (canMail ? '<a class="rct-btn" href="' + esc(gmailUrl(p.email, rp.subject)) + '" target="_blank" rel="noopener">Open in Gmail</a>' : '<button type="button" class="rct-btn" disabled>Open in Gmail</button>') + '</div>' +
       '<div><div class="rct-lab">How the email looks</div>' + previewFrame(rp.html) + '</div>' +
       '<p class="rct-hint">Copy reply pastes with the formatting into Gmail. Sending stays your click.</p>');
+    sendLead = ''; loadSend(p.id, 'no');
   }
 
   function autoMailNote(p) {
@@ -1253,11 +1256,13 @@
       openDlg('Tell ' + esc(firstName(p.name)) + ' to keep their line open',
         '<div><div class="rct-lab">Reply, ready to send</div><pre class="rct-reply" id="rctReply">' + esc(t2) + '</pre><p class="rct-hint">In Gmail the Recruitment Team signature is added under Warm regards by itself.</p></div>' +
         (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : '') +
+        sendBox(p, 'shortlist') +
         '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="invite" data-id="' + esc(p.id) + '">Mark as invited</button><button type="button" class="rct-btn" data-act="copy">Copy reply</button></div>' +
         (p.email && !p.bounced ? '<a class="rct-btn rct-sm" href="' + esc(composeUrl(p.email, rp.subject, t2)) + '" target="_blank" rel="noopener">Open in Gmail from the recruitment inbox</a>' : '') +
         autoMailNote(p) +
         '<div><div class="rct-lab">How the automatic email looks</div>' + previewFrame(rp.html, 520) + '</div>' +
-        '<p class="rct-hint">The dashboard does not send this by hand. Send the reply (or let the automatic email go), then press Mark as invited so they move to Screening.</p>');
+        '<p class="rct-hint">Send the email from here (or let the automatic email go), then press Mark as invited so they move to Screening.</p>');
+      sendLead = ''; loadSend(p.id, 'shortlist');
       return;
     }
     var txt = fill(setting('invite_template', ''), p), hasLink = !!setting('booking_link', '');
@@ -1266,9 +1271,11 @@
       '<div><div class="rct-lab">Reply, ready to send</div><pre class="rct-reply" id="rctReply">' + esc(txt) + '</pre>' +
       (setting('templates_confirmed', false) ? '' : '<p class="rct-hint">Placeholder wording until you save your own under Booking link and replies. Every template goes through the brand review before it is used.</p>') + '</div>' +
       (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : '') +
+      sendBox(p, 'invite') +
       '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="invite" data-id="' + esc(p.id) + '">Mark as invited</button><button type="button" class="rct-btn" data-act="copy">Copy reply</button></div>' +
       (p.email && !p.bounced ? '<a class="rct-btn rct-sm" href="' + esc(composeUrl(p.email, 'Your application to Tara Rose', txt)) + '" target="_blank" rel="noopener">Open in Gmail from the recruitment inbox</a>' : '') +
-      '<p class="rct-hint">The dashboard does not send this invite. Send the reply, then press Mark as invited so they move to Screening.</p>');
+      '<p class="rct-hint">Send the invite from here (it goes with the Recruitment Team signature under the reply), then press Mark as invited so they move to Screening.</p>');
+    sendLead = ''; loadSend(p.id, 'invite');
   }
   // Only people someone has looked at: the reply says "I have reviewed your application", so it must be true for every one of them.
   function bulkReviewed(g) { return (noGroups()[g] || []).filter(isReviewed); }
@@ -1720,17 +1727,106 @@
     var rp = stageEmailParts(p, to); if (!rp) return;
     var canMail = !!p.email && !p.bounced;
     openDlg(esc(STAGE_LABEL[to]) + ': email for ' + esc(firstName(p.name)),
-      '<p>' + lead + ' Nothing has been sent. Copy the email into a new message from the recruitment inbox, or open Gmail with the address and subject ready.</p>' +
+      '<p>' + lead + ' Nothing has been sent yet. Send it from here, or copy the email into a new message from the recruitment inbox, or open Gmail with the address and subject ready.</p>' +
       (p.bounced ? '<p class="rct-amberbox">Their email bounced. Message them on WhatsApp instead.</p>' : (!p.email ? '<p class="rct-amberbox">No email address on file.</p>' : '')) +
-      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="copyst" data-to="' + esc(to) + '" data-id="' + esc(p.id) + '">Copy reply</button>' +
+      sendBox(p, to) +
+      '<div class="rct-btns"><button type="button" class="rct-btn' + (sendReady() ? '' : ' rct-pri') + '" data-act="copyst" data-to="' + esc(to) + '" data-id="' + esc(p.id) + '">Copy reply</button>' +
       (canMail ? '<a class="rct-btn" href="' + esc(gmailUrl(p.email, rp.subject)) + '" target="_blank" rel="noopener">Open in Gmail</a>' : '<button type="button" class="rct-btn" disabled>Open in Gmail</button>') + '</div>' +
       '<div><div class="rct-lab">How the email looks</div>' + previewFrame(rp.html) + '</div>' +
       '<p class="rct-hint">Copy reply pastes with the formatting into Gmail. Sending stays your click.</p>');
+    sendLead = lead; loadSend(p.id, to);
   }
   async function showStageEmail(id, to, lead) {
     var p = personById(id); if (!p || !PE[to]) return;
     try { if (to === 'start_pending') await acceptUrl(p); } catch (e) { console.error(e); toast('The accept link did not load: ' + (e.message || 'try again')); return; }
     stageEmailDialog(p, to, lead || 'This is the email for <b>' + esc(STAGE_LABEL[to]) + '</b>.');
+  }
+  /* ---------- Send from the page (Kate, 19 Nov 2026) ----------
+     ate Jho, ate Frans and Coach Emma can open this page but not the recruitment@ mailbox, so each email dialog has a Send button. It asks the database to queue the email
+     (recruit_send_email, migrations/recruit_send_email_19nov.sql: the address is read from the person's row there, the access check is the same as every recruit_* function) and the
+     small sender script inside the recruitment@ mailbox (apps-script/send-recruitment-mail.gs) sends it from recruitment@ within a minute. The page holds no mail password.
+     Copy reply and Open in Gmail stay as the fallback. Real sends stay off until the setting send_email_enabled is true; Send me a test only ever goes to your own address. */
+  var SEND_LABEL = { shortlist: 'Shortlist (keep your line open)', invite: 'Shortlist invite', no: 'No', interview_pass: 'Interview passed', interview_fail: 'Interview not passed', trade_test: 'Trade test',
+    trade_fail: 'Trade test not passed', trade_pass: 'Trade test passed', offer_to_send: 'Offer letter coming', offer_sent: 'Offer letter sent', start_pending: 'Start date', start_accepted: 'Start date confirmed', hired: 'Welcome' };
+  var sendCtx = null, sendLead = '';
+  function sendOn() { return setting('send_email_enabled', false) === true; }
+  function addrOk(p) { return !!p.email && !p.bounced && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(p.email).trim()); }
+  function fdt(iso) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)).replace(',', ' at'); } catch (e) { return ''; } }
+  // the email exactly as it is shown and sent, or null when it cannot be built yet (the invite needs the booking link)
+  function emailFor(p, kind) {
+    if (kind === 'no') return replyParts(p, false);
+    if (kind === 'shortlist') return shortlistEmailParts(p);
+    if (kind === 'invite') {
+      if (!setting('booking_link', '')) return null;
+      return replyParts(p, false, null, fill(setting('invite_template', ''), p) + '\n\nWarm regards,', 'Your application to Tara Rose', { html: SL_SIG_HTML, text: SL_SIG_TEXT });
+    }
+    return stageEmailParts(p, kind);
+  }
+  // the Send box only exists once the migration is applied (the setting row is there); before that the dialogs look exactly as they did
+  function sendReady() { return settings.send_email_enabled != null; }
+  function sendBox(p, kind) { if (!sendReady()) return ''; return '<div class="rct-sendbox" id="rctSendBox" data-id="' + esc(p.id) + '" data-kind="' + esc(kind) + '"><p class="rct-hint">Checking whether this email was already sent.</p></div>'; }
+  async function loadSend(id, kind) {
+    var p = personById(id), box = document.getElementById('rctSendBox'); if (!p || !box) return;
+    var list = [], same = function () { var b = document.getElementById('rctSendBox'); return b && b.getAttribute('data-id') === String(p.id) && b.getAttribute('data-kind') === kind ? b : null; };
+    try {
+      var r = await sb.rpc('recruit_email_state', { p_id: p.id }); if (r.error) throw new Error(r.error.message);
+      list = (r.data || []).filter(function (x) { return x.kind === kind; });
+    } catch (e) {
+      console.error(e); if (!(box = same())) return;
+      box.innerHTML = '<p class="rct-amberbox">The page could not check whether this was already sent (' + esc(e.message || 'try again') + '). Copy reply and Open in Gmail still work.</p>'; return;
+    }
+    if (!(box = same())) return;
+    var live = list.filter(function (x) { return x.status !== 'failed'; })[0], last = list[0], h = '';
+    if (!addrOk(p)) h = '<p class="rct-amberbox">' + (p.bounced ? 'Their email bounced, so the page cannot send to them. Message them on WhatsApp instead.' : 'There is no email address on file, so the page cannot send to them.') + '</p>';
+    else if (!emailFor(p, kind)) h = '<p class="rct-amberbox">Set the booking link first (Booking link and replies), then this email can be sent.</p>';
+    else if (live && live.status === 'sent') h = '<p class="rct-okbox"><b>Already sent</b> to ' + esc(live.to) + ' on ' + esc(fdt(live.sent_at || live.at)) + ', by ' + esc(firstName(live.by)) + ', from the recruitment inbox. The page will not send it a second time.</p>';
+    else if (live) h = '<p class="rct-okbox"><b>Queued</b> by ' + esc(firstName(live.by)) + ' on ' + esc(fdt(live.at)) + '. It goes out from the recruitment inbox within a minute, and the page will not send it a second time.</p>';
+    else {
+      if (last && last.status === 'failed') h += '<p class="rct-amberbox">The last try did not send (' + esc(last.error || 'unknown error') + '). Look in the recruitment inbox Sent folder before you try again, in case it went.</p>';
+      if (!sendOn()) h += '<p class="rct-hint">Sending to applicants from this page is not switched on yet. You can still send yourself a test.</p>';
+      h += '<div class="rct-btns">' + (sendOn() ? '<button type="button" class="rct-btn rct-pri" data-act="sendask" data-id="' + esc(p.id) + '" data-kind="' + esc(kind) + '">' + (last && last.status === 'failed' ? 'Try sending again' : 'Send from the recruitment inbox') + '</button>' : '') +
+        '<button type="button" class="rct-btn" data-act="sendtest" data-id="' + esc(p.id) + '" data-kind="' + esc(kind) + '">Send me a test</button></div>';
+    }
+    box.innerHTML = h;
+  }
+  function sendBack() {
+    var c = sendCtx; sendCtx = null; if (!c) { closeDlg(); return; }
+    var p = personById(c.id); if (!p) { closeDlg(); return; }
+    if (c.kind === 'no') noDialog(p.id); else if (c.kind === 'shortlist' || c.kind === 'invite') shortDialog(p.id);
+    else stageEmailDialog(p, c.kind, c.lead || 'This is the email for <b>' + esc(SEND_LABEL[c.kind] || c.kind) + '</b>.');
+  }
+  // the confirm step: who it goes to, the address and the email as it will look, before anything is queued
+  function sendAsk(id, kind) {
+    var p = personById(id), rp = p && emailFor(p, kind); if (!p || !rp || !addrOk(p)) return;
+    sendCtx = { id: p.id, kind: kind, lead: sendLead };
+    openDlg('Send to ' + esc(firstName(p.name)) + '?',
+      '<p class="rct-sendto">To <b>' + esc(p.name || 'this person') + '</b> at <b>' + esc(String(p.email).trim()) + '</b></p>' +
+      (p.is_test ? '<p class="rct-amberbox">This is a Test row, so the email goes to your own address instead, marked [TEST].</p>' : '') +
+      '<p class="rct-hint">From the recruitment inbox, so a reply lands there. Subject: <b>' + esc(rp.subject) + '</b></p>' +
+      '<div><div class="rct-lab">The email, exactly as it will arrive</div>' + previewFrame(rp.html, 400) + '</div>' +
+      '<p class="rct-amberbox" id="rctSendSay" hidden></p>' +
+      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="sendgo" data-id="' + esc(p.id) + '" data-kind="' + esc(kind) + '">Send now</button><button type="button" class="rct-btn" data-act="sendback">Back, do not send</button></div>');
+  }
+  async function sendGo(id, kind, test, btn) {
+    var p = personById(id), rp = p && emailFor(p, kind), say = document.getElementById('rctSendSay'), was = btn ? btn.textContent : '';
+    if (!p || !rp) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending'; }
+    var fail = function (m) { if (say) { say.hidden = false; say.textContent = m; } else toast(m); if (btn) { btn.disabled = false; btn.textContent = was; } };
+    try {
+      var r = await sb.rpc('recruit_send_email', { p_id: p.id, p_kind: kind, p_subject: rp.subject, p_html: rp.html, p_text: rp.textFull || rp.text, p_test: !!test });
+      if (r.error) throw new Error(r.error.message);
+      var d = r.data || {};
+      if (d.queued) {
+        if (!d.test) { p.edited_by = me; p.edited_at = new Date().toISOString(); p.edited_what = 'Pressed Send on the ' + (SEND_LABEL[kind] || kind) + ' email to the applicant'; }
+        toast(d.test ? 'A test goes to ' + d.to + ' within a minute.' : 'Queued. It goes to ' + firstName(p.name) + ' from the recruitment inbox within a minute.');
+        if (test) { if (btn) { btn.disabled = false; btn.textContent = was; } } else sendBack();
+        return;
+      }
+      if (d.reason === 'already_sent') { toast('That email was already sent by ' + firstName(d.by) + ' on ' + fdt(d.at) + '. Nothing new was sent.'); sendBack(); return; }
+      fail(d.reason === 'off' ? 'Sending from the page is not switched on yet. Nothing was sent. Copy reply and Open in Gmail still work.' :
+        d.reason === 'bounced' ? 'Their email bounced, so nothing was sent.' : d.reason === 'no_email' ? 'There is no email address on file, so nothing was sent.' :
+        d.reason === 'no_own_address' ? 'The page could not find your own sign-in address for the test.' : 'Nothing was sent (' + String(d.reason || 'unknown').replace(/_/g, ' ') + ').');
+    } catch (e) { console.error(e); fail('That did not send: ' + (e.message || 'try again') + '. Nothing was sent. Copy reply and Open in Gmail still work.'); }
   }
   // Kate, 17 Nov 2026 ("super bagal i click. pls fix"): with 100 rows the page had about 370 <select> boxes, and the site's pill-select script rebuilt every one of them (a button, a menu
   // watcher and a layout read each) after every click, so one click took 2 to 3.5 seconds. These four dropdowns are now drawn directly as the same pill button the site draws, carrying only the
@@ -2219,6 +2315,10 @@
       else if (a === 'bulk') bulkDialog(g);
       else if (a === 'bulkgo') { var ids = bulkReviewed(g).map(function (x) { return x.id; }); if (ids.length && await setStage(ids, 'not_now', 'Not now for ' + pl(ids.length, 'person', 'people') + '.')) closeDlg(); }
       else if (a === 'copy') { var r = document.getElementById('rctReply'); try { await navigator.clipboard.writeText(r ? r.textContent : ''); t.textContent = 'Copied'; } catch (err) { t.textContent = 'Select the text and copy'; } }
+      else if (a === 'sendask') sendAsk(id, t.getAttribute('data-kind'));
+      else if (a === 'sendgo') await sendGo(id, t.getAttribute('data-kind'), false, t);
+      else if (a === 'sendtest') await sendGo(id, t.getAttribute('data-kind'), true, t);
+      else if (a === 'sendback') sendBack();
       else if (a === 'copyno') { var rp1 = replyParts(p, false), res1 = await copyRich(rp1.htmlCopy, rp1.text); t.textContent = res1 === 'rich' ? 'Copied, with formatting' : res1 === 'plain' ? 'Copied as plain text' : 'Copy did not work here'; }
       else if (a === 'copybulk') { var rp2 = replyParts(null, true), res2 = await copyRich(rp2.htmlCopy, rp2.text); t.textContent = res2 === 'rich' ? 'Reply copied, with formatting' : res2 === 'plain' ? 'Reply copied as plain text' : 'Copy did not work here'; }
       else if (a === 'copyemails') { var em = bulkReviewed(g).map(function (x) { return x.email; }).filter(Boolean).join(', '); try { await navigator.clipboard.writeText(em); t.textContent = 'Copied'; } catch (err) { t.textContent = 'Copy did not work here'; } }
