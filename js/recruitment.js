@@ -620,8 +620,17 @@
     }).join('') + '</div>';
   }
   function n0(v) { return Number(v).toLocaleString('en-GB'); }
+  // The site is served by GitHub Pages, which lets a browser keep a page and its files for 10 minutes, so after a push a tab can hold the new script with an OLD stylesheet (Kate, 19 Nov 2026: the strip showed
+  // as bare white boxes). If the strip has none of its styles, fetch the current stylesheet once under a fresh address; it is added last, so it wins.
+  var plCssHealed = false;
+  function plCssCheck(s) {
+    if (plCssHealed || getComputedStyle(s).position === 'sticky') return;
+    plCssHealed = true;
+    var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/recruitment.css?fresh=' + Date.now(); document.head.appendChild(l);
+  }
   function plStick() {
     var s = document.getElementById('rctStrip'); if (!s) return;
+    plCssCheck(s);
     var tb = document.getElementById('topbar'), top = tb ? Math.max(0, tb.getBoundingClientRect().bottom) : 0;
     var jn = document.querySelector('#view-recruitment .jn-rail'); if (jn && jn.getClientRects().length) top = Math.max(top, jn.getBoundingClientRect().bottom);
     s.style.setProperty('--rct-st', Math.round(top) + 'px');
