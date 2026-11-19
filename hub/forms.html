@@ -40,6 +40,14 @@
     main.innerHTML = '<p class="kb-msg">This page isn’t open to your account. <a href="/hub/">Back to Team Home</a></p>';
   }
   function size(b) { return b ? Math.round(b / 1024) + ' KB' : ''; }
+  // Dates read like 03 May 2026 (Dubai day), the same as the chapter pages.
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function when(ts) {
+    var d = new Date(ts);
+    if (!ts || isNaN(d.getTime())) return '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(new Date(d.getTime() + 4 * 3600000).toISOString());
+    return m[3] + ' ' + MON[+m[2] - 1] + ' ' + m[1];
+  }
   // A bytea comes back from PostgREST as "\x" followed by hex.
   function bytes(hex) {
     hex = String(hex || '').replace(/^\\x/, '');
@@ -82,7 +90,7 @@
 
   KB.ready.then(async function () {
     if (KB.allowed.indexOf('hr-forms') < 0) { notFound(); return; }   // also "View as" below Level 2
-    var r = await KB.client.from('kb_files').select('code,grp,title,subtitle,blurb,filename,pages,bytes,sort,note,href')
+    var r = await KB.client.from('kb_files').select('code,grp,title,subtitle,blurb,filename,pages,bytes,sort,note,href,updated_at')
       .eq('section', 'hr-forms').order('sort');
     if (r.error || !r.data || !r.data.length) { notFound(); return; }
     var groups = [], by = {};
@@ -105,6 +113,8 @@
     main.innerHTML =
       KB.titleIcon('hr-forms', 'HR Forms &amp; Waivers') +
       '<p class="kb-meta">' + r.data.filter(function (f) { return f.grp !== POLICY; }).length + ' fillable A4 forms. Fill one in on screen and save it, or print it and fill it in by hand, then file the signed copy. The booking and deposit policy and the client pages sit under Policies &amp; client pages.</p>' +
+      // Kate, 19 Nov 2026: "wala rin tong date created and date modified". The page started on 5 Oct 2026; modified is the newest form change.
+      '<p class="kb-meta">Date created: 05 Oct 2026. Date modified: ' + when(r.data.reduce(function (m, f) { return f.updated_at > m ? f.updated_at : m; }, '')) + '.</p>' +
       (nCheck ? '<p class="kb-legend"><span class="kb-flag" style="margin:0">To check</span>' + nCheck + ' forms have a question still being confirmed.' +
         '<button type="button" id="fmOnlyCheck" aria-pressed="' + only + '">' + (only ? 'Show all forms' : 'Show only these') + '</button></p>' : '') +
       '<div class="fm-switch" role="group" aria-label="Which forms">' + groups.map(function (g, i) {
@@ -119,7 +129,7 @@
           var notes = flagged(f) ? f.note.split('\n').map(function (x) { return '<span class="fm-note">' + esc(x.replace(/^Being confirmed:\s*/i, '').replace(/^./, function (ch) { return ch.toUpperCase(); })) + '</span>'; }).join('') : '';
           return '<div class="kb-row fm-row"><span class="fm-code">' + esc(f.code) + '</span>' +
             '<span class="kb-row-tx"><b>' + esc(t) + (flagged(f) ? '<span class="kb-flag">To check</span>' : '') + '</b><span>' + esc(f.blurb || '') + '</span>' + notes + '</span>' +
-            (f.href ? '<span class="kb-row-n">Web page</span>' : '<span class="kb-row-n">' + (f.pages || 1) + (f.pages > 1 ? ' pages' : ' page') + ' · ' + size(f.bytes) + '</span>') +
+            (f.href ? '<span class="kb-row-n">Web page</span>' : '<span class="kb-row-n">' + (f.pages || 1) + (f.pages > 1 ? ' pages' : ' page') + ' · ' + size(f.bytes) + '<br>Modified ' + when(f.updated_at) + '</span>') +
             (f.href
               ? '<span class="fm-acts"><a class="fm-btn fm-dl" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(f.href) + '" target="_blank" rel="noopener">Open page</a></span></div>'
               : '<span class="fm-acts"><button type="button" class="fm-btn" data-act="open" data-code="' + esc(f.code) + '"' + (f.grp === POLICY ? '>View' : ' title="Opens the form to type in. Save it with the download button in the PDF viewer.">Fill in') + '</button>' +

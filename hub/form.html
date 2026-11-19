@@ -43,6 +43,13 @@
   var main = document.getElementById('kbMain'), esc = KB.esc;
   if (/\.html$/.test(location.pathname)) history.replaceState(null, '', location.pathname.replace(/\.html$/, '') + location.search);
   function msg(t) { main.innerHTML = '<p class="kb-msg">' + t + ' <a href="/hub/forms">Back to HR Forms &amp; Waivers</a></p>'; }
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function when(ts) {   // 03 May 2026, Dubai day
+    var d = new Date(ts);
+    if (!ts || isNaN(d.getTime())) return '';
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(new Date(d.getTime() + 4 * 3600000).toISOString());
+    return m[3] + ' ' + MON[+m[2] - 1] + ' ' + m[1];
+  }
   // A bytea comes back from PostgREST as "\x" followed by hex.
   function bytes(hex) {
     hex = String(hex || '').replace(/^\\x/, '');
@@ -53,13 +60,14 @@
   KB.ready.then(async function () {
     var code = (new URLSearchParams(location.search).get('code') || '').toUpperCase();
     if (!/^[A-Z]{2}-\d{2}$/.test(code)) { msg('That form isn’t here.'); return; }
-    var r = await KB.client.from('kb_files').select('code,title,filename,pdf').eq('code', code).maybeSingle();
+    var r = await KB.client.from('kb_files').select('code,title,filename,pdf,updated_at').eq('code', code).maybeSingle();
     if (r.error || !r.data || !r.data.pdf) { msg('That form isn’t open to your account, or it isn’t here.'); return; }
     var f = r.data, url = URL.createObjectURL(new Blob([bytes(f.pdf)], { type: 'application/pdf' }));
     var name = f.code + ' ' + f.title;
     document.title = name + ' · Team Home';
     main.innerHTML =
       '<div class="fv-bar"><a href="/hub/forms">← HR Forms &amp; Waivers</a><b>' + esc(name) + '</b></div>' +
+      '<p class="kb-meta">Date modified: ' + when(f.updated_at) + '.</p>' +
       '<iframe class="fv-frame" title="' + esc(name) + '" src="' + url + '"></iframe>';
   });
 })();
