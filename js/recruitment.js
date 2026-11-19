@@ -696,11 +696,11 @@
   function urlVal(col, v) { return col === 'asg' && v === 'Nobody yet' ? 'nobody' : urlSlug(v); }
   var URL_BY_NAME = {};
   COLS.forEach(function (c) { if (c.nofilter || !c.t) return; var n = urlSlug(c.t); if (n !== 'tile' && n !== 'sort' && n !== 'cand' && n !== 'view') URL_BY_NAME[n] = c.k; });
-  var urlPending = null, urlCand = null, urlMiss = {};   // what the address brought: held until the rows are in (and the person to open, below)
+  var urlPending = null, urlCand = null, urlOpenCv = false, urlMiss = {};   // what the address brought: held until the rows are in (and the person to open, below)
   (function readUrl() {
     try {
       var q = new URLSearchParams(location.search), f = {}, keep = [], any = false, tile = q.get('tile'), sort = q.get('sort'), sv = null;
-      urlCand = q.get('cand');
+      urlCand = q.get('cand'); urlOpenCv = q.get('opencv') === '1';
       Object.keys(URL_BY_NAME).forEach(function (n) {
         var raw = q.get(n); if (raw === null) return;
         var vals = raw.split(/[\s+,]+/).filter(Boolean); if (!vals.length) return;
@@ -1256,6 +1256,9 @@
   var CV_TYPE = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
   var cvUrlLive = '';
   function cvDownloadName(p, ext) { return 'CV - ' + (String(p.name || 'applicant').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 60) || 'applicant') + '.' + ext; }
+  // Kate, 19 Nov 2026: "Open in a new tab" shows a blob: address that only exists in her own browser, so pasting it to ate Jho gave a dead link. The CV stays in the private bucket (never a public or supabase.co link);
+  // the shareable link is the page's own: ?view=recruitment&cand=<id>&opencv=1 opens that person and their CV for anyone who can open Recruitment (ate Jho, ate Frans, Coach Emma, Kate).
+  function cvShareLink(p) { return 'https://trk-salon-os.com/?view=recruitment&cand=' + encodeURIComponent(p.id) + '&opencv=1'; }
   async function openCvFile(id) {
     var p = personById(id); if (!p || !p.cv_file) return;
     var ext = String(p.cv_file_name || p.cv_file).split('.').pop().toLowerCase(); if (!CV_TYPE[ext]) ext = 'pdf';
@@ -1272,7 +1275,8 @@
       }
       openDlg('CV: ' + esc(p.name || 'applicant'),
         '<p class="rct-pasteacts"><a class="rct-btn rct-sm" href="' + cvUrlLive + '" download="' + dl + '">Download</a>' +
-        '<a class="rct-btn rct-sm" href="' + cvUrlLive + '" target="_blank" rel="noopener">Open in a new tab</a></p>' +
+        '<a class="rct-btn rct-sm" href="' + cvUrlLive + '" target="_blank" rel="noopener">Open in a new tab</a>' +
+        '<button type="button" class="rct-btn rct-sm" data-act="cvlink" data-id="' + esc(p.id) + '" title="A link to share on WhatsApp. Whoever opens it signs in to the dashboard first, and the CV opens for them.">Copy link to share</button></p>' +
         (ext === 'pdf' ? '<iframe class="rct-cvframe" title="CV" src="' + cvUrlLive + '"></iframe>' : '<img class="rct-cvimg" alt="CV" src="' + cvUrlLive + '">'));
       dlg().classList.add('rct-wide');
     } catch (e) { console.error(e); toast('That CV did not open: ' + (e.message || 'try again')); }
@@ -2065,6 +2069,7 @@
       else if (a === 'notapp') setNotApplicant(id, true);
       else if (a === 'notappback') setNotApplicant(id, false);
       else if (a === 'cvfile') openCvFile(id);
+      else if (a === 'cvlink') { try { await navigator.clipboard.writeText(cvShareLink(p)); t.textContent = 'Link copied'; toast('Link copied. Whoever opens it signs in to the dashboard, and ' + firstName(p && p.name) + "'s CV opens for them."); } catch (err) { t.textContent = 'Copy did not work here'; } }
       else if (a === 'rename') renameDialog(id);
       else if (a === 'hist') showHistory(id);
       else if (a === 'assign') assignTo(id, false);
@@ -2158,6 +2163,7 @@
       if (cp && !openRows[cp.id] && !renderRecruitment.__candDone) {
         renderRecruitment.__candDone = true; S.lane = null; S.filters = {}; openRows[cp.id] = true; render();
         var cel = main() && main().querySelector('[data-id="' + cp.id + '"]'); if (cel && cel.scrollIntoView) cel.scrollIntoView({ block: 'center' });
+        if (urlOpenCv && cp.cv_file) openCvFile(cp.id);
       }
     } catch (e) { /* the link is a convenience, never an error */ }
   };
