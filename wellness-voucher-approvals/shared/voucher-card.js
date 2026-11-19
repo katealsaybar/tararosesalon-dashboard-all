@@ -21,7 +21,7 @@
   // two dates and is the one that actually refuses.
   // issuesUntil is a catch-up window after the close, for late sales. Purchase dates may run up
   // to it, so issue_voucher() holds the same date (sql/voucher_catchup_window.sql, 2 Nov 2026).
-  T.CAMPAIGN = { opens:'2026-01-01', closes:'2026-10-31', issuesUntil:'2026-11-09' };
+  T.CAMPAIGN = { opens:'2026-01-01', closes:'2026-12-31', issuesUntil:'2026-12-31' };
 
   T.BRANCHES = {
     SAA:{name:'Mamsha al Saadiyat', emirate:'Abu Dhabi'},
