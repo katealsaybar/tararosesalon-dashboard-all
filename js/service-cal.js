@@ -305,11 +305,7 @@ async function renderServiceCal() {
     var rows = [], synced = null, first = null, last = null, led = {}, ledAll = {}, sh = {}, ut = {};
     res.forEach(function (x) { Object.assign(ut, x.ut); Object.assign(sh, x.sh); Object.assign(led, x.led); Object.assign(ledAll, x.ledAll); rows = rows.concat(x.rows); if (x.synced && (!synced || x.synced < synced)) synced = x.synced; first = !first || (x.first && x.first < first) ? x.first : first; last = !last || (x.last && x.last > last) ? x.last : last; });
     rows.forEach(function (r, i) { r.i = i; });
-<<<<<<< HEAD
-    W = {rows:rows, led:led, ledAll:ledAll, sh:sh, ut:ut, hasUtil:Object.keys(ut).length > 0, synced:synced, first:first, last:last};
-=======
-    W = {rows:rows, led:led, ledAll:ledAll, sh:sh, synced:synced, first:first, last:last}; BEA = {};
->>>>>>> 7ddde7b7 (Kate, 19 Nov 2026: Service Calendar tells stylists and beauticians apart. "Stylists working" counted everyone on the floor, beauticians included, so it said 10 at Khalifa City A when 7 were stylists and 3 beauticians. It now counts the hair side (7) and a new tile, Beauticians working (3), comes right after it; each opens its own list (name, services, chair time, then that person's services). The List view has the same pair, and the line under the title says "by 7 stylists and 3 beauticians". A beautician is told by the role on her profile (Beauty Therapist, Nail Technician and their seniors); someone with no profile is told by what she does, mostly beauty and nails services. Checked in the signed-in site for Khalifa City A on 19 Nov: 7 plus 3 is 10, 28 plus 42 services is 70, Kimberly Casas (Senior Nail Technician) sits with the beauticians. Search index, stamps and page dates refreshed, all checks pass.)
+    W = {rows:rows, led:led, ledAll:ledAll, sh:sh, ut:ut, hasUtil:Object.keys(ut).length > 0, synced:synced, first:first, last:last}; BEA = {};
     render();
   }
 
