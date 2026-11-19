@@ -591,8 +591,18 @@
           '<span class="rct-plbar"><i style="width:' + Math.round(100 * r.avg / mx) + '%"></i><u style="left:' + Math.round(100 * r.plan / mx) + '%" title="Plan: ' + r.plan + ' days"></u></span>' +
           '<span class="rct-plwf"><b>average ' + Math.round(r.avg) + ' days</b> · plan ' + r.plan + ' · ' + r.late + ' past plan</span></button>';
       }).join('') + '</div></section>';
-    return h;
+    // the mini nav: from 1500px a vertical rail in the left gutter (the page keeps its left edge, the board grows to the right); below that the shell's row of chips (jump-nav.js, data-jn)
+    var rail = '<aside class="rct-gutrail" aria-label="On this page"><nav class="rct-nav" aria-label="On this page"><div class="rct-navk">On this page</div>' +
+      [['jn-recruitment-pipeline', 'Pipeline'], ['jn-recruitment-hired-and-closed', 'Hired and closed'], ['jn-recruitment-how-long-people-wait', 'How long people wait']].map(function (x) { return '<a href="#' + x[0] + '" data-s="' + x[0] + '" onclick="lgJump(event,\'' + x[0] + '\')">' + x[1] + '</a>'; }).join('') + '</nav></aside>';
+    return '<div class="rct-shell">' + rail + h + '</div>';
   }
+  function plSpy() {
+    var r = document.querySelector('.rct-gutrail'); if (!r || r.offsetParent === null) return;
+    var links = [].slice.call(r.querySelectorAll('a')), cur = null, line = Math.max(220, innerHeight * 0.45), bottom = innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
+    links.forEach(function (a) { var el = document.getElementById(a.getAttribute('data-s')); if (el && el.getBoundingClientRect().top <= (bottom ? innerHeight - 40 : line)) cur = a; });
+    links.forEach(function (a) { a.classList.toggle('on', a === cur); });
+  }
+  window.addEventListener('scroll', plSpy, { passive: true });
   // the bar answers on hover (lift and glow are in the css): a small card with the sentence from the row's own numbers; a tap does the same on a phone (Kate, 19 Nov 2026)
   var plHC = null, plHT = null;
   function plHov(row, x) {

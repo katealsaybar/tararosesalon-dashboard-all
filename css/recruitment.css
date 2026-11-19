@@ -486,8 +486,19 @@ body:has(.rct-bulk) #rctToast{bottom:96px}
 @media (max-width:760px){.rct-plcard .rct-asg,.rct-plcard .rct-asgx{font-size:13px}}
 .rct-plstages button{flex:0 0 auto}
 /* Pipeline uses the width of the screen (Kate, 19 Nov 2026): the shell holds the page and its masthead to 1180px, so six columns were squeezed to 165px. Same lift as body.svc-chrome. */
-@media(min-width:1240px){body.rct-wide .wrap,body.rct-wide .topbar-in{max-width:1760px}}
+@media(min-width:1240px){body.rct-wide .wrap,body.rct-wide .topbar-in{max-width:1760px;margin-left:calc((100% - 1180px) / 2);margin-right:24px}}   /* keeps its usual left edge and grows to the right, so the left gutter stays free for the mini nav (Kate, 19 Nov 2026) */
 .rct-plname{overflow-wrap:break-word}
 .rct-plact .rct-sc-pair{grid-template-columns:minmax(0,1fr)}
 @media(min-width:1700px){body.rct-wide .rct-plact .rct-sc-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 @media(max-width:1440px){.rct-plact .rct-sc-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.rct-shell{display:grid;gap:18px}
+.rct-gutrail{display:none}
+@media(min-width:1500px){
+  body.rct-wide .rct-shell{position:relative}
+  body.rct-wide .rct-gutrail{display:block;position:absolute;left:-196px;top:0;bottom:0;width:172px}
+  body.rct-wide .rct-gutrail .rct-nav{position:sticky;top:128px;display:block;padding:0}
+  .rct-gutrail .rct-navk{display:block;padding:0 0 9px;border:0;border-bottom:1px solid var(--text);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .rct-gutrail .rct-nav a{display:block;padding:8px 0 8px 13px;border:0;border-left:2px solid var(--border2);border-radius:0;white-space:normal;text-decoration:none;color:var(--muted);font-size:14px;line-height:1.35}
+  .rct-gutrail .rct-nav a.on{border-left-color:var(--text);color:var(--text);font-weight:600}
+  #view-recruitment .jn-rail{display:none}
+}
