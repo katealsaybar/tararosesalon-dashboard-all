@@ -383,3 +383,105 @@ body:has(.rct-bulk) #rctToast{bottom:96px}
 .rct-phok{color:var(--rct-green);font-weight:700}.rct-phx{color:var(--rct-red);font-weight:700}.rct-phbad{color:var(--rct-amber)}
 .rct-thph .rct-th{display:block;padding:6px 4px;text-align:center;white-space:normal;overflow-wrap:normal}
 .rct-thph .rct-th .rct-fbtn{display:block;margin:4px auto 0}
+
+/* Pipeline layout (Kate, 19 Nov 2026; mockup docs/mockups/recruitment-pipeline.html). Own prefix rct-pl, so Grid and List are untouched. */
+.rct-seg3{background:var(--surface2);padding:3px;gap:2px;border-radius:999px;overflow:visible}
+.rct-seg3 button{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;min-width:96px;padding:0 18px;border-radius:999px;font-size:13.5px}
+.rct-seg3 button+button{border-left:0}
+.rct-seg3 button[aria-pressed="true"]{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.rct-seg3 svg{width:16px;height:16px}
+.rct-seglab{line-height:1}
+.rct-pipe{display:grid;gap:12px}
+.rct-pltools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rct-pltools .rct-btn[aria-pressed="true"]{background:var(--surface2);border-color:var(--text);color:var(--text);font-weight:600}
+.rct-pltools .rct-btn[aria-pressed="true"]::before{content:"\2713\00a0";color:var(--rct-green)}
+.rct-plstages{display:none;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.rct-plstages::-webkit-scrollbar{display:none}
+.rct-plstages button{min-width:0;height:44px;padding:0 14px;white-space:nowrap;display:block;font-size:13.5px}
+.rct-plbd{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:start}
+.rct-plcol{background:var(--surface2);border-radius:14px;padding:10px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.rct-plch{display:flex;align-items:baseline;justify-content:space-between;gap:6px;padding:2px 2px 0}
+.rct-plch h3{font-family:inherit;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;line-height:1.25}
+.rct-plc{font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.rct-pls{font-size:12.5px;color:var(--muted);padding:0 2px 2px}
+.rct-plg{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:4px 2px 0}
+.rct-plcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;box-shadow:0 1px 2px rgba(26,26,26,.04)}
+.rct-plcard.rct-pl1{border-left:3px solid var(--rct-amber)}
+.rct-plcard.rct-pl2{border-left:3px solid var(--rct-red)}
+.rct-plt{display:flex;gap:8px;align-items:center;min-width:0}
+.rct-plt .rct-av{width:36px;height:36px;font-size:13px}
+.rct-plw{min-width:0}
+.rct-plname{border:0;background:none;padding:0;cursor:pointer;font:inherit;font-weight:600;line-height:1.25;text-align:left;overflow-wrap:anywhere;color:var(--text);text-decoration:underline;text-decoration-color:var(--border);text-underline-offset:3px}
+.rct-plname:hover{text-decoration-color:var(--text)}
+.rct-plw small{display:block;font-size:12.5px;color:var(--muted);line-height:1.3}
+.rct-plpills{gap:4px}
+.rct-plpills .rct-pill{padding:2px 10px;font-size:12.5px}
+.rct-plcv{border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;text-decoration:none}
+.rct-plcv:hover{outline:2px solid var(--accent)}
+.rct-plflag{font-weight:500;background:var(--surface2);color:var(--muted)}
+.rct-plact .rct-sc .rct-btn{display:flex;width:100%;min-height:32px;margin:0;justify-content:center;align-items:center;border-radius:999px;padding:2px 8px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.rct-plact .rct-sc-top .ps{flex:1 1 0;width:auto;min-width:0;margin:0}
+.rct-plact .ps-btn{min-height:32px;padding:4px 10px;font-size:12.5px;font-weight:600}
+.rct-plmore{min-height:44px;border-radius:999px;border:1px dashed var(--border);background:none;cursor:pointer;font-size:13.5px;color:var(--muted)}
+.rct-plnone{padding:14px 6px;text-align:center;font-size:13.5px;color:var(--muted)}
+.rct-pldn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rct-pldc{padding:14px 16px;min-width:0}
+.rct-pldc h4{margin:0;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.rct-plbig{font-family:'Playfair Display',Georgia,serif;font-size:30px;line-height:1.15;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.rct-pldl{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px}
+.rct-pldl span{display:inline-flex;gap:6px;align-items:baseline}
+.rct-pldl small{color:var(--muted);font-size:12.5px}
+.rct-plcl{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:0 14px;min-height:34px;cursor:pointer;font-size:13px}
+.rct-plcl:hover{border-color:var(--text)}
+.rct-plw2{display:grid;gap:4px}
+.rct-plwrow{display:grid;grid-template-columns:150px minmax(0,1fr) 270px;gap:12px;align-items:center;width:100%;text-align:left;border:0;background:none;padding:8px 10px;margin:0 -10px;border-radius:14px;cursor:pointer;color:inherit;font:inherit;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.rct-plwn b{display:block;font-weight:600}
+.rct-plwn small{display:block;font-size:12.5px;color:var(--muted)}
+.rct-plbar{height:6px;background:var(--surface2);border-radius:3px;position:relative}
+.rct-plbar i{display:block;height:100%;background:var(--accent);opacity:.85;border-radius:3px;transition:filter .18s ease,box-shadow .18s ease}
+.rct-plbar u{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--muted);border-radius:1px;text-decoration:none}
+.rct-plwf{font-size:14px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rct-plwf b{color:var(--text)}
+@media (hover:hover){
+  .rct-plwrow:hover,.rct-plwrow:focus-visible{transform:translateY(-3px);background:var(--surface);box-shadow:0 0 0 1px var(--accent),0 10px 28px -8px color-mix(in srgb,var(--accent) 55%,transparent);outline:0}
+  .rct-plwrow:hover .rct-plbar i{filter:brightness(1.2);box-shadow:0 0 12px var(--accent)}
+  .rct-plcard{transition:transform .18s ease,box-shadow .18s ease}
+  .rct-plcard:hover{transform:translateY(-3px);box-shadow:0 0 0 1px var(--accent),0 12px 28px -10px color-mix(in srgb,var(--accent) 50%,transparent)}
+  .rct-pldc{transition:transform .18s ease,box-shadow .18s ease}
+  .rct-pldc:hover{transform:translateY(-3px);box-shadow:0 0 0 1px var(--accent),0 12px 28px -10px color-mix(in srgb,var(--accent) 45%,transparent)}
+}
+.rct-hovc{position:fixed;z-index:9000;pointer-events:none;max-width:340px;background:var(--surface);color:var(--text);border:1px solid var(--accent);border-radius:16px;padding:10px 14px;font-size:14px;line-height:1.45;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent),0 16px 36px -10px rgba(0,0,0,.45)}
+.rct-hovc[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){.rct-plwrow,.rct-plcard,.rct-pldc{transition:none}.rct-plwrow:hover,.rct-plcard:hover,.rct-pldc:hover{transform:none}}
+@media (max-width:1440px){
+  .rct-plbd{display:block}
+  .rct-plcol{display:none}
+  .rct-plcol.rct-cur{display:flex}
+  .rct-plstages{display:inline-flex}
+}
+@media (max-width:760px){
+  .rct-seg3{display:flex;width:100%}
+  .rct-seg3 button{flex:1;min-width:0;height:44px;padding:0 6px}
+  .rct-pldn{grid-template-columns:1fr}
+  .rct-plwrow{grid-template-columns:1fr;gap:4px;margin:0;padding:8px 0}
+  .rct-plwf{white-space:normal}
+  .rct-plname{min-height:44px;display:inline-flex;align-items:center}
+  .rct-plcv{min-width:44px;min-height:44px;justify-content:center}
+  .rct-plact .rct-sc .rct-btn{min-height:44px}
+  .rct-plact .ps-btn{min-height:44px}
+  .rct-plmore,.rct-plcl{min-height:44px}
+  .rct-plpills .rct-pill{font-size:13px}
+  .rct-plw small,.rct-pls,.rct-plg,.rct-plwn small{font-size:13px}
+}
+.rct-plt .rct-av::after{width:13px;height:13px;line-height:13px;font-size:11px;border-radius:5px 0 7px 0}
+@media (max-width:760px){
+  .rct-plt .rct-av{width:44px;height:44px;font-size:15px}
+  .rct-plt .rct-av::after{width:17px;height:17px;line-height:17px;font-size:14px}
+  .rct-plcard .rct-asg,.rct-plcard .rct-asgx{min-height:44px}
+  .rct-pltools .rct-btn{min-height:44px}
+  .rct-plact .rct-sc .rct-btn{font-size:13px}
+  .rct-plact .ps-btn{font-size:13px}
+  .rct-plch h3,.rct-pldc h4,.rct-pldl small{font-size:13px}
+}
+@media (max-width:760px){.rct-plcard .rct-asg,.rct-plcard .rct-asgx{font-size:13px}}
+.rct-plstages button{flex:0 0 auto}

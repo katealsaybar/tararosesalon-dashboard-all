@@ -404,6 +404,7 @@
     var el = main(); if (!el) return;
     ddClose();
     saveView(); urlSync();
+    el.style.maxWidth = S.mode === 'pipe' ? '1760px' : '1100px';   // the Pipeline board needs the width of the screen; Grid and List keep their column
     var h = '<div class="rct">';
     h += '<h2>Recruitment</h2><p class="rct-lead">Who is worth Emma’s time today, and who is still waiting for an answer.</p>';
     h += '<div class="rct-pills rct-top"><span class="rct-pill rct-grey">Checked every 5 minutes from the two inboxes</span></div>';
@@ -419,6 +420,7 @@
     var look = by('look'), no = by('no'), late = lateList(), inv = by('invited'), bk = by('booked');
     // Kate, 17 Nov 2026 ("walang total applications. binilang ko 407"): a sixth box with the total, first in the row. It counts everyone on the list (Not now and Hired included, Test rows and Not an applicant left out); clicking it shows everyone.
     var total = rows.length;   // the same people the list counts ("Showing 407 of 407"), so the box and the line under it always agree
+    h += whyHtml(late.length, rows);
     h += '<div class="rct-figs">' +
       fig('all', total, 'Total applications', '', rows.length ? 'since ' + fdate(rows.reduce(function (m, p) { return p.applied_at && p.applied_at < m ? p.applied_at : m; }, rows[0].applied_at)) : '') +
       fig('look', look.length, 'Worth a look, need your yes or no', 'rct-main') +
@@ -436,6 +438,7 @@
          segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button><button type="button" class="rct-btn rct-sm" data-act="emails">Email formats</button>' + (typeof rexButtons === 'function' ? rexButtons('rctExport') : '') + '</div>';
 
     if (S.lane) h += laneBarHtml();
+    if (S.mode === 'pipe') { el.innerHTML = h + pipeHtml() + goneHtml() + '</div>'; return; }
     if (S.mode === 'list') {
       var bxOld = document.getElementById('rctTbox'), keepPos = bxOld ? [bxOld.scrollTop, bxOld.scrollLeft] : null;
       h += renderList() + goneHtml() + '<p class="rct-hint">Grid or List is remembered for you on this browser. Press V to switch. Stage names are the TRS Recruitment labels already in the inboxes. Apart from the automatic shortlist email for support roles, the dashboard never sends email. Waiting counts days since the application with no human reply.</p>';
@@ -493,13 +496,140 @@
     if (q) { var inp = document.getElementById('rctFind'); if (inp && document.activeElement !== inp && inp.__keep) inp.focus(); }
   }
 
+  /* ---------- Pipeline (Kate, 19 Nov 2026; mockup docs/mockups/recruitment-pipeline.html in the cowork repo) ----------
+     A third layout beside Grid and List: one column for each hiring step, the people in it, and how long each has been there. Cards carry the SAME buttons and status
+     dropdown as the Grid and the List (pipeActs and sideActs), so nothing new is saved and no email is sent from here. Days in a step = days since the person applied (New)
+     or since the last move (decided_at). The plan days for a step are a first guess (only New has a setting, wait_days): amber at the plan, red at twice the plan
+     (New: the plan plus 7, like the Waiting pill). Closed people (Not now, Rejected, not passed) and Hired sit below the board. The wait bars answer on hover. */
+  var PL_COLS = [
+    { k: 'new', t: 'New', st: ['new'] },
+    { k: 'short', t: 'Shortlisted', st: ['screening'] },
+    { k: 'int', t: 'Interview', st: ['interview_booked', 'interview_pass'] },
+    { k: 'trade', t: 'Trade test', st: ['trade_test', 'trade_pass'] },
+    { k: 'offer', t: 'Offer letter', st: ['offer', 'offer_to_send', 'offer_sent'] },
+    { k: 'start', t: 'Start date', st: ['start_pending', 'start_accepted'] }
+  ];
+  var PL_PLAN = { screening: 5, interview_booked: 7, interview_pass: 5, trade_test: 7, trade_pass: 5, offer: 3, offer_to_send: 3, offer_sent: 5, start_pending: 7, start_accepted: 7 };
+  var PL_CLOSED = [['not_now', 'Not now'], ['rejected', 'Rejected'], ['interview_fail', 'Interview not passed'], ['trade_fail', 'Trade test not passed']];
+  var PLS = { cur: 'new', lim: {}, only: false }, PL_STEP = 5;
+  function plColOf(p) { for (var i = 0; i < PL_COLS.length; i++) if (PL_COLS[i].st.indexOf(p.stage) >= 0) return PL_COLS[i]; return null; }
+  function plPlan(p) { return p.stage === 'new' ? waitDays() : (PL_PLAN[p.stage] || 7); }
+  function plDays(p) { return p.stage === 'new' ? waited(p) : Math.max(0, Math.floor((Date.now() - new Date(p.decided_at || p.applied_at).getTime()) / dayMs())); }
+  function plLevel(p) {
+    if (p.stage === 'new' && p.replied_at) return 0;
+    var d = plDays(p), pn = plPlan(p);
+    return d >= (p.stage === 'new' ? pn + 7 : pn * 2) ? 2 : d >= pn ? 1 : 0;
+  }
+  // everyone the board may show: not a Test row, and filtered by the tiles above and by Find, like the Grid and the List
+  function plPool() {
+    var ids = null;
+    if (q.trim().length >= 2) { ids = {}; found().forEach(function (p) { ids[p.id] = 1; }); }
+    return rows.filter(function (p) { return !p.is_test && (!ids || ids[p.id]) && (!S.lane || laneOk(p)); });
+  }
+  function plCv(p) {
+    var id = esc(p.id);
+    if (p.cv_file) return '<button type="button" class="rct-pill rct-plcv" data-act="cvfile" data-id="' + id + '" title="Open the CV">CV</button>';
+    if (cvUrl(p)) return '<a class="rct-pill rct-plcv" href="' + esc(cvUrl(p)) + '" target="_blank" rel="noopener" title="Open the CV link">CV</a>';
+    return '<span class="rct-pill rct-grey">' + (deadCv(p) ? 'CV link broken' : 'No CV') + '</span>';
+  }
+  function plCard(p) {
+    var lv = plLevel(p), d = plDays(p), id = esc(p.id);
+    var pill = p.stage === 'new' ? waitPill(p) : '<span class="rct-pill ' + ['rct-grey', 'rct-amber', 'rct-red'][lv] + '">' + (d === 0 ? 'Moved today' : pl(d, 'day', 'days') + ' here') + '</span>';
+    var place = placeShort(p), bits = [roleGroup(p), place !== 'Not stated' ? place : '', p.experience || ''].filter(function (x) { return x && x !== 'Not stated'; });
+    var flag = p.stage === 'new' && bucket(p) === 'no' ? '<span class="rct-pill rct-plflag">' + esc((flags(p)[0] && FLAG_SHORT[flags(p)[0].k]) || 'Flagged') + '</span>' : '';
+    return '<article class="rct-plcard' + (lv ? ' rct-pl' + lv : '') + '"><div class="rct-plt">' + avatar(p) + '<div class="rct-plw"><button type="button" class="rct-plname" data-act="look" data-id="' + id + '" aria-expanded="' + !!openRows[p.id] + '" title="Look at this person">' + esc(p.name || 'Name not stated') + '</button><small>' + esc(bits.join(' · ')) + '</small></div></div>' +
+      '<div class="rct-pills rct-plpills">' + pill + (p.stage === 'new' ? '' : stagePill(p)) + plCv(p) + flag + extraPills(p) + '</div>' +
+      '<div class="rct-asgrow">' + asgHtml(p) + '</div>' +
+      '<div class="rct-c-acts rct-plact">' + (usesPipe(p) ? pipeActs(p) : sideActs(p)) + '</div>' +
+      (openRows[p.id] ? detailHtml(p) : '') + '</article>';
+  }
+  function plColHtml(c, pool) {
+    var mine = pool.filter(function (p) { return c.st.indexOf(p.stage) >= 0; }), list = mine.filter(function (p) { return !PLS.only || plLevel(p) > 0; });
+    list.sort(function (a, b) {
+      if (c.k === 'new') { var x = bucket(a) === 'look' ? 0 : 1, y = bucket(b) === 'look' ? 0 : 1; if (x !== y) return x - y; }
+      return plDays(b) - plDays(a);
+    });
+    var lim = PLS.lim[c.k] || PL_STEP, shown = list.slice(0, lim), body = '', seenNo = false;
+    var both = c.k === 'new' && shown.some(function (p) { return bucket(p) === 'no'; }) && shown.some(function (p) { return bucket(p) === 'look'; });
+    shown.forEach(function (p, i) {
+      if (c.k === 'new' && i === 0 && both) body += '<div class="rct-plg">Worth a look</div>';
+      if (c.k === 'new' && bucket(p) === 'no' && !seenNo) { seenNo = true; if (both || i === 0) body += '<div class="rct-plg">Probably no</div>'; }
+      body += plCard(p);
+    });
+    if (!shown.length) body = '<div class="rct-plnone">Nobody here' + (PLS.only || S.lane || q.trim().length >= 2 ? ' with these filters' : '') + '.</div>';
+    if (list.length > shown.length) body += '<button type="button" class="rct-plmore" data-act="plmore" data-k="' + c.k + '">Show ' + Math.min(PL_STEP, list.length - shown.length) + ' more (' + (list.length - shown.length) + ' left)</button>';
+    var avg = mine.length ? Math.round(mine.reduce(function (a, p) { return a + plDays(p); }, 0) / mine.length) : 0, late = mine.filter(function (p) { return plLevel(p) > 0; }).length;
+    return '<div class="rct-plcol' + (PLS.cur === c.k ? ' rct-cur' : '') + '" data-k="' + c.k + '"><div class="rct-plch"><h3>' + esc(c.t) + '</h3><span class="rct-plc">' + list.length + '</span></div>' +
+      '<div class="rct-pls">' + (mine.length ? 'Average ' + pl(avg, 'day', 'days') + ' here' + (late ? ' · ' + late + ' past plan' : '') : 'Nobody in this step') + '</div>' + body + '</div>';
+  }
+  function plTip(c, mine) {
+    var plan = c.k === 'new' ? waitDays() : (PL_PLAN[c.st[0]] || 7), avg = mine.length ? mine.reduce(function (a, p) { return a + plDays(p); }, 0) / mine.length : 0, diff = Math.round(avg) - plan;
+    var late = mine.filter(function (p) { return plLevel(p) > 0; }).length, lg = mine.slice().sort(function (a, b) { return plDays(b) - plDays(a); })[0];
+    return c.t + ': ' + pl(mine.length, 'person', 'people') + ', average ' + Math.round(avg) + ' days against a plan of ' + plan + ' (' + (diff > 0 ? diff + ' over' : diff === 0 ? 'on plan' : Math.abs(diff) + ' under') + '). ' + late + ' past plan.' + (lg ? ' Longest: ' + (lg.name || 'Name not stated') + ', ' + pl(plDays(lg), 'day', 'days') + '.' : '');
+  }
+  function pipeHtml() {
+    var pool = plPool(), active = pool.filter(function (p) { return !!plColOf(p); }), late = active.filter(function (p) { return plLevel(p) > 0; });
+    var hired = pool.filter(function (p) { return p.stage === 'hired'; }).sort(function (a, b) { return new Date(b.decided_at || 0) - new Date(a.decided_at || 0); });
+    var h = '<section class="rct-sec rct-pipe" data-jn="Pipeline"><div class="rct-sech"><h2>Pipeline<span class="rct-cnt">' + active.length + '</span></h2><span class="rct-hint">A coloured edge means longer in the step than planned: amber at the plan, red at twice the plan.</span></div>' +
+      '<div class="rct-pltools"><button type="button" class="rct-btn rct-sm" data-act="plonly" aria-pressed="' + PLS.only + '" title="Show only the people who have been in their step longer than planned (amber and red cards)">Only past plan' + (late.length ? ' (' + late.length + ')' : '') + '</button></div>' +
+      '<div class="rct-seg rct-plstages" role="group" aria-label="Step">' + PL_COLS.map(function (c) { return '<button type="button" data-act="plcur" data-k="' + c.k + '" aria-pressed="' + (PLS.cur === c.k) + '">' + esc(c.t) + ' ' + active.filter(function (p) { return c.st.indexOf(p.stage) >= 0; }).length + '</button>'; }).join('') + '</div>' +
+      '<div class="rct-plbd">' + PL_COLS.map(function (c) { return plColHtml(c, pool); }).join('') + '</div>' +
+      '<p class="rct-hint">The main button moves a person to the next step and the status dropdown can set any step, exactly as in Grid and List. Nothing is sent from here.</p></section>';
+    var closed = PL_CLOSED.map(function (c) { return [c[1], pool.filter(function (p) { return p.stage === c[0]; }).length]; });
+    var nClosed = closed.reduce(function (a, c) { return a + c[1]; }, 0);
+    h += '<section class="rct-sec" data-jn="Hired and closed"><div class="rct-sech"><h2>Hired and closed<span class="rct-cnt">' + (hired.length + nClosed) + '</span></h2></div><div class="rct-pldn">' +
+      '<div class="rct-card rct-pldc"><h4>Hired</h4><div class="rct-plbig">' + hired.length + '</div><div class="rct-pldl">' + (hired.length ? hired.slice(0, 8).map(function (p) { return '<span>' + esc(p.name || 'Name not stated') + '<small>' + esc(fat(p.decided_at)) + '</small></span>'; }).join('') + (hired.length > 8 ? '<small>and ' + (hired.length - 8) + ' more</small>' : '') : '<small>Nobody hired yet.</small>') + '</div></div>' +
+      '<div class="rct-card rct-pldc"><h4>Closed</h4><div class="rct-plbig">' + nClosed + '</div><div class="rct-pldl">' + closed.map(function (c) { return '<button type="button" class="rct-plcl" data-act="plclosed"><b>' + c[1] + '</b> ' + esc(c[0]) + '</button>'; }).join('') + '</div></div></div></section>';
+    var mx = 1, wrows = PL_COLS.map(function (c) {
+      var mine = active.filter(function (p) { return c.st.indexOf(p.stage) >= 0; }), avg = mine.length ? mine.reduce(function (a, p) { return a + plDays(p); }, 0) / mine.length : 0, plan = c.k === 'new' ? waitDays() : (PL_PLAN[c.st[0]] || 7);
+      mx = Math.max(mx, avg, plan); return { c: c, mine: mine, avg: avg, plan: plan, late: mine.filter(function (p) { return plLevel(p) > 0; }).length };
+    });
+    h += '<section class="rct-sec" data-jn="How long people wait"><div class="rct-sech"><h2>How long people wait</h2><span class="rct-hint">Average days in each step now, against the plan (the small tick). Tap a bar to see only the people past plan in that step.</span></div><div class="rct-plw2">' +
+      wrows.map(function (r) {
+        return '<button type="button" class="rct-plwrow" data-act="plbar" data-k="' + r.c.k + '" data-tip="' + esc(plTip(r.c, r.mine)) + '"><span class="rct-plwn"><b>' + esc(r.c.t) + '</b><small>' + pl(r.mine.length, 'person', 'people') + '</small></span>' +
+          '<span class="rct-plbar"><i style="width:' + Math.round(100 * r.avg / mx) + '%"></i><u style="left:' + Math.round(100 * r.plan / mx) + '%" title="Plan: ' + r.plan + ' days"></u></span>' +
+          '<span class="rct-plwf"><b>average ' + Math.round(r.avg) + ' days</b> · plan ' + r.plan + ' · ' + r.late + ' past plan</span></button>';
+      }).join('') + '</div></section>';
+    return h;
+  }
+  // the bar answers on hover (lift and glow are in the css): a small card with the sentence from the row's own numbers; a tap does the same on a phone (Kate, 19 Nov 2026)
+  var plHC = null, plHT = null;
+  function plHov(row, x) {
+    if (!row || !row.getAttribute('data-tip')) return;
+    if (!plHC) { plHC = document.createElement('div'); plHC.className = 'rct-hovc'; plHC.hidden = true; document.body.appendChild(plHC); }
+    plHC.textContent = row.getAttribute('data-tip'); plHC.hidden = false;
+    var rc = row.getBoundingClientRect(), w = plHC.offsetWidth, hh = plHC.offsetHeight, left = Math.max(8, Math.min(x - w / 2, innerWidth - w - 8)), top = rc.top - hh - 10; if (top < 8) top = rc.bottom + 10;
+    if (innerWidth <= 760) { left = 10; top = Math.max(8, Math.min(rc.top - hh - 8, innerHeight - hh - 8)); plHC.style.width = (innerWidth - 20) + 'px'; } else plHC.style.width = '';
+    plHC.style.left = left + 'px'; plHC.style.top = top + 'px';
+  }
+  function plRow(t) { return t && t.closest ? t.closest('.rct-plwrow') : null; }
+  document.addEventListener('mouseover', function (e) { var r = plRow(e.target); if (r && window.matchMedia('(hover:hover)').matches) plHov(r, e.clientX); });
+  document.addEventListener('mousemove', function (e) { var r = plRow(e.target); if (r && plHC && !plHC.hidden && window.matchMedia('(hover:hover)').matches) plHov(r, e.clientX); });
+  document.addEventListener('mouseout', function (e) { var r = plRow(e.target); if (r && plHC && window.matchMedia('(hover:hover)').matches && !(e.relatedTarget && r.contains(e.relatedTarget))) plHC.hidden = true; });
+  document.addEventListener('focusin', function (e) { var r = plRow(e.target); if (r && window.matchMedia('(hover:hover)').matches) plHov(r, r.getBoundingClientRect().left + 120); });
+  document.addEventListener('focusout', function () { if (plHC && window.matchMedia('(hover:hover)').matches) plHC.hidden = true; });   // a tap re-draws the board and drops the focus: on a phone the card stays for its 5 seconds
+  document.addEventListener('click', function (e) {
+    var r = plRow(e.target);
+    if (r && window.matchMedia('(hover:none)').matches) { plHov(r, e.clientX); clearTimeout(plHT); plHT = setTimeout(function () { if (plHC) plHC.hidden = true; }, 5000); }
+    else if (!r && plHC) plHC.hidden = true;
+  });
+  function whyHtml(late, rowsAll) {
+    if (typeof whyWall !== 'function') return '';
+    var near = rowsAll.filter(function (p) { return !p.is_test && ['interview_booked', 'interview_pass', 'trade_test', 'trade_pass', 'offer', 'offer_to_send', 'offer_sent'].indexOf(p.stage) >= 0; }).length;
+    return whyWall([
+      ['Why this page', 'People who wait weeks for an answer tend to take another offer. This shows who is waiting on us and which step each person is at.'],
+      ['Why now', pl(late, 'person has', 'people have') + ' waited ' + waitDays() + ' days or more with no reply, and ' + near + ' ' + (near === 1 ? 'is' : 'are') + ' at Interview, Trade test or Offer letter, the steps closest to a yes.'],
+      ['If we do nothing', 'People go quiet without telling us. We only notice when the chair is still empty and the good applicant has started somewhere else.']
+    ], 'Kate and Coach Emma clear the people waiting longest, starting with the amber and red cards in Pipeline. No date yet: Kate sets it.');
+  }
+
   /* ---------- Grid or List ---------- */
   // Kate, 9 Nov 2026 (mockup approved: docs/mockups/recruitment-list.html in the cowork repo). Grid is the card layout; List is a table with a sticky header, a filter
   // on every column header (sort, search, value checklist, clear) and the photo and name columns frozen on the left like Google Sheets. The five tiles filter BOTH
   // views. The chosen view is remembered in this browser (localStorage trs-rct-layout, the dashboard's trs-* pattern); V switches.
   var LKEY = 'trs-rct-layout';
   var S = { mode: 'grid', lane: null, filters: {}, sort: { col: 'wait', dir: 'desc' }, showDone: false, pageSize: 10, page: 0, pgSig: '' };
-  try { var savedMode = localStorage.getItem(LKEY); if (savedMode === 'list' || savedMode === 'grid') S.mode = savedMode; } catch (e) { /* private window */ }
+  try { var savedMode = localStorage.getItem(LKEY); if (savedMode === 'list' || savedMode === 'grid' || savedMode === 'pipe') S.mode = savedMode; } catch (e) { /* private window */ }
   var PKEY = 'trs-rct-pagesize', SIZES = [10, 20, 50, 100];
   try { var savedSize = parseInt(localStorage.getItem(PKEY), 10); if (SIZES.indexOf(savedSize) >= 0) S.pageSize = savedSize; } catch (e) { /* private window */ }
   function savePageSize(n) { try { localStorage.setItem(PKEY, String(n)); } catch (e) { /* private window */ } }
@@ -508,6 +638,7 @@
   var EXP_ORDER = ['1 to 3 years', '3 to 5 years', '5 to 10 years', '10 to 15 years', '15 plus years'];
   var ICON_LIST = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
   var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></svg>';
+  var ICON_PIPE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1.2"/><rect x="9.5" y="4" width="5" height="11" rx="1.2"/><rect x="16" y="4" width="5" height="7" rx="1.2"/></svg>';
   var ICON_FILTER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 
   function laneOk(p) {
@@ -894,8 +1025,8 @@
     return '<div class="rct-lanebar"><span>Showing only: <b>' + esc(LANE_NAME[S.lane] || S.lane) + '</b>, in both Grid and List.</span><button type="button" data-lane="' + S.lane + '">Show everyone</button></div>';
   }
   function segHtml() {
-    return '<div class="rct-seg" role="group" aria-label="Layout"><button type="button" data-mode="list" aria-pressed="' + (S.mode === 'list') + '" title="List (V)" aria-label="List layout">' + ICON_LIST + '</button>' +
-      '<button type="button" data-mode="grid" aria-pressed="' + (S.mode === 'grid') + '" title="Grid (V)" aria-label="Grid layout">' + ICON_GRID + '</button></div>';
+    var b = function (m, ic, lab) { return '<button type="button" data-mode="' + m + '" aria-pressed="' + (S.mode === m) + '" title="' + lab + ' (V)" aria-label="' + lab + ' layout">' + ic + '<span class="rct-seglab">' + lab + '</span></button>'; };
+    return '<div class="rct-seg rct-seg3" role="group" aria-label="Layout">' + b('list', ICON_LIST, 'List') + b('grid', ICON_GRID, 'Grid') + b('pipe', ICON_PIPE, 'Pipeline') + '</div>';
   }
 
   /* ---------- dialogs ---------- */
@@ -2091,6 +2222,11 @@
       else if (a === 'pgprev') { S.page = Math.max(0, S.page - 1); render(); }
       else if (a === 'pgnext') { S.page += 1; render(); }
       else if (a === 'morelook') { shownLook += PAGE; render(); }
+      else if (a === 'plonly') { PLS.only = !PLS.only; PLS.lim = {}; render(); }
+      else if (a === 'plcur') { PLS.cur = t.getAttribute('data-k'); render(); }
+      else if (a === 'plmore') { var pk = t.getAttribute('data-k'); PLS.lim[pk] = (PLS.lim[pk] || PL_STEP) + PL_STEP; render(); }
+      else if (a === 'plbar') { PLS.only = true; PLS.cur = t.getAttribute('data-k'); PLS.lim = {}; render(); var bd = main() && main().querySelector('.rct-plbd'); if (bd && bd.scrollIntoView) bd.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      else if (a === 'plclosed') { S.mode = 'list'; saveMode('list'); S.showDone = true; closePop(); render(); }
       else if (a === 'moreno') { shownNo[g] = (shownNo[g] || PAGE) + PAGE; render(); }
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target && e.target.id === 'rctRoles') { e.preventDefault(); e.target.blur(); } });
@@ -2120,7 +2256,7 @@
       var mn = main(); if (!mn || mn.offsetParent === null || dlg().open) return;   // only while this page is the one on screen
       var tg = e.target, tag = ((tg && tg.tagName) || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || (tg && tg.isContentEditable)) return;
-      setMode(S.mode === 'list' ? 'grid' : 'list');
+      setMode(S.mode === 'list' ? 'grid' : S.mode === 'grid' ? 'pipe' : 'list');
     });
     // opening "What they wrote" on a card counts as having looked at that person
     el.addEventListener('toggle', function (e) {
