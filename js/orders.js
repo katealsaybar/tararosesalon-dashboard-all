@@ -413,6 +413,12 @@ async function ordTranslate(btn) {
     setTimeout(() => { if (btn.dataset.on !== '1') btn.textContent = old; }, 3500);
   } finally { btn.disabled = false; }
 }
+// the downloads carry the English names too (Kate, 19 Nov 2026): returns a function name -> English, and how many names could not be translated (they stay as the supplier wrote them)
+async function ordEnglishNames(names) {
+  const map = {}; let failed = 0;
+  await Promise.all([...new Set(names.filter(ordHasAr))].map(async n => { try { map[n] = await ordTranslateOne(n); } catch (e) { console.error(e); failed++; } }));
+  return { en: n => map[n] || n, failed, any: Object.keys(map).length > 0 };
+}
 function ordBuyHtml(g) {
   const b = g.buy;
   let h = '';
@@ -560,38 +566,40 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.g
 
 // ── DOWNLOADS (report-export.js draws the XLSX and CSV buttons) ──────────────────────
 const ordR2 = x => (x == null || !isFinite(x)) ? null : Math.round(x * 100) / 100;
-function ordExport() {
+async function ordExport() {
   const rows = ordT ? ordT.rows() : []; if (!rows.length) return null;
+  const T = await ordEnglishNames(rows.flatMap(g => g.buy ? g.buy.lines.map(l => l.name) : []));
   const [a, b] = ordRange();
   const cols = [{ key: 'start', label: 'Started', fmt: 'text' }, { key: 'sup', label: 'Supplier', fmt: 'text' }, { key: 'sal', label: 'Salon', fmt: 'text' }, { key: 'type', label: 'Type', fmt: 'text' }, { key: 'ref', label: 'Reference', fmt: 'text' },
     { key: 'items', label: 'Items', fmt: 'num' }, { key: 'units', label: 'Units', fmt: 'num' }, { key: 'total', label: 'Total (AED)', fmt: 'aed' }, { key: 'disc', label: 'Discount (AED)', fmt: 'aed' }, { key: 'pct', label: 'Discount applied (%)', fmt: 'pct' },
     { key: 'status', label: 'Status', fmt: 'text' }, { key: 'file', label: 'Receipt', fmt: 'text' }, { key: 'look', label: 'Needs a look', fmt: 'text' }];
   const lines = rows.map(g => ({ cells: [ordDay(g.start), g.s, ordName(g.b), g.type, g.r, g.items, g.units, ordR2(g.a), g.disc ? ordR2(g.disc) : null, g.discPct || null, g.st, g.f, g.x] }));
-  const items = []; rows.forEach(g => { if (g.buy) g.buy.lines.forEach(l => items.push({ cells: [ordDay(g.start), g.s, g.r, l.name, ordR2(+l.qty), ordR2(+l.unit), ordR2(+l.total), l.note || ''] })); });
+  const items = []; rows.forEach(g => { if (g.buy) g.buy.lines.forEach(l => items.push({ cells: [ordDay(g.start), g.s, g.r, T.en(l.name), ordR2(+l.qty), ordR2(+l.unit), ordR2(+l.total), l.note || ''].concat(T.any ? [T.en(l.name) !== l.name ? l.name : ''] : []) })); });
   const sheets = [{ name: 'Orders', title: 'Orders and Receipts', subtitle: `${ordScopeText()} · ${a} to ${b}. One row per order. Amounts only where the supplier email shows them.`, blocks: [{ cols, rows: lines }],
     legend: [['Total', 'The order total from the email. An invoice with no amount in the email text shows a dash.'], ['Discount', 'The AED the supplier took off, or the percentage applied when the email only says that.']] }];
-  if (items.length) sheets.push({ name: 'Items', title: 'What was bought', subtitle: `${ordScopeText()} · ${a} to ${b}`, blocks: [{ cols: [{ label: 'Started', fmt: 'text' }, { label: 'Supplier', fmt: 'text' }, { label: 'Reference', fmt: 'text' }, { label: 'Product', fmt: 'text' }, { label: 'Qty', fmt: 'num' }, { label: 'Price (AED)', fmt: 'aed' }, { label: 'Line total (AED)', fmt: 'aed' }, { label: 'Discount note', fmt: 'text' }], rows: items }] });
+  if (items.length) sheets.push({ name: 'Items', title: 'What was bought', subtitle: `${ordScopeText()} · ${a} to ${b}` + (T.failed ? `. ${T.failed} product name${T.failed === 1 ? '' : 's'} could not be translated this time and stay as the supplier wrote them.` : ''), blocks: [{ cols: [{ label: 'Started', fmt: 'text' }, { label: 'Supplier', fmt: 'text' }, { label: 'Reference', fmt: 'text' }, { label: 'Product', fmt: 'text' }, { label: 'Qty', fmt: 'num' }, { label: 'Price (AED)', fmt: 'aed' }, { label: 'Line total (AED)', fmt: 'aed' }, { label: 'Discount note', fmt: 'text' }].concat(T.any ? [{ label: 'As the supplier wrote it', fmt: 'text' }] : []), rows: items }] });
   return { name: ['orders-and-receipts', ordScopeText(), a, 'to', b].map(ordSlug).join('-'), csv: 0, sheets };
 }
 // One order, for the XLSX and CSV in its window: the summary, what was bought (with the discount and total), what was out of stock and every email. The CSV holds What was bought when
 // there are lines, else the emails.
-function ordExportOne() {
+async function ordExportOne() {
   const g = ordCur; if (!g) return null;
+  const T = await ordEnglishNames((g.buy ? g.buy.lines : []).concat(g.oos).map(l => l.name));
   const sheets = [], sub = g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type;
   const sum = [['Supplier', g.s], ['Reference', g.r || ''], ['Type', g.type], ['Salon', ordName(g.b)], ['Started', ordDay(g.start)], ['Status', g.st], ['Total (AED)', g.a == null ? '' : ordAed(g.a)],
     ['Discount', g.disc ? 'AED ' + ordAed(g.disc) : g.discPct ? g.discPct + '% applied' : 'none'], ['Needs a look', g.x || ''], ['Steps', ordStepsText(g)], ['Receipt', g.f]];
   sheets.push({ name: 'Order', title: sub, subtitle: ordName(g.b) + ' · started ' + ordDay(g.start), blocks: [{ cols: [{ label: 'Detail', fmt: 'text' }, { label: 'Value', fmt: 'text' }], rows: sum.map(r => ({ cells: r })) }] });
   let csv = 0;
   if (g.buy && g.buy.lines.length) {
-    const L = g.buy.lines, rows = L.map(l => ({ cells: [l.name, l.qty == null ? null : ordR2(+l.qty), l.unit == null ? null : ordR2(+l.unit), l.total == null ? null : ordR2(+l.total), l.note || ''] }));
-    rows.push({ cells: ['Total (' + L.length + ' lines)', ordR2(L.reduce((t, l) => t + (Number(l.qty) || 0), 0)), null, ordR2(L.reduce((t, l) => t + (Number(l.total) || 0), 0)), ''] });
-    if (g.buy.disc) rows.push({ cells: ['Discount taken off', null, null, ordR2(-g.buy.disc), ''] });
-    if (g.buy.deliv != null) rows.push({ cells: ['Delivery', null, null, ordR2(+g.buy.deliv), ''] });
-    if (g.buy.total != null) rows.push({ cells: ['Order total', null, null, ordR2(+g.buy.total), ''] });
+    const L = g.buy.lines, rows = L.map(l => ({ cells: [T.en(l.name), l.qty == null ? null : ordR2(+l.qty), l.unit == null ? null : ordR2(+l.unit), l.total == null ? null : ordR2(+l.total), l.note || ''].concat(T.any ? [T.en(l.name) !== l.name ? l.name : ''] : []) }));
+    rows.push({ cells: ['Total (' + L.length + ' lines)', ordR2(L.reduce((t, l) => t + (Number(l.qty) || 0), 0)), null, ordR2(L.reduce((t, l) => t + (Number(l.total) || 0), 0)), ''].concat(T.any ? [''] : []) });
+    if (g.buy.disc) rows.push({ cells: ['Discount taken off', null, null, ordR2(-g.buy.disc), ''].concat(T.any ? [''] : []) });
+    if (g.buy.deliv != null) rows.push({ cells: ['Delivery', null, null, ordR2(+g.buy.deliv), ''].concat(T.any ? [''] : []) });
+    if (g.buy.total != null) rows.push({ cells: ['Order total', null, null, ordR2(+g.buy.total), ''].concat(T.any ? [''] : []) });
     csv = sheets.length;
-    sheets.push({ name: 'What was bought', title: 'What was bought', subtitle: sub, blocks: [{ cols: [{ label: 'Product', fmt: 'text' }, { label: 'Qty', fmt: 'num' }, { label: 'Price (AED)', fmt: 'aed' }, { label: 'Line total (AED)', fmt: 'aed' }, { label: 'Discount note', fmt: 'text' }], rows }] });
+    sheets.push({ name: 'What was bought', title: 'What was bought', subtitle: sub + (T.failed ? `. ${T.failed} product name${T.failed === 1 ? '' : 's'} could not be translated this time and stay as the supplier wrote them.` : ''), blocks: [{ cols: [{ label: 'Product', fmt: 'text' }, { label: 'Qty', fmt: 'num' }, { label: 'Price (AED)', fmt: 'aed' }, { label: 'Line total (AED)', fmt: 'aed' }, { label: 'Discount note', fmt: 'text' }].concat(T.any ? [{ label: 'As the supplier wrote it', fmt: 'text' }] : []), rows }] });
   }
-  if (g.oos.length) sheets.push({ name: 'Out of stock', title: 'Ordered but not supplied', subtitle: sub, blocks: [{ cols: [{ label: 'Product', fmt: 'text' }, { label: 'Ordered', fmt: 'num' }, { label: 'Supplied', fmt: 'num' }], rows: g.oos.map(l => ({ cells: [l.name, Number(l.qty) || 0, 0] })) }] });
+  if (g.oos.length) sheets.push({ name: 'Out of stock', title: 'Ordered but not supplied', subtitle: sub, blocks: [{ cols: [{ label: 'Product', fmt: 'text' }, { label: 'Ordered', fmt: 'num' }, { label: 'Supplied', fmt: 'num' }], rows: g.oos.map(l => ({ cells: [T.en(l.name), Number(l.qty) || 0, 0] })) }] });
   if (!csv) csv = sheets.length;
   sheets.push({ name: 'The emails', title: 'The emails', subtitle: sub, blocks: [{ cols: [{ label: 'Received', fmt: 'text' }, { label: 'Step', fmt: 'text' }, { label: 'From', fmt: 'text' }, { label: 'To', fmt: 'text' }, { label: 'Subject', fmt: 'text' }, { label: 'The email', fmt: 'text' }, { label: 'File', fmt: 'text' }],
     rows: g.docs.map(d => { const ours = d.kind === 'order' || d.kind === 'reply'; return { cells: [ordTime(d.at), ORD_KINDNAME[d.kind] || d.kind, ours ? 'Tara Rose Salon' : d.supplier, ours ? d.supplier : 'Tara Rose Salon', d.subject || '', d.body || d.note || '', d.file_name || d.file_names || ''] }; }) }] });
