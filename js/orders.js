@@ -18,7 +18,7 @@ const ORD_STORE = 'trs-orders';
 // The mini side nav (Kate, 19 Nov 2026: "walang mini sidebar navi"): the shared "On this page" rail, a column in the gutter from 1100px and a pinned row of chips under the masthead below that (lgShell, jump-nav.js).
 const ORD_RAIL = [['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
 const ORD = { n: 10, kind: '' };
-let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordDrafts = {}, ordDraftTimer = null, ordProofFiles = [];
+let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordDrafts = {}, ordDraftTimer = null, ordProofs = [];
 try { const s = JSON.parse(localStorage.getItem(ORD_STORE) || '{}'); if ([10, 20, 50, 100].includes(s.n)) ORD.n = s.n; } catch (e) {}
 const ordSave = () => { try { localStorage.setItem(ORD_STORE, JSON.stringify({ n: ORD.n })); } catch (e) {} };
 
@@ -562,44 +562,80 @@ function ordAmazonLink(g) {
 }
 // ── CHECKED IN THE ACCOUNT (Kate, 20 Nov 2026) ───────────────────────────────────────
 // An order that needs a look only because the mailbox is silent can be cleared by whoever checked it in the supplier's account: a note (for example the card that paid it) and
-// proof: as many screenshots as needed, PASTED with Ctrl+V, plus PDFs (Add a PDF, or drop it on the box). Saved in order_checks (orders_check_set), the files in the private bucket
-// order-proofs. The tick can be undone.
+// proof: as many screenshots as needed, PASTED with Ctrl+V, plus PDFs (Choose a PDF, or drop it on the box). Saved in order_checks (orders_check_set), the files in the private bucket
+// order-proofs. The note and every file are also kept as a DRAFT the moment they are typed or added (orders_draft_set), so closing the window before Mark as checked loses nothing.
+// The tick can be undone.
 const ordSafeKey = s => String(s).replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 80);
 const ORD_PROOF_MAX = 10, ORD_PROOF_BYTES = 10 * 1024 * 1024;
+let ordUp = 0;
+const ordIsPdf = n => /\.pdf$/i.test(String(n || ''));
 function ordCheckHtml(g) {
   const k = ordEsc(g.key), c = g.chk;
   if (c) {
+    ordProofs = [];
     const ps = Array.isArray(c.proofs) ? c.proofs : [];
     return `<div class="ord-chk done" id="ordChk"><div class="ord-chk-h"><b>Checked in the account</b> by ${ordEsc(c.by || '')} on ${ordEsc(ordDay(String(c.at || '').slice(0, 10)))}</div>${c.note ? `<p class="ord-chk-n">${ordEsc(c.note)}</p>` : ''}` +
-      `<div class="ord-chk-b">${ps.map((p, i) => `<button type="button" class="cm-pill" data-p="${ordEsc(p.path)}" data-n="${ordEsc(p.name || '')}" onclick="ordProofView(this)">${/\.pdf$/i.test(p.name || p.path) ? ordEsc(p.name || 'PDF') : 'Screenshot ' + (i + 1)}</button>`).join('')}<button type="button" class="cm-pill" data-k="${k}" onclick="ordCheckUndo(this.dataset.k)">Undo</button></div><div id="ordChkShow"></div></div>`;
+      `<div class="ord-chk-b">${ps.map((p, i) => `<button type="button" class="cm-pill" data-p="${ordEsc(p.path)}" data-n="${ordEsc(p.name || '')}" onclick="ordProofView(this)">${ordIsPdf(p.name || p.path) ? ordEsc(p.name || 'PDF') : 'Screenshot ' + (i + 1)}</button>`).join('')}<button type="button" class="cm-pill" data-k="${k}" onclick="ordCheckUndo(this.dataset.k)">Undo</button></div><div id="ordChkShow"></div></div>`;
   }
+  const d = ordDrafts[g.key] || {};
+  ordProofs = g.x ? (Array.isArray(d.proofs) ? d.proofs : []).map(p => ({ path: p.path, name: p.name || '', url: '' })) : [];
   if (!g.x) return '';
   return `<div class="ord-chk" id="ordChk"><div class="ord-chk-h"><b>Checked it in the account?</b> Clear this order here.</div>` +
-    `<textarea id="ordChkNote" rows="2" maxlength="500" data-k="${k}" oninput="ordDraftTyped(this.dataset.k)" placeholder="Note, for example: paid with the Mastercard ending 2600, arrived 14 Jan">${ordEsc((ordDrafts[g.key] || {}).note || '')}</textarea>` +
-    `<div class="ord-paste" id="ordChkPaste" tabindex="0">Copy a screenshot, then press Ctrl+V anywhere in this window. Paste as many as you need. To add a PDF, drop it here or <button type="button" class="ord-lk" onclick="document.getElementById('ordChkFile').click()">choose a PDF</button>.</div>` +
+    `<textarea id="ordChkNote" rows="2" maxlength="500" data-k="${k}" oninput="ordDraftTyped(this.dataset.k)" placeholder="Note, for example: paid with the Mastercard ending 2600, arrived 14 Jan">${ordEsc(d.note || '')}</textarea>` +
+    `<div class="ord-paste" id="ordChkPaste" tabindex="0">Copy a screenshot, then press Ctrl+V anywhere in this window. Paste as many as you need. To add a PDF, drop it here or <button type="button" class="ord-lk" onclick="document.getElementById('ordChkFile').click()">choose a PDF</button>. Everything is kept as you add it.</div>` +
     `<input type="file" id="ordChkFile" accept="application/pdf,image/png,image/jpeg,image/webp" multiple hidden onchange="ordAddProofs(this.files);this.value=''"><div id="ordChkPrev" class="ord-prevs"></div>` +
     `<div class="ord-chk-b"><button type="button" class="cm-pill" id="ordChkGo" data-k="${k}" onclick="ordCheckSave(this.dataset.k)">Mark as checked</button><span class="ord-muted" id="ordChkMsg"></span></div></div>`;
 }
 function ordProofsPaint() {
   const prev = document.getElementById('ordChkPrev'); if (!prev) return;
-  prev.innerHTML = ordProofFiles.map((p, i) => `<span class="ord-pv">${p.url ? `<img class="ord-prev" src="${p.url}" alt="Pasted screenshot ${i + 1}">` : `<span class="ord-pdfchip">PDF ${ordEsc(p.name)}</span>`}<button type="button" class="ord-pvx" title="Remove" aria-label="Remove" onclick="ordProofDrop(${i})">×</button></span>`).join('');
+  prev.innerHTML = ordProofs.map((p, i) => `<span class="ord-pv">${p.url ? `<img class="ord-prev" src="${p.url}" alt="Screenshot ${i + 1}">` : `<span class="ord-pdfchip">${ordIsPdf(p.name) ? 'PDF ' + ordEsc(p.name) : 'Screenshot ' + (i + 1)}</span>`}<button type="button" class="ord-pvx" title="Remove" aria-label="Remove" onclick="ordProofDrop(${i})">×</button></span>`).join('');
 }
-function ordProofDrop(i) { const p = ordProofFiles[i]; if (p && p.url) { try { URL.revokeObjectURL(p.url); } catch (e) { /* harmless */ } } ordProofFiles.splice(i, 1); ordProofsPaint(); }
-function ordAddProofs(files) {
-  const msg = document.getElementById('ordChkMsg'); if (!document.getElementById('ordChkPrev')) return;
-  let bad = '';
-  Array.prototype.forEach.call(files || [], f => {
-    const img = /^image\/(png|jpeg|webp)$/.test(f.type), pdf = f.type === 'application/pdf';
-    if (!img && !pdf) { bad = 'Only a screenshot (PNG, JPG, WebP) or a PDF can be added.'; return; }
-    if (f.size > ORD_PROOF_BYTES) { bad = 'A file is over 10 MB.'; return; }
-    if (ordProofFiles.length >= ORD_PROOF_MAX) { bad = 'That is the most you can add (10).'; return; }
-    const name = f.name && f.name !== 'image.png' ? f.name : (img ? 'screenshot-' + (ordProofFiles.length + 1) + '.' + (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg') : 'file.pdf');
-    ordProofFiles.push({ file: f, name, url: img ? URL.createObjectURL(f) : '' });
-  });
+// a kept screenshot from the draft has no picture on this computer yet: fetch each one so it can be seen and removed
+function ordProofsInit() {
   ordProofsPaint();
-  if (msg) msg.textContent = bad;
+  ordProofs.forEach(async p => {
+    if (p.url || ordIsPdf(p.name || p.path)) return;
+    try { const r = await sb.storage.from('order-proofs').download(p.path); if (r.error || !r.data) return; p.url = URL.createObjectURL(r.data); ordProofsPaint(); } catch (e) { /* the chip stays */ }
+  });
 }
-// one listener for the page: images on the clipboard go to the open Checked box, anything else pastes as normal; a file dropped on the box is added too
+async function ordProofDrop(i) {
+  const p = ordProofs[i], ta = document.getElementById('ordChkNote'); if (!p || !ta) return;
+  ordProofs.splice(i, 1); ordProofsPaint();
+  if (p.url) { try { URL.revokeObjectURL(p.url); } catch (e) { /* harmless */ } }
+  try { await sb.storage.from('order-proofs').remove([p.path]); } catch (e) { /* the file is only unlinked then */ }
+  ordDraftSave(ta.dataset.k, true);
+}
+async function ordAddProofs(files) {
+  const ta = document.getElementById('ordChkNote'), msg = document.getElementById('ordChkMsg'); if (!ta) return;
+  const key = ta.dataset.k, added = []; let bad = '';
+  const list = Array.prototype.slice.call(files || []);
+  for (const f of list) {
+    const img = /^image\/(png|jpeg|webp)$/.test(f.type), pdf = f.type === 'application/pdf';
+    if (!img && !pdf) { bad = 'Only a screenshot (PNG, JPG, WebP) or a PDF can be added.'; continue; }
+    if (f.size > ORD_PROOF_BYTES) { bad = 'A file is over 10 MB.'; continue; }
+    if (ordProofs.length >= ORD_PROOF_MAX) { bad = 'That is the most you can add (10).'; continue; }
+    const name = f.name && f.name !== 'image.png' ? f.name : (img ? 'screenshot-' + (ordProofs.length + 1) + '.' + (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg') : 'file.pdf');
+    const path = `checks/${ordSafeKey(key)}/${Date.now()}-${ordProofs.length + 1}-${ordSafeKey(name)}`;
+    const item = { path, name, url: img ? URL.createObjectURL(f) : '' };
+    ordProofs.push(item); ordProofsPaint(); ordUp++;
+    if (msg) msg.textContent = 'Saving ' + name + '...';
+    try {
+      const up = await sb.storage.from('order-proofs').upload(path, f, { contentType: f.type, upsert: false });
+      if (up.error) throw up.error;
+      added.push(item);
+    } catch (e) {
+      console.error(e); ordProofs.splice(ordProofs.indexOf(item), 1); ordProofsPaint(); bad = 'A file did not save. Try again.';
+    }
+    ordUp--;
+  }
+  if (document.getElementById('ordChkNote') === ta) { await ordDraftSave(key, true); const m2 = document.getElementById('ordChkMsg'); if (m2) m2.textContent = bad || 'Saved.'; }
+  else if (added.length && !ordChecks[key]) {
+    // the window was closed while the files went up: add them to the draft that is already kept
+    const had = ordDrafts[key] || {}, proofs = (had.proofs || []).concat(added.map(p => ({ path: p.path, name: p.name }))), note = ta.value.trim() || had.note || '';
+    try { const r = await sb.rpc('orders_draft_set', { p_group: key, p_note: note, p_proofs: proofs }); if (!r.error) ordDrafts[key] = { note, proofs, by: '', at: new Date().toISOString() }; } catch (e) { console.error(e); }
+  }
+}
+// one listener for the page: images and PDFs on the clipboard go to the open Checked box, anything else pastes as normal; a file dropped on the box is added too
 document.addEventListener('paste', e => {
   if (!document.getElementById('ordChkPaste')) return;
   const fs = Array.prototype.filter.call((e.clipboardData && e.clipboardData.items) || [], x => x.kind === 'file' && /^(image\/|application\/pdf)/.test(x.type)).map(x => x.getAsFile()).filter(Boolean);
@@ -613,19 +649,20 @@ document.addEventListener('drop', e => {
   const b = e.target && e.target.closest && e.target.closest('#ordChkPaste'); if (!b) return;
   e.preventDefault(); b.classList.remove('over'); ordAddProofs(e.dataTransfer && e.dataTransfer.files);
 });
-// The note is kept as you type (Kate, 20 Nov 2026: it must survive closing the window before Mark as checked): saved a moment after the last key, and again when the window closes.
-// A draft is shared with whoever opens the order. Marking the order as checked turns it into the note of the tick and removes the draft.
+// The note is kept as you type: a moment after the last key, again after every file added or removed, and when the window closes. A draft is shared with whoever opens the order;
+// marking the order as checked turns it into the tick's note and files and removes the draft.
 function ordDraftTyped(key) { clearTimeout(ordDraftTimer); ordDraftTimer = setTimeout(() => ordDraftSave(key), 700); }
-async function ordDraftSave(key) {
+async function ordDraftSave(key, force) {
   const ta = document.getElementById('ordChkNote'); if (!ta || ta.dataset.k !== key || ordChecks[key]) return;
-  const note = ta.value.trim(), had = ((ordDrafts[key] || {}).note || '');
-  if (note === had) return;
+  const note = ta.value.trim(), proofs = ordProofs.map(p => ({ path: p.path, name: p.name }));
+  const had = ordDrafts[key] || {};
+  if (!force && note === (had.note || '') && JSON.stringify(proofs) === JSON.stringify(had.proofs || [])) return;
   const msg = document.getElementById('ordChkMsg');
   try {
-    const r = await sb.rpc('orders_draft_set', { p_group: key, p_note: note });
+    const r = await sb.rpc('orders_draft_set', { p_group: key, p_note: note, p_proofs: proofs });
     if (r.error) throw r.error;
-    if (note) ordDrafts[key] = { note, by: '', at: new Date().toISOString() }; else delete ordDrafts[key];
-    if (msg && msg.textContent !== 'Saving...') msg.textContent = note ? 'Draft saved.' : '';
+    if (note || proofs.length) ordDrafts[key] = { note, proofs, by: '', at: new Date().toISOString() }; else delete ordDrafts[key];
+    if (msg && !/^Saving/.test(msg.textContent)) msg.textContent = note || proofs.length ? 'Draft saved.' : '';
   } catch (e) { console.error(e); if (msg) msg.textContent = 'The draft did not save. Keep this window open, or copy your note.'; }
 }
 function ordDraftFlush() {
@@ -634,18 +671,11 @@ function ordDraftFlush() {
 }
 async function ordCheckSave(key) {
   const note = ((document.getElementById('ordChkNote') || {}).value || '').trim(), msg = document.getElementById('ordChkMsg'), go = document.getElementById('ordChkGo');
-  if (!note && !ordProofFiles.length) { if (msg) msg.textContent = 'Type a note or add a screenshot or PDF first.'; return; }
+  if (ordUp) { if (msg) msg.textContent = 'A file is still saving. One moment.'; return; }
+  if (!note && !ordProofs.length) { if (msg) msg.textContent = 'Type a note or add a screenshot or PDF first.'; return; }
   if (go) go.disabled = true; if (msg) msg.textContent = 'Saving...';
   try {
-    const proofs = [];
-    for (let i = 0; i < ordProofFiles.length; i++) {
-      const p = ordProofFiles[i];
-      if (msg) msg.textContent = 'Saving ' + (i + 1) + ' of ' + ordProofFiles.length + '...';
-      const path = `checks/${ordSafeKey(key)}/${Date.now()}-${i + 1}-${ordSafeKey(p.name)}`;
-      const up = await sb.storage.from('order-proofs').upload(path, p.file, { contentType: p.file.type, upsert: false });
-      if (up.error) throw up.error;
-      proofs.push({ path, name: p.name });
-    }
+    const proofs = ordProofs.map(p => ({ path: p.path, name: p.name }));
     const r = await sb.rpc('orders_check_set', { p_group: key, p_on: true, p_note: note || null, p_proofs: proofs });
     if (r.error) throw r.error;
     ordChecks[key] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note || null, proofs };
@@ -776,13 +806,13 @@ function ordOpen(key) {
   m.addEventListener('click', e => { if (e.target === m) ordClose(); });
   document.body.appendChild(m);
   const c = m.querySelector('button'); if (c) c.focus();
-  ordLoadExtras(m);
+  ordLoadExtras(m); ordProofsInit();
   if (first) ordLoadPdf(first.file_path, first.file_name || ordPretty(String(first.file_path).split('/').pop()));
 }
 function ordClose() {
   ordDraftFlush();
   const m = document.getElementById('ordModal'); if (m) m.remove();
-  ordCur = null; ordProofFiles.forEach(x => { if (x.url) { try { URL.revokeObjectURL(x.url); } catch (e) { /* harmless */ } } }); ordProofFiles = [];
+  ordCur = null; ordProofs.forEach(x => { if (x.url) { try { URL.revokeObjectURL(x.url); } catch (e) { /* harmless */ } } }); ordProofs = [];
   if (ordBlobUrl) { const u = ordBlobUrl; ordBlobUrl = ''; setTimeout(() => { try { URL.revokeObjectURL(u); } catch (e) { /* harmless */ } }, 1000); }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ordModal')) { e.stopPropagation(); ordClose(); } }, true);
