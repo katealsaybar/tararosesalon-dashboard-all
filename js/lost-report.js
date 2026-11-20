@@ -111,7 +111,7 @@ async function lrRetry(fn, tries) {
 }
 async function lrLoad() {
   if (lrBusy) return;
-  lrBusy = true; lrErr = ''; lrMoneyBy = null; lrMoneyByTok++; lrWS = null; lrWSTok++;
+  lrBusy = true; lrErr = ''; lrMoneyBy = null; lrMoneyByTok++; lrWS = null; lrWSTok++; lrByMsg = null; lrByMsgTok++;
   try {
     const [s, l] = await Promise.all([lrRetry(() => sb.rpc('lost_send_report_get', lrArgs()), 3), lrRetry(() => lrFetchPage(), 3)]);
     if (s.error || !s.data) throw s.error || new Error('no report');
@@ -135,6 +135,7 @@ async function lrLoad() {
     if (!lrMoney && mo.error && !/Level 3/.test(mo.error.message || '')) { lrBusy = false; lrLoadMoney(); return; }
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
   lrBusy = false;
+  if (lrSum && !lrErr) lrLoadByMsg();
   if (lrMoney && lrType === 'all') lrLoadMoneyBy();
   if (lrType === 'all') lrLoadWS();
 }
@@ -500,6 +501,67 @@ function lrMoneySet(v) {
   const el = document.getElementById('lr-money');
   if (el) el.innerHTML = lrMoneyInner();
 }
+// 5. By message as cards (Kate, 20 Nov 2026, the same card as Database Blasts section 5; mockup docs/mockups/oct-performance-per-message.html): one column per message,
+// one big number (booked or came in per 100 messaged), a picture of 100 dots, two key facts, the rest folded. Booked or came in is the live rule since 11 Nov 2026:
+// a booking up to 31 Oct, or she came in since her first message (lost_booked_since 'since'); the ones booked after 31 Oct sit in their own count. The two calls
+// per message (booked since, delivery) run after the report is up, three at a time, and the section repaints in place; nothing is written to the database.
+let lrMsgView = 'visual', lrByMsg = null, lrByMsgTok = 0;
+try { if (localStorage.getItem('lr-msg-view') === 'table') lrMsgView = 'table'; } catch (e) {}
+const LR_MINB = 10;
+const lrDMY = iso => { if (!iso) return '–'; try { return new Date(iso).toLocaleDateString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return '–'; } };
+async function lrLoadByMsg() {
+  const tok = ++lrByMsgTok, ks = ((lrSum && lrSum.by_type) || []).map(x => x.k).filter(k => LR_TYPES.some(t => t[0] === k)), by = {};
+  if (!ks.length) return;
+  ks.forEach(k => { by[k] = { since: null, del: null }; });
+  const sn = await Promise.all(ks.map(k => lrRetry(() => sb.rpc('lost_booked_since', { p_type: k }), 2)));
+  if (tok !== lrByMsgTok) return;
+  ks.forEach((k, i) => { const r = sn[i]; if (!r.error && r.data && r.data.total) by[k].since = r.data.total; else if (r.error && !/Level 3/.test(r.error.message || '')) console.warn('lost_booked_since', k, r.error); });
+  lrByMsg = by; lrPaintByMsg();
+  const dl = await Promise.all(ks.map(k => lrRetry(() => sb.rpc('lost_delivery_report', { p_type: k }), 2)));
+  if (tok !== lrByMsgTok) return;
+  ks.forEach((k, i) => { const r = dl[i]; if (!r.error && r.data && r.data.total) by[k].del = r.data.total; else if (r.error && !/Level 3/.test(r.error.message || '')) console.warn('lost_delivery_report', k, r.error); });
+  lrByMsg = by; lrPaintByMsg();
+}
+function lrPaintByMsg() {
+  const el = document.getElementById('lr-bymsg');
+  if (el && typeof lqSel !== 'undefined' && lqSel.tab === 'perf') el.innerHTML = lrByMsgInner();
+}
+function lrMsgSet(v) {
+  lrMsgView = v === 'table' ? 'table' : 'visual';
+  try { localStorage.setItem('lr-msg-view', lrMsgView); } catch (e) {}
+  lrPaintByMsg();
+}
+function lrMsgDots(per) { const n = Math.round(per); let h = ''; for (let i = 0; i < 100; i++) h += '<i' + (i < n ? ' class="f"' : '') + '></i>'; return '<div class="lr-bb-dots" aria-hidden="true">' + h + '</div>'; }
+function lrMsgCol(k, label, m) {
+  const d = (lrByMsg && lrByMsg[k]) || {}, sn = d.since, dl = d.del, c = { y: k };
+  const rate = lrMoney && +lrMoney.rate ? +lrMoney.rate : 0.17;
+  const clients = sn ? sn.sent : m.sent, since = sn ? sn.since : null;
+  const per = sn && sn.sent ? sn.since * 100 / sn.sent : 0;
+  const reached = dl ? (dl.seen || 0) + (dl.delivered || 0) : null;
+  const pct = dl && dl.sent ? Math.round(reached * 100 / dl.sent) : null;
+  const cpb = since > 0 && reached != null ? reached * rate / since : null;
+  const tag = since != null && since < LR_MINB ? '<span class="lr-bb-pill">Too few to compare</span>' : '';
+  const hero = sn ? '<span class="n">' + (Math.round(per * 10) / 10).toFixed(1) + '</span><span class="u">per 100</span>' : '<span class="n">&ndash;</span><span class="u">counting</span>';
+  const ofn = sn ? lrNum(since, 'since', c) + ' of ' + lcNum(clients) + ' clients booked or came in' : 'Counting who booked or came in';
+  const key = '<span>Reached <b>' + (pct != null ? pct + '%' : '&ndash;') + '</b></span><span>' + (cpb ? '<b>' + lrAed2(cpb) + '</b> a booking' : '<b>' + (sn ? 'No booking yet' : '&ndash;') + '</b>') + '</span>';
+  const row = (l, v) => '<div><span>' + l + '</span>' + v + '</div>';
+  const paid = lrMoneyBy && lrMoneyBy[k] && lrMoneyBy[k].actual ? '<b>' + lrAed(lrMoneyBy[k].actual.total) + '</b>' : '<b>&ndash;</b>';
+  const more = row('Messaged', lrNum(m.sent, 'sent', c)) + row('Reached', reached != null ? lcNum(reached) : '<b>&ndash;</b>') + row('Failed', lrNum(m.failed, 'failed', c)) + row('STOP', lrNum(m.stop, 'stop', c)) +
+    row('Wrote back', lrNum(m.replied, 'replied', c)) + row('Paid since', paid) + row('Booked after 31 Oct 2026', sn && sn.late != null ? lrNum(sn.late, 'late', c) : '<b>&ndash;</b>');
+  return '<div class="lr-bb-col"><div class="lr-bb-wv">' + lcEsc(label) + '</div><div class="lr-bb-when">Sent ' + lrDMY(m.first) + ' to ' + lrDMY(m.last) + '</div><div class="lr-bb-tags">' + tag + '</div>' +
+    '<div class="lr-bb-hero">' + hero + '</div><div class="lr-bb-ofn">' + ofn + '</div>' + (sn ? lrMsgDots(per) : '<div class="lr-bb-dots ph"></div>') +
+    '<div class="lr-bb-key">' + key + '</div><details class="lr-bb-more"><summary>More</summary><div class="lr-bb-ml">' + more + '</div></details></div>';
+}
+function lrByMsgInner() {
+  if (!lrSum) return '';
+  const tbl = lrMsgView === 'table', types = LR_TYPES.map(([k, l]) => ({ k, l: k === 'due' ? 'Due (the reminder)' : l, m: (lrSum.by_type || []).find(x => x.k === k) })).filter(x => x.m);
+  const toggle = '<div class="tp-seg" role="group" aria-label="View"><button type="button" class="' + (tbl ? '' : 'on') + '" onclick="lrMsgSet(\'visual\')">Visual</button><button type="button" class="' + (tbl ? 'on' : '') + '" onclick="lrMsgSet(\'table\')">Table</button></div>';
+  const head = '<div class="lr-dhd"><h3>5. By message</h3>' + toggle + '</div><p class="slv-note">Which message did the most? Smoothing is groups 1 and 2, Colour is group 3, Due is everyone else. A client who was sent two different messages is counted under each.</p>';
+  if (!types.length) return head + '<p class="slv-muted">Nothing sent yet.</p>';
+  if (tbl) return head + lrTable('Message', types.map(x => lrRow('<b>' + lcEsc(x.l) + '</b>', x.m, { y: x.k })));
+  return head + '<div class="lr-bb-grp"><div class="lr-bb-gh"><h4>The three October messages</h4><span>Smoothing and Colour carried the welcome-back offer to 31 Oct 2026. Due was a reminder with no offer.</span></div><div class="lr-bb-pair">' + types.map(x => lrMsgCol(x.k, x.l, x.m)).join('') + '</div></div>' +
+    '<p class="slv-note">Booked or came in is a ceiling, not proof the message caused it. Per 100 messaged and cost per booking are worked-out figures, so they stay plain. Cost is an estimate at AED ' + (lrMoney && +lrMoney.rate ? (+lrMoney.rate).toFixed(2) : '0.17') + ' a delivered message. The ones booked after 31 Oct 2026 are counted on their own.</p>';
+}
 // Did our message arrive? (Kate, 18 Oct 2026). respond.io's delivery status of each message we sent, kept by the nightly sync: seen (read),
 // delivered but not read, or accepted but not delivered yet. The failed count is left off the page on purpose (Kate, 21 Oct 2026): it read like our send had
 // failed when it is WhatsApp's own status on a message we did send. Visual by default, Table beside it.
@@ -728,7 +790,7 @@ function lrPaint() {
     ${lrDel ?`<section class="lr-sec" id="lr-delivery">${lrDelInner()}</section>` : ''}
     ${lrDep ? `<section class="lr-sec" id="lr-deposits">${lrDepInner()}</section>` : ''}
     ${lrMoney ? `<section class="lr-sec" id="lr-money">${lrMoneyInner()}</section>` : ''}
-    <section class="lr-sec" id="lr-bymsg"><h3>5. By message</h3><p class="slv-note">Which message did the most? Smoothing is groups 1 and 2, Colour is group 3, Due is everyone else. A client who was sent two different messages is counted under each.</p>${lrTable('Message', typeRows)}</section>
+    <section class="lr-sec" id="lr-bymsg">${lrByMsgInner()}</section>
     <section class="lr-sec" id="lr-branches"><h3>6. By branch</h3><p class="slv-note">Which salon got the most out of it?</p>${lrTable('Branch', brRows)}</section>
     <section class="lr-sec" id="lr-days"><h3>7. By day sent</h3><p class="slv-note">What happened on each send day?</p>${lrTable('Day', dayRows)}</section>
     <section class="lr-sec" id="lr-slots"><h3>8. Send times</h3><p class="slv-note">When the messages went out, in half hours (Dubai time). To change the pace, use Pace on the To message tab.</p>${lrSlots(s.by_slot || [])}</section>
