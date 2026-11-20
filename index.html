@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=46425351"></script>
-<script src="js/page-dates.js?v=9a6fbde4"></script>
+<script src="js/page-dates.js?v=f5eac70d"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3675,7 +3675,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
       cl:  [LGX, 'js/report-export.js?v=d7b73ae8', 'js/lost-clients.js?v=221c2b8a', 'js/lost-lists.js?v=49982eb0', 'js/lost-consults.js?v=8dd97a9d', 'js/lost-review-file.js?v=de965c04',
             'js/send-schedule.js?v=3abf6266', 'js/lost-queue.js?v=4d4924ab', 'js/lost-waves.js?v=c142e140', 'js/lost-blast.js?v=2c1c9a59',
-            'js/lost-report.js?v=25b6797f', 'js/wv-blast.js?v=22a9b944', 'js/wv-last.js?v=5f1b7d69', 'js/wv-depth.js?v=e4188c8d', 'js/wv-lastsend.js?v=cf678e57', 'js/wv-remind.js?v=61840cb2', 'js/wv-messages.js?v=356bebe0', 'js/top-clients.js?v=18466b79', 'js/client-mix.js?v=2b34310a',
+            'js/lost-report.js?v=5120dd46', 'js/wv-blast.js?v=22a9b944', 'js/wv-last.js?v=5f1b7d69', 'js/wv-depth.js?v=e4188c8d', 'js/wv-lastsend.js?v=cf678e57', 'js/wv-remind.js?v=61840cb2', 'js/wv-messages.js?v=356bebe0', 'js/top-clients.js?v=18466b79', 'js/client-mix.js?v=2b34310a',
             'js/sheet-table.js?v=f56599fd', 'js/service-rankings.js?v=771fb291'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
@@ -3687,12 +3687,12 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Glow Club Performance (22 Oct 2026): one small file, only the Glow Club page needs it.
       gc:  ['js/glow-club.js?v=48b4dc79'],
       // Campaign Blasts (30 Oct 2026): one file, only that page needs it.
-      cbl: ['js/campaign-blasts.js?v=2305e991'],
+      cbl: ['js/campaign-blasts.js?v=20065889'],
       // Landing Page Review (9 Nov 2026): one file, only that page needs it.
       lpr: ['js/landing-review.js?v=9ab8b1f6'],
       rct: ['js/report-export.js?v=d7b73ae8', 'js/recruitment.js?v=0b6fb6ea'],
       // November Blasts (2 Nov 2026): one file, only that page needs it. 5 Nov 2026: plus the spreadsheet export, the Results send log saves as XLSX and CSV.
-      nvb: [LGX, 'js/nov-blasts.js?v=6febd3dd'],
+      nvb: [LGX, 'js/nov-blasts.js?v=c5466ade'],
       // Stripe vs Phorest (9 Nov 2026): one file, reads stripe_vs_phorest(); the header's Branch and Period drive it.
       spv: ['js/stripe-phorest.js?v=a458b008'],
       // Daily reports (17 Nov 2026): one file, reads sync_runs, sync_squares and sync_latest and presses the sync-now button (Level 5 only).

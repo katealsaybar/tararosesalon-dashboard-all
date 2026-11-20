@@ -56,7 +56,7 @@
   }
   var DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var TABS = ['messages', 'before'];
-  var RATE_AED = 0.21;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
+  var RATE_AED = 0.18;   // one delivered marketing message: October measured USD 0.044 to 0.055 and Meta raised UAE rates on 1 Oct 2026, so the higher figure; undelivered ones are not charged
   var D = null, LIVE = null, LEFT = null, liveErr = false, counting = false, tab = 'messages', cur = '', rb = '', dec = null, more = '', opened = {}, copied = false, sched = false, sim = {}, cal = null, sideOpen = false, big = false, fl = {}, flowScroll = null, termsFor = '', draft = {};
   var errMsg = '', wantBlast = '', wantTab = '', firstOpen = true, bound = false;
   var RESID = 'RESULTS', RES = null, resErr = false, resTimer = null;   // the Results view (Kate, 4 Nov 2026): how the blasts did, read live from nov_results()
@@ -293,7 +293,7 @@
   var bigflow = false;   // the phones of one blast, large (Kate, 3 Nov 2026, the same See the flow bigger as Campaign Blasts)
   var FLOWICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
   var ALLID = 'ALL';   // the All blasts view (Kate, 3 Nov 2026): picking the All blasts card opens the whole picture in the main panel, like picking a blast
-  var RATE_USD = 0.058;   // roughly one delivered marketing message in the UAE (see the Before sending top-up task)
+  var RATE_USD = 0.049;   // roughly one delivered marketing message in the UAE (see the Before sending top-up task)
   function progSum() { PG = { s: 0, f: 0, t: 0, any: false }; sorted().forEach(function (b) { progRow(b); }); return ''; }   // the sending totals the page chips and the Results pill read; the All blasts pill that used to work them out is gone
   function totalSide() {
     var bs = sorted(), tot = 0, slots = 0, rows = '';
@@ -1086,8 +1086,8 @@
       repl +
       rsCell('STOP', nn(a.stop, 'stop'), pc1(a.stop, a.sent) + ' of accepted. Limit ' + (RES.gate ? RES.gate.stop_pct : 2) + '%' + (a.never_checked ? '. Partial, not every message is checked yet' : '')) +
       ahead + bsince + bci + paid + cpb +
-      rsCell('Spent (estimate)', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' accepted at AED ' + r2 + ' each. AED ' + money0(reached * r2) + ' if only the ' + fmtN(reached) + ' delivered are charged. At AED ' + r1 + ': AED ' + money0(a.sent * r1) + ' and AED ' + money0(reached * r1)) + '</div>' + lateBox,
-      'Rate: October used AED ' + r1 + ' a message (about USD 0.046, measured). The page assumes AED ' + r2 + ' (about USD 0.058, one vendor source). Both are shown until the Meta invoice or the respond.io usage report replaces them. WhatsApp does not charge failed messages, so delivered only is the likelier bill, and Cost per booking uses it.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, cost AED 1,068 on every message accepted.');
+      rsCell('Spent (estimate)', 'AED ' + money0(a.sent * r2), fmtN(a.sent) + ' accepted at AED ' + r2 + ' each. AED ' + money0(reached * r2) + ' if only the ' + fmtN(reached) + ' delivered are charged') + '</div>' + lateBox,
+      'Rate: AED ' + r2 + ' a delivered message (about USD ' + RATE_USD + '), worked out from Meta\'s count of delivered messages and the respond.io invoices, the same for October and November. The invoice has no line for one blast, so it is an estimate. WhatsApp does not charge failed messages, so delivered only is the likelier bill, and Cost per booking uses it.<br>October for comparison: 6,283 sent, 57.9% delivered or seen, about 30% of first sends never delivered, 92 booked or came in, AED 42,918 paid, about AED 625 to 700 spent on the delivered messages (AED 1,068 if every message accepted were charged).');
 
     // 3 did the message arrive
     out += delSec(rows, rows.concat([a]), a, st);
@@ -1129,7 +1129,7 @@
     return '<div class="nvb-rs">' + out + '</div>';
   }
   async function loadResults() {
-    try { RES = await rpc('nov_results'); resErr = false; } catch (e) { console.error(e); resErr = true; }
+    try { RES = await rpc('nov_results'); if (RES) RES.rates = { oct: 0.18, nov: 0.18 }; resErr = false; } catch (e) { console.error(e); resErr = true; }   // one rate for October and November, AED 0.18 a delivered message (Kate, 20 Nov 2026)
     if (cur === RESID) { if (!monBusy) loadMoney(); if (!LOG.busy) loadLog(); }   // read the money and the log again with the numbers
   }
   function resPoll() {   // while Results is open and the tab is showing: read it again every minute (delivery statuses and sales keep arriving)

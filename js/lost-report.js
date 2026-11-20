@@ -74,6 +74,9 @@ let lrHashDone = false;
 let lrType = 'all';
 const LR_TYPES = [['smoothing', 'Smoothing'], ['colour', 'Colour'], ['due', 'Due (the reminder)']];
 const lrArgs = () => lrType === 'all' ? undefined : { p_type: lrType };
+// AED a delivered marketing message (Kate, 20 Nov 2026: 0.18, from Meta's 3,698 delivered on 15 to 19 Oct and the respond.io invoices; the old default was 0.17). Sent to the money and warm or standard functions, so the database default is not used.
+const LR_RATE = 0.18;
+const lrMoneyArgs = () => Object.assign({}, lrArgs() || {}, { p_rate: LR_RATE });
 const lrTypeName = () => (LR_TYPES.find(t => t[0] === lrType) || [, ''])[1];
 
 const LR_BR = ['SAA', 'KCA', 'MC', 'AQ'];
@@ -119,7 +122,7 @@ async function lrLoad() {
     if (l.error || !l.data) throw l.error || new Error('no log');
     const [dp, dl, bs, rc, ad, mo] = await Promise.all([lrRetry(() => sb.rpc('lost_booked_deposits', lrArgs()), 2), lrRetry(() => sb.rpc('lost_delivery_report', lrArgs()), 2),
       lrRetry(() => sb.rpc('lost_booked_since', lrArgs()), 2), lrRetry(() => sb.rpc('lost_blast_record_get'), 2), lrRetry(() => sb.rpc('lost_after_deadline'), 2),
-      lrRetry(() => sb.rpc('lost_campaign_money', lrArgs()), 2)]);
+      lrRetry(() => sb.rpc('lost_campaign_money', lrMoneyArgs()), 2)]);
     lrSum = s.data;
     lrDep = (!dp.error && dp.data && dp.data.total) ? dp.data : null;   // optional: the report still draws without it
     if (dp.error) console.warn('lost_booked_deposits', dp.error);
@@ -144,7 +147,7 @@ async function lrLoad() {
 // Warm or standard, after the report is up (one call, about 2 s). A Level 2 reader or a database without the function simply gets no section.
 async function lrLoadWS() {
   const tok = ++lrWSTok;
-  const r = await lrRetry(() => sb.rpc('lost_warm_standard'), 2);
+  const r = await lrRetry(() => sb.rpc('lost_warm_standard', { p_rate: LR_RATE }), 2);
   if (tok !== lrWSTok || lrType !== 'all') return;
   if (r.error || !r.data || !r.data.groups || !r.data.groups.warm || !r.data.groups.standard) { if (r.error && !/Level 3/.test(r.error.message || '')) console.warn('lost_warm_standard', r.error); return; }
   lrWS = r.data;
@@ -156,7 +159,7 @@ async function lrLoadWS() {
 // The three messages' money, one call each, run together; a failed one just leaves its row out. Repaints the money section in place when they land.
 async function lrLoadMoneyBy() {
   const tok = ++lrMoneyByTok;
-  const rs = await Promise.all(LR_TYPES.map(([k]) => lrRetry(() => sb.rpc('lost_campaign_money', { p_type: k }), 2)));
+  const rs = await Promise.all(LR_TYPES.map(([k]) => lrRetry(() => sb.rpc('lost_campaign_money', { p_type: k, p_rate: LR_RATE }), 2)));
   if (tok !== lrMoneyByTok || lrType !== 'all') return;   // another load started, or a message was picked meanwhile
   const by = {};
   LR_TYPES.forEach(([k], i) => { const r = rs[i]; if (!r.error && r.data && r.data.cost) by[k] = r.data; });
@@ -171,7 +174,7 @@ async function lrLoadMoney() {
   const tok = ++lrMoneyTok;
   for (let i = 0; i < 3; i++) {
     let r;
-    try { r = await sb.rpc('lost_campaign_money', lrArgs()); } catch (e) { r = { error: e }; }
+    try { r = await sb.rpc('lost_campaign_money', lrMoneyArgs()); } catch (e) { r = { error: e }; }
     if (tok !== lrMoneyTok) return;   // another load started (message type changed)
     if (!r.error && r.data && r.data.cost) {
       lrMoney = r.data;
@@ -241,7 +244,7 @@ function lrTiles(t) {
   const cell = (ti, v, d, cls) => `<div${cls ? ' class="' + cls + '"' : ''}><small>${ti}</small><b>${v}</b><span class="lr-d">${d}</span></div>`;
   const wait = (ti, why) => cell(ti, 'Not readable yet', why, 'wait');
   const m = lrMoney, sn = lrSince && lrSince.total ? lrSince.total : null, dl = lrDel && lrDel.total && lrDel.total.sent ? lrDel.total : null;
-  const reached = lrBillable(), lv = lrCostLive(), rate = m && +m.rate ? +m.rate : 0.17;
+  const reached = lrBillable(), lv = lrCostLive(), rate = m && +m.rate ? +m.rate : LR_RATE;
   const rowA = [
     cell('Sent', lrNum(t.sent, 'sent'), t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet'),
     dl ? cell('Delivered or read', lcNum(reached), `${lrPct(reached, dl.sent)} of sent. ${lrNum(dl.seen || 0, 'seen')} read`) : wait('Delivered or read', 'The delivery report has not loaded.'),
@@ -569,7 +572,7 @@ function lrMsgSet(v) {
 function lrMsgDots(per) { const n = Math.round(per); let h = ''; for (let i = 0; i < 100; i++) h += '<i' + (i < n ? ' class="f"' : '') + '></i>'; return '<div class="lr-bb-dots" aria-hidden="true">' + h + '</div>'; }
 function lrMsgCol(k, label, m) {
   const d = (lrByMsg && lrByMsg[k]) || {}, sn = d.since, dl = d.del, c = { y: k };
-  const rate = lrMoney && +lrMoney.rate ? +lrMoney.rate : 0.17;
+  const rate = lrMoney && +lrMoney.rate ? +lrMoney.rate : LR_RATE;
   const clients = sn ? sn.sent : m.sent, since = sn ? sn.since : null;
   const per = sn && sn.sent ? sn.since * 100 / sn.sent : 0;
   const reached = dl ? (dl.seen || 0) + (dl.delivered || 0) : null;
@@ -595,7 +598,7 @@ function lrByMsgInner() {
   if (!types.length) return head + '<p class="slv-muted">Nothing sent yet.</p>';
   if (tbl) return head + lrTable('Message', types.map(x => lrRow('<b>' + lcEsc(x.l) + '</b>', x.m, { y: x.k })));
   return head + '<div class="lr-bb-grp"><div class="lr-bb-gh"><h4>The three October messages</h4><span>Smoothing and Colour carried the welcome-back offer to 31 Oct 2026. Due was a reminder with no offer.</span></div><div class="lr-bb-pair">' + types.map(x => lrMsgCol(x.k, x.l, x.m)).join('') + '</div></div>' +
-    '<p class="slv-note">Booked or came in is a ceiling, not proof the message caused it. Per 100 messaged and cost per booking are worked-out figures, so they stay plain. Cost is an estimate at AED ' + (lrMoney && +lrMoney.rate ? (+lrMoney.rate).toFixed(2) : '0.17') + ' a delivered message. The ones booked after 31 Oct 2026 are counted on their own.</p>';
+    '<p class="slv-note">Booked or came in is a ceiling, not proof the message caused it. Per 100 messaged and cost per booking are worked-out figures, so they stay plain. Cost is an estimate at AED ' + (lrMoney && +lrMoney.rate ? (+lrMoney.rate).toFixed(2) : LR_RATE.toFixed(2)) + ' a delivered message. The ones booked after 31 Oct 2026 are counted on their own.</p>';
 }
 // Did our message arrive? (Kate, 18 Oct 2026). respond.io's delivery status of each message we sent, kept by the nightly sync: seen (read),
 // delivered but not read, or accepted but not delivered yet. The failed count is left off the page on purpose (Kate, 21 Oct 2026): it read like our send had
@@ -667,7 +670,7 @@ function lrSlots(slots) {
 // client from her first message. Booked = booked ahead or already came in since the message, the same count as Booked since the message above.
 const lrAed2 = n => 'AED ' + (+n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const lrPer100 = (a, b) => b > 0 ? (100 * a / b).toFixed(1) : '–';
-const LR_WS_USD = 0.046;   // USD a marketing message on respond.io, shown beside the AED figures
+const LR_WS_USD = 0.049;   // USD a marketing message on respond.io, shown beside the AED figures
 // The verdict banner (Option B, approved by Kate 2 Nov 2026): who wins on bookings per client messaged, and the three numbers Coach Emma asked for side by side.
 // Fewer than 5 clients on a side is too few to name a winner (the rule the Wellness Voucher page uses too). Returns { win, html }.
 function lrWSBanner(w, s) {
@@ -720,7 +723,7 @@ function lrWSCard(key, g, maxRate, winner) {
 function lrWSInner() {
   const g = lrWS && lrWS.groups, w = g && g.warm, s = g && g.standard;
   if (!w || !s) return '';
-  const rate = +lrWS.rate || 0.17, ban = lrWSBanner(w, s);
+  const rate = +lrWS.rate || LR_RATE, ban = lrWSBanner(w, s);
   const maxRate = Math.max(w.clients ? w.since / w.clients : 0, s.clients ? s.since / s.clients : 0);
   const types = (lrWS.by_type || []).slice().sort((a, b) => (a.qtype > b.qtype ? 1 : a.qtype < b.qtype ? -1 : a.grp === 'warm' ? -1 : 1));
   const qn = q => (typeof LQ_TYPES !== 'undefined' && LQ_TYPES[q]) ? LQ_TYPES[q][0] : q;

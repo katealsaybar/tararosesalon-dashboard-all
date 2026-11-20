@@ -6,8 +6,8 @@
  },
  "campaignblasts": {
   "created": "2026-10-30",
-  "fp": "428e87c4bf35",
-  "modified": "2026-11-18"
+  "fp": "4a6d7f57a196",
+  "modified": "2026-11-20"
  },
  "clientbook": {
   "created": "2026-10-22",
@@ -136,7 +136,7 @@
  },
  "lostlists": {
   "created": "2026-10-09",
-  "fp": "68fa9fa216cb",
+  "fp": "1aee17382400",
   "modified": "2026-11-20"
  },
  "marketingspend": {
@@ -151,7 +151,7 @@
  },
  "novblasts": {
   "created": "2026-11-02",
-  "fp": "fcc40459c214",
+  "fp": "ceb1c3d4428f",
   "modified": "2026-11-20"
  },
  "one2ones": {

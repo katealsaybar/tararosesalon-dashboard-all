@@ -141,7 +141,7 @@
   }
   // What a blast costs to send (Kate, 30 Oct 2026): one marketing message per client at the rate measured on 19 Oct (about USD 0.046, AED 0.17, respond.io adds no markup).
   // An estimate; the exact amount is on Meta's invoice. Her tap and our reply come inside her 24 hour window, so they are not counted.
-  var RATE_USD = 0.046, RATE_AED = 0.17;
+  var RATE_USD = 0.049, RATE_AED = 0.18;
   function cnt(b) { if (LIVE && LIVE.blasts) return Number((LIVE.blasts[b.id] || {}).n) || 0; return liveErr ? Number(b.data.n) || 0 : null; }
   function estAed(n) { return n == null ? '…' : 'AED ' + fmtN(Math.round(n * RATE_AED)); }
   function estUsd(n) { return n == null ? '' : ' (USD ' + fmtN(Math.round(n * RATE_USD)) + ')'; }
@@ -262,7 +262,7 @@
     return '<p class="cbl-next" role="status">' + msg + '</p>';
   }
   function costHtml(tot, n) {
-    return '<details class="cbl-cost"><summary>Cost estimate, for Kate</summary><p><b>' + cost(tot) + '</b> to send all ' + n + '. Estimate: one marketing message per client at about USD 0.046 (AED 0.17), the rate measured on 19 Oct. ' +
+    return '<details class="cbl-cost"><summary>Cost estimate, for Kate</summary><p><b>' + cost(tot) + '</b> to send all ' + n + '. Estimate: one marketing message per client at about USD 0.049 (AED 0.18), worked out from October's Meta count and the respond.io invoices. ' +
       'The client’s tap and our reply come inside the 24 hours after she answers, so they are not counted. The exact amount is on Meta’s invoice, and each client is counted once.</p></details>';
   }
   function allHtml() {
@@ -354,7 +354,7 @@
       '<label class="cbl-fld">Time (Dubai)<select id="cblTime"' + (canEdit() ? '' : ' disabled') + '>' + times + '</select></label>' +
       '<label class="cbl-sw" title="Stops the time being moved by accident"><input type="checkbox" id="cblLock"' + (b.locked ? ' checked' : '') + (canEdit() ? '' : ' disabled') + '><span class="t"></span>' + (b.locked ? 'Time locked' : 'Lock this time') + '</label>' +
       (w.length ? '<p class="cbl-note warn">' + w.join(' ') + '</p>' : '<p class="cbl-note">Mondays, 11 am to 4 pm. This records the plan; the blast is launched from respond.io.</p>') +
-      '<details class="cbl-cost cbl-in"><summary>Cost estimate</summary><p><b>' + estAed(c0) + '</b>' + estUsd(c0) + ' to send. One marketing message per client at about USD 0.046 (AED 0.17). The exact amount is on Meta’s invoice.</p></details></div>' +
+      '<details class="cbl-cost cbl-in"><summary>Cost estimate</summary><p><b>' + estAed(c0) + '</b>' + estUsd(c0) + ' to send. One marketing message per client at about USD 0.049 (AED 0.18). The exact amount is on Meta’s invoice.</p></details></div>' +
       (replyFor(b, 'warm') ? '<div class="cbl-flowbar"><button type="button" class="cbl-bigbtn" data-act="flowbig"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>See the flow bigger</button></div>' : '') +
       '<div class="cbl-phones" id="cblPhones">' + lane('Warm', b.data.warm, b.data.img, b, 'warm') + lane('Standard', b.data.std, b.data.img, b, 'std') + '</div>' +
       '<div class="cbl-card cbl-rev" id="cblReview"><div class="cbl-rev-top"><h3>Emma: review</h3>' + (canEdit()
