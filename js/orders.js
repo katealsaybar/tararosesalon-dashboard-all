@@ -18,7 +18,7 @@ const ORD_STORE = 'trs-orders';
 // The mini side nav (Kate, 19 Nov 2026: "walang mini sidebar navi"): the shared "On this page" rail, a column in the gutter from 1100px and a pinned row of chips under the masthead below that (lgShell, jump-nav.js).
 const ORD_RAIL = [['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
 const ORD = { n: 10, kind: '' };
-let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordProofFiles = [];
+let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordDrafts = {}, ordDraftTimer = null, ordProofFiles = [];
 try { const s = JSON.parse(localStorage.getItem(ORD_STORE) || '{}'); if ([10, 20, 50, 100].includes(s.n)) ORD.n = s.n; } catch (e) {}
 const ordSave = () => { try { localStorage.setItem(ORD_STORE, JSON.stringify({ n: ORD.n })); } catch (e) {} };
 
@@ -233,6 +233,7 @@ async function ordLoad() {
     if (error) throw error;
     ordRows = (data && data.rows) || [];
     ordChecks = (data && data.checks) || {};
+    ordDrafts = (data && data.drafts) || {};
     ordBuild(ordRows);
   } catch (e) {
     console.error(e);
@@ -574,7 +575,7 @@ function ordCheckHtml(g) {
   }
   if (!g.x) return '';
   return `<div class="ord-chk" id="ordChk"><div class="ord-chk-h"><b>Checked it in the account?</b> Clear this order here.</div>` +
-    `<textarea id="ordChkNote" rows="2" maxlength="500" placeholder="Note, for example: paid with the Mastercard ending 2600, arrived 14 Jan"></textarea>` +
+    `<textarea id="ordChkNote" rows="2" maxlength="500" data-k="${k}" oninput="ordDraftTyped(this.dataset.k)" placeholder="Note, for example: paid with the Mastercard ending 2600, arrived 14 Jan">${ordEsc((ordDrafts[g.key] || {}).note || '')}</textarea>` +
     `<div class="ord-paste" id="ordChkPaste" tabindex="0">Copy a screenshot, then press Ctrl+V anywhere in this window. Paste as many as you need. To add a PDF, drop it here or <button type="button" class="ord-lk" onclick="document.getElementById('ordChkFile').click()">choose a PDF</button>.</div>` +
     `<input type="file" id="ordChkFile" accept="application/pdf,image/png,image/jpeg,image/webp" multiple hidden onchange="ordAddProofs(this.files);this.value=''"><div id="ordChkPrev" class="ord-prevs"></div>` +
     `<div class="ord-chk-b"><button type="button" class="cm-pill" id="ordChkGo" data-k="${k}" onclick="ordCheckSave(this.dataset.k)">Mark as checked</button><span class="ord-muted" id="ordChkMsg"></span></div></div>`;
@@ -612,6 +613,25 @@ document.addEventListener('drop', e => {
   const b = e.target && e.target.closest && e.target.closest('#ordChkPaste'); if (!b) return;
   e.preventDefault(); b.classList.remove('over'); ordAddProofs(e.dataTransfer && e.dataTransfer.files);
 });
+// The note is kept as you type (Kate, 20 Nov 2026: it must survive closing the window before Mark as checked): saved a moment after the last key, and again when the window closes.
+// A draft is shared with whoever opens the order. Marking the order as checked turns it into the note of the tick and removes the draft.
+function ordDraftTyped(key) { clearTimeout(ordDraftTimer); ordDraftTimer = setTimeout(() => ordDraftSave(key), 700); }
+async function ordDraftSave(key) {
+  const ta = document.getElementById('ordChkNote'); if (!ta || ta.dataset.k !== key || ordChecks[key]) return;
+  const note = ta.value.trim(), had = ((ordDrafts[key] || {}).note || '');
+  if (note === had) return;
+  const msg = document.getElementById('ordChkMsg');
+  try {
+    const r = await sb.rpc('orders_draft_set', { p_group: key, p_note: note });
+    if (r.error) throw r.error;
+    if (note) ordDrafts[key] = { note, by: '', at: new Date().toISOString() }; else delete ordDrafts[key];
+    if (msg && msg.textContent !== 'Saving...') msg.textContent = note ? 'Draft saved.' : '';
+  } catch (e) { console.error(e); if (msg) msg.textContent = 'The draft did not save. Keep this window open, or copy your note.'; }
+}
+function ordDraftFlush() {
+  const ta = document.getElementById('ordChkNote'); if (!ta) return;
+  clearTimeout(ordDraftTimer); ordDraftSave(ta.dataset.k);
+}
 async function ordCheckSave(key) {
   const note = ((document.getElementById('ordChkNote') || {}).value || '').trim(), msg = document.getElementById('ordChkMsg'), go = document.getElementById('ordChkGo');
   if (!note && !ordProofFiles.length) { if (msg) msg.textContent = 'Type a note or add a screenshot or PDF first.'; return; }
@@ -629,6 +649,7 @@ async function ordCheckSave(key) {
     const r = await sb.rpc('orders_check_set', { p_group: key, p_on: true, p_note: note || null, p_proofs: proofs });
     if (r.error) throw r.error;
     ordChecks[key] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note || null, proofs };
+    delete ordDrafts[key]; clearTimeout(ordDraftTimer);
     ordAfterCheck(key);
   } catch (e) {
     console.error(e);
@@ -759,6 +780,7 @@ function ordOpen(key) {
   if (first) ordLoadPdf(first.file_path, first.file_name || ordPretty(String(first.file_path).split('/').pop()));
 }
 function ordClose() {
+  ordDraftFlush();
   const m = document.getElementById('ordModal'); if (m) m.remove();
   ordCur = null; ordProofFiles.forEach(x => { if (x.url) { try { URL.revokeObjectURL(x.url); } catch (e) { /* harmless */ } } }); ordProofFiles = [];
   if (ordBlobUrl) { const u = ordBlobUrl; ordBlobUrl = ''; setTimeout(() => { try { URL.revokeObjectURL(u); } catch (e) { /* harmless */ } }, 1000); }
