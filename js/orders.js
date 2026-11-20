@@ -17,7 +17,7 @@
 const ORD_STORE = 'trs-orders';
 // The mini side nav (Kate, 19 Nov 2026: "walang mini sidebar navi"): the shared "On this page" rail, a column in the gutter from 1100px and a pinned row of chips under the masthead below that (lgShell, jump-nav.js).
 const ORD_RAIL = [['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
-const ORD = { n: 10, kind: '' };
+const ORD = { n: 10, kind: '', q: '' };
 let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordDrafts = {}, ordDraftTimer = null, ordProofs = [];
 try { const s = JSON.parse(localStorage.getItem(ORD_STORE) || '{}'); if ([10, 20, 50, 100].includes(s.n)) ORD.n = s.n; } catch (e) {}
 const ordSave = () => { try { localStorage.setItem(ORD_STORE, JSON.stringify({ n: ORD.n })); } catch (e) {} };
@@ -167,6 +167,39 @@ function ordFinish(key, docs) {
   g.n = first.subject || first.note || '';
   return g;
 }
+// FIND AN ORDER (Kate, 20 Nov 2026): one box over the page. Every word typed must appear somewhere in the order: supplier, order number (with or without the dashes), product,
+// salon, status, what the emails say, the note of a check. While something is typed the tables look at ALL orders, not only the Period and Branch picked above.
+function ordHay(g) {
+  if (g._hay) return g._hay;
+  const bits = [g.s, g.r, g.key, g.n, g.st, g.x, g.type, ordName(g.b), g.cat];
+  if (g.buy) g.buy.lines.forEach(l => bits.push(l.name));
+  g.docs.forEach(d => { bits.push(d.reference, d.subject, d.file_name); });
+  if (g.chk) bits.push(g.chk.note, g.chk.by, 'checked');
+  g._hay = bits.filter(Boolean).join(' | ').toLowerCase();
+  g._flat = g._hay.replace(/[\s-]+/g, '');
+  return g._hay;
+}
+function ordFindOk(g) {
+  if (!ORD.q) return true;
+  const h = ordHay(g);
+  return ORD.q.toLowerCase().split(/\s+/).filter(Boolean).every(t => h.indexOf(t) >= 0 || g._flat.indexOf(t.replace(/[\s-]+/g, '')) >= 0);
+}
+let ordFindTimer = null;
+function ordFindTyped(v) {
+  clearTimeout(ordFindTimer);
+  ordFindTimer = setTimeout(() => {
+    ORD.q = String(v || '').trim();
+    [ordTL, ordT].forEach(T => { if (T) { T.page = 0; T.draw(); } });
+    const m = document.getElementById('ordFindMsg'); if (!m) return;
+    if (!ORD.q) { m.innerHTML = ''; ordOffsets(); return; }
+    const hit = ordGroups.filter(ordFindOk), lk = hit.filter(g => g.x).length, ck = hit.filter(g => g.chk).length;
+    m.innerHTML = hit.length ? `${hit.length} found in all orders, all time: ${lk} need a look, ${ck} checked. <button type="button" class="ord-lk" onclick="ordGoEvery()">Show them in Every order</button>` : 'Nothing found. Try the order number, a supplier or a product word.';
+    ordOffsets();
+  }, 200);
+}
+function ordGoEvery() { ordKind(''); const e = document.getElementById('ordEverySec'); if (e && e.scrollIntoView) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+// the orders somebody ticked Checked, newest tick first, in Every order (Kate, 20 Nov 2026: "find an order I recently checked")
+function ordShowChecked() { ordKind('Checked'); const e = document.getElementById('ordEverySec'); if (e && e.scrollIntoView) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function ordScope() {
   const [a, b] = ordRange(), c = ordCodes();
   return ordGroups.filter(g => g.start >= a && g.start <= b && (!c || c.includes(g.b)));
@@ -258,7 +291,7 @@ function ordPaint() {
         <div class="ord-learn"><p><b>What is this?</b> The orders that ask for a decision: a wrong discount, an overdue statement, items out of stock, an invoice about to fall due.</p>
           <p><b>Why it matters.</b> These are the ones that cost money or stock if nobody opens them this week.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW1"></span></p></div>
-        <div class="ord-bar"><button type="button" class="cm-pill ord-phone" data-sxcm="look" aria-label="Sort and filter">Filter</button><span class="ord-sp"></span><button type="button" class="cm-pill" id="ordClearLook" hidden onclick="ordTL.clear();ordTL.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExportLook') : ''}</div>
+        <div class="ord-bar"><button type="button" class="cm-pill ord-phone" data-sxcm="look" aria-label="Sort and filter">Filter</button><span class="ord-sp"></span><button type="button" class="cm-pill" id="ordShowChk" onclick="ordShowChecked()">Checked orders (<span id="ordChkN">0</span>)</button><button type="button" class="cm-pill" id="ordClearLook" hidden onclick="ordTL.clear();ordTL.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExportLook') : ''}</div>
         <div class="ord-card"><table id="ordTblLook"></table></div>
         ${ordPagerHtml('look')}
       </section>
@@ -276,7 +309,7 @@ function ordPaint() {
           <p><b>Why it matters.</b> You see what was bought, how many, the total and any discount without opening five emails.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW3"></span></p></div>
         <div class="ord-bar" id="ordBar">
-          <div class="ord-seg-row"><div class="sc-seg" role="group" aria-label="Type"><button type="button" class="on" data-ord-kind="" onclick="ordKind('')">All</button><button type="button" data-ord-kind="Order" onclick="ordKind('Order')">Orders</button><button type="button" data-ord-kind="Invoice" onclick="ordKind('Invoice')">Invoices</button><button type="button" data-ord-kind="Statement" onclick="ordKind('Statement')">Statements</button></div></div>
+          <div class="ord-seg-row"><div class="sc-seg" role="group" aria-label="Type"><button type="button" class="on" data-ord-kind="" onclick="ordKind('')">All</button><button type="button" data-ord-kind="Order" onclick="ordKind('Order')">Orders</button><button type="button" data-ord-kind="Invoice" onclick="ordKind('Invoice')">Invoices</button><button type="button" data-ord-kind="Statement" onclick="ordKind('Statement')">Statements</button><button type="button" data-ord-kind="Checked" onclick="ordKind('Checked')">Checked</button></div></div>
           <button type="button" class="cm-pill" id="ordMore" onclick="ordToggleMore('doc')">All columns</button>
           <button type="button" class="cm-pill ord-phone" data-sxcm="doc" aria-label="Sort and filter">Filter</button>
           <span class="ord-sp"></span>
@@ -288,7 +321,8 @@ function ordPaint() {
       </section>
       <section class="ord-how" id="ordHow"><h3>How it is worked out</h3><div class="sc-seg ord-pick" id="ordPick" role="group" aria-label="Which figure"></div><div class="ord-hcard" id="ordHCard"></div></section>
       ${ordAboutHtml()}`;
-    body.innerHTML = ans + (typeof lgShell === 'function' ? lgShell(ORD_RAIL, secs, 'lg-shell-wide') : secs);
+    const find = `<section class="ord-find" aria-label="Find an order"><input id="ordFind" type="search" autocomplete="off" placeholder="Find an order: order number, supplier, product, note..." oninput="ordFindTyped(this.value)"><p class="ord-muted" id="ordFindMsg"></p></section>`;
+    body.innerHTML = ans + find + (typeof lgShell === 'function' ? lgShell(ORD_RAIL, secs, 'lg-shell-wide') : secs);
     document.querySelectorAll('#ordersContent .ord-pgsel').forEach(x => { x.value = String(ORD.n); });
   }
   ordPaintAnswer(); ordPaintNotes(); [ordT, ordTL, ordTS].forEach(T => { T.shown = ORD.n; T.page = 0; }); ordTL.draw(); ordTS.draw(); ordT.draw(); ordPaintHow(); ordDrawAbout(); ordOffsets(); ordWatch();
@@ -308,6 +342,7 @@ function ordPaintAnswer() {
   a2.textContent = ordScopeText() + ' · ' + ordPeriodText() + '. One order is one row, however many emails it has. Amounts count only what the email shows.';
 }
 function ordPaintNotes() {
+  const cn = document.getElementById('ordChkN'); if (cn) cn.textContent = ordGroups.filter(g => g.chk).length;
   const gs = ordScope(), lk = gs.filter(g => g.x), w1 = document.getElementById('ordW1'), w2 = document.getElementById('ordW2'), w3 = document.getElementById('ordW3');
   w1.textContent = lk.length ? lk.length + ' in this Period. Start with the oldest: it has waited longest.' : 'Nothing needs a look in this Period.';
   const rows = ordSupRows(); w2.textContent = rows.length ? rows[0].s + ' has the most tracked items (' + rows[0].n + '). A supplier with orders but no invoice yet is worth a message.' : 'No supplier in this Period.';
@@ -322,6 +357,7 @@ function ordSupRows() {
     last: gs.reduce((x, g) => g.last > x ? g.last : x, ''), pdf: gs.filter(g => ordIsKept(g)).length, look: gs.filter(g => g.x).length }; }).sort((a, b) => b.n - a.n);
 }
 function ordStatusPill(g) {
+  if (g.chk && !g.x) return `<button type="button" class="ord-st ord-ok" data-k="${ordEsc(g.key)}" title="Checked in the account by ${ordEsc(g.chk.by || '')}" onclick="ordOpen(this.dataset.k)">Checked</button>`;
   if (g.x) return `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" title="${ordEsc('Needs a look: ' + g.x)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.st)}</button>`;
   return `<span class="ord-st${/Invoiced|Delivered|Shipped|Confirmed/.test(g.st) ? ' ord-ok' : ''}">${ordEsc(g.st)}</span>`;
 }
@@ -335,7 +371,7 @@ function ordBuildTables() {
   const supCol = () => ({ k: 's', l: 'Supplier', t: 'txt', raw: g => g.s, disp: g => g.s, cell: g => '<b>' + ordEsc(g.s) + '</b>' });
   const salCol = () => ({ k: 'b', l: 'Salon', t: 'txt', raw: g => ordName(g.b), disp: g => ordName(g.b), cell: g => ordEsc(ordName(g.b)) });
   const amtCol = () => ({ k: 'a', l: 'Total', sub: 'AED', t: 'num', raw: g => g.a == null ? -1 : g.a, disp: g => g.a == null ? '' : ordAed(g.a), cell: g => g.a == null ? '<span class="ord-muted">-</span>' : `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordAed(g.a)}</button>` });   // one order's total opens that order (it used to open every order of the supplier under this order's name)
-  ordTL = TRSheet.table({ id: 'ordlook', el: '#ordTblLook', rows: () => ordScope().filter(g => g.x), limit: ORD.n,
+  ordTL = TRSheet.table({ id: 'ordlook', el: '#ordTblLook', rows: () => (ORD.q ? ordGroups : ordScope()).filter(g => g.x && ordFindOk(g)), limit: ORD.n,
     cols: [dateCol(), supCol(),
       { k: 'x', l: 'Why it needs a look', t: 'txt', raw: g => g.x, disp: g => g.x, cell: g => `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.x)}</button>` },
       { k: 'k', l: 'Type', t: 'txt', raw: g => g.type, disp: g => g.type, cell: g => ordEsc(g.type) }, salCol(), amtCol()],
@@ -353,7 +389,7 @@ function ordBuildTables() {
       { k: 'w', l: 'Needs a look', t: 'num', x: 1, raw: r => r.look, disp: r => r.look, cell: r => ordFig(r.look, r.s + ', needs a look', { s: r.s, look: 1 }) }],
     total: rows => { let n = 0, o = 0, v = 0, a = 0, q = 0; rows.forEach(r => { n += r.n; o += r.ord; v += r.inv; a += r.amt; q += r.disc; }); return { s: rows.length + ' suppliers', n: ordFig(n, 'Everything tracked', {}), o: ordFig(o, 'Orders', { kind: 'order' }), v: ordFig(v, 'Invoices', { kind: 'inv' }), m: ordMoney(a, 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(q, 'Orders with a discount', { disc: 1 }) }; }, after: (T, rows) => ordAfter('sup', T, rows, 'suppliers') });
   ordT = TRSheet.table({ id: 'ordall', el: '#ordTbl', limit: ORD.n,
-    rows: () => ordScope().filter(g => !ORD.kind || g.type === ORD.kind),
+    rows: () => ORD.kind === 'Checked' ? ordGroups.filter(g => g.chk && ordFindOk(g)) : (ORD.q ? ordGroups : ordScope()).filter(g => (!ORD.kind || g.type === ORD.kind) && ordFindOk(g)),
     cols: [dateCol(), supCol(), salCol(),
       { k: 'n', l: 'Items', sub: 'what was bought', t: 'num', raw: g => g.items, disp: g => g.items ? g.items : '', cell: ordItemsCell },
       amtCol(),
@@ -363,12 +399,20 @@ function ordBuildTables() {
       { k: 'r', l: 'Reference', t: 'txt', x: 1, raw: g => g.r, disp: g => g.r, cell: g => g.r ? ordEsc(g.r) : '<span class="ord-muted">-</span>' },
       { k: 'ty', l: 'Type', t: 'txt', x: 1, raw: g => g.type, disp: g => g.type, cell: g => ordEsc(g.type) },
       { k: 'e', l: 'What it says', t: 'txt', x: 1, raw: g => g.n, disp: g => g.n, cell: g => ordEsc(g.n) },
-      { k: 'g', l: 'Category', t: 'txt', x: 1, raw: g => g.cat, disp: g => g.cat, cell: g => ordEsc(g.cat) }],
+      { k: 'g', l: 'Category', t: 'txt', x: 1, raw: g => g.cat, disp: g => g.cat, cell: g => ordEsc(g.cat) },
+      { k: 'ck', l: 'Checked', t: 'txt', x: 1, raw: g => g.chk ? ordDay(String(g.chk.at).slice(0, 10)) + ' by ' + (g.chk.by || '') : '', disp: g => g.chk ? ordDay(String(g.chk.at).slice(0, 10)) + ' by ' + (g.chk.by || '') : '', sk: g => g.chk ? Date.parse(g.chk.at) : 0,
+        cell: g => g.chk ? `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordEsc(ordDay(String(g.chk.at).slice(0, 10)))} · ${ordEsc(g.chk.by || '')}</button>` : '<span class="ord-muted">-</span>' },
+      { k: 'cn', l: 'Check note', t: 'txt', x: 1, raw: g => g.chk ? (g.chk.note || '') : '', disp: g => g.chk ? (g.chk.note || '') : '', cell: g => g.chk && g.chk.note ? ordEsc(g.chk.note) : '<span class="ord-muted">-</span>' }],
     rowCls: g => g.x ? 'ord-rowlook' : '',
     total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }, true) }),
     after: (T, rows) => ordAfter('doc', T, rows, 'tracked') });
 }
-function ordKind(k) { ORD.kind = k; ordT.page = 0; document.querySelectorAll('[data-ord-kind]').forEach(b => b.classList.toggle('on', b.dataset.ordKind === k)); ordT.draw(); ordOffsets(); }
+function ordKind(k) {
+  ORD.kind = k; ordT.page = 0;
+  // the Checked view shows every column and the newest tick first; leaving it puts the table back as it was
+  if (k === 'Checked') { ordT.more = true; ordT.sort = { k: 'ck', dir: -1 }; } else if (ordT.sort && ordT.sort.k === 'ck') { ordT.more = false; ordT.sort = null; }
+  document.querySelectorAll('[data-ord-kind]').forEach(b => b.classList.toggle('on', b.dataset.ordKind === k)); ordT.draw(); ordOffsets();
+}
 // A table with a Rows choice has pages (Kate, 18 Nov 2026): Previous, Page x of y, Next, on every table of the page. One Rows choice is remembered for all three.
 const ordTab = k => k === 'look' ? ordTL : k === 'sup' ? ordTS : ordT;
 function ordPagerHtml(k) {

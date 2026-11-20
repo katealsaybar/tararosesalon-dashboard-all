@@ -207,3 +207,7 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
 .ord-pvx{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;line-height:1;padding:0}
 .ord-pdfchip{display:inline-block;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px}
 .ord-paste.over{border-style:solid;background:var(--surface)}
+/* Find an order (Kate, 20 Nov 2026) */
+.ord-find{margin:12px 0 4px}
+.ord-find input{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text)}
+.ord-find p{margin:6px 4px 0;min-height:1em}
