@@ -23,6 +23,13 @@
 
 const QR = { q: null, scope: 'all', rec: null, recErr: '', busy: false, err: '', C: null, saved: '' };
 const QR_STORE = 'trs-quarter-report';
+// Kate, 20 Nov 2026: every bar lifts, glows and answers (js/bar-hover.js). A tile's meter says which figure it belongs to, what it is so far and how it stands against the target.
+if (window.TRSBars) TRSBars.say('.qr-meter', function (row) {
+  var tile = row.closest('.qr-tile'); if (!tile) return '';
+  var tx = function (e) { return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  var nm = tx(tile.querySelector('.nm')), big = tx(tile.querySelector('.big')), p = tx(row.querySelector('.p')), tg = tx(row.querySelector('.tg'));
+  return (nm ? nm + ': ' : '') + big + (p ? ', ' + p : '') + (tg ? ' (' + tg + ')' : '') + '.';
+});
 const QR_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 try { const s = JSON.parse(localStorage.getItem(QR_STORE) || '{}'); if (s.scope) QR.scope = s.scope; } catch (e) { /* private mode: the default is fine */ }
 

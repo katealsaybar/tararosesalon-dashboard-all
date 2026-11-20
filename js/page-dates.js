@@ -3,7 +3,7 @@
    TRS_PAGE_VERS (Kate, 19 Nov 2026): the version of each page this tab was loaded with; js/page-refresh.js compares it with page-versions.json. */
 window.TRS_PAGE_DATES = /*DATES*/{
   "dashboard": ["2026-04-10", "2026-11-11"],
-  "quarterreport": ["2026-11-11", "2026-11-11"],
+  "quarterreport": ["2026-11-11", "2026-11-20"],
   "compare": ["2026-09-24", "2026-11-18"],
   "dailyperf": ["2026-10-13", "2026-11-18"],
   "servicecal": ["2026-11-17", "2026-11-20"],
@@ -62,7 +62,7 @@ window.TRS_PAGE_DATES = /*DATES*/{
 }/*END*/;
 window.TRS_PAGE_VERS = /*VERS*/{
   "dashboard": "e253427b88",
-  "quarterreport": "7b0b8527d3",
+  "quarterreport": "a172ac70bd",
   "compare": "de2e9a8fe7",
   "dailyperf": "e4241bc958",
   "servicecal": "bf456b614e",
