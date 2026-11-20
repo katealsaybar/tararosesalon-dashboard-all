@@ -5934,7 +5934,8 @@ function phorestTodayPartial(info) {
 function freshnessTodayNote(info) {
   const t = phorestTodayPartial(info);
   if (!t || t.inCount > 0) return '';
-  return `<span class="fl fl-today" data-feed="phorest-today">Today: no sales in yet</span>`;
+  const nice = iso => { const d = new Date(iso + 'T00:00:00'); return `${d.getDate()} ${MON_SHORT[d.getMonth()]}`; };
+  return `<span class="fl fl-today" data-feed="phorest-today">Today (${nice(t.date)}): no sales in yet, so ${nice(info.date)} is the latest full day</span>`;
 }
 
 function freshnessLine(label, info, feed) {
@@ -5950,7 +5951,7 @@ function freshnessLine(label, info, feed) {
   const age = showPart ? `${part.inCount} of ${part.total} in`
     : behind !== null
     ? (behind === 0 ? 'up to date' : behind === 1 ? '1 day behind' : `${behind} days behind`)
-    : diffDays <= 0 ? 'today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
+    : diffDays <= 0 ? 'today' : diffDays === 1 ? (feed === 'phorest' ? 'yesterday' : '1 day ago') : `${diffDays} days ago`;
   const dateStr = `${synced.getDate()} ${MON_SHORT[synced.getMonth()]}`;
   const flag = info.complete ? ''
     : ` <span title="Missing: ${escapeHtml(info.missing.map(b=>BRANCH_INFO[b]?.name||b).join(', '))}">(partial)</span>`;
@@ -5967,7 +5968,10 @@ function freshnessLine(label, info, feed) {
     : '';
   // The hover title is gone: the panel says the same in words a phone can reach.
   const pulledAt = info.syncedAt ? syncedLabel(info.syncedAt) : '';
-  const syncedBit = pulledAt ? `, synced <b>${pulledAt}</b>` : '';
+  // Kate, 20 Nov 2026 (third time): "9:03 am last sync pero nov 19 nakalagay". Nothing was wrong: the 9 am pull ran, the salons had
+  // not sold anything yet, so yesterday is the latest full day. "synced 9:03 AM" next to an old date read as a failed sync, so the
+  // chip now says "last pull" (the time of the pull, not of the data) and "yesterday", and the note under it names today's date.
+  const syncedBit = pulledAt ? `, last pull <b>${pulledAt}</b>` : '';
   return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}"${showPart ? ' data-partial="today"' : ''}>${label}: up to <b>${dateStr}</b> (${age}${syncedBit})${flag}</span>`;
 }
 
