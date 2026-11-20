@@ -667,3 +667,14 @@
 .nvb .nvb-mmore .nvb-small{margin:4px 0}
 .nvb .nvb-mpick{margin:8px 0 10px}
 @media (max-width:760px){.nvb .nvb-mts{grid-template-columns:minmax(0,1fr)}.nvb .nvb-mt-n{font-size:28px}}
+
+/* Switches and More are as wide as their words, never a bar across the page (Kate, 20 Nov 2026: "too long again yung buttons"). Visual | Table, By blast | By branch | What they bought. */
+@media(min-width:761px){
+  .nvb .tp-seg.nvb-seg{display:inline-flex;width:fit-content;max-width:100%;align-self:flex-start}
+  .nvb .tp-seg.nvb-seg button{padding:4px 16px;font-size:13px;min-height:30px;letter-spacing:.03em}
+  .nvb .nvb-mmore{width:fit-content;max-width:100%;border-radius:999px}
+  .nvb .nvb-mmore[open]{width:auto;border-radius:14px}
+  .nvb .nvb-mmore>summary{min-height:32px;padding:4px 14px;font-size:13px;gap:8px}
+  .nvb .nvb-mmore>.nvb-small{padding:0 16px}
+  .nvb .nvb-mmore[open]>summary{padding-bottom:6px}
+}
