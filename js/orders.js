@@ -521,6 +521,13 @@ function ordMsgHtml(d, open) {
     `<span class="ord-gmd">${ordEsc(ordTime(d.at))}</span></div>` +
     `<div class="ord-gmb"><div class="ord-mb">${ordEsc(d.body || d.note || '')}</div><div class="ord-ma">${att}${ordGmailLink(d)}</div></div></div>`;
 }
+// An Amazon order opens on its own page in the Amazon.ae account (Kate, 20 Nov 2026: the account knows what the emails do not, e.g. delivered, return window closed, and Invoice 1 to 4 to download).
+// Only a plain link: nothing is read from or written to the account, whoever opens it signs in to Amazon as usual.
+function ordAmazonLink(g) {
+  const no = /^amazon/i.test(g.s || '') && /^\d{3}-\d{7}-\d{7}$/.test(g.r || '') ? g.r : '';
+  if (!no) return '';
+  return `<p class="ord-amz"><a class="ord-ac ord-gml" href="https://www.amazon.ae/gp/your-account/order-details?orderID=${no}" target="_blank" rel="noopener" title="Opens this order in the Amazon.ae account: delivery, payment and the invoices"><span class="ord-ai ord-ai-oth">AMZ</span><span class="ord-an">Open this order in the Amazon account</span><span class="ord-ak">Amazon.ae</span></a></p>`;
+}
 // Every email can be opened as the real thing in the info@ mailbox (Kate, 20 Nov 2026: "i must be able to view this on the email"). The page keeps a short text of each email
 // (and, for an Amazon order mail, the items it lists), so the original, with its pictures and every line, is one click away. Needs Kate or whoever is signed in to info@ in Google.
 function ordGmailLink(d) {
@@ -612,7 +619,7 @@ function ordOpen(key) {
   const m = document.createElement('div');
   m.className = 'ord-modal'; m.id = 'ordModal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Order');
   m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><div class="ord-hb">${back ? `<button type="button" class="cm-pill ord-back" onclick="ordClose()" title="Back to ${ordEsc(backTxt)}" aria-label="Back to ${ordEsc(backTxt)}">‹ Back<span class="ord-bk-l"> to ${ordEsc(backTxt)}</span></button>` : ''}${typeof rexButtons === 'function' ? rexButtons('ordExportOne') : ''}<button type="button" class="cm-pill" onclick="ordClose()">Close</button></div></div>
-    <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div><p class="ord-last">This is the last step: a single order line has nothing behind it.</p></div></div>`;
+    <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}${ordAmazonLink(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div><p class="ord-last">This is the last step: a single order line has nothing behind it.</p></div></div>`;
   m.addEventListener('click', e => { if (e.target === m) ordClose(); });
   document.body.appendChild(m);
   const c = m.querySelector('button'); if (c) c.focus();
