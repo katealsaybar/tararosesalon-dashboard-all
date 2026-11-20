@@ -5764,7 +5764,13 @@ async function loadData() {
   ]);
   // Kate, 17 Nov 2026: "it should include not only the date today but the last time it got synced". The cloud sync
   // replaces a day's rows each run, so the newest created_at on the newest days is when Phorest was last pulled.
-  if (phorestInfo && phorestInfo.date) phorestInfo.syncedAt = await getLastSyncStamp('phorest_staff_daily', phorestInfo.date);
+  // Kate, 20 Nov 2026: the stamp is the pull of the day the chip names, not the newest row from that day on. The 9 am pull only writes
+  // today's (still empty) rows, so "from 19 Nov on" gave 9:03 am beside "up to 19 Nov" when 19 Nov was last written by the night pull.
+  if (phorestInfo && phorestInfo.date) {
+    phorestInfo.syncedAt = await getLastSyncStamp('phorest_staff_daily', phorestInfo.date);
+    const dubaiToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
+    phorestInfo.syncedAtToday = phorestInfo.date < dubaiToday ? await getLastSyncStamp('phorest_staff_daily', dubaiToday) : phorestInfo.syncedAt;
+  }
   renderFreshnessBadge(ledgerInfo, phorestInfo);
   // Comparison's presets stop at the last day Phorest synced (compare.js).
   window._freshness = { ledgerInfo, phorestInfo };
@@ -5894,9 +5900,9 @@ async function getLatestCompleteDate(table) {
 // search.js looks for, so it does not depend on the words.
 // When the feed was last pulled: the newest created_at among the rows from `fromDate` on (the index on date keeps it a few rows).
 // Null when it cannot be read, and the line then shows only the date as before.
-async function getLastSyncStamp(table, fromDate) {
+async function getLastSyncStamp(table, onDate) {
   try {
-    const { data, error } = await sb.from(table).select('created_at').gte('date', fromDate).order('created_at', { ascending: false }).limit(1);
+    const { data, error } = await sb.from(table).select('created_at').eq('date', onDate).order('created_at', { ascending: false }).limit(1);
     return error || !data || !data[0] ? null : (data[0].created_at || null);
   } catch (_) { return null; }
 }
@@ -5951,7 +5957,7 @@ function freshnessLine(label, info, feed) {
   const age = showPart ? `${part.inCount} of ${part.total} in`
     : behind !== null
     ? (behind === 0 ? 'up to date' : behind === 1 ? '1 day behind' : `${behind} days behind`)
-    : diffDays <= 0 ? 'today' : diffDays === 1 ? (feed === 'phorest' ? 'yesterday' : '1 day ago') : `${diffDays} days ago`;
+    : diffDays <= 0 ? 'today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
   const dateStr = `${synced.getDate()} ${MON_SHORT[synced.getMonth()]}`;
   const flag = info.complete ? ''
     : ` <span title="Missing: ${escapeHtml(info.missing.map(b=>BRANCH_INFO[b]?.name||b).join(', '))}">(partial)</span>`;
@@ -5967,12 +5973,16 @@ function freshnessLine(label, info, feed) {
       }).join('\n')
     : '';
   // The hover title is gone: the panel says the same in words a phone can reach.
-  const pulledAt = info.syncedAt ? syncedLabel(info.syncedAt) : '';
-  // Kate, 20 Nov 2026 (third time): "9:03 am last sync pero nov 19 nakalagay". Nothing was wrong: the 9 am pull ran, the salons had
-  // not sold anything yet, so yesterday is the latest full day. "synced 9:03 AM" next to an old date read as a failed sync, so the
-  // chip now says "last pull" (the time of the pull, not of the data) and "yesterday", and the note under it names today's date.
-  const syncedBit = pulledAt ? `, last pull <b>${pulledAt}</b>` : '';
-  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}"${showPart ? ' data-partial="today"' : ''}>${label}: up to <b>${dateStr}</b> (${age}${syncedBit})${flag}</span>`;
+  // Kate, 20 Nov 2026 (third time): "9:03 am last sync pero nov 19 nakalagay... dapat up to 19 Nov (today, last pull 1:00 am)".
+  // The time is the last pull of the day the chip names (not of today's still-empty rows), and the word before it says which day
+  // that pull was: "today, last pull 1:00 am". An earlier pull carries its own date ("last pull 18 Nov, 9:01 pm").
+  const stamp = showPart ? info.syncedAtToday : info.syncedAt;
+  const pulledAt = stamp ? syncedLabel(stamp) : '';
+  const pulledToday = !!pulledAt && !/^\d{1,2} [A-Z][a-z]{2}, /.test(pulledAt);
+  const inside = !pulledAt ? age
+    : showPart ? `${age}, last pull <b>${pulledAt}</b>`
+    : `${pulledToday ? 'today, ' : ''}last pull <b>${pulledAt}</b>`;
+  return `<span class="fl ${diffDays >= 2 || !info.complete ? 'stale' : ''}" data-feed="${feed}"${showPart ? ' data-partial="today"' : ''}>${label}: up to <b>${dateStr}</b> (${inside})${flag}</span>`;
 }
 
 // "19 and 20 Oct", "30 Sep and 1 Oct": the missing days for one branch, same month folded together.
