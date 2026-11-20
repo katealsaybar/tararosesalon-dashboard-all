@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=46425351"></script>
-<script src="js/page-dates.js?v=a560509b"></script>
+<script src="js/page-dates.js?v=ee9f7a7b"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -5611,7 +5611,10 @@ function showView(view, el){
           new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
         } catch (e) {}
       });
-      tf.setAttribute('src', tf.dataset.src);
+      // The Target Calculator's own filters travel in the address as tc_month, tc_view, tc_branch and tc_team (its standalone door passes them on).
+      let tcSrc = tf.dataset.src;
+      try { const q = new URLSearchParams(location.search); ['month', 'view', 'branch', 'team'].forEach(k => { if (q.get('tc_' + k)) tcSrc += '&' + k + '=' + encodeURIComponent(q.get('tc_' + k)); }); } catch (e) {}
+      tf.setAttribute('src', tcSrc);
     }
   }
   if (view === 'wvperf') {

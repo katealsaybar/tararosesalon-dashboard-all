@@ -109,7 +109,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "novblasts": "68fac38e3f",
   "stripedeposits": "9b4ed277c7",
   "dailyreports": "8508154a0f",
-  "targetcalc": "86fd03522d",
+  "targetcalc": "af2d8cb4cb",
   "findstylist": "cd8b3b9ea4",
   "leavecal": "4aa9fca716",
   "depositcheck": "4e5d5fae16",

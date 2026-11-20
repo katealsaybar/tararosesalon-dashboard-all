@@ -437,6 +437,17 @@ if(!DATA){
   col.innerHTML='<p class="kb-msg">This page is for Level 4 (Executives &amp; Marketing) only. <a href="/hub/">Back to Team Home</a></p>';
   return;
 }
+/* Kate, 20 Nov 2026: "i still cant see the main side bar navi". Opened on its own, this page has no sidebar, so whoever may use it (Levels 3 and 5, the same people who have the dashboard)
+   is taken to the dashboard's Target Calculator, where the main sidebar stays. The month, view, branch and team come along (as tc_month and so on, because the dashboard's own view=
+   is the page name). Framed in the dashboard (?embed=1) it stays as it is. */
+if(!document.documentElement.classList.contains('tg-embed')&&window.top===window.self){
+  try{
+    const q0=new URLSearchParams(location.search),o=new URLSearchParams({view:'targetcalc'});
+    ['month','view','branch','team'].forEach(k=>{if(q0.get(k))o.set('tc_'+k,q0.get(k));});
+    location.replace('/?'+o.toString());
+    return;
+  }catch(e){}
+}
 col.classList.remove('tg-load');document.getElementById('tgMsg').hidden=true;
 (function(){var h=document.getElementById('kbHead');if(h)document.documentElement.style.setProperty('--kbh',h.offsetHeight+'px');})();
 /* ---------- data: real Phorest rows, Aug, Sep, Oct to 20 Oct 2026 (days with sales, service + courses ex VAT) ---------- */
