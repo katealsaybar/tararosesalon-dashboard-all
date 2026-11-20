@@ -94,6 +94,8 @@ function ordBuild(rows) {
   });
   const joinGroup = r => {
     if (invTo[r.key]) return invTo[r.key];
+    // Hotpack web store: every email of an order (confirmed, ready to dispatch, out for delivery, delivered) is its own thread; the order number is in the subject
+    if (r.supplier === 'HOTPACK') { const hp = /order #(\d{4,})/i.exec(r.subject || ''); if (hp) return 'HOTPACK|#' + hp[1]; }
     if (r.reference ||!/^(FALCONPACK|CARREFOUR)$/.test(r.supplier || '')) return r.group;
     const nums = String(r.subject || '').match(/\d{7,}/g) || [];
     for (let i = 0; i < nums.length; i++) { const g = byRef[r.supplier + '|' + nums[i]]; if (g) return g; }
@@ -134,8 +136,8 @@ function ordFinish(key, docs) {
   docs.forEach(d => { if (d.flag && !/^Invoice due in/.test(d.flag) && fl.indexOf(d.flag) < 0) fl.push(d.flag); });
   docs.forEach(d => { if (d.kind === 'invoice' && d.due) { const left = ordDiff(today, d.due); if (left < 0) fl.push('Invoice overdue by ' + (-left) + ' day' + (left === -1 ? '' : 's') + ', due ' + ordDay(d.due)); else if (left <= 14) fl.push('Invoice due in ' + left + ' day' + (left === 1 ? '' : 's') + ', on ' + ordDay(d.due)); } });
   const age = ordDiff(g.start, today);
-  // Amazon is paid by card when the order is placed, so a delivered Amazon order never gets an invoice to chase (Kate, 20 Nov 2026)
-  const paidOnOrder = /^amazon/i.test(g.s || '') && rk >= ORD_RANK.delivered;
+  // Amazon, Lulu and the Hotpack web store are paid at checkout, so a delivered order from them never gets an invoice to chase (Kate, 20 Nov 2026). Neu is not: its orders go through people.
+  const paidOnOrder = /^(amazon|lulu|hotpack)/i.test(g.s || '') && rk >= ORD_RANK.delivered;
   if (g.type === 'Order' && !g.hasInv && age >= 7 && !paidOnOrder) fl.push('No invoice seen after ' + age + ' days');
   g.x = fl.join('; ');
   g.n = first.subject || first.note || '';
@@ -393,7 +395,7 @@ function ordPaintHow() {
   const pick = document.getElementById('ordPick'); if (!pick) return;
   const gs = ordScope(), lk = gs.filter(g => g.x), pdf = gs.filter(g => ordIsKept(g));
   const HOW = {
-    look: ['Needs a look', 'A rule puts it here: an overdue statement, a wrong discount, items out of stock, or no invoice after a week (not for a delivered Amazon order: it is paid when ordered).', ordFig(lk.length, 'Needs a look', { look: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' tracked', 'New rules are added by Kate.'],
+    look: ['Needs a look', 'A rule puts it here: an overdue statement, a wrong discount, items out of stock, or no invoice after a week (not for a delivered Amazon, Lulu or Hotpack order: those are paid at checkout).', ordFig(lk.length, 'Needs a look', { look: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' tracked', 'New rules are added by Kate.'],
     inv: ['Invoiced and discounts', 'The invoice total of each order, counted once. A discount is what the supplier took off.', ordMoney(ordSumInv(gs), 'Invoices with an amount', { kind: 'inv', amt: 1 }) + ' invoiced<br>' + ordMoney(ordSumDisc(gs), 'Orders with a discount', { disc: 1 }) + ' in discounts', 'An invoice with no amount in the email shows a dash.'],
     rec: ['Receipts kept', 'A PDF or an Excel order form in the email is kept. A PDF opens here, an Excel form downloads.', ordFig(pdf.length, 'With a PDF kept', { file: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' have a file', 'File in email means the PDF is attached but not kept here yet.']
   };
