@@ -69,8 +69,32 @@ function ordBuild(rows) {
   // Join them to the row that already holds that number. Nothing is written back; a number that no other email carries stays where it was.
   const byRef = {};
   rows.forEach(r => { if (r.reference && /^(FALCONPACK|CARREFOUR)$/.test(r.supplier || '')) byRef[r.supplier + '|' + r.reference] = r.group; });
+  // DBD: a tax invoice has no order number, and it arrives in whatever thread the team chased it in (often a later order's follow-up). It belongs to the order whose
+  // product codes it repeats: every code on the invoice is on that order's forms (95% or more), the order started on or before the invoice date, and no other order
+  // ties. The invoice email alone moves; the rest of its thread stays, since a follow-up can carry a new order of its own (Kate, 20 Nov 2026).
+  const dbdCodes = {};
+  rows.forEach(r => {
+    if (r.supplier !== 'DBD' || !/^(order|confirmation|quotation)$/.test(r.kind || '') || !Array.isArray(r.lines)) return;
+    const o = dbdCodes[r.group] || (dbdCodes[r.group] = { set: {}, start: r.date });
+    r.lines.forEach(l => { if (l && l.code) o.set[l.code] = 1; });
+    if (r.date < o.start) o.start = r.date;
+  });
+  const invTo = {};
+  rows.forEach(r => {
+    if (r.supplier !== 'DBD' || r.kind !== 'invoice' || !Array.isArray(r.lines)) return;
+    const cs = r.lines.map(l => l && l.code).filter(Boolean);
+    if (cs.length < 5) return;
+    let best = null, top = 0, tie = false;
+    Object.keys(dbdCodes).forEach(g => {
+      const o = dbdCodes[g]; if (o.start > r.date) return;
+      const sh = cs.filter(c => o.set[c]).length;
+      if (sh > top) { top = sh; best = g; tie = false; } else if (sh === top && sh > 0) tie = true;
+    });
+    if (best && !tie && top >= 0.95 * cs.length) invTo[r.key] = best;
+  });
   const joinGroup = r => {
-    if (r.reference || !/^(FALCONPACK|CARREFOUR)$/.test(r.supplier || '')) return r.group;
+    if (invTo[r.key]) return invTo[r.key];
+    if (r.reference ||!/^(FALCONPACK|CARREFOUR)$/.test(r.supplier || '')) return r.group;
     const nums = String(r.subject || '').match(/\d{7,}/g) || [];
     for (let i = 0; i < nums.length; i++) { const g = byRef[r.supplier + '|' + nums[i]]; if (g) return g; }
     return r.group;
