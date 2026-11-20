@@ -137,8 +137,11 @@ function ordFinish(key, docs) {
   docs.forEach(d => { if (d.kind === 'invoice' && d.due) { const left = ordDiff(today, d.due); if (left < 0) fl.push('Invoice overdue by ' + (-left) + ' day' + (left === -1 ? '' : 's') + ', due ' + ordDay(d.due)); else if (left <= 14) fl.push('Invoice due in ' + left + ' day' + (left === 1 ? '' : 's') + ', on ' + ordDay(d.due)); } });
   const age = ordDiff(g.start, today);
   // Amazon, Lulu and the Hotpack web store are paid at checkout, so a delivered order from them never gets an invoice to chase (Kate, 20 Nov 2026). Neu is not: its orders go through people.
-  const paidOnOrder = /^(amazon|lulu|hotpack)/i.test(g.s || '') && rk >= ORD_RANK.delivered;
-  if (g.type === 'Order' && !g.hasInv && age >= 7 && !paidOnOrder) fl.push('No invoice seen after ' + age + ' days');
+  const paysAtCheckout = /^(amazon|lulu|hotpack)/i.test(g.s || ''), paidOnOrder = paysAtCheckout && rk >= ORD_RANK.delivered;
+  if (g.type === 'Order' && !g.hasInv && age >= 7 && !paidOnOrder) {
+    // for these suppliers the question is not the invoice but whether it ever arrived (or was cancelled or the payment was declined): check it in the supplier's own account
+    fl.push(paysAtCheckout ? 'No delivery email after ' + age + ' days: check the order in the ' + (/^amazon/i.test(g.s) ? 'Amazon' : g.s.charAt(0) + g.s.slice(1).toLowerCase()) + ' account' : 'No invoice seen after ' + age + ' days');
+  }
   g.x = fl.join('; ');
   g.n = first.subject || first.note || '';
   return g;
@@ -395,7 +398,7 @@ function ordPaintHow() {
   const pick = document.getElementById('ordPick'); if (!pick) return;
   const gs = ordScope(), lk = gs.filter(g => g.x), pdf = gs.filter(g => ordIsKept(g));
   const HOW = {
-    look: ['Needs a look', 'A rule puts it here: an overdue statement, a wrong discount, items out of stock, or no invoice after a week (not for a delivered Amazon, Lulu or Hotpack order: those are paid at checkout).', ordFig(lk.length, 'Needs a look', { look: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' tracked', 'New rules are added by Kate.'],
+    look: ['Needs a look', 'A rule puts it here: an overdue statement, a wrong discount, items out of stock, or no invoice after a week (Amazon, Lulu and Hotpack are paid at checkout, so for them it is no delivery email after a week instead).', ordFig(lk.length, 'Needs a look', { look: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' tracked', 'New rules are added by Kate.'],
     inv: ['Invoiced and discounts', 'The invoice total of each order, counted once. A discount is what the supplier took off.', ordMoney(ordSumInv(gs), 'Invoices with an amount', { kind: 'inv', amt: 1 }) + ' invoiced<br>' + ordMoney(ordSumDisc(gs), 'Orders with a discount', { disc: 1 }) + ' in discounts', 'An invoice with no amount in the email shows a dash.'],
     rec: ['Receipts kept', 'A PDF or an Excel order form in the email is kept. A PDF opens here, an Excel form downloads.', ordFig(pdf.length, 'With a PDF kept', { file: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' have a file', 'File in email means the PDF is attached but not kept here yet.']
   };
