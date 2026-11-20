@@ -474,7 +474,7 @@ function ordBuyHtml(g) {
   if (!b) h += `<h4>What was bought</h4><p class="ord-muted">${g.docs.some(d => d.file_path) ? 'The items are in the file of this order. Open it under The emails below. This page could not read its lines.' : g.type === 'Order' ? 'The items are in the attached file (Excel or PDF), which this page does not read yet. It will list every product with its quantity and price.' : 'No items are listed in this email.'}</p>`;
   else {
     h += `<div class="ord-bh"><h4>What was bought</h4>${b.lines.some(l => ordHasAr(l.name)) ? '<button type="button" class="cm-pill ord-tr" onclick="ordTranslate(this)" title="Show the product names in English">Translate to English</button>' : ''}</div><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Price AED</th><th class="r">Total AED</th></tr></thead><tbody>` +
-      b.lines.map(l => `<tr><td data-l="Product"><span class="ord-nm">${ordEsc(l.name)}</span>${l.note ? ` <span class="ord-dnote">${ordEsc(l.note)}</span>` : ''}</td><td class="r" data-l="Qty">${l.qty == null ? '-' : ordEsc(l.qty)}</td><td class="r" data-l="Price AED">${l.unit == null ? '-' : ordAed(+l.unit)}</td><td class="r" data-l="Total AED">${l.total == null ? '-' : ordAed(+l.total)}</td></tr>`).join('') + '</tbody></table>';
+      b.lines.map(l => `<tr><td data-l="Product"><div class="ord-prod">${ordPhoto(l)}<span><span class="ord-nm">${ordEsc(l.name)}</span>${l.note ? ` <span class="ord-dnote">${ordEsc(l.note)}</span>` : ''}</span></div></td><td class="r" data-l="Qty">${l.qty == null ? '-' : ordEsc(l.qty)}</td><td class="r" data-l="Price AED">${l.unit == null ? '-' : ordAed(+l.unit)}</td><td class="r" data-l="Total AED">${l.total == null ? '-' : ordAed(+l.total)}</td></tr>`).join('') + '</tbody></table>';
     h += '<dl class="ord-tot">' + (b.sub != null ? `<dt>Items after discounts</dt><dd>AED ${ordAed(+b.sub)}</dd>` : '') +
       (b.disc ? `<dt class="ord-dsc">Discount taken off</dt><dd class="ord-dsc">- AED ${ordAed(b.disc)}</dd>` : (b.sub != null ? '<dt>Discount</dt><dd>none</dd>' : '')) +
       (b.deliv != null ? `<dt>Delivery</dt><dd>${+b.deliv ? 'AED ' + ordAed(+b.deliv) : 'free'}</dd>` : '') + (b.vat != null ? `<dt>VAT included</dt><dd>AED ${ordAed(+b.vat)}</dd>` : '') +
@@ -495,7 +495,10 @@ let ordBlobUrl = '', ordCur = null;
 
 // ── THE ORDER WINDOW, TWO COLUMNS (Kate, 19 Nov 2026) ────────────────────────────────
 // Left: when a PDF is kept, the PDF and nothing else (a switch brings back What was bought). No PDF: What was bought. Right, the last column: the emails, drawn like Gmail.
-const ordKindPdf = d => d.file_path && ordExt(d.file_name || d.file_path) === 'pdf';
+// The product's own photo, taken from the supplier's email (Amazon shows one next to every item; the reader job orders-amazon-images keeps its link in lines[].img).
+// Only an https picture on Amazon's image host is drawn, and a picture that does not load is dropped, so a line never shows a broken box.
+const ordPhoto = l => /^https:\/\/m\.media-amazon\.com\/images\/I\/[\w%+.,\-]+\.(jpg|jpeg|png|webp)$/i.test((l && l.img) || '') ? `<img class="ord-ph" src="${ordEsc(l.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+const ordKindPdf = d =>d.file_path && ordExt(d.file_name || d.file_path) === 'pdf';
 const ordHue = s => { let h = 0; String(s).split('').forEach(c => { h = (h * 31 + c.charCodeAt(0)) % 360; }); return h; };
 
 // a Gmail style attachment card: a small type tile, the file name, what a click does

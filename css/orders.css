@@ -187,3 +187,6 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
   #ordersContent .sx-t th,#ordersContent .sx-t td{padding-left:8px;padding-right:8px}
   #ordersContent .sx-t td.fc{white-space:nowrap}
 }
+/* product photos taken from the supplier email (Amazon): a white tile so a photo with a white background does not float in dark mode (Kate, 20 Nov 2026) */
+.ord-prod{display:flex;align-items:center;gap:12px}
+.ord-ph{width:56px;height:56px;flex:none;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:10px}
