@@ -793,6 +793,7 @@
   function rsAct(v, t) {
     var a = v.split(':'), k = a[0], x = a.slice(1).join(':');
     if (k === 'dmx') dmClose();
+    else if (k === 'how') { rsV.how = x; render(true); }
     else if (k === 'mpick') { rsV.mpick = x === 'branch' || x === 'bought' ? x : 'blast'; render(true); }
     else if (k === 'money') { rsV.money = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-money-view', rsV.money); } catch (e) { /* fine */ } render(true); }
     else if (k === 'del') { rsV.del = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-del-view', rsV.del); } catch (e) { /* fine */ } render(true); }
@@ -827,11 +828,12 @@
   function rsBar(r, ctx) {
     var n = r.sent || 0, d = (r.read || 0) + (r.delivered || 0), f = r.failed || 0, u = r.unconfirmed || 0;
     var w = function (x) { return n ? (Math.round(x * 1000 / n) / 10) : 0; };
-    return '<div class="nvb-rs-bar"><span>' + esc(r.name) + '</span><div class="nvb-rs-track" role="img" aria-label="' + esc(r.name) + ': ' + d + ' delivered or read, ' + f + ' failed, ' + u + ' not confirmed yet, of ' + n + ' accepted"><i class="d" style="width:' + w(d) + '%"></i><i class="x" style="width:' + w(f) + '%"></i><i class="w" style="width:' + w(u) + '%"></i></div><span>' + (ctx ? nn(n, 'sent', ctx) : fmtN(n)) + ' accepted</span></div>';
+    var tip = r.name + ': ' + fmtN(n) + ' accepted. ' + fmtN(d) + ' delivered or read' + (n ? ' (' + Math.round(d * 100 / n) + '%)' : '') + ', ' + fmtN(f) + ' failed, ' + fmtN(u) + ' not confirmed yet.';
+    return '<div class="nvb-rs-bar nvb-hrow" tabindex="0" data-tip="' + esc(tip) + '"><span>' + esc(r.name) + '</span><div class="nvb-rs-track" role="img" aria-label="' + esc(r.name) + ': ' + d + ' delivered or read, ' + f + ' failed, ' + u + ' not confirmed yet, of ' + n + ' accepted"><i class="d" style="width:' + w(d) + '%"></i><i class="x" style="width:' + w(f) + '%"></i><i class="w" style="width:' + w(u) + '%"></i></div><span>' + (ctx ? nn(n, 'sent', ctx) : fmtN(n)) + ' accepted</span></div>';
   }
   var BAR_LEG = '<div class="nvb-rs-leg"><span><b class="d"></b>Delivered or read</span><span><b class="x"></b>Failed</span><span><b class="w"></b>Not confirmed yet</span></div>';
   function gline(cls, label, v, max) { var w = max > 0 ? Math.max(v > 0 ? 1 : 0, Math.round(1000 * v / max) / 10) : 0; return '<div class="nvb-gl"><div class="nvb-gt" role="img" aria-label="' + esc(label) + ': AED ' + money0(v) + '"><i class="' + cls + '" style="width:' + w + '%"></i></div><b>AED ' + money0(v) + '</b></div>'; }
-  function grow(label, sub, lines) { return '<div class="nvb-gr"><div class="nvb-glab">' + label + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="nvb-gls">' + lines + '</div></div>'; }
+  function grow(label, sub, lines, tip) { return '<div class="nvb-gr' + (tip ? ' nvb-hrow" tabindex="0" data-tip="' + esc(tip) : '') + '"><div class="nvb-glab">' + label + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="nvb-gls">' + lines + '</div></div>'; }
 
   // The October Lost Clients sections on the November Results (Kate, 9 Nov 2026): The campaign so far, Booked ahead who has paid a deposit, What it took to get a booking, By first send day.
   var DEP_SOON = { 1: 'Today or tomorrow', 2: 'In 2 to 3 days', 3: 'In 4 to 7 days', 4: 'In 8 to 14 days', 5: 'Later' };
@@ -876,6 +878,29 @@
     body.push(line({ clients: m.clients, ahead: m.ahead, booked_since: m.booked_since, came_in: m.came_in, booked_or_in: m.booked_or_in }, {}, true, 'All'));
     return rsSec('By first send day', 'One row for each day a client was first messaged (Dubai time). Booked since is the running count, so it does not fall when an appointment date passes.', rsTable(head, body));
   }
+  // Bars answer on hover (Kate, 20 Nov 2026, dashboard-report-builder component 42): the row lifts and glows and a card says what the bar means, in one plain sentence built from the same
+  // numbers as the row. A phone gets the same card on a tap (5 seconds); the keyboard gets it on focus. A tap on a figure still opens its list, never the card.
+  var nvHC = null, nvHT = null;
+  function nvHov(row, x) {
+    if (!row || !row.getAttribute('data-tip')) return;
+    if (!nvHC) { nvHC = document.createElement('div'); nvHC.className = 'nvb-hovc'; nvHC.hidden = true; document.body.appendChild(nvHC); }
+    nvHC.textContent = row.getAttribute('data-tip'); nvHC.hidden = false;
+    var rc = row.getBoundingClientRect(), w = nvHC.offsetWidth, hh = nvHC.offsetHeight, left = Math.max(8, Math.min(x - w / 2, innerWidth - w - 8)), top = rc.top - hh - 10; if (top < 8) top = rc.bottom + 10;
+    if (innerWidth <= 760) { left = 10; top = Math.max(8, Math.min(rc.top - hh - 8, innerHeight - hh - 8)); nvHC.style.width = (innerWidth - 20) + 'px'; } else nvHC.style.width = '';
+    nvHC.style.left = left + 'px'; nvHC.style.top = top + 'px';
+  }
+  function nvRowOf(t) { return t && t.closest ? t.closest('.nvb-hrow') : null; }
+  function nvCanHover() { return window.matchMedia('(hover:hover)').matches; }
+  document.addEventListener('mouseover', function (e) { var r = nvRowOf(e.target); if (r && nvCanHover()) nvHov(r, e.clientX); });
+  document.addEventListener('mousemove', function (e) { var r = nvRowOf(e.target); if (r && nvHC && !nvHC.hidden && nvCanHover()) nvHov(r, e.clientX); });
+  document.addEventListener('mouseout', function (e) { var r = nvRowOf(e.target); if (r && nvHC && nvCanHover() && !(e.relatedTarget && r.contains(e.relatedTarget))) nvHC.hidden = true; });
+  document.addEventListener('focusin', function (e) { var r = nvRowOf(e.target); if (r && nvCanHover() && e.target === r) nvHov(r, r.getBoundingClientRect().left + 120); });
+  document.addEventListener('focusout', function () { if (nvHC && nvCanHover()) nvHC.hidden = true; });
+  document.addEventListener('click', function (e) {
+    var r = nvRowOf(e.target), fig = e.target.closest && e.target.closest('.nvb-num');
+    if (r && !fig && window.matchMedia('(hover:none)').matches) { nvHov(r, e.clientX); clearTimeout(nvHT); nvHT = setTimeout(function () { if (nvHC) nvHC.hidden = true; }, 5000); }
+    else if (!r && nvHC) nvHC.hidden = true;
+  });
   // Money from the bookings (Kate, 5 Nov 2026): what the messages cost, what the booked appointments should bring in (projected) and what the clients we messaged have paid since (actual).
   function rt(x) { return x >= 10 ? money0(x) : money2(x); }
   function moneySec(st, a, bkok, slok, r2) {
@@ -916,22 +941,34 @@
         return list.slice().sort(function (p, q) { return (q.actual || 0) - (p.actual || 0) || (q.proj || 0) - (p.proj || 0); }).map(function (x) {
           var ctx = key2 === 'b' ? { b: x.k } : { br: x.k };
           return grow(esc(key2 === 'b' ? blastName(x.k) : (BR[x.k] || x.k)), (bkok ? nn(x.ahead, 'ahead', ctx) + ' booked' : 'bookings not readable yet') + (slok ? ', ' + nn(x.visited, 'paid', ctx) + ' came in and paid' : ''),
-            (bkok ? gline('p', 'Projected', x.proj || 0, bmx) : '') + (slok ? gline('d', 'Actual', x.actual || 0, bmx) : ''));
+            (bkok ? gline('p', 'Projected', x.proj || 0, bmx) : '') + (slok ? gline('d', 'Actual', x.actual || 0, bmx) : ''),
+            (key2 === 'b' ? blastName(x.k) : (BR[x.k] || x.k)) + ': ' + (bkok ? fmtN(x.ahead || 0) + ' booked ahead, projected AED ' + money0(x.proj || 0) + '. ' : '') + (slok ? fmtN(x.visited || 0) + ' came in and paid AED ' + money0(x.actual || 0) + ' so far.' : ''));
         }).join('') || '<p class="slv-muted">Nobody yet.</p>';
       };
       var panel2 = '<div class="nvb-gp"><h4 class="nvb-h4">By branch: projected and actual</h4><p class="nvb-small">Biggest actual first, then biggest projected.</p>' + split(by, 'br') + key + '</div>';
       var panel3 = '<div class="nvb-gp"><h4 class="nvb-h4">By blast: projected and actual</h4><p class="nvb-small">Same scale as the branches.</p>' + split(bb, 'b') + key + '</div>';
       var panel4 = '<div class="nvb-gp"><h4 class="nvb-h4">Actual spend, by what they bought</h4>' + (slok && al.actual > 0 ? '<p class="nvb-small">AED ' + money0(al.actual) + ' in all.</p>' + NV_SPLIT.filter(function (p) { return al[p[0]] > 0; }).map(function (p) {
-        return grow(esc(p[1]), '', '<div class="nvb-gl"><div class="nvb-gt"><i class="d" style="width:' + Math.max(1, Math.round(1000 * al[p[0]] / al.actual) / 10) + '%"></i></div><b>AED ' + money0(al[p[0]]) + ' <em>' + pc1(al[p[0]], al.actual) + '</em></b></div>'); }).join('') : '<p class="slv-muted">' + (slok ? 'Nobody we messaged has paid at the till since the message yet.' : 'Sales after the message are not readable yet.') + '</p>') + '</div>';
+        return grow(esc(p[1]), '', '<div class="nvb-gl"><div class="nvb-gt"><i class="d" style="width:' + Math.max(1, Math.round(1000 * al[p[0]] / al.actual) / 10) + '%"></i></div><b>AED ' + money0(al[p[0]]) + ' <em>' + pc1(al[p[0]], al.actual) + '</em></b></div>', p[1] + ': AED ' + money0(al[p[0]]) + ', ' + pc1(al[p[0]], al.actual) + ' of the AED ' + money0(al.actual) + ' they have paid so far.'); }).join('') : '<p class="slv-muted">' + (slok ? 'Nobody we messaged has paid at the till since the message yet.' : 'Sales after the message are not readable yet.') + '</p>') + '</div>';
       var mp = rsV.mpick || 'blast';
       var pick = '<div class="tp-seg nvb-seg nvb-mpick" role="group" aria-label="Split the money by">' + [['blast', 'By blast'], ['branch', 'By branch'], ['bought', 'What they bought']].map(function (b) { return '<button type="button" class="' + (mp === b[0] ? 'on' : '') + '" data-nvr="mpick:' + b[0] + '">' + b[1] + '</button>'; }).join('') + '</div>';
       body = tiles + back + moreFold + pick + (mp === 'branch' ? panel2 : mp === 'bought' ? panel4 : panel3);
     }
     var unp = al.unpriced || 0;
+    // How it is worked out, one figure at a time (Kate, 20 Nov 2026: "make adhd friendly"): a row of buttons, one short card, the live figure big, at most one caveat.
+    var HOW = [
+      ['proj', 'Projected', 'Each booked service priced at the median it charged in the last 120 days, VAT included.', bkok ? 'AED ' + money0(al.proj || 0) : '', unp ? fmtN(unp) + ' of the ' + fmtN(al.svcs) + ' booked services have no price yet and count as 0, so it runs low.' : ''],
+      ['ahead', 'Booked ahead', 'Clients with a booking from today on. It drops as the dates pass.', bkok ? fmtN(al.ahead || 0) + ' clients' : '', 'It is a snapshot of the bookings list, not a history.'],
+      ['since', 'Booked since the message', 'A client counts once her booking is first seen on or after her first message day. She stays counted after the date passes.', '', 'We log the day each booking is first seen, from 4 Nov, so it may pre-date the message by a few hours.'],
+      ['actual', 'Paid so far', 'Everything the clients we messaged paid since their first message. VAT in, refunds out, no deposits, vouchers or prepaid courses.', slok ? 'AED ' + money0(al.actual || 0) : '', 'Sales arrive with the daily upload, so today shows tomorrow.'],
+      ['old', 'If the data is old', 'When the bookings list is over 1 day old, or sales are over 2 days behind, the figures that depend on them hold and say why.', '', '']
+    ];
+    var hw = HOW.filter(function (h) { return h[0] === rsV.how; })[0] || HOW[0];
+    var howCard = '<div class="nvb-how"><h4 class="nvb-h4">How it is worked out</h4><div class="tp-seg nvb-seg nvb-hpick" role="group" aria-label="Pick a figure">' +
+      HOW.map(function (h) { return '<button type="button" class="' + (h[0] === hw[0] ? 'on' : '') + '" data-nvr="how:' + h[0] + '">' + h[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="nvb-hcard"><div class="nvb-ht">' + hw[1] + '</div><p>' + hw[2] + '</p>' + (hw[3] ? '<div class="nvb-hbig">' + hw[3] + '</div>' : '') + (hw[4] ? '<p class="nvb-hcav">' + hw[4] + '</p>' : '') + '</div></div>';
     return '<div class="cbl-card nvb-rs-sec" id="nvr-4"><div class="nvb-hd"><h3>4. Money from the bookings</h3>' + toggle + '</div><p class="nvb-rs-lead">' + esc(lead) + '</p>' + body +
       '<p class="nvb-small nvb-rs-note"><b>Projected</b> is what the booked appointments should bring in, <b>actual</b> is what they have paid so far, <b>spent</b> is an estimate at AED ' + r2 + ' a message. Counts open their clients; AED figures have no list behind them.</p>' +
-      '<details class="nvb-fold" data-fold="money-how"' + (opened['money-how'] ? ' open' : '') + '><summary>How these are worked out</summary><p class="nvb-small"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that exact service charged in the last 120 days, VAT included. ' +
-      (unp ? fmtN(unp) + ' of the ' + fmtN(al.svcs) + ' booked services have no price yet (a package or a new name) and count as 0, so it runs low. ' : '') + 'The Phorest bookings report has no booked-on date, so since 9 Nov we log the first day each booking was seen at every bookings pull (from 4 Nov, the send day). <b>Booked since the message</b> counts a booking first seen on or after the first message day of that client, and it stays counted after the appointment date passes, so Cost per booking no longer shrinks as days go by. A booking first seen on 4 Nov may pre-date the message by a few hours. <b>Booked ahead</b> is only the snapshot of bookings from today on. When the bookings list is more than 1 day old, or sales are more than 2 days behind, the figures that depend on them hold and say why. <b>Actual</b> is everything the clients we messaged have paid since the day of their first message, VAT included, refunds taken off, without deposits, vouchers sold and prepaid courses, the same lines as Paid at the till in the headline. Sales arrive with the daily upload, so today shows tomorrow.</p></details></div>';
+      howCard + '</div>';
   }
   function delSec(rows, all2, a, st) {
     var tbl = rsV.del === 'table', bar = (RES.branches || []).map(function (x) { return { name: BR[x.branch] || x.branch || 'Unknown', sent: x.sent, read: x.reached, delivered: 0, failed: x.failed, unconfirmed: x.unconfirmed, k: x.branch }; });

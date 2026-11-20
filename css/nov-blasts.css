@@ -678,3 +678,26 @@
   .nvb .nvb-mmore>.nvb-small{padding:0 16px}
   .nvb .nvb-mmore[open]>summary{padding-bottom:6px}
 }
+
+/* Bars lift, glow and answer (Kate, 20 Nov 2026, dashboard-report-builder component 42). The whole row lifts, gets a ring and a soft glow, the bar fill brightens, and a card follows the pointer. */
+.nvb .nvb-hrow{border-radius:10px;padding-left:8px;padding-right:8px;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.nvb .nvb-hrow:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media (hover:hover){
+  .nvb .nvb-hrow:hover,.nvb .nvb-hrow:focus-visible{transform:translateY(-3px);background:var(--surface);box-shadow:0 0 0 1px var(--accent),0 10px 28px -8px color-mix(in srgb,var(--accent) 55%,transparent)}
+  .nvb .nvb-hrow:hover .nvb-gt,.nvb .nvb-hrow:hover .nvb-rs-track{overflow:visible}
+  .nvb .nvb-hrow:hover .nvb-gt i,.nvb .nvb-hrow:hover .nvb-rs-track i{filter:brightness(1.2);box-shadow:0 0 12px var(--accent)}
+}
+.nvb-hovc{position:fixed;z-index:9000;pointer-events:none;max-width:340px;background:var(--surface);color:var(--text);border:1px solid var(--accent);border-radius:16px;padding:10px 14px;font-size:14px;line-height:1.45;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent),0 16px 36px -10px rgba(0,0,0,.45)}
+.nvb-hovc[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){.nvb .nvb-hrow{transition:none}.nvb .nvb-hrow:hover,.nvb .nvb-hrow:focus-visible{transform:none}}
+/* How it is worked out: centred, one figure at a time, one card of about 30 words (Kate, 20 Nov 2026: "make adhd friendly"). */
+.nvb .nvb-how{text-align:center;margin:18px 0 4px}
+.nvb .nvb-how .nvb-h4{margin:0 0 8px}
+.nvb .nvb-hpick{margin:0 0 10px}
+.nvb .nvb-hpick button{white-space:nowrap}
+.nvb .nvb-hcard{max-width:560px;margin:0 auto;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:12px 18px}
+.nvb .nvb-ht{font-weight:600;font-size:15px}
+.nvb .nvb-hcard p{margin:4px 0;font-size:14.5px;color:var(--muted);line-height:1.45}
+.nvb .nvb-hbig{font-family:'Playfair Display',serif;font-size:30px;line-height:1.2;margin:6px 0}
+.nvb .nvb-hcard .nvb-hcav{font-size:13px}
+@media (max-width:760px){.nvb .nvb-hpick{display:flex;flex-wrap:wrap;justify-content:center;border-radius:18px}.nvb .nvb-hpick button{min-height:44px}}
