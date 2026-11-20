@@ -104,8 +104,8 @@ function renderLostListsPage() {
     ${whyWall([
       ['Why this page', 'A client who has not visited for 6 months already knows us, so a kind message is the cheapest way to win her back. This page holds who to message, what to say and how it went.'],
       ['Why now', 'The October messages go out in four waves, one at a time, so each wave is checked before the next one opens.'],
-      ['If we do nothing', 'The clients we could still win back keep drifting, and each one is a booking we do not get.']],
-      'Coach Emma checks that every salon coordinator has marked her branch reviewed, before the next wave is opened.')}
+      ['If we do nothing', 'The clients we could still win back keep drifting, and each one is a booking we do not get.']]
+      )}
     ${(() => { const rail = typeof lqRailHtml === 'function' ? lqRailHtml() : '', body = '<div id="llHost"></div><div id="lqHost" hidden></div>';
       return rail ? `<div class="lg-shell lg-shell-wide ll-shell">${rail}<div class="lg-doc">${body}</div></div>` : body; })()}`;
   if (!(typeof lqAcct === 'function' && lqAcct())) renderLostLists(document.getElementById('llHost'));   // Level 4 gets the Performance report only, so the lists are never fetched

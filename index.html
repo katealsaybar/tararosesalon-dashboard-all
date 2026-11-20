@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=46425351"></script>
-<script src="js/page-dates.js?v=6b227d01"></script>
+<script src="js/page-dates.js?v=4c176bb2"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3673,7 +3673,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Spreadsheet export: the four Ledgers pages draw their toolbar from it, and every Lost Clients / Wellness Voucher export calls it.
       lgx: [LGX],
       // Clients, Lost Clients, Wellness Voucher Blast, Client Mix, Service Rankings: 13 files, in their old order, plus the export.
-      cl:  [LGX, 'js/report-export.js?v=d7b73ae8', 'js/lost-clients.js?v=221c2b8a', 'js/lost-lists.js?v=49982eb0', 'js/lost-consults.js?v=8dd97a9d', 'js/lost-review-file.js?v=de965c04',
+      cl:  [LGX, 'js/report-export.js?v=d7b73ae8', 'js/lost-clients.js?v=221c2b8a', 'js/lost-lists.js?v=394ed562', 'js/lost-consults.js?v=8dd97a9d', 'js/lost-review-file.js?v=de965c04',
             'js/send-schedule.js?v=3abf6266', 'js/lost-queue.js?v=4d4924ab', 'js/lost-waves.js?v=c142e140', 'js/lost-blast.js?v=2c1c9a59',
             'js/lost-report.js?v=5120dd46', 'js/wv-blast.js?v=22a9b944', 'js/wv-last.js?v=5f1b7d69', 'js/wv-depth.js?v=e4188c8d', 'js/wv-lastsend.js?v=cf678e57', 'js/wv-remind.js?v=61840cb2', 'js/wv-messages.js?v=356bebe0', 'js/top-clients.js?v=18466b79', 'js/client-mix.js?v=2b34310a',
             'js/sheet-table.js?v=f56599fd', 'js/service-rankings.js?v=771fb291'],
@@ -4933,7 +4933,7 @@ table.tp-cmp td.bad{color:var(--bad)}
      So do products.js (pr), stylist-cards.js (sc), org-chart.js (oc) and team-performance.js (tp), audit 18 Oct 2026, P1-07. -->
 <!-- Before dashboard.js: the shared jump list, lgRail and lgShell and lgJump (moved out of branch-ledger.js) and the automatic list on pages that name their sections. -->
 <!-- The shared Why wall (ALD Batch 3): whyWall() and whyFoot(), used by the Podium, Quadrant, 13 Week, Benchmarks and Ledgers pages. -->
-<script src="js/why-wall.js?v=4805dd60"></script>
+<script src="js/why-wall.js?v=d351102d"></script>
 <!-- Kate, 18 Nov 2026: the Why wall on every page. The Pulse, Google Reviews and Wellness Voucher Performance have no render function of their own that a script of theirs owns
      (the last two are frames), so their walls are drawn here, once, from the shared component. Every other page draws its own from its own script. -->
 <script>

@@ -84,7 +84,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "complaintsdetail": "e5011d682d",
   "complaintlog": "7aba24dac2",
   "lostclients": "e4b0afd6fc",
-  "lostlists": "1aee173824",
+  "lostlists": "baae4566be",
   "reviews": "de885fe52b",
   "services": "23e4adcddc",
   "products": "737ee9dd84",

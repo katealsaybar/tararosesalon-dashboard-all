@@ -12,12 +12,12 @@ function whyWallEsc(s) {
 
 function whyWall(items, thisWeek) {
   const list = (items || []).filter(it => it && it[1]);
-  if (!list.length && !thisWeek) return '';
+  // The 'This week.' line is no longer drawn on any page (Kate, 20 Nov 2026, third time: "unnecessary"). The second argument is kept so the pages that still pass it keep working.
+  if (!list.length) return '';
   const cells = list.map((it, i) =>
     `<div class="why-wall-i"><div class="why-wall-n">0${i + 1}</div><div class="why-wall-t">${whyWallEsc(it[0])}</div><div class="why-wall-b">${whyWallEsc(it[1])}</div></div>`).join('');
   return `<section class="why-wall" aria-label="Why this page">`
     + (cells ? `<div class="why-wall-g" style="--wn:${list.length}">${cells}</div>` : '')
-    + (thisWeek ? `<p class="why-week"><b>This week.</b> ${whyWallEsc(thisWeek)}</p>` : '')
     + `</section>`;
 }
 
