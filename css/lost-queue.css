@@ -410,3 +410,48 @@ body.lr-modal-open{overflow:hidden}
 .lq-pg input,.lq-pg select{min-height:44px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font:600 15px inherit}
 .lq-pg input:disabled,.lq-pg select:disabled,.tglr.lc-btn:disabled{opacity:.45;cursor:not-allowed}
 @media (max-width:640px){.lq-kvs>div{grid-template-columns:1fr;gap:2px}.lq-pg{grid-template-columns:1fr 1fr}}
+
+/* 5. By message cards (Kate, 20 Nov 2026): the same card as Database Blasts section 5, one column per message (Smoothing, Colour, Due). */
+#lostListsContent #lr-bymsg{--lr-good:#3E7A5E;--lr-warn:#8A5F12;--lr-warn-bg:#FBF3E2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #lostListsContent #lr-bymsg{--lr-good:#99F6E4;--lr-warn:#EEF3C7;--lr-warn-bg:rgba(238,243,199,.12)}}
+[data-theme="dark"] #lostListsContent #lr-bymsg{--lr-good:#99F6E4;--lr-warn:#EEF3C7;--lr-warn-bg:rgba(238,243,199,.12)}
+#lostListsContent .lr-bb-tog{margin:0 0 12px}
+#lostListsContent .lr-bb-grp{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:12px 16px 10px;margin:0 0 10px}
+#lostListsContent .lr-bb-gh{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;margin-bottom:8px}
+#lostListsContent .lr-bb-gh h4{font-family:'Playfair Display',serif;font-weight:500;font-size:19px;margin:0}
+#lostListsContent .lr-bb-gh span{font-size:13.5px;color:var(--muted)}
+#lostListsContent .lr-bb-pair{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+#lostListsContent .lr-bb-col{padding:0 14px;min-width:0}
+#lostListsContent .lr-bb-col:first-child{padding-left:0}
+#lostListsContent .lr-bb-col:last-child{padding-right:0}
+#lostListsContent .lr-bb-col:not(:last-child){border-right:1px solid var(--border)}
+#lostListsContent .lr-bb-wv{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+#lostListsContent .lr-bb-when{font-size:13px;color:var(--muted);margin-bottom:4px;min-height:18px}
+#lostListsContent .lr-bb-tags{min-height:24px;margin:0 0 2px}
+#lostListsContent .lr-bb-pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;background:var(--lr-warn-bg);color:var(--lr-warn)}
+#lostListsContent .lr-bb-hero{display:flex;align-items:baseline;gap:6px;height:42px}
+#lostListsContent .lr-bb-hero .n{font-family:'Playfair Display',serif;font-size:38px;line-height:1;white-space:nowrap}
+#lostListsContent .lr-bb-hero .u{font-size:14px;color:var(--muted);white-space:nowrap}
+#lostListsContent .lr-bb-ofn{font-size:14px;line-height:1.35;margin:0 0 8px;min-height:38px}
+#lostListsContent .lr-bb-dots{display:grid;grid-template-columns:repeat(20,minmax(0,1fr));gap:2px;margin:0 0 8px;min-height:44px;max-width:200px;align-content:start}
+#lostListsContent .lr-bb-dots i{width:auto;aspect-ratio:1;border-radius:3px;background:var(--border);display:block}
+#lostListsContent .lr-bb-dots i.f{background:var(--lr-good)}
+#lostListsContent .lr-bb-key{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;color:var(--muted);margin:0 0 4px;min-height:20px;white-space:nowrap}
+#lostListsContent .lr-bb-key b{color:var(--text);font-weight:600}
+#lostListsContent .lr-bb-more{font-size:14px;color:var(--muted)}
+#lostListsContent .lr-bb-more summary{cursor:pointer;padding:2px 0;font-weight:600}
+#lostListsContent .lr-bb-ml>div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)}
+#lostListsContent .lr-bb-ml>div:last-child{border-bottom:0}
+#lostListsContent .lr-bb-slot{border:1px dashed var(--border);border-radius:12px;padding:10px 12px;color:var(--muted);font-size:13.5px;min-height:84px}
+#lostListsContent .lr-bb-slot b{display:block;color:var(--text);font-size:15px;margin-bottom:4px}
+@media (min-width:761px) and (max-width:1100px){#lostListsContent .lr-bb-ofn{min-height:38px}#lostListsContent .lr-bb-when{min-height:36px}}
+@media (max-width:760px){
+  #lostListsContent .lr-bb-grp{padding:10px 12px 10px}
+  #lostListsContent .lr-bb-pair{grid-template-columns:1fr}
+  #lostListsContent .lr-bb-col,#lostListsContent .lr-bb-col:first-child,#lostListsContent .lr-bb-col:last-child,#lostListsContent .lr-bb-col:not(:last-child){padding:0;border:0}
+  #lostListsContent .lr-bb-col+.lr-bb-col{border-top:1px solid var(--border);margin-top:10px;padding-top:10px}
+  #lostListsContent .lr-bb-dots{grid-template-columns:repeat(20,minmax(0,1fr));max-width:260px}
+  #lostListsContent .lr-bb-dots i{width:auto;aspect-ratio:1}
+  #lostListsContent .lr-bb-ofn,#lostListsContent .lr-bb-when{min-height:0}
+  #lostListsContent .lr-bb-dots{max-width:260px}
+}
