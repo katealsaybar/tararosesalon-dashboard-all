@@ -43,7 +43,7 @@
 
   function load(src) { return new Promise(function (ok) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ok; document.head.appendChild(s); }); }
   // page-dates.js says which version of this page this tab was loaded with; page-refresh.js then compares it with page-versions.json.
-  load('/js/page-dates.js?v=4a325da0').then(function () { return load('/js/page-refresh.js?v=449920b0'); }).then(function () {
+  load('/js/page-dates.js?v=afbde46b').then(function () { return load('/js/page-refresh.js?v=449920b0'); }).then(function () {
     if (typeof window.trsVerCheck === 'function') window.trsVerCheck(id);
   });
 })();

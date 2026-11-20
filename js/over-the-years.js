@@ -1260,6 +1260,12 @@ function otySeasonCal(M) {
     <p class="oty-note" style="margin:10px 0 0">${curYear} laid out by season. The white line is the last day of takings (${otyDay(cut)}). The gap between Ramadan and summer is not part of any season.</p></div>`;
 }
 
+// Kate, 20 Nov 2026: every bar lifts, glows and answers (js/bar-hover.js). A season column says which season, which year and what it shows.
+if (window.TRSBars) TRSBars.say('.oty-bar', function (row) {
+  var v = row.querySelector('.vl'), t = v ? v.textContent.trim() : '', s = row.getAttribute('data-s'), y = row.getAttribute('data-y');
+  if (!s || !y) return '';
+  return s + ' ' + y + ': ' + (/^[\d.,]+[kM]?$/.test(t) ? t + ' net take for each open day' : (t || 'no data')) + '.';
+});
 function otySeasonChart(key, M, shown, H) {
   const { years, curYear, cut } = otyD, seasons = M.build(key), hist = key === 'MRY';
   const yrs = hist ? years.filter(y => seasons.some(s => s.cells.some(c => c.y === y))) : years.filter(y => shown.has(y)), topY = hist ? yrs[yrs.length - 1] : curYear;

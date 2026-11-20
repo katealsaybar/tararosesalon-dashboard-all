@@ -9,7 +9,7 @@
 (function () {
   'use strict';
   var FILL = /(?:^|;)\s*(width|height)\s*:\s*(-?[\d.]+)%/;
-  var SKIP = '#view-recruitment, #view-novblasts, #view-wvblast, .page-guide, .pg-guide, #verNotice, .upd, .sidebar, #sidebar, dialog, [data-bh-own], .rct-plwrow, .abr, input, select, textarea, .pill-select, .ps-pop, .tip, svg';
+  var SKIP = '#view-recruitment, #view-novblasts, #view-wvblast, .page-guide, .pg-guide, #verNotice, .upd, .sidebar, #sidebar, dialog, [data-bh-own], .rct-plwrow, .abr, .oty-trackw, .oty-gl, .sm-c, .lt, input, select, textarea, .pill-select, .ps-pop, .tip, svg';
   // Column bars whose height is set in px, so the % test cannot see them (Over the Years). The parent is the column, which holds its value and label.
   var PX_FILLS = '.oty-bar > .b, .oty-bars .b, .mo-b, .sm-b';
   var card = null, hideT = null, saying = [];
@@ -43,7 +43,7 @@
     var img = row.querySelector('[role=img][aria-label]'); if (!lab && img) lab = img.getAttribute('aria-label');
     if (lab && s.indexOf(lab) < 0) s = s ? s + '. ' + lab : lab;
     var p = fills.length === 1 ? pctOf(fills[0]) : null;
-    if (p && p.v <= 100.5 && s && s.indexOf('%') < 0) s += '. The bar is ' + Math.round(p.v) + '% full';
+    if (p && p.dim === 'width' && p.v <= 100.5 && s && s.indexOf('%') < 0) s += '. The bar is ' + Math.round(p.v) + '% full';
     if (!s) return '';
     if (s.length > 240) s = s.slice(0, 237).replace(/\s+\S*$/, '') + '...';
     return /[.!?]$/.test(s) ? s : s + '.';
@@ -74,10 +74,10 @@
     for (i = 0; i < cand.length && n < 1500; i++) {
       var el = cand[i], p = pctOf(el);
       if (!p || p.v <= 0 || p.v > 100.5 || el.hasAttribute('data-bh-fill') || el._bhTry > 4 || el.closest(SKIP)) continue;
-      el._bhTry = (el._bhTry || 0) + 1;   // an element that is not a bar is looked at a few times (it may still be loading), then left alone
       var par = el.parentElement; if (!par) continue;
       var r = el.getBoundingClientRect(), pr = par.getBoundingClientRect();
-      if (!r.width || !r.height) continue;
+      if (!r.width || !r.height) continue;   // hidden (another page, or still loading): look again next time
+      el._bhTry = (el._bhTry || 0) + 1;      // a visible element that is not a bar is looked at a few times, then left alone
       // a real bar: visible, thin, inside a longer track. Not a modal, a spinner, a tile or a whole card.
       var ok = p.dim === 'width' ? (r.height >= 2 && r.height <= 42 && pr.width >= 40 && pr.width >= r.width - 1)
                                  : (r.width >= 3 && r.width <= 90 && pr.height >= 24 && pr.height >= r.height - 1);
@@ -90,7 +90,7 @@
     for (i = 0; i < fills.length; i++) {
       var row = rowFor(fills[i]);
       if (!row || row.hasAttribute('data-bh') || row.closest(SKIP) || row.querySelector('[data-tip]')) continue;
-      if (row.getBoundingClientRect().height > 260) continue;
+      if (row.getBoundingClientRect().height > 260 || !sentence(row)) continue;   // a block taller than a small card, or one with nothing to say, gets no lift
       row.setAttribute('data-bh', '');
       if (row.querySelectorAll('[data-bh-fill]').length > 1) row.setAttribute('data-bh-multi', '');   // a stacked bar: its colours are not glowed over
       if (row.tagName !== 'TR' && !row.matches('a,button,input,select,textarea,[tabindex]')) row.setAttribute('tabindex', '0');
