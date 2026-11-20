@@ -18,7 +18,7 @@ const ORD_STORE = 'trs-orders';
 // The mini side nav (Kate, 19 Nov 2026: "walang mini sidebar navi"): the shared "On this page" rail, a column in the gutter from 1100px and a pinned row of chips under the masthead below that (lgShell, jump-nav.js).
 const ORD_RAIL = [['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
 const ORD = { n: 10, kind: '' };
-let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordProofFile = null, ordProofUrl = '';
+let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordProofFiles = [];
 try { const s = JSON.parse(localStorage.getItem(ORD_STORE) || '{}'); if ([10, 20, 50, 100].includes(s.n)) ORD.n = s.n; } catch (e) {}
 const ordSave = () => { try { localStorage.setItem(ORD_STORE, JSON.stringify({ n: ORD.n })); } catch (e) {} };
 
@@ -560,57 +560,75 @@ function ordAmazonLink(g) {
   return `<p class="ord-amz"><a class="ord-ac ord-gml" href="https://www.amazon.ae/gp/your-account/order-details?orderID=${no}" target="_blank" rel="noopener" title="Opens this order in the Amazon.ae account: delivery, payment and the invoices"><span class="ord-ai ord-ai-oth">AMZ</span><span class="ord-an">Open this order in the Amazon account</span><span class="ord-ak">Amazon.ae</span></a></p>`;
 }
 // ── CHECKED IN THE ACCOUNT (Kate, 20 Nov 2026) ───────────────────────────────────────
-// An order that needs a look only because the mailbox is silent can be cleared by whoever checked it in the supplier's account: a note (for example the card that paid it)
-// and a screenshot PASTED with Ctrl+V (no file to pick). Saved in order_checks (orders_check_set), the picture in the private bucket order-proofs. The tick can be undone.
+// An order that needs a look only because the mailbox is silent can be cleared by whoever checked it in the supplier's account: a note (for example the card that paid it) and
+// proof: as many screenshots as needed, PASTED with Ctrl+V, plus PDFs (Add a PDF, or drop it on the box). Saved in order_checks (orders_check_set), the files in the private bucket
+// order-proofs. The tick can be undone.
 const ordSafeKey = s => String(s).replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 80);
+const ORD_PROOF_MAX = 10, ORD_PROOF_BYTES = 10 * 1024 * 1024;
 function ordCheckHtml(g) {
   const k = ordEsc(g.key), c = g.chk;
   if (c) {
+    const ps = Array.isArray(c.proofs) ? c.proofs : [];
     return `<div class="ord-chk done" id="ordChk"><div class="ord-chk-h"><b>Checked in the account</b> by ${ordEsc(c.by || '')} on ${ordEsc(ordDay(String(c.at || '').slice(0, 10)))}</div>${c.note ? `<p class="ord-chk-n">${ordEsc(c.note)}</p>` : ''}` +
-      `<div class="ord-chk-b">${c.proof ? `<button type="button" class="cm-pill" data-p="${ordEsc(c.proof)}" onclick="ordProofView(this)">View the screenshot</button>` : ''}<button type="button" class="cm-pill" data-k="${k}" onclick="ordCheckUndo(this.dataset.k)">Undo</button></div><div id="ordChkShow"></div></div>`;
+      `<div class="ord-chk-b">${ps.map((p, i) => `<button type="button" class="cm-pill" data-p="${ordEsc(p.path)}" data-n="${ordEsc(p.name || '')}" onclick="ordProofView(this)">${/\.pdf$/i.test(p.name || p.path) ? ordEsc(p.name || 'PDF') : 'Screenshot ' + (i + 1)}</button>`).join('')}<button type="button" class="cm-pill" data-k="${k}" onclick="ordCheckUndo(this.dataset.k)">Undo</button></div><div id="ordChkShow"></div></div>`;
   }
   if (!g.x) return '';
   return `<div class="ord-chk" id="ordChk"><div class="ord-chk-h"><b>Checked it in the account?</b> Clear this order here.</div>` +
     `<textarea id="ordChkNote" rows="2" maxlength="500" placeholder="Note, for example: paid with the Mastercard ending 2600, arrived 14 Jan"></textarea>` +
-    `<div class="ord-paste" id="ordChkPaste" tabindex="0">Copy the screenshot, then press Ctrl+V anywhere in this window to paste it here.</div><div id="ordChkPrev"></div>` +
+    `<div class="ord-paste" id="ordChkPaste" tabindex="0">Copy a screenshot, then press Ctrl+V anywhere in this window. Paste as many as you need. To add a PDF, drop it here or <button type="button" class="ord-lk" onclick="document.getElementById('ordChkFile').click()">choose a PDF</button>.</div>` +
+    `<input type="file" id="ordChkFile" accept="application/pdf,image/png,image/jpeg,image/webp" multiple hidden onchange="ordAddProofs(this.files);this.value=''"><div id="ordChkPrev" class="ord-prevs"></div>` +
     `<div class="ord-chk-b"><button type="button" class="cm-pill" id="ordChkGo" data-k="${k}" onclick="ordCheckSave(this.dataset.k)">Mark as checked</button><span class="ord-muted" id="ordChkMsg"></span></div></div>`;
 }
-function ordSetProof(file) {
-  const msg = document.getElementById('ordChkMsg'), prev = document.getElementById('ordChkPrev'), box = document.getElementById('ordChkPaste');
-  if (!file || !prev) return;
-  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { if (msg) msg.textContent = 'Only a screenshot (PNG, JPG or WebP) can be pasted.'; return; }
-  if (file.size > 5 * 1024 * 1024) { if (msg) msg.textContent = 'That picture is over 5 MB.'; return; }
-  ordProofFile = file;
-  if (ordProofUrl) { try { URL.revokeObjectURL(ordProofUrl); } catch (e) { /* harmless */ } }
-  ordProofUrl = URL.createObjectURL(file);
-  prev.innerHTML = `<img class="ord-prev" src="${ordProofUrl}" alt="The screenshot you pasted">`;
-  if (box) box.textContent = 'Screenshot pasted. Paste again to replace it.';
-  if (msg) msg.textContent = '';
+function ordProofsPaint() {
+  const prev = document.getElementById('ordChkPrev'); if (!prev) return;
+  prev.innerHTML = ordProofFiles.map((p, i) => `<span class="ord-pv">${p.url ? `<img class="ord-prev" src="${p.url}" alt="Pasted screenshot ${i + 1}">` : `<span class="ord-pdfchip">PDF ${ordEsc(p.name)}</span>`}<button type="button" class="ord-pvx" title="Remove" aria-label="Remove" onclick="ordProofDrop(${i})">×</button></span>`).join('');
 }
-// one listener for the page: an image on the clipboard goes to the open Checked box, anything else pastes as normal
+function ordProofDrop(i) { const p = ordProofFiles[i]; if (p && p.url) { try { URL.revokeObjectURL(p.url); } catch (e) { /* harmless */ } } ordProofFiles.splice(i, 1); ordProofsPaint(); }
+function ordAddProofs(files) {
+  const msg = document.getElementById('ordChkMsg'); if (!document.getElementById('ordChkPrev')) return;
+  let bad = '';
+  Array.prototype.forEach.call(files || [], f => {
+    const img = /^image\/(png|jpeg|webp)$/.test(f.type), pdf = f.type === 'application/pdf';
+    if (!img && !pdf) { bad = 'Only a screenshot (PNG, JPG, WebP) or a PDF can be added.'; return; }
+    if (f.size > ORD_PROOF_BYTES) { bad = 'A file is over 10 MB.'; return; }
+    if (ordProofFiles.length >= ORD_PROOF_MAX) { bad = 'That is the most you can add (10).'; return; }
+    const name = f.name && f.name !== 'image.png' ? f.name : (img ? 'screenshot-' + (ordProofFiles.length + 1) + '.' + (f.type.split('/')[1] || 'png').replace('jpeg', 'jpg') : 'file.pdf');
+    ordProofFiles.push({ file: f, name, url: img ? URL.createObjectURL(f) : '' });
+  });
+  ordProofsPaint();
+  if (msg) msg.textContent = bad;
+}
+// one listener for the page: images on the clipboard go to the open Checked box, anything else pastes as normal; a file dropped on the box is added too
 document.addEventListener('paste', e => {
   if (!document.getElementById('ordChkPaste')) return;
-  const it = Array.prototype.find.call((e.clipboardData && e.clipboardData.items) || [], x => x.kind === 'file' && /^image\//.test(x.type));
-  if (!it) return;
+  const fs = Array.prototype.filter.call((e.clipboardData && e.clipboardData.items) || [], x => x.kind === 'file' && /^(image\/|application\/pdf)/.test(x.type)).map(x => x.getAsFile()).filter(Boolean);
+  if (!fs.length) return;
   e.preventDefault();
-  ordSetProof(it.getAsFile());
+  ordAddProofs(fs);
+});
+document.addEventListener('dragover', e => { if (e.target && e.target.closest && e.target.closest('#ordChkPaste')) { e.preventDefault(); e.target.closest('#ordChkPaste').classList.add('over'); } });
+document.addEventListener('dragleave', e => { const b = e.target && e.target.closest && e.target.closest('#ordChkPaste'); if (b) b.classList.remove('over'); });
+document.addEventListener('drop', e => {
+  const b = e.target && e.target.closest && e.target.closest('#ordChkPaste'); if (!b) return;
+  e.preventDefault(); b.classList.remove('over'); ordAddProofs(e.dataTransfer && e.dataTransfer.files);
 });
 async function ordCheckSave(key) {
   const note = ((document.getElementById('ordChkNote') || {}).value || '').trim(), msg = document.getElementById('ordChkMsg'), go = document.getElementById('ordChkGo');
-  if (!note && !ordProofFile) { if (msg) msg.textContent = 'Type a note or paste a screenshot first.'; return; }
+  if (!note && !ordProofFiles.length) { if (msg) msg.textContent = 'Type a note or add a screenshot or PDF first.'; return; }
   if (go) go.disabled = true; if (msg) msg.textContent = 'Saving...';
   try {
-    let path = null, name = null;
-    if (ordProofFile) {
-      name = ordProofFile.name && ordProofFile.name !== 'image.png' ? ordProofFile.name : 'screenshot.' + (ordProofFile.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
-      path = `checks/${ordSafeKey(key)}/${Date.now()}-${ordSafeKey(name)}`;
-      const up = await sb.storage.from('order-proofs').upload(path, ordProofFile, { contentType: ordProofFile.type, upsert: false });
+    const proofs = [];
+    for (let i = 0; i < ordProofFiles.length; i++) {
+      const p = ordProofFiles[i];
+      if (msg) msg.textContent = 'Saving ' + (i + 1) + ' of ' + ordProofFiles.length + '...';
+      const path = `checks/${ordSafeKey(key)}/${Date.now()}-${i + 1}-${ordSafeKey(p.name)}`;
+      const up = await sb.storage.from('order-proofs').upload(path, p.file, { contentType: p.file.type, upsert: false });
       if (up.error) throw up.error;
+      proofs.push({ path, name: p.name });
     }
-    const r = await sb.rpc('orders_check_set', { p_group: key, p_on: true, p_note: note || null, p_proof_path: path, p_proof_name: name });
+    const r = await sb.rpc('orders_check_set', { p_group: key, p_on: true, p_note: note || null, p_proofs: proofs });
     if (r.error) throw r.error;
-    ordChecks[key] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note || null, proof: path || ((ordChecks[key] || {}).proof) || null, proof_name: name };
-    ordProofFile = null;
+    ordChecks[key] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note || null, proofs };
     ordAfterCheck(key);
   } catch (e) {
     console.error(e);
@@ -627,14 +645,14 @@ async function ordCheckUndo(key) {
 }
 async function ordProofView(btn) {
   const out = document.getElementById('ordChkShow'); if (!out) return;
-  if (out.firstChild) { out.innerHTML = ''; return; }
-  out.innerHTML = '<p class="ord-muted">Opening...</p>';
+  if (out.dataset.p === btn.dataset.p && out.firstChild) { out.innerHTML = ''; out.dataset.p = ''; return; }
+  out.dataset.p = btn.dataset.p; out.innerHTML = '<p class="ord-muted">Opening...</p>';
   try {
     const r = await sb.storage.from('order-proofs').download(btn.dataset.p);
     if (r.error || !r.data) throw r.error || new Error('no file');
     const u = URL.createObjectURL(r.data);
-    out.innerHTML = /pdf/i.test(r.data.type) ? `<p><a href="${u}" target="_blank" rel="noopener">Open the PDF</a></p>` : `<img class="ord-prev ord-prev-big" src="${u}" alt="The screenshot kept as proof">`;
-  } catch (e) { console.error(e); out.innerHTML = '<p class="ord-muted">The screenshot did not open. Try again.</p>'; }
+    out.innerHTML = /pdf/i.test(r.data.type) ? `<p><a href="${u}" target="_blank" rel="noopener">Open ${ordEsc(btn.dataset.n || 'the PDF')}</a></p>` : `<img class="ord-prev ord-prev-big" src="${u}" alt="The screenshot kept as proof">`;
+  } catch (e) { console.error(e); out.innerHTML = '<p class="ord-muted">That file did not open. Try again.</p>'; }
 }
 // the tick changes which orders need a look: rebuild, redraw every table where it is (same page of each) and open the order again
 function ordAfterCheck(key) {
@@ -742,7 +760,7 @@ function ordOpen(key) {
 }
 function ordClose() {
   const m = document.getElementById('ordModal'); if (m) m.remove();
-  ordCur = null; ordProofFile = null;
+  ordCur = null; ordProofFiles.forEach(x => { if (x.url) { try { URL.revokeObjectURL(x.url); } catch (e) { /* harmless */ } } }); ordProofFiles = [];
   if (ordBlobUrl) { const u = ordBlobUrl; ordBlobUrl = ''; setTimeout(() => { try { URL.revokeObjectURL(u); } catch (e) { /* harmless */ } }, 1000); }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ordModal')) { e.stopPropagation(); ordClose(); } }, true);

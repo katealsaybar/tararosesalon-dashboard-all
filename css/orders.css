@@ -201,3 +201,9 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
 .ord-prev-big{max-height:420px}
 .ord-chk-b{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .ord-chk-n{margin:4px 0;white-space:pre-wrap}
+.ord-prevs{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0}
+.ord-pv{position:relative;display:inline-block}
+.ord-pv .ord-prev{max-height:110px;margin:0}
+.ord-pvx{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;line-height:1;padding:0}
+.ord-pdfchip{display:inline-block;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px}
+.ord-paste.over{border-style:solid;background:var(--surface)}
