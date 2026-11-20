@@ -18,7 +18,7 @@ const ORD_STORE = 'trs-orders';
 // The mini side nav (Kate, 19 Nov 2026: "walang mini sidebar navi"): the shared "On this page" rail, a column in the gutter from 1100px and a pinned row of chips under the masthead below that (lgShell, jump-nav.js).
 const ORD_RAIL = [['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
 const ORD = { n: 10, kind: '' };
-let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '';
+let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordProofFile = null, ordProofUrl = '';
 try { const s = JSON.parse(localStorage.getItem(ORD_STORE) || '{}'); if ([10, 20, 50, 100].includes(s.n)) ORD.n = s.n; } catch (e) {}
 const ordSave = () => { try { localStorage.setItem(ORD_STORE, JSON.stringify({ n: ORD.n })); } catch (e) {} };
 
@@ -157,7 +157,9 @@ function ordFinish(key, docs) {
   // Amazon cancels and refunds an order by email ("Items cancelled successfully", "Update on refund processed"): such an order is closed, nothing is owed or on its way
   const cancelled = /^amazon/i.test(g.s || '') && rk < ORD_RANK.delivered && docs.some(d => /cancel|refund/i.test(d.subject || ''));
   if (cancelled) g.st = 'Cancelled';
-  if (g.type === 'Order' && !g.hasInv && age >= 7 && !paidOnOrder && !cancelled) {
+  // someone opened the order in the supplier's account (or portal) and ticked Checked, with a note and a pasted screenshot as proof (Kate, 20 Nov 2026): the mailbox silence is answered
+  const chk = ordChecks[key] || null; g.chk = chk;
+  if (g.type === 'Order' && !g.hasInv && age >= 7 && !paidOnOrder && !cancelled && !chk) {
     // for these suppliers the question is not the invoice but whether it ever arrived (or was cancelled or the payment was declined): check it in the supplier's own account
     fl.push(paysAtCheckout ? 'No delivery email after ' + age + ' days: check the order in the ' + (/^amazon/i.test(g.s) ? 'Amazon' : g.s.charAt(0) + g.s.slice(1).toLowerCase()) + ' account' : 'No invoice seen after ' + age + ' days');
   }
@@ -230,6 +232,7 @@ async function ordLoad() {
     if (seq !== ordSeq) return;
     if (error) throw error;
     ordRows = (data && data.rows) || [];
+    ordChecks = (data && data.checks) || {};
     ordBuild(ordRows);
   } catch (e) {
     console.error(e);
@@ -450,7 +453,9 @@ function ordStepsHtml(g) {
     const k = d.invoice_pdf ? 'Invoiced' : d.kind === 'quotation' ? 'Quoted' : d.kind === 'order' ? 'Ordered' : d.kind === 'confirmation' ? (has.order ? 'Confirmed' : 'Ordered') : d.kind === 'shipped' ? 'Shipped' : d.kind === 'delivered' ? 'Delivered' : d.kind === 'invoice' ? 'Invoiced' : (ORD_KINDNAME[d.kind] || d.kind);
     if (!seen[k]) seen[k] = d.date;
   });
-  const names = g.type === 'Order' ? ['Quoted', 'Ordered', 'Confirmed', 'Shipped', 'Delivered', 'Invoiced'].filter(n => seen[n] || ['Ordered', 'Shipped', 'Delivered', 'Invoiced'].includes(n)) : Object.keys(seen);
+  // Amazon marketplace sellers: an "Invoice request from Amazon customer ..." thread in the mailbox means the invoice has been asked for (the seller's PDF then shows as Invoiced)
+  g.docs.forEach(d => { if (/^amazon/i.test(g.s || '') && d.kind !== 'invoice' && !d.invoice_pdf && /invoice request/i.test(d.subject || '') && !seen['Invoice requested']) seen['Invoice requested'] = d.date; });
+  const names = g.type === 'Order' ? ['Quoted', 'Ordered', 'Confirmed', 'Shipped', 'Delivered', 'Invoice requested', 'Invoiced'].filter(n => seen[n] || ['Ordered', 'Shipped', 'Delivered', 'Invoiced'].includes(n)) : Object.keys(seen);
   return '<div class="ord-steps" aria-label="Steps">' + names.map(n => `<span class="ord-step${seen[n] ? ' on' : ''}"><b>${ordEsc(n)}</b><i>${seen[n] ? ordDay(seen[n]) : 'not seen'}</i></span>`).join('') + '</div>';
 }
 // ── TRANSLATE TO ENGLISH (Kate, 19 Nov 2026) ─────────────────────────────────────────
@@ -554,6 +559,89 @@ function ordAmazonLink(g) {
   if (!no) return '';
   return `<p class="ord-amz"><a class="ord-ac ord-gml" href="https://www.amazon.ae/gp/your-account/order-details?orderID=${no}" target="_blank" rel="noopener" title="Opens this order in the Amazon.ae account: delivery, payment and the invoices"><span class="ord-ai ord-ai-oth">AMZ</span><span class="ord-an">Open this order in the Amazon account</span><span class="ord-ak">Amazon.ae</span></a></p>`;
 }
+// ── CHECKED IN THE ACCOUNT (Kate, 20 Nov 2026) ───────────────────────────────────────
+// An order that needs a look only because the mailbox is silent can be cleared by whoever checked it in the supplier's account: a note (for example the card that paid it)
+// and a screenshot PASTED with Ctrl+V (no file to pick). Saved in order_checks (orders_check_set), the picture in the private bucket order-proofs. The tick can be undone.
+const ordSafeKey = s => String(s).replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 80);
+function ordCheckHtml(g) {
+  const k = ordEsc(g.key), c = g.chk;
+  if (c) {
+    return `<div class="ord-chk done" id="ordChk"><div class="ord-chk-h"><b>Checked in the account</b> by ${ordEsc(c.by || '')} on ${ordEsc(ordDay(String(c.at || '').slice(0, 10)))}</div>${c.note ? `<p class="ord-chk-n">${ordEsc(c.note)}</p>` : ''}` +
+      `<div class="ord-chk-b">${c.proof ? `<button type="button" class="cm-pill" data-p="${ordEsc(c.proof)}" onclick="ordProofView(this)">View the screenshot</button>` : ''}<button type="button" class="cm-pill" data-k="${k}" onclick="ordCheckUndo(this.dataset.k)">Undo</button></div><div id="ordChkShow"></div></div>`;
+  }
+  if (!g.x) return '';
+  return `<div class="ord-chk" id="ordChk"><div class="ord-chk-h"><b>Checked it in the account?</b> Clear this order here.</div>` +
+    `<textarea id="ordChkNote" rows="2" maxlength="500" placeholder="Note, for example: paid with the Mastercard ending 2600, arrived 14 Jan"></textarea>` +
+    `<div class="ord-paste" id="ordChkPaste" tabindex="0">Copy the screenshot, then press Ctrl+V anywhere in this window to paste it here.</div><div id="ordChkPrev"></div>` +
+    `<div class="ord-chk-b"><button type="button" class="cm-pill" id="ordChkGo" data-k="${k}" onclick="ordCheckSave(this.dataset.k)">Mark as checked</button><span class="ord-muted" id="ordChkMsg"></span></div></div>`;
+}
+function ordSetProof(file) {
+  const msg = document.getElementById('ordChkMsg'), prev = document.getElementById('ordChkPrev'), box = document.getElementById('ordChkPaste');
+  if (!file || !prev) return;
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { if (msg) msg.textContent = 'Only a screenshot (PNG, JPG or WebP) can be pasted.'; return; }
+  if (file.size > 5 * 1024 * 1024) { if (msg) msg.textContent = 'That picture is over 5 MB.'; return; }
+  ordProofFile = file;
+  if (ordProofUrl) { try { URL.revokeObjectURL(ordProofUrl); } catch (e) { /* harmless */ } }
+  ordProofUrl = URL.createObjectURL(file);
+  prev.innerHTML = `<img class="ord-prev" src="${ordProofUrl}" alt="The screenshot you pasted">`;
+  if (box) box.textContent = 'Screenshot pasted. Paste again to replace it.';
+  if (msg) msg.textContent = '';
+}
+// one listener for the page: an image on the clipboard goes to the open Checked box, anything else pastes as normal
+document.addEventListener('paste', e => {
+  if (!document.getElementById('ordChkPaste')) return;
+  const it = Array.prototype.find.call((e.clipboardData && e.clipboardData.items) || [], x => x.kind === 'file' && /^image\//.test(x.type));
+  if (!it) return;
+  e.preventDefault();
+  ordSetProof(it.getAsFile());
+});
+async function ordCheckSave(key) {
+  const note = ((document.getElementById('ordChkNote') || {}).value || '').trim(), msg = document.getElementById('ordChkMsg'), go = document.getElementById('ordChkGo');
+  if (!note && !ordProofFile) { if (msg) msg.textContent = 'Type a note or paste a screenshot first.'; return; }
+  if (go) go.disabled = true; if (msg) msg.textContent = 'Saving...';
+  try {
+    let path = null, name = null;
+    if (ordProofFile) {
+      name = ordProofFile.name && ordProofFile.name !== 'image.png' ? ordProofFile.name : 'screenshot.' + (ordProofFile.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+      path = `checks/${ordSafeKey(key)}/${Date.now()}-${ordSafeKey(name)}`;
+      const up = await sb.storage.from('order-proofs').upload(path, ordProofFile, { contentType: ordProofFile.type, upsert: false });
+      if (up.error) throw up.error;
+    }
+    const r = await sb.rpc('orders_check_set', { p_group: key, p_on: true, p_note: note || null, p_proof_path: path, p_proof_name: name });
+    if (r.error) throw r.error;
+    ordChecks[key] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note || null, proof: path || ((ordChecks[key] || {}).proof) || null, proof_name: name };
+    ordProofFile = null;
+    ordAfterCheck(key);
+  } catch (e) {
+    console.error(e);
+    if (go) go.disabled = false; if (msg) msg.textContent = 'It did not save. Try again, or tell Kate.';
+  }
+}
+async function ordCheckUndo(key) {
+  try {
+    const r = await sb.rpc('orders_check_set', { p_group: key, p_on: false });
+    if (r.error) throw r.error;
+    delete ordChecks[key];
+    ordAfterCheck(key);
+  } catch (e) { console.error(e); const b = document.querySelector('#ordChk .ord-chk-b'); if (b) b.insertAdjacentHTML('beforeend', '<span class="ord-muted"> It did not undo. Try again.</span>'); }
+}
+async function ordProofView(btn) {
+  const out = document.getElementById('ordChkShow'); if (!out) return;
+  if (out.firstChild) { out.innerHTML = ''; return; }
+  out.innerHTML = '<p class="ord-muted">Opening...</p>';
+  try {
+    const r = await sb.storage.from('order-proofs').download(btn.dataset.p);
+    if (r.error || !r.data) throw r.error || new Error('no file');
+    const u = URL.createObjectURL(r.data);
+    out.innerHTML = /pdf/i.test(r.data.type) ? `<p><a href="${u}" target="_blank" rel="noopener">Open the PDF</a></p>` : `<img class="ord-prev ord-prev-big" src="${u}" alt="The screenshot kept as proof">`;
+  } catch (e) { console.error(e); out.innerHTML = '<p class="ord-muted">The screenshot did not open. Try again.</p>'; }
+}
+// the tick changes which orders need a look: rebuild, redraw every table where it is (same page of each) and open the order again
+function ordAfterCheck(key) {
+  ordBuild(ordRows);
+  ordPaintAnswer(); ordPaintNotes(); [ordTL, ordTS, ordT].forEach(T => { if (T) T.draw(); });
+  ordClose(); ordOpen(key);
+}
 // Every email can be opened as the real thing in the info@ mailbox (Kate, 20 Nov 2026: "i must be able to view this on the email"). The page keeps a short text of each email
 // (and, for an Amazon order mail, the items it lists), so the original, with its pictures and every line, is one click away. Needs Kate or whoever is signed in to info@ in Google.
 function ordGmailLink(d) {
@@ -645,7 +733,7 @@ function ordOpen(key) {
   const m = document.createElement('div');
   m.className = 'ord-modal'; m.id = 'ordModal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Order');
   m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><div class="ord-hb">${back ? `<button type="button" class="cm-pill ord-back" onclick="ordClose()" title="Back to ${ordEsc(backTxt)}" aria-label="Back to ${ordEsc(backTxt)}">‹ Back<span class="ord-bk-l"> to ${ordEsc(backTxt)}</span></button>` : ''}${typeof rexButtons === 'function' ? rexButtons('ordExportOne') : ''}<button type="button" class="cm-pill" onclick="ordClose()">Close</button></div></div>
-    <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}${ordAmazonLink(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div><p class="ord-last">This is the last step: a single order line has nothing behind it.</p></div></div>`;
+    <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}${ordAmazonLink(g)}${ordCheckHtml(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div><p class="ord-last">This is the last step: a single order line has nothing behind it.</p></div></div>`;
   m.addEventListener('click', e => { if (e.target === m) ordClose(); });
   document.body.appendChild(m);
   const c = m.querySelector('button'); if (c) c.focus();
@@ -654,7 +742,7 @@ function ordOpen(key) {
 }
 function ordClose() {
   const m = document.getElementById('ordModal'); if (m) m.remove();
-  ordCur = null;
+  ordCur = null; ordProofFile = null;
   if (ordBlobUrl) { const u = ordBlobUrl; ordBlobUrl = ''; setTimeout(() => { try { URL.revokeObjectURL(u); } catch (e) { /* harmless */ } }, 1000); }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ordModal')) { e.stopPropagation(); ordClose(); } }, true);
