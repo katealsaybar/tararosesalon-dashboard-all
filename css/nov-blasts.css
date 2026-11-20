@@ -701,3 +701,5 @@
 .nvb .nvb-hbig{font-family:'Playfair Display',serif;font-size:30px;line-height:1.2;margin:6px 0}
 .nvb .nvb-hcard .nvb-hcav{font-size:13px}
 @media (max-width:760px){.nvb .nvb-hpick{display:flex;flex-wrap:wrap;justify-content:center;border-radius:18px}.nvb .nvb-hpick button{min-height:44px}}
+/* Four across down to a phone, the same as October section 1 (Kate, 20 Nov 2026: "i 4 columns mo naman yan"). */
+@media (min-width:761px) and (max-width:900px){.nvb .nvb-rs-nums{grid-template-columns:repeat(4,minmax(0,1fr))}.nvb .nvb-rs-nums.nvb-rs-late{grid-template-columns:repeat(2,minmax(0,1fr))}}

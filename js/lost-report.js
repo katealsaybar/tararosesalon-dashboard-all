@@ -18,6 +18,7 @@ let lrDep = null, lrDepView = 'visual';
 let lrSince = null;
 // After the deadline (lost_after_deadline, migrations/lost_after_deadline.sql, Kate 27 Oct 2026): two lines under Which message, the clients whose next appointment is after 31 Oct and who have not come in. Null until live.
 let lrLate = null;
+let lrPaid = null, lrPaidTok = 0;   // lost_paid_split (migrations/lost_paid_split.sql): paid at the till up to 31 Oct, and after (the exempted)
 try { if (localStorage.getItem('lr-dep-view') === 'table') lrDepView = 'table'; } catch (e) {}
 // Did our message arrive? (lost_delivery_report, migrations/lost_delivery_report.sql). Same: null until the function is live, the section stays out.
 let lrDel = null, lrDelView = 'visual';
@@ -111,7 +112,7 @@ async function lrRetry(fn, tries) {
 }
 async function lrLoad() {
   if (lrBusy) return;
-  lrBusy = true; lrErr = ''; lrMoneyBy = null; lrMoneyByTok++; lrWS = null; lrWSTok++; lrByMsg = null; lrByMsgTok++;
+  lrBusy = true; lrErr = ''; lrMoneyBy = null; lrMoneyByTok++; lrWS = null; lrWSTok++; lrByMsg = null; lrByMsgTok++; lrPaid = null; lrPaidTok++;
   try {
     const [s, l] = await Promise.all([lrRetry(() => sb.rpc('lost_send_report_get', lrArgs()), 3), lrRetry(() => lrFetchPage(), 3)]);
     if (s.error || !s.data) throw s.error || new Error('no report');
@@ -136,6 +137,7 @@ async function lrLoad() {
   } catch (e) { console.error(e); lrErr = 'The report did not load. Refresh to try again.'; }
   lrBusy = false;
   if (lrSum && !lrErr) lrLoadByMsg();
+  if (lrSum && !lrErr) lrLoadPaid();
   if (lrMoney && lrType === 'all') lrLoadMoneyBy();
   if (lrType === 'all') lrLoadWS();
 }
@@ -231,23 +233,41 @@ function lrTable(first, rows) {
 // (up to 31 Oct) or came in since our message, with the every-accepted-message figure beside it. Null until the booking, delivery and money figures have loaded.
 const lrCostLive = () => lrSince && lrSince.total && lrSince.total.since > 0 && lrBillable() != null && lrMoney && lrMoney.cost ? { n: lrSince.total.since, sent: lrMoney.cost.sent, del: lrBillable(), rate: +lrMoney.rate } : null;
 const lrBillable = () => lrDel && lrDel.total && lrDel.total.sent ? (lrDel.total.seen || 0) + (lrDel.total.delivered || 0) : null;
+// Section 1 in the same joined grid as the November Results (Kate, 20 Nov 2026: "i need them to look uniform"): one block, hairlines between boxes, a small label, one big figure,
+// one short line, and a "Not readable yet" box that says why. Same order as November: sent, delivered, failed, queued, wrote back, STOP, booked ahead, booked since the message,
+// booked or came in, paid at the till (October only, then special ruled), cost per booking, spent; then messages per booking and booked after 31 Oct on their own row.
+// Booked or came in = a booking up to 31 Oct, or she came in since her first message (lost_booked_since 'since'). Booked since the message = that plus the clients booked after 31 Oct.
 function lrTiles(t) {
-  const card =(n, ti, d, cls, met) => `<div class="ll-card lr-card${cls ? ' ' + cls : ''}"><div class="ll-t">${ti}</div><div class="ll-n">${typeof n === 'string' ? n : lrNum(n, met)}</div><div class="ll-d">${d}</div></div>`;
-  const m = lrMoney, perBooked = m && m.booked && m.booked.clients ? ` (${lrAed(m.cost.aed / m.booked.clients)} per client booked)` : '';
-  return `<div class="ll-cards lr-cards">
-    ${card(t.sent, 'Sent', t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet', '', 'sent')}
-    ${card(t.replied, 'Replied', `${lrPct(t.replied, t.sent)} of those sent wrote back. A STOP is counted under STOP, not here.`, '', 'replied')}
-    ${lrDep ? card(lrDep.total.booked, 'Clients booked', 'Clients with an appointment from today to 31 Oct, the end of the offer, each counted once. Bookings after 31 Oct have their own box.', '', 'booked')
-      : card(t.booked, 'Booked', `${lrPct(t.booked, t.sent)} have a booking from today on`, '', 'booked')}
-    ${lrDep && lrDep.total.appts != null ? card(lrDep.total.appts, 'Appointments booked', 'Appointments from today to 31 Oct. A client can book more than one, so this is higher than the number of clients.', '', 'appts')
-      : ''}
-    ${lrSince && lrSince.total && lrSince.total.late != null ? card(lrSince.total.late, 'Booked after 31 Oct', 'Next appointment is after the end date and she has not come in. Counted here and not in Booked, Booked since the message or the money. Tap to see who.', '', 'late') : ''}
-    ${card(t.stop, 'STOP', `${lrPct(t.stop, t.sent)} asked us to stop. Aim to stay under 2%.`, t.sent && t.stop / t.sent > 0.02 ? 'lr-warn' : '', 'stop')}
-    ${card(t.failed, 'Failed', `${lrPct(t.failed, t.n - t.queued)} of the messages we tried to send did not go through. Aim to stay under 5%.`, t.failed ? 'lr-warn' : '', 'failed')}
-    ${card(t.queued, 'Still queued', 'waiting for the next send window', '', 'queued')}
-    ${m ? card(lrAed(m.cost.aed), 'Spent (estimate)', `${lrNum(m.cost.sent, 'sent')} messages at AED ${(+m.rate).toFixed(2)} each${perBooked}. ${lrBillable() != null ? `Only ${lcNum(lrBillable())} of them were delivered, which is about ${lrAed(lrBillable() * m.rate)} if only those are charged. ` : ''}Meta's invoice has the exact figure.`) : ''}
-    ${(() => { const lv = lrCostLive(); return lv ? card('AED ' + (lv.del * lv.rate / lv.n).toFixed(2), 'Cost per booking', `${lrAed(lv.del * lv.rate)} for the ${lcNum(lv.del)} delivered over ${lrNum(lv.n, 'since')} clients. AED ${(lv.sent * lv.rate / lv.n).toFixed(2)} if every accepted message is charged`) + card((lv.sent / lv.n).toFixed(1), 'Messages per booking', `${lcNum(lv.sent)} messages accepted for ${lrNum(lv.n, 'since')} clients who booked or came in since our message`) : ''; })()}
-  </div>${lrDep ? '<p class="slv-note">These are clients we messaged who have an appointment from today to 31 Oct. A booking after 31 Oct is counted in its own box. She may have booked before our message or at the chair; Phorest does not record that.</p>' : ''}`;
+  const cell = (ti, v, d, cls) => `<div${cls ? ' class="' + cls + '"' : ''}><small>${ti}</small><b>${v}</b><span class="lr-d">${d}</span></div>`;
+  const wait = (ti, why) => cell(ti, 'Not readable yet', why, 'wait');
+  const m = lrMoney, sn = lrSince && lrSince.total ? lrSince.total : null, dl = lrDel && lrDel.total && lrDel.total.sent ? lrDel.total : null;
+  const reached = lrBillable(), lv = lrCostLive(), rate = m && +m.rate ? +m.rate : 0.17;
+  const rowA = [
+    cell('Sent', lrNum(t.sent, 'sent'), t.first ? `${lcEsc(lrTime(t.first))} to ${lcEsc(lrTime(t.last))}` : 'nothing sent yet'),
+    dl ? cell('Delivered or read', lcNum(reached), `${lrPct(reached, dl.sent)} of sent. ${lrNum(dl.seen || 0, 'seen')} read`) : wait('Delivered or read', 'The delivery report has not loaded.'),
+    cell('Failed', `<span class="${t.failed ? 'f' : ''}">${lrNum(t.failed, 'failed')}</span>`, `${lrPct(t.failed, t.n - t.queued)} of the messages we tried to send. Aim to stay under 5%.`),
+    cell('Still queued', lrNum(t.queued, 'queued'), t.queued ? 'waiting for the next send window' : 'nothing waiting'),
+    cell('Wrote back', lrNum(t.replied, 'replied'), `${lrPct(t.replied, t.sent)} of those sent. A STOP is counted under STOP, not here.`),
+    cell('STOP', `<span class="${t.sent && t.stop / t.sent > 0.02 ? 'f' : ''}">${lrNum(t.stop, 'stop')}</span>`, `${lrPct(t.stop, t.sent)} of sent. Aim to stay under 2%.`),
+    lrDep ? cell('Booked ahead', lrNum(lrDep.total.booked, 'booked'), `${lrDep.total.appts != null ? lrNum(lrDep.total.appts, 'appts') + ' appointments, ' : ''}from today to 31 Oct. A booking after 31 Oct has its own box below.`)
+      : cell('Booked ahead', lrNum(t.booked, 'booked'), `${lrPct(t.booked, t.sent)} have a booking from today on`),
+    sn ? cell('Booked since the message', lcNum((sn.since || 0) + (sn.late || 0)), `${lrNum(sn.since || 0, 'since')} booked or came in, plus ${lrNum(sn.late || 0, 'late')} booked after 31 Oct. Kept after the date passes.`) : wait('Booked since the message', 'The bookings count has not loaded.'),
+    sn ? cell('Booked or came in', lrNum(sn.since || 0, 'since'), 'A booking up to 31 Oct, or she came in since her first message. Not the ones booked after 31 Oct.') : wait('Booked or came in', 'The bookings count has not loaded.'),
+    lrPaid ? cell('Paid at the till since the blast (October only)', lrAed(lrPaid.oct.aed), `${lcNum(lrPaid.oct.clients)} clients, sales up to 31 Oct. A ceiling, not proof the message caused it.`)
+      : cell('Paid at the till since the blast (October only)', 'Not worked out yet', 'Waiting on a database function. It is written and not applied.', 'wait'),
+    lrPaid ? cell('Paid at the till since the blast (special ruled)', lrAed(lrPaid.special.aed), `${lcNum(lrPaid.special.clients)} clients, sales after 31 Oct from the clients we messaged. Counted only because the end date was exempted.`)
+      : cell('Paid at the till since the blast (special ruled)', 'Not worked out yet', 'Waiting on a database function. It is written and not applied.', 'wait'),
+    m ? cell('Spent (estimate)', lrAed(m.cost.aed), `${lrNum(m.cost.sent, 'sent')} messages at AED ${rate.toFixed(2)} each.${reached != null ? ` ${lrAed(reached * rate)} if only the ${lcNum(reached)} delivered are charged.` : ''} Meta's invoice has the exact figure.`)
+      : wait('Spent (estimate)', 'The money figures have not loaded.')
+  ];
+  const rowB = [
+    lv ? cell('Cost per booking', 'AED ' + (lv.del * lv.rate / lv.n).toFixed(2), `${lrAed(lv.del * lv.rate)} for the ${lcNum(lv.del)} delivered over ${lrNum(lv.n, 'since')} booked or came in. AED ${(lv.sent * lv.rate / lv.n).toFixed(2)} if every accepted message is charged.`)
+      : wait('Cost per booking', 'Needs the bookings, delivery and money figures.'),
+
+    lv ? cell('Messages per booking', (lv.sent / lv.n).toFixed(1), `${lcNum(lv.sent)} messages accepted for ${lrNum(lv.n, 'since')} clients who booked or came in since our message.`) : wait('Messages per booking', 'Needs the bookings and money figures.'),
+    sn && sn.late != null ? cell('Booked after 31 Oct', lrNum(sn.late, 'late'), 'Her next appointment is after the end date and she has not come in. Counted here and not in Booked or came in, Cost per booking or the money.') : ''
+  ].filter(Boolean);
+  return `<div class="lr-nums">${rowA.join('')}</div><div class="lr-nums lr-late" style="--n:${rowB.length}">${rowB.join('')}</div>${lrDep ? '<p class="slv-note">She may have booked before our message or at the chair; Phorest does not record that.</p>' : ''}`;
 }
 // Booked, by deposit (Kate, 18 Oct 2026): of the clients who booked after our message, who has paid a deposit, who has not, and who
 // comes today (no deposit needed). Visual by default, Table beside it like Comparison. Colours are the page's own: paid = --good,
@@ -357,7 +377,7 @@ function lrSinceTiles(sc, tbl) {
   const t = sc.total, by = sc.by_branch || [];
   const card = (n, ti, ds, met) => `<div class="ll-card lr-card"><div class="ll-t">${ti}</div><div class="ll-n">${lrNum(n, met)}</div><div class="ll-d">${ds}</div></div>`;
   return `<div class="ll-cards lr-cards">
-      ${card(t.since, 'Booked since the message', `${lrPct(t.since, t.sent)} of the ${lcNum(t.sent)} clients we messaged. Does not drop when they come in`, 'since')}
+      ${card(t.since, 'Booked or came in', `${lrPct(t.since, t.sent)} of the ${lcNum(t.sent)} clients we messaged. Does not drop when they come in`, 'since')}
       ${card(t.ahead, 'Booked ahead', 'still has a booking from today to 31 Oct', 'ahead')}
       ${t.late != null ? card(t.late, 'Booked after 31 Oct', 'next appointment is after the end date and she has not come in. Not in the counts beside it', 'late') : ''}
       ${card(t.done, 'Already came in', 'visited since our message, nothing booked ahead', 'done')}
@@ -500,6 +520,20 @@ function lrMoneySet(v) {
   try { localStorage.setItem('lr-money-view', lrMoneyView); } catch (e) {}
   const el = document.getElementById('lr-money');
   if (el) el.innerHTML = lrMoneyInner();
+}
+// The two Paid at the till boxes of section 1 (Kate, 20 Nov 2026). One call; a database without the function simply keeps the boxes on "Not worked out yet".
+async function lrLoadPaid() {
+  const tok = ++lrPaidTok;
+  const r = await lrRetry(() => sb.rpc('lost_paid_split', lrArgs()), 2);
+  if (tok !== lrPaidTok) return;
+  if (r.error || !r.data || !r.data.oct || !r.data.special) { if (r.error && !/Level 3|function|schema cache/.test(r.error.message || '')) console.warn('lost_paid_split', r.error); return; }
+  lrPaid = r.data;
+  lrPaintTotals();
+}
+function lrPaintTotals() {
+  const el = document.getElementById('lr-totals');
+  if (!el || !lrSum || typeof lqSel === 'undefined' || lqSel.tab !== 'perf') return;
+  el.innerHTML = `<h3>1. The campaign so far${lrType === 'all' ? '' : `: ${lcEsc(lrTypeName())}`}</h3><p class="slv-note">How many we sent and what came back.</p>${lrTiles(lrSum.totals || {})}`;
 }
 // 5. By message as cards (Kate, 20 Nov 2026, the same card as Database Blasts section 5; mockup docs/mockups/oct-performance-per-message.html): one column per message,
 // one big number (booked or came in per 100 messaged), a picture of 100 dots, two key facts, the rest folded. Booked or came in is the live rule since 11 Nov 2026:

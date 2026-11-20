@@ -455,3 +455,16 @@ body.lr-modal-open{overflow:hidden}
   #lostListsContent .lr-bb-ofn,#lostListsContent .lr-bb-when{min-height:0}
   #lostListsContent .lr-bb-dots{max-width:260px}
 }
+
+/* Section 1 uses the same joined grid as the November Results (Kate, 20 Nov 2026: uniform): hairlines between boxes, small caps label, one serif figure, one short line. */
+#lostListsContent .lr-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+#lostListsContent .lr-nums>div{background:var(--surface);padding:12px 16px;display:grid;gap:2px;align-content:start;min-width:0}
+#lostListsContent .lr-nums small{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+#lostListsContent .lr-nums b{font-family:'Playfair Display',serif;font-size:26px;font-weight:500;line-height:1.15;overflow-wrap:anywhere}
+#lostListsContent .lr-nums b .f{color:var(--bad)}
+#lostListsContent .lr-nums .lr-d{font-size:12.5px;color:var(--muted);line-height:1.4}
+#lostListsContent .lr-nums .wait b{font-family:inherit;font-size:15px;font-weight:600;color:var(--muted2)}
+#lostListsContent .lr-nums .wait{background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 8px,var(--surface2) 8px,var(--surface2) 9px)}
+#lostListsContent .lr-nums.lr-late{margin-top:10px;grid-template-columns:repeat(var(--n,3),minmax(0,1fr))}
+@media (max-width:760px){#lostListsContent .lr-nums,#lostListsContent .lr-nums.lr-late{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){#lostListsContent .lr-nums b{font-size:22px}}
