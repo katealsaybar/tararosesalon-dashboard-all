@@ -519,7 +519,14 @@ let ordBlobUrl = '', ordCur = null;
 // Left: when a PDF is kept, the PDF and nothing else (a switch brings back What was bought). No PDF: What was bought. Right, the last column: the emails, drawn like Gmail.
 // The product's own photo, taken from the supplier's email (Amazon shows one next to every item; the reader job orders-amazon-images keeps its link in lines[].img).
 // Only an https picture on Amazon's image host is drawn, and a picture that does not load is dropped, so a line never shows a broken box.
-const ordPhoto = l => /^https:\/\/m\.media-amazon\.com\/images\/I\/[\w%+.,\-]+\.(jpg|jpeg|png|webp)$/i.test((l && l.img) || '') ? `<img class="ord-ph" src="${ordEsc(l.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+// Amazon (images/I), Carrefour (cdn.mafrservices.com, their picture is 1700 px so a 200 px version is asked for first and the original is the fallback) and Lulu (akinoncloud products).
+const ORD_PHOTO_OK = [/^https:\/\/m\.media-amazon\.com\/images\/I\/[\w%+.,\-]+\.(jpg|jpeg|png|webp)$/i, /^https:\/\/cdn\.mafrservices\.com\/[\w%+.,\-\/]+\.(jpg|jpeg|png|webp)(\?[\w=&%.,\-]*)?$/i, /^https:\/\/[\w\-]+\.cdn\.akinoncloud\.com\/products\/[\w%+.,\-\/]+\.(jpg|jpeg|png|webp)$/i];
+const ordPhoto = l => {
+  const u = String((l && l.img) || '');
+  if (!ORD_PHOTO_OK.some(re => re.test(u))) return '';
+  const sm = u.replace('Resize=1700', 'Resize=200');
+  return `<img class="ord-ph" src="${ordEsc(sm)}" data-o="${ordEsc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="if(this.dataset.o&&this.src!==this.dataset.o){this.src=this.dataset.o}else{this.remove()}">`;
+};
 const ordKindPdf = d =>d.file_path && ordExt(d.file_name || d.file_path) === 'pdf';
 const ordHue = s => { let h = 0; String(s).split('').forEach(c => { h = (h * 31 + c.charCodeAt(0)) % 360; }); return h; };
 
