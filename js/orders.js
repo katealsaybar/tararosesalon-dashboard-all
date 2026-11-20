@@ -513,7 +513,14 @@ function ordMsgHtml(d, open) {
     `<span class="ord-av" style="background:hsl(${ordHue(from)} 42% 40%)">${ordEsc(from.charAt(0).toUpperCase())}</span>` +
     `<span class="ord-gmw"><span class="ord-gmf"><b>${ordEsc(from)}</b><i>${ordEsc(ORD_KINDNAME[d.kind] || d.kind)}</i></span><span class="ord-gmt">to ${ordEsc(to)}</span><span class="ord-gsn">${ordEsc(snip)}</span></span>` +
     `<span class="ord-gmd">${ordEsc(ordTime(d.at))}</span></div>` +
-    `<div class="ord-gmb"><div class="ord-mb">${ordEsc(d.body || d.note || '')}</div>${att ? `<div class="ord-ma">${att}</div>` : ''}</div></div>`;
+    `<div class="ord-gmb"><div class="ord-mb">${ordEsc(d.body || d.note || '')}</div><div class="ord-ma">${att}${ordGmailLink(d)}</div></div></div>`;
+}
+// Every email can be opened as the real thing in the info@ mailbox (Kate, 20 Nov 2026: "i must be able to view this on the email"). The page keeps a short text of each email
+// (and, for an Amazon order mail, the items it lists), so the original, with its pictures and every line, is one click away. Needs Kate or whoever is signed in to info@ in Google.
+function ordGmailLink(d) {
+  const id = String(d.thread || String(d.key || '').replace(/^info:/, '').split(':')[0] || '').replace(/[^0-9a-f]/gi, '');
+  if (!id) return '';
+  return `<a class="ord-ac ord-gml" href="https://mail.google.com/mail/?authuser=info%40tararosesalon.com#all/${id}" target="_blank" rel="noopener" title="Opens this email in the info mailbox in Gmail"><span class="ord-ai ord-ai-oth">MAIL</span><span class="ord-an">Open the original email</span><span class="ord-ak">Gmail</span></a>`;
 }
 function ordThreadHtml(g) {
   const subj = (g.docs.find(d => d.subject) || {}).subject || '';
