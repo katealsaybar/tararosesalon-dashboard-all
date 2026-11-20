@@ -262,7 +262,7 @@
     return '<p class="cbl-next" role="status">' + msg + '</p>';
   }
   function costHtml(tot, n) {
-    return '<details class="cbl-cost"><summary>Cost estimate, for Kate</summary><p><b>' + cost(tot) + '</b> to send all ' + n + '. Estimate: one marketing message per client at about USD 0.049 (AED 0.18), worked out from October's Meta count and the respond.io invoices. ' +
+    return '<details class="cbl-cost"><summary>Cost estimate, for Kate</summary><p><b>' + cost(tot) + '</b> to send all ' + n + '. Estimate: one marketing message per client at about USD 0.049 (AED 0.18), worked out from the October Meta count and the respond.io invoices. ' +
       'The client’s tap and our reply come inside the 24 hours after she answers, so they are not counted. The exact amount is on Meta’s invoice, and each client is counted once.</p></details>';
   }
   function allHtml() {
