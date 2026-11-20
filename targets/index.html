@@ -7,6 +7,9 @@
 <title>Target Calculator · Team Home</title>
 <script>
   try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  // Kate, 20 Nov 2026: the dashboard shows this page in a frame (Tools > Target Calculator) with ?embed=1, so the main sidebar stays. Embedded, the page drops its own header, Back button and footer
+  // (.tg-embed below); opened on its own from Team Home it is unchanged.
+  try { if (/[?&]embed=1\b/.test(location.search)) document.documentElement.classList.add('tg-embed'); } catch (e) {}
 </script>
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
@@ -145,6 +148,7 @@ td.plan{font-family:var(--fd);font-weight:600;font-size:18px}
 td.guess{color:var(--muted);font-style:italic}
 .rng{display:block;font-family:var(--fb);font-size:12px;font-weight:300;color:var(--muted);font-style:normal}
 input.days{width:60px;font:inherit;font-size:14px;padding:5px 6px;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--field);color:var(--text);text-align:right}
+span.dw{display:inline-block;min-width:60px;padding:5px 6px;text-align:right;font-weight:600}
 input.days.changed{border-color:var(--mint-deep);background:var(--lime);color:var(--ink)}
 button.how,button.copy{font:inherit;font-size:12.5px;font-weight:500;border:1px solid var(--rule);background:transparent;color:var(--text);border-radius:var(--r-pill);padding:5px 12px;cursor:pointer}
 button.how:hover,button.copy:hover{background:var(--mint);color:var(--ink)}
@@ -318,6 +322,11 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
 .tg-note b{color:var(--text);font-weight:600;margin-right:6px}
 .tg-load>*:not(#tgMsg){display:none!important}
 .deck{text-align:left;margin:0 0 16px;max-width:70ch}
+/* Embedded in the dashboard (Kate, 20 Nov 2026): the dashboard's own sidebar and masthead are the navigation. The frame scrolls on its own, so the filter bar and the table header still pin to the top of it. */
+html.tg-embed .kb-head,html.tg-embed .kb-foot,html.tg-embed .tg-nav a[href="/hub/"]{display:none!important}
+html.tg-embed body{background:transparent;min-height:0}
+html.tg-embed .wrap{max-width:none;padding:6px 4px 24px}
+html.tg-embed .tg-nav{margin-top:6px}
 </style>
 </head>
 <body class="kb-wait">
@@ -457,6 +466,33 @@ const JUL=DATA.jul||{},HRS=DATA.hours||{},RULES=DATA.rules||{};
 const QP=new URLSearchParams(location.search),QM={oct:10,nov:11,dec:12},QMN={10:'oct',11:'nov',12:'dec'};
 const S={month:QM[(QP.get('month')||'').toLowerCase()]||10,treat:20,retail:12,retailNow:5,util:RULES.util||85,join:70,bill:1,cap:1,clcap:1,basis:0,fac:FAC.slice()};
 const days={};
+/* Kate, 20 Nov 2026: once a month is over, planned days become days worked, and they are counted, not typed. isPast() is true from the day after the month ends; the days come from
+   Phorest (phorest_staff_daily, the days a person has sales above zero in that branch, the same rule the snapshot used for Aug to Oct 20), read once per month. Until they have loaded,
+   or if they cannot be read, the page stays as it was (planned days, editable). A name Phorest does not know keeps the snapshot's days. */
+const DAYM={};
+const isPast=()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate())>new Date(2026,S.month,0);};
+const pastOn=()=>isPast()&&!!DAYM[S.month];
+const wd=r=>{const m=DAYM[S.month];if(!m)return null;const v=m.get(r.p[0]+'|'+r.p[1].toUpperCase());if(v!=null)return v;return S.month>=7&&S.month<=10?mData(r.p,S.month).d:0;};
+async function loadDays(){
+  const m=S.month;if(!isPast()||DAYM[m]!==undefined)return;
+  DAYM[m]=null;
+  try{
+    const mm=String(m).padStart(2,'0'),d1=`2026-${mm}-01`,d2=`2026-${mm}-${String(new Date(2026,m,0).getDate()).padStart(2,'0')}`;
+    const seen=new Set(),mp=new Map();
+    for(let from=0;;from+=1000){
+      const r=await KB.client.from('phorest_staff_daily').select('branch,employee_name,date,total_ex_vat').eq('is_total',false).in('branch',['SAA','KCA','MC','AQ']).gte('date',d1).lte('date',d2).order('id').range(from,from+999);
+      if(r.error)throw r.error;
+      (r.data||[]).forEach(x=>{
+        if(!(Number(x.total_ex_vat)>0))return;
+        const k=x.branch+'|'+String(x.employee_name||'').toUpperCase(),dk=k+'|'+x.date;
+        if(seen.has(dk))return;seen.add(dk);mp.set(k,(mp.get(k)||0)+1);
+      });
+      if(!r.data||r.data.length<1000)break;
+    }
+    DAYM[m]=mp.size?mp:null;
+  }catch(e){DAYM[m]=null;}
+  if(m===S.month)render();
+}
 /* Kate, 27 Oct 2026: reception retail. What the front desk sells (BUSINESS TRS in Phorest) belongs to no stylist, so it is not in anyone's retail target. It is a flat target per branch,
    the August to October monthly average, saved in rules.recv by month ({"11": {"SAA": 4400, ...}}). It is added to the branch and group retail, never to a person. */
 const BR4=['SAA','KCA','MC','AQ'];
@@ -535,7 +571,7 @@ function build(){
     const months=mm.map((m,k)=>({m,d:mem.reduce((a,r)=>a+r.months[k].d,0),r:mem.reduce((a,r)=>a+r.months[k].r,0)}));
     const c=calcBase(months,mem.some(r=>r.part));
     const tot=mem.reduce((a,r)=>a+g.home[r.p[0]],0);
-    const dd=mem.map(r=>days[r.i]).find(v=>v!=null);
+    const dd=pastOn()?mem.reduce((a,r)=>a+(wd(r)||0),0):mem.map(r=>days[r.i]).find(v=>v!=null);
     const dayLow=dd!=null?dd:(g.days||c.planned);
     const low=c.adj==null?null:r100(c.adj*dayLow);
     const hd=g.days?Math.max((RULES.days4||{})[mem[0].p[2]]||18,dayLow):Math.max(c.best||0,c.planned||0,dayLow);
@@ -550,8 +586,8 @@ function build(){
   rows.forEach(r=>{
     if(r.grp||r.cover||r.adj==null)return;
     const leave=lv[r.key];
-    r.leave=leave!=null;
-    r.dLow=days[r.i]!=null?days[r.i]:(leave!=null?leave:r.planned);
+    r.leave=!pastOn()&&leave!=null;
+    r.dLow=pastOn()?wd(r):(days[r.i]!=null?days[r.i]:(leave!=null?leave:r.planned));
     if(r.joiner)return;
     r.low=r100(r.adj*r.dLow);
     r.high=Math.max(r.low,r100(r.adj*Math.max(r.best,r.planned,r.dLow)));
@@ -563,7 +599,7 @@ function build(){
     if(!pool.length){pool=rows.filter(x=>reg(x)&&x.p[3]===r.p[3]);basis='same designation, all branches';}
     if(!pool.length){pool=rows.filter(x=>reg(x)&&x.p[2]===r.p[2]);basis='same team, all branches';}
     r.med0=median(pool.map(x=>x.low));r.medBasis=basis;r.nPool=pool.length;
-    r.planned=days[r.i]!=null?days[r.i]:Math.round(mean(r.used.filter(x=>x.m!==10).map(x=>x.d))||r.used[0].d*31/20);
+    r.planned=pastOn()?wd(r):(days[r.i]!=null?days[r.i]:Math.round(mean(r.used.filter(x=>x.m!==10).map(x=>x.d))||r.used[0].d*31/20));
     r.dLow=r.planned;
     r.planJoin=r100(S.join/100*r.med0);
     r.own=r100(r.adj*r.planned);
@@ -645,14 +681,14 @@ function howExample(rows){
     <li><b>Step 1. What does she sell on a day she comes in?</b> The last three months.<ol type="a" style="margin:4px 0;padding-left:20px">${lines}</ol></li>
     <li><b>Step 2. Her normal day.</b> Add those up and divide by ${r.used.length}: <b>AED ${fmt(r.avgDay)}</b>.</li>
     <li><b>Step 3. Adjust for busy and quiet months.</b> The months she sold in had season numbers ${fac.map(f=>f.toFixed(2)).join(', ')}, which average ${avgF.toFixed(3)}. ${nm} is ${fT.toFixed(2)}. ${fT.toFixed(2)} &divide; ${avgF.toFixed(3)} = ${r.ratio.toFixed(3)}. So her day becomes ${fmt(r.avgDay)} &times; ${r.ratio.toFixed(3)} = <b>AED ${fmt(r.adj)}</b>, which is <b>${sgn((r.ratio-1)*100)}</b> on her normal day.</li>
-    <li><b>Step 4. Two numbers of days.</b> Low: her usual <b>${r.dLow} days</b>, leave included. Full team: her best month, <b>${hd} days</b>, nobody on leave.</li>
+    <li><b>Step 4. Two numbers of days.</b> Low: ${pastOn()?`the <b>${r.dLow} days</b> she worked in ${nm}, counted from Phorest`:`her usual <b>${r.dLow} days</b>, leave included`}. Full team: her best month, <b>${hd} days</b>, nobody on leave.</li>
     <li><b>Step 5. Low, full team and the target.</b> Low ${fmt(r.adj)} &times; ${r.dLow} = <b>${fmt(r.low)}</b>. Full team ${fmt(r.adj)} &times; ${hd} = <b>${fmt(r.high)}</b>. The target is the middle: <b>AED ${fmt(r.med)}</b>.</li>
     <li><b>Step 6. Split it.</b> Treatment ${S.treat}% = ${fmt(r.treat)}. Retail ${S.retail}% = ${fmt(r.retail)} (her own retail; the front desk's retail is a separate line for the branch). Clients: ${fmt(r.plan)} &divide; her average bill of ${fmt(r.avgBill)} = about ${fmt(r.clientsRaw)}${r.clCapped?`, but her hours only hold ${fmt(r.capClients)}, so the target is ${fmt(r.clients)} clients and the average bill needed is ${fmt(r.billNeed)}`:''}.</li>
   </ol>
   <p style="margin:6px 0 0">Because we divide by the days she <i>came in</i>, a person who took leave is not marked down for it. Tap "Why this?" on anyone's row to see their own steps.</p>`;
 }
 function renderEdits(){
-  const n=Object.keys(days).length,e=document.getElementById('edits');
+  const n=pastOn()?0:Object.keys(days).length,e=document.getElementById('edits');
   if(!n&&!buErr){e.hidden=true;return;}
   e.hidden=false;
   e.innerHTML=(n?`<span><b>You changed ${n} planned ${n===1?'day count':'day counts'}.</b> They stay on this page only and nothing is saved. Copy for Sheets keeps them.</span><button class="copy" id="btnReset" type="button">Reset my changes</button>`:'')+(buErr?`<span>${buErr}</span>`:'');
@@ -686,7 +722,7 @@ barBtn.addEventListener('click',()=>setBar(barEl.classList.contains('closed'),tr
 function stickFit(){
   const tw=document.querySelector('.tw'),t=document.getElementById('tbl'),bar=document.querySelector('.bar');
   if(!tw||!t)return;
-  const root=document.documentElement,kbh=parseFloat(getComputedStyle(root).getPropertyValue('--kbh'))||76;
+  const root=document.documentElement,kb0=parseFloat(getComputedStyle(root).getPropertyValue('--kbh')),kbh=isNaN(kb0)?76:kb0;   /* 0 is real when embedded: no header */
   const barH=bar&&getComputedStyle(bar).position==='sticky'?bar.offsetHeight:0;
   root.style.setProperty('--thtop',(kbh+barH-2)+'px');
   tw.classList.remove('fit');
@@ -837,7 +873,7 @@ function personRow(r){
   const has=r.med!=null&&!r.cover, open=st.open.has(r.i);
   const ch=days[r.i]!=null;
   let h=`<tr class="p">${nameCell(r)}`+
-   `<td data-l="Planned days">${has?`<input class="days${ch?' changed':''}" type="number" min="0" max="26" value="${r.dLow!=null?r.dLow:r.planned}" data-i="${r.i}" aria-label="Planned days for ${r.p[1]}">`:'n/a'}</td>`+
+   `<td data-l="${pastOn()?'Days worked':'Planned days'}">${has?(pastOn()?`<span class="dw">${r.dLow}</span>`:`<input class="days${ch?' changed':''}" type="number" min="0" max="26" value="${r.dLow!=null?r.dLow:r.planned}" data-i="${r.i}" aria-label="Planned days for ${r.p[1]}">`):'n/a'}</td>`+
    `<td data-l="Adjustment %">${has?`<input class="days bu${r.bu?' changed':''}" type="number" min="-50" max="100" step="0.1" value="${r.bu}" data-i="${r.i}" aria-label="Adjustment in percent for ${r.p[1]}">`:'n/a'}</td>`+
    `<td data-l="Low">${has?fmt(r.low):(r.cover?'0':'n/a')}</td>`+
    `<td data-l="Target" class="plan">${has?fmt(r.med):(r.cover?'0':'No plan')}</td>`+
@@ -868,7 +904,7 @@ function detail(r){
     const mo=r.grp?r.grp.months.map(x=>`${MN[x.m-1]}: ${x.d} ${x.d===1?'day':'days'}, ${fmt(x.r)}${x.d?` (${fmt(x.r/x.d)} a day)`:''}`).join('<br>'):mos(r);
     first=`<div><b class="h">1. Average day</b>${r.grp?'Both branches added together.<br>':''}${mo}<br><b>Average ${fmt(r.avgDay)}</b></div>`+
      `<div><b class="h">2. Season</b>The months used ran at ${r.used.map(x=>S.fac[x.m-1].toFixed(2)).join(', ')} (average ${mean(r.used.map(x=>S.fac[x.m-1])).toFixed(2)}). ${MN[S.month-1]} runs at ${S.fac[S.month-1].toFixed(2)}. That is x ${r.ratio.toFixed(3)}, so the day becomes ${fmt(r.adj)}.</div>`+
-     `<div><b class="h">3. Low, full team and the target</b>Low: ${r.dLow} days${r.leave?', because she is on leave this month and we count the days she came in':', her usual days'}. ${fmt(r.adj)} x ${r.dLow}${r.grp?' = '+fmt(r.grp.total)+' for both branches':' = '+fmt(r.adj*r.dLow)}.<br>Full team: nobody on leave, ${hd} days${r.grp&&r.grp.hd===hd&&hd===((RULES.days4||{})[r.p[2]]||18)?' (a 4-day week)':', her best month'}. ${fmt(r.adj)} x ${hd}${r.grp?' = '+fmt(r.grp.totalHigh):' = '+fmt(r.adj*hd)}.<br>${r.grp?`Shared out by days: ${r.grp.split}. `:''}Low ${fmt(r.low)}, full team ${fmt(r.high)}. <b>The target is the middle: ${fmt(r.topDown)}.</b>${r.bu?`<br><b>Adjustment:</b> ${sgn(r.bu)} for who is actually on the floor this month. ${fmt(r.topDown)} becomes <b>${fmt(r.med)}</b>.`:''}${r.bcap?`<br><b>Bottom-up:</b> at ${S.util}% productivity her ${Math.round(r.uAvail)} hours could earn <b>${fmt(r.bcap)}</b>, ${sgn((r.bcap/r.med-1)*100)} on her target.`:''}</div>`;
+     `<div><b class="h">3. Low, full team and the target</b>Low: ${r.dLow} days${pastOn()?`, the days she worked in ${MN[S.month-1]}, counted from Phorest`:(r.leave?', because she is on leave this month and we count the days she came in':', her usual days')}. ${fmt(r.adj)} x ${r.dLow}${r.grp?' = '+fmt(r.grp.total)+' for both branches':' = '+fmt(r.adj*r.dLow)}.<br>Full team: nobody on leave, ${hd} days${r.grp&&r.grp.hd===hd&&hd===((RULES.days4||{})[r.p[2]]||18)?' (a 4-day week)':', her best month'}. ${fmt(r.adj)} x ${hd}${r.grp?' = '+fmt(r.grp.totalHigh):' = '+fmt(r.adj*hd)}.<br>${r.grp?`Shared out by days: ${r.grp.split}. `:''}Low ${fmt(r.low)}, full team ${fmt(r.high)}. <b>The target is the middle: ${fmt(r.topDown)}.</b>${r.bu?`<br><b>Adjustment:</b> ${sgn(r.bu)} for who is actually on the floor this month. ${fmt(r.topDown)} becomes <b>${fmt(r.med)}</b>.`:''}${r.bcap?`<br><b>Bottom-up:</b> at ${S.util}% productivity her ${Math.round(r.uAvail)} hours could earn <b>${fmt(r.bcap)}</b>, ${sgn((r.bcap/r.med-1)*100)} on her target.`:''}</div>`;
   }
   const act=r.act?`<div><b class="h">Where she is now, Aug to 20 Oct</b>Treatment ${r.act.tpct!=null?r.act.tpct.toFixed(0)+'%':'n/a'}, target ${S.treat}%.<br>Retail ${r.act.rpct!=null?r.act.rpct.toFixed(0)+'%':'n/a'}, target ${S.retail}%.<br>Average bill (services with treatments, no retail, divided by clients) ${r.act.bill?fmt(r.act.bill):'n/a'}, level ${fmt(r.avgBill)}.<br>Clients at her current pace ${r.act.pace?fmt(r.act.pace):'n/a'}, target ${fmt(r.clients)}.</div>`:'';
   const cap=r.capClients?`<br>Her hours: about ${r.hrsDay.toFixed(1)} a day, ${r.hrsClient.toFixed(1)} hours a client. At ${S.util}% utilisation about <b>${fmt(r.capClients)}</b> clients fit in ${r.dImp.toFixed(0)} days.${r.clCapped?` So the target is held to <b>${fmt(r.clients)}</b> clients, and to reach ${fmt(r.plan)} her average bill has to be <b>${fmt(r.billNeed)}</b> (level ${fmt(r.avgBill)}).`:''}`:'';
@@ -882,7 +918,7 @@ const COLS=[
  {k:'br',t:'Branch',x:'t',get:r=>BN[r.p[0]]},
  {k:'dp',t:'Dept',x:'t',get:r=>r.p[2]==='HAIR'?'Hair':'Beauty'},
  {k:'who',t:'Person',x:'t',get:r=>r.p[1]},
- {k:'days',t:'Planned days',x:'n',get:r=>r.med==null||r.cover?null:(r.dLow!=null?r.dLow:r.planned)},
+ {k:'days',get t(){return pastOn()?'Days worked':'Planned days';},x:'n',get:r=>r.med==null||r.cover?null:(r.dLow!=null?r.dLow:r.planned)},
  {k:'bu',t:'Adjustment %',x:'n',get:r=>r.med==null||r.cover?null:(r.bu||0)},
  {k:'low',t:'Low',x:'n',get:r=>r.low},
  {k:'tgt',t:'Target',x:'n',get:r=>r.med},
@@ -1022,7 +1058,7 @@ function renderPerson(sel){
   lastSel=sel;const list=visible(sel);shown=list;
   document.getElementById('secEyebrow').textContent='Person by person';
   document.getElementById('secTitle').textContent='The month, split up';
-  document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>Full team</b> is nobody on leave. <b>Target</b> is the middle. Change a person\'s <b>planned days</b> (the low), or add an <b>adjustment %</b> for who is really on the floor. That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
+  document.getElementById('secWhy').innerHTML='<b>Low</b> is the leave we have now. <b>Full team</b> is nobody on leave. <b>Target</b> is the middle. '+(pastOn()?'The month is over, so each person\'s <b>days worked</b> are counted from Phorest and cannot be changed. You can still add an <b>adjustment %</b> for who was really on the floor.':'Change a person\'s <b>planned days</b> (the low), or add an <b>adjustment %</b> for who is really on the floor.')+' That person, the branch and the group all move. Tap <b>Why this?</b> for the steps.';
   let h=`<thead><tr>${TH.map(thCell).join('')}<th></th></tr></thead><tbody>`;
   if(!list.length)h+=`<tr><td colspan="14" style="padding:22px 10px;text-align:left">Nobody matches this filter.</td></tr>`;
   list.forEach(r=>{h+=personRow(r);});   // Branch and Dept are their own columns now, so no group heading rows
@@ -1071,7 +1107,7 @@ function tsv(){
   const rows=build();
   const lines=[];
   if(st.view==='PERSON'){
-    lines.push(['Branch','Person','Designation','Status','Planned days','Adjustment %','Low','Target','Net take target','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
+    lines.push(['Branch','Person','Designation','Status',pastOn()?'Days worked':'Planned days','Adjustment %','Low','Target','Net take target','Service','Treatment','Retail','Clients','Utilisation %','Clients before the hours cap','Average bill needed','Average bill (level)','Treatment now %','Retail now %','Average bill now'].join('\t'));
     visible(rows.filter(r=>(st.branch==='ALL'||r.p[0]===st.branch)&&(st.team==='ALL'||r.p[2]===st.team))).forEach(r=>{
       lines.push([BN[r.p[0]],r.p[1],r.p[3],(r.leave?'On leave this month':badge[r.status][0]),r.dLow??r.planned??'',r.bu||0,r.low??'',r.med??'',r.high??'',r.service??'',r.treat??'',r.retail??'',r.clients??'',r.uAvail?Math.round(r.uNeed/r.uAvail*100):'',r.clientsRaw??'',r.billNeed??'',r.med!=null?r.avgBill:'',r.act&&r.act.tpct!=null?r.act.tpct.toFixed(1):'',r.act&&r.act.rpct!=null?r.act.rpct.toFixed(1):'',r.act&&r.act.bill?Math.round(r.act.bill):''].join('\t'));
     });
@@ -1122,7 +1158,7 @@ function seg(id,key){
   });
 }
 seg('segView','view');seg('segBranch','branch');seg('segTeam','team');
-document.getElementById('selMonth').addEventListener('change',e=>{S.month=+e.target.value;loadBu();render();loadAct();});
+document.getElementById('selMonth').addEventListener('change',e=>{S.month=+e.target.value;loadBu();render();loadAct();loadDays();});
 document.getElementById('pTreat').addEventListener('input',e=>{S.treat=Math.max(0,Math.min(60,+e.target.value||0));render();});
 document.getElementById('pRetail').addEventListener('input',e=>{S.retail=Math.max(0,Math.min(40,+e.target.value||0));render();});
 document.getElementById('pJoin').addEventListener('input',e=>{S.join=Math.max(30,Math.min(100,+e.target.value||70));render();});
@@ -1160,6 +1196,7 @@ try{
 loadBu();
 render();
 loadAct();
+loadDays();
 /* Kate, 27 Oct 2026: the address follows the section on screen while she scrolls (#why, #tiles, #settings, #by-person or #by-branch, #sources).
    replaceState, not pushState, so Back does not replay every section she scrolled past. A link with one of these opens at that section. */
 (function(){
@@ -1185,6 +1222,8 @@ loadAct();
 })();
 })();
 </script>
+<!-- Kate, 20 Nov 2026: embedded, the explainer opens in its own tab, so the dashboard frame is not replaced by a page with no sidebar. -->
+<script>if(document.documentElement.classList.contains('tg-embed'))document.querySelectorAll('a[href^="/targets/how"]').forEach(function(a){a.target='_blank';a.rel='noopener';});</script>
 <!-- Kate, 9 Nov 2026: the notification bell, on every signed-in page. -->
 <script src="/js/notifications.js?v=b9ee12e6"></script>
 </body>

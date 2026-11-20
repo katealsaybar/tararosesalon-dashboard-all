@@ -86,7 +86,7 @@
  },
  "findstylist": {
   "created": "2026-11-18",
-  "fp": "33998e5b1343",
+  "fp": "b8bb055029e6",
   "modified": "2026-11-18"
  },
  "glowclub": {
@@ -253,6 +253,11 @@
   "created": "2026-10-21",
   "fp": "eaee30fd132f",
   "modified": "2026-11-12"
+ },
+ "targetcalc": {
+  "created": "2026-11-20",
+  "fp": "90c489f6ca47",
+  "modified": "2026-11-20"
  },
  "team": {
   "created": "2026-04-17",

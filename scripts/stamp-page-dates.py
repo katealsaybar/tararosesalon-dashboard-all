@@ -74,6 +74,7 @@ OWN = {
     'reviews': ['js/reviews-export.js'],
     'services': ['js/service-rankings.js', 'js/sheet-table.js', 'css/service-rankings.css', 'css/sheet-table.css'],
     'servicecal': ['js/service-cal.js'],
+    'targetcalc': ['targets/index.html'],
     'leavecal': ['js/leave-cal.js'],
     'products': ['js/products.js', 'js/product-spend.js', 'css/product-spend.css'],
     'supplierspend': ['js/spend.js'],
