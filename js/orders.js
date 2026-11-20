@@ -86,8 +86,9 @@ function ordFinish(key, docs) {
   g.b = 'UAE'; docs.forEach(d => { if (d.salon && d.salon !== 'UAE' && g.b === 'UAE') g.b = d.salon; });
   g.r = ''; docs.forEach(d => { if (d.reference && !g.r) g.r = d.reference; });
   const has = {}; docs.forEach(d => { has[d.kind] = 1; });
-  g.hasInv = !!has.invoice;
-  g.type = docs.some(d => ORD_ORDERK[d.kind]) ? 'Order' : g.hasInv ? 'Invoice' : has.statement ? 'Statement' : 'Other';
+  // an email the reader filed as a message or quotation can still carry the invoice as its PDF (Euro's Proforma Invoice, Neu's "Invoice 7352.pdf"): orders_get says so in invoice_pdf (Kate, 20 Nov 2026)
+  g.hasInv = !!has.invoice || docs.some(d => d.invoice_pdf);
+  g.type = docs.some(d => ORD_ORDERK[d.kind]) ? 'Order' : has.invoice ? 'Invoice' : has.statement ? 'Statement' : 'Other';
   // what was bought: the first email that lists priced lines. A second email of the same order (the invoice) lists them again, so they are never added twice.
   const buyDoc = docs.find(ordHasLines) || null;
   g.buy = buyDoc ? { lines: buyDoc.lines.filter(l => l && l.unit != null), sub: buyDoc.subtotal, disc: Number(buyDoc.discount) || 0, deliv: buyDoc.delivery, vat: buyDoc.vat, total: buyDoc.amount } : null;
@@ -331,7 +332,16 @@ function ordAfter(k, T, rows, noun) {
   el.hidden = rows.length <= 10;   // a short list needs no pager
 }
 function ordRowsPick(k, n) { ORD.n = n; ordSave(); const T = ordTab(k); T.shown = n; T.page = 0; T.draw(); ordOffsets(); }
-function ordPage(k, d) { const T = ordTab(k); T.page += d; T.draw(); ordOffsets(); const b = document.getElementById('ordPg-' + k).closest('.ord-sec').querySelector('.ord-bar'); if (b && b.scrollIntoView) b.scrollIntoView({ block: 'start' }); }
+// The toolbar above each table is sticky, so it already sits under the masthead and scrollIntoView on it pushed the page down by that much on every click
+// (Kate, 20 Nov 2026: "keeps scrolling down as i go through page per page"). Only ever scroll UP, and only if the top of the table has gone out of view,
+// so the new page starts at its first row and the pager never runs away from the cursor.
+function ordPage(k, d) {
+  const T = ordTab(k); T.page += d; T.draw(); ordOffsets();
+  const sec = document.getElementById('ordPg-' + k).closest('.ord-sec'), b = sec.querySelector('.ord-bar'), w = sec.querySelector('.sx-wrap') || sec.querySelector('table');
+  if (!b || !w) return;
+  const gap = w.getBoundingClientRect().top - b.getBoundingClientRect().bottom;
+  if (gap < 0) window.scrollBy(0, gap);
+}
 function ordToggleMore(w) { const T = w === 'sup' ? ordTS : ordT; T.toggleMore(); }
 function ordOffsets() {
   const side = document.querySelector('#ordersContent .lg-side'), mast = document.getElementById('topbar'), root = document.documentElement.style;
@@ -389,7 +399,7 @@ function ordStepsText(g) {   // the same steps as the row of boxes, written as o
 function ordStepsHtml(g) {
   const seen = {}, has = {}; g.docs.forEach(d => { has[d.kind] = 1; });
   g.docs.forEach(d => {
-    const k = d.kind === 'quotation' ? 'Quoted' : d.kind === 'order' ? 'Ordered' : d.kind === 'confirmation' ? (has.order ? 'Confirmed' : 'Ordered') : d.kind === 'shipped' ? 'Shipped' : d.kind === 'delivered' ? 'Delivered' : d.kind === 'invoice' ? 'Invoiced' : (ORD_KINDNAME[d.kind] || d.kind);
+    const k = d.invoice_pdf ? 'Invoiced' : d.kind === 'quotation' ? 'Quoted' : d.kind === 'order' ? 'Ordered' : d.kind === 'confirmation' ? (has.order ? 'Confirmed' : 'Ordered') : d.kind === 'shipped' ? 'Shipped' : d.kind === 'delivered' ? 'Delivered' : d.kind === 'invoice' ? 'Invoiced' : (ORD_KINDNAME[d.kind] || d.kind);
     if (!seen[k]) seen[k] = d.date;
   });
   const names = g.type === 'Order' ? ['Quoted', 'Ordered', 'Confirmed', 'Shipped', 'Delivered', 'Invoiced'].filter(n => seen[n] || ['Ordered', 'Shipped', 'Delivered', 'Invoiced'].includes(n)) : Object.keys(seen);

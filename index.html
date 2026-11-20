@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=46425351"></script>
-<script src="js/page-dates.js?v=c4b5198c"></script>
+<script src="js/page-dates.js?v=8bdfa330"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3678,7 +3678,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cl:  [LGX, 'js/report-export.js?v=d7b73ae8', 'js/lost-clients.js?v=221c2b8a', 'js/lost-lists.js?v=394ed562', 'js/lost-consults.js?v=8dd97a9d', 'js/lost-review-file.js?v=de965c04',
             'js/send-schedule.js?v=3abf6266', 'js/lost-queue.js?v=4d4924ab', 'js/lost-waves.js?v=c142e140', 'js/lost-blast.js?v=2c1c9a59',
             'js/lost-report.js?v=7650513b', 'js/wv-blast.js?v=22a9b944', 'js/wv-last.js?v=5f1b7d69', 'js/wv-depth.js?v=e4188c8d', 'js/wv-lastsend.js?v=cf678e57', 'js/wv-remind.js?v=61840cb2', 'js/wv-messages.js?v=356bebe0', 'js/top-clients.js?v=18466b79', 'js/client-mix.js?v=2b34310a',
-            'js/sheet-table.js?v=f56599fd', 'js/service-rankings.js?v=771fb291'],
+            'js/sheet-table.js?v=f56599fd', 'js/service-rankings.js?v=7e133d10'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
@@ -3716,12 +3716,12 @@ table.tp-cmp td.bad{color:var(--bad)}
       cp:  ['js/report-export.js?v=d7b73ae8', 'js/complaints.js?v=3209eea2', 'js/complaint-chats.js?v=b7e5edc7', 'js/complaints-detail.js?v=3656c2e9', 'js/cmp-people.js?v=5925547b', 'js/complaint-log.js?v=33607687'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
-      pr:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/products.js?v=06fd2cb9', 'js/product-spend.js?v=99f55d39'],
+      pr:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/products.js?v=06fd2cb9', 'js/product-spend.js?v=095cef82'],
       sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=c4e7c627'],
       // Supplier Spend (13 Nov 2026): who we buy from, what Accounts paid beside what Phorest received; reads spend_report.
       ss:  ['js/report-export.js?v=d7b73ae8', 'js/supplier-spend.js?v=aab0d891'],
       // Orders and Receipts (18 Nov 2026): one file, the Google Sheets table (sheet-table.js) and the report export; reads orders_get.
-      od:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/orders.js?v=bebe84e3'],
+      od:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/orders.js?v=3c986249'],
       // Stock Cost (12 Nov 2026): the Stock Cost 2026 Excel as a page that fills itself; reads stock_cost_report, stock_cost_lines, stock_cost_cap_set.
       skc: ['js/report-export.js?v=d7b73ae8', 'js/stock-cost.js?v=4d19fda6'],
       // Retention (3 Nov 2026): one file, reads retention_report and drill_retention_clients.

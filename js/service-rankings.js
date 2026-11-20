@@ -153,7 +153,7 @@ function srPickCat(c) { SR.cat = c || null; srT.clear(); srT.shown = SR.n; srPai
 function srSync() { if (typeof trSyncUrl === 'function' && typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'services') trSyncUrl(null); }
 function srRankBy(k) { SR.rank = k === 'units' ? 'units' : 'rev'; srSave(); srT.clear(); srPaint(); srSync(); }
 function srRowsPick(n) { SR.n = n; srSave(); srT.shown = n; srT.page = 0; srT.draw(); srOffsets(); srSync(); }
-function srPage(d) { srT.page += d; srT.draw(); srOffsets(); const s = document.getElementById('srBar'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'start' }); }
+function srPage(d) { srT.page += d; srT.draw(); srOffsets(); /* the sticky toolbar is already under the masthead: scrollIntoView on it pushed the page down on every click, so only scroll up, and only when the table's top is out of view (Kate, 20 Nov 2026) */ const s = document.getElementById('srBar'), w = s && (s.parentElement.querySelector('.sx-wrap') || s.parentElement.querySelector('table')); if (s && w) { const gap = w.getBoundingClientRect().top - s.getBoundingClientRect().bottom; if (gap < 0) window.scrollBy(0, gap); } }
 
 function srShell() {
   return `

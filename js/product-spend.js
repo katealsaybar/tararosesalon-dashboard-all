@@ -173,7 +173,7 @@ function psBuildTable() {
 }
 function psToggleMore() { psT.toggleMore(); const b = document.getElementById('psMore'); if (b) b.classList.toggle('on', psT.more); psOffsets(); }
 function psRowsPick(n) { psN = n; psSave(); psT.shown = n; psT.page = 0; psT.draw(); psOffsets(); }
-function psPage(d) { psT.page += d; psT.draw(); psOffsets(); const s = document.getElementById('psBar'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'start' }); }
+function psPage(d) { psT.page += d; psT.draw(); psOffsets(); /* the sticky toolbar is already under the masthead: scrollIntoView on it pushed the page down on every click, so only scroll up, and only when the table's top is out of view (Kate, 20 Nov 2026) */ const s = document.getElementById('psBar'), w = s && (s.parentElement.querySelector('.sx-wrap') || s.parentElement.querySelector('table')); if (s && w) { const gap = w.getBoundingClientRect().top - s.getBoundingClientRect().bottom; if (gap < 0) window.scrollBy(0, gap); } }
 
 // ── WINDOWS (drill.js): what is behind a figure, level after level, to a single line ─────────
 function psStockLines(r) { const w = psWin(); return psCall('product_stock_lines', { p_branches: w.branches, p_from: w.from, p_to: w.to, p_product: r.p, p_limit: 3000 }); }
