@@ -653,3 +653,17 @@
 
 /* Wider to the right (Kate, 20 Nov 2026: "it's ok to widen right"): same as the Recruitment pipeline. The page keeps its usual left edge, so the left gutter stays free for the mini nav, and grows to 1760px; the three By-blast columns get room to breathe. */
 @media(min-width:1240px){body.nvb-chrome .wrap,body.nvb-chrome .topbar-in{max-width:1760px;margin-left:calc((100% - 1180px) / 2);margin-right:24px}body.nvb-chrome .nvb{max-width:none}}
+
+/* Section 4, less crowded (Kate, 20 Nov 2026: "looks congested"): three roomy tiles, one line of what came back, the rest folded, and ONE split (By blast, By branch, What they bought) at a time. */
+.nvb .nvb-mts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 10px}
+.nvb .nvb-mt{border:1px solid var(--border);border-radius:12px;padding:12px 16px;background:var(--surface);min-width:0}
+.nvb .nvb-mt-l{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+.nvb .nvb-mt-n{font-family:'Playfair Display',serif;font-size:32px;line-height:1.15;margin:4px 0 2px;white-space:nowrap}
+.nvb .nvb-mt.p .nvb-mt-n{color:#B98626}
+.nvb .nvb-mt.d .nvb-mt-n{color:#2F8F7B}
+.nvb .nvb-mt-s{font-size:13.5px;color:var(--muted);line-height:1.4}
+.nvb .nvb-mcall{margin:6px 0 4px;font-size:16px}
+.nvb .nvb-mmore{margin:0 0 12px}
+.nvb .nvb-mmore .nvb-small{margin:4px 0}
+.nvb .nvb-mpick{margin:8px 0 10px}
+@media (max-width:760px){.nvb .nvb-mts{grid-template-columns:minmax(0,1fr)}.nvb .nvb-mt-n{font-size:28px}}

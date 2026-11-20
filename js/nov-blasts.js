@@ -793,6 +793,7 @@
   function rsAct(v, t) {
     var a = v.split(':'), k = a[0], x = a.slice(1).join(':');
     if (k === 'dmx') dmClose();
+    else if (k === 'mpick') { rsV.mpick = x === 'branch' || x === 'bought' ? x : 'blast'; render(true); }
     else if (k === 'money') { rsV.money = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-money-view', rsV.money); } catch (e) { /* fine */ } render(true); }
     else if (k === 'del') { rsV.del = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-del-view', rsV.del); } catch (e) { /* fine */ } render(true); }
     else if (k === 'byb') { rsV.byb = x === 'table' ? 'table' : 'visual'; try { localStorage.setItem('nvb-byb-view', rsV.byb); } catch (e) { /* fine */ } render(true); }
@@ -878,7 +879,7 @@
   // Money from the bookings (Kate, 5 Nov 2026): what the messages cost, what the booked appointments should bring in (projected) and what the clients we messaged have paid since (actual).
   function rt(x) { return x >= 10 ? money0(x) : money2(x); }
   function moneySec(st, a, bkok, slok, r2) {
-    var lead = 'What the bookings are worth, and what the messages cost. Same method as October: projected prices each booked service at the median of what it charged in the last 120 days, actual is what the clients we messaged have paid since their first message.';
+    var lead = 'What the bookings are worth, and what the messages cost.';
     if (!MON) return rsSec('4. Money from the bookings', lead, '<p class="slv-muted">' + (monErr ? 'The money could not be read just now. It tries again in a minute.' : 'Loading…') + '</p>');
     var al = MON.all || {}, by = MON.by_branch || [], bb = MON.by_blast || [], sp = (al.sent || 0) * r2, spD = (al.reached || 0) * r2, tbl = rsV.money === 'table';
     var toggle = '<div class="tp-seg nvb-seg" role="group" aria-label="View"><button type="button" class="' + (tbl ? '' : 'on') + '" data-nvr="money:visual">Graph</button><button type="button" class="' + (tbl ? 'on' : '') + '" data-nvr="money:table">Table</button></div>';
@@ -899,14 +900,18 @@
       var mx = Math.max(1, al.proj || 0, al.actual || 0, sp), bmx = Math.max(1, Math.max.apply(null, by.concat(bb).map(function (x) { return Math.max(x.proj || 0, x.actual || 0); })));
       var ratio = sp > 0 && al.actual > 0 ? al.actual / sp : 0, ratioD = spD > 0 && al.actual > 0 ? al.actual / spD : 0;
       var key = '<div class="nvb-rs-leg"><span><b class="p"></b>Projected (booked ahead)</span><span><b class="d"></b>Actual (paid since our message)</span></div>';
-      var panel1 = '<div class="nvb-gp"><h4 class="nvb-h4">What we spent, and what it is worth</h4><p class="nvb-small">All on one scale. AED, VAT included.</p>' +
-        grow('Spent on messages', nn(al.sent, 'sent') + ' accepted at AED ' + r2 + ' (estimate)', gline('s', 'Spent on messages', sp, mx)) +
-        grow('If only delivered are charged', nn(al.reached, 'reached') + ' delivered or read, at AED ' + r2, gline('s', 'Spent if only delivered messages are charged', spD, mx)) +
-        grow('Projected', bkok ? nn(al.ahead, 'ahead') + ' clients booked ahead, ' + nn(al.appts, 'appts') + ' appointments from today on' : 'Bookings not readable yet', bkok ? gline('p', 'Projected spend', al.proj || 0, mx) : waitP) +
-        grow('Actual so far', slok ? nn(al.visited, 'paid') + ' of the ' + fmtN(al.sent) + ' we messaged have paid' : 'Sales not readable yet', slok ? gline('d', 'Actual spend so far', al.actual || 0, mx) : waitP) +
-        '<p class="nvb-gcall">' + (ratio ? 'For every <b>AED 1</b> the messages cost, the clients we messaged have spent <b>AED ' + rt(ratio) + '</b> since' + (ratioD ? ' (<b>AED ' + rt(ratioD) + '</b> if only the delivered messages are charged)' : '') + '. ' : '') +
-        (bkok && al.ahead ? 'Average projected per booked client <b>AED ' + money0(al.proj / al.ahead) + '</b> (AED ' + money0(al.appts ? al.proj / al.appts : 0) + ' per appointment). Cost per booked client <b>AED ' + money2(sp / al.ahead) + '</b>, or AED ' + money2(spD / al.ahead) + ' if only delivered are charged. ' : '') +
-        '<span class="nvb-gnote">Some of them may have booked before our message or been coming anyway, so read it as a ceiling, not proof the message did it.</span></p></div>';
+      var mt = function (cls, label, val, sub) { return '<div class="nvb-mt ' + cls + '"><div class="nvb-mt-l">' + label + '</div><div class="nvb-mt-n">' + val + '</div><div class="nvb-mt-s">' + sub + '</div></div>'; };
+      var tiles = '<div class="nvb-mts">' +
+        mt('s', 'Spent on messages', 'AED ' + money0(sp), nn(al.sent, 'sent') + ' accepted, estimate at AED ' + r2) +
+        mt('p', 'Booked, worth', bkok ? 'AED ' + money0(al.proj || 0) : waitP, bkok ? nn(al.ahead, 'ahead') + ' clients booked, ' + nn(al.appts, 'appts') + ' appointments' : 'Bookings not readable yet') +
+        mt('d', 'Paid so far', slok ? 'AED ' + money0(al.actual || 0) : waitP, slok ? nn(al.visited, 'paid') + ' of ' + fmtN(al.sent) + ' have paid' : 'Sales not readable yet') + '</div>';
+      var back = ratio ? '<p class="nvb-mcall">For every <b>AED 1</b> spent on messages, <b>AED ' + rt(ratio) + '</b> has come back so far.</p>' : '';
+      var moreLines = [];
+      if (ratioD) moreLines.push('If only delivered messages are charged (' + nn(al.reached, 'reached') + ' at AED ' + r2 + '), AED 1 brings back <b>AED ' + rt(ratioD) + '</b>.');
+      if (bkok && al.ahead) moreLines.push('Average projected per booked client <b>AED ' + money0(al.proj / al.ahead) + '</b>, AED ' + money0(al.appts ? al.proj / al.appts : 0) + ' per appointment.');
+      if (bkok && al.ahead) moreLines.push('Cost per booked client <b>AED ' + money2(sp / al.ahead) + '</b>, or AED ' + money2(spD / al.ahead) + ' if only delivered are charged.');
+      moreLines.push('Some may have booked before our message or been coming anyway, so read it as a ceiling, not proof.');
+      var moreFold = '<details class="nvb-fold nvb-mmore" data-fold="money-more"' + (opened['money-more'] ? ' open' : '') + '><summary>More</summary>' + moreLines.map(function (l) { return '<p class="nvb-small">' + l + '</p>'; }).join('') + '</details>';
       var split = function (list, key2) {
         return list.slice().sort(function (p, q) { return (q.actual || 0) - (p.actual || 0) || (q.proj || 0) - (p.proj || 0); }).map(function (x) {
           var ctx = key2 === 'b' ? { b: x.k } : { br: x.k };
@@ -918,11 +923,13 @@
       var panel3 = '<div class="nvb-gp"><h4 class="nvb-h4">By blast: projected and actual</h4><p class="nvb-small">Same scale as the branches.</p>' + split(bb, 'b') + key + '</div>';
       var panel4 = '<div class="nvb-gp"><h4 class="nvb-h4">Actual spend, by what they bought</h4>' + (slok && al.actual > 0 ? '<p class="nvb-small">AED ' + money0(al.actual) + ' in all.</p>' + NV_SPLIT.filter(function (p) { return al[p[0]] > 0; }).map(function (p) {
         return grow(esc(p[1]), '', '<div class="nvb-gl"><div class="nvb-gt"><i class="d" style="width:' + Math.max(1, Math.round(1000 * al[p[0]] / al.actual) / 10) + '%"></i></div><b>AED ' + money0(al[p[0]]) + ' <em>' + pc1(al[p[0]], al.actual) + '</em></b></div>'); }).join('') : '<p class="slv-muted">' + (slok ? 'Nobody we messaged has paid at the till since the message yet.' : 'Sales after the message are not readable yet.') + '</p>') + '</div>';
-      body = '<div class="nvb-g2">' + panel1 + panel2 + '</div><div class="nvb-g2">' + panel3 + panel4 + '</div>';
+      var mp = rsV.mpick || 'blast';
+      var pick = '<div class="tp-seg nvb-seg nvb-mpick" role="group" aria-label="Split the money by">' + [['blast', 'By blast'], ['branch', 'By branch'], ['bought', 'What they bought']].map(function (b) { return '<button type="button" class="' + (mp === b[0] ? 'on' : '') + '" data-nvr="mpick:' + b[0] + '">' + b[1] + '</button>'; }).join('') + '</div>';
+      body = tiles + back + moreFold + pick + (mp === 'branch' ? panel2 : mp === 'bought' ? panel4 : panel3);
     }
     var unp = al.unpriced || 0;
     return '<div class="cbl-card nvb-rs-sec" id="nvr-4"><div class="nvb-hd"><h3>4. Money from the bookings</h3>' + toggle + '</div><p class="nvb-rs-lead">' + esc(lead) + '</p>' + body +
-      '<p class="nvb-small nvb-rs-note"><b>Projected</b> is what the booked appointments should bring in. <b>Actual</b> is what the clients we messaged have paid so far. <b>Spent</b> is what the messages cost, an estimate at AED ' + r2 + ' each (the sender has no billing data). Booked ahead, appointments, accepted, delivered and came in and paid open their clients; the AED figures add up services and have no list behind them.</p>' +
+      '<p class="nvb-small nvb-rs-note"><b>Projected</b> is what the booked appointments should bring in, <b>actual</b> is what they have paid so far, <b>spent</b> is an estimate at AED ' + r2 + ' a message. Counts open their clients; AED figures have no list behind them.</p>' +
       '<details class="nvb-fold" data-fold="money-how"' + (opened['money-how'] ? ' open' : '') + '><summary>How these are worked out</summary><p class="nvb-small"><b>Projected</b> prices each service on the booked appointments from today on at the median of what that exact service charged in the last 120 days, VAT included. ' +
       (unp ? fmtN(unp) + ' of the ' + fmtN(al.svcs) + ' booked services have no price yet (a package or a new name) and count as 0, so it runs low. ' : '') + 'The Phorest bookings report has no booked-on date, so since 9 Nov we log the first day each booking was seen at every bookings pull (from 4 Nov, the send day). <b>Booked since the message</b> counts a booking first seen on or after the first message day of that client, and it stays counted after the appointment date passes, so Cost per booking no longer shrinks as days go by. A booking first seen on 4 Nov may pre-date the message by a few hours. <b>Booked ahead</b> is only the snapshot of bookings from today on. When the bookings list is more than 1 day old, or sales are more than 2 days behind, the figures that depend on them hold and say why. <b>Actual</b> is everything the clients we messaged have paid since the day of their first message, VAT included, refunds taken off, without deposits, vouchers sold and prepaid courses, the same lines as Paid at the till in the headline. Sales arrive with the daily upload, so today shows tomorrow.</p></details></div>';
   }
