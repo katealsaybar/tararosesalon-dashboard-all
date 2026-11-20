@@ -466,5 +466,5 @@ body.lr-modal-open{overflow:hidden}
 #lostListsContent .lr-nums .wait b{font-family:inherit;font-size:15px;font-weight:600;color:var(--muted2)}
 #lostListsContent .lr-nums .wait{background:repeating-linear-gradient(135deg,var(--surface),var(--surface) 8px,var(--surface2) 8px,var(--surface2) 9px)}
 #lostListsContent .lr-nums.lr-late{margin-top:10px;grid-template-columns:repeat(var(--n,3),minmax(0,1fr))}
-@media (max-width:760px){#lostListsContent .lr-nums,#lostListsContent .lr-nums.lr-late{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){#lostListsContent .lr-nums{grid-template-columns:repeat(2,minmax(0,1fr))}#lostListsContent .lr-nums.lr-late{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:760px){#lostListsContent .lr-nums b{font-size:22px}}

@@ -578,7 +578,7 @@
 .nvb .nvb-pg input:disabled,.nvb .nvb-pg select:disabled,.nvb .nvb-btn:disabled{opacity:.45;cursor:not-allowed}
 @media (max-width:640px){.nvb .nvb-kvs>div{grid-template-columns:1fr;gap:2px}.nvb .nvb-pg{grid-template-columns:1fr 1fr}}
 
-.nvb .nvb-rs-late{margin-top:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.nvb .nvb-rs-late{margin-top:10px;grid-template-columns:repeat(var(--n,2),minmax(0,1fr))}
 .nvb .nvb-rs-late small{color:var(--muted2)}
 
 /* The "On this page" rail, the October Lost Clients one (Kate, 11 Nov 2026): the shared .lg-side / .side-nav of index.html, plus the numbered sections under the open entry.
@@ -702,4 +702,5 @@
 .nvb .nvb-hcard .nvb-hcav{font-size:13px}
 @media (max-width:760px){.nvb .nvb-hpick{display:flex;flex-wrap:wrap;justify-content:center;border-radius:18px}.nvb .nvb-hpick button{min-height:44px}}
 /* Four across down to a phone, the same as October section 1 (Kate, 20 Nov 2026: "i 4 columns mo naman yan"). */
-@media (min-width:761px) and (max-width:900px){.nvb .nvb-rs-nums{grid-template-columns:repeat(4,minmax(0,1fr))}.nvb .nvb-rs-nums.nvb-rs-late{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:761px) and (max-width:900px){.nvb .nvb-rs-nums{grid-template-columns:repeat(4,minmax(0,1fr))}.nvb .nvb-rs-nums.nvb-rs-late{grid-template-columns:repeat(var(--n,2),minmax(0,1fr))}}
+@media (max-width:760px){.nvb .nvb-rs-nums.nvb-rs-late{grid-template-columns:minmax(0,1fr)}}

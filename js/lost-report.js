@@ -265,6 +265,7 @@ function lrTiles(t) {
       : wait('Cost per booking', 'Needs the bookings, delivery and money figures.'),
 
     lv ? cell('Messages per booking', (lv.sent / lv.n).toFixed(1), `${lcNum(lv.sent)} messages accepted for ${lrNum(lv.n, 'since')} clients who booked or came in since our message.`) : wait('Messages per booking', 'Needs the bookings and money figures.'),
+    m && m.actual && +m.actual.total > 0 && m.cost ? cell('Spent vs paid (cost of sales)', lrPct(m.cost.aed, m.actual.total), `${lrAed(m.cost.aed)} spent for the ${lrAed(m.actual.total)} paid at the till since the blast. AED ${(m.actual.total / m.cost.aed).toFixed(0)} back for every AED 1. Spent is an estimate.`) : wait('Spent vs paid (cost of sales)', 'Needs the money figures.'),
     sn && sn.late != null ? cell('Booked after 31 Oct', lrNum(sn.late, 'late'), 'Her next appointment is after the end date and she has not come in. Counted here and not in Booked or came in, Cost per booking or the money.') : ''
   ].filter(Boolean);
   return `<div class="lr-nums">${rowA.join('')}</div><div class="lr-nums lr-late" style="--n:${rowB.length}">${rowB.join('')}</div>${lrDep ? '<p class="slv-note">She may have booked before our message or at the chair; Phorest does not record that.</p>' : ''}`;
