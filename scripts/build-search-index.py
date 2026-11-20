@@ -102,6 +102,7 @@ NOT_PAGES = {
     'page-status.js': 'the Under construction / Hidden tag and notice (Hide Pages & Under Construction, Kate 3 Nov 2026)',
     'page-dates.js': 'generated Date created / Date modified for every dashboard page (scripts/stamp-page-dates.py, Kate 16 Nov 2026)',
     'page-refresh.js': 'the "This page was updated" refresh card (reads page-versions.json, Kate 19 Nov 2026)',
+    'standalone-refresh.js': 'the same refresh card on standalone Team Home pages (Target Calculator, Find a Stylist), Kate 20 Nov 2026',
     'account-menu.js': 'the account menu in the header for Level 6: View as, the status of the open page, Rearrange Menu, page access for a person (Kate 12 Nov 2026)',
     'nav-layout.js': 'puts the sidebar rows in the order Kate chose on Rearrange Menu (Kate 9 Nov 2026); draws nothing of its own',
     'cmp-gallery.js': 'the pop-up photo viewer on the Team Home complaint ticket (oldest first, arrows and swipe)',

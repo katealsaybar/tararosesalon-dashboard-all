@@ -75,6 +75,7 @@ OWN = {
     'services': ['js/service-rankings.js', 'js/sheet-table.js', 'css/service-rankings.css', 'css/sheet-table.css'],
     'servicecal': ['js/service-cal.js'],
     'targetcalc': ['targets/index.html'],
+    'findstylist': ['hub/find-stylist.html', 'hub/matching.js', 'hub/matching.css'],
     'leavecal': ['js/leave-cal.js'],
     'products': ['js/products.js', 'js/product-spend.js', 'css/product-spend.css'],
     'supplierspend': ['js/spend.js'],

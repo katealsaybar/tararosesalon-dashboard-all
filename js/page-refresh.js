@@ -63,7 +63,7 @@
 
   function read() {
     if (typeof fetch !== 'function') return Promise.resolve();
-    return fetch('page-versions.json?_=' + Date.now(), { cache: 'no-store' })
+    return fetch('/page-versions.json?_=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) { if (j && j.v) { latest = j.v; check(); } })
       .catch(function () { /* offline or a bad read: say nothing, try again next tick */ });
