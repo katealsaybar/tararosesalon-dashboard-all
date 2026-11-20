@@ -249,6 +249,18 @@ table.t th.rel{white-space:nowrap}
 .abb .f.warn{background:#D9E36B}.abb .f.bad{background:var(--coral)}
 .abb .k{position:absolute;top:-3px;width:2px;height:10px;background:var(--text);opacity:.55}
 .abp{font-size:12.5px;color:var(--muted);text-align:right}
+/* Kate, 20 Nov 2026 (component 42): every bar lifts, glows and answers. The row grows 10px each side and is padded back, so the columns stay where they were. */
+.abr{margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px;border-radius:12px}
+.abr[data-tip]{transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease}
+.abb .f{transition:filter .18s ease,box-shadow .18s ease}
+@media (hover:hover){
+  .abr[data-tip]:hover,.abr[data-tip]:focus-visible{transform:translateY(-3px);background:var(--surface);box-shadow:0 0 0 1px var(--accent),0 10px 28px -8px color-mix(in srgb,var(--accent) 55%,transparent);outline:0}
+  .abr[data-tip]:hover .abb .f,.abr[data-tip]:focus-visible .abb .f{filter:brightness(1.2);box-shadow:0 0 12px var(--mint-deep)}
+}
+.abr[data-tip]:focus-visible{outline:2px solid var(--mint-deep);outline-offset:2px}
+.tg-hovc{position:fixed;z-index:9000;pointer-events:none;max-width:340px;background:var(--surface);color:var(--text);border:1px solid var(--accent);border-radius:16px;padding:10px 14px;font-size:14px;line-height:1.45;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent),0 16px 36px -10px rgba(0,0,0,.45)}
+.tg-hovc[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){.abr[data-tip],.abb .f{transition:none}.abr[data-tip]:hover{transform:none}}
 .abr.hero{border-top:none;padding-top:2px}
 .abr.sub{padding:7px 0;border-top:1px dashed var(--rule)}.abr.sub .abl{padding-left:16px;font-size:13px}
 .ps{display:block;font-family:inherit;font-size:11.5px;font-weight:400;color:var(--muted);margin-top:3px;letter-spacing:.01em}
@@ -806,7 +818,9 @@ function renderTiles(sel,all){
     F=F||fmt;
     const has=act!=null,pct=has&&tgt?act/tgt*100:null;
     const cls=pct==null?'':pct>=el*100-10?'':pct>=el*100-25?'warn':'bad';
-    return `<div class="abg abr${hero?' hero':''}${sub?' sub':''}"><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?F(act)+(share?ps(act,netAct):''):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt${tgt==null?' na':''}">${tgt==null?'n/a':F(tgt)+(share?ps(tgt,gTot):'')}</span>`+
+    /* Kate, 20 Nov 2026 (component 42): the bar answers on hover, tap or focus, in one plain sentence built from the same numbers as the row. */
+    const gap=pct==null?null:pct-el*100,ans=pct==null?'':`${String(label).replace(/<[^>]*>/g,'')}: ${F(act)} so far of ${F(tgt)}, ${Math.round(pct)}% of the target, with ${Math.round(el*100)}% of the month gone. ${Math.abs(gap)<0.5?'Right on pace.':gap>0?Math.round(gap)+' points ahead of pace.':Math.round(-gap)+' points behind pace.'}`;
+    return `<div class="abg abr${hero?' hero':''}${sub?' sub':''}"${ans?` tabindex="0" data-tip="${esc(ans)}"`:''}><span class="abl">${label}${tip?`<button class="ib" type="button" aria-expanded="false" aria-label="How ${label} is worked out">i</button><span class="tip" role="tooltip">${tip}</span>`:''}</span><span class="aba${has?'':' na'}">${has?F(act)+(share?ps(act,netAct):''):(A?'n/a':'not yet')}</span><span class="abv"></span><span class="abt${tgt==null?' na':''}">${tgt==null?'n/a':F(tgt)+(share?ps(tgt,gTot):'')}</span>`+
       `<span class="abb${pct==null?' none':''}">${pct==null?'':`<i class="f ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></i><i class="k" style="left:${(el*100).toFixed(1)}%"></i>`}</span>`+
       `<span class="abp">${pct==null?'':Math.round(pct)+'%'}</span></div>`+(note||'');
   };
@@ -1226,6 +1240,34 @@ loadDays();
 <script>if(document.documentElement.classList.contains('tg-embed'))document.querySelectorAll('a[href^="/targets/how"]').forEach(function(a){a.target='_blank';a.rel='noopener';});</script>
 <!-- Kate, 20 Nov 2026: "This page was updated, Refresh" on the standalone page too (js/standalone-refresh.js; not shown when framed in the dashboard, which has its own). -->
 <script src="/js/standalone-refresh.js?v=11cfef89"></script>
+<!-- Kate, 20 Nov 2026 (component 42): the answer card for the bars. Hover or focus on a computer, a tap on a phone (closes after 5 seconds or on the next tap). The i buttons and the figures keep their own click. -->
+<script>
+(function(){
+  let hc=null,ht=null;
+  const hov=()=>matchMedia('(hover:hover)').matches;
+  const rowOf=t=>t&&t.closest&&!t.closest('.ib,.tip,button,a,input,select')?t.closest('.abr[data-tip]'):null;
+  function show(row,x){
+    if(!hc){hc=document.createElement('div');hc.className='tg-hovc';hc.hidden=true;hc.setAttribute('role','status');document.body.appendChild(hc);}
+    hc.textContent=row.getAttribute('data-tip');hc.hidden=false;
+    const rc=row.getBoundingClientRect(),w=hc.offsetWidth,h=hc.offsetHeight;
+    let left=Math.max(8,Math.min(x-w/2,innerWidth-w-8)),top=rc.top-h-10;if(top<8)top=rc.bottom+10;
+    if(innerWidth<=760){left=10;top=Math.max(8,Math.min(rc.top-h-8,innerHeight-h-8));hc.style.width=(innerWidth-20)+'px';}else hc.style.width='';
+    hc.style.left=left+'px';hc.style.top=top+'px';
+  }
+  const hide=()=>{if(hc)hc.hidden=true;};
+  document.addEventListener('mouseover',e=>{const r=rowOf(e.target);if(r&&hov())show(r,e.clientX);else if(!r&&hov())hide();});
+  document.addEventListener('mousemove',e=>{const r=rowOf(e.target);if(r&&hc&&!hc.hidden&&hov())show(r,e.clientX);});
+  document.addEventListener('mouseout',e=>{const r=rowOf(e.target);if(r&&hov()&&!(e.relatedTarget&&r.contains(e.relatedTarget)))hide();});
+  document.addEventListener('focusin',e=>{const r=e.target.matches&&e.target.matches('.abr[data-tip]')?e.target:null;if(r&&hov())show(r,r.getBoundingClientRect().left+160);});
+  document.addEventListener('focusout',()=>{if(hov())hide();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});
+  document.addEventListener('click',e=>{
+    const r=rowOf(e.target);
+    if(r&&matchMedia('(hover:none)').matches){show(r,e.clientX);clearTimeout(ht);ht=setTimeout(hide,5000);}
+    else if(!r)hide();
+  });
+})();
+</script>
 <!-- Kate, 9 Nov 2026: the notification bell, on every signed-in page. -->
 <script src="/js/notifications.js?v=b9ee12e6"></script>
 </body>
