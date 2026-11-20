@@ -16,10 +16,17 @@
 
   function pctOf(el) { var m = FILL.exec(el.getAttribute('style') || ''); return m ? { dim: m[1], v: parseFloat(m[2]) } : null; }
 
-  // What a row says: its own lines of text, one after another, plus the bar's aria-label or title when it has one.
+  // What a row says: its text, one piece per block. Text in the same block (inline spans) is joined with a space, text in different blocks (a label and a figure) is told apart, so
+  // "AED 448,417" and "48.4%" never run together. Hidden text is left out.
   function lines(row) {
-    var raw = (row.innerText || row.textContent || '').split(/\n+/), out = [];
-    raw.forEach(function (l) { l = l.replace(/\s+/g, ' ').trim(); if (l && out[out.length - 1] !== l) out.push(l); });
+    var w = document.createTreeWalker(row, NodeFilter.SHOW_TEXT, null), out = [], lastKey = null;
+    while (w.nextNode()) {
+      var n = w.currentNode, t = n.nodeValue.replace(/\s+/g, ' ').trim(), p = n.parentElement;
+      if (!t || !p || p.closest('script, style, [hidden], .tip, .sr-only, .visually-hidden') || !p.getClientRects().length) continue;
+      var k = p; while (k && k !== row && getComputedStyle(k).display === 'inline') k = k.parentElement;
+      if (out.length && k === lastKey) out[out.length - 1] += ' ' + t; else if (out[out.length - 1] !== t) out.push(t);
+      lastKey = k;
+    }
     return out;
   }
   function sentence(row) {
@@ -55,7 +62,7 @@
     var best = track, cur = track.parentElement;
     // up to the widest block that holds only this one bar and is still a line or a small card: its label and its figures are in there
     for (var steps = 0; cur && cur !== document.body && steps < 4; steps++, cur = cur.parentElement) {
-      if (!onlyTrack(cur, track) || cur.getBoundingClientRect().height > 140) break;
+      if (!onlyTrack(cur, track) || cur.getBoundingClientRect().height > 190) break;
       best = cur;
     }
     return best;
