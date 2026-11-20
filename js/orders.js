@@ -92,11 +92,24 @@ function ordBuild(rows) {
     });
     if (best && !tie && top >= 0.95 * cs.length) invTo[r.key] = best;
   });
+  const amzConf = rows.filter(r => r.supplier === 'AMAZON.AE' && r.kind === 'confirmation');
   const joinGroup = r => {
     if (invTo[r.key]) return invTo[r.key];
     // Amazon: the Ordered and Shipped emails carry the order number as their reference, but "Delivered: 2 items | Order # 402-3567620-8477117" only has it in the subject, so the delivery
     // sat in a row of its own and the real order looked shipped for ever (Kate, 20 Nov 2026). The group key of an Amazon order is AMAZON.AE|<order number>.
-    if (r.supplier === 'AMAZON.AE' && !r.reference) { const am = /(\d{3}-\d{7}-\d{7})/.exec(r.subject || ''); if (am) return 'AMAZON.AE|' + am[1]; }
+    // A cancel or refund email may name the order only in its text ("the refund of AED 111.75 for your order: 406-..."), so those two kinds are also read for it.
+    if (r.supplier === 'AMAZON.AE' && !r.reference) {
+      const am = /(\d{3}-\d{7}-\d{7})/.exec(r.subject || '') || (/cancel|refund/i.test(r.subject || '') ? /(\d{3}-\d{7}-\d{7})/.exec((r.body || '') + ' ' + (r.note || '')) : null);
+      if (am) return 'AMAZON.AE|' + am[1];
+      // "Items cancelled successfully: 5 "Metaltex 25 cm Stainless..."" names no order at all, but repeats the product text of the Ordered email of the last five days: join it only when exactly one order has that text
+      if (/cancel/i.test(r.subject || '')) {
+        const sn = /[“"]([^“”"]{8,})/.exec(r.subject || '');
+        if (sn) {
+          const hit = {}; amzConf.forEach(c => { const dd = ordDiff(c.date, r.date); if (dd >= 0 && dd <= 5 && String(c.subject || '').indexOf(sn[1]) >= 0) hit[c.group] = 1; });
+          const ks = Object.keys(hit); if (ks.length === 1) return ks[0];
+        }
+      }
+    }
     // Hotpack web store: every email of an order (confirmed, ready to dispatch, out for delivery, delivered) is its own thread; the order number is in the subject
     if (r.supplier === 'HOTPACK') { const hp = /order #(\d{4,})/i.exec(r.subject || ''); if (hp) return 'HOTPACK|#' + hp[1]; }
     if (r.reference ||!/^(FALCONPACK|CARREFOUR)$/.test(r.supplier || '')) return r.group;
@@ -141,7 +154,10 @@ function ordFinish(key, docs) {
   const age = ordDiff(g.start, today);
   // Amazon, Lulu and the Hotpack web store are paid at checkout, so a delivered order from them never gets an invoice to chase (Kate, 20 Nov 2026). Neu is not: its orders go through people.
   const paysAtCheckout = /^(amazon|lulu|hotpack)/i.test(g.s || ''), paidOnOrder = paysAtCheckout && rk >= ORD_RANK.delivered;
-  if (g.type === 'Order' && !g.hasInv && age >= 7 && !paidOnOrder) {
+  // Amazon cancels and refunds an order by email ("Items cancelled successfully", "Update on refund processed"): such an order is closed, nothing is owed or on its way
+  const cancelled = /^amazon/i.test(g.s || '') && rk < ORD_RANK.delivered && docs.some(d => /cancel|refund/i.test(d.subject || ''));
+  if (cancelled) g.st = 'Cancelled';
+  if (g.type === 'Order' && !g.hasInv && age >= 7 && !paidOnOrder && !cancelled) {
     // for these suppliers the question is not the invoice but whether it ever arrived (or was cancelled or the payment was declined): check it in the supplier's own account
     fl.push(paysAtCheckout ? 'No delivery email after ' + age + ' days: check the order in the ' + (/^amazon/i.test(g.s) ? 'Amazon' : g.s.charAt(0) + g.s.slice(1).toLowerCase()) + ' account' : 'No invoice seen after ' + age + ' days');
   }
