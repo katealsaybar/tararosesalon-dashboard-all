@@ -94,6 +94,9 @@ function ordBuild(rows) {
   });
   const joinGroup = r => {
     if (invTo[r.key]) return invTo[r.key];
+    // Amazon: the Ordered and Shipped emails carry the order number as their reference, but "Delivered: 2 items | Order # 402-3567620-8477117" only has it in the subject, so the delivery
+    // sat in a row of its own and the real order looked shipped for ever (Kate, 20 Nov 2026). The group key of an Amazon order is AMAZON.AE|<order number>.
+    if (r.supplier === 'AMAZON.AE' && !r.reference) { const am = /(\d{3}-\d{7}-\d{7})/.exec(r.subject || ''); if (am) return 'AMAZON.AE|' + am[1]; }
     // Hotpack web store: every email of an order (confirmed, ready to dispatch, out for delivery, delivered) is its own thread; the order number is in the subject
     if (r.supplier === 'HOTPACK') { const hp = /order #(\d{4,})/i.exec(r.subject || ''); if (hp) return 'HOTPACK|#' + hp[1]; }
     if (r.reference ||!/^(FALCONPACK|CARREFOUR)$/.test(r.supplier || '')) return r.group;
