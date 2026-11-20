@@ -4,10 +4,12 @@
 .sx-wrap.sc{overflow:auto;max-height:78vh}
 .sx-wrap.sc .sx-t th{top:0}
 .sx-t{border-collapse:separate;border-spacing:0;width:100%;font-size:14.5px}
-.sx-t th{position:sticky;top:calc(var(--sx-top,0px) + var(--bh,0px));background:var(--surface,var(--bg));text-align:left;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;z-index:2}
+.sx-t th{position:sticky;top:calc(var(--sx-top,0px) + var(--bh,0px));background:var(--surface,var(--bg));text-align:left;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;z-index:4}
 .sx-t td{padding:9px 12px;border-bottom:1px solid var(--border2);vertical-align:middle;background:var(--surface,var(--bg))}
 .sx-t th.r,.sx-t td.r{text-align:right;font-variant-numeric:tabular-nums}
 .sx-t td.fc,.sx-t th.fc{position:sticky;left:0;z-index:3}
+/* the heading row stays above the frozen first column, and its own first cell above both: a row scrolling under the heading used to show its date over the heading (Kate, 20 Nov 2026) */
+.sx-t th.fc{z-index:6}
 .sx-t tr.tot td{font-weight:600;border-top:1px solid var(--border);background:var(--surface2,var(--bg))}
 .sx-th{display:inline-flex;align-items:center;gap:6px}
 .sx-t th.r .sx-th{justify-content:flex-end}

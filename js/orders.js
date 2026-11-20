@@ -64,7 +64,18 @@ const ordHasLines = d => Array.isArray(d.lines) && d.lines.length && d.lines.som
 
 function ordBuild(rows) {
   const m = {};
-  rows.forEach(r => { (m[r.group] || (m[r.group] = [])).push(r); });
+  // Falconpack and Carrefour: the invoice and the shipping note carry the order number as their reference, but the confirmation and the delivery email only
+  // name it in the subject, so they used to sit in a row of their own and the real order looked as if no invoice had come (Kate, 20 Nov 2026: "ndi na ba tlga to ma reconcile").
+  // Join them to the row that already holds that number. Nothing is written back; a number that no other email carries stays where it was.
+  const byRef = {};
+  rows.forEach(r => { if (r.reference && /^(FALCONPACK|CARREFOUR)$/.test(r.supplier || '')) byRef[r.supplier + '|' + r.reference] = r.group; });
+  const joinGroup = r => {
+    if (r.reference || !/^(FALCONPACK|CARREFOUR)$/.test(r.supplier || '')) return r.group;
+    const nums = String(r.subject || '').match(/\d{7,}/g) || [];
+    for (let i = 0; i < nums.length; i++) { const g = byRef[r.supplier + '|' + nums[i]]; if (g) return g; }
+    return r.group;
+  };
+  rows.forEach(r => { const k = joinGroup(r); (m[k] || (m[k] = [])).push(r); });
   ordByKey = {};
   ordGroups = Object.keys(m).map(k => ordFinish(k, m[k])).sort((a, b) => (b.last < a.last ? -1 : b.last > a.last ? 1 : 0) || (b.start < a.start ? -1 : 1));
   ordGroups.forEach(g => { ordByKey[g.key] = g; });
