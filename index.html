@@ -716,7 +716,7 @@ body.scoped #gsTrig, body.scoped #trs-ask{display:none!important}
 .upd.mini .upd-pill{display:block}
 @media(max-width:520px){.upd{right:12px;top:calc(var(--topbar-h,190px) + 10px)}}
 /* Audit 18 Oct 2026 (P4-24): the floating "data has landed" card sat over the Send panel, and its Refresh redraws figures the send pages do not use. It stays pending and shows on the next page. */
-body.upd-quiet .upd{display:none!important}
+body.upd-quiet .upd:not(.ver){display:none!important}   /* Kate, 20 Nov 2026: only the floating "Newer data has landed" card stays quiet on blast and campaign pages; the "This page was updated" card (.ver, bottom right) must still show there, it was hidden on Database Blasts */
 /* Kate, 19 Nov 2026: the "This page was updated" card (js/page-refresh.js) is the same card at the bottom right, so it never sits on the Newer data one. */
 .upd.ver{top:auto;bottom:calc(18px + env(safe-area-inset-bottom,0px))}
 @media(max-width:520px){.upd.ver{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px))}}
