@@ -17,101 +17,172 @@
 <link rel="stylesheet" href="/hub/hub.css?v=24715f8d">
 <link rel="stylesheet" href="/css/scrollbars.css?v=a903788b">
 <style>
-/* Kate, 9 Nov 2026: Rearrange Menu, Level 5 only. Your own dashboard menu: move pages between sections and sub-sections, and move the sections and sub-sections themselves.
-   Nothing here changes who may open a page, and nobody else's menu changes (public.nav_layout, one row per person; nav-layout.js draws it). Approved mockup: docs/mockups/menu-mover.html. */
-.mm-col{max-width:760px;margin:0 auto;padding-bottom:110px}
-.mm-how{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:13px;flex:1 1 280px}
-/* Kate, 9 Nov 2026: the how-to line and the Expand all / Collapse all toggle stay put under the page header while you scroll (--mm-top is the header's height, set in the script). */
-.mm-top{position:sticky;top:var(--mm-top,0px);z-index:15;background:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 0;margin:0 0 6px}
-.mm-how b{color:var(--text)}
-.mm-sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden}
-.mm-sh{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;user-select:none}
-.mm-sh h2{font-size:16px;margin:0;flex:1;font-family:inherit;font-weight:700}
-.mm-cnt{font-size:12px;color:var(--muted)}
-.mm-chev{width:16px;color:var(--muted);transition:transform .15s;display:inline-block;text-align:center}
-.mm-sec.open .mm-chev{transform:rotate(90deg)}
-.mm-body{display:none;border-top:1px solid var(--border);padding:6px 14px 14px}
-.mm-sec.open .mm-body{display:block}
-.mm-mini{font:inherit;font-size:12px;border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:3px 9px;cursor:pointer;color:var(--muted);min-height:28px}
-.mm-mini:hover:not(:disabled){border-color:var(--text);color:var(--text)}
-.mm-mini:disabled{opacity:.35;cursor:default}
-.mm-sub{margin-top:12px}
-.mm-subh{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
-.mm-subh h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0;flex:1;font-family:inherit;font-weight:700}
-.mm-loose{font-size:12px;color:var(--muted);margin:10px 0 4px}
-.mm-body ul{list-style:none;margin:0;padding:0;min-height:12px;border-radius:10px}
-.mm-body ul.over{outline:2px dashed var(--text);outline-offset:2px;background:color-mix(in srgb,var(--text) 6%,transparent)}
-.mm-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--bg);cursor:grab}
-.mm-row.drag{opacity:.4}
-.mm-grip{color:var(--muted);letter-spacing:-2px;font-size:14px}
-.mm-nm{flex:1;min-width:0;font-size:14px}
-/* Kate, 9 Nov 2026: a page's name is a real link: click opens it in a new tab, and right-click, Ctrl-click and middle-click work as on any link. Drag still moves the row. */
-.mm-nm a{color:inherit;text-decoration:none}
-.mm-nm a:hover{text-decoration:underline}
-/* Kate, 9 Nov 2026: hover a page (mouse) or press and hold it (phone) and a pill floats over it: Open in a new tab. */
-.mm-row{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
-.mm-float{position:fixed;z-index:40;display:none;font:inherit;font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;background:var(--text);color:var(--bg);text-decoration:none;white-space:nowrap;box-shadow:0 8px 20px -8px rgba(0,0,0,.45)}
-.mm-float.on{display:block}
-.mm-row.moved{background:color-mix(in srgb,var(--accent-butter) 30%,var(--surface));border-color:transparent}
-.mm-tag{font-size:11px;border-radius:999px;padding:1px 8px;background:var(--surface);color:var(--muted);white-space:nowrap}
-.mm-empty{font-size:13px;color:var(--muted);padding:8px 10px;border:1px dashed var(--border);border-radius:10px;margin-bottom:6px}
-.mm-add{margin-top:10px}
-/* Kate, 9 Nov 2026: the List / Grid toggle from the Tools door (KB.view, hub.js; V flips it, one choice kept for every page that has it). List is the default here; Grid lays each list's pages out as tiles. */
-body[data-kb-view="grid"] .mm-body ul{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
-body[data-kb-view="grid"] .mm-body ul .mm-empty{grid-column:1/-1;margin:0}
-body[data-kb-view="grid"] .mm-row{position:relative;flex-direction:column;align-items:flex-start;gap:8px;min-height:92px;margin:0;padding:12px 12px 10px}
-body[data-kb-view="grid"] .mm-row .mm-grip{position:absolute;top:8px;right:10px}
-body[data-kb-view="grid"] .mm-row .mm-nm{flex:none;width:100%;padding-right:22px;overflow-wrap:anywhere}
-body[data-kb-view="grid"] .mm-row .mm-mini{margin-top:auto;align-self:flex-end}
-.mm-top .kb-vt{flex:none}
-/* Grid at the menu level too: each closed section is a tile (name, page count, arrows); an open one takes the full row and shows its pages as tiles. */
-body[data-kb-view="grid"] .mm-col{max-width:1240px}
-body[data-kb-view="grid"] #mmApp{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;align-items:start}
-body[data-kb-view="grid"] .mm-sec{margin-bottom:0}
-body[data-kb-view="grid"] .mm-sec.open{grid-column:1/-1}
-body[data-kb-view="grid"] .mm-sec:not(.open){aspect-ratio:1/1}
-body[data-kb-view="grid"] .mm-sec:not(.open) .mm-sh{flex-wrap:wrap;align-content:space-between;height:100%;box-sizing:border-box;padding:18px;gap:10px 8px}
-body[data-kb-view="grid"] .mm-sec:not(.open) .mm-chev{display:none}
-body[data-kb-view="grid"] .mm-sec:not(.open) .mm-sh h2{flex:1 1 100%;font-size:19px}
-body[data-kb-view="grid"] .mm-sec:not(.open) .mm-sh .mm-cnt{flex:1}
-body[data-kb-view="grid"] .mm-sec:not(.open):hover{border-color:var(--muted)}
-body[data-kb-view="grid"] .mm-addsec{margin-top:0;aspect-ratio:1/1;width:100%;height:auto;border-radius:14px}
-/* Kate, 9 Nov 2026: + New section, under the last section. A section you add is yours (c: 1 in the layout): it can be renamed, and removed while it is empty. */
-.mm-addsec{display:block;width:100%;margin-top:4px;padding:12px;border:1px dashed var(--border);border-radius:14px;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
-.mm-addsec:hover{border-color:var(--text);color:var(--text)}
-.mm-mine{font-size:11px;border-radius:999px;padding:1px 8px;background:color-mix(in srgb,var(--accent-butter) 30%,var(--surface));color:var(--text);white-space:nowrap}
-.mm-bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -8px 24px -12px rgba(0,0,0,.25);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
-.mm-bar-in{max-width:760px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center}
-.mm-msg{flex:1 1 200px;font-size:14px}
-.mm-msg.err{color:#B3402A;font-weight:600}
-.mm-btn{font:inherit;font-size:13px;font-weight:600;padding:8px 16px;min-height:40px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer}
-.mm-btn:hover:not(:disabled){border-color:var(--text)}
-.mm-btn.pri{background:var(--text);color:var(--bg);border-color:var(--text)}
-.mm-btn:disabled{opacity:.4;cursor:default}
-.mm-dlg{border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);padding:20px;width:min(380px,92vw)}
-.mm-dlg::backdrop{background:rgba(0,0,0,.4)}
-.mm-dlg h4{margin:0 0 12px;font-size:16px}
-.mm-dlg label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-/* Kate, 9 Nov 2026: the Section and Sub-section lists are the site's soft pill menu (assets/pill-select.js), not the browser's square list. The pill fills the box. */
-.mm-dlg .ps{display:flex;width:100%}
-.mm-dlg .ps-menu{max-height:260px}
-.mm-dnew{margin-top:6px}
-.mm-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
-/* Kate, 12 Nov 2026: a search box in the bar under the page header. Type part of a page, section or sub-section name and only the matches stay; sections with a match open by themselves, the rest hide. */
-.mm-search{flex:1 1 220px;min-width:180px;display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--bg);border-radius:999px;padding:0 14px;min-height:40px;color:var(--muted)}
-.mm-search:focus-within{border-color:var(--text);color:var(--text)}
-.mm-search input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:14px;color:var(--text);padding:8px 0}
-.mm-search input::-webkit-search-cancel-button{cursor:pointer}
-.mm-hide{display:none!important}
-.mm-sec.mm-force .mm-body{display:block}
-.mm-sec.mm-force .mm-chev{transform:rotate(90deg)}
-body[data-kb-view="grid"] .mm-sec.mm-force{grid-column:1/-1}
-body[data-kb-view="grid"] .mm-sec.mm-force:not(.open){aspect-ratio:auto}
-body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh{height:auto;padding:12px 14px;flex-wrap:nowrap}
-body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-chev{display:inline-block}
-body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size:16px}
-.mm-nomatch{font-size:14px;color:var(--muted);padding:18px 4px}
-@media(max-width:480px){.mm-tag{display:none}}
+/* Kate, 20 Nov 2026: Rearrange Menu, Level 5 only, revamped for ADHD (few words, one section at a time). Your own dashboard menu: move pages between sections and sub-sections,
+   and the sections themselves. Nothing here changes who may open a page, and nobody else's menu changes (public.nav_layout, one row per person; nav-layout.js draws it).
+   Approved mockup: docs/mockups/menu-mover.html (cowork repo). Every class is scoped under .mm so hub.css is not touched. */
+.mm{--mm-moved:#EEF3C7;--mm-moved-ink:#3b4310;--mm-pick:#d9f7f1;--mm-pick-ring:#0f766e}
+:root[data-theme="dark"] .mm{--mm-moved:#4a4f2c;--mm-moved-ink:#EEF3C7;--mm-pick:#1f4b47;--mm-pick-ring:#99F6E4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mm{--mm-moved:#4a4f2c;--mm-moved-ink:#EEF3C7;--mm-pick:#1f4b47;--mm-pick-ring:#99F6E4}}
+.mm,.mm *{box-sizing:border-box}
+.mm{max-width:720px;margin:0 auto;padding-bottom:calc(var(--mm-dockh,92px) + 40px)}
+.mm button{font:inherit;color:inherit}
+.mm .kids{font-size:13px;color:var(--muted2);margin-left:6px;white-space:nowrap}
+.mm .msg.err{color:#B3402A;font-weight:600}
+.mm :focus-visible{outline:2px solid var(--mm-pick-ring);outline-offset:2px}
+.mm .tb{position:sticky;top:var(--mm-top);z-index:15;background:var(--bg);box-shadow:0 -14px 0 var(--bg);padding:8px 0 4px}
+.mm .search{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:0 16px;min-height:42px;color:var(--muted)}
+.mm .search:focus-within{border-color:var(--text);color:var(--text)}
+.mm .search input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:15px;color:var(--text);padding:8px 0}
+.mm .tabsbar{position:sticky;top:calc(var(--mm-top) + var(--mm-tbh));z-index:14;background:var(--bg);display:flex;align-items:center;gap:4px;padding:4px 0 10px}
+.mm .tabs{flex:1;min-width:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 28px 2px 0;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+.mm .tabs::-webkit-scrollbar{display:none}
+.mm .tab{flex:none;min-height:40px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:0 16px;display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.mm .tab .n{font-weight:400;color:var(--muted2);font-size:13px}
+@media(hover:hover){
+.mm .tab:hover{border-color:var(--text)}
+}
+.mm .tab[aria-selected="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.mm .tab[aria-selected="true"] .n{color:inherit;opacity:.8}
+.mm .tab.plus{border-style:dashed;background:none;color:var(--muted);font-size:18px;padding:0 16px}
+.mm .kebab{flex:none;width:40px;height:40px;border:0;background:none;border-radius:50%;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;letter-spacing:1px}
+@media(hover:hover){
+.mm .kebab:hover{background:var(--surface2)}
+}
+.mm.searching .tabsbar{display:none}
+.mm .sec{display:none;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:6px 12px 12px}
+.mm .sec.cur{display:block}
+.mm.searching .sec{display:none}
+.mm .addsub{display:flex;align-items:center;justify-content:center;width:100%;margin-top:12px;min-height:44px;border:1px dashed var(--border);background:none;border-radius:999px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
+@media(hover:hover){
+.mm .addsub:hover{border-color:var(--text);color:var(--text)}
+}
+.mm.searching .addsub{display:none}
+.mm.searching .sec.hit{display:block;margin-bottom:12px}
+.mm .sec-h{display:none;font-size:16px;margin:10px 2px 0;font-weight:700}
+.mm.searching .sec-h{display:block}
+.mm .grp{margin-top:14px}
+.mm .grp:first-of-type{margin-top:6px}
+.mm .gh{display:flex;align-items:center;gap:6px;margin:0 0 4px 2px;min-height:32px}
+.mm .gh h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;flex:1;font-weight:700}
+.mm .gh .kebab{width:36px;height:36px}
+.mm ul.lst{list-style:none;margin:0;padding:0}
+.mm ul.lst.over{outline:2px dashed var(--mm-pick-ring);outline-offset:2px;border-radius:12px}
+.mm .row{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:12px;background:var(--bg);min-height:44px;padding-right:4px;margin-bottom:6px;transition:border-color .12s,background .12s}
+.mm .row[draggable=true]{cursor:grab}
+.mm .row.drag{opacity:.4}
+.mm .row .pk{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border:0;background:none;text-align:left;cursor:pointer;padding:8px 6px 8px 10px;min-height:42px;border-radius:12px}
+.mm .dot{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:inline-flex;align-items:center;justify-content:center;color:transparent;font-size:13px;font-weight:700;transition:all .12s;background:var(--surface)}
+@media(hover:hover){
+.mm .row:hover{border-color:var(--text)}
+.mm .row:hover .dot{border-color:var(--text)}
+}
+.mm .row.picked{background:var(--mm-pick);border-color:var(--mm-pick-ring)}
+.mm .row.picked .dot{background:var(--mm-pick-ring);border-color:var(--mm-pick-ring);color:var(--surface)}
+.mm .row.moved{background:var(--mm-moved);border-color:transparent;color:var(--mm-moved-ink)}
+.mm .row.moved.picked{background:var(--mm-pick);color:var(--text);border-color:var(--mm-pick-ring)}
+.mm .row .nm{flex:1;min-width:0;font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+.mm .tag{font-size:12px;border-radius:999px;padding:1px 9px;background:var(--surface);color:var(--muted);white-space:nowrap;flex:none}
+.mm .row.moved .tag{background:rgba(255,255,255,.55);color:var(--mm-moved-ink)}
+:root[data-theme="dark"] .mm .row.moved .tag{background:rgba(0,0,0,.25)}
+.mm .nudge{display:none;gap:4px;flex:none}
+.mm .row.picked.solo .nudge{display:inline-flex}
+.mm .row.picked.solo .open{display:none}
+.mm .ib{flex:none;width:36px;height:36px;border:1px solid var(--border);background:var(--surface);border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:var(--text);text-decoration:none}
+.mm .ib:disabled{opacity:.3;cursor:default}
+.mm .ib[data-act="first"]{font-size:13px;font-weight:600}
+@media(hover:hover){
+.mm .ib:not(:disabled):hover{border-color:var(--text)}
+}
+.mm .row .open{border-color:transparent;background:none;color:var(--muted)}
+.mm .row.flash{animation:fl 1.8s ease-out}
+@keyframes fl{0%,35%{box-shadow:0 0 0 3px var(--mm-pick-ring)}100%{box-shadow:0 0 0 0 transparent}}
+@media(prefers-reduced-motion:reduce){
+.mm .row.flash{animation:none;box-shadow:0 0 0 3px var(--mm-pick-ring)}
+}
+.mm .put{display:none;width:100%;min-height:44px;border:1px dashed var(--mm-pick-ring);background:color-mix(in srgb,var(--mm-pick) 55%,transparent);border-radius:12px;cursor:pointer;font-size:14px;font-weight:600;color:var(--mm-pick-ring)}
+:root[data-theme="dark"] .mm .put{color:var(--accent-mint)}
+@media (prefers-color-scheme:dark){
+:root:not([data-theme="light"]) .mm .put{color:var(--accent-mint)}
+}
+.mm.carry .put{display:block}
+@media(hover:hover){
+.mm.carry .put:hover{background:var(--mm-pick);border-style:solid}
+}
+.mm .none{display:block;font-size:14px;color:var(--muted2);padding:10px 12px;border:1px dashed var(--border);border-radius:12px;margin-bottom:6px}
+.mm.carry .none{display:none}
+.mm .nomatch{font-size:15px;color:var(--muted);padding:18px 4px}
+.mm .hide{display:none!important}
+.mm .dock{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--border);box-shadow:0 -8px 24px -12px rgba(0,0,0,.25);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.mm .dock-in{max-width:720px;margin:0 auto}
+.mm .tray{display:none;flex-wrap:wrap;gap:8px;align-items:center}
+.mm.carry .tray{display:flex}
+.mm.carry .bar{display:none}
+.mm .chips{display:flex;gap:6px;flex:1 1 100%;flex-wrap:wrap}
+.mm .chip{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--mm-pick-ring);background:var(--mm-pick);border-radius:999px;padding:0 2px 0 12px;min-height:34px;font-size:14px}
+.mm .chip button{border:0;background:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;line-height:1}
+.mm .sendto{flex:1 1 0;min-width:0}
+.mm .sendbtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:0 16px;font-size:15px;font-weight:500;cursor:pointer;text-align:left}
+@media(hover:hover){
+.mm .sendbtn:hover{border-color:var(--text)}
+}
+.mm .sendbtn[aria-expanded="true"]{border-color:var(--text)}
+.mm .sendpop{position:fixed;z-index:10000;display:flex;flex-direction:column;gap:2px;padding:6px;border-radius:16px;background:var(--surface);border:1px solid var(--border);box-shadow:0 2px 4px rgba(26,26,26,.07),0 18px 40px -10px rgba(26,26,26,.22);overflow-y:auto;overscroll-behavior:contain}
+.mm .sendpop button{appearance:none;display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;background:transparent;color:inherit;text-align:left;font-size:15px;font-weight:500;padding:0 16px;min-height:42px;border-radius:999px;cursor:pointer;flex:none}
+@media(hover:hover){
+.mm .sendpop button:hover{background:var(--surface2)}
+}
+.mm .sendpop .sp-r{display:inline-flex;align-items:center;gap:10px;color:var(--muted2)}
+.mm .sendpop .n{font-size:13px}
+.mm .sendpop .chv{font-size:20px;line-height:1}
+.mm .sendpop .sp-new{justify-content:center;border:1px dashed var(--border);margin-top:6px;color:var(--muted);font-weight:600}
+.mm .sendpop .sp-back{background:var(--surface2);font-weight:700;justify-content:flex-start;margin-bottom:4px}
+.mm .bar{display:flex;gap:8px;align-items:center}
+.mm .msg{flex:1;font-size:14px;min-width:0;color:var(--muted)}
+.mm .btn{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:0 18px;min-height:40px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.mm .btn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.mm .btn:disabled{opacity:.4;cursor:default}
+@media(hover:hover){
+.mm .btn:not(:disabled):hover{border-color:var(--text)}
+}
+.mm .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--mm-dockh) + 12px);z-index:35;background:var(--accent);color:var(--accent-fg);padding:6px 8px 6px 18px;border-radius:999px;font-size:14px;display:none;align-items:center;gap:10px;max-width:calc(100vw - 20px);box-shadow:var(--shadow)}
+.mm .toast.on{display:flex}
+.mm .toast button{border:1px solid currentColor;background:none;border-radius:999px;min-height:34px;padding:0 16px;cursor:pointer;font-weight:600;font-size:14px}
+.mm .pop{position:fixed;z-index:10000;display:flex;flex-direction:column;gap:2px;padding:6px;border-radius:16px;background:var(--surface);border:1px solid var(--border);box-shadow:0 2px 4px rgba(26,26,26,.07),0 18px 40px -10px rgba(26,26,26,.22);min-width:190px}
+.mm .pop button{appearance:none;border:0;background:transparent;color:inherit;text-align:left;white-space:nowrap;font-size:14px;font-weight:500;padding:7px 14px;border-radius:999px;cursor:pointer;min-height:38px}
+@media(hover:hover){
+.mm .pop button:not(:disabled):hover{background:var(--surface2)}
+}
+.mm .pop button:disabled{opacity:.4;cursor:default}
+.mm .pop .sep{height:1px;background:var(--border2);margin:3px 8px}
+.mm dialog{border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);padding:20px;width:min(380px,92vw);box-shadow:var(--shadow)}
+.mm dialog::backdrop{background:rgba(0,0,0,.4)}
+.mm dialog h4{margin:0 0 10px;font-size:17px}
+.mm dialog p{margin:0 0 12px;color:var(--muted);font-size:14px}
+.mm dialog input{width:100%;min-height:44px;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:var(--text);padding:0 16px;font:inherit}
+.mm dialog .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+@media(max-width:760px){
+.mm .row{min-height:48px}
+.mm .row .pk{min-height:46px}
+.mm .ib{width:44px;height:44px}
+.mm .btn{min-height:44px}
+.mm .search{min-height:44px}
+.mm .tab{min-height:44px}
+.mm .kebab,
+.mm .gh .kebab{width:44px;height:44px}
+.mm .sec{padding:4px 8px 10px}
+.mm .chip{min-height:44px}
+.mm .chip button{width:44px;height:44px}
+.mm .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.mm .chips::-webkit-scrollbar{display:none}
+.mm .chip{flex:none}
+.mm .dock{padding-left:10px;padding-right:10px}
+.mm .bar .btn{padding:0 14px}
+.mm .sendbtn{min-height:44px}
+.mm .sendpop button{min-height:46px}
+}
+@media(max-width:760px){
+.mm .tag{display:none}
+}
 </style>
 </head>
 <body class="kb-wait">
@@ -125,278 +196,361 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
 <script src="/js/nav-layout.js?v=14cd1d3a"></script>
 <script src="/hub/hub.js?v=b106ff0c"></script>
 <script src="/js/visits.js?v=e33b3a0d"></script>
-<script src="/assets/pill-select.js?v=759948a4"></script>
 <script>
 (function () {
   var main = document.getElementById('kbMain');
-  // DEF is what "Original order" goes back to: the site's own menu (TRUEDEF), or, once Kate has pressed Make this the original, the arrangement she made it (BASE).
-  var TRUEDEF = [], BASE = null, DEF = [], SAVED = [], CUR = [], UNITS = {}, PLACE = {}, open = {}, dragged = null, moving = null;
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function clone(o) { return JSON.parse(JSON.stringify(o)); }
-  function canonTree(t) { return trsNav.canon(trsNav.treeToLayout(t)); }
-  function place(t) {
-    var m = {};
-    t.forEach(function (g) { g.loose.forEach(function (k) { m[k] = g.n + '|'; }); g.subs.forEach(function (s) { s.p.forEach(function (k) { m[k] = g.n + '|' + s.n; }); }); });
-    return m;
-  }
-  function where(k) { var a = k.split('|'); return a[1] ? a[0] + ' › ' + a[1] : a[0]; }
-  function label(k) { return UNITS[k] ? UNITS[k].label : k; }
-  function $(s) { return document.querySelector(s); }
-  function group(n) { return CUR.filter(function (g) { return g.n === n; })[0]; }
-  function subOf(g, n) { return g.subs.filter(function (s) { return s.n === n; })[0]; }
-  // Kate, 12 Nov 2026: any section or sub-section can be renamed. `n` stays the original name (the key the layout matches on); `l` is the name shown.
-  function gl(g) { return g.l || g.n; }
-  function sl(s) { return s.l || s.n; }
-  function swap(a, i, j) { var t = a[i]; a[i] = a[j]; a[j] = t; }
-  function say(t, err) { var el = $('#mmMsg'); if (el) { el.textContent = t; el.className = 'mm-msg' + (err ? ' err' : ''); } }
-
-  function nameLink(k) {
-    var h = UNITS[k] && UNITS[k].els[0] && UNITS[k].els[0].getAttribute('href');
-    return h ? '<a href="' + esc(h) + '" target="_blank" rel="noopener" draggable="false">' + esc(label(k)) + '</a>' : esc(label(k));
-  }
-  function row(k, cur) {
-    var mv = cur !== PLACE[k], kids = UNITS[k] ? UNITS[k].els.length - 1 : 0;
-    return '<li class="mm-row' + (mv ? ' moved' : '') + '" draggable="true" data-k="' + esc(k) + '"><span class="mm-grip" aria-hidden="true">⋮⋮</span><span class="mm-nm">' + nameLink(k) +
-      (kids ? ' <span class="mm-cnt">(+' + kids + ' inside)</span>' : '') + '</span>' +
-      (mv ? '<span class="mm-tag">was ' + esc(where(PLACE[k] || '')) + '</span>' : '') +
-      '<button type="button" class="mm-mini" data-act="move" data-k="' + esc(k) + '" aria-label="Move ' + esc(label(k)) + '">Move</button></li>';
-  }
-  function list(arr, g, s) {
-    var cur = g + '|' + (s || '');
-    return '<ul data-g="' + esc(g) + '" data-s="' + esc(s || '') + '">' + (arr.length ? arr.map(function (k) { return row(k, cur); }).join('') : '<div class="mm-empty">Nothing here. Drop a page.</div>') + '</ul>';
-  }
-  function draw() {
-    $('#mmApp').innerHTML = CUR.map(function (g, gi) {
-      var total = g.loose.length + g.subs.reduce(function (a, s) { return a + s.p.length; }, 0);
-      return '<section class="mm-sec' + (open[g.n] ? ' open' : '') + '" data-g="' + esc(g.n) + '">' +
-        '<div class="mm-sh" data-act="toggle" data-g="' + esc(g.n) + '"><span class="mm-chev" aria-hidden="true">›</span><h2>' + esc(gl(g)) + '</h2><span class="mm-cnt">' + total + ' pages</span>' +
-        (g.c ? '<span class="mm-mine">Yours</span>' : '') + '<button type="button" class="mm-mini" data-act="gren" data-i="' + gi + '">Rename</button>' + (g.c && !total ? '<button type="button" class="mm-mini" data-act="gdel" data-i="' + gi + '">Remove</button>' : '') +
-        '<button type="button" class="mm-mini" data-act="gup" data-i="' + gi + '"' + (gi === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(gl(g)) + ' up">▲</button>' +
-        '<button type="button" class="mm-mini" data-act="gdn" data-i="' + gi + '"' + (gi === CUR.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(gl(g)) + ' down">▼</button></div>' +
-        '<div class="mm-body">' +
-        (g.subs.length ? '<div class="mm-loose">Straight under ' + esc(gl(g)) + ' (no sub-section)</div>' : '') +
-        list(g.loose, g.n, '') +
-        g.subs.map(function (s, si) {
-          return '<div class="mm-sub"><div class="mm-subh"><h3>' + esc(sl(s)) + '</h3>' +
-            '<button type="button" class="mm-mini" data-act="sup" data-g="' + esc(g.n) + '" data-i="' + si + '"' + (si === 0 ? ' disabled' : '') + ' aria-label="Move ' + esc(sl(s)) + ' up">▲</button>' +
-            '<button type="button" class="mm-mini" data-act="sdn" data-g="' + esc(g.n) + '" data-i="' + si + '"' + (si === g.subs.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + esc(sl(s)) + ' down">▼</button>' +
-            '<button type="button" class="mm-mini" data-act="sren" data-g="' + esc(g.n) + '" data-i="' + si + '">Rename</button>' +
-            (s.p.length ? '' : '<button type="button" class="mm-mini" data-act="sdel" data-g="' + esc(g.n) + '" data-i="' + si + '">Remove</button>') +
-            '</div>' + list(s.p, g.n, s.n) + '</div>';
-        }).join('') +
-        '<button type="button" class="mm-mini mm-add" data-act="sadd" data-g="' + esc(g.n) + '">+ New sub-section</button></div></section>';
-    }).join('') + '<button type="button" class="mm-addsec" data-act="gadd">+ New section</button>';
-    paintBar();
-    var anyOpen = CUR.some(function (g) { return open[g.n]; }), ab = $('#mmAll');
-    if (ab) ab.textContent = anyOpen ? 'Collapse all' : 'Expand all';
-    applyFilter();
-  }
-  // Kate, 12 Nov 2026: search. Runs after every draw(). A section or sub-section whose own name matches shows all its pages; otherwise only the pages whose name matches stay.
-  var Q = '';
-  function applyFilter() {
-    var q = Q.trim().toLowerCase(), app = $('#mmApp'); if (!app) return;
-    var old = app.querySelector('.mm-nomatch'); if (old) old.remove();
-    var all = app.querySelectorAll('.mm-hide'); Array.prototype.forEach.call(all, function (x) { x.classList.remove('mm-hide'); });
-    Array.prototype.forEach.call(app.querySelectorAll('.mm-force'), function (x) { x.classList.remove('mm-force'); });
-    if (!q) return;
-    var any = false;
-    Array.prototype.forEach.call(app.querySelectorAll('.mm-sec'), function (sec) {
-      var gm = ((sec.querySelector('h2') || {}).textContent || sec.dataset.g).toLowerCase().indexOf(q) > -1, hits = 0;
-      var loose = sec.querySelector('.mm-loose'), looseUl = sec.querySelector('.mm-body > ul');
-      Array.prototype.forEach.call(sec.querySelectorAll('.mm-row'), function (r) {
-        var ok = gm || label(r.dataset.k).toLowerCase().indexOf(q) > -1;
-        r.classList.toggle('mm-hide', !ok); if (ok) hits++;
-      });
-      Array.prototype.forEach.call(sec.querySelectorAll('.mm-sub'), function (sub) {
-        var sn = (sub.querySelector('h3').textContent || '').toLowerCase(), sm = sn.indexOf(q) > -1, n = 0;
-        Array.prototype.forEach.call(sub.querySelectorAll('.mm-row'), function (r) { if (sm) r.classList.remove('mm-hide'); if (!r.classList.contains('mm-hide')) n++; });
-        if (sm && !gm) hits += n;
-        sub.classList.toggle('mm-hide', !n);
-      });
-      // empty-list notes, the add buttons and the "straight under" caption are noise while searching
-      Array.prototype.forEach.call(sec.querySelectorAll('.mm-empty,.mm-add'), function (x) { x.classList.add('mm-hide'); });
-      var looseVisible = looseUl && looseUl.querySelector('.mm-row:not(.mm-hide)');
-      if (loose) loose.classList.toggle('mm-hide', !looseVisible);
-      if (looseUl) looseUl.classList.toggle('mm-hide', !looseVisible);
-      var show = hits > 0 || gm;
-      sec.classList.toggle('mm-hide', !show);
-      if (show) { any = true; sec.classList.add('mm-force'); }
-    });
-    var add = app.querySelector('.mm-addsec'); if (add) add.classList.add('mm-hide');
-    if (!any) { var p = document.createElement('p'); p.className = 'mm-nomatch'; p.textContent = 'No page matches “' + Q.trim() + '”.'; app.appendChild(p); }
-  }
-  function paintBar(note) {
-    var dirty = canonTree(CUR) !== canonTree(SAVED), cur = place(CUR), n = Object.keys(cur).filter(function (k) { return cur[k] !== PLACE[k]; }).length;
-    var differs = canonTree(CUR) !== canonTree(DEF);
-    $('#mmSave').disabled = !dirty;
-    $('#mmUndo').disabled = !dirty;
-    $('#mmOrig').disabled = !differs;
-    $('#mmMake').disabled = !differs;
-    $('#mmFactory').hidden = !BASE;
-    if (note) return;
-    say(dirty ? 'Not saved yet' + (n ? ': ' + n + ' page' + (n === 1 ? '' : 's') + ' in a new place' : '') : (differs ? 'Saved. ' + (n ? n + ' page' + (n === 1 ? ' sits' : 's sit') + ' somewhere new.' : 'Order changed.') : 'Your menu is the original.'));
-  }
-  function take(k) { CUR.forEach(function (g) { g.loose = g.loose.filter(function (x) { return x !== k; }); g.subs.forEach(function (s) { s.p = s.p.filter(function (x) { return x !== k; }); }); }); }
-  function put(k, gn, sn, idx) {
-    var g = group(gn), arr = sn ? subOf(g, sn).p : g.loose;
-    arr.splice(idx == null ? arr.length : idx, 0, k);
-  }
-  function groupTaken(n, except) { var q = n.toLowerCase(); return CUR.some(function (g) { return g !== except && (g.n.toLowerCase() === q || gl(g).toLowerCase() === q); }); }
-  function addSection() {
-    var gv = prompt('Name of the new section');
-    if (!gv || !gv.trim()) return null;
-    gv = gv.trim().slice(0, 40);
-    if (groupTaken(gv)) { alert('There is already a section called ' + gv + '.'); return null; }
-    CUR.push({ n: gv, loose: [], subs: [], c: 1 }); open[gv] = true;
-    return gv;
-  }
-  function nameTaken(g, n, except) { var q = n.toLowerCase(); return g.subs.some(function (s) { return s !== except && (s.n.toLowerCase() === q || sl(s).toLowerCase() === q); }); }
-
-  function fillSubs() {
-    var g = group($('#mmDsec').value);
-    $('#mmDsub').innerHTML = '<option value="">None (straight under the section)</option>' + g.subs.map(function (s) { return '<option value="' + esc(s.n) + '">' + esc(sl(s)) + '</option>'; }).join('');
-  }
-  function openDlg(k) {
-    moving = k;
-    $('#mmDtitle').textContent = 'Move “' + label(k) + '”';
-    $('#mmDsec').innerHTML = CUR.map(function (g) { return '<option value="' + esc(g.n) + '">' + esc(gl(g)) + '</option>'; }).join('');
-    var c = place(CUR)[k].split('|');
-    $('#mmDsec').value = c[0]; fillSubs(); $('#mmDsub').value = c[1] || '';
-    $('#mmDlg').showModal();
-  }
-
-  async function save() {
-    var btn = $('#mmSave'); btn.disabled = true;
-    var isOriginal = !BASE && canonTree(CUR) === canonTree(TRUEDEF);
-    var layout = isOriginal ? null : trsNav.treeToLayout(CUR);
-    if (layout && BASE) layout.base = BASE;
-    var r = await KB.client.rpc('nav_layout_set', { p_layout: layout });
-    if (r.error) { say('Not saved: ' + (r.error.message || 'try again') + '.', true); btn.disabled = false; return; }
-    try { if (layout) localStorage.setItem(trsNav.CACHE, trsNav.canon(layout)); else localStorage.removeItem(trsNav.CACHE); } catch (e) {}
-    SAVED = clone(CUR);
-    paintBar();
-    say(isOriginal ? 'Saved. Your menu is back to the original.' : 'Saved. Open the dashboard and your menu is in this order.');
-  }
-
-  document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('[data-act]');
-    if (!b || !$('#mmApp') || !$('#mmApp').contains(b)) return;
-    var a = b.dataset.act, i = +b.dataset.i, g = b.dataset.g && group(b.dataset.g);
-    if (a === 'toggle') { if (e.target.closest('button')) return; open[b.dataset.g] = !open[b.dataset.g]; }
-    else if (a === 'gup') swap(CUR, i, i - 1);
-    else if (a === 'gdn') swap(CUR, i, i + 1);
-    else if (a === 'gadd') {
-      if (!addSection()) return;
-    }
-    else if (a === 'gren') {
-      var cg = CUR[i], rv = prompt('Rename section' + (cg.c ? '' : ' (leave it empty to go back to “' + cg.n + '”)'), gl(cg));
-      if (rv === null) return;
-      rv = rv.trim().slice(0, 40);
-      if (!rv || rv === cg.n) delete cg.l;
-      else { if (groupTaken(rv, cg)) { alert('There is already a section called ' + rv + '.'); return; } cg.l = rv; }
-    }
-    else if (a === 'gdel') CUR.splice(i, 1);
-    else if (a === 'sup') swap(g.subs, i, i - 1);
-    else if (a === 'sdn') swap(g.subs, i, i + 1);
-    else if (a === 'sren') {
-      var cs = g.subs[i], v = prompt('Rename sub-section' + ' (leave it empty to go back to “' + cs.n + '”)', sl(cs));
-      if (v === null) return;
-      v = v.trim().slice(0, 40);
-      if (!v || v === cs.n) delete cs.l;
-      else { if (nameTaken(g, v, cs)) { alert('There is already a sub-section called ' + v + ' in ' + gl(g) + '.'); return; } cs.l = v; }
-    }
-    else if (a === 'sdel') g.subs.splice(i, 1);
-    else if (a === 'sadd') {
-      var nv = prompt('Name of the new sub-section');
-      if (nv && nv.trim()) { nv = nv.trim().slice(0, 40); if (nameTaken(g, nv)) { alert('There is already a sub-section called ' + nv + ' in ' + gl(g) + '.'); return; } g.subs.push({ n: nv, p: [] }); open[g.n] = true; }
-    }
-    else if (a === 'move') { openDlg(b.dataset.k); return; }
-    draw();
-  });
-  // The floating pill. A mouse hovering a page, or a finger held on it for half a second, shows "Open in a new tab" just above the row.
-  var pill = null, pillT = null, lpT = null, longAt = 0;
-  function hrefOf(k) { return UNITS[k] && UNITS[k].els[0] && UNITS[k].els[0].getAttribute('href'); }
-  function hidePill() { clearTimeout(pillT); if (pill) pill.classList.remove('on'); }
-  function hidePillSoon() { clearTimeout(pillT); pillT = setTimeout(hidePill, 220); }
-  function showPill(r) {
-    var h = hrefOf(r.dataset.k); if (!h) return;
-    if (!pill) {
-      pill = document.createElement('a'); pill.className = 'mm-float'; pill.target = '_blank'; pill.rel = 'noopener'; pill.textContent = 'Open in a new tab ↗';
-      pill.addEventListener('mouseenter', function () { clearTimeout(pillT); });
-      pill.addEventListener('mouseleave', hidePillSoon);
-      pill.addEventListener('click', function () { setTimeout(hidePill, 50); });
-      document.body.appendChild(pill);
-    }
-    clearTimeout(pillT);
-    pill.href = h; pill.classList.add('on');
-    var b = r.getBoundingClientRect();
-    pill.style.left = Math.max(8, Math.min(b.left + 30, window.innerWidth - pill.offsetWidth - 8)) + 'px';
-    pill.style.top = Math.max(8, b.top - pill.offsetHeight + 4) + 'px';
-  }
-  document.addEventListener('pointerover', function (e) {
-    if (e.pointerType !== 'mouse' || dragged) return;
-    var r = e.target.closest && e.target.closest('.mm-row'); if (r) showPill(r);
-  });
-  document.addEventListener('pointerout', function (e) {
-    if (e.pointerType !== 'mouse') return;
-    if (e.target.closest && e.target.closest('.mm-row')) hidePillSoon();
-  });
-  document.addEventListener('pointerdown', function (e) {
-    if (e.pointerType === 'mouse') return;
-    clearTimeout(lpT);
-    var r = e.target.closest && e.target.closest('.mm-row');
-    if (r && !e.target.closest('button')) lpT = setTimeout(function () { longAt = Date.now(); showPill(r); }, 450);
-    else if (!(pill && pill.contains(e.target))) hidePill();
-  });
-  ['pointerup', 'pointercancel', 'pointermove'].forEach(function (t) { document.addEventListener(t, function (e) { if (e.pointerType !== 'mouse' && (t !== 'pointermove' || Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0) > 8)) clearTimeout(lpT); }); });
-  document.addEventListener('contextmenu', function (e) { if (Date.now() - longAt < 1500 && e.target.closest && e.target.closest('.mm-row')) e.preventDefault(); });
-  window.addEventListener('scroll', hidePill, { passive: true });
-  // Drag and drop (a mouse or trackpad; on a phone use the Move button). A closed section opens when a page is held over its title.
-  document.addEventListener('dragstart', function (e) {
-    var r = e.target.closest && e.target.closest('.mm-row'); if (!r) return;
-    hidePill(); dragged = r.dataset.k; r.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragged);
-  });
-  document.addEventListener('dragend', function () { dragged = null; Array.prototype.forEach.call(document.querySelectorAll('.over,.drag'), function (x) { x.classList.remove('over', 'drag'); }); });
-  document.addEventListener('dragover', function (e) {
-    if (!dragged) return;
-    var h = e.target.closest && e.target.closest('.mm-sh');
-    if (h && !open[h.dataset.g]) { open[h.dataset.g] = true; h.parentElement.classList.add('open'); }
-    var u = e.target.closest && e.target.closest('.mm-body ul');
-    Array.prototype.forEach.call(document.querySelectorAll('ul.over'), function (x) { if (x !== u) x.classList.remove('over'); });
-    if (u) { e.preventDefault(); u.classList.add('over'); }
-  });
-  document.addEventListener('drop', function (e) {
-    var u = e.target.closest && e.target.closest('.mm-body ul'); if (!u || !dragged) return;
-    e.preventDefault();
-    var rows = Array.prototype.slice.call(u.querySelectorAll('.mm-row:not(.drag)')), idx = rows.length;
-    for (var i = 0; i < rows.length; i++) { if (rows[i].classList.contains('mm-hide')) continue; var r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { idx = i; break; } }
-    var k = dragged; take(k); put(k, u.dataset.g, u.dataset.s || '', idx); draw();
-  });
-
   KB.ready.then(async function () {
     // Level 5 only, and not while "View as" is on: previewing another level must not let that level change a menu.
     if (KB.realLevel !== 5 || KB.viewAs) {
       main.innerHTML = '<p class="kb-msg">This page is for Kate only' + (KB.viewAs ? ' (switch View as back to Level 6)' : '') + '.</p>';
       return;
     }
-    main.innerHTML =
-      KB.titleIcon('menu-mover', 'Rearrange Menu') +
-      '<p class="kb-meta">Your dashboard menu, as it is now. Change where things sit, then save. Only your menu changes: nobody else sees it, and who may open each page stays exactly as it is.</p>' +
-      '<div class="mm-col"><div class="mm-top"><div class="mm-how"><span><b>Drag</b> a page into another list</span><span><b>Move</b> button if the section is closed, or on a phone</span><span><b>▲ ▼</b> move a section or sub-section</span></div>' +
-      '<label class="mm-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="mmSearch" placeholder="Search pages, sections…" autocomplete="off" aria-label="Search the menu"></label>' + (window.KB && KB.view ? KB.view.html() : '') + '<button type="button" class="mm-btn" id="mmAddSec">+ New section</button><button type="button" class="mm-btn" id="mmAll">Expand all</button></div>' +
-      '<div id="mmApp"></div></div>' +
-      '<div class="mm-bar"><div class="mm-bar-in"><div class="mm-msg" id="mmMsg" role="status" aria-live="polite">Loading…</div>' +
-      '<button type="button" class="mm-btn" id="mmMake" title="Use this arrangement as your original: Original order will come back to it, and the was-tags start from it">Make this the original</button>' +
-      '<button type="button" class="mm-btn" id="mmFactory" hidden title="Forget your own original and go back to the standard menu">Site menu</button>' +
-      '<button type="button" class="mm-btn" id="mmOrig" title="Load the original menu into the editor, then Save">Original order</button>' +
-      '<button type="button" class="mm-btn" id="mmUndo">Undo changes</button>' +
-      '<button type="button" class="mm-btn pri" id="mmSave">Save</button></div></div>' +
-      '<dialog class="mm-dlg" id="mmDlg"><h4 id="mmDtitle">Move</h4><label for="mmDsec">Section</label><select id="mmDsec"></select><button type="button" class="mm-mini mm-dnew" id="mmDnewSec">+ New section</button>' +
-      '<label for="mmDsub">Sub-section</label><select id="mmDsub"></select><button type="button" class="mm-mini mm-dnew" id="mmDnewSub">+ New sub-section</button><div class="mm-acts"><button type="button" class="mm-btn" id="mmDno">Cancel</button><button type="button" class="mm-btn pri" id="mmDyes">Move</button></div></dialog>';
-    if (KB.view) KB.view.init('list');
-    ['mmSave', 'mmUndo', 'mmOrig', 'mmMake'].forEach(function (id) { document.getElementById(id).disabled = true; });
+    main.innerHTML = KB.titleIcon('menu-mover', 'Rearrange Menu') + '<p class="kb-meta">Tap a page, then tap where it goes.</p>' +
+    '<div class="mm" id="mmRoot">' +
+      '<div class="tb" id="mmTb"><label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="mmQ" placeholder="Find a page" autocomplete="off" aria-label="Find a page"></label></div>' +
+      '<div class="tabsbar" id="mmTabsbar"><div class="tabs" id="mmTabs" role="tablist"></div><button type="button" class="kebab" id="mmGk" aria-label="Section options" aria-haspopup="menu">&#8943;</button></div>' +
+      '<div id="mmApp"></div>' +
+      '<div class="toast" id="mmToast" role="status" aria-live="polite"><span id="mmToastT"></span><button type="button" id="mmToastU">Undo</button></div>' +
+      '<div class="dock" id="mmDock"><div class="dock-in">' +
+        '<div class="tray" id="mmTray"><div class="chips" id="mmChips"></div><div class="sendto"><button type="button" class="sendbtn" id="mmSendbtn" aria-haspopup="menu" aria-expanded="false"><span>Send to&hellip;</span><svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true"><path d="M1.5 6.5 5 3l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><button type="button" class="btn" id="mmCancel">Cancel</button></div>' +
+        '<div class="bar"><div class="msg" id="mmMsg" role="status" aria-live="polite">Loading&hellip;</div><button type="button" class="btn" id="mmUndo">Undo</button><button type="button" class="btn" id="mmMore" aria-haspopup="menu">More</button><button type="button" class="btn pri" id="mmSave">Save</button></div>' +
+      '</div></div>' +
+      '<dialog class="dlg" id="mmDlg"><h4 id="mmDT"></h4><p id="mmDP"></p><input id="mmDI" type="text" maxlength="40" autocomplete="off"><div class="acts"><button type="button" class="btn" id="mmDNo">Cancel</button><button type="button" class="btn pri" id="mmDYes">OK</button></div></dialog>' +
+    '</div>';
+
+    var ROOT = document.getElementById('mmRoot');
+
+  var TRUEDEF = [], UNITS = {};
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function $(s) { return document.querySelector(s); }
+  function cssq(k) { return window.CSS && CSS.escape ? CSS.escape(k) : k; }
+  function gl(g) { return g.l || g.n; }
+  function sl(s) { return s.l || s.n; }
+  var BASE = null, DEF = [], SAVED = [], CUR = [], UNDO = [], picked = [], cur = '', Q = '', dragSolo = false, dropped = false, flashKeys = [], tabT = null;
+
+  function place(t) {
+    var m = {};
+    t.forEach(function (g) { g.loose.forEach(function (k) { m[k] = g.n + '|'; }); g.subs.forEach(function (s) { s.p.forEach(function (k) { m[k] = g.n + '|' + s.n; }); }); });
+    return m;
+  }
+  var PLACE = {};
+  function canonTree(tr) { return trsNav.canon(trsNav.treeToLayout(tr)); }
+  function label(k) { return UNITS[k] ? UNITS[k].label : k; }
+  function hrefOf(k) { return UNITS[k] && UNITS[k].els[0] && UNITS[k].els[0].getAttribute('href'); }
+  function where(k) { var a = k.split('|'); return a[1] ? a[0] + ' › ' + a[1] : a[0]; }
+  function group(n) { return CUR.filter(function (g) { return g.n === n; })[0]; }
+  function listOf(gn, sn) { var g = group(gn); if (!g) return null; if (!sn) return g.loose; var s = g.subs.filter(function (x) { return x.n === sn; })[0]; return s ? s.p : null; }
+  function total(g) { return g.loose.length + g.subs.reduce(function (a, s) { return a + s.p.length; }, 0); }
+  function snap() { UNDO.push(JSON.stringify(CUR)); if (UNDO.length > 50) UNDO.shift(); }
+  function groupTaken(n, except) { var q = n.toLowerCase(); return CUR.some(function (g) { return g !== except && (g.n.toLowerCase() === q || gl(g).toLowerCase() === q); }); }
+  function subTaken(g, n, except) { var q = n.toLowerCase(); return g.subs.some(function (s) { return s !== except && (s.n.toLowerCase() === q || sl(s).toLowerCase() === q); }); }
+
+  /* ---------- drawing ---------- */
+  function rowHtml(k, here) {
+    var mv = here !== PLACE[k], kids = UNITS[k] ? UNITS[k].els.length - 1 : 0, h = hrefOf(k), nm = label(k);
+    return '<li class="row' + (mv ? ' moved' : '') + '" draggable="true" data-k="' + esc(k) + '">' +
+      '<button type="button" class="pk" role="checkbox" aria-checked="false" data-act="pick" data-k="' + esc(k) + '"><span class="dot" aria-hidden="true">\u2713</span><span class="nm">' + esc(nm) + (kids ? ' <span class="kids">+' + kids + ' inside</span>' : '') + '</span></button>' +
+      (mv ? '<span class="tag">was ' + esc(where(PLACE[k] || '')) + '</span>' : '') +
+      '<span class="nudge"><button type="button" class="ib" data-act="first" data-k="' + esc(k) + '" aria-label="Put ' + esc(nm) + ' first" title="Put first">Top</button><button type="button" class="ib" data-act="up" data-k="' + esc(k) + '" aria-label="Move ' + esc(nm) + ' up">\u25B2</button><button type="button" class="ib" data-act="dn" data-k="' + esc(k) + '" aria-label="Move ' + esc(nm) + ' down">\u25BC</button></span>' +
+      (h ? '<a class="ib open" href="' + esc(h) + '" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open ' + esc(nm) + ' in a new tab" draggable="false">\u2197</a>' : '') + '</li>';
+  }
+  function listHtml(arr, g, s, name) {
+    var here = g + '|' + (s || '');
+    return '<ul class="lst" data-g="' + esc(g) + '" data-s="' + esc(s || '') + '">' + arr.map(function (k) { return rowHtml(k, here); }).join('') +
+      (arr.length ? '' : '<li class="none">Nothing here</li>') +
+      '<li><button type="button" class="put" data-act="put" data-g="' + esc(g) + '" data-s="' + esc(s || '') + '">+ Put in ' + esc(name) + '</button></li></ul>';
+  }
+  function draw() {
+    if (!group(cur)) cur = CUR[0].n;
+    $('#mmApp').innerHTML = CUR.map(function (g, gi) {
+      return '<section class="sec' + (g.n === cur ? ' cur' : '') + '" data-g="' + esc(g.n) + '" role="tabpanel"><h2 class="sec-h">' + esc(gl(g)) + '</h2>' +
+        (g.subs.length && g.loose.length ? '<div class="grp"><div class="gh"><h3>Other pages</h3></div>' + listHtml(g.loose, g.n, '', 'Other pages') + '</div>' : '') +
+        (g.subs.length ? '' : '<div class="grp">' + listHtml(g.loose, g.n, '', gl(g)) + '</div>') +
+        g.subs.map(function (s, si) {
+          return '<div class="grp" data-s="' + esc(s.n) + '"><div class="gh"><h3>' + esc(sl(s)) + '</h3><button type="button" class="kebab" data-act="smenu" data-g="' + esc(g.n) + '" data-i="' + si + '" aria-label="Options for ' + esc(sl(s)) + '" aria-haspopup="menu">⋯</button></div>' + listHtml(s.p, g.n, s.n, sl(s)) + '</div>';
+        }).join('') + '<button type="button" class="addsub" data-act="sadd" data-g="' + esc(g.n) + '">+ New sub-section</button></section>';
+    }).join('') + '<p class="nomatch hide" id="mmNomatch"></p>';
+    drawTabs(); applyFilter(); syncPicks(); paintDock();
+    if (flashKeys.length) {
+      var first = null;
+      flashKeys.forEach(function (k) { var r = document.querySelector('.sec.cur .row[data-k="' + cssq(k) + '"]'); if (r) { r.classList.add('flash'); if (!first) first = r; } });
+      flashKeys = [];
+      if (first) { var b = first.getBoundingClientRect(), top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hh')) || 0) + $('#mmTb').offsetHeight + $('#mmTabsbar').offsetHeight + 8; if (b.top < top || b.bottom > innerHeight - $('#mmDock').offsetHeight - 8) first.scrollIntoView({ block: 'center' }); }
+    }
+  }
+  function drawTabs() {
+    $('#mmTabs').innerHTML = CUR.map(function (g) { return '<button type="button" class="tab" role="tab" data-act="tab" data-g="' + esc(g.n) + '" aria-selected="' + (g.n === cur) + '">' + esc(gl(g)) + ' <span class="n">' + total(g) + '</span></button>'; }).join('') +
+      '<button type="button" class="tab plus" data-act="gadd" aria-label="New section">+</button>';
+    var t = $('.tab[aria-selected="true"]'); if (t && t.scrollIntoView) { var box = $('#mmTabs'), r = t.getBoundingClientRect(), br = box.getBoundingClientRect(); if (r.left < br.left || r.right > br.right - 28) box.scrollLeft += (r.left - br.left) - 8; }
+  }
+  function setTab(n) { cur = n; draw(); }
+
+  /* ---------- picking ---------- */
+  function syncPicks() {
+    ROOT.classList.toggle('carry', picked.length > 0);
+    Array.prototype.forEach.call(document.querySelectorAll('.row'), function (r) {
+      var on = picked.indexOf(r.dataset.k) > -1;
+      r.classList.toggle('picked', on); r.classList.toggle('solo', on && picked.length === 1);
+      r.querySelector('.pk').setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('ul.lst'), function (ul) {
+      var rows = ul.querySelectorAll('.row');
+      Array.prototype.forEach.call(rows, function (r, i) {
+        var f = r.querySelector('[data-act="first"]'), u = r.querySelector('[data-act="up"]'), d = r.querySelector('[data-act="dn"]');
+        if (f) f.disabled = i === 0; if (u) u.disabled = i === 0; if (d) d.disabled = i === rows.length - 1;
+      });
+    });
+    paintTray();
+  }
+  function togglePick(k) { var i = picked.indexOf(k); if (i > -1) picked.splice(i, 1); else picked.push(k); syncPicks(); }
+  function clearPicks() { picked = []; closeSend(); syncPicks(); }
+  function paintTray() {
+    if (!picked.length) return;
+    $('#mmChips').innerHTML = picked.map(function (k) { return '<span class="chip">' + esc(label(k)) + '<button type="button" data-act="drop" data-k="' + esc(k) + '" aria-label="Leave ' + esc(label(k)) + ' where it is">×</button></span>'; }).join('');
+  }
+
+  /* ---------- moving ---------- */
+  function toast(t, undo) { var el = $('#mmToast'); $('#mmToastT').textContent = t; $('#mmToastU').style.display = undo ? '' : 'none'; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('on'); }, 6500); }
+  function move(keys, gn, sn, idx) {
+    var arr = listOf(gn, sn); if (!arr || !keys.length) return;
+    snap();
+    var at = idx == null ? arr.length : idx, adj = 0;
+    keys.forEach(function (k) { var p = arr.indexOf(k); if (p > -1 && p < at) adj++; });
+    CUR.forEach(function (g) { g.loose = g.loose.filter(function (x) { return keys.indexOf(x) < 0; }); g.subs.forEach(function (s) { s.p = s.p.filter(function (x) { return x !== undefined && keys.indexOf(x) < 0; }); }); });
+    var dest = listOf(gn, sn); dest.splice.apply(dest, [at - adj, 0].concat(keys));
+    cur = gn; flashKeys = keys.slice(); picked = []; closeSend();
+    var g = group(gn), name = sn ? sl(g.subs.filter(function (x) { return x.n === sn; })[0]) : (g.subs.length ? 'Other pages' : gl(g));
+    draw();
+    toast('Moved to ' + name + '.', true);
+  }
+  function nudge(k, mode) {
+    var li = document.querySelector('.row[data-k="' + cssq(k) + '"]'), ul = li.closest('ul'), arr = listOf(ul.dataset.g, ul.dataset.s), i = arr.indexOf(k), j = mode === 'first' ? 0 : i + mode;
+    if (j < 0 || j >= arr.length || j === i) return;
+    snap(); arr.splice(i, 1); arr.splice(j, 0, k); flashKeys = [k]; draw();
+  }
+  function undoLast() { if (!UNDO.length) return; CUR = JSON.parse(UNDO.pop()); picked = []; $('#mmToast').classList.remove('on'); draw(); }
+
+  function paintDock() {
+    var dirty = canonTree(CUR) !== canonTree(SAVED), c = place(CUR), n = Object.keys(c).filter(function (k) { return c[k] !== PLACE[k]; }).length;
+    var differs = canonTree(CUR) !== canonTree(DEF);
+    $('#mmMsg').className = 'msg';
+    $('#mmSave').disabled = !dirty; $('#mmUndo').disabled = !UNDO.length;
+    $('#mmMsg').textContent = dirty ? (n ? n + (n === 1 ? ' page' : ' pages') + ' moved' : 'Order changed') : (differs ? 'Saved' : 'Original menu');
+    document.documentElement.style.setProperty('--dockh', $('#mmDock').offsetHeight + 'px');
+  }
+
+  /* ---------- small menus and the one dialog ---------- */
+  var popEl = null;
+  function closePop() { if (popEl) { popEl.remove(); popEl = null; } }
+  function openPop(anchor, items) {
+    closePop();
+    var p = document.createElement('div'); p.className = 'pop'; p.setAttribute('role', 'menu');
+    p.innerHTML = items.map(function (it, i) { return it === '-' ? '<div class="sep"></div>' : '<button type="button" role="menuitem" data-i="' + i + '"' + (it.dis ? ' disabled' : '') + '>' + esc(it.t) + '</button>'; }).join('');
+    ROOT.appendChild(p); popEl = p;
+    var r = anchor.getBoundingClientRect(), w = p.offsetWidth, h = p.offsetHeight;
+    var left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)), top = r.bottom + 6;
+    if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    p.style.left = left + 'px'; p.style.top = top + 'px';
+    p.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b || b.disabled) return; var it = items[+b.dataset.i]; closePop(); it.fn(); });
+    var f = p.querySelector('button:not(:disabled)'); if (f) f.focus();
+  }
+  document.addEventListener('mousedown', function (e) { if (popEl && !popEl.contains(e.target) && !e.target.closest('[data-act="smenu"],#mmGk,#mmMore')) closePop(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (sp) { closeSend(); return; } if (popEl) { closePop(); return; } if (picked.length && !$('#mmDlg').open && document.activeElement !== $('#mmQ')) clearPicks(); } });
+  window.addEventListener('scroll', closePop, { passive: true });
+
+  /* Send to: step 1 sections, step 2 sub-sections */
+  var sp = null;
+  function closeSend() { if (sp) { sp.remove(); sp = null; } var b = $('#mmSendbtn'); if (b) b.setAttribute('aria-expanded', 'false'); }
+  function openSend(gn) {
+    var btn = $('#mmSendbtn'), g = gn && group(gn), h = '';
+    if (!sp) { sp = document.createElement('div'); sp.className = 'sendpop'; sp.setAttribute('role', 'menu'); ROOT.appendChild(sp); }
+    btn.setAttribute('aria-expanded', 'true');
+    if (!g) {
+      h = CUR.map(function (x) { return '<button type="button" role="menuitem" data-sg="' + esc(x.n) + '" data-leaf="' + (x.subs.length ? 0 : 1) + '"><span>' + esc(gl(x)) + '</span><span class="sp-r"><span class="n">' + total(x) + '</span>' + (x.subs.length ? '<span class="chv" aria-hidden="true">›</span>' : '') + '</span></button>'; }).join('') + '<button type="button" class="sp-new" data-new="sec">+ New section</button>';
+    } else {
+      h = '<button type="button" class="sp-back" data-back="1">‹ ' + esc(gl(g)) + '</button>' +
+        (g.loose.length ? '<button type="button" role="menuitem" data-sg="' + esc(g.n) + '" data-ss="" data-leaf="1"><span>Other pages</span><span class="sp-r"><span class="n">' + g.loose.length + '</span></span></button>' : '') +
+        g.subs.map(function (s) { return '<button type="button" role="menuitem" data-sg="' + esc(g.n) + '" data-ss="' + esc(s.n) + '" data-leaf="1"><span>' + esc(sl(s)) + '</span><span class="sp-r"><span class="n">' + s.p.length + '</span></span></button>'; }).join('') + '<button type="button" class="sp-new" data-new="sub" data-sg="' + esc(g.n) + '">+ New sub-section</button>';
+    }
+    sp.innerHTML = h;
+    var r = btn.getBoundingClientRect(), w = innerWidth <= 760 ? innerWidth - 20 : Math.min(Math.max(r.width, 260), innerWidth - 20);
+    sp.style.width = w + 'px'; sp.style.left = Math.max(10, Math.min(r.left, innerWidth - w - 10)) + 'px';
+    sp.style.bottom = (innerHeight - r.top + 8) + 'px'; sp.style.maxHeight = Math.max(160, r.top - 24) + 'px';
+    var f = sp.querySelector('button:not(.sp-back)') || sp.querySelector('button'); if (f) f.focus();
+  }
+  document.addEventListener('click', function (e) {
+    if (sp && sp.contains(e.target)) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.back) { openSend(); return; }
+      if (b.dataset.new) {
+        var kind = b.dataset.new, gn = b.dataset.sg; closeSend();
+        (async function () { var n = kind === 'sec' ? await addSection() : await addSub(gn); if (n && picked.length) move(picked.slice(), kind === 'sec' ? n : gn, kind === 'sec' ? '' : n, null); })();
+        return;
+      }
+      if (b.dataset.leaf === '0') { openSend(b.dataset.sg); return; }
+      if (picked.length) move(picked.slice(), b.dataset.sg, b.dataset.ss || '', null);
+    } else if (sp && !e.target.closest('#mmSendbtn')) closeSend();
+  });
+  $('#mmSendbtn').addEventListener('click', function () { if (sp) closeSend(); else openSend(); });
+  window.addEventListener('scroll', closeSend, { passive: true });
+
+  var dlgDone = null;
+  function ask(o) {
+    return new Promise(function (res) {
+      $('#mmDT').textContent = o.title; $('#mmDP').textContent = o.text || ''; $('#mmDP').style.display = o.text ? '' : 'none';
+      var inp = $('#mmDI'); inp.style.display = o.input ? '' : 'none'; inp.value = o.value || ''; inp.placeholder = o.placeholder || '';
+      $('#mmDYes').textContent = o.ok || 'OK'; $('#mmDNo').style.display = o.noCancel ? 'none' : ''; dlgDone = res; $('#mmDlg').showModal(); if (o.input) { inp.focus(); inp.select(); }
+    });
+  }
+  function closeDlg(v) { var f = dlgDone; dlgDone = null; $('#mmDlg').close(); if (f) f(v); }
+  $('#mmDYes').addEventListener('click', function () { closeDlg($('#mmDI').style.display === 'none' ? true : $('#mmDI').value); });
+  $('#mmDNo').addEventListener('click', function () { closeDlg(null); });
+  $('#mmDlg').addEventListener('cancel', function (e) { e.preventDefault(); closeDlg(null); });
+  $('#mmDI').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('#mmDYes').click(); } });
+
+  function swapArr(a, i, j) { if (j < 0 || j >= a.length) return; snap(); var t = a[i]; a[i] = a[j]; a[j] = t; draw(); }
+  async function addSection() {
+    var v = await ask({ title: 'New section', input: 1, placeholder: 'Name', ok: 'Add' }); if (v == null) return null;
+    v = v.trim().slice(0, 40); if (!v) return null;
+    if (groupTaken(v)) { await ask({ title: 'Name already used', ok: 'OK', noCancel: true }); return null; }
+    snap(); CUR.push({ n: v, loose: [], subs: [], c: 1 }); cur = v; draw(); return v;
+  }
+  async function addSub(gn) {
+    var g = group(gn), v = await ask({ title: 'New sub-section', input: 1, placeholder: 'Name', ok: 'Add' }); if (v == null) return null;
+    v = v.trim().slice(0, 40); if (!v) return null;
+    if (subTaken(g, v)) { await ask({ title: 'Name already used', ok: 'OK', noCancel: true }); return null; }
+    snap(); g.subs.push({ n: v, p: [] }); cur = gn; draw(); return v;
+  }
+  async function renameG(g) {
+    var v = await ask({ title: 'Rename section', text: g.c ? '' : 'Empty goes back to “' + g.n + '”.', input: 1, value: gl(g), ok: 'Rename' }); if (v == null) return;
+    v = v.trim().slice(0, 40);
+    if (v && v !== g.n && groupTaken(v, g)) { await ask({ title: 'Name already used', ok: 'OK', noCancel: true }); return; }
+    snap(); if (!v || v === g.n) delete g.l; else g.l = v; draw();
+  }
+  async function renameS(g, s) {
+    var v = await ask({ title: 'Rename sub-section', text: 'Empty goes back to “' + s.n + '”.', input: 1, value: sl(s), ok: 'Rename' }); if (v == null) return;
+    v = v.trim().slice(0, 40);
+    if (v && v !== s.n && subTaken(g, v, s)) { await ask({ title: 'Name already used', ok: 'OK', noCancel: true }); return; }
+    snap(); if (!v || v === s.n) delete s.l; else s.l = v; draw();
+  }
+  function gmenu(btn) {
+    var g = group(cur), i = CUR.indexOf(g);
+    openPop(btn, [
+      { t: 'Rename', fn: function () { renameG(g); } },
+      { t: 'Move left', dis: i === 0, fn: function () { swapArr(CUR, i, i - 1); } },
+      { t: 'Move right', dis: i === CUR.length - 1, fn: function () { swapArr(CUR, i, i + 1); } },
+      { t: 'New sub-section', fn: function () { addSub(g.n); } }
+    ].concat(g.c && !total(g) ? ['-', { t: 'Remove', fn: function () { snap(); CUR.splice(i, 1); cur = CUR[Math.max(0, i - 1)].n; draw(); } }] : []));
+  }
+  function smenu(btn, gn, i) {
+    var g = group(gn), s = g.subs[i];
+    openPop(btn, [
+      { t: 'Rename', fn: function () { renameS(g, s); } },
+      { t: 'Move up', dis: i === 0, fn: function () { swapArr(g.subs, i, i - 1); } },
+      { t: 'Move down', dis: i === g.subs.length - 1, fn: function () { swapArr(g.subs, i, i + 1); } }
+    ].concat(s.p.length ? [] : ['-', { t: 'Remove', fn: function () { snap(); g.subs.splice(i, 1); draw(); } }]));
+  }
+
+  /* ---------- search: matching pages from every section ---------- */
+  function applyFilter() {
+    var q = Q.trim().toLowerCase(), app = $('#mmApp'), nm = $('#mmNomatch');
+    ROOT.classList.toggle('searching', !!q);
+    Array.prototype.forEach.call(app.querySelectorAll('.hide:not(#nomatch)'), function (x) { x.classList.remove('hide'); });
+    Array.prototype.forEach.call(app.querySelectorAll('.sec.hit'), function (x) { x.classList.remove('hit'); });
+    nm.classList.add('hide');
+    if (!q) return;
+    var any = false;
+    Array.prototype.forEach.call(app.querySelectorAll('.sec'), function (sec) {
+      var hits = 0;
+      Array.prototype.forEach.call(sec.querySelectorAll('.row'), function (r) { var ok = label(r.dataset.k).toLowerCase().indexOf(q) > -1; r.classList.toggle('hide', !ok); if (ok) hits++; });
+      Array.prototype.forEach.call(sec.querySelectorAll('.grp'), function (gr) { gr.classList.toggle('hide', !gr.querySelector('.row:not(.hide)')); });
+      Array.prototype.forEach.call(sec.querySelectorAll('.none'), function (x) { x.classList.add('hide'); });
+      if (hits) { sec.classList.add('hit'); any = true; }
+    });
+    if (!any) { nm.textContent = 'No page called “' + Q.trim() + '”.'; nm.classList.remove('hide'); }
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var a = b.dataset.act;
+    if (a === 'pick') togglePick(b.dataset.k);
+    else if (a === 'drop') togglePick(b.dataset.k);
+    else if (a === 'put') { if (picked.length) move(picked.slice(), b.dataset.g, b.dataset.s, null); }
+    else if (a === 'first') nudge(b.dataset.k, 'first');
+    else if (a === 'up') nudge(b.dataset.k, -1);
+    else if (a === 'dn') nudge(b.dataset.k, 1);
+    else if (a === 'tab') setTab(b.dataset.g);
+    else if (a === 'smenu') smenu(b, b.dataset.g, +b.dataset.i);
+    else if (a === 'gadd') addSection();
+    else if (a === 'sadd') addSub(b.dataset.g);
+  });
+  $('#mmGk').addEventListener('click', function () { gmenu(this); });
+  $('#mmCancel').addEventListener('click', clearPicks);
+  $('#mmUndo').addEventListener('click', undoLast);
+  $('#mmToastU').addEventListener('click', undoLast);
+  $('#mmQ').addEventListener('input', function () { Q = this.value; applyFilter(); });
+  $('#mmQ').addEventListener('keydown', function (e) { if (e.key === 'Escape') { this.value = ''; Q = ''; applyFilter(); } });
+  // Saved per person in public.nav_layout (nav_layout_set), the same call and layout shape as before; nav-layout.js draws it on the dashboard.
+  async function save(quiet) {
+    var btn = $('#mmSave'); btn.disabled = true;
+    var isOriginal = !BASE && canonTree(CUR) === canonTree(TRUEDEF);
+    var layout = isOriginal ? null : trsNav.treeToLayout(CUR);
+    if (layout && BASE) layout.base = BASE;
+    var r = await KB.client.rpc('nav_layout_set', { p_layout: layout });
+    if (r.error) { var m = $('#mmMsg'); m.textContent = 'Not saved. Try again.'; m.className = 'msg err'; btn.disabled = false; return false; }
+    try { if (layout) localStorage.setItem(trsNav.CACHE, trsNav.canon(layout)); else localStorage.removeItem(trsNav.CACHE); } catch (e) {}
+    SAVED = clone(CUR); paintDock(); if (!quiet) toast('Saved.', false);
+    return true;
+  }
+  $('#mmSave').addEventListener('click', function () { save(); });
+  $('#mmMore').addEventListener('click', function () {
+    var differsDef = canonTree(CUR) !== canonTree(DEF), dirty = canonTree(CUR) !== canonTree(SAVED);
+    openPop(this, [
+      { t: 'Undo all changes', dis: !dirty, fn: function () { snap(); CUR = clone(SAVED); picked = []; draw(); } },
+      { t: 'Back to the original order', dis: !differsDef, fn: function () { snap(); CUR = clone(DEF); picked = []; draw(); } },
+      { t: 'Make this the original', dis: !differsDef, fn: async function () {
+          var ok = await ask({ title: 'Make this the original?', text: 'Original order will come back to this.', ok: 'Make original' }); if (!ok) return;
+          BASE = trsNav.treeToLayout(CUR); DEF = trsNav.merge(clone(TRUEDEF), BASE); PLACE = place(DEF); UNDO = []; await save(true); draw(); toast('Saved. This is the original now.', false); } }
+    ].concat(BASE ? [{ t: 'Use the site menu', fn: async function () {
+          var ok = await ask({ title: 'Use the site menu?', text: 'Your own original is forgotten.', ok: 'Use it' }); if (!ok) return;
+          snap(); BASE = null; DEF = clone(TRUEDEF); PLACE = place(DEF); CUR = clone(DEF); draw(); } }] : []));
+  });
+  /* drag and drop (mouse): grab a page, drop it on a list; hold it over a tab and that section opens */
+  document.addEventListener('dragstart', function (e) {
+    var r = e.target.closest && e.target.closest('.row'); if (!r) return;
+    dropped = false; dragSolo = picked.indexOf(r.dataset.k) < 0;
+    if (dragSolo) picked = [r.dataset.k];
+    r.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', r.dataset.k);
+    setTimeout(syncPicks, 0);
+  });
+  document.addEventListener('dragend', function () {
+    clearTimeout(tabT);
+    Array.prototype.forEach.call(document.querySelectorAll('.over,.drag'), function (x) { x.classList.remove('over', 'drag'); });
+    if (dragSolo && !dropped) clearPicks(); dragSolo = false;
+  });
+  document.addEventListener('dragover', function (e) {
+    if (!picked.length) return;
+    var t = e.target.closest && e.target.closest('.tab[data-g]');
+    if (t && t.dataset.g !== cur) { clearTimeout(tabT); tabT = setTimeout(function () { setTab(t.dataset.g); }, 350); }
+    var u = e.target.closest && e.target.closest('ul.lst');
+    Array.prototype.forEach.call(document.querySelectorAll('ul.over'), function (x) { if (x !== u) x.classList.remove('over'); });
+    if (u) { e.preventDefault(); u.classList.add('over'); }
+  });
+  document.addEventListener('drop', function (e) {
+    var u = e.target.closest && e.target.closest('ul.lst'); if (!u || !picked.length) return;
+    e.preventDefault(); dropped = true;
+    var rows = Array.prototype.slice.call(u.querySelectorAll('.row:not(.drag)')), idx = rows.length;
+    var arr = listOf(u.dataset.g, u.dataset.s);
+    for (var i = 0; i < rows.length; i++) { var r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { idx = arr.indexOf(rows[i].dataset.k); break; } }
+    if (idx === rows.length) idx = arr.length;
+    move(picked.slice(), u.dataset.g, u.dataset.s, idx);
+  });
+
+
+    // The menu as the dashboard draws it, the original order, and the layout saved for this person (public.nav_layout), exactly as before.
     try {
-      // The original menu is whatever the dashboard's own page draws, read from it, so a page added to the menu later appears here by itself.
       var html = await (await fetch('/', { credentials: 'same-origin' })).text();
       var side = new DOMParser().parseFromString(html, 'text/html').querySelector('aside.sidebar');
       if (!side) throw new Error('menu not found');
@@ -406,56 +560,22 @@ body[data-kb-view="grid"] .mm-sec.mm-force:not(.open) .mm-sh h2{flex:1;font-size
       if (r.error) throw r.error;
       BASE = r.data && r.data.base && r.data.base.groups ? { v: 1, groups: r.data.base.groups } : null;
       DEF = BASE ? trsNav.merge(clone(TRUEDEF), BASE) : clone(TRUEDEF); PLACE = place(DEF);
-      SAVED = trsNav.merge(clone(TRUEDEF), r.data); CUR = clone(SAVED);
-      open = {};   // Kate, 9 Nov 2026: every section starts closed; she opens what she wants
+      SAVED = trsNav.merge(clone(TRUEDEF), r.data); CUR = clone(SAVED); cur = CUR[0].n;
     } catch (err) {
-      say('Could not load the menu: ' + ((err && err.message) || 'try again') + '.', true);
+      $('#mmMsg').textContent = 'Could not load the menu: ' + ((err && err.message) || 'try again') + '.'; $('#mmMsg').className = 'msg err';
+      ['mmSave', 'mmUndo', 'mmMore'].forEach(function (id) { document.getElementById(id).disabled = true; });
       return;
     }
-    $('#mmDsec').addEventListener('change', fillSubs);
-    $('#mmDno').addEventListener('click', function () { $('#mmDlg').close(); });
-    $('#mmDyes').addEventListener('click', function () {
-      take(moving); put(moving, $('#mmDsec').value, $('#mmDsub').value); open[$('#mmDsec').value] = true; $('#mmDlg').close(); draw();
-    });
-    $('#mmAddSec').addEventListener('click', function () { if (addSection()) { draw(); window.scrollTo(0, document.body.scrollHeight); } });
-    // Inside the Move dialog too: make the section or sub-section you want, and it is chosen for you.
-    function fillSecs(pick) {
-      $('#mmDsec').innerHTML = CUR.map(function (g) { return '<option value="' + esc(g.n) + '">' + esc(gl(g)) + '</option>'; }).join('');
-      $('#mmDsec').value = pick; fillSubs();
-    }
-    $('#mmDnewSec').addEventListener('click', function () { var n = addSection(); if (n) { draw(); fillSecs(n); } });
-    $('#mmDnewSub').addEventListener('click', function () {
-      var g = group($('#mmDsec').value), nv = prompt('Name of the new sub-section in ' + gl(g));
-      if (!nv || !nv.trim()) return;
-      nv = nv.trim().slice(0, 40);
-      if (nameTaken(g, nv)) { alert('There is already a sub-section called ' + nv + ' in ' + gl(g) + '.'); return; }
-      g.subs.push({ n: nv, p: [] }); open[g.n] = true; draw(); fillSubs(); $('#mmDsub').value = nv;
-    });
-    $('#mmAll').addEventListener('click', function () {
-      var anyOpen = CUR.some(function (g) { return open[g.n]; });
-      CUR.forEach(function (g) { open[g.n] = !anyOpen; });
-      draw();
-    });
-    // The toggle bar sits just under the sticky page header, whatever height the header is (it condenses on scroll).
-    var head = document.getElementById('kbHead');
-    function stick() { document.documentElement.style.setProperty('--mm-top', (head ? head.offsetHeight : 0) + 'px'); }
-    stick(); window.addEventListener('resize', stick); window.addEventListener('scroll', stick, { passive: true });
-    $('#mmSearch').addEventListener('input', function () { Q = this.value; applyFilter(); });
-    $('#mmSearch').addEventListener('keydown', function (e) { if (e.key === 'Escape') { this.value = ''; Q = ''; applyFilter(); } });
-    $('#mmSave').addEventListener('click', save);
-    $('#mmUndo').addEventListener('click', function () { CUR = clone(SAVED); draw(); });
-    $('#mmOrig').addEventListener('click', function () { CUR = clone(DEF); draw(); });
-    // Kate, 9 Nov 2026: "make new arrangement the original order". The arrangement on screen becomes the one Original order returns to (saved with the menu), and the was-tags count from it.
-    $('#mmMake').addEventListener('click', async function () {
-      if (!confirm('Make this arrangement your original order? Original order will come back to it. Your menu is saved now.')) return;
-      BASE = trsNav.treeToLayout(CUR); DEF = trsNav.merge(clone(TRUEDEF), BASE); PLACE = place(DEF);
-      await save(); draw(); say('Saved. This arrangement is now your original order.');
-    });
-    $('#mmFactory').addEventListener('click', function () {
-      if (!confirm('Go back to the standard site menu? Your own original order is forgotten once you Save.')) return;
-      BASE = null; DEF = clone(TRUEDEF); PLACE = place(DEF); CUR = clone(DEF); draw();
-    });
-    draw();
+  /* the heights of the Team Home header, the search and the dock are kept current */
+  var head = document.getElementById('kbHead');
+  function stick() {
+    var pos = head ? getComputedStyle(head).position : '', hh = head && (pos === 'sticky' || pos === 'fixed') ? head.offsetHeight : 0, r = document.documentElement.style;
+    r.setProperty('--mm-top', hh + 'px'); r.setProperty('--mm-tbh', $('#mmTb').offsetHeight + 'px'); r.setProperty('--mm-dockh', $('#mmDock').offsetHeight + 'px');
+  }
+  function offsets() { stick(); }
+  if (window.ResizeObserver) { var ro = new ResizeObserver(stick); ro.observe($('#mmTb')); ro.observe($('#mmDock')); if (head) ro.observe(head); }
+  window.addEventListener('resize', stick); window.addEventListener('scroll', stick, { passive: true });
+  stick(); draw();
   });
 })();
 </script>
