@@ -128,3 +128,7 @@ html[data-theme="dark"] .sg-bd{color:#1A1A1A}
   .sgp-card{grid-template-columns:72px minmax(0,1fr);gap:10px}
 }
 .sgp-note{margin:0;padding:10px 14px;border-radius:12px;background:var(--surface2);color:var(--muted);font-size:14px}
+/* The UAE | Bahrain switch beside the Social tabs (Kate, 23 Nov 2026): on the right of the tab row, wrapping under it on a phone. */
+.soc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.soc-br{margin-left:auto}
+@media (max-width:760px){.soc-br{margin-left:0}.soc-br button{min-height:44px}}

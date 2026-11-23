@@ -101,8 +101,9 @@ Deno.serve(async (req) => {
       networks: Object.fromEntries(['instagram', 'tiktok', 'facebook', 'youtube', 'gmb'].filter(n => b[n]).map(n => [n, String(b[n])])),
       synced_at: now(),
     })).map((b: any) => ({ ...b, gmb_branch: b.networks.gmb ? (GMB_LOC[b.networks.gmb.split('/locations/')[1]] || b.branch) : null }));
-    // Branch brands are a salon's Google profile only; Bahrain's also carries LinkedIn
-    // and YouTube, which the dashboard doesn't use.
+    // Branch brands are a salon's Google profile only, except Bahrain (Kate, 23 Nov 2026): its own
+    // Instagram and Facebook are read as well, and shown as the Bahrain view of the Social page
+    // (social_report with p_branch = 'BAH'). Its YouTube stays the group's podcast channel.
     await save('metricool_brands', brands, 'brand_id');
     out.brands = brands.length;
 
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
       const rows: any[] = [];
       const jobs: (() => Promise<void>)[] = [];
       for (const b of brands) for (const net of Object.keys(b.networks)) {
-        if (b.branch && net !== 'gmb' && net !== 'youtube') continue;
+        if (b.branch && b.branch !== 'BAH' && net !== 'gmb' && net !== 'youtube') continue;   // Bahrain's own Instagram and Facebook are read too (Kate, 23 Nov 2026)
         for (const [subject, metric] of SERIES[net] || []) for (const [a, z] of chunks(from, to)) jobs.push(async () => {
           const q: Record<string, string> = { blogId: String(b.brand_id), network: net, metric, ...win(a, z) };
           if (subject === 'all') q.scope = 'all'; else if (subject) q.subject = subject;
@@ -129,7 +130,7 @@ Deno.serve(async (req) => {
     if (want('posts')) {
       const rows: any[] = [];
       const jobs: (() => Promise<void>)[] = [];
-      for (const b of brands.filter((x: any) => !x.branch)) for (const [a, z] of chunks(postsFrom, to)) {
+      for (const b of brands.filter((x: any) => !x.branch || x.branch === 'BAH')) for (const [a, z] of chunks(postsFrom, to)) {
         const w = win(a, z), id = String(b.brand_id);
         const add = (path: string, net: string, map: (p: any) => any) => {
           if (!b.networks[net]) return;
@@ -319,7 +320,7 @@ async function syncSnapshots(sb: any, brands: any[], get: any, from: string, to:
     if (!error) done[`${net}.${kind}`] = rows.length;
   };
   for (const b of brands) for (const net of Object.keys(b.networks)) {
-    if (net === 'gmb' || (b.branch && net !== 'youtube')) continue;
+    if (net === 'gmb' || (b.branch && b.branch !== 'BAH' && net !== 'youtube')) continue;
     for (const kind of DIST[net] || []) {
       try {
         const d = await get('/v2/analytics/distribution', { blogId: String(b.brand_id), network: net, subject: 'account', metric: kind,

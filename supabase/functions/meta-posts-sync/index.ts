@@ -10,7 +10,10 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const GRAPH = 'https://graph.facebook.com/v26.0';
 const IG_USER = '17841403590323716';   // @tararosesalon
 const PAGE = '482018305295476';        // the Facebook page
-const BLOG = '6329614';                // Metricool brand "tararosesalon"
+const BLOG = '6329614';                // Metricool brand "tararosesalon": the main accounts, the only ones the Meta token can read
+const BAH_BLOG = '6531507';            // Metricool brand "Tara Rose Salon - Bahrain" (Kate, 23 Nov 2026): its own Instagram and Facebook are labelled from ITS scheduler list;
+                                       // the Meta token has no access to them, so their carousel type and Facebook counts stay Metricool's
+const BLOGS = [BLOG, BAH_BLOG];
 const USER_ID = '4877991';
 const NAME = 'meta-posts-sync';
 
@@ -40,27 +43,32 @@ Deno.serve(async (req) => {
     if (!mcToken) throw new Error('no METRICOOL_USER_TOKEN secret');
 
     // 1. Metricool's scheduler list: what was scheduled in Metricool, with the live url once it is out.
-    const sched = { ig: new Set<string>(), tt: new Set<string>(), ids: new Set<string>() };
-    let earliest = '', items = 0;
-    for (let s = Date.parse(fromDate + 'T00:00:00Z'); s <= todayMs + 60 * dayMs; s += 30 * dayMs) {
-      const e = Math.min(s + 30 * dayMs - 1000, todayMs + 60 * dayMs);
-      const qs = new URLSearchParams({ blogId: BLOG, userId: USER_ID, start: iso(s) + 'T00:00:00', end: iso(e) + 'T23:59:59', timezone: 'Asia/Dubai' });
-      const r = await fetch(`https://app.metricool.com/api/v2/scheduler/posts?${qs}`, { headers: { 'X-Mc-Auth': mcToken } });
-      if (!r.ok) { errors.push(`scheduler ${iso(s)}: ${r.status}`); continue; }
-      const j = await r.json();
-      for (const p of (j.data || [])) {
-        items++;
-        const d = String(p.publicationDate?.dateTime || '').slice(0, 10);
-        if (d && (!earliest || d < earliest)) earliest = d;
-        for (const pr of (p.providers || [])) {
-          const url = String(pr.publicUrl || ''), id = String(pr.id || '');
-          const c = igCode(url) || igCode(id); if (c) sched.ig.add(c);
-          const t = ttId(url) || ttId(id); if (t) sched.tt.add(t);
-          bigIds(url).concat(bigIds(id)).forEach(x => sched.ids.add(x));
+    const sched: Record<string, { ig: Set<string>; tt: Set<string>; ids: Set<string> }> = {};
+    const earliestBy: Record<string, string> = {};
+    let items = 0;
+    for (const blog of BLOGS) {
+      sched[blog] = { ig: new Set<string>(), tt: new Set<string>(), ids: new Set<string>() };
+      earliestBy[blog] = '';
+      for (let s = Date.parse(fromDate + 'T00:00:00Z'); s <= todayMs + 60 * dayMs; s += 30 * dayMs) {
+        const e = Math.min(s + 30 * dayMs - 1000, todayMs + 60 * dayMs);
+        const qs = new URLSearchParams({ blogId: blog, userId: USER_ID, start: iso(s) + 'T00:00:00', end: iso(e) + 'T23:59:59', timezone: 'Asia/Dubai' });
+        const r = await fetch(`https://app.metricool.com/api/v2/scheduler/posts?${qs}`, { headers: { 'X-Mc-Auth': mcToken } });
+        if (!r.ok) { errors.push(`scheduler ${blog} ${iso(s)}: ${r.status}`); continue; }
+        const j = await r.json();
+        for (const p of (j.data || [])) {
+          items++;
+          const d = String(p.publicationDate?.dateTime || '').slice(0, 10);
+          if (d && (!earliestBy[blog] || d < earliestBy[blog])) earliestBy[blog] = d;
+          for (const pr of (p.providers || [])) {
+            const url = String(pr.publicUrl || ''), id = String(pr.id || '');
+            const c = igCode(url) || igCode(id); if (c) sched[blog].ig.add(c);
+            const t = ttId(url) || ttId(id); if (t) sched[blog].tt.add(t);
+            bigIds(url).concat(bigIds(id)).forEach(x => sched[blog].ids.add(x));
+          }
         }
       }
     }
-    out.scheduler = { items, earliest, igCodes: sched.ig.size, tiktok: sched.tt.size };
+    out.scheduler = { items, earliest: earliestBy, igCodes: sched[BLOG].ig.size + sched[BAH_BLOG].ig.size, tiktok: sched[BLOG].tt.size };
 
     // 2. Instagram media from Meta: type and slide count. Small pages (Meta refuses big ones), newest first, stop at the cut-off.
     const media: { code: string; type: string; slides: number | null; ts: string }[] = [];
@@ -90,7 +98,7 @@ Deno.serve(async (req) => {
     // 3. The rows we already hold, since the cut-off.
     const rows: any[] = [];
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await sb.from('metricool_posts').select('post_key,network,kind,url,post_date,source,media_type,slides,likes,comments,shares,extra')
+      const { data, error } = await sb.from('metricool_posts').select('post_key,brand_id,network,kind,url,post_date,source,media_type,slides,likes,comments,shares,extra')
         .in('network', ['instagram', 'facebook', 'tiktok']).neq('kind', 'story').gte('post_date', fromDate).range(from, from + 999);
       if (error) throw new Error('metricool_posts: ' + error.message);
       rows.push(...(data || [])); if (!data || data.length < 1000) break;
@@ -98,27 +106,32 @@ Deno.serve(async (req) => {
     out.rows = rows.length;
 
     // Rows older than the first scheduled item are left alone (the scheduler list may not reach back that far), so they are never called Manual by mistake.
-    const labelFrom = earliest && earliest > fromDate ? earliest : fromDate;
-    out.labelFrom = labelFrom;
+    const labelFromBy: Record<string, string> = {};
+    for (const b of BLOGS) labelFromBy[b] = earliestBy[b] && earliestBy[b] > fromDate ? earliestBy[b] : fromDate;
+    out.labelFrom = labelFromBy;
     const stamp = new Date().toISOString();
     const byCode = new Map(media.map(m => [m.code, m]));
-    const counts: any = { instagram: { metricool: 0, manual: 0 }, facebook: { metricool: 0, manual: 0 }, tiktok: { metricool: 0, manual: 0 } };
+    const counts: any = {};   // 'instagram', 'facebook', 'tiktok' for the main brand and 'bahrain.instagram' and so on for Bahrain
     let changed = 0, carousels = 0;
     const seenCodes = new Set<string>();
     for (const r of rows) {
       const patch: any = {};
-      if (r.network === 'instagram') {
+      // a row of any other Metricool brand is left alone: never labelled from another brand's scheduler
+      const blog = String(r.brand_id) === BAH_BLOG ? BAH_BLOG : String(r.brand_id) === BLOG ? BLOG : null;
+      if (!blog) continue;
+      if (r.network === 'instagram' && blog === BLOG) {
         const c = igCode(r.url); if (c) seenCodes.add(c);
         const m = c ? byCode.get(c) : null;
         if (m) { if (r.media_type !== m.type) patch.media_type = m.type; if ((r.slides ?? null) !== m.slides && m.type === 'carousel') patch.slides = m.slides; if (m.type === 'carousel') carousels++; }
       }
-      if (String(r.post_date) >= labelFrom) {
+      if (String(r.post_date) >= labelFromBy[blog]) {
         let isSched = false;
-        if (r.network === 'instagram') { const c = igCode(r.url); isSched = !!c && sched.ig.has(c); }
-        else if (r.network === 'tiktok') { const t = ttId(r.url) || (String(r.post_key).match(/(\d{8,})/) || [])[1]; isSched = !!t && sched.tt.has(t); }
-        else { isSched = bigIds(r.url + ' ' + r.post_key).some(x => sched.ids.has(x)); }
+        if (r.network === 'instagram') { const c = igCode(r.url); isSched = !!c && sched[blog].ig.has(c); }
+        else if (r.network === 'tiktok') { const t = ttId(r.url) || (String(r.post_key).match(/(\d{8,})/) || [])[1]; isSched = !!t && sched[blog].tt.has(t); }
+        else { isSched = bigIds(r.url + ' ' + r.post_key).some(x => sched[blog].ids.has(x)); }
         const src = isSched ? 'metricool' : 'manual';
-        counts[r.network][src]++;
+        const ck = blog === BAH_BLOG ? 'bahrain.' + r.network : r.network;
+        (counts[ck] = counts[ck] || { metricool: 0, manual: 0 })[src]++;
         if (r.source !== src) patch.source = src;
       }
       if (Object.keys(patch).length) {
@@ -133,7 +146,7 @@ Deno.serve(async (req) => {
     //    Views (impressions) stay Metricool's, the token has no read_insights. Reels stay Metricool's until they are checked. Metricool's own figures are kept in extra.metricool_likes / _comments / _shares.
     //    metricool-sync writes Metricool's figure at 03:20 and this overwrites it at 03:40, so Meta's number is what the calendar reads.
     {
-      const fbRows = rows.filter(r => r.network === 'facebook' && r.kind === 'post');
+      const fbRows = rows.filter(r => r.network === 'facebook' && r.kind === 'post' && String(r.brand_id) === BLOG);
       const fbOut: any = { rows: fbRows.length, fetched: 0, matched: 0, changed: 0, examples: [] };
       try {
         const pr = await (await fetch(`${GRAPH}/${PAGE}?fields=access_token&access_token=${encodeURIComponent(igToken)}`)).json();

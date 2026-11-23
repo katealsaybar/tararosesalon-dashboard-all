@@ -18,6 +18,7 @@ const SG_BD = { instagram: 'IG', facebook: 'FB', tiktok: 'TT' };
 const SG_KL = { reel: 'Reel', post: 'Post', photo: 'Photo', video: 'Video' };
 const SG_GROUPS = [['instagram', 'reel', 'Instagram reels'], ['instagram', 'post', 'Instagram posts'], ['facebook', 'post', 'Facebook posts'], ['facebook', 'reel', 'Facebook reels'], ['tiktok', 'video', 'TikTok videos'], ['tiktok', 'photo', 'TikTok photos']];
 const sgN = v => Math.round(Number(v) || 0).toLocaleString('en-GB');
+const sgJoin = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
 const sgSum = (a, f) => a.reduce((t, x) => t + (Number(f(x)) || 0), 0);
 const sgP100 = (a, b) => b ? Math.round(100 * a / b) : 0;
 const sgTz = { timeZone: 'Asia/Dubai' };
@@ -36,7 +37,7 @@ function sgShapePosts(arr, srcMap) {
   const rows = (arr || []).filter(p => SG_PN[p.network] && p.kind !== 'story').map(p => {
     const kind = p.network === 'instagram' ? (p.kind === 'reel' ? 'reel' : 'post') : p.kind, at = Date.parse(p.posted_at) || 0;
     const l = Number(p.interactions) || 0, sv = Number(p.saves) || 0;
-    return { net: p.network, kind, cap: String(p.caption || '').trim(), img: p.image_url || '', g: p.network + '_' + kind, src: srcMap ? (srcMap[p.url || (p.network + '|' + p.posted_at)] || null) : (p.source || null), d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
+    return { net: p.network, kind, cap: String(p.caption || '').trim(), img: p.image_url || '', g: p.network + '_' + kind, src: p.source || null,   // how it went out comes with every post (social_report), as the Content Calendar reads it d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
       v: Number(p.views) || 0, r: Number(p.reach) || 0, l: Number(p.likes) || 0, c: Number(p.comments) || 0, s: Number(p.shares) || 0, sv, it: l + sv };
   });
   return rows;
@@ -54,23 +55,22 @@ function sgHowSet(net) {
   const box = document.getElementById('sgHowBox'); if (!box || !sgHowPart) return;
   const h = sgHowPart(net); box.innerHTML = h.html; h.wire(box);
 }
-const sgHowReady = () => (sgHowSrc && socData && sgHowKey === socData.win.from + '|' + socData.win.to) ? sgHowSrc : null;
+const sgHowReady = () => (sgHowSrc && socData && sgHowKey === socData.win.from + '|' + socData.win.to + '|' + socBranch) ? sgHowSrc : null;
 function sgHowLoad() {
-  const w = socData.win, key = w.from + '|' + w.to;
+  const w = socData.win, key = w.from + '|' + w.to + '|' + socBranch;
   if (sgHowReady()) return Promise.resolve(sgHowSrc);
   if (sgHowBusy && sgHowBusy.key === key) return sgHowBusy.p;
   const p = (async () => {
     const src = {}, stories = [];
     for (let a = w.from; a <= w.to;) {
       const b = sgAdd(a, 92) < w.to ? sgAdd(a, 92) : w.to;
-      const [po, st] = await Promise.all([sb.rpc('content_calendar_posts', { p_from: a, p_to: b }), sb.rpc('content_calendar_stories', { p_from: a, p_to: b })]);
-      if (po.error || st.error || !po.data) throw po.error || st.error || new Error('no data');
-      (po.data.posts || []).forEach(x => { src[x.url || (x.network + '|' + x.posted_at)] = x.source || null; });
+      const st = await sb.rpc('content_calendar_stories', { p_from: a, p_to: b, ...socBr() });
+      if (st.error) throw st.error;
       (st.data || []).forEach(x => stories.push({ net: x.network, d: String(x.post_date).slice(0, 10), at: Date.parse(x.posted_at) || 0, img: x.image_url || '' }));
       a = sgAdd(b, 1);
     }
     const out = { src, stories };
-    if (socData && socData.win.from + '|' + socData.win.to === key) { sgHowSrc = out; sgHowKey = key; }
+    if (socData && socData.win.from + '|' + socData.win.to + '|' + socBranch === key) { sgHowSrc = out; sgHowKey = key; }
     return out;
   })();
   sgHowBusy = { key, p };
@@ -140,13 +140,13 @@ document.addEventListener('click', e => { if (!e.target.closest('.sg-row,.sg-col
 
 // ── loading: the Period before, and the stories one by one (at most two calls at a time) ──
 async function sgLoad() {
-  const w = socData.win, len = sgDays(w.from, w.to), pv = { from: sgAdd(w.from, -len), to: sgAdd(w.from, -1) }, key = w.from + '|' + w.to;
+  const w = socData.win, len = sgDays(w.from, w.to), pv = { from: sgAdd(w.from, -len), to: sgAdd(w.from, -1) }, key = w.from + '|' + w.to + '|' + socBranch;
   if (sgData && sgData.key === key) return sgData;
   const ok = async p => { try { const r = await p; return r && !r.error ? r.data : null; } catch (e) { return null; } };
   const how = await sgHowLoad().catch(e => { console.error(e); return null; });
   const cur = sgHow(sgShapePosts(socData.posts, how && how.src));
-  const [prevRep, curSt] = await Promise.all([ok(sb.rpc('social_report', { p_from: pv.from, p_to: pv.to })), len <= 93 ? ok(sb.rpc('content_calendar_story_stats', { p_from: w.from, p_to: w.to })) : null]);
-  const prevSt = len <= 93 ? await ok(sb.rpc('content_calendar_story_stats', { p_from: pv.from, p_to: pv.to })) : null;
+  const [prevRep, curSt] = await Promise.all([ok(sb.rpc('social_report', { p_from: pv.from, p_to: pv.to, ...socBr() })), len <= 93 ? ok(sb.rpc('content_calendar_story_stats', { p_from: w.from, p_to: w.to, ...socBr() })) : null]);
+  const prevSt = len <= 93 ? await ok(sb.rpc('content_calendar_story_stats', { p_from: pv.from, p_to: pv.to, ...socBr() })) : null;
   const D = { key, w, pv, len, cur, howOk: !!how, howStories: how ? how.stories : [], prev: sgHow(sgShapePosts(prevRep && prevRep.posts)), prevOk: !!prevRep,
     st: curSt ? sgShapeStories(curSt) : null, stPrev: prevSt ? sgShapeStories(prevSt) : null,
     stTot: sgStTot((socData.stories || {}).instagram), stPrevTot: sgStTot(prevRep && (prevRep.stories || {}).instagram) };
@@ -200,7 +200,7 @@ function sgPostsHtml(D, cols) {
   const byNet = Object.fromEntries(nets.map(n => [n, cur.filter(x => x.net === n)]));
   const lead = nets.slice().sort((a, b) => sgAgg(byNet[b]).v - sgAgg(byNet[a]).v)[0], share = sgP100(sgAgg(byNet[lead]).v, A.v);
   const top = cur.slice().sort((a, b) => b.v - a.v)[0], topShare = A.v ? top.v / A.v : 0, wo = (A.v - top.v) / Math.max(1, A.n - 1);
-  const ans = `<b>${SG_PN[lead]} brought ${share} of every 100 views</b> that our posts got on Instagram, Facebook and TikTok. Together ${A.n} post${A.n === 1 ? '' : 's'} got ${sgN(A.v)} views. ` +
+  const ans = `<b>${SG_PN[lead]} brought ${share} of every 100 views</b> that our posts got on ${sgJoin(nets.filter(n => byNet[n].length).map(n => SG_PN[n]))}. Together ${A.n} post${A.n === 1 ? '' : 's'} got ${sgN(A.v)} views. ` +
     (topShare > .25 && A.n > 3 ? `One ${(SG_KL[top.kind] || top.kind).toLowerCase()} (${socDayY(top.d)}) took ${sgN(top.v)} of them, but reached only ${sgN(top.r)} accounts.` : `The best one was the ${SG_PN[top.net]} ${(SG_KL[top.kind] || top.kind).toLowerCase()} on ${socDayY(top.d)}, ${sgN(top.v)} views.`);
   const ask = topShare > .25 && A.n > 3 ? `Worth asking: without that one, the other ${A.n - 1} posts averaged ${sgN(wo)} views each. Which of the rest do you want to repeat?` : 'Worth asking: which of these do you want to repeat next week?';
   const specAll = sgPostsSpec('glance-posts', 'Posts published', sub, cur), g = (sk, t) => sgGroupsSpec(sk, t, sub, cur);
@@ -512,7 +512,7 @@ async function sgPopStats(s) {
   const key = s.net + '|' + s.from + '|' + s.to;
   if (sgPopStatsCache[key] === undefined) {
     try {
-      const r = await sb.rpc('content_calendar_story_stats', { p_from: s.from, p_to: s.to });
+      const r = await sb.rpc('content_calendar_story_stats', { p_from: s.from, p_to: s.to, ...socBr() });
       if (r.error) throw r.error;
       const by = {}; (r.data || []).forEach(x => { if (x.network === s.net) by[Date.parse(x.posted_at) || 0] = x; });
       sgPopStatsCache[key] = by;

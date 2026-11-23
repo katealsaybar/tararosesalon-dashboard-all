@@ -23,6 +23,9 @@
 // and the same card, tile and table styles (slv-*, w13-*, mk-*).
 let socData = null, socCharts = {};
 let socNet = 'all', socTab = 'overview';
+// Two sets of accounts (Kate, 23 Nov 2026): 'UAE' is the group's own (@tararosesalon, its Facebook page, TikTok and the podcast's YouTube), 'BAH' is Bahrain's own Instagram and Facebook.
+let socBranch = 'UAE';
+try { if (localStorage.getItem('trs-soc-branch') === 'BAH') socBranch = 'BAH'; } catch (e) {}
 const socFold = {};                          // section id: true open / false closed; unset = its default
 const socSort = {};                          // per table: { key, dir }
 try { const v = localStorage.getItem('trs-soc-tab'); if (v) socTab = v; } catch (e) {}
@@ -85,7 +88,7 @@ function socWindow() {
 // A Period change in the masthead (dashboard.js NOPULSE_REDRAW): load the new dates, or redraw when they are the dates already on screen.
 function socMastRefresh() {
   const w = socWindow();
-  if (socData && socData.win && socData.win.from === w.from && socData.win.to === w.to) { socRepaint(); return Promise.resolve(); }
+  if (socData && socData.win && socData.win.from === w.from && socData.win.to === w.to && socData.branch === socBranch) { socRepaint(); return Promise.resolve(); }
   return renderSocial();
 }
 function socSetTab(t) {
@@ -97,6 +100,30 @@ function socSetTab(t) {
   if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' });
 }
 function socSetNet(n) { socNet = n; if (socTbls.soctop) socTbls.soctop.clear(); socRepaint(); }
+
+// ── UAE | Bahrain (Kate, 23 Nov 2026) ──
+// social_report, the story stats and the stories list all take the same p_branch, so the Bahrain view never holds the UAE account's numbers. Metricool is not per salon,
+// so the masthead's Branch row stays hidden here; this switch is the only branch control. Bahrain has no TikTok and no YouTube of its own, and the Calendar is the UAE account's.
+const socBr = () => (socBranch === 'BAH' ? { p_branch: 'BAH' } : {});
+function socNetsOn() {
+  const all = Object.keys(SOC_NETS);
+  if (socBranch !== 'BAH' || !socData) return all;
+  const d = socData;
+  return all.filter(n => (d.days || []).some(r => r.network === n) || (d.posts || []).some(p => p.network === n) || ((d.followers || {})[n]));
+}
+function socBranchSeg() {
+  return `<div class="sc-seg soc-br" role="group" aria-label="Accounts">${[['UAE', 'UAE'], ['BAH', 'Bahrain']].map(([k, l]) =>
+    `<button type="button" class="${socBranch === k ? 'on' : ''}" aria-pressed="${socBranch === k}" onclick="socSetBranch('${k}')">${l}</button>`).join('')}</div>`;
+}
+function socSetBranch(b) {
+  if (b === socBranch) return;
+  socBranch = b;
+  try { localStorage.setItem('trs-soc-branch', b); } catch (e) {}
+  socData = null; socNet = 'all';
+  if (typeof sgData !== 'undefined') sgData = null;
+  if (socTab === 'calendar') socTab = 'overview';
+  renderSocial();
+}
 
 // ── Every table on Social is the shared Google Sheets table (js/sheet-table.js), Kate 23 Nov 2026 ──
 // Top posts, each platform's Reels / Posts / Videos, Stories and Hashtags: every heading has Sort, Filter by condition and Filter by values,
@@ -155,9 +182,9 @@ const SOC_RAIL = [['sgRoot', 'Overview'], ['soc-glance', 'At a glance'], ['soc-w
 // A platform tab (Instagram, TikTok, Facebook, YouTube) lists its own parts (Kate, 23 Nov 2026: "bakit wala nang sidebar navi pag ig/fb/tk/yt tabs na"):
 // Overview and Calendar open those tabs, the report card and each folded section (Reels, Posts, Audience, Best time, Hashtags...) jump down the page and open it first.
 function socRailList() {
-  if (socTab === 'overview') return SOC_RAIL;
+  if (socTab === 'overview') return SOC_RAIL.filter(r => socBranch !== 'BAH' || r[0] !== 'soc-calendar');
   const secs = [...document.querySelectorAll('#socialContent details.soc-sec[id]')].map(d => { const t = d.querySelector('.soc-sec-t'); return [d.id, t ? t.textContent.trim() : '']; }).filter(r => r[1]);
-  return [['sgRoot', 'Overview', "socSetTab('overview');return false;"], ['soc-plat', SOC_NETS[socTab] + ' report'], ...secs, ['soc-calendar', 'Calendar', "socSetTab('calendar');return false;"]];
+  return [['sgRoot', 'Overview', "socSetTab('overview');return false;"], ['soc-plat', SOC_NETS[socTab] + ' report'], ...secs, ...(socBranch === 'BAH' ? [] : [['soc-calendar', 'Calendar', "socSetTab('calendar');return false;"]])];
 }
 function socRail(on) {
   const shell = document.getElementById('scShell'), side = document.getElementById('scSide');
@@ -183,13 +210,13 @@ async function renderSocial() {
   try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) {}
   const w = socWindow();
   try {
-    const { data, error } = await sb.rpc('social_report', { p_from: w.from, p_to: w.to });
+    const { data, error } = await sb.rpc('social_report', { p_from: w.from, p_to: w.to, ...socBr() });
     if (error || !data) throw error || new Error('no data');
     // series arrive compact ({"network|subject|metric": [[date, value], ...]}); unpack to rows.
     const days = [];
     Object.entries(data.series || {}).forEach(([k, arr]) => { const [network, subject, metric] = k.split('|');
       arr.forEach(([date, value]) => days.push({ date, network, subject, metric, value })); });
-    socData = { ...data, days, win: w };
+    socData = { ...data, days, win: w, branch: socBranch };
   } catch (e) {
     console.error(e);
     el.innerHTML = '<p class="slv-muted">Social didn’t load. Refresh to try again.</p>';
@@ -246,6 +273,8 @@ const SOC_WHY = {
 function socPaint(el) {
   Object.values(socCharts).forEach(c => c && c.destroy()); socCharts = {};
   const d = socData, w = d.win, cols = socCols();
+  // a tab that this set of accounts does not have goes back to Overview (Bahrain has no TikTok, YouTube or Calendar)
+  if (socTab !== 'overview' && (socTab === 'calendar' ? socBranch === 'BAH' : !socNetsOn().includes(socTab))) socTab = 'overview';
   const s = d.sync;
   const stale = !s || !s.last_ok_at || (Date.now() - new Date(s.last_ok_at).getTime()) > 36 * 3600e3;
   const synced = s && s.last_ok_at ? new Date(s.last_ok_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
@@ -253,9 +282,10 @@ function socPaint(el) {
   // The tab row is shared by every tab. Calendar (social-calendar.js, 11 Nov 2026) has its own week / month / list controls, so it skips the Period row.
   const tabsBar = `<div class="sc-bar w13-bar soc-bar">
       <div class="sc-seg soc-tabs" role="tablist" aria-label="Report">
-        ${[['overview', 'Overview'], ['calendar', 'Calendar'], ...Object.entries(SOC_NETS)].map(([k, l]) =>
+        ${[['overview', 'Overview'], ...(socBranch === 'BAH' ? [] : [['calendar', 'Calendar']]), ...Object.entries(SOC_NETS).filter(([k]) => socNetsOn().includes(k))].map(([k, l]) =>
           `<button type="button" role="tab" aria-selected="${socTab === k}" class="${socTab === k ? 'on' : ''}" onclick="socSetTab('${k}')">${k !== 'overview' && k !== 'calendar' ? socLogo(k, cols[k]) : ''}${l}</button>`).join('')}
       </div>
+      ${socBranchSeg()}
     </div>`;
   if (socTab === 'calendar' && typeof socCalHtml === 'function') {
     el.innerHTML = `
@@ -276,7 +306,7 @@ function socPaint(el) {
   el.innerHTML = `
     <section class="slv-intro">
       <h2>Social</h2>
-      <p>Instagram, TikTok, the Facebook page and YouTube in one place. Overview for the quick look; each platform's tab has its full report, as in Metricool. The apps report a day or two late.</p>
+      ${socBranch === 'BAH' ? '<p>Tara Rose Salon Bahrain’s own Instagram and Facebook, from Metricool. Overview for the quick look; each platform’s tab has its full report. The apps report a day or two late, and Bahrain’s numbers start when each account was connected.</p>' : '<p>Instagram, TikTok, the Facebook page and YouTube in one place. Overview for the quick look; each platform\'s tab has its full report, as in Metricool. The apps report a day or two late.</p>'}
     </section>
     ${whyWall(SOC_WHY[socTab] || SOC_WHY.overview)}
     ${tabsBar}
@@ -315,40 +345,40 @@ function socOverviewHtml(T) {
     ${typeof socGlanceHtml === 'function' ? socGlanceHtml() : ''}
     <section class="slv-card" id="soc-glance">
       <div class="slv-head">
-        <div><div class="slv-eyebrow">@tararosesalon</div><h3>At a glance</h3></div>
+        <div><div class="slv-eyebrow">${socBranch === 'BAH' ? '@tararosesalonbahrain' : '@tararosesalon'}</div><h3>At a glance</h3></div>
         <p>${mkEsc(socDayY(w.from))} to ${mkEsc(socDayY(w.to))}</p>
       </div>
       <div class="soc-plats">
-        ${card('instagram', kv([
+        ${socNetsOn().includes('instagram') ? card('instagram', kv([
           ['Views', socNum(t['instagram.views'])],
           ['Reach (added up day by day)', socNum(t['instagram.reach'])],
           ['Posted', count(ig, [['post', 'post'], ['reel', 'reel']])],
-        ]))}
-        ${card('facebook', kv([
+        ])) : ''}
+        ${socNetsOn().includes('facebook') ? card('facebook', kv([
           ['Reel plays', socNum(socSum(fb.filter(p => p.kind === 'reel'), 'views'))],
           ['Post views', socNum(socSum(fb.filter(p => p.kind === 'post'), 'views'))],
           ['Posted', count(fb, [['post', 'post'], ['reel', 'reel']])],
-        ]))}
-        ${card('tiktok', kv([
+        ])) : ''}
+        ${socNetsOn().includes('tiktok') ? card('tiktok', kv([
           ['Video views', socNum(t['tiktok.video_views'])],
           ['Profile visits', socNum(t['tiktok.profile_views'])],
           ['Posted', count(tt, [['video', 'video'], ['photo', 'photo']])],
-        ]))}
-        ${card('youtube', kv([
+        ])) : ''}
+        ${socNetsOn().includes('youtube') ? card('youtube', kv([
           ['Views', socNum(t['youtube.views'])],
           ['Watch time', socMins(t['youtube.estimatedMinutesWatched'])],
           ['Likes', socNum(t['youtube.likes'])],
-        ]))}
+        ])) : ''}
       </div>
       <div class="mk-chart-head">
         <div class="slv-eyebrow">Views ${socMode() === 'week' ? 'week by week' : 'day by day'}</div>
         ${mkModePills('soc', socMode(), 'socRepaint')}
-        <span class="soc-key">${Object.keys(SOC_NETS).map(k => `<span><i style="background:${cols[k]}"></i>${SOC_NETS[k]}</span>`).join('')}</span>
+        <span class="soc-key">${socNetsOn().map(k => `<span><i style="background:${cols[k]}"></i>${SOC_NETS[k]}</span>`).join('')}</span>
       </div>
       <div style="position:relative;height:280px"><canvas id="socCanvas"></canvas></div>
       <p class="slv-note">Instagram, TikTok and YouTube are the account's views that day. Facebook has no daily page views, so its bars are its posts' and reels' views on the day they went out.</p>
     </section>
-    <section class="slv-card" id="soc-web" style="margin-top:14px">
+    ${socBranch === 'BAH' ? '' : `    <section class="slv-card" id="soc-web" style="margin-top:14px">
       <div class="slv-head">
         <div><div class="slv-eyebrow">Website · from Google Analytics</div><h3>From social to the website</h3></div>
         <p>Visits to tararosesalon.com that came from social</p>
@@ -360,7 +390,7 @@ function socOverviewHtml(T) {
         <div class="w13-tile"><div class="slv-eyebrow">From paid social ads</div><div class="w13-val">${socNum(paid.sessions)}</div><div class="slv-note">${stay(paid) !== null ? socPct(stay(paid)) + ' stayed and looked around' : ''}</div></div>
       </div>
       <p class="slv-note">"Stayed and looked around" is Google's engaged visit: 10 seconds or more, a second page, or a booking. The full breakdown is on Website &amp; Search.</p>
-    </section>
+    </section>`}
     <section class="slv-card" id="soc-top" style="margin-top:14px">
       <div class="slv-head">
         <div><div class="slv-eyebrow">What worked</div><h3>Top posts</h3></div>
@@ -392,10 +422,10 @@ function socDrawOverview(T) {
     if (r.network === 'youtube' && r.metric === 'views' && r.subject === 'account') put(r.date, 'youtube', r.value);
   });
   d.posts.forEach(p => { if (p.network === 'facebook' && p.kind !== 'story' && p.post_date) put(p.post_date, 'facebook', p.views); });
-  const rows = mkBuckets(Object.values(by), w.from, w.to, socMode(), Object.keys(SOC_NETS));
+  const rows = mkBuckets(Object.values(by), w.from, w.to, socMode(), socNetsOn());
   const cols = socCols();
   socCharts.overview = socBarChart(document.getElementById('socCanvas'), rows,
-    Object.keys(SOC_NETS).map(k => ({ label: SOC_NETS[k], data: rows.map(r => r[k]), backgroundColor: cols[k], stack: 'v' })), true);
+    socNetsOn().map(k => ({ label: SOC_NETS[k], data: rows.map(r => r[k]), backgroundColor: cols[k], stack: 'v' })), true);
 }
 
 // ── One platform ──────────────────────────────────────────────────────────────────
@@ -455,7 +485,7 @@ function socPlatformHtml(net, T) {
   return `
     <section class="slv-card" id="soc-plat">
       <div class="slv-head">
-        <div><div class="slv-eyebrow"><i class="soc-dot" style="background:${cols[net]}"></i>${SOC_NETS[net]}${net === 'youtube' ? ' · The Tara Rose Podcast' : ' · @tararosesalon'}</div><h3>${SOC_NETS[net]} report</h3></div>
+        <div><div class="slv-eyebrow"><i class="soc-dot" style="background:${cols[net]}"></i>${SOC_NETS[net]}${net === 'youtube' ? ' · The Tara Rose Podcast' : socBranch === 'BAH' ? ' · Tara Rose Salon Bahrain' : ' · @tararosesalon'}</div><h3>${SOC_NETS[net]} report</h3></div>
         <p>${mkEsc(socDayY(w.from))} to ${mkEsc(socDayY(w.to))}${last[net] ? ` · numbers up to ${mkDay(last[net])}` : ''}</p>
       </div>
       <div class="w13-tiles soc-tiles">${tiles}</div>
@@ -633,21 +663,21 @@ function socViewsInner(net, cols) {
     <div style="position:relative;height:240px"><canvas id="socViews"></canvas></div>
     <p class="slv-note" id="socViewsNote">${socViewsNote()}</p>`;
 }
-function socStoryRows() { const w = socData.win; return socStoryViews && socStoryKey === w.from + '|' + w.to ? socStoryViews : null; }
+function socStoryRows() { const w = socData.win; return socStoryViews && socStoryKey === w.from + '|' + w.to + '|' + socBranch ? socStoryViews : null; }
 function socStoryLoad() {
-  const w = socData.win, key = w.from + '|' + w.to;
+  const w = socData.win, key = w.from + '|' + w.to + '|' + socBranch;
   if (socStoryBusy && socStoryBusy.key === key) return socStoryBusy.p;
   const p = (async () => {
     const out = [];
     for (let a = w.from; a <= w.to;) {
       const e = new Date(a + 'T00:00:00'); e.setDate(e.getDate() + 92);
       const b = socIso(e) < w.to ? socIso(e) : w.to;
-      const r = await sb.rpc('content_calendar_story_stats', { p_from: a, p_to: b });
+      const r = await sb.rpc('content_calendar_story_stats', { p_from: a, p_to: b, ...socBr() });
       if (r.error) throw r.error;
       (r.data || []).forEach(x => { if (x.network === 'instagram') out.push({ d: new Date(x.posted_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }), views: x.views, reach: x.reach }); });
       const n = new Date(b + 'T00:00:00'); n.setDate(n.getDate() + 1); a = socIso(n);
     }
-    if (socData && socData.win.from + '|' + socData.win.to === key) { socStoryViews = out; socStoryKey = key; }
+    if (socData && socData.win.from + '|' + socData.win.to + '|' + socBranch === key) { socStoryViews = out; socStoryKey = key; }
     return out;
   })();
   socStoryBusy = { key, p };
