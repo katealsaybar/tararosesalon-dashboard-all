@@ -64,10 +64,29 @@ function gadsSetCustom(k, v) {
   renderGoogleAds();
 }
 
+// ── ON THIS PAGE rail (Kate, 23 Nov 2026: the mini side nav every page carries; the same shell as Website & Search and Discounts and Vouchers) ────
+// Gutter above 1100px, a row of chips below it. A section that has no rows has no id, so it has no entry.
+const GADS_RAIL = [['gads-spend', 'Spend and clicks'], ['gads-salon', 'By salon'], ['gads-campaign', 'By campaign']];
+function gadsRail(on) {
+  const shell = document.getElementById('gaShell'), side = document.getElementById('gaSide');
+  if (!shell || !side) return;
+  shell.classList.toggle('rv-norail', !on);
+  const nav = side.querySelector('.side-nav');
+  if (nav && on) {
+    const live = GADS_RAIL.filter(r => document.getElementById(r[0])), sig = live.map(r => r[0]).join();
+    if (nav.dataset.sig !== sig) {
+      nav.dataset.sig = sig;
+      nav.innerHTML = '<div class="side-k">On this page</div>' + live.map(r => `<a href="#${r[0]}" onclick="lgJump(event,'${r[0]}')">${r[1]}</a>`).join('');
+    }
+  }
+  if (typeof spy === 'function') spy();
+}
+
 async function renderGoogleAds() {
   const el = document.getElementById('googleAdsContent');
   if (!el) return;
   const w = gadsWindow();
+  gadsRail(false);
   el.innerHTML = '<p class="slv-muted">Loading Google Ads…</p>';
   try {
     const { data, error } = await sb.rpc('google_ads_report', { p_from: w.from, p_to: w.to });
@@ -135,7 +154,7 @@ function gadsPaint(el) {
       ['What to watch', 'If cost per click goes up while clicks stay flat, we are paying more for the same visitors.'],
       ['What to do', 'Tell Kate which salon, and she checks the budget with Tara.']])}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Google Ads numbers are paused${s && s.last_error ? ': ' + gadsEsc(s.last_error) : ''}. Last good update: ${synced ? gadsEsc(synced) : 'never'}.</p>` : ''}
-    <section class="slv-card">
+    <section class="slv-card" id="gads-spend">
       <div class="slv-head">
         <div><div class="slv-eyebrow">Tara Rose Salon ad account</div><h3>Spend and clicks</h3></div>
         <p>${gadsEsc(gadsDayY(w.from))} to ${gadsEsc(gadsDayY(w.to))}</p>
@@ -156,14 +175,14 @@ function gadsPaint(el) {
       ${mkQuarterStrip(mkBuckets(d.days, w.from, w.to, 'day', ['cost']), { key: 'cost', label: 'spend', fmt: gadsAed })}` : '<p class="slv-muted">No ad spend in these dates.</p>'}
     </section>
     ${areaRows ? `
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="gads-salon" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">Where the money went</div><h3>By salon</h3></div></div>
       <div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Salon</th><th>Spend (AED)</th><th>Clicks</th><th class="gads-pc">Per click</th><th>Conv.</th></tr></thead>
         <tbody>${areaRows}</tbody></table></div>
       <p class="slv-note">“Abu Dhabi, all” and “Dubai, all” are the brand and hair services campaigns, which advertise every salon in that city.</p>
     </section>
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="gads-campaign" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">Every campaign that ran</div><h3>By campaign</h3></div></div>
       <div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Campaign</th><th>Spend (AED)</th><th>Clicks</th><th class="gads-pc">Per click</th><th>Conv.</th></tr></thead>
@@ -172,6 +191,7 @@ function gadsPaint(el) {
     </section>` : ''}
     <p class="slv-muted">Conversions are whatever Google Ads counts as a conversion for this account. Some campaigns show more conversions than clicks (marked *), so they are not bookings. Spend is in AED as Google bills it.${synced ? ' Updated ' + gadsEsc(synced) + '.' : ''}${d.first_day ? ' Numbers start ' + gadsEsc(gadsDayY(d.first_day)) + '.' : ''}</p>`;
   gadsDraw(d.days);
+  gadsRail(true);
 }
 
 // Spend bars by quarter shade, clicks as the line (as the Quarterly page's sales and clients).

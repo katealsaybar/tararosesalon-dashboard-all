@@ -62,10 +62,29 @@ function madsSetCustom(k, v) {
   renderMetaAds();
 }
 
+// ── ON THIS PAGE rail (Kate, 23 Nov 2026: the mini side nav every page carries; the same shell as Website & Search and Discounts and Vouchers) ────
+// Gutter above 1100px, a row of chips below it. A section that has no rows has no id, so it has no entry.
+const MADS_RAIL = [['mads-spend', 'Spend and clicks'], ['mads-month', 'Month by month'], ['mads-campaign', 'By campaign']];
+function madsRail(on) {
+  const shell = document.getElementById('maShell'), side = document.getElementById('maSide');
+  if (!shell || !side) return;
+  shell.classList.toggle('rv-norail', !on);
+  const nav = side.querySelector('.side-nav');
+  if (nav && on) {
+    const live = MADS_RAIL.filter(r => document.getElementById(r[0])), sig = live.map(r => r[0]).join();
+    if (nav.dataset.sig !== sig) {
+      nav.dataset.sig = sig;
+      nav.innerHTML = '<div class="side-k">On this page</div>' + live.map(r => `<a href="#${r[0]}" onclick="lgJump(event,'${r[0]}')">${r[1]}</a>`).join('');
+    }
+  }
+  if (typeof spy === 'function') spy();
+}
+
 async function renderMetaAds() {
   const el = document.getElementById('metaAdsContent');
   if (!el) return;
   const w = madsWindow();
+  madsRail(false);
   el.innerHTML = '<p class="slv-muted">Loading Meta Ads…</p>';
   try {
     const { data, error } = await sb.rpc('meta_ads_report', { p_from: w.from, p_to: w.to });
@@ -145,7 +164,7 @@ function madsPaint(el) {
       ['What to do', 'Tell Kate which campaign, and she checks the budget with Tara.']])}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Meta Ads numbers are paused${s && s.last_error ? ': ' + madsEsc(s.last_error) : ''}. Last good update: ${synced ? madsEsc(synced) : 'never'}.</p>` : ''}
     ${idle ? `<p class="slv-muted" style="color:#b42318">No Meta ad spend since ${madsEsc(madsDayY(d.last_spend_day))}.${allPaused ? ' The campaigns that ran in these dates are all paused.' : ''}</p>` : ''}
-    <section class="slv-card">
+    <section class="slv-card" id="mads-spend">
       <div class="slv-head">
         <div><div class="slv-eyebrow">Tara Rose Salon ad account</div><h3>Spend and clicks</h3></div>
         <p>${madsEsc(madsDayY(w.from))} to ${madsEsc(madsDayY(w.to))}</p>
@@ -167,13 +186,13 @@ function madsPaint(el) {
       ${mkQuarterStrip(mkBuckets(d.days, w.from, w.to, 'day', ['cost']), { key: 'cost', label: 'spend', fmt: madsAed })}` : '<p class="slv-muted">No ad spend in these dates.</p>'}
     </section>
     ${monthRows ? `
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="mads-month" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">What we spent</div><h3>Month by month</h3></div></div>
       <div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Month</th><th>Spend (AED)</th><th>Clicks</th><th class="gads-pc">Per click</th></tr></thead>
         <tbody>${monthRows}</tbody></table></div>
     </section>` : ''}
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="mads-campaign" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">Each campaign, biggest spend first</div><h3>By campaign</h3></div></div>
       ${campRows ? `<div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Campaign</th><th>Spend (AED)</th><th>Clicks</th><th class="gads-pc">Per click</th><th>Results</th></tr></thead>
@@ -182,6 +201,7 @@ function madsPaint(el) {
     </section>
     <p class="slv-muted">Spend is in AED as Meta bills it, for the Tara Rose Salon ad account. Before August 2026 it comes from Meta’s own payment invoices, spread over the days each campaign ran; after that it is read from Metricool each night. The second Meta account (Instagram boosts) is not in these numbers; Marketing Spend adds it. Results are whatever Meta counts for the campaign’s goal, so they are not bookings.${synced ? ' Updated ' + madsEsc(synced) + '.' : ''}${d.first_day ? ' Spend starts ' + madsEsc(madsDayY(d.first_day)) + '.' : ''}</p>`;
   madsDraw(d.days);
+  madsRail(true);
 }
 
 // Spend bars by quarter shade, clicks as the line (as the Google Ads page).

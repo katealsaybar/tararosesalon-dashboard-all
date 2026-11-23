@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=46425351"></script>
-<script src="js/page-dates.js?v=5e935725"></script>
+<script src="js/page-dates.js?v=c4f40ad1"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3602,7 +3602,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/team-performance.css?v=c23a9f7a">
 <link rel="stylesheet" href="css/nav-collapse.css?v=7809b314">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="css/mobile.css?v=81afc563">
+<link rel="stylesheet" href="css/mobile.css?v=ad1658ca">
 <link rel="stylesheet" href="css/search.css?v=ad896c51">
 <link rel="stylesheet" href="css/client-mix.css?v=9925ddc9">
 <link rel="stylesheet" href="css/sheet-table.css?v=f092f371">   <!-- the table with Google Sheets heading menus (sheet-table.js) -->
@@ -3683,7 +3683,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
-      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=ed3bd9e2', 'js/meta-ads.js?v=9e3fd1f4', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=377adf20', 'js/social-glance.js?v=f8870a38', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=4fa60ec1'],
+      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=377adf20', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=4fa60ec1'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
       wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/team-performance.js?v=f87c34f7', 'js/report-export.js?v=d7b73ae8', 'js/staff-weeks.js?v=0e21c912'],
       lv:  ['js/report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/stylist-levels.js?v=0ed71a8c'],
@@ -4501,7 +4501,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=5799918e&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=38a70efa&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -4780,13 +4780,21 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- GOOGLE ADS (Kate, 6 Oct 2026): spend, clicks and Google's conversions by salon
        and campaign, from google_ads_report over google_ads_daily. google-ads.js draws it. -->
   <div id="view-googleads" style="display:none">
-    <main id="googleAdsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+    <!-- Kate, 23 Nov 2026: the mini side nav (On this page) in the gutter, the Website & Search shell; chips on a phone. google-ads.js (gadsRail) fills it. -->
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="gaShell" style="max-width:1368px;margin:0 auto;padding:10px 28px 48px">
+      <aside class="lg-side" id="gaSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="gaDoc" style="min-width:0"><main id="googleAdsContent"></main></div>
+    </div>
   </div>
 
   <!-- META ADS (Kate, 2 Nov 2026): spend, clicks and Meta's results by campaign, from meta_ads_report over
        meta_ads_daily, meta_ads_metrics_daily and meta_ads_campaign_daily. meta-ads.js draws it. -->
   <div id="view-metaads" style="display:none">
-    <main id="metaAdsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+    <!-- Kate, 23 Nov 2026: the mini side nav (On this page) in the gutter, the Website & Search shell; chips on a phone. meta-ads.js (madsRail) fills it. -->
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="maShell" style="max-width:1368px;margin:0 auto;padding:10px 28px 48px">
+      <aside class="lg-side" id="maSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="maDoc" style="min-width:0"><main id="metaAdsContent"></main></div>
+    </div>
   </div>
 
   <!-- MARKETING SPEND (Kate, 23 Oct 2026): Google and Meta spend by month beside the new clients, from
@@ -4984,7 +4992,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     'Kate writes down the one thing this campaign proved, before the next campaign is planned.');
 })();
 </script>
-<script src="js/jump-nav.js?v=59c419eb"></script>
+<script src="js/jump-nav.js?v=d2896b33"></script>
 <script src="js/bar-hover.js?v=ea0f3135"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
