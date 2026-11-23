@@ -211,3 +211,24 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
 .ord-find{margin:12px 0 4px}
 .ord-find input{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text)}
 .ord-find p{margin:6px 4px 0;min-height:1em}
+
+/* Bulk select in Needs a look (Kate, 23 Nov 2026) */
+.ord-cb{width:18px;height:18px;margin:0;cursor:pointer;accent-color:var(--accent,#2dd4bf);vertical-align:middle}
+.sx-t th.sx-hd,.sx-t td:has(>.ord-cb){width:44px;text-align:center;padding-left:10px;padding-right:6px}
+.ord-bulk{position:sticky;top:calc(var(--sx-top,104px) + 46px);z-index:23;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:8px 12px;margin-bottom:10px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:12px}
+.ord-bulk[hidden]{display:none}
+.ord-bulk .cm-pill{white-space:nowrap;flex:none;box-sizing:border-box;height:34px}
+.ord-bk-n{font-weight:600;white-space:nowrap}
+.ord-bulk input[type=text]{flex:1 1 260px;min-width:200px;height:34px;box-sizing:border-box;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--bg);color:inherit;font:inherit}
+.ord-bulk input[hidden],.ord-bulk .cm-pill[hidden]{display:none}
+/* the arrows in the order window */
+.ord-nv{display:inline-flex;gap:6px;align-items:center}
+.ord-nv .cm-pill{min-width:40px;font-size:16px;line-height:1}
+.ord-nv .cm-pill:disabled{opacity:.35;cursor:default}
+.ord-npos{font-size:13px;color:var(--muted2,inherit);white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:760px){
+  .ord-nv .cm-pill{height:44px;min-width:48px}
+  .ord-bulk{position:static}
+  .ord-bulk input[type=text]{flex:1 1 100%}
+  .ord-bulk .cm-pill{height:44px}
+}

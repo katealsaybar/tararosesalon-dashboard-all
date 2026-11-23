@@ -71,7 +71,7 @@
     };
     T.draw = () => {
       const el = $(cfg.el, cfg.root); if (!el) return;
-      const rows = T.rows(), all = cfg.rows(), cols = T.vis();
+      const rows = T.rows(), all = cfg.rows(), cols = T.vis(), fi = cols.findIndex(c => !c.hd);   // a column with hd (its own heading, e.g. a select box) is never the frozen first column
       if (T.page > T.pages(rows.length) - 1) T.page = T.pages(rows.length) - 1;
       if (T.page < 0) T.page = 0;
       const shown = rows.slice(T.page * T.shown, (T.page + 1) * T.shown);
@@ -79,15 +79,16 @@
         const on = (T.sort && T.sort.k === c.k) || T.f[c.k];
         const sub = typeof c.sub === 'function' ? c.sub() : c.sub;
         const lab = typeof c.l === 'function' ? c.l() : c.l;
-        return `<th class="${c.t === 'num' ? 'r ' : ''}${i === 0 ? 'fc' : ''}"><span class="sx-th"><span class="sx-tl">${esc(lab)}${T.sort && T.sort.k === c.k ? (T.sort.dir > 0 ? ' ↑' : ' ↓') : ''}${sub ? `<small>${esc(sub)}</small>` : ''}</span><button type="button" class="sx-fb${on ? ' on' : ''}" data-sxf="${c.k}" data-sxt="${cfg.id}" aria-label="Sort and filter ${esc(lab)}"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button></span></th>`;
+        if (c.hd) return `<th class="sx-hd">${c.hd()}</th>`;
+        return `<th class="${c.t === 'num' ? 'r ' : ''}${i === fi ? 'fc' : ''}"><span class="sx-th"><span class="sx-tl">${esc(lab)}${T.sort && T.sort.k === c.k ? (T.sort.dir > 0 ? ' ↑' : ' ↓') : ''}${sub ? `<small>${esc(sub)}</small>` : ''}</span><button type="button" class="sx-fb${on ? ' on' : ''}" data-sxf="${c.k}" data-sxt="${cfg.id}" aria-label="Sort and filter ${esc(lab)}"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button></span></th>`;
       }).join('');
       const lab = c => esc(typeof c.l === 'function' ? c.l() : c.l);
-      const body = shown.map(r => `<tr${cfg.rowCls ? ` class="${cfg.rowCls(r)}"` : ''}>${cols.map((c, i) => `<td data-l="${lab(c)}" class="${c.t === 'num' ? 'r ' : ''}${i === 0 ? 'fc' : ''}">${c.cell(r)}</td>`).join('')}</tr>`).join('')
+      const body = shown.map(r => `<tr${cfg.rowCls ? ` class="${cfg.rowCls(r)}"` : ''}>${cols.map((c, i) => `<td data-l="${lab(c)}" class="${c.t === 'num' ? 'r ' : ''}${i === fi ? 'fc' : ''}">${c.cell(r)}</td>`).join('')}</tr>`).join('')
         || `<tr><td colspan="${cols.length}" class="sx-none">Nothing matches.</td></tr>`;
       let foot = '';
       if (cfg.total && rows.length) {
         const tt = cfg.total(rows);
-        foot = `<tr class="tot">${cols.map((c, i) => `<td class="${c.t === 'num' ? 'r ' : ''}${i === 0 ? 'fc' : ''}" data-l="${lab(c)}">${tt[c.k] == null ? '' : tt[c.k]}</td>`).join('')}</tr>`;
+        foot = `<tr class="tot">${cols.map((c, i) => `<td class="${c.t === 'num' ? 'r ' : ''}${i === fi ? 'fc' : ''}" data-l="${lab(c)}">${tt[c.k] == null ? '' : tt[c.k]}</td>`).join('')}</tr>`;
       }
       el.className = 'sx-t';
       el.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}${foot}</tbody>`;
@@ -157,7 +158,7 @@
     const was = POP && POP.dataset.k === 'cm' + T.id; closePop(); if (was) return;
     const pop = document.createElement('div'); pop.className = 'sx-pop'; pop.dataset.k = 'cm' + T.id;
     const lab = c => esc(typeof c.l === 'function' ? c.l() : c.l);
-    pop.innerHTML = '<div class="sx-l">Sort or filter by</div>' + T.vis().map(c => `<div class="sx-sort"><button type="button" data-cm="${c.k}">${lab(c)}${T.f[c.k] ? ' (filter on)' : ''}</button></div>`).join('');
+    pop.innerHTML = '<div class="sx-l">Sort or filter by</div>' + T.vis().filter(c => !c.hd).map(c => `<div class="sx-sort"><button type="button" data-cm="${c.k}">${lab(c)}${T.f[c.k] ? ' (filter on)' : ''}</button></div>`).join('');
     document.body.appendChild(pop); POP = pop;
     const rc = b.getBoundingClientRect(), W = Math.min(300, innerWidth - 16);
     pop.style.width = W + 'px'; pop.style.left = '8px'; const tp = Math.max(8, Math.min(rc.bottom + 4, innerHeight - 340)); pop.style.top = tp + 'px'; pop.style.maxHeight = Math.min(420, innerHeight - tp - 8) + 'px';   // always fully on screen

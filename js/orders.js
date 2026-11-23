@@ -18,7 +18,7 @@ const ORD_STORE = 'trs-orders';
 // The mini side nav (Kate, 19 Nov 2026: "walang mini sidebar navi"): the shared "On this page" rail, a column in the gutter from 1100px and a pinned row of chips under the masthead below that (lgShell, jump-nav.js).
 const ORD_RAIL = [['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
 const ORD = { n: 10, kind: '', q: '' };
-let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordDrafts = {}, ordDraftTimer = null, ordProofs = [];
+let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordDrafts = {}, ordDraftTimer = null, ordProofs = [], ORD_SEL = new Set(), ordNavList = [], ordLastEl = null;
 try { const s = JSON.parse(localStorage.getItem(ORD_STORE) || '{}'); if ([10, 20, 50, 100].includes(s.n)) ORD.n = s.n; } catch (e) {}
 const ordSave = () => { try { localStorage.setItem(ORD_STORE, JSON.stringify({ n: ORD.n })); } catch (e) {} };
 
@@ -62,8 +62,10 @@ const ORD_KINDNAME = { order: 'Order sent', quotation: 'Quotation', confirmation
 const ordIsKept = g => g.f === 'PDF kept' || g.f === 'File kept';
 const ordHasLines = d => Array.isArray(d.lines) && d.lines.length && d.lines.some(l => l && l.unit != null);
 
-function ordBuild(rows) {
-  const m = {};
+// Kate, 23 Nov 2026: "bat naisama to, di naman sya order". A supplier's sign-in, password or verification-code email is not paperwork: it is dropped before anything is grouped.
+const ordNoise = r => r.kind === 'message' && /sign-?in|log-?in|password|verification code|security alert|one-time/i.test(r.subject || '');
+function ordBuild(rows0) {
+  const rows = rows0.filter(r => !ordNoise(r)), m = {};
   // Falconpack and Carrefour: the invoice and the shipping note carry the order number as their reference, but the confirmation and the delivery email only
   // name it in the subject, so they used to sit in a row of their own and the real order looked as if no invoice had come (Kate, 20 Nov 2026: "ndi na ba tlga to ma reconcile").
   // Join them to the row that already holds that number. Nothing is written back; a number that no other email carries stays where it was.
@@ -148,9 +150,10 @@ function ordFinish(key, docs) {
   g.st = g.type === 'Order' ? ORD_RANKNAME[g.hasInv ? 6 : rk] : g.type === 'Statement' ? 'Statement' : g.type === 'Invoice' ? 'Invoiced' : (last.status || 'Notice');
   g.f = docs.some(d => d.file_path && /\.pdf$/i.test(d.file_name || d.file_path)) ? 'PDF kept' : docs.some(d => d.file_path) ? 'File kept' : docs.some(d => d.has_file) ? 'File in email' : 'Email only';
   // why it needs a look: a rule from the script, plus two that depend on today's date, so they are worked out here and never go stale
-  const today = ordToday(), fl = [];
+  const today = ordToday(), fl = [], chk0 = ordChecks[key] || null;
   docs.forEach(d => { if (d.flag && !/^Invoice due in/.test(d.flag) && fl.indexOf(d.flag) < 0) fl.push(d.flag); });
-  docs.forEach(d => { if (d.kind === 'invoice' && d.due) { const left = ordDiff(today, d.due); if (left < 0) fl.push('Invoice overdue by ' + (-left) + ' day' + (left === -1 ? '' : 's') + ', due ' + ordDay(d.due)); else if (left <= 14) fl.push('Invoice due in ' + left + ' day' + (left === 1 ? '' : 's') + ', on ' + ordDay(d.due)); } });
+  // Kate, 23 Nov 2026: an invoice past its due date is only a question (the mailbox cannot see a payment). Once somebody has checked it in the account, or cancelled it, the question is answered.
+  if (!chk0) docs.forEach(d => { if (d.kind === 'invoice' && d.due) { const left = ordDiff(today, d.due); if (left < 0) fl.push('Invoice overdue by ' + (-left) + ' day' + (left === -1 ? '' : 's') + ', due ' + ordDay(d.due)); else if (left <= 14) fl.push('Invoice due in ' + left + ' day' + (left === 1 ? '' : 's') + ', on ' + ordDay(d.due)); } });
   const age = ordDiff(g.start, today);
   // Amazon, Lulu and the Hotpack web store are paid at checkout, so a delivered order from them never gets an invoice to chase (Kate, 20 Nov 2026). Neu is not: its orders go through people.
   const paysAtCheckout = /^(amazon|lulu|hotpack)/i.test(g.s || ''), paidOnOrder = paysAtCheckout && rk >= ORD_RANK.delivered;
@@ -295,6 +298,7 @@ function ordPaint() {
           <p><b>Why it matters.</b> These are the ones that cost money or stock if nobody opens them this week.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW1"></span></p></div>
         <div class="ord-bar"><button type="button" class="cm-pill ord-phone" data-sxcm="look" aria-label="Sort and filter">Filter</button><span class="ord-sp"></span><button type="button" class="cm-pill" id="ordShowChk" onclick="ordShowChecked()">Checked orders (<span id="ordChkN">0</span>)</button><button type="button" class="cm-pill" id="ordClearLook" hidden onclick="ordTL.clear();ordTL.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExportLook') : ''}</div>
+        <div class="ord-bulk" id="ordBulk" hidden><span class="ord-bk-n" id="ordBulkN"></span><button type="button" class="cm-pill" id="ordBulkAll" hidden onclick="ordSelAll()"></button><input type="text" id="ordBulkNote" maxlength="500" autocomplete="off" aria-label="Note for all the selected orders" placeholder="Note for all of them, e.g. tax invoice complete, paid by bank transfer"><button type="button" class="cm-pill" id="ordBulkGo" onclick="ordBulkSave(false)" title="Checked in the supplier's account: a note is needed">Mark as checked</button><button type="button" class="cm-pill" id="ordBulkCx" onclick="ordBulkSave(true)" title="Cancelled in the supplier's account: closed, nothing is owed">Mark as cancelled</button><button type="button" class="cm-pill" onclick="ordSelClear()">Clear</button><span class="ord-muted" id="ordBulkMsg" role="status"></span></div>
         <div class="ord-card"><table id="ordTblLook"></table></div>
         ${ordPagerHtml('look')}
       </section>
@@ -376,10 +380,11 @@ function ordBuildTables() {
   const salCol = () => ({ k: 'b', l: 'Salon', t: 'txt', raw: g => ordName(g.b), disp: g => ordName(g.b), cell: g => ordEsc(ordName(g.b)) });
   const amtCol = () => ({ k: 'a', l: 'Total', sub: 'AED', t: 'num', raw: g => g.a == null ? -1 : g.a, disp: g => g.a == null ? '' : ordAed(g.a), cell: g => g.a == null ? '<span class="ord-muted">-</span>' : `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordAed(g.a)}</button>` });   // one order's total opens that order (it used to open every order of the supplier under this order's name)
   ordTL = TRSheet.table({ id: 'ordlook', el: '#ordTblLook', rows: () => (ORD.q ? ordGroups : ordScope()).filter(g => g.x && ordFindOk(g)), limit: ORD.n,
-    cols: [dateCol(), supCol(),
+    cols: [{ k: 'sel', l: 'Select', t: 'txt', hd: ordSelHead, raw: g => ORD_SEL.has(g.key) ? 1 : 0, disp: g => ORD_SEL.has(g.key) ? 'Selected' : '', cell: g => `<input type="checkbox" class="ord-cb" data-k="${ordEsc(g.key)}" ${ORD_SEL.has(g.key) ? 'checked ' : ''}onchange="ordSelToggle(this)" aria-label="Select ${ordEsc(g.s + (g.r ? ' ' + g.r : ''))}">` },
+      dateCol(), supCol(),
       { k: 'x', l: 'Why it needs a look', t: 'txt', raw: g => g.x, disp: g => g.x, cell: g => `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.x)}</button>` },
       { k: 'k', l: 'Type', t: 'txt', raw: g => g.type, disp: g => g.type, cell: g => ordEsc(g.type) }, salCol(), amtCol()],
-    total: rows => ({ d: rows.length + ' to look at' }), after: (T, rows) => ordAfter('look', T, rows, 'to look at') });
+    total: rows => ({ d: rows.length + ' to look at' }), after: (T, rows) => { ordAfter('look', T, rows, 'to look at'); ordBulkPaint(); } });
   ordTS = TRSheet.table({ id: 'ordsup', el: '#ordTblSup', rows: ordSupRows, limit: ORD.n,
     cols: [
       { k: 's', l: 'Supplier', t: 'txt', raw: r => r.s, disp: r => r.s, cell: r => '<b>' + ordEsc(r.s) + '</b>' },
@@ -410,6 +415,86 @@ function ordBuildTables() {
     rowCls: g => g.x ? 'ord-rowlook' : '',
     total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }, true) }),
     after: (T, rows) => ordAfter('doc', T, rows, 'tracked') });
+}
+// ── BULK: tick orders in Needs a look and mark them all checked or all cancelled (Kate, 23 Nov 2026) ──
+// The ticks live in ORD_SEL. Only the ticked orders that the table shows right now (its filters included) are acted on, so an order filtered out can never be marked by accident.
+const ordLookRows = () => (ordTL ? ordTL.rows() : []);
+const ordLookPage = () => ordTL ? ordLookRows().slice(ordTL.page * ordTL.shown, (ordTL.page + 1) * ordTL.shown) : [];
+const ordSelKeys = () => { const all = new Set(ordLookRows().map(g => g.key)); return Array.from(ORD_SEL).filter(k => all.has(k)); };
+function ordSelHead() {
+  const pg = ordLookPage(), n = pg.filter(g => ORD_SEL.has(g.key)).length;
+  return `<input type="checkbox" class="ord-cb" id="ordSelPage" onchange="ordSelPage(this)" aria-label="Select every order on this page"${pg.length && n === pg.length ? ' checked' : ''}>`;
+}
+function ordSelToggle(cb) { cb.checked ? ORD_SEL.add(cb.dataset.k) : ORD_SEL.delete(cb.dataset.k); ordBulkPaint(); }
+function ordSelPage(cb) {
+  ordLookPage().forEach(g => { cb.checked ? ORD_SEL.add(g.key) : ORD_SEL.delete(g.key); });
+  document.querySelectorAll('#ordTblLook .ord-cb[data-k]').forEach(x => { x.checked = ORD_SEL.has(x.dataset.k); });
+  ordBulkPaint();
+}
+function ordSelAll() { ordLookRows().forEach(g => ORD_SEL.add(g.key)); document.querySelectorAll('#ordTblLook .ord-cb[data-k]').forEach(x => { x.checked = true; }); ordBulkPaint(); }
+function ordSelClear() { ORD_SEL.clear(); document.querySelectorAll('#ordTblLook .ord-cb').forEach(x => { x.checked = false; x.indeterminate = false; }); const m = document.getElementById('ordBulkMsg'); if (m) m.textContent = ''; ordBulkPaint(); }
+function ordBulkPaint() {
+  const bar = document.getElementById('ordBulk'); if (!bar) return;
+  const keys = ordSelKeys(), total = ordLookRows().length, pg = ordLookPage(), n = pg.filter(g => ORD_SEL.has(g.key)).length;
+  bar.hidden = !keys.length && !(document.getElementById('ordBulkMsg') || {}).textContent;
+  document.getElementById('ordBulkN').textContent = keys.length ? keys.length + ' selected' : '';
+  const all = document.getElementById('ordBulkAll'); all.hidden = !keys.length || keys.length >= total; all.textContent = 'Select all ' + total;
+  ['ordBulkNote', 'ordBulkGo', 'ordBulkCx'].forEach(id => { const e = document.getElementById(id); if (e) e.hidden = !keys.length; });
+  const hp = document.getElementById('ordSelPage'); if (hp) { hp.checked = pg.length > 0 && n === pg.length; hp.indeterminate = n > 0 && n < pg.length; }
+}
+let ordBulkBusy = false;
+async function ordBulkSave(canc) {
+  const keys = ordSelKeys().filter(k => ordByKey[k]), msg = document.getElementById('ordBulkMsg'), noteEl = document.getElementById('ordBulkNote');
+  if (!keys.length || ordBulkBusy) return;
+  const note = (noteEl.value || '').trim(), what = keys.length + ' order' + (keys.length === 1 ? '' : 's');
+  if (!canc && !note) { msg.textContent = 'Type a note for all of them first, for example: tax invoice complete, paid by bank transfer.'; noteEl.focus(); return; }
+  if (!confirm('Mark ' + what + ' as ' + (canc ? 'cancelled' : 'checked') + '?\n\nThe note is kept on each one, with your name and today\'s date. Each can be undone from its own window.')) return;
+  ordBulkBusy = true;
+  const btns = document.querySelectorAll('#ordBulk button'); btns.forEach(b => { b.disabled = true; }); noteEl.disabled = true;
+  const note2 = canc ? ('[cancelled] ' + note).trim() : note, ok = [], bad = [];
+  for (let i = 0; i < keys.length; i += 5) {
+    await Promise.all(keys.slice(i, i + 5).map(async k => {
+      try {
+        const proofs = ((ordDrafts[k] || {}).proofs || []).map(p => ({ path: p.path, name: p.name }));   // files already added to this order's draft stay with it
+        const r = await sb.rpc('orders_check_set', { p_group: k, p_on: true, p_note: note2 || null, p_proofs: proofs });
+        if (r.error) throw r.error;
+        ordChecks[k] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note2 || null, proofs };
+        delete ordDrafts[k]; ORD_SEL.delete(k); ok.push(k);
+      } catch (e) { console.error(e); bad.push(k); }
+    }));
+    msg.textContent = 'Saving ' + (ok.length + bad.length) + ' of ' + keys.length + '...';
+  }
+  ordBulkBusy = false; btns.forEach(b => { b.disabled = false; }); noteEl.disabled = false;
+  if (ok.length) { noteEl.value = ''; ordBuild(ordRows); ordPaintAnswer(); ordPaintNotes(); [ordTL, ordTS, ordT].forEach(T => { if (T) T.draw(); }); ordOffsets(); }
+  msg.textContent = (ok.length ? ok.length + ' marked as ' + (canc ? 'cancelled' : 'checked') + '.' : '') + (bad.length ? ' ' + bad.length + ' did not save: they are still ticked, try again.' : '');
+  ordBulkPaint();
+}
+
+// ── ARROWS: the open order has ← and → to go to the one before or after it in the list it was opened from (Kate, 23 Nov 2026) ──
+// The list is the table's rows in the order shown (every page, filters and sort included), or the orders of the list window that is open.
+document.addEventListener('click', e => { ordLastEl = e.target; }, true);
+function ordNavFrom(el) {
+  if (!el || !el.closest) return [];
+  let keys = [];
+  if (el.closest('#ordTblLook') && ordTL) keys = ordTL.rows().map(g => g.key);
+  else if (el.closest('#ordTbl') && ordT) keys = ordT.rows().map(g => g.key);
+  else { const w = el.closest('.dr-modal'); if (w) w.querySelectorAll('[onclick*="ordOpen"][data-k]').forEach(b => keys.push(b.dataset.k)); }
+  const seen = {}; return keys.filter(k => ordByKey[k] && !seen[k] && (seen[k] = 1));
+}
+function ordNavGo(d) {
+  if (!ordCur) return;
+  const i = ordNavList.indexOf(ordCur.key) + d;
+  if (i < 0 || i >= ordNavList.length) return;
+  ordOpen(ordNavList[i], true);
+}
+document.addEventListener('keydown', e => {
+  if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || !document.getElementById('ordModal')) return;
+  const t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;   // never steal the arrows while a note is being typed
+  e.preventDefault(); ordNavGo(e.key === 'ArrowLeft' ? -1 : 1);
+});
+function ordNavHtml(g) {
+  const i = ordNavList.indexOf(g.key), n = ordNavList.length; if (i < 0 || n < 2) return '';
+  return `<span class="ord-nv"><button type="button" class="cm-pill" onclick="ordNavGo(-1)" title="The one before (left arrow key)" aria-label="Previous order"${i === 0 ? ' disabled' : ''}>←</button><span class="ord-npos">${i + 1} of ${n}</span><button type="button" class="cm-pill" onclick="ordNavGo(1)" title="The next one (right arrow key)" aria-label="Next order"${i === n - 1 ? ' disabled' : ''}>→</button></span>`;
 }
 function ordKind(k) {
   ORD.kind = k; ordT.page = 0;
@@ -775,7 +860,7 @@ async function ordProofView(btn) {
 function ordAfterCheck(key) {
   ordBuild(ordRows);
   ordPaintAnswer(); ordPaintNotes(); [ordTL, ordTS, ordT].forEach(T => { if (T) T.draw(); });
-  ordClose(); ordOpen(key);
+  ordClose(); ordOpen(key, true);
 }
 // Every email can be opened as the real thing in the info@ mailbox (Kate, 20 Nov 2026: "i must be able to view this on the email"). The page keeps a short text of each email
 // (and, for an Amazon order mail, the items it lists), so the original, with its pictures and every line, is one click away. Needs Kate or whoever is signed in to info@ in Google.
@@ -850,8 +935,9 @@ async function ordFile(b) {
   } catch (e) { console.error(e); if (typeof lgxToast === 'function') lgxToast('That file did not open. Try again, or ask Kate.', true); }
   finally { b.disabled = false; }
 }
-function ordOpen(key) {
+function ordOpen(key, keepNav) {
   const g = ordByKey[key]; if (!g) return;
+  if (keepNav !== true) ordNavList = ordNavFrom(ordLastEl);
   ordClose();
   ordCur = g;
   // Kate, 19 Nov 2026: Back to the list it came from, then XLSX, CSV, Close (the buttons of every site window). Back shows only when a list window is open underneath.
@@ -867,7 +953,7 @@ function ordOpen(key) {
   } else left = ordBuyHtml(g);
   const m = document.createElement('div');
   m.className = 'ord-modal'; m.id = 'ordModal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Order');
-  m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><div class="ord-hb">${back ? `<button type="button" class="cm-pill ord-back" onclick="ordClose()" title="Back to ${ordEsc(backTxt)}" aria-label="Back to ${ordEsc(backTxt)}">‹ Back<span class="ord-bk-l"> to ${ordEsc(backTxt)}</span></button>` : ''}${typeof rexButtons === 'function' ? rexButtons('ordExportOne') : ''}<button type="button" class="cm-pill" onclick="ordClose()">Close</button></div></div>
+  m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><div class="ord-hb">${ordNavHtml(g)}${back ? `<button type="button" class="cm-pill ord-back" onclick="ordClose()" title="Back to ${ordEsc(backTxt)}" aria-label="Back to ${ordEsc(backTxt)}">‹ Back<span class="ord-bk-l"> to ${ordEsc(backTxt)}</span></button>` : ''}${typeof rexButtons === 'function' ? rexButtons('ordExportOne') : ''}<button type="button" class="cm-pill" onclick="ordClose()">Close</button></div></div>
     <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}${ordAmazonLink(g)}${ordCheckHtml(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div><p class="ord-last">This is the last step: a single order line has nothing behind it.</p></div></div>`;
   m.addEventListener('click', e => { if (e.target === m) ordClose(); });
   document.body.appendChild(m);

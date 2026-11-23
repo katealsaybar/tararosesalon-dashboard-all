@@ -3608,7 +3608,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/sheet-table.css?v=f092f371">   <!-- the table with Google Sheets heading menus (sheet-table.js) -->
 <link rel="stylesheet" href="css/service-rankings.css?v=a868eb70">
 <link rel="stylesheet" href="css/product-spend.css?v=48cbeb24">   <!-- Products, Top products by spend (product-spend.js) -->
-<link rel="stylesheet" href="css/orders.css?v=837cc1e7">   <!-- Orders and Receipts (orders.js) -->
+<link rel="stylesheet" href="css/orders.css?v=b974f05a">   <!-- Orders and Receipts (orders.js) -->
 <link rel="stylesheet" href="css/lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="css/lost-queue.css?v=113b6d23">
 <link rel="stylesheet" href="css/send-schedule.css?v=88a70391">
@@ -3678,7 +3678,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       cl:  [LGX, 'js/report-export.js?v=d7b73ae8', 'js/lost-clients.js?v=221c2b8a', 'js/lost-lists.js?v=394ed562', 'js/lost-consults.js?v=8dd97a9d', 'js/lost-review-file.js?v=de965c04',
             'js/send-schedule.js?v=3abf6266', 'js/lost-queue.js?v=4d4924ab', 'js/lost-waves.js?v=c142e140', 'js/lost-blast.js?v=2c1c9a59',
             'js/lost-report.js?v=7650513b', 'js/wv-blast.js?v=22a9b944', 'js/wv-last.js?v=5f1b7d69', 'js/wv-depth.js?v=e4188c8d', 'js/wv-lastsend.js?v=cf678e57', 'js/wv-remind.js?v=61840cb2', 'js/wv-messages.js?v=356bebe0', 'js/top-clients.js?v=18466b79', 'js/client-mix.js?v=2b34310a',
-            'js/sheet-table.js?v=f56599fd', 'js/service-rankings.js?v=7e133d10'],
+            'js/sheet-table.js?v=29fcde3e', 'js/service-rankings.js?v=7e133d10'],
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
@@ -3704,7 +3704,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Leave & Holiday Calendar (17 Nov 2026): one file, and the spreadsheet export its XLSX and CSV buttons use.
       lvc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/leave-cal.js?v=324f85ea'],
       // Service Calendar (17 Nov 2026): one file; the client name opens the Client Book card, read from client_book_card(). 19 Nov 2026: its tables use the Sheets table and the XLSX and CSV buttons.
-      svc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/service-cal.js?v=fb2bf2b0'],
+      svc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=29fcde3e', 'js/service-cal.js?v=fb2bf2b0'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'js/active-deals.js?v=126d9fbd'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -3716,12 +3716,12 @@ table.tp-cmp td.bad{color:var(--bad)}
       cp:  ['js/report-export.js?v=d7b73ae8', 'js/complaints.js?v=3209eea2', 'js/complaint-chats.js?v=b7e5edc7', 'js/complaints-detail.js?v=3656c2e9', 'js/cmp-people.js?v=5925547b', 'js/complaint-log.js?v=33607687'],
       // Audit 18 Oct 2026 (P1-07, step 4): Products; the Staff Cards words; the Org Chart (search reads ORG_CHART, so search asks for this group);
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
-      pr:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/products.js?v=06fd2cb9', 'js/product-spend.js?v=095cef82'],
+      pr:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=29fcde3e', 'js/products.js?v=06fd2cb9', 'js/product-spend.js?v=095cef82'],
       sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=c4e7c627'],
       // Supplier Spend (13 Nov 2026): who we buy from, what Accounts paid beside what Phorest received; reads spend_report.
       ss:  ['js/report-export.js?v=d7b73ae8', 'js/supplier-spend.js?v=aab0d891'],
       // Orders and Receipts (18 Nov 2026): one file, the Google Sheets table (sheet-table.js) and the report export; reads orders_get.
-      od:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=f56599fd', 'js/orders.js?v=e33aafa4'],
+      od:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=29fcde3e', 'js/orders.js?v=e50b19aa'],
       // Stock Cost (12 Nov 2026): the Stock Cost 2026 Excel as a page that fills itself; reads stock_cost_report, stock_cost_lines, stock_cost_cap_set.
       skc: ['js/report-export.js?v=d7b73ae8', 'js/stock-cost.js?v=4d19fda6'],
       // Retention (3 Nov 2026): one file, reads retention_report and drill_retention_clients.
