@@ -108,17 +108,18 @@ function socSortBy(table, key) {
 
 // ── ON THIS PAGE rail (Kate, 23 Nov 2026: the mini side nav every page carries; the same shell as Website & Search and Google Ads) ────
 // Overview only: the platform tabs and the Calendar are one report each. Gutter above 1100px, a row of chips below it.
-const SOC_RAIL = [['sgRoot', 'How it is doing'], ['soc-glance', 'At a glance'], ['soc-web', 'From social to the website'], ['soc-top', 'Top posts']];
+// A third item is what the entry does instead of jumping down the page: Calendar (Kate, 23 Nov 2026: "calendar is supposed to appear sa mini side bar navi") opens the Calendar tab, so it is always listed.
+const SOC_RAIL = [['sgRoot', 'How it is doing'], ['soc-glance', 'At a glance'], ['soc-web', 'From social to the website'], ['soc-top', 'Top posts'], ['soc-calendar', 'Calendar', "socSetTab('calendar');return false;"]];
 function socRail(on) {
   const shell = document.getElementById('scShell'), side = document.getElementById('scSide');
   if (!shell || !side) return;
   shell.classList.toggle('rv-norail', !on);
   const nav = side.querySelector('.side-nav');
   if (nav && on) {
-    const live = SOC_RAIL.filter(r => document.getElementById(r[0])), sig = live.map(r => r[0]).join();
+    const live = SOC_RAIL.filter(r => r[2] || document.getElementById(r[0])), sig = live.map(r => r[0]).join();
     if (nav.dataset.sig !== sig) {
       nav.dataset.sig = sig;
-      nav.innerHTML = '<div class="side-k">On this page</div>' + live.map(r => `<a href="#${r[0]}" onclick="lgJump(event,'${r[0]}')">${r[1]}</a>`).join('');
+      nav.innerHTML = '<div class="side-k">On this page</div>' + live.map(r => `<a href="#${r[0]}" onclick="${r[2] || `lgJump(event,'${r[0]}')`}">${r[1]}</a>`).join('');
     }
   }
   if (typeof spy === 'function') spy();
