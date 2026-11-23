@@ -159,11 +159,14 @@ function ordFinish(key, docs) {
   if (cancelled) g.st = 'Cancelled';
   // someone opened the order in the supplier's account (or portal) and ticked Checked, with a note and a pasted screenshot as proof (Kate, 20 Nov 2026): the mailbox silence is answered
   const chk = ordChecks[key] || null; g.chk = chk;
+  // Kate, 23 Nov 2026: an order cancelled in the supplier's account (Amazon 'Your order was cancelled', no email) is marked Cancelled by hand. It is kept as a check whose note starts with [cancelled], so no new table is needed; Undo brings the order back.
+  g.canc = !!(chk && /^\[cancelled\]/.test(chk.note || ''));
+  if (g.canc) g.st = 'Cancelled';
   if (g.type === 'Order' && !g.hasInv && age >= 7 && !paidOnOrder && !cancelled && !chk) {
     // for these suppliers the question is not the invoice but whether it ever arrived (or was cancelled or the payment was declined): check it in the supplier's own account
     fl.push(paysAtCheckout ? 'No delivery email after ' + age + ' days: check the order in the ' + (/^amazon/i.test(g.s) ? 'Amazon' : g.s.charAt(0) + g.s.slice(1).toLowerCase()) + ' account' : 'No invoice seen after ' + age + ' days');
   }
-  g.x = fl.join('; ');
+  g.x = g.canc ? '' : fl.join('; ');
   g.n = first.subject || first.note || '';
   return g;
 }
@@ -174,7 +177,7 @@ function ordHay(g) {
   const bits = [g.s, g.r, g.key, g.n, g.st, g.x, g.type, ordName(g.b), g.cat];
   if (g.buy) g.buy.lines.forEach(l => bits.push(l.name));
   g.docs.forEach(d => { bits.push(d.reference, d.subject, d.file_name); });
-  if (g.chk) bits.push(g.chk.note, g.chk.by, 'checked');
+  if (g.chk) bits.push(ordChkTxt(g.chk), g.chk.by, g.canc ? 'cancelled' : 'checked');
   g._hay = bits.filter(Boolean).join(' | ').toLowerCase();
   g._flat = g._hay.replace(/[\s-]+/g, '');
   return g._hay;
@@ -357,6 +360,7 @@ function ordSupRows() {
     last: gs.reduce((x, g) => g.last > x ? g.last : x, ''), pdf: gs.filter(g => ordIsKept(g)).length, look: gs.filter(g => g.x).length }; }).sort((a, b) => b.n - a.n);
 }
 function ordStatusPill(g) {
+  if (g.canc) return `<button type="button" class="ord-st" data-k="${ordEsc(g.key)}" title="Marked as cancelled by ${ordEsc(g.chk.by || '')}" onclick="ordOpen(this.dataset.k)">Cancelled</button>`;
   if (g.chk && !g.x) return `<button type="button" class="ord-st ord-ok" data-k="${ordEsc(g.key)}" title="Checked in the account by ${ordEsc(g.chk.by || '')}" onclick="ordOpen(this.dataset.k)">Checked</button>`;
   if (g.x) return `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" title="${ordEsc('Needs a look: ' + g.x)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.st)}</button>`;
   return `<span class="ord-st${/Invoiced|Delivered|Shipped|Confirmed/.test(g.st) ? ' ord-ok' : ''}">${ordEsc(g.st)}</span>`;
@@ -402,7 +406,7 @@ function ordBuildTables() {
       { k: 'g', l: 'Category', t: 'txt', x: 1, raw: g => g.cat, disp: g => g.cat, cell: g => ordEsc(g.cat) },
       { k: 'ck', l: 'Checked', t: 'txt', x: 1, raw: g => g.chk ? ordDay(String(g.chk.at).slice(0, 10)) + ' by ' + (g.chk.by || '') : '', disp: g => g.chk ? ordDay(String(g.chk.at).slice(0, 10)) + ' by ' + (g.chk.by || '') : '', sk: g => g.chk ? Date.parse(g.chk.at) : 0,
         cell: g => g.chk ? `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordEsc(ordDay(String(g.chk.at).slice(0, 10)))} · ${ordEsc(g.chk.by || '')}</button>` : '<span class="ord-muted">-</span>' },
-      { k: 'cn', l: 'Check note', t: 'txt', x: 1, raw: g => g.chk ? (g.chk.note || '') : '', disp: g => g.chk ? (g.chk.note || '') : '', cell: g => g.chk && g.chk.note ? ordEsc(g.chk.note) : '<span class="ord-muted">-</span>' }],
+      { k: 'cn', l: 'Check note', t: 'txt', x: 1, raw: g => g.chk ? ordChkTxt(g.chk) : '', disp: g => g.chk ? ordChkTxt(g.chk) : '', cell: g => g.chk && ordChkTxt(g.chk) ? ordEsc(ordChkTxt(g.chk)) : '<span class="ord-muted">-</span>' }],
     rowCls: g => g.x ? 'ord-rowlook' : '',
     total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }, true) }),
     after: (T, rows) => ordAfter('doc', T, rows, 'tracked') });
@@ -609,6 +613,7 @@ function ordAmazonLink(g) {
 // proof: as many screenshots as needed, PASTED with Ctrl+V, plus PDFs (Choose a PDF, or drop it on the box). Saved in order_checks (orders_check_set), the files in the private bucket
 // order-proofs. The note and every file are also kept as a DRAFT the moment they are typed or added (orders_draft_set), so closing the window before Mark as checked loses nothing.
 // The tick can be undone.
+const ordChkTxt = c => String((c && c.note) || '').replace(/^\[cancelled\]\s*/, '');
 const ordSafeKey = s => String(s).replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 80);
 const ORD_PROOF_MAX = 10, ORD_PROOF_BYTES = 10 * 1024 * 1024;
 let ordUp = 0;
@@ -618,17 +623,17 @@ function ordCheckHtml(g) {
   if (c) {
     ordProofs = [];
     const ps = Array.isArray(c.proofs) ? c.proofs : [];
-    return `<div class="ord-chk done" id="ordChk"><div class="ord-chk-h"><b>Checked in the account</b> by ${ordEsc(c.by || '')} on ${ordEsc(ordDay(String(c.at || '').slice(0, 10)))}</div>${c.note ? `<p class="ord-chk-n">${ordEsc(c.note)}</p>` : ''}` +
+    return `<div class="ord-chk done" id="ordChk"><div class="ord-chk-h"><b>${g.canc ? 'Marked as cancelled' : 'Checked in the account'}</b> by ${ordEsc(c.by || '')} on ${ordEsc(ordDay(String(c.at || '').slice(0, 10)))}</div>${ordChkTxt(c) ? `<p class="ord-chk-n">${ordEsc(ordChkTxt(c))}</p>` : ''}` +
       `<div class="ord-chk-b">${ps.map((p, i) => `<button type="button" class="cm-pill" data-p="${ordEsc(p.path)}" data-n="${ordEsc(p.name || '')}" onclick="ordProofView(this)">${ordIsPdf(p.name || p.path) ? ordEsc(p.name || 'PDF') : 'Screenshot ' + (i + 1)}</button>`).join('')}<button type="button" class="cm-pill" data-k="${k}" onclick="ordCheckUndo(this.dataset.k)">Undo</button></div><div id="ordChkShow"></div></div>`;
   }
   const d = ordDrafts[g.key] || {};
   ordProofs = g.x ? (Array.isArray(d.proofs) ? d.proofs : []).map(p => ({ path: p.path, name: p.name || '', url: '' })) : [];
-  if (!g.x) return '';
+  if (!g.x) return g.type === 'Order' && g.st !== 'Cancelled' ? `<div class="ord-chk" id="ordChk"><div class="ord-chk-b"><button type="button" class="cm-pill" data-k="${k}" onclick="ordCancelSave(this.dataset.k)">Mark as cancelled</button><span class="ord-muted" id="ordChkMsg">Cancelled in the supplier's account? Mark it here.</span></div></div>` : '';
   return `<div class="ord-chk" id="ordChk"><div class="ord-chk-h"><b>Checked it in the account?</b> Clear this order here.</div>` +
     `<textarea id="ordChkNote" rows="2" maxlength="500" data-k="${k}" oninput="ordDraftTyped(this.dataset.k)" placeholder="Note, for example: paid with the Mastercard ending 2600, arrived 14 Jan">${ordEsc(d.note || '')}</textarea>` +
     `<div class="ord-paste" id="ordChkPaste" tabindex="0">Copy a screenshot, then press Ctrl+V anywhere in this window. Paste as many as you need. To add a PDF, drop it here or <button type="button" class="ord-lk" onclick="document.getElementById('ordChkFile').click()">choose a PDF</button>. Everything is kept as you add it.</div>` +
     `<input type="file" id="ordChkFile" accept="application/pdf,image/png,image/jpeg,image/webp" multiple hidden onchange="ordAddProofs(this.files);this.value=''"><div id="ordChkPrev" class="ord-prevs"></div>` +
-    `<div class="ord-chk-b"><button type="button" class="cm-pill" id="ordChkGo" data-k="${k}" onclick="ordCheckSave(this.dataset.k)">Mark as checked</button><span class="ord-muted" id="ordChkMsg"></span></div></div>`;
+    `<div class="ord-chk-b"><button type="button" class="cm-pill" id="ordChkGo" data-k="${k}" onclick="ordCheckSave(this.dataset.k)">Mark as checked</button><button type="button" class="cm-pill" data-k="${k}" onclick="ordCancelSave(this.dataset.k)" title="The order was cancelled in the supplier's account: it is closed, nothing is owed">Mark as cancelled</button><span class="ord-muted" id="ordChkMsg"></span></div></div>`;
 }
 function ordProofsPaint() {
   const prev = document.getElementById('ordChkPrev'); if (!prev) return;
@@ -728,6 +733,23 @@ async function ordCheckSave(key) {
   } catch (e) {
     console.error(e);
     if (go) go.disabled = false; if (msg) msg.textContent = 'It did not save. Try again, or tell Kate.';
+  }
+}
+async function ordCancelSave(key) {
+  const ta = document.getElementById('ordChkNote'), msg = document.getElementById('ordChkMsg');
+  if (ordUp) { if (msg) msg.textContent = 'A file is still saving. One moment.'; return; }
+  const note = ta ? ta.value.trim() : '', note2 = ('[cancelled] ' + note).trim();
+  document.querySelectorAll('#ordChk button').forEach(b => { b.disabled = true; }); if (msg) msg.textContent = 'Saving...';
+  try {
+    const proofs = ordProofs.map(p => ({ path: p.path, name: p.name }));
+    const r = await sb.rpc('orders_check_set', { p_group: key, p_on: true, p_note: note2, p_proofs: proofs });
+    if (r.error) throw r.error;
+    ordChecks[key] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note2, proofs };
+    delete ordDrafts[key]; clearTimeout(ordDraftTimer);
+    ordAfterCheck(key);
+  } catch (e) {
+    console.error(e);
+    document.querySelectorAll('#ordChk button').forEach(b => { b.disabled = false; }); if (msg) msg.textContent = 'It did not save. Try again, or tell Kate.';
   }
 }
 async function ordCheckUndo(key) {
