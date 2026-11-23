@@ -189,7 +189,7 @@ function socPaint(el) {
     ${stale ? `<p class="slv-muted" style="color:#b42318">Social numbers are paused${s && s.last_error ? ': ' + mkEsc(s.last_error) : ''}. Last good update: ${synced ? mkEsc(synced) : 'never'}.</p>` : ''}
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
     <p class="slv-muted">From Metricool, updated nightly${synced ? ', last ' + mkEsc(synced) : ''}. Numbers start when each account was connected to Metricool. Facebook Ads are not here; Google Ads and Meta Ads each have their own page.</p>`;
-  if (socTab === 'overview') socDrawOverview(T); else socDrawPlatform(socTab, T);
+  if (socTab === 'overview') { socDrawOverview(T); if (typeof socGlanceMount === 'function') socGlanceMount(); } else socDrawPlatform(socTab, T);
 }
 
 // ── Overview ──────────────────────────────────────────────────────────────────────
@@ -217,6 +217,7 @@ function socOverviewHtml(T) {
   const stay = c => Number(c.sessions) ? 100 * Number(c.engaged) / Number(c.sessions) : null;
 
   return `
+    ${typeof socGlanceHtml === 'function' ? socGlanceHtml() : ''}
     <section class="slv-card">
       <div class="slv-head">
         <div><div class="slv-eyebrow">@tararosesalon</div><h3>At a glance</h3></div>
