@@ -52,6 +52,8 @@ const SOC_PLAT = {
 };
 // Platform colours, one set a theme (the charts are drawn in JS, so they read the theme at draw time).
 const socDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+// Reach is the blue line over the Views bars (Kate, 23 Nov 2026: "views vs reach isnt very clear, make it blue for reach, combo graph").
+const socReachBlue = () => (socDark() ? '#6aa6ff' : '#2f6fed');
 const socCols = () => socDark()
   ? { instagram: '#FF9B9B', tiktok: '#99F6E4', facebook: '#C4B5FD', youtube: '#EEF3C7' }   // YouTube butter: the pink was the selector's own colour
   : { instagram: '#C2416A', tiktok: '#1A1A1A', facebook: '#3B5BA9', youtube: '#C4302B' };
@@ -463,7 +465,7 @@ function socPlatformHtml(net, T) {
       <div style="position:relative;height:240px"><canvas id="socFollow"></canvas></div>
       <div class="mk-chart-head">
         <div class="slv-eyebrow">Views ${socMode() === 'week' ? 'week by week' : 'day by day'}</div>
-        ${net === 'instagram' ? `<span class="soc-key"><span><i style="background:${cols[net]}"></i>Views</span><span><i style="background:${socRgba(socCols().instagram, .45)}"></i>Reach</span></span>` : ''}
+        ${net === 'instagram' ? `<span class="soc-key"><span><i style="background:${cols[net]}"></i>Views (bars)</span><span><i style="background:${socReachBlue()};width:16px;height:3px;border-radius:2px"></i>Reach (line)</span></span>` : ''}
       </div>
       <div style="position:relative;height:240px"><canvas id="socViews"></canvas></div>
       ${typeof sgSchedHtml === 'function' ? sgSchedHtml(net, cols) : ''}
@@ -601,7 +603,7 @@ function socDrawPlatform(net) {
   ], true, true);
   socCharts.views = socBarChart(document.getElementById('socViews'), rows, [
     { label: 'Views', data: rows.map(r => r.views), backgroundColor: cols[net] },
-    ...(P.reach ? [{ type: 'line', label: 'Reach (added up day by day)', data: rows.map(r => r.reach), borderColor: socRgba(cols[net], .55), backgroundColor: socRgba(cols[net], .55), borderWidth: 2, pointRadius: 0, tension: .3 }] : []),
+    ...(P.reach ? [{ type: 'line', label: 'Reach (added up day by day)', data: rows.map(r => r.reach), borderColor: socReachBlue(), backgroundColor: socReachBlue(), borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: socReachBlue(), tension: .3 }] : []),
   ], false);
   if (typeof sgSchedDraw === 'function') sgSchedDraw(net);
 }
