@@ -36,7 +36,7 @@ function sgShapePosts(arr, srcMap) {
   const rows = (arr || []).filter(p => SG_PN[p.network] && p.kind !== 'story').map(p => {
     const kind = p.network === 'instagram' ? (p.kind === 'reel' ? 'reel' : 'post') : p.kind, at = Date.parse(p.posted_at) || 0;
     const l = Number(p.interactions) || 0, sv = Number(p.saves) || 0;
-    return { net: p.network, kind, g: p.network + '_' + kind, src: srcMap ? (srcMap[p.url || (p.network + '|' + p.posted_at)] || null) : (p.source || null), d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
+    return { net: p.network, kind, cap: String(p.caption || '').trim(), img: p.image_url || '', g: p.network + '_' + kind, src: srcMap ? (srcMap[p.url || (p.network + '|' + p.posted_at)] || null) : (p.source || null), d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
       v: Number(p.views) || 0, r: Number(p.reach) || 0, l: Number(p.likes) || 0, c: Number(p.comments) || 0, s: Number(p.shares) || 0, sv, it: l + sv };
   });
   return rows;
@@ -66,7 +66,7 @@ function sgHowLoad() {
       const [po, st] = await Promise.all([sb.rpc('content_calendar_posts', { p_from: a, p_to: b }), sb.rpc('content_calendar_stories', { p_from: a, p_to: b })]);
       if (po.error || st.error || !po.data) throw po.error || st.error || new Error('no data');
       (po.data.posts || []).forEach(x => { src[x.url || (x.network + '|' + x.posted_at)] = x.source || null; });
-      (st.data || []).forEach(x => stories.push({ net: x.network, d: String(x.post_date).slice(0, 10) }));
+      (st.data || []).forEach(x => stories.push({ net: x.network, d: String(x.post_date).slice(0, 10), at: Date.parse(x.posted_at) || 0, img: x.image_url || '' }));
       a = sgAdd(b, 1);
     }
     const out = { src, stories };
@@ -365,8 +365,8 @@ function sgSchedInner(net, cols) {
   const small = showP && mine.length && Math.min(S.length, M.length) < 5;
   const seg = sto.length ? `<div class="sc-seg" role="group" aria-label="Show">${[['all', 'All'], ['stories', 'Stories'], ['posts', 'Posts']].map(([k, l]) => `<button type="button" class="${v === k ? 'on' : ''}" aria-pressed="${v === k}" onclick="sgSchedSet('${k}')">${l}</button>`).join('')}</div>` : '';
   const has = showP ? (mine.length || showS) : showS;
-  const said = !showP ? `<b>${sgN(sto.length)} stories (posted live in the app, so by hand).</b> This is the Content Calendar's own record.`
-    : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record.${showS ? ' Stories are the bars (left scale), posts the line (right scale).' : ''}${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}`;
+  const said = !showP ? `<b>${sgN(sto.length)} stories (posted live in the app, so by hand).</b> This is the Content Calendar's own record. Click a bar to see the stories.`
+    : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record. Click a bar${showS ? ' or a point' : ''} to see which ${showS ? 'posts and stories' : 'posts'} they are.${showS ? ' Stories are the bars (left scale), posts the line (right scale).' : ''}${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}`;
   return `<div class="mk-chart-head">
       <div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div>
       ${seg}
@@ -406,11 +406,11 @@ function sgSchedDraw(net) {
   const rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['sched', 'hand', 'story']);
   const both = showP && showS, C = sgSchedC();
   const datasets = both ? [
-    { label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t },
-    { type: 'line', yAxisID: 'y1', label: 'Posts', data: rows.map(r => (r.sched || 0) + (r.hand || 0)), borderColor: C.p, backgroundColor: C.p, borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: C.p, tension: .25 },
+    { sk: 'story', label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t },
+    { sk: 'post', type: 'line', yAxisID: 'y1', label: 'Posts', data: rows.map(r => (r.sched || 0) + (r.hand || 0)), borderColor: C.p, backgroundColor: C.p, borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: C.p, tension: .25 },
   ] : [
-    ...(showP ? [{ label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: C.s, stack: 's' }, { label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: C.h, stack: 's' }] : []),
-    ...(showS ? [{ label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t, stack: 's' }] : []),
+    ...(showP ? [{ sk: 'sched', label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: C.s, stack: 's' }, { sk: 'hand', label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: C.h, stack: 's' }] : []),
+    ...(showS ? [{ sk: 'story', label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t, stack: 's' }] : []),
   ];
   const c = socCharts.sched = socBarChart(cv, rows, datasets, !both, both);
   if (c && both) {
@@ -420,5 +420,139 @@ function sgSchedDraw(net) {
     const lab = c.options.plugins.tooltip.callbacks.label;
     c.options.plugins.tooltip.callbacks.label = x => x.dataset.label === 'Posts' ? `Posts: ${socNum(x.raw)} (scheduled ${socNum(rows[x.dataIndex].sched || 0)}, by hand ${socNum(rows[x.dataIndex].hand || 0)})` : lab(x);
   }
-  if (c) { c.options.scales.y.ticks = { ...(c.options.scales.y.ticks || {}), precision: 0 }; c.update(); }
+  if (c) {
+    c.options.scales.y.ticks = { ...(c.options.scales.y.ticks || {}), precision: 0 };
+    // A click on a bar or a point opens the posts and stories behind it (Kate, 23 Nov 2026). Off a bar, a click inside the day still opens that day.
+    const total = i => (rows[i].sched || 0) + (rows[i].hand || 0) + (rows[i].story || 0);
+    c.options.onClick = (e, _els, ch) => sgPopFromClick(ch, e, rows, net, showP, showS);
+    c.options.onHover = (e, _els, ch) => { const ix = sgPopHit(ch, e); ch.canvas.style.cursor = ix && total(ix.index) ? 'pointer' : 'default'; };
+    c.update();
+  }
+}
+
+// ── The popup behind a bar or a point (Kate, 23 Nov 2026) ─────────────────────────────────────────────────────────────────
+// Click a bar or a line point on the Scheduled or by hand chart and the posts and stories behind it open in a window. Its look is the Content Calendar's post panel
+// (social-calendar.css: the platform badge and date head, the picture, Open on the app, the number tiles), as a centred window, and a sheet from the bottom on a phone.
+// Posts come from the rows the chart already holds; stories from the Content Calendar's own call (picture and time), and their numbers (views, reach, replies, taps)
+// are asked for only for the day or week that was clicked, through content_calendar_story_stats. Nothing is written.
+let sgPopS = null, sgPopEl = null, sgPopFocus = null;
+const sgPopStatsCache = {};
+function sgPopHit(ch, e) {
+  const a = ch.chartArea; if (!a || e.x < a.left || e.x > a.right || e.y < a.top || e.y > a.bottom) return null;
+  return ch.getElementsAtEventForMode(e, 'index', { intersect: false }, false)[0] || null;
+}
+function sgPopFromClick(ch, e, rows, net, showP, showS) {
+  const near = ch.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false)[0];
+  const ix = near || sgPopHit(ch, e); if (!ix) return;
+  const row = rows[ix.index]; if (!row) return;
+  // a bar or point opens what it stands for; a click inside the day but off a bar opens everything that day
+  const sk = near ? ch.data.datasets[near.datasetIndex].sk : null;
+  const view = sk === 'story' ? 'stories' : sk === 'sched' ? 'sched' : sk === 'hand' ? 'hand' : sk === 'post' ? 'posts' : 'all';
+  const s = { net, from: row.from, to: row.to, week: socMode() === 'week', showP, showS, view };
+  const items = sgPopItems(s, 'all'); if (!items.posts.length && !items.stories.length) return;
+  sgPopOpen(s);
+}
+function sgPopItems(s, view) {
+  const inDay = d => d >= s.from && d <= s.to;
+  let posts = s.showP ? sgSchedPosts().filter(p => p.net === s.net && (p.sch || p.man) && inDay(p.d)) : [];
+  let stories = s.showS ? sgSchedStories(s.net).filter(x => inDay(x.d)) : [];
+  if (view === 'sched') posts = posts.filter(p => p.sch);
+  if (view === 'hand') posts = posts.filter(p => p.man);
+  if (view === 'posts' || view === 'sched' || view === 'hand') stories = [];
+  if (view === 'stories') posts = [];
+  return { posts: posts.slice().sort((a, b) => a.at - b.at), stories: stories.slice().sort((a, b) => a.at - b.at) };
+}
+function sgPopOpen(s) {
+  sgPopClose(true);
+  sgPopS = s; sgPopFocus = document.activeElement;
+  const el = sgPopEl = document.createElement('div');
+  el.className = 'sgp-root';
+  document.body.appendChild(el);
+  document.addEventListener('keydown', sgPopKey);
+  sgPopPaint(true);
+  sgPopStats(s);
+}
+function sgPopClose(quiet) {
+  document.removeEventListener('keydown', sgPopKey);
+  if (sgPopEl) { sgPopEl.remove(); sgPopEl = null; }
+  sgPopS = null;
+  if (!quiet && sgPopFocus && sgPopFocus.focus && document.contains(sgPopFocus)) { try { sgPopFocus.focus(); } catch (e) {} }
+  if (!quiet) sgPopFocus = null;
+}
+function sgPopKey(e) {
+  if (e.key === 'Escape') { e.preventDefault(); sgPopClose(); return; }
+  if (e.key !== 'Tab' || !sgPopEl) return;
+  const f = [...sgPopEl.querySelectorAll('button:not([disabled]),a[href]')]; if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (!sgPopEl.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+function sgPopView(v) { if (!sgPopS) return; sgPopS.view = v; sgPopPaint(false); const b = sgPopEl && sgPopEl.querySelector('.sgp-seg .on'); if (b) b.focus(); }
+// The numbers for the stories on show, once, for the day or week clicked. A failed call leaves the stories with their picture and time only.
+async function sgPopStats(s) {
+  if (!s.showS) return;
+  const key = s.net + '|' + s.from + '|' + s.to;
+  if (sgPopStatsCache[key] === undefined) {
+    try {
+      const r = await sb.rpc('content_calendar_story_stats', { p_from: s.from, p_to: s.to });
+      if (r.error) throw r.error;
+      const by = {}; (r.data || []).forEach(x => { if (x.network === s.net) by[Date.parse(x.posted_at) || 0] = x; });
+      sgPopStatsCache[key] = by;
+    } catch (e) { console.error(e); sgPopStatsCache[key] = null; }
+  }
+  if (sgPopS === s) { s.stats = sgPopStatsCache[key]; s.statsDone = true; sgPopPaint(false); }
+}
+const sgClock12 = at => at ? new Date(at).toLocaleTimeString('en-US', { ...sgTz, hour: 'numeric', minute: '2-digit' }).toLowerCase().replace(/\s/g, '') : '';
+const sgPopDay = (at, week) => {
+  const t = sgClock12(at);
+  return (week && at ? new Date(at).toLocaleDateString('en-GB', { ...sgTz, weekday: 'short', day: 'numeric', month: 'short' }) + (t ? ', ' : '') : '') + (t || 'Time not known');
+};
+const sgPopNum = (l, v) => `<div class="sgp-num"><div class="v">${sgN(v)}</div><div class="l">${mkEsc(l)}</div></div>`;
+function sgPopThumb(img, key) {
+  let h = 0; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0; h %= 360;
+  return `<span class="sgp-th" style="--g:linear-gradient(155deg,hsl(${h} 45% 62%),hsl(${(h + 30) % 360} 35% 38%))">${img ? `<img src="${mkEsc(img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
+}
+function sgPopPostHtml(p, s, one) {
+  const video = p.kind === 'reel' || p.kind === 'video', app = SG_PN[p.net];
+  const nums = [sgPopNum('Likes', p.l), sgPopNum('Comments', p.c), sgPopNum(p.net === 'facebook' && p.kind === 'post' ? 'Impressions' : 'Views', p.v),
+    p.r ? sgPopNum('Reach', p.r) : '', p.s ? sgPopNum(p.net === 'instagram' ? 'Reposts' : 'Shares', p.s) : '', p.sv ? sgPopNum('Saves', p.sv) : ''].join('');
+  return `<article class="sgp-card${one ? ' one' : ''}">${sgPopThumb(p.img, p.d + p.t + p.net)}
+    <div class="sgp-cb"><div class="sgp-r1"><b>${mkEsc(sgPopDay(p.at, s.week))}</b><span>${mkEsc(app)} ${mkEsc((SG_KL[p.kind] || p.kind).toLowerCase())}</span><span class="sg-tag">${mkEsc(sgHowName(p))}</span></div>
+      <p class="sgp-cap">${mkEsc(p.cap || '(no caption)')}</p>
+      <div class="sgp-nums">${nums}</div>
+      ${p.url ? `<a class="sc-btn sgp-open" href="${mkEsc(p.url)}" target="_blank" rel="noopener">${video ? 'Watch' : 'Open'} on ${mkEsc(app)}</a>` : ''}</div></article>`;
+}
+function sgPopStoryHtml(x, s, one) {
+  const st = s.stats && s.stats[x.at], app = SG_PN[s.net], n = v => (v === null || v === undefined) ? null : Number(v);
+  let nums = '';
+  if (st) {
+    const list = [['Views', n(st.views)], ['Reach', n(st.reach)], ['Replies', n(st.replies)], ['Taps forward', n(st.taps_forward)], ['Taps back', n(st.taps_back)], ['Exits', n(st.exits)]]
+      .filter(([l, v]) => v !== null && (v > 0 || l === 'Views' || l === 'Reach'));
+    if (list.some(([, v]) => v > 0)) nums = `<div class="sgp-nums">${list.map(([l, v]) => sgPopNum(l, v)).join('')}</div>`;
+  }
+  if (!nums) nums = `<p class="sgp-none">${!s.statsDone ? 'Reading the numbers…' : s.net === 'facebook' ? 'Metricool gives no numbers for Facebook stories.' : s.stats === null ? 'The numbers did not load just now.' : 'No numbers for this story yet.'}</p>`;
+  return `<article class="sgp-card story${one ? ' one' : ''}">${sgPopThumb(x.img, 'story' + x.at)}
+    <div class="sgp-cb"><div class="sgp-r1"><b>${mkEsc(sgPopDay(x.at, s.week))}</b><span>${mkEsc(app)} story</span><span class="sg-tag">Posted live in the app</span></div>${nums}</div></article>`;
+}
+function sgPopPaint(first) {
+  const s = sgPopS, el = sgPopEl; if (!s || !el) return;
+  const net = s.net, bg = socCols()[net] || '#888888', fg = typeof scalBadgeFg === 'function' && /^#[0-9a-f]{6}$/i.test(bg) ? scalBadgeFg(bg) : '#FFFFFF';
+  const all = sgPopItems(s, 'all'), now = sgPopItems(s, s.view);
+  const nP = all.posts.length, nS = all.stories.length, nSch = all.posts.filter(p => p.sch).length, nHand = all.posts.filter(p => p.man).length;
+  const opts = s.showP && s.showS ? (nP && nS ? [['all', 'All', nP + nS], ['posts', 'Posts', nP], ['stories', 'Stories', nS]] : [])
+    : (nSch && nHand ? [['all', 'All posts', nP], ['sched', 'Scheduled', nSch], ['hand', 'By hand', nHand]] : []);
+  const seg = opts.length ? `<div class="sc-seg sgp-seg" role="group" aria-label="Show">${opts.map(([k, l, c]) => `<button type="button" class="${s.view === k ? 'on' : ''}" aria-pressed="${s.view === k}" onclick="sgPopView('${k}')">${l} <span>${c}</span></button>`).join('')}</div>` : '';
+  const dl = iso => new Date(iso + 'T00:00:00');
+  const title = s.week ? 'Week of ' + dl(s.from).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : dl(s.from).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const count = (np, ns) => [np ? `${np} post${np === 1 ? '' : 's'}` : '', ns ? `${ns} stor${ns === 1 ? 'y' : 'ies'}` : ''].filter(Boolean).join(' and ');
+  const one = now.posts.length + now.stories.length === 1;
+  const body = now.posts.map(p => sgPopPostHtml(p, s, one)).join('') + now.stories.map(x => sgPopStoryHtml(x, s, one)).join('');
+  el.innerHTML = `<div class="sgp-scrim" onclick="sgPopClose()"></div>
+    <div class="sgp" role="dialog" aria-modal="true" aria-labelledby="sgpT" style="--c:${bg};--bf:${fg}">
+      <div class="sgp-ph"><span class="sgp-b" aria-hidden="true">${SG_BD[net]}</span>
+        <div class="when"><b id="sgpT">${mkEsc(title)}</b><span>${mkEsc(SG_PN[net])}: ${mkEsc(count(now.posts.length, now.stories.length) || 'nothing')}${s.week ? ' · ' + mkEsc(socDayY(s.from)) + ' to ' + mkEsc(socDayY(s.to)) : ''}</span></div>
+        <button type="button" class="sgp-x" aria-label="Close" onclick="sgPopClose()">×</button></div>
+      <div class="sgp-pb">${seg}${body || '<p class="sgp-none">Nothing here.</p>'}</div></div>`;
+  if (first) { const c = el.querySelector('.sgp-x'); if (c) c.focus(); }
 }
