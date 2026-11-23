@@ -37,7 +37,8 @@ function sgShapePosts(arr, srcMap) {
   const rows = (arr || []).filter(p => SG_PN[p.network] && p.kind !== 'story').map(p => {
     const kind = p.network === 'instagram' ? (p.kind === 'reel' ? 'reel' : 'post') : p.kind, at = Date.parse(p.posted_at) || 0;
     const l = Number(p.interactions) || 0, sv = Number(p.saves) || 0;
-    return { net: p.network, kind, cap: String(p.caption || '').trim(), img: p.image_url || '', g: p.network + '_' + kind, src: p.source || null,   // how it went out comes with every post (social_report), as the Content Calendar reads it d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
+    // src: how it went out comes with every post (social_report), as the Content Calendar reads it
+    return { net: p.network, kind, cap: String(p.caption || '').trim(), img: p.image_url || '', g: p.network + '_' + kind, src: p.source || null, d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
       v: Number(p.views) || 0, r: Number(p.reach) || 0, l: Number(p.likes) || 0, c: Number(p.comments) || 0, s: Number(p.shares) || 0, sv, it: l + sv };
   });
   return rows;
@@ -440,14 +441,15 @@ function sgPopHit(ch, e) {
 }
 // Hooks a chart: a click on a bar or a point opens the window, the pointer shows which days have something to open.
 // o = { showP, showS, rec, note, sum }: posts and stories the chart counts, rec = only posts the Content Calendar has a record for, note = a line shown at the top of the window,
-// sum(row) = number tiles for that day or week shown above the list (the Followers chart: gained, lost, followers), so a day with nothing posted still opens.
+// sum(row, platform) = number tiles for that day or week shown above the list (the Followers chart: gained, lost, followers), so a day with nothing posted still opens.
 function sgPopAttach(c, rows, net, o) {
   if (!c || net === 'youtube') return;   // YouTube has no post list in Metricool
+  // net can be 'all' with o.nets = the platforms the chart stacks (Overview); a bar then opens its own platform, a click in the day off a bar all of them
   let lastI = -1, lastOn = false;
   c.options.onClick = (e, _els, ch) => sgPopFromClick(ch, e, rows, net, o);
   c.options.onHover = (e, _els, ch) => {
     const ix = sgPopHit(ch, e), i = ix ? ix.index : -1;
-    if (i !== lastI) { lastI = i; const s = { net, from: i >= 0 ? rows[i].from : '', to: i >= 0 ? rows[i].to : '', ...o }; const it = i >= 0 ? sgPopItems(s, 'all') : null;
+    if (i !== lastI) { lastI = i; const s = { net, nets: o.nets || [net], from: i >= 0 ? rows[i].from : '', to: i >= 0 ? rows[i].to : '', ...o }; const it = i >= 0 ? sgPopItems(s, 'all') : null;
       lastOn = !!it && ((it.posts.length + it.stories.length) > 0 || (!!o.sum && o.sum(rows[i]).some(t => t[1]))); }
     ch.canvas.style.cursor = lastOn ? 'pointer' : 'default';
   };
@@ -460,10 +462,12 @@ async function sgPopFromClick(ch, e, rows, net, o) {
   // a bar or point opens what it stands for; a click inside the day but off a bar opens everything that day
   const sk = near ? ch.data.datasets[near.datasetIndex].sk : null;
   const view = sk === 'story' ? 'stories' : sk === 'sched' ? 'sched' : sk === 'hand' ? 'hand' : sk === 'post' ? 'posts' : 'all';
-  const s = { net, from: row.from, to: row.to, week: socMode() === 'week', ...o, view };
+  const dn = near ? ch.data.datasets[near.datasetIndex].net : null, nets = dn ? [dn] : (o.nets || [net]);
+  const s = { net: nets.length === 1 ? nets[0] : 'all', nets, from: row.from, to: row.to, week: socMode() === 'week', ...o, view };
+  if (dn && o.noteFor) s.note = o.noteFor(dn);
   // the stories' pictures and times come with the Content Calendar's record; wait for it if it has not arrived yet
   if (s.showS && !sgHowReady()) { try { await sgHowLoad(); } catch (err) { console.error(err); return; } }
-  s.tiles = o.sum ? o.sum(row) : null;
+  s.tiles = o.sum ? o.sum(row, dn) : null;
   const items = sgPopItems(s, 'all'); if (!items.posts.length && !items.stories.length && !(s.tiles && s.tiles.some(t => t[1]))) return;
   sgPopOpen(s);
 }
@@ -471,8 +475,8 @@ async function sgPopFromClick(ch, e, rows, net, o) {
 const sgPopAllPosts = () => sgHowReady() ? sgSchedPosts() : sgHow(sgShapePosts(socData.posts, null));
 function sgPopItems(s, view) {
   const inDay = d => d >= s.from && d <= s.to;
-  let posts = s.showP ? sgPopAllPosts().filter(p => p.net === s.net && (!s.rec || p.sch || p.man) && inDay(p.d)) : [];
-  let stories = s.showS ? sgSchedStories(s.net).filter(x => inDay(x.d)) : [];
+  let posts = s.showP ? sgPopAllPosts().filter(p => s.nets.includes(p.net) && (!s.rec || p.sch || p.man) && inDay(p.d)) : [];
+  let stories = s.showS ? (sgHowReady() ? sgHowReady().stories : []).filter(x => s.nets.includes(x.net) && inDay(x.d)) : [];
   if (view === 'sched') posts = posts.filter(p => p.sch);
   if (view === 'hand') posts = posts.filter(p => p.man);
   if (view === 'posts' || view === 'sched' || view === 'hand') stories = [];
@@ -509,12 +513,12 @@ function sgPopView(v) { if (!sgPopS) return; sgPopS.view = v; sgPopPaint(false);
 // The numbers for the stories on show, once, for the day or week clicked. A failed call leaves the stories with their picture and time only.
 async function sgPopStats(s) {
   if (!s.showS) return;
-  const key = s.net + '|' + s.from + '|' + s.to;
+  const key = s.from + '|' + s.to;
   if (sgPopStatsCache[key] === undefined) {
     try {
       const r = await sb.rpc('content_calendar_story_stats', { p_from: s.from, p_to: s.to, ...socBr() });
       if (r.error) throw r.error;
-      const by = {}; (r.data || []).forEach(x => { if (x.network === s.net) by[Date.parse(x.posted_at) || 0] = x; });
+      const by = {}; (r.data || []).forEach(x => { by[x.network + '|' + (Date.parse(x.posted_at) || 0)] = x; });
       sgPopStatsCache[key] = by;
     } catch (e) { console.error(e); sgPopStatsCache[key] = null; }
   }
@@ -541,20 +545,20 @@ function sgPopPostHtml(p, s, one) {
       ${p.url ? `<a class="sc-btn sgp-open" href="${mkEsc(p.url)}" target="_blank" rel="noopener">${video ? 'Watch' : 'Open'} on ${mkEsc(app)}</a>` : ''}</div></article>`;
 }
 function sgPopStoryHtml(x, s, one) {
-  const st = s.stats && s.stats[x.at], app = SG_PN[s.net], n = v => (v === null || v === undefined) ? null : Number(v);
+  const st = s.stats && s.stats[x.net + '|' + x.at], app = SG_PN[x.net], n = v => (v === null || v === undefined) ? null : Number(v);
   let nums = '';
   if (st) {
     const list = [['Views', n(st.views)], ['Reach', n(st.reach)], ['Replies', n(st.replies)], ['Taps forward', n(st.taps_forward)], ['Taps back', n(st.taps_back)], ['Exits', n(st.exits)]]
       .filter(([l, v]) => v !== null && (v > 0 || l === 'Views' || l === 'Reach'));
     if (list.some(([, v]) => v > 0)) nums = `<div class="sgp-nums">${list.map(([l, v]) => sgPopNum(l, v)).join('')}</div>`;
   }
-  if (!nums) nums = `<p class="sgp-none">${!s.statsDone ? 'Reading the numbers…' : s.net === 'facebook' ? 'Metricool gives no numbers for Facebook stories.' : s.stats === null ? 'The numbers did not load just now.' : 'No numbers for this story yet.'}</p>`;
+  if (!nums) nums = `<p class="sgp-none">${!s.statsDone ? 'Reading the numbers…' : x.net === 'facebook' ? 'Metricool gives no numbers for Facebook stories.' : s.stats === null ? 'The numbers did not load just now.' : 'No numbers for this story yet.'}</p>`;
   return `<article class="sgp-card story${one ? ' one' : ''}">${sgPopThumb(x.img, 'story' + x.at)}
     <div class="sgp-cb"><div class="sgp-r1"><b>${mkEsc(sgPopDay(x.at, s.week))}</b><span>${mkEsc(app)} story</span><span class="sg-tag">Posted live in the app</span></div>${nums}</div></article>`;
 }
 function sgPopPaint(first) {
   const s = sgPopS, el = sgPopEl; if (!s || !el) return;
-  const net = s.net, bg = socCols()[net] || '#888888', fg = typeof scalBadgeFg === 'function' && /^#[0-9a-f]{6}$/i.test(bg) ? scalBadgeFg(bg) : '#FFFFFF';
+  const net = s.net, one1 = net !== 'all', bg = one1 ? (socCols()[net] || '#888888') : (socDark() ? '#FAF8F3' : '#1A1A1A'), fg = !one1 ? (socDark() ? '#1A1A1A' : '#FFFFFF') : typeof scalBadgeFg === 'function' && /^#[0-9a-f]{6}$/i.test(bg) ? scalBadgeFg(bg) : '#FFFFFF';
   const all = sgPopItems(s, 'all'), now = sgPopItems(s, s.view);
   const nP = all.posts.length, nS = all.stories.length, nSch = all.posts.filter(p => p.sch).length, nHand = all.posts.filter(p => p.man).length;
   const opts = s.showP && s.showS ? (nP && nS ? [['all', 'All', nP + nS], ['posts', 'Posts', nP], ['stories', 'Stories', nS]] : [])
@@ -567,9 +571,9 @@ function sgPopPaint(first) {
   const body = now.posts.map(p => sgPopPostHtml(p, s, one)).join('') + now.stories.map(x => sgPopStoryHtml(x, s, one)).join('');
   el.innerHTML = `<div class="sgp-scrim" onclick="sgPopClose()"></div>
     <div class="sgp" role="dialog" aria-modal="true" aria-labelledby="sgpT" style="--c:${bg};--bf:${fg}">
-      <div class="sgp-ph"><span class="sgp-b" aria-hidden="true">${SG_BD[net]}</span>
-        <div class="when"><b id="sgpT">${mkEsc(title)}</b><span>${mkEsc(SG_PN[net])}: ${mkEsc(count(now.posts.length, now.stories.length) || 'nothing posted')}${s.week ? ' · ' + mkEsc(socDayY(s.from)) + ' to ' + mkEsc(socDayY(s.to)) : ''}</span></div>
+      <div class="sgp-ph"><span class="sgp-b" aria-hidden="true">${one1 ? SG_BD[net] : 'ALL'}</span>
+        <div class="when"><b id="sgpT">${mkEsc(title)}</b><span>${mkEsc(one1 ? SG_PN[net] : 'All platforms')}: ${mkEsc(count(now.posts.length, now.stories.length) || 'nothing posted')}${s.week ? ' · ' + mkEsc(socDayY(s.from)) + ' to ' + mkEsc(socDayY(s.to)) : ''}</span></div>
         <button type="button" class="sgp-x" aria-label="Close" onclick="sgPopClose()">×</button></div>
-      <div class="sgp-pb">${s.tiles ? `<div class="sgp-nums">${s.tiles.filter(t => t[1] !== null && t[1] !== undefined).map(t => sgPopNum(t[0], t[1])).join('')}</div>` : ''}${s.note ? `<p class="sgp-note">${mkEsc(s.note)}</p>` : ''}${seg}${body || `<p class="sgp-none">${s.tiles ? 'No posts or stories went out ' + (s.week ? 'that week' : 'that day') + '.' : 'Nothing here.'}</p>`}</div></div>`;
+      <div class="sgp-pb">${s.tiles ? `<div class="sgp-nums">${s.tiles.filter(t => t[1] !== null && t[1] !== undefined).map(t => sgPopNum(t[0], t[1])).join('')}</div>` : ''}${s.note ? `<p class="sgp-note">${mkEsc(s.note)}</p>` : ''}${seg}${body || `<p class="sgp-none">${s.tiles ? (s.nets.length === 1 && s.nets[0] === 'youtube' ? 'YouTube has no post list in Metricool.' : 'No posts or stories went out ' + (s.week ? 'that week' : 'that day') + '.') : 'Nothing here.'}</p>`}</div></div>`;
   if (first) { const c = el.querySelector('.sgp-x'); if (c) c.focus(); }
 }

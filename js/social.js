@@ -425,7 +425,14 @@ function socDrawOverview(T) {
   const rows = mkBuckets(Object.values(by), w.from, w.to, socMode(), socNetsOn());
   const cols = socCols();
   socCharts.overview = socBarChart(document.getElementById('socCanvas'), rows,
-    socNetsOn().map(k => ({ label: SOC_NETS[k], data: rows.map(r => r[k]), backgroundColor: cols[k], stack: 'v' })), true);
+    socNetsOn().map(k => ({ net: k, label: SOC_NETS[k], data: rows.map(r => r[k]), backgroundColor: cols[k], stack: 'v' })), true);
+  // A click on a platform's bar opens that platform's posts and stories for the day (or week); a click in the day off a bar opens them all (social-glance.js).
+  // Facebook's bar is its posts' own views; the others count every view of the account that day, and the window says what it shows then.
+  if (typeof sgPopAttach === 'function') {
+    const nt = 'The bar counts every view of the account that day, older posts too, so these only add up to part of it. Shown here: what went out that day.';
+    sgPopAttach(socCharts.overview, rows, 'all', { showP: true, showS: true, nets: socNetsOn().filter(k => k !== 'youtube'), note: nt, noteFor: n => n === 'facebook' || n === 'youtube' ? null : nt,
+      sum: (r, n) => { const ks = n ? [n] : socNetsOn(); return [...ks.map(k => [SOC_NETS[k] + ' views', r[k] || 0]), ...(ks.length > 1 ? [['All views', ks.reduce((a, k) => a + (r[k] || 0), 0)]] : [])]; } });
+  }
 }
 
 // ── One platform ──────────────────────────────────────────────────────────────────
