@@ -232,3 +232,5 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
   .ord-bulk input[type=text]{flex:1 1 100%}
   .ord-bulk .cm-pill{height:44px}
 }
+.ord-rfo{display:block;font-size:11.5px;color:var(--muted2,inherit);margin-top:2px;white-space:nowrap}
+.ord-rfo .ord-lk{font-size:11.5px}

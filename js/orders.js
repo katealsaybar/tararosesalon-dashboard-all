@@ -101,7 +101,7 @@ function ordBuild(rows0) {
     // sat in a row of its own and the real order looked shipped for ever (Kate, 20 Nov 2026). The group key of an Amazon order is AMAZON.AE|<order number>.
     // A cancel or refund email may name the order only in its text ("the refund of AED 111.75 for your order: 406-..."), so those two kinds are also read for it.
     if (r.supplier === 'AMAZON.AE' && !r.reference) {
-      const am = /(\d{3}-\d{7}-\d{7})/.exec(r.subject || '') || (/cancel|refund/i.test(r.subject || '') ? /(\d{3}-\d{7}-\d{7})/.exec((r.body || '') + ' ' + (r.note || '')) : null);
+      const am = /(\d{3}-\d{7}-\d{7})/.exec(r.subject || '') || (/cancel|refund|return/i.test(r.subject || '') || /total estimated refund|refund subtotal/i.test(r.body || '') ? /(\d{3}-\d{7}-\d{7})/.exec((r.body || '') + ' ' + (r.note || '')) : null);
       if (am) return 'AMAZON.AE|' + am[1];
       // "Items cancelled successfully: 5 "Metaltex 25 cm Stainless..."" names no order at all, but repeats the product text of the Ordered email of the last five days: join it only when exactly one order has that text
       if (/cancel/i.test(r.subject || '')) {
@@ -124,6 +124,14 @@ function ordBuild(rows0) {
   ordGroups = Object.keys(m).map(k => ordFinish(k, m[k])).sort((a, b) => (b.last < a.last ? -1 : b.last > a.last ? 1 : 0) || (b.start < a.start ? -1 : 1));
   ordGroups.forEach(g => { ordByKey[g.key] = g; });
 }
+// Refunds (Kate, 23 Nov 2026: "eto refund to, it should have its own column, beside discount %"). An Amazon return or refund email states the amount as
+// "Total estimated refund* AED 58.60" or "the refund of AED 111.75"; failing that, a refund email's own amount is the refund. Nothing else is read as one.
+function ordRefundAmt(d) {
+  const t = (d.subject || '') + ' ' + (d.body || '') + ' ' + (d.note || '');
+  const m = /total estimated refund\*?\s*AED\s*([\d,]+(?:\.\d+)?)/i.exec(t) || /refund(?:ed)? of\s*AED\s*([\d,]+(?:\.\d+)?)/i.exec(t);
+  if (m) return parseFloat(m[1].replace(/,/g, ''));
+  return /refund/i.test(d.subject || '') && d.amount != null ? Number(d.amount) : null;
+}
 function ordFinish(key, docs) {
   docs.sort((x, y) => (x.at < y.at ? -1 : x.at > y.at ? 1 : 0));
   const first = docs[0], last = docs[docs.length - 1], g = { key, docs, s: first.supplier, cat: first.category || '', start: first.date, last: last.date };
@@ -144,6 +152,12 @@ function ordFinish(key, docs) {
   g.a = g.buy && g.buy.total != null ? Number(g.buy.total) : inv ? Number(inv.amount) : any ? Number(any.amount) : null;
   if (g.buy && g.buy.total == null && g.a != null) g.buy.total = g.a;   // the total may sit on another email of the same order (the confirmation or the invoice): the window must always show it
   g.disc = g.buy ? g.buy.disc : 0;
+  g.refund = 0; docs.forEach(d => { const v = ordRefundAmt(d); if (v != null && isFinite(v)) g.refund = v; });   // the latest refund email of the order wins: a second email repeats the same refund
+  g.refundOnly = g.refund > 0 && g.type === 'Other' && !g.hasInv;
+  g.refundFor = '';
+  if (g.refund > 0) docs.forEach(d => { if (ordRefundAmt(d) != null) { const m = /(\d{3}-\d{7}-\d{7})/.exec((d.subject || '') + ' ' + (d.body || '') + ' ' + (d.note || '')); if (m) g.refundFor = m[1]; } });
+  if (g.refundOnly && g.refundFor && !g.r) g.r = g.refundFor;   // the Reference column and the Find box then answer "which order was this refund for"
+  if (g.refundOnly) g.a = null;   // its only amount is the refund, which has its own column, so it is not an order total
   g.items = g.buy ? g.buy.lines.length : 0;
   g.units = g.buy ? g.buy.lines.reduce((t, l) => t + (Number(l.qty) || 0), 0) : 0;
   let rk = 0; docs.forEach(d => { if ((ORD_RANK[d.kind] || 0) > rk) rk = ORD_RANK[d.kind]; });
@@ -160,6 +174,7 @@ function ordFinish(key, docs) {
   // Amazon cancels and refunds an order by email ("Items cancelled successfully", "Update on refund processed"): such an order is closed, nothing is owed or on its way
   const cancelled = /^amazon/i.test(g.s || '') && rk < ORD_RANK.delivered && docs.some(d => /cancel|refund/i.test(d.subject || ''));
   if (cancelled) g.st = 'Cancelled';
+  if (g.refundOnly && !cancelled) g.st = 'Refund';
   // someone opened the order in the supplier's account (or portal) and ticked Checked, with a note and a pasted screenshot as proof (Kate, 20 Nov 2026): the mailbox silence is answered
   const chk = ordChecks[key] || null; g.chk = chk;
   // Kate, 23 Nov 2026: an order cancelled in the supplier's account (Amazon 'Your order was cancelled', no email) is marked Cancelled by hand. It is kept as a check whose note starts with [cancelled], so no new table is needed; Undo brings the order back.
@@ -403,6 +418,7 @@ function ordBuildTables() {
       { k: 'n', l: 'Items', sub: 'what was bought', t: 'num', raw: g => g.items, disp: g => g.items ? g.items : '', cell: ordItemsCell },
       amtCol(),
       { k: 'q', l: 'Discount', sub: 'AED or %', t: 'num', raw: g => g.disc || g.discPct, disp: g => g.disc ? ordAed(g.disc) : g.discPct ? g.discPct + '%' : '', cell: ordDiscCell },
+      { k: 'rf', l: 'Refund', sub: 'AED', t: 'num', raw: g => g.refund || 0, disp: g => g.refund ? ordAed(g.refund) : '', cell: g => g.refund ? `<button type="button" class="ord-dsc" data-k="${ordEsc(g.key)}" title="${ordEsc(g.refundFor ? 'Refund for order ' + g.refundFor : 'Refund stated in the supplier\'s email')}" onclick="ordOpen(this.dataset.k)">${ordAed(g.refund)}</button>${g.refundOnly && g.refundFor ? `<small class="ord-rfo">${ordByKey['AMAZON.AE|' + g.refundFor] ? `<button type="button" class="ord-lk" data-k="${ordEsc('AMAZON.AE|' + g.refundFor)}" title="Open the order this refund is for" onclick="ordOpen(this.dataset.k)">order ${ordEsc(g.refundFor)}</button>` : 'order ' + ordEsc(g.refundFor) + ', not in the mailbox'}</small>` : ''}` : '<span class="ord-muted">-</span>' },
       { k: 't', l: 'Status', t: 'txt', raw: g => g.st, disp: g => g.st, cell: ordStatusPill },
       { k: 'f', l: 'Receipt', t: 'txt', raw: g => g.f, disp: g => g.f, cell: ordRcPill },
       { k: 'r', l: 'Reference', t: 'txt', x: 1, raw: g => g.r, disp: g => g.r, cell: g => g.r ? ordEsc(g.r) : '<span class="ord-muted">-</span>' },
@@ -413,7 +429,7 @@ function ordBuildTables() {
         cell: g => g.chk ? `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordEsc(ordDay(String(g.chk.at).slice(0, 10)))} · ${ordEsc(g.chk.by || '')}</button>` : '<span class="ord-muted">-</span>' },
       { k: 'cn', l: 'Check note', t: 'txt', x: 1, raw: g => g.chk ? ordChkTxt(g.chk) : '', disp: g => g.chk ? ordChkTxt(g.chk) : '', cell: g => g.chk && ordChkTxt(g.chk) ? ordEsc(ordChkTxt(g.chk)) : '<span class="ord-muted">-</span>' }],
     rowCls: g => g.x ? 'ord-rowlook' : '',
-    total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }, true) }),
+    total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }, true), rf: rows.some(g => g.refund) ? ordAed(rows.reduce((t, g) => t + (g.refund || 0), 0)) : '' }),
     after: (T, rows) => ordAfter('doc', T, rows, 'tracked') });
 }
 // ── BULK: tick orders in Needs a look and mark them all checked or all cancelled (Kate, 23 Nov 2026) ──
@@ -976,9 +992,9 @@ async function ordExport() {
   const T = await ordEnglishNames(rows.flatMap(g => g.buy ? g.buy.lines.map(l => l.name) : []));
   const [a, b] = ordRange();
   const cols = [{ key: 'start', label: 'Started', fmt: 'text' }, { key: 'sup', label: 'Supplier', fmt: 'text' }, { key: 'sal', label: 'Salon', fmt: 'text' }, { key: 'type', label: 'Type', fmt: 'text' }, { key: 'ref', label: 'Reference', fmt: 'text' },
-    { key: 'items', label: 'Items', fmt: 'num' }, { key: 'units', label: 'Units', fmt: 'num' }, { key: 'total', label: 'Total (AED)', fmt: 'aed' }, { key: 'disc', label: 'Discount (AED)', fmt: 'aed' }, { key: 'pct', label: 'Discount applied (%)', fmt: 'pct' },
+    { key: 'items', label: 'Items', fmt: 'num' }, { key: 'units', label: 'Units', fmt: 'num' }, { key: 'total', label: 'Total (AED)', fmt: 'aed' }, { key: 'disc', label: 'Discount (AED)', fmt: 'aed' }, { key: 'pct', label: 'Discount applied (%)', fmt: 'pct' }, { key: 'refund', label: 'Refund (AED)', fmt: 'aed' },
     { key: 'status', label: 'Status', fmt: 'text' }, { key: 'file', label: 'Receipt', fmt: 'text' }, { key: 'look', label: 'Needs a look', fmt: 'text' }];
-  const lines = rows.map(g => ({ cells: [ordDay(g.start), g.s, ordName(g.b), g.type, g.r, g.items, g.units, ordR2(g.a), g.disc ? ordR2(g.disc) : null, g.discPct || null, g.st, g.f, g.x] }));
+  const lines = rows.map(g => ({ cells: [ordDay(g.start), g.s, ordName(g.b), g.type, g.r, g.items, g.units, ordR2(g.a), g.disc ? ordR2(g.disc) : null, g.discPct || null, g.refund ? ordR2(g.refund) : null, g.st, g.f, g.x] }));
   const items = []; rows.forEach(g => { if (g.buy) g.buy.lines.forEach(l => items.push({ cells: [ordDay(g.start), g.s, g.r, T.en(l.name), ordR2(+l.qty), ordR2(+l.unit), ordR2(+l.total), l.note || ''].concat(T.any ? [T.en(l.name) !== l.name ? l.name : ''] : []) })); });
   const sheets = [{ name: 'Orders', title: 'Orders and Receipts', subtitle: `${ordScopeText()} · ${a} to ${b}. One row per order. Amounts only where the supplier email shows them.`, blocks: [{ cols, rows: lines }],
     legend: [['Total', 'The order total from the email. An invoice with no amount in the email text shows a dash.'], ['Discount', 'The AED the supplier took off, or the percentage applied when the email only says that.']] }];
