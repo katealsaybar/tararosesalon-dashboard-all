@@ -887,6 +887,8 @@ function photoOf(name){
   try{
     if(typeof staffProfile!=='function')return null;
     for(const t of tries){const pr=staffProfile(t);if(pr&&pr.photo)return '/assets/staff/'+encodeURIComponent(pr.photo);}
+    /* Kate, 23 Nov 2026: Stella Mendes (and other leavers) have only the card crop, photoFull, no cutout, so she showed as SM. Second pass, so a cutout always wins. */
+    for(const t of tries){const pr=staffProfile(t);if(pr&&pr.photoFull)return '/'+encodeURI(pr.photoFull);}
   }catch(e){}
   return null;
 }
