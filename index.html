@@ -2631,6 +2631,17 @@ button.lc-seg:focus-visible{outline:2px solid var(--text);outline-offset:-2px}
 .soc-cap{font-size:13.5px;line-height:1.35;margin-top:2px;overflow-wrap:anywhere}
 .soc-cap a{color:var(--text);text-decoration:none}
 @media(hover:hover){.soc-cap a:hover{text-decoration:underline}}
+/* Top posts table (Kate, 23 Nov 2026): Google Sheets heading menus (sheet-table.js), 10 rows and pages. */
+.soc-pager{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;color:var(--muted);flex-wrap:wrap}
+.soc-pager .soc-sp{flex:1}
+.soc-pager .cm-pill:disabled{opacity:.4;cursor:default}
+.soc-pgn{min-width:5.5em;text-align:center;color:var(--text);font-variant-numeric:tabular-nums}
+.soc-tbar{display:flex;align-items:center;gap:8px;margin:0 0 8px;flex-wrap:wrap}
+.soc-tbar .soc-sp{flex:1}
+.soc-phone{display:none}
+@media(max-width:760px){.soc-phone{display:inline-block;min-height:44px}.soc-pager .cm-pill{min-height:44px}.soc-pager #socTopTxt{flex:1 1 100%}}
+/* Social stat numbers (Kate, 23 Nov 2026): Playfair Display, lining figures so every digit sits on one line (its default figures are old style). */
+#socialContent .w13-val,#socialContent .soc-kv span:nth-child(even),#socialContent .sg-v,#socialContent .sg-big2,#socialContent .scal-num .v{font-family:'Playfair Display',serif;font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum" 1,"tnum" 1}
 /* Social tabs (Kate, 6 Oct 2026): Overview plus a report a platform. The platform cards
    open their tab; inside a tab, five tiles, two charts, then folded sections (posts,
    reels, stories, audience, best time, hashtags, competitors). */
@@ -3686,7 +3697,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
-      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=e495f90c', 'js/social-glance.js?v=32bbe53a', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=0a97ad81'],
+      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/sheet-table.js?v=29fcde3e', 'js/social.js?v=e495f90c', 'js/social-glance.js?v=32bbe53a', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=0a97ad81'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
       wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/team-performance.js?v=f87c34f7', 'js/report-export.js?v=d7b73ae8', 'js/staff-weeks.js?v=0e21c912'],
       lv:  ['js/report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/stylist-levels.js?v=0ed71a8c'],
