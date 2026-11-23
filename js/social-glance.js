@@ -149,7 +149,7 @@ function sgDraw(D) {
   const w = D.w, cols = socCols(), stRows = D.st, hasRows = !!stRows;
   document.documentElement.style.setProperty('--sg-ig', cols.instagram);
   const tabs = `<div class="sc-seg" role="group" aria-label="Posts or stories">${[['posts', 'Posts'], ['stories', 'Stories']].map(([k, l]) => `<button type="button" class="${sgTab === k ? 'on' : ''}" onclick="sgSetTab('${k}')">${l}</button>`).join('')}</div>`;
-  const head = `<div class="slv-head"><div><div class="slv-eyebrow">Last ${D.len} days · against the ${D.len} before</div><h3>How it is doing</h3></div><div class="sg-tools">${tabs}${typeof rexButtons === 'function' ? rexButtons('sgExport') : ''}</div></div>
+  const head = `<div class="slv-head"><div><div class="slv-eyebrow">Last ${D.len} days · against the ${D.len} before</div><h3>Overview</h3></div><div class="sg-tools">${tabs}${typeof rexButtons === 'function' ? rexButtons('sgExport') : ''}</div></div>
     <p class="slv-note" style="margin-top:0">${mkEsc(sgRange(w.from, w.to))}, against ${mkEsc(sgRange(D.pv.from, D.pv.to))}.</p>`;
   const body = sgTab === 'posts' ? sgPostsHtml(D, cols) : sgStoriesHtml(D, cols);
   root.innerHTML = head + body.html;

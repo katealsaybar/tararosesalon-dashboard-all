@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=21e47c4e"></script>
-<script src="js/page-dates.js?v=c618375c"></script>
+<script src="js/page-dates.js?v=be679888"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3684,7 +3684,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
-      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=3e931d83', 'js/social-glance.js?v=f8870a38', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=4fa60ec1'],
+      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=3028cc43', 'js/social-glance.js?v=b8aaf507', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=0a97ad81'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
       wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/team-performance.js?v=f87c34f7', 'js/report-export.js?v=d7b73ae8', 'js/staff-weeks.js?v=0e21c912'],
       lv:  ['js/report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/stylist-levels.js?v=0ed71a8c'],
@@ -4934,9 +4934,15 @@ table.tp-cmp td.bad{color:var(--bad)}
        this frame puts it inside the dashboard so the main sidebar stays. ?embed=1 hides the page's own logo bar; ?theme= and a trs-theme message keep it in the dashboard's light or dark.
        data-src, not src: loaded on first open only. -->
   <div id="view-contentcalendar" style="display:none">
-    <div id="calTabs" style="max-width:1100px;margin:0 auto;padding:10px 28px 0"></div>
+    <!-- Kate, 23 Nov 2026: the mini side nav (On this page) on the Calendar tab too, the same shell as Social's Overview. Its entries are Social's sections; Calendar is the lit one. data-tabs tells spy() to leave the lit entry alone. -->
+    <div class="lg-shell lg-shell-wide rv-shell" id="calShell" style="max-width:1368px;margin:0 auto;padding:10px 28px 0">
+      <aside class="lg-side" id="calSide"><nav class="side-nav" data-tabs aria-label="On this page"><div class="side-k">On this page</div><a href="#sgRoot" onclick="calRailGo('sgRoot');return false">Overview</a><a href="#soc-glance" onclick="calRailGo('soc-glance');return false">At a glance</a><a href="#soc-web" onclick="calRailGo('soc-web');return false">From social to the website</a><a href="#soc-top" onclick="calRailGo('soc-top');return false">Top posts</a><a href="#soc-calendar" class="on" aria-current="page" onclick="return false">Calendar</a></nav></aside>
+      <div class="lg-doc rv-doc" style="min-width:0">
+    <div id="calTabs" style="padding:0"></div>
     <iframe id="calFrame" title="Content Calendar" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen data-src="https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/calendar/?embed=1"
       style="width:100%;height:calc(100vh - 120px);min-height:520px;border:none;border-radius:12px;display:block;background:transparent"></iframe>
+      </div>
+    </div>
   </div>
 
   <!-- Kate, 10 Nov 2026: the Content Calendar and TRK approval frames (two Netlify apps) are no longer part of the dashboard; nothing in the menu or the scripts opened them, so they are gone from the page. -->
@@ -5537,6 +5543,14 @@ function calTabsDraw() {
   const box = document.getElementById('calTabs'); if (!box) return;
   const tabs = [['overview', 'Overview'], ['calendar', 'Calendar'], ['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['facebook', 'Facebook'], ['youtube', 'YouTube']];
   box.innerHTML = `<div class="sc-bar w13-bar soc-bar"><div class="sc-seg soc-tabs" role="tablist" aria-label="Report">${tabs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === 'calendar'}" class="${k === 'calendar' ? 'on' : ''}" onclick="calGoTab('${k}')">${l}</button>`).join('')}</div></div>`;
+}
+// Kate, 23 Nov 2026: a tap on one of Social's sections in the Calendar's rail goes back to Social's Overview and scrolls to that section once it has drawn.
+function calRailGo(id) {
+  try { localStorage.setItem('trs-soc-tab', 'overview'); } catch (e) {}
+  if (typeof socTab !== 'undefined') socTab = 'overview';
+  showView('social', calSocialRow());
+  let n = 0;
+  const t = setInterval(() => { const el = document.getElementById(id); if (el || ++n > 40) { clearInterval(t); if (el && typeof lgJump === 'function') lgJump(null, id); } }, 150);
 }
 function calGoTab(k) {
   if (k === 'calendar') return;

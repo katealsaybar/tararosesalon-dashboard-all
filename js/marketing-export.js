@@ -121,7 +121,7 @@ function socExport() {
 // (scalExport, social-calendar.js) as a tab of its own. Either may be empty; the CSV is the first tab.
 function socExportPage() {
   const a = socExport(), b = typeof scalExport === 'function' ? scalExport() : null, g = typeof sgExport === 'function' ? sgExport() : null;
-  const sheets = (a ? a.sheets : []).concat(g && g.sheets ? g.sheets.map(s => Object.assign({}, s, { name: 'How it is doing' })) : []).concat(b && b.sheets ? b.sheets.map(s => Object.assign({}, s, { name: 'Calendar posts' })) : []);
+  const sheets = (a ? a.sheets : []).concat(g && g.sheets ? g.sheets.map(s => Object.assign({}, s, { name: 'Overview' })) : []).concat(b && b.sheets ? b.sheets.map(s => Object.assign({}, s, { name: 'Calendar posts' })) : []);
   if (!sheets.length) return null;
   return { name: a ? a.name : b.name, csv: 0, sheets };
 }

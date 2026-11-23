@@ -109,7 +109,7 @@ function socSortBy(table, key) {
 // ── ON THIS PAGE rail (Kate, 23 Nov 2026: the mini side nav every page carries; the same shell as Website & Search and Google Ads) ────
 // Overview only: the platform tabs and the Calendar are one report each. Gutter above 1100px, a row of chips below it.
 // A third item is what the entry does instead of jumping down the page: Calendar (Kate, 23 Nov 2026: "calendar is supposed to appear sa mini side bar navi") opens the Calendar tab, so it is always listed.
-const SOC_RAIL = [['sgRoot', 'How it is doing'], ['soc-glance', 'At a glance'], ['soc-web', 'From social to the website'], ['soc-top', 'Top posts'], ['soc-calendar', 'Calendar', "socSetTab('calendar');return false;"]];
+const SOC_RAIL = [['sgRoot', 'Overview'], ['soc-glance', 'At a glance'], ['soc-web', 'From social to the website'], ['soc-top', 'Top posts'], ['soc-calendar', 'Calendar', "socSetTab('calendar');return false;"]];
 function socRail(on) {
   const shell = document.getElementById('scShell'), side = document.getElementById('scSide');
   if (!shell || !side) return;
