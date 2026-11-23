@@ -780,7 +780,22 @@ function ordMsgHtml(d, open) {
 }
 // An Amazon order opens on its own page in the Amazon.ae account (Kate, 20 Nov 2026: the account knows what the emails do not, e.g. delivered, return window closed, and Invoice 1 to 4 to download).
 // Only a plain link: nothing is read from or written to the account, whoever opens it signs in to Amazon as usual.
+// Carrefour (Kate, 23 Nov 2026, her screenshots of carrefouruae.com): an order opens at /mafuae/en/app/orders/<order number>/<consignment number>, for example 784010022791363/11000067445.
+// The order number (15 digits from 784) and the consignment number are read from the order's own emails (reference, subject, note, text). With both the button opens that order;
+// with only the order number it opens My Orders, where the number is searched by eye, because a link without the consignment number is not known to open the order.
+function ordCarrefourNos(g) {
+  const txt = g.docs.map(d => [d.reference, d.subject, d.note, d.body].filter(Boolean).join(' ')).join(' ');
+  const ord = (/\b(784\d{12})\b/.exec([g.r, txt].join(' ')) || [])[1] || '';
+  let con = (/consignment(?:\s*(?:number|no\.?|#))?\s*[:#-]?\s*(\d{6,12})/i.exec(txt) || [])[1] || '';
+  if (!con && g.r && /^\d{6,12}$/.test(g.r) && g.r !== ord) con = g.r;
+  return { ord, con };
+}
 function ordAmazonLink(g) {
+  if (/^carrefour/i.test(g.s || '')) {
+    const n = ordCarrefourNos(g); if (!n.ord) return '';
+    const url = 'https://www.carrefouruae.com/mafuae/en/app/orders' + (n.con ? '/' + n.ord + '/' + n.con : '');
+    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${n.con ? 'Opens this order in the Carrefour account: delivery, payment and the invoice' : 'Opens My Orders in the Carrefour account. Look for order ' + n.ord}"><span class="ord-ai ord-ai-oth">CRF</span><span class="ord-an">${n.con ? 'Open this order in the Carrefour account' : 'Open My Orders in the Carrefour account'}</span><span class="ord-ak">Carrefour ${n.ord}</span></a></p>`;
+  }
   const no = /^amazon/i.test(g.s || '') && /^\d{3}-\d{7}-\d{7}$/.test(g.r || '') ? g.r : '';
   if (!no) return '';
   return `<p class="ord-amz"><a class="ord-ac ord-gml" href="https://www.amazon.ae/gp/your-account/order-details?orderID=${no}" target="_blank" rel="noopener" title="Opens this order in the Amazon.ae account: delivery, payment and the invoices"><span class="ord-ai ord-ai-oth">AMZ</span><span class="ord-an">Open this order in the Amazon account</span><span class="ord-ak">Amazon.ae</span></a></p>`;
