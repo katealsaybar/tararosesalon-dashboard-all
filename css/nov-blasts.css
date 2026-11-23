@@ -651,8 +651,8 @@
   .nvb .nvb-bb-dots{max-width:260px}
 }
 
-/* Wider to the right (Kate, 20 Nov 2026: "it's ok to widen right"): same as the Recruitment pipeline. The page keeps its usual left edge, so the left gutter stays free for the mini nav, and grows to 1760px; the three By-blast columns get room to breathe. */
-@media(min-width:1240px){body.nvb-chrome .wrap,body.nvb-chrome .topbar-in{max-width:1760px;margin-left:calc((100% - 1180px) / 2);margin-right:24px}body.nvb-chrome .nvb{max-width:none}}
+/* Database Blasts uses the same wide page as every report (Kate, 23 Nov 2026: index.html lifts the shell to 1760px); the page itself drops its own 1240px cap. */
+@media(min-width:1240px){body.nvb-chrome .nvb{max-width:none}}
 
 /* Section 4, less crowded (Kate, 20 Nov 2026: "looks congested"): three roomy tiles, one line of what came back, the rest folded, and ONE split (By blast, By branch, What they bought) at a time. */
 .nvb .nvb-mts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 10px}
