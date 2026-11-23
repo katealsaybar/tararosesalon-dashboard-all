@@ -70,3 +70,19 @@ do $$ begin
     perform cron.schedule('complaint-google-pull', '45 * * * *', 'select public.cq_google_pull();');
   end if;
 end $$;
+
+-- 23 Nov 2026 (Kate: "sync as soon as Phorest intervals sync"): the Google reviews themselves are refreshed from Metricool (reviews only)
+-- at the same times as the Phorest sync (05, 07, 09, 13, 17, 21 UTC = 9am, 11am, 1pm, 5pm, 9pm, 1am Dubai), 2 minutes after, and the complaint
+-- pull runs 6 minutes after that. Metricool can still be hours behind Google (Arwa Al Alawi's 1 star KCA review was 7 hours old and not in it),
+-- so a review that matters can be added by hand as a 'seed:manual-...' google_reviews row; cq_google_pull() then picks it up.
+do $$
+declare cmd text;
+begin
+  select replace(command, '{"days":10}', '{"source":"reviews","days":10}') into cmd from cron.job where jobname = 'metricool-sync-nightly';
+  if cmd is not null and not exists (select 1 from cron.job where jobname = 'google-reviews-sync-with-phorest') then
+    perform cron.schedule('google-reviews-sync-with-phorest', '2 5,7,9,13,17,21 * * *', cmd);
+  end if;
+  if not exists (select 1 from cron.job where jobname = 'complaint-google-pull-with-phorest') then
+    perform cron.schedule('complaint-google-pull-with-phorest', '8 5,7,9,13,17,21 * * *', 'select public.cq_google_pull();');
+  end if;
+end $$;
