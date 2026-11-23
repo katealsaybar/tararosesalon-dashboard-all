@@ -822,6 +822,15 @@ function ordAmazonLink(g) {
     const url = deep || n.lnk || 'https://www.carrefouruae.com/mafuae/en/app/orders', exact = !!(deep || n.lnk);
     return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${exact ? 'Opens this order in the Carrefour account: delivery, payment and the invoice' : 'Opens My Orders in the Carrefour account. Look for order ' + n.ord}"><span class="ord-ai ord-ai-oth">CRF</span><span class="ord-an">${exact ? 'Open this order in the Carrefour account' : 'Open My Orders in the Carrefour account'}</span><span class="ord-ak">Carrefour ${n.ord}</span></a></p>`;
   }
+  if (/^lulu/i.test(g.s || '')) {
+    // Lulu (Kate, 23 Nov 2026): the order page is gcc.luluhypermarket.com/en-ae/users/orders/<Lulu's own number, for example 4735016>, which is NOT the order number in the emails (338561901758)
+    // and is in no email text, so the button opens that order when a link to it is ever kept in an email, else My Orders, with the order number beside it to find it.
+    const txt = g.docs.map(d => [d.reference, d.subject, d.note, d.body].filter(Boolean).join(' ')).join(' ');
+    const no = (/order no\s*:?\s*(\d{8,14})/i.exec(txt) || /\b(\d{12})\b/.exec([g.r, txt].join(' ')) || [])[1] || '', own = (/luluhypermarket\.com\/en-ae\/users\/orders\/(\d+)/i.exec(txt) || [])[1] || '';
+    if (!no && !own) return '';
+    const url = 'https://gcc.luluhypermarket.com/en-ae/users/orders' + (own ? '/' + own : '');
+    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${own ? 'Opens this order in the Lulu account' : 'Opens My Orders in the Lulu account. Look for order ' + no}"><span class="ord-ai ord-ai-oth">LULU</span><span class="ord-an">${own ? 'Open this order in the Lulu account' : 'Open My Orders in the Lulu account'}</span><span class="ord-ak">Lulu ${ordEsc(no || own)}</span></a></p>`;
+  }
   const no = /^amazon/i.test(g.s || '') && /^\d{3}-\d{7}-\d{7}$/.test(g.r || '') ? g.r : '';
   if (!no) return '';
   return `<p class="ord-amz"><a class="ord-ac ord-gml" href="https://www.amazon.ae/gp/your-account/order-details?orderID=${no}" target="_blank" rel="noopener" title="Opens this order in the Amazon.ae account: delivery, payment and the invoices"><span class="ord-ai ord-ai-oth">AMZ</span><span class="ord-an">Open this order in the Amazon account</span><span class="ord-ak">Amazon.ae</span></a></p>`;
