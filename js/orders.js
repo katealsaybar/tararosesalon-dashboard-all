@@ -50,7 +50,9 @@ function ordCodes() {
   const c = sel.branch.filter(b => ORD_SALONS.includes(b));
   return !c.length || c.length === ORD_SALONS.length ? null : c;
 }
-const ordScopeText = () => { const c = ordCodes(); return c ? c.map(ordName).join(' + ') : 'UAE Branches'; };
+const ordScopeText = () => { const c = ordCodes(); return c ? c.map(ordName).join(' + ') + ' and shared orders' : 'UAE Branches'; };
+// Kate, 23 Nov 2026: with a salon picked, the orders made for all salons (BS PRO, Amazon, the group's own orders) are still counted, and labelled Shared, because they are bought for every salon.
+const ordSalonLbl = g => g.b === 'UAE' ? (ordCodes() ? 'Shared (all salons)' : 'All salons') : ordName(g.b);
 const ordPeriodText = () => { const [a, b] = ordRange(); return ordDay(a) + ' to ' + ordDay(b); };
 
 // ── ONE ROW PER ORDER ────────────────────────────────────────────────────────────────
@@ -210,7 +212,7 @@ function ordFinish(key, docs) {
 // salon, status, what the emails say, the note of a check. While something is typed the tables look at ALL orders, not only the Period and Branch picked above.
 function ordHay(g) {
   if (g._hay) return g._hay;
-  const bits = [g.s, g.r, g.key, g.n, g.st, g.x, g.type, ordName(g.b), g.cat];
+  const bits = [g.s, g.r, g.key, g.n, g.st, g.x, g.type, ordSalonLbl(g), g.cat];
   if (g.buy) g.buy.lines.forEach(l => bits.push(l.name));
   g.docs.forEach(d => { bits.push(d.reference, d.subject, d.file_name); });
   if (g.chk) bits.push(ordChkTxt(g.chk), g.chk.by, g.canc ? 'cancelled' : 'checked');
@@ -241,7 +243,7 @@ function ordGoEvery() { ordKind(''); const e = document.getElementById('ordEvery
 function ordShowChecked() { ordKind('Checked'); const e = document.getElementById('ordEverySec'); if (e && e.scrollIntoView) e.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function ordScope() {
   const [a, b] = ordRange(), c = ordCodes();
-  return ordGroups.filter(g => g.start >= a && g.start <= b && (!c || c.includes(g.b)));
+  return ordGroups.filter(g => g.start >= a && g.start <= b && (!c || c.includes(g.b) || g.b === 'UAE'));
 }
 function ordMatch(g, f) {
   if (f.s && g.s !== f.s) return false;
@@ -267,7 +269,7 @@ function ordListSpec(title, f) {
     const rows = ordScope().filter(g => ordMatch(g, f));
     return { cols: [{ k: 'd', l: 'Started', t: 'date' }, { k: 's', l: 'Supplier' }, { k: 'ty', l: 'Type' }, { k: 'b', l: 'Salon' }, { k: 'r', l: 'Reference' }, { k: 'a', l: 'Total', t: 'aed' },
       { k: 'q', l: 'Discount', t: 'html' }, { k: 'st', l: 'Status', t: 'html' }],
-      rows: rows.map(g => ({ d: g.start, s: g.s, ty: g.type, b: ordName(g.b), r: g.r || '-', a: g.a, q: g.disc ? '- AED ' + ordAed(g.disc) : g.discPct ? g.discPct + '% applied' : '-', st: ordOpenBtn(g, g.st) })),
+      rows: rows.map(g => ({ d: g.start, s: g.s, ty: g.type, b: ordSalonLbl(g), r: g.r || '-', a: g.a, q: g.disc ? '- AED ' + ordAed(g.disc) : g.discPct ? g.discPct + '% applied' : '-', st: ordOpenBtn(g, g.st) })),
       // The total row adds the Total column, so a list of orders no longer ends on AED 0. A list opened from an Invoiced figure adds the invoiced amounts, the figure it came from.
       foot: rows.length ? { d: '', s: rows.length + ' tracked', ty: '', b: '', r: '', a: rows.reduce((t, g) => t + ((f.amt || f.kind === 'inv' ? g.inv : g.a) || 0), 0), q: '', st: '' } : null,
       note: 'Each row is one order, invoice or statement, counted once. The total row adds the Total column' + (f.amt || f.kind === 'inv' ? ' (the invoiced amounts)' : '') + '. Tap a status to open it: items, discount, steps and emails.' };
@@ -431,7 +433,7 @@ const ordItemsCell = g => g.items ? `<button type="button" class="ord-lk" data-k
 function ordBuildTables() {
   const dateCol = () => ({ k: 'd', l: 'Started', t: 'txt', raw: g => ordDay(g.start), disp: g => ordDay(g.start), sk: g => Date.parse(g.start), cell: g => ordDay(g.start) });
   const supCol = () => ({ k: 's', l: 'Supplier', t: 'txt', raw: g => g.s, disp: g => g.s, cell: g => '<b>' + ordEsc(g.s) + '</b>' });
-  const salCol = () => ({ k: 'b', l: 'Salon', t: 'txt', raw: g => ordName(g.b), disp: g => ordName(g.b), cell: g => ordEsc(ordName(g.b)) });
+  const salCol = () => ({ k: 'b', l: 'Salon', t: 'txt', raw: g => ordSalonLbl(g), disp: g => ordSalonLbl(g), cell: g => ordEsc(ordSalonLbl(g)) });
   const dueCol = x => ({ k: 'du', l: 'Invoice due', t: 'date', x, raw: g => g.due || '', disp: g => g.due ? ordDay(g.due) : '', cell: g => g.due ? ordDay(g.due) : '<span class="ord-muted">-</span>' });
   const lastCol = x => ({ k: 'lm', l: 'Last message', t: 'date', x, raw: g => g.lastDay || '', disp: g => g.lastDay ? ordDay(g.lastDay) + ' · ' + (g.lastUs ? 'us' : g.s) : '', cell: g => g.lastDay ? ordDay(g.lastDay) + ' <span class="ord-muted">· ' + (g.lastUs ? 'us' : ordEsc(g.s)) + '</span>' : '<span class="ord-muted">-</span>' });
   const amtCol = () => ({ k: 'a', l: 'Total', sub: 'AED', t: 'num', raw: g => g.a == null ? -1 : g.a, disp: g => g.a == null ? '' : ordAed(g.a), cell: g => g.a == null ? '<span class="ord-muted">-</span>' : `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordAed(g.a)}</button>` });   // one order's total opens that order (it used to open every order of the supplier under this order's name)
@@ -1112,7 +1114,7 @@ function ordOpen(key, keepNav) {
   } else left = ordBuyHtml(g);
   const m = document.createElement('div');
   m.className = 'ord-modal'; m.id = 'ordModal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', 'Order');
-  m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordName(g.b))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><div class="ord-hb">${ordNavHtml(g)}${back ? `<button type="button" class="cm-pill ord-back" onclick="ordClose()" title="Back to ${ordEsc(backTxt)}" aria-label="Back to ${ordEsc(backTxt)}">‹ Back<span class="ord-bk-l"> to ${ordEsc(backTxt)}</span></button>` : ''}${typeof rexButtons === 'function' ? rexButtons('ordExportOne') : ''}<button type="button" class="cm-pill" onclick="ordClose()">Close</button></div></div>
+  m.innerHTML = `<div class="ord-dlg ord-wide"><div class="ord-top"><div><h3>${ordEsc(g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type)}</h3><div class="ord-sub">${ordEsc(ordSalonLbl(g))} · started ${ordDay(g.start)} · ${g.docs.length} email${g.docs.length === 1 ? '' : 's'} tracked as one</div></div><div class="ord-hb">${ordNavHtml(g)}${back ? `<button type="button" class="cm-pill ord-back" onclick="ordClose()" title="Back to ${ordEsc(backTxt)}" aria-label="Back to ${ordEsc(backTxt)}">‹ Back<span class="ord-bk-l"> to ${ordEsc(backTxt)}</span></button>` : ''}${typeof rexButtons === 'function' ? rexButtons('ordExportOne') : ''}<button type="button" class="cm-pill" onclick="ordClose()">Close</button></div></div>
     <div class="ord-dbody">${g.x ? `<p class="ord-st ord-look ord-xline">${ordEsc(g.x)}</p>` : ''}${ordStepsHtml(g)}${ordAmazonLink(g)}${ordCheckHtml(g)}<div class="ord-cols"><section class="ord-cola" aria-label="${pdfs.length ? 'The PDF' : 'What was bought'}">${left}</section><section class="ord-colb" aria-label="The emails">${ordThreadHtml(g)}</section></div><p class="ord-last">This is the last step: a single order line has nothing behind it.</p></div></div>`;
   m.addEventListener('click', e => { if (e.target === m) ordClose(); });
   document.body.appendChild(m);
@@ -1137,7 +1139,7 @@ async function ordExport() {
   const cols = [{ key: 'start', label: 'Started', fmt: 'text' }, { key: 'sup', label: 'Supplier', fmt: 'text' }, { key: 'sal', label: 'Salon', fmt: 'text' }, { key: 'type', label: 'Type', fmt: 'text' }, { key: 'ref', label: 'Reference', fmt: 'text' },
     { key: 'items', label: 'Items', fmt: 'num' }, { key: 'units', label: 'Units', fmt: 'num' }, { key: 'total', label: 'Total (AED)', fmt: 'aed' }, { key: 'disc', label: 'Discount (AED)', fmt: 'aed' }, { key: 'pct', label: 'Discount applied (%)', fmt: 'pct' }, { key: 'refund', label: 'Refund (AED)', fmt: 'aed' },
     { key: 'status', label: 'Status', fmt: 'text' }, { key: 'file', label: 'Receipt', fmt: 'text' }, { key: 'look', label: 'Needs a look', fmt: 'text' }, { key: 'due', label: 'Invoice due', fmt: 'text' }, { key: 'lm', label: 'Last message', fmt: 'text' }];
-  const lines = rows.map(g => ({ cells: [ordDay(g.start), g.s, ordName(g.b), g.type, g.r, g.items, g.units, ordR2(g.a), g.disc ? ordR2(g.disc) : null, g.discPct || null, g.refund ? ordR2(g.refund) : null, g.st, g.f, g.x, g.due ? ordDay(g.due) : '', g.lastDay ? ordDay(g.lastDay) + ' (' + (g.lastUs ? 'us' : g.s) + ')' : ''] }));
+  const lines = rows.map(g => ({ cells: [ordDay(g.start), g.s, ordSalonLbl(g), g.type, g.r, g.items, g.units, ordR2(g.a), g.disc ? ordR2(g.disc) : null, g.discPct || null, g.refund ? ordR2(g.refund) : null, g.st, g.f, g.x, g.due ? ordDay(g.due) : '', g.lastDay ? ordDay(g.lastDay) + ' (' + (g.lastUs ? 'us' : g.s) + ')' : ''] }));
   const items = []; rows.forEach(g => { if (g.buy) g.buy.lines.forEach(l => items.push({ cells: [ordDay(g.start), g.s, g.r, T.en(l.name), ordR2(+l.qty), ordR2(+l.unit), ordR2(+l.total), l.note || ''].concat(T.any ? [T.en(l.name) !== l.name ? l.name : ''] : []) })); });
   const sheets = [{ name: 'Orders', title: 'Orders and Receipts', subtitle: `${ordScopeText()} · ${a} to ${b}. One row per order. Amounts only where the supplier email shows them.`, blocks: [{ cols, rows: lines }],
     legend: [['Total', 'The order total from the email. An invoice with no amount in the email text shows a dash.'], ['Discount', 'The AED the supplier took off, or the percentage applied when the email only says that.']] }];
@@ -1150,9 +1152,9 @@ async function ordExportOne() {
   const g = ordCur; if (!g) return null;
   const T = await ordEnglishNames((g.buy ? g.buy.lines : []).concat(g.oos).map(l => l.name));
   const sheets = [], sub = g.s + (g.r ? ' ' + g.r : '') + ' · ' + g.type;
-  const sum = [['Supplier', g.s], ['Reference', g.r || ''], ['Type', g.type], ['Salon', ordName(g.b)], ['Started', ordDay(g.start)], ['Status', g.st], ['Total (AED)', g.a == null ? '' : ordAed(g.a)],
+  const sum = [['Supplier', g.s], ['Reference', g.r || ''], ['Type', g.type], ['Salon', ordSalonLbl(g)], ['Started', ordDay(g.start)], ['Status', g.st], ['Total (AED)', g.a == null ? '' : ordAed(g.a)],
     ['Discount', g.disc ? 'AED ' + ordAed(g.disc) : g.discPct ? g.discPct + '% applied' : 'none'], ['Needs a look', g.x || ''], ['Steps', ordStepsText(g)], ['Receipt', g.f]];
-  sheets.push({ name: 'Order', title: sub, subtitle: ordName(g.b) + ' · started ' + ordDay(g.start), blocks: [{ cols: [{ label: 'Detail', fmt: 'text' }, { label: 'Value', fmt: 'text' }], rows: sum.map(r => ({ cells: r })) }] });
+  sheets.push({ name: 'Order', title: sub, subtitle: ordSalonLbl(g) + ' · started ' + ordDay(g.start), blocks: [{ cols: [{ label: 'Detail', fmt: 'text' }, { label: 'Value', fmt: 'text' }], rows: sum.map(r => ({ cells: r })) }] });
   let csv = 0;
   if (g.buy && g.buy.lines.length) {
     const L = g.buy.lines, rows = L.map(l => ({ cells: [T.en(l.name), l.qty == null ? null : ordR2(+l.qty), l.unit == null ? null : ordR2(+l.unit), l.total == null ? null : ordR2(+l.total), l.note || ''].concat(T.any ? [T.en(l.name) !== l.name ? l.name : ''] : []) }));
@@ -1181,5 +1183,5 @@ function ordExportLook() {
   const [a, b] = ordRange();
   return { name: ['orders-needs-a-look', ordScopeText(), a, 'to', b].map(ordSlug).join('-'), csv: 0, sheets: [{ name: 'Needs a look', title: 'Orders that need a look', subtitle: `${ordScopeText()} · ${a} to ${b}`,
     blocks: [{ cols: [{ key: 'd', label: 'Started', fmt: 'text' }, { key: 's', label: 'Supplier', fmt: 'text' }, { key: 'x', label: 'Why it needs a look', fmt: 'text' }, { key: 'k', label: 'Type', fmt: 'text' }, { key: 'b', label: 'Salon', fmt: 'text' }, { key: 'a', label: 'Total (AED)', fmt: 'aed' }, { key: 'du', label: 'Invoice due', fmt: 'text' }, { key: 'lm', label: 'Last message', fmt: 'text' }],
-      rows: rows.map(g => ({ cells: [ordDay(g.start), g.s, g.x, g.type, ordName(g.b), ordR2(g.a), g.due ? ordDay(g.due) : '', g.lastDay ? ordDay(g.lastDay) + ' (' + (g.lastUs ? 'us' : g.s) + ')' : ''] })) }] }] };
+      rows: rows.map(g => ({ cells: [ordDay(g.start), g.s, g.x, g.type, ordSalonLbl(g), ordR2(g.a), g.due ? ordDay(g.due) : '', g.lastDay ? ordDay(g.lastDay) + ' (' + (g.lastUs ? 'us' : g.s) + ')' : ''] })) }] }] };
 }
