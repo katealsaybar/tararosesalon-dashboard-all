@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=46425351"></script>
-<script src="js/page-dates.js?v=c4f40ad1"></script>
+<script src="js/page-dates.js?v=6e7d2ffe"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3683,7 +3683,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
-      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=377adf20', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=4fa60ec1'],
+      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=8a9d3b90', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=4fa60ec1'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
       wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/team-performance.js?v=f87c34f7', 'js/report-export.js?v=d7b73ae8', 'js/staff-weeks.js?v=0e21c912'],
       lv:  ['js/report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/stylist-levels.js?v=0ed71a8c'],
@@ -3994,7 +3994,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <!-- Kate, 12 Nov 2026: Content Calendar, every post on a calendar with how it did and next month's plan. The calendar itself lives in the Post Approvals app (calendar/, no login),
          and this page shows it in a frame (view-contentcalendar) so the main sidebar stays. data-nav-key is the key this row had as a link out, kept so the layout she saved still finds it;
          data-nav-sub drops it in her Marketing sub-section. -->
-    <a class="nav-sub" data-nav-sub="Marketing" data-nav-key="l:window.open('https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/calendar/', '_blank', 'noopener')" href="/?view=contentcalendar" onclick="if(trsPlain(event)){event.preventDefault();showView('contentcalendar', this)}">Content Calendar</a>
+    <!-- Kate, 23 Nov 2026: the Content Calendar moved into Social as its Calendar tab. This row stays in the page (the page list and a saved menu still find it) but is hidden: Social is the way in. -->
+    <a class="nav-sub" hidden style="display:none" data-nav-sub="Marketing" data-nav-key="l:window.open('https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/calendar/', '_blank', 'noopener')" href="/?view=contentcalendar" onclick="if(trsPlain(event)){event.preventDefault();showView('contentcalendar', this)}">Content Calendar</a>
     <!-- Kate, 4 Nov 2026: Find a Stylist (Client to Staff Matching) in Tools. Kate, 18 Nov 2026: now a dashboard page, so the main sidebar stays: the Team Home page (hub/find-stylist, still the door
          from its Team Home card) shown in a frame with ?embed=1 (view-findstylist). Its row has a new key (the old one was the link out) and data-nav-sub="Operations", so a menu she saved lists it in Operations. -->
     <a class="nav-sub" data-tool-min="1" data-nav-sub="Operations" href="/?view=findstylist" onclick="if(trsPlain(event)){event.preventDefault();showView('findstylist', this)}">Find a Stylist</a>
@@ -4910,6 +4911,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        this frame puts it inside the dashboard so the main sidebar stays. ?embed=1 hides the page's own logo bar; ?theme= and a trs-theme message keep it in the dashboard's light or dark.
        data-src, not src: loaded on first open only. -->
   <div id="view-contentcalendar" style="display:none">
+    <div id="calTabs" style="max-width:1100px;margin:0 auto;padding:10px 28px 0"></div>
     <iframe id="calFrame" title="Content Calendar" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen data-src="https://katealsaybar.github.io/smm_board_approvals/content-approval-tool/calendar/?embed=1"
       style="width:100%;height:calc(100vh - 120px);min-height:520px;border:none;border-radius:12px;display:block;background:transparent"></iframe>
   </div>
@@ -5501,6 +5503,20 @@ window.addEventListener('message', async e => {
 // If the frame reloads while open, it is put back too, so it can never stay stuck over the dashboard.
 // Kate, 18 Nov 2026: the frame is no longer a short box with its own scroll. The calendar page reports how tall its content is (trs-cal-h) and the frame is set to that, so the dashboard's own page
 // scrolls and the whole month shows. While the frame is stretched over the window (a panel or viewer open) the page behind keeps its height, so closing does not throw the scroll position.
+// Kate, 23 Nov 2026: the Content Calendar is Social's Calendar tab. The calendar stays the page it was (its frame, the story viewer, Attach video and the masthead bar are untouched);
+// this draws Social's tab row above it, with Calendar lit, and a tap on any other tab goes back to Social on that tab. Social's own Calendar tab (social.js) opens this page.
+function calSocialRow() { return document.querySelector("#sidebar .nav-sub[onclick*=\"showView('social'\"]"); }
+function calTabsDraw() {
+  const box = document.getElementById('calTabs'); if (!box) return;
+  const tabs = [['overview', 'Overview'], ['calendar', 'Calendar'], ['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['facebook', 'Facebook'], ['youtube', 'YouTube']];
+  box.innerHTML = `<div class="sc-bar w13-bar soc-bar"><div class="sc-seg soc-tabs" role="tablist" aria-label="Report">${tabs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === 'calendar'}" class="${k === 'calendar' ? 'on' : ''}" onclick="calGoTab('${k}')">${l}</button>`).join('')}</div></div>`;
+}
+function calGoTab(k) {
+  if (k === 'calendar') return;
+  try { localStorage.setItem('trs-soc-tab', k); } catch (e) {}
+  if (typeof socTab !== 'undefined') socTab = k;
+  showView('social', calSocialRow());
+}
 function calApplyH() {
   const f = document.getElementById('calFrame');
   if (!f || f.dataset.keepStyle !== undefined || !f.dataset.autoH) return;
@@ -5801,6 +5817,8 @@ function showView(view, el){
   document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active'));
   if (el && el.dataset && el.dataset.lands) el = document.getElementById(el.dataset.lands) || el;
   if (el) el.classList.add('active');
+  // Kate, 23 Nov 2026: the Content Calendar is Social's Calendar tab, so the Social row is the lit one while it is open.
+  if (view === 'contentcalendar') { const sr = typeof calSocialRow === 'function' ? calSocialRow() : null; if (sr) { document.querySelectorAll('.nav-sub').forEach(btn => btn.classList.remove('active')); sr.classList.add('active'); } if (typeof calTabsDraw === 'function') calTabsDraw(); }
   // Kate, 18 Nov 2026: first-time guide (js/page-guide.js). Shows until the person presses Got it, do not show again; skipped while previewing another level.
   if (window.TRSGuide) TRSGuide.maybe(view);
 

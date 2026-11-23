@@ -33,7 +33,8 @@ let socCustom = { from: '', to: '' };
 try { Object.assign(socCustom, JSON.parse(localStorage.getItem('trs-soc-custom') || '{}')); } catch (e) {}
 
 const SOC_NETS = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', youtube: 'YouTube' };
-if (!SOC_NETS[socTab] && socTab !== 'overview' && socTab !== 'calendar') socTab = 'overview';
+// Kate, 23 Nov 2026: Calendar is no longer a tab drawn here; it opens the Content Calendar page (index.html calTabsDraw), so a remembered 'calendar' falls back to Overview.
+if (!SOC_NETS[socTab] && socTab !== 'overview') socTab = 'overview';
 const SOC_KIND = { post: 'post', reel: 'reel', video: 'video', photo: 'photo post', story: 'story' };
 // What each platform's numbers are called in metricool_daily.
 const SOC_PLAT = {
@@ -89,6 +90,7 @@ function socSetCustom(k, v) {
   renderSocial();
 }
 function socSetTab(t) {
+  if (t === 'calendar') { showView('contentcalendar', document.querySelector("#sidebar .nav-sub[onclick*=\"showView('social'\"]")); return; }
   socTab = t;
   try { localStorage.setItem('trs-soc-tab', t); } catch (e) {}
   socRepaint();
