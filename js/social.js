@@ -169,7 +169,7 @@ function socPaint(el) {
     ${whyWall([
       ['Why this page', 'This is what we really posted and when, with how each one did, so next month’s plan starts from what worked.'],
       ['What to watch', 'The blue hours Metricool suggests, and the posts marked “Did well” on each app.'],
-      ['What to do', 'Pick one post that did well and plan a new take on it for next month. Tell Kate which one.']])}
+      ['What to do', 'Pick one post that did well and plan a new take on it for next month. Tell Hanneh and Coach Emma which one.']])}
     ${tabsBar}
     ${socCalHtml()}`;
     socCalMount();
@@ -184,7 +184,7 @@ function socPaint(el) {
     ${whyWall([
       ['Why this page', 'This is what we post on each app and how many women it reaches, so we see what to make more of.'],
       ['What to watch', 'If reach falls two weeks in a row on one app, the posts there have stopped landing.'],
-      ['What to do', 'Tell Kate which app, and she checks the content plan with Tara.']])}
+      ['What to do', 'Tell Hanneh and Coach Emma which app, and they check the content plan.']])}
     ${tabsBar}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Social numbers are paused${s && s.last_error ? ': ' + mkEsc(s.last_error) : ''}. Last good update: ${synced ? mkEsc(synced) : 'never'}.</p>` : ''}
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
