@@ -464,13 +464,12 @@ function socPlatformHtml(net, T) {
         <span class="soc-key"><span><i style="background:var(--good)"></i>${net === 'tiktok' ? 'Up' : 'Gained'}</span><span><i style="background:var(--bad)"></i>${net === 'tiktok' ? 'Down' : 'Lost'}</span><span><i style="background:var(--text)"></i>Total</span></span>
       </div>
       <div style="position:relative;height:240px"><canvas id="socFollow"></canvas></div>
-      <div class="mk-chart-head">
+      ${net === 'instagram' ? `<div id="socViewsBox">${socViewsInner(net, cols)}</div>` : `<div class="mk-chart-head">
         <div class="slv-eyebrow">Views ${socMode() === 'week' ? 'week by week' : 'day by day'}</div>
-        ${net === 'instagram' ? `<span class="soc-key"><span><i style="background:${cols[net]}"></i>Views (bars)</span><span><i style="background:${socReachColour()};width:16px;height:3px;border-radius:2px"></i>Reach (line)</span></span>` : ''}
       </div>
-      <div style="position:relative;height:240px"><canvas id="socViews"></canvas></div>
+      <div style="position:relative;height:240px"><canvas id="socViews"></canvas></div>`}
       ${typeof sgSchedHtml === 'function' ? sgSchedHtml(net, cols) : ''}
-      ${viewsNote ? `<p class="slv-note">${viewsNote}</p>` : ''}
+      ${viewsNote && net !== 'instagram' ? `<p class="slv-note">${viewsNote}</p>` : ''}
     </section>
     <section class="slv-card soc-secs" style="margin-top:14px">${sections.join('')}</section>`;
 }
@@ -602,11 +601,88 @@ function socDrawPlatform(net) {
     { type: 'line', label: 'Total', data: rows.map(r => r.total ?? null), borderColor: css.getPropertyValue('--text').trim(), backgroundColor: css.getPropertyValue('--text').trim(),
       borderWidth: 2, pointRadius: 0, tension: .3, yAxisID: 'y1' },
   ], true, true);
-  socCharts.views = socBarChart(document.getElementById('socViews'), rows, [
-    { label: 'Views', data: rows.map(r => r.views), backgroundColor: cols[net] },
-    ...(P.reach ? [{ type: 'line', label: 'Reach (added up day by day)', data: rows.map(r => r.reach), borderColor: socReachColour(), backgroundColor: socReachColour(), borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: socReachColour(), tension: .3 }] : []),
-  ], false);
+  socViewsDraw(net, rows);
   if (typeof sgSchedDraw === 'function') sgSchedDraw(net);
+}
+
+// ── Instagram Views chart: All | Stories | Posts (Kate, 23 Nov 2026) ──
+// All is the account's views each day (Metricool's daily series). Stories and Posts are counted on the day each one went out: a story's views (content_calendar_story_stats, 93 days a call) and a post's or reel's views so far.
+// The two are not the same days as All, and the note under the chart says so.
+let socViewsMode = 'all', socViewsBase = null, socStoryViews = null, socStoryKey = null, socStoryBusy = null;
+function socViewsNote() {
+  if (socViewsMode === 'stories') return "Each story's views and reach, counted on the day it was posted (a story is up for 24 hours). Not the same days as All, which counts views on the day they happened.";
+  if (socViewsMode === 'posts') return "Each post's and reel's views and reach so far, counted on the day it went out. They keep growing for a few weeks. Not the same days as All, which counts views on the day they happened.";
+  return 'Views of everything on the account each day (posts, reels and stories together), with the people reached as the line.';
+}
+function socViewsInner(net, cols) {
+  const by = socMode() === 'week' ? 'week by week' : 'day by day', v = socViewsMode, K = v === 'stories' ? 'Story ' : v === 'posts' ? 'Post ' : '';
+  const title = v === 'stories' ? `Instagram story views ${by}, by the day posted` : v === 'posts' ? `Instagram post and reel views ${by}, by the day posted` : `Instagram views ${by}, all content`;
+  const seg = `<div class="sc-seg" role="group" aria-label="Show">${[['all', 'All'], ['stories', 'Stories'], ['posts', 'Posts']].map(([k, l]) => `<button type="button" class="${v === k ? 'on' : ''}" aria-pressed="${v === k}" onclick="socViewsSet('${k}')">${l}</button>`).join('')}</div>`;
+  return `<div class="mk-chart-head">
+      <div class="slv-eyebrow">${title}</div>
+      ${seg}
+      <span class="soc-key"><span><i style="background:${cols[net]}"></i>${K}views (bars)</span><span><i style="background:${socReachColour()};width:16px;height:3px;border-radius:2px"></i>${K}reach (line)</span></span>
+    </div>
+    <div style="position:relative;height:240px"><canvas id="socViews"></canvas></div>
+    <p class="slv-note" id="socViewsNote">${socViewsNote()}</p>`;
+}
+function socStoryRows() { const w = socData.win; return socStoryViews && socStoryKey === w.from + '|' + w.to ? socStoryViews : null; }
+function socStoryLoad() {
+  const w = socData.win, key = w.from + '|' + w.to;
+  if (socStoryBusy && socStoryBusy.key === key) return socStoryBusy.p;
+  const p = (async () => {
+    const out = [];
+    for (let a = w.from; a <= w.to;) {
+      const e = new Date(a + 'T00:00:00'); e.setDate(e.getDate() + 92);
+      const b = socIso(e) < w.to ? socIso(e) : w.to;
+      const r = await sb.rpc('content_calendar_story_stats', { p_from: a, p_to: b });
+      if (r.error) throw r.error;
+      (r.data || []).forEach(x => { if (x.network === 'instagram') out.push({ d: new Date(x.posted_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }), views: x.views, reach: x.reach }); });
+      const n = new Date(b + 'T00:00:00'); n.setDate(n.getDate() + 1); a = socIso(n);
+    }
+    if (socData && socData.win.from + '|' + socData.win.to === key) { socStoryViews = out; socStoryKey = key; }
+    return out;
+  })();
+  socStoryBusy = { key, p };
+  const done = () => { if (socStoryBusy && socStoryBusy.p === p) socStoryBusy = null; };
+  p.then(done, done);
+  return p;
+}
+function socViewsDraw(net, baseRows) {
+  const cv = document.getElementById('socViews'); if (!cv) return;
+  if (net === 'instagram') socViewsBase = baseRows;
+  const w = socData.win, mode = socMode(), cols = socCols(), P = SOC_PLAT[net], note = document.getElementById('socViewsNote');
+  let rows = baseRows, bars = 'Views', line = 'Reach (added up day by day)';
+  if (net === 'instagram' && socViewsMode !== 'all') {
+    const by = {}, put = (d, v, r) => { const x = (by[d] = by[d] || { date: d }); x.views = (x.views || 0) + (Number(v) || 0); x.reach = (x.reach || 0) + (Number(r) || 0); };
+    if (socViewsMode === 'posts') socData.posts.forEach(p => { if (p.network === 'instagram' && p.kind !== 'story' && p.post_date) put(p.post_date, p.views, p.reach); });
+    else {
+      const st = socStoryRows();
+      if (!st) {
+        if (note) note.textContent = 'Reading the stories…';
+        socStoryLoad().then(() => { if (socViewsMode === 'stories' && document.getElementById('socViews')) socViewsDraw(net, socViewsBase); },
+          e => { console.error(e); if (note) note.textContent = 'Could not read the stories just now. Refresh to try again.'; });
+        return;
+      }
+      st.forEach(x => put(x.d, x.views, x.reach));
+    }
+    rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['views', 'reach']);
+    bars = socViewsMode === 'stories' ? 'Story views' : 'Post views';
+    line = socViewsMode === 'stories' ? 'Story reach' : 'Post reach';
+  }
+  if (note) note.textContent = socViewsNote();
+  if (socCharts.views) { socCharts.views.destroy(); socCharts.views = null; }
+  socCharts.views = socBarChart(cv, rows, [
+    { label: bars, data: rows.map(r => r.views), backgroundColor: cols[net] },
+    ...(P.reach ? [{ type: 'line', label: line, data: rows.map(r => r.reach), borderColor: socReachColour(), backgroundColor: socReachColour(), borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: socReachColour(), tension: .3 }] : []),
+  ], false);
+}
+function socViewsSet(v) {
+  socViewsMode = v;
+  const box = document.getElementById('socViewsBox'); if (!box) return;
+  if (socCharts.views) { socCharts.views.destroy(); socCharts.views = null; }
+  box.innerHTML = socViewsInner('instagram', socCols());
+  socViewsDraw('instagram', socViewsBase);
 }
 
 const socMode = () => mkModeFor('soc', socData.win.from, socData.win.to);
