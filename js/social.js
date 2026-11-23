@@ -22,7 +22,7 @@
 // Own window control (7, 30, 90 days, this year or custom dates), as google-ads.js,
 // and the same card, tile and table styles (slv-*, w13-*, mk-*).
 let socData = null, socCharts = {};
-let socDays = 30, socNet = 'all', socAll = false, socTab = 'overview';
+let socDays = 30, socNet = 'all', socTab = 'overview';
 const socFold = {};                          // section id: true open / false closed; unset = its default
 const socSort = {};                          // per table: { key, dir }
 try { const v = localStorage.getItem('trs-soc-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) socDays = Number(v); } catch (e) {}
@@ -106,8 +106,37 @@ function socSetTab(t) {
   const el = document.getElementById('socialContent');
   if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' });
 }
-function socSetNet(n) { socNet = n; socAll = false; socRepaint(); }
-function socShowAll() { socAll = true; socRepaint(); }
+function socSetNet(n) { socNet = n; if (socTopT) socTopT.clear(); socRepaint(); }
+
+// ── Top posts table: the shared Google Sheets table (js/sheet-table.js), Kate 23 Nov 2026 ──
+// Every heading has Sort A to Z / Z to A, Filter by condition and Filter by values; 10 rows with pages (Rows 10, 20, 50, 100).
+let socTopT = null, socTopRows = [], socTopFor = null;
+const socCap1 = p => String(p.caption || '').split('\n').map(x => x.trim()).find(Boolean) || (p.kind === 'story' ? 'Story' : '(no caption)');
+function socTopMount() {
+  if (!window.TRSheet || !document.getElementById('socTopTbl')) return;
+  if (socTopFor !== socData) { socTopFor = socData; if (socTopT) socTopT.clear(); }   // new data (new dates), so the old heading filters go
+  const num = (k, l, extra) => Object.assign({ k, l, t: 'num', raw: p => Number(p[k]) || 0, disp: p => socNum(p[k]), cell: p => socNum(p[k]) }, extra || {});
+  if (!socTopT) socTopT = TRSheet.table({ id: 'soctop', el: '#socTopTbl', rows: () => socTopRows, limit: 10,
+    cols: [
+      { k: 'post', l: 'Post', t: 'txt', raw: p => socCap1(p), disp: p => socCap1(p), cell: p => socPostCell(p, true) },
+      num('views', 'Views'),
+      num('reach', 'Reach'),
+      num('interactions', 'Likes, comments, shares'),
+      num('saves', 'Saves')
+    ],
+    after: (T, rows) => {
+      const c = document.getElementById('socTopClear'); if (c) c.hidden = !T.active();
+      const pages = T.pages(rows.length), from = rows.length ? T.page * T.shown + 1 : 0, to = Math.min(rows.length, (T.page + 1) * T.shown);
+      const tx = document.getElementById('socTopTxt'), pv = document.getElementById('socTopPrev'), nx = document.getElementById('socTopNext'), pn = document.getElementById('socTopPgN'), sl = document.getElementById('socTopSel');
+      if (tx) tx.textContent = from + ' to ' + to + ' of ' + rows.length + ' posts';
+      if (pv) pv.disabled = T.page <= 0; if (nx) nx.disabled = T.page >= pages - 1; if (pn) pn.textContent = 'Page ' + (T.page + 1) + ' of ' + pages;
+      if (sl && +sl.value !== T.shown) sl.value = String(T.shown);
+    } });
+  socTopT.draw();
+}
+function socTopPick(n) { if (!socTopT) return; socTopT.shown = n; socTopT.page = 0; socTopT.draw(); }
+function socTopPage(d) { if (!socTopT) return; socTopT.page += d; socTopT.draw(); }
+function socTopClear() { if (!socTopT) return; socTopT.clear(); socTopT.draw(); }
 function socToggle(id, open) { socFold[id] = open; }
 function socSortBy(table, key) {
   const s = socSort[table] || {};
@@ -119,13 +148,20 @@ function socSortBy(table, key) {
 // Overview only: the platform tabs and the Calendar are one report each. Gutter above 1100px, a row of chips below it.
 // A third item is what the entry does instead of jumping down the page: Calendar (Kate, 23 Nov 2026: "calendar is supposed to appear sa mini side bar navi") opens the Calendar tab, so it is always listed.
 const SOC_RAIL = [['sgRoot', 'Overview'], ['soc-glance', 'At a glance'], ['soc-web', 'From social to the website'], ['soc-top', 'Top posts'], ['soc-calendar', 'Calendar', "socSetTab('calendar');return false;"]];
+// A platform tab (Instagram, TikTok, Facebook, YouTube) lists its own parts (Kate, 23 Nov 2026: "bakit wala nang sidebar navi pag ig/fb/tk/yt tabs na"):
+// Overview and Calendar open those tabs, the report card and each folded section (Reels, Posts, Audience, Best time, Hashtags...) jump down the page and open it first.
+function socRailList() {
+  if (socTab === 'overview') return SOC_RAIL;
+  const secs = [...document.querySelectorAll('#socialContent details.soc-sec[id]')].map(d => { const t = d.querySelector('.soc-sec-t'); return [d.id, t ? t.textContent.trim() : '']; }).filter(r => r[1]);
+  return [['sgRoot', 'Overview', "socSetTab('overview');return false;"], ['soc-plat', SOC_NETS[socTab] + ' report'], ...secs, ['soc-calendar', 'Calendar', "socSetTab('calendar');return false;"]];
+}
 function socRail(on) {
   const shell = document.getElementById('scShell'), side = document.getElementById('scSide');
   if (!shell || !side) return;
   shell.classList.toggle('rv-norail', !on);
   const nav = side.querySelector('.side-nav');
   if (nav && on) {
-    const live = SOC_RAIL.filter(r => r[2] || document.getElementById(r[0])), sig = live.map(r => r[0]).join();
+    const live = socRailList().filter(r => r[2] || document.getElementById(r[0])), sig = socTab + ':' + live.map(r => r[0] + r[1]).join();
     if (nav.dataset.sig !== sig) {
       nav.dataset.sig = sig;
       nav.innerHTML = '<div class="side-k">On this page</div>' + live.map(r => `<a href="#${r[0]}" onclick="${r[2] || `lgJump(event,'${r[0]}')`}">${r[1]}</a>`).join('');
@@ -221,8 +257,8 @@ function socPaint(el) {
     ${stale ? `<p class="slv-muted" style="color:#b42318">Social numbers are paused${s && s.last_error ? ': ' + mkEsc(s.last_error) : ''}. Last good update: ${synced ? mkEsc(synced) : 'never'}.</p>` : ''}
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
     <p class="slv-muted">From Metricool, updated nightly${synced ? ', last ' + mkEsc(synced) : ''}. Numbers start when each account was connected to Metricool. Facebook Ads are not here; Google Ads and Meta Ads each have their own page.</p>`;
-  if (socTab === 'overview') { socDrawOverview(T); if (typeof socGlanceMount === 'function') socGlanceMount(); } else socDrawPlatform(socTab, T);
-  socRail(socTab === 'overview');
+  if (socTab === 'overview') { socDrawOverview(T); socTopMount(); if (typeof socGlanceMount === 'function') socGlanceMount(); } else socDrawPlatform(socTab, T);
+  socRail(true);
 }
 
 // ── Overview ──────────────────────────────────────────────────────────────────────
@@ -242,7 +278,7 @@ function socOverviewHtml(T) {
   if (socNet !== 'all' && !nets.includes(socNet)) socNet = 'all';
   const list = d.posts.filter(p => p.kind !== 'story' && (socNet === 'all' || p.network === socNet))
     .sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
-  const shown = socAll ? list : list.slice(0, 15);
+  socTopRows = list;   // the Top posts table (socTopMount) reads this; its heading menus filter and sort it
 
   const web = d.web || {}, ch = {}; (web.channels || []).forEach(c => { ch[c.channel] = c; });
   const org = ch['Organic Social'] || { sessions: 0, engaged: 0 }, paid = ch['Paid Social'] || { sessions: 0, engaged: 0 };
@@ -306,11 +342,11 @@ function socOverviewHtml(T) {
           ${[['all', 'All'], ...nets.map(n => [n, SOC_NETS[n]])].map(([k, l]) => `<button type="button" class="${socNet === k ? 'on' : ''}" onclick="socSetNet('${k}')">${l}</button>`).join('')}
         </div>` : ''}
       </div>
-      ${list.length ? `<div class="slv-wrap"><table class="slv-table">
-        <thead><tr><th>Post</th><th>Views</th><th>Reach</th><th>Likes, comments, shares</th><th class="soc-sm">Saves</th></tr></thead>
-        <tbody>${shown.map(p => `<tr><td>${socPostCell(p, true)}</td><td>${socNum(p.views)}</td><td>${socNum(p.reach)}</td><td>${socNum(p.interactions)}</td><td class="soc-sm">${socNum(p.saves)}</td></tr>`).join('')}</tbody></table></div>
-      ${list.length > shown.length ? `<p style="margin:12px 0 0"><button type="button" class="sc-btn" onclick="socShowAll()">Show all ${list.length}</button></p>` : ''}
-      <p class="slv-note">Posted in these dates, most viewed first. A post's numbers keep growing for a few weeks, and are re-read every night. Tap a caption to open the post.</p>`
+      ${list.length ? `<div class="soc-tbar"><button type="button" class="cm-pill soc-phone" data-sxcm="soctop" aria-label="Sort and filter">Sort and filter</button><span class="soc-sp"></span><button type="button" class="cm-pill" id="socTopClear" hidden onclick="socTopClear()">Clear filters</button></div>
+      <div class="slv-wrap"><table id="socTopTbl"></table></div>
+      <div class="soc-pager"><span id="socTopTxt"></span><span class="soc-sp"></span><span class="slv-eyebrow">Rows</span><select id="socTopSel" aria-label="Rows to show" onchange="socTopPick(+this.value)"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
+        <button type="button" class="cm-pill" id="socTopPrev" onclick="socTopPage(-1)">‹ Previous</button><span class="soc-pgn" id="socTopPgN"></span><button type="button" class="cm-pill" id="socTopNext" onclick="socTopPage(1)">Next ›</button></div>
+      <p class="slv-note">Posted in these dates, most viewed first. Tap a heading's funnel to sort or filter. A post's numbers keep growing for a few weeks, and are re-read every night. Tap a caption to open the post.</p>`
       : '<p class="slv-muted">Nothing posted in these dates.</p>'}
     </section>`;
 }
@@ -394,7 +430,7 @@ function socPlatformHtml(net, T) {
     '<p class="slv-muted" style="margin:0">No competitors are set up in Metricool. Add the salons we watch there (Analytics › Competitors) and they show here side by side: followers, posts and engagement.</p>'));
 
   return `
-    <section class="slv-card">
+    <section class="slv-card" id="soc-plat">
       <div class="slv-head">
         <div><div class="slv-eyebrow"><i class="soc-dot" style="background:${cols[net]}"></i>${SOC_NETS[net]}${net === 'youtube' ? ' · The Tara Rose Podcast' : ' · @tararosesalon'}</div><h3>${SOC_NETS[net]} report</h3></div>
         <p>${mkEsc(socDayY(w.from))} to ${mkEsc(socDayY(w.to))}${last[net] ? ` · numbers up to ${mkDay(last[net])}` : ''}</p>
@@ -421,7 +457,7 @@ function socPlatformHtml(net, T) {
 // and each remembers what it was set to while the page is open.
 function socSection(id, title, summary, body, first) {
   const open = socFold[id] === undefined ? !!first : socFold[id];
-  return `<details class="soc-sec"${open ? ' open' : ''} ontoggle="socToggle('${id}', this.open)">
+  return `<details class="soc-sec" id="soc-s-${id}"${open ? ' open' : ''} ontoggle="socToggle('${id}', this.open)">
     <summary><span class="soc-sec-t">${title}</span><span class="soc-sec-s">${summary}</span></summary>
     <div class="soc-sec-b">${body}</div></details>`;
 }
