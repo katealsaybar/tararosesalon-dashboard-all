@@ -267,3 +267,11 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
 .ord-cpt b{color:var(--text,inherit);font-weight:600;font-variant-numeric:tabular-nums}
 .ord-cp{height:30px;box-sizing:border-box;font-size:13px}
 @media (max-width:760px){.ord-cp{height:44px;min-width:64px}}
+
+/* The answer in one line: a sentence, then labelled figures (Kate, 23 Nov 2026) */
+.ord-ans-f{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:12px}
+.ord-fact{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ord-fact i{font-style:normal;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2)}
+.ord-fact b{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.ord-ans-n{margin:10px 0 0;font-size:13px;color:var(--muted2)}
+@media (max-width:760px){.ord-fact{flex:1 1 40%}.ord-fact b{font-size:18px}}

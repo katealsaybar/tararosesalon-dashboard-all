@@ -254,6 +254,7 @@ function ordMatch(g, f) {
   if (f.file && !ordIsKept(g)) return false;
   if (f.amt && g.a == null) return false;
   if (f.disc && !(g.disc > 0 || g.discPct > 0)) return false;
+  if (f.refund && !(g.refund > 0)) return false;
   return true;
 }
 const ordSumInv = gs => gs.reduce((t, g) => t + (g.inv || 0), 0);
@@ -383,12 +384,19 @@ function ordPaintAnswer() {
   if (!gs.length) { a.textContent = 'Nothing tracked in this Period for ' + ordScopeText() + '. Try a wider Period.'; a2.textContent = ''; return; }
   const sup = {}; gs.forEach(g => { sup[g.s] = 1; });
   const ns = Object.keys(sup).length, ord = gs.filter(g => g.type === 'Order'), inv = gs.filter(g => g.hasInv || g.type === 'Invoice'), st = gs.filter(g => g.type === 'Statement'), lk = gs.filter(g => g.x), dc = ordSumDisc(gs), sum = ordSumInv(gs);
-  const pl = (n, one, many) => n === 1 ? one : many;
-  a.innerHTML = ordFig(gs.length, 'Everything tracked', {}) + ' ' + pl(gs.length, 'order, invoice or statement', 'orders, invoices and statements') + ' from ' + ns + pl(ns, ' supplier, ', ' suppliers, ') + 'each tracked once: ' +
-    ordFig(ord.length, 'Orders', { kind: 'order' }) + pl(ord.length, ' order, ', ' orders, ') + ordFig(inv.length, 'Invoices', { kind: 'inv' }) + pl(inv.length, ' invoice', ' invoices') +
-    (sum ? ' with ' + ordMoney(sum, 'Invoices with an amount', { kind: 'inv', amt: 1 }) + ' on them' : '') + (dc ? ', ' + ordMoney(dc, 'Orders with a discount', { disc: 1 }) + ' of it in discounts' : '') + ', ' +
-    ordFig(st.length, 'Statements', { kind: 'stmt' }) + pl(st.length, ' statement, and ', ' statements, and ') + ordFig(lk.length, 'Needs a look', { look: 1 }) + ' that need a look.';
-  a2.textContent = ordScopeText() + ' · ' + ordPeriodText() + '. One order is one row, however many emails it has. Amounts count only what the email shows.';
+  const pl = (n, one, many) => n === 1 ? one : many, rf = gs.reduce((t, g) => t + (g.refund || 0), 0);
+  // Kate, 23 Nov 2026: "not too clear". One plain sentence says the thing that matters (how many need a look), then a short row of labelled figures, each one a number that opens its orders.
+  a.innerHTML = lk.length
+    ? ordFig(lk.length, 'Needs a look', { look: 1 }) + ' of ' + ordFig(gs.length, 'Everything tracked', {}) + ' ' + pl(gs.length, 'order, invoice or statement needs', 'orders, invoices and statements need') + ' a look.'
+    : 'Nothing needs a look. ' + ordFig(gs.length, 'Everything tracked', {}) + ' ' + pl(gs.length, 'order, invoice or statement is', 'orders, invoices and statements are') + ' tracked.';
+  const fact = (label, html) => `<span class="ord-fact"><i>${label}</i><b>${html}</b></span>`;
+  a2.innerHTML = `<div class="ord-ans-f">` +
+    fact('Suppliers', ns) + fact('Orders', ordFig(ord.length, 'Orders', { kind: 'order' })) + fact('With an invoice', ordFig(inv.length, 'With an invoice', { kind: 'inv' })) +
+    (st.length ? fact('Statements', ordFig(st.length, 'Statements', { kind: 'stmt' })) : '') +
+    (sum ? fact('Invoiced, AED', ordMoney(sum, 'Invoices with an amount', { kind: 'inv', amt: 1 })) : '') +
+    (dc ? fact('Discounts, AED', ordMoney(dc, 'Orders with a discount', { disc: 1 })) : '') +
+    (rf ? fact('Refunds, AED', ordMoney(rf, 'Orders with a refund', { refund: 1 })) : '') + `</div>` +
+    `<p class="ord-ans-n">${ordEsc(ordScopeText() + ' · ' + ordPeriodText())}. One order is one row, however many emails it has. Amounts count only what the email shows.</p>`;
 }
 function ordPaintNotes() {
   const cn = document.getElementById('ordChkN'); if (cn) cn.textContent = ordGroups.filter(g => g.chk).length;
