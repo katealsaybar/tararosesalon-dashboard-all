@@ -602,6 +602,12 @@ function socDrawPlatform(net) {
     { type: 'line', label: 'Total', data: rows.map(r => r.total ?? null), borderColor: css.getPropertyValue('--text').trim(), backgroundColor: css.getPropertyValue('--text').trim(),
       borderWidth: 2, pointRadius: 0, tension: .3, yAxisID: 'y1' },
   ], true, true);
+  // A click on a bar or the line opens that day (or week): the follower numbers, and what went out then. Followers cannot be traced to one post or story, and the window says so.
+  if (typeof sgPopAttach === 'function') {
+    const up = net === 'tiktok' ? 'Up' : 'Gained', dn = net === 'tiktok' ? 'Down' : 'Lost';
+    sgPopAttach(socCharts.follow, rows, net, { showP: true, showS: net !== 'tiktok', note: 'Followers cannot be traced to a single post or story. Shown here: what went out then.',
+      sum: r => [[up, r.gained || 0], [dn, Math.abs(r.lost || 0)], ['Followers', r.total ?? null]] });
+  }
   socViewsDraw(net, rows);
   if (typeof sgSchedDraw === 'function') sgSchedDraw(net);
 }

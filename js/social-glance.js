@@ -439,14 +439,16 @@ function sgPopHit(ch, e) {
   return ch.getElementsAtEventForMode(e, 'index', { intersect: false }, false)[0] || null;
 }
 // Hooks a chart: a click on a bar or a point opens the window, the pointer shows which days have something to open.
-// o = { showP, showS, rec, note }: posts and stories the chart counts, rec = only posts the Content Calendar has a record for, note = a line shown at the top of the window.
+// o = { showP, showS, rec, note, sum }: posts and stories the chart counts, rec = only posts the Content Calendar has a record for, note = a line shown at the top of the window,
+// sum(row) = number tiles for that day or week shown above the list (the Followers chart: gained, lost, followers), so a day with nothing posted still opens.
 function sgPopAttach(c, rows, net, o) {
   if (!c || net === 'youtube') return;   // YouTube has no post list in Metricool
   let lastI = -1, lastOn = false;
   c.options.onClick = (e, _els, ch) => sgPopFromClick(ch, e, rows, net, o);
   c.options.onHover = (e, _els, ch) => {
     const ix = sgPopHit(ch, e), i = ix ? ix.index : -1;
-    if (i !== lastI) { lastI = i; const s = { net, from: i >= 0 ? rows[i].from : '', to: i >= 0 ? rows[i].to : '', ...o }; const it = i >= 0 ? sgPopItems(s, 'all') : null; lastOn = !!it && (it.posts.length + it.stories.length) > 0; }
+    if (i !== lastI) { lastI = i; const s = { net, from: i >= 0 ? rows[i].from : '', to: i >= 0 ? rows[i].to : '', ...o }; const it = i >= 0 ? sgPopItems(s, 'all') : null;
+      lastOn = !!it && ((it.posts.length + it.stories.length) > 0 || (!!o.sum && o.sum(rows[i]).some(t => t[1]))); }
     ch.canvas.style.cursor = lastOn ? 'pointer' : 'default';
   };
   c.update();
@@ -461,7 +463,8 @@ async function sgPopFromClick(ch, e, rows, net, o) {
   const s = { net, from: row.from, to: row.to, week: socMode() === 'week', ...o, view };
   // the stories' pictures and times come with the Content Calendar's record; wait for it if it has not arrived yet
   if (s.showS && !sgHowReady()) { try { await sgHowLoad(); } catch (err) { console.error(err); return; } }
-  const items = sgPopItems(s, 'all'); if (!items.posts.length && !items.stories.length) return;
+  s.tiles = o.sum ? o.sum(row) : null;
+  const items = sgPopItems(s, 'all'); if (!items.posts.length && !items.stories.length && !(s.tiles && s.tiles.some(t => t[1]))) return;
   sgPopOpen(s);
 }
 // Every post the Social report holds, labelled with how it went out once the Content Calendar's record has arrived.
@@ -565,8 +568,8 @@ function sgPopPaint(first) {
   el.innerHTML = `<div class="sgp-scrim" onclick="sgPopClose()"></div>
     <div class="sgp" role="dialog" aria-modal="true" aria-labelledby="sgpT" style="--c:${bg};--bf:${fg}">
       <div class="sgp-ph"><span class="sgp-b" aria-hidden="true">${SG_BD[net]}</span>
-        <div class="when"><b id="sgpT">${mkEsc(title)}</b><span>${mkEsc(SG_PN[net])}: ${mkEsc(count(now.posts.length, now.stories.length) || 'nothing')}${s.week ? ' · ' + mkEsc(socDayY(s.from)) + ' to ' + mkEsc(socDayY(s.to)) : ''}</span></div>
+        <div class="when"><b id="sgpT">${mkEsc(title)}</b><span>${mkEsc(SG_PN[net])}: ${mkEsc(count(now.posts.length, now.stories.length) || 'nothing posted')}${s.week ? ' · ' + mkEsc(socDayY(s.from)) + ' to ' + mkEsc(socDayY(s.to)) : ''}</span></div>
         <button type="button" class="sgp-x" aria-label="Close" onclick="sgPopClose()">×</button></div>
-      <div class="sgp-pb">${s.note ? `<p class="sgp-note">${mkEsc(s.note)}</p>` : ''}${seg}${body || '<p class="sgp-none">Nothing here.</p>'}</div></div>`;
+      <div class="sgp-pb">${s.tiles ? `<div class="sgp-nums">${s.tiles.filter(t => t[1] !== null && t[1] !== undefined).map(t => sgPopNum(t[0], t[1])).join('')}</div>` : ''}${s.note ? `<p class="sgp-note">${mkEsc(s.note)}</p>` : ''}${seg}${body || `<p class="sgp-none">${s.tiles ? 'No posts or stories went out ' + (s.week ? 'that week' : 'that day') + '.' : 'Nothing here.'}</p>`}</div></div>`;
   if (first) { const c = el.querySelector('.sgp-x'); if (c) c.focus(); }
 }
