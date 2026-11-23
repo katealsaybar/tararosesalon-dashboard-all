@@ -186,6 +186,10 @@ function ordFinish(key, docs) {
   }
   g.x = g.canc ? '' : fl.join('; ');
   g.n = first.subject || first.note || '';
+  // Kate, 23 Nov 2026 (NEU, invoice due 25 Feb, last message 23 Feb): to decide whether an order is really done she needs two dates in front of her, the invoice's due date and the last email
+  // of the order, and who sent it (us from the info mailbox, or the supplier).
+  g.due = ''; docs.forEach(d => { if (d.due && String(d.due) > g.due) g.due = String(d.due).slice(0, 10); });
+  g.lastDay = last.date; g.lastUs = /^(order|reply)$/.test(last.kind || '');
   return g;
 }
 // FIND AN ORDER (Kate, 20 Nov 2026): one box over the page. Every word typed must appear somewhere in the order: supplier, order number (with or without the dashes), product,
@@ -406,11 +410,13 @@ function ordBuildTables() {
   const dateCol = () => ({ k: 'd', l: 'Started', t: 'txt', raw: g => ordDay(g.start), disp: g => ordDay(g.start), sk: g => Date.parse(g.start), cell: g => ordDay(g.start) });
   const supCol = () => ({ k: 's', l: 'Supplier', t: 'txt', raw: g => g.s, disp: g => g.s, cell: g => '<b>' + ordEsc(g.s) + '</b>' });
   const salCol = () => ({ k: 'b', l: 'Salon', t: 'txt', raw: g => ordName(g.b), disp: g => ordName(g.b), cell: g => ordEsc(ordName(g.b)) });
+  const dueCol = x => ({ k: 'du', l: 'Invoice due', t: 'date', x, raw: g => g.due || '', disp: g => g.due ? ordDay(g.due) : '', cell: g => g.due ? ordDay(g.due) : '<span class="ord-muted">-</span>' });
+  const lastCol = x => ({ k: 'lm', l: 'Last message', t: 'date', x, raw: g => g.lastDay || '', disp: g => g.lastDay ? ordDay(g.lastDay) + ' · ' + (g.lastUs ? 'us' : g.s) : '', cell: g => g.lastDay ? ordDay(g.lastDay) + ' <span class="ord-muted">· ' + (g.lastUs ? 'us' : ordEsc(g.s)) + '</span>' : '<span class="ord-muted">-</span>' });
   const amtCol = () => ({ k: 'a', l: 'Total', sub: 'AED', t: 'num', raw: g => g.a == null ? -1 : g.a, disp: g => g.a == null ? '' : ordAed(g.a), cell: g => g.a == null ? '<span class="ord-muted">-</span>' : `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordAed(g.a)}</button>` });   // one order's total opens that order (it used to open every order of the supplier under this order's name)
   ordTL = TRSheet.table({ id: 'ordlook', el: '#ordTblLook', rows: () => (ORD.q ? ordGroups : ordScope()).filter(g => g.x && ordFindOk(g)), limit: ORD.n,
     cols: [ordSelCol('look'), dateCol(), supCol(),
       { k: 'x', l: 'Why it needs a look', t: 'txt', raw: g => g.x, disp: g => g.x, cell: g => `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.x)}</button>` },
-      { k: 'k', l: 'Type', t: 'txt', raw: g => g.type, disp: g => g.type, cell: g => ordEsc(g.type) }, salCol(), amtCol()],
+      dueCol(), lastCol(), { k: 'k', l: 'Type', t: 'txt', raw: g => g.type, disp: g => g.type, cell: g => ordEsc(g.type) }, salCol(), amtCol()],
     total: rows => ({ d: rows.length + ' to look at' }), after: (T, rows) => { ordAfter('look', T, rows, 'to look at'); ordBulkPaint(); } });
   ordTS = TRSheet.table({ id: 'ordsup', el: '#ordTblSup', rows: ordSupRows, limit: ORD.n,
     cols: [
@@ -434,6 +440,7 @@ function ordBuildTables() {
       { k: 't', l: 'Status', t: 'txt', raw: g => g.st, disp: g => g.st, cell: ordStatusPill },
       { k: 'f', l: 'Receipt', t: 'txt', raw: g => g.f, disp: g => g.f, cell: ordRcPill },
       { k: 'r', l: 'Reference', t: 'txt', x: 1, raw: g => g.r, disp: g => g.r, cell: g => g.r ? ordEsc(g.r) : '<span class="ord-muted">-</span>' },
+      dueCol(1), lastCol(1),
       { k: 'ty', l: 'Type', t: 'txt', x: 1, raw: g => g.type, disp: g => g.type, cell: g => ordEsc(g.type) },
       { k: 'e', l: 'What it says', t: 'txt', x: 1, raw: g => g.n, disp: g => g.n, cell: g => ordEsc(g.n) },
       { k: 'g', l: 'Category', t: 'txt', x: 1, raw: g => g.cat, disp: g => g.cat, cell: g => ordEsc(g.cat) },
@@ -1089,8 +1096,8 @@ async function ordExport() {
   const [a, b] = ordRange();
   const cols = [{ key: 'start', label: 'Started', fmt: 'text' }, { key: 'sup', label: 'Supplier', fmt: 'text' }, { key: 'sal', label: 'Salon', fmt: 'text' }, { key: 'type', label: 'Type', fmt: 'text' }, { key: 'ref', label: 'Reference', fmt: 'text' },
     { key: 'items', label: 'Items', fmt: 'num' }, { key: 'units', label: 'Units', fmt: 'num' }, { key: 'total', label: 'Total (AED)', fmt: 'aed' }, { key: 'disc', label: 'Discount (AED)', fmt: 'aed' }, { key: 'pct', label: 'Discount applied (%)', fmt: 'pct' }, { key: 'refund', label: 'Refund (AED)', fmt: 'aed' },
-    { key: 'status', label: 'Status', fmt: 'text' }, { key: 'file', label: 'Receipt', fmt: 'text' }, { key: 'look', label: 'Needs a look', fmt: 'text' }];
-  const lines = rows.map(g => ({ cells: [ordDay(g.start), g.s, ordName(g.b), g.type, g.r, g.items, g.units, ordR2(g.a), g.disc ? ordR2(g.disc) : null, g.discPct || null, g.refund ? ordR2(g.refund) : null, g.st, g.f, g.x] }));
+    { key: 'status', label: 'Status', fmt: 'text' }, { key: 'file', label: 'Receipt', fmt: 'text' }, { key: 'look', label: 'Needs a look', fmt: 'text' }, { key: 'due', label: 'Invoice due', fmt: 'text' }, { key: 'lm', label: 'Last message', fmt: 'text' }];
+  const lines = rows.map(g => ({ cells: [ordDay(g.start), g.s, ordName(g.b), g.type, g.r, g.items, g.units, ordR2(g.a), g.disc ? ordR2(g.disc) : null, g.discPct || null, g.refund ? ordR2(g.refund) : null, g.st, g.f, g.x, g.due ? ordDay(g.due) : '', g.lastDay ? ordDay(g.lastDay) + ' (' + (g.lastUs ? 'us' : g.s) + ')' : ''] }));
   const items = []; rows.forEach(g => { if (g.buy) g.buy.lines.forEach(l => items.push({ cells: [ordDay(g.start), g.s, g.r, T.en(l.name), ordR2(+l.qty), ordR2(+l.unit), ordR2(+l.total), l.note || ''].concat(T.any ? [T.en(l.name) !== l.name ? l.name : ''] : []) })); });
   const sheets = [{ name: 'Orders', title: 'Orders and Receipts', subtitle: `${ordScopeText()} · ${a} to ${b}. One row per order. Amounts only where the supplier email shows them.`, blocks: [{ cols, rows: lines }],
     legend: [['Total', 'The order total from the email. An invoice with no amount in the email text shows a dash.'], ['Discount', 'The AED the supplier took off, or the percentage applied when the email only says that.']] }];
@@ -1133,6 +1140,6 @@ function ordExportLook() {
   const rows = ordTL ? ordTL.rows() : []; if (!rows.length) return null;
   const [a, b] = ordRange();
   return { name: ['orders-needs-a-look', ordScopeText(), a, 'to', b].map(ordSlug).join('-'), csv: 0, sheets: [{ name: 'Needs a look', title: 'Orders that need a look', subtitle: `${ordScopeText()} · ${a} to ${b}`,
-    blocks: [{ cols: [{ key: 'd', label: 'Started', fmt: 'text' }, { key: 's', label: 'Supplier', fmt: 'text' }, { key: 'x', label: 'Why it needs a look', fmt: 'text' }, { key: 'k', label: 'Type', fmt: 'text' }, { key: 'b', label: 'Salon', fmt: 'text' }, { key: 'a', label: 'Total (AED)', fmt: 'aed' }],
-      rows: rows.map(g => ({ cells: [ordDay(g.start), g.s, g.x, g.type, ordName(g.b), ordR2(g.a)] })) }] }] };
+    blocks: [{ cols: [{ key: 'd', label: 'Started', fmt: 'text' }, { key: 's', label: 'Supplier', fmt: 'text' }, { key: 'x', label: 'Why it needs a look', fmt: 'text' }, { key: 'k', label: 'Type', fmt: 'text' }, { key: 'b', label: 'Salon', fmt: 'text' }, { key: 'a', label: 'Total (AED)', fmt: 'aed' }, { key: 'du', label: 'Invoice due', fmt: 'text' }, { key: 'lm', label: 'Last message', fmt: 'text' }],
+      rows: rows.map(g => ({ cells: [ordDay(g.start), g.s, g.x, g.type, ordName(g.b), ordR2(g.a), g.due ? ordDay(g.due) : '', g.lastDay ? ordDay(g.lastDay) + ' (' + (g.lastUs ? 'us' : g.s) + ')' : ''] })) }] }] };
 }
