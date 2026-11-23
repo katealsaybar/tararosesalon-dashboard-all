@@ -19,18 +19,13 @@
 // sync doesn't mind. If it is moved to another brand, clear the old brand's youtube rows
 // in metricool_daily first, or the report counts both.
 //
-// Own window control (7, 30, 90 days, this year or custom dates), as google-ads.js,
+// The Period comes from the masthead (dateFrom and dateTo), as Marketing Spend does (Kate, 23 Nov 2026: "bat walang global sticky header filter"), so there is no Period row of its own,
 // and the same card, tile and table styles (slv-*, w13-*, mk-*).
 let socData = null, socCharts = {};
-let socDays = 30, socNet = 'all', socTab = 'overview';
+let socNet = 'all', socTab = 'overview';
 const socFold = {};                          // section id: true open / false closed; unset = its default
 const socSort = {};                          // per table: { key, dir }
-try { const v = localStorage.getItem('trs-soc-days'); if (v !== null && [7, 30, 90, 365, 0].includes(Number(v))) socDays = Number(v); } catch (e) {}
-// ALD6-01: true while the page is still on a range it remembered (not Last 30 days) and nobody has picked one this visit.
-let socRestored = socDays !== 30;
 try { const v = localStorage.getItem('trs-soc-tab'); if (v) socTab = v; } catch (e) {}
-let socCustom = { from: '', to: '' };
-try { Object.assign(socCustom, JSON.parse(localStorage.getItem('trs-soc-custom') || '{}')); } catch (e) {}
 
 // The apps' own marks (Kate, 23 Nov 2026: "use real ig/tk/yt/fb logos in social"), the same paths the Content Calendar's badges use (smm_board_approvals calendar.js SCAL_ICO).
 // Drawn in currentColor, so a caller sets the colour: the platform colour on a plain background, white or dark on a platform-coloured tile.
@@ -71,32 +66,23 @@ let socRegion = null;
 try { socRegion = new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) {}
 const socCountry = k => { if (k === 'AE') return 'UAE'; if (k === 'GB') return 'UK'; if (k === 'US') return 'USA'; try { return /^[A-Z]{2}$/.test(k) && socRegion ? socRegion.of(k) : k; } catch (e) { return k; } };
 
+const socIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// The masthead Period as { from, to }. All time starts when Metricool did (Jan 2025). Before the dashboard knows its window: the last 30 days.
 function socWindow() {
+  try {
+    if (typeof activePeriodKey === 'function' && activePeriodKey() === 'All time') return { from: '2025-01-01', to: socIso(new Date()) };
+    if (typeof dateFrom !== 'undefined' && dateFrom && dateTo) return { from: socIso(dateFrom), to: socIso(dateTo) };
+  } catch (e) {}
   const t = new Date(); t.setHours(0, 0, 0, 0);
   const to = new Date(t); to.setDate(t.getDate() - 1);
-  const from = new Date(to);
-  if (socDays === 0 && socCustom.from && socCustom.to) {
-    const a = socCustom.from, b = socCustom.to;
-    return a <= b ? { from: a, to: b, custom: true } : { from: b, to: a, custom: true };
-  }
-  if (socDays === 365) from.setMonth(0, 1); else from.setDate(to.getDate() - (socDays || 30) + 1);
-  return { from: mkIso(from), to: mkIso(to) };
+  const from = new Date(to); from.setDate(to.getDate() - 29);
+  return { from: socIso(from), to: socIso(to) };
 }
-
-function socSetDays(n) {
-  if (n === 0 && !(socCustom.from && socCustom.to)) {
-    const w = socWindow(); socCustom = { from: w.from, to: w.to };
-    try { localStorage.setItem('trs-soc-custom', JSON.stringify(socCustom)); } catch (e) {}
-  }
-  socDays = n; socRestored = false;
-  try { localStorage.setItem('trs-soc-days', String(n)); } catch (e) {}
-  renderSocial();
-}
-function socSetCustom(k, v) {
-  if (!v) return;
-  socCustom[k] = v; socRestored = false;
-  try { localStorage.setItem('trs-soc-custom', JSON.stringify(socCustom)); } catch (e) {}
-  renderSocial();
+// A Period change in the masthead (dashboard.js NOPULSE_REDRAW): load the new dates, or redraw when they are the dates already on screen.
+function socMastRefresh() {
+  const w = socWindow();
+  if (socData && socData.win && socData.win.from === w.from && socData.win.to === w.to) { socRepaint(); return Promise.resolve(); }
+  return renderSocial();
 }
 function socSetTab(t) {
   if (t === 'calendar') { showView('contentcalendar', document.querySelector("#sidebar .nav-sub[onclick*=\"showView('social'\"]")); return; }
@@ -187,9 +173,11 @@ function socRail(on) {
 async function renderSocial() {
   const el = document.getElementById('socialContent');
   if (!el) return;
-  const w = socWindow();
   socRail(false);
   el.innerHTML = '<p class="slv-muted">Loading Social…</p>';
+  // The Period is only known once the dashboard has worked out its window (a direct link can open this page first).
+  try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) {}
+  const w = socWindow();
   try {
     const { data, error } = await sb.rpc('social_report', { p_from: w.from, p_to: w.to });
     if (error || !data) throw error || new Error('no data');
@@ -282,7 +270,6 @@ function socPaint(el) {
     return;
   }
   el.innerHTML = `
-    ${mkPeriodRow('soc', socDays, socCustom, socRestored ? w : null)}
     <section class="slv-intro">
       <h2>Social</h2>
       <p>Instagram, TikTok, the Facebook page and YouTube in one place. Overview for the quick look; each platform's tab has its full report, as in Metricool. The apps report a day or two late.</p>

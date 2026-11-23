@@ -32,11 +32,11 @@ const sgChgT = (cur, prev) => { const p = sgPct(cur, prev); return p === null ? 
 const sgChg = (cur, prev) => { const p = sgPct(cur, prev); return p === null ? '<span class="sg-d">new</span>'
   : `<span class="sg-d ${p > 0 ? 'up' : p < 0 ? 'down' : ''}">${p > 0 ? '&#9650; up ' + p + '%' : p < 0 ? '&#9660; down ' + Math.abs(p) + '%' : 'level'}</span> <span>(was ${sgN(prev)})</span>`; };
 
-function sgShapePosts(arr) {
+function sgShapePosts(arr, srcMap) {
   const rows = (arr || []).filter(p => SG_PN[p.network] && p.kind !== 'story').map(p => {
     const kind = p.network === 'instagram' ? (p.kind === 'reel' ? 'reel' : 'post') : p.kind, at = Date.parse(p.posted_at) || 0;
     const l = Number(p.interactions) || 0, sv = Number(p.saves) || 0;
-    return { net: p.network, kind, g: p.network + '_' + kind, src: p.source || null, d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
+    return { net: p.network, kind, g: p.network + '_' + kind, src: srcMap ? (srcMap[p.url || (p.network + '|' + p.posted_at)] || null) : (p.source || null), d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
       v: Number(p.views) || 0, r: Number(p.reach) || 0, l: Number(p.likes) || 0, c: Number(p.comments) || 0, s: Number(p.shares) || 0, sv, it: l + sv };
   });
   return rows;
@@ -44,6 +44,33 @@ function sgShapePosts(arr) {
 // How a post went out: the same field the Content Calendar reads (metricool_posts.source). Older posts have none, so they are neither group.
 function sgHow(rows) { rows.forEach(p => { p.sch = p.src === 'metricool'; p.man = p.src === 'manual'; }); return rows; }
 const sgHowName = p => p.sch ? 'Scheduled in Metricool' : p.man ? 'Posted by hand' : 'Not recorded';
+// How each post went out, and the stories, from the two calls the Content Calendar itself makes (content_calendar_posts and content_calendar_stories, 93 days at a time).
+// The Social report's own post list does not carry the source. { src: { post url: 'manual' | 'metricool' }, stories: [{ net, d }] }.
+let sgHowSrc = null, sgHowKey = null, sgHowBusy = null;
+const sgHowReady = () => (sgHowSrc && socData && sgHowKey === socData.win.from + '|' + socData.win.to) ? sgHowSrc : null;
+function sgHowLoad() {
+  const w = socData.win, key = w.from + '|' + w.to;
+  if (sgHowReady()) return Promise.resolve(sgHowSrc);
+  if (sgHowBusy && sgHowBusy.key === key) return sgHowBusy.p;
+  const p = (async () => {
+    const src = {}, stories = [];
+    for (let a = w.from; a <= w.to;) {
+      const b = sgAdd(a, 92) < w.to ? sgAdd(a, 92) : w.to;
+      const [po, st] = await Promise.all([sb.rpc('content_calendar_posts', { p_from: a, p_to: b }), sb.rpc('content_calendar_stories', { p_from: a, p_to: b })]);
+      if (po.error || st.error || !po.data) throw po.error || st.error || new Error('no data');
+      (po.data.posts || []).forEach(x => { src[x.url || (x.network + '|' + x.posted_at)] = x.source || null; });
+      (st.data || []).forEach(x => stories.push({ net: x.network, d: String(x.post_date).slice(0, 10) }));
+      a = sgAdd(b, 1);
+    }
+    const out = { src, stories };
+    if (socData && socData.win.from + '|' + socData.win.to === key) { sgHowSrc = out; sgHowKey = key; }
+    return out;
+  })();
+  sgHowBusy = { key, p };
+  const done = () => { if (sgHowBusy && sgHowBusy.p === p) sgHowBusy = null; };
+  p.then(done, done);
+  return p;
+}
 function sgShapeStories(arr) {
   return (arr || []).filter(s => s.network === 'instagram').map(s => { const at = Date.parse(s.posted_at) || 0;
     return { d: sgDayOf(at), t: sgTimeOf(at), at, url: s.url, v: Number(s.views) || 0, r: Number(s.reach) || 0, tf: Number(s.taps_forward) || 0, tb: Number(s.taps_back) || 0, ex: Number(s.exits) || 0, rp: Number(s.replies) || 0 }; });
@@ -109,10 +136,11 @@ async function sgLoad() {
   const w = socData.win, len = sgDays(w.from, w.to), pv = { from: sgAdd(w.from, -len), to: sgAdd(w.from, -1) }, key = w.from + '|' + w.to;
   if (sgData && sgData.key === key) return sgData;
   const ok = async p => { try { const r = await p; return r && !r.error ? r.data : null; } catch (e) { return null; } };
-  const cur = sgHow(sgShapePosts(socData.posts));
+  const how = await sgHowLoad().catch(e => { console.error(e); return null; });
+  const cur = sgHow(sgShapePosts(socData.posts, how && how.src));
   const [prevRep, curSt] = await Promise.all([ok(sb.rpc('social_report', { p_from: pv.from, p_to: pv.to })), len <= 93 ? ok(sb.rpc('content_calendar_story_stats', { p_from: w.from, p_to: w.to })) : null]);
   const prevSt = len <= 93 ? await ok(sb.rpc('content_calendar_story_stats', { p_from: pv.from, p_to: pv.to })) : null;
-  const D = { key, w, pv, len, cur, prev: sgHow(sgShapePosts(prevRep && prevRep.posts)), prevOk: !!prevRep,
+  const D = { key, w, pv, len, cur, howOk: !!how, howStories: how ? how.stories : [], prev: sgHow(sgShapePosts(prevRep && prevRep.posts)), prevOk: !!prevRep,
     st: curSt ? sgShapeStories(curSt) : null, stPrev: prevSt ? sgShapeStories(prevSt) : null,
     stTot: sgStTot((socData.stories || {}).instagram), stPrevTot: sgStTot(prevRep && (prevRep.stories || {}).instagram) };
   sgData = D; return D;
@@ -185,7 +213,7 @@ function sgPostsHtml(D, cols) {
     (x, rs, v) => `<b>${mkEsc(x.full)}</b>${rs.length ? `${rs.length} posts, ${sgN(v)} views, ${sgN(v / rs.length)} a post.` : 'No posts in these dates.'}`);
   // scheduled or by hand: the Content Calendar's own record; older posts have none and stay out of both
   const Sx = cur.filter(x => x.sch), Mx = cur.filter(x => x.man), Ux = cur.filter(x => !x.sch && !x.man);
-  const stN = (socData.posts || []).filter(p => p.kind === 'story' && p.post_date >= w.from && p.post_date <= w.to).length;
+  const stN = D.howStories.length;
   const med = a => { const s = a.map(x => x.v).sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[(n >> 1) - 1] + s[n >> 1]) / 2) : 0; };
   const avgV = a => a.length ? sgAgg(a).v / a.length : 0, avgI = a => a.length ? sgAgg(a).it / a.length : 0;
   const MS = [['Median views a post', med], ['Average views a post', avgV], ['Average likes, comments, shares, saves', avgI]];
@@ -202,7 +230,7 @@ function sgPostsHtml(D, cols) {
     <div class="sg-grid"><div class="sg-card"><h4>Average views a post, by kind</h4><p class="sg-hint">The thin line marks the Period before. Hover a row for the answer.</p>${kindRows}</div>
       <div class="sg-card"><h4>Views each ${bk.length && sgDays(w.from, w.to) > 112 ? 'month' : 'week'}</h4><p class="sg-hint">Tap a bar to see its posts.</p>${WB.html}</div></div>
     <div class="sg-sec"><div class="slv-eyebrow">Scheduled or by hand</div><h3>Scheduled or by hand</h3>
-      <p class="sg-hint">How a post went out is the Content Calendar's own record. Metricool began telling us on 12 Aug 2026, so ${Ux.length ? `${Ux.length} older ${Ux.length === 1 ? 'post is' : 'posts are'} left out` : 'no post here is older'}. ${stN ? `${sgN(stN)} stories were posted live in the app, so they all count as posted by hand.` : ''}</p>
+      <p class="sg-hint">${D.howOk ? `How a post went out is the Content Calendar's own record. Metricool began telling us on 12 Aug 2026, so ${Ux.length ? `${Ux.length} older ${Ux.length === 1 ? 'post is' : 'posts are'} left out` : 'no post here is older'}. ${stN ? `${sgN(stN)} stories were posted live in the app, so they all count as posted by hand.` : ''}` : 'Could not read how the posts went out just now. Refresh to try again.'}</p>
       ${small ? `<p class="sg-hint"><span class="sg-tag warn">Small group</span> Only ${Math.min(Sx.length, Mx.length)} ${Sx.length < Mx.length ? 'scheduled' : 'by hand'} posts, too few to say which is better.</p>` : ''}
       <p class="sg-hint"><b>${Sx.length} scheduled in Metricool, ${Mx.length} posted by hand.</b> Median views a post: ${sgN(med(Sx))} scheduled, ${sgN(med(Mx))} by hand.</p><div class="sg-grid sg-g3">${cmp}</div></div>
     <div class="sg-sec"><h3>Did best</h3><p class="sg-hint">The five posts with the most views in these dates.</p>${best}</div>
@@ -292,14 +320,14 @@ function sgExport() {
 // (see the top of this file), with the stories a day beside them: stories are posted live in the app, so they are by hand. YouTube has no post list in Metricool, so it says so.
 let sgSchedSrc = null, sgSchedRows = null;
 function sgSchedPosts() {
-  if (sgSchedSrc !== socData) { sgSchedRows = sgHow(sgShapePosts(socData.posts)); sgSchedSrc = socData; }
+  const how = sgHowReady(); if (!how) return [];
+  if (sgSchedSrc !== how) { sgSchedRows = sgHow(sgShapePosts(socData.posts, how.src)); sgSchedSrc = how; }
   return sgSchedRows;
 }
-// The stories a platform had in these dates, from the same social_report rows the calendar reads (TikTok has none).
-function sgSchedStories(net) { return (socData.posts || []).filter(p => p.network === net && p.kind === 'story').map(p => ({ d: p.post_date || sgDayOf(Date.parse(p.posted_at) || 0) })); }
-function sgSchedHtml(net, cols) {
+// The stories a platform had in these dates (Instagram and Facebook; TikTok has none), from the Content Calendar's own call.
+function sgSchedStories(net) { const how = sgHowReady(); return how ? how.stories.filter(x => x.net === net) : []; }
+function sgSchedInner(net, cols) {
   const mode = socMode();
-  if (net === 'youtube') return `<div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand</div></div><p class="slv-note">YouTube has no post list in Metricool, only the channel’s numbers, so there is nothing to split into scheduled and by hand.</p>`;
   const mine = sgSchedPosts().filter(p => p.net === net), S = mine.filter(p => p.sch), M = mine.filter(p => p.man), U = mine.filter(p => !p.sch && !p.man), sto = sgSchedStories(net);
   const avg = a => a.length ? sgN(sgSum(a, x => x.v) / a.length) : '–';
   const small = mine.length && Math.min(S.length, M.length) < 5;
@@ -311,8 +339,26 @@ function sgSchedHtml(net, cols) {
     <p class="slv-note"><b>${S.length} scheduled in Metricool, ${M.length} posted by hand${sto.length ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record.${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}</p>`
       : '<p class="slv-note">No posts in these dates.</p>'}`;
 }
+function sgSchedHtml(net, cols) {
+  const mode = socMode();
+  if (net === 'youtube') return `<div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand</div></div><p class="slv-note">YouTube has no post list in Metricool, only the channel’s numbers, so there is nothing to split into scheduled and by hand.</p>`;
+  if (!sgHowReady()) {
+    sgHowLoad().then(() => sgSchedFill(net), e => { console.error(e); sgSchedFill(net, true); });
+    return `<div id="socSchedBox"><div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div></div><p class="slv-note">Reading how each post went out…</p></div>`;
+  }
+  return `<div id="socSchedBox">${sgSchedInner(net, cols)}</div>`;
+}
+// The record arrived after the page was drawn: fill the box and draw the chart.
+function sgSchedFill(net, failed) {
+  if (typeof socTab === 'undefined' || socTab !== net) return;
+  const box = document.getElementById('socSchedBox'); if (!box) return;
+  if (failed) { box.innerHTML = '<div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand</div></div><p class="slv-note">Could not read how the posts went out just now. Refresh to try again.</p>'; return; }
+  if (!sgHowReady()) return;
+  box.innerHTML = sgSchedInner(net, socCols());
+  sgSchedDraw(net);
+}
 function sgSchedDraw(net) {
-  if (net === 'youtube') return;
+  if (net === 'youtube' || !sgHowReady()) return;
   const cv = document.getElementById('socSched'); if (!cv) return;
   const w = socData.win, mode = socMode(), cols = socCols(), by = {};
   sgSchedPosts().filter(p => p.net === net && (p.sch || p.man)).forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }), k = p.sch ? 'sched' : 'hand'; r[k] = (r[k] || 0) + 1; });
