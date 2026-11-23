@@ -102,7 +102,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "marketingspend": "dc09dedd0c",
   "toolspend": "8ffda8c038",
   "website": "9bca0ce79f",
-  "social": "532ee24ec8",
+  "social": "eaae45b94e",
   "wvperf": "d2361efd84",
   "campaignblasts": "e0d3d957df",
   "contentcalendar": "ddff294faf",

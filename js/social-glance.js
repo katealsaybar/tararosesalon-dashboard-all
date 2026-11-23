@@ -319,6 +319,15 @@ function sgExport() {
 // One more chart under Views on Instagram, TikTok and Facebook: posts a day (or a week, as the toggle above) split into scheduled in Metricool and posted by hand, the Content Calendar's own record
 // (see the top of this file), with the stories a day beside them: stories are posted live in the app, so they are by hand. YouTube has no post list in Metricool, so it says so.
 let sgSchedSrc = null, sgSchedRows = null;
+// All | Stories | Posts (Kate, 23 Nov 2026): the stories are so many that they hide the posts, so the chart can show either one alone. TikTok has no stories, so it has no switch.
+let sgSchedView = 'all';
+function sgSchedSet(v) {
+  sgSchedView = v;
+  const box = document.getElementById('socSchedBox'); if (!box || typeof socTab === 'undefined') return;
+  if (socCharts.sched) { socCharts.sched.destroy(); socCharts.sched = null; }
+  box.innerHTML = sgSchedInner(socTab, socCols());
+  sgSchedDraw(socTab);
+}
 function sgSchedPosts() {
   const how = sgHowReady(); if (!how) return [];
   if (sgSchedSrc !== how) { sgSchedRows = sgHow(sgShapePosts(socData.posts, how.src)); sgSchedSrc = how; }
@@ -329,14 +338,20 @@ function sgSchedStories(net) { const how = sgHowReady(); return how ? how.storie
 function sgSchedInner(net, cols) {
   const mode = socMode();
   const mine = sgSchedPosts().filter(p => p.net === net), S = mine.filter(p => p.sch), M = mine.filter(p => p.man), U = mine.filter(p => !p.sch && !p.man), sto = sgSchedStories(net);
+  const v = sto.length ? sgSchedView : 'posts', showP = v !== 'stories', showS = v !== 'posts' && sto.length > 0;
   const avg = a => a.length ? sgN(sgSum(a, x => x.v) / a.length) : '–';
-  const small = mine.length && Math.min(S.length, M.length) < 5;
+  const small = showP && mine.length && Math.min(S.length, M.length) < 5;
+  const seg = sto.length ? `<div class="sc-seg" role="group" aria-label="Show">${[['all', 'All'], ['stories', 'Stories'], ['posts', 'Posts']].map(([k, l]) => `<button type="button" class="${v === k ? 'on' : ''}" aria-pressed="${v === k}" onclick="sgSchedSet('${k}')">${l}</button>`).join('')}</div>` : '';
+  const has = showP ? (mine.length || showS) : showS;
+  const said = !showP ? `<b>${sgN(sto.length)} stories (posted live in the app, so by hand).</b> This is the Content Calendar's own record.`
+    : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record.${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}`;
   return `<div class="mk-chart-head">
       <div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div>
-      <span class="soc-key"><span><i style="background:${cols[net]}"></i>Scheduled in Metricool</span><span><i style="background:${socRgba(cols[net], .55)}"></i>Posted by hand</span>${sto.length ? `<span><i style="background:${socRgba(cols[net], .25)}"></i>Stories, posted live</span>` : ''}</span>
+      ${seg}
+      <span class="soc-key">${showP ? `<span><i style="background:${cols[net]}"></i>Scheduled in Metricool</span><span><i style="background:${socRgba(cols[net], .7)}"></i>Posted by hand</span>` : ''}${showS ? `<span><i style="background:${socRgba(cols[net], .38)}"></i>Stories, posted live</span>` : ''}</span>
     </div>
-    ${mine.length || sto.length ? `<div style="position:relative;height:200px"><canvas id="socSched"></canvas></div>
-    <p class="slv-note"><b>${S.length} scheduled in Metricool, ${M.length} posted by hand${sto.length ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record.${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}</p>`
+    ${has ? `<div style="position:relative;height:200px"><canvas id="socSched"></canvas></div>
+    <p class="slv-note">${said}</p>`
       : '<p class="slv-note">No posts in these dates.</p>'}`;
 }
 function sgSchedHtml(net, cols) {
@@ -361,14 +376,14 @@ function sgSchedDraw(net) {
   if (net === 'youtube' || !sgHowReady()) return;
   const cv = document.getElementById('socSched'); if (!cv) return;
   const w = socData.win, mode = socMode(), cols = socCols(), by = {};
-  sgSchedPosts().filter(p => p.net === net && (p.sch || p.man)).forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }), k = p.sch ? 'sched' : 'hand'; r[k] = (r[k] || 0) + 1; });
-  const sto = sgSchedStories(net);
-  sto.forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }); r.story = (r.story || 0) + 1; });
+  const sto = sgSchedStories(net), v = sto.length ? sgSchedView : 'posts', showP = v !== 'stories', showS = v !== 'posts' && sto.length > 0;
+  if (showP) sgSchedPosts().filter(p => p.net === net && (p.sch || p.man)).forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }), k = p.sch ? 'sched' : 'hand'; r[k] = (r[k] || 0) + 1; });
+  if (showS) sto.forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }); r.story = (r.story || 0) + 1; });
   const rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['sched', 'hand', 'story']);
   const c = socCharts.sched = socBarChart(cv, rows, [
-    { label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: cols[net], stack: 's' },
-    { label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: socRgba(cols[net], .55), stack: 's' },
-    ...(sto.length ? [{ label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: socRgba(cols[net], .25), stack: 's' }] : []),
+    ...(showP ? [{ label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: cols[net], stack: 's' },
+      { label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: socRgba(cols[net], .7), stack: 's' }] : []),
+    ...(showS ? [{ label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: socRgba(cols[net], .38), stack: 's' }] : []),
   ], true);
   if (c) { c.options.scales.y.ticks = { ...(c.options.scales.y.ticks || {}), precision: 0 }; c.update(); }
 }
