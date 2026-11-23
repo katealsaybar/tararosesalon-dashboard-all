@@ -73,8 +73,10 @@ const cqBr = c => CQ_BRANCH[c] || c || 'Not matched';
 
 // The archive (Kate, 12 Nov 2026): every complaint is one row of three things, the complaint, where it was found and where it is now. A row opens like the pipeline.
 const cqMDY = iso => { if (!iso) return 'Client card'; const [y, m, d] = String(iso).slice(0, 10).split('-'); return m + '/' + d + '/' + y; };
-const cqFound = r => (r.by ? 'Logged by staff' : r.src === 'client' ? 'Phorest client card' : 'Phorest note');
-const cqFoundKey = r => (r.by ? 'staff' : 'ph');
+// A Google review of 1 to 3 stars becomes a 'visit' row with phorest_id 'google:<reviewer>' (cq_google_pull, 23 Nov 2026, Kate); its date is the day it was posted.
+const cqIsGoogle = r => String(r.phorest_id || '').startsWith('google:');
+const cqFound = r => (r.by ? 'Logged by staff' : cqIsGoogle(r) ? 'Google review' : r.src === 'client' ? 'Phorest client card' : 'Phorest note');
+const cqFoundKey = r => (r.by ? 'staff' : cqIsGoogle(r) ? 'staff' : 'ph');
 // Where it is now, in the pipeline's words. Old Phorest notes were written after the fact, so they are Closed, history.
 function cqStage(r) {
   if (r.duplicate_of) return { i: 4, tone: 'grey', text: 'Duplicate' };

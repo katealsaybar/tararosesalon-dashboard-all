@@ -84,7 +84,7 @@ function cdFiltered() {
   return rows;
 }
 function cdShell() {
-  const srcs = ['Phorest note', 'Phorest client card', 'Logged by staff'].concat((typeof CC_CHATS !== 'undefined' ? CC_CHATS : []).map(c => (typeof ccChatName === 'function' ? ccChatName(c) : c)));
+  const srcs = ['Phorest note', 'Phorest client card', 'Google review', 'Logged by staff'].concat((typeof CC_CHATS !== 'undefined' ? CC_CHATS : []).map(c => (typeof ccChatName === 'function' ? ccChatName(c) : c)));
   return cqCss() + `<div class="cq"><div id="cdRec" class="cq-gone"></div><div id="cdMain">
     <h1>Detailed complaints</h1>
     <p class="cq-sub">Every complaint on one table, with every column: what happened, where it was found, where it is now, how it ended, who did the service and whether the client left a Google review. Filter it, sort it, and take it into a spreadsheet. Click a row to open it with her chat and her profile. Levels 3 and up.</p>
@@ -94,7 +94,7 @@ function cdShell() {
       ['If we do nothing', 'Each complaint is read on its own and the pattern behind several of them stays hidden.']],
       'Kate filters the table by salon and kind, then takes one repeat pattern to Coach Emma, by Friday.')}
     <div class="cq-intro">
-      <p><b>What is this?</b>One row per complaint, newest first, from Phorest notes, the ones staff logged and the chat complaints that were confirmed.</p>
+      <p><b>What is this?</b>One row per complaint, newest first, from Phorest notes, Google reviews of 1 to 3 stars, the ones staff logged and the chat complaints that were confirmed.</p>
       <p><b>Why it matters</b>The archive reads one complaint at a time. This is for the questions that need all of them: which stylist, which service, which branch, how it ended.</p>
       <p><b>Do this now</b><span id="cdDo">Set the Branch and Period at the top, then take the rows with XLSX or CSV.</span></p>
     </div>
@@ -110,7 +110,7 @@ function cdShell() {
       <div class="cq-metarow"><p class="cq-meta" id="cdMeta" aria-live="polite">Loading…</p><span class="cq-sheetwrap">${typeof rexButtons === 'function' ? rexButtons('cdExport') : ''}</span></div>
       <div id="cdBody" class="cd-scroll"><p class="cq-meta">Loading…</p></div>
     </div>
-    <p class="cq-foot">How to read it. Each row is a complaint. Found in says where it was first written down; Where it is now is the pipeline stage, and notes from Phorest were written after the fact so they are Closed, history. Charged is what the visit cost that day, not a refund. A complaint found only in a chat is added once Coach Emma or Kate confirm it in Chat complaints review, and has no stylist or service because the chat does not say.</p>
+    <p class="cq-foot">How to read it. Each row is a complaint. Found in says where it was first written down; Where it is now is the pipeline stage, and notes from Phorest were written after the fact so they are Closed, history. Charged is what the visit cost that day, not a refund. A Google review of 1 to 3 stars with text is added automatically each hour, dated the day it was posted (the visit date is not on Google), and the stylist is only filled when the review names one. A complaint found only in a chat is added once Coach Emma or Kate confirm it in Chat complaints review, and has no stylist or service because the chat does not say.</p>
   </div></div>`;
 }
 function cdPaint() {
