@@ -1,7 +1,7 @@
 -- Out of Stock access: coordinators and up (Kate, 23 Nov 2026: "salon coordinators and ate Belle pataas, kasama level 5, kasama level 4").
 --
--- STATUS: WRITTEN ONLY. NOT APPLIED. Nothing has been run against the database. Kate has to say "apply it" first.
--- Push the page code (oos_plan instead of spend_plan) only AFTER this is applied, or the page has nothing to read.
+-- STATUS: APPLIED on 23 Nov 2026 to project gvijxenafoowajqktqvd (migration out_of_stock_access), on Kate's word ("push").
+-- Checked after: anon and authenticated cannot run spend_plan_core; oos_plan, oos_access and oos_on_order refuse anon; spend_plan is unchanged.
 --
 -- LEVELS in the database are the OLD numbers: 1 staff, 2 coordinators and leadership, 3 executives, 4 accounts, 5 Kate. Out of Stock opens
 -- from old Level 2 up, so kb_level() >= 2. (People see the new numbers: 3 Leadership, 4 Executives and Marketing, 5 Accounts and Admin, 6 Kate.)
