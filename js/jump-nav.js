@@ -94,7 +94,6 @@ const JN_PAGES = {
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },
   googleads:      { sel: 'h3' },
   metaads:        { sel: 'h3' },
-  website:        { sel: 'h3' },
   social:         { sel: 'h3' },
 };
 

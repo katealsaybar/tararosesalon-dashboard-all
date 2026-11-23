@@ -84,6 +84,7 @@ async function renderWebsite() {
   const el = document.getElementById('websiteContent');
   if (!el) return;
   const w = webWindow();
+  webRail(false);
   el.innerHTML = '<p class="slv-muted">Loading website and search…</p>';
   try {
     const { data, error } = await sb.rpc('website_report', { p_from: w.from, p_to: w.to });
@@ -133,7 +134,7 @@ function webPaint(el) {
       ['What to watch', 'If visits fall while the Google Ads spend stays the same, the money is buying less than it did.'],
       ['What to do', 'Tell Kate which week it started, and she checks it with Tara.']])}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Website numbers are paused${s && s.last_error ? ': ' + webEsc(s.last_error) : ''}. Last good update: ${synced ? webEsc(synced) : 'never'}.</p>` : ''}
-    <section class="slv-card">
+    <section class="slv-card" id="web-visits">
       <div class="slv-head">
         <div><div class="slv-eyebrow">tararosesalon.com, Google Analytics</div><h3>Visits</h3></div>
         <p>${webEsc(webDayY(w.from))} to ${webEsc(webDayY(w.to))}</p>
@@ -154,7 +155,7 @@ function webPaint(el) {
       ${mkQuarterStrip(mkBuckets(d.days, w.from, w.to, 'day', ['sessions']), { key: 'sessions', label: 'visits', fmt: webNum })}` : '<p class="slv-muted">No visits in these dates.</p>'}
     </section>
     ${chRows ? `
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="web-source" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">Where visits came from</div><h3>By source</h3></div></div>
       <div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Source</th><th>Visits</th><th>Share</th><th>Stayed to look</th></tr></thead>
@@ -162,13 +163,13 @@ function webPaint(el) {
       <p class="slv-note">A low "stayed to look" means people arrive and leave within seconds: worth checking the ad or post that sends them. Tap a source, page or search for its weeks.</p>
     </section>` : ''}
     ${pgRows ? `
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="web-pages" style="margin-top:14px">
       <div class="slv-head"><div><div class="slv-eyebrow">What they looked at</div><h3>Top pages</h3></div></div>
       <div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Page</th><th>Views</th></tr></thead>
         <tbody>${pgRows}</tbody></table></div>
     </section>` : ''}
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="web-google" style="margin-top:14px">
       <div class="slv-head">
         <div><div class="slv-eyebrow">Google search, unpaid, Search Console</div><h3>How people find us on Google</h3></div>
         <p>${webEsc(webDayY(w.from))} to ${webEsc(webDayY(sTo))}</p>
@@ -192,6 +193,25 @@ function webPaint(el) {
     </section>
     <p class="slv-muted">Visits count the UAE and Bahrain pages together. Search Console runs 2 to 3 days behind and leaves out searches Google keeps private, so the searches listed add up to less than the clicks.${synced ? ' Updated ' + webEsc(synced) + '.' : ''}</p>`;
   webDraw(d.days);
+  webRail(true);
+}
+
+// ── ON THIS PAGE rail (Kate, 23 Nov 2026: the mini side nav every page carries; the same shell as Discounts and Vouchers) ────
+// Gutter above 1100px, a row of chips below it. A section that has no rows (no top pages yet) has no id, so it has no entry.
+const WEB_RAIL = [['web-visits', 'Visits'], ['web-source', 'By source'], ['web-pages', 'Top pages'], ['web-google', 'How people find us on Google']];
+function webRail(on) {
+  const shell = document.getElementById('wsShell'), side = document.getElementById('wsSide');
+  if (!shell || !side) return;
+  shell.classList.toggle('rv-norail', !on);
+  const nav = side.querySelector('.side-nav');
+  if (nav && on) {
+    const live = WEB_RAIL.filter(r => document.getElementById(r[0])), sig = live.map(r => r[0]).join();
+    if (nav.dataset.sig !== sig) {
+      nav.dataset.sig = sig;
+      nav.innerHTML = '<div class="side-k">On this page</div>' + live.map(r => `<a href="#${r[0]}" onclick="lgJump(event,'${r[0]}')">${r[1]}</a>`).join('');
+    }
+  }
+  if (typeof spy === 'function') spy();
 }
 
 // What each chart draws: bars by quarter shade and a line, as on the Quarterly page.
