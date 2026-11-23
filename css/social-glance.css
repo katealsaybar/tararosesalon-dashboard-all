@@ -85,3 +85,6 @@ html[data-theme="dark"] .sg-bd{color:#1A1A1A}
 .sg-bd .soc-lg{width:26px;height:26px;margin:0}
 .sg-item > div{min-width:0}
 .sg-it,.sg-is,.sg-nm{overflow-wrap:anywhere}
+/* The platform switch on Scheduled or by hand (Kate, 23 Nov 2026): five buttons, so it wraps on a phone instead of running off the screen. */
+.sg-pf{flex-wrap:wrap;max-width:100%;margin:0 0 10px}
+@media (max-width:760px){.sg-pf button{flex:1 1 auto;min-height:44px}}
