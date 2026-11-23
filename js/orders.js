@@ -804,6 +804,15 @@ function ordMsgHtml(d, open) {
 // Carrefour (Kate, 23 Nov 2026, her screenshots of carrefouruae.com): an order opens at /mafuae/en/app/orders/<order number>/<consignment number>, for example 784010022791363/11000067445.
 // The order number (15 digits from 784) and the consignment number are read from the order's own emails (reference, subject, note, text). With both the button opens that order;
 // Order of preference: the consignment link, then the email's own View Order Details link, then My Orders (the number is shown beside the button).
+// The order number next to the button, selectable, with a Copy button: the supplier's own order page cannot always be opened from here, so the number is pasted into the supplier's order list (Kate, 23 Nov 2026).
+function ordCopyNo(no) { return no ? `<span class="ord-cpn"><span class="ord-cpt">Order no. <b>${ordEsc(no)}</b></span><button type="button" class="cm-pill ord-cp" data-n="${ordEsc(no)}" onclick="ordCopyNum(this)">Copy</button></span>` : ''; }
+async function ordCopyNum(b) {
+  const n = b.dataset.n; let ok = false;
+  try { await navigator.clipboard.writeText(n); ok = true; } catch (e) {
+    try { const t = document.createElement('textarea'); t.value = n; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e2) { /* the number is on screen to copy by hand */ }
+  }
+  b.textContent = ok ? 'Copied' : 'Select the number'; setTimeout(() => { b.textContent = 'Copy'; }, 2000);
+}
 function ordCarrefourNos(g) {
   const txt = g.docs.map(d => [d.reference, d.subject, d.note, d.body].filter(Boolean).join(' ')).join(' ');
   const ord = (/\b(784\d{12})\b/.exec([g.r, txt].join(' ')) || [])[1] || '';
@@ -820,7 +829,7 @@ function ordAmazonLink(g) {
     const n = ordCarrefourNos(g); if (!n.ord) return '';
     const deep = n.con ? 'https://www.carrefouruae.com/mafuae/en/app/orders/' + n.ord + '/' + n.con : '';
     const url = deep || n.lnk || 'https://www.carrefouruae.com/mafuae/en/app/orders', exact = !!(deep || n.lnk);
-    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${exact ? 'Opens this order in the Carrefour account: delivery, payment and the invoice' : 'Opens My Orders in the Carrefour account. Look for order ' + n.ord}"><span class="ord-ai ord-ai-oth">CRF</span><span class="ord-an">${exact ? 'Open this order in the Carrefour account' : 'Open My Orders in the Carrefour account'}</span><span class="ord-ak">Carrefour ${n.ord}</span></a></p>`;
+    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${exact ? 'Opens this order in the Carrefour account: delivery, payment and the invoice' : 'Opens My Orders in the Carrefour account. Look for order ' + n.ord}"><span class="ord-ai ord-ai-oth">CRF</span><span class="ord-an">${exact ? 'Open this order in the Carrefour account' : 'Open My Orders in the Carrefour account'}</span><span class="ord-ak">Carrefour</span></a>${exact ? '' : ordCopyNo(n.ord)}</p>`;
   }
   if (/^lulu/i.test(g.s || '')) {
     // Lulu (Kate, 23 Nov 2026): the order page is gcc.luluhypermarket.com/en-ae/users/orders/<Lulu's own number, for example 4735016>, which is NOT the order number in the emails (338561901758)
@@ -829,7 +838,7 @@ function ordAmazonLink(g) {
     const no = (/order no\s*:?\s*(\d{8,14})/i.exec(txt) || /\b(\d{12})\b/.exec([g.r, txt].join(' ')) || [])[1] || '', own = (/luluhypermarket\.com\/en-ae\/users\/orders\/(\d+)/i.exec(txt) || [])[1] || '';
     if (!no && !own) return '';
     const url = 'https://gcc.luluhypermarket.com/en-ae/users/orders' + (own ? '/' + own : '');
-    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${own ? 'Opens this order in the Lulu account' : 'Opens My Orders in the Lulu account. Look for order ' + no}"><span class="ord-ai ord-ai-oth">LULU</span><span class="ord-an">${own ? 'Open this order in the Lulu account' : 'Open My Orders in the Lulu account'}</span><span class="ord-ak">Lulu ${ordEsc(no || own)}</span></a></p>`;
+    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${own ? 'Opens this order in the Lulu account' : 'Opens My Orders in the Lulu account. Look for order ' + no}"><span class="ord-ai ord-ai-oth">LULU</span><span class="ord-an">${own ? 'Open this order in the Lulu account' : 'Open My Orders in the Lulu account'}</span><span class="ord-ak">Lulu</span></a>${ordCopyNo(no)}</p>`;
   }
   const no = /^amazon/i.test(g.s || '') && /^\d{3}-\d{7}-\d{7}$/.test(g.r || '') ? g.r : '';
   if (!no) return '';

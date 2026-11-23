@@ -258,3 +258,12 @@ button.ord-ac:hover{background:var(--surface2,var(--border2))}
 .ord-hovc[hidden]{display:none}
 @media (hover:none){.ord-hovc{left:10px!important;right:10px;top:auto!important;bottom:16px;max-width:none;font-size:14px}}
 @media (max-width:760px){.ord-bar1{min-height:44px}.ob-l{font-size:14px}.ob-n{font-size:14px}.ord-ovg{grid-template-columns:1fr}}
+
+/* the order number beside a supplier button, with Copy (Lulu, Carrefour) */
+.ord-amz{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.ord-amz .ord-ac{flex:0 1 auto}
+.ord-cpn{display:inline-flex;gap:8px;align-items:center}
+.ord-cpt{font-size:13px;color:var(--muted2,inherit);user-select:text}
+.ord-cpt b{color:var(--text,inherit);font-weight:600;font-variant-numeric:tabular-nums}
+.ord-cp{height:30px;box-sizing:border-box;font-size:13px}
+@media (max-width:760px){.ord-cp{height:44px;min-width:64px}}
