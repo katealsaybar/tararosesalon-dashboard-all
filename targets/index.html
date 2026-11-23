@@ -262,7 +262,10 @@ table.t th.rel{white-space:nowrap}
 .tg-hovc[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){.abr[data-tip],.abb .f{transition:none}.abr[data-tip]:hover{transform:none}}
 .abr.hero{border-top:none;padding-top:2px}
-.abr.sub{padding:7px 0;border-top:1px dashed var(--rule)}.abr.sub .abl{padding-left:16px;font-size:13px}
+.abr.sub{padding:7px 10px;border-top:1px dashed var(--rule)}
+/* Kate, 23 Nov 2026: (1) the sub rows kept the 10px side margin but lost the 10px padding, so their columns sat 10px to the right of the rows above and 129% was clipped; the padding is back. (2) the row under the pointer or focus is lifted above the rows after it, so its i-tip is not painted over by their labels. */
+.abr{position:relative}
+.abr:hover,.abr:focus-within{z-index:40}.abr.sub .abl{padding-left:16px;font-size:13px}
 .ps{display:block;font-family:inherit;font-size:11.5px;font-weight:400;color:var(--muted);margin-top:3px;letter-spacing:.01em}
 .abr.hero .abl{font-size:14px;font-weight:500;color:var(--text)}
 .abr.hero .aba,.abr.hero .abt{font-size:28px}
