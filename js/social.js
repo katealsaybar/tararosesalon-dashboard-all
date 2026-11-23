@@ -227,6 +227,30 @@ function socFollowers(net) {
 }
 const socChg = c => c === null ? '' : ` <span class="svc-d ${c > 0 ? 'up' : c < 0 ? 'down' : ''}">${socSigned(c)}</span>`;
 
+// The 3Ws are different on every tab (Kate, 23 Nov 2026: "iba iba dapat ang laman 3Ws per tab"). Calendar's own set is in socPaint.
+const SOC_WHY = {
+  overview: [
+    ['Why this page', 'This is what we post on each app and how many women it reaches, so we see what to make more of.'],
+    ['What to watch', 'If reach falls two weeks in a row on one app, the posts there have stopped landing.'],
+    ['What to do', 'Tell Hanneh and Coach Emma which app, and they check the content plan.']],
+  instagram: [
+    ['Why this page', 'Instagram is where most of our views come from. This is every reel and post, and who it reached.'],
+    ['What to watch', 'Reach next to views. A reel with big views but few accounts reached was one lucky post, not a pattern. Followers lost matter too.'],
+    ['What to do', 'Take the reel that reached the most women and ask Hanneh and Coach Emma for a new take on it. Post it in the Best time hours.']],
+  tiktok: [
+    ['Why this page', 'This shows how many people watch our TikToks, and whether they stay to the end.'],
+    ['What to watch', '“Watched to the end” and average watch. If people leave in the first seconds, the opening is the problem, not the topic.'],
+    ['What to do', 'Pick the video with the lowest “Watched to the end” and ask Hanneh to film a new first three seconds for it.']],
+  facebook: [
+    ['Why this page', 'This is our Facebook page: who follows it, and what our posts and reels reach there.'],
+    ['What to watch', 'Followed against unfollowed, and reel plays against post views. Reels usually travel further than posts.'],
+    ['What to do', 'If unfollowed beats followed this period, tell Coach Emma. Share our best Instagram reel here as a Facebook reel.']],
+  youtube: [
+    ['Why this page', 'This is The Tara Rose Podcast channel: views, watch time and subscribers.'],
+    ['What to watch', 'Watch time next to views. Many views with short watch time means people click and leave. Also subscribers lost.'],
+    ['What to do', 'Find the week watch time dropped and tell Hanneh and Coach Emma. The video list is in Metricool, not here.']]
+};
+
 function socPaint(el) {
   Object.values(socCharts).forEach(c => c && c.destroy()); socCharts = {};
   const d = socData, w = d.win, cols = socCols();
@@ -263,10 +287,7 @@ function socPaint(el) {
       <h2>Social</h2>
       <p>Instagram, TikTok, the Facebook page and YouTube in one place. Overview for the quick look; each platform's tab has its full report, as in Metricool. The apps report a day or two late.</p>
     </section>
-    ${whyWall([
-      ['Why this page', 'This is what we post on each app and how many women it reaches, so we see what to make more of.'],
-      ['What to watch', 'If reach falls two weeks in a row on one app, the posts there have stopped landing.'],
-      ['What to do', 'Tell Hanneh and Coach Emma which app, and they check the content plan.']])}
+    ${whyWall(SOC_WHY[socTab] || SOC_WHY.overview)}
     ${tabsBar}
     ${stale ? `<p class="slv-muted" style="color:#b42318">Social numbers are paused${s && s.last_error ? ': ' + mkEsc(s.last_error) : ''}. Last good update: ${synced ? mkEsc(synced) : 'never'}.</p>` : ''}
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
