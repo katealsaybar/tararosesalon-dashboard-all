@@ -34,6 +34,14 @@ begin
     where r.review_date >= date '2026-01-01' and length(trim(coalesce(r.comment, ''))) > 0
       and (r.stars <= 3
         or r.comment ~* '(disappoint|unfortunately|frustrat|not happy|unhappy|not satisf|redo|re-do|refund|complain|wrong|worst|rude|mistake|waited|too long|overpriced|expensive|uneven|patchy|never again|not recommend)')
+  ), fresh as (
+    -- A seed row that the Business Profile API sync later replaces comes back with a new review_id (and sometimes a slightly different date):
+    -- the same reviewer in the same branch within 35 days is the same review, so it is not added twice.
+    select s.* from src s
+    where not exists (
+      select 1 from public.client_complaints c
+      where c.src = 'visit' and c.ref like 'gr-%' and c.phorest_id = 'google:' || lower(trim(s.reviewer))
+        and c.branch_code is not distinct from s.bc and c.event_date between s.review_date - 35 and s.review_date + 35)
   ), ins as (
     insert into public.client_complaints (src, ref, phorest_id, client_name, branch_code, event_date, note, regex_tier, reviewed, is_complaint,
         complaint_type, detail, resolution, resolution_detail, confidence, google_url)
@@ -54,7 +62,7 @@ begin
       case when s.replied then 'apology_or_explanation' else 'no_action_noted' end,
       case when s.replied then 'Replied on Google' end,
       'low', s.url
-    from src s
+    from fresh s
     on conflict (src, ref) do nothing
     returning 1
   )
