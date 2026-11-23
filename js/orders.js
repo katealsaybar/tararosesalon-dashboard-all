@@ -16,7 +16,7 @@
 // report-export.js rexButtons. Own helpers below, so it does not lean on another page's file.
 const ORD_STORE = 'trs-orders';
 // The mini side nav (Kate, 19 Nov 2026: "walang mini sidebar navi"): the shared "On this page" rail, a column in the gutter from 1100px and a pinned row of chips under the masthead below that (lgShell, jump-nav.js).
-const ORD_RAIL = [['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
+const ORD_RAIL = [['ordSecOver', 'Overview'], ['ordSecLook', 'Needs a look'], ['ordSecSup', 'By supplier'], ['ordEverySec', 'Every order'], ['ordHow', 'How it is worked out'], ['ordAbout', 'About this page']];
 const ORD = { n: 10, kind: '', q: '' };
 let ordRows = null, ordByKey = {}, ordGroups = [], ordT = null, ordTS = null, ordTL = null, ordSeq = 0, ordHK = 'look', ordAK = 'one', ordBusy = false, ordErr = '', ordChecks = {}, ordDrafts = {}, ordDraftTimer = null, ordProofs = [], ORD_SEL = new Set(), ordNavList = [], ordLastEl = null;
 try { const s = JSON.parse(localStorage.getItem(ORD_STORE) || '{}'); if ([10, 20, 50, 100].includes(s.n)) ORD.n = s.n; } catch (e) {}
@@ -231,6 +231,8 @@ function ordMatch(g, f) {
   if (f.kind === 'inv' && !g.hasInv && g.type !== 'Invoice') return false;
   if (f.kind === 'stmt' && g.type !== 'Statement') return false;
   if (f.look && !g.x) return false;
+  if (f.cat && ordCat(g) !== f.cat) return false;
+  if (f.why && ordWhy(g).indexOf(f.why) < 0) return false;
   if (f.file && !ordIsKept(g)) return false;
   if (f.amt && g.a == null) return false;
   if (f.disc && !(g.disc > 0 || g.discPct > 0)) return false;
@@ -307,18 +309,24 @@ function ordPaint() {
     body.dataset.drawn = '1';
     const ans = `<section class="ord-ans" aria-label="The answer in one line"><div class="ord-ans-k">The answer in one line</div><div class="ord-ans-t" id="ordAns"></div><div class="ord-ans-s" id="ordAns2"></div></section>`;
     const secs = `
+      <section class="ord-sec" id="ordSecOver" data-jn="Overview">
+        <h3>1 Overview</h3>
+        <div class="ord-learn"><p><b>What is this?</b> Every order, invoice and statement of the Period, split three ways: where it is, why it needs a look, who it is with.</p>
+          <p class="watch"><b>What to watch.</b> <span id="ordW0"></span></p></div>
+        <div id="ordOverview"></div>
+      </section>
       <section class="ord-sec" id="ordSecLook" data-jn="Needs a look">
-        <h3>1 Needs a look</h3>
+        <h3>2 Needs a look</h3>
         <div class="ord-learn"><p><b>What is this?</b> The orders that ask for a decision: a wrong discount, an overdue statement, items out of stock, an invoice about to fall due.</p>
           <p><b>Why it matters.</b> These are the ones that cost money or stock if nobody opens them this week.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW1"></span></p></div>
         <div class="ord-bar"><button type="button" class="cm-pill ord-phone" data-sxcm="look" aria-label="Sort and filter">Filter</button><span class="ord-sp"></span><button type="button" class="cm-pill" id="ordShowChk" onclick="ordShowChecked()">Checked orders (<span id="ordChkN">0</span>)</button><button type="button" class="cm-pill" id="ordClearLook" hidden onclick="ordTL.clear();ordTL.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExportLook') : ''}</div>
-        <div class="ord-bulk" id="ordBulk" hidden><span class="ord-bk-n" id="ordBulkN"></span><button type="button" class="cm-pill" id="ordBulkAll" hidden onclick="ordSelAll()"></button><input type="text" id="ordBulkNote" maxlength="500" autocomplete="off" aria-label="Note for all the selected orders" placeholder="Note for all of them, e.g. tax invoice complete, paid by bank transfer"><button type="button" class="cm-pill" id="ordBulkGo" onclick="ordBulkSave(false)" title="Checked in the supplier's account: a note is needed">Mark as checked</button><button type="button" class="cm-pill" id="ordBulkCx" onclick="ordBulkSave(true)" title="Cancelled in the supplier's account: closed, nothing is owed">Mark as cancelled</button><button type="button" class="cm-pill" onclick="ordSelClear()">Clear</button><span class="ord-muted" id="ordBulkMsg" role="status"></span></div>
+        ${ordBulkHtml('look')}
         <div class="ord-card"><table id="ordTblLook"></table></div>
         ${ordPagerHtml('look')}
       </section>
       <section class="ord-sec" id="ordSecSup" data-jn="By supplier">
-        <h3>2 By supplier</h3>
+        <h3>3 By supplier</h3>
         <div class="ord-learn"><p><b>What is this?</b> One row per supplier in the Period: what they supply, how many orders and invoices, what they invoiced and what they took off.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW2"></span></p></div>
         <div class="ord-bar"><button type="button" class="cm-pill" onclick="ordToggleMore('sup')">All columns</button><button type="button" class="cm-pill ord-phone" data-sxcm="sup" aria-label="Sort and filter">Filter</button><span class="ord-sp"></span><button type="button" class="cm-pill" id="ordClearSup" hidden onclick="ordTS.clear();ordTS.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExportSup') : ''}</div>
@@ -326,7 +334,7 @@ function ordPaint() {
         ${ordPagerHtml('sup')}
       </section>
       <section class="ord-sec" data-jn="Every order" id="ordEverySec">
-        <h3>3 Every order and invoice</h3>
+        <h3>4 Every order and invoice</h3>
         <div class="ord-learn"><p><b>What is this?</b> One row per order, invoice or statement. An order is tracked once: its confirmation, shipping note, delivery and invoice are steps inside the same row.</p>
           <p><b>Why it matters.</b> You see what was bought, how many, the total and any discount without opening five emails.</p>
           <p class="watch"><b>What to watch.</b> <span id="ordW3"></span></p></div>
@@ -337,7 +345,8 @@ function ordPaint() {
           <span class="ord-sp"></span>
           <button type="button" class="cm-pill" id="ordClear" hidden onclick="ordT.clear();ordT.draw()">Clear filters</button>${typeof rexButtons === 'function' ? rexButtons('ordExport') : ''}
         </div>
-        <p class="ord-key"><span class="ord-st ord-look">Orange</span> means it needs a look. Hover it, or see section 1, for why.</p>
+        <p class="ord-key"><span class="ord-st ord-look">Orange</span> means it needs a look. Hover it, or see section 2, for why.</p>
+        ${ordBulkHtml('doc')}
         <div class="ord-card"><table id="ordTbl"></table></div>
         ${ordPagerHtml('doc')}
       </section>
@@ -365,7 +374,11 @@ function ordPaintAnswer() {
 }
 function ordPaintNotes() {
   const cn = document.getElementById('ordChkN'); if (cn) cn.textContent = ordGroups.filter(g => g.chk).length;
+  ordPaintOverview();
   const gs = ordScope(), lk = gs.filter(g => g.x), w1 = document.getElementById('ordW1'), w2 = document.getElementById('ordW2'), w3 = document.getElementById('ordW3');
+  const w0 = document.getElementById('ordW0');
+  if (w0) { const st = {}; gs.forEach(g => { const c = ordCat(g); st[c] = (st[c] || 0) + 1; }); const top = Object.keys(st).sort((a, b) => st[b] - st[a])[0];
+    w0.textContent = !gs.length ? 'Nothing tracked in this Period.' : lk.length ? lk.length + ' of ' + gs.length + ' need a look (' + Math.round(lk.length / gs.length * 100) + '%). Most are ' + top.toLowerCase() + '. Tap a number to see which.' : 'Nothing needs a look. Most are ' + top.toLowerCase() + '.'; }
   w1.textContent = lk.length ? lk.length + ' in this Period. Start with the oldest: it has waited longest.' : 'Nothing needs a look in this Period.';
   const rows = ordSupRows(); w2.textContent = rows.length ? rows[0].s + ' has the most tracked items (' + rows[0].n + '). A supplier with orders but no invoice yet is worth a message.' : 'No supplier in this Period.';
   const noinv = gs.filter(g => /No invoice seen/.test(g.x)).length;
@@ -395,8 +408,7 @@ function ordBuildTables() {
   const salCol = () => ({ k: 'b', l: 'Salon', t: 'txt', raw: g => ordName(g.b), disp: g => ordName(g.b), cell: g => ordEsc(ordName(g.b)) });
   const amtCol = () => ({ k: 'a', l: 'Total', sub: 'AED', t: 'num', raw: g => g.a == null ? -1 : g.a, disp: g => g.a == null ? '' : ordAed(g.a), cell: g => g.a == null ? '<span class="ord-muted">-</span>' : `<button type="button" class="ord-lk" data-k="${ordEsc(g.key)}" title="Open this order" onclick="ordOpen(this.dataset.k)">${ordAed(g.a)}</button>` });   // one order's total opens that order (it used to open every order of the supplier under this order's name)
   ordTL = TRSheet.table({ id: 'ordlook', el: '#ordTblLook', rows: () => (ORD.q ? ordGroups : ordScope()).filter(g => g.x && ordFindOk(g)), limit: ORD.n,
-    cols: [{ k: 'sel', l: 'Select', t: 'txt', hd: ordSelHead, raw: g => ORD_SEL.has(g.key) ? 1 : 0, disp: g => ORD_SEL.has(g.key) ? 'Selected' : '', cell: g => `<input type="checkbox" class="ord-cb" data-k="${ordEsc(g.key)}" ${ORD_SEL.has(g.key) ? 'checked ' : ''}onchange="ordSelToggle(this)" aria-label="Select ${ordEsc(g.s + (g.r ? ' ' + g.r : ''))}">` },
-      dateCol(), supCol(),
+    cols: [ordSelCol('look'), dateCol(), supCol(),
       { k: 'x', l: 'Why it needs a look', t: 'txt', raw: g => g.x, disp: g => g.x, cell: g => `<button type="button" class="ord-st ord-look" data-k="${ordEsc(g.key)}" onclick="ordOpen(this.dataset.k)">${ordEsc(g.x)}</button>` },
       { k: 'k', l: 'Type', t: 'txt', raw: g => g.type, disp: g => g.type, cell: g => ordEsc(g.type) }, salCol(), amtCol()],
     total: rows => ({ d: rows.length + ' to look at' }), after: (T, rows) => { ordAfter('look', T, rows, 'to look at'); ordBulkPaint(); } });
@@ -414,7 +426,7 @@ function ordBuildTables() {
     total: rows => { let n = 0, o = 0, v = 0, a = 0, q = 0; rows.forEach(r => { n += r.n; o += r.ord; v += r.inv; a += r.amt; q += r.disc; }); return { s: rows.length + ' suppliers', n: ordFig(n, 'Everything tracked', {}), o: ordFig(o, 'Orders', { kind: 'order' }), v: ordFig(v, 'Invoices', { kind: 'inv' }), m: ordMoney(a, 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(q, 'Orders with a discount', { disc: 1 }) }; }, after: (T, rows) => ordAfter('sup', T, rows, 'suppliers') });
   ordT = TRSheet.table({ id: 'ordall', el: '#ordTbl', limit: ORD.n,
     rows: () => ORD.kind === 'Checked' ? ordGroups.filter(g => g.chk && ordFindOk(g)) : (ORD.q ? ordGroups : ordScope()).filter(g => (!ORD.kind || g.type === ORD.kind) && ordFindOk(g)),
-    cols: [dateCol(), supCol(), salCol(),
+    cols: [ordSelCol('doc'), dateCol(), supCol(), salCol(),
       { k: 'n', l: 'Items', sub: 'what was bought', t: 'num', raw: g => g.items, disp: g => g.items ? g.items : '', cell: ordItemsCell },
       amtCol(),
       { k: 'q', l: 'Discount', sub: 'AED or %', t: 'num', raw: g => g.disc || g.discPct, disp: g => g.disc ? ordAed(g.disc) : g.discPct ? g.discPct + '%' : '', cell: ordDiscCell },
@@ -430,53 +442,117 @@ function ordBuildTables() {
       { k: 'cn', l: 'Check note', t: 'txt', x: 1, raw: g => g.chk ? ordChkTxt(g.chk) : '', disp: g => g.chk ? ordChkTxt(g.chk) : '', cell: g => g.chk && ordChkTxt(g.chk) ? ordEsc(ordChkTxt(g.chk)) : '<span class="ord-muted">-</span>' }],
     rowCls: g => g.x ? 'ord-rowlook' : '',
     total: rows => ({ d: rows.length + ' tracked', a: ordMoney(ordSumInv(rows), 'Invoices with an amount', { kind: 'inv', amt: 1 }), q: ordMoney(ordSumDisc(rows), 'Orders with a discount', { disc: 1 }, true), rf: rows.some(g => g.refund) ? ordAed(rows.reduce((t, g) => t + (g.refund || 0), 0)) : '' }),
-    after: (T, rows) => ordAfter('doc', T, rows, 'tracked') });
+    after: (T, rows) => { ordAfter('doc', T, rows, 'tracked'); ordBulkPaint(); } });
 }
-// ── BULK: tick orders in Needs a look and mark them all checked or all cancelled (Kate, 23 Nov 2026) ──
-// The ticks live in ORD_SEL. Only the ticked orders that the table shows right now (its filters included) are acted on, so an order filtered out can never be marked by accident.
-const ordLookRows = () => (ordTL ? ordTL.rows() : []);
-const ordLookPage = () => ordTL ? ordLookRows().slice(ordTL.page * ordTL.shown, (ordTL.page + 1) * ordTL.shown) : [];
-const ordSelKeys = () => { const all = new Set(ordLookRows().map(g => g.key)); return Array.from(ORD_SEL).filter(k => all.has(k)); };
-function ordSelHead() {
-  const pg = ordLookPage(), n = pg.filter(g => ORD_SEL.has(g.key)).length;
-  return `<input type="checkbox" class="ord-cb" id="ordSelPage" onchange="ordSelPage(this)" aria-label="Select every order on this page"${pg.length && n === pg.length ? ' checked' : ''}>`;
+// ── OVERVIEW (Kate, 23 Nov 2026: "bago ang needs a look dapat may overview, graphs of which is which") ──
+// Three small bar charts of the orders the masthead picks: where they are, why some need a look, who they are with. Orange is "needs a look", green is "fine".
+// Every figure opens the orders behind it. Every bar lifts and glows on hover and says what it means in one sentence (a tap does the same on a phone).
+const ORD_STAGES = ['Quotation', 'Ordered', 'Confirmed', 'Shipped', 'Delivered', 'Invoiced', 'Statement', 'Refund', 'Cancelled', 'Checked'];
+const ordCat = g => g.canc ? 'Cancelled' : (g.chk && !g.x) ? 'Checked' : g.st;
+const ordWhy = g => !g.x ? [] : g.x.split('; ').map(t => /^Invoice overdue/.test(t) ? 'Invoice overdue' : /^Invoice due in/.test(t) ? 'Invoice due soon' : /^No invoice seen/.test(t) ? 'No invoice seen' : /^No delivery email/.test(t) ? 'No delivery email' : /discount/i.test(t) ? 'Discount to check' : /stock/i.test(t) ? 'Out of stock' : 'Something else');
+const ORD_WHYS = ['Invoice overdue', 'Invoice due soon', 'No invoice seen', 'No delivery email', 'Discount to check', 'Out of stock', 'Something else'];
+function ordBarRow(label, parts, max, n, title, f, tip) {
+  // parts: [{ n, cls }] drawn left to right; the bar is as long as n is against the biggest row of the chart
+  const w = max ? n / max * 100 : 0;
+  return `<div class="ord-bar1" tabindex="0" data-tip="${ordEsc(tip)}"><span class="ob-l">${ordEsc(label)}</span><span class="ob-t"><span class="ob-f" style="width:${w.toFixed(1)}%">${parts.filter(p => p.n > 0).map(p => `<i class="${p.cls}" style="flex:${p.n}"></i>`).join('')}</span></span><span class="ob-n">${ordFig(n, title, f)}</span></div>`;
 }
-function ordSelToggle(cb) { cb.checked ? ORD_SEL.add(cb.dataset.k) : ORD_SEL.delete(cb.dataset.k); ordBulkPaint(); }
-function ordSelPage(cb) {
-  ordLookPage().forEach(g => { cb.checked ? ORD_SEL.add(g.key) : ORD_SEL.delete(g.key); });
-  document.querySelectorAll('#ordTblLook .ord-cb[data-k]').forEach(x => { x.checked = ORD_SEL.has(x.dataset.k); });
+function ordPaintOverview() {
+  const el = document.getElementById('ordOverview'); if (!el) return;
+  const gs = ordScope(); if (!gs.length) { el.innerHTML = '<p class="ord-muted">Nothing tracked in this Period. Try a wider Period.</p>'; return; }
+  const pl = (n, a, b) => n === 1 ? a : b, look = g => !!g.x;
+  // 1 where they are
+  const cat = {}; gs.forEach(g => { const c = ordCat(g); (cat[c] || (cat[c] = [])).push(g); });
+  const cats = Object.keys(cat).sort((a, b) => { const ia = ORD_STAGES.indexOf(a), ib = ORD_STAGES.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || cat[b].length - cat[a].length; });
+  const m1 = Math.max.apply(null, cats.map(c => cat[c].length));
+  const c1 = cats.map(c => { const a = cat[c], lk = a.filter(look).length; return ordBarRow(c, [{ n: lk, cls: 'ob-look' }, { n: a.length - lk, cls: 'ob-ok' }], m1, a.length, c, { cat: c }, c + ': ' + a.length + ' ' + pl(a.length, 'order, invoice or statement', 'orders, invoices and statements') + (lk ? ', ' + lk + (lk === 1 ? ' of them needs' : ' of them need') + ' a look.' : ', none need a look.')); }).join('');
+  // 2 why they need a look
+  const why = {}; gs.filter(look).forEach(g => { ordWhy(g).forEach(w => { (why[w] || (why[w] = {}))[g.key] = 1; }); });
+  const ws = ORD_WHYS.filter(w => why[w]), nl = gs.filter(look).length, m2 = Math.max.apply(null, [1].concat(ws.map(w => Object.keys(why[w]).length)));
+  const c2 = ws.length ? ws.map(w => { const n = Object.keys(why[w]).length; return ordBarRow(w, [{ n, cls: 'ob-look' }], m2, n, w, { why: w }, w + ': ' + n + ' of the ' + nl + ' that need a look (' + Math.round(n / nl * 100) + '%). One order can have more than one reason.'); }).join('') : '<p class="ord-muted">Nothing needs a look in this Period.</p>';
+  // 3 who they are with
+  const sup = ordSupRows().slice(0, 8), m3 = Math.max.apply(null, [1].concat(sup.map(r => r.n)));
+  const c3 = sup.map(r => ordBarRow(r.s, [{ n: r.look, cls: 'ob-look' }, { n: r.n - r.look, cls: 'ob-ok' }], m3, r.n, r.s, { s: r.s }, r.s + ': ' + r.n + ' tracked, ' + r.look + ' need a look, ' + (r.n - r.look) + ' fine.')).join('');
+  const more = ordSupRows().length - sup.length;
+  el.innerHTML = `<div class="ord-ovg">
+    <div class="ord-ovc"><h4>Where they are</h4><p class="ord-ovs">${gs.length} tracked, by where each one has got to.</p>${c1}<p class="ord-leg"><i class="ob-look"></i>needs a look <i class="ob-ok"></i>fine</p></div>
+    <div class="ord-ovc"><h4>Why they need a look</h4><p class="ord-ovs">${nl} ${pl(nl, 'order needs', 'orders need')} a look, by reason.</p>${c2}</div>
+    <div class="ord-ovc"><h4>Who they are with</h4><p class="ord-ovs">${ordSupRows().length} ${pl(ordSupRows().length, 'supplier', 'suppliers')}${more > 0 ? ', the ' + sup.length + ' with the most' : ''}.</p>${c3}<p class="ord-leg"><i class="ob-look"></i>needs a look <i class="ob-ok"></i>fine</p></div></div>`;
+}
+// the answer card of a bar: follows the pointer on a computer, a tap on a phone (the figure inside still opens its list)
+let ordTipEl = null, ordTipT = 0;
+function ordTip(row, x, y) {
+  if (!ordTipEl) { ordTipEl = document.createElement('div'); ordTipEl.className = 'ord-hovc'; ordTipEl.setAttribute('role', 'status'); document.body.appendChild(ordTipEl); }
+  ordTipEl.textContent = row.dataset.tip; ordTipEl.hidden = false;
+  const w = ordTipEl.offsetWidth, h = ordTipEl.offsetHeight;
+  ordTipEl.style.left = Math.max(8, Math.min(innerWidth - w - 8, x + 14)) + 'px'; ordTipEl.style.top = Math.max(8, Math.min(innerHeight - h - 8, y - h - 26)) + 'px';
+}
+const ordTipHide = () => { clearTimeout(ordTipT); if (ordTipEl) ordTipEl.hidden = true; };
+const ordHover = () => window.matchMedia && matchMedia('(hover:hover)').matches;
+document.addEventListener('mousemove', e => { if (!ordHover()) return; const r = e.target.closest && e.target.closest('.ord-bar1'); r ? ordTip(r, e.clientX, e.clientY) : ordTipHide(); });
+document.addEventListener('focusin', e => { const r = e.target; if (r && r.classList && r.classList.contains('ord-bar1')) { const b = r.getBoundingClientRect(); ordTip(r, b.left + 60, b.top + 20); } });
+document.addEventListener('focusout', e => { if (e.target && e.target.classList && e.target.classList.contains('ord-bar1')) ordTipHide(); });
+document.addEventListener('click', e => {
+  if (ordHover()) return;
+  const r = e.target.closest && e.target.closest('.ord-bar1'); if (!r || e.target.closest('.dn,[data-dn],button,a')) return;
+  ordTip(r, 0, innerHeight); clearTimeout(ordTipT); ordTipT = setTimeout(ordTipHide, 5000);
+});
+
+// ── BULK: tick orders in Needs a look or in Every order and mark them all checked or all cancelled (Kate, 23 Nov 2026) ──
+// The ticks live in ORD_SEL (one set for the page). Only the ticked orders that a table shows right now (its filters included) are acted on, so an order filtered out can never be marked by accident.
+// An order somebody has already checked or cancelled has no box: it is done.
+const ordSelectable = g => !g.chk;
+const ordBulkTab = k => k === 'doc' ? ordT : ordTL, ordBulkSel = k => k === 'doc' ? '#ordTbl' : '#ordTblLook';
+const ordBulkRows = k => { const T = ordBulkTab(k); return T ? T.rows().filter(ordSelectable) : []; };
+const ordBulkPage = k => { const T = ordBulkTab(k); return T ? T.rows().slice(T.page * T.shown, (T.page + 1) * T.shown).filter(ordSelectable) : []; };
+const ordSelKeys = k => { const all = new Set(ordBulkRows(k).map(g => g.key)); return Array.from(ORD_SEL).filter(x => all.has(x)); };
+const ordSelCell = k => g => ordSelectable(g) ? `<input type="checkbox" class="ord-cb" data-k="${ordEsc(g.key)}" ${ORD_SEL.has(g.key) ? 'checked ' : ''}onchange="ordSelToggle(this)" aria-label="Select ${ordEsc(g.s + (g.r ? ' ' + g.r : ''))}">` : '';
+const ordSelCol = k => ({ k: 'sel', l: 'Select', t: 'txt', hd: () => ordSelHead(k), hide: () => k === 'doc' && ORD.kind === 'Checked', raw: g => ORD_SEL.has(g.key) ? 1 : 0, disp: g => ORD_SEL.has(g.key) ? 'Selected' : '', cell: ordSelCell(k) });
+function ordSelHead(k) {
+  const pg = ordBulkPage(k), n = pg.filter(g => ORD_SEL.has(g.key)).length;
+  return `<input type="checkbox" class="ord-cb" id="ordSelPage-${k}" onchange="ordSelPage(this,'${k}')" aria-label="Select every order on this page"${pg.length && n === pg.length ? ' checked' : ''}>`;
+}
+function ordBulkHtml(k) {
+  return `<div class="ord-bulk" id="ordBulk-${k}" hidden><span class="ord-bk-n" id="ordBulkN-${k}"></span><button type="button" class="cm-pill" id="ordBulkAll-${k}" hidden onclick="ordSelAll('${k}')"></button><input type="text" id="ordBulkNote-${k}" maxlength="500" autocomplete="off" aria-label="Note for all the selected orders" placeholder="Note for all of them, e.g. tax invoice complete, paid by bank transfer"><button type="button" class="cm-pill" id="ordBulkGo-${k}" onclick="ordBulkSave(false,'${k}')" title="Checked in the supplier's account: a note is needed">Mark as checked</button><button type="button" class="cm-pill" id="ordBulkCx-${k}" onclick="ordBulkSave(true,'${k}')" title="Cancelled in the supplier's account: closed, nothing is owed">Mark as cancelled</button><button type="button" class="cm-pill" onclick="ordSelClear()">Clear</button><span class="ord-muted" id="ordBulkMsg-${k}" role="status"></span></div>`;
+}
+const ordBoxes = () => document.querySelectorAll('#ordTblLook .ord-cb, #ordTbl .ord-cb');
+function ordSelToggle(cb) { cb.checked ? ORD_SEL.add(cb.dataset.k) : ORD_SEL.delete(cb.dataset.k); ordBoxes().forEach(x => { if (x.dataset.k === cb.dataset.k) x.checked = cb.checked; }); ordBulkPaint(); }
+function ordSelPage(cb, k) {
+  ordBulkPage(k).forEach(g => { cb.checked ? ORD_SEL.add(g.key) : ORD_SEL.delete(g.key); });
+  ordBoxes().forEach(x => { if (x.dataset.k) x.checked = ORD_SEL.has(x.dataset.k); });
   ordBulkPaint();
 }
-function ordSelAll() { ordLookRows().forEach(g => ORD_SEL.add(g.key)); document.querySelectorAll('#ordTblLook .ord-cb[data-k]').forEach(x => { x.checked = true; }); ordBulkPaint(); }
-function ordSelClear() { ORD_SEL.clear(); document.querySelectorAll('#ordTblLook .ord-cb').forEach(x => { x.checked = false; x.indeterminate = false; }); const m = document.getElementById('ordBulkMsg'); if (m) m.textContent = ''; ordBulkPaint(); }
+function ordSelAll(k) { ordBulkRows(k).forEach(g => ORD_SEL.add(g.key)); ordBoxes().forEach(x => { if (x.dataset.k) x.checked = ORD_SEL.has(x.dataset.k); }); ordBulkPaint(); }
+function ordSelClear() { ORD_SEL.clear(); ordBoxes().forEach(x => { x.checked = false; x.indeterminate = false; }); ['look', 'doc'].forEach(k => { const m = document.getElementById('ordBulkMsg-' + k); if (m) m.textContent = ''; }); ordBulkPaint(); }
 function ordBulkPaint() {
-  const bar = document.getElementById('ordBulk'); if (!bar) return;
-  const keys = ordSelKeys(), total = ordLookRows().length, pg = ordLookPage(), n = pg.filter(g => ORD_SEL.has(g.key)).length;
-  bar.hidden = !keys.length && !(document.getElementById('ordBulkMsg') || {}).textContent;
-  document.getElementById('ordBulkN').textContent = keys.length ? keys.length + ' selected' : '';
-  const all = document.getElementById('ordBulkAll'); all.hidden = !keys.length || keys.length >= total; all.textContent = 'Select all ' + total;
-  ['ordBulkNote', 'ordBulkGo', 'ordBulkCx'].forEach(id => { const e = document.getElementById(id); if (e) e.hidden = !keys.length; });
-  const hp = document.getElementById('ordSelPage'); if (hp) { hp.checked = pg.length > 0 && n === pg.length; hp.indeterminate = n > 0 && n < pg.length; }
+  ['look', 'doc'].forEach(k => {
+    const bar = document.getElementById('ordBulk-' + k); if (!bar) return;
+    const keys = ordSelKeys(k), total = ordBulkRows(k).length, pg = ordBulkPage(k), n = pg.filter(g => ORD_SEL.has(g.key)).length;
+    bar.hidden = !keys.length && !(document.getElementById('ordBulkMsg-' + k) || {}).textContent;
+    document.getElementById('ordBulkN-' + k).textContent = keys.length ? keys.length + ' selected' : '';
+    const all = document.getElementById('ordBulkAll-' + k); all.hidden = !keys.length || keys.length >= total; all.textContent = 'Select all ' + total;
+    ['ordBulkNote-', 'ordBulkGo-', 'ordBulkCx-'].forEach(id => { const e = document.getElementById(id + k); if (e) e.hidden = !keys.length; });
+    const hp = document.getElementById('ordSelPage-' + k); if (hp) { hp.checked = pg.length > 0 && n === pg.length; hp.indeterminate = n > 0 && n < pg.length; }
+  });
 }
 let ordBulkBusy = false;
-async function ordBulkSave(canc) {
-  const keys = ordSelKeys().filter(k => ordByKey[k]), msg = document.getElementById('ordBulkMsg'), noteEl = document.getElementById('ordBulkNote');
+async function ordBulkSave(canc, k) {
+  const keys = ordSelKeys(k).filter(x => ordByKey[x] && ordSelectable(ordByKey[x])), msg = document.getElementById('ordBulkMsg-' + k), noteEl = document.getElementById('ordBulkNote-' + k);
   if (!keys.length || ordBulkBusy) return;
   const note = (noteEl.value || '').trim(), what = keys.length + ' order' + (keys.length === 1 ? '' : 's');
   if (!canc && !note) { msg.textContent = 'Type a note for all of them first, for example: tax invoice complete, paid by bank transfer.'; noteEl.focus(); return; }
   if (!confirm('Mark ' + what + ' as ' + (canc ? 'cancelled' : 'checked') + '?\n\nThe note is kept on each one, with your name and today\'s date. Each can be undone from its own window.')) return;
   ordBulkBusy = true;
-  const btns = document.querySelectorAll('#ordBulk button'); btns.forEach(b => { b.disabled = true; }); noteEl.disabled = true;
+  const btns = document.querySelectorAll('#ordBulk-' + k + ' button'); btns.forEach(b => { b.disabled = true; }); noteEl.disabled = true;
   const note2 = canc ? ('[cancelled] ' + note).trim() : note, ok = [], bad = [];
   for (let i = 0; i < keys.length; i += 5) {
-    await Promise.all(keys.slice(i, i + 5).map(async k => {
+    await Promise.all(keys.slice(i, i + 5).map(async x => {
       try {
-        const proofs = ((ordDrafts[k] || {}).proofs || []).map(p => ({ path: p.path, name: p.name }));   // files already added to this order's draft stay with it
-        const r = await sb.rpc('orders_check_set', { p_group: k, p_on: true, p_note: note2 || null, p_proofs: proofs });
+        const proofs = ((ordDrafts[x] || {}).proofs || []).map(p => ({ path: p.path, name: p.name }));   // files already added to this order's draft stay with it
+        const r = await sb.rpc('orders_check_set', { p_group: x, p_on: true, p_note: note2 || null, p_proofs: proofs });
         if (r.error) throw r.error;
-        ordChecks[k] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note2 || null, proofs };
-        delete ordDrafts[k]; ORD_SEL.delete(k); ok.push(k);
-      } catch (e) { console.error(e); bad.push(k); }
+        ordChecks[x] = { by: (r.data && r.data.by) || '', at: new Date().toISOString(), note: note2 || null, proofs };
+        delete ordDrafts[x]; ORD_SEL.delete(x); ok.push(x);
+      } catch (e) { console.error(e); bad.push(x); }
     }));
     msg.textContent = 'Saving ' + (ok.length + bad.length) + ' of ' + keys.length + '...';
   }
