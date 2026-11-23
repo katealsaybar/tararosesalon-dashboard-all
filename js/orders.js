@@ -724,7 +724,7 @@ async function ordEnglishNames(names) {
 function ordBuyHtml(g) {
   const b = g.buy;
   let h = '';
-  if (!b) h += `<h4>What was bought</h4><p class="ord-muted">${g.docs.some(d => d.file_path) ? 'The items are in the file of this order. Open it under The emails below. This page could not read its lines.' : g.type === 'Order' ? 'The items are in the attached file (Excel or PDF), which this page does not read yet. It will list every product with its quantity and price.' : 'No items are listed in this email.'}</p>`;
+  if (!b) h += `<h4>What was bought</h4><p class="ord-muted">${g.docs.some(d => d.file_path) ? 'The items are in the file of this order. Open it under The emails below. This page could not read its lines.' : g.type === 'Order' ? (g.docs.some(d => d.has_file) ? 'The items are in the attached file (Excel or PDF), which this page does not read yet. It will list every product with its quantity and price.' : 'The items are named in the email on the right. This page could not split them into lines with a quantity and a price' + (/^carrefour/i.test(g.s || '') ? ': they are in the Carrefour account, use the button above.' : '.')) : 'No items are listed in this email.'}</p>`;
   else {
     h += `<div class="ord-bh"><h4>What was bought</h4>${b.lines.some(l => ordHasAr(l.name)) ? '<button type="button" class="cm-pill ord-tr" onclick="ordTranslate(this)" title="Show the product names in English">Translate to English</button>' : ''}</div><table class="ord-bt"><thead><tr><th>Product</th><th class="r">Qty</th><th class="r">Price AED</th><th class="r">Total AED</th></tr></thead><tbody>` +
       b.lines.map(l => `<tr><td data-l="Product"><div class="ord-prod">${ordPhoto(l)}<span><span class="ord-nm">${ordEsc(l.name)}</span>${l.note ? ` <span class="ord-dnote">${ordEsc(l.note)}</span>` : ''}</span></div></td><td class="r" data-l="Qty">${l.qty == null ? '-' : ordEsc(l.qty)}</td><td class="r" data-l="Price AED">${l.unit == null ? '-' : ordAed(+l.unit)}</td><td class="r" data-l="Total AED">${l.total == null ? '-' : ordAed(+l.total)}</td></tr>`).join('') + '</tbody></table>';
@@ -793,8 +793,8 @@ function ordCarrefourNos(g) {
 function ordAmazonLink(g) {
   if (/^carrefour/i.test(g.s || '')) {
     const n = ordCarrefourNos(g); if (!n.ord) return '';
-    const url = 'https://www.carrefouruae.com/mafuae/en/app/orders' + (n.con ? '/' + n.ord + '/' + n.con : '');
-    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${n.con ? 'Opens this order in the Carrefour account: delivery, payment and the invoice' : 'Opens My Orders in the Carrefour account. Look for order ' + n.ord}"><span class="ord-ai ord-ai-oth">CRF</span><span class="ord-an">${n.con ? 'Open this order in the Carrefour account' : 'Open My Orders in the Carrefour account'}</span><span class="ord-ak">Carrefour ${n.ord}</span></a></p>`;
+    const url = 'https://www.carrefouruae.com/mafuae/en/app/orders/' + n.ord + (n.con ? '/' + n.con : '');   // the order number alone is tried when no email names the consignment number
+    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="Opens this order in the Carrefour account: delivery, payment and the invoice"><span class="ord-ai ord-ai-oth">CRF</span><span class="ord-an">Open this order in the Carrefour account</span><span class="ord-ak">Carrefour ${n.ord}</span></a></p>`;
   }
   const no = /^amazon/i.test(g.s || '') && /^\d{3}-\d{7}-\d{7}$/.test(g.r || '') ? g.r : '';
   if (!no) return '';
