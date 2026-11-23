@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=45b44a1f"></script>
-<script src="js/page-dates.js?v=168ac414"></script>
+<script src="js/page-dates.js?v=b6a906c6"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -2720,6 +2720,8 @@ button.soc-plat:focus-visible{outline:2px solid var(--accent);outline-offset:2px
 .soc-heat{display:grid;grid-template-columns:36px repeat(24,minmax(0,1fr));gap:2px;font-size:10.5px;color:var(--muted)}
 .soc-heat-h{text-align:center}
 .soc-heat-d{display:flex;align-items:center}
+/* Content Calendar on a phone (Kate, 23 Nov 2026: "too narrow"): the page keeps only a small side margin so the calendar gets the width */
+@media(max-width:760px){#calShell{padding-left:8px!important;padding-right:8px!important}}
 .soc-heat-c{height:20px;border-radius:3px;cursor:pointer}
 .soc-heat-c:hover{outline:2px solid var(--text);outline-offset:1px}
 .soc-heat-c:focus-visible{outline:3px solid var(--accent,var(--text));outline-offset:1px;position:relative;z-index:1}
