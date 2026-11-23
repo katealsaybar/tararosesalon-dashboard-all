@@ -782,19 +782,24 @@ function ordMsgHtml(d, open) {
 // Only a plain link: nothing is read from or written to the account, whoever opens it signs in to Amazon as usual.
 // Carrefour (Kate, 23 Nov 2026, her screenshots of carrefouruae.com): an order opens at /mafuae/en/app/orders/<order number>/<consignment number>, for example 784010022791363/11000067445.
 // The order number (15 digits from 784) and the consignment number are read from the order's own emails (reference, subject, note, text). With both the button opens that order;
-// with only the order number it opens My Orders, where the number is searched by eye, because a link without the consignment number is not known to open the order.
+// Order of preference: the consignment link, then the email's own View Order Details link, then My Orders (the number is shown beside the button).
 function ordCarrefourNos(g) {
   const txt = g.docs.map(d => [d.reference, d.subject, d.note, d.body].filter(Boolean).join(' ')).join(' ');
   const ord = (/\b(784\d{12})\b/.exec([g.r, txt].join(' ')) || [])[1] || '';
   let con = (/consignment(?:\s*(?:number|no\.?|#))?\s*[:#-]?\s*(\d{6,12})/i.exec(txt) || [])[1] || '';
   if (!con && g.r && /^\d{6,12}$/.test(g.r) && g.r !== ord) con = g.r;
-  return { ord, con };
+  // The order email itself carries "View Order Details ( <link> )": Carrefour's own tracked link to that order. It opens the order (after the Carrefour login), and it is the only place
+  // the order is reachable from the order number alone (a link with the order number and no consignment number shows "trouble finding this page", Kate, 23 Nov 2026).
+  let lnk = ''; const re = /view order details\s*\(\s*(https:\/\/ablink\.carrefour-uae\.majidalfuttaim\.com\/[^\s)]+)\s*\)/ig; let m;
+  while ((m = re.exec(txt))) lnk = m[1];
+  return { ord, con, lnk };
 }
 function ordAmazonLink(g) {
   if (/^carrefour/i.test(g.s || '')) {
     const n = ordCarrefourNos(g); if (!n.ord) return '';
-    const url = 'https://www.carrefouruae.com/mafuae/en/app/orders/' + n.ord + (n.con ? '/' + n.con : '');   // the order number alone is tried when no email names the consignment number
-    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="Opens this order in the Carrefour account: delivery, payment and the invoice"><span class="ord-ai ord-ai-oth">CRF</span><span class="ord-an">Open this order in the Carrefour account</span><span class="ord-ak">Carrefour ${n.ord}</span></a></p>`;
+    const deep = n.con ? 'https://www.carrefouruae.com/mafuae/en/app/orders/' + n.ord + '/' + n.con : '';
+    const url = deep || n.lnk || 'https://www.carrefouruae.com/mafuae/en/app/orders', exact = !!(deep || n.lnk);
+    return `<p class="ord-amz"><a class="ord-ac ord-gml" href="${url}" target="_blank" rel="noopener" title="${exact ? 'Opens this order in the Carrefour account: delivery, payment and the invoice' : 'Opens My Orders in the Carrefour account. Look for order ' + n.ord}"><span class="ord-ai ord-ai-oth">CRF</span><span class="ord-an">${exact ? 'Open this order in the Carrefour account' : 'Open My Orders in the Carrefour account'}</span><span class="ord-ak">Carrefour ${n.ord}</span></a></p>`;
   }
   const no = /^amazon/i.test(g.s || '') && /^\d{3}-\d{7}-\d{7}$/.test(g.r || '') ? g.r : '';
   if (!no) return '';
