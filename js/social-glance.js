@@ -323,7 +323,8 @@ let sgSchedSrc = null, sgSchedRows = null;
 let sgSchedView = 'all';
 // Scheduled in Metricool is the brand yellow, posted by hand the brand violet (Kate, 23 Nov 2026). The dark theme uses the brand tokens themselves (butter #EEF3C7, lavender #C4B5FD);
 // the light theme uses their deeper partners so the bars still show on white (the dashboard's gold #C99A2E and violet #7C5CD4).
-const sgSchedC = () => (socDark() ? { s: '#EEF3C7', h: '#C4B5FD' } : { s: '#C99A2E', h: '#7C5CD4' });
+// Posts as a whole are the brand blue (turquoise, like the Reach line) and stories the brand pink (coral), Kate, 23 Nov 2026.
+const sgSchedC = () => (socDark() ? { s: '#EEF3C7', h: '#C4B5FD', p: '#99F6E4', t: '#FF9B9B' } : { s: '#C99A2E', h: '#7C5CD4', p: '#0F6E56', t: '#E0707A' });
 function sgSchedSet(v) {
   sgSchedView = v;
   const box = document.getElementById('socSchedBox'); if (!box || typeof socTab === 'undefined') return;
@@ -347,11 +348,13 @@ function sgSchedInner(net, cols) {
   const seg = sto.length ? `<div class="sc-seg" role="group" aria-label="Show">${[['all', 'All'], ['stories', 'Stories'], ['posts', 'Posts']].map(([k, l]) => `<button type="button" class="${v === k ? 'on' : ''}" aria-pressed="${v === k}" onclick="sgSchedSet('${k}')">${l}</button>`).join('')}</div>` : '';
   const has = showP ? (mine.length || showS) : showS;
   const said = !showP ? `<b>${sgN(sto.length)} stories (posted live in the app, so by hand).</b> This is the Content Calendar's own record.`
-    : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record.${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}`;
+    : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record.${showS ? ' Stories are the bars (left scale), posts the line (right scale).' : ''}${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}`;
   return `<div class="mk-chart-head">
       <div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div>
       ${seg}
-      <span class="soc-key">${showP ? `<span><i style="background:${sgSchedC().s}"></i>Scheduled in Metricool</span><span><i style="background:${sgSchedC().h}"></i>Posted by hand</span>` : ''}${showS ? `<span><i style="background:${socRgba(cols[net], .38)}"></i>Stories, posted live</span>` : ''}</span>
+      <span class="soc-key">${showP && showS ? `<span><i style="background:${sgSchedC().t}"></i>Stories a day (bars, left)</span><span><i style="background:${sgSchedC().p};width:16px;height:3px;border-radius:2px"></i>Posts a day (line, right)</span>`
+        : showP ? `<span><i style="background:${sgSchedC().s}"></i>Scheduled in Metricool</span><span><i style="background:${sgSchedC().h}"></i>Posted by hand</span>`
+        : `<span><i style="background:${sgSchedC().t}"></i>Stories, posted live</span>`}</span>
     </div>
     ${has ? `<div style="position:relative;height:200px"><canvas id="socSched"></canvas></div>
     <p class="slv-note">${said}</p>`
@@ -383,10 +386,21 @@ function sgSchedDraw(net) {
   if (showP) sgSchedPosts().filter(p => p.net === net && (p.sch || p.man)).forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }), k = p.sch ? 'sched' : 'hand'; r[k] = (r[k] || 0) + 1; });
   if (showS) sto.forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }); r.story = (r.story || 0) + 1; });
   const rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['sched', 'hand', 'story']);
-  const c = socCharts.sched = socBarChart(cv, rows, [
-    ...(showP ? [{ label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: sgSchedC().s, stack: 's' },
-      { label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: sgSchedC().h, stack: 's' }] : []),
-    ...(showS ? [{ label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: socRgba(cols[net], .38), stack: 's' }] : []),
-  ], true);
+  const both = showP && showS, C = sgSchedC();
+  const datasets = both ? [
+    { label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t },
+    { type: 'line', yAxisID: 'y1', label: 'Posts', data: rows.map(r => (r.sched || 0) + (r.hand || 0)), borderColor: C.p, backgroundColor: C.p, borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: C.p, tension: .25 },
+  ] : [
+    ...(showP ? [{ label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: C.s, stack: 's' }, { label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: C.h, stack: 's' }] : []),
+    ...(showS ? [{ label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t, stack: 's' }] : []),
+  ];
+  const c = socCharts.sched = socBarChart(cv, rows, datasets, !both, both);
+  if (c && both) {
+    // two scales, so a few posts a day are not lost beside many stories: stories on the left (pink), posts on the right (blue)
+    const y1 = c.options.scales.y1; y1.beginAtZero = true; y1.grace = 0; y1.ticks.precision = 0; y1.ticks.color = C.p;   // set one by one: spreading a ticks object twice throws in Chart.js
+    c.options.scales.y.ticks.color = C.t;
+    const lab = c.options.plugins.tooltip.callbacks.label;
+    c.options.plugins.tooltip.callbacks.label = x => x.dataset.label === 'Posts' ? `Posts: ${socNum(x.raw)} (scheduled ${socNum(rows[x.dataIndex].sched || 0)}, by hand ${socNum(rows[x.dataIndex].hand || 0)})` : lab(x);
+  }
   if (c) { c.options.scales.y.ticks = { ...(c.options.scales.y.ticks || {}), precision: 0 }; c.update(); }
 }
