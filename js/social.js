@@ -106,38 +106,52 @@ function socSetTab(t) {
   const el = document.getElementById('socialContent');
   if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' });
 }
-function socSetNet(n) { socNet = n; if (socTopT) socTopT.clear(); socRepaint(); }
+function socSetNet(n) { socNet = n; if (socTbls.soctop) socTbls.soctop.clear(); socRepaint(); }
 
-// ── Top posts table: the shared Google Sheets table (js/sheet-table.js), Kate 23 Nov 2026 ──
-// Every heading has Sort A to Z / Z to A, Filter by condition and Filter by values; 10 rows with pages (Rows 10, 20, 50, 100).
-let socTopT = null, socTopRows = [], socTopFor = null;
+// ── Every table on Social is the shared Google Sheets table (js/sheet-table.js), Kate 23 Nov 2026 ──
+// Top posts, each platform's Reels / Posts / Videos, Stories and Hashtags: every heading has Sort, Filter by condition and Filter by values,
+// 10 rows with pages (Rows 10, 20, 50, 100), Clear filters, and on a phone a card per row with a Sort and filter button.
+const socTbls = {}, socDefs = {};
+let socTblFor = null;
 const socCap1 = p => String(p.caption || '').split('\n').map(x => x.trim()).find(Boolean) || (p.kind === 'story' ? 'Story' : '(no caption)');
-function socTopMount() {
-  if (!window.TRSheet || !document.getElementById('socTopTbl')) return;
-  if (socTopFor !== socData) { socTopFor = socData; if (socTopT) socTopT.clear(); }   // new data (new dates), so the old heading filters go
-  const num = (k, l, extra) => Object.assign({ k, l, t: 'num', raw: p => Number(p[k]) || 0, disp: p => socNum(p[k]), cell: p => socNum(p[k]) }, extra || {});
-  if (!socTopT) socTopT = TRSheet.table({ id: 'soctop', el: '#socTopTbl', rows: () => socTopRows, limit: 10,
-    cols: [
-      { k: 'post', l: 'Post', t: 'txt', raw: p => socCap1(p), disp: p => socCap1(p), cell: p => socPostCell(p, true) },
-      num('views', 'Views'),
-      num('reach', 'Reach'),
-      num('interactions', 'Likes, comments, shares'),
-      num('saves', 'Saves')
-    ],
-    after: (T, rows) => {
-      const c = document.getElementById('socTopClear'); if (c) c.hidden = !T.active();
-      const pages = T.pages(rows.length), from = rows.length ? T.page * T.shown + 1 : 0, to = Math.min(rows.length, (T.page + 1) * T.shown);
-      const tx = document.getElementById('socTopTxt'), pv = document.getElementById('socTopPrev'), nx = document.getElementById('socTopNext'), pn = document.getElementById('socTopPgN'), sl = document.getElementById('socTopSel');
-      if (tx) tx.textContent = from + ' to ' + to + ' of ' + rows.length + ' posts';
-      if (pv) pv.disabled = T.page <= 0; if (nx) nx.disabled = T.page >= pages - 1; if (pn) pn.textContent = 'Page ' + (T.page + 1) + ' of ' + pages;
-      if (sl && +sl.value !== T.shown) sl.value = String(T.shown);
-    } });
-  socTopT.draw();
+const socNumCol = (k, l, get) => { const v = p => (get ? get(p) : p[k]); return { k, l, t: 'num', raw: p => Number(v(p)) || 0, disp: p => socNum(v(p)), cell: p => socNum(v(p)) }; };
+const socPostCol = (l, withNet) => ({ k: 'post', l, t: 'txt', raw: p => socCap1(p), disp: p => socCap1(p), cell: p => socPostCell(p, withNet) });
+// The markup for one table: toolbar, the table, the pager. cfg = { rows, cols, unit }; socTblMount draws it once the page is in the document.
+function socTblHtml(id, cfg) {
+  socDefs[id] = cfg;
+  return `<div class="soc-tbar"><button type="button" class="cm-pill soc-phone" data-sxcm="${id}" aria-label="Sort and filter">Sort and filter</button><span class="soc-sp"></span><button type="button" class="cm-pill" id="socC-${id}" hidden onclick="socTblClear('${id}')">Clear filters</button></div>
+    <div class="slv-wrap"><table id="socT-${id}"></table></div>
+    <div class="soc-pager"><span id="socTx-${id}"></span><span class="soc-sp"></span><span class="slv-eyebrow">Rows</span><select id="socTs-${id}" aria-label="Rows to show" onchange="socTblPick('${id}', +this.value)"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
+      <button type="button" class="cm-pill" id="socTp-${id}" onclick="socTblPage('${id}', -1)">‹ Previous</button><span class="soc-pgn" id="socTn-${id}"></span><button type="button" class="cm-pill" id="socTq-${id}" onclick="socTblPage('${id}', 1)">Next ›</button></div>`;
 }
-function socTopPick(n) { if (!socTopT) return; socTopT.shown = n; socTopT.page = 0; socTopT.draw(); }
-function socTopPage(d) { if (!socTopT) return; socTopT.page += d; socTopT.draw(); }
-function socTopClear() { if (!socTopT) return; socTopT.clear(); socTopT.draw(); }
-function socToggle(id, open) { socFold[id] = open; }
+function socTblMount() {
+  if (!window.TRSheet) return;
+  if (socTblFor !== socData) { socTblFor = socData; Object.values(socTbls).forEach(t => t.clear()); }   // new data (new dates), so the old heading filters go
+  Object.keys(socDefs).forEach(id => {
+    if (!document.getElementById('socT-' + id)) return;
+    const d = socDefs[id], sig = d.cols.map(c => c.k).join();
+    let T = socTbls[id];
+    if (!T || T.sig !== sig) {
+      T = socTbls[id] = TRSheet.table({ id, el: '#socT-' + id, rows: () => socDefs[id].rows, limit: 10, cols: d.cols,
+        after: (T, rows) => {
+          const g = k => document.getElementById('soc' + k + '-' + id), c = g('C');
+          if (c) c.hidden = !T.active();
+          const pages = T.pages(rows.length), from = rows.length ? T.page * T.shown + 1 : 0, to = Math.min(rows.length, (T.page + 1) * T.shown);
+          if (g('Tx')) g('Tx').textContent = from + ' to ' + to + ' of ' + rows.length + ' ' + (socDefs[id].unit || 'rows');
+          if (g('Tp')) g('Tp').disabled = T.page <= 0;
+          if (g('Tq')) g('Tq').disabled = T.page >= pages - 1;
+          if (g('Tn')) g('Tn').textContent = 'Page ' + (T.page + 1) + ' of ' + pages;
+          if (g('Ts') && +g('Ts').value !== T.shown) g('Ts').value = String(T.shown);
+        } });
+      T.sig = sig;
+    }
+    T.draw();
+  });
+}
+function socTblPick(id, n) { const T = socTbls[id]; if (!T) return; T.shown = n; T.page = 0; T.draw(); }
+function socTblPage(id, d) { const T = socTbls[id]; if (!T) return; T.page += d; T.draw(); }
+function socTblClear(id) { const T = socTbls[id]; if (!T) return; T.clear(); T.draw(); }
+function socToggle(id, open) { socFold[id] = open; if (open && socTbls[id]) socTbls[id].draw(); }   // a table drawn inside a closed section has no width yet: draw it again on opening
 function socSortBy(table, key) {
   const s = socSort[table] || {};
   socSort[table] = { key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' };
@@ -257,7 +271,8 @@ function socPaint(el) {
     ${stale ? `<p class="slv-muted" style="color:#b42318">Social numbers are paused${s && s.last_error ? ': ' + mkEsc(s.last_error) : ''}. Last good update: ${synced ? mkEsc(synced) : 'never'}.</p>` : ''}
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
     <p class="slv-muted">From Metricool, updated nightly${synced ? ', last ' + mkEsc(synced) : ''}. Numbers start when each account was connected to Metricool. Facebook Ads are not here; Google Ads and Meta Ads each have their own page.</p>`;
-  if (socTab === 'overview') { socDrawOverview(T); socTopMount(); if (typeof socGlanceMount === 'function') socGlanceMount(); } else socDrawPlatform(socTab, T);
+  if (socTab === 'overview') { socDrawOverview(T); if (typeof socGlanceMount === 'function') socGlanceMount(); } else socDrawPlatform(socTab, T);
+  socTblMount();
   socRail(true);
 }
 
@@ -278,7 +293,6 @@ function socOverviewHtml(T) {
   if (socNet !== 'all' && !nets.includes(socNet)) socNet = 'all';
   const list = d.posts.filter(p => p.kind !== 'story' && (socNet === 'all' || p.network === socNet))
     .sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
-  socTopRows = list;   // the Top posts table (socTopMount) reads this; its heading menus filter and sort it
 
   const web = d.web || {}, ch = {}; (web.channels || []).forEach(c => { ch[c.channel] = c; });
   const org = ch['Organic Social'] || { sessions: 0, engaged: 0 }, paid = ch['Paid Social'] || { sessions: 0, engaged: 0 };
@@ -342,10 +356,7 @@ function socOverviewHtml(T) {
           ${[['all', 'All'], ...nets.map(n => [n, SOC_NETS[n]])].map(([k, l]) => `<button type="button" class="${socNet === k ? 'on' : ''}" onclick="socSetNet('${k}')">${l}</button>`).join('')}
         </div>` : ''}
       </div>
-      ${list.length ? `<div class="soc-tbar"><button type="button" class="cm-pill soc-phone" data-sxcm="soctop" aria-label="Sort and filter">Sort and filter</button><span class="soc-sp"></span><button type="button" class="cm-pill" id="socTopClear" hidden onclick="socTopClear()">Clear filters</button></div>
-      <div class="slv-wrap"><table id="socTopTbl"></table></div>
-      <div class="soc-pager"><span id="socTopTxt"></span><span class="soc-sp"></span><span class="slv-eyebrow">Rows</span><select id="socTopSel" aria-label="Rows to show" onchange="socTopPick(+this.value)"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
-        <button type="button" class="cm-pill" id="socTopPrev" onclick="socTopPage(-1)">‹ Previous</button><span class="soc-pgn" id="socTopPgN"></span><button type="button" class="cm-pill" id="socTopNext" onclick="socTopPage(1)">Next ›</button></div>
+      ${list.length ? `${socTblHtml('soctop', { rows: list, unit: 'posts', cols: [socPostCol('Post', true), socNumCol('views', 'Views'), socNumCol('reach', 'Reach'), socNumCol('interactions', 'Likes, comments, shares'), socNumCol('saves', 'Saves')] })}
       <p class="slv-note">Posted in these dates, most viewed first. Tap a heading's funnel to sort or filter. A post's numbers keep growing for a few weeks, and are re-read every night. Tap a caption to open the post.</p>`
       : '<p class="slv-muted">Nothing posted in these dates.</p>'}
     </section>`;
@@ -412,7 +423,7 @@ function socPlatformHtml(net, T) {
   for (const [kind, title] of P.kinds) {
     if (kind === 'story') {
       const st = (d.stories || {})[net];
-      if (st && st.n) sections.push(socSection(net + '-story', 'Stories', `${socNum(st.n)} stories · ${socNum(st.reach / st.n)} people each on average`, socStoriesHtml(st, days), !sections.length));
+      if (st && st.n) sections.push(socSection(net + '-story', 'Stories', `${socNum(st.n)} stories · ${socNum(st.reach / st.n)} people each on average`, socStoriesHtml(st, days, net + '-story'), !sections.length));
       continue;
     }
     const arr = all.filter(p => p.kind === kind);
@@ -425,7 +436,7 @@ function socPlatformHtml(net, T) {
   if (aud) sections.push(socSection(net + '-aud', 'Audience', aud.summary, aud.html));
   const bt = socBestTimeHtml(net);
   if (bt) sections.push(socSection(net + '-best', 'Best time to post', bt.summary, bt.html));
-  if (P.hashtags) { const h = socHashtagsHtml(feed); if (h) sections.push(socSection(net + '-tags', 'Hashtags', h.summary, h.html)); }
+  if (P.hashtags) { const h = socHashtagsHtml(feed, net + '-tags'); if (h) sections.push(socSection(net + '-tags', 'Hashtags', h.summary, h.html)); }
   if (P.competitors) sections.push(socSection(net + '-comp', 'Competitors', 'None set up yet',
     '<p class="slv-muted" style="margin:0">No competitors are set up in Metricool. Add the salons we watch there (Analytics › Competitors) and they show here side by side: followers, posts and engagement.</p>'));
 
@@ -465,21 +476,19 @@ function socSection(id, title, summary, body, first) {
 function socPostsTable(id, net, kind, arr) {
   const cols = [['views', 'Views'], ['reach', 'Reach'], ['likes', net === 'facebook' ? 'Reactions' : 'Likes'], ['comments', 'Comments'], ['shares', 'Shares'], ['saves', 'Saves']]
     .filter(([k]) => arr.some(p => p[k] !== null && p[k] !== undefined));
+  const sec = v => v ? (Math.round(v * 10) / 10) + 's' : '–';
   const extra = [];
-  if (kind === 'reel' && net === 'instagram') extra.push(['avg_watch', 'Avg watch', v => v ? (Math.round(v * 10) / 10) + 's' : '–']);
-  if (net === 'tiktok') extra.push(['avg_watch', 'Avg watch', v => v ? (Math.round(v * 10) / 10) + 's' : '–'], ['full_watch', 'Watched to the end', v => v !== null && v !== undefined ? socPct(100 * v) : '–']);
-  const s = socSort[id] || { key: 'views', dir: 'desc' };
-  const val = (p, k) => extra.some(([e]) => e === k) ? Number((p.extra || {})[k]) || 0 : Number(p[k]) || 0;
-  const rows = [...arr].sort((a, b) => s.key === 'date' ? (a.posted_at < b.posted_at ? -1 : 1) * (s.dir === 'asc' ? 1 : -1) : (val(a, s.key) - val(b, s.key)) * (s.dir === 'asc' ? 1 : -1));
-  const th = (k, l, cls = '') => `<th class="soc-th${cls}${s.key === k ? ' on' : ''}" onclick="socSortBy('${id}','${k}')">${l}${s.key === k ? (s.dir === 'asc' ? ' ↑' : ' ↓') : ''}</th>`;
-  return `<div class="slv-wrap"><table class="slv-table">
-    <thead><tr>${th('date', kind === 'reel' ? 'Reel' : kind === 'video' ? 'Video' : 'Post')}${cols.map(([k, l], i) => th(k, l, i > 2 ? ' soc-sm' : '')).join('')}${extra.map(([k, l]) => th(k, l, ' soc-sm')).join('')}</tr></thead>
-    <tbody>${rows.map(p => `<tr><td>${socPostCell(p, false)}</td>${cols.map(([k], i) => `<td${i > 2 ? ' class="soc-sm"' : ''}>${socNum(p[k])}</td>`).join('')}${extra.map(([k, , fmt]) => `<td class="soc-sm">${fmt((p.extra || {})[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-    <p class="slv-note">Tap a heading to sort. Tap a caption to open the post.</p>`;
+  if (kind === 'reel' && net === 'instagram') extra.push(['avg_watch', 'Avg watch', sec]);
+  if (net === 'tiktok') extra.push(['avg_watch', 'Avg watch', sec], ['full_watch', 'Watched to the end', v => v !== null && v !== undefined ? socPct(100 * v) : '–']);
+  const rows = [...arr].sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
+  const tc = [socPostCol(kind === 'reel' ? 'Reel' : kind === 'video' ? 'Video' : 'Post', false), ...cols.map(([k, l]) => socNumCol(k, l)),
+    ...extra.map(([k, l, fmt]) => ({ k, l, t: 'num', raw: p => Number((p.extra || {})[k]) || 0, disp: p => fmt((p.extra || {})[k]), cell: p => fmt((p.extra || {})[k]) }))];
+  return `${socTblHtml(id, { rows, unit: kind === 'reel' ? 'reels' : kind === 'video' ? 'videos' : 'posts', cols: tc })}
+    <p class="slv-note">Tap a heading's funnel to sort or filter. Tap a caption to open the post.</p>`;
 }
 
 // st: social_report's story totals for one platform, with its 20 most seen.
-function socStoriesHtml(st, days) {
+function socStoriesHtml(st, days, id) {
   const fwd = Number(st.taps_forward) || 0, exits = Number(st.exits) || 0, back = Number(st.taps_back) || 0, replies = Number(st.replies) || 0;
   const top = (st.top || []).map(p => ({ ...p, kind: 'story' }));
   return `<div class="w13-tiles soc-tiles">
@@ -489,9 +498,7 @@ function socStoriesHtml(st, days) {
       <div class="w13-tile"><div class="slv-eyebrow">Left stories</div><div class="w13-val">${socNum(exits)}</div><div class="slv-note">swiped away</div></div>
       <div class="w13-tile"><div class="slv-eyebrow">Replies</div><div class="w13-val">${socNum(replies)}</div><div class="slv-note">${socNum(back)} tapped back</div></div>
     </div>
-    <div class="slv-wrap" style="margin-top:12px"><table class="slv-table">
-      <thead><tr><th>Most seen stories</th><th>Reached</th><th>Tapped forward</th><th class="soc-sm">Left</th><th class="soc-sm">Replies</th></tr></thead>
-      <tbody>${top.map(p => `<tr><td>${socPostCell(p, false)}</td><td>${socNum(p.reach)}</td><td>${socNum((p.extra || {}).taps_forward)}</td><td class="soc-sm">${socNum((p.extra || {}).exits)}</td><td class="soc-sm">${socNum((p.extra || {}).replies)}</td></tr>`).join('')}</tbody></table></div>`;
+    <div style="margin-top:12px">${socTblHtml(id, { rows: top, unit: 'stories', cols: [socPostCol('Most seen stories', false), socNumCol('reach', 'Reached'), socNumCol('taps_forward', 'Tapped forward', p => (p.extra || {}).taps_forward), socNumCol('exits', 'Left', p => (p.extra || {}).exits), socNumCol('replies', 'Replies', p => (p.extra || {}).replies)] })}</div>`;
 }
 
 // Audience and best time: {network: {kind: {to, v: {key: value}}}} from social_report.
@@ -542,7 +549,7 @@ function socBestTimeHtml(net) {
   const summary = win.length ? `${hr(win[0])} to ${hr((win[win.length - 1] + 1) % 24)}, most days` : '';
   return { summary, html: html + `<p class="slv-note">When followers are online, by day and hour, Dubai time; darker is more. Metricool’s last 30 days.</p>` };
 }
-function socHashtagsHtml(feed) {
+function socHashtagsHtml(feed, id) {
   const by = {};
   feed.forEach(p => {
     // social_report reads the tags off the full caption (the caption it sends is cut to 300 characters).
@@ -552,8 +559,7 @@ function socHashtagsHtml(feed) {
   const rows = Object.entries(by).sort((a, b) => b[1].views - a[1].views).slice(0, 15);
   if (!rows.length) return null;
   return { summary: 'Top: ' + rows.slice(0, 3).map(r => r[0]).join(', '),
-    html: `<div class="slv-wrap"><table class="slv-table"><thead><tr><th>Hashtag</th><th>Posts</th><th>Views</th><th class="soc-sm">Likes, comments, shares</th></tr></thead>
-      <tbody>${rows.map(([t, o]) => `<tr><td>${mkEsc(t)}</td><td>${o.n}</td><td>${socNum(o.views)}</td><td class="soc-sm">${socNum(o.inter)}</td></tr>`).join('')}</tbody></table></div>
+    html: socTblHtml(id, { rows: rows.map(([t, o]) => ({ tag: t, n: o.n, views: o.views, inter: o.inter })), unit: 'hashtags', cols: [{ k: 'tag', l: 'Hashtag', t: 'txt', raw: r => r.tag, disp: r => r.tag, cell: r => mkEsc(r.tag) }, socNumCol('n', 'Posts'), socNumCol('views', 'Views'), socNumCol('inter', 'Likes, comments, shares')] }) + `
       <p class="slv-note">From the captions of posts and reels in these dates; views are those posts' views added up.</p>` };
 }
 
