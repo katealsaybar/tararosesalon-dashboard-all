@@ -605,10 +605,12 @@ function build(){
     mem.forEach(r=>{
       const sh=g.home[r.p[0]]/tot;
       Object.assign(r,{status:c.status,used:c.used,any:c.any,avgDay:c.avgDay,ratio:c.ratio,adj:c.adj,planned:dayLow,dLow:dayLow,best:c.best,joiner:false,
-        grp:{name:g.name,note:g.note,share:sh,total:low,totalHigh:high,months,dayLow,hd,split:mem.map(x=>BN[x.p[0]]+' '+Math.round(g.home[x.p[0]]/tot*100)+'%').join(', ')}});
+        grp:{name:g.name,note:g.note,share:sh,total:low,totalHigh:high,months,dayLow,hd,split:mem.filter(x=>g.home[x.p[0]]/tot>=0.01).map(x=>BN[x.p[0]]+' '+Math.round(g.home[x.p[0]]/tot*100)+'%').join(', ')}});
       r.low=low==null?null:r100(low*sh);r.high=high==null?null:r100(high*sh);
     });
   });
+  /* Kate, 23 Nov 2026: Virginija moved to Saadiyat and never did a duty at Motor City after, so Motor City gets no row and no target for her (her Motor City sales stay in her combined history above). A branch with under 1% of a person's split (rules.groups home, 0.001) is not shown. */
+  for(let k=rows.length-1;k>=0;k--){if(rows[k].grp&&rows[k].grp.share<0.01)rows.splice(k,1);}
   rows.forEach(r=>{
     if(r.grp||r.cover||r.adj==null)return;
     const leave=lv[r.key];
