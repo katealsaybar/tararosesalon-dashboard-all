@@ -5578,20 +5578,33 @@ function calApplyH() {
 }
 function calLbFull(on) {
   const f = document.getElementById('calFrame'), box = document.getElementById('view-contentcalendar'); if (!f) return;
+  // Kate, 23 Nov 2026: "when i open a pop up window and then exit why does the calendar itself keep moving up and down". Three causes, three fixes. (1) The page behind kept the frame's height only,
+  // not the tab row and rail above it, so it shrank a little while a pop-up was open: it keeps the whole box's height now. (2) The calendar page was taller than the window-high frame, so its own
+  // scroll started at the top and the calendar behind the pop-up jumped up: the frame is told how far down it was showing (trs-cal-scroll, calendar.js) once it is stretched. (3) The frame also
+  // reports its height while stretched (it is wider then, so shorter), and closing applied that stale height for a moment: heights are ignored while it is stretched. The scroll position is put back on close.
   if (on) {
-    if (f.dataset.keepStyle === undefined) { f.dataset.keepStyle = f.getAttribute('style') || ''; if (box) box.style.minHeight = f.offsetHeight + 'px'; }
+    let off = null;
+    if (f.dataset.keepStyle === undefined) {
+      f.dataset.keepStyle = f.getAttribute('style') || '';
+      f.dataset.keepY = String(Math.round(window.scrollY));
+      off = Math.max(0, Math.round(-f.getBoundingClientRect().top));
+      if (box) box.style.minHeight = box.offsetHeight + 'px';
+    }
     f.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;max-width:none;min-height:0;z-index:2147483000;border:none;border-radius:0;display:block;background:transparent';
+    if (off !== null) { try { f.contentWindow.postMessage({ type: 'trs-cal-scroll', y: off }, CAL_ORIGIN); } catch (e) {} }
   } else if (f.dataset.keepStyle !== undefined) {
-    f.setAttribute('style', f.dataset.keepStyle); delete f.dataset.keepStyle;
-    if (box) box.style.minHeight = '';
+    const y = Number(f.dataset.keepY) || 0;
+    f.setAttribute('style', f.dataset.keepStyle); delete f.dataset.keepStyle; delete f.dataset.keepY;
     calApplyH();
+    window.scrollTo(0, y);
+    requestAnimationFrame(() => { if (box) box.style.minHeight = ''; window.scrollTo(0, y); });
   }
 }
 window.addEventListener('message', e => {
   const f = document.getElementById('calFrame');
   if (!f || e.source !== f.contentWindow || e.origin !== CAL_ORIGIN || !e.data) return;
   if (e.data.type === 'trs-cal-lb') calLbFull(e.data.open === true);
-  else if (e.data.type === 'trs-cal-h') { const h = Number(e.data.h); if (h >= 200 && h <= 20000) { f.dataset.autoH = String(Math.ceil(h)); calApplyH(); } }
+  else if (e.data.type === 'trs-cal-h') { const h = Number(e.data.h); if (h >= 200 && h <= 20000 && f.dataset.keepStyle === undefined) { f.dataset.autoH = String(Math.ceil(h)); calApplyH(); } }
 });
 document.getElementById('calFrame')?.addEventListener('load', () => calLbFull(false));
 function showView(view, el){
