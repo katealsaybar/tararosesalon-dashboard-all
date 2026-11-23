@@ -1,9 +1,9 @@
 // Out of Stock (Kate, 23 Nov 2026, from the local mockup docs/mockups/out-of-stock.html in the cowork repo).
 //
 // What to order for the Monday order, salon by salon. It reads two things and keeps nothing of its own:
-//   - spend_plan() (the Weekly Product Plan, migrations/weekly_product_plan.sql): the products, their Priority, Type, supplier, brand, category, Min, Max, unit cost and the shelf count
-//     ("in stock now"), all LIVE, never a copy. Same gate as that page: Level 4 and up or a spend viewer; anyone else sees the denied line.
-//   - oos_on_order() (migrations/out_of_stock_on_order.sql): the units on order and not arrived, one entry per order line. WRITTEN, NOT APPLIED. If the function is not there (or
+//   - oos_plan() (migrations/out_of_stock_access.sql, a gate-less copy of spend_plan() behind oos_access(), so the rules are the Weekly Product Plan's own): the products, their Priority, Type, supplier, brand, category, Min, Max, unit cost and the shelf count
+//     ("in stock now"), all LIVE, never a copy. Gate: old Level 2 (coordinators) and up, or a spend viewer; anyone else sees the denied line. Only the fields this page needs come back, no price lists or edit log.
+//   - oos_on_order() (migrations/out_of_stock_on_order.sql): the units on order and not arrived, one entry per order line. If the function is not there (or
 //     refuses), the page still works with on order = 0 and says in one plain line that the on-order counts are not loaded yet, so nobody trusts a missing number.
 //
 // Kate's rule (23 Nov 2026), kept exactly:
@@ -66,7 +66,7 @@
   // ── DATA IN ──────────────────────────────────────────────────────────────────────────
   async function load(force) {
     if (!force && S.rows && Date.now() - S.loadedAt < 300000) return;
-    const callPlan = sb.rpc('spend_plan', { p_from: null, p_to: null, p_list: null });
+    const callPlan = sb.rpc('oos_plan');
     const callOrd = Promise.resolve(sb.rpc('oos_on_order')).then(r => r, e => ({ error: e }));   // the migration may not be applied yet
     const pr = await callPlan;
     if (pr.error) throw pr.error;
@@ -431,7 +431,7 @@
     try {
       await load(false);
       if (seq !== S.seq) return;
-      if (S.state === 'denied') { msg('This page is for Accounts and Admin. Ask Kate if you need it.'); return; }
+      if (S.state === 'denied') { msg('This page is for coordinators and above. Ask Kate if you need it.'); return; }
       draw();
     } catch (e) {
       console.error(e);
