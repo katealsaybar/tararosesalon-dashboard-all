@@ -6,7 +6,10 @@
 --   * It is an ordinary src = 'visit' row (so every page, count and filter already counts it), told apart by phorest_id = 'google:<reviewer>'
 --     and ref = 'gr-<review_id>'. The page shows it as "Found in: Google review".
 --   * event_date is the date the review was POSTED (the visit date is not on Google). client_name is the reviewer's Google name.
---   * 4 and 5 star reviews are not pulled. On 23 Nov 2026 every 4 to 5 star 2026 review with a complaint word was checked by hand and all were praise.
+--   * 4 and 5 star reviews are pulled ONLY when the text has a complaint word (disappoint, unfortunately, frustrat, wrong, rude, mistake, redo,
+--     refund and so on), as candidates: is_complaint = false and reviewed = false, so they do NOT show on the page until the scan reads them
+--     and sets is_complaint = true. Added the same day after Arwa Al Alawi's 5 star review that was really a complaint. The 17 found on
+--     23 Nov 2026 were all praise and are reviewed = true, is_complaint = false.
 --   * 1 to 3 star reviews with NO text are not pulled (nothing to classify). 5 on 23 Nov 2026.
 --   * submitted_at stays null, so no WhatsApp/notification fires (client_complaints_notify only fires for staff-logged rows).
 --   * cq_google_pull() types a new row from keywords (confidence 'low', reviewed false). The complaint-notes-scan routine then reads
@@ -28,12 +31,14 @@ begin
         when r.branch ilike '%bahrain%' then 'BAH' end as bc,
       regexp_replace(trim(r.comment), '\s+', ' ', 'g') as txt
     from public.google_reviews r
-    where r.stars <= 3 and r.review_date >= date '2026-01-01' and length(trim(coalesce(r.comment, ''))) > 0
+    where r.review_date >= date '2026-01-01' and length(trim(coalesce(r.comment, ''))) > 0
+      and (r.stars <= 3
+        or r.comment ~* '(disappoint|unfortunately|frustrat|not happy|unhappy|not satisf|redo|re-do|refund|complain|wrong|worst|rude|mistake|waited|too long|overpriced|expensive|uneven|patchy|never again|not recommend)')
   ), ins as (
     insert into public.client_complaints (src, ref, phorest_id, client_name, branch_code, event_date, note, regex_tier, reviewed, is_complaint,
         complaint_type, detail, resolution, resolution_detail, confidence, google_url)
     select 'visit', 'gr-' || s.review_id, 'google:' || lower(trim(s.reviewer)), trim(s.reviewer), s.bc, s.review_date,
-      left(s.stars || ' stars on Google. ' || s.txt, 4000), 'G', false, true,
+      left(s.stars || ' stars on Google. ' || s.txt, 4000), 'G', false, (s.stars <= 3),
       case
         when s.txt ~* '(allerg|burn|rash|reaction|injur|bleed)' then 'skin_reaction_or_injury'
         when s.txt ~* '(price|pricing|expensive|overpriced|charge|aed|dhs|dirham|paid|cost)' then 'price_or_billing'
