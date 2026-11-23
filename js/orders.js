@@ -454,7 +454,7 @@ const ORD_WHYS = ['Invoice overdue', 'Invoice due soon', 'No invoice seen', 'No 
 function ordBarRow(label, parts, max, n, title, f, tip) {
   // parts: [{ n, cls }] drawn left to right; the bar is as long as n is against the biggest row of the chart
   const w = max ? n / max * 100 : 0;
-  return `<div class="ord-bar1" tabindex="0" data-tip="${ordEsc(tip)}"><span class="ob-l">${ordEsc(label)}</span><span class="ob-t"><span class="ob-f" style="width:${w.toFixed(1)}%">${parts.filter(p => p.n > 0).map(p => `<i class="${p.cls}" style="flex:${p.n}"></i>`).join('')}</span></span><span class="ob-n">${ordFig(n, title, f)}</span></div>`;
+  return `<div class="ord-bar1" tabindex="0" data-ordtip="${ordEsc(tip)}"><span class="ob-l">${ordEsc(label)}</span><span class="ob-t"><span class="ob-f" style="width:${w.toFixed(1)}%">${parts.filter(p => p.n > 0).map(p => `<i class="${p.cls}" style="flex:${p.n}"></i>`).join('')}</span></span><span class="ob-n">${ordFig(n, title, f)}</span></div>`;
 }
 function ordPaintOverview() {
   const el = document.getElementById('ordOverview'); if (!el) return;
@@ -482,7 +482,7 @@ function ordPaintOverview() {
 let ordTipEl = null, ordTipT = 0;
 function ordTip(row, x, y) {
   if (!ordTipEl) { ordTipEl = document.createElement('div'); ordTipEl.className = 'ord-hovc'; ordTipEl.setAttribute('role', 'status'); document.body.appendChild(ordTipEl); }
-  ordTipEl.textContent = row.dataset.tip; ordTipEl.hidden = false;
+  ordTipEl.textContent = row.dataset.ordtip; ordTipEl.hidden = false;
   const w = ordTipEl.offsetWidth, h = ordTipEl.offsetHeight;
   ordTipEl.style.left = Math.max(8, Math.min(innerWidth - w - 8, x + 14)) + 'px'; ordTipEl.style.top = Math.max(8, Math.min(innerHeight - h - 8, y - h - 26)) + 'px';
 }
