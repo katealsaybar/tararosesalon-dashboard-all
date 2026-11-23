@@ -34,7 +34,7 @@
 .sg-stack{display:flex;height:10px;gap:3px;margin:4px 0 10px}
 .sg-seg2{flex:var(--n);min-width:4px;border-radius:999px;background:var(--c);transition:transform .15s ease,filter .15s ease,box-shadow .15s ease}
 .sg-cols{display:grid;gap:8px;align-items:end;height:212px}
-.sg-col{display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:4px;height:100%;border:1px solid transparent;border-radius:10px;padding:4px 2px;background:none;cursor:pointer;outline:none;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.sg-col{color:var(--text);font:inherit;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;gap:4px;height:100%;border:1px solid transparent;border-radius:10px;padding:4px 2px;background:none;cursor:pointer;outline:none;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
 .sg-cv{font-size:12.5px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
 .sg-cb{border-radius:6px 6px 3px 3px;background:var(--c);min-height:3px;transition:filter .15s ease,box-shadow .15s ease}
 .sg-cl{font-size:12.5px;color:var(--muted);text-align:center;white-space:nowrap}
@@ -48,6 +48,9 @@ html[data-theme="dark"] .sg-bd{color:#1A1A1A}
 .sg-go{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .sg-big2{font-family:var(--serif,Georgia,serif);font-size:22px;font-variant-numeric:tabular-nums;line-height:1}
 .sg-mini{min-height:32px;display:inline-flex;align-items:center;text-decoration:none}
+/* Dark mode (Kate, 23 Nov 2026: "its dark mode so why are the fonts dark"): a button does not inherit the page colour, so the week bars' figures and labels say it. */
+.sg-cv{color:var(--text)}
+.sg-cl{color:var(--muted)}
 /* lift, ring and glow on every bar that answers (hover, keyboard focus) */
 @media (hover:hover){
   .sg-row.lit,.sg-col.lit,.sg-item.lit{transform:translateY(-3px);border-color:var(--c);background:var(--surface);box-shadow:0 0 0 1px var(--c),0 8px 22px -8px var(--c)}

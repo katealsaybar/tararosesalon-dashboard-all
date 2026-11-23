@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=21e47c4e"></script>
-<script src="js/page-dates.js?v=be679888"></script>
+<script src="js/page-dates.js?v=54ab791a"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -504,6 +504,8 @@ body.toolspend-chrome #mastBranch{display:none}
    frozen at the left while the rest scrolls. Wide screens also get a wider page (the masthead follows, so they stay in line). */
 /* Service Calendar (Kate, 19 Nov 2026: "sikip tingnan nung calendar"): the day grid has a column for every stylist, so the page and the masthead above it use the width of the screen instead of the usual 1180px. */
 @media(min-width:1240px){body.svc-chrome .wrap,body.svc-chrome .topbar-in{max-width:1760px}}
+/* Social and its Calendar tab (Kate, 23 Nov 2026: "ang laki ng blank space tapos ang liit na ng space for content, widen it out"): the page and the masthead use the width of the screen, as Service Calendar does. */
+@media(min-width:1240px){body.social-chrome .wrap,body.social-chrome .topbar-in,body.contentcalendar-chrome .wrap,body.contentcalendar-chrome .topbar-in{max-width:1760px}}
 @media(min-width:1240px){body.lastvisit-chrome .wrap,body.lastvisit-chrome .topbar-in{max-width:1480px}body.lastvisit-chrome #lostClientsContent{max-width:1400px!important}}
 body.lastvisit-chrome .lc-wrap.ll-wrap th[class*="lc-c-"]{width:auto}
 body.lastvisit-chrome .lc-wrap.ll-wrap th:first-child,body.lastvisit-chrome .lc-wrap.ll-wrap td:first-child:not([colspan]){width:170px;min-width:170px;max-width:170px}
@@ -3622,7 +3624,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/target-links.css?v=5f45ddf2">
 <link rel="stylesheet" href="css/glow-club.css?v=ce0bc189">
 <link rel="stylesheet" href="css/social-calendar.css?v=00f39fec">
-<link rel="stylesheet" href="css/social-glance.css?v=3a4f96e6">
+<link rel="stylesheet" href="css/social-glance.css?v=cb98bee2">
 <link rel="stylesheet" href="css/campaign-blasts.css?v=6788beac">
 <link rel="stylesheet" href="css/landing-review.css?v=ed697634">
 <link rel="stylesheet" href="css/recruitment.css?v=561a0bcb">
@@ -3684,7 +3686,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Audit 18 Oct 2026 (P1-07, step 3): the rest of the pages that nothing else needs at the first paint. Comparison; the three Marketing
       // pages with their shared chart (listed first, the others use it); Staff's 13 Week; Stylist's Benchmarks. About 200 KB off the first load.
       cmp: ['js/report-export.js?v=d7b73ae8', 'js/compare.js?v=ddd02a24'],
-      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=3028cc43', 'js/social-glance.js?v=b8aaf507', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=0a97ad81'],
+      mk:  ['js/report-export.js?v=d7b73ae8', 'js/marketing-chart.js?v=2861059a', 'js/google-ads.js?v=165cc883', 'js/meta-ads.js?v=4035c21e', 'js/tool-spend.js?v=d6f89eac', 'js/marketing-spend.js?v=39233b1c', 'js/website.js?v=fb2cc518', 'js/social.js?v=3028cc43', 'js/social-glance.js?v=5d50bbdf', 'js/social-calendar.js?v=baed8682', 'js/marketing-export.js?v=0a97ad81'],
       // Kate, 3 Nov 2026: the figures on Staff's 13 Week open their rows (my-drill.js reads a person's days by staff id with the team key).
       wk:  ['performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/team-performance.js?v=f87c34f7', 'js/report-export.js?v=d7b73ae8', 'js/staff-weeks.js?v=0e21c912'],
       lv:  ['js/report-export.js?v=d7b73ae8', 'performance/perf-auth.js?v=5b759f15', 'performance/my-drill.js?v=d6614d6d', 'js/stylist-levels.js?v=0ed71a8c'],
@@ -4828,7 +4830,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        via social_report. social.js draws it. -->
   <div id="view-social" style="display:none">
     <!-- Kate, 23 Nov 2026: the mini side nav (On this page) in the gutter on Overview, the Website & Search shell; chips on a phone. social.js (socRail) fills it. -->
-    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="scShell" style="max-width:1368px;margin:0 auto;padding:10px 28px 48px">
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="scShell" style="max-width:1760px;margin:0 auto;padding:10px 28px 48px">
       <aside class="lg-side" id="scSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
       <div class="lg-doc rv-doc" id="scDoc" style="min-width:0"><main id="socialContent"></main></div>
     </div>
@@ -4935,7 +4937,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        data-src, not src: loaded on first open only. -->
   <div id="view-contentcalendar" style="display:none">
     <!-- Kate, 23 Nov 2026: the mini side nav (On this page) on the Calendar tab too, the same shell as Social's Overview. Its entries are Social's sections; Calendar is the lit one. data-tabs tells spy() to leave the lit entry alone. -->
-    <div class="lg-shell lg-shell-wide rv-shell" id="calShell" style="max-width:1368px;margin:0 auto;padding:10px 28px 0">
+    <div class="lg-shell lg-shell-wide rv-shell" id="calShell" style="max-width:1760px;margin:0 auto;padding:10px 28px 0">
       <aside class="lg-side" id="calSide"><nav class="side-nav" data-tabs aria-label="On this page"><div class="side-k">On this page</div><a href="#sgRoot" onclick="calRailGo('sgRoot');return false">Overview</a><a href="#soc-glance" onclick="calRailGo('soc-glance');return false">At a glance</a><a href="#soc-web" onclick="calRailGo('soc-web');return false">From social to the website</a><a href="#soc-top" onclick="calRailGo('soc-top');return false">Top posts</a><a href="#soc-calendar" class="on" aria-current="page" onclick="return false">Calendar</a></nav></aside>
       <div class="lg-doc rv-doc" style="min-width:0">
     <div id="calTabs" style="padding:0"></div>

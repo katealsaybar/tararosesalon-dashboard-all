@@ -117,7 +117,7 @@ async function sgLoad() {
 }
 
 function socGlanceHtml() {
-  return `<section class="slv-card sg" id="sgRoot" style="margin-bottom:14px"><p class="slv-muted">Loading how posts and stories are doing…</p></section>`;
+  return `<section class="slv-card sg" id="sgRoot" data-bh-own style="margin-bottom:14px"><p class="slv-muted">Loading how posts and stories are doing…</p></section>`;
 }
 async function socGlanceMount() {
   const root = document.getElementById('sgRoot'); if (!root) return;
