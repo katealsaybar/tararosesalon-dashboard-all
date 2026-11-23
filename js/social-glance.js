@@ -586,11 +586,13 @@ function sgPopStoryHtml(x, s, one) {
   const st = s.stats && s.stats[x.net + '|' + x.at], app = SG_PN[x.net], n = v => (v === null || v === undefined) ? null : Number(v);
   let nums = '';
   if (st) {
-    const list = [['Views', n(st.views)], ['Reach', n(st.reach)], ['Replies', n(st.replies)], ['Taps forward', n(st.taps_forward)], ['Taps back', n(st.taps_back)], ['Exits', n(st.exits)]]
+    // Facebook stories: Metricool has no numbers for them, so they come from Meta while the story is live (edge function fb-story-stats, since 23 Nov 2026), and a 0 there is a real read.
+    const fb = x.net === 'facebook';
+    const list = [['Views', n(st.views)], ['Reach', n(st.reach)], ['Replies', n(st.replies)], ['Reactions', fb ? n(st.reactions) : null], ['Shares', fb ? n(st.shares) : null], ['Taps forward', n(st.taps_forward)], ['Taps back', n(st.taps_back)], ['Exits', n(st.exits)]]
       .filter(([l, v]) => v !== null && (v > 0 || l === 'Views' || l === 'Reach'));
-    if (list.some(([, v]) => v > 0)) nums = `<div class="sgp-nums">${list.map(([l, v]) => sgPopNum(l, v)).join('')}</div>`;
+    if (list.some(([, v]) => v > 0) || (fb && n(st.views) !== null)) nums = `<div class="sgp-nums">${list.map(([l, v]) => sgPopNum(l, v)).join('')}</div>`;
   }
-  if (!nums) nums = `<p class="sgp-none">${!s.statsDone ? 'Reading the numbers…' : x.net === 'facebook' ? 'Metricool gives no numbers for Facebook stories.' : s.stats === null ? 'The numbers did not load just now.' : 'No numbers for this story yet.'}</p>`;
+  if (!nums) nums = `<p class="sgp-none">${!s.statsDone ? 'Reading the numbers…' : x.net === 'facebook' ? 'No numbers for this story. We read Facebook story numbers from Meta while a story is live, and started on 23 Nov 2026, so earlier ones have none.' : s.stats === null ? 'The numbers did not load just now.' : 'No numbers for this story yet.'}</p>`;
   return `<article class="sgp-card story${one ? ' one' : ''}">${sgPopThumb(x.img, 'story' + x.at)}
     <div class="sgp-cb"><div class="sgp-r1"><b>${mkEsc(sgPopDay(x.at, s.week))}</b><span>${mkEsc(app)} story</span><span class="sg-tag">Posted live in the app</span></div>${nums}</div></article>`;
 }
