@@ -92,7 +92,6 @@ const JN_PAGES = {
   orders:         { sel: '#ordersContent [data-jn]' },
   recruitment:    { sel: '#recruitmentContent [data-jn]' },   // Pipeline layout only: Pipeline, Hired and closed, How long people wait (Grid and List carry no data-jn, so no rail there)   // Needs a look, By supplier, Every order: each carries data-jn
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },
-  social:         { sel: 'h3' },
 };
 
 const JN_MIN = 2;   // a list of one is no list

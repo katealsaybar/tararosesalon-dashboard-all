@@ -385,7 +385,7 @@
      (inline styles, hence !important), so every card sat indented with dead space. */
   #teamContent,#teamQuadContent,#stylistCardsContent,#orgChartContent,#view-staffperf > main,#stylistLevelsContent,#staffWeeksContent,#lostClientsContent,#googleAdsContent,#websiteContent,#socialContent,#complaintsContent,#complaintlogContent{
     padding-left:0!important;padding-right:0!important}
-  #wsShell,#gaShell,#maShell{padding-left:0!important;padding-right:0!important}   /* Website & Search: the padding sits on its shell now */
+  #wsShell,#gaShell,#maShell,#scShell{padding-left:0!important;padding-right:0!important}   /* Website & Search: the padding sits on its shell now */
   .tp-bar,.sc-bar,.slv-top{margin-left:0;margin-right:0;padding-left:0;padding-right:0}
   .sc-grid{grid-template-columns:1fr}
   /* Google Ads (Kate, 6 Oct 2026): spend, clicks and conversions fit a phone; the

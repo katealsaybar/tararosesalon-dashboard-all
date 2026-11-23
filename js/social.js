@@ -106,10 +106,29 @@ function socSortBy(table, key) {
   socRepaint();
 }
 
+// ── ON THIS PAGE rail (Kate, 23 Nov 2026: the mini side nav every page carries; the same shell as Website & Search and Google Ads) ────
+// Overview only: the platform tabs and the Calendar are one report each. Gutter above 1100px, a row of chips below it.
+const SOC_RAIL = [['sgRoot', 'How it is doing'], ['soc-glance', 'At a glance'], ['soc-web', 'From social to the website'], ['soc-top', 'Top posts']];
+function socRail(on) {
+  const shell = document.getElementById('scShell'), side = document.getElementById('scSide');
+  if (!shell || !side) return;
+  shell.classList.toggle('rv-norail', !on);
+  const nav = side.querySelector('.side-nav');
+  if (nav && on) {
+    const live = SOC_RAIL.filter(r => document.getElementById(r[0])), sig = live.map(r => r[0]).join();
+    if (nav.dataset.sig !== sig) {
+      nav.dataset.sig = sig;
+      nav.innerHTML = '<div class="side-k">On this page</div>' + live.map(r => `<a href="#${r[0]}" onclick="lgJump(event,'${r[0]}')">${r[1]}</a>`).join('');
+    }
+  }
+  if (typeof spy === 'function') spy();
+}
+
 async function renderSocial() {
   const el = document.getElementById('socialContent');
   if (!el) return;
   const w = socWindow();
+  socRail(false);
   el.innerHTML = '<p class="slv-muted">Loading Social…</p>';
   try {
     const { data, error } = await sb.rpc('social_report', { p_from: w.from, p_to: w.to });
@@ -175,6 +194,7 @@ function socPaint(el) {
     ${tabsBar}
     ${socCalHtml()}`;
     socCalMount();
+    socRail(false);
     return;
   }
   el.innerHTML = `
@@ -192,6 +212,7 @@ function socPaint(el) {
     ${socTab === 'overview' ? socOverviewHtml(T) : socPlatformHtml(socTab, T)}
     <p class="slv-muted">From Metricool, updated nightly${synced ? ', last ' + mkEsc(synced) : ''}. Numbers start when each account was connected to Metricool. Facebook Ads are not here; Google Ads and Meta Ads each have their own page.</p>`;
   if (socTab === 'overview') { socDrawOverview(T); if (typeof socGlanceMount === 'function') socGlanceMount(); } else socDrawPlatform(socTab, T);
+  socRail(socTab === 'overview');
 }
 
 // ── Overview ──────────────────────────────────────────────────────────────────────
@@ -220,7 +241,7 @@ function socOverviewHtml(T) {
 
   return `
     ${typeof socGlanceHtml === 'function' ? socGlanceHtml() : ''}
-    <section class="slv-card">
+    <section class="slv-card" id="soc-glance">
       <div class="slv-head">
         <div><div class="slv-eyebrow">@tararosesalon</div><h3>At a glance</h3></div>
         <p>${mkEsc(socDayY(w.from))} to ${mkEsc(socDayY(w.to))}</p>
@@ -255,7 +276,7 @@ function socOverviewHtml(T) {
       <div style="position:relative;height:280px"><canvas id="socCanvas"></canvas></div>
       <p class="slv-note">Instagram, TikTok and YouTube are the account's views that day. Facebook has no daily page views, so its bars are its posts' and reels' views on the day they went out.</p>
     </section>
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="soc-web" style="margin-top:14px">
       <div class="slv-head">
         <div><div class="slv-eyebrow">Website · from Google Analytics</div><h3>From social to the website</h3></div>
         <p>Visits to tararosesalon.com that came from social</p>
@@ -268,7 +289,7 @@ function socOverviewHtml(T) {
       </div>
       <p class="slv-note">"Stayed and looked around" is Google's engaged visit: 10 seconds or more, a second page, or a booking. The full breakdown is on Website &amp; Search.</p>
     </section>
-    <section class="slv-card" style="margin-top:14px">
+    <section class="slv-card" id="soc-top" style="margin-top:14px">
       <div class="slv-head">
         <div><div class="slv-eyebrow">What worked</div><h3>Top posts</h3></div>
         ${nets.length > 1 ? `<div class="sc-seg" role="group" aria-label="Platform">
