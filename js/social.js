@@ -677,6 +677,13 @@ function socViewsDraw(net, baseRows) {
     { label: bars, data: rows.map(r => r.views), backgroundColor: cols[net] },
     ...(P.reach ? [{ type: 'line', label: line, data: rows.map(r => r.reach), borderColor: socReachColour(), backgroundColor: socReachColour(), borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: socReachColour(), tension: .3 }] : []),
   ], false);
+  // A click on a bar or a point opens the posts and stories behind it (social-glance.js). Facebook's bars and Instagram's Posts and Stories views are those very posts or stories;
+  // Instagram's All and TikTok's bars count everything that happened that day, so the window says it shows what went out that day.
+  if (typeof sgPopAttach === 'function') {
+    const ig = net === 'instagram', m = socViewsMode, nt = 'The bar counts every view of the account that day, older posts too, so these only add up to part of it. Shown here: what went out that day.';
+    sgPopAttach(socCharts.views, rows, net, ig ? (m === 'stories' ? { showP: false, showS: true } : m === 'posts' ? { showP: true, showS: false } : { showP: true, showS: true, note: nt })
+      : net === 'tiktok' ? { showP: true, showS: false, note: nt } : { showP: true, showS: false });
+  }
 }
 function socViewsSet(v) {
   socViewsMode = v;

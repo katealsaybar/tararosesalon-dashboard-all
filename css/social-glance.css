@@ -127,3 +127,4 @@ html[data-theme="dark"] .sg-bd{color:#1A1A1A}
   .sgp{left:0;right:0;top:auto;bottom:0;transform:none;width:auto;max-height:86vh;border-radius:18px 18px 0 0}
   .sgp-card{grid-template-columns:72px minmax(0,1fr);gap:10px}
 }
+.sgp-note{margin:0;padding:10px 14px;border-radius:12px;background:var(--surface2);color:var(--muted);font-size:14px}
