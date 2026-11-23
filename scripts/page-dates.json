@@ -51,7 +51,7 @@
  },
  "contentcalendar": {
   "created": "2026-11-11",
-  "fp": "440aa9521ce3",
+  "fp": "404c45d6899c",
   "modified": "2026-11-18"
  },
  "dailyperf": {
@@ -169,6 +169,11 @@
   "fp": "573d65256c56",
   "modified": "2026-11-18"
  },
+ "outofstock": {
+  "created": "2026-11-23",
+  "fp": "4f0ac648c0ac",
+  "modified": "2026-11-23"
+ },
  "overyears": {
   "created": "2026-10-09",
   "fp": "eac08a518be6",
@@ -251,7 +256,7 @@
  },
  "supplierspend": {
   "created": "2026-10-21",
-  "fp": "eaee30fd132f",
+  "fp": "7e701ae6e095",
   "modified": "2026-11-12"
  },
  "targetcalc": {

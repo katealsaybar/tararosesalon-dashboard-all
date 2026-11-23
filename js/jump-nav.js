@@ -89,6 +89,7 @@ const JN_PAGES = {
   retention:      { sel: '#retentionContent [data-jn]' },   // The answer, By salon (more than one salon picked), By stylist: each carries data-jn
   lostclients:    { sel: '#lcBody > section.slv-card', labels: ['The totals', 'The client list'] },
   services:       { sel: '#serviceRankingsContent [data-jn]' },   // The numbers, Top services, By salon (more than one salon), By family: each carries data-jn
+  outofstock:     { sel: '#outofstockContent [data-jn]' },   // 1 This week's order, 2 The order list, 3 Order by supplier: the page carries its own rail (.lg-side in index.html), so this is the fallback only
   orders:         { sel: '#ordersContent [data-jn]' },
   recruitment:    { sel: '#recruitmentContent [data-jn]' },   // Pipeline layout only: Pipeline, Hired and closed, How long people wait (Grid and List carry no data-jn, so no rail there)   // Needs a look, By supplier, Every order: each carries data-jn
   products:       { sel: 'h3, .slv-eyebrow[style*="margin:18px"]' },

@@ -23,7 +23,7 @@
   // section names in its list, the real labels on its view buttons, a real figure and the real column headings.
   var OPENS = {
     clients: 'clients', clientmix: 'clients', retention: 'clients', clientbook: 'clients', lostclients: 'clients', lostlists: 'clients', novblasts: 'clients',
-    complaints: 'complaints', complaintsdetail: 'complaints', complaintchats: 'chats', reviews: 'reviews', services: 'services', products: 'products',
+    complaints: 'complaints', complaintsdetail: 'complaints', complaintchats: 'chats', reviews: 'reviews', services: 'services', products: 'products', outofstock: 'products',
     supplierpay: 'invoices', orders: 'invoices', recruitment: 'applicants', glowclub: 'members', stripedeposits: 'deposits', depositcheck: 'deposits',
     team: 'staff', teamquad: 'staff', staffperf: 'staff', attrition: 'staff', stafflevels: 'stylists', wvperf: 'redemptions', wvblast: 'messages', campaignblasts: 'messages'
   };

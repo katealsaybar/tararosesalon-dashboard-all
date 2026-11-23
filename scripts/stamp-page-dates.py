@@ -79,6 +79,7 @@ OWN = {
     'leavecal': ['js/leave-cal.js'],
     'products': ['js/products.js', 'js/product-spend.js', 'css/product-spend.css'],
     'supplierspend': ['js/spend.js'],
+    'outofstock': ['js/out-of-stock.js', 'css/out-of-stock.css'],
     'supplierpay': ['js/supplier-spend.js'],
     'orders': ['js/orders.js', 'css/orders.css'],
     'stockcost': ['js/stock-cost.js'],

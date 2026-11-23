@@ -21,13 +21,13 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=46425351"></script>
-<script src="js/page-dates.js?v=0823a53f"></script>
+<script src="js/pages.js?v=7bc07967"></script>
+<script src="js/page-dates.js?v=519f0b3c"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
 <!-- Kate, 18 Nov 2026: the XLSX and CSV buttons for the WHOLE page, drawn in the masthead (js/page-export.js; showView calls TRSExport.sync). -->
-<script src="js/page-export.js?v=322b8b7e"></script>
+<script src="js/page-export.js?v=7e423983"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=701fb982"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
@@ -3609,6 +3609,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/service-rankings.css?v=a868eb70">
 <link rel="stylesheet" href="css/product-spend.css?v=48cbeb24">   <!-- Products, Top products by spend (product-spend.js) -->
 <link rel="stylesheet" href="css/orders.css?v=70067120">   <!-- Orders and Receipts (orders.js) -->
+<link rel="stylesheet" href="css/out-of-stock.css?v=d8521633">   <!-- Out of Stock (out-of-stock.js) -->
 <link rel="stylesheet" href="css/lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="css/lost-queue.css?v=113b6d23">
 <link rel="stylesheet" href="css/send-schedule.css?v=88a70391">
@@ -3639,7 +3640,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=759948a4"></script>
 <!-- Kate, 18 Nov 2026: the first-time guide on every report (page-guide.js, page_guide_* in Supabase). showView() calls TRSGuide.maybe(view). -->
-<script src="/js/page-guide.js?v=438325b2"></script>
+<script src="/js/page-guide.js?v=f06fe757"></script>
 </head>
 <body>
 <div id="bootLoader" role="status" aria-live="polite">
@@ -3719,6 +3720,8 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Podium Race and Staff Quadrant. Staff's 13 Week reads tpLoadLevels(), so its group brings team-performance.js too.
       pr:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=29fcde3e', 'js/products.js?v=06fd2cb9', 'js/product-spend.js?v=095cef82'],
       sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=c4e7c627'],
+      // Out of Stock (23 Nov 2026): what to order this week from the Weekly Product Plan's shelf counts; one file, the Sheets table and the report export (drill.js is already on the page). Reads spend_plan and oos_on_order.
+      oos: ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=29fcde3e', 'js/out-of-stock.js?v=4970e7b6'],
       // Supplier Spend (13 Nov 2026): who we buy from, what Accounts paid beside what Phorest received; reads spend_report.
       ss:  ['js/report-export.js?v=d7b73ae8', 'js/supplier-spend.js?v=aab0d891'],
       // Orders and Receipts (18 Nov 2026): one file, the Google Sheets table (sheet-table.js) and the report export; reads orders_get.
@@ -3917,6 +3920,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <!-- Kate, 12 Nov 2026: Stock & Supplier Spend holds two pages, the Weekly Product Plan and Stock Cost. -->
     <div class="nav-sub nav-parent">Stock &amp; Supplier Spend</div>
     <a class="nav-sub lvl2" href="/?view=supplierspend" onclick="if(trsPlain(event)){event.preventDefault();showView('supplierspend', this)}">Weekly Product Plan</a>
+    <a class="nav-sub lvl2" href="/?view=out-of-stock" onclick="if(trsPlain(event)){event.preventDefault();showView('outofstock', this)}">Out of Stock</a>   <!-- Kate, 23 Nov 2026: right after the Weekly Product Plan, the same reach (Level 4 and up) -->
     <a class="nav-sub lvl2" href="/?view=supplier-spend" onclick="if(trsPlain(event)){event.preventDefault();showView('supplierpay', this)}">Supplier Spend</a>
     <a class="nav-sub lvl2" href="/?view=orders-and-receipts" onclick="if(trsPlain(event)){event.preventDefault();showView('orders', this)}">Orders and Receipts</a>   <!-- Kate, 18 Nov 2026: next to Supplier Spend; reads orders_get (Level 5 or the extra page orders) -->
     <a class="nav-sub lvl2" href="/?view=stockcost" onclick="if(trsPlain(event)){event.preventDefault();showView('stockcost', this)}">Stock Cost</a>
@@ -4502,7 +4506,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=da7e1b77&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=0945ad34&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -4845,6 +4849,21 @@ table.tp-cmp td.bad{color:var(--bad)}
     <main id="spendContent" style="padding:10px 0 48px"></main>
   </div>
 
+  <!-- OUT OF STOCK (Kate, 23 Nov 2026): what to order this week, per salon, from the Weekly Product Plan's Priority A rows (spend_plan) with the shelf count and what is on order
+       (oos_on_order, migrations/out_of_stock_on_order.sql, written and not applied: until it is, on order shows 0 and the page says so). The masthead's Branch drives it; the Period does not apply
+       (a shelf count has no period, so body.oos-chrome dims it). Level 4 and up, the same spend_access() gate as the Weekly Product Plan. out-of-stock.js draws it. The "On this page" rail is the
+       Wellness Voucher Performance one: a column from 1100px, a row of chips below. -->
+  <div id="view-outofstock" style="display:none">
+    <div class="lg-shell lg-shell-wide" id="oosShell" style="max-width:1368px;margin:0 auto;padding:10px 28px 48px">
+      <aside class="lg-side" id="oosSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div><a href="#oos-1" onclick="lgJump(event,'oos-1')">1 This week's order</a><a href="#oos-2" onclick="lgJump(event,'oos-2')">2 The order list</a><a href="#oos-3" onclick="lgJump(event,'oos-3')">3 Order by supplier</a></nav></aside>
+      <div class="lg-doc oos-doc" id="oosDoc">
+        <div id="outofstockIntro"></div>
+        <div id="outofstockWhy"></div>
+        <main id="outofstockContent"></main>
+      </div>
+    </div>
+  </div>
+
   <!-- SUPPLIER SPEND (Kate, 13 Nov 2026): who we buy from, with what Accounts paid (spend_invoiced) beside what Phorest received
        (stock_order_lines), plus the brands still waiting for a supplier. Level 4 and up, the same spend_access() gate as the Weekly
        Product Plan. supplier-spend.js draws it (inside a shadow root) from spend_report(); the Branch picks the salons and the
@@ -4976,6 +4995,10 @@ table.tp-cmp td.bad{color:var(--bad)}
     ['Why now', 'The plan is worked week by week, so this week is the one to set before the next order goes in.'],
     ['If we do nothing', 'A product runs out in the chair, or gets over-ordered and sits on the shelf.']],
     'Kate checks that every product ordered most last week has its plan filled in, before the next order goes in.');
+  put('outofstockWhy', [
+    ['Why this page', 'The Monday order is for all four salons. The Weekly Product Plan says which products matter most. This page shows which of those are short, with the AED.'],
+    ['Why now', 'The busy weeks run from 15 Nov to 31 Dec, so we order 2 weeks ahead. A colour tube or treatment that runs out before the next delivery costs us a client’s appointment.'],
+    ['If we do nothing', 'We order from memory, run out of the lines that move every week, and pay to rush them in.']]);
   put('supplierpayWhy', [
     ['Why this page', 'Who we buy from and how much, with what Accounts paid beside what Phorest received.'],
     ['Why now', 'The two sources never agree, so each month that closes is the time to ask why.'],
@@ -4998,13 +5021,13 @@ table.tp-cmp td.bad{color:var(--bad)}
     'Kate writes down the one thing this campaign proved, before the next campaign is planned.');
 })();
 </script>
-<script src="js/jump-nav.js?v=979c3831"></script>
+<script src="js/jump-nav.js?v=21eeb5bf"></script>
 <script src="js/bar-hover.js?v=ea0f3135"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=459d4a99"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=04a58c13"></script>
+<script src="js/dashboard.js?v=a055bf84"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5735,6 +5758,7 @@ function showView(view, el){
   document.body.classList.toggle('metaads-chrome', view === 'metaads');
   document.body.classList.toggle('marketingspend-chrome', view === 'marketingspend');
   document.body.classList.toggle('toolspend-chrome', view === 'toolspend');
+  document.body.classList.toggle('oos-chrome', view === 'outofstock');   // Kate, 23 Nov 2026: Out of Stock dims the Period row, a shelf count has no period
   document.body.classList.toggle('spend-chrome', view === 'supplierspend' || view === 'stockcost');   // Kate, 12 Nov 2026: the Weekly Product Plan sheet runs wider than the usual page
   document.body.classList.toggle('contentcalendar-chrome', view === 'contentcalendar');
   document.body.classList.toggle('website-chrome', view === 'website');
@@ -5790,6 +5814,7 @@ function showView(view, el){
   if (view === 'social') renderSocial();
   if (view === 'products') renderProducts();
   if (view === 'supplierspend') renderSpend();
+  if (view === 'outofstock') renderOutOfStock();
   if (view === 'supplierpay') renderSupplierSpend();
   if (view === 'orders') renderOrders();
   if (view === 'stockcost') renderStockCost();

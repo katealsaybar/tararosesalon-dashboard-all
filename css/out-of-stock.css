@@ -1,0 +1,86 @@
+/* Out of Stock (out-of-stock.js, Kate, 23 Nov 2026), from the local mockup docs/mockups/out-of-stock.html. Tokens come from the page, so light and dark follow the site.
+   Every class of its own carries the oos- prefix, so no shared class is reused. The tables are the shared Sheets table (sheet-table.css), the windows are drill.js, the bars
+   are lifted and answered by bar-hover.js (data-bh, data-bh-fill and data-tip on the row). */
+/* the Period row does not apply here (a shelf count has no period), so the masthead dims it */
+body.oos-chrome #periodRow{opacity:.5}
+/* the order list is a wide table with the rail beside it: like the Weekly Product Plan, the page takes more of a big screen (the masthead follows, so the two stay level) */
+@media(min-width:1240px){body.oos-chrome .wrap,body.oos-chrome .topbar-in{max-width:1368px}}
+#view-outofstock .oos-doc{min-width:0}
+.oos-sec{margin-top:34px;scroll-margin-top:calc(var(--sx-top,104px) + 10px)}
+.oos-sec>h3,.oos-how>h3,.oos-det>summary h3{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:500;margin:0 0 4px;line-height:1.2}
+.oos-learn{margin:4px 0 14px;max-width:78ch}
+.oos-learn p{margin:4px 0;font-size:14.5px;color:var(--muted)}
+.oos-learn p b{color:var(--text)}
+.oos-learn .ex{background:var(--surface2,var(--border2));padding:8px 12px;border-radius:8px;color:var(--text)}
+.oos-learn .watch{border-left:3px solid var(--accent);padding:3px 0 3px 12px;color:var(--text)}
+.oos-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:18px;min-height:44px}
+.oos-ctl label,.oos-ctl-t{font-size:14.5px;color:var(--muted)}
+.oos-ans{margin-top:18px;padding:16px 20px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.oos-ans-k{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+.oos-ans-t{font-family:'Playfair Display',Georgia,serif;font-size:24px;line-height:1.3;margin-top:4px}
+.oos-ans-s{font-size:14px;color:var(--muted);margin-top:6px}
+.oos-ans-n{margin-top:10px;padding:6px 0 6px 12px;border-left:3px solid var(--warn,#BA7517);background:var(--warn-bg,transparent);color:var(--text);font-size:14px}
+.oos-msg{padding:26px 0;color:var(--muted);font-size:14.5px}
+/* 1 the order, per salon: one bar per salon, AED */
+.oos-fun{display:grid;gap:10px}
+.oos-step{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,400px);gap:12px;align-items:center;padding:6px 8px;margin:0 -8px;border-radius:12px}
+.oos-nm{font-weight:600}
+.oos-nm small{display:block;font-weight:400;color:var(--muted2);font-size:12.5px}
+.oos-fbar{height:30px;background:var(--surface2,var(--border2));border-radius:8px;overflow:hidden}
+.oos-fbar i{display:block;height:100%;background:var(--text);border-radius:8px;opacity:.88}
+.oos-num{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+.oos-num b{font-size:16px;color:var(--text);font-weight:600}
+/* the toolbar of the order list: pinned under the masthead (and the chips) while that section is on screen */
+.oos-bar{position:sticky;top:var(--sx-top,104px);z-index:24;background:var(--bg);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:6px 0;margin-bottom:10px;box-shadow:0 -14px 0 var(--bg)}
+.oos-bar-plain{position:static;box-shadow:none}
+.oos-bar .cm-pill,.oos-bar .rex-btn{white-space:nowrap;flex:none;box-sizing:border-box;height:34px}
+.oos-bar .rex-bar{display:inline-flex;gap:6px;align-items:center;margin-left:0}
+.oos-sp{flex:1}
+.oos-phone{display:none}
+.oos-seg{box-sizing:border-box;min-height:34px;align-items:center}
+.oos-card{background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.oos-sub{display:block;font-size:12.5px;font-weight:400;color:var(--muted2);margin-top:1px}
+.oos-st{display:inline-block;font-size:12.5px;border-radius:999px;padding:2px 10px;white-space:nowrap;background:var(--surface2,var(--border2));color:var(--text)}
+.oos-st.out{background:var(--warn-bg,transparent);box-shadow:inset 0 0 0 1px var(--warn,#BA7517)}
+.oos-pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;font-size:13.5px;color:var(--muted)}
+.oos-pager .cm-pill:disabled{opacity:.4;cursor:default}
+.oos-pgn{min-width:5.5em;text-align:center;color:var(--text);font-variant-numeric:tabular-nums}
+.oos-hint{font-size:12.5px;color:var(--muted2);margin:8px 0 0}
+.oos-tcell td[data-l="Salon"],.oos-tcell td[data-l="Type"],.oos-tcell td[data-l="Priority"]{white-space:nowrap}
+/* 3 By supplier: closed until opened */
+.oos-det>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px}
+.oos-det>summary::-webkit-details-marker{display:none}
+.oos-det>summary h3{margin:0}
+.oos-det>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted2);border-bottom:2px solid var(--muted2);transform:rotate(45deg);margin:-3px 0 0 4px;transition:transform .16s}
+.oos-det[open]>summary::after{transform:rotate(-135deg);margin-top:4px}
+.oos-det>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+/* how it is worked out, about this page: one card at a time, on the page's centre line */
+.oos-how{margin-top:34px;text-align:center}
+.oos-pick{display:inline-flex;max-width:100%;overflow-x:auto;margin:8px auto 14px;scrollbar-width:none}
+.oos-pick::-webkit-scrollbar{display:none}
+.oos-howcard{max-width:640px;margin:0 auto;padding:14px 18px;background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:14px}
+.oos-hc-t{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2)}
+.oos-hc-m{margin:4px 0 6px}
+.oos-hc-big{font-family:'Playfair Display',Georgia,serif;font-size:30px;line-height:1.15;margin:4px 0;font-variant-numeric:tabular-nums}
+.oos-hc-cv{font-size:13px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
+.oos-again{margin-top:14px}
+@media(max-width:760px){
+  #oosShell{padding-left:0!important;padding-right:0!important}
+  .oos-step{grid-template-columns:1fr;gap:4px}
+  .oos-ans-t{font-size:20px}
+  .oos-bar:not(.oos-bar-plain){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .oos-bar::-webkit-scrollbar{display:none}
+  .oos-bar .oos-sp{display:none}
+  .oos-phone{display:inline-flex}
+  .oos-bar .cm-pill,.oos-bar .rex-btn{height:44px}
+  .oos-ctl{min-height:44px}
+  .oos-sub,.oos-st,.oos-ctl label,.oos-ctl-t,.oos-hint,.oos-pager,.oos-num{font-size:13px}
+  .oos-pager .oos-sp{display:none}
+  .oos-pager .cm-pill{min-height:44px}
+  .oos-pager #oosPgTxt{flex:1 1 100%}
+  .oos-pick button{min-height:44px}
+  .oos-ans-k,.oos-nm small,.oos-hc-t,#view-outofstock .side-k,#view-outofstock .why-wall-t,#view-outofstock .slv-eyebrow{font-size:13px}
+  .oos-hc-big{font-size:24px}
+  .oos-det>summary h3{font-size:21px}
+}
+@media(prefers-reduced-motion:reduce){.oos-det>summary::after{transition:none}}
