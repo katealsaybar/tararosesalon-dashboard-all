@@ -36,7 +36,8 @@ const SOC_ICO = {
   youtube: '<path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/>'
 };
 const socLogo = (net, color) => SOC_ICO[net] ? `<span class="soc-lg"${color ? ` style="color:${color}"` : ''} aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${SOC_ICO[net]}</svg></span>` : '';
-const SOC_NETS = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', youtube: 'YouTube' };
+// Instagram and Facebook sit next to each other (Kate, 23 Nov 2026): the tab row, the cards, the key and the stacked bars all follow this order.
+const SOC_NETS = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', youtube: 'YouTube' };
 // Kate, 23 Nov 2026: Calendar is no longer a tab drawn here; it opens the Content Calendar page (index.html calTabsDraw), so a remembered 'calendar' falls back to Overview.
 if (!SOC_NETS[socTab] && socTab !== 'overview') socTab = 'overview';
 const SOC_KIND = { post: 'post', reel: 'reel', video: 'video', photo: 'photo post', story: 'story' };
@@ -323,15 +324,15 @@ function socOverviewHtml(T) {
           ['Reach (added up day by day)', socNum(t['instagram.reach'])],
           ['Posted', count(ig, [['post', 'post'], ['reel', 'reel']])],
         ]))}
-        ${card('tiktok', kv([
-          ['Video views', socNum(t['tiktok.video_views'])],
-          ['Profile visits', socNum(t['tiktok.profile_views'])],
-          ['Posted', count(tt, [['video', 'video'], ['photo', 'photo']])],
-        ]))}
         ${card('facebook', kv([
           ['Reel plays', socNum(socSum(fb.filter(p => p.kind === 'reel'), 'views'))],
           ['Post views', socNum(socSum(fb.filter(p => p.kind === 'post'), 'views'))],
           ['Posted', count(fb, [['post', 'post'], ['reel', 'reel']])],
+        ]))}
+        ${card('tiktok', kv([
+          ['Video views', socNum(t['tiktok.video_views'])],
+          ['Profile visits', socNum(t['tiktok.profile_views'])],
+          ['Posted', count(tt, [['video', 'video'], ['photo', 'photo']])],
         ]))}
         ${card('youtube', kv([
           ['Views', socNum(t['youtube.views'])],
