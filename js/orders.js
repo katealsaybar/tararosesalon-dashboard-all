@@ -66,8 +66,11 @@ const ordHasLines = d => Array.isArray(d.lines) && d.lines.length && d.lines.som
 
 // Kate, 23 Nov 2026: "bat naisama to, di naman sya order". A supplier's sign-in, password or verification-code email is not paperwork: it is dropped before anything is grouped.
 const ordNoise = r => r.kind === 'message' && /sign-?in|log-?in|password|verification code|security alert|one-time/i.test(r.subject || '');
+// A Carrefour "placed" email lists "Delivery Fee : AED 10.0" before its total, and the reader took that as the order amount (AED 5, 6 or 10 on a 100 item order, Kate, 23 Nov 2026).
+// Until every row is read again with the fixed reader (docs/orders-receipts/sync-orders-mailbox.gs, ordAmount_), such a small amount on a Carrefour order is not trusted.
+const ordFeeAmt = r => /^CARREFOUR$/.test(r.supplier || '') && /^(order|confirmation)$/.test(r.kind || '') && r.amount != null && Number(r.amount) <= 10 && !(Array.isArray(r.lines) && r.lines.length);
 function ordBuild(rows0) {
-  const rows = rows0.filter(r => !ordNoise(r)), m = {};
+  const rows = rows0.filter(r => !ordNoise(r)).map(r => ordFeeAmt(r) ? Object.assign({}, r, { amount: null }) : r), m = {};
   // Falconpack and Carrefour: the invoice and the shipping note carry the order number as their reference, but the confirmation and the delivery email only
   // name it in the subject, so they used to sit in a row of their own and the real order looked as if no invoice had come (Kate, 20 Nov 2026: "ndi na ba tlga to ma reconcile").
   // Join them to the row that already holds that number. Nothing is written back; a number that no other email carries stays where it was.
