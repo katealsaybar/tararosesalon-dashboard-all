@@ -411,6 +411,7 @@ function socPlatformHtml(net, T) {
         ${net === 'instagram' ? `<span class="soc-key"><span><i style="background:${cols[net]}"></i>Views</span><span><i style="background:${socRgba(socCols().instagram, .45)}"></i>Reach</span></span>` : ''}
       </div>
       <div style="position:relative;height:240px"><canvas id="socViews"></canvas></div>
+      ${typeof sgSchedHtml === 'function' ? sgSchedHtml(net, cols) : ''}
       ${viewsNote ? `<p class="slv-note">${viewsNote}</p>` : ''}
     </section>
     <section class="slv-card soc-secs" style="margin-top:14px">${sections.join('')}</section>`;
@@ -552,6 +553,7 @@ function socDrawPlatform(net) {
     { label: 'Views', data: rows.map(r => r.views), backgroundColor: cols[net] },
     ...(P.reach ? [{ type: 'line', label: 'Reach (added up day by day)', data: rows.map(r => r.reach), borderColor: socRgba(cols[net], .55), backgroundColor: socRgba(cols[net], .55), borderWidth: 2, pointRadius: 0, tension: .3 }] : []),
   ], false);
+  if (typeof sgSchedDraw === 'function') sgSchedDraw(net);
 }
 
 const socMode = () => mkModeFor('soc', socData.win.from, socData.win.to);

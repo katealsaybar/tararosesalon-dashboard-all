@@ -283,3 +283,38 @@ function sgExport() {
     blocks: [{ cols: [{ label: 'Date', fmt: 'text' }, { label: 'Time', fmt: 'text' }, { label: 'Views', fmt: 'num' }, { label: 'Reach', fmt: 'num' }, { label: 'Tapped forward', fmt: 'num' }, { label: 'Tapped back', fmt: 'num' }, { label: 'Left', fmt: 'num' }, { label: 'Replies', fmt: 'num' }],
       rows: rows.slice().sort((a, b) => a.at - b.at).map(s => ({ cells: [s.d, s.t, s.v, s.r, s.tf, s.tb, s.ex, s.rp] })) }] }] };
 }
+
+// ── Platform tabs: scheduled or by hand (Kate, 23 Nov 2026: "for each soc med graph add another graph for scheduled vs manual posting") ──
+// One more chart under Views on Instagram, TikTok and Facebook: posts a day (or a week, as the toggle above) split into scheduled and by hand. The split is the same STAND-IN guess as
+// Overview (see the top of this file): a post that went live within 2 minutes of a post on another app counts as scheduled. YouTube has no post list in Metricool, so it says so.
+let sgSchedSrc = null, sgSchedRows = null;
+function sgSchedPosts() {
+  if (sgSchedSrc !== socData) { sgSchedRows = sgGuess(sgShapePosts(socData.posts)); sgSchedSrc = socData; }
+  return sgSchedRows;
+}
+function sgSchedHtml(net, cols) {
+  const mode = socMode();
+  if (net === 'youtube') return `<div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand</div></div><p class="slv-note">YouTube has no post list in Metricool, only the channel’s numbers, so there is nothing to split into scheduled and by hand.</p>`;
+  const mine = sgSchedPosts().filter(p => p.net === net), S = mine.filter(p => p.sch), M = mine.filter(p => !p.sch);
+  const avg = a => a.length ? sgN(sgSum(a, x => x.v) / a.length) : '–';
+  const small = mine.length && Math.min(S.length, M.length) < 5;
+  return `<div class="mk-chart-head">
+      <div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div>
+      <span class="soc-key"><span><i style="background:${cols[net]}"></i>Scheduled (guess)</span><span><i style="background:${socRgba(cols[net], .35)}"></i>By hand (guess)</span></span>
+    </div>
+    ${mine.length ? `<div style="position:relative;height:200px"><canvas id="socSched"></canvas></div>
+    <p class="slv-note"><b>${S.length} scheduled, ${M.length} by hand.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. <span class="sg-tag stand">Stand-in</span> Metricool does not say how a post went out, so a post that went live within 2 minutes of a post on another app counts as scheduled.${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}</p>`
+      : '<p class="slv-note">No posts in these dates.</p>'}`;
+}
+function sgSchedDraw(net) {
+  if (net === 'youtube') return;
+  const cv = document.getElementById('socSched'); if (!cv) return;
+  const w = socData.win, mode = socMode(), cols = socCols(), by = {};
+  sgSchedPosts().filter(p => p.net === net).forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }), k = p.sch ? 'sched' : 'hand'; r[k] = (r[k] || 0) + 1; });
+  const rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['sched', 'hand']);
+  const c = socCharts.sched = socBarChart(cv, rows, [
+    { label: 'Scheduled (guess)', data: rows.map(r => r.sched), backgroundColor: cols[net], stack: 's' },
+    { label: 'By hand (guess)', data: rows.map(r => r.hand), backgroundColor: socRgba(cols[net], .35), stack: 's' },
+  ], true);
+  if (c) { c.options.scales.y.ticks = { ...(c.options.scales.y.ticks || {}), precision: 0 }; c.update(); }
+}
