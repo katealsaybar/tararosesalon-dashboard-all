@@ -475,6 +475,7 @@ async function sgPopFromClick(ch, e, rows, net, o) {
 const sgPopAllPosts = () => sgHowReady() ? sgSchedPosts() : sgHow(sgShapePosts(socData.posts, null));
 function sgPopItems(s, view) {
   const inDay = d => d >= s.from && d <= s.to;
+  if (s.slot) return sgPopSlotItems(s, view);
   let posts = s.showP ? sgPopAllPosts().filter(p => s.nets.includes(p.net) && (!s.rec || p.sch || p.man) && inDay(p.d)) : [];
   let stories = s.showS ? (sgHowReady() ? sgHowReady().stories : []).filter(x => s.nets.includes(x.net) && inDay(x.d)) : [];
   if (view === 'sched') posts = posts.filter(p => p.sch);
@@ -482,6 +483,43 @@ function sgPopItems(s, view) {
   if (view === 'posts' || view === 'sched' || view === 'hand') stories = [];
   if (view === 'stories') posts = [];
   return { posts: posts.slice().sort((a, b) => a.at - b.at), stories: stories.slice().sort((a, b) => a.at - b.at) };
+}
+// ── An hour of the Best time to post grid (Kate, 23 Nov 2026) ──
+// A click on a coloured hour opens what we put out at that hour of that weekday in the last 30 days, the same 30 days Metricool makes the colours from, so the colour can be checked
+// against the posts and stories. Posts come from social_report and the stories from the Content Calendar's call, asked for once per platform and kept for the visit.
+const SG_DOWS = ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'];
+const sgHr12 = h => (h % 12 || 12) + (h >= 12 ? 'pm' : 'am');
+const sgHourOf = at => Number(new Date(at).toLocaleTimeString('en-GB', { ...sgTz, hour: '2-digit', hour12: false }).slice(0, 2)) % 24;
+const sgDowOf = d => (mkD(d).getDay() + 6) % 7;
+const sgSlotPools = {};
+function sgSlotPool(net, from, to) {
+  const key = net + '|' + from + '|' + to;
+  if (!sgSlotPools[key]) sgSlotPools[key] = (async () => {
+    const [rep, st] = await Promise.all([sb.rpc('social_report', { p_from: from, p_to: to, ...socBr() }), net === 'tiktok' ? Promise.resolve({ data: [] }) : sb.rpc('content_calendar_stories', { p_from: from, p_to: to, ...socBr() })]);
+    if (rep.error || !rep.data || st.error) throw rep.error || st.error || new Error('no data');
+    return { posts: sgHow(sgShapePosts(rep.data.posts, null)).filter(p => p.net === net),
+      stories: (st.data || []).filter(x => x.network === net).map(x => ({ net: x.network, d: String(x.post_date).slice(0, 10), at: Date.parse(x.posted_at) || 0, img: x.image_url || '' })) };
+  })().catch(e => { delete sgSlotPools[key]; throw e; });
+  return sgSlotPools[key];
+}
+function sgPopSlotItems(s, view) {
+  if (!s.pool) return { posts: [], stories: [] };
+  const ok = x => s.nets.includes(x.net) && x.at && sgHourOf(x.at) === s.slot.h && sgDowOf(x.d) === s.slot.dow && x.d >= s.from && x.d <= s.to;
+  let posts = s.showP ? s.pool.posts.filter(ok) : [], stories = s.showS ? s.pool.stories.filter(ok) : [];
+  if (view === 'posts') stories = [];
+  if (view === 'stories') posts = [];
+  return { posts: posts.slice().sort((a, b) => a.at - b.at), stories: stories.slice().sort((a, b) => a.at - b.at) };
+}
+async function sgPopSlot(net, dow, h, value, top) {
+  if (net === 'youtube') return;   // YouTube has no post list in Metricool
+  const t = new Date().toLocaleDateString('en-CA', sgTz), from = sgAdd(t, -29);
+  const s = { net, nets: [net], from, to: t, week: true, showP: true, showS: net !== 'tiktok', view: 'all', slot: { dow, h }, loading: true, err: false,
+    tiles: [['Followers online then', value], ['At the busiest hour', top]],
+    note: 'The colours are made from the last 30 days. Shown here: what we put out at this hour of the week in those 30 days.' };
+  sgPopOpen(s);
+  try { s.pool = await sgSlotPool(net, from, t); } catch (e) { console.error(e); s.err = true; }
+  s.loading = false;
+  if (sgPopS === s) sgPopPaint(false);
 }
 function sgPopOpen(s) {
   sgPopClose(true);
@@ -565,15 +603,15 @@ function sgPopPaint(first) {
     : (s.rec && nSch && nHand ? [['all', 'All posts', nP], ['sched', 'Scheduled', nSch], ['hand', 'By hand', nHand]] : []);
   const seg = opts.length ? `<div class="sc-seg sgp-seg" role="group" aria-label="Show">${opts.map(([k, l, c]) => `<button type="button" class="${s.view === k ? 'on' : ''}" aria-pressed="${s.view === k}" onclick="sgPopView('${k}')">${l} <span>${c}</span></button>`).join('')}</div>` : '';
   const dl = iso => new Date(iso + 'T00:00:00');
-  const title = s.week ? 'Week of ' + dl(s.from).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : dl(s.from).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const title = s.slot ? SG_DOWS[s.slot.dow] + ' at ' + sgHr12(s.slot.h) : s.week ? 'Week of ' + dl(s.from).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : dl(s.from).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const count = (np, ns) => [np ? `${np} post${np === 1 ? '' : 's'}` : '', ns ? `${ns} stor${ns === 1 ? 'y' : 'ies'}` : ''].filter(Boolean).join(' and ');
   const one = now.posts.length + now.stories.length === 1;
   const body = now.posts.map(p => sgPopPostHtml(p, s, one)).join('') + now.stories.map(x => sgPopStoryHtml(x, s, one)).join('');
   el.innerHTML = `<div class="sgp-scrim" onclick="sgPopClose()"></div>
     <div class="sgp" role="dialog" aria-modal="true" aria-labelledby="sgpT" style="--c:${bg};--bf:${fg}">
       <div class="sgp-ph"><span class="sgp-b" aria-hidden="true">${one1 ? SG_BD[net] : 'ALL'}</span>
-        <div class="when"><b id="sgpT">${mkEsc(title)}</b><span>${mkEsc(one1 ? SG_PN[net] : 'All platforms')}: ${mkEsc(count(now.posts.length, now.stories.length) || 'nothing posted')}${s.week ? ' · ' + mkEsc(socDayY(s.from)) + ' to ' + mkEsc(socDayY(s.to)) : ''}</span></div>
+        <div class="when"><b id="sgpT">${mkEsc(title)}</b><span>${mkEsc(one1 ? SG_PN[net] : 'All platforms')}: ${mkEsc(count(now.posts.length, now.stories.length) || 'nothing posted')}${s.slot ? ' · last 30 days' : s.week ? ' · ' + mkEsc(socDayY(s.from)) + ' to ' + mkEsc(socDayY(s.to)) : ''}</span></div>
         <button type="button" class="sgp-x" aria-label="Close" onclick="sgPopClose()">×</button></div>
-      <div class="sgp-pb">${s.tiles ? `<div class="sgp-nums">${s.tiles.filter(t => t[1] !== null && t[1] !== undefined).map(t => sgPopNum(t[0], t[1])).join('')}</div>` : ''}${s.note ? `<p class="sgp-note">${mkEsc(s.note)}</p>` : ''}${seg}${body || `<p class="sgp-none">${s.tiles ? (s.nets.length === 1 && s.nets[0] === 'youtube' ? 'YouTube has no post list in Metricool.' : 'No posts or stories went out ' + (s.week ? 'that week' : 'that day') + '.') : 'Nothing here.'}</p>`}</div></div>`;
+      <div class="sgp-pb">${s.tiles ? `<div class="sgp-nums">${s.tiles.filter(t => t[1] !== null && t[1] !== undefined).map(t => sgPopNum(t[0], t[1])).join('')}</div>` : ''}${s.note ? `<p class="sgp-note">${mkEsc(s.note)}</p>` : ''}${seg}${body || `<p class="sgp-none">${s.slot ? (s.loading ? 'Reading the last 30 days…' : s.err ? 'The last 30 days did not load just now. Close this and try again.' : 'Nothing went out at this hour in the last 30 days.') : s.tiles ? (s.nets.length === 1 && s.nets[0] === 'youtube' ? 'YouTube has no post list in Metricool.' : 'No posts or stories went out ' + (s.week ? 'that week' : 'that day') + '.') : 'Nothing here.'}</p>`}</div></div>`;
   if (first) { const c = el.querySelector('.sgp-x'); if (c) c.focus(); }
 }

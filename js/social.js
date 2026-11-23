@@ -574,6 +574,24 @@ function socAudienceHtml(net) {
       <div>${block('Top countries', country)}${block('Top cities', city)}</div></div>
     <p class="slv-note">${net === 'facebook' ? 'Page followers' : 'Followers'}, as of the last 30 days${snap && snap.to ? ` to ${mkDay(snap.to)}` : ''}; it doesn’t change with the dates above.</p>` };
 }
+// A click or Enter on an hour opens the window of what went out then (social-glance.js, sgPopSlot). Arrow keys move between the hours.
+const socHeatVals = {};
+function socHeatCell(e) { return e.target.closest && e.target.closest('.soc-heat-c'); }
+function socHeatOpen(net, c) {
+  const H = socHeatVals[net]; if (!H || typeof sgPopSlot !== 'function') return;
+  const d = +c.dataset.d, h = +c.dataset.h, x = H.v[`${d + 1}-${h}`] || 0;
+  sgPopSlot(net, d, h, x, Math.max(...Object.values(H.v)));
+}
+function socHeatClick(e, net) { const c = socHeatCell(e); if (c) socHeatOpen(net, c); }
+function socHeatKey(e, net) {
+  const c = socHeatCell(e); if (!c) return;
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); socHeatOpen(net, c); return; }
+  const mv = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[e.key]; if (!mv) return;
+  e.preventDefault();
+  const d = Math.max(0, Math.min(6, +c.dataset.d + mv[0])), h = Math.max(0, Math.min(23, +c.dataset.h + mv[1]));
+  const grid = c.closest('.soc-heat'), n = grid.querySelector(`.soc-heat-c[data-d="${d}"][data-h="${h}"]`);
+  if (n) { grid.querySelectorAll('.soc-heat-c[tabindex="0"]').forEach(x => x.tabIndex = -1); n.tabIndex = 0; n.focus(); }
+}
 function socBestTimeHtml(net) {
   const rows = socSnap(net, 'besttime');
   if (!rows.length) return null;
@@ -586,16 +604,17 @@ function socBestTimeHtml(net) {
   // Hours whose average across the week is within 5% of the best hour: the "window".
   const byHour = Array.from({ length: 24 }, (_, h) => DAYS.reduce((a, _, d) => a + (v[`${d + 1}-${h}`] || 0), 0) / 7);
   const top = Math.max(...byHour), win = byHour.map((x, h) => x >= top * .95 ? h : -1).filter(h => h >= 0);
-  let html = '<div class="soc-heat"><div></div>';
+  socHeatVals[net] = { v, hi };
+  let html = `<div class="soc-heat" onclick="socHeatClick(event,'${net}')" onkeydown="socHeatKey(event,'${net}')"><div></div>`;
   for (let h = 0; h < 24; h++) html += `<div class="soc-heat-h">${h % 3 === 0 ? hr(h) : ''}</div>`;
   DAYS.forEach((dn, d) => {
     html += `<div class="soc-heat-d">${dn}</div>`;
     for (let h = 0; h < 24; h++) { const x = v[`${d + 1}-${h}`] || 0, a = hi > lo ? .06 + .94 * Math.pow((x - lo) / (hi - lo), 2) : .3;
-      html += `<div class="soc-heat-c" title="${dn} ${hr(h)} · ${socNum(x)}" style="background:${socRgba(col, a.toFixed(2))}"></div>`; }
+      html += `<div class="soc-heat-c" data-d="${d}" data-h="${h}" role="button" tabindex="${d === 0 && h === 0 ? 0 : -1}" aria-label="${dn} ${hr(h)}, ${socNum(x)} online: open what we posted then" title="${dn} ${hr(h)} · ${socNum(x)} · click to see what we posted then" style="background:${socRgba(col, a.toFixed(2))}"></div>`; }
   });
   html += '</div>';
   const summary = win.length ? `${hr(win[0])} to ${hr((win[win.length - 1] + 1) % 24)}, most days` : '';
-  return { summary, html: html + `<p class="slv-note">When followers are online, by day and hour, Dubai time; darker is more. Metricool’s last 30 days.</p>` };
+  return { summary, html: html + `<p class="slv-note">When followers are online, by day and hour, Dubai time; darker is more. Metricool’s last 30 days. Click an hour to see what we posted then.</p>` };
 }
 function socHashtagsHtml(feed, id) {
   const by = {};
