@@ -124,6 +124,16 @@ function ordBuild(rows0) {
   ordGroups = Object.keys(m).map(k => ordFinish(k, m[k])).sort((a, b) => (b.last < a.last ? -1 : b.last > a.last ? 1 : 0) || (b.start < a.start ? -1 : 1));
   ordGroups.forEach(g => { ordByKey[g.key] = g; });
 }
+// A supplier's free-text message that says the goods are on the way or have arrived (NEU: "We have dispatched the order", Kate, 23 Nov 2026: "may 5 invoiced, may 8 dispatched / delivered").
+// Only the supplier's own words count (never our emails) and only what is written above the quoted reply, so an old message quoted underneath cannot move the order. "will be delivered" does not count.
+const ordOurs = d => /^(order|reply)$/.test(d.kind || '');
+function ordMsgStep(d) {
+  if (!/^(message|notice)$/.test(d.kind || '') || ordOurs(d)) return '';
+  const t = String(d.body || d.note || '').split(/\n\s*(?:From:|Sent:|On .{5,90} wrote:|-{3,}|_{5,})/)[0].slice(0, 700) + ' ' + String(d.subject || '');
+  if (/\b(?:is|was|has been|have been|been|now|just)\s+delivered\b|\bhas arrived\b|\bout for delivery\b/i.test(t)) return 'delivered';
+  if (/\b(?:have|has|we've|was|been|now|just)\s+(?:now\s+|just\s+)?(?:been\s+)?(?:dispatched|shipped)\b/i.test(t)) return 'shipped';
+  return '';
+}
 // Refunds (Kate, 23 Nov 2026: "eto refund to, it should have its own column, beside discount %"). An Amazon return or refund email states the amount as
 // "Total estimated refund* AED 58.60" or "the refund of AED 111.75"; failing that, a refund email's own amount is the refund. Nothing else is read as one.
 function ordRefundAmt(d) {
@@ -160,8 +170,12 @@ function ordFinish(key, docs) {
   if (g.refundOnly) g.a = null;   // its only amount is the refund, which has its own column, so it is not an order total
   g.items = g.buy ? g.buy.lines.length : 0;
   g.units = g.buy ? g.buy.lines.reduce((t, l) => t + (Number(l.qty) || 0), 0) : 0;
-  let rk = 0; docs.forEach(d => { if ((ORD_RANK[d.kind] || 0) > rk) rk = ORD_RANK[d.kind]; });
-  g.st = g.type === 'Order' ? ORD_RANKNAME[g.hasInv ? 6 : rk] : g.type === 'Statement' ? 'Statement' : g.type === 'Invoice' ? 'Invoiced' : (last.status || 'Notice');
+  let rk = 0; docs.forEach(d => { const r = Math.max(ORD_RANK[d.kind] || 0, ORD_RANK[ordMsgStep(d)] || 0); if (r > rk) rk = r; });
+  // the status is the furthest step, except that an invoice which came BEFORE the dispatch or delivery no longer hides it (NEU: invoiced 5 May, dispatched 8 May)
+  const stepOn = {}; docs.forEach(d => { const r = (d.invoice_pdf || d.kind === 'invoice') ? 6 : (ORD_RANK[ordMsgStep(d)] || ORD_RANK[d.kind] || 0); if (r >= 2 && (!stepOn[r] || d.date < stepOn[r])) stepOn[r] = d.date; });
+  let top = 0; [2, 3, 4, 5].forEach(r => { if (stepOn[r]) top = r; });
+  const stRank = stepOn[6] && (!top || stepOn[6] >= stepOn[top]) ? 6 : top;
+  g.st = g.type === 'Order' ? ORD_RANKNAME[stRank || (g.hasInv ? 6 : rk)] : g.type === 'Statement' ? 'Statement' : g.type === 'Invoice' ? 'Invoiced' : (last.status || 'Notice');
   g.f = docs.some(d => d.file_path && /\.pdf$/i.test(d.file_name || d.file_path)) ? 'PDF kept' : docs.some(d => d.file_path) ? 'File kept' : docs.some(d => d.has_file) ? 'File in email' : 'Email only';
   // why it needs a look: a rule from the script, plus two that depend on today's date, so they are worked out here and never go stale
   const today = ordToday(), fl = [], chk0 = ordChecks[key] || null;
@@ -683,7 +697,7 @@ function ordStepsText(g) {   // the same steps as the row of boxes, written as o
 function ordStepsHtml(g) {
   const seen = {}, has = {}; g.docs.forEach(d => { has[d.kind] = 1; });
   g.docs.forEach(d => {
-    const k = d.invoice_pdf ? 'Invoiced' : d.kind === 'quotation' ? 'Quoted' : d.kind === 'order' ? 'Ordered' : d.kind === 'confirmation' ? (has.order ? 'Confirmed' : 'Ordered') : d.kind === 'shipped' ? 'Shipped' : d.kind === 'delivered' ? 'Delivered' : d.kind === 'invoice' ? 'Invoiced' : (ORD_KINDNAME[d.kind] || d.kind);
+    const k = d.invoice_pdf ? 'Invoiced' : d.kind === 'quotation' ? 'Quoted' : d.kind === 'order' ? 'Ordered' : d.kind === 'confirmation' ? (has.order ? 'Confirmed' : 'Ordered') : d.kind === 'shipped' ? 'Shipped' : d.kind === 'delivered' ? 'Delivered' : d.kind === 'invoice' ? 'Invoiced' : ordMsgStep(d) === 'delivered' ? 'Delivered' : ordMsgStep(d) === 'shipped' ? 'Shipped' : (ORD_KINDNAME[d.kind] || d.kind);
     if (!seen[k]) seen[k] = d.date;
   });
   // Amazon marketplace sellers: an "Invoice request from Amazon customer ..." thread in the mailbox means the invoice has been asked for (the seller's PDF then shows as Invoiced)
