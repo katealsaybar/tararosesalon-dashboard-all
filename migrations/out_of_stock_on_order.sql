@@ -1,8 +1,8 @@
 -- Out of Stock, units ON ORDER and not yet arrived (Kate, 23 Nov 2026).
 --
--- STATUS: WRITTEN ONLY. NOT APPLIED. Nothing has been run against the database. Kate has to say "apply it" first.
--- Until it is applied the Out of Stock page still opens: it counts on order as 0 and says in one plain line that the on-order
--- counts are not loaded yet, so nobody trusts a missing number (js/out-of-stock.js).
+-- STATUS: APPLIED on 23 Nov 2026 to project gvijxenafoowajqktqvd (migration out_of_stock_on_order), on Kate's word.
+-- If the function is ever missing or refuses, the Out of Stock page still opens: it counts on order as 0 and says in one plain line
+-- that the on-order counts are not loaded yet (js/out-of-stock.js).
 --
 -- Why a new function: spend_plan() (the Weekly Product Plan) carries the shelf count, Min, Max and cost, but nothing that says what is
 -- already on the way. The orders sit in stock_order_lines (migrations/create_stock_order_lines.sql), whose table policies do not serve
