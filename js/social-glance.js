@@ -219,7 +219,7 @@ function sgPostsHtml(D, cols) {
   const MS = [['Median views a post', med], ['Average views a post', avgV], ['Average likes, comments, shares, saves', avgI]];
   const small = Math.min(Sx.length, Mx.length) < 10;
   const cmp = MS.map(([h, f], mi) => { const a = f(Sx), b = f(Mx), m2 = Math.max(a, b) || 1;
-    return `<div><div class="sg-mh">${h}</div>${[['s', 'Scheduled in Metricool', Sx, a, cols.instagram], ['m', 'Posted by hand', Mx, b, cols.tiktok]].map(([k, n, rs, v, c]) => { const sp = sgPostsSpec('glance-' + (k === 's' ? 'scheduled' : 'by-hand'), n + ' posts', `${sub}, ${rs.length} posts (${n.toLowerCase()})`, rs);
+    return `<div><div class="sg-mh">${h}</div>${[['s', 'Scheduled in Metricool', Sx, a, sgSchedC().s], ['m', 'Posted by hand', Mx, b, sgSchedC().h]].map(([k, n, rs, v, c]) => { const sp = sgPostsSpec('glance-' + (k === 's' ? 'scheduled' : 'by-hand'), n + ' posts', `${sub}, ${rs.length} posts (${n.toLowerCase()})`, rs);
       return `<div class="sg-row sg-r2" data-m="${mi}${k}" style="--c:${c}"><span class="sg-nm">${n}</span><span class="sg-trk"><span class="sg-fill" style="width:${Math.round(v * 100 / m2)}%"></span></span>${sgNum(sgN(v), sp, v)}<span class="sg-n">${sgNum(rs.length + ' posts', sp, rs.length)}</span></div>`; }).join('')}</div>`; }).join('');
   // did best
   const tops = cur.slice().sort((a, b) => b.v - a.v).slice(0, 5), gavg = {}; SG_GROUPS.forEach(([n, k]) => { const a = cur.filter(x => x.net === n && x.kind === k); if (a.length) gavg[n + '_' + k] = sgAgg(a).v / a.length; });
@@ -321,6 +321,9 @@ function sgExport() {
 let sgSchedSrc = null, sgSchedRows = null;
 // All | Stories | Posts (Kate, 23 Nov 2026): the stories are so many that they hide the posts, so the chart can show either one alone. TikTok has no stories, so it has no switch.
 let sgSchedView = 'all';
+// Scheduled in Metricool is the brand yellow, posted by hand the brand violet (Kate, 23 Nov 2026). The dark theme uses the brand tokens themselves (butter #EEF3C7, lavender #C4B5FD);
+// the light theme uses their deeper partners so the bars still show on white (the dashboard's gold #C99A2E and violet #7C5CD4).
+const sgSchedC = () => (socDark() ? { s: '#EEF3C7', h: '#C4B5FD' } : { s: '#C99A2E', h: '#7C5CD4' });
 function sgSchedSet(v) {
   sgSchedView = v;
   const box = document.getElementById('socSchedBox'); if (!box || typeof socTab === 'undefined') return;
@@ -348,7 +351,7 @@ function sgSchedInner(net, cols) {
   return `<div class="mk-chart-head">
       <div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div>
       ${seg}
-      <span class="soc-key">${showP ? `<span><i style="background:${cols[net]}"></i>Scheduled in Metricool</span><span><i style="background:${socRgba(cols[net], .7)}"></i>Posted by hand</span>` : ''}${showS ? `<span><i style="background:${socRgba(cols[net], .38)}"></i>Stories, posted live</span>` : ''}</span>
+      <span class="soc-key">${showP ? `<span><i style="background:${sgSchedC().s}"></i>Scheduled in Metricool</span><span><i style="background:${sgSchedC().h}"></i>Posted by hand</span>` : ''}${showS ? `<span><i style="background:${socRgba(cols[net], .38)}"></i>Stories, posted live</span>` : ''}</span>
     </div>
     ${has ? `<div style="position:relative;height:200px"><canvas id="socSched"></canvas></div>
     <p class="slv-note">${said}</p>`
@@ -381,8 +384,8 @@ function sgSchedDraw(net) {
   if (showS) sto.forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }); r.story = (r.story || 0) + 1; });
   const rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['sched', 'hand', 'story']);
   const c = socCharts.sched = socBarChart(cv, rows, [
-    ...(showP ? [{ label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: cols[net], stack: 's' },
-      { label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: socRgba(cols[net], .7), stack: 's' }] : []),
+    ...(showP ? [{ label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: sgSchedC().s, stack: 's' },
+      { label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: sgSchedC().h, stack: 's' }] : []),
     ...(showS ? [{ label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: socRgba(cols[net], .38), stack: 's' }] : []),
   ], true);
   if (c) { c.options.scales.y.ticks = { ...(c.options.scales.y.ticks || {}), precision: 0 }; c.update(); }
