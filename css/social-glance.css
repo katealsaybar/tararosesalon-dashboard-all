@@ -79,3 +79,9 @@ html[data-theme="dark"] .sg-bd{color:#1A1A1A}
   .sg .dn{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:flex-end}
   .sg-cl,.sg-cv,.sg-hint,.sg-is,.sg-tag,.sg-nm small,.sg-l,.sg-c,.sg-mh,.sg-n{font-size:13px}
 }
+/* The apps' own marks (js/social.js socLogo): the platform colour on a plain background, the tile's text colour on a platform-coloured tile. */
+.soc-lg{display:inline-flex;width:1.1em;height:1.1em;vertical-align:-.18em;margin-right:.45em;flex:none}
+.soc-lg svg{width:100%;height:100%;display:block}
+.sg-bd .soc-lg{width:26px;height:26px;margin:0}
+.sg-item > div{min-width:0}
+.sg-it,.sg-is,.sg-nm{overflow-wrap:anywhere}

@@ -32,6 +32,15 @@ try { const v = localStorage.getItem('trs-soc-tab'); if (v) socTab = v; } catch 
 let socCustom = { from: '', to: '' };
 try { Object.assign(socCustom, JSON.parse(localStorage.getItem('trs-soc-custom') || '{}')); } catch (e) {}
 
+// The apps' own marks (Kate, 23 Nov 2026: "use real ig/tk/yt/fb logos in social"), the same paths the Content Calendar's badges use (smm_board_approvals calendar.js SCAL_ICO).
+// Drawn in currentColor, so a caller sets the colour: the platform colour on a plain background, white or dark on a platform-coloured tile.
+const SOC_ICO = {
+  instagram: '<path fill="none" stroke="currentColor" stroke-width="2.2" d="M8.2 3h7.6A5.2 5.2 0 0 1 21 8.2v7.6a5.2 5.2 0 0 1-5.2 5.2H8.2A5.2 5.2 0 0 1 3 15.8V8.2A5.2 5.2 0 0 1 8.2 3z"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="17.4" cy="6.6" r="1.35" fill="currentColor"/>',
+  facebook: '<path fill="currentColor" d="M13.5 21.5v-8.3h2.8l.5-3.3h-3.3V7.8c0-.9.4-1.7 1.8-1.7h1.6V3.3c-.3 0-1.3-.2-2.5-.2-2.5 0-4.2 1.5-4.2 4.3v2.5H7.4v3.3h2.8v8.3h3.3z"/>',
+  tiktok: '<path fill="currentColor" d="M12.5.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>',
+  youtube: '<path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.6 15.6V8.4l6.2 3.6-6.2 3.6z"/>'
+};
+const socLogo = (net, color) => SOC_ICO[net] ? `<span class="soc-lg"${color ? ` style="color:${color}"` : ''} aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${SOC_ICO[net]}</svg></span>` : '';
 const SOC_NETS = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', youtube: 'YouTube' };
 // Kate, 23 Nov 2026: Calendar is no longer a tab drawn here; it opens the Content Calendar page (index.html calTabsDraw), so a remembered 'calendar' falls back to Overview.
 if (!SOC_NETS[socTab] && socTab !== 'overview') socTab = 'overview';
@@ -179,7 +188,7 @@ function socPaint(el) {
   const tabsBar = `<div class="sc-bar w13-bar soc-bar">
       <div class="sc-seg soc-tabs" role="tablist" aria-label="Report">
         ${[['overview', 'Overview'], ['calendar', 'Calendar'], ...Object.entries(SOC_NETS)].map(([k, l]) =>
-          `<button type="button" role="tab" aria-selected="${socTab === k}" class="${socTab === k ? 'on' : ''}" onclick="socSetTab('${k}')">${k !== 'overview' && k !== 'calendar' ? `<i style="background:${cols[k]}"></i>` : ''}${l}</button>`).join('')}
+          `<button type="button" role="tab" aria-selected="${socTab === k}" class="${socTab === k ? 'on' : ''}" onclick="socSetTab('${k}')">${k !== 'overview' && k !== 'calendar' ? socLogo(k, cols[k]) : ''}${l}</button>`).join('')}
       </div>
     </div>`;
   if (socTab === 'calendar' && typeof socCalHtml === 'function') {
@@ -224,7 +233,7 @@ function socOverviewHtml(T) {
   const kv = rows => `<div class="soc-kv">${rows.filter(([, v]) => v !== '–').map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join('')}</div>`;
   const upTo = net => last[net] ? `<div class="slv-note">Numbers up to ${mkDay(last[net])}</div>` : '';
   const card = (net, body) => { const f = socFollowers(net); return `<button type="button" class="w13-tile soc-plat" onclick="socSetTab('${net}')">
-      <div class="soc-plat-top"><span><i style="background:${cols[net]}"></i>${SOC_NETS[net]}</span></div>
+      <div class="soc-plat-top"><span>${socLogo(net, cols[net])}${SOC_NETS[net]}</span></div>
       <div class="slv-eyebrow">${SOC_PLAT[net].label}</div><div class="w13-val">${socNum(f.end)}${socChg(f.chg)}</div>${body}
       <div class="soc-plat-foot">${upTo(net)}<em>Full report ›</em></div></button>`; };
   const ig = posts.instagram.filter(p => p.kind !== 'story'), tt = posts.tiktok, fb = posts.facebook.filter(p => p.kind !== 'story');
