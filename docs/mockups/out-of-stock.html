@@ -5,16 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Out of Stock mockup</title>
 <style>
-/* MOCKUP ONLY (17 Nov 2026). Not on the dashboard, nothing built, nothing saved, no database writes.
-   WHERE IT GOES: a new dashboard page, Numbers > Clients, next to Retention (Level 3 and up, like Retention). The masthead's Branch and Period drive it.
-   WHAT IT ANSWERS (Calculations of KPIs, CONVERSION): of the new clients who first came in during the Period, how many came back for a 2nd visit, when they came back
-   (weeks), and the 1st, 2nd and 3rd visit steps ("clients are not regulars until after the 3rd visit"), by stylist, by salon and by group (Hair, Beauty).
-   DATA: REAL counts, read on 17 Nov 2026 (read-only) from door_first_visits (a new client is her first paid visit at any salon, no walk-ins, no staff bookings, no
-   deposit-only days), retention_days (every paid visit day per client) and retention_staff_days (who handled her). Period shown: first visit 1 May to 31 Jul 2026, so every
-   client has had at least 12 weeks. A client counts once per salon she first came to; in the stylist and group tables she counts for each stylist who handled her first visit.
-   REWORKED 17 Nov 2026 to trs-adult-learning-design (What is this / Why it matters / What to watch per section, a concrete example first, plain words, 3 value columns per table, answer in one line first)
-   and dashboard-report-builder (Why wall, clickable figures, Sheets header menus, XLSX and CSV, sticky toolbars, mini nav, phone cards, how-it-is-worked-out as one figure at a time).
-   NOT REAL: the client names in the windows that open (SAMPLE names and sample dates, the counts are real). Self-contained, light and dark. */
+/* OUT OF STOCK mockup, built 23 Nov 2026 from the Retention and Conversion mockup kit. Design reference only: the live page is js/out-of-stock.js on the dashboard.
+   WHERE IT GOES: Numbers > Sales & Stock, right after the Weekly Product Plan (Out of Stock, old Level 2 and up: coordinators, leadership, executives, accounts and Kate).
+   The masthead's Branch drives it; the Period does not apply (a shelf count has no period), so the Period row is dimmed.
+   WHAT IT ANSWERS: what to order this week for each salon, from the Weekly Product Plan's Priority A rows (Priority B too when picked): units, AED, what is out now and what has
+   under a week left. Rule: Min = one week of use; order when shelf plus on order is under Min x weeks, up to Max (or Min x weeks when that is higher); 2 weeks of cover from 15 Nov to 31 Dec, 1 week otherwise.
+   DATA IN THIS FILE: read-only from the live database on 23 Nov 2026 (spend_plan rows for the shelf, Min, Max, cost and supplier; stock orders not arrived for on order). The shelf lists are of 17 Nov 2026.
+   The live page reads the plan and the orders live instead (oos_plan and oos_on_order). Nothing in this file is saved and nothing is written to the database.
+   REAL: the products, counts and AED. Self-contained, light and dark. */
 :root{
   --radius:12px;
   --bg:#FAF7F0;--surface:#fff;--surface2:#F4F1E9;--border:#E8E2D6;--border2:#F0ECE3;
