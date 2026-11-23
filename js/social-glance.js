@@ -6,8 +6,9 @@
 //   posts            social_report (d.posts), the Social page's own call. The window before it is a second social_report call.
 //   stories          content_calendar_story_stats(from, to): one row a story with views, reach, replies and taps. It answers 93 days at most,
 //                    so a longer Period shows the story totals social_report already holds and the figures stay plain.
-// "Scheduled or by hand" is a STAND-IN. Metricool's post list does not say how a post went out, so a post that went live within 2 minutes of a
-// post on another app counts as scheduled (a planner sends them together). The page says so. When the planner flag is read from Metricool, replace sgGuess().
+// "Scheduled or by hand" is the Content Calendar's own record (Kate, 23 Nov 2026: "we literally have the content calendar as basis"): metricool_posts.source,
+// manual = posted by hand, metricool = scheduled in Metricool, and every story is posted live in the app so it counts as by hand. Metricool began telling us on
+// 12 Aug 2026; older posts have no record and are left out of the two groups, never guessed.
 // Facebook stories have no numbers in Metricool, so they are not here. YouTube has no post list.
 let sgTab = 'posts', sgData = null, sgReq = 0, sgTipEl = null, sgTipT = null;
 try { if (localStorage.getItem('trs-soc-glance-tab') === 'stories') sgTab = 'stories'; } catch (e) {}
@@ -35,13 +36,14 @@ function sgShapePosts(arr) {
   const rows = (arr || []).filter(p => SG_PN[p.network] && p.kind !== 'story').map(p => {
     const kind = p.network === 'instagram' ? (p.kind === 'reel' ? 'reel' : 'post') : p.kind, at = Date.parse(p.posted_at) || 0;
     const l = Number(p.interactions) || 0, sv = Number(p.saves) || 0;
-    return { net: p.network, kind, g: p.network + '_' + kind, d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
+    return { net: p.network, kind, g: p.network + '_' + kind, src: p.source || null, d: p.post_date || sgDayOf(at), t: at ? sgTimeOf(at) : '', at, url: p.url,
       v: Number(p.views) || 0, r: Number(p.reach) || 0, l: Number(p.likes) || 0, c: Number(p.comments) || 0, s: Number(p.shares) || 0, sv, it: l + sv };
   });
   return rows;
 }
-// STAND-IN (see the top of the file): scheduled = went live within 2 minutes of a post on another app.
-function sgGuess(rows) { rows.forEach(p => { p.sch = rows.some(q => q !== p && q.net !== p.net && p.at && q.at && Math.abs(q.at - p.at) <= 120000); }); return rows; }
+// How a post went out: the same field the Content Calendar reads (metricool_posts.source). Older posts have none, so they are neither group.
+function sgHow(rows) { rows.forEach(p => { p.sch = p.src === 'metricool'; p.man = p.src === 'manual'; }); return rows; }
+const sgHowName = p => p.sch ? 'Scheduled in Metricool' : p.man ? 'Posted by hand' : 'Not recorded';
 function sgShapeStories(arr) {
   return (arr || []).filter(s => s.network === 'instagram').map(s => { const at = Date.parse(s.posted_at) || 0;
     return { d: sgDayOf(at), t: sgTimeOf(at), at, url: s.url, v: Number(s.views) || 0, r: Number(s.reach) || 0, tf: Number(s.taps_forward) || 0, tb: Number(s.taps_back) || 0, ex: Number(s.exits) || 0, rp: Number(s.replies) || 0 }; });
@@ -56,7 +58,7 @@ const SG_POSTCOLS = [{ k: 'd', l: 'Date', t: 'date' }, { k: 't', l: 'Time' }, { 
   { k: 'v', l: 'Views', t: 'num' }, { k: 'r', l: 'Reach', t: 'num' }, { k: 'l', l: 'Likes', t: 'num' }, { k: 'c', l: 'Comments', t: 'num' }, { k: 's', l: 'Shares', t: 'num' }, { k: 'sv', l: 'Saves', t: 'num' }, { k: 'u', l: 'Post', t: 'html' }];
 const sgLink = (url, w) => url ? `<a href="${mkEsc(url)}" target="_blank" rel="noopener">Open ${w}</a>` : '';
 function sgPostsSpec(sk, title, sub, rows) {
-  const lines = rows.slice().sort((a, b) => b.at - a.at).map(p => ({ d: p.d, t: p.t, pl: SG_PN[p.net], kd: SG_KL[p.kind] || p.kind, how: p.sch ? 'Scheduled (guess)' : 'By hand (guess)', v: p.v, r: p.r, l: p.l, c: p.c, s: p.s, sv: p.sv, u: sgLink(p.url, 'post') }));
+  const lines = rows.slice().sort((a, b) => b.at - a.at).map(p => ({ d: p.d, t: p.t, pl: SG_PN[p.net], kd: SG_KL[p.kind] || p.kind, how: sgHowName(p), v: p.v, r: p.r, l: p.l, c: p.c, s: p.s, sv: p.sv, u: sgLink(p.url, 'post') }));
   const foot = { d: 'Total', v: sgSum(rows, x => x.v), r: sgSum(rows, x => x.r), l: sgSum(rows, x => x.l), c: sgSum(rows, x => x.c), s: sgSum(rows, x => x.s), sv: sgSum(rows, x => x.sv) };
   return sgSpec(sk, title, sub, SG_POSTCOLS, lines, foot, 'This is the last step: a single post has nothing behind it.');
 }
@@ -107,10 +109,10 @@ async function sgLoad() {
   const w = socData.win, len = sgDays(w.from, w.to), pv = { from: sgAdd(w.from, -len), to: sgAdd(w.from, -1) }, key = w.from + '|' + w.to;
   if (sgData && sgData.key === key) return sgData;
   const ok = async p => { try { const r = await p; return r && !r.error ? r.data : null; } catch (e) { return null; } };
-  const cur = sgGuess(sgShapePosts(socData.posts));
+  const cur = sgHow(sgShapePosts(socData.posts));
   const [prevRep, curSt] = await Promise.all([ok(sb.rpc('social_report', { p_from: pv.from, p_to: pv.to })), len <= 93 ? ok(sb.rpc('content_calendar_story_stats', { p_from: w.from, p_to: w.to })) : null]);
   const prevSt = len <= 93 ? await ok(sb.rpc('content_calendar_story_stats', { p_from: pv.from, p_to: pv.to })) : null;
-  const D = { key, w, pv, len, cur, prev: sgGuess(sgShapePosts(prevRep && prevRep.posts)), prevOk: !!prevRep,
+  const D = { key, w, pv, len, cur, prev: sgHow(sgShapePosts(prevRep && prevRep.posts)), prevOk: !!prevRep,
     st: curSt ? sgShapeStories(curSt) : null, stPrev: prevSt ? sgShapeStories(prevSt) : null,
     stTot: sgStTot((socData.stories || {}).instagram), stPrevTot: sgStTot(prevRep && (prevRep.stories || {}).instagram) };
   sgData = D; return D;
@@ -181,14 +183,15 @@ function sgPostsHtml(D, cols) {
   const bk = sgBuckets(w.from, w.to), inB = x => cur.filter(p => p.d >= x.from && p.d <= x.to);
   const WB = sgBars(bk, inB, rs => sgSum(rs, p => p.v), (x, rs) => rs.length ? sgPostsSpec('glance-' + x.from, x.full, rs.length + ' posts', rs) : null,
     (x, rs, v) => `<b>${mkEsc(x.full)}</b>${rs.length ? `${rs.length} posts, ${sgN(v)} views, ${sgN(v / rs.length)} a post.` : 'No posts in these dates.'}`);
-  // scheduled or by hand (stand-in)
-  const Sx = cur.filter(x => x.sch), Mx = cur.filter(x => !x.sch);
+  // scheduled or by hand: the Content Calendar's own record; older posts have none and stay out of both
+  const Sx = cur.filter(x => x.sch), Mx = cur.filter(x => x.man), Ux = cur.filter(x => !x.sch && !x.man);
+  const stN = (socData.posts || []).filter(p => p.kind === 'story' && p.post_date >= w.from && p.post_date <= w.to).length;
   const med = a => { const s = a.map(x => x.v).sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[(n >> 1) - 1] + s[n >> 1]) / 2) : 0; };
   const avgV = a => a.length ? sgAgg(a).v / a.length : 0, avgI = a => a.length ? sgAgg(a).it / a.length : 0;
   const MS = [['Median views a post', med], ['Average views a post', avgV], ['Average likes, comments, shares, saves', avgI]];
   const small = Math.min(Sx.length, Mx.length) < 10;
   const cmp = MS.map(([h, f], mi) => { const a = f(Sx), b = f(Mx), m2 = Math.max(a, b) || 1;
-    return `<div><div class="sg-mh">${h}</div>${[['s', 'Scheduled', Sx, a, cols.instagram], ['m', 'By hand', Mx, b, cols.tiktok]].map(([k, n, rs, v, c]) => { const sp = sgPostsSpec('glance-' + (k === 's' ? 'scheduled' : 'by-hand'), n + ' posts', `${sub}, ${rs.length} posts (${n.toLowerCase()}, guessed from posting times)`, rs);
+    return `<div><div class="sg-mh">${h}</div>${[['s', 'Scheduled in Metricool', Sx, a, cols.instagram], ['m', 'Posted by hand', Mx, b, cols.tiktok]].map(([k, n, rs, v, c]) => { const sp = sgPostsSpec('glance-' + (k === 's' ? 'scheduled' : 'by-hand'), n + ' posts', `${sub}, ${rs.length} posts (${n.toLowerCase()})`, rs);
       return `<div class="sg-row sg-r2" data-m="${mi}${k}" style="--c:${c}"><span class="sg-nm">${n}</span><span class="sg-trk"><span class="sg-fill" style="width:${Math.round(v * 100 / m2)}%"></span></span>${sgNum(sgN(v), sp, v)}<span class="sg-n">${sgNum(rs.length + ' posts', sp, rs.length)}</span></div>`; }).join('')}</div>`; }).join('');
   // did best
   const tops = cur.slice().sort((a, b) => b.v - a.v).slice(0, 5), gavg = {}; SG_GROUPS.forEach(([n, k]) => { const a = cur.filter(x => x.net === n && x.kind === k); if (a.length) gavg[n + '_' + k] = sgAgg(a).v / a.length; });
@@ -199,17 +202,17 @@ function sgPostsHtml(D, cols) {
     <div class="sg-grid"><div class="sg-card"><h4>Average views a post, by kind</h4><p class="sg-hint">The thin line marks the Period before. Hover a row for the answer.</p>${kindRows}</div>
       <div class="sg-card"><h4>Views each ${bk.length && sgDays(w.from, w.to) > 112 ? 'month' : 'week'}</h4><p class="sg-hint">Tap a bar to see its posts.</p>${WB.html}</div></div>
     <div class="sg-sec"><div class="slv-eyebrow">Scheduled or by hand</div><h3>Scheduled or by hand</h3>
-      <p class="sg-hint"><span class="sg-tag stand">Stand-in</span> Metricool does not say how a post went out. For now, a post that went live within 2 minutes of a post on another app counts as scheduled.</p>
+      <p class="sg-hint">How a post went out is the Content Calendar's own record. Metricool began telling us on 12 Aug 2026, so ${Ux.length ? `${Ux.length} older ${Ux.length === 1 ? 'post is' : 'posts are'} left out` : 'no post here is older'}. ${stN ? `${sgN(stN)} stories were posted live in the app, so they all count as posted by hand.` : ''}</p>
       ${small ? `<p class="sg-hint"><span class="sg-tag warn">Small group</span> Only ${Math.min(Sx.length, Mx.length)} ${Sx.length < Mx.length ? 'scheduled' : 'by hand'} posts, too few to say which is better.</p>` : ''}
-      <p class="sg-hint"><b>${Sx.length} scheduled, ${Mx.length} by hand.</b> Median views a post: ${sgN(med(Sx))} scheduled, ${sgN(med(Mx))} by hand.</p><div class="sg-grid sg-g3">${cmp}</div></div>
+      <p class="sg-hint"><b>${Sx.length} scheduled in Metricool, ${Mx.length} posted by hand.</b> Median views a post: ${sgN(med(Sx))} scheduled, ${sgN(med(Mx))} by hand.</p><div class="sg-grid sg-g3">${cmp}</div></div>
     <div class="sg-sec"><h3>Did best</h3><p class="sg-hint">The five posts with the most views in these dates.</p>${best}</div>
-    <p class="slv-note">Not here: YouTube (Metricool gives totals only, not a list of videos). Facebook reels have no reach figure. Scheduled or by hand is a guess until Metricool's planner flag is read.</p>`;
+    <p class="slv-note">Not here: YouTube (Metricool gives totals only, not a list of videos). Facebook reels have no reach figure. How a post went out is the Content Calendar's own record.</p>`;
   return { html, wire(r) {
     r.querySelectorAll('.sg-card .sg-row[data-g]').forEach(el => { const x = gs.find(q => q.name === el.dataset.g);
       sgTip(el, () => `<b>${x.name}</b>${x.cnt} posts, ${sgN(x.avg)} views each on average, ${x.pavg != null ? sgChgT(x.avg, x.pavg) + ` (before: ${sgN(x.pavg)} each, ${x.pn} posts)` : 'none in the Period before'}. Best: ${socDayY(x.best.d)}, ${sgN(x.best.v)} views.`); });
     WB.wire(r);
     r.querySelectorAll('.sg-r2').forEach(el => { const id = el.dataset.m, f = MS[+id[0]][1], h = MS[+id[0]][0], s = id[1] === 's';
-      sgTip(el, () => `<b>${s ? 'Scheduled' : 'By hand'}</b>${(s ? Sx : Mx).length} posts. ${h}: ${sgN(f(s ? Sx : Mx))}, against ${sgN(f(s ? Mx : Sx))} for ${s ? 'posts by hand' : 'scheduled posts'}.`); });
+      sgTip(el, () => `<b>${s ? 'Scheduled in Metricool' : 'Posted by hand'}</b>${(s ? Sx : Mx).length} posts. ${h}: ${sgN(f(s ? Sx : Mx))}, against ${sgN(f(s ? Mx : Sx))} for ${s ? 'posts by hand' : 'scheduled posts'}.`); });
     r.querySelectorAll('.sg-item').forEach(el => { const p = tops[+el.dataset.p], key = p.net + '_' + p.kind, ratio = p.v / gavg[key];
       sgTip(el, () => `<b>${SG_PN[p.net]} ${(SG_KL[p.kind] || p.kind).toLowerCase()}, ${mkEsc(socDayY(p.d))}</b>${sgN(p.v)} views, ${ratio >= 1.2 ? ratio.toFixed(1) + ' times' : ratio >= .8 ? 'about' : 'less than'} the usual for ${SG_PN[p.net].toLowerCase()} ${(SG_KL[p.kind] || p.kind).toLowerCase()}s (${sgN(gavg[key])}).${p.r > 0 && p.v / p.r >= 8 ? ` Only ${sgN(p.r)} accounts were reached, so most views are not different people.` : ''}`); });
   } };
@@ -255,7 +258,7 @@ function sgStoriesHtml(D, cols) {
   const html = `<div class="sg-ans"><div class="slv-eyebrow">The answer in one line</div><div class="sg-big">${ans}</div><p class="sg-ask">${ask}</p></div>${tiles}
     <div class="sg-grid"><div class="sg-card"><h4>What viewers did</h4><p class="sg-hint">Out of ${sgN(A.v)} views. Hover a part for the answer.</p>${parts}</div>
       <div class="sg-card"><h4>Views each ${has && sgDays(w.from, w.to) > 112 ? 'month' : 'week'}</h4>${weeks}</div></div>
-    <div class="sg-sec"><h3>Many stories or few</h3><p class="sg-hint">Days with a long run of stories next to days with only a few. How a story went out, by hand or scheduled, is not in our data yet.</p>${cmp}</div>
+    <div class="sg-sec"><h3>Many stories or few</h3><p class="sg-hint">Days with a long run of stories next to days with only a few. Stories are posted live in the app, so they all count as posted by hand.</p>${cmp}</div>
     ${has ? `<div class="sg-sec"><h3>Did best</h3><p class="sg-hint">The five stories with the most views in these dates.</p>${best}</div>` : ''}
     <p class="slv-note">Not here: Facebook stories (Metricool gives no numbers for them). Taps are counted for most views, not all.${has ? '' : ' The stories could not be listed one by one for this Period, so the figures are plain.'}</p>`;
   return { html, wire(r) {
@@ -274,9 +277,9 @@ function sgExport() {
   const sub = sgRange(D.w.from, D.w.to) + '.';
   if (sgTab === 'posts') {
     const rows = D.cur.slice().sort((a, b) => b.at - a.at); if (!rows.length) return null;
-    return { name: ['social-posts', D.w.from, 'to', D.w.to].join('-'), csv: 0, sheets: [{ name: 'Posts', title: 'How the posts did', subtitle: sub + ' Scheduled or by hand is a guess from posting times.',
-      blocks: [{ cols: [{ label: 'Date', fmt: 'text' }, { label: 'Time', fmt: 'text' }, { label: 'Platform', fmt: 'text' }, { label: 'Kind', fmt: 'text' }, { label: 'Went out (guess)', fmt: 'text' }, { label: 'Views', fmt: 'num' }, { label: 'Reach', fmt: 'num' }, { label: 'Likes', fmt: 'num' }, { label: 'Comments', fmt: 'num' }, { label: 'Shares', fmt: 'num' }, { label: 'Saves', fmt: 'num' }],
-        rows: rows.map(p => ({ cells: [p.d, p.t, SG_PN[p.net], SG_KL[p.kind] || p.kind, p.sch ? 'Scheduled' : 'By hand', p.v, p.r, p.l, p.c, p.s, p.sv] })) }] }] };
+    return { name: ['social-posts', D.w.from, 'to', D.w.to].join('-'), csv: 0, sheets: [{ name: 'Posts', title: 'How the posts did', subtitle: sub + ' How it went out is the Content Calendar\'s own record; posts before 12 Aug 2026 are not recorded.',
+      blocks: [{ cols: [{ label: 'Date', fmt: 'text' }, { label: 'Time', fmt: 'text' }, { label: 'Platform', fmt: 'text' }, { label: 'Kind', fmt: 'text' }, { label: 'Went out', fmt: 'text' }, { label: 'Views', fmt: 'num' }, { label: 'Reach', fmt: 'num' }, { label: 'Likes', fmt: 'num' }, { label: 'Comments', fmt: 'num' }, { label: 'Shares', fmt: 'num' }, { label: 'Saves', fmt: 'num' }],
+        rows: rows.map(p => ({ cells: [p.d, p.t, SG_PN[p.net], SG_KL[p.kind] || p.kind, sgHowName(p), p.v, p.r, p.l, p.c, p.s, p.sv] })) }] }] };
   }
   const rows = D.st; if (!rows || !rows.length) return null;
   return { name: ['social-stories', D.w.from, 'to', D.w.to].join('-'), csv: 0, sheets: [{ name: 'Stories', title: 'How the Instagram stories did', subtitle: sub,
@@ -285,36 +288,41 @@ function sgExport() {
 }
 
 // ── Platform tabs: scheduled or by hand (Kate, 23 Nov 2026: "for each soc med graph add another graph for scheduled vs manual posting") ──
-// One more chart under Views on Instagram, TikTok and Facebook: posts a day (or a week, as the toggle above) split into scheduled and by hand. The split is the same STAND-IN guess as
-// Overview (see the top of this file): a post that went live within 2 minutes of a post on another app counts as scheduled. YouTube has no post list in Metricool, so it says so.
+// One more chart under Views on Instagram, TikTok and Facebook: posts a day (or a week, as the toggle above) split into scheduled in Metricool and posted by hand, the Content Calendar's own record
+// (see the top of this file), with the stories a day beside them: stories are posted live in the app, so they are by hand. YouTube has no post list in Metricool, so it says so.
 let sgSchedSrc = null, sgSchedRows = null;
 function sgSchedPosts() {
-  if (sgSchedSrc !== socData) { sgSchedRows = sgGuess(sgShapePosts(socData.posts)); sgSchedSrc = socData; }
+  if (sgSchedSrc !== socData) { sgSchedRows = sgHow(sgShapePosts(socData.posts)); sgSchedSrc = socData; }
   return sgSchedRows;
 }
+// The stories a platform had in these dates, from the same social_report rows the calendar reads (TikTok has none).
+function sgSchedStories(net) { return (socData.posts || []).filter(p => p.network === net && p.kind === 'story').map(p => ({ d: p.post_date || sgDayOf(Date.parse(p.posted_at) || 0) })); }
 function sgSchedHtml(net, cols) {
   const mode = socMode();
   if (net === 'youtube') return `<div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand</div></div><p class="slv-note">YouTube has no post list in Metricool, only the channel’s numbers, so there is nothing to split into scheduled and by hand.</p>`;
-  const mine = sgSchedPosts().filter(p => p.net === net), S = mine.filter(p => p.sch), M = mine.filter(p => !p.sch);
+  const mine = sgSchedPosts().filter(p => p.net === net), S = mine.filter(p => p.sch), M = mine.filter(p => p.man), U = mine.filter(p => !p.sch && !p.man), sto = sgSchedStories(net);
   const avg = a => a.length ? sgN(sgSum(a, x => x.v) / a.length) : '–';
   const small = mine.length && Math.min(S.length, M.length) < 5;
   return `<div class="mk-chart-head">
       <div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div>
-      <span class="soc-key"><span><i style="background:${cols[net]}"></i>Scheduled (guess)</span><span><i style="background:${socRgba(cols[net], .35)}"></i>By hand (guess)</span></span>
+      <span class="soc-key"><span><i style="background:${cols[net]}"></i>Scheduled in Metricool</span><span><i style="background:${socRgba(cols[net], .55)}"></i>Posted by hand</span>${sto.length ? `<span><i style="background:${socRgba(cols[net], .25)}"></i>Stories, posted live</span>` : ''}</span>
     </div>
-    ${mine.length ? `<div style="position:relative;height:200px"><canvas id="socSched"></canvas></div>
-    <p class="slv-note"><b>${S.length} scheduled, ${M.length} by hand.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. <span class="sg-tag stand">Stand-in</span> Metricool does not say how a post went out, so a post that went live within 2 minutes of a post on another app counts as scheduled.${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}</p>`
+    ${mine.length || sto.length ? `<div style="position:relative;height:200px"><canvas id="socSched"></canvas></div>
+    <p class="slv-note"><b>${S.length} scheduled in Metricool, ${M.length} posted by hand${sto.length ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record.${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}</p>`
       : '<p class="slv-note">No posts in these dates.</p>'}`;
 }
 function sgSchedDraw(net) {
   if (net === 'youtube') return;
   const cv = document.getElementById('socSched'); if (!cv) return;
   const w = socData.win, mode = socMode(), cols = socCols(), by = {};
-  sgSchedPosts().filter(p => p.net === net).forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }), k = p.sch ? 'sched' : 'hand'; r[k] = (r[k] || 0) + 1; });
-  const rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['sched', 'hand']);
+  sgSchedPosts().filter(p => p.net === net && (p.sch || p.man)).forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }), k = p.sch ? 'sched' : 'hand'; r[k] = (r[k] || 0) + 1; });
+  const sto = sgSchedStories(net);
+  sto.forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }); r.story = (r.story || 0) + 1; });
+  const rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['sched', 'hand', 'story']);
   const c = socCharts.sched = socBarChart(cv, rows, [
-    { label: 'Scheduled (guess)', data: rows.map(r => r.sched), backgroundColor: cols[net], stack: 's' },
-    { label: 'By hand (guess)', data: rows.map(r => r.hand), backgroundColor: socRgba(cols[net], .35), stack: 's' },
+    { label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: cols[net], stack: 's' },
+    { label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: socRgba(cols[net], .55), stack: 's' },
+    ...(sto.length ? [{ label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: socRgba(cols[net], .25), stack: 's' }] : []),
   ], true);
   if (c) { c.options.scales.y.ticks = { ...(c.options.scales.y.ticks || {}), precision: 0 }; c.update(); }
 }
