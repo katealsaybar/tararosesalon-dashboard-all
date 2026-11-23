@@ -502,11 +502,15 @@ body.toolspend-chrome #mastBranch{display:none}
 /* "Dikit dikit na masyado" (Kate, 22 Oct 2026): with Email, Opt-out and First visit the fixed-width table was too tight. It is the Lost Clients
    blast list's table now (lost-lists.css .ll-wrap: a scroll box, columns size themselves, headings stay at the top), and Client and Visits are
    frozen at the left while the rest scrolls. Wide screens also get a wider page (the masthead follows, so they stay in line). */
-/* Service Calendar (Kate, 19 Nov 2026: "sikip tingnan nung calendar"): the day grid has a column for every stylist, so the page and the masthead above it use the width of the screen instead of the usual 1180px. */
-@media(min-width:1240px){body.svc-chrome .wrap,body.svc-chrome .topbar-in{max-width:1760px}}
-/* Social and its Calendar tab (Kate, 23 Nov 2026: "ang laki ng blank space tapos ang liit na ng space for content, widen it out"): the page and the masthead use the width of the screen, as Service Calendar does. */
-@media(min-width:1240px){body.social-chrome .wrap,body.social-chrome .topbar-in,body.contentcalendar-chrome .wrap,body.contentcalendar-chrome .topbar-in{max-width:1760px}}
-@media(min-width:1240px){body.lastvisit-chrome .wrap,body.lastvisit-chrome .topbar-in{max-width:1480px}body.lastvisit-chrome #lostClientsContent{max-width:1400px!important}}
+/* ONE WIDTH FOR EVERY REPORT (Kate, 23 Nov 2026: "apply this width change for every dashboard report"). Social and Service Calendar had already
+   moved to the width of the screen (Kate: "ang laki ng blank space tapos ang liit na ng space for content"); now every report page and its masthead do the same, up to 1760px.
+   Only wide screens (1240px and up) change; phones and tablets are as before. The dashboard cover (body.kpi-view) is a designed page, so it keeps its 1180px.
+   Each report used to cap itself again inside the shell (an inline max-width on its <main> or shell, or a rule in its own file), so those caps are lifted here too. */
+@media(min-width:1240px){
+  body:not(.kpi-view) .wrap,body:not(.kpi-view) .topbar-in{max-width:1760px}
+  body:not(.kpi-view) #wrap :is([id$="Content"],[id$="Shell"],[id$="Why"])[style*="max-width"]{max-width:none!important}
+  body:not(.kpi-view) #wrap :is(.oty,.qrp,.nvb,.dpf,#retentionContent,#depositContent,#stripeContent){max-width:none!important}
+}
 body.lastvisit-chrome .lc-wrap.ll-wrap th[class*="lc-c-"]{width:auto}
 body.lastvisit-chrome .lc-wrap.ll-wrap th:first-child,body.lastvisit-chrome .lc-wrap.ll-wrap td:first-child:not([colspan]){width:170px;min-width:170px;max-width:170px}
 body.lastvisit-chrome .lc-wrap.ll-wrap th:nth-child(2),body.lastvisit-chrome .lc-wrap.ll-wrap td:nth-child(2):not([colspan]){position:sticky;left:170px;z-index:3;background:var(--surface);box-shadow:1px 0 0 var(--border);width:64px;min-width:64px}
@@ -3388,12 +3392,9 @@ tr.who-flash td{animation:whoFlashRow 2.2s ease both}
    these three pages only (body.ledger-chrome is set by showView), the page runs
    to 1560px instead of the dashboard's 1180px and every table steps up a size.
    The masthead is already reduced to the logo here, so the width is all figures. */
-body.ledger-chrome .wrap{max-width:1560px}
 /* Kate, 30 Sep 2026: the fixed masthead kept the 1180px cap, so with the sidebar
    closed the logo and date line sat indented from the page below them. */
-body.ledger-chrome .topbar-in{max-width:1560px}
 /* Kate, 12 Nov 2026: the Weekly Product Plan sheet has 20-plus columns, so on a wide screen the page and the masthead (kept in line) run to 1560px. */
-@media(min-width:1240px){body.spend-chrome .wrap,body.spend-chrome .topbar-in{max-width:1560px}}
 body.ledger-chrome table.lg{font-size:16px}
 body.ledger-chrome table.lg.lg-compact{font-size:15px}
 body.ledger-chrome table.lg th{font-size:12.5px;padding:11px 13px}
@@ -3622,7 +3623,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/service-rankings.css?v=a868eb70">
 <link rel="stylesheet" href="css/product-spend.css?v=48cbeb24">   <!-- Products, Top products by spend (product-spend.js) -->
 <link rel="stylesheet" href="css/orders.css?v=70067120">   <!-- Orders and Receipts (orders.js) -->
-<link rel="stylesheet" href="css/out-of-stock.css?v=d8521633">   <!-- Out of Stock (out-of-stock.js) -->
+<link rel="stylesheet" href="css/out-of-stock.css?v=f37fdc34">   <!-- Out of Stock (out-of-stock.js) -->
 <link rel="stylesheet" href="css/lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="css/lost-queue.css?v=113b6d23">
 <link rel="stylesheet" href="css/send-schedule.css?v=88a70391">

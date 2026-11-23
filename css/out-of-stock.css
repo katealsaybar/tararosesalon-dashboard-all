@@ -3,8 +3,6 @@
    are lifted and answered by bar-hover.js (data-bh, data-bh-fill and data-tip on the row). */
 /* the Period row does not apply here (a shelf count has no period), so the masthead dims it */
 body.oos-chrome #periodRow{opacity:.5}
-/* the order list is a wide table with the rail beside it: like the Weekly Product Plan, the page takes more of a big screen (the masthead follows, so the two stay level) */
-@media(min-width:1240px){body.oos-chrome .wrap,body.oos-chrome .topbar-in{max-width:1368px}}
 #view-outofstock .oos-doc{min-width:0}
 .oos-sec{margin-top:34px;scroll-margin-top:calc(var(--sx-top,104px) + 10px)}
 .oos-sec>h3,.oos-how>h3,.oos-det>summary h3{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:500;margin:0 0 4px;line-height:1.2}
