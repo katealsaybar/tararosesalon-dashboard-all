@@ -131,7 +131,7 @@ let GROUP_MODE = false;
 const GROUP_CUR = 'AED';
 function isGroupView() {
   return GROUP_MODE && typeof sel !== 'undefined' && sel.branch.includes('all')
-    && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW) || CURRENT_VIEW === 'reviews');
+    && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW));   // Google Reviews left this list on 24 Nov 2026: Bahrain is its own view there, never joined to the UAE
 }
 // Kate, 3 Oct 2026: Bahrain can be read in AED as well as its own BHD, at the same
 // fixed rate, on the same four pages as the Group (the others keep BHD and hide the
@@ -422,7 +422,6 @@ function reviewsViewSwitch(prev, next) {
   }
   if (next === 'reviews') {
     REVIEWS_STASH = {};
-    if (sel.branch.includes('all') && !GROUP_MODE) { GROUP_MODE = true; REVIEWS_STASH.group = true; }
     // Coming from an All time of the other pages: Reviews' own All time (from 2000) takes its place, and the 2021 one
     // is what leaving Reviews puts back.
     const t0 = new Date(); t0.setHours(0,0,0,0);
@@ -854,7 +853,7 @@ function paintFilterChips() {
   if (scope) bEl.innerHTML = chipRow([{ v: scope, label: (BRANCH_INFO[scope] || {}).name || scope, on: true }]);
   else {
     const group = isGroupView();
-    const canGroup = typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW) || CURRENT_VIEW === 'reviews';
+    const canGroup = typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW);
     // "UAE Branches | All" is one two-way switch at the front of the row, so the
     // country scope reads apart from the single-branch chips. "All" is the Group,
     // UAE + Bahrain, and only appears on the pages that can show both. Kate, 30 Sep 2026.
@@ -1534,7 +1533,7 @@ const LEDGER_VIEWS = new Set(TRS_PAGES.filter(p => p.ledger).map(p => p.id));   
 // nopulse: the four Ledgers pages, Podium Race and Staff Quadrant). A first load onto one no longer runs the Pulse behind it, and a Branch
 // or Period change redraws that page alone (PULSE_STALE, as for Daily Performance); the Pulse catches up when a page that needs it opens.
 const NOPULSE_VIEWS = new Set(TRS_PAGES.filter(p => p.nopulse).map(p => p.id));
-const NOPULSE_REDRAW = { services: 'renderServiceRankings', ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam', supplierspend: 'renderSpend', lostclients: 'renderLostClients', complaints: 'cqRefresh', complaintlog: 'cqRefreshLog', complaintsdetail: 'cdRefresh', marketingspend: 'mspendRefresh', social: 'socMastRefresh', toolspend: 'tsRefresh', dealsperf: 'renderDealsPerf', discountsvouchers: 'renderDiscountsVouchers', clientmix: 'renderClientMix', retention: 'renderRetention', stripedeposits: 'renderStripePhorest', depositcheck: 'renderDepositCheck', servicecal: 'renderServiceCal', leavecal: 'renderLeaveCal', orders: 'renderOrders', stockcost: 'renderStockCost', outofstock: 'renderOutOfStock' };
+const NOPULSE_REDRAW = { services: 'renderServiceRankings', reviews: 'renderReviews', ledgerFinancials: 'renderLedgerFinancials', ledgerTargets: 'renderLedgerTargets', ledgerActuals: 'renderLedgerActuals', ledgerStylist: 'renderLedgerStylist', team: 'renderTeam', teamquad: 'renderTeam', supplierspend: 'renderSpend', lostclients: 'renderLostClients', complaints: 'cqRefresh', complaintlog: 'cqRefreshLog', complaintsdetail: 'cdRefresh', marketingspend: 'mspendRefresh', social: 'socMastRefresh', toolspend: 'tsRefresh', dealsperf: 'renderDealsPerf', discountsvouchers: 'renderDiscountsVouchers', clientmix: 'renderClientMix', retention: 'renderRetention', stripedeposits: 'renderStripePhorest', depositcheck: 'renderDepositCheck', servicecal: 'renderServiceCal', leavecal: 'renderLeaveCal', orders: 'renderOrders', stockcost: 'renderStockCost', outofstock: 'renderOutOfStock' };
 // Resolved by loadData() once the window, the last day of data, the address and the weekly table (its staff names classify Phorest-only
 // people) are in, so a page that needs only those can open before the rest of the load (the freshness badge, the Pulse) is done.
 let _winReadyRes = null;
@@ -1556,19 +1555,9 @@ let PULSE_STALE = false;
 // renderDashboard() runs regardless of which page you are on, because it is what
 // repaints the filter chips and the masthead's branch/range line.
 function refreshActiveView() {
-  // Before the Pulse redraw, which takes a moment: the Reviews frame just follows.
-  postReviewsBranch();
-  // Kate, 9 Oct 2026: "di mapindot, nag llag" on Google Reviews. Every Branch or Period change ran the whole Pulse redraw
-  // behind the page (a daily range, targets for every month of it, door counts: about 14 requests and a full aggregate) for
-  // numbers that page never shows, and the chips could not be used until it finished. Reviews reads the filters itself in
-  // its frame, which was just told, so here only the chips and the address bar are repainted; the Pulse waits (PULSE_STALE)
-  // until a page that needs it is opened.
-  if (CURRENT_VIEW === 'reviews') {
-    PULSE_STALE = true;
-    paintFilterChips();
-    if (typeof spy === 'function') spy();
-    return Promise.resolve();
-  }
+  // Kate, 9 Oct 2026: "di mapindot, nag llag" on Google Reviews. Every Branch or Period change ran the whole Pulse redraw behind the page for numbers that
+  // page never shows. Google Reviews (a native page since 24 Nov 2026, js/reviews.js) is a nopulse page now, so the generic branch below redraws it alone
+  // through NOPULSE_REDRAW and the Pulse waits (PULSE_STALE) until a page that needs it is opened.
   // Over the Years reads only the Branch chips (through sel.branch), so like Reviews it skips the Pulse redraw.
   if (CURRENT_VIEW === 'overyears') {
     PULSE_STALE = true;
@@ -6256,6 +6245,7 @@ function redrawCurrentView() {
   if ((v === 'team' || v === 'teamquad') && (allData.length || (dateFrom && dateTo))) renderTeam();
   else if (v === 'stylists')           renderStylistCards();
   else if (v === 'services')           initSvcView();
+  else if (v === 'reviews' && typeof renderReviews === 'function') renderReviews(true);
   else if (v === 'clients')            initCliView();
   else if (v === 'branchperf')         renderBranchPerformance();
   else if (v === 'compare')            renderCompare();

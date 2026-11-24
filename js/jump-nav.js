@@ -88,6 +88,7 @@ const JN_PAGES = {
   clientmix:      { sel: '#cmCards, .cm-two, #cmListTitle', labels: ['The mix', 'By item', 'The clients'] },
   retention:      { sel: '#retentionContent [data-jn]' },   // The answer, By salon (more than one salon picked), By stylist: each carries data-jn
   lostclients:    { sel: '#lcBody > section.slv-card', labels: ['The totals', 'The client list'] },
+  reviews:        { sel: '#reviewsContent [data-jn]' },   // Where to start, Reviews by, By Branch, Staff named, Client photos, More detail: each carries data-jn
   services:       { sel: '#serviceRankingsContent [data-jn]' },   // The numbers, Top services, By salon (more than one salon), By family: each carries data-jn
   outofstock:     { sel: '#outofstockContent [data-jn]' },   // 1 This week's order, 2 The order list, 3 Order by supplier: the page carries its own rail (.lg-side in index.html), so this is the fallback only
   orders:         { sel: '#ordersContent [data-jn]' },

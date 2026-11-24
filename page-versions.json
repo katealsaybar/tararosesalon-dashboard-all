@@ -10,7 +10,7 @@
   "complaintlog": "7aba24dac2",
   "complaints": "63b1408e10",
   "complaintsdetail": "6918ad9f45",
-  "contentcalendar": "ddff294faf",
+  "contentcalendar": "5d48bf89ca",
   "dailyperf": "e4241bc958",
   "dailyreports": "8508154a0f",
   "dashboard": "e253427b88",
@@ -40,7 +40,7 @@
   "quarterreport": "a172ac70bd",
   "recruitment": "8075da5868",
   "retention": "62a5751a03",
-  "reviews": "de885fe52b",
+  "reviews": "a4658ca6ff",
   "servicecal": "bf456b614e",
   "services": "e8c515b1c1",
   "social": "8dc742940f",
@@ -57,6 +57,6 @@
   "teamquad": "cac0736a95",
   "toolspend": "8ffda8c038",
   "website": "9bca0ce79f",
-  "wvperf": "d2361efd84"
+  "wvperf": "df79c21365"
  }
 }

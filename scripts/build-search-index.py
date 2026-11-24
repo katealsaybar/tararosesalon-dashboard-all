@@ -67,7 +67,7 @@ FILE_VIEWS = {
     'staff-weeks.js': 'staffweeks', 'stylist-levels.js': 'stafflevels', 'one2ones.js': 'one2ones', 'attrition.js': 'attrition', 'client-book.js': 'clientbook', 'complaint-chats.js': 'complaintchats', 'complaints-detail.js': 'complaintsdetail', 'complaints.js': 'complaints', 'complaint-log.js': 'complaintlog',
     'top-clients.js': 'clients',
     # Added 14 Oct 2026: these pages had no entry here, so their text was not in the index at all.
-    'over-the-years.js': 'overyears', 'client-mix.js': 'clientmix', 'retention.js': 'retention', 'service-rankings.js': 'services',
+    'over-the-years.js': 'overyears', 'client-mix.js': 'clientmix', 'retention.js': 'retention', 'service-rankings.js': 'services', 'reviews.js': 'reviews',
     'lost-consults.js': 'lostlists', 'lost-waves.js': 'lostlists', 'lost-review-file.js': 'lostlists',
     'lost-clients.js': 'lostclients', 'lost-lists.js': 'lostlists', 'lost-queue.js': 'lostlists', 'pulse-narrative.js': 'dashboard',
     'branch-narrative.js': 'branchperf', 'ledger-targets.js': 'ledgerTargets',
@@ -87,7 +87,7 @@ NOT_PAGES = {
     'ask-widget.js': 'the Ask box, one widget on every page', 'staff-links.js': 'the name hover menu',
     'staff-profiles.js': 'staff card data; people are found through the Team results',
     'stylist-cards.js': 'staff card words; people are found through the Team results',
-    'ledger-export.js': 'spreadsheet export of the ledger pages', 'report-export.js': 'the XLSX and CSV buttons every report shares', 'page-export.js': 'the masthead XLSX and CSV for the whole page (TRSExport, Kate 18 Nov 2026)', 'staff-dash-export.js': 'XLSX and CSV of the Staff Dashboards frame', 'pulse-export.js': 'XLSX and CSV of the Organisation Pulse', 'reviews-export.js': 'XLSX and CSV of the Google Reviews frame', 'marketing-export.js': 'XLSX and CSV of the six Marketing pages', 'ledger-targets-db.js': 'target data loader',
+    'ledger-export.js': 'spreadsheet export of the ledger pages', 'report-export.js': 'the XLSX and CSV buttons every report shares', 'page-export.js': 'the masthead XLSX and CSV for the whole page (TRSExport, Kate 18 Nov 2026)', 'staff-dash-export.js': 'XLSX and CSV of the Staff Dashboards frame', 'pulse-export.js': 'XLSX and CSV of the Organisation Pulse', 'marketing-export.js': 'XLSX and CSV of the six Marketing pages', 'ledger-targets-db.js': 'target data loader',
     'marketing-chart.js': 'chart drawing shared by Google Ads and Website',
     'fix-blank-rows.js': 'one-off Node repair script, not a page',
     'loading-facts.js': 'the lines on the loading screen',
@@ -116,7 +116,6 @@ NO_TEXT_OK = {
     'wvperf': 'an iframe of the Wellness Voucher pages, searched there',
     'contentcalendar': 'an iframe of the Content Calendar in Post Approvals, found through its name and words in pages.js',
     'stylists': 'Staff Cards: the people are found through the Team results',
-    'reviews': 'drawn inside the Google Reviews frame; Team and Content results cover it (see audit part on search coverage)',
 }
 # A line only one page has: it must be indexed under that page and under no other (whole line,
 # not a part of one). These are the pages whose names or subjects are close to another page's.
