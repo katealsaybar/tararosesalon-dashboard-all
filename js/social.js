@@ -672,19 +672,34 @@ function socDrawPlatform(net) {
 // All is the account's views each day (Metricool's daily series). Stories and Posts are counted on the day each one went out: a story's views (content_calendar_story_stats, 93 days a call) and a post's or reel's views so far.
 // The two are not the same days as All, and the note under the chart says so.
 let socViewsMode = 'all', socViewsBase = null, socStoryViews = null, socStoryKey = null, socStoryBusy = null;
+// Posts and reels split by how they went out (Kate, 24 Nov 2026: "i need to know the views and reach by hand and by schedule"). The Content Calendar's own record:
+// metricool_posts.source, manual = posted by hand, metricool = scheduled in Metricool. Posts before 12 Aug 2026 have none and are shown apart, never guessed.
+const socSplitC = () => (typeof sgSchedC === 'function' ? sgSchedC() : (socDark() ? { s: '#EEF3C7', h: '#C4B5FD' } : { s: '#C99A2E', h: '#7C5CD4' }));
+function socSplitPosts() { return socData.posts.filter(p => p.network === 'instagram' && p.kind !== 'story' && p.post_date); }
+function socSplitNote() {
+  const ps = socSplitPosts(), n = x => socNum(x), sum = (a, k) => a.reduce((t, p) => t + (Number(p[k]) || 0), 0);
+  const S = ps.filter(p => p.source === 'metricool'), M = ps.filter(p => p.source === 'manual'), U = ps.length - S.length - M.length;
+  const line = (name, a) => a.length ? `${name}: ${n(a.length)} ${a.length === 1 ? 'post' : 'posts'}, ${n(sum(a, 'views'))} views, ${n(sum(a, 'reach'))} reach, ${n(Math.round(sum(a, 'views') / a.length))} views and ${n(Math.round(sum(a, 'reach') / a.length))} reach a post.` : `${name}: none in these dates.`;
+  return `${line('Scheduled in Metricool', S)} ${line('Posted by hand', M)} Bars are views, lines are reach, counted on the day each post went out. They keep growing for a few weeks, and reach is added up post by post, so one person can be counted twice. `
+    + (U ? `${n(U)} ${U === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U === 1 ? 'has' : 'have'} no record of how ${U === 1 ? 'it' : 'they'} went out (grey bar, no line). ` : '')
+    + 'Click a bar or a line point to see the posts. Not the same days as All, which counts views on the day they happened.';
+}
 function socViewsNote() {
-  if (socViewsMode === 'stories') return "Each story's views and reach, counted on the day it was posted (a story is up for 24 hours). Not the same days as All, which counts views on the day they happened.";
-  if (socViewsMode === 'posts') return "Each post's and reel's views and reach so far, counted on the day it went out. They keep growing for a few weeks. Not the same days as All, which counts views on the day they happened.";
+  if (socViewsMode === 'stories') return "Each story's views and reach, counted on the day it was posted (a story is up for 24 hours). Every story is posted live in the app, so all of them are by hand. Not the same days as All, which counts views on the day they happened.";
+  if (socViewsMode === 'posts') return socSplitNote();
   return 'Views of everything on the account each day (posts, reels and stories together), with the people reached as the line.';
 }
 function socViewsInner(net, cols) {
   const by = socMode() === 'week' ? 'week by week' : 'day by day', v = socViewsMode, K = v === 'stories' ? 'Story ' : v === 'posts' ? 'Post ' : '';
-  const title = v === 'stories' ? `Instagram story views ${by}, by the day posted` : v === 'posts' ? `Instagram post and reel views ${by}, by the day posted` : `Instagram views ${by}, all content`;
+  const title = v === 'stories' ? `Instagram story views ${by}, by the day posted` : v === 'posts' ? `Instagram post and reel views and reach ${by}, scheduled or by hand` : `Instagram views ${by}, all content`;
+  const sc = socSplitC(), key = v === 'posts'
+    ? `<span><i style="background:${sc.s}"></i>Scheduled in Metricool</span><span><i style="background:${sc.h}"></i>Posted by hand</span><span><i style="background:var(--muted2,#9CA3AF)"></i>No record</span><span>Bars: views · Lines: reach</span>`
+    : `<span><i style="background:${cols[net]}"></i>${K}views (bars)</span><span><i style="background:${socReachColour()};width:16px;height:3px;border-radius:2px"></i>${K}reach (line)</span>`;
   const seg = `<div class="sc-seg" role="group" aria-label="Show">${[['all', 'All'], ['stories', 'Stories'], ['posts', 'Posts']].map(([k, l]) => `<button type="button" class="${v === k ? 'on' : ''}" aria-pressed="${v === k}" onclick="socViewsSet('${k}')">${l}</button>`).join('')}</div>`;
   return `<div class="mk-chart-head">
       <div class="slv-eyebrow">${title}</div>
       ${seg}
-      <span class="soc-key"><span><i style="background:${cols[net]}"></i>${K}views (bars)</span><span><i style="background:${socReachColour()};width:16px;height:3px;border-radius:2px"></i>${K}reach (line)</span></span>
+      <span class="soc-key">${key}</span>
     </div>
     <div style="position:relative;height:240px"><canvas id="socViews"></canvas></div>
     <p class="slv-note" id="socViewsNote">${socViewsNote()}</p>`;
@@ -700,7 +715,8 @@ function socStoryLoad() {
       const b = socIso(e) < w.to ? socIso(e) : w.to;
       const r = await sb.rpc('content_calendar_story_stats', { p_from: a, p_to: b, ...socBr() });
       if (r.error) throw r.error;
-      (r.data || []).forEach(x => { if (x.network === 'instagram') out.push({ d: new Date(x.posted_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }), views: x.views, reach: x.reach }); });
+      // every network comes back (Instagram and Facebook); the Instagram Views chart takes its own, the Scheduled or by hand chart (social-glance.js) takes the platform it is on
+      (r.data || []).forEach(x => out.push({ net: x.network, d: new Date(x.posted_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }), views: x.views, reach: x.reach, raw: x }));
       const n = new Date(b + 'T00:00:00'); n.setDate(n.getDate() + 1); a = socIso(n);
     }
     if (socData && socData.win.from + '|' + socData.win.to + '|' + socBranch === key) { socStoryViews = out; socStoryKey = key; }
@@ -715,8 +731,15 @@ function socViewsDraw(net, baseRows) {
   const cv = document.getElementById('socViews'); if (!cv) return;
   if (net === 'instagram') socViewsBase = baseRows;
   const w = socData.win, mode = socMode(), cols = socCols(), P = SOC_PLAT[net], note = document.getElementById('socViewsNote');
-  let rows = baseRows, bars = 'Views', line = 'Reach (added up day by day)';
-  if (net === 'instagram' && socViewsMode !== 'all') {
+  let rows = baseRows, bars = 'Views', line = 'Reach (added up day by day)', split = false;
+  if (net === 'instagram' && socViewsMode === 'posts') {
+    // views stacked by how each post went out, reach as one line for each group
+    split = true;
+    const by = {}, F = ['sv', 'sr', 'sn', 'hv', 'hr', 'hn', 'uv', 'ur', 'un'];
+    socSplitPosts().forEach(p => { const g = p.source === 'metricool' ? 's' : p.source === 'manual' ? 'h' : 'u', x = (by[p.post_date] = by[p.post_date] || { date: p.post_date });
+      x[g + 'v'] = (x[g + 'v'] || 0) + (Number(p.views) || 0); x[g + 'r'] = (x[g + 'r'] || 0) + (Number(p.reach) || 0); x[g + 'n'] = (x[g + 'n'] || 0) + 1; });
+    rows = mkBuckets(Object.values(by), w.from, w.to, mode, F);
+  } else if (net === 'instagram' && socViewsMode !== 'all') {
     const by = {}, put = (d, v, r) => { const x = (by[d] = by[d] || { date: d }); x.views = (x.views || 0) + (Number(v) || 0); x.reach = (x.reach || 0) + (Number(r) || 0); };
     if (socViewsMode === 'posts') socData.posts.forEach(p => { if (p.network === 'instagram' && p.kind !== 'story' && p.post_date) put(p.post_date, p.views, p.reach); });
     else {
@@ -727,7 +750,7 @@ function socViewsDraw(net, baseRows) {
           e => { console.error(e); if (note) note.textContent = 'Could not read the stories just now. Refresh to try again.'; });
         return;
       }
-      st.forEach(x => put(x.d, x.views, x.reach));
+      st.filter(x => x.net === 'instagram').forEach(x => put(x.d, x.views, x.reach));
     }
     rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['views', 'reach']);
     bars = socViewsMode === 'stories' ? 'Story views' : 'Post views';
@@ -735,6 +758,24 @@ function socViewsDraw(net, baseRows) {
   }
   if (note) note.textContent = socViewsNote();
   if (socCharts.views) { socCharts.views.destroy(); socCharts.views = null; }
+  if (split) {
+    const C = socSplitC(), muted = getComputedStyle(document.documentElement).getPropertyValue('--muted2').trim() || '#9CA3AF', sp = rows.length > 45 ? 0 : 5, surf = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#fff';   // a ring in the page colour so a point still shows where it sits on its own bar
+    const bar = (k, label, col, sk) => ({ sk, label, data: rows.map(r => r[k + 'v']), backgroundColor: col, stack: 'v' });
+    // a line only where that group posted, so a day with none is a gap and not a drop to 0; a stack id of its own keeps the lines from adding up on the stacked scale
+    const ln = (k, label, col, sk) => ({ sk, type: 'line', stack: 'r' + k, label, data: rows.map(r => r[k + 'n'] ? r[k + 'r'] : null), borderColor: col, backgroundColor: col, borderWidth: 3, pointRadius: sp, pointHoverRadius: 7, pointBackgroundColor: col, pointBorderColor: surf, pointBorderWidth: 2, tension: .3 });
+    const hasU = rows.some(r => r.un);
+    const c = socCharts.views = socBarChart(cv, rows, [
+      bar('s', 'Scheduled views', C.s, 'sched'), bar('h', 'Posted by hand views', C.h, 'hand'), ...(hasU ? [bar('u', 'No record views', muted)] : []),
+      ln('s', 'Scheduled reach', C.s, 'sched'), ln('h', 'Posted by hand reach', C.h, 'hand'),
+    ], true, false);
+    if (c) {
+      const lab = c.options.plugins.tooltip.callbacks.label;
+      c.options.plugins.tooltip.callbacks.label = x => x.raw === null ? null : lab(x);
+      c.options.plugins.tooltip.callbacks.footer = items => 'All views: ' + socNum(items.filter(i => i.dataset.type !== 'line').reduce((a, i) => a + (Number(i.raw) || 0), 0));
+      if (typeof sgPopAttach === 'function') sgPopAttach(c, rows, net, { showP: true, showS: false });
+    }
+    return;
+  }
   socCharts.views = socBarChart(cv, rows, [
     { label: bars, data: rows.map(r => r.views), backgroundColor: cols[net] },
     ...(P.reach ? [{ type: 'line', label: line, data: rows.map(r => r.reach), borderColor: socReachColour(), backgroundColor: socReachColour(), borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: socReachColour(), tension: .3 }] : []),

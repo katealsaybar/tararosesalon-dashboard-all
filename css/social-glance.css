@@ -132,3 +132,16 @@ html[data-theme="dark"] .sg-bd{color:#1A1A1A}
 .soc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .soc-br{margin-left:auto}
 @media (max-width:760px){.soc-br{margin-left:0}.soc-br button{min-height:44px}}
+
+/* The cards above Scheduled or by hand on each platform tab (Kate, 24 Nov 2026: "i need to know the views and reach by hand and by schedule"): posts scheduled in Metricool,
+   posts by hand and the stories, each with how many, views, reach and the average of each. Two cards on TikTok (no stories), three on Instagram and Facebook. */
+.sg-cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:2px 0 14px}
+.sg-cc{background:var(--surface);border:1px solid var(--border);border-top:4px solid var(--c);border-radius:14px;padding:10px 14px 12px;min-width:0}
+.sg-cch{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;margin-bottom:6px}
+.sg-cch i{width:12px;height:12px;border-radius:4px;background:var(--c);flex:none}
+.sg-ccr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0;border-top:1px solid var(--border);font-size:13.5px}
+.sg-ccr:first-of-type{border-top:0}
+.sg-ccr span{color:var(--muted)}
+.sg-ccr b{font-size:16px;font-variant-numeric:tabular-nums;text-align:right}
+.sg-cc .sg-hint{margin:6px 0 0}
+@media (max-width:760px){.sg-cmp{grid-template-columns:minmax(0,1fr)}.sg-ccr{min-height:44px;align-items:center}}

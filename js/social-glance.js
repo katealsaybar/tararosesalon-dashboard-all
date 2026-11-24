@@ -79,8 +79,9 @@ function sgHowLoad() {
   p.then(done, done);
   return p;
 }
-function sgShapeStories(arr) {
-  return (arr || []).filter(s => s.network === 'instagram').map(s => { const at = Date.parse(s.posted_at) || 0;
+function sgShapeStories(arr, net) {
+  net = net || 'instagram';
+  return (arr || []).filter(s => s.network === net).map(s => { const at = Date.parse(s.posted_at) || 0;
     return { d: sgDayOf(at), t: sgTimeOf(at), at, url: s.url, v: Number(s.views) || 0, r: Number(s.reach) || 0, tf: Number(s.taps_forward) || 0, tb: Number(s.taps_back) || 0, ex: Number(s.exits) || 0, rp: Number(s.replies) || 0 }; });
 }
 const sgAgg = rows => ({ n: rows.length, v: sgSum(rows, x => x.v), r: sgSum(rows, x => x.r), it: sgSum(rows, x => x.it) });
@@ -344,13 +345,22 @@ let sgSchedView = 'all';
 // the light theme uses their deeper partners so the bars still show on white (the dashboard's gold #C99A2E and violet #7C5CD4).
 // Posts as a whole are the brand blue (turquoise, like the Reach line) and stories the brand pink (coral), Kate, 23 Nov 2026.
 const sgSchedC = () => (socDark() ? { s: '#EEF3C7', h: '#C4B5FD', p: '#99F6E4', t: '#FF9B9B' } : { s: '#C99A2E', h: '#7C5CD4', p: '#0F6E56', t: '#E0707A' });
-function sgSchedSet(v) {
-  sgSchedView = v;
+// What the bars show (Kate, 24 Nov 2026: "i need to know the views and reach by hand and by schedule"): how many posts went out, or the average views or the average reach a post got, side by side for
+// scheduled in Metricool, posted by hand and stories. The totals are in the cards above, and the Instagram Views chart stacks them.
+let sgSchedMet = 'n';
+// The stories' own numbers (views, reach) come from the call the Instagram Views chart already makes (socStoryLoad in social.js), every network in one go; sgStBad is the Period it could not read.
+let sgStBad = null;
+const sgStKey = () => socData.win.from + '|' + socData.win.to + '|' + socBranch;
+const sgStatRows = net => { const r = typeof socStoryRows === 'function' ? socStoryRows() : null; return r ? r.filter(x => x.net === net) : null; };
+const sgSchedReady = net => !!sgHowReady() && (net === 'tiktok' || !!sgStatRows(net) || sgStBad === sgStKey());
+function sgSchedRedo() {
   const box = document.getElementById('socSchedBox'); if (!box || typeof socTab === 'undefined') return;
   if (socCharts.sched) { socCharts.sched.destroy(); socCharts.sched = null; }
   box.innerHTML = sgSchedInner(socTab, socCols());
   sgSchedDraw(socTab);
 }
+function sgSchedSet(v) { sgSchedView = v; sgSchedRedo(); }
+function sgSchedMetSet(m) { sgSchedMet = m; sgSchedRedo(); }
 function sgSchedPosts() {
   const how = sgHowReady(); if (!how) return [];
   if (sgSchedSrc !== how) { sgSchedRows = sgHow(sgShapePosts(socData.posts, how.src)); sgSchedSrc = how; }
@@ -358,33 +368,82 @@ function sgSchedPosts() {
 }
 // The stories a platform had in these dates (Instagram and Facebook; TikTok has none), from the Content Calendar's own call.
 function sgSchedStories(net) { const how = sgHowReady(); return how ? how.stories.filter(x => x.net === net) : []; }
-function sgSchedInner(net, cols) {
-  const mode = socMode();
+// One look at what this chart reads, shared by the box and the drawing: the posts in each group, the stories with their numbers, and what is switched on.
+function sgSchedRead(net) {
   const mine = sgSchedPosts().filter(p => p.net === net), S = mine.filter(p => p.sch), M = mine.filter(p => p.man), U = mine.filter(p => !p.sch && !p.man), sto = sgSchedStories(net);
-  const v = sto.length ? sgSchedView : 'posts', showP = v !== 'stories', showS = v !== 'posts' && sto.length > 0;
-  const avg = a => a.length ? sgN(sgSum(a, x => x.v) / a.length) : '–';
+  const st = sgStatRows(net), stSh = st ? sgShapeStories(st.map(x => x.raw), net) : null;
+  const hasR = mine.some(p => p.r > 0) || (stSh || []).some(x => x.r > 0);
+  const met = sgSchedMet === 'r' && !hasR ? 'v' : sgSchedMet;
+  const v = sto.length ? sgSchedView : 'posts', showP = v !== 'stories';
+  const stMiss = v !== 'posts' && sto.length > 0 && met !== 'n' && !stSh;   // story numbers wanted but not read
+  const showS = v !== 'posts' && sto.length > 0 && !stMiss;
+  return { mine, S, M, U, sto, stSh, hasR, met, v, showP, showS, stMiss };
+}
+// The answer first: how many, the views, the reach and the average of each, for posts scheduled in Metricool, posts by hand and the stories (posted live, so by hand).
+// Every figure opens the posts or stories behind it.
+function sgSchedCards(net, R) {
+  const w = socData.win, sub = sgRange(w.from, w.to), C = sgSchedC(), nm = SG_PN[net], tot = (a, k) => sgSum(a, x => x[k]);
+  const lines = (a, spec, count, one, n) => {
+    if (!a.length) return '<p class="sg-hint">None in these dates.</p>';
+    const rr = a.filter(x => x.r > 0), v = tot(a, 'v'), r = tot(a, 'r'), c = n == null ? a.length : n;
+    const row = (l, txt, x) => `<div class="sg-ccr"><span>${l}</span><b>${sgNum(txt, spec, x)}</b></div>`;
+    return row(count, sgN(c), c) + row('Views', sgN(v), v) + row('Reach', rr.length ? sgN(r) : '–', rr.length ? r : 0)
+      + row('Average views a ' + one, sgN(v / a.length), v / a.length) + row('Average reach a ' + one, rr.length ? sgN(r / rr.length) : '–', rr.length ? r / rr.length : 0)
+      + (rr.length && rr.length < a.length ? `<p class="sg-hint">Reach is known for ${rr.length} of ${a.length}.</p>` : '');
+  };
+  const card = (name, col, body) => `<div class="sg-cc" style="--c:${col}"><div class="sg-cch"><i></i>${name}</div>${body}</div>`;
+  const sp = (k, name, rows) => sgPostsSpec('sched-card-' + net + '-' + k, name, `${sub}, ${rows.length} posts on ${nm}`, rows);
+  let h = card('Scheduled in Metricool', C.s, lines(R.S, sp('sched', 'Scheduled in Metricool', R.S), 'Posts', 'post'))
+    + card('Posted by hand', C.h, lines(R.M, sp('hand', 'Posted by hand', R.M), 'Posts', 'post'));
+  if (R.sto.length) h += card('Stories, posted live in the app', sgSchedC().t, R.stSh
+    ? lines(R.stSh, sgStoriesSpec('sched-card-' + net + '-stories', 'Stories', `${sub}, ${R.stSh.length} stories on ${nm}`, R.stSh), 'Stories', 'story')
+    : `<p class="sg-hint">${sgN(R.sto.length)} ${R.sto.length === 1 ? 'story' : 'stories'}. Their views and reach could not be read just now. Refresh to try again.</p>`);
+  const fb = net === 'facebook' && R.sto.length && w.from < '2026-11-23' ? '<p class="sg-hint">Facebook stories from before 23 Nov 2026 have no numbers, so their views and reach start from that day.</p>' : '';
+  return `<div class="sg-cmp">${h}</div>${fb}`;
+}
+function sgSchedInner(net, cols) {
+  const mode = socMode(), R = sgSchedRead(net), { mine, S, M, U, sto, stSh, hasR, met, v, showP, showS, stMiss } = R;
+  const per = mode === 'week' ? 'a week' : 'a day', by = mode === 'week' ? 'week by week' : 'day by day';
+  const tot = (a, k) => sgSum(a, x => x[k]), mk = met === 'r' ? 'r' : 'v', what = mk === 'r' ? 'reach' : 'views';
+  const avg = (a, k) => { const b = k === 'r' ? a.filter(x => x.r > 0) : a; return b.length ? sgN(tot(b, k) / b.length) : '–'; };
   const small = showP && mine.length && Math.min(S.length, M.length) < 5;
   const seg = sto.length ? `<div class="sc-seg" role="group" aria-label="Show">${[['all', 'All'], ['stories', 'Stories'], ['posts', 'Posts']].map(([k, l]) => `<button type="button" class="${v === k ? 'on' : ''}" aria-pressed="${v === k}" onclick="sgSchedSet('${k}')">${l}</button>`).join('')}</div>` : '';
+  const mseg = `<div class="sc-seg" role="group" aria-label="What the bars show">${[['n', 'How many'], ['v', 'Average views'], ...(hasR ? [['r', 'Average reach']] : [])].map(([k, l]) => `<button type="button" class="${met === k ? 'on' : ''}" aria-pressed="${met === k}" onclick="sgSchedMetSet('${k}')">${l}</button>`).join('')}</div>`;
   const has = showP ? (mine.length || showS) : showS;
-  const said = !showP ? `<b>${sgN(sto.length)} stories (posted live in the app, so by hand).</b> This is the Content Calendar's own record. Click a bar to see the stories.`
-    : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S)} scheduled, ${avg(M)} by hand. This is the Content Calendar's own record. Click a bar${showS ? ' or a point' : ''} to see which ${showS ? 'posts and stories' : 'posts'} they are.${showS ? ' Stories are the bars (left scale), posts the line (right scale).' : ''}${U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : ''}${small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : ''}`;
-  return `<div class="mk-chart-head">
-      <div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div>
-      ${seg}
-      <span class="soc-key">${showP && showS ? `<span><i style="background:${sgSchedC().t}"></i>Stories a day (bars, left)</span><span><i style="background:${sgSchedC().p};width:16px;height:3px;border-radius:2px"></i>Posts a day (line, right)</span>`
-        : showP ? `<span><i style="background:${sgSchedC().s}"></i>Scheduled in Metricool</span><span><i style="background:${sgSchedC().h}"></i>Posted by hand</span>`
-        : `<span><i style="background:${sgSchedC().t}"></i>Stories, posted live</span>`}</span>
+  const grow = ' Views and reach keep growing for a few weeks after a post, so the newest days are still climbing.' + (met === 'r' ? ' Posts with no reach figure (Facebook reels) are left out of the average.' : '');
+  const miss = stMiss ? ' The stories’ views and reach could not be read just now, so they are left out. Refresh to try again.' : '';
+  const said = met === 'n'
+    ? (!showP ? `<b>${sgN(sto.length)} stories (posted live in the app, so by hand).</b> This is the Content Calendar's own record. Click a bar to see the stories.`
+      : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S, 'v')} scheduled, ${avg(M, 'v')} by hand. This is the Content Calendar's own record. Click a bar${showS ? ' or a point' : ''} to see which ${showS ? 'posts and stories' : 'posts'} they are.${showS ? ' Stories are the bars (left scale), posts the line (right scale).' : ''}`)
+    : (!showP ? `<b>Average ${what} a story: ${avg(stSh, mk)}</b> across ${sgN(stSh.length)} stories (posted live in the app, so by hand).${grow} Click a bar to see the stories.`
+      : `<b>Average ${what} a post: ${avg(S, mk)} scheduled in Metricool, ${avg(M, mk)} posted by hand${showS ? `, ${avg(stSh, mk)} a story` : ''}.</b> Each bar is the average of what went out that ${mode === 'week' ? 'week' : 'day'}, so one big post lifts its own bar only.${grow} Click a bar to see which ${showS ? 'posts and stories' : 'posts'} they are.${miss}`);
+  const tail = (showP && U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : '')
+    + (small ? ' <span class="sg-tag warn">Small group</span> Too few to say which is better.' : '');
+  const word = { n: ['Posts', 'Stories'], v: ['Average views a post', 'Average views a story'], r: ['Average reach a post', 'Average reach a story'] }[met];
+  const title = showP ? `${word[0]} scheduled or by hand ${by}` : `${word[1]}, posted live, ${by}`;
+  const nm2 = ['Stories ' + per, 'Posts ' + per], C = sgSchedC();
+  const key = met !== 'n' ? `${showP ? `<span><i style="background:${C.s}"></i>Scheduled in Metricool</span><span><i style="background:${C.h}"></i>Posted by hand</span>` : ''}${showS ? `<span><i style="background:${C.t}"></i>Stories, posted live</span>` : ''}`
+    : showP && showS ? `<span><i style="background:${C.t}"></i>${nm2[0]} (bars, left)</span><span><i style="background:${C.p};width:16px;height:3px;border-radius:2px"></i>${nm2[1]} (line, right)</span>`
+    : showP ? `<span><i style="background:${C.s}"></i>Scheduled in Metricool</span><span><i style="background:${C.h}"></i>Posted by hand</span>`
+    : `<span><i style="background:${C.t}"></i>Stories, posted live</span>`;
+  return `<div class="slv-eyebrow">How the posts did, by how they went out</div>${sgSchedCards(net, R)}
+    <div class="mk-chart-head">
+      <div class="slv-eyebrow">${title}</div>
+      ${seg}${mseg}
+      <span class="soc-key">${key}</span>
     </div>
     ${has ? `<div style="position:relative;height:200px"><canvas id="socSched"></canvas></div>
-    <p class="slv-note">${said}</p>`
-      : '<p class="slv-note">No posts in these dates.</p>'}`;
+    <p class="slv-note">${said}${tail}</p>`
+      : `<p class="slv-note">${stMiss && !showP ? 'The stories’ views and reach could not be read just now. Refresh to try again.' : 'No posts in these dates.'}</p>`}`;
 }
 function sgSchedHtml(net, cols) {
-  const mode = socMode();
+  const by = socMode() === 'week' ? 'week by week' : 'day by day';
   if (net === 'youtube') return `<div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand</div></div><p class="slv-note">YouTube has no post list in Metricool, only the channel’s numbers, so there is nothing to split into scheduled and by hand.</p>`;
-  if (!sgHowReady()) {
-    sgHowLoad().then(() => sgSchedFill(net), e => { console.error(e); sgSchedFill(net, true); });
-    return `<div id="socSchedBox"><div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand ${mode === 'week' ? 'week by week' : 'day by day'}</div></div><p class="slv-note">Reading how each post went out…</p></div>`;
+  if (!sgSchedReady(net)) {
+    // the story numbers are read beside the record; if they fail the posts still show
+    const key = sgStKey(), stp = net === 'tiktok' || typeof socStoryLoad !== 'function' ? Promise.resolve() : socStoryLoad().catch(e => { console.error(e); sgStBad = key; });
+    Promise.all([sgHowLoad(), stp]).then(() => sgSchedFill(net), e => { console.error(e); sgSchedFill(net, true); });
+    return `<div id="socSchedBox"><div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand ${by}</div></div><p class="slv-note">Reading how each post went out…</p></div>`;
   }
   return `<div id="socSchedBox">${sgSchedInner(net, cols)}</div>`;
 }
@@ -393,33 +452,42 @@ function sgSchedFill(net, failed) {
   if (typeof socTab === 'undefined' || socTab !== net) return;
   const box = document.getElementById('socSchedBox'); if (!box) return;
   if (failed) { box.innerHTML = '<div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand</div></div><p class="slv-note">Could not read how the posts went out just now. Refresh to try again.</p>'; return; }
-  if (!sgHowReady()) return;
+  if (!sgSchedReady(net)) return;
   box.innerHTML = sgSchedInner(net, socCols());
   sgSchedDraw(net);
 }
 function sgSchedDraw(net) {
-  if (net === 'youtube' || !sgHowReady()) return;
+  if (net === 'youtube' || !sgSchedReady(net)) return;
   const cv = document.getElementById('socSched'); if (!cv) return;
-  const w = socData.win, mode = socMode(), cols = socCols(), by = {};
-  const sto = sgSchedStories(net), v = sto.length ? sgSchedView : 'posts', showP = v !== 'stories', showS = v !== 'posts' && sto.length > 0;
-  if (showP) sgSchedPosts().filter(p => p.net === net && (p.sch || p.man)).forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }), k = p.sch ? 'sched' : 'hand'; r[k] = (r[k] || 0) + 1; });
-  if (showS) sto.forEach(p => { const r = (by[p.d] = by[p.d] || { date: p.d }); r.story = (r.story || 0) + 1; });
-  const rows = mkBuckets(Object.values(by), w.from, w.to, mode, ['sched', 'hand', 'story']);
-  const both = showP && showS, C = sgSchedC();
+  const w = socData.win, mode = socMode(), by = {}, R = sgSchedRead(net), { sto, stSh, met, showP, showS } = R;
+  const add = (d, k, x) => { const r = (by[d] = by[d] || { date: d }); r[k] = (r[k] || 0) + x; };
+  const avgMet = met !== 'n', mk = met === 'r' ? 'r' : 'v', what = mk === 'r' ? 'reach' : 'views';
+  // how many: one for each post or story. Average: the views (or reach) added up and how many there were, so a week is a true average and not an average of days.
+  // A post with no reach figure is not counted in an average reach.
+  const put = (p, g) => { if (!avgMet) { add(p.d, g, 1); return; } if (mk === 'r' && !(p.r > 0)) return; add(p.d, g + 'S', p[mk]); add(p.d, g + 'N', 1); };
+  if (showP) sgSchedPosts().filter(p => p.net === net && (p.sch || p.man)).forEach(p => put(p, p.sch ? 'sched' : 'hand'));
+  if (showS) (avgMet ? stSh : sto).forEach(p => put(p, 'story'));
+  const rows = mkBuckets(Object.values(by), w.from, w.to, mode, avgMet ? ['schedS', 'schedN', 'handS', 'handN', 'storyS', 'storyN'] : ['sched', 'hand', 'story']);
+  if (avgMet) rows.forEach(r => { ['sched', 'hand', 'story'].forEach(g => { r[g] = r[g + 'N'] ? Math.round(r[g + 'S'] / r[g + 'N']) : 0; }); });
+  const both = !avgMet && showP && showS, C = sgSchedC();
   const datasets = both ? [
     { sk: 'story', label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t },
     { sk: 'post', type: 'line', yAxisID: 'y1', label: 'Posts', data: rows.map(r => (r.sched || 0) + (r.hand || 0)), borderColor: C.p, backgroundColor: C.p, borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: C.p, tension: .25 },
   ] : [
-    ...(showP ? [{ sk: 'sched', label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: C.s, stack: 's' }, { sk: 'hand', label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: C.h, stack: 's' }] : []),
-    ...(showS ? [{ sk: 'story', label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t, stack: 's' }] : []),
+    ...(showP ? [{ sk: 'sched', label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: C.s, stack: avgMet ? undefined : 's' }, { sk: 'hand', label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: C.h, stack: avgMet ? undefined : 's' }] : []),
+    ...(showS ? [{ sk: 'story', label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t, stack: avgMet ? undefined : 's' }] : []),
   ];
-  const c = socCharts.sched = socBarChart(cv, rows, datasets, !both, both);
+  // an average is not stacked: the bars stand side by side so the two ways of posting can be compared on the same scale
+  const c = socCharts.sched = socBarChart(cv, rows, datasets, !avgMet && !both, both);
   if (c && both) {
     // two scales, so a few posts a day are not lost beside many stories: stories on the left (pink), posts on the right (blue)
     const y1 = c.options.scales.y1; y1.beginAtZero = true; y1.grace = 0; y1.ticks.precision = 0; y1.ticks.color = C.p;   // set one by one: spreading a ticks object twice throws in Chart.js
     c.options.scales.y.ticks.color = C.t;
     const lab = c.options.plugins.tooltip.callbacks.label;
     c.options.plugins.tooltip.callbacks.label = x => x.dataset.label === 'Posts' ? `Posts: ${socNum(x.raw)} (scheduled ${socNum(rows[x.dataIndex].sched || 0)}, by hand ${socNum(rows[x.dataIndex].hand || 0)})` : lab(x);
+  } else if (c && avgMet) {
+    // a day with none of a kind has no bar to read; say so in the tooltip instead of "0"
+    c.options.plugins.tooltip.callbacks.label = x => { const g = x.dataset.sk, n = rows[x.dataIndex][g + 'N'] || 0; return n ? `${x.dataset.label}: ${socNum(x.raw)} ${what} each (${socNum(n)} ${g === 'story' ? (n === 1 ? 'story' : 'stories') : (n === 1 ? 'post' : 'posts')})` : null; };
   }
   if (c) {
     c.options.scales.y.ticks = { ...(c.options.scales.y.ticks || {}), precision: 0 };
