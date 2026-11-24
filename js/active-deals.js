@@ -26,8 +26,9 @@ const AD_OLDER = [
   { k: 'Polish350', n: 'Polish and Pamper (older 350)', p: '350', c: 'warn', ct: 'Check KCA' },
   { k: 'ADS499', n: 'ADS Hydrafacial + Blow dry (older 499)', p: '499', c: 'na', ct: 'Older offer' }
 ];
-const AD_CANT = [
-  ['Extension Care Package, free treatment and trim', 'The till rings a free line as "(Treat)" at AED 0, but it does that for any complimentary treatment, and no maintenance sale shows the treatment and the trim both free. With nothing to tell it apart from a gift, it is not counted.']
+// Upper bound only (Kate, 24 Nov 2026): the till rings a free line as "(Treat)" at AED 0 for any gift, so this over-counts. Kept out of every total, shown apart.
+const AD_UB = [
+  { k: 'ExtCare', n: 'Extension Care Package', p: 'Free', pl: 'Free treatment and trim', s: 8, ct: 'Upper bound' }
 ];
 const AD_CATS = [['Hair colour', 'var(--c1)'], ['Hair treatment', 'var(--c2)'], ['Beauty', 'var(--c3)']];
 const AD_TOTAL_DEALS = 13;
@@ -150,7 +151,7 @@ function adPaint() {
       <div class="ad-cap">Brochure deals sold</div><div class="ad-big">${total} <small>sales, ${adAed(cash)}</small></div>
       <div class="ad-track"><div class="ad-fill" style="width:${Math.round(withSale / AD_TOTAL_DEALS * 100)}%"></div></div>
       <div class="ad-cap">${withSale} of ${AD_TOTAL_DEALS} deals on the brochure have a sale in this window</div></div>
-    <div class="ad-pace"><div class="ad-status warn"><span aria-hidden="true">!</span>Counts ${withSale} of ${AD_TOTAL_DEALS} deals, ${AD_CANT.length} cannot be traced</div>
+    <div class="ad-pace"><div class="ad-status warn"><span aria-hidden="true">!</span>Counts ${withSale} of ${AD_TOTAL_DEALS} deals, Extension Care shown apart</div>
       <div class="ad-row"><span>Averaging so far</span><b>${perMonth.toFixed(1)} sales a month</b></div>
       <div class="ad-row"><span>Busiest ${unitName}</span><b>${adEsc(adBucketLabel(busy, unit))}, ${busy.n} sale${busy.n === 1 ? '' : 's'}</b></div>
       <div class="ad-row"><span>Latest sale</span><b>${lastSale ? adEsc(adDay(lastSale)) : 'none'}</b></div>
@@ -190,8 +191,11 @@ function adPaint() {
       <div style="margin-top:14px"><table><thead><tr><th>Type</th><th class="n">Deals</th><th class="n">Sold</th><th class="n">AED</th></tr></thead><tbody>${
         cats.map(c => `<tr><td><span class="ad-dot" style="background:${c.color}"></span>${c.name}</td><td class="n">${c.d}</td><td class="n">${c.n}</td><td class="n">${adAed(c.a)}</td></tr>`).join('')
       }<tr class="tot"><td>Total</td><td class="n">${offs.length}</td><td class="n">${total}</td><td class="n">${adAed(cash)}</td></tr></tbody></table></div></section>
-    <section class="ad-card" id="ad-cant"><h2>Cannot be traced</h2><p class="ad-sub">One deal on the brochure leaves nothing to count at the till, and three are counted by their price.</p>
-      <ul class="ad-list">${AD_CANT.map(c => `<li><b>${adEsc(c[0])}</b>${adEsc(c[1])}</li>`).join('')}</ul></section></div>`;
+    <section class="ad-card" id="ad-cant"><h2>Upper bound only</h2><p class="ad-sub">One deal on the brochure cannot be counted exactly, and three are counted by their price.</p>
+      <ul class="ad-list">${AD_UB.map(u => {
+        const n = adSold(u.k), by = AD_BR.map(b => [b[1], adBrOf(u.k, b[0])]).filter(x => x[1]);
+        return `<li><b>${adEsc(u.n)}, ${adEsc(u.pl.toLowerCase())}: up to ${n} sale${n === 1 ? '' : 's'}</b>${by.length ? adEsc(by.map(x => x[0] + ' ' + x[1]).join(', ') + '. ') : ''}These are extension maintenance sales with a free treatment line. The till rings any gift that way, so some are not this deal, and no sale shows the trim free as well. Left out of every total above.</li>`;
+      }).join('')}</ul></section></div>`;
 
   h += `<section class="ad-card" id="ad-ask"><h2>Waiting on a word</h2><p class="ad-sub">These need an answer before the numbers can be quoted outside the team.</p><ol class="ad-ask">
       <li><b>Emma:</b> are Blonding 999 and Classic Balayage 999 on the slides the same as Phorest’s Full Blonde Package and Full Balayage Package? They hold most of the sales.</li>
@@ -201,6 +205,7 @@ function adPaint() {
       <p class="ad-sub">Sold is distinct sales (branch, date, sale id). AED is what the client paid for the offer’s own lines, VAT included, with a refund taken off the day it was given.</p>
       <p class="ad-sub">A later single line from a package (a redemption) is not counted as a sale. A refunded package still counts as one sale.</p>
       <p class="ad-sub">Price test deals have no package line at the till, so a sale counts when its lines make the brochure price. Refresh Balayage: one face frame, one toner and one treatment that add up to AED 499. Mix and Match: three or more of the seven listed beauty services that add up to AED 499. 25% off for new clients: a client’s first visit (a client record at most 45 days old, no earlier sale), beauty worth AED 200 or more, with a beauty line at exactly 25% off. AED for that one is what the beauty lines were paid after the discount. Refresh Balayage and Mix and Match show none sold when nothing at the till matches, and start counting the day a sale does.</p>
+      <p class="ad-sub">Extension Care is an upper bound, not a count: a maintenance sale (extension removal, refit or maintenance line) with a free “(Treat)” line, from 1 Sep 2026. It is kept out of every total on this page.</p>
       <p class="ad-sub">Bahrain has no lines for any of these. Fratelli and Marasy are closed and not shown. Data comes from the daily Phorest Sales Transactions upload, so today’s sales appear after the nightly run.</p></details>`;
 
   el.innerHTML = h;
@@ -303,7 +308,7 @@ window.addEventListener('resize', () => {
 });
 
 // ── ON THIS PAGE rail (the same shell as Wellness Voucher Performance's) ────
-const AD_RAIL = [['ad-headline', 'Headline'], ['ad-month', 'Sales over time'], ['ad-branch', 'By branch'], ['ad-offer', 'By offer'], ['ad-type', 'Type and not traced'], ['ad-ask', 'Waiting on a word']];
+const AD_RAIL = [['ad-headline', 'Headline'], ['ad-month', 'Sales over time'], ['ad-branch', 'By branch'], ['ad-offer', 'By offer'], ['ad-type', 'Type and upper bound'], ['ad-ask', 'Waiting on a word']];
 function adRail(on) {
   const shell = document.getElementById('adShell'), side = document.getElementById('adSide');
   if (!shell || !side) return;
@@ -323,14 +328,14 @@ function adSave(kind) {
   const offerCols = [{ label: 'Offer', fmt: 'text' }, { label: 'Slide', fmt: 'text' }, { label: 'Price (AED)', fmt: 'text' }, ...AD_BR.map(b => ({ label: b[1], fmt: 'num' })), { label: 'Sold', fmt: 'num' }, { label: 'AED', fmt: 'aed' }, { label: 'Match', fmt: 'text' }];
   const offerRow = (o, slide) => ({ cells: [o.n, slide || '', o.pl || o.p, ...AD_BR.map(b => adBrOf(o.k, b[0])), adSold(o.k), Math.round(adPaid(o.k)), o.ct] });
   const days = adData.rows.filter(adIn).sort((a, b) => a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0).map(r => {
-    const o = AD_OFFERS.concat(AD_OLDER).find(x => x.k === r[0]);
+    const o = AD_OFFERS.concat(AD_OLDER, AD_UB).find(x => x.k === r[0]);
     return { cells: [r[2], o ? o.n : r[0], AD_BR.find(b => b[0] === r[1])[1], r[3], Math.round(r[4])] };
   });
   const built = lgxBuild({ sheets: [
     { name: 'Summary', blocks: [{ cols: [{ label: 'Active Deals Performance', fmt: 'text' }, { label: '', fmt: 'text' }], rows: [
       { cells: ['Branches', adBranchLabel()] }, { cells: ['Period', adPeriodLabel()] }, { cells: ['From', w.from === '0000-01-01' ? 'first sale' : w.from] }, { cells: ['To', w.to] },
       { cells: ['Report made', adWhen(adData.at)] }, { cells: ['Counted', 'Distinct sales (branch, date, sale id). AED is the till total, VAT included, a refund off the day it was given.'] }] }] },
-    { name: 'By offer', blocks: [{ cols: offerCols, rows: AD_OFFERS.map(o => offerRow(o, 'Slide ' + o.s)).concat(AD_OLDER.map(o => offerRow(o, 'Older offer'))) }] },
+    { name: 'By offer', blocks: [{ cols: offerCols, rows: AD_OFFERS.map(o => offerRow(o, 'Slide ' + o.s)).concat(AD_OLDER.map(o => offerRow(o, 'Older offer')).concat(AD_UB.map(o => offerRow(o, 'Slide ' + o.s)))) }] },
     { name: 'By day', blocks: [{ cols: [{ label: 'Date', fmt: 'text' }, { label: 'Offer', fmt: 'text' }, { label: 'Branch', fmt: 'text' }, { label: 'Sales', fmt: 'num' }, { label: 'AED', fmt: 'aed' }], rows: days }] }
   ] });
   const stamp = dateToIso(new Date());

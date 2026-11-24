@@ -16,8 +16,10 @@
 --   New25 (25% off beauty for new clients, min AED 200, from 1 Sep 2026): a client's FIRST visit in the table (no earlier sale line) whose
 --     client record is at most 45 days old (phorest_client_since), beauty list price at least AED 200, and a beauty line at exactly 25% off.
 --     AED is what the beauty lines were paid after the discount. The same flat 25% also runs on hair lines, which is why hair is not counted.
--- Still not traceable: Extension Care (free treatment and trim with a maintenance). A free line is rung as "(Treat) ..." at AED 0, but the
--- till uses that for any complimentary treatment, and no sale shows the treatment AND the trim free together with a maintenance.
+-- ExtCare (free treatment and trim with an extension maintenance, from 1 Sep 2026) is an UPPER BOUND only (Kate, 24 Nov 2026): a sale with an
+--   extension removal, refit or maintenance line (above AED 0) AND a free "(Treat) ..." line at AED 0 (not a blow dry, manicure or pedicure).
+--   The till rings any complimentary treatment that way, so this over-counts; no sale shows the treatment AND the trim free together.
+--   The page keeps it out of every total and shows it apart, with AED 0.
 --
 -- Returns {at, rows:[[offer, branch, date, sales, aed], ...]}: one row per offer, branch and day (about 170), numbers only, no client
 -- names, so the page can filter by any Branch and Period the masthead offers without asking again. Level 2 and above (Accounts, the
@@ -100,10 +102,15 @@ begin
     group by 1, 2, 3
     having sum(b.g) filter (where b.beauty) >= 200
        and count(*) filter (where b.beauty and b.discount > 0 and abs(b.discount / nullif(b.g, 0) - 0.25) < 0.012) > 0),
+  ec as (
+    select branch, date, sale_id from base where date >= date '2026-09-01' and item ~* 'ext.*(removal|refit)|maintenance' and total > 0
+    intersect
+    select branch, date, sale_id from base where date >= date '2026-09-01' and item ilike '(Treat)%' and item !~* 'blow|manicure|pedicure' and total = 0),
   px as (
     select 'RefreshBalayage'::text as offer, branch, date, count(*) as n, round(sum(t), 2) as t from rb group by 2, 3
     union all select 'MixMatch', branch, date, count(*), round(sum(t), 2) from mm group by 2, 3
-    union all select 'New25', branch, date, count(*), round(sum(t), 2) from n25 group by 2, 3),
+    union all select 'New25', branch, date, count(*), round(sum(t), 2) from n25 group by 2, 3
+    union all select 'ExtCare', branch, date, count(*), 0::numeric from ec group by 2, 3),
   r0 as (
     select coalesce(c.offer, a.offer) as offer, coalesce(c.branch, a.branch) as branch, coalesce(c.date, a.date) as date,
            coalesce(c.n, 0) as n, round(coalesce(a.t, 0), 2) as t

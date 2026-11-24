@@ -116,7 +116,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "leavecal": "4aa9fca716",
   "depositcheck": "4e5d5fae16",
   "glowclub": "2f30491eac",
-  "dealsperf": "cfb149f3e3",
+  "dealsperf": "d41abc4a66",
   "discountsvouchers": "1cb3abf82b",
   "stylists": "c56becb713",
   "orgchart": "573d65256c"
