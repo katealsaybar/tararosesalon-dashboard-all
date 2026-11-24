@@ -164,7 +164,7 @@
   function levelBits(p) {
     if (!canSetLevel(p)) return '';
     return '<select class="rs-lv" data-email="' + esc(p.email) + '" aria-label="Level for ' + esc(p.name) + '">' +
-      [2, 3, 4].map(function (l) {
+      [2, 3, 4, 5].map(function (l) {
         return '<option value="' + l + '"' + (l === p.level ? ' selected' : '') + '>Level ' + KB.lvNo(l) + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
       }).join('') + '</select>';
   }
@@ -348,13 +348,13 @@
           '<label>Level<select id="rsLevel">' +
             '<option value="t1">Level 1 · Stylists &amp; Beauticians</option>' +
             '<option value="t2">Level 2 · Reception &amp; Call Centre</option>' +
-            [2, 3, 4].map(function (l) {
+            [2, 3, 4, 5].map(function (l) {
               return '<option value="' + l + '"' + (l === 2 ? ' selected' : '') + '>Level ' + KB.lvNo(l) + ' · ' + esc(KB.LEVELS[l] || '') + '</option>';
             }).join('') + '</select></label>' +
           '<label id="rsTeamWrap" style="display:none">Team<select id="rsTeam"></select></label>' +
           '<label>Region<select id="rsScope"><option value="">All branches</option><option value="BAH">Bahrain only</option></select></label>' +
           '<button type="submit" class="rs-addbtn" id="rsAddGo">Add and send invite</button>' +
-          '<p class="rs-hint">Levels 3 to 5 get the Team Home invite email straight away. Levels 1 and 2 have no invite: once Team Home is open to the team they sign in themselves with this email. Level 6 is not set here.</p>' +
+          '<p class="rs-hint">Levels 3 to 6 get the Team Home invite email straight away. Levels 1 and 2 have no invite: once Team Home is open to the team they sign in themselves with this email. Level 6 opens everything, like you, for every branch; it can only be taken away in Supabase.</p>' +
         '</form></div>' : '') +
       (data.staff_open ? '' : '<div class="kb-note">Team Home isn’t open to the salon team yet, so they can’t sign in until it is.</div>') +
       '<div class="rs-bar">' +
@@ -474,6 +474,8 @@
         var isTeam = lvVal.charAt(0) === 't', team = document.getElementById('rsTeam').value;
         var level = isTeam ? 1 : parseInt(lvVal, 10);
         var lvLabel = isTeam ? (lvVal === 't1' ? 'Level 1' : 'Level 2') + ', ' + team : 'Level ' + KB.lvNo(level);
+        if (level === 5 && scope) { alert('Level 6 is for every branch. Set the region to All branches, or pick another level.'); return; }
+        if (level === 5 && !confirm('Level 6 opens everything, the same as you: every page, every branch, every setting. It cannot be taken away from this page, only in Supabase.\n\nAdd ' + name + ' (' + email + ') at Level 6?')) return;
         if (!confirm('Add ' + name + ' (' + email + ') at ' + lvLabel + (scope ? ', Bahrain only' : '') + (isTeam ? '? No invite email is sent, they sign in themselves with this email.' : ' and email them the invite?'))) return;
         var go = document.getElementById('rsAddGo'); go.disabled = true; go.textContent = 'Adding…';
         var s = isTeam
@@ -533,6 +535,8 @@
         if (!sel) return;
         var email = sel.dataset.email, who = data.people.find(function (p) { return p.email === email; });
         var lv = parseInt(sel.value, 10);
+        if (lv === 5 && who && who.scope === 'BAH') { alert('Level 6 is for every branch. ' + who.name + ' is Bahrain only; clear that first.'); sel.value = who.level; return; }
+        if (lv === 5 && !confirm('Level 6 opens everything, the same as you, and cannot be taken away from this page, only in Supabase.\n\nChange ' + (who ? who.name : email) + ' to Level 6?')) { if (who) sel.value = who.level; return; }
         if (!confirm('Change ' + (who ? who.name : email) + ' to Level ' + KB.lvNo(lv) + '?')) { if (who) sel.value = who.level; return; }
         sel.disabled = true;
         var s = await KB.client.rpc('kb_set_user_level', { p_email: email, p_level: lv });
