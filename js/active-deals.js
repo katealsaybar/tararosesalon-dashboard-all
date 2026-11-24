@@ -5,7 +5,7 @@
 // Kate's rulings of 23 Oct 2026: no filter bar of its own (sel.branch and dateFrom/dateTo are the masthead's), phone first. Self-contained: it needs sb,
 // TRS_LEVEL, sel, dateFrom, dateTo, activePeriodKey(), dateToIso() and, for Save as xlsx, the lgx group (ledger-export.js).
 const AD_BR = [['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz']];
-// The nine deals on the brochure that leave a name at the till, best first by sales is worked out on the fly. cat groups them for By type.
+// The twelve deals on the brochure that can be counted: nine leave a name at the till, three are counted by price. Best first by sales is worked out on the fly. cat groups them for By type.
 // c/ct = how sure the match is: Blonding and Balayage are Phorest's Full Blonde / Full Balayage Package until Emma confirms the name.
 const AD_OFFERS = [
   { k: 'Blonding', n: 'Blonding Package', p: '999', s: 4, cat: 'Hair colour', ph: 'Phorest: Full Blonde Package', c: 'warn', ct: 'Confirm name' },
@@ -16,17 +16,18 @@ const AD_OFFERS = [
   { k: 'Sunkissed', n: 'Signature Sunkissed Brunette', p: '799', s: 7, cat: 'Hair colour', c: 'ok', ct: 'Exact' },
   { k: 'P350', n: '350 Package: gel mani and pedi + blow dry', p: '350', s: 12, cat: 'Beauty', c: 'ok', ct: 'Exact' },
   { k: 'P450', n: '450 Package: cut, finish, treatment', p: '450', s: 11, cat: 'Hair treatment', c: 'ok', ct: 'Exact' },
-  { k: 'P300', n: '300 Package: treatment + blow dry', p: '300', s: 10, cat: 'Hair treatment', c: 'ok', ct: 'Exact' }
+  { k: 'P300', n: '300 Package: treatment + blow dry', p: '300', s: 10, cat: 'Hair treatment', c: 'ok', ct: 'Exact' },
+  // Traced by PRICE (Kate, 24 Nov 2026): no package line at the till, so these count a sale whose lines make the brochure price. See the SQL header.
+  { k: 'RefreshBalayage', n: 'Refresh Balayage Package', p: '499', s: 2, cat: 'Hair colour', ph: 'Price test: face frame + toner + treatment = 499', c: 'warn', ct: 'Price test' },
+  { k: 'MixMatch', n: 'Mix and Match: any 3 beauty services', p: '499', s: 9, cat: 'Beauty', ph: 'Price test: 3 of the 7 services = 499', c: 'warn', ct: 'Price test' },
+  { k: 'New25', n: '25% off beauty, new clients', p: '25%', pl: '25% off, min AED 200', s: 15, cat: 'Beauty', ph: 'Price test: first visit, beauty at exactly 25% off', c: 'warn', ct: 'Price test' }
 ];
 const AD_OLDER = [
   { k: 'Polish350', n: 'Polish and Pamper (older 350)', p: '350', c: 'warn', ct: 'Check KCA' },
   { k: 'ADS499', n: 'ADS Hydrafacial + Blow dry (older 499)', p: '499', c: 'na', ct: 'Older offer' }
 ];
 const AD_CANT = [
-  ['Refresh Balayage Package, AED 499', 'No line under that name. It may be sold as plain services with a discount.'],
-  ['Extension Care Package, free', 'A free treatment and trim, so there is no sale line to count.'],
-  ['Mix and Match 499, new design', 'Nothing sold under it yet. It starts counting from its first sale.'],
-  ['25% off beauty services, new clients', 'The 25% leaves no item name, and the same flat 25% runs on hair lines every month since Jun 2025, so it cannot be told apart from a standing discount. Not quoted.']
+  ['Extension Care Package, free treatment and trim', 'The till rings a free line as "(Treat)" at AED 0, but it does that for any complimentary treatment, and no maintenance sale shows the treatment and the trim both free. With nothing to tell it apart from a gift, it is not counted.']
 ];
 const AD_CATS = [['Hair colour', 'var(--c1)'], ['Hair treatment', 'var(--c2)'], ['Beauty', 'var(--c3)']];
 const AD_TOTAL_DEALS = 13;
@@ -149,7 +150,7 @@ function adPaint() {
       <div class="ad-cap">Brochure deals sold</div><div class="ad-big">${total} <small>sales, ${adAed(cash)}</small></div>
       <div class="ad-track"><div class="ad-fill" style="width:${Math.round(withSale / AD_TOTAL_DEALS * 100)}%"></div></div>
       <div class="ad-cap">${withSale} of ${AD_TOTAL_DEALS} deals on the brochure have a sale in this window</div></div>
-    <div class="ad-pace"><div class="ad-status warn"><span aria-hidden="true">!</span>Counts ${withSale} of ${AD_TOTAL_DEALS} deals, 4 cannot be traced</div>
+    <div class="ad-pace"><div class="ad-status warn"><span aria-hidden="true">!</span>Counts ${withSale} of ${AD_TOTAL_DEALS} deals, ${AD_CANT.length} cannot be traced</div>
       <div class="ad-row"><span>Averaging so far</span><b>${perMonth.toFixed(1)} sales a month</b></div>
       <div class="ad-row"><span>Busiest ${unitName}</span><b>${adEsc(adBucketLabel(busy, unit))}, ${busy.n} sale${busy.n === 1 ? '' : 's'}</b></div>
       <div class="ad-row"><span>Latest sale</span><b>${lastSale ? adEsc(adDay(lastSale)) : 'none'}</b></div>
@@ -177,7 +178,7 @@ function adPaint() {
   h += `<section class="ad-card" id="ad-offer"><h2>By offer</h2><p class="ad-sub">How each deal on the brochure is doing: the sales at each branch, the cash, and how sure we are of the match.</p>
     <details class="more"><summary>How this is counted</summary><p class="ad-sub">A package is rung as one sale made of lines named after the offer, so we count sales, not lines. Blonding and Balayage on the brochure are Phorest’s Full Blonde Package and Full Balayage Package, matched by price and components, so they carry a Confirm name tag until Emma says yes.</p></details>
     <div><table><thead><tr><th>Offer</th>${brHead}<th class="n">Sold</th><th class="n">AED</th><th>Share</th><th>Match</th></tr></thead><tbody>${
-      rowsO.map(o => `<tr><td>${adEsc(o.n)}<small>Slide ${o.s} · AED ${o.p}${o.ph ? ' · ' + adEsc(o.ph) : ''}</small></td>${AD_BR.map(b => `<td class="n">${adBc(adBrOf(o.k, b[0]))}</td>`).join('')}<td class="n"><b>${o.sold}</b></td><td class="n">${adAed(o.paid)}</td><td>${adMini(o.paid, cash)}</td><td><span class="ad-tag ${o.c}">${o.ct}</span></td></tr>`).join('')
+      rowsO.map(o => `<tr><td>${adEsc(o.n)}<small>Slide ${o.s} · ${o.pl || 'AED ' + o.p}${o.ph ? ' · ' + adEsc(o.ph) : ''}</small></td>${AD_BR.map(b => `<td class="n">${adBc(adBrOf(o.k, b[0]))}</td>`).join('')}<td class="n"><b>${o.sold}</b></td><td class="n">${adAed(o.paid)}</td><td>${adMini(o.paid, cash)}</td><td><span class="ad-tag ${o.c}">${o.ct}</span></td></tr>`).join('')
     }<tr class="tot"><td>Total</td>${AD_BR.map(b => `<td class="n">${adBc(adSum(offs, o => adBrOf(o.k, b[0])))}</td>`).join('')}<td class="n">${total}</td><td class="n">${adAed(cash)}</td><td>${adMini(cash, cash)}</td><td></td></tr></tbody></table></div>
     <h3 class="ad-subh">Older look-alike offers</h3><p class="ad-sub">Not on the brochure, shown so they are not mixed in.</p>
     <div><table><thead><tr><th>Offer</th>${brHead}<th class="n">Sold</th><th class="n">AED</th><th>Match</th></tr></thead><tbody>${
@@ -189,7 +190,7 @@ function adPaint() {
       <div style="margin-top:14px"><table><thead><tr><th>Type</th><th class="n">Deals</th><th class="n">Sold</th><th class="n">AED</th></tr></thead><tbody>${
         cats.map(c => `<tr><td><span class="ad-dot" style="background:${c.color}"></span>${c.name}</td><td class="n">${c.d}</td><td class="n">${c.n}</td><td class="n">${adAed(c.a)}</td></tr>`).join('')
       }<tr class="tot"><td>Total</td><td class="n">${offs.length}</td><td class="n">${total}</td><td class="n">${adAed(cash)}</td></tr></tbody></table></div></section>
-    <section class="ad-card" id="ad-cant"><h2>Cannot be traced</h2><p class="ad-sub">Four deals on the brochure leave nothing to count at the till.</p>
+    <section class="ad-card" id="ad-cant"><h2>Cannot be traced</h2><p class="ad-sub">One deal on the brochure leaves nothing to count at the till, and three are counted by their price.</p>
       <ul class="ad-list">${AD_CANT.map(c => `<li><b>${adEsc(c[0])}</b>${adEsc(c[1])}</li>`).join('')}</ul></section></div>`;
 
   h += `<section class="ad-card" id="ad-ask"><h2>Waiting on a word</h2><p class="ad-sub">These need an answer before the numbers can be quoted outside the team.</p><ol class="ad-ask">
@@ -199,6 +200,7 @@ function adPaint() {
     <details class="more"><summary>How these numbers are counted</summary>
       <p class="ad-sub">Sold is distinct sales (branch, date, sale id). AED is what the client paid for the offer’s own lines, VAT included, with a refund taken off the day it was given.</p>
       <p class="ad-sub">A later single line from a package (a redemption) is not counted as a sale. A refunded package still counts as one sale.</p>
+      <p class="ad-sub">Price test deals have no package line at the till, so a sale counts when its lines make the brochure price. Refresh Balayage: one face frame, one toner and one treatment that add up to AED 499. Mix and Match: three or more of the seven listed beauty services that add up to AED 499. 25% off for new clients: a client’s first visit (a client record at most 45 days old, no earlier sale), beauty worth AED 200 or more, with a beauty line at exactly 25% off. AED for that one is what the beauty lines were paid after the discount. Refresh Balayage and Mix and Match show none sold when nothing at the till matches, and start counting the day a sale does.</p>
       <p class="ad-sub">Bahrain has no lines for any of these. Fratelli and Marasy are closed and not shown. Data comes from the daily Phorest Sales Transactions upload, so today’s sales appear after the nightly run.</p></details>`;
 
   el.innerHTML = h;
@@ -319,7 +321,7 @@ function adSave(kind) {
   if (!adData || typeof lgxBuild !== 'function') return;
   const w = adRange(), codes = adCodes();
   const offerCols = [{ label: 'Offer', fmt: 'text' }, { label: 'Slide', fmt: 'text' }, { label: 'Price (AED)', fmt: 'text' }, ...AD_BR.map(b => ({ label: b[1], fmt: 'num' })), { label: 'Sold', fmt: 'num' }, { label: 'AED', fmt: 'aed' }, { label: 'Match', fmt: 'text' }];
-  const offerRow = (o, slide) => ({ cells: [o.n, slide || '', o.p, ...AD_BR.map(b => adBrOf(o.k, b[0])), adSold(o.k), Math.round(adPaid(o.k)), o.ct] });
+  const offerRow = (o, slide) => ({ cells: [o.n, slide || '', o.pl || o.p, ...AD_BR.map(b => adBrOf(o.k, b[0])), adSold(o.k), Math.round(adPaid(o.k)), o.ct] });
   const days = adData.rows.filter(adIn).sort((a, b) => a[2] < b[2] ? -1 : a[2] > b[2] ? 1 : 0).map(r => {
     const o = AD_OFFERS.concat(AD_OLDER).find(x => x.k === r[0]);
     return { cells: [r[2], o ? o.n : r[0], AD_BR.find(b => b[0] === r[1])[1], r[3], Math.round(r[4])] };
