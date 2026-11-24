@@ -360,6 +360,7 @@ const sgSchedReady = net => !!sgHowReady() && (net === 'tiktok' || !!sgStatRows(
 function sgSchedRedo() {
   const box = document.getElementById('socSchedBox'); if (!box || typeof socTab === 'undefined') return;
   if (socCharts.sched) { socCharts.sched.destroy(); socCharts.sched = null; }
+  if (socCharts.cmp) { socCharts.cmp.destroy(); socCharts.cmp = null; }
   box.innerHTML = sgSchedInner(socTab, socCols());
   if (typeof socTblMount === 'function') socTblMount();
   sgSchedDraw(socTab);
@@ -412,14 +413,75 @@ function sgSchedCards(net, R) {
       num('n', 'How many'), num('v', 'Views'), num('r', 'Reach', true), num('av', 'Average views each'), num('ar', 'Average reach each', true)];
     return `${head}${socTblHtml('sgcards-' + net, { rows, cols, unit: 'groups' })}<p class="sg-hint">Posts and stories are counted separately; a story is one story, not one post.${rows.some(x => x.miss) ? ' The stories’ views and reach could not be read just now. Refresh to try again.' : ''}</p>${fb}`;
   }
-  // Visual: one small bar chart for each measure, a bar for each way of going out, each measure on its own scale (a bar is only compared with the bars beside it).
-  const anyR = rows.some(x => x.hasR);
-  const M = [['How many', 'n'], ['Views, added up', 'v'], ...(anyR ? [['Reach, added up', 'r', 1]] : []), ['Average views each', 'av'], ...(anyR ? [['Average reach each', 'ar', 1]] : [])];
-  const panels = M.map(([h, k, reach]) => { const m2 = Math.max(0, ...rows.filter(x => !off(x, k, reach)).map(x => x[k])) || 1;
-    return `<div><div class="sg-mh">${h}</div>${rows.map(x => { const o = off(x, k, reach), val = o ? 0 : x[k];
-      return `<div class="sg-row sg-r3" style="--c:${x.col}"><span class="sg-nm">${x.short}</span><span class="sg-trk"><span class="sg-fill" style="width:${Math.round(val * 100 / m2)}%"></span></span>${sgNum(o ? '–' : sgN(val), x.spec, val)}</div>`; }).join('')}</div>`; }).join('');
-  const part = rows.filter(x => x.hasR && x.nr < x.len).map(x => `${x.short.toLowerCase()} ${x.nr} of ${x.len}`);
-  return `${head}<div class="sg-grid sg-g5">${panels}</div>${part.length ? `<p class="sg-hint">Reach is known for ${part.join(', ')}; an average reach counts only those.</p>` : ''}${rows.some(x => x.miss) ? '<p class="sg-hint">The stories’ views and reach could not be read just now. Refresh to try again.</p>' : ''}${fb}`;
+  // Visual (Kate, 24 Nov 2026): ONE bar graph on ONE x axis. The x axis holds five groups (How many, Views added up, Reach added up, Average views each, Average reach each);
+  // inside each group the bars sit side by side: scheduled in Metricool, posted by hand and the stories. All | Stories | Posts is inside the graph. Drawn by sgCmpDraw.
+  sgCmpState = { net, rows };
+  return `${head}<div id="sgCmpBox">${sgCmpInner()}</div>${rows.some(x => x.miss) ? '<p class="sg-hint">The stories’ views and reach could not be read just now. Refresh to try again.</p>' : ''}${fb}`;
+}
+
+// ── The bar graph (Visual view) ──
+let sgCmpState = null, sgCmpShow = 'all', sgCmpScale = 'real';
+const sgCmpM = [['n', 'How many'], ['v', 'Views, added up'], ['r', 'Reach, added up', 1], ['av', 'Average views each'], ['ar', 'Average reach each', 1]];
+// the groups showing now: stories whose numbers were read, and posts, as the All | Stories | Posts switch says
+function sgCmpVis() {
+  const rs = sgCmpState ? sgCmpState.rows.filter(x => !x.miss) : [];
+  const show = sgCmpShow === 'stories' && !rs.some(x => x.one === 'story') ? 'all' : sgCmpShow === 'posts' && !rs.some(x => x.one === 'post') ? 'all' : sgCmpShow;
+  return rs.filter(x => show === 'all' || (show === 'stories' ? x.one === 'story' : x.one === 'post'));
+}
+const sgCmpOff = (x, k, reach) => reach && !x.hasR;
+function sgCmpInner() {
+  const st = sgCmpState; if (!st) return '';
+  const vis = sgCmpVis(), hasStories = st.rows.some(x => x.one === 'story' && !x.miss), hasPosts = st.rows.some(x => x.one === 'post');
+  const seg = (aria, items, cur, fn) => `<div class="sc-seg" role="group" aria-label="${aria}">${items.map(([k, l]) => `<button type="button" class="${cur === k ? 'on' : ''}" aria-pressed="${cur === k}" onclick="${fn}('${k}')">${l}</button>`).join('')}</div>`;
+  const key = vis.map(x => `<span><i style="background:${x.col}"></i>${mkEsc(x.g)}</span>`).join('');
+  const show = hasStories && hasPosts ? seg('Show', [['all', 'All'], ['stories', 'Stories'], ['posts', 'Posts']], sgCmpShow, 'sgCmpSet') : '';
+  const none = !vis.length ? '<p class="sg-hint">Nothing to draw in these dates.</p>' : '';
+  return `<div class="sg-cbar">${show}${seg('Bar height', [['real', 'Real size'], ['fit', 'Fit each group']], sgCmpScale, 'sgCmpScaleSet')}<span class="sg-ckey">${key}</span></div>
+    ${vis.length ? `<div class="sg-cmpc"><canvas id="socCmp" role="img" aria-label="How many, views, reach, average views and average reach for scheduled posts, posts by hand and stories"></canvas></div>
+    <p class="sg-csay" id="sgCmpSay">${sgCmpSay(vis)}</p><p class="sg-hint" id="sgCmpOpen">Tap a bar to open the posts or stories behind it. Fit each group draws every group of bars as a share of its tallest bar; the figure beside each bar is always the real one.</p>` : none}`;
+}
+function sgCmpSay(vis) {
+  const po = vis.filter(x => x.one === 'post' && x.len), so = vis.find(x => x.one === 'story' && x.len);
+  if (!po.length) return so ? `<b>${sgN(so.n)} stories got ${sgN(so.v)} views and reached ${sgN(so.r)}.</b> A story averages ${sgN(so.av)} views.` : '';
+  if (po.length < 2) return `<b>${mkEsc(po[0].g)}: ${sgN(po[0].n)} ${po[0].n === 1 ? 'post' : 'posts'}, ${sgN(po[0].v)} views, ${sgN(po[0].av)} each.</b>`;
+  const a = po.slice().sort((x, y) => y.av - x.av), t = po.slice().sort((x, y) => y.v - x.v);
+  return a[0] === t[0] ? `<b>${mkEsc(a[0].g)} got the most views, in total (${sgN(t[0].v)}) and each (${sgN(a[0].av)}).</b>`
+    : `<b>${mkEsc(a[0].g)} got the most views each: ${sgN(a[0].av)}, against ${sgN(a[1].av)}.</b> ${mkEsc(t[0].g)} brought the most in total (${sgN(t[0].v)}) because there ${t[0].n === 1 ? 'was' : 'were'} ${sgN(t[0].n)} ${t[0].n === 1 ? 'post' : 'posts'} against ${sgN(t[1].n)}.`;
+}
+function sgCmpRedo() {
+  const box = document.getElementById('sgCmpBox'); if (!box) return;
+  if (socCharts.cmp) { socCharts.cmp.destroy(); socCharts.cmp = null; }
+  box.innerHTML = sgCmpInner(); sgCmpDraw();
+}
+function sgCmpSet(k) { sgCmpShow = k; sgCmpRedo(); }
+function sgCmpScaleSet(k) { sgCmpScale = k; sgCmpRedo(); }
+// the real figure over each bar, so a small bar is still readable; upright, and on a phone the middle bar's figure sits one step higher so three close bars never touch
+const sgCmpLabels = { id: 'sgCmpLabels', afterDatasetsDraw(c) {
+  const x = c.ctx, n = innerWidth < 760, many = c.data.datasets.length >= 3, css = getComputedStyle(document.documentElement);
+  x.save(); x.font = '600 ' + (n ? 11 : 13) + 'px ' + (getComputedStyle(c.canvas).fontFamily || 'system-ui'); x.fillStyle = css.getPropertyValue('--text').trim(); x.textAlign = 'center';
+  c.data.datasets.forEach((ds, i) => c.getDatasetMeta(i).data.forEach((bar, j) => {
+    const v = ds.raw[j], t = v === null ? '–' : (n && v >= 1000 ? (Math.round(v / 100) / 10) + 'k' : sgN(v));
+    x.fillText(t, bar.x, bar.y - 6 - (n && many && i % 2 === 1 ? 13 : 0)); }));
+  x.restore(); } };
+function sgCmpDraw(net) {
+  const cv = document.getElementById('socCmp'); if (!cv || !window.Chart || !sgCmpState) return;
+  if (socCharts.cmp) { socCharts.cmp.destroy(); socCharts.cmp = null; }
+  const vis = sgCmpVis(), small = innerWidth < 760, fit = sgCmpScale === 'fit', css = getComputedStyle(document.documentElement), muted = css.getPropertyValue('--muted').trim(), border = css.getPropertyValue('--border').trim(), text = css.getPropertyValue('--text').trim();
+  const M = sgCmpM.filter(m => !m[2] || vis.some(x => x.hasR));
+  const top = M.map(m => Math.max(1, ...vis.map(x => sgCmpOff(x, m[0], m[2]) ? 0 : x[m[0]])));
+  const ds = vis.map(x => ({ label: x.g, raw: M.map(m => sgCmpOff(x, m[0], m[2]) ? null : x[m[0]]), data: M.map((m, i) => sgCmpOff(x, m[0], m[2]) ? 0 : fit ? x[m[0]] * 100 / top[i] : x[m[0]]),
+    backgroundColor: x.col, borderColor: x.col, borderWidth: 1, hoverBorderColor: text, hoverBorderWidth: 3, _row: x }));
+  const wrap = l => small ? l.split(/,? /).reduce((a, w) => { const L = a[a.length - 1]; (L && (L + ' ' + w).length <= 9) ? a[a.length - 1] = L + ' ' + w : a.push(w); return a; }, []) : l;
+  const c = socCharts.cmp = new Chart(cv, { type: 'bar', plugins: [sgCmpLabels], data: { labels: M.map(m => wrap(m[1])), datasets: ds },
+    options: { maintainAspectRatio: false, animation: { duration: 350 }, layout: { padding: { top: small ? 40 : 26 } }, categoryPercentage: small ? .95 : .8, barPercentage: .92,
+      onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+      onClick: (e, els) => { if (!els.length) return; const x = ds[els[0].datasetIndex]._row; if (x.spec && window.TRSD) TRSD.open(x.spec, cv); },
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: css.getPropertyValue('--surface').trim(), titleColor: text, bodyColor: text, borderColor: text, borderWidth: 1, padding: 12, cornerRadius: 12, displayColors: false,
+        callbacks: { title: it => M[it[0].dataIndex][1],
+          label: it => { const v = it.dataset.raw[it.dataIndex]; return it.dataset.label + ': ' + (v === null ? 'no reach figure' : sgN(v)); },
+          afterBody: it => { const x = it[0].dataset._row; return [`${sgN(x.n)} ${x.one === 'story' ? (x.n === 1 ? 'story' : 'stories') : (x.n === 1 ? 'post' : 'posts')} got ${sgN(x.v)} views${x.hasR ? ' and reached ' + sgN(x.r) : ''}.`, `That is ${sgN(x.av)} views${x.hasR ? ' and ' + sgN(x.ar) + ' reach' : ''} each.`, 'Click to open them.']; } } } },
+      scales: { x: { grid: { display: false }, ticks: { color: text, font: { size: small ? 12 : 13, weight: '600' }, maxRotation: 0, autoSkip: false } },
+        y: { beginAtZero: true, max: fit ? 118 : undefined, display: !fit, grid: { color: border }, border: { display: false }, ticks: { color: muted, precision: 0, callback: v => v >= 1000 ? (v / 1000) + 'k' : v } } } } });
 }
 function sgSchedInner(net, cols) {
   const mode = socMode(), R = sgSchedRead(net), { mine, S, M, U, sto, stSh, hasR, met, v, showP, showS, stMiss } = R;
@@ -479,6 +541,7 @@ function sgSchedFill(net, failed) {
 }
 function sgSchedDraw(net) {
   if (net === 'youtube' || !sgSchedReady(net)) return;
+  if (typeof sgCmpDraw === 'function') sgCmpDraw(net);
   const cv = document.getElementById('socSched'); if (!cv) return;
   const w = socData.win, mode = socMode(), by = {}, R = sgSchedRead(net), { sto, stSh, met, showP, showS } = R;
   const add = (d, k, x) => { const r = (by[d] = by[d] || { date: d }); r[k] = (r[k] || 0) + x; };

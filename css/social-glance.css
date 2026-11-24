@@ -146,8 +146,11 @@ html[data-theme="dark"] .sg-bd{color:#1A1A1A}
 .sg-cc .sg-hint{margin:6px 0 0}
 @media (max-width:760px){.sg-cmp{grid-template-columns:minmax(0,1fr)}.sg-ccr{min-height:44px;align-items:center}}
 .sg-dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:8px;vertical-align:-1px}
-/* Visual view of the Scheduled or by hand figures (Kate, 24 Nov 2026): one small bar chart for each measure, a bar for each way of going out. */
-.sg-grid.sg-g5{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-top:6px}
-.sg-row.sg-r3{grid-template-columns:84px minmax(0,1fr) 76px}
-@media (max-width:1000px){.sg-grid.sg-g5{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}}
-@media (max-width:760px){.sg-grid.sg-g5{grid-template-columns:minmax(0,1fr)}.sg-row.sg-r3{grid-template-columns:84px minmax(0,1fr) 76px}.sg-row.sg-r3 .sg-nm,.sg-row.sg-r3 .sg-trk{grid-column:auto;grid-row:auto}}
+/* The Visual view of Scheduled or by hand (Kate, 24 Nov 2026): one bar graph, one x axis, five groups of bars. */
+.sg-cbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 6px}
+.sg-ckey{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-left:auto}
+.sg-ckey span{display:inline-flex;align-items:center;gap:7px}
+.sg-ckey i{width:14px;height:14px;border-radius:4px;display:inline-block}
+.sg-cmpc{position:relative;height:380px;margin-top:6px}
+.sg-csay{margin:10px 0 0;font-size:14px}
+@media (max-width:760px){.sg-ckey{margin-left:0}.sg-cmpc{height:400px}}
