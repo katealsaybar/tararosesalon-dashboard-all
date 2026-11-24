@@ -223,7 +223,10 @@ function sgPostsHtml(D, cols) {
   // scheduled or by hand: the Content Calendar's own record; older posts have none and stay out of both
   const med = a => { const s = a.map(x => x.v).sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[(n >> 1) - 1] + s[n >> 1]) / 2) : 0; };
   const avgV = a => a.length ? sgAgg(a).v / a.length : 0, avgI = a => a.length ? sgAgg(a).it / a.length : 0;
-  const MS = [['Median views a post', med], ['Average views a post', avgV], ['Average likes, comments, shares, saves', avgI]];
+  // Views and reach by how a post went out (Kate, 24 Nov 2026: "i need to know the views and reach by hand and by schedule"). Reach is added up post by post, so one person can be counted twice;
+  // a post with no reach figure (Facebook reels, TikTok) is left out of the average, and the reach rows are not drawn when no post in the group has one. The third item marks a reach row.
+  const totV = a => sgAgg(a).v, totR = a => sgAgg(a).r, avgR = a => { const b = a.filter(x => x.r > 0); return b.length ? sgAgg(b).r / b.length : 0; };
+  const MS = [['Views, added up', totV], ['Reach, added up', totR, 1], ['Average views a post', avgV], ['Average reach a post', avgR, 1], ['Median views a post', med], ['Average likes, comments, shares, saves', avgI]];
   const hp = net => {
     const pc = net === 'all' ? cur : cur.filter(x => x.net === net);
     const Sx = pc.filter(x => x.sch), Mx = pc.filter(x => x.man), Ux = pc.filter(x => !x.sch && !x.man);
@@ -231,15 +234,16 @@ function sgPostsHtml(D, cols) {
     const seg = `<div class="sc-seg sg-pf" role="group" aria-label="Platform">${[['all', 'All'], ['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok'], ['youtube', 'YouTube']].map(([k, l]) => `<button type="button" class="${net === k ? 'on' : ''}" aria-pressed="${net === k}" onclick="sgHowSet('${k}')">${l}</button>`).join('')}</div>`;
     if (net === 'youtube') return { html: `${seg}<p class="sg-hint">YouTube has no post list in Metricool, only the channel’s numbers, so there is nothing to split into scheduled and by hand.</p>`, wire() {} };
     const small = Math.min(Sx.length, Mx.length) < 10, who = net === 'all' ? '' : ` on ${SG_PN[net]}`;
-    const cmp = MS.map(([h, f], mi) => { const a = f(Sx), b = f(Mx), m2 = Math.max(a, b) || 1;
+    const ms = MS.filter(m => !m[2] || pc.some(x => x.r > 0));
+    const cmp = ms.map(([h, f], mi) => { const a = f(Sx), b = f(Mx), m2 = Math.max(a, b) || 1;
       return `<div><div class="sg-mh">${h}</div>${[['s', 'Scheduled in Metricool', Sx, a, sgSchedC().s], ['m', 'Posted by hand', Mx, b, sgSchedC().h]].map(([k, n, rs, v, c]) => { const sp = sgPostsSpec('glance-' + (k === 's' ? 'scheduled' : 'by-hand') + (net === 'all' ? '' : '-' + net), n + ' posts', `${sub}, ${rs.length} posts (${n.toLowerCase()}${who})`, rs);
         return `<div class="sg-row sg-r2" data-m="${mi}${k}" style="--c:${c}"><span class="sg-nm">${n}</span><span class="sg-trk"><span class="sg-fill" style="width:${Math.round(v * 100 / m2)}%"></span></span>${sgNum(sgN(v), sp, v)}<span class="sg-n">${sgNum(rs.length + ' posts', sp, rs.length)}</span></div>`; }).join('')}</div>`; }).join('');
     const hint = D.howOk ? `How a post went out is the Content Calendar's own record. Metricool began telling us on 12 Aug 2026, so ${Ux.length ? `${Ux.length} older ${Ux.length === 1 ? 'post is' : 'posts are'} left out` : 'no post here is older'}. ${stN ? `${sgN(stN)} ${net === 'all' ? '' : SG_PN[net] + ' '}${stN === 1 ? 'story was' : 'stories were'} posted live in the app, so ${stN === 1 ? 'it counts' : 'they all count'} as posted by hand.` : ''}` : 'Could not read how the posts went out just now. Refresh to try again.';
     return { html: `${seg}<p class="sg-hint">${hint}</p>
       ${small ? `<p class="sg-hint"><span class="sg-tag warn">Small group</span> Only ${Math.min(Sx.length, Mx.length)} ${Sx.length < Mx.length ? 'scheduled' : 'by hand'} posts, too few to say which is better.</p>` : ''}
-      <p class="sg-hint"><b>${Sx.length} scheduled in Metricool, ${Mx.length} posted by hand${who}.</b> Median views a post: ${sgN(med(Sx))} scheduled, ${sgN(med(Mx))} by hand.</p><div class="sg-grid sg-g3">${cmp}</div>`,
+      <p class="sg-hint"><b>${Sx.length} scheduled in Metricool, ${Mx.length} posted by hand${who}.</b> Average views a post: ${sgN(avgV(Sx))} scheduled, ${sgN(avgV(Mx))} by hand.${pc.some(x => x.r > 0) ? ' Average reach a post: ' + sgN(avgR(Sx)) + ' scheduled, ' + sgN(avgR(Mx)) + ' by hand. Reach is added up post by post, so one person can be counted twice.' : ''} Views and reach keep growing for a few weeks after a post, so the newest posts are still climbing.</p><div class="sg-grid sg-g3">${cmp}</div>`,
     wire(r) {
-      r.querySelectorAll('.sg-r2').forEach(el => { const id = el.dataset.m, f = MS[+id[0]][1], h = MS[+id[0]][0], s = id[1] === 's';
+      r.querySelectorAll('.sg-r2').forEach(el => { const id = el.dataset.m, f = ms[+id[0]][1], h = ms[+id[0]][0], s = id[1] === 's';
         sgTip(el, () => `<b>${s ? 'Scheduled in Metricool' : 'Posted by hand'}</b>${(s ? Sx : Mx).length} posts. ${h}: ${sgN(f(s ? Sx : Mx))}, against ${sgN(f(s ? Mx : Sx))} for ${s ? 'posts by hand' : 'scheduled posts'}.`); });
     } };
   };
@@ -357,6 +361,7 @@ function sgSchedRedo() {
   const box = document.getElementById('socSchedBox'); if (!box || typeof socTab === 'undefined') return;
   if (socCharts.sched) { socCharts.sched.destroy(); socCharts.sched = null; }
   box.innerHTML = sgSchedInner(socTab, socCols());
+  if (typeof socTblMount === 'function') socTblMount();
   sgSchedDraw(socTab);
 }
 function sgSchedSet(v) { sgSchedView = v; sgSchedRedo(); }
@@ -380,26 +385,42 @@ function sgSchedRead(net) {
   return { mine, S, M, U, sto, stSh, hasR, met, v, showP, showS, stMiss };
 }
 // The answer first: how many, the views, the reach and the average of each, for posts scheduled in Metricool, posts by hand and the stories (posted live, so by hand).
-// Every figure opens the posts or stories behind it.
+// Every figure opens the posts or stories behind it. Visual | Table (Kate, 24 Nov 2026: "add visual | table toggle button for these tables"): the cards, or the same figures
+// as one table with the shared Sheets heading menus (socTblHtml, js/social.js).
+let sgCardsView = 'visual';
+function sgCardsSet(v) { sgCardsView = v; sgSchedRedo(); }
 function sgSchedCards(net, R) {
   const w = socData.win, sub = sgRange(w.from, w.to), C = sgSchedC(), nm = SG_PN[net], tot = (a, k) => sgSum(a, x => x[k]);
-  const lines = (a, spec, count, one, n) => {
+  const sp = (k, name, rows) => sgPostsSpec('sched-card-' + net + '-' + k, name, `${sub}, ${rows.length} posts on ${nm}`, rows);
+  // the groups: scheduled, by hand and, where the platform has them, the stories (their numbers may not have been read: miss)
+  const G = [{ name: 'Scheduled in Metricool', col: C.s, rows: R.S, one: 'post', count: 'Posts', spec: sp('sched', 'Scheduled in Metricool', R.S) },
+    { name: 'Posted by hand', col: C.h, rows: R.M, one: 'post', count: 'Posts', spec: sp('hand', 'Posted by hand', R.M) }];
+  if (R.sto.length) G.push({ name: 'Stories, posted live in the app', col: C.t, rows: R.stSh || [], one: 'story', count: 'Stories', miss: !R.stSh, nMiss: R.sto.length,
+    spec: R.stSh ? sgStoriesSpec('sched-card-' + net + '-stories', 'Stories', `${sub}, ${R.stSh.length} stories on ${nm}`, R.stSh) : null });
+  const fb = net === 'facebook' && R.sto.length && w.from < '2026-11-23' ? '<p class="sg-hint">Facebook stories from before 23 Nov 2026 have no numbers, so their views and reach start from that day.</p>' : '';
+  const tog = `<div class="sc-seg" role="group" aria-label="View">${[['visual', 'Visual'], ['table', 'Table']].map(([k, l]) => `<button type="button" class="${sgCardsView === k ? 'on' : ''}" aria-pressed="${sgCardsView === k}" onclick="sgCardsSet('${k}')">${l}</button>`).join('')}</div>`;
+  const head = `<div class="mk-chart-head"><div class="slv-eyebrow">How the posts did, by how they went out</div>${tog}</div>`;
+  if (sgCardsView === 'table') {
+    const rows = G.map(g => { const a = g.rows, rr = a.filter(x => x.r > 0), v = tot(a, 'v'), r = tot(a, 'r');
+      return { g: g.name, col: g.col, spec: g.spec, miss: !!g.miss, n: g.miss ? g.nMiss : a.length, v, r, av: a.length ? v / a.length : 0, ar: rr.length ? r / rr.length : 0, hasR: rr.length > 0 }; });
+    const num = (k, l, reach) => ({ k, l, t: 'num', raw: x => x[k],
+      disp: x => (x.miss && k !== 'n') || (reach && !x.hasR) ? '–' : sgN(x[k]),
+      cell: x => { const off = (x.miss && k !== 'n') || (reach && !x.hasR); return sgNum(off ? '–' : sgN(x[k]), x.spec, off ? 0 : x[k]); } });
+    const cols = [{ k: 'g', l: 'Went out', t: 'txt', raw: x => x.g, disp: x => x.g, cell: x => `<span class="sg-dot" style="background:${x.col}"></span>${mkEsc(x.g)}` },
+      num('n', 'How many'), num('v', 'Views'), num('r', 'Reach', true), num('av', 'Average views each'), num('ar', 'Average reach each', true)];
+    return `${head}${socTblHtml('sgcards-' + net, { rows, cols, unit: 'groups' })}<p class="sg-hint">Posts and stories are counted separately; a story is one story, not one post.${rows.some(x => x.miss) ? ' The stories’ views and reach could not be read just now. Refresh to try again.' : ''}</p>${fb}`;
+  }
+  const lines = (g) => {
+    const a = g.rows;
+    if (g.miss) return `<p class="sg-hint">${sgN(g.nMiss)} ${g.nMiss === 1 ? 'story' : 'stories'}. Their views and reach could not be read just now. Refresh to try again.</p>`;
     if (!a.length) return '<p class="sg-hint">None in these dates.</p>';
-    const rr = a.filter(x => x.r > 0), v = tot(a, 'v'), r = tot(a, 'r'), c = n == null ? a.length : n;
-    const row = (l, txt, x) => `<div class="sg-ccr"><span>${l}</span><b>${sgNum(txt, spec, x)}</b></div>`;
-    return row(count, sgN(c), c) + row('Views', sgN(v), v) + row('Reach', rr.length ? sgN(r) : '–', rr.length ? r : 0)
-      + row('Average views a ' + one, sgN(v / a.length), v / a.length) + row('Average reach a ' + one, rr.length ? sgN(r / rr.length) : '–', rr.length ? r / rr.length : 0)
+    const rr = a.filter(x => x.r > 0), v = tot(a, 'v'), r = tot(a, 'r'), c = a.length;
+    const row = (l, txt, x) => `<div class="sg-ccr"><span>${l}</span><b>${sgNum(txt, g.spec, x)}</b></div>`;
+    return row(g.count, sgN(c), c) + row('Views', sgN(v), v) + row('Reach', rr.length ? sgN(r) : '–', rr.length ? r : 0)
+      + row('Average views a ' + g.one, sgN(v / a.length), v / a.length) + row('Average reach a ' + g.one, rr.length ? sgN(r / rr.length) : '–', rr.length ? r / rr.length : 0)
       + (rr.length && rr.length < a.length ? `<p class="sg-hint">Reach is known for ${rr.length} of ${a.length}.</p>` : '');
   };
-  const card = (name, col, body) => `<div class="sg-cc" style="--c:${col}"><div class="sg-cch"><i></i>${name}</div>${body}</div>`;
-  const sp = (k, name, rows) => sgPostsSpec('sched-card-' + net + '-' + k, name, `${sub}, ${rows.length} posts on ${nm}`, rows);
-  let h = card('Scheduled in Metricool', C.s, lines(R.S, sp('sched', 'Scheduled in Metricool', R.S), 'Posts', 'post'))
-    + card('Posted by hand', C.h, lines(R.M, sp('hand', 'Posted by hand', R.M), 'Posts', 'post'));
-  if (R.sto.length) h += card('Stories, posted live in the app', sgSchedC().t, R.stSh
-    ? lines(R.stSh, sgStoriesSpec('sched-card-' + net + '-stories', 'Stories', `${sub}, ${R.stSh.length} stories on ${nm}`, R.stSh), 'Stories', 'story')
-    : `<p class="sg-hint">${sgN(R.sto.length)} ${R.sto.length === 1 ? 'story' : 'stories'}. Their views and reach could not be read just now. Refresh to try again.</p>`);
-  const fb = net === 'facebook' && R.sto.length && w.from < '2026-11-23' ? '<p class="sg-hint">Facebook stories from before 23 Nov 2026 have no numbers, so their views and reach start from that day.</p>' : '';
-  return `<div class="sg-cmp">${h}</div>${fb}`;
+  return `${head}<div class="sg-cmp">${G.map(g => `<div class="sg-cc" style="--c:${g.col}"><div class="sg-cch"><i></i>${g.name}</div>${lines(g)}</div>`).join('')}</div>${fb}`;
 }
 function sgSchedInner(net, cols) {
   const mode = socMode(), R = sgSchedRead(net), { mine, S, M, U, sto, stSh, hasR, met, v, showP, showS, stMiss } = R;
@@ -426,7 +447,7 @@ function sgSchedInner(net, cols) {
     : showP && showS ? `<span><i style="background:${C.t}"></i>${nm2[0]} (bars, left)</span><span><i style="background:${C.p};width:16px;height:3px;border-radius:2px"></i>${nm2[1]} (line, right)</span>`
     : showP ? `<span><i style="background:${C.s}"></i>Scheduled in Metricool</span><span><i style="background:${C.h}"></i>Posted by hand</span>`
     : `<span><i style="background:${C.t}"></i>Stories, posted live</span>`;
-  return `<div class="slv-eyebrow">How the posts did, by how they went out</div>${sgSchedCards(net, R)}
+  return `${sgSchedCards(net, R)}
     <div class="mk-chart-head">
       <div class="slv-eyebrow">${title}</div>
       ${seg}${mseg}
@@ -454,6 +475,7 @@ function sgSchedFill(net, failed) {
   if (failed) { box.innerHTML = '<div class="mk-chart-head"><div class="slv-eyebrow">Posts scheduled or by hand</div></div><p class="slv-note">Could not read how the posts went out just now. Refresh to try again.</p>'; return; }
   if (!sgSchedReady(net)) return;
   box.innerHTML = sgSchedInner(net, socCols());
+  if (typeof socTblMount === 'function') socTblMount();
   sgSchedDraw(net);
 }
 function sgSchedDraw(net) {
