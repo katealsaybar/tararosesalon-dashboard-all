@@ -400,27 +400,26 @@ function sgSchedCards(net, R) {
   const fb = net === 'facebook' && R.sto.length && w.from < '2026-11-23' ? '<p class="sg-hint">Facebook stories from before 23 Nov 2026 have no numbers, so their views and reach start from that day.</p>' : '';
   const tog = `<div class="sc-seg" role="group" aria-label="View">${[['visual', 'Visual'], ['table', 'Table']].map(([k, l]) => `<button type="button" class="${sgCardsView === k ? 'on' : ''}" aria-pressed="${sgCardsView === k}" onclick="sgCardsSet('${k}')">${l}</button>`).join('')}</div>`;
   const head = `<div class="mk-chart-head"><div class="slv-eyebrow">How the posts did, by how they went out</div>${tog}</div>`;
+  // one row per group, shared by the table and the bars
+  const rows = G.map(g => { const a = g.rows, rr = a.filter(x => x.r > 0), v = tot(a, 'v'), r = tot(a, 'r');
+    return { g: g.name, short: g.one === 'story' ? 'Stories' : g.name.startsWith('Sched') ? 'Scheduled' : 'By hand', col: g.col, spec: g.spec, miss: !!g.miss, one: g.one, n: g.miss ? g.nMiss : a.length, len: a.length, v, r, av: a.length ? v / a.length : 0, ar: rr.length ? r / rr.length : 0, hasR: rr.length > 0, nr: rr.length }; });
+  const off = (x, k, reach) => (x.miss && k !== 'n') || (reach && !x.hasR);
   if (sgCardsView === 'table') {
-    const rows = G.map(g => { const a = g.rows, rr = a.filter(x => x.r > 0), v = tot(a, 'v'), r = tot(a, 'r');
-      return { g: g.name, col: g.col, spec: g.spec, miss: !!g.miss, n: g.miss ? g.nMiss : a.length, v, r, av: a.length ? v / a.length : 0, ar: rr.length ? r / rr.length : 0, hasR: rr.length > 0 }; });
     const num = (k, l, reach) => ({ k, l, t: 'num', raw: x => x[k],
-      disp: x => (x.miss && k !== 'n') || (reach && !x.hasR) ? '–' : sgN(x[k]),
-      cell: x => { const off = (x.miss && k !== 'n') || (reach && !x.hasR); return sgNum(off ? '–' : sgN(x[k]), x.spec, off ? 0 : x[k]); } });
+      disp: x => off(x, k, reach) ? '–' : sgN(x[k]),
+      cell: x => sgNum(off(x, k, reach) ? '–' : sgN(x[k]), x.spec, off(x, k, reach) ? 0 : x[k]) });
     const cols = [{ k: 'g', l: 'Went out', t: 'txt', raw: x => x.g, disp: x => x.g, cell: x => `<span class="sg-dot" style="background:${x.col}"></span>${mkEsc(x.g)}` },
       num('n', 'How many'), num('v', 'Views'), num('r', 'Reach', true), num('av', 'Average views each'), num('ar', 'Average reach each', true)];
     return `${head}${socTblHtml('sgcards-' + net, { rows, cols, unit: 'groups' })}<p class="sg-hint">Posts and stories are counted separately; a story is one story, not one post.${rows.some(x => x.miss) ? ' The stories’ views and reach could not be read just now. Refresh to try again.' : ''}</p>${fb}`;
   }
-  const lines = (g) => {
-    const a = g.rows;
-    if (g.miss) return `<p class="sg-hint">${sgN(g.nMiss)} ${g.nMiss === 1 ? 'story' : 'stories'}. Their views and reach could not be read just now. Refresh to try again.</p>`;
-    if (!a.length) return '<p class="sg-hint">None in these dates.</p>';
-    const rr = a.filter(x => x.r > 0), v = tot(a, 'v'), r = tot(a, 'r'), c = a.length;
-    const row = (l, txt, x) => `<div class="sg-ccr"><span>${l}</span><b>${sgNum(txt, g.spec, x)}</b></div>`;
-    return row(g.count, sgN(c), c) + row('Views', sgN(v), v) + row('Reach', rr.length ? sgN(r) : '–', rr.length ? r : 0)
-      + row('Average views a ' + g.one, sgN(v / a.length), v / a.length) + row('Average reach a ' + g.one, rr.length ? sgN(r / rr.length) : '–', rr.length ? r / rr.length : 0)
-      + (rr.length && rr.length < a.length ? `<p class="sg-hint">Reach is known for ${rr.length} of ${a.length}.</p>` : '');
-  };
-  return `${head}<div class="sg-cmp">${G.map(g => `<div class="sg-cc" style="--c:${g.col}"><div class="sg-cch"><i></i>${g.name}</div>${lines(g)}</div>`).join('')}</div>${fb}`;
+  // Visual: one small bar chart for each measure, a bar for each way of going out, each measure on its own scale (a bar is only compared with the bars beside it).
+  const anyR = rows.some(x => x.hasR);
+  const M = [['How many', 'n'], ['Views, added up', 'v'], ...(anyR ? [['Reach, added up', 'r', 1]] : []), ['Average views each', 'av'], ...(anyR ? [['Average reach each', 'ar', 1]] : [])];
+  const panels = M.map(([h, k, reach]) => { const m2 = Math.max(0, ...rows.filter(x => !off(x, k, reach)).map(x => x[k])) || 1;
+    return `<div><div class="sg-mh">${h}</div>${rows.map(x => { const o = off(x, k, reach), val = o ? 0 : x[k];
+      return `<div class="sg-row sg-r3" style="--c:${x.col}"><span class="sg-nm">${x.short}</span><span class="sg-trk"><span class="sg-fill" style="width:${Math.round(val * 100 / m2)}%"></span></span>${sgNum(o ? '–' : sgN(val), x.spec, val)}</div>`; }).join('')}</div>`; }).join('');
+  const part = rows.filter(x => x.hasR && x.nr < x.len).map(x => `${x.short.toLowerCase()} ${x.nr} of ${x.len}`);
+  return `${head}<div class="sg-grid sg-g5">${panels}</div>${part.length ? `<p class="sg-hint">Reach is known for ${part.join(', ')}; an average reach counts only those.</p>` : ''}${rows.some(x => x.miss) ? '<p class="sg-hint">The stories’ views and reach could not be read just now. Refresh to try again.</p>' : ''}${fb}`;
 }
 function sgSchedInner(net, cols) {
   const mode = socMode(), R = sgSchedRead(net), { mine, S, M, U, sto, stSh, hasR, met, v, showP, showS, stMiss } = R;

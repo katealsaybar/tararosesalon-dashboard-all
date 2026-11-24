@@ -146,3 +146,8 @@ html[data-theme="dark"] .sg-bd{color:#1A1A1A}
 .sg-cc .sg-hint{margin:6px 0 0}
 @media (max-width:760px){.sg-cmp{grid-template-columns:minmax(0,1fr)}.sg-ccr{min-height:44px;align-items:center}}
 .sg-dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:8px;vertical-align:-1px}
+/* Visual view of the Scheduled or by hand figures (Kate, 24 Nov 2026): one small bar chart for each measure, a bar for each way of going out. */
+.sg-grid.sg-g5{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-top:6px}
+.sg-row.sg-r3{grid-template-columns:84px minmax(0,1fr) 76px}
+@media (max-width:1000px){.sg-grid.sg-g5{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}}
+@media (max-width:760px){.sg-grid.sg-g5{grid-template-columns:minmax(0,1fr)}.sg-row.sg-r3{grid-template-columns:84px minmax(0,1fr) 76px}.sg-row.sg-r3 .sg-nm,.sg-row.sg-r3 .sg-trk{grid-column:auto;grid-row:auto}}
