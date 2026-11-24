@@ -637,7 +637,7 @@
   try { if (localStorage.getItem('nvb-money-view') === 'table') rsV.money = 'table'; if (localStorage.getItem('nvb-del-view') === 'table') rsV.del = 'table'; if (localStorage.getItem('nvb-byb-view') === 'table') rsV.byb = 'table'; } catch (e) { /* fine without storage */ }
   var NV_DRILL = { sent: 'Accepted by respond.io', reached: 'Delivered or read', read: 'Read', delivered: 'Delivered, not read yet', unconfirmed: 'Not confirmed yet', failed: 'Failed', checked: 'Status-checked',
     never_checked: 'Not status-checked yet', stop: 'STOP', replied: 'Wrote back', queued: 'Still queued', ahead: 'Booked ahead, to 30 November', late: 'Booked after 30 November, outside the offer', appts: 'Booked ahead, with their appointments', came_in: 'Already came in, nothing booked',
-    paid: 'Paid at the till since the message', people: 'Booked ahead or paid, each person once', since: 'Booked since the message or came in', bsince: 'Booked since the message', dep_paid: 'Booked ahead, deposit paid', dep_today: 'Booked for today, no deposit needed', dep_need: 'Booked ahead, deposit likely needed, not paid', dep_none: 'Booked ahead, short service, no deposit needed', dep_nodep: 'Booked ahead, no deposit needed', dep_need_1: 'Deposit likely needed, today or tomorrow', dep_need_2: 'Deposit likely needed, in 2 to 3 days', dep_need_3: 'Deposit likely needed, in 4 to 7 days', dep_need_4: 'Deposit likely needed, in 8 to 14 days', dep_need_5: 'Deposit likely needed, later',
+    paid: 'Paid at the till since the message', people: 'Booked ahead or paid, each person once', both: 'In both lists: booked ahead and already paid', since: 'Booked since the message or came in', bsince: 'Booked since the message', dep_paid: 'Booked ahead, deposit paid', dep_today: 'Booked for today, no deposit needed', dep_need: 'Booked ahead, deposit likely needed, not paid', dep_none: 'Booked ahead, short service, no deposit needed', dep_nodep: 'Booked ahead, no deposit needed', dep_need_1: 'Deposit likely needed, today or tomorrow', dep_need_2: 'Deposit likely needed, in 2 to 3 days', dep_need_3: 'Deposit likely needed, in 4 to 7 days', dep_need_4: 'Deposit likely needed, in 8 to 14 days', dep_need_5: 'Deposit likely needed, later',
     sent_ok: 'Sent', failed_any: 'Failed', skipped: 'Dropped just before sending', notgone: 'Did not go', again: 'Sent again', again_delivered: 'Sent again, delivered or read', again_failed: 'Sent again, failed', again_queued: 'Sent again, still to go' };
   var NV_BUCKET = { '1': 'Wrote to us in the last 30 days', '2': 'Wrote to us 31 to 90 days ago', '3': 'Wrote to us 91 to 180 days ago', '4': 'Wrote to us over 180 days ago', '5': 'Never wrote to us' };
   var NV_SPLIT = [['hair_services', 'Hair services (colour, cut, extensions)'], ['hair_treat', 'Hair treatments'], ['beauty_services', 'Beauty and nails'], ['retail_hair', 'Retail, hair'], ['retail_beauty', 'Retail, beauty'], ['other', 'Other']];
@@ -677,7 +677,7 @@
     var o = r.outcome;
     if (!o) return '<span class="slv-muted">–</span>';
     if (o === 'stop') return '<span class="nvb-tag bad">STOP / opt out</span>';
-    if (o === 'booked') return '<span class="nvb-tag good">Booked ahead</span>';
+    if (o === 'booked') return '<span class="nvb-tag good">Booked ahead</span>' + (r.ahead && r.spent > 0 ? ' <span class="nvb-tag good">Also paid</span> <span class="slv-note">AED ' + money0(r.spent) + '</span>' : '');
     if (o === 'late') return '<span class="nvb-tag">Booked after 30 Nov</span>';
     return '<span class="nvb-tag good">Came in</span>' + (r.spent ? ' <span class="slv-note">AED ' + money0(r.spent) + '</span>' : '');
   }
@@ -913,9 +913,9 @@
       var line = function (label, x, ctx, bold) {
         var f = function (v) { return bold ? '<b>' + v + '</b>' : v; }, cost = (x.sent || 0) * r2;
         return { t: !!bold, c: [esc(label), nn(x.sent, 'sent', ctx), money2(cost), bkok ? nn(x.ahead, 'ahead', ctx) : 'Not yet', bkok ? nn(x.appts, 'appts', ctx) : 'Not yet', bkok ? money2(x.proj) : 'Not yet', bkok && x.ahead ? money2(x.proj / x.ahead) : '–',
-          slok ? nn(x.visited, 'paid', ctx) : 'Not yet', bkok && slok && x.people != null ? nn(x.people, 'people', ctx) : 'Not yet', slok ? money2(x.actual) : 'Not yet', slok && cost > 0 && x.actual > 0 ? 'AED ' + rt(x.actual / cost) : '–'] };
+          slok ? nn(x.visited, 'paid', ctx) : 'Not yet', bkok && slok && x.people != null ? nn(x.both_lists || 0, 'both', ctx) : 'Not yet', bkok && slok && x.people != null ? nn(x.people, 'people', ctx) : 'Not yet', slok ? money2(x.actual) : 'Not yet', slok && cost > 0 && x.actual > 0 ? 'AED ' + rt(x.actual / cost) : '–'] };
       };
-      var heads = [['', ''], ['Accepted by respond.io', 'n'], ['Spent, estimate at ' + r2, 'n'], ['Clients booked ahead', 'n'], ['Appointments', 'n'], ['Projected spend', 'n'], ['Projected per client', 'n'], ['Came in and paid', 'n'], ['People, each once', 'n'], ['Actual spend', 'n'], ['AED back per AED 1', 'n']];
+      var heads = [['', ''], ['Accepted by respond.io', 'n'], ['Spent, estimate at ' + r2, 'n'], ['Clients booked ahead', 'n'], ['Appointments', 'n'], ['Projected spend', 'n'], ['Projected per client', 'n'], ['Came in and paid', 'n'], ['In both lists', 'n'], ['People, each once', 'n'], ['Actual spend', 'n'], ['AED back per AED 1', 'n']];
       var h1 = heads.slice(); h1[0] = ['Blast', ''];
       var h2 = heads.slice(); h2[0] = ['Branch', ''];
       body = rsTable(h1, bb.map(function (x) { return line(blastName(x.k), x, { b: x.k }); }).concat([line('All', al, {}, true)])) +
@@ -935,15 +935,15 @@
       if (ratioD) moreLines.push('If only delivered messages are charged (' + nn(al.reached, 'reached') + ' at AED ' + r2 + '), AED 1 brings back <b>AED ' + rt(ratioD) + '</b>.');
       if (bkok && al.ahead) moreLines.push('Average projected per booked client <b>AED ' + money0(al.proj / al.ahead) + '</b>, AED ' + money0(al.appts ? al.proj / al.appts : 0) + ' per appointment.');
       if (bkok && al.ahead) moreLines.push('Cost per booked client <b>AED ' + money2(sp / al.ahead) + '</b>, or AED ' + money2(spD / al.ahead) + ' if only delivered are charged.');
-      if (bkok && slok && al.people != null) moreLines.push('<b>' + fmtN(al.people) + ' people</b> booked ahead or paid, each counted once. Booked ahead and Came in and paid can be the same client, so do not add them together.');
+      if (bkok && slok && al.people != null) moreLines.push('<b>' + fmtN(al.people) + ' people</b> booked ahead or paid, each counted once. ' + nn(al.both_lists || 0, 'both') + ' of them are in both lists (booked ahead and already paid), so Booked ahead and Came in and paid cannot be added together.');
       moreLines.push('Some may have booked before our message or been coming anyway, so read it as a ceiling, not proof.');
       var moreFold = '<details class="nvb-fold nvb-mmore" data-fold="money-more"' + (opened['money-more'] ? ' open' : '') + '><summary>More</summary>' + moreLines.map(function (l) { return '<p class="nvb-small">' + l + '</p>'; }).join('') + '</details>';
       var split = function (list, key2) {
         return list.slice().sort(function (p, q) { return (q.actual || 0) - (p.actual || 0) || (q.proj || 0) - (p.proj || 0); }).map(function (x) {
           var ctx = key2 === 'b' ? { b: x.k } : { br: x.k };
-          return grow(esc(key2 === 'b' ? blastName(x.k) : (BR[x.k] || x.k)), (bkok ? nn(x.ahead, 'ahead', ctx) + ' booked' : 'bookings not readable yet') + (slok ? ', ' + nn(x.visited, 'paid', ctx) + ' came in and paid' : '') + (bkok && slok && x.people != null ? ', ' + nn(x.people, 'people', ctx) + ' people in all' : ''),
+          return grow(esc(key2 === 'b' ? blastName(x.k) : (BR[x.k] || x.k)), (bkok ? nn(x.ahead, 'ahead', ctx) + ' booked' : 'bookings not readable yet') + (slok ? ', ' + nn(x.visited, 'paid', ctx) + ' came in and paid' : '') + (bkok && slok && x.people != null ? ', ' + nn(x.both_lists || 0, 'both', ctx) + ' in both, ' + nn(x.people, 'people', ctx) + ' people in all' : ''),
             (bkok ? gline('p', 'Projected', x.proj || 0, bmx) : '') + (slok ? gline('d', 'Actual', x.actual || 0, bmx) : ''),
-            (key2 === 'b' ? blastName(x.k) : (BR[x.k] || x.k)) + ': ' + (bkok ? fmtN(x.ahead || 0) + ' booked ahead, projected AED ' + money0(x.proj || 0) + '. ' : '') + (slok ? fmtN(x.visited || 0) + ' came in and paid AED ' + money0(x.actual || 0) + ' so far.' : '') + (bkok && slok && x.people != null ? ' ' + fmtN(x.people) + ' people in all, each counted once.' : ''));
+            (key2 === 'b' ? blastName(x.k) : (BR[x.k] || x.k)) + ': ' + (bkok ? fmtN(x.ahead || 0) + ' booked ahead, projected AED ' + money0(x.proj || 0) + '. ' : '') + (slok ? fmtN(x.visited || 0) + ' came in and paid AED ' + money0(x.actual || 0) + ' so far.' : '') + (bkok && slok && x.people != null ? ' ' + fmtN(x.people) + ' people in all, each counted once (' + fmtN(x.both_lists || 0) + ' in both lists).' : ''));
         }).join('') || '<p class="slv-muted">Nobody yet.</p>';
       };
       var panel2 = '<div class="nvb-gp"><h4 class="nvb-h4">By branch: projected and actual</h4><p class="nvb-small">Biggest actual first, then biggest projected.</p>' + split(by, 'br') + key + '</div>';
