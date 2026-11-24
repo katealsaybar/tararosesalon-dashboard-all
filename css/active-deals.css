@@ -15,8 +15,8 @@
 #dealsPerfContent .ad-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
 #dealsPerfContent .ad-toplinks{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:560px){
-  #dealsPerfContent .ad-toplinks{flex:1 1 100%;flex-wrap:nowrap;min-width:0}
-  #dealsPerfContent .ad-toplinks .ad-btn{flex:1 1 auto;min-width:0;padding:7px 6px;font-size:12.5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #dealsPerfContent .ad-toplinks{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}
+  #dealsPerfContent .ad-toplinks .ad-btn{padding:9px 8px;font-size:13px;line-height:1.25;text-align:center}
 }
 #dealsPerfContent .ad-btn{border:1px solid var(--line);background:var(--paper);color:var(--muted);font:600 13px 'Inter',system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block;min-height:34px}
 #dealsPerfContent .ad-btn:hover{color:var(--ink)}
