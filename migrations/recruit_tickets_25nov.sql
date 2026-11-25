@@ -1,3 +1,4 @@
+-- APPLIED on gvijxenafoowajqktqvd, 25 Nov 2026 (Kate: "Apply and push"). Tried first in a transaction that rolled back.
 -- Recruitment: Replies (tickets) and bell alerts that fire only once an email has really gone out (Kate, 25 Nov 2026: "a ticketing system for replying to them", and
 -- "notify us if somebody did not pass the interview, passed, or is for a job offer; make sure to notify ONLY when the email is sent to the applicant").
 -- Mockup approved the same day: docs/mockups/recruitment-replies.html in the cowork repo.
