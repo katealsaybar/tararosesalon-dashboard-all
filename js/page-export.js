@@ -197,6 +197,6 @@
   register('clientmix', '__cmExport', { csv: 'Families' });
   // Checked on the live site 18 Nov 2026: each of these draws real tables, so domModel returns them. (Wellness Voucher Performance is a page inside a frame: its own buttons only.)
   [['lostlists', 'Lost Client Blasts'], ['stripedeposits', 'Stripe vs Phorest'], ['depositcheck', 'Deposit Checking'], ['glowclub', 'Glow Club Performance'],
-   ['dealsperf', 'Active Deals Performance'], ['discountsvouchers', 'Discounts and Vouchers'], ['products', 'Products'], ['attrition', 'Attrition'], ['one2ones', '1-to-1s and Goals']
+   ['dealsperf', 'Active Deals Performance'], ['pkhaircolour', 'Hair Colour Packages Performance'], ['discountsvouchers', 'Discounts and Vouchers'], ['products', 'Products'], ['attrition', 'Attrition'], ['one2ones', '1-to-1s and Goals']
   ].forEach(function (p) { registerDom(p[0], p[1]); });
 })();
