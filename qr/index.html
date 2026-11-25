@@ -283,20 +283,31 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   }
 
   /* ---------- one code ---------- */
+  // The box takes the link. If someone types "Name | link" (or a name, a tab and a link) as they would in Many links, the name is taken out and only the link goes in the code.
+  function splitOne(raw) {
+    raw = (raw || '').trim();
+    if (!raw || /[\r\n]/.test(raw)) return { name: '', link: raw };
+    var left, right, i = raw.indexOf('\t');
+    if (i > -1) { left = raw.slice(0, i); right = raw.slice(i + 1); }
+    else { i = raw.indexOf('|'); if (i < 0) return { name: '', link: raw }; left = raw.slice(0, i); right = raw.slice(i + 1); }
+    left = left.trim(); right = right.trim();
+    if (!left || !right || /^[a-z][a-z0-9+.-]*:\/\//i.test(left)) return { name: '', link: raw };   // a link that itself holds a | stays whole
+    return { name: left, link: right };
+  }
   function renderOne() {
-    var v = clean(txt.value), q = build(v), st = settings();
+    var sp = splitOne(txt.value), v = clean(sp.link), q = build(v), st = settings();
     cur = null; oneBtns.forEach(function (b) { b.disabled = true; }); flash(msg, '');
     if (!v) { stage.innerHTML = '<div class="qr-empty">Your QR code shows here.</div>'; info.textContent = ''; return; }
     if (!q) { stage.innerHTML = '<div class="qr-empty">That is too long for one QR code. Use a shorter link.</div>'; info.textContent = ''; return; }
-    cur = { q: q, value: v, centre: st.centre, colour: st.colour, name: nameIn.value.trim() };
+    cur = { q: q, value: v, centre: st.centre, colour: st.colour, name: nameIn.value.trim() || sp.name, auto: sp.name };
     stage.innerHTML = ''; stage.appendChild(draw(cur, 760));
     info.textContent = v;
     oneBtns.forEach(function (b) { b.disabled = false; });
     $('qrSave').disabled = lib.state !== 'ok';
     if (cur.centre !== 'none' && q.getModuleCount() > 57) flash(msg, 'This one is long, so the code is dense. Scan it with a phone before printing, or use a shorter link.');
   }
-  $('qrPng').addEventListener('click', function () { if (!cur) return; pngBlob(cur, px()).then(function (b) { save(b, fileOf({ name: nameIn.value.trim(), value: cur.value }, 'png')); flash(msg, 'PNG downloaded.'); }); });
-  $('qrSvg').addEventListener('click', function () { if (!cur) return; save(new Blob([svg(cur)], { type: 'image/svg+xml' }), fileOf({ name: nameIn.value.trim(), value: cur.value }, 'svg')); flash(msg, 'SVG downloaded.'); });
+  $('qrPng').addEventListener('click', function () { if (!cur) return; pngBlob(cur, px()).then(function (b) { save(b, fileOf({ name: cur.name, value: cur.value }, 'png')); flash(msg, 'PNG downloaded.'); }); });
+  $('qrSvg').addEventListener('click', function () { if (!cur) return; save(new Blob([svg(cur)], { type: 'image/svg+xml' }), fileOf({ name: cur.name, value: cur.value }, 'svg')); flash(msg, 'SVG downloaded.'); });
   $('qrCopy').addEventListener('click', function () {
     if (!cur) return;
     if (!navigator.clipboard || !window.ClipboardItem) { flash(msg, 'Copy is not available in this browser. Use Download PNG.', true); return; }
@@ -326,7 +337,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   $('qrSave').addEventListener('click', function () {
     if (!cur) return;
     $('qrSave').disabled = true; flash(msg, 'Saving…');
-    saveCode(nameIn.value.trim() || cur.value, cur.value, cur.centre, cur.colour).then(function (ok) {
+    saveCode(cur.name || cur.value, cur.value, cur.centre, cur.colour).then(function (ok) {
       flash(msg, ok ? 'Saved. It is in Saved codes below.' : 'Could not save. Sign in to the dashboard and try again.', !ok); $('qrSave').disabled = false;
     });
   });
@@ -447,7 +458,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   function refresh() { if (mode === 'one') renderOne(); else renderMany(); renderLib(); }
   $('qrModeOne').addEventListener('click', function () { setMode('one'); });
   $('qrModeMany').addEventListener('click', function () { setMode('many'); });
-  txt.addEventListener('input', renderOne); nameIn.addEventListener('input', function () { if (cur) cur.name = nameIn.value.trim(); });
+  txt.addEventListener('input', renderOne); nameIn.addEventListener('input', function () { if (cur) cur.name = nameIn.value.trim() || cur.auto; });
   bulk.addEventListener('input', renderMany);
   function clearOver(field) { Object.keys(over_).forEach(function (k) { delete over_[k][field]; }); }
   logoSel.addEventListener('change', function () { clearOver('centre'); refresh(); });
