@@ -1,6 +1,6 @@
 -- Tool Spend, automatic receipts (Kate, 25 Nov 2026). Neither respond.io nor Phorest has an API that returns what we are billed (respond.io's
 -- Developer API covers contacts and messages, Phorest's covers clients, bookings and the till), so the payment emails are the feed: a script in the
--- mailbox that receives them (apps-script/sync-tool-invoices.gs) reads each receipt and sends it here, and the Tool Spend page picks it up.
+-- mailbox that receives them is read by a script on Kate's PC (phorest data export/tool spend/sync_tool_invoices.py, hourly, read only, no Apps Script), which sends each receipt here, and the Tool Spend page picks it up.
 --
 -- ext_id is the vendor's own number for the document (respond:1701-7436 for a respond.io receipt), unique, so a receipt read twice, or by two runs,
 -- is one row. A line that someone loaded by hand has no ext_id and is never touched. Rows that already exist are left exactly as they are (a branch
