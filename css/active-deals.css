@@ -81,3 +81,13 @@
 #dealsPerfContent .ad-ask li{margin:6px 0}
 #dealsPerfContent .ad-state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
 #dealsPerfContent .ad-empty{color:var(--muted);font-size:13px;padding:8px 0}
+
+/* Brochure slide thumbnails beside each offer (Kate, 25 Nov 2026) */
+#dealsPerfContent .ad-of{display:flex;gap:10px;align-items:flex-start}
+#dealsPerfContent .ad-of>div{min-width:0}
+#dealsPerfContent .ad-pic{width:56px;padding-right:0}
+#dealsPerfContent td.ad-nm{min-width:170px}
+#dealsPerfContent .ad-th{flex:0 0 44px;display:block;line-height:0}
+#dealsPerfContent .ad-th img{width:44px;height:78px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+#dealsPerfContent li.ad-of .ad-th{flex-basis:52px}
+#dealsPerfContent li.ad-of .ad-th img{width:52px;height:92px}

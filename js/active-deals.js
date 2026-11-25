@@ -40,6 +40,8 @@ const adMoney = n => Math.round(Number(n) || 0).toLocaleString('en-US');
 const adAed = n => 'AED ' + adMoney(n);
 const adPc = (a, b) => b ? Math.round(a / b * 100) + '%' : '0%';
 const adSum = (l, f) => l.reduce((a, r) => a + f(r), 0);
+// The brochure slide for a deal (Kate, 25 Nov 2026): assets/active-deals/<k>.webp, tap to open it full size.
+const adSlide = (k, alt) => `<a class="ad-th" href="assets/active-deals/${k}.webp" target="_blank" rel="noopener" title="Open the slide"><img src="assets/active-deals/${k}.webp" alt="${adEsc(alt)} slide" loading="lazy" width="44" height="78"></a>`;
 const adOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2;
 const adDay = iso => { try { return new Date(String(iso).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return iso || ''; } };
 const adShort = iso => { try { return new Date(String(iso).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch (e) { return iso || ''; } };
@@ -178,9 +180,9 @@ function adPaint() {
   const brHead = AD_BR.map(b => `<th class="n">${b[1]}</th>`).join('');
   h += `<section class="ad-card" id="ad-offer"><h2>By offer</h2><p class="ad-sub">How each deal on the brochure is doing: the sales at each branch, the cash, and how sure we are of the match.</p>
     <details class="more"><summary>How this is counted</summary><p class="ad-sub">A package is rung as one sale made of lines named after the offer, so we count sales, not lines. Blonding and Balayage on the brochure are Phorest’s Full Blonde Package and Full Balayage Package, matched by price and components, so they carry a Confirm name tag until Emma says yes.</p></details>
-    <div><table><thead><tr><th>Offer</th>${brHead}<th class="n">Sold</th><th class="n">AED</th><th>Share</th><th>Match</th></tr></thead><tbody>${
-      rowsO.map(o => `<tr><td>${adEsc(o.n)}<small>Slide ${o.s} · ${o.pl || 'AED ' + o.p}${o.ph ? ' · ' + adEsc(o.ph) : ''}</small></td>${AD_BR.map(b => `<td class="n">${adBc(adBrOf(o.k, b[0]))}</td>`).join('')}<td class="n"><b>${o.sold}</b></td><td class="n">${adAed(o.paid)}</td><td>${adMini(o.paid, cash)}</td><td><span class="ad-tag ${o.c}">${o.ct}</span></td></tr>`).join('')
-    }<tr class="tot"><td>Total</td>${AD_BR.map(b => `<td class="n">${adBc(adSum(offs, o => adBrOf(o.k, b[0])))}</td>`).join('')}<td class="n">${total}</td><td class="n">${adAed(cash)}</td><td>${adMini(cash, cash)}</td><td></td></tr></tbody></table></div>
+    <div><table><thead><tr><th class="ad-pic">Slide</th><th>Offer</th>${brHead}<th class="n">Sold</th><th class="n">AED</th><th>Share</th><th>Match</th></tr></thead><tbody>${
+      rowsO.map(o => `<tr><td class="ad-pic">${adSlide(o.k, o.n)}</td><td class="ad-nm">${adEsc(o.n)}<small>Slide ${o.s} · ${o.pl || 'AED ' + o.p}${o.ph ? ' · ' + adEsc(o.ph) : ''}</small></td>${AD_BR.map(b => `<td class="n">${adBc(adBrOf(o.k, b[0]))}</td>`).join('')}<td class="n"><b>${o.sold}</b></td><td class="n">${adAed(o.paid)}</td><td>${adMini(o.paid, cash)}</td><td><span class="ad-tag ${o.c}">${o.ct}</span></td></tr>`).join('')
+    }<tr class="tot"><td></td><td>Total</td>${AD_BR.map(b => `<td class="n">${adBc(adSum(offs, o => adBrOf(o.k, b[0])))}</td>`).join('')}<td class="n">${total}</td><td class="n">${adAed(cash)}</td><td>${adMini(cash, cash)}</td><td></td></tr></tbody></table></div>
     <h3 class="ad-subh">Older look-alike offers</h3><p class="ad-sub">Not on the brochure, shown so they are not mixed in.</p>
     <div><table><thead><tr><th>Offer</th>${brHead}<th class="n">Sold</th><th class="n">AED</th><th>Match</th></tr></thead><tbody>${
       AD_OLDER.map(o => `<tr><td>${adEsc(o.n)}<small>AED ${o.p}</small></td>${AD_BR.map(b => `<td class="n">${adBc(adBrOf(o.k, b[0]))}</td>`).join('')}<td class="n"><b>${adSold(o.k)}</b></td><td class="n">${adAed(adPaid(o.k))}</td><td><span class="ad-tag ${o.c}">${o.ct}</span></td></tr>`).join('')
@@ -194,7 +196,7 @@ function adPaint() {
     <section class="ad-card" id="ad-cant"><h2>Upper bound only</h2><p class="ad-sub">One deal on the brochure cannot be counted exactly, and three are counted by their price.</p>
       <ul class="ad-list">${AD_UB.map(u => {
         const n = adSold(u.k), by = AD_BR.map(b => [b[1], adBrOf(u.k, b[0])]).filter(x => x[1]);
-        return `<li><b>${adEsc(u.n)}, ${adEsc(u.pl.toLowerCase())}: up to ${n} sale${n === 1 ? '' : 's'}</b>${by.length ? adEsc(by.map(x => x[0] + ' ' + x[1]).join(', ') + '. ') : ''}These are extension maintenance sales with a free treatment line. The till rings any gift that way, so some are not this deal, and no sale shows the trim free as well. Left out of every total above.</li>`;
+        return `<li class="ad-of">${adSlide(u.k, u.n)}<div><b>${adEsc(u.n)}, ${adEsc(u.pl.toLowerCase())}: up to ${n} sale${n === 1 ? '' : 's'}</b>${by.length ? adEsc(by.map(x => x[0] + ' ' + x[1]).join(', ') + '. ') : ''}These are extension maintenance sales with a free treatment line. The till rings any gift that way, so some are not this deal, and no sale shows the trim free as well. Left out of every total above.</div></li>`;
       }).join('')}</ul></section></div>`;
 
   h += `<section class="ad-card" id="ad-ask"><h2>Waiting on a word</h2><p class="ad-sub">These need an answer before the numbers can be quoted outside the team.</p><ol class="ad-ask">
