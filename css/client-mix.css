@@ -177,3 +177,6 @@ tr.cm-unm td{background:var(--warn-bg)}
 .cm-card tr.lc-row.lc-open td{background:var(--surface2)}
 .cm-card .lc-hint-m{display:none}
 @media(max-width:760px){.cm-card .lc-hint-m{display:block}}
+/* The items card is the narrow half of the page on a laptop: tighter cells and headings so item names get the room. */
+@media(min-width:761px){.cm-items .sx-t th,.cm-items .sx-t td{padding-left:8px;padding-right:8px}.cm-items .sx-t th{letter-spacing:.05em}}
+@media(max-width:760px){.cm-items .cm-cell-cat,#cmItems .slv-note{font-size:13px}}

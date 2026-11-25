@@ -23,7 +23,6 @@ const CM_STORE = 'trs-client-mix';
 const CM = { mode: 'clients', fams: ['colour'], cats: [], item: null, tri: {}, tab: 'mix', n: 10, any: false };
 let cmCards = null, cmDetail = null, cmRoster = null, cmSeqC = 0, cmSeqD = 0, cmStamp = 0, cmBusy = false, cmWinKey = '';
 const cmCache = {};
-let cmItemsAll = false;
 const CM_FIRST = '2021-08-01';   // sales_transaction_lines starts here (Aug 2021 at Khalifa City and Saadiyat)
 const cmIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const cmToday = () => cmIso(new Date());
@@ -138,7 +137,7 @@ function cmPickFam(k) {
   const i = CM.fams.indexOf(k);
   if (i >= 0) { if (CM.fams.length < 2) return; CM.fams.splice(i, 1); if (CM.fams.length < 2) CM.any = false; }
   else { CM.fams.push(k); delete CM.tri[k]; }
-  CM.cats = []; CM.item = null; cmItemsAll = false; cmSave(); cmSync();
+  CM.cats = []; CM.item = null; cmSave(); cmSync();
   cmPaintCards(); cmPaintSel(); cmLoadDetail();
 }
 // A chip under the cards leaves out the clients who had that family.
@@ -150,14 +149,13 @@ function cmTri(k) {
 function cmPickCat(c) {
   if (!c) CM.cats = [];
   else { const i = CM.cats.indexOf(c); if (i >= 0) CM.cats.splice(i, 1); else CM.cats.push(c); }
-  CM.item = null; cmItemsAll = false; cmSync(); cmLoadDetail(); }
+  CM.item = null; cmSync(); cmLoadDetail(); }
 function cmPickItem(i) {
   const it = cmDetail && cmDetail.items[i];
   if (!it) return;
   CM.item = CM.item === it.stem ? null : it.stem; cmSync(); cmLoadDetail();
 }
 function cmSetN(n) { CM.n = n; if (cmT) cmT.page = 0; cmSync(); cmPaintList(); }
-function cmAllItems() { cmItemsAll = true; cmPaintItems(); }
 function cmTab(t) {
   CM.tab = t;
   document.getElementById('cmPageMix').style.display = t === 'mix' ? '' : 'none';
@@ -197,7 +195,9 @@ function cmShell() {
       </section>
       <p class="cm-summary" id="cmSummary"></p>
       <div class="cm-two">
-        <section class="slv-card"><div class="slv-eyebrow" id="cmItemsTitle"></div><div id="cmItems"></div></section>
+        <section class="slv-card"><div class="cm-tools"><div class="slv-eyebrow" id="cmItemsTitle"></div>
+          <span class="cm-toolr"><button type="button" class="cm-pill" id="cmiClear" hidden onclick="cmiClear()">Clear filters</button><button type="button" class="cm-pill" id="cmiMore" onclick="cmiToggleMore()">All columns</button><button type="button" class="cm-pill cm-phone" data-sxcm="cmi">Sort and filter</button>${typeof rexButtons === 'function' ? rexButtons('cmExportItems') : ''}</span></div>
+          <div id="cmItems"></div></section>
         <section class="slv-card"><div class="cm-tools"><div class="slv-eyebrow" id="cmListTitle"></div>
           <span class="cm-toolr"><button type="button" class="cm-pill" id="cmClear" hidden onclick="cmClearList()">Clear filters</button><button type="button" class="cm-pill" id="cmMore" onclick="cmToggleMore()">All columns</button><button type="button" class="cm-pill cm-phone" data-sxcm="cm">Sort and filter</button>
           <button type="button" class="cm-pill" id="cmCopy" onclick="cmCopy()">Copy list for Sheets</button>${typeof rexButtons === 'function' ? rexButtons('cmExportList') : ''}</span></div>
@@ -214,7 +214,7 @@ async function renderClientMix() {
   if (!el) return;
   try { if (window.trsWindowReady) await window.trsWindowReady; } catch (e) {}
   const wk = cmBranchArg() + '|' + cmRange().join();   // the header's Branch or Period moved: the picked item and category belonged to the old window
-  if (wk !== cmWinKey) { const first = !cmWinKey; cmWinKey = wk; if (!first) { CM.item = null; CM.cats = []; } cmItemsAll = false; }   // the first draw keeps what the address named
+  if (wk !== cmWinKey) { const first = !cmWinKey; cmWinKey = wk; if (!first) { CM.item = null; CM.cats = []; } }   // the first draw keeps what the address named
   if (Date.now() - cmStamp > 600000) { cmForget(); cmStamp = Date.now(); cmRoster = null; }
   lcDetailCtx = { branch: () => cmBranchArg(), html: d => lcDetailHtml(d, { allBranches: CM.branch === 'all' && ((d && d.branches) || []).length > 1 }) };
   el.innerHTML = cmShell();
@@ -316,12 +316,12 @@ function cmPaintDetail() {
 }
 // The selection box: with two or more cards picked, the totals for the clients who had all of them, and what each card came to.
 function cmClearSel() {
-  CM.fams = [cmLead()]; CM.any = false; CM.cats = []; CM.item = null; cmItemsAll = false; cmSave(); cmSync();
+  CM.fams = [cmLead()]; CM.any = false; CM.cats = []; CM.item = null; cmSave(); cmSync();
   cmPaintCards(); cmPaintSel(); cmLoadDetail();
 }
 // Had both / all (the clients who had every picked card) or Had either / any (at least one).
 function cmSetAny(v) {
-  CM.any = !!v; CM.item = null; cmItemsAll = false; cmSync();
+  CM.any = !!v; CM.item = null; cmSync();
   document.querySelectorAll('#cmSel .sc-seg button').forEach(b => { const on = (b.dataset.v === 'any') === CM.any; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
   cmPaintOver(); cmLoadDetail();
 }
@@ -372,20 +372,71 @@ function cmPaintOver() {
     return `<button type="button" class="cm-chip" onclick="cmPickFam('${o.family}')" title="Show only the clients ${lcEsc(who)} and ${lcEsc(f.name.toLowerCase())}"><i class="cm-fdot" style="--c:${f.color}"></i>${lcEsc(f.name)} <em>${lcNum(o.clients)} client${o.clients === 1 ? '' : 's'} · ${Math.round(100 * o.clients / c)}% · AED ${lcNum(o.revenue)}</em></button>`;
   }).join('') + `</div><span class="slv-note">of the ${lcNum(c)} client${c === 1 ? '' : 's'} ${lcEsc(who)}; click one to list just the clients who had it too</span>`;
 }
+// The items table is the shared Sheets table too (sheet-table.js): a menu on every heading, 10 rows and pages, XLSX and CSV, a labelled card per row on a phone. A click on a row still lists just the clients who had that item.
+let cmiT = null, cmiTFor = null, cmiN = 10, cmiMx = 1;
+const cmItemKey = () => CM.mode === 'units' ? 'units' : CM.mode === 'revenue' ? 'revenue' : 'clients';   // the items table has no visits column, so Visits shows clients
+const cmItemRows = () => { const key = cmItemKey(); return ((cmDetail && cmDetail.items) || []).map((x, i) => Object.assign({ _i: i }, x)).sort((a, b) => b[key] - a[key] || b.clients - a.clients); };
+function cmBuildItems() {
+  const multiF = () => CM.fams.length > 1;
+  const famName = r => cmFam(r.family).name, catName = r => cmTitle(r.category);
+  cmiT = TRSheet.table({ id: 'cmi', el: '#cmiTbl', limit: cmiN,
+    rows: cmItemRows,
+    rowCls: r => 'cm-item' + (CM.item === r.stem ? ' sel' : ''),
+    cols: [
+      { k: 'item', l: 'Item', t: 'txt', raw: r => r.stem || '', disp: r => r.stem || '',
+        cell: r => { const mx = cmiMx, color = multiF() ? cmFam(r.family).color : cmFam(cmLead()).color;
+          return `<span class="tc-name">${lcEsc(r.stem)}</span><div class="cm-cell-cat">${multiF() ? `<i class="cm-fdot" style="--c:${cmFam(r.family).color}"></i>${lcEsc(famName(r))} · ` : ''}${lcEsc(catName(r))}</div><div class="cm-bar1" style="--c:${color}"><i style="width:${Math.round(100 * r[cmItemKey()] / mx)}%"></i></div>`; } },
+      { k: 'clients', l: 'Clients', t: 'num', raw: r => Number(r.clients) || 0, disp: r => lcNum(r.clients), cell: r => lcNum(r.clients) },
+      { k: 'units', l: 'Units', t: 'num', raw: r => Number(r.units) || 0, disp: r => lcNum(r.units), cell: r => lcNum(r.units) },
+      { k: 'aed', l: 'AED', t: 'num', raw: r => Number(r.revenue) || 0, disp: r => lcNum(r.revenue), cell: r => lcNum(r.revenue) },
+      { k: 'fam', l: 'Family', t: 'txt', x: 1, raw: famName, disp: famName, cell: r => lcEsc(famName(r)) },
+      { k: 'cat', l: 'Phorest category', t: 'txt', x: 1, raw: catName, disp: catName, cell: r => lcEsc(catName(r)) }
+    ],
+    after: cmiAfterDraw });
+}
+function cmiAfterDraw(T, rows) {
+  const c = document.getElementById('cmiClear'); if (c) c.hidden = !T.active();
+  const pages = T.pages(rows.length), from = rows.length ? T.page * T.shown + 1 : 0, to = Math.min(rows.length, (T.page + 1) * T.shown);
+  const set = (id, fn) => { const e = document.getElementById(id); if (e) fn(e); };
+  set('cmiPgTxt', e => { e.textContent = from + ' to ' + to + ' of ' + lcNum(rows.length) + ' item' + (rows.length === 1 ? '' : 's'); });
+  set('cmiPrev', e => { e.disabled = T.page <= 0; });
+  set('cmiNext', e => { e.disabled = T.page >= pages - 1; });
+  set('cmiPgN', e => { e.textContent = 'Page ' + (T.page + 1) + ' of ' + pages; });
+  set('cmiPgSel', e => { if (+e.value !== T.shown) e.value = String(T.shown); });
+  const page = rows.slice(T.page * T.shown, (T.page + 1) * T.shown);
+  document.querySelectorAll('#cmiTbl tbody tr.cm-item').forEach((tr, i) => { const r = page[i]; if (r) tr.onclick = () => cmPickItem(r._i); });
+}
 function cmPaintItems() {
   const d = cmDetail, box = document.getElementById('cmItems');
   if (!d || !box) return;
   document.getElementById('cmItemsTitle').textContent = cmJoin(CM.fams.map(k => cmFam(k).name)) + ', by item';
-  const multiF = CM.fams.length > 1;
-  const key = CM.mode === 'units' ? 'units' : CM.mode === 'revenue' ? 'revenue' : 'clients';   // the items table has no visits column, so Visits shows clients
-  const items = (d.items || []).map((x, i) => Object.assign({ _i: i }, x)).sort((a, b) => b[key] - a[key] || b.clients - a.clients);
-  const mx = Math.max(1, ...items.map(x => x[key]));
-  const color = cmFam(cmLead()).color;
-  const shownItems = (cmItemsAll || !window.matchMedia('(max-width:760px)').matches) ? items : items.slice(0, 8);
-  box.innerHTML = items.length ? `<div class="slv-wrap"><table class="slv-table cm-items"><thead><tr><th class="lc-l">Item</th><th>Clients</th><th>Units</th><th>AED</th></tr></thead><tbody>${shownItems.map(x =>
-    `<tr class="cm-item${CM.item === x.stem ? ' sel' : ''}" onclick="cmPickItem(${x._i})"><td class="lc-l"><span class="tc-name">${lcEsc(x.stem)}</span><div class="cm-cell-cat">${multiF ? `<i class="cm-fdot" style="--c:${cmFam(x.family).color}"></i>${lcEsc(cmFam(x.family).name)} · ` : ''}${lcEsc(cmTitle(x.category))}</div><div class="cm-bar1" style="--c:${multiF ? cmFam(x.family).color : color}"><i style="width:${Math.round(100 * x[key] / mx)}%"></i></div></td><td>${lcNum(x.clients)}</td><td>${lcNum(x.units)}</td><td>${lcNum(x.revenue)}</td></tr>`).join('')}</tbody></table></div>
-    <p class="slv-note" style="margin-top:8px">Click an item to list only the clients who had it.${(d.items || []).length >= 80 ? ' Showing the 80 most common.' : ''}</p>${shownItems.length < items.length ? `<p style="margin:8px 0 0"><button type="button" class="cm-pill" onclick="cmAllItems()">Show all ${items.length} items</button></p>` : ''}`
-    : '<p class="slv-muted">Nothing here for these filters.</p>';
+  if (!(d.items || []).length) { box.innerHTML = '<p class="slv-muted">Nothing here for these filters.</p>'; return; }
+  if (!cmiT) cmBuildItems();
+  if (cmiTFor !== d) { cmiT.clear(); cmiTFor = d; }   // a new list (another Branch, Period or pick) starts with no heading filters
+  cmiT.shown = cmiN; cmiMx = Math.max(1, ...cmItemRows().map(x => x[cmItemKey()]));
+  { const mb = document.getElementById('cmiMore'); if (mb) mb.classList.toggle('on', cmiT.more); }
+  box.innerHTML = `<div class="cm-card cm-items"><table id="cmiTbl"></table></div>
+    <div class="cm-pager"><span id="cmiPgTxt"></span><span class="cm-sp"></span><span class="slv-eyebrow">Rows</span><select id="cmiPgSel" aria-label="Rows to show" onchange="cmiSetN(+this.value)">${[10, 20, 50, 100].map(n => `<option value="${n}"${cmiN === n ? ' selected' : ''}>${n}</option>`).join('')}</select>
+      <button type="button" class="cm-pill" id="cmiPrev" onclick="cmiPage(-1)">‹ Previous</button><span class="cm-pgn" id="cmiPgN"></span><button type="button" class="cm-pill" id="cmiNext" onclick="cmiPage(1)">Next ›</button></div>
+    <p class="slv-note" style="margin-top:8px">Click an item to list only the clients who had it.${(d.items || []).length >= 80 ? ' Showing the 80 most common.' : ''}</p>`;
+  cmiT.draw();
+  if (window.TRSPillSelect && TRSPillSelect.enhance) { const s = document.getElementById('cmiPgSel'); if (s) TRSPillSelect.enhance(s); }
+}
+function cmiSetN(n) { cmiN = n; if (cmiT) cmiT.page = 0; cmPaintItems(); }
+function cmiPage(n) { if (!cmiT) return; cmiT.page += n; cmiT.draw(); }
+function cmiClear() { if (!cmiT) return; cmiT.clear(); cmiT.draw(); }
+function cmiToggleMore() { if (!cmiT) return; cmiT.toggleMore(); const b = document.getElementById('cmiMore'); if (b) b.classList.toggle('on', cmiT.more); }
+// XLSX and CSV of the items: every item the heading filters leave, all columns (report-export.js draws the buttons).
+function cmExportItems() {
+  if (!cmDetail || !cmiT) return null;
+  const rows = cmiT.rowsOf(cmItemRows()); if (!rows.length) return null;
+  const n = x => (x == null || !isFinite(x)) ? null : Math.round(Number(x) * 100) / 100;
+  const picked = cmJoin(CM.fams.map(k => cmFam(k).name.toLowerCase())), scope = cmBranchTxt() + ', ' + cmPeriodTxt(), [a, b] = cmRange();
+  const sheet = { name: 'Items', title: 'Client Mix, ' + picked + ' by item', subtitle: scope + (cmiT.active() ? ' · with the heading filters on the page' : '') + '.',
+    blocks: [{ cols: [{ key: 'item', label: 'Item', fmt: 'text' }, { key: 'fam', label: 'Family', fmt: 'text' }, { key: 'cat', label: 'Phorest category', fmt: 'text' }, { key: 'clients', label: 'Clients', fmt: 'num' }, { key: 'units', label: 'Units', fmt: 'num' }, { key: 'aed', label: 'AED', fmt: 'aed' }],
+      rows: rows.map(r => ({ cells: [r.stem || '', cmFam(r.family).name, cmTitle(r.category), n(r.clients), n(r.units), n(r.revenue)] })) }],
+    legend: [['Clients', 'Different people who had the item. A client is counted once per item.'], ['Units', 'Sales lines: every service or add-on on the till is one unit.'], ['AED', 'What was paid for those lines, after discounts, with refunds left out.']] };
+  return { name: ['client-mix', 'items', picked, cmBranchTxt(), a, 'to', b].map(s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')).filter(Boolean).join('-'), csv: 0, sheets: [sheet] };
 }
 // The client list is the shared Sheets table (sheet-table.js): a menu on every heading (sort, filter by condition, filter by values), 10 rows and pages, one labelled card per row on a phone.
 let cmT = null, cmTFor = null;

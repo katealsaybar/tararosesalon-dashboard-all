@@ -77,7 +77,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "one2ones": "f9b20c3066",
   "attrition": "cab909d5d8",
   "clients": "6ca049d468",
-  "clientmix": "ad9ab9e67c",
+  "clientmix": "f202781510",
   "retention": "62a5751a03",
   "clientbook": "cab756acd2",
   "complaints": "63b1408e10",
