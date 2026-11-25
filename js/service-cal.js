@@ -376,9 +376,11 @@ async function renderServiceCal() {
     rows.forEach(function (r) { var o = g[r.gk]; r.ty = o.nw ? (o.req ? 'ncr' : 'new') : (o.req ? 'req' : 'salon'); r.rbk = o.rb; });   // rbk: she booked a later appointment with this stylist on the day of the visit
     return rows;
   }
+  function fkey(n){ var m = String(n == null ? '' : n).trim().toLowerCase().match(/^[^\W\d_]+/); return m ? m[0] : ''; }   // the first word of a name, how the ledger is tied to Phorest
   async function fetchBranch(b, f, t){
     var key = b + '|' + f + '|' + t, c = CACHE[key], live = t >= TODAY;
     if (c && !(live && Date.now() - c.t > 120000)) return c;
+    var pl = sb.rpc('service_calendar_ledger', {p_branch:b, p_from:f, p_to:t}).then(function (x) { return x; }, function () { return null; });   // the ledger's own client lines (Kate, 25 Nov 2026), read at the same time; the page works without them
     var r = await sb.rpc('service_calendar', {p_branch:b, p_from:f, p_to:t});
     if (r.error || !r.data) return null;
     if (b === 'BAH' && r.data.staff) r.data.staff = r.data.staff.map(function (n) { return String(n).replace(/\s+\.$/, ''); });   // Phorest Bahrain keeps a dot as the surname ('Charlene .'): the Utilisation join is done in the database on the raw name, so only the display is cleaned
@@ -388,7 +390,16 @@ async function renderServiceCal() {
     (r.data.util || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) ut[b + '|' + nm + '|' + x[0]] = {av:+x[2], bk:+x[3], pct:(x[4] == null ? null : +x[4])}; });   // stylist|date -> Phorest's Utilisation report: hours the rota gave her, hours booked, percent
     (r.data.makeup || []).forEach(function (x) { var nm = r.data.staff[x[1]]; if (nm) (mk[b + '|' + nm + '|' + x[0]] = mk[b + '|' + nm + '|' + x[0]] || []).push({st:mm(x[2]), en:mm(x[3]), label:x[4]}); });   // stylist|date -> the blocks the team set as Owed Hrs
     (r.data.ledger_all || []).forEach(function (x) { ledAll[b + '|' + x[0]] = x.slice(1); });                                          // salon|date  -> [total, new, ncr, req, salon, rebooked]
-    return (CACHE[key] = {rows:parse(r.data), led:led, ledAll:ledAll, sh:sh, ut:ut, mk:mk, hasMk:Array.isArray(r.data.makeup), synced:r.data.synced, first:r.data.first, last:r.data.last, t:Date.now()});
+    /* the ledger's client lines: [date, the name over her column, type, client, name typed on that row, service, amount]. Each line is tied to the Phorest stylist the same way the ledger figures are: the first word of her name (Virginia = Virginija, Tammy = Tamryn). */
+    var lead = [], leadDay = {}, byFirst = {};
+    (r.data.staff || []).forEach(function (n) { byFirst[fkey(n)] = n; });
+    var rl = pl ? await pl : null;
+    ((rl && !rl.error && Array.isArray(rl.data)) ? rl.data : []).forEach(function (x) {
+      var lk = fkey(x[1]), nm = byFirst[lk === 'virginia' ? 'virginija' : lk === 'tammy' ? 'tamryn' : lk];
+      lead.push({b:b, d:x[0], hd:x[1], sk:nm ? b + '|' + nm : null, ty:x[2], cn:x[3], typed:x[4], sv:x[5], amt:x[6]});
+      leadDay[b + '|' + x[0]] = true;
+    });
+    return (CACHE[key] = {lead:lead, leadDay:leadDay, rows:parse(r.data), led:led, ledAll:ledAll, sh:sh, ut:ut, mk:mk, hasMk:Array.isArray(r.data.makeup), synced:r.data.synced, first:r.data.first, last:r.data.last, t:Date.now()});
   }
   async function load(){
     apply(); S.pendRange = null; if (window.TRSheet) TRSheet.closePop(); [CTT, SHT, LST].forEach(function (T) { if (T) T.clear(); });   // heading filters belong to the rows that were on screen (a click on a client type number brings its own, S.pendLf)
@@ -396,10 +407,10 @@ async function renderServiceCal() {
     if (box) box.innerHTML = '<div class="empty">Loading the calendar…</div>';
     var res = await Promise.all(S.br.map(function (b) { return fetchBranch(b, sp[0], sp[1]); }));
     if (res.some(function (x) { return !x; })) { if (box) box.innerHTML = '<div class="empty">The calendar could not be loaded. Try again in a moment.</div>'; return; }
-    var rows = [], synced = null, first = null, last = null, led = {}, ledAll = {}, sh = {}, ut = {}, mk = {}, hasMk = false;
-    res.forEach(function (x) { hasMk = hasMk || x.hasMk; Object.assign(mk, x.mk); Object.assign(ut, x.ut); Object.assign(sh, x.sh); Object.assign(led, x.led); Object.assign(ledAll, x.ledAll); rows = rows.concat(x.rows); if (x.synced && (!synced || x.synced < synced)) synced = x.synced; first = !first || (x.first && x.first < first) ? x.first : first; last = !last || (x.last && x.last > last) ? x.last : last; });
+    var rows = [], synced = null, first = null, last = null, led = {}, ledAll = {}, sh = {}, ut = {}, mk = {}, hasMk = false, lead = [], leadDay = {};
+    res.forEach(function (x) { lead = lead.concat(x.lead || []); Object.assign(leadDay, x.leadDay || {}); hasMk = hasMk || x.hasMk; Object.assign(mk, x.mk); Object.assign(ut, x.ut); Object.assign(sh, x.sh); Object.assign(led, x.led); Object.assign(ledAll, x.ledAll); rows = rows.concat(x.rows); if (x.synced && (!synced || x.synced < synced)) synced = x.synced; first = !first || (x.first && x.first < first) ? x.first : first; last = !last || (x.last && x.last > last) ? x.last : last; });
     rows.forEach(function (r, i) { r.i = i; });
-    W = {rows:rows, led:led, ledAll:ledAll, sh:sh, ut:ut, mk:mk, hasMk:hasMk, hasUtil:Object.keys(ut).length > 0, synced:synced, first:first, last:last}; BEA = {};
+    W = {lead:lead, leadDay:leadDay, rows:rows, led:led, ledAll:ledAll, sh:sh, ut:ut, mk:mk, hasMk:hasMk, hasUtil:Object.keys(ut).length > 0, synced:synced, first:first, last:last}; BEA = {};
     render();
   }
 
@@ -893,12 +904,55 @@ async function renderServiceCal() {
     });
     var sub = scopeText();
     return { title: CTWHO[k] + ', ' + l.label, sub: sub, tip: 'See who those ' + firsts.length + ' client' + (firsts.length === 1 ? ' was' : 's were'), sk: 'svc-' + slug('clients ' + k + ' ' + l.label + ' ' + sub),
-      views: [{ id: 'clients', label: 'Clients (' + firsts.length + ')', load: async function () { return { cols: cols, rows: out, note: '★ is a client who asked for the stylist. Tap a client for their history, or the Services number for the services behind it. The ledger figure under a number is a total typed by the team, with no names behind it.' }; } }] };
+      views: [{ id: 'clients', label: 'Clients (' + firsts.length + ')', load: async function () { return { cols: cols, rows: out, note: '★ is a client who asked for the stylist. Tap a client for their history, or the Services number for the services behind it. Tap the ledger figure under a number to compare it with the clients typed in the ledger.' }; } }] };
   }
+  /* The ledger's own clients (Kate, 25 Nov 2026: "clickable din yung ledger numbers para makumpara sinu sino yung narecord vs sa phorest"). A ledger figure opens the lines reception typed
+     in the weekly ledger file (ledger_client_lines), each one set beside the Phorest client it matches (same day, same stylist, same first name), and a second tab of the Phorest
+     clients the ledger does not have. Total = Salon + Request + NCR + New: a Rebooked line is a flag on a client already counted, never part of the Total. */
+  var LTYPE = {N:'New', R:'Request', SC:'Salon', NCR:'New client request', RB:'Rebooked'};
+  var LTOTY = {N:'new', R:'req', SC:'salon', NCR:'ncr'};   // the ledger's Type letter -> the Phorest client type
+  var LSET = {total:['N', 'R', 'SC', 'NCR'], new:['N'], ncr:['NCR'], req:['R'], salon:['SC'], rb:['RB']};
+  function ledSel(pred, brs, dys){ return brs.some(function (b) { return dys.some(function (d) { return W.leadDay[b + '|' + d]; }); }) ? W.lead.filter(pred) : null; }   // null = the ledger file for those days is not loaded, so the figure stays plain
+  function titleCase(s){ return String(s || '').toLowerCase().replace(/(^|[\s.'-])([a-z])/g, function (m, a, b) { return a + b.toUpperCase(); }); }
+  function winLedger(l, k, lv){
+    var want = LSET[k], mine = l.ll.filter(function (x) { return want.indexOf(x.ty) >= 0; });
+    var seen = {}, pool = [], idx = {}, any = {}, said = {};
+    l.rows.forEach(function (r) { if (seen[r.gk]) return; seen[r.gk] = 1; pool.push(r); });
+    pool.forEach(function (f) { var a = f.d + '|' + f.sk + '|' + fkey(f.cn), b = f.d + '|' + fkey(f.cn); (idx[a] = idx[a] || []).push(f); (any[b] = any[b] || []).push(f); });
+    l.ll.forEach(function (x) { var a = x.d + '|' + (x.sk || '') + '|' + fkey(x.cn); (said[a] = said[a] || []).push(LTYPE[x.ty]); });
+    var used = {};
+    function find(x){ var c = (x.sk ? idx[x.d + '|' + x.sk + '|' + fkey(x.cn)] : any[x.d + '|' + fkey(x.cn)]) || []; for (var i = 0; i < c.length; i++) if (!used[c[i].gk]) { used[c[i].gk] = 1; return c[i]; } return null; }
+    var lrows = mine.map(function (x) {
+      var f = find(x), ck = !f ? 'Not in Phorest' : x.ty === 'RB' ? (f.rbk ? 'Same' : 'Phorest has no rebooking') : (f.ty === LTOTY[x.ty] ? 'Same' : 'Phorest says ' + TYL[f.ty]);
+      return { d: x.d, st: titleCase(x.hd), cn: x.cn || '-', lt: LTYPE[x.ty], sv: x.sv || '', amt: x.amt == null ? '' : x.amt, pn: f ? (f.req ? '★ ' : '') + (f.cn || '-') : '', pt: f ? TYL[f.ty] : '', ck: ck,
+        _dn: f ? { pn: clientSpec(f) } : null };
+    });
+    var phs = pool.filter(function (r) { return k === 'total' || (k === 'rb' ? r.rbk : r.ty === k); }).filter(function (f) { return !used[f.gk]; });
+    phs.sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : a.s - b.s || String(a.cn).localeCompare(String(b.cn)); });
+    var prows = phs.map(function (f) {
+      var s = said[f.d + '|' + f.sk + '|' + fkey(f.cn)];
+      return { d: f.d, st: f.st, cn: (f.req ? '★ ' : '') + (f.cn || '-'), pt: TYL[f.ty], lg: s ? s.join(' + ') : 'Not in the ledger', sv: mineSv(l, f), _dn: { cn: clientSpec(f) } };
+    });
+    function colsOf(rows, base){
+      var days = {}, sts = {}; rows.forEach(function (r) { days[r.d] = 1; sts[r.st] = 1; });
+      var cols = []; if (Object.keys(days).length > 1) cols.push({ k: 'd', l: 'Day', t: 'date' }); if (Object.keys(sts).length > 1) cols.push({ k: 'st', l: 'Stylist', t: 'text' });
+      return cols.concat(base);
+    }
+    var sub = scopeText(), noun = CTWHO[k].toLowerCase();
+    var cl = colsOf(lrows, [{ k: 'cn', l: 'Client in the ledger', t: 'text' }, { k: 'lt', l: 'Ledger type', t: 'text' }, { k: 'sv', l: 'Service typed', t: 'text' }, { k: 'amt', l: 'Amount', t: 'num' }, { k: 'pn', l: 'Same client in Phorest', t: 'text' }, { k: 'pt', l: 'Phorest type', t: 'text' }, { k: 'ck', l: 'Check', t: 'text' }]);
+    var cp = colsOf(prows, [{ k: 'cn', l: 'Client in Phorest', t: 'text' }, { k: 'pt', l: 'Phorest type', t: 'text' }, { k: 'lg', l: 'Ledger has her as', t: 'text' }, { k: 'sv', l: 'What she had', t: 'text' }]);
+    var short = mine.length !== lv;
+    return { title: 'Ledger ' + noun + ', ' + l.label, sub: sub, tip: 'See the ledger clients and compare them with Phorest', sk: 'svc-' + slug('ledger ' + k + ' ' + l.label + ' ' + sub),
+      views: [
+        { id: 'ledger', label: 'In the ledger (' + mine.length + ')', load: async function () { return { cols: cl, rows: lrows, note: 'The ledger shows ' + lv + ' here' + (short ? ' but ' + mine.length + ' line' + (mine.length === 1 ? ' is' : 's are') + ' typed in the weekly file, so one of the two is off.' : ', and the weekly file has ' + mine.length + ' line' + (mine.length === 1 ? '' : 's') + '.') + ' Names are the first names reception typed. A ledger client is matched to Phorest by day, stylist and first name, so two clients with one first name can pair wrongly. Total clients = Salon + Request + NCR + New; Rebooked is never added to it. The Phorest side follows the category and status filters on the page.' }; } },
+        { id: 'ph', label: 'Only in Phorest (' + prows.length + ')', load: async function () { return { cols: cp, rows: prows, note: 'Phorest ' + noun + ' that no ledger line in this list matched. "Ledger has her as" shows what the ledger typed for the same first name that day, if anything.' }; } }
+      ] };
+  }
+  function mineSv(l, f){ return l.rows.filter(function (r) { return r.gk === f.gk; }).sort(function (a, b) { return a.s - b.s; }).map(function (r) { return r.sv; }).join(', '); }
   function ctCell(l, k, j){
     var c = l.c, lv = l.led ? l.led[j] : null, diff = lv != null && lv !== c[k];
     return (c[k] ? (typeof TRSD !== 'undefined' ? TRSD.num(String(c[k]), winClients(l, k)) : '<button type="button" class="ctn" data-ct="' + k + '" data-ctrow="' + l.i + '" title="Show their services in the List">' + c[k] + '</button>') : '<span class="z">0</span>')
-      + (k === 'rb' && c.total ? '<span class="pc">' + Math.round(100 * c.rb / c.total) + '%</span>' : '') + (lv != null ? '<span class="g' + (diff ? ' diff' : '') + '">ledger ' + lv + '</span>' : '');
+      + (k === 'rb' && c.total ? '<span class="pc">' + Math.round(100 * c.rb / c.total) + '%</span>' : '') + (lv != null ? '<span class="g' + (diff ? ' diff' : '') + '">' + (l.ll && typeof TRSD !== 'undefined' ? TRSD.num('ledger ' + lv, winLedger(l, k, lv)) : 'ledger ' + lv) + '</span>' : '');
   }
   function renderCT(){
     var box = LVD.getElementById('ctBox'); if (!box) return;
@@ -906,12 +960,12 @@ async function renderServiceCal() {
     var lines = [], tot;
     if (S.view === 'day') {
       var dr = dayRows();
-      dayStaff().forEach(function (sk) { lines.push({label:stLabel(sk), rows:dr.filter(function (r) { return r.sk === sk && visible(r); }), led:W.led[sk + '|' + S.from] || null, st:stName(sk)}); });
-      tot = {label:(multi() ? 'All salons' : 'Salon') + ' (all stylists)', rows:dr.filter(visible), led:ledSum(S.br.map(function (b) { return W.ledAll[b + '|' + S.from]; })), total:true};
+      dayStaff().forEach(function (sk) { lines.push({label:stLabel(sk), rows:dr.filter(function (r) { return r.sk === sk && visible(r); }), led:W.led[sk + '|' + S.from] || null, ll:ledSel(function (x) { return x.d === S.from && x.sk === sk; }, [sk.split('|')[0]], [S.from]), st:stName(sk)}); });
+      tot = {label:(multi() ? 'All salons' : 'Salon') + ' (all stylists)', rows:dr.filter(visible), led:ledSum(S.br.map(function (b) { return W.ledAll[b + '|' + S.from]; })), ll:ledSel(function (x) { return x.d === S.from && S.br.indexOf(x.b) >= 0 && !/^\s*business\s*$/i.test(x.hd); }, S.br, [S.from]), total:true};
     } else {
-      var wr = weekRows();
-      days().forEach(function (d) { lines.push({label:dfull(d), rows:wr.filter(function (r) { return r.d === d && visible(r); }), led:W.led[S.staff + '|' + d] || null, d:d, st:stName(S.staff)}); });
-      tot = {label:'Whole period', rows:wr.filter(visible), led:ledSum(lines.map(function (l) { return l.led; })), total:true, st:stName(S.staff)};
+      var wr = weekRows(), sbr = String(S.staff || '').split('|')[0], wd = days();
+      wd.forEach(function (d) { lines.push({label:dfull(d), rows:wr.filter(function (r) { return r.d === d && visible(r); }), led:W.led[S.staff + '|' + d] || null, ll:ledSel(function (x) { return x.d === d && x.sk === S.staff; }, [sbr], [d]), d:d, st:stName(S.staff)}); });
+      tot = {label:'Whole period', rows:wr.filter(visible), led:ledSum(lines.map(function (l) { return l.led; })), ll:ledSel(function (x) { return wd.indexOf(x.d) >= 0 && x.sk === S.staff; }, [sbr], wd), total:true, st:stName(S.staff)};
     }
     lines = lines.filter(function (l) { return l.rows.length || l.led; });
     if (!lines.length) { box.innerHTML = ''; return; }
@@ -921,7 +975,7 @@ async function renderServiceCal() {
     var anyLed = lines.some(function (l) { return l.led; });
     box.innerHTML = '<details class="ct"' + (S.openCT ? ' open' : '') + '><summary id="sec-types" data-sec-target>Client types' + (S.view === 'week' ? ' · ' + esc(S.staff ? stLabel(S.staff) : '') : '') + '</summary>'
       + '<p class="ct-note">Per stylist, like the ledgers. Tap a number to see who those clients were.' + (anyLed ? ' Orange ledger figures are where the ledger differs.' : '') + '</p>'
-      + '<details class="ct-def"><summary>What each type means</summary><ul><li><b>New</b>: first paid visit at any salon, no stylist asked for.</li><li><b>NCR</b>: new, and asked for a stylist.</li><li><b>Request</b>: returning, asked for a stylist.</li><li><b>Salon</b>: returning, no request.</li><li><b>Rebooked</b>: booked the next visit with the same stylist on the day.</li><li><b>Ledger</b>: the grey figure is a total typed by the team, with no names behind it, so it stays plain.</li></ul></details>'
+      + '<details class="ct-def"><summary>What each type means</summary><ul><li><b>New</b>: first paid visit at any salon, no stylist asked for.</li><li><b>NCR</b>: new, and asked for a stylist.</li><li><b>Request</b>: returning, asked for a stylist.</li><li><b>Salon</b>: returning, no request.</li><li><b>Rebooked</b>: booked the next visit with the same stylist on the day.</li><li><b>Ledger</b>: the grey figure is what the team typed in the weekly ledger. Tap it to see the clients typed there beside the Phorest ones. Total clients = Salon + Request + NCR + New, Rebooked is never added to it.</li></ul></details>'
       + '<div class="ct-h"><button type="button" class="sc-btn sxcm" data-sxcm="svcCT">Sort and filter</button>' + rex('svcExportCT') + '</div>'
       + '<div class="tw"><table id="ctT"></table></div>' + pagerHtml('svcCT', CTT ? CTT.shown : 10) + '</details>';
     if (!CTT) {
