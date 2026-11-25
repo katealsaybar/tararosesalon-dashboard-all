@@ -165,7 +165,7 @@
    ['team', 'tpExport'], ['teamquad', 'tpQExport'],
    ['googleads', 'gadsExport'], ['metaads', 'madsExport'], ['website', 'webExport'], ['social', 'socExportPage', 'Daily numbers'], ['marketingspend', 'mspendExport'], ['toolspend', 'tsExport'],
    ['supplierspend', 'spendExport'], ['outofstock', 'oosExportPage', 'Order list'], ['supplierpay', 'supplierSpendExport'], ['stockcost', 'stockCostExport'],
-   ['leavecal', 'lcExpAll', 'Leave'], ['servicecal', 'svcExportPage', 'Services'], ['dailyreports', 'drExport', 'This day'], ['campaignblasts', 'cblExport', 'Blasts'], ['novblasts', 'nvbExport', 'Plan']
+   ['leavecal', 'lcExpAll', 'Leave'], ['servicecal', 'svcExportPage', 'Services'], ['dailyreports', 'drExport', 'This day'], ['sitetraffic', 'trfExportPage', 'Top pages'], ['campaignblasts', 'cblExport', 'Blasts'], ['novblasts', 'nvbExport', 'Plan']
   ].forEach(function (p) { register(p[0], p[1], { csv: p[2] || '', lazy: p[3] || '' }); });
   // One workbook from several of the page's own table exports.
   registerMulti('orders', ['ordExport', 'ordExportSup', 'ordExportLook'], { csv: 'Orders' });

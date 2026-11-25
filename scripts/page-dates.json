@@ -61,7 +61,7 @@
  },
  "dailyreports": {
   "created": "2026-11-17",
-  "fp": "8508154a0fe6",
+  "fp": "30ae6dd73cd2",
   "modified": "2026-11-17"
  },
  "dashboard": {
@@ -219,6 +219,11 @@
   "fp": "decf2e378f3c",
   "modified": "2026-11-25"
  },
+ "sitetraffic": {
+  "created": "2026-11-25",
+  "fp": "c187934b2697",
+  "modified": "2026-11-25"
+ },
  "social": {
   "bump": 1,
   "created": "2026-10-06",
@@ -292,7 +297,7 @@
  },
  "wvperf": {
   "created": "2026-09-29",
-  "fp": "df79c21365f9",
-  "modified": "2026-11-19"
+  "fp": "df3747ecbeef",
+  "modified": "2026-11-25"
  }
 }
