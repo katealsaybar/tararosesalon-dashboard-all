@@ -616,3 +616,58 @@ body:has(.rct-bulk) #rctToast{bottom:96px}
 .rct-sendbox{display:grid;gap:10px}
 .rct-okbox{background:var(--rct-greenbg);color:var(--rct-green);border-radius:12px;padding:10px 14px;font-size:14.5px;margin:0}
 .rct-sendto{margin:0;font-size:15.5px}
+
+/* ---------- Replies (tickets) and bell alerts, Kate 25 Nov 2026 (mockup docs/mockups/recruitment-replies.html in the cowork repo) ---------- */
+.rct-seg3 .rct-tkbadge{background:var(--rct-red);color:#fff;border-radius:999px;font-size:12px;font-weight:700;min-width:20px;height:20px;display:inline-grid;place-items:center;padding:0 6px;line-height:1}
+.rct-tkwrap{display:grid;gap:12px}
+.rct-tklanes{display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.rct-tklanes::-webkit-scrollbar{display:none}
+.rct-tklane{border:0;background:none;padding:0 16px;min-height:44px;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer}
+.rct-tklane b{font-variant-numeric:tabular-nums;margin-left:6px;color:var(--text)}
+.rct-tklane[aria-pressed="true"]{color:var(--text);border-bottom-color:var(--text);font-weight:600}
+.rct-tklist{display:grid;gap:8px}
+.rct-tkc{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:6px 12px;align-items:start;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;transition:transform .16s ease,box-shadow .16s ease}
+.rct-tkc.rct-tk1{border-left:3px solid var(--rct-amber)}
+.rct-tkc.rct-tk2{border-left:3px solid var(--rct-red)}
+@media (hover:hover){.rct-tkc:hover,.rct-tkc:focus-within{transform:translateY(-2px);box-shadow:0 0 0 1px var(--text),0 10px 24px -10px rgba(0,0,0,.35)}}
+@media (prefers-reduced-motion:reduce){.rct-tkc{transition:none}.rct-tkc:hover{transform:none}}
+.rct-tkav{width:34px;height:34px;border-radius:9px;background:var(--surface2);color:var(--muted);display:grid;place-items:center;font-size:12px;font-weight:700}
+.rct-tkm{min-width:0}
+.rct-tkn{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rct-tkn button{border:0;background:none;padding:0;font:inherit;font-weight:700;font-size:14.5px;color:var(--text);cursor:pointer;text-align:left}
+.rct-tkn button:hover{text-decoration:underline}
+.rct-tkn span{color:var(--muted);font-size:13px}
+.rct-tkmsg{margin:3px 0 0;font-size:14px;overflow-wrap:anywhere}
+.rct-tkmsg i{color:var(--muted);font-style:normal}
+.rct-tkr{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.rct-tkage{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.rct-tkage.rct-tk1{color:var(--rct-amber)}.rct-tkage.rct-tk2{color:var(--rct-red)}
+.rct-tkacts{grid-column:2 / 4;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rct-tkacts button{height:32px;border-radius:999px;border:1px solid var(--border);background:none;padding:0 13px;font-size:13px;color:var(--muted);cursor:pointer;width:auto;min-height:0}
+.rct-tkacts button.rct-tkme{color:var(--text)}
+.rct-tkacts button.rct-tkgo{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:600}
+.rct-tknone{padding:18px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:12px;font-size:14px}
+.rct-tkquote{border-left:3px solid var(--border);padding:2px 0 2px 12px;margin:0 0 10px}
+.rct-tkquote p{margin:4px 0 0;font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.rct-alcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:grid;gap:12px}
+.rct-alflow{display:flex;gap:2px;flex-wrap:wrap}
+.rct-alflow div{flex:1 1 150px;padding:8px 12px;background:var(--surface2);font-size:13px;color:var(--muted)}
+.rct-alflow div b{display:block;color:var(--text)}
+.rct-alflow div:first-child{border-radius:10px 0 0 10px}.rct-alflow div:last-child{border-radius:0 10px 10px 0}
+.rct-alflow div.rct-on{background:var(--rct-greenbg);color:var(--rct-green)}.rct-alflow div.rct-on b{color:var(--rct-green)}
+.rct-alrow{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:8px 14px;align-items:center;border-top:1px solid var(--border);padding-top:10px}
+.rct-alpills{display:flex;gap:6px;flex-wrap:wrap}
+.rct-alpills button{height:34px;border-radius:999px;border:1px solid var(--border);background:none;padding:0 14px;font-size:13.5px;color:var(--muted);cursor:pointer;width:auto;min-height:0}
+.rct-alpills button[aria-pressed="true"]{background:var(--surface2);color:var(--text);border-color:var(--text);font-weight:600}
+.rct-alpills button[aria-pressed="true"]::before{content:"\2713\00a0"}
+@media (max-width:760px){
+  .rct-tklane{min-height:44px}
+  .rct-tkc{grid-template-columns:34px minmax(0,1fr)}
+  .rct-tkr{grid-column:2;flex-direction:row;align-items:center}
+  .rct-tkacts{grid-column:1 / 3}
+  .rct-tkacts button,.rct-alpills button{min-height:44px;font-size:13px}
+  .rct-tkn span,.rct-tkage,.rct-alflow div,.rct-tkav{font-size:13px}
+  .rct-tkn button{min-height:44px;display:inline-flex;align-items:center}
+  .rct-tkn{gap:0 8px}
+  .rct-alrow{grid-template-columns:minmax(0,1fr)}
+}

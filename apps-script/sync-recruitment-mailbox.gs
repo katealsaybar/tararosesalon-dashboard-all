@@ -21,6 +21,7 @@
  * WHAT IT SENDS, one row per thing it sees (kind): application (website form, or a direct email from someone looking for work), reply (they answered the
  * automatic "We've received your application" email), human_reply (we wrote to them; the automatic brochure email does not count), bounce (our email to them
  * came back). A reply, human_reply or bounce from someone who never applied is ignored by the database. Stage is never touched here.
+ * (25 Nov 2026, recruitment@ copy only) It also sends, to recruit_tickets_import, the first lines of any message that answers something we sent, and the fact that we wrote by hand: the Replies lane.
  */
 
 const RCT_SUPA = 'https://gvijxenafoowajqktqvd.supabase.co';
@@ -102,7 +103,7 @@ function rctNoteUnreadable_(m, th, un) {
 }
 
 function rctRun_(fromMs, toMs, dry) {
-  const t0 = Date.now(), seen = {}, rows = [], own = rctOwnAddr_(), un = { count: 0, list: [] }, cvJobs = [];
+  const t0 = Date.now(), seen = {}, rows = [], tickets = [], own = rctOwnAddr_(), un = { count: 0, list: [] }, cvJobs = [];
   rctQueries_(fromMs, toMs).forEach(function (q) {
     for (let start = 0; start < 1500; start += 100) {
       if (Date.now() - t0 > RCT_BUDGET_MS) throw new Error('Out of time, run again for a smaller window (BACKFILL_FROM / BACKFILL_TO).');
@@ -110,6 +111,9 @@ function rctRun_(fromMs, toMs, dry) {
       threads.forEach(function (th) {
         let msgs;
         try { msgs = th.getMessages(); } catch (e) { if (!rctReadFailure_(e)) throw e; rctNoteUnreadable_(th, th, un); return; }
+        // Replies (tickets, 25 Nov 2026): the first time WE wrote in this thread. A message from someone else after that is an answer to us.
+        let firstOurs = 0;
+        if (rctMailbox_() === 'recruitment') msgs.forEach(function (m0) { const d0 = rctSafe_(function () { return m0.getDate().getTime(); }, 0); if (d0 && (!firstOurs || d0 < firstOurs) && rctSafe_(function () { return rctIsOurs_(m0, own); }, false)) firstOurs = d0; });
         msgs.forEach(function (m) {
           try {
             const id = m.getId(); if (seen[id]) return;
@@ -117,6 +121,8 @@ function rctRun_(fromMs, toMs, dry) {
             seen[id] = 1;
             const r = rctClassify_(m, own);
             if (r) { rows.push(r); if (r.kind === 'application' && r.source === 'email') cvJobs.push({ id: id, m: m }); }   // a direct email: its CV is an attached file
+            const tr = rctTicketRow_(m, r, own, firstOurs && d > firstOurs);
+            if (tr) tickets.push(tr);
           } catch (e) {
             if (!rctReadFailure_(e)) throw e;
             rctNoteUnreadable_(m, th, un);
@@ -133,12 +139,61 @@ function rctRun_(fromMs, toMs, dry) {
     const res = rctPush_(rows.slice(i, i + 200), dry);
     Object.keys(res).forEach(function (k) { if (typeof res[k] === 'number') totals[k] = (totals[k] || 0) + res[k]; });
   }
+  totals.tickets = rctPushTickets_(tickets, dry);
   totals.cv_rebuilt = RCT_CV_STATS.rebuilt; totals.cv_unresolved = RCT_CV_STATS.unresolved;
   if (RCT_CV_DIAG.length) console.log('CV links not rebuilt, first ' + RCT_CV_DIAG.length + ':\n' + RCT_CV_DIAG.join('\n'));
   if (!dry) totals.cv_files = rctUploadCvs_(cvJobs, t0); else totals.cv_files = { direct_emails: cvJobs.length, dry: true };
   console.log(JSON.stringify(totals));
   if (un.count) console.log('Unreadable by Apps Script (open these in Gmail by hand; date | sender | subject; first ' + Math.min(un.count, RCT_UNREADABLE_CAP) + ' of ' + un.count + '):\n' + un.list.join('\n'));
   return totals;
+}
+
+/* ---------- Replies (tickets), 25 Nov 2026 (migrations/recruit_tickets_25nov.sql) ----------
+   The same run also tells the Replies lane two things, through recruit_tickets_import (same push pass): an applicant's message that answers something we sent (so it needs a reply), and a
+   message WE sent by hand from this mailbox (so whatever was waiting before it is answered). Recruitment mailbox only. Only the first lines of what they wrote are sent (400 characters,
+   quoted text and signatures cut), never an attachment. Until the migration is applied the database function does not exist: that is logged and the rest of the run carries on. */
+function rctIsOurs_(m, own) {
+  const fromAddr = rctAddr_(m.getFrom());
+  return fromAddr === own || (fromAddr.indexOf(RCT_OWN_DOMAIN) > 0 && String(m.getTo()).toLowerCase().indexOf(RCT_OWN_DOMAIN) < 0);
+}
+function rctSnippet_(body) {
+  const keep = [];
+  const lines = String(body || '').replace(/\r/g, '').split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i].trim();
+    if (/^(on .{6,120}wrote:?|le .{6,120}a écrit|-{2,}\s*(original message|forwarded message)|from:\s.+@|sent from my |get outlook for)/i.test(l)) break;
+    if (l.charAt(0) === '>') continue;
+    if (l) keep.push(l);
+  }
+  return keep.join(' ').replace(/\s+/g, ' ').trim().slice(0, 400);
+}
+// null when this message is not a ticket event. r is what rctClassify_ made of it (may be null); afterOurs is true when we had already written in this thread.
+function rctTicketRow_(m, r, own, afterOurs) {
+  if (rctMailbox_() !== 'recruitment') return null;
+  const at = m.getDate().toISOString(), msgId = m.getId();
+  if (r && r.kind === 'human_reply') return { kind: 'human_reply', email: r.email, at: at, msg_id: msgId };
+  if (r && r.kind === 'bounce') return null;
+  const fromAddr = rctAddr_(m.getFrom());
+  if (!fromAddr || RCT_SYSTEM.test(fromAddr) || fromAddr.indexOf(RCT_OWN_DOMAIN) > 0) return null;
+  if (!(afterOurs || (r && r.kind === 'reply'))) return null;
+  return { kind: 'reply', email: fromAddr, at: at, msg_id: msgId, subject: String(m.getSubject() || '').slice(0, 150), snippet: rctSnippet_(m.getPlainBody()) };
+}
+function rctPushTickets_(rows, dry) {
+  if (!rows.length) return { rows: 0 };
+  try {
+    const key = rctProp_('RCT_ANON_KEY'), out = { rows: rows.length, opened: 0, closed_by_mail: 0 };
+    for (let i = 0; i < rows.length; i += 200) {
+      const resp = UrlFetchApp.fetch(RCT_SUPA + '/rest/v1/rpc/recruit_tickets_import', {
+        method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+        headers: { apikey: key, Authorization: 'Bearer ' + key },
+        payload: JSON.stringify({ p_pass: rctProp_('RCT_PUSH_PASS'), p_rows: rows.slice(i, i + 200), p_dry: !!dry }),
+      });
+      if (resp.getResponseCode() !== 200) { console.log('Tickets not pushed (' + resp.getResponseCode() + '): ' + resp.getContentText().slice(0, 160) + ' | If this says the function does not exist, the recruit_tickets migration is not applied yet; nothing else is affected.'); return { rows: rows.length, pushed: false }; }
+      const res = JSON.parse(resp.getContentText());
+      out.opened += res.opened || 0; out.closed_by_mail += res.closed_by_mail || 0;
+    }
+    return out;
+  } catch (e) { console.log('Tickets not pushed: ' + e); return { rows: rows.length, pushed: false }; }
 }
 
 function rctPush_(rows, dry) {

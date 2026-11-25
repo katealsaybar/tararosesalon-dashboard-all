@@ -439,6 +439,8 @@
     h += '<div class="rct-bar">' +
          segHtml() + '<button type="button" class="rct-btn rct-sm rct-pri" data-act="addperson">Add person</button><button type="button" class="rct-btn rct-sm" data-act="photobulk">Add photos</button><button type="button" class="rct-btn rct-sm" data-act="settings">Booking link and replies</button><button type="button" class="rct-btn rct-sm" data-act="emails">Email formats</button>' + (typeof rexButtons === 'function' ? rexButtons('rctExport') : '') + '</div>';
 
+    if (S.mode === 'replies' && !TK.on) S.mode = 'grid';   // the migration is not applied yet: Replies is hidden and the page looks as it did
+    if (S.mode === 'replies') { el.innerHTML = h + repliesHtml() + '</div>'; plStick(); return; }
     if (S.lane) h += laneBarHtml();
     h += plStripHtml();
     if (S.mode === 'pipe') { el.innerHTML = h + pipeHtml() + goneHtml() + '</div>'; plStick(); return; }
@@ -675,7 +677,7 @@
   // views. The chosen view is remembered in this browser (localStorage trs-rct-layout, the dashboard's trs-* pattern); V switches.
   var LKEY = 'trs-rct-layout';
   var S = { mode: 'grid', lane: null, filters: {}, sort: { col: 'wait', dir: 'desc' }, showDone: false, pageSize: 10, page: 0, pgSig: '' };
-  try { var savedMode = localStorage.getItem(LKEY); if (savedMode === 'list' || savedMode === 'grid' || savedMode === 'pipe') S.mode = savedMode; } catch (e) { /* private window */ }
+  try { var savedMode = localStorage.getItem(LKEY); if (savedMode === 'list' || savedMode === 'grid' || savedMode === 'pipe' || savedMode === 'replies') S.mode = savedMode; } catch (e) { /* private window */ }
   var PKEY = 'trs-rct-pagesize', SIZES = [10, 20, 50, 100];
   try { var savedSize = parseInt(localStorage.getItem(PKEY), 10); if (SIZES.indexOf(savedSize) >= 0) S.pageSize = savedSize; } catch (e) { /* private window */ }
   function savePageSize(n) { try { localStorage.setItem(PKEY, String(n)); } catch (e) { /* private window */ } }
@@ -685,7 +687,8 @@
   var ICON_LIST = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
   var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></svg>';
   var ICON_PIPE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1.2"/><rect x="9.5" y="4" width="5" height="11" rx="1.2"/><rect x="16" y="4" width="5" height="7" rx="1.2"/></svg>';
-  var ICON_FILTER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
+  var ICON_REPLY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+  var ICON_FILTER ='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
 
   function laneOk(p) {
     if (!stepOk(p)) return false;
@@ -1072,8 +1075,8 @@
     return '<div class="rct-lanebar"><span>Showing only: <b>' + esc(LANE_NAME[S.lane] || S.lane) + '</b>, in both Grid and List.</span><button type="button" data-lane="' + S.lane + '">Show everyone</button></div>';
   }
   function segHtml() {
-    var b = function (m, ic, lab) { return '<button type="button" data-mode="' + m + '" aria-pressed="' + (S.mode === m) + '" title="' + lab + ' (V)" aria-label="' + lab + ' layout">' + ic + '<span class="rct-seglab">' + lab + '</span></button>'; };
-    return '<div class="rct-seg rct-seg3" role="group" aria-label="Layout">' + b('list', ICON_LIST, 'List') + b('grid', ICON_GRID, 'Grid') + b('pipe', ICON_PIPE, 'Pipeline') + '</div>';
+    var b = function (m, ic, lab, badge) { return '<button type="button" data-mode="' + m + '" aria-pressed="' + (S.mode === m) + '" title="' + lab + ' (V)" aria-label="' + lab + ' layout' + (badge ? ', ' + badge + ' to do' : '') + '">' + ic + '<span class="rct-seglab">' + lab + '</span>' + (badge ? '<span class="rct-tkbadge">' + badge + '</span>' : '') + '</button>'; };
+    return '<div class="rct-seg rct-seg3" role="group" aria-label="Layout">' + b('list', ICON_LIST, 'List') + b('grid', ICON_GRID, 'Grid') + b('pipe', ICON_PIPE, 'Pipeline') + (TK.on ? b('replies', ICON_REPLY, 'Replies', tkOpenList().length) : '') + '</div>';
   }
 
   /* ---------- dialogs ---------- */
@@ -1749,7 +1752,7 @@
      (recruit_send_email, migrations/recruit_send_email_19nov.sql: the address is read from the person's row there, the access check is the same as every recruit_* function) and the
      small sender script inside the recruitment@ mailbox (apps-script/send-recruitment-mail.gs) sends it from recruitment@ within a minute. The page holds no mail password.
      Copy reply and Open in Gmail stay as the fallback. Real sends stay off until the setting send_email_enabled is true; Send me a test only ever goes to your own address. */
-  var SEND_LABEL = { shortlist: 'Shortlist (keep your line open)', invite: 'Shortlist invite', no: 'No', interview_pass: 'Interview passed', interview_fail: 'Interview not passed', trade_test: 'Trade test',
+  var SEND_LABEL = { shortlist: 'Shortlist (keep your line open)', invite: 'Shortlist invite', no: 'No', reply: 'Reply', interview_pass: 'Interview passed', interview_fail: 'Interview not passed', trade_test: 'Trade test',
     trade_fail: 'Trade test not passed', trade_pass: 'Trade test passed', offer_to_send: 'Offer letter coming', offer_sent: 'Offer letter sent', start_pending: 'Start date', start_accepted: 'Start date confirmed', hired: 'Welcome' };
   var sendCtx = null, sendLead = '';
   function sendOn() { return setting('send_email_enabled', false) === true; }
@@ -1758,6 +1761,7 @@
   // the email exactly as it is shown and sent, or null when it cannot be built yet (the invite needs the booking link)
   function emailFor(p, kind) {
     if (kind === 'no') return replyParts(p, false);
+    if (kind === 'reply') return TKD && String(TKD.pid) === String(p.id) && TKD.body.trim() ? replyParts(p, false, null, '{greeting}\n\n' + TKD.body.trim() + '\n\nWarm regards,', TKD.subject, { html: SL_SIG_HTML, text: SL_SIG_TEXT }) : null;
     if (kind === 'shortlist') return shortlistEmailParts(p);
     if (kind === 'invite') {
       if (!setting('booking_link', '')) return null;
@@ -1795,6 +1799,7 @@
   function sendBack() {
     var c = sendCtx; sendCtx = null; if (!c) { closeDlg(); return; }
     var p = personById(c.id); if (!p) { closeDlg(); return; }
+    if (c.kind === 'reply') { if (TKD && TKD.sent) { closeDlg(); TKD = null; tkAfterSend(); } else tkReplyDialog(TKD && TKD.tid); return; }
     if (c.kind === 'no') noDialog(p.id); else if (c.kind === 'shortlist' || c.kind === 'invite') shortDialog(p.id);
     else stageEmailDialog(p, c.kind, c.lead || 'This is the email for <b>' + esc(SEND_LABEL[c.kind] || c.kind) + '</b>.');
   }
@@ -1822,7 +1827,7 @@
       if (d.queued) {
         if (!d.test) { p.edited_by = me; p.edited_at = new Date().toISOString(); p.edited_what = 'Pressed Send on the ' + (SEND_LABEL[kind] || kind) + ' email to the applicant'; }
         toast(d.test ? 'A test goes to ' + d.to + ' within a minute.' : 'Queued. It goes to ' + firstName(p.name) + ' from the recruitment inbox within a minute.');
-        if (test) { if (btn) { btn.disabled = false; btn.textContent = was; } } else sendBack();
+        if (test) { if (btn) { btn.disabled = false; btn.textContent = was; } } else { if (kind === 'reply' && TKD) TKD.sent = true; sendBack(); }
         return;
       }
       if (d.reason === 'already_sent') { toast('That email was already sent by ' + firstName(d.by) + ' on ' + fdt(d.at) + '. Nothing new was sent.'); sendBack(); return; }
@@ -2276,7 +2281,8 @@
       if (t.hasAttribute('data-close')) { closeDlg(); return; }
       if (t.hasAttribute('data-undo')) { undo(); return; }
       // a tile (or the Show everyone button) filters BOTH Grid and List by that lane; tap it again to clear
-      if (t.hasAttribute('data-fig') || t.hasAttribute('data-lane')) { var k0 = t.getAttribute('data-fig') || t.getAttribute('data-lane'); S.lane = (k0 === 'all' || S.lane === k0) ? null : k0; S.filters = {}; closePop(); render(); var fg = main() && main().querySelector('.rct-figs'); if (fg && t.hasAttribute('data-fig')) { var y = fg.getBoundingClientRect().top + window.pageYOffset - 130; if (y > 0) window.scrollTo({ top: y, behavior: 'smooth' }); } return; }
+      if ((t.hasAttribute('data-fig') || t.hasAttribute('data-lane')) && S.mode === 'replies') { S.mode = 'grid'; saveMode('grid'); }   // the tiles filter Grid and List, so a tile leaves Replies
+      if (t.hasAttribute('data-fig') || t.hasAttribute('data-lane')) { var k0 =t.getAttribute('data-fig') || t.getAttribute('data-lane'); S.lane = (k0 === 'all' || S.lane === k0) ? null : k0; S.filters = {}; closePop(); render(); var fg = main() && main().querySelector('.rct-figs'); if (fg && t.hasAttribute('data-fig')) { var y = fg.getBoundingClientRect().top + window.pageYOffset - 130; if (y > 0) window.scrollTo({ top: y, behavior: 'smooth' }); } return; }
       if (t.hasAttribute('data-mode')) { setMode(t.getAttribute('data-mode')); return; }
       if (t.hasAttribute('data-fcol')) { var fc = t.getAttribute('data-fcol'); if (!pop.hidden && popCol === fc) closePop(); else openPop(fc, t); return; }
       if (t.hasAttribute('data-sort')) { S.sort = { col: popCol, dir: t.getAttribute('data-sort') }; var sc0 = popCol; renderKeep(); reopenPop(sc0); return; }
@@ -2313,6 +2319,7 @@
       // No: the person is marked Not now (that also counts as reviewed), then the reply is offered. Nothing is sent by the site.
       else if (a === 'no') { if (await setStage([id], 'not_now', 'Not now for ' + firstName(p && p.name) + '.')) noDialog(id); }
       else if (a === 'reply') { markReviewed([id]); noDialog(id); }
+      else if (a && a.indexOf('tk') === 0 || a === 'alset') await tkAct(a, t);
       else if (a === 'look') { openRows[id] = !openRows[id]; if (openRows[id]) markReviewed([id]); render(); }
       else if (a === 'back') setStage([id], 'new', 'Put back in the list.');
       else if (a === 'bulk') bulkDialog(g);
@@ -2406,7 +2413,7 @@
       var mn = main(); if (!mn || mn.offsetParent === null || dlg().open) return;   // only while this page is the one on screen
       var tg = e.target, tag = ((tg && tg.tagName) || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || (tg && tg.isContentEditable)) return;
-      setMode(S.mode === 'list' ? 'grid' : S.mode === 'grid' ? 'pipe' : 'list');
+      setMode(S.mode === 'list' ? 'grid' : S.mode === 'grid' ? 'pipe' : S.mode === 'pipe' && TK.on ? 'replies' : 'list');
     });
     // opening "What they wrote" on a card counts as having looked at that person
     el.addEventListener('toggle', function (e) {
@@ -2424,6 +2431,118 @@
     var el = main(); if (el) el.innerHTML = '<p class="slv-muted">This page is only open to Kate and Coach Emma.</p>';
   }
 
+  /* ---------- Replies (tickets) and bell alerts (Kate, 25 Nov 2026; mockup docs/mockups/recruitment-replies.html in the cowork repo; migrations/recruit_tickets_25nov.sql) ----------
+     Two kinds of ticket. Inbound: the applicant wrote to us (the mailbox reader opens it; it closes when a reply goes out or a mail we send by hand is seen). Owed: a status was changed to a step
+     that has an email and the email has not gone out; it closes the moment the sender reports that exact email SENT. The bell alerts (who gets which) are set below the tickets and ring only after
+     the sender has confirmed the send (done in the database, recruit_outbox_finish), never when a status is clicked. Replies stays hidden until the migration is applied. */
+  var TK = { on: false, rows: [], me: '', lane: 'in', err: '' }, TKD = null;
+  async function loadTickets() {
+    if (settings.tickets_from == null) { TK.on = false; return; }
+    TK.on = true;
+    try {
+      var r = await sb.rpc('recruit_tickets_get'); if (r.error) throw new Error(r.error.message);
+      TK.rows = (r.data && r.data.rows) || []; TK.me = (r.data && r.data.me) || ''; TK.err = '';
+    } catch (e) { console.error(e); TK.err = 'The replies could not be read just now (' + (e.message || 'try again') + ').'; }
+  }
+  function tkById(id) { return TK.rows.filter(function (t) { return String(t.id) === String(id); })[0]; }
+  function tkLaneList(l) {
+    var list = TK.rows.filter(function (t) { return personById(t.applicant_id) && (l === 'done' ? t.status === 'closed' : t.status === 'open' && t.kind === (l === 'in' ? 'inbound' : 'owed')); });
+    return list.sort(function (a, b) { return l === 'done' ? new Date(b.closed_at) - new Date(a.closed_at) : new Date(a.opened_at) - new Date(b.opened_at); });
+  }
+  function tkOpenList() { return tkLaneList('in').concat(tkLaneList('owed')); }
+  function tkHours(t) { return Math.max(0, Math.floor((Date.now() - new Date(t.opened_at).getTime()) / 3600000)); }
+  function tkAge(t) { var h = tkHours(t); return h < 1 ? 'just now' : h < 24 ? h + 'h' : Math.floor(h / 24) + 'd'; }
+  function tkLate(t) { var h = tkHours(t); return h >= 48 ? 2 : h >= 24 ? 1 : 0; }
+  var TK_WHY = { in: 'Applicants who wrote to us. A ticket opens when their message arrives and closes when an email goes back to them.',
+    owed: 'A status was changed but the email has not been sent. It closes by itself the moment the email is sent.', done: 'Closed in the last 2 days, with who did it.' };
+  var TK_LANE = [['in', 'Needs a reply'], ['owed', 'Email owed'], ['done', 'Done lately']];
+  var TK_REASON = { sent: 'Email sent', sent_by_hand: 'Answered from the inbox', no_reply_needed: 'No reply needed', already_sent: 'Already sent', stage_changed: 'Moved on' };
+  function tkCard(t) {
+    var p = personById(t.applicant_id), c = t.status === 'open' ? tkLate(t) : 0, mine = !!(t.owner_email && t.owner_email === TK.me), done = t.status === 'closed';
+    var msg = t.kind === 'inbound' ? (t.snippet ? '“' + esc(t.snippet) + '”' : '<i>Their message came in with no text we could read.</i>') : '<i>' + esc(STAGE_LABEL[p.stage] || p.stage) + ' was set. The ' + esc(String(SEND_LABEL[t.email_kind] || t.email_kind).toLowerCase()) + ' email has not gone out.</i>';
+    var right = done ? '<span class="rct-pill rct-green">' + esc(TK_REASON[t.reason] || 'Closed') + '</span>' : '<span class="rct-tkage' + (c ? ' rct-tk' + c : '') + '">' + esc(tkAge(t)) + (t.kind === 'inbound' ? ' waiting' : ' owed') + '</span>';
+    var acts;
+    if (done) acts = '<span class="rct-pill">' + esc(t.closed_by ? firstName(t.closed_by) + ', ' + fat(t.closed_at) : fat(t.closed_at)) + '</span><button type="button" data-act="tkreopen" data-tid="' + esc(t.id) + '">Reopen</button>';
+    else acts = '<button type="button" class="' + (mine ? 'rct-tkme' : '') + '" data-act="tkown" data-tid="' + esc(t.id) + '" title="' + (mine ? 'Tap to give it back' : t.owner_name ? 'Tap to take it over' : 'Tap to take this one') + '">' + (t.owner_name ? esc(firstName(t.owner_name)) + (mine ? ' (you)' : '') : 'Assign to me') + '</button>' +
+      (t.kind === 'inbound' ? '<button type="button" class="rct-tkgo" data-act="tkreply" data-tid="' + esc(t.id) + '">Reply</button><button type="button" data-act="tkclose" data-reason="no_reply_needed" data-tid="' + esc(t.id) + '">Close, no reply needed</button>'
+        : '<button type="button" class="rct-tkgo" data-act="tkmail" data-tid="' + esc(t.id) + '">Send ' + esc(String(SEND_LABEL[t.email_kind] || 'the email').toLowerCase()) + '</button><button type="button" data-act="tkclose" data-reason="already_sent" data-tid="' + esc(t.id) + '">Close, already sent</button>');
+    return '<article class="rct-tkc' + (c ? ' rct-tk' + c : '') + '"><span class="rct-tkav">' + esc(initials(p.name)) + '</span><div class="rct-tkm"><div class="rct-tkn"><button type="button" data-act="tkperson" data-id="' + esc(p.id) + '">' + esc(p.name || 'No name') + '</button><span>' + esc(p.role_txt ? String(p.role_txt).split(/[\n;]/)[0].slice(0, 60) : (p.role_key || '')) + '</span></div><p class="rct-tkmsg">' + msg + '</p></div><div class="rct-tkr">' + right + '</div><div class="rct-tkacts">' + acts + '</div></article>';
+  }
+  var AL_KINDS = [['interview_pass', 'Interview passed'], ['interview_fail', 'Interview not passed'], ['offer', 'Offer letter (coming or sent)'], ['trade', 'Trade test passed or not passed']];
+  function alertsHtml() {
+    var team = (C && C.team) || [], rec = setting('alert_recipients', {});
+    return '<h2 class="rct-h2" id="rctAlerts">Alerts on the bell</h2><p class="rct-hint">The bell rings only after the email has really gone out from the recruitment inbox. Not when a status is clicked, and not when an email fails. An email you send by hand in Gmail cannot be told apart, so it rings nothing.</p>' +
+      '<div class="rct-alcard"><div class="rct-alflow" aria-label="When the alert fires"><div><b>1 Status moved</b>Passed or not passed</div><div><b>2 Email queued</b>Send pressed on the page</div><div class="rct-on"><b>3 Email sent</b>The sender confirms</div><div class="rct-on"><b>4 Bell rings</b>Only here</div></div>' +
+      AL_KINDS.map(function (k) {
+        var on = (rec[k[0]] || []);
+        return '<div class="rct-alrow"><b>' + esc(k[1]) + '</b><div class="rct-alpills" role="group" aria-label="Who is told: ' + esc(k[1]) + '">' + team.map(function (u) {
+          var yes = on.indexOf(String(u.email || '').toLowerCase()) >= 0;
+          return '<button type="button" data-act="alset" data-k="' + k[0] + '" data-e="' + esc(u.email) + '" aria-pressed="' + yes + '">' + esc(firstName(u.name)) + '</button>';
+        }).join('') + '</div></div>';
+      }).join('') + (setBy('alert_recipients') ? '<small class="rct-sethist">' + esc(setBy('alert_recipients')) + '</small>' : '') + '</div>';
+  }
+  function repliesHtml() {
+    var lane = TK.lane, list = tkLaneList(lane), n = function (l) { return tkLaneList(l).length; };
+    return '<div class="rct-tkwrap"><h2 class="rct-h2" id="rctReplies">Replies</h2><p class="rct-hint">One ticket per message to answer. Tap Reply and the email box opens as everywhere else.</p>' +
+      (TK.err ? '<p class="rct-warn">' + esc(TK.err) + '</p>' : '') +
+      '<div class="rct-tklanes" role="group" aria-label="Lane">' + TK_LANE.map(function (l) { return '<button type="button" class="rct-tklane" data-act="tklane" data-k="' + l[0] + '" aria-pressed="' + (lane === l[0]) + '">' + l[1] + '<b>' + n(l[0]) + '</b></button>'; }).join('') + '</div>' +
+      '<p class="rct-hint">' + esc(TK_WHY[lane]) + '</p>' +
+      '<div class="rct-tklist">' + (list.length ? list.map(tkCard).join('') : '<div class="rct-tknone">Nothing here. That is the goal.</div>') + '</div>' + alertsHtml() + '</div>';
+  }
+  function tkReplyDialog(tid) {
+    var t = tkById(tid), p = t && personById(t.applicant_id); if (!t || !p) { closeDlg(); return; }
+    if (!TKD || String(TKD.tid) !== String(t.id)) TKD = { tid: t.id, pid: p.id, body: '', subject: String(t.subject || '').replace(/^\s*((re|fw|fwd):\s*)+/i, '').trim() ? 'Re: ' + String(t.subject).replace(/^\s*((re|fw|fwd):\s*)+/i, '').trim() : 'Your message to Tara Rose Salons' };
+    var can = addrOk(p) && sendOn();
+    openDlg('Reply to ' + esc(firstName(p.name)),
+      '<div class="rct-tkquote"><b>' + esc(p.name || 'They') + ' wrote, ' + esc(fdt(t.opened_at)) + '</b><p>' + esc(t.snippet || 'No text was kept for this message. Open it in the recruitment inbox.') + '</p></div>' +
+      (!addrOk(p) ? '<p class="rct-amberbox">' + (p.bounced ? 'Their email bounced. Message them on WhatsApp instead.' : 'There is no email address on file.') + '</p>' : (!sendOn() ? '<p class="rct-hint">Sending from the page is not switched on yet.</p>' : '')) +
+      '<label class="rct-field"><span>Your reply. Their name and the Recruitment Team signature are added for you.</span><textarea id="rctTkBody" rows="8" maxlength="4000">' + esc(TKD.body) + '</textarea></label>' +
+      '<p class="rct-amberbox" id="rctTkSay" hidden></p>' +
+      '<div class="rct-btns"><button type="button" class="rct-btn rct-pri" data-act="tkpreview" data-tid="' + esc(t.id) + '"' + (can ? '' : ' disabled') + '>Preview and send</button><button type="button" class="rct-btn" data-close="1">Not now</button></div>' +
+      '<p class="rct-hint">Subject: ' + esc(TKD.subject) + '. It goes from the recruitment inbox, and this ticket closes once it has gone out.</p>');
+    setTimeout(function () { var b = document.getElementById('rctTkBody'); if (b) b.focus(); }, 30);
+  }
+  var tkLaterT = null;
+  async function tkRefresh() { await loadTickets(); var m = main(); if (m && m.offsetParent !== null && !dlg().open && S.mode === 'replies') render(); }
+  function tkAfterSend() { toast('Queued. It goes out from the recruitment inbox within a minute, and the ticket closes when it has.'); clearTimeout(tkLaterT); tkLaterT = setTimeout(tkRefresh, 75000); }
+  async function tkAct(a, t) {
+    var tid = t.getAttribute('data-tid'), tk = tid ? tkById(tid) : null;
+    try {
+      if (a === 'tklane') { TK.lane = t.getAttribute('data-k'); render(); return; }
+      if (a === 'tkperson') { var pp = personById(t.getAttribute('data-id')); if (pp) { q = pp.name || ''; S.lane = null; S.filters = {}; setMode('grid'); } return; }
+      if (a === 'tkreply') { markReviewed([tk && tk.applicant_id]); tkReplyDialog(tid); return; }
+      if (a === 'tkmail') { if (tk) showStageEmail(tk.applicant_id, tk.email_kind, 'This email is owed for <b>' + esc(STAGE_LABEL[(personById(tk.applicant_id) || {}).stage] || 'this step') + '</b>.'); return; }
+      if (a === 'tkpreview') {
+        var box = document.getElementById('rctTkBody'), say = document.getElementById('rctTkSay'), body = box ? box.value : '';
+        if (!tk || !TKD) return;
+        TKD.body = body;
+        if (!body.trim()) { if (say) { say.hidden = false; say.textContent = 'Write the reply first.'; } return; }
+        sendAsk(tk.applicant_id, 'reply'); return;
+      }
+      if (a === 'tkown') {
+        if (!tk) return; var mine = tk.owner_email && tk.owner_email === TK.me;
+        var r1 = await sb.rpc('recruit_ticket_assign', { p_id: tk.id, p_email: mine ? null : TK.me }); if (r1.error) throw new Error(r1.error.message);
+        await tkRefresh(); toast(mine ? 'Back to nobody.' : 'Assigned to you. Others can see who has it.'); return;
+      }
+      if (a === 'tkclose') {
+        if (!tk) return; var r2 = await sb.rpc('recruit_ticket_close', { p_id: tk.id, p_reason: t.getAttribute('data-reason') }); if (r2.error) throw new Error(r2.error.message);
+        await tkRefresh(); toast('Closed. It stays under Done lately for 2 days.'); return;
+      }
+      if (a === 'tkreopen') {
+        if (!tk) return; var r3 = await sb.rpc('recruit_ticket_reopen', { p_id: tk.id }); if (r3.error) throw new Error(r3.error.message);
+        await tkRefresh(); toast('Back in the open lanes.'); return;
+      }
+      if (a === 'alset') {
+        var k = t.getAttribute('data-k'), e = t.getAttribute('data-e'), on = t.getAttribute('aria-pressed') !== 'true';
+        var r4 = await sb.rpc('recruit_alert_set', { p_kind: k, p_email: e, p_on: on }); if (r4.error) throw new Error(r4.error.message);
+        var rec = Object.assign({}, setting('alert_recipients', {})); var lst = (rec[k] || []).filter(function (x) { return x !== String(e).toLowerCase(); }); if (on) lst.push(String(e).toLowerCase()); rec[k] = lst; settings.alert_recipients = rec;
+        settingsMeta.alert_recipients = { by: me, at: new Date().toISOString() };
+        var who = ((C && C.team) || []).filter(function (u) { return u.email === e; })[0];
+        render(); toast((who ? firstName(who.name) : 'They') + (on ? ' gets' : ' no longer gets') + ' this alert.'); return;
+      }
+    } catch (err) { console.error(err); toast('That did not save: ' + (err.message || 'try again')); }
+  }
+
   // Called by showView each time the page opens.
   window.renderRecruitment = async function () {
     var el = main(); if (!el) return;
@@ -2439,6 +2558,7 @@
       C = r.data || null;
       if (!C) throw new Error('No data came back.');
       var allRows = C.rows || []; rows = allRows.filter(function (p) { return !p.not_app; }); gone = allRows.filter(function (p) { return p.not_app; }); settings = C.settings || {}; settingsMeta = C.settings_meta || {}; me = C.me || '';
+      await loadTickets();   // Replies: only once the migration is applied (the setting tickets_from is there); before that this does nothing
       applyUrl();   // a link with filters in it (see rctUrlParts) opens the page already filtered
       await loadPhotoUrls();
     } catch (e) {
