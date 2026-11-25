@@ -156,7 +156,7 @@ function cmPickItem(i) {
   if (!it) return;
   CM.item = CM.item === it.stem ? null : it.stem; cmSync(); cmLoadDetail();
 }
-function cmSetN(n) { CM.n = n; cmSync(); cmPaintList(); }
+function cmSetN(n) { CM.n = n; if (cmT) cmT.page = 0; cmSync(); cmPaintList(); }
 function cmAllItems() { cmItemsAll = true; cmPaintItems(); }
 function cmTab(t) {
   CM.tab = t;
@@ -199,7 +199,8 @@ function cmShell() {
       <div class="cm-two">
         <section class="slv-card"><div class="slv-eyebrow" id="cmItemsTitle"></div><div id="cmItems"></div></section>
         <section class="slv-card"><div class="cm-tools"><div class="slv-eyebrow" id="cmListTitle"></div>
-          <button type="button" class="cm-pill" id="cmCopy" onclick="cmCopy()">Copy list for Sheets</button></div>
+          <span class="cm-toolr"><button type="button" class="cm-pill" id="cmClear" hidden onclick="cmClearList()">Clear filters</button><button type="button" class="cm-pill" id="cmMore" onclick="cmToggleMore()">All columns</button><button type="button" class="cm-pill cm-phone" data-sxcm="cm">Sort and filter</button>
+          <button type="button" class="cm-pill" id="cmCopy" onclick="cmCopy()">Copy list for Sheets</button>${typeof rexButtons === 'function' ? rexButtons('cmExportList') : ''}</span></div>
           <div id="cmList"></div></section>
       </div>
       <p class="slv-muted cm-foot">From Phorest's Sales Transactions, whose data starts in May 2021 at Saadiyat and Khalifa City A, December 2022 at Motor City and September 2023 at Al Quoz; this page reads from August 2021 on. Each sale is sorted by Phorest's own service categories (see the Service roster tab). A client is counted once per family however many times she came. A unit is one sales line (a service or an add-on); the second half of a keratin counts as the same treatment. Deposits, vouchers, refunds, prepaid courses and walk-ins are left out.</p>
@@ -386,47 +387,95 @@ function cmPaintItems() {
     <p class="slv-note" style="margin-top:8px">Click an item to list only the clients who had it.${(d.items || []).length >= 80 ? ' Showing the 80 most common.' : ''}</p>${shownItems.length < items.length ? `<p style="margin:8px 0 0"><button type="button" class="cm-pill" onclick="cmAllItems()">Show all ${items.length} items</button></p>` : ''}`
     : '<p class="slv-muted">Nothing here for these filters.</p>';
 }
+// The client list is the shared Sheets table (sheet-table.js): a menu on every heading (sort, filter by condition, filter by values), 10 rows and pages, one labelled card per row on a phone.
+let cmT = null, cmTFor = null;
+// Revenue sorts the loaded clients by what they paid; otherwise the order is the database's, most units first.
+const cmOrder = rows => CM.mode === 'revenue' ? rows.slice().sort((a, b) => (b.revenue || 0) - (a.revenue || 0)) : rows;
+const cmBoughtTxt = r => (r.bought || []).map(b => b.s + (b.u > 1 ? ' x' + b.u : '')).join('; ');
+const cmUnitsLabel = () => CM.item || CM.cats.length ? 'Units here' : CM.fams.length > 1 ? 'Units, all picked' : 'Units';
+function cmBuildTable() {
+  const open = () => cmCanOpen();
+  const tags = (r, max) => (r.bought || []).slice(0, max).map(b => `<span class="cm-tag" style="--c:${cmFam(b.f).color}">${lcEsc(b.s)}${b.u > 1 ? ' x' + b.u : ''}</span>`).join('');
+  cmT = TRSheet.table({ id: 'cm', el: '#cmTbl', limit: CM.n,
+    rows: () => cmOrder((cmDetail && cmDetail.rows) || []),
+    rowCls: () => open() ? 'lc-row' : 'tc-flat',
+    cols: [
+      { k: 'client', l: 'Client', t: 'txt', raw: r => r.client_name || '', disp: r => r.client_name || '',
+        cell: r => `<span class="tc-name">${lcEsc(r.client_name)}</span><div class="slv-note">${lcEsc(r.branch ? lcBranchName(r.branch) : '')} · ${lcNum(r.visits)} visit${Number(r.visits) === 1 ? '' : 's'}${open() ? '<span class="lc-hint" aria-hidden="true">See her visits ›</span>' : ''}</div>${open() ? '<div class="lc-hint-m">Tap for her visits ›</div>' : ''}` },
+      { k: 'bought', l: 'Bought', t: 'txt', raw: cmBoughtTxt, disp: cmBoughtTxt, cell: r => `<span class="cm-bought">${tags(r, 10)}</span>` },
+      { k: 'units', l: cmUnitsLabel, t: 'num', raw: r => Number(r.units) || 0, disp: r => lcNum(r.units), cell: r => lcNum(r.units) },
+      { k: 'aed', l: 'AED', t: 'num', raw: r => Number(r.revenue) || 0, disp: r => lcNum(r.revenue), cell: r => lcNum(r.revenue) },
+      { k: 'branch', l: 'Branch', t: 'txt', x: 1, raw: r => r.branch ? lcBranchName(r.branch) : '', disp: r => r.branch ? lcBranchName(r.branch) : '', cell: r => lcEsc(r.branch ? lcBranchName(r.branch) : '') },
+      { k: 'visits', l: 'Visits', t: 'num', x: 1, raw: r => Number(r.visits) || 0, disp: r => lcNum(r.visits), cell: r => lcNum(r.visits) }
+    ],
+    after: cmAfterDraw });
+}
+function cmAfterDraw(T, rows) {
+  const d = cmDetail || {}, loaded = (d.rows || []).length, matched = Number(d.matched) || loaded;
+  const c = document.getElementById('cmClear'); if (c) c.hidden = !T.active();
+  const pages = T.pages(rows.length), from = rows.length ? T.page * T.shown + 1 : 0, to = Math.min(rows.length, (T.page + 1) * T.shown);
+  const set = (id, fn) => { const e = document.getElementById(id); if (e) fn(e); };
+  set('cmPgTxt', e => { e.textContent = from + ' to ' + to + ' of ' + lcNum(rows.length) + ' client' + (rows.length === 1 ? '' : 's') + (matched > loaded ? ' (the top ' + lcNum(loaded) + ' are loaded)' : ''); });
+  set('cmPrev', e => { e.disabled = T.page <= 0; });
+  set('cmNext', e => { e.disabled = T.page >= pages - 1; });
+  set('cmPgN', e => { e.textContent = 'Page ' + (T.page + 1) + ' of ' + pages; });
+  set('cmPgSel', e => { if (+e.value !== T.shown) e.value = String(T.shown); });
+  // A click on a row opens her visits (lost-clients.js lcToggleDetail reads lcShown by position, so it is the page on screen).
+  lcShown = rows.slice(T.page * T.shown, (T.page + 1) * T.shown);
+  if (cmCanOpen()) document.querySelectorAll('#cmTbl tbody tr.lc-row').forEach((tr, i) => { tr.title = 'Click to see everything she came in for'; tr.onclick = ev => lcToggleDetail(ev, i); });
+}
 function cmPaintList() {
   const d = cmDetail, box = document.getElementById('cmList');
   if (!d || !box) return;
   const rows = d.rows || [], matched = Number(d.matched) || rows.length;
   document.getElementById('cmListTitle').textContent = `${lcNum(matched)} client${matched === 1 ? '' : 's'}${CM.item ? ' who had ' + CM.item : ''}`;
-  lcShown = rows;
-  const open = cmCanOpen(), cls = open ? 'lc-row' : 'tc-flat';
-  const click = i => open ? ` onclick="lcToggleDetail(event,${i})"` : '';
-  const shown = (CM.mode === 'revenue' ? rows.slice().sort((a, b) => (b.revenue || 0) - (a.revenue || 0)) : rows).slice(0, CM.n);   // Revenue sorts the loaded clients by what they paid
-  const tags = (r, max) => (r.bought || []).slice(0, max).map(b => `<span class="cm-tag" style="--c:${cmFam(b.f).color}">${lcEsc(b.s)}${b.u > 1 ? ' x' + b.u : ''}</span>`).join('');
-  const tr = shown.map((r, i) => `<tr class="${cls}"${open ? ' title="Click to see everything she came in for"' : ''}${click(i)}>
-      <td class="lc-stc"><span class="tc-name">${lcEsc(r.client_name)}</span>${open ? '<span class="lc-hint" aria-hidden="true">See her visits ›</span>' : ''}<div class="slv-note">${lcEsc(r.branch || '')} · ${lcNum(r.visits)} visit${Number(r.visits) === 1 ? '' : 's'}</div></td>
-      <td class="lc-l cm-bought">${tags(r, 10)}</td><td>${lcNum(r.units)}</td><td>${lcNum(r.revenue)}</td></tr>`).join('');
-  const cards = shown.map((r, i) => `<li class="prd-card ${cls}"${click(i)}><div class="prd-body">
-      <div class="prd-top"><span class="prd-name">${lcEsc(r.client_name)}</span><span class="prd-spend">AED ${lcNum(r.revenue)}</span></div>
-      <div class="prd-meta">${lcEsc(r.branch ? lcBranchName(r.branch) : '')} · ${lcNum(r.visits)} visit${Number(r.visits) === 1 ? '' : 's'} · ${lcNum(r.units)} unit${Number(r.units) === 1 ? '' : 's'}</div>
-      <div class="prd-meta" style="margin-top:4px">${tags(r, 6)}</div>
-      ${open ? '<div class="lc-hint-m">Tap for her visits ›</div>' : ''}</div></li>`).join('');
-  const sizes = [10, 20, 50, 100].map(n => `<button type="button" class="cm-chip${CM.n === n ? ' on' : ''}" aria-pressed="${CM.n === n}" onclick="cmSetN(${n})">${n}</button>`).join('');
-  const more = matched > 10 || rows.length > 10 ? `<div class="cm-pager"><span class="slv-eyebrow">Show</span>${sizes}<span class="slv-note">${lcNum(shown.length)} of ${lcNum(matched)}${matched > rows.length ? ' (the top ' + lcNum(rows.length) + ' are loaded)' : ''}</span></div>` : '';
+  if (!cmT) cmBuildTable();
+  if (cmTFor !== d) { cmT.clear(); cmTFor = d; }   // a new list (another Branch, Period or pick) starts with no heading filters
+  cmT.shown = CM.n;
+  { const mb = document.getElementById('cmMore'); if (mb) mb.classList.toggle('on', cmT.more); }
   const empty = 'No one matches those filters. Try a wider period, or clear a filter.';
-  box.innerHTML = `<div class="slv-wrap prd-desk lc-wrap tc-wrap"><table class="slv-table"><thead><tr><th class="lc-l">Client</th><th class="lc-l">Bought</th><th>${CM.item || CM.cats.length ? 'Units here' : CM.fams.length > 1 ? 'Units, all picked' : 'Units'}</th><th>AED</th></tr></thead>
-      <tbody>${tr || `<tr><td colspan="4" class="slv-muted">${empty}</td></tr>`}</tbody></table></div>
-    <ol class="prd-cards">${cards || `<li class="slv-muted">${empty}</li>`}</ol>${more}
+  box.innerHTML = `<div class="cm-card"><table id="cmTbl"></table></div>
+    <div class="cm-pager"><span id="cmPgTxt"></span><span class="cm-sp"></span><span class="slv-eyebrow">Rows</span><select id="cmPgSel" aria-label="Rows to show" onchange="cmSetN(+this.value)">${[10, 20, 50, 100].map(n => `<option value="${n}"${CM.n === n ? ' selected' : ''}>${n}</option>`).join('')}</select>
+      <button type="button" class="cm-pill" id="cmPrev" onclick="cmPage(-1)">‹ Previous</button><span class="cm-pgn" id="cmPgN"></span><button type="button" class="cm-pill" id="cmNext" onclick="cmPage(1)">Next ›</button></div>
+    ${rows.length ? '' : `<p class="slv-muted">${empty}</p>`}
     <p class="slv-note" style="margin-top:8px">Sorted by ${CM.mode === 'revenue' ? 'what they paid' : 'units'} in ${lcEsc(cmJoin(CM.fams.map(k => cmFam(k).name.toLowerCase())))}${CM.cats.length ? ', ' + lcEsc(CM.cats.map(cmTitle).join(' + ')) : ''}. Tags are what she bought in this period, her ${lcEsc(cmJoin(CM.fams.map(k => cmFam(k).name.toLowerCase())))} first.</p>`;
+  cmT.draw();
+  if (window.TRSPillSelect && TRSPillSelect.enhance) { const s = document.getElementById('cmPgSel'); if (s) TRSPillSelect.enhance(s); }
 }
+function cmPage(n) { if (!cmT) return; cmT.page += n; cmT.draw(); }
+function cmClearList() { if (!cmT) return; cmT.clear(); cmT.draw(); }
+function cmToggleMore() { if (!cmT) return; cmT.toggleMore(); const b = document.getElementById('cmMore'); if (b) b.classList.toggle('on', cmT.more); }
 
-// Copy for Sheets: asks again for everyone, not just the 300 on screen.
+// Everyone, not just the 300 on screen, with the table's heading filters and sort on them: what Copy, XLSX and CSV all take.
+async function cmFullList() {
+  const d = await cmCall('client_mix_detail', cmDetailArgs(5000));
+  const all = cmOrder((d && d.rows) || []);
+  return cmT ? cmT.rowsOf(all) : all;
+}
 async function cmCopy() {
   const btn = document.getElementById('cmCopy');
   const say = t => { if (btn) btn.textContent = t; setTimeout(() => { if (btn) btn.textContent = 'Copy list for Sheets'; }, 2400); };
   try {
     if (btn) btn.textContent = 'Getting everyone…';
-    const d = await cmCall('client_mix_detail', cmDetailArgs(5000));
-    const rows = (d && d.rows) || [];
+    const rows = await cmFullList();
     const head = ['Client', 'Branch', 'Visits', 'Units', 'AED', 'Bought'];
-    const tsv = [head.join('\t')].concat(rows.map(r => [r.client_name, r.branch || '', r.visits, r.units, r.revenue || 0,
-      (r.bought || []).map(b => b.s + (b.u > 1 ? ' x' + b.u : '')).join('; ')].map(v => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t'))).join('\n');
+    const tsv = [head.join('\t')].concat(rows.map(r => [r.client_name, r.branch || '', r.visits, r.units, r.revenue || 0, cmBoughtTxt(r)].map(v => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t'))).join('\n');
     await navigator.clipboard.writeText(tsv);
     say(`Copied ${lcNum(rows.length)}, paste into Sheets`);
   } catch (e) { console.error(e); say('Copy did not work here'); }
+}
+// XLSX and CSV (report-export.js draws the buttons): the same rows as Copy, with every column. The file is the list for the picks on the page, not only the rows on screen.
+async function cmExportList() {
+  if (!cmDetail) return null;
+  const rows = await cmFullList(); if (!rows.length) return null;
+  const n = x => (x == null || !isFinite(x)) ? null : Math.round(Number(x) * 100) / 100;
+  const picked = cmJoin(CM.fams.map(k => cmFam(k).name.toLowerCase())), what = picked + (CM.cats.length ? ' (' + CM.cats.map(cmTitle).join(' + ') + ')' : '') + (CM.item ? ', ' + CM.item : '');
+  const [a, b] = cmRange(), scope = cmBranchTxt() + ', ' + cmPeriodTxt();
+  const sheet = { name: 'Clients', title: 'Client Mix, clients who had ' + what, subtitle: scope + ' · sorted by ' + (CM.mode === 'revenue' ? 'what they paid' : 'units') + (cmT && cmT.active() ? ' · with the heading filters on the page' : '') + '.',
+    blocks: [{ cols: [{ key: 'client', label: 'Client', fmt: 'text' }, { key: 'branch', label: 'Branch', fmt: 'text' }, { key: 'visits', label: 'Visits', fmt: 'num' }, { key: 'units', label: cmUnitsLabel(), fmt: 'num' }, { key: 'aed', label: 'AED', fmt: 'aed' }, { key: 'bought', label: 'Bought', fmt: 'text' }],
+      rows: rows.map(r => ({ cells: [r.client_name || '', r.branch ? lcBranchName(r.branch) : '', n(r.visits), n(r.units), n(r.revenue), cmBoughtTxt(r)] })) }],
+    legend: [['Units', 'Sales lines: every service or add-on on the till is one unit.'], ['AED', 'What was paid for those lines, after discounts, with refunds left out.'], ['Bought', 'What she bought in this period, with how many of each.']] };
+  return { name: ['client-mix', 'clients', picked, cmBranchTxt(), a, 'to', b].map(s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')).filter(Boolean).join('-'), csv: 0, sheets: [sheet] };
 }
 
 // ── THE SERVICE ROSTER TAB ──────────────────────────────────────────────────

@@ -52,9 +52,11 @@
     const T = { cfg, id: cfg.id, f: {}, sort: null, shown: cfg.limit || 9999, page: 0, more: false };   // shown = rows on a page, page = which page (0 is the first)
     REG[cfg.id] = T;
     T.vis = () => cfg.cols.filter(c => (!c.x || T.more) && !(c.hide && c.hide()));
-    T.rows = () => {
+    T.rows = () => T.rowsOf(cfg.rows());
+    // The same heading filters and sort on any list of rows, so a download can take a longer list than the one drawn (Client Mix: Copy, XLSX and CSV take everyone, the table holds the top 300).
+    T.rowsOf = src => {
       const cols = cfg.cols;
-      const rows = cfg.rows().filter(r => cols.every(c => !T.f[c.k] || pass(c, r, T.f[c.k])));
+      const rows = src.filter(r => cols.every(c => !T.f[c.k] || pass(c, r, T.f[c.k])));
       if (T.sort) {
         const c = cols.find(x => x.k === T.sort.k);
         if (c) { const kx = c.sk || c.raw, num = c.t === 'num' || c.sk; rows.sort((a, b) => { const x = kx(a), y = kx(b); return (num ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * T.sort.dir; }); }
