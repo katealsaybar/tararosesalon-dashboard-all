@@ -72,6 +72,7 @@ OWN = {
     'lostlists': ['js/lost-lists.js', 'js/lost-queue.js', 'js/lost-waves.js', 'js/lost-blast.js', 'js/lost-report.js',
                   'js/send-schedule.js', 'css/lost-lists.css', 'css/lost-queue.css', 'css/send-schedule.css'],
     'reviews': ['js/reviews.js', 'css/reviews.css'],
+    'sitetraffic': ['js/site-traffic.js', 'js/site-track.js', 'css/site-traffic.css', 'js/sheet-table.js', 'css/sheet-table.css', 'migrations/site_traffic.sql'],
     'services': ['js/service-rankings.js', 'js/sheet-table.js', 'css/service-rankings.css', 'css/sheet-table.css'],
     'servicecal': ['js/service-cal.js'],
     'targetcalc': ['targets/index.html'],
