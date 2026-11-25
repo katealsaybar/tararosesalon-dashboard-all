@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=bea696f2"></script>
-<script src="js/page-dates.js?v=b162427b"></script>
+<script src="js/page-dates.js?v=e9ed8024"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3626,7 +3626,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/client-mix.css?v=9925ddc9">
 <link rel="stylesheet" href="css/sheet-table.css?v=f092f371">   <!-- the table with Google Sheets heading menus (sheet-table.js) -->
 <link rel="stylesheet" href="css/service-rankings.css?v=a868eb70">
-<link rel="stylesheet" href="css/reviews.css?v=94fe733e">
+<link rel="stylesheet" href="css/reviews.css?v=b3b503c6">
 <link rel="stylesheet" href="css/product-spend.css?v=48cbeb24">   <!-- Products, Top products by spend (product-spend.js) -->
 <link rel="stylesheet" href="css/orders.css?v=70067120">   <!-- Orders and Receipts (orders.js) -->
 <link rel="stylesheet" href="css/out-of-stock.css?v=f37fdc34">   <!-- Out of Stock (out-of-stock.js) -->
@@ -3758,7 +3758,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // The XLSX and CSV buttons on the Organisation Pulse.
       px:  ['js/report-export.js?v=d7b73ae8', 'js/pulse-export.js?v=02084377'],
       // Google Reviews (native since 24 Nov 2026): the page, its tables and downloads, and the table of review ids that turns an older seed row into its own Google link.
-      rv:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=29fcde3e', 'add%20ons/google-reviews/review-links.js', 'js/reviews.js?v=5d779ba9']
+      rv:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=29fcde3e', 'add%20ons/google-reviews/review-links.js', 'js/reviews.js?v=d163ad86']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -5036,7 +5036,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=459d4a99"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=118b9dae"></script>
+<script src="js/dashboard.js?v=236fc6dd"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->

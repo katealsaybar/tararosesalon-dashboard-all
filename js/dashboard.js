@@ -131,7 +131,7 @@ let GROUP_MODE = false;
 const GROUP_CUR = 'AED';
 function isGroupView() {
   return GROUP_MODE && typeof sel !== 'undefined' && sel.branch.includes('all')
-    && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW));   // Google Reviews left this list on 24 Nov 2026: Bahrain is its own view there, never joined to the UAE
+    && (typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW) || CURRENT_VIEW === 'reviews');   // Google Reviews is back on All = UAE + Bahrain (Kate, 25 Nov 2026); it is not in GROUP_VIEWS because it has no currency
 }
 // Kate, 3 Oct 2026: Bahrain can be read in AED as well as its own BHD, at the same
 // fixed rate, on the same four pages as the Group (the others keep BHD and hide the
@@ -422,6 +422,7 @@ function reviewsViewSwitch(prev, next) {
   }
   if (next === 'reviews') {
     REVIEWS_STASH = {};
+    if (sel.branch.includes('all') && !GROUP_MODE) { GROUP_MODE = true; REVIEWS_STASH.group = true; }   // Reviews opens on All = UAE + Bahrain again (Kate, 25 Nov 2026)
     // Coming from an All time of the other pages: Reviews' own All time (from 2000) takes its place, and the 2021 one
     // is what leaving Reviews puts back.
     const t0 = new Date(); t0.setHours(0,0,0,0);
@@ -853,7 +854,7 @@ function paintFilterChips() {
   if (scope) bEl.innerHTML = chipRow([{ v: scope, label: (BRANCH_INFO[scope] || {}).name || scope, on: true }]);
   else {
     const group = isGroupView();
-    const canGroup = typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW);
+    const canGroup = typeof CURRENT_VIEW === 'undefined' || !CURRENT_VIEW || GROUP_VIEWS.has(CURRENT_VIEW) || CURRENT_VIEW === 'reviews';
     // "UAE Branches | All" is one two-way switch at the front of the row, so the
     // country scope reads apart from the single-branch chips. "All" is the Group,
     // UAE + Bahrain, and only appears on the pages that can show both. Kate, 30 Sep 2026.

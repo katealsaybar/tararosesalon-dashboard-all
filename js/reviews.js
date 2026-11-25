@@ -7,8 +7,8 @@
 // April and May read as months, the hand tags (staff_manual, staff_not), the client credit of the 14 days before, Fratelli's five barbers, Marasy matched by hand only and
 // Bahrain reviews only for people whose home is Bahrain.
 //
-// Kate's rulings applied here: the masthead's Branch and Period drive the page; Bahrain is its own view and never joins the UAE numbers (it is a row marked "not in the UAE total"
-// on the UAE view); Fratelli and Marasy (closed) count while the Period touches them; a closed salon never counts as waiting for a reply and Marasy's reply status is unknown, so it
+// Kate's rulings applied here: the masthead's Branch and Period drive the page; UAE Branches never count Bahrain (it is a row marked "not in the UAE total"
+// on that view), Bahrain is its own view, and All = UAE + Bahrain (back on 25 Nov 2026) counts it in; Fratelli and Marasy (closed) count while the Period touches them; a closed salon never counts as waiting for a reply and Marasy's reply status is unknown, so it
 // stays out of every reply figure; every table has the Google Sheets heading menus (sheet-table.js) and 10, 20, 50 or 100 rows with pages; every figure opens the reviews behind it
 // (drill.js) down to a single review; XLSX and CSV on every table and once in the masthead (page-export.js); Why wall, "On this page" (data-jn), first-time guide.
 // Needs from the shell (shared script scope): sb, sel, dateFrom, dateTo, dateToIso, activePeriodKey, isBahrainView, BH_BRANCHES, closedOffered, TRS_LEVEL; from drill.js TRSD;
@@ -37,7 +37,7 @@ const SC = { 1: 'var(--bad)', 2: 'color-mix(in srgb,var(--bad) 60%,var(--surface
 let RV = null, STAFF = [], VARIANTS = [], CREDIT = {}, CREDIT_OK = true, SYNC = null, LOADED_AT = 0, ERR = null, SEQ = 0, CAN_EDIT = false, GBP_ERR = '';
 const GBP = {};
 const T = {};   // the tables
-const S = { v2: 'vis', v3: 'vis', v4: 'vis', v5: 'vis', v6: 'vis', v7: 'vis', team: 'A', teamB: 'A', tyB: { w: 1, s: 1, p: 1 }, tyS: { w: 1, p: 1 }, res: false, styN: 12, phN: 12, hk: 'avg', ak: 'what', rows: 10, open: {} };
+const S = { v2: 'vis', v3: 'vis', v4: 'vis', v5: 'vis', v6: 'vis', v7: 'vis', team: 'A', teamB: 'A', tyB: { w: 1, s: 1, p: 1 }, tyS: { w: 1, p: 1 }, res: false, styN: 12, phN: 12, hk: 'avg', ak: 'what', rows: 10, open: {}, rf: { s: 'all', st: '', q: '', so: 'new', txt: 0, nr: 0, ph: 0, nt: 0, nl: 0 } };
 try { const n = +localStorage.getItem('trs-reviews-rows'); if ([10, 20, 50, 100].includes(n)) S.rows = n; } catch (e) {}
 
 // ── helpers ───────────────────────────────────────────────────────────────────────────
@@ -66,6 +66,7 @@ const avg = o => o.n ? (o.sum / o.n).toFixed(2) : '–';
 
 // ── the masthead: which salons, which dates ───────────────────────────────────────────
 const bah = () => typeof isBahrainView === 'function' && isBahrainView();
+const grp = () => typeof isGroupView === 'function' && isGroupView();   // All = UAE + Bahrain (Kate, 25 Nov 2026)
 function range() {   // [from or null for all time, to]
   const t = today();
   let a = null, b = t;
@@ -86,6 +87,7 @@ function codes() {
     const c = UAE.slice();
     if (!a || (a <= MRY_SPAN.last && b >= MRY_SPAN.first)) c.push('MRY');   // Marasy's reviews cover Jan 2020 to Dec 2022
     if (typeof closedOffered === 'function' && closedOffered('FRT')) c.push('FRT');
+    if (grp()) c.push('BAH');
     return c;
   }
   return ORDER.filter(c => s.includes(c) && c !== 'BAH');
@@ -93,7 +95,7 @@ function codes() {
 const inBr = r => codes().includes(r.b);
 function inPer(r) { const [a, b] = range(); return !!r.d && (!a || r.d >= a) && r.d <= b; }
 const vis = () => RV.filter(r => inBr(r) && inPer(r));
-function label() { const c = codes(); if (bah()) return 'Bahrain'; const open = c.filter(x => x !== 'FRT' && x !== 'MRY'); return open.length === UAE.length && sel_all() ? 'UAE Branches' : c.map(x => BR[x]).join(', '); }
+function label() { const c = codes(); if (bah()) return 'Bahrain'; if (grp()) return 'All · UAE + Bahrain'; const open = c.filter(x => x !== 'FRT' && x !== 'MRY'); return open.length === UAE.length && sel_all() ? 'UAE Branches' : c.map(x => BR[x]).join(', '); }
 const sel_all = () => !(typeof sel !== 'undefined' && sel.branch && sel.branch.length && !sel.branch.includes('all'));
 function periodText() { const [a, b] = range(); return a ? fd(a) + ' to ' + fd(b) : 'All time, up to ' + fd(b); }
 const waiting = r => r.b !== 'MRY' && r.b !== 'FRT' && !r.rep;   // a closed salon never waits for a reply; Marasy's reply status is unknown
@@ -298,7 +300,7 @@ async function saveMatch(r, box, manual, not) {
 function salRows(all) {
   const P = RV.filter(r => all || inPer(r));
   const list = codes().map(c => ({ c, extra: false }));
-  if (!bah()) list.push({ c: 'BAH', extra: true });
+  if (!bah() && !grp()) list.push({ c: 'BAH', extra: true });
   return list.map(x => mg(x, { o: stat(P.filter(r => r.b === x.c)) }));
 }
 function salTotal(rows) {
@@ -334,7 +336,7 @@ function styRows() {
 function brRows() {
   const ty = tyStr(S.tyB), P = RV.filter(r => inPer(r) && typeMatch(r, ty) && tmMatch(r, S.teamB));
   const list = codes().map(c => ({ c, extra: false }));
-  if (!bah()) list.push({ c: 'BAH', extra: true });
+  if (!bah() && !grp()) list.push({ c: 'BAH', extra: true });
   return list.map(x => mg(x, { o: stat(P.filter(r => r.b === x.c)) }));
 }
 
@@ -399,6 +401,23 @@ function bodyHtml() {
       <button type="button" class="cm-pill rv-more" id="rvPhMore" hidden></button>
     </section>
 
+    <section class="rv-sec" data-jn="Every review" id="rvSecR">
+      <h3>Every review</h3>
+      <div class="rv-learn"><p><b>What is this?</b> The reviews themselves for the Branch and Period at the top. Narrow them by stars, by the stylist named, by what the client wrote, or by a word.</p>
+        <p><b>Why it matters.</b> A count only says how many. Here you read the reviews, find the ones that name a stylist or still wait for a reply, and open any one to answer it on Google.</p>
+        <p class="watch"><b>What to watch.</b> <span id="rvRfW"></span></p></div>
+      <div class="rv-rf" id="rvRf">
+        <div class="rv-rfr"><span class="rv-rfl">Rating</span><div class="rv-chips" id="rvRfS"></div></div>
+        <div class="rv-rfr"><span class="rv-rfl">Staff</span><span id="rvRfStW"></span><span class="rv-rfl rv-rfl2">Sort</span><span id="rvRfSoW"></span></div>
+        <div class="rv-rfr"><span class="rv-rfl">Show only</span><div class="rv-chips" id="rvRfM"></div></div>
+        <div class="rv-rfr"><input type="search" class="rv-q" id="rvRfQ" placeholder="Search review text, reviewer, stylist name…" aria-label="Search the reviews" autocomplete="off"><button type="button" class="cm-pill" data-rv-rfreset>Reset refine</button></div>
+      </div>
+      <div class="rv-bar" id="rvB8"><span class="rv-cnt" id="rvRfC"></span><span class="rv-sp"></span><button type="button" class="cm-pill rv-phone" data-sxcm="rvrev">Sort and filter</button><button type="button" class="cm-pill" data-rv-more="8" aria-pressed="false">All columns</button>${rx('rvExportRev')}</div>
+      <div class="rv-card rv-tw"><table id="rvTRev"></table></div>
+      ${pager('Rev')}
+      <p class="rv-hint">Newest first until you pick another Sort or use a heading menu. Tap a star count, a name or the words to open that review.</p>
+    </section>
+
     <section class="rv-sec" data-jn="More detail" id="rvSec4">
       <h3>More detail</h3>
       <p class="rv-hint" style="margin:0 0 10px">Closed until you open them. Each opens a table with the same heading menus.</p>
@@ -443,7 +462,7 @@ function buildTables() {
       col('w', 'Waiting for a reply', r => r.o.w, r => r.o.w, r => fig(r.o.w, spec(D('wait', BR[r.c] + ', waiting for a reply', { b: r.c, w: 1 }))), 1),
       col('p', 'Replied', r => r.o.rp, r => r.o.rp, r => fp(r.o.rp, r.o.kn, spec(D('replied', BR[r.c] + ', with a reply', { b: r.c, rp: 1 }))), 1)]),
     total: rows => { const { o, l, b } = totalCell(rows), n = rows.filter(r => !r.extra).length;
-      return { s: '<b>' + (bah() ? 'Bahrain' : (n >= UAE.length ? 'UAE Branches' : 'Chosen salons')) + '</b>', n: fig(o.n, spec(D('all', 'All reviews, ' + l, b))), a: clk(avg(o), spec(D('all', 'All reviews, ' + l, b)), o.n),
+      return { s: '<b>' + (bah() ? 'Bahrain' : grp() ? 'All · UAE + Bahrain' : (n >= UAE.length ? 'UAE Branches' : 'Chosen salons')) + '</b>', n: fig(o.n, spec(D('all', 'All reviews, ' + l, b))), a: clk(avg(o), spec(D('all', 'All reviews, ' + l, b)), o.n),
         c: fp(o.c, o.n, spec(D('comp', 'Complaints, ' + l, mg(b, { cp: 1 })))), f: fp(o.five, o.n, spec(D('stars', '5 stars, ' + l, mg(b, { s: 5 })))), w: fig(o.w, spec(D('wait', 'Waiting for a reply, ' + l, mg(b, { w: 1 })))), p: fp(o.rp, o.kn, spec(D('replied', 'With a reply, ' + l, mg(b, { rp: 1 })))) }; },
     after: () => offsets() });
   T.mon = TRSheet.table({ id: 'rvmon', el: '#rvTMon', rows: monRows, limit: S.rows,
@@ -476,7 +495,7 @@ function buildTables() {
   T.star = TRSheet.table({ id: 'rvstar', el: '#rvTStar', rows: () => salRows(true),
     rowCls: r => r.extra ? 'rv-bah' : '',
     cols: salCols(1).concat([1, 2, 3, 4, 5].map(k => col('s' + k, k + (k === 1 ? ' star' : ' stars'), r => r.o.cnt[k], r => r.o.cnt[k], r => fig(r.o.cnt[k], spec(D('stars', BR[r.c] + ', ' + k + (k === 1 ? ' star' : ' stars') + ', all time', { b: r.c, s: k, all: 1 }))), 1))),
-    total: rows => { const o = salTotal(rows), l = L(), t = { s: '<b>' + (bah() ? 'Bahrain' : 'UAE Branches') + '</b>', n: fig(o.n, spec(D('all', 'All reviews, ' + l + ', all time', { all: 1 }))), a: clk(avg(o), spec(D('all', 'All reviews, ' + l + ', all time', { all: 1 })), o.n), c: fp(o.c, o.n, spec(D('comp', 'Complaints, ' + l + ', all time', { cp: 1, all: 1 }))) };
+    total: rows => { const o = salTotal(rows), l = L(), t = { s: '<b>' + (bah() ? 'Bahrain' : grp() ? 'All · UAE + Bahrain' : 'UAE Branches') + '</b>', n: fig(o.n, spec(D('all', 'All reviews, ' + l + ', all time', { all: 1 }))), a: clk(avg(o), spec(D('all', 'All reviews, ' + l + ', all time', { all: 1 })), o.n), c: fp(o.c, o.n, spec(D('comp', 'Complaints, ' + l + ', all time', { cp: 1, all: 1 }))) };
       for (let k = 1; k <= 5; k++) t['s' + k] = fig(o.cnt[k], spec(D('stars', k + (k === 1 ? ' star, ' : ' stars, ') + l + ', all time', { s: k, all: 1 }))); return t; } });
   T.gbp = TRSheet.table({ id: 'rvgbp', el: '#rvTGbp', rows: gbpRows, rowCls: r => r.extra ? 'rv-bah' : '',
     cols: [
@@ -485,6 +504,19 @@ function buildTables() {
       col('b', 'Calls', r => r.v ? r.v.calls : -1, r => r.v ? n0(r.v.calls) : '', r => r.v ? n0(r.v.calls) : ''),
       col('c', 'Directions', r => r.v ? r.v.directions : -1, r => r.v ? n0(r.v.directions) : '', r => r.v ? n0(r.v.directions) : ''),
       col('d', 'Website', r => r.v ? r.v.website : -1, r => r.v ? n0(r.v.website) : '', r => r.v ? n0(r.v.website) : '', 1)] });
+  const one = r => oneSpec(r);
+  T.rev = TRSheet.table({ id: 'rvrev', el: '#rvTRev', rows: revRows, limit: S.rows,
+    cols: [
+      { k: 'd', l: 'Date', t: 'date', raw: r => r.d, disp: r => fd(r.d), cell: r => esc(rDate(r)) },
+      txt('b', 'Salon', r => BR[r.b], r => esc(BR[r.b])),
+      { k: 's', l: 'Stars', t: 'num', raw: r => r.s, disp: r => r.s, cell: r => num(stars(r.s), one(r)) },
+      txt('n', 'Reviewer', r => r.n, r => num(esc(r.n), one(r))),
+      Object.assign(txt('x', 'What she said', r => r.t, r => r.t ? num('<span class="rv-sn">' + esc(r.t) + '</span>', one(r)) : '<span class="rv-nt">(stars only)</span>'), { disp: r => r.t ? 'Written' : 'Stars only', ex: r => r.t }),
+      txt('f', 'Staff named', staffNames, r => esc(staffNames(r))),
+      col('p', 'Photos', r => r.ph.length, r => r.ph.length, r => r.ph.length ? num(String(r.ph.length), one(r)) : '<span class="rv-z">0</span>', 1),
+      txt('r', 'Reply', replyOf, r => replyOf(r) === 'Waiting' ? '<b>Waiting</b>' : esc(replyOf(r))),
+      txt('l', 'Google link', r => noLinkYet(r) ? 'No link yet' : 'Has a link', r => noLinkYet(r) ? '<span class="rv-nt">No link yet</span>' : 'Has a link', 1)],
+    after: pager('Rev', 'rev', 'reviews') });
 }
 function phCell(s) { return s.photo ? '<img class="ph" src="' + esc(s.photo) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '<span class="ini" style="width:36px;height:44px">' + esc(s.label.charAt(0)) + '</span>'; }
 const gbpRows = () => { const d = GBP[gbpKey()]; const by = {}; ((d && d.branches) || []).forEach(b => { by[b.branch] = b; });
@@ -492,9 +524,10 @@ const gbpRows = () => { const d = GBP[gbpKey()]; const by = {}; ((d && d.branche
 
 function draw() {
   if (!RV) return;
-  drawAnswer(); drawWhy(); drawSum(); drawSal(); drawMon(); drawBr(); drawSty(); drawPhotos(); drawStar(); drawGbp(); drawNotes(); drawHow(); drawAbout();
+  drawAnswer(); drawWhy(); drawSum(); drawSal(); drawMon(); drawBr(); drawSty(); drawPhotos(); drawSelects(); drawRefine(); drawStar(); drawGbp(); drawNotes(); drawHow(); drawAbout();
   syncControls();
   ['sal', 'mon', 'br', 'sty', 'star', 'gbp'].forEach(k => { const w = $('#rv' + ({ sal: 'SalT', mon: 'MonT', br: 'BrT', sty: 'StyT', star: 'StarT', gbp: 'GbpT' })[k]); if (w && !w.hidden) T[k].draw(); });
+  if (T.rev) T.rev.draw();
   offsets();
 }
 function drawAnswer() {
@@ -604,6 +637,50 @@ function drawStar() {
   }).join('');
   $('#rvStarLeg').innerHTML = legend();
 }
+// Every review: the Refine rows and the list (Kate, 25 Nov 2026, "fix pls": the old page's Refine bar, long review list and no-link list were left out of the new page)
+const rfDefault = () => ({ s: 'all', st: '', q: '', so: 'new', txt: 0, nr: 0, ph: 0, nt: 0, nl: 0 });
+const noLinkYet = r => !!MAPS_CID[r.b] && !googleUrl(r);   // a salon with a Google Maps id should have a link to the review; the closed ones never had one
+const unnamed = r => !!r.t && !r.sf.length;   // written, and nobody named
+const staffNames = r => [...new Set(r.sf.map(k => (staffBy(k) || {}).label || k))].join(', ');
+const replyOf = r => r.b === 'MRY' ? 'Unknown' : r.rep ? 'Replied' : r.b === 'FRT' ? 'Closed salon' : 'Waiting';
+const RFS = [['all', 'All'], ['c', 'Complaints 1–3★'], ['p', 'Positive 4–5★'], [5, '5★'], [4, '4★'], [3, '3★'], [2, '2★'], [1, '1★']];
+const RFM = [['txt', 'With a written comment', r => !!r.t], ['nr', 'No reply yet', waiting], ['ph', 'With client photos', r => r.ph.length > 0], ['nt', 'Comment, no staff named', unnamed], ['nl', 'No Google link yet', noLinkYet]];
+const rfStars = (r, s) => s === 'all' || (s === 'c' ? r.s <= 3 : s === 'p' ? r.s >= 4 : r.s === s);
+function rfPass(r, skip) {   // skip = the one choice to leave out, so each button can show how many it would give
+  const f = S.rf;
+  if (skip !== 's' && !rfStars(r, f.s)) return false;
+  if (skip !== 'st' && f.st && !(f.st === '__any' ? r.sf.length : f.st === '__none' ? unnamed(r) : r.sf.includes(f.st))) return false;
+  for (const m of RFM) if (skip !== m[0] && f[m[0]] && !m[2](r)) return false;
+  if (skip !== 'q' && f.q) { const hay = (r.t + ' ' + r.n + ' ' + staffNames(r)).toLowerCase(); if (!f.q.toLowerCase().split(/\s+/).every(w => hay.includes(w))) return false; }
+  return true;
+}
+const byNew = (a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0;
+const SORTS = { new: ['Newest first', byNew], old: ['Oldest first', (a, b) => byNew(b, a)], low: ['Lowest stars first', (a, b) => a.s - b.s || byNew(a, b)], high: ['Highest stars first', (a, b) => b.s - a.s || byNew(a, b)] };
+const revRows = () => vis().filter(r => rfPass(r)).sort(SORTS[S.rf.so][1]);
+function drawSelects() {   // the two menus are drawn again with the page (the Branch or Period changed), not on every click, so an open menu is never rebuilt under the finger
+  const w = $('#rvRfStW'), sw = $('#rvRfSoW'); if (!w || !sw) return;
+  const P = vis(), cnt = {}; P.forEach(r => r.sf.forEach(k => { cnt[k] = (cnt[k] || 0) + 1; }));
+  const opts = STAFF.filter(s => cnt[s.key] || s.key === S.rf.st).sort((a, b) => (cnt[b.key] || 0) - (cnt[a.key] || 0) || a.label.localeCompare(b.label));
+  w.innerHTML = `<select id="rvRfSt" aria-label="Staff named in the review"><option value="">All reviews</option><option value="__any">Names any staff (${n0(P.filter(r => r.sf.length).length)})</option><option value="__none">Written, no staff named (${n0(P.filter(unnamed).length)})</option>` +
+    opts.map(s => `<option value="${esc(s.key)}">${esc(s.label)}${s.resigned ? ' (former)' : ''} · ${n0(cnt[s.key] || 0)}</option>`).join('') + '</select>';
+  sw.innerHTML = `<select id="rvRfSo" aria-label="Sort the reviews">${Object.keys(SORTS).map(k => `<option value="${k}">${SORTS[k][0]}</option>`).join('')}</select>`;
+  $('#rvRfSt').value = S.rf.st; $('#rvRfSo').value = S.rf.so;
+}
+function drawRefine() {
+  const f = S.rf, P = vis(), rows = revRows();
+  $('#rvRfS').innerHTML = RFS.map(([k, l]) => `<button type="button" class="cm-pill${f.s === k ? ' on' : ''}" aria-pressed="${f.s === k}" data-rv-rs="${k}">${l}<small>${n0(P.filter(r => rfPass(r, 's') && rfStars(r, k)).length)}</small></button>`).join('');
+  $('#rvRfM').innerHTML = RFM.map(([k, l, fn]) => `<button type="button" class="cm-pill${f[k] ? ' on' : ''}" aria-pressed="${!!f[k]}" data-rv-rf="${k}">${l}<small>${n0(P.filter(r => rfPass(r, k) && fn(r)).length)}</small></button>`).join('');
+  const q = $('#rvRfQ'); if (q && q.value.trim() !== f.q) q.value = f.q;
+  const on = f.s !== 'all' || !!f.st || !!f.q || RFM.some(m => f[m[0]]);
+  const rs = $('[data-rv-rfreset]'); if (rs) rs.disabled = !(on || f.so !== 'new');
+  $('#rvRfC').innerHTML = '<b>' + n0(rows.length) + '</b> of ' + n0(P.length) + (P.length === 1 ? ' review' : ' reviews') + ' for ' + esc(label()) + ', ' + esc(periodText()) + (on ? ', refined' : '');
+  const o = stat(rows), nl = P.filter(noLinkYet).length;
+  $('#rvRfW').innerHTML = esc(rows.length ? plural(o.c, 'complaint') + ' and ' + n0(o.w) + ' waiting for a reply in this list.' : 'No review fits these choices. Take one off above.') +
+    (nl ? ' ' + esc(n0(nl) + (nl === 1 ? ' review has' : ' reviews have') + ' no link to their own Google page yet; the No Google link yet button lists them.') : '');
+  const sync = T.rev && $('#rvB8 [data-rv-more]'); if (sync) { sync.classList.toggle('on', !!T.rev.more); sync.setAttribute('aria-pressed', !!T.rev.more); }
+}
+function refineGo() { drawRefine(); if (T.rev) { T.rev.page = 0; T.rev.draw(); } }
+
 // Google profile (Kate, 6 Oct 2026): how often each salon's profile showed on Google and what people did, from Metricool through gbp_report. It follows the Period, but Google reports
 // about three days late and Metricool goes back 12 months, so the window ends yesterday and starts at most 364 days before it.
 function gbpWindow() {
@@ -656,7 +733,7 @@ function drawHow() {
   const h = HOW[S.hk]; $('#rvHCard').innerHTML = `<div class="t">${h[0]}</div><div class="m">${h[1]}</div><div class="big">${h[2]}</div><div class="cv">${h[3]}</div>`;
 }
 const ABOUT = {
-  what: ['What it is', 'Every Google review for our salons, with our reply, in one place.', 'Bahrain is its own view and never joins the UAE numbers.'],
+  what: ['What it is', 'Every Google review for our salons, with our reply, in one place.', 'On UAE Branches, Bahrain sits in its own row and never joins the UAE numbers. On All it counts in.'],
   src: ['Where it comes from', 'Google Business Profile and Metricool, read on the Phorest sync times.', 'A new review can show up a few hours late.'],
   who: ['Who sees it', 'The same people who could open the old page.', 'Reviewer names are on Google already, so they show to everyone who can open this page.'],
   fix: ['Fixing a name', 'The owner login can match a review to a stylist, or say a name in the text is not hers.', 'Open the review from any list and use Match staff at the bottom.']
@@ -676,6 +753,7 @@ function syncControls() {
   Object.keys(sec).forEach(id => { const v = S['v' + id] === 'vis', [nm, tb] = sec[id], V = $('#rv' + nm + 'V', root), TT = $('#rv' + nm + 'T', root); if (V) V.hidden = !v; if (TT) TT.hidden = v;
     const mb = $('[data-rv-more="' + id + '"]', root); if (mb) { mb.hidden = v; mb.classList.toggle('on', !!(tb && tb.more)); mb.setAttribute('aria-pressed', !!(tb && tb.more)); }
     const ph = $('#rvB' + id + ' .rv-phone', root); if (ph) ph.hidden = v; });
+  const m8 = $('#rvB8 [data-rv-more]', root); if (m8 && T.rev) { m8.classList.toggle('on', !!T.rev.more); m8.setAttribute('aria-pressed', !!T.rev.more); }
   $$('details[data-rv-det]', root).forEach(d => { d.open = !!S.open[d.dataset.rvDet]; });
 }
 function offsets() {   // the table's sticky offsets (under the masthead and the "On this page" chips), read from the page, never guessed
@@ -694,21 +772,28 @@ function bind() {
     const t = e.target, q = s => t.closest(s);
     let b;
     if ((b = q('[data-rv-v]'))) { const [id, v] = b.dataset.rvV.split(':'); S['v' + id] = v; syncControls(); if (v === 'tab') ({ 2: T.sal, 3: T.mon, 4: T.sty, 5: T.star, 6: T.gbp, 7: T.br })[id].draw(); offsets(); return; }
-    if ((b = q('[data-rv-more]'))) { const id = b.dataset.rvMore; ({ 2: T.sal, 4: T.sty, 5: T.star, 6: T.gbp, 7: T.br })[id].toggleMore(); syncControls(); return; }
+    if ((b = q('[data-rv-more]'))) { const id = b.dataset.rvMore; ({ 2: T.sal, 4: T.sty, 5: T.star, 6: T.gbp, 7: T.br, 8: T.rev })[id].toggleMore(); syncControls(); return; }
+    if ((b = q('[data-rv-rs]'))) { const v = b.dataset.rvRs; S.rf.s = /^[1-5]$/.test(v) ? +v : v; refineGo(); return; }
+    if ((b = q('[data-rv-rf]'))) { const k = b.dataset.rvRf; S.rf[k] = S.rf[k] ? 0 : 1; refineGo(); return; }
+    if (q('[data-rv-rfreset]')) { S.rf = rfDefault(); if (T.rev) T.rev.sort = null; drawSelects(); refineGo(); return; }
     if ((b = q('[data-rv-team]'))) { const [k, v] = b.dataset.rvTeam.split(':'); if (k === 'B') S.teamB = v; else { S.team = v; S.styN = 12; } if (k === 'B') { drawBr(); T.br.draw(); } else { drawSty(); T.sty.page = 0; T.sty.draw(); } syncControls(); return; }
     if (q('[data-rv-res]')) { S.res = !S.res; S.styN = 12; drawSty(); T.sty.page = 0; T.sty.draw(); syncControls(); return; }
     if (q('#rvStyMore')) { S.styN += 12; drawSty(); return; }
     if (q('#rvPhMore')) { S.phN += 12; drawPhotos(); return; }
     if ((b = q('[data-rv-how]'))) { S.hk = b.dataset.rvHow; drawHow(); return; }
     if ((b = q('[data-rv-about]'))) { S.ak = b.dataset.rvAbout; drawAbout(); return; }
-    if ((b = q('[data-rv-pg]'))) { const [id, d] = b.dataset.rvPg.split(':'), tb = { Mon: T.mon, Sty: T.sty }[id]; tb.page += +d; tb.draw(); return; }
+    if ((b = q('[data-rv-pg]'))) { const [id, d] = b.dataset.rvPg.split(':'), tb = { Mon: T.mon, Sty: T.sty, Rev: T.rev }[id]; tb.page += +d; tb.draw(); return; }
     if ((b = q('[data-rv-lb]'))) { const [i, k] = b.dataset.rvLb.split(':'); LB = { i: +i, k: +k }; lbShow(); return; }
   });
   root.addEventListener('change', e => {
     const t = e.target;
     if (t.matches('[data-rv-ty]')) { const [k, v] = t.dataset.rvTy.split(':'), st = k === 'B' ? S.tyB : S.tyS; st[v] = t.checked ? 1 : 0; if (k === 'B') { if (!st.w && !st.s && !st.p) { st.w = st.s = st.p = 1; } drawBr(); T.br.draw(); } else { if (!st.w && !st.p) { st.w = st.p = 1; } S.styN = 12; drawSty(); T.sty.page = 0; T.sty.draw(); } syncControls(); return; }
-    if (t.matches('[data-rv-rows]')) { const n = +t.value, tb = { Mon: T.mon, Sty: T.sty }[t.dataset.rvRows]; S.rows = n; try { localStorage.setItem('trs-reviews-rows', String(n)); } catch (x) {} [T.mon, T.sty].forEach(x => { x.shown = n; x.page = 0; }); tb.draw(); (tb === T.mon ? T.sty : T.mon).draw(); return; }
+    if (t.matches('[data-rv-rows]')) { const n = +t.value; S.rows = n; try { localStorage.setItem('trs-reviews-rows', String(n)); } catch (x) {} [T.mon, T.sty, T.rev].forEach(x => { x.shown = n; x.page = 0; x.draw(); }); return; }
+    if (t.id === 'rvRfSt') { S.rf.st = t.value; refineGo(); return; }
+    if (t.id === 'rvRfSo') { S.rf.so = t.value; if (T.rev) T.rev.sort = null; refineGo(); return; }
   });
+  let rfTimer = 0;
+  root.addEventListener('input', e => { if (e.target.id !== 'rvRfQ') return; clearTimeout(rfTimer); const v = e.target.value; rfTimer = setTimeout(() => { S.rf.q = v.trim(); refineGo(); }, 200); });
   root.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details[data-rv-det]')) { S.open[d.dataset.rvDet] = d.open; if (d.open) ({ star: () => { drawStar(); if (S.v5 === 'tab') T.star.draw(); }, gbp: () => { drawGbp(); if (S.v6 === 'tab') T.gbp.draw(); }, notes: () => {} })[d.dataset.rvDet](); } }, true);
   root.addEventListener('mouseover', () => {}, { passive: true });
   // the one-review window (drill.js draws it on the body, not in this page) hears the lightbox and Match staff buttons too
@@ -775,7 +860,7 @@ function tableModel(tb, title, file) {
   const rows = tb.rows(); if (!rows.length) return null;
   const cols = tb.cfg.cols.filter(c => typeof c.l === 'string');
   const sub = label() + ' · ' + periodText();
-  const lines = rows.map(r => ({ cells: cols.map(c => c.t === 'num' ? r2(c.raw(r)) : plainTxt(c.disp(r))) }));
+  const lines = rows.map(r => ({ cells: cols.map(c => c.t === 'num' ? r2(c.raw(r)) : plainTxt(c.ex ? c.ex(r) : c.disp(r))) }));
   return { name: [file, label(), (range()[0] || 'all-time'), 'to', range()[1]].map(slug).join('-'), csv: 0, sheets: [{ name: title.slice(0, 31), title, subtitle: sub, blocks: [{ cols: cols.map(c => ({ label: c.l, fmt: c.t === 'num' ? 'num' : 'text' })), rows: lines }],
     legend: [['Complaints', 'A review with 1, 2 or 3 stars.'], ['Waiting for a reply', 'No reply from us on Google. A closed salon never waits, and Marasy’s reply status is unknown.']] }] };
 }
@@ -784,6 +869,7 @@ window.rvExportMon = () => tableModel(T.mon, 'Complaints by month', 'google-revi
 window.rvExportBr = () => tableModel(T.br, 'Reviews by branch', 'google-reviews-by-branch');
 window.rvExportSty = () => tableModel(T.sty, 'Staff named in reviews', 'google-reviews-staff-named');
 window.rvExportStar = () => tableModel(T.star, 'Every star, all time', 'google-reviews-every-star');
+window.rvExportRev = () => tableModel(T.rev, 'Every review', 'google-reviews-every-review');
 window.rvExportGbp = () => tableModel(T.gbp, 'How people find each salon on Google', 'google-reviews-google-profile');
 // The whole page in one workbook (js/page-export.js): every review the Branch and Period leave, then By salon, Complaints by month and Staff named. The CSV is the first tab.
 window.rvExportPage = function () {

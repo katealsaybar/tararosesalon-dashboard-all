@@ -210,3 +210,22 @@ mark.rv-m{background:color-mix(in srgb,var(--accent) 25%,transparent);color:inhe
   #reviewsContent .rv-bar .rex-bar{margin-left:auto}
 }
 @media(max-width:760px){.rv-sty .rv-fs:not(.rv-srow) .rv-fn{text-align:left;white-space:normal}}
+/* Every review: the Refine rows (Kate, 25 Nov 2026) */
+.rv-rf{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:0 0 12px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--surface,var(--bg))}
+.rv-rfr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.rv-rfl{font-size:12.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted2);min-width:78px}
+.rv-rfl2{margin-left:14px;min-width:0}
+.rv-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rv-chips .cm-pill small{opacity:.7;margin-left:6px;font-size:12px}
+.rv-q{flex:1 1 280px;min-width:0;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;min-height:40px}
+.rv-q:focus{outline:2px solid var(--accent);outline-offset:1px}
+#rvTRev .rv-sn{max-width:26ch}
+.rv-cnt{font-size:14px;color:var(--muted)}
+.rv-cnt b{color:var(--text)}
+@media(max-width:760px){
+  .rv-rf{padding:12px}
+  .rv-rfl{min-width:100%}
+  .rv-rfl2{margin-left:0}
+  .rv-q{min-height:44px;flex-basis:100%}
+  #reviewsContent .rv-chips .cm-pill{min-height:44px}
+}
