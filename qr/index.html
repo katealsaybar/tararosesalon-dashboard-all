@@ -57,6 +57,8 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 .qr-stage{position:relative;cursor:pointer}
 .qr-copied{position:absolute;left:8px;right:8px;bottom:8px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#1A1A1A;border-radius:100px;padding:6px 10px;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;pointer-events:none}
 .qr-copied.on{opacity:1;transform:none}
+.qr-libtools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+.qr-libtools input[type=text]{flex:1 1 260px;min-width:200px;width:auto;padding:10px 14px;border-radius:100px;font-size:14px}
 .qr-hint{font-size:11.5px;color:var(--muted);margin:0 0 10px}
 .qr-tile input[type=text]{padding:7px 10px;font-size:13.5px;font-weight:600;border-radius:10px}
 .qr-tcol{display:grid;grid-template-columns:50px minmax(0,1fr);align-items:center;gap:8px}
@@ -138,6 +140,18 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
         </select>
       </div>
 
+      <div class="qr-row">
+        <label class="qr-l" for="qrBranch" style="margin:0" id="qrBranchLbl">Branch (to save it)</label>
+        <select id="qrBranch">
+          <option value="all" selected>All salons</option>
+          <option value="SAA">Saadiyat / Mamsha</option>
+          <option value="KCA">Khalifa City A</option>
+          <option value="MC">Motor City</option>
+          <option value="AQ">Al Quoz</option>
+          <option value="BAH">Bahrain</option>
+        </select>
+      </div>
+
       <div class="qr-btns" id="qrOneBtns">
         <button class="qr-btn" id="qrPng" disabled>Download PNG</button>
         <button class="qr-btn ghost" id="qrSvg" disabled>Download SVG</button>
@@ -167,6 +181,25 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 
   <section class="qr-sec" id="qrLibSec">
     <div class="qr-sec-h"><h2>Saved codes</h2></div>
+    <div class="qr-libtools" id="qrLibTools" hidden>
+      <input type="text" id="qrLibSearch" placeholder="Search by name, link or branch" autocomplete="off" aria-label="Search saved codes">
+      <select id="qrLibSort" aria-label="Sort saved codes">
+        <option value="new" selected>Newest first</option>
+        <option value="az">Name A to Z</option>
+        <option value="za">Name Z to A</option>
+        <option value="branch">By branch</option>
+      </select>
+      <select id="qrLibBranch" aria-label="Show one branch">
+        <option value="" selected>All branches</option>
+        <option value="all">All salons</option>
+        <option value="SAA">Saadiyat / Mamsha</option>
+        <option value="KCA">Khalifa City A</option>
+        <option value="MC">Motor City</option>
+        <option value="AQ">Al Quoz</option>
+        <option value="BAH">Bahrain</option>
+      </select>
+      <span class="qr-tm" id="qrLibCount"></span>
+    </div>
     <div class="qr-bulkbar" id="qrLibBar" hidden>
       <button class="qr-btn" id="qrLibZipPng">Bulk download all saved (PNG, zip)</button>
       <button class="qr-btn ghost" id="qrLibZipSvg">Bulk download all saved (SVG, zip)</button>
@@ -184,7 +217,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var txt = $('qrText'), nameIn = $('qrName'), bulk = $('qrBulk'), logoSel = $('qrLogo'), colourSel = $('qrColour'), sizeSel = $('qrSize'), borderSel = $('qrBorder');
+  var txt = $('qrText'), nameIn = $('qrName'), bulk = $('qrBulk'), logoSel = $('qrLogo'), colourSel = $('qrColour'), sizeSel = $('qrSize'), borderSel = $('qrBorder'), branchSel = $('qrBranch');
   var stage = $('qrStage'), info = $('qrInfo'), msg = $('qrMsg'), bmsg = $('qrBulkMsg'), tiles = $('qrTiles'), libEl = $('qrLib');
   var oneBtns = [$('qrPng'), $('qrSvg'), $('qrCopy'), $('qrSave')], manyBtns = [$('qrZipPng'), $('qrZipSvg'), $('qrSaveAll')];
   var logos = {}, cur = null, items = [], libItems = [], mode = 'one', lib = { state: 'loading', codes: [] };
@@ -194,6 +227,10 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   var CENTRE_NAME = { salons: 'Tara Rose Salons logo', web: 'tararosesalon.com', internal: 'trk-salon-os.com', none: 'no middle picture' };
   var COLOUR_NAME = { '#1A1A1A': 'Tara Rose ink', '#2D2E37': 'Charcoal', '#D6457A': 'Tara Rose pink', '#0F8A72': 'Beauty teal', '#7C5CD4': 'Hair violet' };
   var MAX_BULK = 300;
+  var BRANCHES = [['all', 'All salons'], ['SAA', 'Saadiyat / Mamsha'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz'], ['BAH', 'Bahrain']];
+  var BR_NAME = {}; BRANCHES.forEach(function (b) { BR_NAME[b[0]] = b[1]; });
+  var BR_ORDER = BRANCHES.map(function (b) { return b[0]; });
+  var libQ = '', libSortV = 'new', libBr = '';
 
   function flash(el, t, bad) { el.textContent = t || ''; el.style.color = bad ? '#B3261E' : 'var(--text)'; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -259,7 +296,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   }
 
   // The settings shared by every code on screen.
-  function settings() { return { centre: logoSel.value, colour: colourSel.value }; }
+  function settings() { return { centre: logoSel.value, colour: colourSel.value, branch: branchSel.value }; }
   function px() { return parseInt(sizeSel.value, 10); }
   function pxOf(it) { return it && it.size ? it.size : px(); }   // a code in the list can have its own picture size
 
@@ -350,7 +387,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   $('qrSave').addEventListener('click', function () {
     if (!cur) return;
     $('qrSave').disabled = true; flash(msg, 'Saving…');
-    saveCode(cur.name || cur.value, cur.value, cur.centre, cur.colour).then(function (ok) {
+    saveCode(cur.name || cur.value, cur.value, cur.centre, cur.colour, false, branchSel.value).then(function (ok) {
       flash(msg, ok ? 'Saved. It is in Saved codes below.' : 'Could not save. Sign in to the dashboard and try again.', !ok); $('qrSave').disabled = false;
     });
   });
@@ -388,7 +425,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       items = rows.map(function (r) {
         var q = build(r.value); if (!q) bad++;
         var key = r.name + ' | ' + r.value, ov = over_[key] || {};
-        return { name: r.name, value: r.value, q: q, key: key, centre: ov.centre || st.centre, colour: ov.colour || st.colour, size: ov.size || 0 };
+        return { name: r.name, value: r.value, q: q, key: key, centre: ov.centre || st.centre, colour: ov.colour || st.colour, size: ov.size || 0, branch: ov.branch || st.branch };
       });
       var ok = items.filter(function (i) { return i.q; });
       tiles.innerHTML = '';
@@ -403,6 +440,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
           function pick(field, v) { it[field] = v; (over_[it.key] = over_[it.key] || {})[field] = v; th.replaceChild(draw(it, 300), th.querySelector('canvas')); }
           t.appendChild(mini('Colour', Object.keys(COLOUR_NAME).map(function (h) { return [h, COLOUR_NAME[h]]; }), it.colour, function (v) { pick('colour', v); }));
           t.appendChild(mini('Middle', MID_OPTS, it.centre, function (v) { pick('centre', v); }));
+          t.appendChild(mini('Branch', BRANCHES, it.branch, function (v) { it.branch = v; (over_[it.key] = over_[it.key] || {}).branch = v; }));
           t.appendChild(mini('Size', Object.keys(SIZE_NAME).map(function (k) { return [k, SIZE_NAME[k]]; }), pxOf(it), function (v) { it.size = parseInt(v, 10); (over_[it.key] = over_[it.key] || {}).size = it.size; }));
           var a = document.createElement('div'); a.className = 'qr-ta'; var b = document.createElement('button'); b.className = 'qr-btn ghost sm'; b.textContent = 'PNG';
           b.addEventListener('click', function () { pngBlob(it, pxOf(it)).then(function (bl) { save(bl, uniqueName(it, 'png')); }); }); a.appendChild(b);
@@ -453,7 +491,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     (function next() {
       if (n >= ok.length) { flash(bmsg, ok.length + ' codes saved. They are in Saved codes below.'); manyBtns.forEach(function (b) { b.disabled = false; }); loadLib(); return; }
       flash(bmsg, 'Saving ' + (n + 1) + ' of ' + ok.length + '…');
-      saveCode(ok[n].name, ok[n].value, ok[n].centre, ok[n].colour, true).then(function (r) { if (!r) { flash(bmsg, 'Could not save. Sign in to the dashboard and try again.', true); manyBtns.forEach(function (b) { b.disabled = false; }); return; } n++; next(); });
+      saveCode(ok[n].name, ok[n].value, ok[n].centre, ok[n].colour, true, ok[n].branch).then(function (r) { if (!r) { flash(bmsg, 'Could not save. Sign in to the dashboard and try again.', true); manyBtns.forEach(function (b) { b.disabled = false; }); return; } n++; next(); });
     })();
   });
 
@@ -465,7 +503,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     $('qrOneBtns').hidden = m !== 'one'; msg.hidden = m !== 'one';
     $('qrOneAside').hidden = m !== 'one'; $('qrManyAside').hidden = m !== 'many';
     $('qrGrid').className = 'qr-grid' + (m === 'many' ? ' many' : '');
-    $('qrColourLbl').textContent = m === 'many' ? 'Colour for all codes' : 'Code colour'; $('qrLogoLbl').textContent = m === 'many' ? 'Middle for all codes' : 'Middle of the code'; $('qrSizeLbl').textContent = m === 'many' ? 'Size for all codes' : 'Picture size';
+    $('qrColourLbl').textContent = m === 'many' ? 'Colour for all codes' : 'Code colour'; $('qrLogoLbl').textContent = m === 'many' ? 'Middle for all codes' : 'Middle of the code'; $('qrSizeLbl').textContent = m === 'many' ? 'Size for all codes' : 'Picture size'; $('qrBranchLbl').textContent = m === 'many' ? 'Branch for all codes' : 'Branch (to save it)';
     refresh();
   }
   function refresh() { if (mode === 'one') renderOne(); else renderMany(); renderLib(); }
@@ -478,6 +516,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   borderSel.addEventListener('change', function () { try { localStorage.setItem('qr-border', borderSel.value); } catch (e) {} refresh(); });
   try { var sb0 = localStorage.getItem('qr-border'); if (sb0 === '0' || sb0 === '1' || sb0 === '4') borderSel.value = sb0; } catch (e) {}
   sizeSel.addEventListener('change', function () { clearOver('size'); refresh(); });
+  branchSel.addEventListener('change', function () { clearOver('branch'); if (mode === 'many') refresh(); });
   colourSel.addEventListener('change', function () { clearOver('colour'); refresh(); });   // the left colour is for all codes: it clears the ones picked one by one
 
   /* ---------- the library (Supabase, through three functions; see migrations/qr_codes.sql) ---------- */
@@ -495,23 +534,42 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       });
     }).catch(function () { lib = { state: 'error', codes: [] }; renderLib(); });
   }
-  function saveCode(name, value, centre, colour, quiet) {
+  function saveCode(name, value, centre, colour, quiet, branch) {
     var c = sbc(); if (!c) return Promise.resolve(false);
-    return c.rpc('qr_code_save', { p_name: name, p_value: value, p_centre: centre, p_colour: colour }).then(function (x) {
+    return c.rpc('qr_code_save', { p_name: name, p_value: value, p_centre: centre, p_colour: colour, p_branch: branch || 'all' }).then(function (x) {
       if (x.error || !x.data || x.data.denied) return false;
       if (!quiet) loadLib();
       return true;
     }).catch(function () { return false; });
   }
+  // What the Saved codes list shows: every search word must be somewhere in the name, link, branch or who saved it; then the branch filter; then the sort.
+  function libView() {
+    var words = libQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    var list = lib.codes.filter(function (c) {
+      if (libBr && c.branch !== libBr) return false;
+      var hay = [c.name, c.value, BR_NAME[c.branch] || '', c.by].join(' ').toLowerCase();
+      return words.every(function (w) { return hay.indexOf(w) > -1; });
+    });
+    var cmp = function (a, b) { return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base', numeric: true }); };
+    if (libSortV === 'az') list.sort(cmp);
+    else if (libSortV === 'za') list.sort(function (a, b) { return cmp(b, a); });
+    else if (libSortV === 'branch') list.sort(function (a, b) { return (BR_ORDER.indexOf(a.branch) - BR_ORDER.indexOf(b.branch)) || cmp(a, b); });
+    return list;
+  }
   function renderLib() {
     var sub = $('qrLibSub'), s = lib.state;
+    $('qrLibTools').hidden = !(s === 'ok' && lib.codes.length);   // set once, not hidden and shown again while typing, or the search box would lose the cursor
     libEl.innerHTML = ''; libItems = []; $('qrLibBar').hidden = true;
     if (s === 'loading') { sub.textContent = 'Loading…'; return; }
     if (s === 'out') { sub.innerHTML = 'Sign in to the dashboard to save codes and see the ones the team saved. <a href="/" target="_top">Open the dashboard</a>.'; return; }
     if (s === 'denied') { sub.textContent = 'Saving codes is for the team logins, Level 2 and above.'; return; }
     if (s === 'error') { sub.textContent = 'The saved codes did not load. Refresh the page to try again.'; return; }
-    sub.textContent = lib.codes.length ? 'The team\'s shelf. Open one to change it, or download it again whenever you need it.' : 'Nothing saved yet. Make a code and press Save to library.';
-    lib.codes.forEach(function (c) {
+    var view = libView(), filtered = view.length !== lib.codes.length;
+    sub.textContent = !lib.codes.length ? 'Nothing saved yet. Make a code and press Save to library.' : !view.length ? 'No saved code matches that. Clear the search or pick All branches.' : 'The team\'s shelf. Open one to change it, or download it again whenever you need it.';
+    $('qrLibCount').textContent = lib.codes.length ? (filtered ? view.length + ' of ' + lib.codes.length : lib.codes.length + (lib.codes.length === 1 ? ' code' : ' codes')) : '';
+    $('qrLibZipPng').textContent = (filtered ? 'Bulk download these ' + view.length : 'Bulk download all saved') + ' (PNG, zip)';
+    $('qrLibZipSvg').textContent = (filtered ? 'Bulk download these ' + view.length : 'Bulk download all saved') + ' (SVG, zip)';
+    view.forEach(function (c) {
       var it = { name: c.name, value: c.value, centre: c.centre, colour: String(c.colour).toUpperCase(), q: build(c.value) };
       if (!it.q) return;
       libItems.push(it);
@@ -519,7 +577,8 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       var th = document.createElement('div'); th.className = 'qr-thumb'; th.appendChild(draw(it, 300)); t.appendChild(th); clickCopy(th, function () { return it; });
       var when = ''; try { when = new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) {}
       t.insertAdjacentHTML('beforeend', '<div class="qr-tn">' + esc(c.name) + '</div><div class="qr-tv">' + esc(c.value) + '</div>' +
-        '<div class="qr-tm">' + esc(CENTRE_NAME[c.centre] || '') + ' · ' + esc(COLOUR_NAME[String(c.colour).toUpperCase()] || c.colour) + '<br>' + esc(c.by) + (when ? ', ' + esc(when) : '') + '</div>');
+        '<div class="qr-tm">' + (c.can_delete ? '' : esc(BR_NAME[c.branch] || '') + ' · ') + esc(CENTRE_NAME[c.centre] || '') + ' · ' + esc(COLOUR_NAME[String(c.colour).toUpperCase()] || c.colour) + '<br>' + esc(c.by) + (when ? ', ' + esc(when) : '') + '</div>');
+      if (c.can_delete) t.appendChild(mini('Branch', BRANCHES, c.branch || 'all', function (v) { sbc().rpc('qr_code_set_branch', { p_id: c.id, p_branch: v }).then(function (x) { if (x.error || !x.data || !x.data.updated) flash($('qrLibMsg'), 'Could not change the branch.', true); loadLib(); }); }));
       var a = document.createElement('div'); a.className = 'qr-ta';
       function btn(label, fn, ghost) { var b = document.createElement('button'); b.className = 'qr-btn sm' + (ghost === false ? '' : ' ghost'); b.textContent = label; b.addEventListener('click', fn); a.appendChild(b); return b; }
       btn('Open', function () { openSaved(c); }, false);
@@ -555,10 +614,15 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   }
   function openSaved(c) {
     setMode('one');
-    txt.value = c.value; nameIn.value = c.name; logoSel.value = c.centre; colourSel.value = String(c.colour).toUpperCase();
+    txt.value = c.value; nameIn.value = c.name; logoSel.value = c.centre; colourSel.value = String(c.colour).toUpperCase(); branchSel.value = c.branch || 'all';
     ['change'].forEach(function (ev) { logoSel.dispatchEvent(new Event(ev)); });
     renderOne(); window.scrollTo(0, 0); flash(msg, 'Opened "' + c.name + '". Change anything you like, then save it again as a new one.');
   }
+
+  var libTimer = null;
+  $('qrLibSearch').addEventListener('input', function () { libQ = this.value; clearTimeout(libTimer); libTimer = setTimeout(renderLib, 150); });
+  $('qrLibSort').addEventListener('change', function () { libSortV = this.value; renderLib(); });
+  $('qrLibBranch').addEventListener('change', function () { libBr = this.value; renderLib(); });
 
   /* ---------- start ---------- */
   // The middle pictures load first so the first code already has them; if one fails the page still makes plain codes.

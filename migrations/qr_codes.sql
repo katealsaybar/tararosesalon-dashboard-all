@@ -73,3 +73,50 @@ begin
 end $$;
 revoke all on function public.qr_code_rename(uuid, text) from public, anon;
 grant execute on function public.qr_code_rename(uuid, text) to authenticated;
+
+-- Branch (Kate, 25 Nov 2026): each saved code carries the salon it is for, so the list can be sorted and filtered by branch. Applied live (migration "qr_codes_branch").
+-- all = every salon / not one branch. Existing codes become "all". qr_code_save keeps working with four arguments (branch defaults to all).
+alter table public.qr_codes add column if not exists branch text not null default 'all';
+alter table public.qr_codes drop constraint if exists qr_codes_branch_check;
+alter table public.qr_codes add constraint qr_codes_branch_check check (branch in ('all', 'SAA', 'KCA', 'MC', 'AQ', 'BAH'));
+
+create or replace function public.qr_codes_list() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare v_me text := public.kb_me_email(); v_lv int := coalesce(public.kb_level(), 0);
+begin
+  if v_lv < 2 then return jsonb_build_object('denied', true); end if;
+  return jsonb_build_object('codes', coalesce((
+    select jsonb_agg(jsonb_build_object('id', q.id, 'name', q.name, 'value', q.value, 'centre', q.centre, 'colour', q.colour, 'branch', q.branch,
+                                        'created_at', q.created_at, 'by', coalesce(nullif(q.by_name, ''), q.by_email),
+                                        'mine', q.by_email = v_me, 'can_delete', (q.by_email = v_me or v_lv = 5))
+                     order by q.created_at desc)
+      from public.qr_codes q), '[]'::jsonb));
+end $$;
+
+drop function if exists public.qr_code_save(text, text, text, text);
+create or replace function public.qr_code_save(p_name text, p_value text, p_centre text, p_colour text, p_branch text default 'all') returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare v_me text := public.kb_me_email(); v_row public.qr_codes;
+begin
+  if coalesce(public.kb_level(), 0) < 2 then return jsonb_build_object('denied', true); end if;
+  insert into public.qr_codes (by_email, by_name, name, value, centre, colour, branch)
+  values (v_me, coalesce((select d.name from public.dashboard_users d where d.email = v_me), ''),
+          left(trim(coalesce(nullif(trim(p_name), ''), p_value)), 120), trim(p_value), p_centre, p_colour, coalesce(nullif(p_branch, ''), 'all'))
+  returning * into v_row;
+  return jsonb_build_object('id', v_row.id, 'name', v_row.name, 'value', v_row.value, 'centre', v_row.centre, 'colour', v_row.colour, 'branch', v_row.branch,
+                            'created_at', v_row.created_at, 'by', coalesce(nullif(v_row.by_name, ''), v_row.by_email), 'mine', true);
+end $$;
+revoke all on function public.qr_code_save(text, text, text, text, text) from public, anon;
+grant execute on function public.qr_code_save(text, text, text, text, text) to authenticated;
+
+create or replace function public.qr_code_set_branch(p_id uuid, p_branch text) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare v_me text := public.kb_me_email(); v_n int;
+begin
+  if coalesce(public.kb_level(), 0) < 2 then return jsonb_build_object('denied', true); end if;
+  update public.qr_codes q set branch = p_branch where q.id = p_id and (q.by_email = v_me or public.kb_level() = 5);
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('updated', v_n);
+end $$;
+revoke all on function public.qr_code_set_branch(uuid, text) from public, anon;
+grant execute on function public.qr_code_set_branch(uuid, text) to authenticated;

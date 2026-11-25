@@ -114,7 +114,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "dailyreports": "8508154a0f",
   "targetcalc": "26303bd190",
   "findstylist": "cd8b3b9ea4",
-  "qrmaker": "edeca08b56",
+  "qrmaker": "87ff7d70ef",
   "leavecal": "4aa9fca716",
   "depositcheck": "4e5d5fae16",
   "glowclub": "2f30491eac",
