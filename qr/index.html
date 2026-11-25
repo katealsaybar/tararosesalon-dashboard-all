@@ -50,7 +50,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 .qr-stage canvas,.qr-thumb canvas{width:100%;height:auto;display:block}
 .qr-empty{color:#777;text-align:center;padding:30px;font-size:14px}
 .qr-info{margin:12px 2px 0;font-size:12.5px;color:var(--muted);text-align:center;word-break:break-all}
-.qr-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.qr-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:14px}
 .qr-tile{background:var(--surface2);border:1px solid var(--border);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .qr-thumb{background:#fff;border-radius:12px;padding:8px;border:1px solid var(--border);position:relative;cursor:pointer}
 .qr-thumb:hover,.qr-stage:hover{box-shadow:0 0 0 2px var(--accent-mint)}
@@ -58,7 +58,9 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 .qr-copied{position:absolute;left:8px;right:8px;bottom:8px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#1A1A1A;border-radius:100px;padding:6px 10px;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;pointer-events:none}
 .qr-copied.on{opacity:1;transform:none}
 .qr-hint{font-size:11.5px;color:var(--muted);margin:0 0 10px}
-.qr-tcol{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.qr-tcol{display:grid;grid-template-columns:50px minmax(0,1fr);align-items:center;gap:8px}
+.qr-tcol .ps{display:block;min-width:0}.qr-tcol .ps-btn{width:100%;justify-content:space-between}
+.qr-tl{font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .qr-tn{font-weight:600;font-size:13.5px;line-height:1.3;word-break:break-word}
 .qr-tv{font-size:11.5px;color:var(--muted);word-break:break-all;line-height:1.35}
 .qr-tm{font-size:11px;color:var(--muted)}
@@ -99,7 +101,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       </div>
 
       <div class="qr-row">
-        <label class="qr-l" for="qrLogo" style="margin:0">Middle of the code</label>
+        <label class="qr-l" for="qrLogo" style="margin:0" id="qrLogoLbl">Middle of the code</label>
         <select id="qrLogo">
           <option value="salons" selected>Tara Rose Salons logo</option>
           <option value="web">tararosesalon.com (for websites)</option>
@@ -118,7 +120,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
         </select>
       </div>
       <div class="qr-row">
-        <label class="qr-l" for="qrSize" style="margin:0">Picture size</label>
+        <label class="qr-l" for="qrSize" style="margin:0" id="qrSizeLbl">Picture size</label>
         <select id="qrSize">
           <option value="1000">1000 px (screen, WhatsApp)</option>
           <option value="2000" selected>2000 px (print)</option>
@@ -148,7 +150,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
         <button class="qr-btn ghost" id="qrSaveAll" disabled>Save all to library</button>
       </div>
       <div class="qr-msg" id="qrBulkMsg" role="status" aria-live="polite" style="margin:0 0 6px"></div>
-      <p class="qr-hint">Click a code to copy it. Pick a colour under each one. Bulk download takes every code, each in its own colour.</p>
+      <p class="qr-hint">Click a code to copy it. Under each one you can change its colour, middle and size. Bulk download takes every code as set.</p>
       <div class="qr-tiles" id="qrTiles"><div class="qr-empty" style="grid-column:1/-1">Paste your links on the left and the codes show here.</div></div>
     </section>
   </div>
@@ -248,6 +250,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   // The settings shared by every code on screen.
   function settings() { return { centre: logoSel.value, colour: colourSel.value }; }
   function px() { return parseInt(sizeSel.value, 10); }
+  function pxOf(it) { return it && it.size ? it.size : px(); }   // a code in the list can have its own picture size
 
   /* ---------- files ---------- */
   function slug(s, max) { return String(s).replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, max || 40) || 'code'; }
@@ -316,7 +319,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       if (e.target.closest('button,select,a')) return;
       var it = getItem(); if (!it) return;
       if (!navigator.clipboard || !window.ClipboardItem) { tip(box, 'Copy not available here. Use PNG.', true); return; }
-      navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob(it, px()) })]).then(function () { tip(box, 'Copied'); }, function () { tip(box, 'Could not copy', true); });
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob(it, pxOf(it)) })]).then(function () { tip(box, 'Copied'); }, function () { tip(box, 'Could not copy', true); });
     });
   }
   clickCopy(stage, function () { return cur; });
@@ -342,13 +345,27 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     });
     return rows;
   }
-  var bulkTimer = null, over_ = {};   // over_: the colour picked on one code in the list, kept by name + link so typing more lines does not lose it
+  var bulkTimer = null, over_ = {};   // over_: what was picked on one code in the list (colour, middle, size), kept by name + link so typing more lines does not lose it
+  var SIZE_NAME = { 1000: '1000 px', 2000: '2000 px', 3000: '3000 px' }, MID_OPTS = [['salons', 'Salons logo'], ['web', 'tararosesalon.com'], ['internal', 'trk-salon-os.com'], ['none', 'Nothing']];
+  // A small labelled menu for one code in the list. opts = [[value, text]].
+  function mini(label, opts, value, onchange) {
+    var w = document.createElement('div'); w.className = 'qr-tcol';
+    w.insertAdjacentHTML('beforeend', '<span class="qr-tl">' + label + '</span>');
+    var sel = document.createElement('select'); sel.setAttribute('aria-label', label);
+    opts.forEach(function (o) { var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; if (String(o[0]).toUpperCase() === String(value).toUpperCase()) op.selected = true; sel.appendChild(op); });
+    sel.addEventListener('change', function () { onchange(sel.value); });
+    w.appendChild(sel); return w;
+  }
   function renderMany() {
     clearTimeout(bulkTimer);
     bulkTimer = setTimeout(function () {
       var st = settings(), rows = parseBulk(bulk.value), over = rows.length > MAX_BULK, bad = 0;
       if (over) rows = rows.slice(0, MAX_BULK);
-      items = rows.map(function (r) { var q = build(r.value); if (!q) bad++; var key = r.name + ' | ' + r.value; return { name: r.name, value: r.value, q: q, centre: st.centre, key: key, colour: over_[key] || st.colour }; });
+      items = rows.map(function (r) {
+        var q = build(r.value); if (!q) bad++;
+        var key = r.name + ' | ' + r.value, ov = over_[key] || {};
+        return { name: r.name, value: r.value, q: q, key: key, centre: ov.centre || st.centre, colour: ov.colour || st.colour, size: ov.size || 0 };
+      });
       var ok = items.filter(function (i) { return i.q; });
       tiles.innerHTML = '';
       if (!items.length) { tiles.innerHTML = '<div class="qr-empty" style="grid-column:1/-1">Paste your links on the left and the codes show here.</div>'; }
@@ -358,13 +375,13 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
         if (it.q) { th = document.createElement('div'); th.className = 'qr-thumb'; th.appendChild(draw(it, 300)); t.appendChild(th); clickCopy(th, function () { return it; }); }
         t.insertAdjacentHTML('beforeend', '<div class="qr-tn">' + esc(it.name) + '</div><div class="qr-tv">' + esc(it.q ? it.value : 'Too long for one QR code, so it is skipped.') + '</div>');
         if (it.q) {
-          // This code's own colour: starts as the colour chosen on the left, and stays what you pick here.
-          var cw = document.createElement('div'); cw.className = 'qr-tcol'; var sel = document.createElement('select'); sel.setAttribute('aria-label', 'Colour for ' + it.name);
-          Object.keys(COLOUR_NAME).forEach(function (hex) { var o = document.createElement('option'); o.value = hex; o.textContent = COLOUR_NAME[hex]; if (hex.toUpperCase() === String(it.colour).toUpperCase()) o.selected = true; sel.appendChild(o); });
-          sel.addEventListener('change', function () { it.colour = sel.value; over_[it.key] = sel.value; th.replaceChild(draw(it, 300), th.querySelector('canvas')); });
-          cw.appendChild(sel); t.appendChild(cw);
+          // This code's own colour, middle and picture size: each starts as what is chosen on the left and stays what you pick here.
+          function pick(field, v) { it[field] = v; (over_[it.key] = over_[it.key] || {})[field] = v; th.replaceChild(draw(it, 300), th.querySelector('canvas')); }
+          t.appendChild(mini('Colour', Object.keys(COLOUR_NAME).map(function (h) { return [h, COLOUR_NAME[h]]; }), it.colour, function (v) { pick('colour', v); }));
+          t.appendChild(mini('Middle', MID_OPTS, it.centre, function (v) { pick('centre', v); }));
+          t.appendChild(mini('Size', Object.keys(SIZE_NAME).map(function (k) { return [k, SIZE_NAME[k]]; }), pxOf(it), function (v) { it.size = parseInt(v, 10); (over_[it.key] = over_[it.key] || {}).size = it.size; }));
           var a = document.createElement('div'); a.className = 'qr-ta'; var b = document.createElement('button'); b.className = 'qr-btn ghost sm'; b.textContent = 'PNG';
-          b.addEventListener('click', function () { pngBlob(it, px()).then(function (bl) { save(bl, uniqueName(it, 'png')); }); }); a.appendChild(b);
+          b.addEventListener('click', function () { pngBlob(it, pxOf(it)).then(function (bl) { save(bl, uniqueName(it, 'png')); }); }); a.appendChild(b);
           var b2 = document.createElement('button'); b2.className = 'qr-btn ghost sm'; b2.textContent = 'SVG';
           b2.addEventListener('click', function () { save(new Blob([svg(it)], { type: 'image/svg+xml' }), uniqueName(it, 'svg')); }); a.appendChild(b2); t.appendChild(a);
         }
@@ -397,7 +414,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       }
       var it = list[done];
       flash(out, 'Making ' + (done + 1) + ' of ' + list.length + '…');
-      var p = kind === 'png' ? pngBlob(it, px()).then(function (bl) { return bl.arrayBuffer(); }).then(function (ab) { return new Uint8Array(ab); }) : Promise.resolve(enc.encode(svg(it)));
+      var p = kind === 'png' ? pngBlob(it, pxOf(it)).then(function (bl) { return bl.arrayBuffer(); }).then(function (ab) { return new Uint8Array(ab); }) : Promise.resolve(enc.encode(svg(it)));
       p.then(function (data) { files.push({ name: names[done], data: data }); done++; setTimeout(next, 0); });
     })();
   }
@@ -424,7 +441,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     $('qrOneBtns').hidden = m !== 'one'; msg.hidden = m !== 'one';
     $('qrOneAside').hidden = m !== 'one'; $('qrManyAside').hidden = m !== 'many';
     $('qrGrid').className = 'qr-grid' + (m === 'many' ? ' many' : '');
-    $('qrColourLbl').textContent = m === 'many' ? 'Colour for all codes' : 'Code colour';
+    $('qrColourLbl').textContent = m === 'many' ? 'Colour for all codes' : 'Code colour'; $('qrLogoLbl').textContent = m === 'many' ? 'Middle for all codes' : 'Middle of the code'; $('qrSizeLbl').textContent = m === 'many' ? 'Size for all codes' : 'Picture size';
     refresh();
   }
   function refresh() { if (mode === 'one') renderOne(); else renderMany(); renderLib(); }
@@ -432,8 +449,10 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   $('qrModeMany').addEventListener('click', function () { setMode('many'); });
   txt.addEventListener('input', renderOne); nameIn.addEventListener('input', function () { if (cur) cur.name = nameIn.value.trim(); });
   bulk.addEventListener('input', renderMany);
-  logoSel.addEventListener('change', refresh);
-  colourSel.addEventListener('change', function () { over_ = {}; refresh(); });   // the left colour is for all codes: it clears the ones picked one by one
+  function clearOver(field) { Object.keys(over_).forEach(function (k) { delete over_[k][field]; }); }
+  logoSel.addEventListener('change', function () { clearOver('centre'); refresh(); });
+  sizeSel.addEventListener('change', function () { clearOver('size'); refresh(); });
+  colourSel.addEventListener('change', function () { clearOver('colour'); refresh(); });   // the left colour is for all codes: it clears the ones picked one by one
 
   /* ---------- the library (Supabase, through three functions; see migrations/qr_codes.sql) ---------- */
   function sbc() { try { return window.TRSAuth && window.supabase ? TRSAuth.client() : null; } catch (e) { return null; } }
