@@ -101,7 +101,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "googleads": "82a11b1ade",
   "metaads": "9c9c6f58d2",
   "marketingspend": "dc09dedd0c",
-  "toolspend": "5bc1f1cec6",
+  "toolspend": "4f00e523c0",
   "website": "9bca0ce79f",
   "social": "fb49e0a490",
   "wvperf": "df79c21365",

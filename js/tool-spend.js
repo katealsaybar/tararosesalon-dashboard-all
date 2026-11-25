@@ -271,6 +271,8 @@ function tsPaint(el) {
     const bal = all.filter(l => l.k === 'balance');
     if (bal.length) {
       const topAll = b => all.filter(l => l.k === 'paid' && l.c === 'topup' && l.b === b).reduce((a, l) => a + (Number(l.u) || 0), 0);
+      const unTop = all.filter(l => l.k === 'paid' && l.c === 'topup' && l.b === 'Unassigned').sort((a, b) => ((a.d || a.mo) < (b.d || b.mo) ? -1 : 1));
+      const unTopU = unTop.reduce((a, l) => a + (Number(l.u) || 0), 0), unTopA = unTop.reduce((a, l) => a + (Number(l.a) || 0), 0);
       const names = { Saadiyat: ['Tara Rose Salon SA', 'Saadiyat only'], Shared: ['Tara Rose Salon & Fratelli Barbershop', 'Khalifa City A, Motor City, Al Quoz'] };
       balCard = `<section class="slv-card ts-sec" id="ts-balances">
         <div class="ts-eyebrow">The two balances</div>
@@ -280,6 +282,7 @@ function tsPaint(el) {
           <thead><tr><th>Balance</th><th>Branches</th><th>Unused (AED)</th><th>Unused (USD)</th><th>Top-ups to date (USD)</th></tr></thead>
           <tbody>${bal.map(l => `<tr><td>${tsEsc((names[l.b] || [l.i])[0])}</td><td>${tsEsc((names[l.b] || ['', ''])[1])}</td><td><b>${tsNum(l.a)}</b></td><td>${Number(l.u).toFixed(2)}</td><td>${tsNum(topAll(l.b))}</td></tr>`).join('')}</tbody></table></div>
         <p class="ts-sub" style="margin:8px 0 0">As of ${tsEsc(tsDay(bal[0].d || bal[0].mo))}.</p>
+        ${unTop.length ? `<p class="ts-sub" style="margin:8px 0 0"><b>Not in either column:</b> ${plural(unTop.length, 'top-up')} since ${tsEsc(tsDay(unTop[0].d || unTop[0].mo))}, ${tsNat('USD', unTopU)} (${tsAed(unTopA)}). respond.io’s receipt does not say which balance the money went into.</p>` : ''}
       </section>`;
     }
   }
@@ -350,13 +353,16 @@ function tsPaint(el) {
   }
   const usedA = all.filter(l => l.k === 'used').reduce((a, l) => a + (Number(l.a) || 0), 0), usedU = all.filter(l => l.k === 'used').reduce((a, l) => a + (Number(l.u) || 0), 0);
   const usedNote = tsTool === 'respond' && usedU ? `<li><b>Drawn from the balances.</b> Monthly usage statements add up to ${tsNat('USD', usedU)}, about ${tsAed(usedA)}, since Oct 2024. That is paid from the top-ups above and is not counted again.</li>` : '';
+  // Lines that arrived through the receipt reader (tool_spend_import, x in the report) rather than by hand.
+  const auto = all.filter(l => l.x).sort((a, b) => ((a.d || a.mo) < (b.d || b.mo) ? -1 : 1));
+  const autoNote = auto.length ? `<li><b>Added automatically.</b> ${plural(auto.length, 'line')} come straight from ${tsEsc(T.name)}’s payment emails, the latest dated ${tsEsc(tsDay(auto[auto.length - 1].d || auto[auto.length - 1].mo))}. Anything before that was loaded by hand.</li>` : '';
   const fine = `<details class="ts-more" id="ts-fine">
       <summary>Totals by year, and what is and is not in these numbers</summary>
       <div class="ts-more-b">
         <div class="slv-wrap"><table class="slv-table">
           <thead><tr><th>Year</th>${cols.map(([, n]) => `<th>${tsEsc(n)} (${unitHead})</th>`).join('')}<th>Total (${unitHead})</th><th>Total (AED)</th></tr></thead>
           <tbody>${yrBody}${yrTotal}</tbody></table></div>
-        <ul class="slv-notes" style="margin:12px 0 0;padding-left:18px;line-height:1.55">${T.left.map(x => `<li>${x}</li>`).join('')}${usedNote}${unknownNote}</ul>
+        <ul class="slv-notes" style="margin:12px 0 0;padding-left:18px;line-height:1.55">${T.left.map(x => `<li>${x}</li>`).join('')}${autoNote}${usedNote}${unknownNote}</ul>
       </div>
     </details>`;
 
