@@ -12,7 +12,7 @@
   "complaintsdetail": "6918ad9f45",
   "contentcalendar": "5d48bf89ca",
   "dailyperf": "e4241bc958",
-  "dailyreports": "8508154a0f",
+  "dailyreports": "30ae6dd73c",
   "dashboard": "e253427b88",
   "dealsperf": "80037de928",
   "depositcheck": "4e5d5fae16",
@@ -44,6 +44,7 @@
   "reviews": "bb6fa75b61",
   "servicecal": "1966373922",
   "services": "decf2e378f",
+  "sitetraffic": "ecb41b4714",
   "social": "244bf13097",
   "stafflevels": "b85c653cf9",
   "staffperf": "4693c25896",
@@ -58,6 +59,6 @@
   "teamquad": "cac0736a95",
   "toolspend": "4f00e523c0",
   "website": "9bca0ce79f",
-  "wvperf": "df79c21365"
+  "wvperf": "df3747ecbe"
  }
 }
