@@ -128,6 +128,15 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
         </select>
       </div>
 
+      <div class="qr-row">
+        <label class="qr-l" for="qrBorder" style="margin:0">White border</label>
+        <select id="qrBorder">
+          <option value="1" selected>Thin (1 square)</option>
+          <option value="0">None</option>
+          <option value="4">Standard (4 squares)</option>
+        </select>
+      </div>
+
       <div class="qr-btns" id="qrOneBtns">
         <button class="qr-btn" id="qrPng" disabled>Download PNG</button>
         <button class="qr-btn ghost" id="qrSvg" disabled>Download SVG</button>
@@ -174,11 +183,12 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var txt = $('qrText'), nameIn = $('qrName'), bulk = $('qrBulk'), logoSel = $('qrLogo'), colourSel = $('qrColour'), sizeSel = $('qrSize');
+  var txt = $('qrText'), nameIn = $('qrName'), bulk = $('qrBulk'), logoSel = $('qrLogo'), colourSel = $('qrColour'), sizeSel = $('qrSize'), borderSel = $('qrBorder');
   var stage = $('qrStage'), info = $('qrInfo'), msg = $('qrMsg'), bmsg = $('qrBulkMsg'), tiles = $('qrTiles'), libEl = $('qrLib');
   var oneBtns = [$('qrPng'), $('qrSvg'), $('qrCopy'), $('qrSave')], manyBtns = [$('qrZipPng'), $('qrZipSvg'), $('qrSaveAll')];
   var logos = {}, cur = null, items = [], libItems = [], mode = 'one', lib = { state: 'loading', codes: [] };
-  var QUIET = 4;           // modules of white round the code, the QR standard
+  // White border round the code, in QR squares: Standard is 4 (the QR rule, safest on any background), Thin is 1 (about what Canva's own codes have), None is 0 (the design around it must be white).
+  function quiet() { var v = parseInt(borderSel.value, 10); return v === 0 || v === 1 || v === 4 ? v : 1; }
   var PAD = 0.035;         // white padding round the middle picture, as a share of the code (error correction H covers up to 30% of the area; the picture and its box take about 5 to 6%)
   var CENTRE_NAME = { salons: 'Tara Rose Salons logo', web: 'tararosesalon.com', internal: 'trk-salon-os.com', none: 'no middle picture' };
   var COLOUR_NAME = { '#1A1A1A': 'Tara Rose ink', '#2D2E37': 'Charcoal', '#D6457A': 'Tara Rose pink', '#0F8A72': 'Beauty teal', '#7C5CD4': 'Hair violet' };
@@ -215,7 +225,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 
   // Draw a code on a canvas about px wide. s = { q, centre, colour }.
   function draw(s, px) {
-    var q = s.q, L = logos[s.centre] || null, n = q.getModuleCount(), total = n + QUIET * 2, cell = Math.max(1, Math.floor(px / total)), size = cell * total;
+    var q = s.q, L = logos[s.centre] || null, n = q.getModuleCount(), QUIET = quiet(), total = n + QUIET * 2, cell = Math.max(1, Math.floor(px / total)), size = cell * total;
     var c = document.createElement('canvas'); c.width = c.height = size;
     var g = c.getContext('2d');
     g.fillStyle = '#fff'; g.fillRect(0, 0, size, size);
@@ -229,7 +239,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     return c;
   }
   function svg(s) {
-    var q = s.q, L = logos[s.centre] || null, n = q.getModuleCount(), total = n + QUIET * 2, d = '';
+    var q = s.q, L = logos[s.centre] || null, n = q.getModuleCount(), QUIET = quiet(), total = n + QUIET * 2, d = '';
     for (var r = 0; r < n; r++) {
       for (var k = 0; k < n; k++) {
         if (!q.isDark(r, k)) continue;
@@ -462,6 +472,8 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   bulk.addEventListener('input', renderMany);
   function clearOver(field) { Object.keys(over_).forEach(function (k) { delete over_[k][field]; }); }
   logoSel.addEventListener('change', function () { clearOver('centre'); refresh(); });
+  borderSel.addEventListener('change', function () { try { localStorage.setItem('qr-border', borderSel.value); } catch (e) {} refresh(); });
+  try { var sb0 = localStorage.getItem('qr-border'); if (sb0 === '0' || sb0 === '1' || sb0 === '4') borderSel.value = sb0; } catch (e) {}
   sizeSel.addEventListener('change', function () { clearOver('size'); refresh(); });
   colourSel.addEventListener('change', function () { clearOver('colour'); refresh(); });   // the left colour is for all codes: it clears the ones picked one by one
 
