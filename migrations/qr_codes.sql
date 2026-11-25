@@ -59,3 +59,17 @@ revoke all on function public.qr_code_delete(uuid) from public, anon;
 grant execute on function public.qr_codes_list() to authenticated;
 grant execute on function public.qr_code_save(text, text, text, text) to authenticated;
 grant execute on function public.qr_code_delete(uuid) to authenticated;
+
+-- Rename (Kate, 25 Nov 2026): the person who saved a code, or Level 5, changes its name. Applied live (migration "qr_code_rename").
+create or replace function public.qr_code_rename(p_id uuid, p_name text) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare v_me text := public.kb_me_email(); v_name text := left(trim(coalesce(p_name, '')), 120); v_n int;
+begin
+  if coalesce(public.kb_level(), 0) < 2 then return jsonb_build_object('denied', true); end if;
+  if v_name = '' then return jsonb_build_object('error', 'name'); end if;
+  update public.qr_codes q set name = v_name where q.id = p_id and (q.by_email = v_me or public.kb_level() = 5);
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('renamed', v_n, 'name', v_name);
+end $$;
+revoke all on function public.qr_code_rename(uuid, text) from public, anon;
+grant execute on function public.qr_code_rename(uuid, text) to authenticated;

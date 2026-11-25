@@ -58,6 +58,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 .qr-copied{position:absolute;left:8px;right:8px;bottom:8px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#1A1A1A;border-radius:100px;padding:6px 10px;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;pointer-events:none}
 .qr-copied.on{opacity:1;transform:none}
 .qr-hint{font-size:11.5px;color:var(--muted);margin:0 0 10px}
+.qr-tile input[type=text]{padding:7px 10px;font-size:13.5px;font-weight:600;border-radius:10px}
 .qr-tcol{display:grid;grid-template-columns:50px minmax(0,1fr);align-items:center;gap:8px}
 .qr-tcol .ps{display:block;min-width:0}.qr-tcol .ps-btn{width:100%;justify-content:space-between}
 .qr-tl{font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
@@ -334,13 +335,15 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     t.textContent = text; t.style.background = bad ? '#B3261E' : '#1A1A1A'; t.classList.add('on');
     clearTimeout(t._t); t._t = setTimeout(function () { t.classList.remove('on'); }, 1600);
   }
+  function doCopy(box, it) {
+    if (!navigator.clipboard || !window.ClipboardItem) { tip(box, 'Copy not available here. Use PNG.', true); return; }
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob(it, pxOf(it)) })]).then(function () { tip(box, 'Copied'); }, function () { tip(box, 'Could not copy', true); });
+  }
   function clickCopy(box, getItem) {
     box.title = 'Click to copy';
     box.addEventListener('click', function (e) {
       if (e.target.closest('button,select,a')) return;
-      var it = getItem(); if (!it) return;
-      if (!navigator.clipboard || !window.ClipboardItem) { tip(box, 'Copy not available here. Use PNG.', true); return; }
-      navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob(it, pxOf(it)) })]).then(function () { tip(box, 'Copied'); }, function () { tip(box, 'Could not copy', true); });
+      var it = getItem(); if (it) doCopy(box, it);
     });
   }
   clickCopy(stage, function () { return cur; });
@@ -522,7 +525,26 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       btn('Open', function () { openSaved(c); }, false);
       btn('PNG', function () { pngBlob(it, px()).then(function (b) { save(b, fileOf(it, 'png')); }); });
       btn('SVG', function () { save(new Blob([svg(it)], { type: 'image/svg+xml' }), fileOf(it, 'svg')); });
-      btn('Copy', function () { if (!navigator.clipboard || !window.ClipboardItem) { alert('Copy is not available in this browser. Use PNG.'); return; } copyPng(it, { set textContent(v) { if (v) { var o = this._b; o.textContent = 'Copied'; setTimeout(function () { o.textContent = 'Copy'; }, 1600); } }, style: {} }); });
+      btn('Copy', function () { doCopy(th, it); });
+      // Rename: the name turns into a box; Enter or leaving the box saves, Escape cancels. Whoever saved the code, or Level 5, may rename it.
+      var nm = t.querySelector('.qr-tn');
+      if (c.can_delete) btn('Rename', function () {
+        var inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 120; inp.value = c.name; inp.setAttribute('aria-label', 'New name for ' + c.name);
+        nm.replaceWith(inp); inp.focus(); inp.select();
+        var done = false;
+        function finish(go) {
+          if (done) return; done = true;
+          var v = inp.value.trim();
+          if (!go || !v || v === c.name) { inp.replaceWith(nm); return; }
+          inp.disabled = true;
+          sbc().rpc('qr_code_rename', { p_id: c.id, p_name: v }).then(function (x) {
+            if (x.error || !x.data || x.data.denied || !x.data.renamed) { inp.replaceWith(nm); flash($('qrLibMsg'), 'Could not rename. Sign in to the dashboard and try again.', true); }
+            else loadLib();
+          });
+        }
+        inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { finish(false); } });
+        inp.addEventListener('blur', function () { finish(true); });
+      });
       if (c.can_delete) btn('Delete', function () {
         if (!confirm('Delete "' + c.name + '" from the saved codes? This cannot be undone.')) return;
         sbc().rpc('qr_code_delete', { p_id: c.id }).then(function () { loadLib(); });
