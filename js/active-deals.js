@@ -6,10 +6,10 @@
 // TRS_LEVEL, sel, dateFrom, dateTo, activePeriodKey(), dateToIso() and, for Save as xlsx, the lgx group (ledger-export.js).
 const AD_BR = [['SAA', 'Saadiyat'], ['KCA', 'Khalifa City A'], ['MC', 'Motor City'], ['AQ', 'Al Quoz']];
 // The twelve deals on the brochure that can be counted: nine leave a name at the till, three are counted by price. Best first by sales is worked out on the fly. cat groups them for By type.
-// c/ct = how sure the match is: Blonding and Balayage are Phorest's Full Blonde / Full Balayage Package until Emma confirms the name.
+// c/ct = how sure the match is: Blonding and Balayage are Phorest's Full Blonde / Full Balayage Package (name confirmed, Kate 25 Nov 2026).
 const AD_OFFERS = [
-  { k: 'Blonding', n: 'Blonding Package', p: '999', s: 4, cat: 'Hair colour', ph: 'Phorest: Full Blonde Package', c: 'warn', ct: 'Confirm name' },
-  { k: 'Balayage', n: 'Classic Balayage Package', p: '999', s: 5, cat: 'Hair colour', ph: 'Phorest: Full Balayage Package', c: 'warn', ct: 'Confirm name' },
+  { k: 'Blonding', n: 'Blonding Package', p: '999', s: 4, cat: 'Hair colour', ph: 'Phorest: Full Blonde Package', c: 'ok', ct: 'Exact' },
+  { k: 'Balayage', n: 'Classic Balayage Package', p: '999', s: 5, cat: 'Hair colour', ph: 'Phorest: Full Balayage Package', c: 'ok', ct: 'Exact' },
   { k: 'P599', n: '599 Package: deep cleansing facial + gel mani and pedi', p: '599', s: 13, cat: 'Beauty', c: 'ok', ct: 'Exact' },
   { k: 'Brunette', n: 'Brunette Package', p: '599', s: 6, cat: 'Hair colour', c: 'ok', ct: 'Exact' },
   { k: 'RefreshBlonde', n: 'Refresh Blonde Package', p: '599', s: 3, cat: 'Hair colour', c: 'ok', ct: 'Exact' },
@@ -147,8 +147,7 @@ function adPaint() {
   let h = head + whyWall([
     ['Why this page', 'It counts how many times each deal on the active deals brochure was bought at the till, so we see which deals sell and which do not.'],
     ['Why now', 'No deal on the slides has an end date, so this is how we see whether they keep selling.'],
-    ['If we do nothing', 'A deal that sells nothing stays on the brochure, and a good one never gets more push.']],
-    'Coach Emma answers the first question under Waiting on a word, the Blonding and Balayage names, by Friday.');
+    ['If we do nothing', 'A deal that sells nothing stays on the brochure, and a good one never gets more push.']]);
   h += `<section class="ad-card" id="ad-headline"><div class="ad-hero"><div>
       <div class="ad-cap">Brochure deals sold</div><div class="ad-big">${total} <small>sales, ${adAed(cash)}</small></div>
       <div class="ad-track"><div class="ad-fill" style="width:${Math.round(withSale / AD_TOTAL_DEALS * 100)}%"></div></div>
@@ -179,7 +178,7 @@ function adPaint() {
 
   const brHead = AD_BR.map(b => `<th class="n">${b[1]}</th>`).join('');
   h += `<section class="ad-card" id="ad-offer"><h2>By offer</h2><p class="ad-sub">How each deal on the brochure is doing: the sales at each branch, the cash, and how sure we are of the match.</p>
-    <details class="more"><summary>How this is counted</summary><p class="ad-sub">A package is rung as one sale made of lines named after the offer, so we count sales, not lines. Blonding and Balayage on the brochure are Phorest’s Full Blonde Package and Full Balayage Package, matched by price and components, so they carry a Confirm name tag until Emma says yes.</p></details>
+    <details class="more"><summary>How this is counted</summary><p class="ad-sub">A package is rung as one sale made of lines named after the offer, so we count sales, not lines. Blonding and Balayage on the brochure are Phorest’s Full Blonde Package and Full Balayage Package, matched by price and components, and the names are confirmed.</p></details>
     <div><table><thead><tr><th class="ad-pic">Slide</th><th>Offer</th>${brHead}<th class="n">Sold</th><th class="n">AED</th><th>Share</th><th>Match</th></tr></thead><tbody>${
       rowsO.map(o => `<tr><td class="ad-pic">${adSlide(o.k, o.n)}</td><td class="ad-nm">${adEsc(o.n)}<small>Slide ${o.s} · ${o.pl || 'AED ' + o.p}${o.ph ? ' · ' + adEsc(o.ph) : ''}</small></td>${AD_BR.map(b => `<td class="n">${adBc(adBrOf(o.k, b[0]))}</td>`).join('')}<td class="n"><b>${o.sold}</b></td><td class="n">${adAed(o.paid)}</td><td>${adMini(o.paid, cash)}</td><td><span class="ad-tag ${o.c}">${o.ct}</span></td></tr>`).join('')
     }<tr class="tot"><td></td><td>Total</td>${AD_BR.map(b => `<td class="n">${adBc(adSum(offs, o => adBrOf(o.k, b[0])))}</td>`).join('')}<td class="n">${total}</td><td class="n">${adAed(cash)}</td><td>${adMini(cash, cash)}</td><td></td></tr></tbody></table></div>
@@ -200,7 +199,6 @@ function adPaint() {
       }).join('')}</ul></section></div>`;
 
   h += `<section class="ad-card" id="ad-ask"><h2>Waiting on a word</h2><p class="ad-sub">These need an answer before the numbers can be quoted outside the team.</p><ol class="ad-ask">
-      <li><b>Emma:</b> are Blonding 999 and Classic Balayage 999 on the slides the same as Phorest’s Full Blonde Package and Full Balayage Package? They hold most of the sales.</li>
       <li><b>Tara or Emma:</b> which colour slides priced over the 30% ceiling are still active? No slide has an end date.</li>
       <li><b>Reception:</b> Polish and Pamper 350 at Khalifa City A shows 34 sales from 7 clients. Were components rung as separate sales?</li></ol></section>
     <details class="more"><summary>How these numbers are counted</summary>
