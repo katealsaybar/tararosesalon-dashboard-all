@@ -1,4 +1,4 @@
-// Active Deals Performance (Kate, 23 Oct 2026): how many times each deal on the active deals brochure (promo.tararosesalon.com/active-deals-brochure)
+// Active Deals Performance (Kate, 23 Oct 2026): how many times each deal on the active deals brochure (www.tararosesalon.com/en/ae/active-deals/)
 // was bought at the till, in the Campaigns group beside Wellness Voucher Performance, in that page's format (headline, tiles, charts with a table
 // behind them, a branch card, tables with a Total row). Numbers from active_deals_performance() (migrations/active_deals_performance.sql), Level 2 and
 // above, no client names: one row per offer, branch and day, fetched once and filtered here, so a Branch or Period change in the masthead redraws at once.
@@ -104,7 +104,7 @@ function adPaint() {
   const head = `<div class="ad-top"><div><h1 class="ad-t">Active Deals Performance</h1><p class="ad-sub">${adData ? 'As of ' + adEsc(adWhen(adData.at)) + '. Phorest sales, deals on the brochure.' : ''}</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderDealsPerf(true)">Refresh</button>
     <button class="ad-btn" type="button" onclick="adSave()">Save as xlsx</button> <button class="ad-btn" type="button" onclick="adSave('csv')" title="The By offer tab as a CSV">Save as csv</button>
-    <a class="ad-btn" href="https://promo.tararosesalon.com/active-deals-brochure" target="_blank" rel="noopener">Open the brochure</a></div></div>`;
+    <a class="ad-btn" href="https://www.tararosesalon.com/en/ae/active-deals/" target="_blank" rel="noopener">Open the brochure</a></div></div>`;
   if (adErr || !adData) { el.innerHTML = head + `<div class="ad-state">${adEsc(adErr || 'No report yet.')}</div>`; adRail(false); return; }
 
   const offs = AD_OFFERS.map(o => Object.assign({ sold: adSold(o.k), paid: adPaid(o.k) }, o));
