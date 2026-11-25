@@ -57,7 +57,7 @@ window.TRS_PAGE_DATES = /*DATES*/{
   "leavecal": ["2026-11-17", "2026-11-19"],
   "depositcheck": ["2026-11-17", "2026-11-17"],
   "glowclub": ["2026-10-22", "2026-11-18"],
-  "dealsperf": ["2026-10-23", "2026-11-24"],
+  "dealsperf": ["2026-10-23", "2026-11-25"],
   "discountsvouchers": ["2026-10-23", "2026-11-18"],
   "stylists": ["2026-08-12", "2026-10-18"],
   "orgchart": ["2026-09-21", "2026-11-18"]
@@ -118,7 +118,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "leavecal": "4aa9fca716",
   "depositcheck": "4e5d5fae16",
   "glowclub": "2f30491eac",
-  "dealsperf": "4acf755888",
+  "dealsperf": "16d960fabd",
   "discountsvouchers": "1cb3abf82b",
   "stylists": "c56becb713",
   "orgchart": "573d65256c"
