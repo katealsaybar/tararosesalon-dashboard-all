@@ -21,8 +21,8 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=bea696f2"></script>
-<script src="js/page-dates.js?v=fd282568"></script>
+<script src="js/pages.js?v=7c3b93b8"></script>
+<script src="js/page-dates.js?v=27291aee"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -4014,6 +4014,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <!-- Kate, 20 Nov 2026: Target Calculator is a dashboard page now, so the main sidebar stays: the Team Home page (targets/, still the door from its Team Home card) shown in a frame
          with ?embed=1 (view-targetcalc). Same key as the old link out, so a menu she saved keeps it where she put it; data-tool-link still hides it from everyone but Levels 3 and 5. -->
     <a class="nav-sub" data-tool-link data-nav-key="l:location.href='/targets/'" href="/?view=targetcalc" onclick="if(trsPlain(event)){event.preventDefault();showView('targetcalc', this)}">Target Calculator</a>
+    <!-- Kate, 25 Nov 2026: QR Code Maker in Tools. The page (qr/) is shown in a frame with ?embed=1 (view-qrmaker) so the main sidebar stays. Opens for Levels 3 and 5 like the Target Calculator; Page Access can give it to others. -->
+    <a class="nav-sub" href="/?view=qrmaker" onclick="if(trsPlain(event)){event.preventDefault();showView('qrmaker', this)}">QR Code Maker</a>
     <!-- Kate, 12 Nov 2026: the Post Approvals row is gone. The Review Tool and the Upload Tool are hidden from its landing page for now, so it only led to the calendar; the Content Calendar row below is the way in. -->
     <!-- Kate, 12 Nov 2026: Content Calendar, every post on a calendar with how it did and next month's plan. The calendar itself lives in the Post Approvals app (calendar/, no login),
          and this page shows it in a frame (view-contentcalendar) so the main sidebar stays. data-nav-key is the key this row had as a link out, kept so the layout she saved still finds it;
@@ -4732,6 +4734,13 @@ table.tp-cmp td.bad{color:var(--bad)}
   <div id="view-targetcalc" style="display:none">
     <iframe id="targetCalcFrame" title="Target Calculator" data-src="/targets/?embed=1"
       style="width:100%;height:calc(100vh - 150px);min-height:560px;border:none;display:block;background:transparent"></iframe>
+  </div>
+
+  <!-- QR CODE MAKER (Kate, 25 Nov 2026): qr/ in a same-origin frame with ?embed=1, so the main sidebar stays. It makes the code in the browser (vendor/qrcode), nothing is sent or stored.
+       The frame follows the dashboard's light or dark and grows to the page's own height (showView). data-src, not src: loaded on first open only. -->
+  <div id="view-qrmaker" style="display:none">
+    <iframe id="qrMakerFrame" title="QR Code Maker" scrolling="no" data-src="/qr/?embed=1"
+      style="width:100%;height:calc(100vh - 160px);min-height:560px;border:none;display:block;background:transparent"></iframe>
   </div>
 
   <!-- DAILY REPORTS (Kate, 17 Nov 2026): the cloud sync of the Phorest reports. daily-reports.js reads sync_runs, sync_squares and sync_latest and the owner's Run buttons call the
@@ -5672,6 +5681,23 @@ function showView(view, el){
         } catch (e) {}
       });
       ff.setAttribute('src', ff.dataset.src);
+    }
+  }
+  // Kate, 25 Nov 2026: QR Code Maker. The frame loads on first opening; it takes the page's height (so the dashboard is the only scrollbar) and the dashboard's light or dark, then follows both.
+  if (view === 'qrmaker') {
+    const qf = document.getElementById('qrMakerFrame');
+    if (qf && !qf.getAttribute('src') && qf.dataset.src) {
+      qf.addEventListener('load', () => {
+        try {
+          const d = qf.contentDocument, root = d.documentElement;
+          const paint = () => { const t = document.documentElement.getAttribute('data-theme'); if (t) root.setAttribute('data-theme', t); else root.removeAttribute('data-theme'); };
+          const fit = () => { if (d.body) qf.style.height = Math.max(560, d.body.scrollHeight) + 'px'; };
+          paint(); fit();
+          new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+          new d.defaultView.ResizeObserver(fit).observe(d.body);
+        } catch (e) {}
+      });
+      qf.setAttribute('src', qf.dataset.src);
     }
   }
   // Kate, 20 Nov 2026: Target Calculator. The frame loads on first opening and takes the dashboard's light or dark, then follows it. It keeps its own scrollbar (its filter bar and table header pin inside it).

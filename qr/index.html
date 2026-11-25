@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>QR Code Maker · Tools</title>
+<script>
+  try { var t = localStorage.getItem('trs-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  // Kate, 25 Nov 2026: QR Code Maker. The dashboard shows this page in a frame (Tools > QR Code Maker) with ?embed=1, so the main sidebar stays.
+  try { if (/[?&]embed=1\b/.test(location.search)) document.documentElement.classList.add('qr-embed'); } catch (e) {}
+</script>
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/favicon-96x96.png" sizes="96x96" type="image/png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/hub/hub.css?v=24715f8d">
+<link rel="stylesheet" href="/css/scrollbars.css?v=a903788b">
+<script src="/assets/pill-select.js?v=759948a4"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55}
+:focus-visible{outline:2px solid var(--accent-mint);outline-offset:3px;border-radius:3px}
+.qr-wrap{max-width:980px;margin:0 auto;padding:28px 20px 56px}
+.qr-embed .qr-wrap{padding-top:10px}
+.qr-eyebrow{font-size:11px;font-weight:500;letter-spacing:.4em;text-transform:uppercase;color:var(--muted)}
+h1{font-weight:600;font-size:clamp(28px,4vw,40px);line-height:1.1;letter-spacing:-.02em;margin:8px 0 6px}
+.qr-lead{color:var(--muted);margin:0 0 26px;max-width:62ch}
+.qr-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:28px;align-items:start}
+@media(max-width:820px){.qr-grid{grid-template-columns:1fr}}
+.qr-card{background:var(--surface2);border:1px solid var(--border);border-radius:22px;padding:22px}
+label.qr-l{display:block;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+textarea{width:100%;min-height:104px;resize:vertical;font:inherit;font-size:15px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.qr-row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:16px}
+.qr-chk{display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:500}
+.qr-chk input{width:18px;height:18px;accent-color:var(--text)}
+select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:8px 14px}
+.qr-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.qr-btn{font:inherit;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--text);background:var(--text);color:var(--bg);border-radius:100px;padding:11px 16px;cursor:pointer;white-space:nowrap}
+.qr-btn.ghost{background:transparent;color:var(--text)}
+.qr-btn:disabled{opacity:.4;cursor:default}
+.qr-note{margin:18px 0 0;font-size:13px;color:var(--muted)}
+.qr-msg{min-height:20px;margin:12px 0 0;font-size:13px;font-weight:500}
+.qr-stage{background:#fff;border-radius:18px;padding:14px;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border:1px solid var(--border)}
+.qr-stage canvas{width:100%;height:auto;display:block}
+.qr-empty{color:#777;text-align:center;padding:30px;font-size:14px}
+.qr-info{margin:12px 2px 0;font-size:12.5px;color:var(--muted);text-align:center;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="qr-wrap">
+  <div class="qr-eyebrow">Tools</div>
+  <h1>QR Code Maker</h1>
+  <p class="qr-lead">Paste a link, get a QR code with Tara Rose Salons in the middle. Download it as a picture or as a file the printer can scale.</p>
+
+  <div class="qr-grid">
+    <section class="qr-card">
+      <label class="qr-l" for="qrText">Link or text</label>
+      <textarea id="qrText" placeholder="e.g. tararosesalon.com/blonde-standard" spellcheck="false" autocomplete="off"></textarea>
+      <div class="qr-row">
+        <label class="qr-l" for="qrLogo" style="margin:0">Logo in the middle</label>
+        <select id="qrLogo">
+          <option value="salons" selected>Tara Rose Salons logo</option>
+          <option value="web">tararosesalon.com (for websites)</option>
+          <option value="none">Nothing</option>
+        </select>
+      </div>
+      <div class="qr-row">
+        <label class="qr-l" for="qrColour" style="margin:0">Code colour</label>
+        <select id="qrColour">
+          <option value="#1A1A1A" selected>Tara Rose ink</option>
+          <option value="#2D2E37">Charcoal</option>
+          <option value="#0F8A72">Beauty teal</option>
+          <option value="#7C5CD4">Hair violet</option>
+        </select>
+      </div>
+      <div class="qr-row">
+        <label class="qr-l" for="qrSize" style="margin:0">Picture size</label>
+        <select id="qrSize">
+          <option value="1000">1000 px (screen, WhatsApp)</option>
+          <option value="2000" selected>2000 px (print)</option>
+          <option value="3000">3000 px (large print)</option>
+        </select>
+      </div>
+      <div class="qr-btns">
+        <button class="qr-btn" id="qrPng" disabled>Download PNG</button>
+        <button class="qr-btn ghost" id="qrSvg" disabled>Download SVG</button>
+        <button class="qr-btn ghost" id="qrCopy" disabled>Copy picture</button>
+      </div>
+      <div class="qr-msg" id="qrMsg" role="status" aria-live="polite"></div>
+      <p class="qr-note">Always scan it with a phone before it goes to print. A short link makes a cleaner code; the logo size and the error correction are set so it still scans with the logo on.</p>
+    </section>
+
+    <aside>
+      <div class="qr-stage" id="qrStage"><div class="qr-empty">Your QR code shows here.</div></div>
+      <div class="qr-info" id="qrInfo"></div>
+    </aside>
+  </div>
+</div>
+
+<script src="/vendor/qrcode/qrcode.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var txt = $('qrText'), logoChk = $('qrLogo'), colourSel = $('qrColour'), sizeSel = $('qrSize'), stage = $('qrStage'), info = $('qrInfo'), msg = $('qrMsg');
+  var btns = [$('qrPng'), $('qrSvg'), $('qrCopy')];
+  var logos = {}, cur = null;   // logos.salons / logos.web = { img, data, w }: the picture, its data: address for the SVG, and its width as a share of the code
+  var QUIET = 4;           // modules of white round the code, the QR standard
+  var PAD = 0.035;         // white padding round the logo, as a share of the code (error correction H covers up to 30% of the area; the logo and its box take about 5 to 6%)
+
+  function flash(t, bad) { msg.textContent = t || ''; msg.style.color = bad ? '#B3261E' : 'var(--text)'; }
+
+  // "tararosesalon.com/x" typed without https:// would scan as plain text on some phones, so add it. Anything with spaces, or already a scheme, is left as typed.
+  function clean(s) {
+    s = s.trim();
+    if (!s) return '';
+    if (/^[a-z][a-z0-9+.-]*:/i.test(s) || /\s/.test(s)) return s;
+    if (/^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+([\/?#].*)?$/i.test(s)) return 'https://' + s;
+    return s;
+  }
+
+  function build(value) {
+    var q = qrcode(0, 'H');
+    q.addData(value, 'Byte');
+    q.make();
+    return q;
+  }
+
+  // Where the logo and its white box sit, for a code of n modules drawn with cells of this size. The box is snapped to whole modules and kept centred on the grid.
+  function logoBox(L, cell, n, total) {
+    var codeW = cell * n, lw = codeW * L.w, lh = lw * L.img.naturalHeight / L.img.naturalWidth, pad = codeW * PAD;
+    var bwM = Math.ceil((lw + pad * 2) / cell), bhM = Math.ceil((lh + pad * 2) / cell);
+    if ((n - bwM) % 2 !== 0) bwM++;
+    if ((n - bhM) % 2 !== 0) bhM++;
+    var bw = bwM * cell, bh = bhM * cell, cx = total * cell / 2, cy = total * cell / 2;
+    return { bx: cx - bw / 2, by: cy - bh / 2, bw: bw, bh: bh, lx: cx - lw / 2, ly: cy - lh / 2, lw: lw, lh: lh };
+  }
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+
+  // Draw the code (and the logo) on a canvas about px wide.
+  function draw(q, px, L) {
+    var n = q.getModuleCount(), total = n + QUIET * 2, cell = Math.max(1, Math.floor(px / total)), size = cell * total;
+    var c = document.createElement('canvas'); c.width = c.height = size;
+    var g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, size, size);
+    g.fillStyle = colourSel.value;
+    for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect((k + QUIET) * cell, (r + QUIET) * cell, cell, cell);
+    if (L) {
+      var b = logoBox(L, cell, n, total);
+      g.fillStyle = '#fff'; roundRect(g, b.bx, b.by, b.bw, b.bh, cell * 1.2); g.fill();
+      g.imageSmoothingQuality = 'high'; g.drawImage(L.img, b.lx, b.ly, b.lw, b.lh);
+    }
+    return c;
+  }
+
+  function svg(q, L) {
+    var n = q.getModuleCount(), total = n + QUIET * 2, d = '';
+    for (var r = 0; r < n; r++) {
+      for (var k = 0; k < n; k++) {
+        if (!q.isDark(r, k)) continue;
+        var s = k; while (k + 1 < n && q.isDark(r, k + 1)) k++;          // one run of dark modules in a row
+        d += 'M' + (s + QUIET) + ' ' + (r + QUIET) + 'h' + (k - s + 1) + 'v1h-' + (k - s + 1) + 'z';
+      }
+    }
+    var out = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ' + total + ' ' + total + '">' +
+      '<rect width="' + total + '" height="' + total + '" fill="#fff"/><path d="' + d + '" fill="' + colourSel.value + '" shape-rendering="crispEdges"/>';
+    if (L && L.data) {
+      var b = logoBox(L, 1, n, total);
+      out += '<rect x="' + b.bx + '" y="' + b.by + '" width="' + b.bw + '" height="' + b.bh + '" rx="1.2" fill="#fff"/>' +
+        '<image x="' + b.lx + '" y="' + b.ly + '" width="' + b.lw + '" height="' + b.lh + '" href="' + L.data + '" xlink:href="' + L.data + '"/>';
+    }
+    return out + '</svg>';
+  }
+
+  function render() {
+    var v = clean(txt.value);
+    cur = null; btns.forEach(function (b) { b.disabled = true; }); flash('');
+    if (!v) { stage.innerHTML = '<div class="qr-empty">Your QR code shows here.</div>'; info.textContent = ''; return; }
+    var q = null;
+    if (v.length <= 1000) { try { q = build(v); } catch (e) { q = null; } }
+    if (!q) { stage.innerHTML = '<div class="qr-empty">That is too long for one QR code. Use a shorter link.</div>'; info.textContent = ''; return; }
+    var L = logos[logoChk.value] || null;
+    stage.innerHTML = ''; stage.appendChild(draw(q, 760, L));
+    info.textContent = v;
+    cur = { q: q, value: v, L: L };
+    btns.forEach(function (b) { b.disabled = false; });
+    if (L && q.getModuleCount() > 57) flash('This one is long, so the code is dense. Scan it with a phone before printing, or use a shorter link.');
+  }
+
+  function fileName(ext) {
+    var base = cur.value.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 40) || 'code';
+    return 'qr-' + base + '.' + ext;
+  }
+  function save(blob, name) {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+  function pngBlob(cb) { draw(cur.q, parseInt(sizeSel.value, 10), cur.L).toBlob(cb, 'image/png'); }
+
+  $('qrPng').addEventListener('click', function () { if (!cur) return; pngBlob(function (b) { save(b, fileName('png')); flash('PNG downloaded.'); }); });
+  $('qrSvg').addEventListener('click', function () { if (!cur) return; save(new Blob([svg(cur.q, cur.L)], { type: 'image/svg+xml' }), fileName('svg')); flash('SVG downloaded.'); });
+  $('qrCopy').addEventListener('click', function () {
+    if (!cur) return;
+    if (!navigator.clipboard || !window.ClipboardItem) { flash('Copy is not available in this browser. Use Download PNG.', true); return; }
+    pngBlob(function (b) {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]).then(function () { flash('Picture copied. Paste it into WhatsApp, Canva or an email.'); },
+        function () { flash('Could not copy. Use Download PNG.', true); });
+    });
+  });
+  txt.addEventListener('input', render);
+  logoChk.addEventListener('change', render);
+  colourSel.addEventListener('change', render);
+
+  // The logos load first so the first code already has them; if one fails the page still makes plain codes.
+  try { var pre = new URLSearchParams(location.search).get('text'); if (pre) txt.value = pre; } catch (e) {}
+
+  // Wrap a loaded picture as a logo: keep a data: copy for the SVG download.
+  function asLogo(img, w) {
+    var data = '';
+    try { var c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0); data = c.toDataURL('image/png'); } catch (e) {}
+    return { img: img, data: data, w: w };
+  }
+  function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
+
+  // The website centre: tararosesalon.com in the house wordmark style (Inter, wide spacing, the mint line above), drawn once on a canvas at a large size so it stays sharp in print.
+  // It becomes a picture, so the SVG download carries it without needing the font.
+  function webLogo() {
+    var fp = 220, sp = 14, c = document.createElement('canvas'), g = c.getContext('2d'), txtW;
+    g.font = '500 ' + fp + 'px Inter, system-ui, sans-serif';
+    var word = 'tararosesalon.com', manual = !('letterSpacing' in g);
+    if ('letterSpacing' in g) g.letterSpacing = sp + 'px';
+    txtW = manual ? g.measureText(word).width + sp * (word.length - 1) : g.measureText(word).width - sp;   // no spacing after the last letter
+    var pad = 24, barH = 16, gap = 64, asc = Math.round(fp * 0.74);
+    c.width = Math.ceil(txtW + pad * 2); c.height = pad + barH + gap + asc + pad;
+    g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#99F6E4'; g.fillRect(c.width / 2 - 150, pad, 300, barH);
+    g.fillStyle = '#1A1A1A'; g.font = '500 ' + fp + 'px Inter, system-ui, sans-serif'; g.textBaseline = 'alphabetic';
+    if (manual) { var x = pad; for (var i = 0; i < word.length; i++) { g.fillText(word[i], x, pad + barH + gap + asc); x += g.measureText(word[i]).width + sp; } }
+    else { g.letterSpacing = sp + 'px'; g.fillText(word, pad, pad + barH + gap + asc); }
+    return loadImg(c.toDataURL('image/png'));
+  }
+
+  var fontReady = (document.fonts && document.fonts.load) ? Promise.race([document.fonts.load('500 100px Inter'), new Promise(function (r) { setTimeout(r, 2500); })]).catch(function () {}) : Promise.resolve();
+  Promise.all([loadImg('/assets/qr-logo-tara-rose.png'), fontReady.then(webLogo)]).then(function (r) {
+    if (r[0]) logos.salons = asLogo(r[0], 0.30);
+    if (r[1]) logos.web = asLogo(r[1], 0.40);
+    render();
+    if (!r[0]) flash('The logo did not load, so codes are plain for now.', true);
+  });
+})();
+</script>
+</body>
+</html>

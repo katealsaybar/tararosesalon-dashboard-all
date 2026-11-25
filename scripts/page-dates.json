@@ -184,6 +184,11 @@
   "fp": "29ac2034870d",
   "modified": "2026-11-20"
  },
+ "qrmaker": {
+  "created": "2026-11-25",
+  "fp": "497051e2c19a",
+  "modified": "2026-11-25"
+ },
  "quarterreport": {
   "created": "2026-11-11",
   "fp": "a172ac70bd68",
@@ -261,7 +266,7 @@
  },
  "targetcalc": {
   "created": "2026-11-20",
-  "fp": "d5db0ac8cc00",
+  "fp": "26303bd19058",
   "modified": "2026-11-23"
  },
  "team": {
