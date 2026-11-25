@@ -1589,7 +1589,8 @@ function parseDay_(values, dateStr, tab, notes, forceDept) {
         else if (l2 === 'treatment qty')   m.tq  = num_(cell(r, c + 3));
       }
 
-      const total = dept === 'Hair' ? m.ncr + m.req + m.salon + m.nw : m.req + m.salon + m.nw;
+      // Total clients = Salon + Request + NCR + New, for Hair and Beauty alike; Rebooked is never part of it (Kate, 25 Nov 2026). Beauty used to leave NCR out.
+      const total = m.ncr + m.req + m.salon + m.nw;
       const row = {
         date: dateStr,
         dept: dept,
