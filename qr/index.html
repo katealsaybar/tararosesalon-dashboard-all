@@ -20,53 +20,91 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.55}
 :focus-visible{outline:2px solid var(--accent-mint);outline-offset:3px;border-radius:3px}
-.qr-wrap{max-width:980px;margin:0 auto;padding:28px 20px 56px}
+.qr-wrap{max-width:1040px;margin:0 auto;padding:28px 20px 56px}
 .qr-embed .qr-wrap{padding-top:10px}
 .qr-eyebrow{font-size:11px;font-weight:500;letter-spacing:.4em;text-transform:uppercase;color:var(--muted)}
 h1{font-weight:600;font-size:clamp(28px,4vw,40px);line-height:1.1;letter-spacing:-.02em;margin:8px 0 6px}
-.qr-lead{color:var(--muted);margin:0 0 26px;max-width:62ch}
+h2{font-weight:600;font-size:clamp(20px,2.4vw,24px);letter-spacing:-.01em;margin:0}
+.qr-lead{color:var(--muted);margin:0 0 20px;max-width:64ch}
+.qr-seg{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--border);border-radius:100px;margin:0 0 22px;background:var(--surface2)}
+.qr-seg button{font:inherit;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border:0;background:transparent;color:var(--text);border-radius:100px;padding:9px 18px;cursor:pointer}
+.qr-seg button[aria-pressed=true]{background:var(--text);color:var(--bg)}
 .qr-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:28px;align-items:start}
-@media(max-width:820px){.qr-grid{grid-template-columns:1fr}}
+.qr-grid.many{grid-template-columns:minmax(0,420px) minmax(0,1fr)}
+@media(max-width:860px){.qr-grid,.qr-grid.many{grid-template-columns:1fr}}
 .qr-card{background:var(--surface2);border:1px solid var(--border);border-radius:22px;padding:22px}
 label.qr-l{display:block;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
-textarea{width:100%;min-height:104px;resize:vertical;font:inherit;font-size:15px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+textarea,input[type=text]{width:100%;font:inherit;font-size:15px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+textarea{min-height:104px;resize:vertical}
+#qrBulk{min-height:210px;font-size:13.5px;line-height:1.5}
 .qr-row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:16px}
-.qr-chk{display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:500}
-.qr-chk input{width:18px;height:18px;accent-color:var(--text)}
 select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:8px 14px}
 .qr-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
 .qr-btn{font:inherit;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--text);background:var(--text);color:var(--bg);border-radius:100px;padding:11px 16px;cursor:pointer;white-space:nowrap}
 .qr-btn.ghost{background:transparent;color:var(--text)}
+.qr-btn.sm{font-size:11px;padding:7px 12px}
 .qr-btn:disabled{opacity:.4;cursor:default}
 .qr-note{margin:18px 0 0;font-size:13px;color:var(--muted)}
 .qr-msg{min-height:20px;margin:12px 0 0;font-size:13px;font-weight:500}
 .qr-stage{background:#fff;border-radius:18px;padding:14px;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border:1px solid var(--border)}
-.qr-stage canvas{width:100%;height:auto;display:block}
+.qr-stage canvas,.qr-thumb canvas{width:100%;height:auto;display:block}
 .qr-empty{color:#777;text-align:center;padding:30px;font-size:14px}
 .qr-info{margin:12px 2px 0;font-size:12.5px;color:var(--muted);text-align:center;word-break:break-all}
+.qr-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.qr-tile{background:var(--surface2);border:1px solid var(--border);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.qr-thumb{background:#fff;border-radius:12px;padding:8px;border:1px solid var(--border)}
+.qr-tn{font-weight:600;font-size:13.5px;line-height:1.3;word-break:break-word}
+.qr-tv{font-size:11.5px;color:var(--muted);word-break:break-all;line-height:1.35}
+.qr-tm{font-size:11px;color:var(--muted)}
+.qr-ta{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.qr-bad{border-color:#B3261E}
+.qr-sec{margin-top:40px}
+.qr-sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 6px}
+.qr-sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+.qr-bulkbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="qr-wrap">
   <div class="qr-eyebrow">Tools</div>
   <h1>QR Code Maker</h1>
-  <p class="qr-lead">Paste a link, get a QR code with Tara Rose Salons in the middle. Download it as a picture or as a file the printer can scale.</p>
+  <p class="qr-lead">Make a QR code with Tara Rose Salons or tararosesalon.com in the middle. One at a time, or paste a whole list. Save the ones you will want again.</p>
 
-  <div class="qr-grid">
+  <div class="qr-seg" role="group" aria-label="How many">
+    <button type="button" id="qrModeOne" aria-pressed="true">One code</button>
+    <button type="button" id="qrModeMany" aria-pressed="false">Many links</button>
+  </div>
+
+  <div class="qr-grid" id="qrGrid">
     <section class="qr-card">
-      <label class="qr-l" for="qrText">Link or text</label>
-      <textarea id="qrText" placeholder="e.g. tararosesalon.com/blonde-standard" spellcheck="false" autocomplete="off"></textarea>
+      <div id="qrOneBox">
+        <label class="qr-l" for="qrText">Link or text</label>
+        <textarea id="qrText" placeholder="e.g. tararosesalon.com/blonde-standard" spellcheck="false" autocomplete="off"></textarea>
+        <div class="qr-row" style="margin-top:12px">
+          <label class="qr-l" for="qrName" style="margin:0">Name (to save it)</label>
+          <input type="text" id="qrName" maxlength="120" placeholder="e.g. Blonde Standard page" autocomplete="off" style="flex:1;min-width:180px">
+        </div>
+      </div>
+      <div id="qrManyBox" hidden>
+        <label class="qr-l" for="qrBulk">Links, one on each line</label>
+        <textarea id="qrBulk" placeholder="tararosesalon.com/blonde-standard&#10;Hair Rhythm | tararosesalon.com/hair-rhythm&#10;https://tararosesalon.com/keratin-smoothing" spellcheck="false" autocomplete="off"></textarea>
+        <p class="qr-note" style="margin-top:8px">To name each code, put the name first and then a | or a tab (a column pasted from Sheets works): <b>Name | link</b>. The name is used for the file name.</p>
+      </div>
+
       <div class="qr-row">
-        <label class="qr-l" for="qrLogo" style="margin:0">Logo in the middle</label>
+        <label class="qr-l" for="qrLogo" style="margin:0">Middle of the code</label>
         <select id="qrLogo">
           <option value="salons" selected>Tara Rose Salons logo</option>
           <option value="web">tararosesalon.com (for websites)</option>
+          <option value="internal">trk-salon-os.com (internal website)</option>
           <option value="none">Nothing</option>
         </select>
       </div>
       <div class="qr-row">
         <label class="qr-l" for="qrColour" style="margin:0">Code colour</label>
         <select id="qrColour">
+          <option value="#D6457A">Tara Rose pink</option>
           <option value="#1A1A1A" selected>Tara Rose ink</option>
           <option value="#2D2E37">Charcoal</option>
           <option value="#0F8A72">Beauty teal</option>
@@ -81,52 +119,74 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
           <option value="3000">3000 px (large print)</option>
         </select>
       </div>
-      <div class="qr-btns">
+
+      <div class="qr-btns" id="qrOneBtns">
         <button class="qr-btn" id="qrPng" disabled>Download PNG</button>
         <button class="qr-btn ghost" id="qrSvg" disabled>Download SVG</button>
         <button class="qr-btn ghost" id="qrCopy" disabled>Copy picture</button>
+        <button class="qr-btn ghost" id="qrSave" disabled>Save to library</button>
       </div>
       <div class="qr-msg" id="qrMsg" role="status" aria-live="polite"></div>
-      <p class="qr-note">Always scan it with a phone before it goes to print. A short link makes a cleaner code; the logo size and the error correction are set so it still scans with the logo on.</p>
+      <p class="qr-note">Always scan it with a phone before it goes to print. A short link makes a cleaner code; the middle picture and the error correction are set so it still scans.</p>
     </section>
 
-    <aside>
+    <aside id="qrOneAside">
       <div class="qr-stage" id="qrStage"><div class="qr-empty">Your QR code shows here.</div></div>
       <div class="qr-info" id="qrInfo"></div>
     </aside>
+
+    <section id="qrManyAside" hidden>
+      <div class="qr-bulkbar">
+        <button class="qr-btn" id="qrZipPng" disabled>Download all (PNG, zip)</button>
+        <button class="qr-btn ghost" id="qrZipSvg" disabled>Download all (SVG, zip)</button>
+        <button class="qr-btn ghost" id="qrSaveAll" disabled>Save all to library</button>
+      </div>
+      <div class="qr-msg" id="qrBulkMsg" role="status" aria-live="polite" style="margin:0 0 12px"></div>
+      <div class="qr-tiles" id="qrTiles"><div class="qr-empty" style="grid-column:1/-1">Paste your links on the left and the codes show here.</div></div>
+    </section>
   </div>
+
+  <section class="qr-sec" id="qrLibSec">
+    <div class="qr-sec-h"><h2>Saved codes</h2></div>
+    <p class="qr-sub" id="qrLibSub">The team's shelf. Open one to change it, or download it again whenever you need it.</p>
+    <div class="qr-tiles" id="qrLib"></div>
+  </section>
 </div>
 
 <script src="/vendor/qrcode/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+<script src="/js/auth.js?v=3823f956"></script>
 <script>
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var txt = $('qrText'), logoChk = $('qrLogo'), colourSel = $('qrColour'), sizeSel = $('qrSize'), stage = $('qrStage'), info = $('qrInfo'), msg = $('qrMsg');
-  var btns = [$('qrPng'), $('qrSvg'), $('qrCopy')];
-  var logos = {}, cur = null;   // logos.salons / logos.web = { img, data, w }: the picture, its data: address for the SVG, and its width as a share of the code
+  var txt = $('qrText'), nameIn = $('qrName'), bulk = $('qrBulk'), logoSel = $('qrLogo'), colourSel = $('qrColour'), sizeSel = $('qrSize');
+  var stage = $('qrStage'), info = $('qrInfo'), msg = $('qrMsg'), bmsg = $('qrBulkMsg'), tiles = $('qrTiles'), libEl = $('qrLib');
+  var oneBtns = [$('qrPng'), $('qrSvg'), $('qrCopy'), $('qrSave')], manyBtns = [$('qrZipPng'), $('qrZipSvg'), $('qrSaveAll')];
+  var logos = {}, cur = null, items = [], mode = 'one', lib = { state: 'loading', codes: [] };
   var QUIET = 4;           // modules of white round the code, the QR standard
-  var PAD = 0.035;         // white padding round the logo, as a share of the code (error correction H covers up to 30% of the area; the logo and its box take about 5 to 6%)
+  var PAD = 0.035;         // white padding round the middle picture, as a share of the code (error correction H covers up to 30% of the area; the picture and its box take about 5 to 6%)
+  var CENTRE_NAME = { salons: 'Tara Rose Salons logo', web: 'tararosesalon.com', internal: 'trk-salon-os.com', none: 'no middle picture' };
+  var COLOUR_NAME = { '#1A1A1A': 'Tara Rose ink', '#2D2E37': 'Charcoal', '#D6457A': 'Tara Rose pink', '#0F8A72': 'Beauty teal', '#7C5CD4': 'Hair violet' };
+  var MAX_BULK = 300;
 
-  function flash(t, bad) { msg.textContent = t || ''; msg.style.color = bad ? '#B3261E' : 'var(--text)'; }
+  function flash(el, t, bad) { el.textContent = t || ''; el.style.color = bad ? '#B3261E' : 'var(--text)'; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   // "tararosesalon.com/x" typed without https:// would scan as plain text on some phones, so add it. Anything with spaces, or already a scheme, is left as typed.
   function clean(s) {
-    s = s.trim();
+    s = (s || '').trim();
     if (!s) return '';
     if (/^[a-z][a-z0-9+.-]*:/i.test(s) || /\s/.test(s)) return s;
     if (/^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+([\/?#].*)?$/i.test(s)) return 'https://' + s;
     return s;
   }
-
   function build(value) {
-    var q = qrcode(0, 'H');
-    q.addData(value, 'Byte');
-    q.make();
-    return q;
+    if (!value || value.length > 1000) return null;
+    try { var q = qrcode(0, 'H'); q.addData(value, 'Byte'); q.make(); return q; } catch (e) { return null; }
   }
 
-  // Where the logo and its white box sit, for a code of n modules drawn with cells of this size. The box is snapped to whole modules and kept centred on the grid.
+  // Where the middle picture and its white box sit, for a code of n modules drawn with cells of this size. The box is snapped to whole modules and kept centred on the grid.
   function logoBox(L, cell, n, total) {
     var codeW = cell * n, lw = codeW * L.w, lh = lw * L.img.naturalHeight / L.img.naturalWidth, pad = codeW * PAD;
     var bwM = Math.ceil((lw + pad * 2) / cell), bhM = Math.ceil((lh + pad * 2) / cell);
@@ -139,13 +199,13 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
   }
 
-  // Draw the code (and the logo) on a canvas about px wide.
-  function draw(q, px, L) {
-    var n = q.getModuleCount(), total = n + QUIET * 2, cell = Math.max(1, Math.floor(px / total)), size = cell * total;
+  // Draw a code on a canvas about px wide. s = { q, centre, colour }.
+  function draw(s, px) {
+    var q = s.q, L = logos[s.centre] || null, n = q.getModuleCount(), total = n + QUIET * 2, cell = Math.max(1, Math.floor(px / total)), size = cell * total;
     var c = document.createElement('canvas'); c.width = c.height = size;
     var g = c.getContext('2d');
     g.fillStyle = '#fff'; g.fillRect(0, 0, size, size);
-    g.fillStyle = colourSel.value;
+    g.fillStyle = s.colour;
     for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) g.fillRect((k + QUIET) * cell, (r + QUIET) * cell, cell, cell);
     if (L) {
       var b = logoBox(L, cell, n, total);
@@ -154,18 +214,17 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     }
     return c;
   }
-
-  function svg(q, L) {
-    var n = q.getModuleCount(), total = n + QUIET * 2, d = '';
+  function svg(s) {
+    var q = s.q, L = logos[s.centre] || null, n = q.getModuleCount(), total = n + QUIET * 2, d = '';
     for (var r = 0; r < n; r++) {
       for (var k = 0; k < n; k++) {
         if (!q.isDark(r, k)) continue;
-        var s = k; while (k + 1 < n && q.isDark(r, k + 1)) k++;          // one run of dark modules in a row
-        d += 'M' + (s + QUIET) + ' ' + (r + QUIET) + 'h' + (k - s + 1) + 'v1h-' + (k - s + 1) + 'z';
+        var st = k; while (k + 1 < n && q.isDark(r, k + 1)) k++;          // one run of dark modules in a row
+        d += 'M' + (st + QUIET) + ' ' + (r + QUIET) + 'h' + (k - st + 1) + 'v1h-' + (k - st + 1) + 'z';
       }
     }
     var out = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ' + total + ' ' + total + '">' +
-      '<rect width="' + total + '" height="' + total + '" fill="#fff"/><path d="' + d + '" fill="' + colourSel.value + '" shape-rendering="crispEdges"/>';
+      '<rect width="' + total + '" height="' + total + '" fill="#fff"/><path d="' + d + '" fill="' + s.colour + '" shape-rendering="crispEdges"/>';
     if (L && L.data) {
       var b = logoBox(L, 1, n, total);
       out += '<rect x="' + b.bx + '" y="' + b.by + '" width="' + b.bw + '" height="' + b.bh + '" rx="1.2" fill="#fff"/>' +
@@ -174,49 +233,221 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     return out + '</svg>';
   }
 
-  function render() {
-    var v = clean(txt.value);
-    cur = null; btns.forEach(function (b) { b.disabled = true; }); flash('');
-    if (!v) { stage.innerHTML = '<div class="qr-empty">Your QR code shows here.</div>'; info.textContent = ''; return; }
-    var q = null;
-    if (v.length <= 1000) { try { q = build(v); } catch (e) { q = null; } }
-    if (!q) { stage.innerHTML = '<div class="qr-empty">That is too long for one QR code. Use a shorter link.</div>'; info.textContent = ''; return; }
-    var L = logos[logoChk.value] || null;
-    stage.innerHTML = ''; stage.appendChild(draw(q, 760, L));
-    info.textContent = v;
-    cur = { q: q, value: v, L: L };
-    btns.forEach(function (b) { b.disabled = false; });
-    if (L && q.getModuleCount() > 57) flash('This one is long, so the code is dense. Scan it with a phone before printing, or use a shorter link.');
-  }
+  // The settings shared by every code on screen.
+  function settings() { return { centre: logoSel.value, colour: colourSel.value }; }
+  function px() { return parseInt(sizeSel.value, 10); }
 
-  function fileName(ext) {
-    var base = cur.value.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 40) || 'code';
-    return 'qr-' + base + '.' + ext;
-  }
+  /* ---------- files ---------- */
+  function slug(s, max) { return String(s).replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, max || 40) || 'code'; }
   function save(blob, name) {
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
   }
-  function pngBlob(cb) { draw(cur.q, parseInt(sizeSel.value, 10), cur.L).toBlob(cb, 'image/png'); }
+  function pngBlob(s, size) { return new Promise(function (res) { draw(s, size).toBlob(res, 'image/png'); }); }
+  function fileOf(it, ext) { return 'qr-' + slug(it.name || it.value) + '.' + ext; }
 
-  $('qrPng').addEventListener('click', function () { if (!cur) return; pngBlob(function (b) { save(b, fileName('png')); flash('PNG downloaded.'); }); });
-  $('qrSvg').addEventListener('click', function () { if (!cur) return; save(new Blob([svg(cur.q, cur.L)], { type: 'image/svg+xml' }), fileName('svg')); flash('SVG downloaded.'); });
+  // A zip with the files stored as they are (PNG is already compressed), so no library is needed.
+  var CRC = (function () { var t = [], n, k, c; for (n = 0; n < 256; n++) { c = n; for (k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { var c = 0xFFFFFFFF; for (var i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function makeZip(files) {
+    var enc = new TextEncoder(), parts = [], central = [], off = 0, d = new Date();
+    var dt = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(), tm = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    files.forEach(function (f) {
+      var nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length, lh = new DataView(new ArrayBuffer(30)), ch = new DataView(new ArrayBuffer(46));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(10, tm, true); lh.setUint16(12, dt, true);
+      lh.setUint32(14, crc, true); lh.setUint32(18, sz, true); lh.setUint32(22, sz, true); lh.setUint16(26, nm.length, true);
+      parts.push(new Uint8Array(lh.buffer), nm, f.data);
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(12, tm, true); ch.setUint16(14, dt, true);
+      ch.setUint32(16, crc, true); ch.setUint32(20, sz, true); ch.setUint32(24, sz, true); ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+      central.push(new Uint8Array(ch.buffer), nm);
+      off += 30 + nm.length + sz;
+    });
+    var cd = central.reduce(function (a, p) { return a + p.length; }, 0), end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true); end.setUint32(12, cd, true); end.setUint32(16, off, true);
+    return new Blob(parts.concat(central, [new Uint8Array(end.buffer)]), { type: 'application/zip' });
+  }
+
+  /* ---------- one code ---------- */
+  function renderOne() {
+    var v = clean(txt.value), q = build(v), st = settings();
+    cur = null; oneBtns.forEach(function (b) { b.disabled = true; }); flash(msg, '');
+    if (!v) { stage.innerHTML = '<div class="qr-empty">Your QR code shows here.</div>'; info.textContent = ''; return; }
+    if (!q) { stage.innerHTML = '<div class="qr-empty">That is too long for one QR code. Use a shorter link.</div>'; info.textContent = ''; return; }
+    cur = { q: q, value: v, centre: st.centre, colour: st.colour, name: nameIn.value.trim() };
+    stage.innerHTML = ''; stage.appendChild(draw(cur, 760));
+    info.textContent = v;
+    oneBtns.forEach(function (b) { b.disabled = false; });
+    $('qrSave').disabled = lib.state !== 'ok';
+    if (cur.centre !== 'none' && q.getModuleCount() > 57) flash(msg, 'This one is long, so the code is dense. Scan it with a phone before printing, or use a shorter link.');
+  }
+  $('qrPng').addEventListener('click', function () { if (!cur) return; pngBlob(cur, px()).then(function (b) { save(b, fileOf({ name: nameIn.value.trim(), value: cur.value }, 'png')); flash(msg, 'PNG downloaded.'); }); });
+  $('qrSvg').addEventListener('click', function () { if (!cur) return; save(new Blob([svg(cur)], { type: 'image/svg+xml' }), fileOf({ name: nameIn.value.trim(), value: cur.value }, 'svg')); flash(msg, 'SVG downloaded.'); });
   $('qrCopy').addEventListener('click', function () {
     if (!cur) return;
-    if (!navigator.clipboard || !window.ClipboardItem) { flash('Copy is not available in this browser. Use Download PNG.', true); return; }
-    pngBlob(function (b) {
-      navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]).then(function () { flash('Picture copied. Paste it into WhatsApp, Canva or an email.'); },
-        function () { flash('Could not copy. Use Download PNG.', true); });
+    if (!navigator.clipboard || !window.ClipboardItem) { flash(msg, 'Copy is not available in this browser. Use Download PNG.', true); return; }
+    copyPng(cur, msg);
+  });
+  function copyPng(s, out) {
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob(s, px()) })]).then(function () { flash(out, 'Picture copied. Paste it into WhatsApp, Canva or an email.'); },
+      function () { flash(out, 'Could not copy. Use Download PNG.', true); });
+  }
+  $('qrSave').addEventListener('click', function () {
+    if (!cur) return;
+    $('qrSave').disabled = true; flash(msg, 'Saving…');
+    saveCode(nameIn.value.trim() || cur.value, cur.value, cur.centre, cur.colour).then(function (ok) {
+      flash(msg, ok ? 'Saved. It is in Saved codes below.' : 'Could not save. Sign in to the dashboard and try again.', !ok); $('qrSave').disabled = false;
     });
   });
-  txt.addEventListener('input', render);
-  logoChk.addEventListener('change', render);
-  colourSel.addEventListener('change', render);
 
-  // The logos load first so the first code already has them; if one fails the page still makes plain codes.
+  /* ---------- many codes ---------- */
+  // One line each: "link", or "Name | link", or "Name<tab>link" (a Sheets column). Blank lines are skipped.
+  function parseBulk(text) {
+    var rows = [], seen = {};
+    text.split(/\r?\n/).forEach(function (line) {
+      line = line.trim(); if (!line) return;
+      var name = '', link = line, m;
+      if (line.indexOf('\t') > -1) { m = line.split('\t'); name = m[0].trim(); link = m.slice(1).join(' ').trim(); }
+      else if ((m = line.match(/^(.*?)\s\|\s(.*)$/)) || (m = line.match(/^([^|]*)\|(.*)$/))) { name = m[1].trim(); link = m[2].trim(); }
+      var value = clean(link);
+      rows.push({ name: name || value.replace(/^https?:\/\//i, ''), value: value });
+    });
+    return rows;
+  }
+  var bulkTimer = null;
+  function renderMany() {
+    clearTimeout(bulkTimer);
+    bulkTimer = setTimeout(function () {
+      var st = settings(), rows = parseBulk(bulk.value), over = rows.length > MAX_BULK, bad = 0;
+      if (over) rows = rows.slice(0, MAX_BULK);
+      items = rows.map(function (r) { var q = build(r.value); if (!q) bad++; return { name: r.name, value: r.value, q: q, centre: st.centre, colour: st.colour }; });
+      var ok = items.filter(function (i) { return i.q; });
+      tiles.innerHTML = '';
+      if (!items.length) { tiles.innerHTML = '<div class="qr-empty" style="grid-column:1/-1">Paste your links on the left and the codes show here.</div>'; }
+      items.forEach(function (it, i) {
+        var t = document.createElement('div'); t.className = 'qr-tile' + (it.q ? '' : ' qr-bad');
+        if (it.q) { var th = document.createElement('div'); th.className = 'qr-thumb'; th.appendChild(draw(it, 300)); t.appendChild(th); }
+        t.insertAdjacentHTML('beforeend', '<div class="qr-tn">' + esc(it.name) + '</div><div class="qr-tv">' + esc(it.q ? it.value : 'Too long for one QR code, so it is skipped.') + '</div>');
+        if (it.q) { var a = document.createElement('div'); a.className = 'qr-ta'; var b = document.createElement('button'); b.className = 'qr-btn ghost sm'; b.textContent = 'PNG';
+          b.addEventListener('click', function () { pngBlob(it, px()).then(function (bl) { save(bl, uniqueName(i, 'png')); }); }); a.appendChild(b); t.appendChild(a); }
+        tiles.appendChild(t);
+      });
+      manyBtns.forEach(function (b) { b.disabled = !ok.length; });
+      $('qrSaveAll').disabled = !ok.length || lib.state !== 'ok';
+      flash(bmsg, !items.length ? '' : ok.length + (ok.length === 1 ? ' code' : ' codes') + (bad ? ', ' + bad + ' skipped (too long)' : '') + (over ? '. Only the first ' + MAX_BULK + ' lines are used.' : '.'), over || bad);
+    }, 220);
+  }
+  // File names inside a zip: the name, with 2, 3… added when two codes would share one.
+  function uniqueName(i, ext) {
+    var base = slug(items[i].name || items[i].value), n = 0;
+    for (var k = 0; k < i; k++) if (items[k].q && slug(items[k].name || items[k].value) === base) n++;
+    return 'qr-' + base + (n ? '-' + (n + 1) : '') + '.' + ext;
+  }
+  function zipAll(kind) {
+    var ok = items.map(function (it, i) { return { it: it, i: i }; }).filter(function (x) { return x.it.q; });
+    if (!ok.length) return;
+    manyBtns.forEach(function (b) { b.disabled = true; });
+    var files = [], enc = new TextEncoder(), done = 0;
+    (function next() {
+      if (done >= ok.length) {
+        save(makeZip(files), 'tara-rose-qr-codes-' + ok.length + '.zip'); flash(bmsg, ok.length + ' codes downloaded in one zip.'); manyBtns.forEach(function (b) { b.disabled = false; }); $('qrSaveAll').disabled = lib.state !== 'ok'; return;
+      }
+      var x = ok[done];
+      flash(bmsg, 'Making ' + (done + 1) + ' of ' + ok.length + '…');
+      var p = kind === 'png' ? pngBlob(x.it, px()).then(function (b) { return b.arrayBuffer(); }).then(function (ab) { return new Uint8Array(ab); }) : Promise.resolve(enc.encode(svg(x.it)));
+      p.then(function (data) { files.push({ name: uniqueName(x.i, kind), data: data }); done++; setTimeout(next, 0); });
+    })();
+  }
+  $('qrZipPng').addEventListener('click', function () { zipAll('png'); });
+  $('qrZipSvg').addEventListener('click', function () { zipAll('svg'); });
+  $('qrSaveAll').addEventListener('click', function () {
+    var ok = items.filter(function (i) { return i.q; }), n = 0;
+    manyBtns.forEach(function (b) { b.disabled = true; });
+    (function next() {
+      if (n >= ok.length) { flash(bmsg, ok.length + ' codes saved. They are in Saved codes below.'); manyBtns.forEach(function (b) { b.disabled = false; }); loadLib(); return; }
+      flash(bmsg, 'Saving ' + (n + 1) + ' of ' + ok.length + '…');
+      saveCode(ok[n].name, ok[n].value, ok[n].centre, ok[n].colour, true).then(function (r) { if (!r) { flash(bmsg, 'Could not save. Sign in to the dashboard and try again.', true); manyBtns.forEach(function (b) { b.disabled = false; }); return; } n++; next(); });
+    })();
+  });
+
+  /* ---------- mode ---------- */
+  function setMode(m) {
+    mode = m;
+    $('qrModeOne').setAttribute('aria-pressed', m === 'one'); $('qrModeMany').setAttribute('aria-pressed', m === 'many');
+    $('qrOneBox').hidden = m !== 'one'; $('qrManyBox').hidden = m !== 'many';
+    $('qrOneBtns').hidden = m !== 'one'; msg.hidden = m !== 'one';
+    $('qrOneAside').hidden = m !== 'one'; $('qrManyAside').hidden = m !== 'many';
+    $('qrGrid').className = 'qr-grid' + (m === 'many' ? ' many' : '');
+    refresh();
+  }
+  function refresh() { if (mode === 'one') renderOne(); else renderMany(); renderLib(); }
+  $('qrModeOne').addEventListener('click', function () { setMode('one'); });
+  $('qrModeMany').addEventListener('click', function () { setMode('many'); });
+  txt.addEventListener('input', renderOne); nameIn.addEventListener('input', function () { if (cur) cur.name = nameIn.value.trim(); });
+  bulk.addEventListener('input', renderMany);
+  logoSel.addEventListener('change', refresh); colourSel.addEventListener('change', refresh);
+
+  /* ---------- the library (Supabase, through three functions; see migrations/qr_codes.sql) ---------- */
+  function sbc() { try { return window.TRSAuth && window.supabase ? TRSAuth.client() : null; } catch (e) { return null; } }
+  function loadLib() {
+    var c = sbc();
+    if (!c) { lib = { state: 'out', codes: [] }; renderLib(); return Promise.resolve(); }
+    return c.auth.getSession().then(function (r) {
+      if (!r.data.session) { lib = { state: 'out', codes: [] }; renderLib(); return; }
+      return c.rpc('qr_codes_list').then(function (x) {
+        if (x.error) { lib = { state: 'error', codes: [] }; }
+        else if (x.data && x.data.denied) { lib = { state: 'denied', codes: [] }; }
+        else { lib = { state: 'ok', codes: (x.data && x.data.codes) || [] }; }
+        renderLib(); if (mode === 'one' && cur) $('qrSave').disabled = lib.state !== 'ok'; if (mode === 'many') $('qrSaveAll').disabled = lib.state !== 'ok' || !items.some(function (i) { return i.q; });
+      });
+    }).catch(function () { lib = { state: 'error', codes: [] }; renderLib(); });
+  }
+  function saveCode(name, value, centre, colour, quiet) {
+    var c = sbc(); if (!c) return Promise.resolve(false);
+    return c.rpc('qr_code_save', { p_name: name, p_value: value, p_centre: centre, p_colour: colour }).then(function (x) {
+      if (x.error || !x.data || x.data.denied) return false;
+      if (!quiet) loadLib();
+      return true;
+    }).catch(function () { return false; });
+  }
+  function renderLib() {
+    var sub = $('qrLibSub'), s = lib.state;
+    libEl.innerHTML = '';
+    if (s === 'loading') { sub.textContent = 'Loading…'; return; }
+    if (s === 'out') { sub.innerHTML = 'Sign in to the dashboard to save codes and see the ones the team saved. <a href="/" target="_top">Open the dashboard</a>.'; return; }
+    if (s === 'denied') { sub.textContent = 'Saving codes is for the team logins, Level 2 and above.'; return; }
+    if (s === 'error') { sub.textContent = 'The saved codes did not load. Refresh the page to try again.'; return; }
+    sub.textContent = lib.codes.length ? 'The team\'s shelf. Open one to change it, or download it again whenever you need it.' : 'Nothing saved yet. Make a code and press Save to library.';
+    lib.codes.forEach(function (c) {
+      var it = { name: c.name, value: c.value, centre: c.centre, colour: c.colour, q: build(c.value) };
+      if (!it.q) return;
+      var t = document.createElement('div'); t.className = 'qr-tile';
+      var th = document.createElement('div'); th.className = 'qr-thumb'; th.appendChild(draw(it, 300)); t.appendChild(th);
+      var when = ''; try { when = new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) {}
+      t.insertAdjacentHTML('beforeend', '<div class="qr-tn">' + esc(c.name) + '</div><div class="qr-tv">' + esc(c.value) + '</div>' +
+        '<div class="qr-tm">' + esc(CENTRE_NAME[c.centre] || '') + ' · ' + esc(COLOUR_NAME[String(c.colour).toUpperCase()] || c.colour) + '<br>' + esc(c.by) + (when ? ', ' + esc(when) : '') + '</div>');
+      var a = document.createElement('div'); a.className = 'qr-ta';
+      function btn(label, fn, ghost) { var b = document.createElement('button'); b.className = 'qr-btn sm' + (ghost === false ? '' : ' ghost'); b.textContent = label; b.addEventListener('click', fn); a.appendChild(b); return b; }
+      btn('Open', function () { openSaved(c); }, false);
+      btn('PNG', function () { pngBlob(it, px()).then(function (b) { save(b, fileOf(it, 'png')); }); });
+      btn('SVG', function () { save(new Blob([svg(it)], { type: 'image/svg+xml' }), fileOf(it, 'svg')); });
+      btn('Copy', function () { if (!navigator.clipboard || !window.ClipboardItem) { alert('Copy is not available in this browser. Use PNG.'); return; } copyPng(it, { set textContent(v) { if (v) { var o = this._b; o.textContent = 'Copied'; setTimeout(function () { o.textContent = 'Copy'; }, 1600); } }, style: {} }); });
+      if (c.can_delete) btn('Delete', function () {
+        if (!confirm('Delete "' + c.name + '" from the saved codes? This cannot be undone.')) return;
+        sbc().rpc('qr_code_delete', { p_id: c.id }).then(function () { loadLib(); });
+      });
+      t.appendChild(a); libEl.appendChild(t);
+    });
+  }
+  function openSaved(c) {
+    setMode('one');
+    txt.value = c.value; nameIn.value = c.name; logoSel.value = c.centre; colourSel.value = String(c.colour).toUpperCase();
+    ['change'].forEach(function (ev) { logoSel.dispatchEvent(new Event(ev)); });
+    renderOne(); window.scrollTo(0, 0); flash(msg, 'Opened "' + c.name + '". Change anything you like, then save it again as a new one.');
+  }
+
+  /* ---------- start ---------- */
+  // The middle pictures load first so the first code already has them; if one fails the page still makes plain codes.
   try { var pre = new URLSearchParams(location.search).get('text'); if (pre) txt.value = pre; } catch (e) {}
-
-  // Wrap a loaded picture as a logo: keep a data: copy for the SVG download.
   function asLogo(img, w) {
     var data = '';
     try { var c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0); data = c.toDataURL('image/png'); } catch (e) {}
@@ -224,13 +455,13 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   }
   function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
 
-  // The website centre: tararosesalon.com in the house wordmark style (Inter, wide spacing, the mint line above), drawn once on a canvas at a large size so it stays sharp in print.
+  // The website centres: tararosesalon.com (public site) and trk-salon-os.com (internal site) in the house wordmark style (Inter, wide spacing, the mint line above), drawn once on a canvas at a large size so it stays sharp in print.
   // It becomes a picture, so the SVG download carries it without needing the font.
-  function webLogo() {
+  function webLogo(word) {
     var fp = 220, sp = 14, c = document.createElement('canvas'), g = c.getContext('2d'), txtW;
     g.font = '500 ' + fp + 'px Inter, system-ui, sans-serif';
-    var word = 'tararosesalon.com', manual = !('letterSpacing' in g);
-    if ('letterSpacing' in g) g.letterSpacing = sp + 'px';
+    var manual = !('letterSpacing' in g);
+    if (!manual) g.letterSpacing = sp + 'px';
     txtW = manual ? g.measureText(word).width + sp * (word.length - 1) : g.measureText(word).width - sp;   // no spacing after the last letter
     var pad = 24, barH = 16, gap = 64, asc = Math.round(fp * 0.74);
     c.width = Math.ceil(txtW + pad * 2); c.height = pad + barH + gap + asc + pad;
@@ -242,14 +473,16 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     else { g.letterSpacing = sp + 'px'; g.fillText(word, pad, pad + barH + gap + asc); }
     return loadImg(c.toDataURL('image/png'));
   }
-
   var fontReady = (document.fonts && document.fonts.load) ? Promise.race([document.fonts.load('500 100px Inter'), new Promise(function (r) { setTimeout(r, 2500); })]).catch(function () {}) : Promise.resolve();
-  Promise.all([loadImg('/assets/qr-logo-tara-rose.png'), fontReady.then(webLogo)]).then(function (r) {
+  Promise.all([loadImg('/assets/qr-logo-tara-rose.png'), fontReady.then(function () { return webLogo('tararosesalon.com'); }), fontReady.then(function () { return webLogo('trk-salon-os.com'); })]).then(function (r) {
     if (r[0]) logos.salons = asLogo(r[0], 0.30);
     if (r[1]) logos.web = asLogo(r[1], 0.40);
-    render();
-    if (!r[0]) flash('The logo did not load, so codes are plain for now.', true);
+    if (r[2]) logos.internal = asLogo(r[2], 0.38);
+    refresh();
+    if (!r[0]) flash(msg, 'The logo did not load, so codes are plain for now.', true);
+    loadLib();
   });
+  renderLib();
 })();
 </script>
 </body>
