@@ -53,7 +53,10 @@ function jnOffset(el) {
   const bar = isNaN(own) ? full : pin.hasAttribute('data-track') ? Math.max(own, full) : own;
   // A heading that has its small label above it (the eyebrow) should land with the label showing, not under the row.
   const lab = el && el.previousElementSibling && /eyebrow/.test(el.previousElementSibling.className) ? el.previousElementSibling.offsetHeight + 6 : 0;
-  return bar + 8 + lab + (pin ? pin.offsetHeight : 0);
+  // The tab strip a page pins under the masthead (Social's Overview / Instagram / Facebook strip, a sticky .sc-bar) hides a heading that
+  // lands at the masthead's edge, so the section lands under it too (Kate, 25 Nov 2026).
+  const tabs = pin ? null : [...document.querySelectorAll('.sc-bar')].find(b => b.getClientRects().length && getComputedStyle(b).position === 'sticky');
+  return bar + 8 + lab + (pin ? pin.offsetHeight : 0) + (tabs ? tabs.offsetHeight : 0);
 }
 
 // Scroll to a section, opening it first if it is collapsed: a rail link that lands you on a closed heading looks like it did nothing.

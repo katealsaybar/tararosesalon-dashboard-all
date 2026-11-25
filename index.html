@@ -3127,7 +3127,7 @@ tr.lg-tot td:first-child{background:var(--surface2)}
   .lg-shell{display:grid;grid-template-columns:172px minmax(0,1fr);gap:46px;align-items:start}
   /* Level with the first section, and it stays there — the tables below run for
      several screens, which is the whole reason the rail exists. */
-  .lg-side{position:sticky;top:118px}
+  .lg-side{position:sticky;top:calc(var(--topbar-cond-h,104px) + 14px)}   /* Kate, 25 Nov 2026: was 118px, which is the masthead plus 14px only when the masthead is 104px; on a zoomed screen it wraps taller and the 'On this page' label slid under it */
   .lg-side .side-nav{display:block;padding:0}
   .lg-side .side-k{display:block;padding:0 0 9px;border-bottom:1px solid var(--text)}
   .lg-side .side-nav a{display:block;padding:8px 0 8px 13px;
@@ -3141,7 +3141,7 @@ tr.lg-tot td:first-child{background:var(--surface2)}
    to .lg-shell-wide, and above 1400px it needs nothing extra. */
 @media(min-width:1100px) and (max-width:1399.98px){
   .lg-shell-wide{display:grid;grid-template-columns:172px minmax(0,1fr);gap:40px;align-items:start}
-  .lg-shell-wide .lg-side{position:sticky;top:118px;z-index:auto;background:none;margin:0;padding:0;border:0}
+  .lg-shell-wide .lg-side{position:sticky;top:calc(var(--topbar-cond-h,104px) + 14px);z-index:auto;background:none;margin:0;padding:0;border:0}
   .lg-shell-wide .lg-side .side-nav{display:block;padding:0}
   .lg-shell-wide .lg-side .side-k{display:block;padding:0 0 9px;border-bottom:1px solid var(--text)}
   .lg-shell-wide .lg-side .side-nav a{display:block;padding:8px 0 8px 13px;
@@ -3646,7 +3646,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/campaign-blasts.css?v=6788beac">
 <link rel="stylesheet" href="css/landing-review.css?v=ed697634">
 <link rel="stylesheet" href="css/recruitment.css?v=80ca2a6a">
-<link rel="stylesheet" href="css/nov-blasts.css?v=bee0d7d6">
+<link rel="stylesheet" href="css/nov-blasts.css?v=23dbdf6b">
 <link rel="stylesheet" href="css/active-deals.css?v=5cfe18df">
 <link rel="stylesheet" href="css/discounts-vouchers.css?v=ef15eb90">
 <link rel="stylesheet" href="css/tool-spend.css?v=d72f64aa">
@@ -4528,7 +4528,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=82395355&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=31d6624f&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -5043,7 +5043,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     'Kate writes down the one thing this campaign proved, before the next campaign is planned.');
 })();
 </script>
-<script src="js/jump-nav.js?v=b0907948"></script>
+<script src="js/jump-nav.js?v=29e81e84"></script>
 <script src="js/bar-hover.js?v=ea0f3135"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
@@ -6342,7 +6342,15 @@ function spy(){
   let live = 0;
   // Daily Performance pins a Measure bar under the masthead, so its cards land lower than the others' and the reading line
   // drops by the bar's height (Kate, 16 Oct 2026, with its mini side nav).
-  const DPB = VIEW ? VIEW.querySelector('.dp-bar') : null, JNP = VIEW ? VIEW.querySelector('.jn-rail.jn-pin') : null, LINE = 132 + (DPB ? DPB.offsetHeight : 0) + (JNP ? JNP.offsetHeight : 0);
+  // Kate, 25 Nov 2026 ("di nanaman nag ffunction nang maigi yung side bar navi"): the reading line was a fixed 132px, which only clears the
+  // masthead when it is 104px tall. On a zoomed screen the masthead wraps taller, and the Social tab strip (a sticky .sc-bar) sits under it
+  // too, so a section's heading went out of sight long before it reached the line and the chip stayed on the section above it. The line
+  // is now the masthead's real settled height (--topbar-cond-h, 104 on a normal screen, so nothing else moves) plus 28, plus any bar the
+  // page pins under it.
+  const DPB = VIEW ? VIEW.querySelector('.dp-bar') : null, JNP = VIEW ? VIEW.querySelector('.jn-rail.jn-pin') : null;
+  const SCB = !DPB && VIEW ? [...VIEW.querySelectorAll('.sc-bar')].find(b => b.getClientRects().length && getComputedStyle(b).position === 'sticky') : null;
+  const MAST = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-cond-h')) || 104;
+  const LINE = Math.max(132, MAST + 28) + (DPB ? DPB.offsetHeight : 0) + (JNP ? JNP.offsetHeight : 0) + (SCB ? SCB.offsetHeight : 0);
   SECS.forEach((s,i) => { if(s && s.getBoundingClientRect().top <= LINE) live = i; });
   // The last heading sits above the fine print, so at full scroll its top never
   // reaches the reading line and "Do this" could never light up. At the bottom of

@@ -592,7 +592,7 @@
 @media(min-width:1100px){
   /* Kate, 11 Nov 2026: the list stays beside the main sidebar whether it is open or collapsed (the shared rail drops to a row of chips with the main navigation open; this page does not) */
   #novBlastsContent .lg-shell.nvb-lgs{display:grid;grid-template-columns:172px minmax(0,1fr);gap:40px;align-items:start;margin-top:16px}
-  #novBlastsContent .lg-shell .lg-side{position:sticky;top:118px;z-index:auto;background:none;margin:0;padding:0;border:0;max-height:calc(100vh - 136px);overflow-y:auto}
+  #novBlastsContent .lg-shell .lg-side{position:sticky;top:calc(var(--topbar-cond-h,104px) + 14px);z-index:auto;background:none;margin:0;padding:0;border:0;max-height:calc(100vh - 136px);overflow-y:auto}
   #novBlastsContent .lg-shell .lg-side .side-nav{display:block;padding:0;overflow:visible}
   #novBlastsContent .lg-shell .lg-side .side-k{display:block;padding:0 0 9px;border-bottom:1px solid var(--text)}
   #novBlastsContent .lg-shell .lg-side .side-nav>a{display:block;padding:8px 0 8px 13px;border:0;border-left:2px solid var(--border2);border-radius:0;white-space:normal}
