@@ -91,3 +91,17 @@
 #dealsPerfContent .ad-th img{width:44px;height:78px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
 #dealsPerfContent li.ad-of .ad-th{flex-basis:52px}
 #dealsPerfContent li.ad-of .ad-th img{width:52px;height:92px}
+
+/* Sheets tables (sheet-table.js) on this page, 25 Nov 2026 */
+#dealsPerfContent .ad-phone{display:none}
+#dealsPerfContent tr.ad-off{opacity:.45}
+#dealsPerfContent .sx-t td small{display:block;color:var(--muted);font-size:11.5px}
+@media(max-width:760px){#dealsPerfContent .ad-phone{display:inline-flex;align-items:center;min-height:44px;margin-bottom:8px}}
+/* Phone (375px): text 13px or more, and a figure is a 44px tap (Kate, 25 Nov 2026) */
+@media(max-width:760px){
+  #dealsPerfContent .ad-tile .l,#dealsPerfContent .ad-tile .h,#dealsPerfContent .ad-subh,#dealsPerfContent .ad-tag,#dealsPerfContent .ad-cap,#dealsPerfContent summary,#dealsPerfContent .sx-t td small{font-size:13px}
+  #dealsPerfContent .ad-pace span,#dealsPerfContent .ad-status span{font-size:13px}
+  #dealsPerfContent svg text{font-size:13px!important}
+  #dealsPerfContent td .dn,#dealsPerfContent .ad-tile .dn,#dealsPerfContent li .dn{display:inline-flex;align-items:center;min-height:44px}
+  #dealsPerfContent .ad-tile .dn{min-height:0}
+}

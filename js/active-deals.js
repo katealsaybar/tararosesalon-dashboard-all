@@ -42,6 +42,59 @@ const adPc = (a, b) => b ? Math.round(a / b * 100) + '%' : '0%';
 const adSum = (l, f) => l.reduce((a, r) => a + f(r), 0);
 // The brochure slide for a deal (Kate, 25 Nov 2026): assets/active-deals/<k>.webp, tap to open it full size.
 const adSlide = (k, alt) => `<a class="ad-th" href="assets/active-deals/${k}.webp" target="_blank" rel="noopener" title="Open the slide"><img src="assets/active-deals/${k}.webp" alt="${adEsc(alt)} slide" loading="lazy" width="44" height="78"></a>`;
+// ── CLICKABLE FIGURES (Kate, 25 Nov 2026: "values should be clickable, always") ─────────────────────────────────────────────────
+// Every count and AED on this page opens the rows behind it (drill.js, TRSD): by offer, by branch and by day, and a figure inside a window opens the next one down.
+// br: null = the masthead's branches, '*' = all four, a code = that branch alone. rng {a, b} = a chart bucket instead of the masthead's period.
+// The last step is a day: the till lines behind a day (sale id, paid) are not on this page yet, so a day's figures stay plain and the window says so.
+const AD_KEYS = AD_OFFERS.map(o => o.k);
+const adOne = k => AD_OFFERS.concat(AD_OLDER, AD_UB).find(x => x.k === k) || { n: k };
+const adBrName = c => (AD_BR.find(b => b[0] === c) || [c, c])[1];
+function adWin(keys, br, base, rng) {
+  if (typeof TRSD === 'undefined' || !adData) return null;
+  const w = adRange(), codes = br === '*' ? AD_BR.map(b => b[0]) : br ? [br] : adCodes();
+  const one = br && br !== '*';
+  const rows = () => adData.rows.filter(r => keys.includes(r[0]) && codes.includes(r[1]) && (rng ? r[2] >= rng.a && r[2] <= rng.b : r[2] >= w.from && r[2] <= w.to));
+  const sum = (l, i) => l.reduce((a, r) => a + r[i], 0);
+  const multiO = keys.length > 1, multiB = codes.length > 1;
+  const where = one ? adBrName(br) : codes.length === AD_BR.length ? 'UAE Branches' : codes.map(adBrName).join(' + ');
+  const when = rng ? (rng.a === rng.b ? adDay(rng.a) : adDay(rng.a) + ' to ' + adDay(rng.b)) : adPeriodLabel();
+  const sub = where + ' · ' + when;
+  const views = [];
+  if (multiO) views.push({ id: 'offer', label: 'By offer', load: async () => {
+    const rs = rows(), cash = sum(rs, 4);
+    const list = keys.map(k => { const x = rs.filter(r => r[0] === k); return { k, n: sum(x, 3), a: sum(x, 4) }; }).sort((a, b) => b.n - a.n || b.a - a.a);
+    return { sub, cols: [{ k: 'o', l: 'Offer' }, { k: 'n', l: 'Sold', t: 'num' }, { k: 'a', l: 'AED', t: 'aed' }, { k: 'p', l: 'Share', t: 'pct' }],
+      rows: list.map(x => { const sp = x.n ? adWin([x.k], br, adOne(x.k).n, rng) : null; return { o: adOne(x.k).n, n: x.n, a: x.a, p: cash ? x.a / cash * 100 : 0, _dn: sp ? { n: sp, a: sp } : null }; }),
+      foot: { o: 'Total', n: sum(rs, 3), a: cash, p: cash ? 100 : 0 } };
+  } });
+  if (multiB) views.push({ id: 'branch', label: 'By branch', load: async () => {
+    const rs = rows(), cash = sum(rs, 4);
+    return { sub, cols: [{ k: 'b', l: 'Branch' }, { k: 'n', l: 'Sold', t: 'num' }, { k: 'a', l: 'AED', t: 'aed' }, { k: 'p', l: 'Share', t: 'pct' }],
+      rows: codes.map(c => { const x = rs.filter(r => r[1] === c), n = sum(x, 3), sp = n ? adWin(keys, c, base, rng) : null; return { b: adBrName(c), n, a: sum(x, 4), p: cash ? sum(x, 4) / cash * 100 : 0, _dn: sp ? { n: sp, a: sp } : null }; }),
+      foot: { b: 'Total', n: sum(rs, 3), a: cash, p: cash ? 100 : 0 } };
+  } });
+  views.push({ id: 'day', label: 'By day', load: async () => {
+    const rs = rows().filter(r => r[3] || r[4]).sort((a, b) => a[2] < b[2] ? 1 : a[2] > b[2] ? -1 : 0);
+    return { sub, note: 'A day is the last step here: the till lines behind it (sale id, what was paid) are not on this page yet.',
+      cols: [{ k: 'd', l: 'Date', t: 'date' }].concat(multiO ? [{ k: 'o', l: 'Offer' }] : [], multiB ? [{ k: 'b', l: 'Branch' }] : [], [{ k: 'n', l: 'Sold', t: 'num' }, { k: 'a', l: 'AED', t: 'aed' }]),
+      rows: rs.map(r => ({ d: r[2], o: adOne(r[0]).n, b: adBrName(r[1]), n: r[3], a: r[4] })),
+      foot: { d: 'Total', n: sum(rs, 3), a: sum(rs, 4) } };
+  } });
+  return { title: base + (one ? ' · ' + adBrName(br) : ''), tip: 'See the sales', cur: 'AED', views };
+}
+// A figure that opens its sales. Zero stays plain (nothing behind it), and so does a figure when drill.js is not on the page.
+const adN = (html, n, keys, br, base, rng) => (n && keys && keys.length && typeof TRSD !== 'undefined') ? TRSD.num(html, adWin(keys, br, base, rng)) : html;
+let adTs = {};
+// One Google Sheets table (sheet-table.js): sort and filter on every heading, and it keeps its filters when the page redraws.
+function adMake(id, rows, cols, total, extra) {
+  if (typeof TRSheet === 'undefined' || !document.getElementById(id)) return null;
+  const old = adTs[id];
+  const T = TRSheet.table(Object.assign({ id, el: '#' + id, rows: () => rows, cols, total }, extra || {}));
+  if (old) { T.f = old.f; T.sort = old.sort; }
+  adTs[id] = T; T.draw(); return T;
+}
+const adPhoneBtn = id => `<button type="button" class="ad-btn ad-phone" data-sxcm="${id}" aria-label="Sort and filter">Sort or filter</button>`;
+const adCol = (k, l, t, raw, disp, cell, x) => ({ k, l, t, raw, disp, cell, x });
 const adOk = () => typeof TRS_LEVEL !== 'undefined' && TRS_LEVEL >= 2;
 const adDay = iso => { try { return new Date(String(iso).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return iso || ''; } };
 const adShort = iso => { try { return new Date(String(iso).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch (e) { return iso || ''; } };
@@ -149,7 +202,7 @@ function adPaint() {
     ['Why now', 'No deal on the slides has an end date, so this is how we see whether they keep selling.'],
     ['If we do nothing', 'A deal that sells nothing stays on the brochure, and a good one never gets more push.']]);
   h += `<section class="ad-card" id="ad-headline"><div class="ad-hero"><div>
-      <div class="ad-cap">Brochure deals sold</div><div class="ad-big">${total} <small>sales, ${adAed(cash)}</small></div>
+      <div class="ad-cap">Brochure deals sold</div><div class="ad-big">${adN(`${total} <small>sales, ${adAed(cash)}</small>`, total, AD_KEYS, null, 'Brochure deals sold')}</div>
       <div class="ad-track"><div class="ad-fill" style="width:${Math.round(withSale / AD_TOTAL_DEALS * 100)}%"></div></div>
       <div class="ad-cap">${withSale} of ${AD_TOTAL_DEALS} deals on the brochure have a sale in this window</div></div>
     <div class="ad-pace"><div class="ad-status warn"><span aria-hidden="true">!</span>Counts ${withSale} of ${AD_TOTAL_DEALS} deals, Extension Care shown apart</div>
@@ -159,11 +212,11 @@ function adPaint() {
       <div class="ad-row"><span>Best seller</span><b>${adEsc(best.n.split(':')[0])}</b></div></div></div></section>`;
 
   h += `<div class="ad-tiles">${[
-    ['Deals sold', `${total} <small style="font-family:var(--sans);font-size:13px;color:var(--muted);font-weight:500">sales</small>`, 'brochure deals, at the till', ''],
-    ['AED sold', adAed(cash), 'paid by clients, VAT included', ''],
+    ['Deals sold', adN(`${total} <small style="font-family:var(--sans);font-size:13px;color:var(--muted);font-weight:500">sales</small>`, total, AD_KEYS, null, 'Brochure deals sold'), 'brochure deals, at the till', ''],
+    ['AED sold', adN(adAed(cash), total, AD_KEYS, null, 'Brochure deals sold'), 'paid by clients, VAT included', ''],
     ['Average sale', adAed(cash / total), 'per sale', ''],
-    ['Best seller', adEsc(best.n.split(':')[0]), best.sold + ' sales', 'txt'],
-    ['Deals with a sale', `${withSale} of ${AD_TOTAL_DEALS}`, (AD_TOTAL_DEALS - withSale) + ' without one', '']
+    ['Best seller', adN(adEsc(best.n.split(':')[0]), best.sold, [best.k], null, best.n), adN(best.sold + ' sales', best.sold, [best.k], null, best.n), 'txt'],
+    ['Deals with a sale', adN(`${withSale} of ${AD_TOTAL_DEALS}`, total, AD_KEYS, null, 'Brochure deals sold'), (AD_TOTAL_DEALS - withSale) + ' without one', '']
   ].map(t => `<div class="ad-tile"><div class="l">${t[0]}</div><div class="v ${t[3]}">${t[1]}</div><div class="h">${t[2]}</div></div>`).join('')}</div>`;
 
   h += `<section class="ad-card" id="ad-month"><h2>Sales per ${unitName}</h2><p class="ad-sub">Whether the deals keep selling: brochure deals bought each ${unitName}, by the date of the sale.</p>
@@ -172,30 +225,21 @@ function adPaint() {
 
   h += `<section class="ad-card" id="ad-branch"><h2>By branch</h2><p class="ad-sub">Which salon is selling the deals: the cash taken at each one. Branches outside your header filter are shown faded.</p>
     <div class="ad-chart" id="adBrChart"></div>
-    <details><summary>Show as table</summary><div><table><thead><tr><th>Branch</th><th class="n">Sold</th><th class="n">AED</th><th class="n">Share</th><th>Best seller</th></tr></thead><tbody>${
-      brs.map(b => `<tr${b.on ? '' : ' style="opacity:.45"'}><td>${b.name}</td><td class="n">${b.n}</td><td class="n">${adAed(b.a)}</td><td class="n">${adPc(b.a, brA)}</td><td>${adEsc(b.top)}</td></tr>`).join('')
-    }<tr class="tot"><td>Total</td><td class="n">${brN}</td><td class="n">${adAed(brA)}</td><td class="n">100%</td><td></td></tr></tbody></table></div></details></section>`;
+    <details><summary>Show as table</summary><div>${adPhoneBtn('adbr')}<table id="adbr"></table></div></details></section>`;
 
-  const brHead = AD_BR.map(b => `<th class="n">${b[1]}</th>`).join('');
   h += `<section class="ad-card" id="ad-offer"><h2>By offer</h2><p class="ad-sub">How each deal on the brochure is doing: the sales at each branch, the cash, and how sure we are of the match.</p>
     <details class="more"><summary>How this is counted</summary><p class="ad-sub">A package is rung as one sale made of lines named after the offer, so we count sales, not lines. Blonding and Balayage on the brochure are Phorest’s Full Blonde Package and Full Balayage Package, matched by price and components, and the names are confirmed.</p></details>
-    <div><table><thead><tr><th class="ad-pic">Slide</th><th>Offer</th>${brHead}<th class="n">Sold</th><th class="n">AED</th><th>Share</th><th>Match</th></tr></thead><tbody>${
-      rowsO.map(o => `<tr><td class="ad-pic">${adSlide(o.k, o.n)}</td><td class="ad-nm">${adEsc(o.n)}<small>Slide ${o.s} · ${o.pl || 'AED ' + o.p}${o.ph ? ' · ' + adEsc(o.ph) : ''}</small></td>${AD_BR.map(b => `<td class="n">${adBc(adBrOf(o.k, b[0]))}</td>`).join('')}<td class="n"><b>${o.sold}</b></td><td class="n">${adAed(o.paid)}</td><td>${adMini(o.paid, cash)}</td><td><span class="ad-tag ${o.c}">${o.ct}</span></td></tr>`).join('')
-    }<tr class="tot"><td></td><td>Total</td>${AD_BR.map(b => `<td class="n">${adBc(adSum(offs, o => adBrOf(o.k, b[0])))}</td>`).join('')}<td class="n">${total}</td><td class="n">${adAed(cash)}</td><td>${adMini(cash, cash)}</td><td></td></tr></tbody></table></div>
+    <div>${adPhoneBtn('adoffer')}<table id="adoffer"></table></div>
     <h3 class="ad-subh">Older look-alike offers</h3><p class="ad-sub">Not on the brochure, shown so they are not mixed in.</p>
-    <div><table><thead><tr><th>Offer</th>${brHead}<th class="n">Sold</th><th class="n">AED</th><th>Match</th></tr></thead><tbody>${
-      AD_OLDER.map(o => `<tr><td>${adEsc(o.n)}<small>AED ${o.p}</small></td>${AD_BR.map(b => `<td class="n">${adBc(adBrOf(o.k, b[0]))}</td>`).join('')}<td class="n"><b>${adSold(o.k)}</b></td><td class="n">${adAed(adPaid(o.k))}</td><td><span class="ad-tag ${o.c}">${o.ct}</span></td></tr>`).join('')
-    }</tbody></table></div></section>`;
+    <div>${adPhoneBtn('adolder')}<table id="adolder"></table></div></section>`;
 
   h += `<div class="ad-grid2" id="ad-type"><section class="ad-card"><h2>By type</h2><p class="ad-sub">What kind of deal is selling: the share of cash for hair colour, hair treatment and beauty.</p>
       <div class="ad-chart" id="adCatChart"></div><div class="ad-legend">${cats.map(c => `<span><i style="background:${c.color}"></i>${c.name} · ${c.n} sold · ${adPc(c.a, cash)}</span>`).join('')}</div>
-      <div style="margin-top:14px"><table><thead><tr><th>Type</th><th class="n">Deals</th><th class="n">Sold</th><th class="n">AED</th></tr></thead><tbody>${
-        cats.map(c => `<tr><td><span class="ad-dot" style="background:${c.color}"></span>${c.name}</td><td class="n">${c.d}</td><td class="n">${c.n}</td><td class="n">${adAed(c.a)}</td></tr>`).join('')
-      }<tr class="tot"><td>Total</td><td class="n">${offs.length}</td><td class="n">${total}</td><td class="n">${adAed(cash)}</td></tr></tbody></table></div></section>
+      <div style="margin-top:14px">${adPhoneBtn('adcat')}<table id="adcat"></table></div></section>
     <section class="ad-card" id="ad-cant"><h2>Upper bound only</h2><p class="ad-sub">One deal on the brochure cannot be counted exactly, and three are counted by their price.</p>
       <ul class="ad-list">${AD_UB.map(u => {
         const n = adSold(u.k), by = AD_BR.map(b => [b[1], adBrOf(u.k, b[0])]).filter(x => x[1]);
-        return `<li class="ad-of">${adSlide(u.k, u.n)}<div><b>${adEsc(u.n)}, ${adEsc(u.pl.toLowerCase())}: up to ${n} sale${n === 1 ? '' : 's'}</b>${by.length ? adEsc(by.map(x => x[0] + ' ' + x[1]).join(', ') + '. ') : ''}These are extension maintenance sales with a free treatment line. The till rings any gift that way, so some are not this deal, and no sale shows the trim free as well. Left out of every total above.</div></li>`;
+        return `<li class="ad-of">${adSlide(u.k, u.n)}<div><b>${adEsc(u.n)}, ${adEsc(u.pl.toLowerCase())}: ${adN(`up to ${n} sale${n === 1 ? '' : 's'}`, n, [u.k], null, u.n)}</b>${by.length ? adEsc(by.map(x => x[0] + ' ' + x[1]).join(', ') + '. ') : ''}These are extension maintenance sales with a free treatment line. The till rings any gift that way, so some are not this deal, and no sale shows the trim free as well. Left out of every total above.</div></li>`;
       }).join('')}</ul></section></div>`;
 
   h += `<section class="ad-card" id="ad-ask"><h2>Waiting on a word</h2><p class="ad-sub">These need an answer before the numbers can be quoted outside the team.</p><ol class="ad-ask">
@@ -210,6 +254,7 @@ function adPaint() {
 
   el.innerHTML = h;
   adCharts();
+  adTables();
   adRail(true);
 }
 
@@ -280,8 +325,7 @@ function adCharts() {
   });
   host.innerHTML = s + '</svg>';
   adHover(host, 'rect[data-i]', i => { const x = buckets[i]; return `<b>${adEsc(adBucketLabel(x, unit))}</b><br>${x.n} sale${x.n === 1 ? '' : 's'} · ${adAed(x.t)}`; });
-  document.getElementById('adMonTable').innerHTML = `<table><thead><tr><th>${unit === 'month' ? 'Month' : unit === 'week' ? 'Week of' : 'Day'}</th><th class="n">Sales</th><th class="n">AED</th></tr></thead><tbody>${
-    buckets.map(x => `<tr><td>${adEsc(adBucketLabel(x, unit).replace('Week of ', ''))}</td><td class="n">${x.n}</td><td class="n">${adAed(x.t)}</td></tr>`).join('')}</tbody></table>`;
+  adMonthTbl();
 
   host = document.getElementById('adBrChart'); W = Math.max(300, host.clientWidth);
   const narrow = W < 460, rowH = 34, H2 = brs.length * rowH + 4, L2 = narrow ? 88 : 104, R2 = narrow ? 118 : 150, mx = Math.max(...brs.map(r => r.a)) || 1;
@@ -306,6 +350,67 @@ window.addEventListener('resize', () => {
   clearTimeout(adResize);
   adResize = setTimeout(() => { const v = document.getElementById('view-dealsperf'); if (v && v.offsetParent) adCharts(); }, 120);
 });
+
+// ── THE TABLES, Google Sheets style (sheet-table.js): a menu on every heading ───────────────────────────────────────────────────
+function adMonthTbl() {
+  const host = document.getElementById('adMonTable'); if (!host || !adM) return;
+  const { buckets, unit } = adM;
+  host.innerHTML = adPhoneBtn('admon') + '<table id="admon"></table>';
+  const lab = x => adBucketLabel(x, unit).replace('Week of ', '');
+  const ttl = x => 'Brochure deals sold · ' + adBucketLabel(x, unit), rg = x => ({ a: x.a, b: x.b });
+  adMake('admon', buckets, [
+    { k: 'p', l: unit === 'month' ? 'Month' : unit === 'week' ? 'Week of' : 'Day', t: 'date', raw: x => x.a, disp: lab, cell: lab },
+    adCol('n', 'Sold', 'num', x => x.n, x => String(x.n), x => adN(String(x.n), x.n, AD_KEYS, null, ttl(x), rg(x))),
+    adCol('a', 'AED', 'num', x => x.t, x => adAed(x.t), x => adN(adAed(x.t), x.n, AD_KEYS, null, ttl(x), rg(x)))
+  ], rows => { const n = adSum(rows, x => x.n); return { p: 'Total', n: String(n), a: adAed(adSum(rows, x => x.t)) }; });
+}
+function adTables() {
+  if (!adM) return;
+  const { rowsO, brs, cats, cash } = adM;
+  const brCols = () => AD_BR.map(b => adCol('b' + b[0], b[1], 'num', o => adBrOf(o.k, b[0]), o => String(adBrOf(o.k, b[0])), o => { const n = adBrOf(o.k, b[0]); return n ? adN(String(n), n, [o.k], b[0], o.n) : adBc(0); }));
+  const match = { k: 'match', l: 'Match', t: 'txt', raw: o => o.ct, disp: o => o.ct, cell: o => `<span class="ad-tag ${o.c}">${o.ct}</span>` };
+  // By offer
+  adMake('adoffer', rowsO, [
+    { k: 'pic', l: 'Slide', hd: () => 'Slide', t: 'txt', raw: () => '', disp: () => '', cell: o => adSlide(o.k, o.n) },
+    { k: 'name', l: 'Offer', t: 'txt', raw: o => o.n, disp: o => o.n, cell: o => `${adEsc(o.n)}<small>Slide ${o.s} · ${o.pl || 'AED ' + o.p}${o.ph ? ' · ' + adEsc(o.ph) : ''}</small>` }
+  ].concat(brCols(), [
+    adCol('sold', 'Sold', 'num', o => o.sold, o => String(o.sold), o => `<b>${adN(String(o.sold), o.sold, [o.k], null, o.n)}</b>`),
+    adCol('aed', 'AED', 'num', o => o.paid, o => adAed(o.paid), o => adN(adAed(o.paid), o.sold, [o.k], null, o.n)),
+    adCol('share', 'Share', 'num', o => cash ? o.paid / cash : 0, o => adPc(o.paid, cash), o => adMini(o.paid, cash)),
+    match
+  ]), rows => {
+    const keys = rows.map(o => o.k), sold = adSum(rows, o => o.sold), paid = adSum(rows, o => o.paid);
+    const t = { name: 'Total', sold: adN(String(sold), sold, keys, null, 'Brochure deals sold'), aed: adN(adAed(paid), sold, keys, null, 'Brochure deals sold'), share: adMini(paid, cash) };
+    AD_BR.forEach(b => { const n = adSum(rows, o => adBrOf(o.k, b[0])); t['b' + b[0]] = n ? adN(String(n), n, keys, b[0], 'Brochure deals sold') : adBc(0); });
+    return t;
+  });
+  // Older look-alike offers
+  const older = AD_OLDER.map(o => Object.assign({ sold: adSold(o.k), paid: adPaid(o.k) }, o));
+  adMake('adolder', older, [
+    { k: 'name', l: 'Offer', t: 'txt', raw: o => o.n, disp: o => o.n, cell: o => `${adEsc(o.n)}<small>AED ${o.p}</small>` }
+  ].concat(brCols(), [
+    adCol('sold', 'Sold', 'num', o => o.sold, o => String(o.sold), o => `<b>${adN(String(o.sold), o.sold, [o.k], null, o.n)}</b>`),
+    adCol('aed', 'AED', 'num', o => o.paid, o => adAed(o.paid), o => adN(adAed(o.paid), o.sold, [o.k], null, o.n)),
+    match
+  ]));
+  // By branch: all four, whatever the masthead says, the ones outside it faded
+  const ba = adSum(brs, b => b.a);
+  adMake('adbr', brs, [
+    { k: 'name', l: 'Branch', t: 'txt', raw: b => b.name, disp: b => b.name, cell: b => b.name },
+    adCol('n', 'Sold', 'num', b => b.n, b => String(b.n), b => adN(String(b.n), b.n, AD_KEYS, b.code, 'Brochure deals sold')),
+    adCol('a', 'AED', 'num', b => b.a, b => adAed(b.a), b => adN(adAed(b.a), b.n, AD_KEYS, b.code, 'Brochure deals sold')),
+    adCol('s', 'Share', 'num', b => ba ? b.a / ba : 0, b => adPc(b.a, ba), b => adPc(b.a, ba)),
+    { k: 'top', l: 'Best seller', t: 'txt', raw: b => b.top, disp: b => b.top, cell: b => adEsc(b.top) }
+  ], rows => { const n = adSum(rows, b => b.n), a = adSum(rows, b => b.a); return { name: 'Total', n: adN(String(n), n, AD_KEYS, '*', 'Brochure deals sold'), a: adN(adAed(a), n, AD_KEYS, '*', 'Brochure deals sold'), s: adPc(a, ba) }; }, { rowCls: b => b.on ? '' : 'ad-off' });
+  // By type
+  const keysOf = c => AD_OFFERS.filter(o => o.cat === c.name).map(o => o.k);
+  adMake('adcat', cats, [
+    { k: 'name', l: 'Type', t: 'txt', raw: c => c.name, disp: c => c.name, cell: c => `<span class="ad-dot" style="background:${c.color}"></span>${c.name}` },
+    adCol('d', 'Deals', 'num', c => c.d, c => String(c.d), c => adN(String(c.d), c.n, keysOf(c), null, c.name + ' deals')),
+    adCol('n', 'Sold', 'num', c => c.n, c => String(c.n), c => adN(String(c.n), c.n, keysOf(c), null, c.name + ' deals')),
+    adCol('a', 'AED', 'num', c => c.a, c => adAed(c.a), c => adN(adAed(c.a), c.n, keysOf(c), null, c.name + ' deals'))
+  ], rows => { const keys = [].concat(...rows.map(keysOf)), n = adSum(rows, c => c.n); return { name: 'Total', d: adN(String(adSum(rows, c => c.d)), n, keys, null, 'Brochure deals sold'), n: adN(String(n), n, keys, null, 'Brochure deals sold'), a: adN(adAed(adSum(rows, c => c.a)), n, keys, null, 'Brochure deals sold') }; });
+}
 
 // ── ON THIS PAGE rail (the same shell as Wellness Voucher Performance's) ────
 const AD_RAIL = [['ad-headline', 'Headline'], ['ad-month', 'Sales over time'], ['ad-branch', 'By branch'], ['ad-offer', 'By offer'], ['ad-type', 'Type and upper bound'], ['ad-ask', 'Waiting on a word']];
