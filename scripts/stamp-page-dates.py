@@ -89,7 +89,7 @@ OWN = {
     'marketingspend': ['js/marketing-spend.js', 'css/marketing-spend.css'],
     'toolspend': ['js/tool-spend.js', 'css/tool-spend.css'],
     'website': ['js/website.js'],
-    'social': ['js/social.js', 'js/social-glance.js', 'css/social-glance.css'],
+    'social': ['js/social.js', 'js/social-glance.js', 'css/social-glance.css', 'js/social-competitors.js', 'css/social-competitors.css'],
     'wvperf': ['wellness-voucher/index.html', 'js/wv-last.js', 'js/wv-depth.js', 'js/wv-lastsend.js', 'js/wv-remind.js', 'js/wv-messages.js', 'js/wv-blast.js', 'css/wv-blast.css'],
     'campaignblasts': ['js/campaign-blasts.js', 'css/campaign-blasts.css'],
     'contentcalendar': ['js/social-calendar.js', 'css/social-calendar.css'],

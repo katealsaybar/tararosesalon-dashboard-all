@@ -7,7 +7,10 @@
 // location id (GMB_LOC), else the brand's name. Khalifa City A's Google profile is on the
 // main brand (connected 6 Oct 2026).
 // Body/query: { days? (default 10, back from today), from?, to? (Dubai dates),
-//               source?: 'all' | 'daily' | 'posts' | 'snapshots' | 'reviews', dry? } for a backfill.
+//               source?: 'all' | 'daily' | 'posts' | 'snapshots' | 'reviews' | 'competitors', dry? } for a backfill.
+// Competitors (Kate, 25 Nov 2026): the salons she adds in Metricool (Analytics > Instagram > Competitors), read for the main brand only: the list with
+// followers, a followers row a day, and every post and reel they put out (public data: no views, reach or stories). See syncCompetitors below and
+// migrations/social_competitors.sql. Instagram only for now.
 // Snapshots (Kate, 6 Oct 2026, the Social page's platform tabs): each platform's audience
 // (age, gender, country, city) and best time to post, over the last 30 days, overwritten
 // every run into metricool_snapshots. YouTube is connected on the Bahrain brand.
@@ -180,6 +183,7 @@ Deno.serve(async (req) => {
     }
     if (want('snapshots')) out.snapshots = await syncSnapshots(sb, brands, get, dubai(Date.now() - 30 * 864e5), dubai(Date.now()));
     if (want('reviews')) out.reviews = await syncReviews(sb, brands, get, !!(body.dry || u.searchParams.get('dry')), errors);
+    if (want('competitors')) out.competitors = await syncCompetitors(sb, brands, get, postsFrom, to, dubai(Date.now()), errors);
     if (errors.length) { out.errors = errors; out.error = `${errors.length} call(s) failed: ${errors[0]}`; }
   } catch (e) {
     out.error = String((e as Error).message || e);
@@ -334,6 +338,48 @@ async function syncSnapshots(sb: any, brands: any[], get: any, from: string, to:
       for (const day of d.data || []) for (const h of day.bestTimesByHour || []) rows.push({ key: `${day.dayOfWeek}-${h.hourOfDay}`, value: Number(h.value) || 0 });
       await put(b, net, 'besttime', rows);
     } catch (_) { /* not offered for this platform */ }
+  }
+  return done;
+}
+
+// ── Competitors (Kate, 25 Nov 2026) ────────────────────────────────────────────────
+// The salons Kate adds in Metricool (Analytics > Instagram > Competitors) on the MAIN brand. Three things a night: the list (who, and their followers now),
+// one followers row for today (so the history starts the day we first read them), and every post and reel in the same window the posts use (45 days at least:
+// likes keep growing). A salon she removes in Metricool is removed here, with its posts. Public data only: Instagram keeps views, reach and stories private.
+// Instagram's competitor posts come from /publications (feed and reels together, 'filter' tells them apart); other networks use /posts.
+const COMP_NETS = ['instagram'];
+async function syncCompetitors(sb: any, brands: any[], get: any, from: string, to: string, today: string, errors: string[]) {
+  const done: Record<string, number> = {};
+  const w = { from: `${from}T00:00:00`, to: `${to}T23:59:59`, timezone: TZ, limit: '300' };
+  const dubaiDay = (ms: number) => new Date(ms + 4 * 3600e3).toISOString().slice(0, 10);
+  for (const b of brands.filter((x: any) => !x.branch)) for (const net of COMP_NETS) {
+    try {
+      const list = (await get(`/v2/analytics/competitors/${net}`, { blogId: String(b.brand_id), ...w })).data || [];
+      const ids = list.map((c: any) => Number(c.id)).filter((n: number) => n);
+      const synced_at = new Date().toISOString();
+      if (list.length) {
+        const up = async (table: string, rows: any[], conflict: string) => { const { error } = await sb.from(table).upsert(rows, { onConflict: conflict }); if (error) throw new Error(`${table}: ${error.message}`); };
+        await up('metricool_competitors', list.map((c: any) => ({ brand_id: b.brand_id, network: net, competitor_id: c.id, handle: c.screenName, name: c.displayName, followers: c.followers, synced_at })), 'brand_id,network,competitor_id');
+        await up('metricool_competitor_followers', list.filter((c: any) => c.followers != null).map((c: any) => ({ brand_id: b.brand_id, network: net, competitor_id: c.id, date: today, followers: c.followers })), 'brand_id,network,competitor_id,date');
+        const pubs = (await get(`/v2/analytics/competitors/${net}${net === 'instagram' ? '/publications' : '/posts'}`, { blogId: String(b.brand_id), ...w })).data || [];
+        const rows = pubs.filter((p: any) => p.postId && p.blogId && p.timestamp).map((p: any) => ({
+          post_key: `${net}:${p.blogId}:${p.postId}`, brand_id: b.brand_id, network: net, competitor_id: p.blogId,
+          kind: /reel/i.test(String(p.type || p.filter || '')) ? 'reel' : 'post',
+          posted_at: new Date(Number(p.timestamp)).toISOString(), post_date: dubaiDay(Number(p.timestamp)),
+          caption: p.content ? String(p.content).slice(0, 600) : null, url: p.url || null,
+          likes: p.likes ?? null, comments: p.comments ?? null, engagement: p.engagement ?? null, synced_at }));
+        if (rows.length) await up('metricool_competitor_posts', rows, 'post_key');
+        done[`${net}.posts`] = rows.length;
+      }
+      done[`${net}.salons`] = list.length;
+      // A salon taken off the list in Metricool goes from here too (its posts with it). Only once the list itself was read.
+      const gone = (await sb.from('metricool_competitors').select('competitor_id').eq('brand_id', b.brand_id).eq('network', net)).data || [];
+      const drop = gone.map((g: any) => Number(g.competitor_id)).filter((id: number) => !ids.includes(id));
+      if (drop.length) for (const t of ['metricool_competitors', 'metricool_competitor_followers', 'metricool_competitor_posts'])
+        await sb.from(t).delete().eq('brand_id', b.brand_id).eq('network', net).in('competitor_id', drop);
+    } catch (e) {
+      errors.push(`competitors ${net}: ${(e as Error).message || e}`);
+    }
   }
   return done;
 }

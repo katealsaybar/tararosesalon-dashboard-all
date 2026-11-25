@@ -217,6 +217,7 @@ async function renderSocial() {
     Object.entries(data.series || {}).forEach(([k, arr]) => { const [network, subject, metric] = k.split('|');
       arr.forEach(([date, value]) => days.push({ date, network, subject, metric, value })); });
     socData = { ...data, days, win: w, branch: socBranch };
+    if (typeof socCompLoad === 'function') await socCompLoad(w);   // the salons we watch (js/social-competitors.js); never stops the page
   } catch (e) {
     console.error(e);
     el.innerHTML = '<p class="slv-muted">Social didn’t load. Refresh to try again.</p>';
@@ -486,8 +487,12 @@ function socPlatformHtml(net, T) {
   const bt = socBestTimeHtml(net);
   if (bt) sections.push(socSection(net + '-best', 'Best time to post', bt.summary, bt.html));
   if (P.hashtags) { const h = socHashtagsHtml(feed, net + '-tags'); if (h) sections.push(socSection(net + '-tags', 'Hashtags', h.summary, h.html)); }
-  if (P.competitors) sections.push(socSection(net + '-comp', 'Competitors', 'None set up yet',
-    '<p class="slv-muted" style="margin:0">No competitors are set up in Metricool. Add the salons we watch there (Analytics › Competitors) and they show here side by side: followers, posts and engagement.</p>'));
+  if (P.competitors) {
+    // Instagram: the salons Kate adds in Metricool (js/social-competitors.js). Nothing added yet, or the other networks: the old line.
+    const cs = net === 'instagram' && typeof socCompSection === 'function' ? socCompSection(net) : null;
+    sections.push(socSection(net + '-comp', 'Competitors', cs ? cs.summary : 'None set up yet', cs ? cs.html :
+      '<p class="slv-muted" style="margin:0">No competitors are set up in Metricool. Add the salons we watch there (Analytics › Competitors) and they show here side by side: followers, posts and engagement.</p>'));
+  }
 
   return `
     <section class="slv-card" id="soc-plat">
