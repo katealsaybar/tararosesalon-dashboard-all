@@ -1,5 +1,5 @@
 -- Site Traffic (Kate, 25 Nov 2026): who opens trk-salon-os.com, which pages, and for how long. Built from the local mockup docs/mockups/site-traffic.html in the cowork repo.
--- NOT APPLIED when this file was written: the page shows a plain note until it is, and the tracker (js/site-track.js) sends nothing that is kept (Kate's word first).
+-- APPLIED 25 Nov 2026 on gvijxenafoowajqktqvd (Kate said yes): site_page_views is empty, RLS on with no policy, the two write functions are open to anon and signed-in, the two read functions to signed-in Level 6 only. Tried inside a rolled-back block: a row was written and its seconds added, and site_traffic_summary refused a caller who is not Level 6.
 --
 -- WHAT IS KEPT. One row per page opened (site_page_views): when, which page, the seconds it was open and on screen, phone or computer, where the visitor came from, and
 -- who. A visit is the rows that share a visit_id (a new visit starts after 30 minutes of quiet, decided by the tracker). Nothing else: no IP address, no user agent text,
