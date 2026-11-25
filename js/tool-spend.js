@@ -176,7 +176,7 @@ function tsPaint(el) {
   const parts = Object.keys(TS_TOOLS).map(k => ({ k, aed: tsMonths(k, w).reduce((s, r) => s + r.aed, 0) }));
   const grand = parts.reduce((a, x) => a + x.aed, 0);
   const pctOf = v => (grand ? Math.round(100 * v / grand) : 0);
-  const grandCard = grand > 0 ? `<section class="slv-card ts-grand">
+  const grandCard = grand > 0 ? `<section class="slv-card ts-grand" id="ts-grand">
       <div class="ts-eyebrow">All three together</div>
       <div class="ts-answer">We have spent <b>${tsAed(grand)}</b> on GoHighLevel, respond.io and Phorest in these dates.</div>
       <div class="ts-stats">
@@ -226,12 +226,12 @@ function tsPaint(el) {
       ['Fee per location', fee ? num(Number(fee.a), tsAed(fee.a)) : '–', fee ? (fee.cur === 'AED' ? 'AED ' + tsNum(fee.u) + ' a month, billed in dirhams from ' + tsMonth(fee.mo) : tsNat('EUR', fee.u) + ' a month, at the ' + tsMonth(fee.mo) + ' rate') : ''],
       ['Months with no invoice', unk ? num(unk, tsNum(unk)) : '0', unk ? 'branch months the Invoice Portal does not hold' : 'every invoice on the Invoice Portal is in']];
   }
-  const answerCard = `<section class="slv-card">
+  const answerCard = `<section class="slv-card" id="ts-answer">
       <div class="ts-eyebrow">The answer</div>
       <div class="ts-answer">${answer}</div>
       ${stats.length ? `<div class="ts-stats">${stats.map(([l, v, n]) => `<div class="ts-stat"><div class="ts-stat-l">${tsEsc(l)}</div><div class="ts-stat-v">${v}</div><div class="ts-stat-n">${tsEsc(n)}</div></div>`).join('')}</div>` : ''}
     </section>`;
-  if (!rows.length) { el.innerHTML = head + why + answerCard; return; }
+  if (!rows.length) { el.innerHTML = head + why + answerCard; tsRail(); return; }
 
   // ── 3. A month in plain numbers.
   let example = '';
@@ -263,7 +263,7 @@ function tsPaint(el) {
       ${eq(locs.map(k => chip(money(k), k)))}
       <p class="ts-sub">${locs.length} locations pay it now, so about ${inAed ? tsAed(perA * locs.length) : tsNat('EUR', per * locs.length)} a month, ${inAed ? tsAed(perA * locs.length * 12) + ' a year' : tsNat('EUR', per * locs.length * 12) + ' a year, about ' + tsAed(perA * locs.length * 12)}.</p>`;
   }
-  const exampleCard = `<section class="slv-card ts-sec">${example}</section>`;
+  const exampleCard = `<section class="slv-card ts-sec" id="ts-example">${example}</section>`;
 
   // ── Respond.io only: the two balances today.
   let balCard = '';
@@ -272,7 +272,7 @@ function tsPaint(el) {
     if (bal.length) {
       const topAll = b => all.filter(l => l.k === 'paid' && l.c === 'topup' && l.b === b).reduce((a, l) => a + (Number(l.u) || 0), 0);
       const names = { Saadiyat: ['Tara Rose Salon SA', 'Saadiyat only'], Shared: ['Tara Rose Salon & Fratelli Barbershop', 'Khalifa City A, Motor City, Al Quoz'] };
-      balCard = `<section class="slv-card ts-sec">
+      balCard = `<section class="slv-card ts-sec" id="ts-balances">
         <div class="ts-eyebrow">The two balances</div>
         <h3 class="ts-h">What is left to send with</h3>
         <p class="ts-sub">Two WhatsApp numbers, two separate balances. A top-up goes to one of them, so say which.</p>
@@ -293,7 +293,7 @@ function tsPaint(el) {
   const unitHead = T.cur === 'USD' ? 'USD' : 'EUR';
   const colSum = k => rows.reduce((a, r) => a + ((r.s[k] || {}).u || 0), 0);
   const totalRow = `<tr class="ts-total"><td><b>Total</b></td>${cols.map(([k]) => `<td><b>${colSum(k) ? tsNum(colSum(k)) : '–'}</b></td>`).join('')}<td><b>${tsNum(spendU)}</b></td><td><b>${tsNum(spendAed)}</b></td></tr>`;
-  const chartCard = `<section class="slv-card ts-sec">
+  const chartCard = `<section class="slv-card ts-sec" id="ts-chart">
       <div class="ts-eyebrow">Month by month</div>
       <h3 class="ts-h">What we paid, by month</h3>
       <div class="mk-chart-head">
@@ -302,7 +302,7 @@ function tsPaint(el) {
       </div>
       <div style="position:relative;height:300px"><canvas id="tsCanvas"></canvas></div>
     </section>`;
-  const tableCard = `<details class="ts-more">
+  const tableCard = `<details class="ts-more" id="ts-table">
       <summary>Every month in a table (${plural(nMonths, 'month')})</summary>
       <div class="ts-more-b"><div class="slv-wrap"><table class="slv-table">
         <thead><tr><th>Month</th>${cols.map(([, n]) => `<th>${tsEsc(n)} (${unitHead})</th>`).join('')}<th>Total (${unitHead})</th><th>Total (AED)</th></tr></thead>
@@ -317,7 +317,7 @@ function tsPaint(el) {
     const hi = rows.reduce((a, r) => (r.aed > a.aed ? r : a));
     bullets.push(`The dearest month was <b>${tsMonth(hi.mo)}</b> at ${tsAed(hi.aed)}${last && hi.mo === last.mo ? ' so far' : ''}.`);
   }
-  const standCard = `<section class="slv-card ts-sec">
+  const standCard = `<section class="slv-card ts-sec" id="ts-stand">
       <div class="ts-two">
         <div><div class="ts-eyebrow">What stands out</div><h3 class="ts-h">In plain words</h3>
           <ul class="ts-notes">${notes.map(n => `<li><span class="ts-pill ${pill[n.c][0]}">${pill[n.c][1]}</span><span>${tsEsc(n.i)}</span></li>`).join('')}${bullets.map(b => `<li><span class="ts-pill ok">Fact</span><span>${b}</span></li>`).join('')}</ul></div>
@@ -329,7 +329,7 @@ function tsPaint(el) {
   // ── The one next step.
   const act = all.find(l => l.k === 'action');
   const asOf = (tsData.as_of || tsIso(new Date())).slice(0, 10);
-  const actionCard = act ? `<section class="ts-action">
+  const actionCard = act ? `<section class="ts-action" id="ts-action">
       <div class="ts-eyebrow">The one next step</div>
       <p class="ts-do">${tsEsc(act.i)}</p>
       <div class="ts-who"><span><b>Owner</b> ${tsEsc(act.o || '')}</span><span><b>By</b> ${act.due ? tsEsc(tsDay(act.due)) : ''}${act.due && act.due.slice(0, 10) < asOf ? ' <span class="ts-pill risk">date passed</span>' : ''}</span></div>
@@ -350,7 +350,7 @@ function tsPaint(el) {
   }
   const usedA = all.filter(l => l.k === 'used').reduce((a, l) => a + (Number(l.a) || 0), 0), usedU = all.filter(l => l.k === 'used').reduce((a, l) => a + (Number(l.u) || 0), 0);
   const usedNote = tsTool === 'respond' && usedU ? `<li><b>Drawn from the balances.</b> Monthly usage statements add up to ${tsNat('USD', usedU)}, about ${tsAed(usedA)}, since Oct 2024. That is paid from the top-ups above and is not counted again.</li>` : '';
-  const fine = `<details class="ts-more">
+  const fine = `<details class="ts-more" id="ts-fine">
       <summary>Totals by year, and what is and is not in these numbers</summary>
       <div class="ts-more-b">
         <div class="slv-wrap"><table class="slv-table">
@@ -362,6 +362,25 @@ function tsPaint(el) {
 
   el.innerHTML = head + why + answerCard + exampleCard + balCard + chartCard + standCard + actionCard + tableCard + fine;
   tsDraw(rows, T);
+  tsRail();
+}
+
+// ── ON THIS PAGE rail (Kate, 25 Nov 2026: the mini side nav every page carries; the Website & Search shell) ────────────────────
+// A rail in the gutter from 1100px, a row of chips below it. A section that is not on the page for this tool or these dates (the balances
+// are respond.io only, the next step may have no row) has no id, so it has no entry.
+const TS_RAIL = [['ts-grand', 'All three together'], ['ts-answer', 'The answer'], ['ts-example', 'A month in numbers'], ['ts-balances', 'The two balances'],
+  ['ts-chart', 'Month by month'], ['ts-stand', 'What stands out'], ['ts-action', 'The one next step'], ['ts-table', 'Every month'], ['ts-fine', 'What is in the numbers']];
+function tsRail() {
+  const shell = document.getElementById('tsShell'), side = document.getElementById('tsSide');
+  if (!shell || !side) return;
+  const live = TS_RAIL.filter(r => document.getElementById(r[0]));
+  shell.classList.toggle('rv-norail', live.length < 2);
+  const nav = side.querySelector('.side-nav'), sig = live.map(r => r[0]).join();
+  if (nav && nav.dataset.sig !== sig) {
+    nav.dataset.sig = sig;
+    nav.innerHTML = '<div class="side-k">On this page</div>' + live.map(r => `<a href="#${r[0]}" onclick="lgJump(event,'${r[0]}')">${r[1]}</a>`).join('');
+  }
+  if (typeof spy === 'function') spy();
 }
 
 function tsDraw(rows, T) {
