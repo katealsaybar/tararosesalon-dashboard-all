@@ -230,6 +230,10 @@
     } catch (e) { console.error(e); S.refMsg = (e && e.message) || 'Phorest could not be read just now.'; }
     S.refreshing = false; paintAnswer();
   }
+  // a figure that is 0 is faded, in the cells and in a Quantity box (Kate, 26 Nov 2026: "yung mga naka 0, faded color dapat para ndi nakakalito"); the total row is left alone
+  function fadeZeros(sel) {
+    document.querySelectorAll(sel + ' tbody tr:not(.sx-tot) td.r').forEach(td => { const i = td.querySelector('input[type=number]'), t = (i ? i.value : td.textContent).replace(/[^0-9.\-]/g, ''); td.classList.toggle('oos-zero', t !== '' && +t === 0 && !/[1-9]/.test(t)); });
+  }
   function refreshLists() { S.dirty = false; if (!TO || !S.built) return; TO.draw(); paintW2(); TS.draw(); paintW3(); }
   const edMsg = t => { const m = $('oosEdMsg'); if (m) { m.textContent = t || ''; m.hidden = !t; } };
   const tipOf = (r, f) => f.sk ? 'Taken out of the order. Tick it to put it back.' : f.oe ? 'Typed in' + (whoTxt(r.key) ? ' by ' + whoTxt(r.key) : '') + '. The minimum order is ' + nu(r.qm) + '. Clear it to go back.' : 'Starts as the minimum order. Type the amount you will order (up to the maximum if you want more).';
@@ -452,16 +456,16 @@
       const poNow = supName ? openOrders(supName, B.filter(c => allr.some(r => r.b === c))) : [];
       const rs = allr.slice().sort((x, y) => (multi ? SALORD[x.b] - SALORD[y.b] : 0) || x.cat.localeCompare(y.cat, undefined, { sensitivity: 'base' }) || x.name.localeCompare(y.name, undefined, { sensitivity: 'base' }) || x.brand.localeCompare(y.brand));
       const dr = rs.map(r => { const row = { s: BN[r.b], br: r.brand, ca: r.cat, p: r.name, c: Math.round(r.c * 100) / 100, mn: r.mn, mx: r.mx, _ek: r.key, _sh: 1 }; fill(row, r); return row; });
-      return mk({ cols: (multi ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'br', l: 'Brand' }, { k: 'ca', l: 'Category' }, { k: 'p', l: 'Name' }, { k: 'c', l: 'Cost (AED)', t: 'num' }, { k: 'st', l: 'Status' },
-          { k: 'in', l: 'Stock', t: 'num' }], colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'mx', l: 'Max', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' }], colsQ, [{ k: 'oa', l: 'Quantity AED', t: 'aed' }]),
+      return mk({ cols: (multi ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'br', l: 'Brand' }, { k: 'ca', l: 'Category' }, { k: 'p', l: 'Name' }], colsQ, [{ k: 'oa', l: 'Quantity AED', t: 'aed' }],
+          [{ k: 'c', l: 'Cost (AED)', t: 'num' }, { k: 'st', l: 'Status' }, { k: 'in', l: 'Stock', t: 'num' }], colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'mx', l: 'Max', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' }]),
         rows: dr, foot: { p: 'Total: ' + plural(rs.length, 'product') + (extra && extra.length ? ' (' + n0(extra.length) + ' low stock, not due by the rule)' : '') },
         note: (poNow.length ? '<b>Confirmed:</b> ' + poNow.map(o => esc(poFmt(o)) + ' by ' + esc(String(o.by || '').split('@')[0])).join('; ') + '. ' : (supName && S.poOn ? '<b>Not confirmed yet.</b> ' : '')) + 'The products of this order, A to Z by category and then name.' + (extra && extra.length ? ' <b>Low stock</b> lines are at or under Min but not ordered by the rule: type a Quantity to add one to the order.' : '') + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.') });
     } };
     const prodView = { id: 'products', label: sheet ? 'Counts and AED' : 'Products', load: async () => {
       const dr = rows.map(r => { const row = { p: r.name, br: r.brand, s: BN[r.b], ty: r.type, pr: r.prio, mn: r.mn, _ek: r.key }; fill(row, r); return row; });
       return mk({
-        cols: [{ k: 'p', l: 'Product' }, { k: 'br', l: 'Brand' }, { k: 's', l: 'Salon' }, { k: 'ty', l: 'Type' }, { k: 'pr', l: 'Priority' }, { k: 'st', l: 'Status' },
-          { k: 'in', l: 'In stock', t: 'num' }].concat(colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'am', l: 'Min AED', t: 'aed' }, { k: 'q', l: 'Max order', t: 'num' }, { k: 'a', l: 'Max AED', t: 'aed' }], colsQ, [{ k: 'oa', l: 'Order AED', t: 'aed' }]),
+        cols: [{ k: 'p', l: 'Product' }].concat(colsQ, [{ k: 'oa', l: 'Order AED', t: 'aed' }], [{ k: 'br', l: 'Brand' }, { k: 's', l: 'Salon' }, { k: 'ty', l: 'Type' }, { k: 'pr', l: 'Priority' }, { k: 'st', l: 'Status' },
+          { k: 'in', l: 'In stock', t: 'num' }], colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'am', l: 'Min AED', t: 'aed' }, { k: 'q', l: 'Max order', t: 'num' }, { k: 'a', l: 'Max AED', t: 'aed' }]),
         rows: dr,
         foot: { p: 'Total: ' + plural(rows.length, 'product'), qm: 0, am: 0, q: 0, a: 0 },
         note: 'Every product is listed with its real counts. Tap a number or a product to see how its order is worked out; On order opens the order lines.' + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.')
@@ -863,6 +867,9 @@
     TO = TRSheet.table({ id: 'oosOrder', el: '#oosTbl', limit: 10, rows: orderRows, rowCls: r => r.sk ? 'oos-skip' : '',
       cols: [
         tc('p', 'Product', r => r.name, 0, r => num('<b>' + esc(r.name) + '</b>', prodSpec(r, 'how')) + '<span class="oos-sub">' + esc(r.brand) + '</span>'),
+        { k: 'o', l: 'Quantity', t: 'num', raw: r => r.o, disp: r => nu(r.o), cell: r => S.canEdit ? `<input type="number" min="0" step="1" inputmode="numeric" class="oos-ed${r.oe ? ' on' : ''}" data-ed="${esc(r.key)}" value="${r.ov}" aria-label="Quantity to order, ${esc(r.name)}, ${esc(BN[r.b])}" title="${esc(tipOf(r, r))}">` : (r.oe ? '<b>' + nu(r.o) + '</b>' : nu(r.o)) },
+        { k: 'ix', l: 'In order', t: 'txt', raw: r => r.sk ? 'No' : 'Yes', disp: r => r.sk ? 'No' : 'Yes', cell: r => S.canEdit ? `<input type="checkbox" class="oos-ck" data-ck="${esc(r.key)}"${r.sk ? '' : ' checked'} aria-label="In the order: ${esc(r.name)}, ${esc(BN[r.b])}">` : (r.sk ? 'No' : 'Yes') },
+        { k: 'oa', l: 'Quantity AED', t: 'num', raw: r => r.oa, disp: r => n0(r.oa), cell: r => num(n0(r.oa), prodSpec(r, 'how')) },
         tc('s', 'Salon', r => BN[r.b]), tc('ty', 'Type', r => r.type), tc('pr', 'Priority', r => r.prio),
         tc('st', 'Status', stX, 0, r => '<span class="oos-st ' + r.st + '">' + esc(stX(r)) + '</span>'),
         tc('dm', 'Demand', demTxt, 0, r => r.col && S.dm === 'book' ? '<span class="oos-dm">' + num(esc(demTxt(r)), histSpec(r.b)) + '</span>' : '<span class="oos-dm">Normal week</span>'),
@@ -873,21 +880,19 @@
         { k: 'am', l: 'Min AED', t: 'num', raw: r => r.am, disp: r => n0(r.am), cell: r => num(n0(r.am), prodSpec(r, 'how')) },
         nc('q', 'Max order', r => r.q),
         { k: 'a', l: 'Max AED', t: 'num', raw: r => r.aed, disp: r => n0(r.aed), cell: r => num(n0(r.aed), prodSpec(r, 'how')) },
-        { k: 'o', l: 'Quantity', t: 'num', raw: r => r.o, disp: r => nu(r.o), cell: r => S.canEdit ? `<input type="number" min="0" step="1" inputmode="numeric" class="oos-ed${r.oe ? ' on' : ''}" data-ed="${esc(r.key)}" value="${r.ov}" aria-label="Quantity to order, ${esc(r.name)}, ${esc(BN[r.b])}" title="${esc(tipOf(r, r))}">` : (r.oe ? '<b>' + nu(r.o) + '</b>' : nu(r.o)) },
-        { k: 'ix', l: 'In order', t: 'txt', raw: r => r.sk ? 'No' : 'Yes', disp: r => r.sk ? 'No' : 'Yes', cell: r => S.canEdit ? `<input type="checkbox" class="oos-ck" data-ck="${esc(r.key)}"${r.sk ? '' : ' checked'} aria-label="In the order: ${esc(r.name)}, ${esc(BN[r.b])}">` : (r.sk ? 'No' : 'Yes') },
-        { k: 'oa', l: 'Quantity AED', t: 'num', raw: r => r.oa, disp: r => n0(r.oa), cell: r => num(n0(r.oa), prodSpec(r, 'how')) },
         nc('on', 'On order', r => r.i, 1, 'orders'), nc('mn', 'Min', r => r.mn, 1), nc('mx', 'Max', r => r.mx, 1), nc('tg', 'Order up to', r => r.tgt, 1),
         { k: 'cv', l: 'Weeks left', t: 'num', x: 1, raw: r => r1(r.cov), disp: r => r1(r.cov).toFixed(1), cell: r => num(r1(r.cov).toFixed(1), prodSpec(r, 'how')) },
         tc('su', 'Supplier', r => r.sup, 1), tc('ca', 'Category', r => r.cat, 1)],
       total: rs => { const sal = {}; rs.forEach(r => { sal[r.b] = 1; }); const ns = Object.keys(sal).length, sp = rowsSpec('Products in the list, ' + scope(), rs, 'oos-list');
         return { p: '<b>' + num('Total: ' + plural(rs.length, 'product'), sp) + '</b>', s: ns + ' salon' + (ns === 1 ? '' : 's'), qm: num(nu(sum(rs, 'qm')), sp), am: num(n0(sum(rs, 'am')), sp), q: num(nu(sum(rs, 'q')), sp), a: num(n0(sum(rs, 'aed')), sp), o: num(nu(sum(rs, 'o')), sp), oa: num(n0(sum(rs, 'oa')), sp) }; },
       after: (T, rows) => {
+        fadeZeros('#oosTbl');
         const c = $('oosClear'); if (c) c.hidden = !T.active();
         const n = rows.length, pages = T.pages(n), from = n ? T.page * T.shown + 1 : 0, to = Math.min(n, (T.page + 1) * T.shown);
         $('oosPgTxt').textContent = from + ' to ' + to + ' of ' + plural(n, 'product');
         $('oosPrev').disabled = T.page <= 0; $('oosNext').disabled = T.page >= pages - 1; $('oosPgN').textContent = 'Page ' + (T.page + 1) + ' of ' + pages;
       } });
-    TS = TRSheet.table({ id: 'oosSup', el: '#oosSupTbl', rows: supRows,
+    TS = TRSheet.table({ id: 'oosSup', el: '#oosSupTbl', rows: supRows, after: () => fadeZeros('#oosSupTbl'),
       cols: [
         { k: 'su', l: 'Supplier', t: 'txt', raw: r => r.sup, disp: r => r.sup, cell: r => fig('<b>' + esc(r.sup) + '</b>', 'sup', '', r.sup) },
         { k: 'n', l: 'Products', t: 'num', raw: r => r.n, disp: r => String(r.n), cell: r => fig(n0(r.n), 'sup', '', r.sup) },

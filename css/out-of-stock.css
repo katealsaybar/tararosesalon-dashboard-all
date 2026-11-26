@@ -124,3 +124,5 @@ tr.oos-skip td{color:var(--muted2,var(--muted))}
 tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
 .oos-ref4{margin:8px 0 12px}
 .oos-ref4 .oos-ln{display:block;margin:3px 0}
+/* a figure that is 0 is faded (Kate, 26 Nov 2026) */
+#oosTbl td.oos-zero,#oosSupTbl td.oos-zero{opacity:.35}

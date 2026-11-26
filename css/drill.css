@@ -119,3 +119,4 @@ body.dr-open{overflow:hidden}
 .dr-tbl tr.oos-skip .dr-ed{opacity:.55;text-decoration:line-through}
 .dr-save button.dr-act{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:700}
 .dr-save button.dr-act:hover:not(:disabled){opacity:.85}
+.dr-tbl td.dr-z{opacity:.35}
