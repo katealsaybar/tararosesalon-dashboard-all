@@ -21,13 +21,13 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=0b36d80a"></script>
-<script src="js/page-dates.js?v=bcb021e5"></script>
+<script src="js/pages.js?v=b031a114"></script>
+<script src="js/page-dates.js?v=84b64e3e"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
 <!-- Kate, 18 Nov 2026: the XLSX and CSV buttons for the WHOLE page, drawn in the masthead (js/page-export.js; showView calls TRSExport.sync). -->
-<script src="js/page-export.js?v=cd990e66"></script>
+<script src="js/page-export.js?v=911e1f2b"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=701fb982"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
@@ -3653,8 +3653,9 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/pk-keratin.css?v=fa663fb2">
 <link rel="stylesheet" href="css/pk-pamper.css?v=2cc589cc">
 <link rel="stylesheet" href="css/pk-ads499.css?v=53c0a1ee">
-<link rel="stylesheet" href="css/pk-hair-colour.css?v=a23b23e5">
+<link rel="stylesheet" href="css/pk-hair-colour.css?v=92b31369">
 <link rel="stylesheet" href="css/pk-back-to-school.css?v=9470d555">
+<link rel="stylesheet" href="css/pk-directory.css?v=d385d16d">
 <link rel="stylesheet" href="css/discounts-vouchers.css?v=ef15eb90">
 <link rel="stylesheet" href="css/tool-spend.css?v=d72f64aa">
 <link rel="stylesheet" href="css/marketing-spend.css?v=3af355da">
@@ -3744,6 +3745,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       pka4: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-ads499.js?v=b1c415d7'],
       pkhc: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-hair-colour.js?v=6905c3c7'],
       pkbs: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-back-to-school.js?v=404b3bc4'],
+      pkdir: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-directory.js?v=f35e73db'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       dv:  [LGX, 'js/discounts-vouchers.js?v=10c65973'],
       o2:  ['js/one2ones.js?v=f764e8cc'],
@@ -3984,6 +3986,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub lvl2" data-wvb="b1" href="/?view=wvblast#wvB1" onclick="if(trsPlain(event)){event.preventDefault();wvGoBlast('b1', this)}">Blast 1</a>
     <a class="nav-sub" href="/?view=dealsperf" onclick="if(trsPlain(event)){event.preventDefault();showView('dealsperf', this)}">Active Deals Performance</a>
     <a class="nav-sub" href="/?view=discountsvouchers" onclick="if(trsPlain(event)){event.preventDefault();showView('discountsvouchers', this)}">Discounts and Vouchers</a>
+    <div class="nav-subhead">Archived packages</div>
+    <a class="nav-sub" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', this)}">Campaigns Directory</a>
   </div>
 
   <!-- Google Ads, Website & Search and Social: Level 3 and above. -->
@@ -4827,6 +4831,11 @@ table.tp-cmp td.bad{color:var(--bad)}
     </div>
   </div>
 
+  <!-- CAMPAIGNS DIRECTORY (Kate, 26 Nov 2026): the table of contents of the archived package pages. Lifetime figures per group (each page's own function in summary mode), no masthead Branch or Period. Level 2 and above. pk-directory.js draws it. -->
+  <div id="view-pkdir" style="display:none">
+    <main id="pkDirContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+  </div>
+
   <!-- DISCOUNTS AND VOUCHERS (Kate, 23 Oct 2026): Phorest's Discounts list and Client Vouchers list, archived included, in the Wellness Voucher
        Performance format. No filters of its own: it reads the masthead's Branch and Period (pages.js filtered + nopulse, dashboard.js NOPULSE_REDRAW).
        Level 2 and above, no client names. discounts_vouchers_report() (migrations/discounts_vouchers.sql); discounts-vouchers.js draws it. -->
@@ -5117,7 +5126,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=459d4a99"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=22082ea1"></script>
+<script src="js/dashboard.js?v=d307f70e"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5864,7 +5873,7 @@ function showView(view, el){
   document.body.classList.toggle('stafflevels-chrome', view === 'stafflevels');
   document.body.classList.toggle('one2ones-chrome', view === 'one2ones');
   document.body.classList.toggle('staffweeks-chrome', view === 'staffweeks');
-  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'complaintchats' || view === 'complaintsdetail' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
+  document.body.classList.toggle('lostclients-chrome', view === 'lostclients' || view === 'lostlists' || view === 'wvblast' || view === 'glowclub' || view === 'pkdir' || view === 'campaignblasts' || view === 'landingreview' || view === 'recruitment' || view === 'novblasts' || view === 'clients' || view === 'clientbook' || view === 'complaints' || view === 'complaintlog' || view === 'complaintchats' || view === 'complaintsdetail' || view === 'attrition');   // clientmix left it on 29 Oct 2026 (global Branch and Period filter); overyears left this list on 14 Oct 2026: it shows the global Branch filter now. dailyperf left it on 16 Oct 2026: it follows the Branch and Period filters since 15 Oct, and this class hid them while the Hide filters button stayed
   document.body.classList.toggle('lastvisit-chrome', view === 'lostclients');
   document.body.classList.toggle('svc-chrome', view === 'servicecal');
   document.body.classList.toggle('nvb-chrome', view === 'novblasts');   // Database Blasts keeps its usual left edge and grows to the right (css/nov-blasts.css), Kate 20 Nov 2026
@@ -5930,6 +5939,7 @@ function showView(view, el){
   if (view === 'pkpamper') renderPamper();
   if (view === 'pkads499') renderAds499();
   if (view === 'pkhaircolour') renderHairColour();
+  if (view === 'pkdir') renderCampaignsDirectory();
   if (view === 'pkschool') renderBackToSchool();
   if (view === 'discountsvouchers') renderDiscountsVouchers();
   if (view === 'googleads') renderGoogleAds();

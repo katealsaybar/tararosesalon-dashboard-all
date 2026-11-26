@@ -109,3 +109,8 @@
 /* Hair Colour Packages Performance (Kate, 26 Nov 2026): the Not counted list has no slide image, so a small labelled box stands in for it */
 #pkHairColourContent .ad-th.ad-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:56px;height:56px;box-sizing:border-box;border:1px dashed var(--line);border-radius:6px;line-height:1.15;text-align:center;font-size:13px;color:var(--muted)}
 #pkHairColourContent .ad-th.ad-ph em{font-style:normal}
+/* Phone: every button and every "show" line is a 44px tap (Kate, 18 Nov 2026 phone rule), added 26 Nov 2026 */
+@media(max-width:760px){
+  #pkHairColourContent .ad-btn,#pkHairColourContent summary{min-height:44px;display:inline-flex;align-items:center}
+  #pkHairColourContent details>summary{display:flex}
+}
