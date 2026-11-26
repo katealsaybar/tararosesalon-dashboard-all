@@ -45,7 +45,7 @@
   const K = 0, BR = 1, CAT = 2, NAME = 3, TYPE = 4, FLAG = 5, PRIO = 7, MIN = 8, MAX = 9, COST = 10, STK = 13, BRAND = 16, SUP = 17;
   const SALORD = { KCA: 0, SAA: 1, MC: 2, AQ: 3 }, STORD = { out: 0, u1: 1, ok: 2 };
   const PRIOS = { A: ['A'], AB: ['A', 'B'] };
-  const S = { rows: null, lines: [], ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, stamp: '', planAt: null, refreshedAt: null, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
+  const S = { rows: null, lines: [], po: [], poOn: false, ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, stamp: '', planAt: null, refreshedAt: null, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
     prio: 'A', cover: 0, filt: 'all', hk: 'qty', ak: 'rule', built: false, ro: null, dem: null, demInfo: null, dm: 'book', ai: {}, demAll: null,
     refreshing: false, refMsg: '', edits: {}, skips: {}, counts: {}, verified: {}, editWho: {}, canEdit: false, editDay: '', eds: 0, edSig: '', dirty: false };   // edits / skips: what was typed in or ticked off for this order day, by plan row key (oos_order_edits_get)
   let TO = null, TS = null, TB = null, memoM = {};
@@ -126,6 +126,7 @@
     const callOrd = Promise.resolve(sb.rpc('oos_on_order')).then(r => r, e => ({ error: e }));   // the migration may not be applied yet
     const callDem = Promise.resolve(sb.rpc('oos_demand')).then(r => r, e => ({ error: e }));
     const callEd = Promise.resolve(sb.rpc('oos_order_edits_get')).then(r => r, e => ({ error: e }));   // the migration may not be applied yet: then the Order column cannot be typed in
+    const callPO = Promise.resolve(sb.rpc('oos_orders_get')).then(r => r, e => ({ error: e }));   // confirmed supplier orders; the migration may not be applied yet
     const pr = await callPlan;
     if (pr.error) throw pr.error;
     const d = pr.data || {};
@@ -142,6 +143,7 @@
     const sr = await callStamp, sd = sr && !sr.error ? sr.data : null;
     S.stamp = sd && !sd.denied ? JSON.stringify(sd) : ''; S.planAt = sd && !sd.denied ? sd.plan || null : null;
     const er = await callEd; applyEdits(er && !er.error ? er.data : null);
+    setPO(await callPO);
     memoM = {};
     build(d.rows || []);
     S.loadedAt = Date.now(); S.ver++; S.state = 'ok';
@@ -378,6 +380,44 @@
     window.open(url, '_blank', 'noopener');
     return long ? (copied ? 'The order is copied: paste it into the email.' : 'The order is long: use Save as xlsx and attach it.') : 'Gmail is open with the order of ' + plural(o.n, 'product') + '. Read it and press Send.';
   }
+
+  // Confirm order (Kate, 26 Nov 2026: "put confirm order button ... we must have our own internal order number"; step 1 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md).
+  // One confirm = one order per salon, numbered TRS-PO-<YY>-<0001..> by the database (oos_order_confirm). The lines are copied in as they are now (typed quantities and ticked-off products included).
+  // Nothing is sent to the supplier by this: Email to DBD is still a Gmail draft a person sends. Needs out_of_stock_supplier_orders.sql applied; until then the button says so.
+  const setPO = r => { const d = r && !r.error ? r.data : null; S.poOn = !!(d && !d.denied && Array.isArray(d.orders)); S.po = S.poOn ? d.orders : []; };
+  async function loadPO() { setPO(await Promise.resolve(sb.rpc('oos_orders_get')).then(r => r, e => ({ error: e }))); }
+  const openOrders = (sup, sals) => S.po.filter(o => o.supplier === sup && o.status !== 'cancelled' && o.day === S.editDay && sals.indexOf(o.branch) >= 0);
+  const poFmt = o => o.order_no + ' (' + BN[o.branch] + ', ' + plural(o.n_lines, 'product') + (o.status === 'confirmed' ? '' : ', ' + String(o.status).replace(/_/g, ' ')) + ')';
+  const poOff = e => /oos_order|schema cache|does not exist|Could not find/i.test(String(e && (e.message || e)) + String(e && e.code || '')) ? 'Confirm order is not switched on yet: the database step (out_of_stock_supplier_orders.sql) is waiting to be applied.' : 'That did not work: ' + String(e && e.message || e);
+  async function confirmOrder(sup, keys) {
+    if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can confirm an order.';
+    const rs = all().filter(r => keys[r.key] && r.o > 0); if (!rs.length) return 'Nothing to confirm: every Quantity is 0.';
+    const by = {}; rs.forEach(r => { (by[r.b] = by[r.b] || []).push(r); });
+    const sals = B.filter(c => by[c]);
+    const sum = c => by[c].reduce((a, r) => a + r.o * r.c, 0);
+    if (!window.confirm('Confirm the ' + sup + ' order?\n\n' + sals.map(c => BN[c] + ': ' + plural(by[c].length, 'product') + ', ' + A(sum(c))).join('\n') + '\n\nEach salon gets its own order number. Nothing is sent to ' + sup + ' yet.')) return 'Not confirmed.';
+    const done = [], was = [];
+    for (const c of sals) {
+      const lines = by[c].map(r => ({ key: r.key, brand: r.brand, fam: r.brand === 'Schwarzkopf' ? 'SKP' : String(r.brand).toUpperCase(), type: r.type, cat: r.cat, name: r.name, q: r.o, c: Math.round(r.c * 100) / 100 }));
+      let res; try { res = await sb.rpc('oos_order_confirm', { p_supplier: sup, p_branch: c, p_lines: lines, p_extras: null }); } catch (e) { res = { error: e }; }
+      if (res.error) return (done.length ? done.join(', ') + ' confirmed. ' : '') + poOff(res.error);
+      const d = res.data || {};
+      if (d.denied) return 'Only people who may edit the Weekly Product Plan can confirm an order.';
+      if (d.exists) was.push(BN[c] + ' was already confirmed as ' + d.order_no); else done.push(d.order_no + ' ' + BN[c]);
+    }
+    await loadPO();
+    return (done.length ? 'Confirmed: ' + done.join(', ') + '. ' : '') + (was.length ? was.join('; ') + '. ' : '') + 'Close and open this window to see it on the sheet.';
+  }
+  async function cancelOrders(sup, sals) {
+    if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can cancel an order.';
+    const mine = openOrders(sup, sals).filter(o => o.status === 'confirmed');
+    if (!mine.length) return 'No confirmed order to cancel here (one already sent to ' + sup + ' cannot be cancelled on this page).';
+    if (!window.confirm('Cancel ' + mine.map(o => o.order_no + ' ' + BN[o.branch]).join(', ') + '?\n\nThe number is not used again. The order can be changed and confirmed again.')) return 'Not cancelled.';
+    const out = [];
+    for (const o of mine) { let res; try { res = await sb.rpc('oos_order_cancel', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return poOff(res.error); out.push(o.order_no); }
+    await loadPO();
+    return 'Cancelled ' + out.join(', ') + '.';
+  }
   // A list of products. Every product, number and the product name open the product's own window. The Total row adds up the rows listed.
   // sheet = a supplier's order (Kate, 26 Nov 2026, from Phorest's Create Order screen: "similar da sa ganito, per supplier daw mas madaling mag order"): the first tab lists the products the way Phorest's
   // Create Order does (brand, category, name, cost, status, stock, min, max, Quantity), with the Quantity box and a tick to take a product out, so the order can be keyed in line by line.
@@ -409,12 +449,13 @@
     const colsC = [];   // Kate, 26 Nov 2026: Counted and Verified taken out of this window (they stay on the page's own table)
     const sheetView = { id: 'sheet', label: 'Order sheet', load: async () => {
       const allr = rows.concat(extra || []), multi = new Set(allr.map(r => r.b)).size > 1;
+      const poNow = supName ? openOrders(supName, B.filter(c => allr.some(r => r.b === c))) : [];
       const rs = allr.slice().sort((x, y) => (multi ? SALORD[x.b] - SALORD[y.b] : 0) || x.cat.localeCompare(y.cat, undefined, { sensitivity: 'base' }) || x.name.localeCompare(y.name, undefined, { sensitivity: 'base' }) || x.brand.localeCompare(y.brand));
       const dr = rs.map(r => { const row = { s: BN[r.b], br: r.brand, ca: r.cat, p: r.name, c: Math.round(r.c * 100) / 100, mn: r.mn, mx: r.mx, _ek: r.key, _sh: 1 }; fill(row, r); return row; });
       return mk({ cols: (multi ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'br', l: 'Brand' }, { k: 'ca', l: 'Category' }, { k: 'p', l: 'Name' }, { k: 'c', l: 'Cost (AED)', t: 'num' }, { k: 'st', l: 'Status' },
           { k: 'in', l: 'Stock', t: 'num' }], colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'mx', l: 'Max', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' }], colsQ, [{ k: 'oa', l: 'Quantity AED', t: 'aed' }]),
         rows: dr, foot: { p: 'Total: ' + plural(rs.length, 'product') + (extra && extra.length ? ' (' + n0(extra.length) + ' low stock, not due by the rule)' : '') },
-        note: 'The products of this order, A to Z by category and then name.' + (extra && extra.length ? ' <b>Low stock</b> lines are at or under Min but not ordered by the rule: type a Quantity to add one to the order.' : '') + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.') });
+        note: (poNow.length ? '<b>Confirmed:</b> ' + poNow.map(o => esc(poFmt(o)) + ' by ' + esc(String(o.by || '').split('@')[0])).join('; ') + '. ' : (supName && S.poOn ? '<b>Not confirmed yet.</b> ' : '')) + 'The products of this order, A to Z by category and then name.' + (extra && extra.length ? ' <b>Low stock</b> lines are at or under Min but not ordered by the rule: type a Quantity to add one to the order.' : '') + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.') });
     } };
     const prodView = { id: 'products', label: sheet ? 'Counts and AED' : 'Products', load: async () => {
       const dr = rows.map(r => { const row = { p: r.name, br: r.brand, s: BN[r.b], ty: r.type, pr: r.prio, mn: r.mn, _ek: r.key }; fill(row, r); return row; });
@@ -428,7 +469,10 @@
     } };
     return { title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
       views: sheet ? [sheetView, prodView] : [prodView],
-      actions: sheet && supName && SUP_MAIL[supName] ? [{ label: 'Email to ' + supName, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys); } }] : undefined };
+      actions: sheet && supName ? [].concat(
+        S.canEdit ? [{ label: 'Confirm order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
+                     { label: 'Cancel confirmed order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+        SUP_MAIL[supName] ? [{ label: 'Email to ' + supName, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys); } }] : []) : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
   // "x 1.22 + x 1.15 + ..." for the weeks a colour product counts, with where it comes from
@@ -728,7 +772,7 @@
     // one container per salon picked (Kate, 26 Nov 2026: "make 4 containers, per branch"): the order, then what is short
     a2.innerHTML = cs.map((c, i) => { const t = T[i];
       return '<div class="oos-c"><div class="oos-ct">' + BN[c] + '</div>' +
-        ln('<b class="oos-big">' + fig(A(t.aed), 'all', c) + '</b>') + ln('<b>maximum</b>') + ln(fig(A(t.aedm), 'all', c) + ' minimum') +
+        ln('<b class="oos-big">' + fig(A(t.aedm), 'all', c) + '</b>') + ln('<b>minimum</b>') + ln(fig(A(t.aed), 'all', c) + ' maximum') +
         ln(fig(n0(t.n), 'all', c) + (t.n === 1 ? ' product' : ' products') + ' to order') + ln(fig(n0(t.out), 'out', c) + ' out now') + ln(fig(n0(t.u1), 'u1', c) + ' under 1 week') + '</div>'; }).join('');
     a5.innerHTML = ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now (all salons picked).') + dem;
     const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
@@ -748,11 +792,11 @@
     $('oosBars').innerHTML = cs.map((c, i) => {
       const t = T[i], tip = BN[c] + ': ' + plural(t.n, 'product') + ' to order, ' + A(t.aedm) + ' minimum and ' + A(t.aed) + ' maximum' + (total ? ' (' + Math.round(100 * t.aed / total) + '% of the maximum order)' : '') + '. ' + n0(t.out) + ' out on the shelf now and ' + n0(t.u1) + ' more with under a week left. Tap a number to see the products.';
       return `<div class="oos-step" data-bh tabindex="0" data-tip="${esc(tip)}"><div class="oos-nm">${BN[c]}<small>${n0(t.n)} to order</small></div><div class="oos-fbar"><i data-bh-fill style="width:${(100 * t.aed / mx).toFixed(1)}%"></i></div>` +
-        `<div class="oos-num"><b>${fig(A(t.aed), 'all', c)}</b> <span>maximum</span><span>·</span><span>${fig(A(t.aedm), 'all', c)} minimum</span><span>·</span><span>${fig(n0(t.n), 'all', c)} products</span><span>·</span><span>${fig(n0(t.out), 'out', c)} out now</span><span>·</span><span>${fig(n0(t.u1), 'u1', c)} under 1 week</span></div></div>`;
+        `<div class="oos-num"><b>${fig(A(t.aedm), 'all', c)}</b> <span>minimum</span><span>·</span><span>${fig(A(t.aed), 'all', c)} maximum</span><span>·</span><span>${fig(n0(t.n), 'all', c)} products</span><span>·</span><span>${fig(n0(t.out), 'out', c)} out now</span><span>·</span><span>${fig(n0(t.u1), 'u1', c)} under 1 week</span></div></div>`;
     }).join('') + (cs.length > 1 ? (() => {   // the Total of the salons picked (Kate, 26 Nov 2026: "dpat may totals eh")
       const tn = sum(T, 'n'), to = sum(T, 'out'), tu = sum(T, 'u1'), ta = sum(T, 'aed'), tm = sum(T, 'aedm');
       return `<div class="oos-step oos-tot"><div class="oos-nm">Total<small>${n0(tn)} to order</small></div><div class="oos-tbar"></div>` +
-        `<div class="oos-num"><b>${fig(A(ta), 'all')}</b> <span>maximum</span><span>·</span><span>${fig(A(tm), 'all')} minimum</span><span>·</span><span>${fig(n0(tn), 'all')} products</span><span>·</span><span>${fig(n0(to), 'out')} out now</span><span>·</span><span>${fig(n0(tu), 'u1')} under 1 week</span></div></div>`;
+        `<div class="oos-num"><b>${fig(A(tm), 'all')}</b> <span>minimum</span><span>·</span><span>${fig(A(ta), 'all')} maximum</span><span>·</span><span>${fig(n0(tn), 'all')} products</span><span>·</span><span>${fig(n0(to), 'out')} out now</span><span>·</span><span>${fig(n0(tu), 'u1')} under 1 week</span></div></div>`;
     })() : '');
     let hi = 0, lo = 0; T.forEach((t, i) => { if (t.aed > T[hi].aed) hi = i; if (t.aed < T[lo].aed) lo = i; });
     const w = $('oosW1');
