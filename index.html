@@ -3665,7 +3665,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="css/nav-style.css?v=f8fdb6b8">
 <link rel="stylesheet" href="css/account-menu.css?v=47fdee74">
-<link rel="stylesheet" href="css/drill.css?v=7a8c999e">   <!-- the figure that opens the list behind it (drill.js) -->
+<link rel="stylesheet" href="css/drill.css?v=fea50728">   <!-- the figure that opens the list behind it (drill.js) -->
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=759948a4"></script>
@@ -4552,7 +4552,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=5bc2bdc8&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=5b3acc63&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -5154,7 +5154,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/bar-hover.js?v=ea0f3135"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
-<script src="js/drill.js?v=459d4a99"></script>
+<script src="js/drill.js?v=a2cc9fc3"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
 <script src="js/dashboard.js?v=03b12f0c"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
