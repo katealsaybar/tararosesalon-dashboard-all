@@ -29,7 +29,7 @@
 // Same ANTHROPIC_API_KEY secret as dashboard-ask, perf-coach and pulse-narrative.
 // Deploy:  supabase functions deploy oos-products --project-ref gvijxenafoowajqktqvd
 // Table:   migrations/out_of_stock_product_ai.sql
-// No em-dashes in anything the model writes.
+// No em-dashes in anything the model writes. Control characters and lone surrogates are stripped too (jsonb refuses them, which would stop the cache write).
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -115,7 +115,7 @@ async function sha256(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-const noDash = (s: string) => s.replace(/\s*[—–]\s*/g, ", ");
+const noDash = (s: string) => s.replace(/\s*[—–]\s*/g, ", ").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").replace(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g, "");
 
 Deno.serve(async (req: Request) => {
   const CORS = cors(req.headers.get("origin"));
@@ -148,6 +148,7 @@ Deno.serve(async (req: Request) => {
 
   const sb = createClient(SUPA_URL, SERVICE, { auth: { persistSession: false } });
   const hit = await sb.from("oos_product_ai").select("result, model, created_at").eq("salon", salon).eq("list_hash", hash).maybeSingle();
+  if (hit.error) console.error("[oos-products] cache read failed", hit.error.code, hit.error.message);
   if (hit.data) return json({ salon, kinds: hit.data.result?.kinds ?? [], model: hit.data.model, cached: true, generated_at: hit.data.created_at }, CORS);
 
   const anthropic = new Anthropic({ apiKey });
@@ -179,6 +180,14 @@ Deno.serve(async (req: Request) => {
   });
 
   const result = { kinds };
-  await sb.from("oos_product_ai").upsert({ salon, list_hash: hash, model: MODEL, result, input_tokens: usage?.input_tokens ?? null, output_tokens: usage?.output_tokens ?? null }, { onConflict: "salon,list_hash" });
-  return json({ salon, kinds, model: MODEL, cached: false, generated_at: new Date().toISOString() }, CORS);
+  // The cache write is checked, not assumed (26 Nov 2026: the first real call never landed and nothing said so). One retry, and the tokens are logged either way.
+  const row = { salon, list_hash: hash, model: MODEL, result, input_tokens: usage?.input_tokens ?? null, output_tokens: usage?.output_tokens ?? null };
+  console.log("[oos-products] usage", salon, "in", row.input_tokens, "out", row.output_tokens);
+  let saved = false;
+  for (let i = 0; i < 2 && !saved; i++) {
+    const up = await sb.from("oos_product_ai").upsert(row, { onConflict: "salon,list_hash" });
+    if (up.error) console.error("[oos-products] cache write failed", i + 1, up.error.code, up.error.message);
+    else saved = true;
+  }
+  return json({ salon, kinds, model: MODEL, cached: false, saved, generated_at: new Date().toISOString() }, CORS);
 });
