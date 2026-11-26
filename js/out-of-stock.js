@@ -13,7 +13,8 @@
 //   Min        one week of use (the plan's Min); Max is the plan's Max; cost is the plan's unit cost
 //   cover      2 weeks from 15 Nov to 31 Dec (the busy weeks), otherwise 1 week; worked out from today's date, and the reader can change it at the top
 //   order when shelf + on order is under Min x cover; two orders (Kate, 26 Nov 2026: "dapat meron din minimum orders minimum amount"):
-//     MINIMUM order = up to Min x cover (the order point), the least that gets the product back to cover; MAXIMUM order = up to the bigger of Max and Min x cover
+//     MINIMUM order = up to Min x cover (the order point), the least that gets the product back to cover; MAXIMUM order = up to the order point + (Max - Min), the plan's cushion above Min (Kate, 26 Nov 2026,
+//     "yes" to the one rule proposed when Min x weeks went above Max and both orders came out equal). At 1 week a normal-week product has order point = Min, so Maximum = Max exactly as before.
 //     AED = units to order x cost, for each of the two
 //   status     out (nothing on the shelf), under 1 week (shelf + on order under Min), under N weeks (under the order point)
 //
@@ -24,7 +25,7 @@
 //     pace = booked now x pickup; expected = half pace + half a normal week (the average of the 12 weeks). Factor = expected / a normal week. (Tried on 11 weeks leaving one out: a normal week alone missed 16%
 //     on average per salon, this missed 7%.) NOT KNOWN: which client a tube was used on (Phorest does not record it, the usage report is a storeroom list), cancellations, holidays.
 //   - the factor applies to COLOUR products only (the plan categories IGORA Vibrance, Royal, Zero Amm, Color 10, BLONDME, Vario, Color Expert); everything else stays on Min of a normal week.
-//   - order point = Min x (factor + cover - 1): next week at its expected size, the weeks after it (when cover is 2 or more) at a normal week. Min order and Max order work from that order point as before.
+//   - order point = Min x (the colour weeks counted, see below); Min order goes up to the order point, Max order to the order point + (Max - Min).
 //   - the picker "Order for" turns it off (a normal week).
 //   - WEEKS AFTER NEXT WEEK (Kate, 26 Nov 2026: "if naka x4 ibase mo pa rin sa succeeding next weeks"): cover of N weeks counts weeks 1 to N ahead, each with its own expected size. oos_demand() gives the four weeks
 //     ahead, each with the history cut at that week's own lead (week 2 is 8 to 14 days away, week 3 15 to 21, week 4 22 to 28). Backtested 26 Nov 2026 on 11 weeks, leaving one out, per salon: a normal week alone
@@ -205,11 +206,12 @@
   const demTxt = r => (r.col && S.dm === 'book') ? 'x ' + (r.fw / r.C).toFixed(2) + ' booked' : 'Normal week';
   // trig = the order point. Colour: Min x (f1 + f2 + ... + fC), each week ahead at its own expected size. Everything else, and colour when bookings are off: Min x C.
   // Orders are whole units: when the colour weeks make the order point fractional it is rounded to the nearest whole unit (so a Min of 1 does not jump to 3).
-  // target = the bigger of Max and trig, have = shelf + on order. When have is under trig: maximum order q = target - have, minimum order qm = trig - have.
+  // target = trig + the plan's cushion (Max - Min, never below 0), have = shelf + on order. When have is under trig: maximum order q = target - have, minimum order qm = trig - have.
+  // So Max is never below Min x weeks and the gap stays what the plan sets. At 1 week for a product that is not scaled, trig = Min and the target is Max, as it always was.
   function enrich(r, C, dm) {
     const bk = S.dem && S.dem[r.b], col = !!(bk && bk.ok && isCol(r.cat)), on = dm === 'book' && col, f = on ? bk.f : 1, fw = on ? fSum(bk, C) : C;
-    const raw = r.mn * fw, trig = on ? Math.round(raw) : raw, tgt = Math.max(r.mx, trig), have = r.s + r.i, q = have < trig ? tgt - have : 0, qm = have < trig ? trig - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
-    return Object.assign({}, r, { C, col, f, fw, trig, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st });
+    const raw = r.mn * fw, trig = on ? Math.round(raw) : raw, cush = Math.max(r.mx - r.mn, 0), tgt = trig + cush, have = r.s + r.i, q = have < trig ? tgt - have : 0, qm = have < trig ? trig - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
+    return Object.assign({}, r, { C, col, f, fw, trig, cush, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st });
   }
   function all(dm) {
     dm = dm || S.dm;
@@ -247,10 +249,9 @@
     if (f === 'out') return rs.filter(r => r.s <= 0);
     if (f === 'u1') return rs.filter(r => r.q > 0 && r.s > 0 && r.have < r.mn);
     if (f === 'sup') return rs.filter(r => r.q > 0 && r.sup === sup);
-    if (f === 'same') return rs.filter(r => r.q > 0 && r.trig > r.mx);
     return rs.filter(r => r.q > 0);
   }
-  const gTitle = (f, sal, sup) => { const L = sal ? BN[sal] : scope(); return f === 'out' ? 'Out now, ' + L : f === 'u1' ? 'Under 1 week left, ' + L : f === 'sup' ? sup + ' order, ' + L : f === 'same' ? 'Min and max order the same, ' + L : 'Products to order, ' + L; };
+  const gTitle = (f, sal, sup) => { const L = sal ? BN[sal] : scope(); return f === 'out' ? 'Out now, ' + L : f === 'u1' ? 'Under 1 week left, ' + L : f === 'sup' ? sup + ' order, ' + L : 'Products to order, ' + L; };
   // a figure that opens the products behind it; plain when the list is empty
   const fig = (txt, f, sal, sup) => { const rs = groupRows(f, sal, sup); return rs.length ? num(txt, rowsSpec(gTitle(f, sal, sup), rs, slug('oos-' + f + (sal ? '-' + sal : '') + (sup ? '-' + sup : '')))) : txt; };
   // A list of products. Every product, number and the product name open the product's own window. The Total row adds up the rows listed.
@@ -285,9 +286,9 @@
         [r.C > 1 ? 'Colour demand, the weeks counted' : 'Next week\'s colour demand', r.col && S.dm === 'book' ? colWeeksTxt(r) : (r.col ? 'Not counted: Order for is a normal week' : 'None: this product is not tied to bookings, so a normal week'), r.col && S.dm === 'book' ? histSpec(r.b) : null],
         ['Weeks left at that rate', r1(r.cov).toFixed(1)],
         ['Order when shelf and on order are under', nu(r.trig) + (r.col && S.dm === 'book' ? ' (Min x ' + nu(r.fw) + ' colour weeks = ' + nu(r.mn * r.fw) + ', in whole units)' : ' (Min x ' + r.C + ')')],
-        ['Order up to', nu(r.tgt) + (r.tgt > r.mx ? ' (the order point, higher than Max)' : ' (Max)')],
+        ['Order up to (maximum)', nu(r.tgt) + ' (the order point ' + nu(r.trig) + ' + the plan\'s cushion ' + nu(r.cush) + ' = Max ' + nu(r.mx) + ' - Min ' + nu(r.mn) + ')'],
         ['Minimum order', nu(r.qm) + ' units, to reach ' + nu(r.trig) + (r.col && S.dm === 'book' ? ' (the order point, in whole units)' : ' (Min x ' + r.C + ')')],
-        ['Maximum order', nu(r.q) + ' units, up to ' + nu(r.tgt)],
+        ['Maximum order', nu(r.q) + ' units, up to ' + nu(r.tgt) + ' (order point + cushion)'],
         ['Cost a unit, Stock List', r.nocost ? 'No cost on the plan yet, counted as 0' : 'AED ' + r.c.toFixed(2)]];
       return { cols: [{ k: 'step', l: 'Step' }, { k: 'fig', l: 'Figure' }],
         rows: steps.map((x, i) => ({ step: x[0], fig: x[1], _dn: i === 1 && ordSpec ? { fig: ordSpec } : (x[2] ? { fig: x[2] } : null) })),
@@ -535,9 +536,7 @@
       return '<div class="oos-c"><div class="oos-ct">' + BN[c] + '</div>' +
         ln('<b class="oos-big">' + fig(A(t.aed), 'all', c) + '</b>') + ln('<b>maximum</b>') + ln(fig(A(t.aedm), 'all', c) + ' minimum') +
         ln(fig(n0(t.n), 'all', c) + (t.n === 1 ? ' product' : ' products') + ' to order') + ln(fig(n0(t.out), 'out', c) + ' out now') + ln(fig(n0(t.u1), 'u1', c) + ' under 1 week') + '</div>'; }).join('');
-    const same = selRows().filter(r => r.q > 0 && r.trig > r.mx).length;
-    const sameLn = same ? ln('<b>Min and max are the same</b> for ' + fig(n0(same), 'same') + (same === 1 ? ' product' : ' products') + '.') + ln('Min x ' + cover() + ' weeks is above Max, so both orders go up to Min x weeks.') : '';
-    a5.innerHTML = ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now (all salons picked).') + dem + sameLn;
+    a5.innerHTML = ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now (all salons picked).') + dem;
     const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
     const ord = S.ordersOk && S.ordersAt ? ln('<b>Supplier orders not yet delivered:</b> ' + fdt(S.ordersAt)) : '';
     const plc = (S.planAt ? ln('<b>Weekly Product Plan last changed:</b> ' + fdt(S.planAt)) : '') + (S.refreshedAt ? ln('<b>This page refreshed itself:</b> ' + fdt(S.refreshedAt)) : '');
@@ -568,7 +567,7 @@
     const e = exRow(), ex = $('oosEx');
     ex.hidden = !e;
     if (e) ex.innerHTML = '<b>Example.</b> ' + esc(BN[e.b]) + ', ' + esc(e.name) + ln('Shelf: ' + nu(e.s) + ' · on order: ' + (e.i ? nu(e.i) : 'none')) + ln('Plan: Min ' + nu(e.mn) + ', Max ' + nu(e.mx) + (e.col && S.dm === 'book' ? ' (colour counted x ' + e.f.toFixed(2) + ')' : '')) + ln('We order when under <b>' + nu(e.trig) + '</b>') +
-      ln('<b>Minimum</b> order: up to ' + nu(e.trig) + ' = ' + num(A(e.am), prodSpec(e, 'how'))) + ln('<b>Maximum</b> order: up to ' + nu(e.tgt) + ' = ' + num(A(e.aed), prodSpec(e, 'how')));
+      ln('<b>Minimum</b> order: up to ' + nu(e.trig) + ' = ' + num(A(e.am), prodSpec(e, 'how'))) + ln('<b>Maximum</b> order: up to ' + nu(e.tgt) + ' (order point + cushion ' + nu(e.cush) + ') = ' + num(A(e.aed), prodSpec(e, 'how')));
   }
 
   // ── 1 NEXT WEEK'S BOOKINGS ───────────────────────────────────────────────────────────
@@ -669,9 +668,9 @@
 
   // ── HOW IT IS WORKED OUT, ABOUT: one card at a time ──────────────────────────────────
   const HOW = {
-    qmin: ['Minimum order', 'Up to the order point, less the shelf and what is on order. Only when under the order point. The least that gets the product back to cover. The order point is Min x weeks; for colour, next week counts Min x the factor for its bookings.', e => num(nu(e.qm), prodSpec(e, 'how')) + ' = ' + nu(e.trig) + ' − ' + nu(e.s) + ' − ' + nu(e.i), e => esc(e.name) + ', ' + BN[e.b] + '. Min ' + nu(e.mn) + ', weeks ' + e.C + '.'],
-    qty: ['Maximum order', 'Up to Max (or the order point if that is more), less the shelf and what is on order. Only when under the order point.', e => num(nu(e.q), prodSpec(e, 'how')) + ' = ' + nu(e.tgt) + ' − ' + nu(e.s) + ' − ' + nu(e.i), e => esc(e.name) + ', ' + BN[e.b] + '. Min ' + nu(e.mn) + ', Max ' + nu(e.mx) + ', weeks ' + e.C + (e.col && S.dm === 'book' ? ', colour factor ' + e.f.toFixed(2) : '') + '.'],
-    use: ['Min and Max', 'Min is one week of use. Max is Min plus 3, or the number set in the plan.', e => 'Min ' + num(nu(e.mn), prodSpec(e, 'how')) + ' · Max ' + num(nu(e.mx), prodSpec(e, 'how')), e => esc(e.name) + ', ' + BN[e.b] + '. The order starts under Min x weeks.'],
+    qmin: ['Minimum order', 'Up to the order point, less the shelf and what is on order. Only when under the order point. The least that gets the product back to cover. The order point is Min x weeks; for colour, each week ahead counts at its own expected size.', e => num(nu(e.qm), prodSpec(e, 'how')) + ' = ' + nu(e.trig) + ' − ' + nu(e.s) + ' − ' + nu(e.i), e => esc(e.name) + ', ' + BN[e.b] + '. Min ' + nu(e.mn) + ', weeks ' + e.C + '.'],
+    qty: ['Maximum order', 'Up to the order point + the plan\'s cushion (Max - Min), less the shelf and what is on order. Only when under the order point.', e => num(nu(e.q), prodSpec(e, 'how')) + ' = ' + nu(e.tgt) + ' − ' + nu(e.s) + ' − ' + nu(e.i), e => esc(e.name) + ', ' + BN[e.b] + '. Min ' + nu(e.mn) + ', Max ' + nu(e.mx) + ', cushion ' + nu(e.cush) + ', weeks ' + e.C + (e.col && S.dm === 'book' ? ', colour factor ' + e.f.toFixed(2) : '') + '.'],
+    use: ['Min and Max', 'Min is one week of use. Max is Min plus 3, or the number set in the plan. Max - Min is the cushion the maximum order adds above the order point.', e => 'Min ' + num(nu(e.mn), prodSpec(e, 'how')) + ' · Max ' + num(nu(e.mx), prodSpec(e, 'how')), e => esc(e.name) + ', ' + BN[e.b] + '. The order starts under Min x weeks.'],
     cover: ['Weeks left', 'Shelf and on order together, divided by the Min.', e => '(' + nu(e.s) + ' + ' + nu(e.i) + ') ÷ ' + nu(e.mn) + ' = ' + num(r1(e.cov).toFixed(1), prodSpec(e, 'how')), e => esc(e.name) + ', ' + BN[e.b] + '. Under 1 week means urgent.'],
     aed: ['AED', 'Units to order times the cost a unit on the Stock List, for the minimum and for the maximum order.', e => nu(e.qm) + ' × AED ' + e.c.toFixed(2) + ' = ' + num(n0(e.am), prodSpec(e, 'how')) + ' minimum · ' + nu(e.q) + ' × AED ' + e.c.toFixed(2) + ' = ' + num(n0(e.aed), prodSpec(e, 'how')) + ' maximum', () => 'Prices change: check the supplier list before sending.']
   };
@@ -683,12 +682,12 @@
     card.innerHTML = `<div class="oos-hc-t">${h[0]}</div><div class="oos-hc-m">${h[1]}</div><div class="oos-hc-big">${h[2](e)}</div><div class="oos-hc-cv">${h[3](e)}</div>`;
   }
   const ABOUT = {
-    rule: ['The order rule', 'Order when shelf and on order are under the order point. The minimum order goes up to the order point. The maximum order goes up to Max.', 'The order point is Min x weeks. For colour, each week ahead counts at its own expected size: Min x (week 1 + week 2 + ...). If the order point is higher than Max, the maximum goes up to it too, so the two orders are the same.'],
+    rule: ['The order rule', 'Order when shelf and on order are under the order point. The minimum order goes up to the order point. The maximum order goes up to the order point + the plan\'s cushion (Max - Min).', 'The order point is Min x weeks. For colour, each week ahead counts at its own expected size: Min x (week 1 + week 2 + ...). At 1 week the maximum is Max, as before. At 2 weeks or more it is higher, so Max is never below Min x weeks.'],
     demand: ['Next week\'s bookings', 'Colour products (IGORA Vibrance, Royal, Zero, Color 10, BLONDME, Vario, Color Expert) are scaled by how busy the salon\'s colour is next week.', 'Measured: the colour services booked. Estimated: how many will be done in all. Not tied to bookings: everything else, retail included. Order for A normal week turns it off.'],
     plan: ['Priority and type', 'Both come from the Weekly Product Plan, read live. Change them there, not here.', 'A is the first 80% of spend, or what the plan marks A.'],
     cover: ['Weeks of cover', '1 week as a rule. 2 weeks from 15 Nov to 31 Dec, for the busy weeks.', 'It moves the order point: Min x weeks. Change it with the picker at the top.'],
     mov: ['Which products', 'Priority A by default. A and B is a switch at the top. Products with Min 0 never show here.', 'Only the four UAE salons: Bahrain is not in these numbers.'],
-    min: ['Min and Max', 'Min is one week of use. Max is Min plus 3, unless the plan sets its own number.', 'Edit them in the Weekly Product Plan, not here.'],
+    min: ['Min and Max', 'Min is one week of use. Max is Min plus 3, unless the plan sets its own number.', 'The gap between them is the cushion. Edit them in the Weekly Product Plan, not here.'],
     fresh: ['How fresh', 'Shelf counts come from the Phorest Stock List, bookings from Phorest Staff Appointments. The dates are under the answer at the top.', 'Both are read by the Phorest sync (9 am, 1 pm, 5 pm, 9 pm and 1 am). On order counts the last 60 days.'],
     sup: ['Suppliers', 'The names are the suppliers of the Orders and Receipts page. The plan names DBD, Eideal and Madi; the others come from the brand, read off the orders and receipts there. A brand with no supplier on that page shows as Not linked yet.', 'Tell Kate when a supplier is wrong and it is changed here.'],
     who: ['Who sees it', 'Level 4 and up, and anyone the Weekly Product Plan lets in. It reads the same plan.', 'The database refuses everyone else, whatever this page does.']
@@ -784,11 +783,11 @@
     const rows = TO.rows(); if (!rows.length) return null;
     const cols = [{ key: 'b', label: 'Salon', fmt: 'text' }, { key: 'sup', label: 'Supplier', fmt: 'text' }, { key: 'brand', label: 'Brand', fmt: 'text' }, { key: 'p', label: 'Product', fmt: 'text' }, { key: 'ty', label: 'Stock type', fmt: 'text' },
       { key: 'cat', label: 'Category', fmt: 'text' }, { key: 'pr', label: 'Priority', fmt: 'text' }, { key: 'st', label: 'Status', fmt: 'text' }, { key: 'in', label: 'In stock', fmt: 'num' }, { key: 'on', label: 'On order', fmt: 'num' },
-      { key: 'mn', label: 'Min', fmt: 'num' }, { key: 'mx', label: 'Max', fmt: 'num' }, { key: 'fa', label: 'Colour weeks counted (cover)', fmt: 'num' }, { key: 'tg', label: 'Order up to (max)', fmt: 'num' }, { key: 'cv', label: 'Weeks left', fmt: 'num' }, { key: 'qm', label: 'Min order', fmt: 'num' }, { key: 'q', label: 'Max order', fmt: 'num' },
+      { key: 'mn', label: 'Min', fmt: 'num' }, { key: 'mx', label: 'Max', fmt: 'num' }, { key: 'fa', label: 'Colour weeks counted (cover)', fmt: 'num' }, { key: 'tg', label: 'Order up to (order point + cushion)', fmt: 'num' }, { key: 'cv', label: 'Weeks left', fmt: 'num' }, { key: 'qm', label: 'Min order', fmt: 'num' }, { key: 'q', label: 'Max order', fmt: 'num' },
       { key: 'c', label: 'Cost a unit (AED)', fmt: 'aed' }, { key: 'am', label: 'Min AED', fmt: 'aed' }, { key: 'a', label: 'Max AED', fmt: 'aed' }];
     const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, (r.col && S.dm === 'book' ? r2(r.fw) : r.C), r.tgt, r1(r.cov), r.qm, r.q, r2(r.c), r2(r.am), r2(r.aed)] }));
     return { name: 'Order list', title: 'Out of Stock: the order list', subtitle: subtitle() + '.', blocks: [{ cols, rows: lines }],
-      legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to Max (or the order point, if that is more), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
+      legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to the order point + the plan\'s cushion (Max - Min), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
   }
   function supSheet() {
     if (!S.rows || !TS) return null;
