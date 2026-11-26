@@ -40,7 +40,7 @@
   const K = 0, BR = 1, CAT = 2, NAME = 3, TYPE = 4, FLAG = 5, PRIO = 7, MIN = 8, MAX = 9, COST = 10, STK = 13, BRAND = 16, SUP = 17;
   const SALORD = { KCA: 0, SAA: 1, MC: 2, AQ: 3 }, STORD = { out: 0, u1: 1, ok: 2 };
   const PRIOS = { A: ['A'], AB: ['A', 'B'] };
-  const S = { rows: null, lines: [], ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
+  const S = { rows: null, lines: [], ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, stamp: '', planAt: null, refreshedAt: null, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
     prio: 'A', cover: 0, filt: 'all', hk: 'qty', ak: 'rule', built: false, ro: null, dem: null, demInfo: null, dm: 'book' };
   let TO = null, TS = null, TB = null, memoM = {};
 
@@ -112,7 +112,10 @@
 
   // ── DATA IN ──────────────────────────────────────────────────────────────────────────
   async function load(force) {
-    if (!force && S.rows && Date.now() - S.loadedAt < 300000) return;
+    // Kate, 26 Nov 2026: whatever ate Tine changes in the Weekly Product Plan (Priority A or B, Min, Max, type) must show here ASAP. The data is read live from the plan's own function every time,
+    // so the only delay was this page's 5 minute memory. It is 15 seconds now (just to avoid a double read), and the page asks for the plan's change stamp every 45 seconds while it is open (see checkStamp).
+    if (!force && S.rows && Date.now() - S.loadedAt < 15000) return;
+    const callStamp = Promise.resolve(sb.rpc('oos_plan_stamp')).then(r => r, e => ({ error: e }));   // asked first: an edit that lands during the read is caught by the next check
     const callPlan = sb.rpc('oos_plan');
     const callOrd = Promise.resolve(sb.rpc('oos_on_order')).then(r => r, e => ({ error: e }));   // the migration may not be applied yet
     const callDem = Promise.resolve(sb.rpc('oos_demand')).then(r => r, e => ({ error: e }));
@@ -129,6 +132,8 @@
     S.stockAt = d.stock_loaded || {};
     const dr = await callDem, dd = dr && !dr.error ? dr.data : null;
     if (dd && !dd.denied && dd.salons) { S.dem = demandOf(dd); S.demInfo = { from: dd.week_from, to: dd.week_to, lead: dd.lead, synced: dd.synced }; } else { S.dem = null; S.demInfo = null; }
+    const sr = await callStamp, sd = sr && !sr.error ? sr.data : null;
+    S.stamp = sd && !sd.denied ? JSON.stringify(sd) : ''; S.planAt = sd && !sd.denied ? sd.plan || null : null;
     memoM = {};
     build(d.rows || []);
     S.loadedAt = Date.now(); S.ver++; S.state = 'ok';
@@ -450,7 +455,8 @@
     a5.innerHTML = ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now (all salons picked).') + dem;
     const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
     const ord = S.ordersOk && S.ordersAt ? ln('<b>Supplier orders not yet delivered:</b> ' + fdt(S.ordersAt)) : '';
-    $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.');
+    const plc = (S.planAt ? ln('<b>Weekly Product Plan last changed:</b> ' + fdt(S.planAt)) : '') + (S.refreshedAt ? ln('<b>This page refreshed itself:</b> ' + fdt(S.refreshedAt)) : '');
+    $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + plc + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.');
     const w = $('oosAns4'); w.hidden = S.ordersOk; w.textContent = S.ordersOk ? '' : 'On-order counts are not loaded yet. On order shows 0 for every product, so something that is already on its way can still show as short.';
   }
   // the best example for the page: a product with something on the shelf and something to order, biggest AED first (a real row, never typed in)
@@ -645,13 +651,32 @@
       await load(false);
       if (seq !== S.seq) return;
       if (S.state === 'denied') { msg('This page is for coordinators and above. Ask Kate if you need it.'); return; }
-      draw();
+      draw(); watchPlan();
     } catch (e) {
       console.error(e);
       if (seq === S.seq) msg('The order list did not load. <button type="button" class="cm-pill" id="oosRetry">Try again</button>');
       const r = $('oosRetry'); if (r) r.onclick = () => { S.rows = null; window.renderOutOfStock(); };
     }
   };
+  // Watch the plan while the page is open (Kate, 26 Nov 2026). Every 45 seconds, and the moment the tab is looked at again, one small call (oos_plan_stamp: when the plan was last edited,
+  // how many edits and scope rows it holds, the newest price list, the newest finished Phorest sync). If it differs from the stamp the data was read with, the page reads everything again and redraws.
+  let pollT = null, checking = false;
+  async function checkStamp() {
+    if (checking || document.hidden || !S.rows || typeof CURRENT_VIEW === 'undefined' || CURRENT_VIEW !== 'outofstock') return;
+    checking = true;
+    try {
+      const r = await sb.rpc('oos_plan_stamp'), d = r && !r.error ? r.data : null;
+      if (!d || d.denied || !S.stamp || JSON.stringify(d) === S.stamp) return;
+      await load(true); S.refreshedAt = new Date().toISOString(); draw();
+    } catch (e) { console.error(e); } finally { checking = false; }
+  }
+  window.oosCheckNow = checkStamp;
+  function watchPlan() {
+    if (pollT) return;
+    pollT = setInterval(checkStamp, 45000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkStamp(); });
+    window.addEventListener('focus', checkStamp);
+  }
   window.addEventListener('resize', () => { if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'outofstock') offsets(); });
   window.addEventListener('scroll', () => { if (typeof CURRENT_VIEW !== 'undefined' && CURRENT_VIEW === 'outofstock') offsets(); }, { passive: true });
 
