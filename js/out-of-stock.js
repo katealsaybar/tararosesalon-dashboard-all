@@ -304,7 +304,7 @@
     </div>
     <section class="oos-ans" aria-label="The answer in one line"><div class="oos-ans-k">The answer in one line</div><div class="oos-ans-t" id="oosAns"></div><div class="oos-ans-s" id="oosAns2"></div><div class="oos-ans-n" id="oosAns3"></div><div class="oos-ans-n" id="oosAns4" hidden></div></section>
 
-    <section class="oos-sec" id="oos-0" data-jn="1 Next week's bookings">
+    <section class="oos-sec" id="oos-1" data-jn="1 Next week's bookings">
       <h3>1 Next week's bookings</h3>
       <div class="oos-learn">
         <p><b>What is this?</b> The colour services already booked for next week at each salon, and how busy that week is likely to be against a normal one.</p>
@@ -322,7 +322,7 @@
       </div>
     </section>
 
-    <section class="oos-sec" id="oos-1" data-jn="2 What to order">
+    <section class="oos-sec" id="oos-2" data-jn="2 What to order">
       <h3>2 What to order, salon by salon</h3>
       <div class="oos-learn">
         <p><b>What is this?</b> For each salon, the products that are short for next week, Priority A to start with, and what it costs to top them up: a minimum order (back to cover) and a maximum order (up to Max). Colour is counted at next week's expected size.</p>
@@ -333,7 +333,7 @@
       <div class="oos-fun" id="oosBars"></div>
     </section>
 
-    <section class="oos-sec" id="oos-2" data-jn="3 The order list">
+    <section class="oos-sec" id="oos-3" data-jn="3 The order list">
       <h3>3 The order list</h3>
       <div class="oos-learn">
         <p><b>What is this?</b> Every product to order, one line each, salon by salon.</p>
@@ -353,7 +353,7 @@
       <p class="oos-hint">The page shows 10 rows to start with; pick 20, 50 or 100. Every column has a heading menu: sort, filter by condition or tick the values you want.</p>
     </section>
 
-    <details class="oos-sec oos-det" id="oos-3" data-jn="4 Order by supplier">
+    <details class="oos-sec oos-det" id="oos-4" data-jn="4 Order by supplier">
       <summary><h3>4 Order by supplier</h3></summary>
       <div class="oos-learn">
         <p><b>What is this?</b> The same order split by supplier, with the supplier names of the Orders and Receipts page. The plan only names DBD, Eideal and Madi, so the others come from the brand: Beauty Works to BS PRO, Evo Fab Pro to NEU, and so on.</p>
@@ -444,7 +444,7 @@
   }
   const exCol = () => selRows().filter(r => r.col && r.mn >= 3).sort((a, b) => b.q - a.q).filter(r => r.mn <= 8)[0] || selRows().filter(r => r.col && r.mn >= 3).sort((a, b) => b.q - a.q)[0] || null;
   function paintBook() {
-    const sec = $('oos-0'); if (!sec) return;
+    const sec = $('oos-1'); if (!sec) return;
     if (!S.dem) { $('oosWB').textContent = 'Next week\'s bookings are not loaded, so every product is worked out on a normal week.'; $('oosExB').hidden = true; $('oosBkh').innerHTML = ''; TB.draw(); return; }
     TB.draw();
     const cs = S.br.filter(c => S.dem[c].ok);
@@ -584,7 +584,7 @@
       else if (id === 'oosCover') { S.cover = +e.target.value; TO.clear(); TS.clear(); TO.page = 0; draw(); }
       else if (id === 'oosRows') { TO.shown = +e.target.value || 10; TO.page = 0; TO.draw(); offsets(); }
     });
-    $('oos-3').addEventListener('toggle', () => { if ($('oos-3').open) TS.draw(); offsets(); });
+    $('oos-4').addEventListener('toggle', () => { if ($('oos-4').open) TS.draw(); offsets(); });
   }
   window.renderOutOfStock = async function renderOutOfStock() {
     const host = $('outofstockContent'); if (!host) return;
