@@ -148,7 +148,7 @@
   }
   // The amounts typed in for the order, and the products ticked off it (Kate, 26 Nov 2026: "pwede rin dapat mag edit ng amount to order para yun yung lalabas na oorderin", "pwede rin x or check
   // for products para mawala or i include sa order"). Kept in oos_order_edits per order day (the Monday the order goes out), the same for everyone who opens the page; only those who may edit the
-  // Weekly Product Plan can change them. Quantity = the amount typed in, else the maximum order; a product ticked off counts as 0 in the order (what was typed is kept in case it is put back).
+  // Weekly Product Plan can change them. Quantity = the amount typed in, else the MINIMUM order (Kate with ate Tine, 26 Nov 2026: it starts at the minimum and she adjusts); a product ticked off counts as 0 in the order (what was typed is kept in case it is put back).
   function applyEdits(d) {
     if (d && !d.denied) { S.edits = d.edits || {}; S.skips = d.skips || {}; S.counts = d.counts || {}; S.verified = d.verified || {}; S.editWho = d.who || {}; S.canEdit = !!d.can_edit; S.editDay = d.day || ''; }
     else { S.edits = {}; S.skips = {}; S.counts = {}; S.verified = {}; S.editWho = {}; S.canEdit = false; S.editDay = ''; }
@@ -175,7 +175,7 @@
     if (cur) {
       if (v == null && !cur.oe) return false;
       if (v != null && cur.oe && v === cur.ov) return false;
-      if (v != null && !cur.oe && v === cur.q) return false;   // the same as the calculated amount: nothing to keep
+      if (v != null && !cur.oe && v === cur.qm) return false;   // the same as the minimum order: nothing to keep
     }
     const r = await sb.rpc('oos_order_edit_set', { p_key: key, p_qty: v });
     if (r.error) throw r.error;
@@ -211,7 +211,7 @@
   const vfLine = () => { const lr = orderRows(), nv = lr.filter(r => r.vf).length; return '<b>Shelf figures verified:</b> ' + n0(nv) + ' of ' + n0(lr.length) + ' on this list. The rest are the Stock List as it was read: check them before the order goes out.'; };
   function refreshLists() { S.dirty = false; if (!TO || !S.built) return; TO.draw(); paintW2(); TS.draw(); paintW3(); }
   const edMsg = t => { const m = $('oosEdMsg'); if (m) { m.textContent = t || ''; m.hidden = !t; } };
-  const tipOf = (r, f) => f.sk ? 'Taken out of the order. Tick it to put it back.' : f.oe ? 'Typed in' + (whoTxt(r.key) ? ' by ' + whoTxt(r.key) : '') + '. The calculated maximum is ' + nu(r.q) + '. Clear it to go back.' : 'Starts as the maximum order. Type the amount you will order.';
+  const tipOf = (r, f) => f.sk ? 'Taken out of the order. Tick it to put it back.' : f.oe ? 'Typed in' + (whoTxt(r.key) ? ' by ' + whoTxt(r.key) : '') + '. The minimum order is ' + nu(r.qm) + '. Clear it to go back.' : 'Starts as the minimum order. Type the amount you will order (up to the maximum if you want more).';
   // Match order lines to plan rows by salon + barcode (the first 12 digits, the last part of the plan row's key), else by salon + product name. A line is counted once.
   function build(plan) {
     const lines = S.lines.map((x, i) => ({ i, b: x[0], bc: String(x[1] || '').replace(/\D/g, '').slice(0, 12), p: String(x[2] || ''), u: +x[3] || 0, no: x[4] || '', od: x[5] || '', used: false }));
@@ -282,7 +282,7 @@
     if (cn != null) r = Object.assign({}, r, { s0: r.s, s: +cn, neg: false, noshelf: false });
     const bk = S.dem && S.dem[r.b], col = !!(bk && bk.ok && isCol(r.cat)), on = dm === 'book' && col, f = on ? bk.f : 1, fw = on ? fSum(bk, C) : C;
     const raw = r.mn * fw, trig = on ? Math.round(raw) : raw, cush = Math.max(r.mx - r.mn, 0), tgt = trig + cush, have = r.s + r.i, q = have < trig ? tgt - have : 0, qm = have < trig ? trig - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
-    const od = ordOf(r.key, q);   // Quantity: the amount typed in, else the maximum order; 0 when the product is ticked off
+    const od = ordOf(r.key, qm);   // Quantity: the amount typed in, else the maximum order; 0 when the product is ticked off
     return Object.assign({}, r, { C, col, f, fw, trig, cush, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st, ov: od.ov, o: od.o, oa: od.o * r.c, oe: od.oe, sk: od.sk, cn: cn != null, s0: cn != null ? r.s0 : r.s, vf: !!S.verified[r.key] });
   }
   function all(dm) {
@@ -331,15 +331,18 @@
   const fig = (txt, f, sal, sup) => { const rs = groupRows(f, sal, sup); return rs.length ? num(txt, rowsSpec(gTitle(f, sal, sup), rs, slug('oos-' + f + (sal ? '-' + sal : '') + (sup ? '-' + sup : '')), f === 'sup', f === 'sup' ? all().filter(r => (sal ? r.b === sal : inSel(r.b)) && r.sup === sup && lowOf(r)) : null, f === 'sup' ? sup : '')) : txt; };
   // Email the order to the supplier (Kate, 26 Nov 2026: "lagyan mo ng email to dbd beh hanapin mo na lang emails ng dbd"). The addresses are the ones the Tara Rose info@ mailbox really sent the DBD orders to in
   // Nov 2026 (ORDER FOR SAADIYAT / MOTORCITY / KHALIFA CITY A BRANCH, Al Quoz Branch - Order Forms): Margie Jala (invoicing since Reina left, 3 Jun 2026), Mohamed Abassi, Bassam Moujalli and Jonnah Rodilla;
-  // ate Tine (Cristine) copied as she was on the Saadiyat orders. Mandy Loewigt (account manager) and Asmaa are on some threads only, so they are not in the default. The button OPENS a Gmail draft
+  // ate Tine (Cristine) copied as she was on the Saadiyat orders. Mandy Loewigt (account manager) was added after the 26 Nov meeting with ate Tine, who sends every order to Bassam, Mandy, Mohamed (Abasi), Margie (Marcy) and Jonnah (Jona) and copies her own work Gmail so she sees the replies away from the salon; Asmaa she adds only sometimes, so she is not in the default. The button OPENS a Gmail draft
   // from info@ for the person to read and send; the page never sends anything. The order is read from the page at the click, so typed quantities and ticked-off products are in it.
-  const SUP_MAIL = { DBD: { from: 'info@tararosesalon.com', to: ['margie.j@dbdholding.com', 'mohamed.a@dbdholding.com', 'bassam.m@dbdholding.com', 'jonnah.r@dbdholding.com'], cc: ['cristine.tararose@gmail.com'] } };
+  const SUP_MAIL = { DBD: { from: 'info@tararosesalon.com', to: ['bassam.m@dbdholding.com', 'mandy.l@dbdholding.com', 'mohamed.a@dbdholding.com', 'margie.j@dbdholding.com', 'jonnah.r@dbdholding.com'], cc: ['cristine.tararose@gmail.com'] } };
   function orderMail(sup, keys) {
-    const rs = all().filter(r => keys[r.key] && r.o > 0).sort((a, b) => SALORD[a.b] - SALORD[b.b] || (a.type === b.type ? 0 : a.type === 'Retail' ? -1 : 1) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    const fam = r => r.brand === 'Schwarzkopf' ? 'SKP' : String(r.brand).toUpperCase();   // DBD's order forms are one per family and stock type: ABC, Caviar, SKP, each retail and professional
+    const rs = all().filter(r => keys[r.key] && r.o > 0).sort((a, b) => SALORD[a.b] - SALORD[b.b] || fam(a).localeCompare(fam(b)) || (a.type === b.type ? 0 : a.type === 'Retail' ? -1 : 1) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     const sals = B.filter(c => rs.some(r => r.b === c)), pc = n => nu(n) + (n === 1 ? 'PC' : 'PCS');
     const parts = sals.map(c => {
-      const mine = rs.filter(r => r.b === c), kind = t => { const g = mine.filter(r => r.type === t); return g.length ? t.toUpperCase() + ' ORDERS:\n' + g.map(r => r.name.toUpperCase() + ' - ' + pc(r.o)).join('\n') : ''; };
-      return (sals.length > 1 ? BN[c].toUpperCase() + ' BRANCH\n\n' : '') + [kind('Retail'), kind('Professional')].filter(Boolean).join('\n\n');
+      const mine = rs.filter(r => r.b === c), heads = [];
+      mine.forEach(r => { const h = fam(r) + ' ' + r.type.toUpperCase() + ' ORDERS'; if (heads.indexOf(h) < 0) heads.push(h); });
+      const body = heads.map(h => h + ':\n' + mine.filter(r => fam(r) + ' ' + r.type.toUpperCase() + ' ORDERS' === h).map(r => r.name.toUpperCase() + ' - ' + pc(r.o)).join('\n')).join('\n\n');
+      return (sals.length > 1 ? BN[c].toUpperCase() + ' BRANCH\n\n' : '') + body;
     });
     const where = sals.length === 1 ? 'our order for the ' + BN[sals[0]].toUpperCase() + ' branch' : 'our orders';
     const text = 'Hello,\n\nGood day! Please see ' + where + ' below. Kindly let us know if any items on this order are OUT OF STOCK.\n\n' + parts.join('\n\n----\n\n') + '\n\nThank you,\nTara Rose Salon';
@@ -365,7 +368,7 @@
     const fresh = key => all().filter(x => x.key === key)[0] || byKey[key];
     // every figure that can change when a count, a quantity or a tick is saved
     const fill = (row, r) => {
-      const f = ordOf(r.key, r.q), d = prodSpec(r, 'how'), on = r.lines.length ? prodSpec(r, 'orders') : null;
+      const f = ordOf(r.key, r.qm), d = prodSpec(r, 'how'), on = r.lines.length ? prodSpec(r, 'orders') : null;
       row.st = row._sh ? stX(r) : stTxt(r); row.in = r.s; row.on = r.i; row.q = r.q; row.qm = r.qm; row.am = Math.round(r.am * 100) / 100; row.a = Math.round(r.aed * 100) / 100;
       row.o = f.ov; row.ix = f.sk ? 0 : 1; row.oa = Math.round(f.o * r.c * 100) / 100; row.ct = r.cn ? r.s : ''; row.vf = r.vf ? 1 : 0;
       row._oe = f.oe; row._cls = f.sk ? 'oos-skip' : ''; row._tip = tipOf(r, f);
@@ -382,7 +385,7 @@
       loaded.forEach(res => { res.rows.forEach(x => { if (x._ek === key) fill(x, r); }); footOf(res); });
     };
     const mk = res => { res.onEdit = onEdit; loaded.push(res); footOf(res); return res; };
-    const ordNote = (S.canEdit ? ' <b>Quantity</b> starts as the maximum order: type the amount you will really order (clear the box to go back), and untick <b>In order</b> to take a product out. The totals, the supplier table and the downloads follow.' + ' <b>Counted</b>: type the number really on the shelf and the order is worked out from it instead of the Stock List figure (it also ticks <b>Verified</b>); tick <b>Verified</b> when the Stock List figure is right.' : ' <b>Quantity</b> is the amount that will be ordered: the maximum order, unless someone typed another amount or took the product out. <b>Counted</b> is a shelf count typed by hand, and <b>Verified</b> says someone checked the figure.');
+    const ordNote = (S.canEdit ? ' <b>Quantity</b> starts as the minimum order: type the amount you will really order (clear the box to go back), and untick <b>In order</b> to take a product out. The totals, the supplier table and the downloads follow.' + ' <b>Counted</b>: type the number really on the shelf and the order is worked out from it instead of the Stock List figure (it also ticks <b>Verified</b>); tick <b>Verified</b> when the Stock List figure is right.' : ' <b>Quantity</b> is the amount that will be ordered: the minimum order, unless someone typed another amount or took the product out. <b>Counted</b> is a shelf count typed by hand, and <b>Verified</b> says someone checked the figure.');
     const colsQ = [{ k: 'o', l: 'Quantity', t: 'num', edit: S.canEdit, sum: sumO }, { k: 'ix', l: 'In order', t: 'yn', check: S.canEdit, edit: S.canEdit }];
     const colsC = [{ k: 'ct', l: 'Counted', t: 'num', edit: S.canEdit }, { k: 'vf', l: 'Verified', t: 'yn', check: S.canEdit, edit: S.canEdit }];
     const sheetView = { id: 'sheet', label: 'Order sheet', load: async () => {
@@ -390,7 +393,7 @@
       const rs = allr.slice().sort((x, y) => (multi ? SALORD[x.b] - SALORD[y.b] : 0) || x.cat.localeCompare(y.cat, undefined, { sensitivity: 'base' }) || x.name.localeCompare(y.name, undefined, { sensitivity: 'base' }) || x.brand.localeCompare(y.brand));
       const dr = rs.map(r => { const row = { s: BN[r.b], br: r.brand, ca: r.cat, p: r.name, c: Math.round(r.c * 100) / 100, mn: r.mn, mx: r.mx, _ek: r.key, _sh: 1 }; fill(row, r); return row; });
       return mk({ cols: (multi ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'br', l: 'Brand' }, { k: 'ca', l: 'Category' }, { k: 'p', l: 'Name' }, { k: 'c', l: 'Cost (AED)', t: 'num' }, { k: 'st', l: 'Status' },
-          { k: 'in', l: 'Stock', t: 'num' }], colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'mx', l: 'Max', t: 'num' }, { k: 'q', l: 'Suggested (max order)', t: 'num' }], colsQ, [{ k: 'oa', l: 'Quantity AED', t: 'aed' }]),
+          { k: 'in', l: 'Stock', t: 'num' }], colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'mx', l: 'Max', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' }], colsQ, [{ k: 'oa', l: 'Quantity AED', t: 'aed' }]),
         rows: dr, foot: { p: 'Total: ' + plural(rs.length, 'product') + (extra && extra.length ? ' (' + n0(extra.length) + ' low stock, not due by the rule)' : '') },
         note: 'The products of this order, A to Z by category and then name.' + (extra && extra.length ? ' <b>Low stock</b> lines are at or under Min but not ordered by the rule: type a Quantity to add one to the order.' : '') + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.') });
     } };
@@ -430,7 +433,7 @@
         ['Order up to (maximum)', nu(r.tgt) + ' (the order point ' + nu(r.trig) + ' + the plan\'s cushion ' + nu(r.cush) + ' = Max ' + nu(r.mx) + ' - Min ' + nu(r.mn) + ')'],
         ['Minimum order', nu(r.qm) + ' units, to reach ' + nu(r.trig) + (r.col && S.dm === 'book' ? ' (the order point, in whole units)' : ' (Min x ' + r.C + ')')],
         ['Maximum order', nu(r.q) + ' units, up to ' + nu(r.tgt) + ' (order point + cushion)'],
-        ['Quantity to order', r.sk ? '0 units: taken out of the order (the box holds ' + nu(r.ov) + ')' : r.oe ? nu(r.o) + ' units, typed in' + (whoTxt(r.key) ? ' by ' + whoTxt(r.key) : '') + ' on the order list (the calculated maximum is ' + nu(r.q) + ')' : nu(r.o) + ' units, the maximum order (nothing typed in)'],
+        ['Quantity to order', r.sk ? '0 units: taken out of the order (the box holds ' + nu(r.ov) + ')' : r.oe ? nu(r.o) + ' units, typed in' + (whoTxt(r.key) ? ' by ' + whoTxt(r.key) : '') + ' on the order list (the minimum order is ' + nu(r.qm) + ')' : nu(r.o) + ' units, the minimum order (nothing typed in)'],
         ['Cost a unit, Stock List', r.nocost ? 'No cost on the plan yet, counted as 0' : 'AED ' + r.c.toFixed(2)]];
       return { cols: [{ k: 'step', l: 'Step' }, { k: 'fig', l: 'Figure' }],
         rows: steps.map((x, i) => ({ step: x[0], fig: x[1], _dn: i === 1 && ordSpec ? { fig: ordSpec } : (x[2] ? { fig: x[2] } : null) })),
@@ -643,7 +646,7 @@
       <div class="oos-card oos-tcell"><table id="oosTbl"></table></div>
       <div class="oos-pager"><span id="oosPgTxt"></span><span class="oos-sp"></span><span class="slv-eyebrow">Rows</span><select id="oosRows" aria-label="Rows per page"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
         <button type="button" class="cm-pill" id="oosPrev">‹ Previous</button><span class="oos-pgn" id="oosPgN"></span><button type="button" class="cm-pill" id="oosNext">Next ›</button></div>
-      <p class="oos-hint">The page shows 10 rows to start with; pick 20, 50 or 100. Every column has a heading menu: sort, filter by condition or tick the values you want.${S.canEdit ? ' <b>Quantity</b> starts as the maximum order: type the amount you will really order and untick <b>In order</b> to take a product out. <b>Low stock</b> shows the products at or under Min that the rule does not order: type a Quantity to add one. The totals, the supplier table and the downloads follow. It is the same for everyone until the order goes out on Monday. <b>Counted</b> is the number really on the shelf: it replaces the Stock List figure for this order and ticks <b>Verified</b>; tick <b>Verified</b> alone when the Stock List figure is right. In <b>4 Order by supplier</b>, a supplier opens its order the way Phorest lists it.' : ' <b>Quantity</b> is the amount that will be ordered: the maximum order, unless someone typed another amount or took the product out.'}</p>
+      <p class="oos-hint">The page shows 10 rows to start with; pick 20, 50 or 100. Every column has a heading menu: sort, filter by condition or tick the values you want.${S.canEdit ? ' <b>Quantity</b> starts as the minimum order: type the amount you will really order and untick <b>In order</b> to take a product out. <b>Low stock</b> shows the products at or under Min that the rule does not order: type a Quantity to add one. The totals, the supplier table and the downloads follow. It is the same for everyone until the order goes out on Monday. <b>Counted</b> is the number really on the shelf: it replaces the Stock List figure for this order and ticks <b>Verified</b>; tick <b>Verified</b> alone when the Stock List figure is right. In <b>4 Order by supplier</b>, a supplier opens its order the way Phorest lists it.' : ' <b>Quantity</b> is the amount that will be ordered: the minimum order, unless someone typed another amount or took the product out.'}</p>
       <p class="oos-hint" id="oosEdMsg" role="status" hidden></p>
     </section>
 
@@ -976,7 +979,7 @@
       { key: 'ct', label: 'Counted on the shelf', fmt: 'num' }, { key: 'vf', label: 'Shelf figure verified', fmt: 'text' }];
     const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, (r.col && S.dm === 'book' ? r2(r.fw) : r.C), r.tgt, r1(r.cov), r.qm, r.q, r2(r.c), r2(r.am), r2(r.aed), r.sk ? 'No' : 'Yes', r.o, r.oe ? 'Yes' : '', r2(r.oa), r.cn ? r.s : null, r.vf ? 'Yes' : 'No'] }));
     return { name: 'Order list', title: 'Out of Stock: the order list', subtitle: subtitle() + '.', blocks: [{ cols, rows: lines }],
-      legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to the order point + the plan\'s cushion (Max - Min), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Quantity', 'The amount that will be ordered: the maximum order, unless an amount was typed in for the product on the page (Quantity typed in = Yes). 0 when the product was taken out (In the order = No).'], ['Counted on the shelf', 'A shelf count typed by hand. When there is one, the order is worked out from it and the In stock column holds it. Shelf figure verified = Yes when someone ticked it or typed a count.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
+      legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to the order point + the plan\'s cushion (Max - Min), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Quantity', 'The amount that will be ordered: the minimum order, unless an amount was typed in for the product on the page (Quantity typed in = Yes). 0 when the product was taken out (In the order = No).'], ['Counted on the shelf', 'A shelf count typed by hand. When there is one, the order is worked out from it and the In stock column holds it. Shelf figure verified = Yes when someone ticked it or typed a count.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
   }
   function supSheet() {
     if (!S.rows || !TS) return null;
