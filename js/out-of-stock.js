@@ -47,7 +47,7 @@
   const PRIOS = { A: ['A'], AB: ['A', 'B'] };
   const S = { rows: null, lines: [], ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, stamp: '', planAt: null, refreshedAt: null, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
     prio: 'A', cover: 0, filt: 'all', hk: 'qty', ak: 'rule', built: false, ro: null, dem: null, demInfo: null, dm: 'book', ai: {}, demAll: null,
-    edits: {}, skips: {}, editWho: {}, canEdit: false, editDay: '', eds: 0, edSig: '', dirty: false };   // edits / skips: what was typed in or ticked off for this order day, by plan row key (oos_order_edits_get)
+    edits: {}, skips: {}, counts: {}, verified: {}, editWho: {}, canEdit: false, editDay: '', eds: 0, edSig: '', dirty: false };   // edits / skips: what was typed in or ticked off for this order day, by plan row key (oos_order_edits_get)
   let TO = null, TS = null, TB = null, memoM = {};
 
   // ── small helpers ────────────────────────────────────────────────────────────────────
@@ -150,16 +150,16 @@
   // for products para mawala or i include sa order"). Kept in oos_order_edits per order day (the Monday the order goes out), the same for everyone who opens the page; only those who may edit the
   // Weekly Product Plan can change them. Quantity = the amount typed in, else the maximum order; a product ticked off counts as 0 in the order (what was typed is kept in case it is put back).
   function applyEdits(d) {
-    if (d && !d.denied) { S.edits = d.edits || {}; S.skips = d.skips || {}; S.editWho = d.who || {}; S.canEdit = !!d.can_edit; S.editDay = d.day || ''; }
-    else { S.edits = {}; S.skips = {}; S.editWho = {}; S.canEdit = false; S.editDay = ''; }
-    S.edSig = JSON.stringify([S.editDay, S.edits, S.skips]);
+    if (d && !d.denied) { S.edits = d.edits || {}; S.skips = d.skips || {}; S.counts = d.counts || {}; S.verified = d.verified || {}; S.editWho = d.who || {}; S.canEdit = !!d.can_edit; S.editDay = d.day || ''; }
+    else { S.edits = {}; S.skips = {}; S.counts = {}; S.verified = {}; S.editWho = {}; S.canEdit = false; S.editDay = ''; }
+    S.edSig = JSON.stringify([S.editDay, S.edits, S.skips, S.counts, S.verified]);
   }
   const whoTxt = k => { const w = S.editWho[k]; return !w ? '' : w === 'you' ? 'you' : String(w).split('@')[0]; };
   // ov = the amount in the box, sk = ticked off, o = what counts in the order
   function ordOf(key, q) { const ed = S.edits[key], oe = ed != null, sk = !!S.skips[key], ov = oe ? +ed : q; return { oe, sk, ov, o: sk ? 0 : ov }; }
   // a whole number, 0 or more; '' = put the calculated amount back (null); NaN = not a number
   function parseQty(t) { t = String(t == null ? '' : t).trim(); if (t === '') return null; const n = Math.round(+t); return (isFinite(n) && n >= 0 && n <= 100000) ? n : NaN; }
-  const sigNow = () => { S.edSig = JSON.stringify([S.editDay, S.edits, S.skips]); };
+  const sigNow = () => { S.edSig = JSON.stringify([S.editDay, S.edits, S.skips, S.counts, S.verified]); };
   async function commitSkip(key, skip) {
     if (!!S.skips[key] === !!skip) return false;
     const r = await sb.rpc('oos_order_skip_set', { p_key: key, p_skip: !!skip });
@@ -185,6 +185,30 @@
     if (v != null && S.skips[key]) await commitSkip(key, false);
     return true;
   }
+  // The shelf figure can be counted and verified (Kate, 26 Nov 2026: ate Tine says the stock shown is not always accurate, "need sya i verify lagi"): Counted = the number really on the shelf, used instead of the Stock List
+  // figure for this order (typing one also verifies the product); Verified = someone checked the figure, with who and when. Kept per order day in oos_stock_counts. Nothing in Phorest's data is changed.
+  const vfWho = v => !v ? '' : v.by === 'you' ? ' by you' : v.by ? ' by ' + String(v.by).split('@')[0] : '';
+  const vfTip = r => { const v = S.verified[r.key]; return v ? 'Verified' + vfWho(v) + (v.at ? ', ' + fdt(v.at) : '') : 'Not verified yet. Tick when the shelf figure has been checked.'; };
+  async function commitCount(key, v) {
+    const cur = all().filter(r => r.key === key)[0];
+    if (cur && ((v == null && !cur.cn) || (v != null && cur.cn && v === cur.s && cur.vf))) return false;
+    const r = await sb.rpc('oos_count_set', { p_key: key, p_counted: v });
+    if (r.error) throw r.error;
+    if (r.data && r.data.denied) throw new Error('not allowed');
+    if (v == null) delete S.counts[key]; else { S.counts[key] = v; S.verified[key] = { by: 'you', at: new Date().toISOString() }; }
+    S.eds++; memoM = {}; sigNow(); S.dirty = true;
+    return true;
+  }
+  async function commitVerify(key, on) {
+    if (!!S.verified[key] === !!on) return false;
+    const r = await sb.rpc('oos_verify_set', { p_key: key, p_verified: !!on });
+    if (r.error) throw r.error;
+    if (r.data && r.data.denied) throw new Error('not allowed');
+    if (on) S.verified[key] = { by: 'you', at: new Date().toISOString() }; else delete S.verified[key];
+    S.eds++; memoM = {}; sigNow(); S.dirty = true;
+    return true;
+  }
+  const vfLine = () => { const lr = orderRows(), nv = lr.filter(r => r.vf).length; return '<b>Shelf figures verified:</b> ' + n0(nv) + ' of ' + n0(lr.length) + ' on this list. The rest are the Stock List as it was read: check them before the order goes out.'; };
   function refreshLists() { S.dirty = false; if (!TO || !S.built) return; TO.draw(); paintW2(); TS.draw(); paintW3(); }
   const edMsg = t => { const m = $('oosEdMsg'); if (m) { m.textContent = t || ''; m.hidden = !t; } };
   const tipOf = (r, f) => f.sk ? 'Taken out of the order. Tick it to put it back.' : f.oe ? 'Typed in' + (whoTxt(r.key) ? ' by ' + whoTxt(r.key) : '') + '. The calculated maximum is ' + nu(r.q) + '. Clear it to go back.' : 'Starts as the maximum order. Type the amount you will order.';
@@ -254,10 +278,12 @@
   // target = trig + the plan's cushion (Max - Min, never below 0), have = shelf + on order. When have is under trig: maximum order q = target - have, minimum order qm = trig - have.
   // So Max is never below Min x weeks and the gap stays what the plan sets. At 1 week for a product that is not scaled, trig = Min and the target is Max, as it always was.
   function enrich(r, C, dm) {
+    const cn = S.counts[r.key];   // counted on the shelf: used instead of the Stock List figure
+    if (cn != null) r = Object.assign({}, r, { s0: r.s, s: +cn, neg: false, noshelf: false });
     const bk = S.dem && S.dem[r.b], col = !!(bk && bk.ok && isCol(r.cat)), on = dm === 'book' && col, f = on ? bk.f : 1, fw = on ? fSum(bk, C) : C;
     const raw = r.mn * fw, trig = on ? Math.round(raw) : raw, cush = Math.max(r.mx - r.mn, 0), tgt = trig + cush, have = r.s + r.i, q = have < trig ? tgt - have : 0, qm = have < trig ? trig - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
     const od = ordOf(r.key, q);   // Quantity: the amount typed in, else the maximum order; 0 when the product is ticked off
-    return Object.assign({}, r, { C, col, f, fw, trig, cush, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st, ov: od.ov, o: od.o, oa: od.o * r.c, oe: od.oe, sk: od.sk });
+    return Object.assign({}, r, { C, col, f, fw, trig, cush, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st, ov: od.ov, o: od.o, oa: od.o * r.c, oe: od.oe, sk: od.sk, cn: cn != null, s0: cn != null ? r.s0 : r.s, vf: !!S.verified[r.key] });
   }
   function all(dm) {
     dm = dm || S.dm;
@@ -273,7 +299,7 @@
   const listed = r => r.q > 0 || r.oe || r.sk;   // in the order list: it needs one, or an amount was typed in for it, or it was ticked off (so it can be put back)
   const stX = r => (r.q > 0 || r.s <= 0) ? stTxt(r) : (r.s <= r.mn ? 'Low stock' : 'Not due');   // Low stock = the shelf is at or under Min but the rule does not order it
   const lowOf = r => r.s > 0 && r.s <= r.mn && !listed(r);
-  const stTxt = r => r.st === 'out' ? (r.i > 0 ? 'Out, ' + nu(r.i) + ' on order' : 'Out now') : r.st === 'u1' ? 'Under 1 week' : 'Under ' + wk(r.C);
+  const stTxt = r => r.st === 'out' ? (r.noshelf ? 'Not on Stock List, check shelf' : r.neg ? 'Minus on the list, check shelf' : r.i > 0 ? 'Out, ' + nu(r.i) + ' on order' : 'Out now') : r.st === 'u1' ? 'Under 1 week' : 'Under ' + wk(r.C);
   function salTot(c) {
     const rs = all().filter(r => r.b === c), o = rs.filter(r => r.q > 0);
     return { n: o.length, out: rs.filter(r => r.s <= 0).length, u1: o.filter(r => r.s > 0 && r.have < r.mn).length, aed: sum(o, 'aed'), units: sum(o, 'q'), aedm: sum(o, 'am'), unitsm: sum(o, 'qm') };
@@ -309,37 +335,45 @@
   function rowsSpec(title, rows, sk, sheet, extra) {
     const C = cover(), byKey = {}, loaded = [];
     rows.concat(extra || []).forEach(r => { byKey[r.key] = r; });
-    const fill = (row, r) => { const f = ordOf(r.key, r.q); row.o = f.ov; row.ix = f.sk ? 0 : 1; row.oa = Math.round(f.o * r.c * 100) / 100; row._oe = f.oe; row._cls = f.sk ? 'oos-skip' : ''; row._tip = tipOf(r, f); };
+    const fresh = key => all().filter(x => x.key === key)[0] || byKey[key];
+    // every figure that can change when a count, a quantity or a tick is saved
+    const fill = (row, r) => {
+      const f = ordOf(r.key, r.q), d = prodSpec(r, 'how'), on = r.lines.length ? prodSpec(r, 'orders') : null;
+      row.st = row._sh ? stX(r) : stTxt(r); row.in = r.s; row.on = r.i; row.q = r.q; row.qm = r.qm; row.am = Math.round(r.am * 100) / 100; row.a = Math.round(r.aed * 100) / 100;
+      row.o = f.ov; row.ix = f.sk ? 0 : 1; row.oa = Math.round(f.o * r.c * 100) / 100; row.ct = r.cn ? r.s : ''; row.vf = r.vf ? 1 : 0;
+      row._oe = f.oe; row._cls = f.sk ? 'oos-skip' : ''; row._tip = tipOf(r, f);
+      row._dn = Object.assign({ p: d, in: d, mn: d, qm: d, am: d, mx: d, q: d, a: d, oa: d }, on ? { on } : {});
+    };
     const sumO = x => x.ix ? (+x.o || 0) : 0;
-    const footOf = res => { res.foot.o = res.rows.reduce((a, x) => a + sumO(x), 0); res.foot.oa = Math.round(res.rows.reduce((a, x) => a + (+x.oa || 0), 0) * 100) / 100; };
+    const footOf = res => { const rs = res.rows, t = k => rs.reduce((a, x) => a + (+x[k] || 0), 0); res.foot.o = rs.reduce((a, x) => a + sumO(x), 0); res.foot.oa = Math.round(t('oa') * 100) / 100; ['qm', 'am', 'q', 'a'].forEach(k => { if (k in res.foot) res.foot[k] = Math.round(t(k) * 100) / 100; }); };
     const onEdit = async (row, k, val) => {
-      const r = byKey[row._ek]; if (!r) return;
-      if (k === 'ix') await commitSkip(row._ek, val === '0');
-      else { const v = parseQty(val); if (v !== v) throw new Error('not a number'); await commitEdit(row._ek, v); }
-      loaded.forEach(res => { res.rows.forEach(x => { if (x._ek === row._ek) fill(x, r); }); footOf(res); });
+      const key = row._ek; if (!byKey[key]) return;
+      if (k === 'ix') await commitSkip(key, val === '0');
+      else if (k === 'vf') await commitVerify(key, val === '1');
+      else { const v = parseQty(val); if (v !== v) throw new Error('not a number'); if (k === 'ct') await commitCount(key, v); else await commitEdit(key, v); }
+      const r = fresh(key); byKey[key] = r;
+      loaded.forEach(res => { res.rows.forEach(x => { if (x._ek === key) fill(x, r); }); footOf(res); });
     };
     const mk = res => { res.onEdit = onEdit; loaded.push(res); footOf(res); return res; };
-    const ordNote = S.canEdit ? ' <b>Quantity</b> starts as the maximum order: type the amount you will really order (clear the box to go back), and untick <b>In order</b> to take a product out. The totals, the supplier table and the downloads follow.' : ' <b>Quantity</b> is the amount that will be ordered: the maximum order, unless someone typed another amount or took the product out.';
+    const ordNote = (S.canEdit ? ' <b>Quantity</b> starts as the maximum order: type the amount you will really order (clear the box to go back), and untick <b>In order</b> to take a product out. The totals, the supplier table and the downloads follow.' + ' <b>Counted</b>: type the number really on the shelf and the order is worked out from it instead of the Stock List figure (it also ticks <b>Verified</b>); tick <b>Verified</b> when the Stock List figure is right.' : ' <b>Quantity</b> is the amount that will be ordered: the maximum order, unless someone typed another amount or took the product out. <b>Counted</b> is a shelf count typed by hand, and <b>Verified</b> says someone checked the figure.');
     const colsQ = [{ k: 'o', l: 'Quantity', t: 'num', edit: S.canEdit, sum: sumO }, { k: 'ix', l: 'In order', t: 'yn', check: S.canEdit, edit: S.canEdit }];
+    const colsC = [{ k: 'ct', l: 'Counted', t: 'num', edit: S.canEdit }, { k: 'vf', l: 'Verified', t: 'yn', check: S.canEdit, edit: S.canEdit }];
     const sheetView = { id: 'sheet', label: 'Order sheet', load: async () => {
       const allr = rows.concat(extra || []), multi = new Set(allr.map(r => r.b)).size > 1;
       const rs = allr.slice().sort((x, y) => (multi ? SALORD[x.b] - SALORD[y.b] : 0) || x.cat.localeCompare(y.cat, undefined, { sensitivity: 'base' }) || x.name.localeCompare(y.name, undefined, { sensitivity: 'base' }) || x.brand.localeCompare(y.brand));
-      const dr = rs.map(r => { const d = prodSpec(r, 'how'), row = { s: BN[r.b], br: r.brand, ca: r.cat, p: r.name, c: Math.round(r.c * 100) / 100, st: stX(r), in: r.s, on: r.i, mn: r.mn, mx: r.mx, q: r.q, oa: 0, _ek: r.key, _dn: { p: d, in: d, mn: d, mx: d, q: d, oa: d } }; fill(row, r); return row; });
+      const dr = rs.map(r => { const row = { s: BN[r.b], br: r.brand, ca: r.cat, p: r.name, c: Math.round(r.c * 100) / 100, mn: r.mn, mx: r.mx, _ek: r.key, _sh: 1 }; fill(row, r); return row; });
       return mk({ cols: (multi ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'br', l: 'Brand' }, { k: 'ca', l: 'Category' }, { k: 'p', l: 'Name' }, { k: 'c', l: 'Cost (AED)', t: 'num' }, { k: 'st', l: 'Status' },
-          { k: 'in', l: 'Stock', t: 'num' }, { k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'mx', l: 'Max', t: 'num' }, { k: 'q', l: 'Suggested (max order)', t: 'num' }], colsQ, [{ k: 'oa', l: 'Quantity AED', t: 'aed' }]),
+          { k: 'in', l: 'Stock', t: 'num' }], colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'mx', l: 'Max', t: 'num' }, { k: 'q', l: 'Suggested (max order)', t: 'num' }], colsQ, [{ k: 'oa', l: 'Quantity AED', t: 'aed' }]),
         rows: dr, foot: { p: 'Total: ' + plural(rs.length, 'product') + (extra && extra.length ? ' (' + n0(extra.length) + ' low stock, not due by the rule)' : '') },
         note: 'The products of this order, A to Z by category and then name.' + (extra && extra.length ? ' <b>Low stock</b> lines are at or under Min but not ordered by the rule: type a Quantity to add one to the order.' : '') + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.') });
     } };
     const prodView = { id: 'products', label: sheet ? 'Counts and AED' : 'Products', load: async () => {
-      const dr = rows.map(r => { const d = prodSpec(r, 'how'), o = prodSpec(r, 'orders');
-        const row = { p: r.name, br: r.brand, s: BN[r.b], ty: r.type, pr: r.prio, st: stTxt(r), in: r.s, on: r.i, mn: r.mn, qm: r.qm, am: Math.round(r.am * 100) / 100, q: r.q, a: Math.round(r.aed * 100) / 100, oa: 0, _ek: r.key,
-          _dn: Object.assign({ p: d, in: d, mn: d, qm: d, am: d, q: d, a: d, oa: d }, r.lines.length ? { on: o } : {}) };
-        fill(row, r); return row; });
+      const dr = rows.map(r => { const row = { p: r.name, br: r.brand, s: BN[r.b], ty: r.type, pr: r.prio, mn: r.mn, _ek: r.key }; fill(row, r); return row; });
       return mk({
         cols: [{ k: 'p', l: 'Product' }, { k: 'br', l: 'Brand' }, { k: 's', l: 'Salon' }, { k: 'ty', l: 'Type' }, { k: 'pr', l: 'Priority' }, { k: 'st', l: 'Status' },
-          { k: 'in', l: 'In stock', t: 'num' }, { k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'am', l: 'Min AED', t: 'aed' }, { k: 'q', l: 'Max order', t: 'num' }, { k: 'a', l: 'Max AED', t: 'aed' }].concat(colsQ, [{ k: 'oa', l: 'Order AED', t: 'aed' }]),
+          { k: 'in', l: 'In stock', t: 'num' }].concat(colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'am', l: 'Min AED', t: 'aed' }, { k: 'q', l: 'Max order', t: 'num' }, { k: 'a', l: 'Max AED', t: 'aed' }], colsQ, [{ k: 'oa', l: 'Order AED', t: 'aed' }]),
         rows: dr,
-        foot: { p: 'Total: ' + plural(rows.length, 'product'), qm: sum(rows, 'qm'), am: Math.round(sum(rows, 'am') * 100) / 100, q: sum(rows, 'q'), a: Math.round(sum(rows, 'aed') * 100) / 100 },
+        foot: { p: 'Total: ' + plural(rows.length, 'product'), qm: 0, am: 0, q: 0, a: 0 },
         note: 'Every product is listed with its real counts. Tap a number or a product to see how its order is worked out; On order opens the order lines.' + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.')
       });
     } };
@@ -356,7 +390,8 @@
     const how = { id: 'how', label: 'How the order is worked out', load: async () => {
       const ordSpec = r.lines.length ? prodSpec(r, 'orders') : null;
       const steps = [
-        ['On the shelf', nu(r.s) + (r.neg ? ' (the list shows a minus: stock was used before it was booked in, counted as none)' : '') + (r.noshelf ? ' (not on the Stock List now, counted as none)' : '')],
+        ['On the shelf', (r.cn ? nu(r.s) + ' (counted by hand; the Stock List says ' + nu(r.s0) + ')' : nu(r.s)) + (r.neg ? ' (the list shows a minus: stock was used before it was booked in, counted as none)' : '') + (r.noshelf ? ' (not on the Stock List now, counted as none)' : '')],
+        ['Shelf figure verified', r.vf ? vfTip(r) : 'Not verified yet. It is the Stock List as it was read.'],
         ['On order, not arrived', S.ordersOk ? nu(r.i) + (r.i ? ' units on ' + plural(r.lines.length, 'order line') : '') : 'not loaded yet, counted as 0'],
         ['Shelf and on order together', nu(r.have)],
         ['Min in the Weekly Product Plan (one week of use)', nu(r.mn)],
@@ -580,7 +615,7 @@
       <div class="oos-card oos-tcell"><table id="oosTbl"></table></div>
       <div class="oos-pager"><span id="oosPgTxt"></span><span class="oos-sp"></span><span class="slv-eyebrow">Rows</span><select id="oosRows" aria-label="Rows per page"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
         <button type="button" class="cm-pill" id="oosPrev">‹ Previous</button><span class="oos-pgn" id="oosPgN"></span><button type="button" class="cm-pill" id="oosNext">Next ›</button></div>
-      <p class="oos-hint">The page shows 10 rows to start with; pick 20, 50 or 100. Every column has a heading menu: sort, filter by condition or tick the values you want.${S.canEdit ? ' <b>Quantity</b> starts as the maximum order: type the amount you will really order and untick <b>In order</b> to take a product out. <b>Low stock</b> shows the products at or under Min that the rule does not order: type a Quantity to add one. The totals, the supplier table and the downloads follow. It is the same for everyone until the order goes out on Monday. In <b>4 Order by supplier</b>, a supplier opens its order the way Phorest lists it.' : ' <b>Quantity</b> is the amount that will be ordered: the maximum order, unless someone typed another amount or took the product out.'}</p>
+      <p class="oos-hint">The page shows 10 rows to start with; pick 20, 50 or 100. Every column has a heading menu: sort, filter by condition or tick the values you want.${S.canEdit ? ' <b>Quantity</b> starts as the maximum order: type the amount you will really order and untick <b>In order</b> to take a product out. <b>Low stock</b> shows the products at or under Min that the rule does not order: type a Quantity to add one. The totals, the supplier table and the downloads follow. It is the same for everyone until the order goes out on Monday. <b>Counted</b> is the number really on the shelf: it replaces the Stock List figure for this order and ticks <b>Verified</b>; tick <b>Verified</b> alone when the Stock List figure is right. In <b>4 Order by supplier</b>, a supplier opens its order the way Phorest lists it.' : ' <b>Quantity</b> is the amount that will be ordered: the maximum order, unless someone typed another amount or took the product out.'}</p>
       <p class="oos-hint" id="oosEdMsg" role="status" hidden></p>
     </section>
 
@@ -724,7 +759,10 @@
         tc('s', 'Salon', r => BN[r.b]), tc('ty', 'Type', r => r.type), tc('pr', 'Priority', r => r.prio),
         tc('st', 'Status', stX, 0, r => '<span class="oos-st ' + r.st + '">' + esc(stX(r)) + '</span>'),
         tc('dm', 'Demand', demTxt, 0, r => r.col && S.dm === 'book' ? '<span class="oos-dm">' + num(esc(demTxt(r)), histSpec(r.b)) + '</span>' : '<span class="oos-dm">Normal week</span>'),
-        nc('in', 'In stock', r => r.s), nc('qm', 'Min order', r => r.qm),
+        { k: 'in', l: 'In stock', t: 'num', raw: r => r.s, disp: r => nu(r.s), cell: r => num(nu(r.s), prodSpec(r, 'how')) + (r.cn ? '<span class="oos-sub">counted, Phorest ' + nu(r.s0) + '</span>' : '') },
+        { k: 'ct', l: 'Counted', t: 'num', raw: r => r.cn ? r.s : -1, disp: r => r.cn ? nu(r.s) : '', cell: r => S.canEdit ? `<input type="number" min="0" step="1" inputmode="numeric" class="oos-ct${r.cn ? ' on' : ''}" data-ct="${esc(r.key)}" value="${r.cn ? r.s : ''}" placeholder="${nu(r.s0)}" aria-label="Counted on the shelf, ${esc(r.name)}, ${esc(BN[r.b])}" title="Type the number really on the shelf. It replaces the Stock List figure and ticks Verified.">` : (r.cn ? nu(r.s) : '') },
+        { k: 'vf', l: 'Verified', t: 'txt', raw: r => r.vf ? 'Yes' : 'No', disp: r => r.vf ? 'Yes' : 'No', cell: r => S.canEdit ? `<input type="checkbox" class="oos-ck oos-vk" data-vk="${esc(r.key)}"${r.vf ? ' checked' : ''} aria-label="Verified: ${esc(r.name)}, ${esc(BN[r.b])}" title="${esc(vfTip(r))}">` : (r.vf ? '<span title="' + esc(vfTip(r)) + '">Yes</span>' : 'No') },
+        nc('qm', 'Min order', r => r.qm),
         { k: 'am', l: 'Min AED', t: 'num', raw: r => r.am, disp: r => n0(r.am), cell: r => num(n0(r.am), prodSpec(r, 'how')) },
         nc('q', 'Max order', r => r.q),
         { k: 'a', l: 'Max AED', t: 'num', raw: r => r.aed, disp: r => n0(r.aed), cell: r => num(n0(r.aed), prodSpec(r, 'how')) },
@@ -754,7 +792,7 @@
   }
   function paintW2() {
     const rs = selRows().filter(r => r.s <= 0), none = rs.filter(r => r.i === 0);
-    $('oosW2').innerHTML = ln(fig(n0(rs.length), 'out') + (rs.length === 1 ? ' product has' : ' products have') + ' nothing on the shelf') + ln(none.length === rs.length && rs.length ? 'None of them has anything on order either' : n0(none.length) + ' of them have nothing on order either') + ln('<b>Start the order with those.</b>') + (S.ordersOk ? '' : ln('On order is not loaded yet, so this count is not reliable.'));
+    $('oosW2').innerHTML = ln(fig(n0(rs.length), 'out') + (rs.length === 1 ? ' product has' : ' products have') + ' nothing on the shelf') + ln(none.length === rs.length && rs.length ? 'None of them has anything on order either' : n0(none.length) + ' of them have nothing on order either') + ln('<b>Start the order with those.</b>') + (S.ordersOk ? '' : ln('On order is not loaded yet, so this count is not reliable.')) + ln(vfLine());
   }
 
   // ── 3 BY SUPPLIER ────────────────────────────────────────────────────────────────────
@@ -826,18 +864,20 @@
       const h = e.target.closest('[data-how]'); if (h) { S.hk = h.dataset.how; paintHow(); return; }
       const a = e.target.closest('[data-about]'); if (a) { S.ak = a.dataset.about; paintAbout(); return; }
     });
-    let fkey = null;   // the Quantity box the reader is in: the list is drawn again after a save, and the focus goes back to it
-    host.addEventListener('focusin', e => { const i = e.target.closest && e.target.closest('input.oos-ed'); fkey = i ? i.dataset.ed : null; });
+    let fkey = null;   // the box the reader is in (Quantity or Counted): the list is drawn again after a save, and the focus goes back to it
+    const fkOf = i => i ? (i.dataset.ed ? 'e:' + i.dataset.ed : 'c:' + i.dataset.ct) : null;
+    host.addEventListener('focusin', e => { fkey = fkOf(e.target.closest && e.target.closest('input.oos-ed, input.oos-ct')); });
     new MutationObserver(() => { if (!document.body.classList.contains('dr-open') && S.dirty) refreshLists(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });   // typed or ticked inside a window: the page behind is drawn again when it closes
     host.addEventListener('change', async e => {
-      const ei = e.target.closest && e.target.closest('input.oos-ed'), ck = e.target.closest && e.target.closest('input.oos-ck');
-      if (ei || ck) {
+      const ei = e.target.closest && e.target.closest('input.oos-ed'), ck = e.target.closest && e.target.closest('input.oos-ck:not(.oos-vk)'), ci = e.target.closest && e.target.closest('input.oos-ct'), vk = e.target.closest && e.target.closest('input.oos-vk');
+      if (ei || ck || ci || vk) {
         try {
           if (ck) await commitSkip(ck.dataset.ck, !ck.checked);
-          else { const v = parseQty(ei.value); if (v !== v) edMsg('Type a whole number, 0 or more.'); else { await commitEdit(ei.dataset.ed, v); edMsg(''); } }
-          if (ck) edMsg('');
+          else if (vk) await commitVerify(vk.dataset.vk, vk.checked);
+          else { const x = ci || ei, v = parseQty(x.value); if (v !== v) edMsg('Type a whole number, 0 or more.'); else { if (ci) await commitCount(ci.dataset.ct, v); else await commitEdit(ei.dataset.ed, v); edMsg(''); } }
+          if (ck || vk) edMsg('');
         } catch (x) { console.error(x); edMsg('That was not saved. Try again.'); }
-        setTimeout(() => { refreshLists(); offsets(); const t = fkey && Array.from(host.querySelectorAll('input.oos-ed')).find(y => y.dataset.ed === fkey); if (t) { t.focus(); try { t.select(); } catch (z) {} } }, 60);
+        setTimeout(() => { refreshLists(); offsets(); const t = fkey && Array.from(host.querySelectorAll('input.oos-ed, input.oos-ct')).find(y => fkOf(y) === fkey); if (t) { t.focus(); try { t.select(); } catch (z) {} } }, 60);
         return;
       }
       const id = e.target.id;
@@ -875,9 +915,9 @@
     if (checking || document.hidden || !S.rows || typeof CURRENT_VIEW === 'undefined' || CURRENT_VIEW !== 'outofstock') return;
     checking = true;
     try {
-      if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('oos-ed')) return;   // someone is typing a quantity: not now
+      if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains('oos-ed') || document.activeElement.classList.contains('oos-ct'))) return;   // someone is typing a quantity: not now
       const er = await Promise.resolve(sb.rpc('oos_order_edits_get')).then(x => x, e => ({ error: e }));   // quantities typed in or products ticked off by someone else
-      if (er && !er.error && er.data && !er.data.denied && JSON.stringify([er.data.day || '', er.data.edits || {}, er.data.skips || {}]) !== S.edSig) { applyEdits(er.data); S.eds++; memoM = {}; draw(); }
+      if (er && !er.error && er.data && !er.data.denied && JSON.stringify([er.data.day || '', er.data.edits || {}, er.data.skips || {}, er.data.counts || {}, er.data.verified || {}]) !== S.edSig) { applyEdits(er.data); S.eds++; memoM = {}; draw(); }
       const r = await sb.rpc('oos_plan_stamp'), d = r && !r.error ? r.data : null;
       if (!d || d.denied || !S.stamp || JSON.stringify(d) === S.stamp) return;
       await load(true); S.refreshedAt = new Date().toISOString(); draw();
@@ -904,10 +944,11 @@
       { key: 'cat', label: 'Category', fmt: 'text' }, { key: 'pr', label: 'Priority', fmt: 'text' }, { key: 'st', label: 'Status', fmt: 'text' }, { key: 'in', label: 'In stock', fmt: 'num' }, { key: 'on', label: 'On order', fmt: 'num' },
       { key: 'mn', label: 'Min', fmt: 'num' }, { key: 'mx', label: 'Max', fmt: 'num' }, { key: 'fa', label: 'Colour weeks counted (cover)', fmt: 'num' }, { key: 'tg', label: 'Order up to (order point + cushion)', fmt: 'num' }, { key: 'cv', label: 'Weeks left', fmt: 'num' }, { key: 'qm', label: 'Min order', fmt: 'num' }, { key: 'q', label: 'Max order', fmt: 'num' },
       { key: 'c', label: 'Cost a unit (AED)', fmt: 'aed' }, { key: 'am', label: 'Min AED', fmt: 'aed' }, { key: 'a', label: 'Max AED', fmt: 'aed' },
-      { key: 'ix', label: 'In the order', fmt: 'text' }, { key: 'o', label: 'Quantity (what will be ordered)', fmt: 'num' }, { key: 'oe', label: 'Quantity typed in', fmt: 'text' }, { key: 'oa', label: 'Quantity AED', fmt: 'aed' }];
-    const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, (r.col && S.dm === 'book' ? r2(r.fw) : r.C), r.tgt, r1(r.cov), r.qm, r.q, r2(r.c), r2(r.am), r2(r.aed), r.sk ? 'No' : 'Yes', r.o, r.oe ? 'Yes' : '', r2(r.oa)] }));
+      { key: 'ix', label: 'In the order', fmt: 'text' }, { key: 'o', label: 'Quantity (what will be ordered)', fmt: 'num' }, { key: 'oe', label: 'Quantity typed in', fmt: 'text' }, { key: 'oa', label: 'Quantity AED', fmt: 'aed' },
+      { key: 'ct', label: 'Counted on the shelf', fmt: 'num' }, { key: 'vf', label: 'Shelf figure verified', fmt: 'text' }];
+    const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, (r.col && S.dm === 'book' ? r2(r.fw) : r.C), r.tgt, r1(r.cov), r.qm, r.q, r2(r.c), r2(r.am), r2(r.aed), r.sk ? 'No' : 'Yes', r.o, r.oe ? 'Yes' : '', r2(r.oa), r.cn ? r.s : null, r.vf ? 'Yes' : 'No'] }));
     return { name: 'Order list', title: 'Out of Stock: the order list', subtitle: subtitle() + '.', blocks: [{ cols, rows: lines }],
-      legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to the order point + the plan\'s cushion (Max - Min), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Quantity', 'The amount that will be ordered: the maximum order, unless an amount was typed in for the product on the page (Quantity typed in = Yes). 0 when the product was taken out (In the order = No).'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
+      legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to the order point + the plan\'s cushion (Max - Min), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Quantity', 'The amount that will be ordered: the maximum order, unless an amount was typed in for the product on the page (Quantity typed in = Yes). 0 when the product was taken out (In the order = No).'], ['Counted on the shelf', 'A shelf count typed by hand. When there is one, the order is worked out from it and the In stock column holds it. Shelf figure verified = Yes when someone ticked it or typed a count.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
   }
   function supSheet() {
     if (!S.rows || !TS) return null;
