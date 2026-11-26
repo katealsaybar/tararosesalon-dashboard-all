@@ -731,8 +731,9 @@
         <select id="oosPrio4" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
         <label for="oosCover4">Weeks of cover</label>
         <select id="oosCover4" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
+        <span class="oos-ref4" id="oosRef4"></span>
       </div>
-      <div class="oos-ref4" id="oosRef4"></div>
+      <div class="oos-refmsg4" id="oosRefMsg4" role="status" hidden></div>
       <div class="oos-bar oos-bar-plain"><button type="button" class="cm-pill" id="oosMore3" aria-pressed="false">All columns</button><button type="button" class="cm-pill oos-phone" data-sxcm="oosSup">Sort and filter</button><span class="oos-sp"></span>${typeof rexButtons === 'function' ? rexButtons('oosExportSup') : ''}</div>
       <div class="oos-card"><table id="oosSupTbl"></table></div>
     </details>
@@ -762,7 +763,7 @@
     $('oosCoverT').textContent = 'Order when under the order point (Min x weeks; colour counts each week ahead at its own expected size). ' + (C === usual ? 'This is the usual for today.' : 'Not the usual for today.') + ' Usual: 2 weeks from 15 Nov to 31 Dec, 1 week the rest of the year.';
   }
   // The Refresh stock now button and what it last said: in the Last sync block and again in section 4 (Kate, 26 Nov 2026: "make also available" in Order by supplier). sfx '' = the top one, '4' = section 4.
-  const refHtml = sfx => (sfx ? fresh().text : '') + '<span class="oos-ln"><button type="button" class="cm-pill" id="oosRefresh' + sfx + '"' + (S.refreshing ? ' disabled' : '') + '>' + (S.refreshing ? 'Reading Phorest…' : 'Refresh stock now') + '</button></span>' + (S.refMsg ? '<span class="oos-ln" role="status">' + esc(S.refMsg) + '</span>' : '');
+  const refHtml = sfx => (sfx ? fresh().text : '') + '<span class="oos-ln"><button type="button" class="cm-pill" id="oosRefresh' + sfx + '"' + (S.refreshing ? ' disabled' : '') + '>' + (S.refreshing ? 'Reading Phorest…' : 'Refresh stock now') + '</button></span>' + (S.refMsg && !sfx ? '<span class="oos-ln" role="status">' + esc(S.refMsg) + '</span>' : '');
   function paintAnswer() {
     const cs = S.br, T = cs.map(salTot), aed = sum(T, 'aed'), aedm = sum(T, 'aedm'), out = sum(T, 'out'), n = sum(T, 'n'), f = fresh();
     const a = $('oosAns'), a0 = $('oosAns0'), a2 = $('oosAns2'), a5 = $('oosAns5');
@@ -783,7 +784,8 @@
     const ord = S.ordersOk && S.ordersAt ? ln('<b>Supplier orders not yet delivered:</b> ' + fdt(S.ordersAt)) : '';
     const plc = (S.planAt ? ln('<b>Weekly Product Plan last changed:</b> ' + fdt(S.planAt)) : '') + (S.refreshedAt ? ln('<b>This page refreshed itself:</b> ' + fdt(S.refreshedAt)) : '');
     $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + plc + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.') + refHtml('');
-    const r4 = $('oosRef4'); if (r4) r4.innerHTML = refHtml('4');   // the same button and answer in section 4, beside the shelf date
+    const r4 = $('oosRef4'); if (r4) r4.innerHTML = refHtml('4');
+    const m4 = $('oosRefMsg4'); if (m4) { m4.textContent = S.refMsg || ''; m4.hidden = !S.refMsg; }   // the same button and answer in section 4, beside the shelf date
     const w = $('oosAns4'); w.hidden = S.ordersOk; w.textContent = S.ordersOk ? '' : 'On-order counts are not loaded yet. On order shows 0 for every product, so something that is already on its way can still show as short.';
   }
   // the best example for the page: a product with something on the shelf and something to order, biggest AED first (a real row, never typed in)

@@ -122,7 +122,8 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 .oos-ck{width:20px;height:20px;accent-color:var(--text);cursor:pointer}
 tr.oos-skip td{color:var(--muted2,var(--muted))}
 tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
-.oos-ref4{margin:8px 0 12px}
-.oos-ref4 .oos-ln{display:block;margin:3px 0}
+.oos-ctl4 .oos-ref4{margin-left:24px;display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
+.oos-ref4 .oos-ln{display:inline;margin:0;font-size:14.5px}
+.oos-refmsg4{font-size:14.5px;color:var(--muted);margin:4px 0 10px}
 /* a figure that is 0 is faded (Kate, 26 Nov 2026) */
 #oosTbl td.oos-zero,#oosSupTbl td.oos-zero{opacity:.35}
