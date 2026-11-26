@@ -385,9 +385,9 @@
       loaded.forEach(res => { res.rows.forEach(x => { if (x._ek === key) fill(x, r); }); footOf(res); });
     };
     const mk = res => { res.onEdit = onEdit; loaded.push(res); footOf(res); return res; };
-    const ordNote = (S.canEdit ? ' <b>Quantity</b> starts as the minimum order: type the amount you will really order (clear the box to go back), and untick <b>In order</b> to take a product out. The totals, the supplier table and the downloads follow.' + ' <b>Counted</b>: type the number really on the shelf and the order is worked out from it instead of the Stock List figure (it also ticks <b>Verified</b>); tick <b>Verified</b> when the Stock List figure is right.' : ' <b>Quantity</b> is the amount that will be ordered: the minimum order, unless someone typed another amount or took the product out. <b>Counted</b> is a shelf count typed by hand, and <b>Verified</b> says someone checked the figure.');
+    const ordNote = (S.canEdit ? ' <b>Quantity</b> starts as the minimum order: type the amount you will really order (clear the box to go back), and untick <b>In order</b> to take a product out. The totals, the supplier table and the downloads follow.' : ' <b>Quantity</b> is the amount that will be ordered: the minimum order, unless someone typed another amount or took the product out.');
     const colsQ = [{ k: 'o', l: 'Quantity', t: 'num', edit: S.canEdit, sum: sumO }, { k: 'ix', l: 'In order', t: 'yn', check: S.canEdit, edit: S.canEdit }];
-    const colsC = [{ k: 'ct', l: 'Counted', t: 'num', edit: S.canEdit }, { k: 'vf', l: 'Verified', t: 'yn', check: S.canEdit, edit: S.canEdit }];
+    const colsC = [];   // Kate, 26 Nov 2026: Counted and Verified taken out of this window (they stay on the page's own table)
     const sheetView = { id: 'sheet', label: 'Order sheet', load: async () => {
       const allr = rows.concat(extra || []), multi = new Set(allr.map(r => r.b)).size > 1;
       const rs = allr.slice().sort((x, y) => (multi ? SALORD[x.b] - SALORD[y.b] : 0) || x.cat.localeCompare(y.cat, undefined, { sensitivity: 'base' }) || x.name.localeCompare(y.name, undefined, { sensitivity: 'base' }) || x.brand.localeCompare(y.brand));
