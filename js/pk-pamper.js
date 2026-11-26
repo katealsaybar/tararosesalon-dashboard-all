@@ -201,7 +201,7 @@ function ppPaint() {
   if (!el) return;
   const head = `<div class="ad-top"><div><h1 class="ad-t">Pamper Packages Performance 2025</h1><p class="ad-sub">${ppData ? 'As of ' + ppEsc(ppWhen(ppData.at)) + '. Phorest sales, the ten packages of the two pamper slides posted on Facebook on 24 Apr 2025.' : ''}</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderPamper(true)">Refresh</button>
-    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">All package pages</a></div></div>`;
+    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">Campaigns Directory</a></div></div>`;
   if (ppErr || !ppData) { el.innerHTML = head + `<div class="ad-state">${ppEsc(ppErr || 'No report yet.')}</div>`; ppRail(false); return; }
 
   const rs = ppWr({}), n = rs.length, aed = ppSum(rs, s => s.aed), nc = ppCli(rs);

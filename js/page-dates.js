@@ -124,7 +124,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "glowclub": "2f30491eac",
   "dealsperf": "df16f964a8",
   "coursesperf": "d989b9b796",
-  "pkdir": "c1251ca9d2",
+  "pkdir": "82d23395f7",
   "discountsvouchers": "1cb3abf82b",
   "stylists": "c56becb713",
   "orgchart": "573d65256c"

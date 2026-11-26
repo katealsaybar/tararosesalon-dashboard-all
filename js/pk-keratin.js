@@ -198,7 +198,7 @@ function krPaint() {
   if (!el) return;
   const head = `<div class="ad-top"><div><h1 class="ad-t">Keratin Packages Performance</h1><p class="ad-sub">${krData ? 'As of ' + krEsc(krWhen(krData.at)) + '. Phorest sales, the archived packages of the 1TREATMENT - KERATIN category.' : ''}</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderKeratin(true)">Refresh</button>
-    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">All package pages</a></div></div>`;
+    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">Campaigns Directory</a></div></div>`;
   if (krErr || !krData) { el.innerHTML = head + `<div class="ad-state">${krEsc(krErr || 'No report yet.')}</div>`; krRail(false); return; }
 
   const rs = krWr({}), n = krCnt(rs), aed = krSum(rs, s => s.aed), nc = krCli(rs);

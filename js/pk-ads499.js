@@ -201,7 +201,7 @@ function a4Paint() {
   if (!el) return;
   const head = `<div class="ad-top"><div><h1 class="ad-t">ADS 499 Packages Performance</h1><p class="ad-sub">${a4Data ? 'As of ' + a4Esc(a4When(a4Data.at)) + '. Phorest sales, the three AED 499 packages of the Meta ads (category ADS - PACKAGE).' : ''}</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderAds499(true)">Refresh</button>
-    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">All package pages</a></div></div>`;
+    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">Campaigns Directory</a></div></div>`;
   if (a4Err || !a4Data) { el.innerHTML = head + `<div class="ad-state">${a4Esc(a4Err || 'No report yet.')}</div>`; a4Rail(false); return; }
 
   const rs = a4Wr({}), n = rs.length, aed = a4Sum(rs, s => s.aed), nc = a4Cli(rs);

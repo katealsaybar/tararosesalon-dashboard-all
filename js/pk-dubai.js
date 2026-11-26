@@ -199,7 +199,7 @@ function dubPaint() {
   if (!el) return;
   const head = `<div class="ad-top"><div><h1 class="ad-t">Dubai Daily Deals Performance</h1><p class="ad-sub">${dubData ? 'As of ' + dubEsc(dubWhen(dubData.at)) + '. Phorest sales at Al Quoz and Motor City, the seven offers of the August 2026 Dubai Daily Deals slides.' : ''}</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderDubai(true)">Refresh</button>
-    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">All package pages</a></div></div>`;
+    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">Campaigns Directory</a></div></div>`;
   if (dubErr || !dubData) { el.innerHTML = head + `<div class="ad-state">${dubEsc(dubErr || 'No report yet.')}</div>`; dubRail(false); return; }
 
   const rs = dubWr({}), n = rs.length, aed = dubSum(rs, s => s.aed), nc = dubCli(rs);

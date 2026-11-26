@@ -21,8 +21,8 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=cff43f73"></script>
-<script src="js/page-dates.js?v=040c3e4d"></script>
+<script src="js/pages.js?v=370ed108"></script>
+<script src="js/page-dates.js?v=eb74a642"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3743,13 +3743,13 @@ table.tp-cmp td.bad{color:var(--bad)}
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'js/sheet-table.js?v=12348511', 'js/active-deals.js?v=2b14256f'],
       crf: [LGX, 'js/sheet-table.js?v=12348511', 'js/courses-perf.js?v=a0f9eaf7'],
-      pkkr: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-keratin.js?v=e80ccecd'],
-      pkpp: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-pamper.js?v=6d127e75'],
-      pkdd: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-dubai.js?v=be57118f'],
-      pka4: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-ads499.js?v=5d2e4361'],
-      pkhc: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-hair-colour.js?v=57daacab'],
-      pkbs: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-back-to-school.js?v=3982a745'],
-      pkdir: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-directory.js?v=02d14d92'],
+      pkkr: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-keratin.js?v=b36570e1'],
+      pkpp: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-pamper.js?v=553e676f'],
+      pkdd: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-dubai.js?v=30a46622'],
+      pka4: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-ads499.js?v=2296d7eb'],
+      pkhc: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-hair-colour.js?v=56a82bcf'],
+      pkbs: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-back-to-school.js?v=ddba0ddb'],
+      pkdir: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-directory.js?v=5e300abd'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       dv:  [LGX, 'js/discounts-vouchers.js?v=10c65973'],
       o2:  ['js/one2ones.js?v=f764e8cc'],
@@ -3977,6 +3977,7 @@ table.tp-cmp td.bad{color:var(--bad)}
        Wellness Voucher Performance (read-only, no client names, the till stays out): Level 2 and above. -->
   <div class="nav-group" id="navCampaigns">
     <div class="nav-title">Campaigns</div>
+    <a class="nav-sub" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', this)}">Campaigns Directory</a>
     <!-- Kate, 23 Oct 2026: by year. Under Wellness Voucher Performance, Overall Blast performances and each blast are pages of their own (wvGoBlast), each with its own mini nav. -->
     <div class="nav-subhead">2025</div>
     <a class="nav-sub" href="/?view=glowclub" onclick="if(trsPlain(event)){event.preventDefault();showView('glowclub', this)}">Glow Club Performance</a>
@@ -3991,8 +3992,6 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" href="/?view=dealsperf" onclick="if(trsPlain(event)){event.preventDefault();showView('dealsperf', this)}">Active Deals Performance</a>
     <a class="nav-sub" href="/?view=coursesperf" onclick="if(trsPlain(event)){event.preventDefault();showView('coursesperf', this)}">Courses Performance</a>
     <a class="nav-sub" href="/?view=discountsvouchers" onclick="if(trsPlain(event)){event.preventDefault();showView('discountsvouchers', this)}">Discounts and Vouchers</a>
-    <div class="nav-subhead">Packages</div>
-    <a class="nav-sub" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', this)}">Campaigns Directory</a>
   </div>
 
   <!-- Google Ads, Website & Search and Social: Level 3 and above. -->
@@ -4854,9 +4853,12 @@ table.tp-cmp td.bad{color:var(--bad)}
     </div>
   </div>
 
-  <!-- CAMPAIGNS DIRECTORY (Kate, 26 Nov 2026): the table of contents of the archived package pages. Lifetime figures per group (each page's own function in summary mode), no masthead Branch or Period. Level 2 and above. pk-directory.js draws it. -->
+  <!-- CAMPAIGNS DIRECTORY (Kate, 26 Nov 2026): the table of contents of every campaign page, in four lists (Blasts, Packages, Courses, Offers). Packages carry figures from each group's own function in summary mode; the other lists link to their page. Lifetime figures, no masthead Branch or Period. Level 2 and above, a row only for a page the reader may open. pk-directory.js draws it. -->
   <div id="view-pkdir" style="display:none">
-    <main id="pkDirContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="pdShell">
+      <aside class="lg-side" id="pdSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="pdDoc"><main id="pkDirContent"></main></div>
+    </div>
   </div>
 
   <!-- DISCOUNTS AND VOUCHERS (Kate, 23 Oct 2026): Phorest's Discounts list and Client Vouchers list, archived included, in the Wellness Voucher
