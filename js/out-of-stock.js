@@ -469,6 +469,26 @@
     return { subject, full, short, need: need.length };
   }
   // test = the same draft, but the To is only the person signed in, no Cc, the subject says TEST ONLY and the top of the body says nothing goes to the supplier; it does not count as drafted.
+  // DBD's OWN order forms, filled by the system (Kate, 26 Nov 2026: "autofill dapat haha. gamitin mo order form pa rin nila tho", "no need downloading not unless needed"). The edge function oos-dbd-draft fills them
+  // (oos-order-forms) and attaches them to a DRAFT it makes in info@, so nobody downloads or attaches anything. It needs the one-time info@ permission (scripts/get-info-gmail-token.py);
+  // until that is done, or if it fails, the old way runs: a Gmail compose link, and the filled DBD forms are downloaded to attach by hand.
+  const dbdItems = fm => (fm.lines || []).map(l => ({ bc: String(l.key || '').split('|').pop(), nm: l.name, brand: l.brand, type: l.type, q: l.q }));
+  const saveBlob = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); };
+  const b64Blob = (b64, type) => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); };
+  const notIn = nf => nf && nf.length ? ' ' + plural(nf.length, 'product') + ' ' + (nf.length === 1 ? 'is' : 'are') + ' in no DBD form (' + nf.slice(0, 3).map(x => x.name).join(', ') + (nf.length > 3 ? ', ...' : '') + '): add ' + (nf.length === 1 ? 'it' : 'them') + ' by hand.' : '';
+  async function downloadDbdForms(fm) {
+    try {
+      const r = await sb.functions.invoke('oos-order-forms', { body: { salon: fm.branch, items: dbdItems(fm) } });
+      const d = r.data || {};
+      if (r.error || !Array.isArray(d.files) || !d.files.length) throw new Error('no forms');
+      if (d.files.length === 1) saveBlob(b64Blob(d.files[0].b64), d.files[0].name);
+      else {
+        if (!window.JSZip) await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('zip')); document.head.appendChild(sc); });
+        const z = new window.JSZip(); d.files.forEach(f => z.file(f.name, b64Blob(f.b64))); saveBlob(await z.generateAsync({ type: 'blob' }), fm.order_no + ' ' + BN[fm.branch] + ' DBD forms.zip');
+      }
+      return 'Saved ' + plural(d.files.length, 'DBD form') + '.' + notIn(d.notFound);
+    } catch (e) { return await saveForms([fm]); }
+  }
   async function emailToDbd(sup, sals, test) {
     const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
     const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
@@ -485,12 +505,21 @@
       mail.full = note + mail.full; mail.short = note + mail.short;
     }
     if (!test && mail.need && !window.confirm(plural(mail.need, 'line') + ' of ' + fm.order_no + ' have no DBD code yet (they are listed by name). Open the email anyway?')) return 'Not opened.';
+    let dr = null;
+    try { const r = await sb.functions.invoke('oos-dbd-draft', { body: { salon: fm.branch, items: dbdItems(fm), to: test ? [me] : m.to, cc: test ? [] : m.cc, subject: mail.subject, body: mail.full } }); dr = r.error ? { ok: false } : (r.data || { ok: false }); } catch (e) { dr = { ok: false }; }
+    if (dr.ok) {
+      window.open(dr.url, '_blank', 'noopener');
+      if (!test) drafted[fm.order_no] = 1;
+      const more0 = test ? 0 : open.filter(f => f.order_no !== fm.order_no && !drafted[f.order_no]).length;
+      return (test ? 'A TEST draft to ' + me + ' only is ready in info@' : 'The draft is ready in info@') + ' for ' + fm.order_no + ' ' + BN[fm.branch] + ', with ' + plural(dr.forms.length, 'DBD order form') + ' filled and attached (' + dr.forms.map(f => f.name).join(', ') + ').' + notIn(dr.notFound) + (test ? ' Read it and press Send to get it in your inbox; nothing goes to ' + sup + '.' : ' Read it, press Send, then press Mark as sent.') + (more0 ? ' ' + plural(more0, 'order') + ' more: press Email order to ' + sup + ' again after.' : '');
+    }
+    const whyNot = dr.notSetUp ? ' (DBD forms are not attached by themselves yet: the one-time info@ permission is not done.)' : dr.error ? ' (' + dr.error + ')' : '';
     const q = b => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(test ? me : m.to.join(',')) + '&cc=' + encodeURIComponent(test ? '' : m.cc.join(',')) + '&su=' + encodeURIComponent(mail.subject) + '&body=' + encodeURIComponent(b);
     let url = q(mail.full), long = url.length > 6500;
     if (long) { url = q(mail.short); try { await navigator.clipboard.writeText(mail.full); } catch (e) { /* no clipboard */ } }
     window.open(url, '_blank', 'noopener');
     if (!test) drafted[fm.order_no] = 1;
-    const saved = await saveForms([fm]);
+    const saved = await downloadDbdForms(fm) + whyNot;
     const more = test ? 0 : open.filter(f => f.order_no !== fm.order_no && !drafted[f.order_no]).length;
     if (test) return 'Gmail is open with a TEST email to ' + me + ' only, for ' + fm.order_no + ' ' + BN[fm.branch] + '. ' + saved + ' Press Send to get it in your inbox; nothing goes to ' + sup + '.';
     return 'Gmail is open for ' + fm.order_no + ' ' + BN[fm.branch] + (long ? ' (long order: the full list is copied, paste it if you want it in the body)' : '') + '. ' + saved + ' Attach it, press Send, then press Mark as sent.' + (more ? ' ' + plural(more, 'order') + ' more: press Email order to ' + sup + ' again after.' : '');
