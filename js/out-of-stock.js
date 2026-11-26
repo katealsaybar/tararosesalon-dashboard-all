@@ -279,15 +279,40 @@
       views: first === 'orders' ? [orders, how] : [how, orders] };
   }
 
-  // The colour services booked for next week, by kind; and how next week is expected (the weeks behind it, then the steps). The last step: nothing lies behind a count of services.
+  // The colour services booked for next week, by kind; how next week is expected (the weeks behind it, then the steps); and the colour products the plan scales by that (Kate, 26 Nov 2026:
+  // "dapat nakalagay din what possible products will they be using"). c = one salon, or 'ALL' = the salons picked. The last step: nothing lies behind a count of services.
+  const lbl = c => c === 'ALL' ? scope() : BN[c];
+  function demFor(c) {
+    if (c !== 'ALL') return S.dem[c];
+    const ds = S.br.filter(x => S.dem[x]).map(x => S.dem[x]), s = k => ds.reduce((a, d) => a + d[k], 0), wkm = {}, gm = {};
+    ds.forEach(d => { d.hist.forEach(h => { const w = wkm[h[0]] || (wkm[h[0]] = [h[0], 0, 0]); w[1] += +h[1] || 0; w[2] += +h[2] || 0; }); d.grp.forEach(x => { gm[x[0]] = (gm[x[0]] || 0) + x[1]; }); });
+    const hist = Object.keys(wkm).sort().map(k => wkm[k]), sc = hist.reduce((a, h) => a + h[1], 0), sbk = hist.reduce((a, h) => a + h[2], 0), typ = s('typ'), exp = s('exp'), ok = ds.length > 0 && ds.every(d => d.ok);
+    return { now: s('now'), grp: Object.keys(gm).map(k => [k, gm[k]]).sort((x, y) => y[1] - x[1]), hist, typ, usual: s('usual'), pace: s('pace'), exp, pick: sbk ? sc / sbk : 0, f: ok && typ ? r2f(exp / typ) : 1, ok };
+  }
+  // The colour products of the plan that the page scales by the colour factor, for one salon or the salons picked, worked out for next week. Ranked by Min (one week of use, from Phorest Product Usage).
+  function colourRows(c) {
+    return all('book').filter(r => r.col && (c === 'ALL' ? inSel(r.b) : r.b === c)).sort((x, y) => y.mn - x.mn || SALORD[x.b] - SALORD[y.b] || x.name.localeCompare(y.name));
+  }
+  function prodView(c) {
+    return { id: 'prod', label: 'Possible products', load: async () => {
+      const rs = colourRows(c), many = c === 'ALL' && S.br.length > 1;
+      return { cols: [{ k: 'p', l: 'Product' }].concat(many ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'mn', l: 'Min', t: 'num' }, { k: 'need', l: 'Next week', t: 'num' }, { k: 'in', l: 'In stock', t: 'num' }, { k: 'on', l: 'On order', t: 'num' },
+          { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' }, { k: 'a', l: 'Max AED', t: 'aed' }]),
+        rows: rs.map(r => { const h = prodSpec(r, 'how'), o = prodSpec(r, 'orders');
+          return { p: r.name, s: BN[r.b], mn: r.mn, need: r2f(r.mn * r.f), in: r.s, on: r.i, qm: r.qm, q: r.q, a: Math.round(r.aed * 100) / 100, _dn: Object.assign({ p: h, mn: h, need: h, in: h, qm: h, q: h, a: h }, r.lines.length ? { on: o } : {}) }; }),
+        foot: { p: 'Total: ' + plural(rs.length, 'product'), qm: sum(rs, 'qm'), q: sum(rs, 'q'), a: Math.round(sum(rs, 'aed') * 100) / 100 },
+        empty: 'No colour product in the plan for the salons and Priority picked.',
+        note: '<b>Not a recipe per service.</b><br>Phorest does not record which client a tube was used on.<br>These are the colour products the plan scales by how busy colour is.<br><b>Min</b> = one week of use, from Phorest Product Usage. The list is ranked by it.<br><b>Next week</b> = what the product needs next week = Min x the colour factor.<br>Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ': change it at the top.<br>Tap a product to see how its order is worked out.' };
+    } };
+  }
   function bkSpec(c) {
-    const d = S.dem[c], tot = d.grp.reduce((a, x) => a + x[1], 0);
-    return { title: 'Colour services booked for ' + rangeTxt() + ', ' + BN[c], sub: n0(tot) + ' colour services booked so far · ' + BN[c] + ' · read ' + (S.demInfo && S.demInfo.synced ? fdt(S.demInfo.synced) : 'today'), cur: 'AED', sk: slug('oos-bk-' + c),
+    const d = demFor(c), tot = d.grp.reduce((a, x) => a + x[1], 0);
+    return { title: 'Colour services booked for ' + rangeTxt() + ', ' + lbl(c), sub: n0(tot) + ' colour services booked so far · ' + lbl(c) + ' · read ' + (S.demInfo && S.demInfo.synced ? fdt(S.demInfo.synced) : 'today'), cur: 'AED', sk: slug('oos-bk-' + c),
       views: [{ id: 'bk', label: 'Booked', load: async () => ({ cols: [{ k: 'g', l: 'Kind of colour service' }, { k: 'n', l: 'Booked', t: 'num' }], rows: d.grp.map(x => ({ g: x[0], n: x[1] })), foot: { g: 'Total', n: tot }, empty: 'Nothing colour is booked yet.',
-        note: 'Toners and gloss, roots, foils, balayage, ombre, all over colour and bleach count. Colour lock treatments, polish, brows and tints do not. Each is one booked service in Phorest Staff Appointments; cancelled appointments are not in it.' }) }] };
+        note: 'Toners and gloss, roots, foils, balayage, ombre, all over colour and bleach count. Colour lock treatments, polish, brows and tints do not. Each is one booked service in Phorest Staff Appointments; cancelled appointments are not in it.' }) }, prodView(c)] };
   }
   function histSpec(c) {
-    const d = S.dem[c];
+    const d = demFor(c);
     const weeks = { id: 'weeks', label: 'The weeks before', load: async () => ({ cols: [{ k: 'w', l: 'Week starting', t: 'date' }, { k: 'done', l: 'Done in the week', t: 'num' }, { k: 'bk', l: 'Booked by the same day the week before', t: 'num' }, { k: 'sh', l: 'Booked share' }],
       rows: d.hist.map(h => ({ w: h[0], done: h[1], bk: h[2], sh: h[2] && h[1] ? Math.round(100 * h[2] / h[1]) + '%' : '' })),
       foot: { w: 'Normal week (average)', done: Math.round(d.typ), bk: Math.round(d.usual), sh: d.pick ? Math.round(100 / d.pick) + '%' : '' }, empty: 'No finished weeks of bookings are held yet.',
@@ -298,7 +323,7 @@
       return { cols: [{ k: 'step', l: rangeTxt() }, { k: 'n', l: 'Colour services' }], rows: rows.map(x => ({ step: x[0], n: n0(x[1]) })), foot: { step: 'Colour order factor (expected ÷ normal week)', n: 'x ' + d.f.toFixed(2) },
         note: 'An estimate. Tried on 11 weeks, leaving each out in turn, this missed the real week by 5 to 11% at each salon, a normal week alone by 9 to 27%. Cancellations, walk-ins and holidays are not modelled, and only about 12 weeks of bookings are held, so December is the first time it meets the busy weeks.' };
     } };
-    return { title: 'How next week is expected, ' + BN[c], sub: 'Colour services, ' + BN[c] + ' · ' + rangeTxt(), cur: 'AED', sk: slug('oos-bh-' + c), views: [steps, weeks] };
+    return { title: 'How next week is expected, ' + lbl(c), sub: 'Colour services, ' + lbl(c) + ' · ' + rangeTxt(), cur: 'AED', sk: slug('oos-bh-' + c), views: [steps, weeks, prodView(c)] };
   }
 
   // ── THE PAGE (built once, then redrawn from the data) ────────────────────────────────
@@ -468,7 +493,7 @@
         { k: 'ex', l: 'Expected next week', t: 'num', raw: r => r.d.exp, disp: r => r.d.ok ? String(r.d.exp) : 'n/a', cell: r => r.d.ok ? num('<b>' + n0(r.d.exp) + '</b>', histSpec(r.b)) : 'n/a' },
         nm('ty', 'A normal week', r => r.d.typ, r => histSpec(r.b)),
         { k: 'fa', l: 'Busier', t: 'num', raw: r => r.d.f, disp: r => r.d.ok ? pctUp(r.d.f) : 'n/a', cell: r => r.d.ok ? num('<b>' + pctUp(r.d.f) + '</b> <span class="oos-sub oos-in">x ' + r.d.f.toFixed(2) + '</span>', histSpec(r.b)) : 'n/a' }],
-      total: rs => { const t0 = bkTotal(rs); return { s: '<b>All salons</b>', now: n0(t0.now), us: n0(t0.usual), ex: t0.ok ? '<b>' + n0(t0.exp) + '</b>' : '', ty: n0(t0.typ), fa: t0.ok && t0.typ ? '<b>' + pctUp(t0.exp / t0.typ) + '</b>' : '' }; } });
+      total: rs => { const t0 = bkTotal(rs); return { s: '<b>All salons</b>', now: num(n0(t0.now), bkSpec('ALL')), us: num(n0(t0.usual), histSpec('ALL')), ex: t0.ok ? num('<b>' + n0(t0.exp) + '</b>', histSpec('ALL')) : '', ty: num(n0(t0.typ), histSpec('ALL')), fa: t0.ok && t0.typ ? num('<b>' + pctUp(t0.exp / t0.typ) + '</b>', histSpec('ALL')) : '' }; } });
   }
   const exCol = () => selRows().filter(r => r.col && r.mn >= 3).sort((a, b) => b.q - a.q).filter(r => r.mn <= 8)[0] || selRows().filter(r => r.col && r.mn >= 3).sort((a, b) => b.q - a.q)[0] || null;
   function paintBook() {
