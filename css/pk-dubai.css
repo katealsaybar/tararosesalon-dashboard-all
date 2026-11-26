@@ -1,0 +1,129 @@
+/* Dubai Daily Deals Performance (Kate, 26 Nov 2026): the same rules as css/active-deals.css, scoped to its own page. */
+/* Active Deals Performance (Kate, 23 Oct 2026). The Wellness Voucher Performance page's own look (wellness-voucher-approvals/performance/index.html),
+   scoped to #pkDubaiContent and mapped onto the dashboard's tokens so it follows the light and dark theme. Phone: the page keeps the dashboard's own
+   side margin (nothing is added here), tiles go two a row, and every table scrolls inside its card with its first column pinned. */
+#pkDubaiContent{--paper:var(--surface);--ink:var(--text);--ink2:var(--text);--line:var(--border);--grid:var(--border2);--sand:var(--surface2);
+  --series:#0F8A72;--c1:#0F8A72;--c2:#7C5CD4;--c3:#B87A1E;--serif:'Playfair Display',Georgia,serif;
+  --good-bg:#E4F1EA;--warn-bg:#FBF3E2;--warn-fg:#B4823A;
+  position:relative;font-size:14px;line-height:1.5;padding:10px 0 48px}
+:root[data-theme="dark"] #pkDubaiContent{--series:#99F6E4;--c1:#2FA58B;--c2:#8C74DE;--c3:#BD852D;--good-bg:rgba(153,246,228,.12);--warn-bg:rgba(238,243,199,.12);--warn-fg:#EEF3C7}
+#pkDubaiContent *{box-sizing:border-box}
+#pkDubaiContent h1.ad-t{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+#pkDubaiContent h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
+#pkDubaiContent .ad-sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+#pkDubaiContent .ad-subh{margin:20px 0 6px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#pkDubaiContent [id^="ad-"]{scroll-margin-top:150px}
+#pkDubaiContent .ad-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+#pkDubaiContent .ad-toplinks{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){
+  #pkDubaiContent .ad-toplinks{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}
+  #pkDubaiContent .ad-toplinks .ad-btn{padding:9px 8px;font-size:13px;line-height:1.25;text-align:center}
+}
+#pkDubaiContent .ad-btn{border:1px solid var(--line);background:var(--paper);color:var(--muted);font:600 13px 'Inter',system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block;min-height:34px}
+#pkDubaiContent .ad-btn:hover{color:var(--ink)}
+#pkDubaiContent .ad-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:16px;min-width:0}
+#pkDubaiContent .ad-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+#pkDubaiContent .ad-grid2 .ad-card{margin-bottom:0}
+#pkDubaiContent .ad-grid2>*{min-width:0}
+@media(max-width:760px){#pkDubaiContent .ad-grid2{grid-template-columns:1fr}#pkDubaiContent .ad-card{padding-left:12px;padding-right:12px}}
+#pkDubaiContent details.more{margin:6px 0 0}
+#pkDubaiContent details.more>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:4px 0}
+#pkDubaiContent details.more>p.ad-sub{margin:4px 0 0}
+#pkDubaiContent details{margin-top:10px}
+#pkDubaiContent summary{cursor:pointer;color:var(--muted);font-size:12px}
+#pkDubaiContent div:has(> table){overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#pkDubaiContent div:has(> table) > table tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--paper)}
+#pkDubaiContent .ad-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
+@media(max-width:760px){#pkDubaiContent .ad-hero{grid-template-columns:1fr}}
+#pkDubaiContent .ad-big{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+#pkDubaiContent .ad-big small{font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+#pkDubaiContent .ad-track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
+#pkDubaiContent .ad-fill{height:100%;background:var(--series);border-radius:999px}
+#pkDubaiContent .ad-cap{color:var(--muted);font-size:13px}
+#pkDubaiContent .ad-zero{color:var(--muted);opacity:.4}
+#pkDubaiContent .ad-pace{border-left:1px solid var(--line);padding-left:24px}
+@media(max-width:760px){#pkDubaiContent .ad-pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+#pkDubaiContent .ad-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
+#pkDubaiContent .ad-row b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+#pkDubaiContent .ad-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;margin-bottom:6px}
+#pkDubaiContent .ad-status.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#pkDubaiContent .ad-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:560px){#pkDubaiContent .ad-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#pkDubaiContent .ad-tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+#pkDubaiContent .ad-tile .l{color:var(--muted);font-size:12px;font-weight:500}
+#pkDubaiContent .ad-tile .v{font-family:var(--serif);font-size:clamp(17px,2.3vw,24px);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#pkDubaiContent .ad-tile .v.txt{font-size:clamp(15px,1.7vw,18px);line-height:1.25;padding:3px 0}
+#pkDubaiContent .ad-tile .h{color:var(--muted);font-size:12px}
+@media(max-width:900px) and (min-width:561px){#pkDubaiContent .ad-tile .l,#pkDubaiContent .ad-tile .h{font-size:11.5px}}
+#pkDubaiContent .ad-chart{position:relative;margin-top:10px}
+#pkDubaiContent .ad-chart svg{display:block;width:100%;height:auto;overflow:visible}
+#pkDubaiContent .ax{fill:var(--muted);font-size:11px;font-family:'Inter',system-ui,sans-serif}
+#pkDubaiContent .gl{stroke:var(--grid);stroke-width:1}
+#pkDubaiContent .ad-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px}
+#pkDubaiContent .ad-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#pkDubaiContent .ad-tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;border-radius:8px;padding:7px 10px;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:5}
+#pkDubaiContent table{width:100%;border-collapse:collapse;font-size:13px}
+#pkDubaiContent th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+#pkDubaiContent td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;vertical-align:top}
+#pkDubaiContent td.n,#pkDubaiContent th.n{text-align:right}
+#pkDubaiContent tr.tot td{font-weight:600;border-bottom:0}
+#pkDubaiContent td small{display:block;color:var(--muted);font-size:11.5px}
+#pkDubaiContent .ad-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+#pkDubaiContent .ad-mini{display:inline-block;width:60px;height:6px;background:var(--sand);border-radius:999px;overflow:hidden;vertical-align:middle;margin-right:8px}
+#pkDubaiContent .ad-mini i{display:block;height:100%;background:var(--series);border-radius:999px}
+#pkDubaiContent .ad-tag{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap;background:var(--sand);color:var(--muted)}
+#pkDubaiContent .ad-tag.ok{background:var(--good-bg);color:var(--good)}
+#pkDubaiContent .ad-tag.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#pkDubaiContent .ad-list{margin:8px 0 0;padding:0;list-style:none}
+#pkDubaiContent .ad-list li{padding:9px 0;border-top:1px solid var(--grid);font-size:13px;color:var(--ink2)}
+#pkDubaiContent .ad-list li:first-child{border-top:0}
+#pkDubaiContent .ad-list li b{color:var(--ink);display:block;font-weight:600}
+#pkDubaiContent .ad-ask{margin:6px 0 0 18px;padding:0;font-size:13px;color:var(--ink2)}
+#pkDubaiContent .ad-ask li{margin:6px 0}
+#pkDubaiContent .ad-state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
+#pkDubaiContent .ad-empty{color:var(--muted);font-size:13px;padding:8px 0}
+
+/* Brochure slide thumbnails beside each offer (Kate, 25 Nov 2026) */
+#pkDubaiContent .ad-of{display:flex;gap:10px;align-items:flex-start}
+#pkDubaiContent .ad-of>div{min-width:0}
+#pkDubaiContent .ad-pic{width:56px;padding-right:0}
+#pkDubaiContent td.ad-nm{min-width:170px}
+#pkDubaiContent .ad-th{flex:0 0 44px;display:block;line-height:0}
+#pkDubaiContent .ad-th img{width:44px;height:78px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+#pkDubaiContent li.ad-of .ad-th{flex-basis:52px}
+#pkDubaiContent li.ad-of .ad-th img{width:52px;height:92px}
+
+/* Sheets tables (sheet-table.js) on this page, 25 Nov 2026 */
+#pkDubaiContent .ad-phone{display:none}
+#pkDubaiContent tr.ad-off{opacity:.45}
+#pkDubaiContent .sx-t td small{display:block;color:var(--muted);font-size:11.5px}
+@media(max-width:760px){#pkDubaiContent .ad-phone{display:inline-flex;align-items:center;min-height:44px;margin-bottom:8px}}
+/* Phone (375px): text 13px or more, and a figure is a 44px tap (Kate, 25 Nov 2026) */
+@media(max-width:760px){
+  #pkDubaiContent .ad-tile .l,#pkDubaiContent .ad-tile .h,#pkDubaiContent .ad-subh,#pkDubaiContent .ad-tag,#pkDubaiContent .ad-cap,#pkDubaiContent summary,#pkDubaiContent .sx-t td small{font-size:13px}
+  #pkDubaiContent .ad-pace span,#pkDubaiContent .ad-status span{font-size:13px}
+  #pkDubaiContent svg text{font-size:13px!important}
+  #pkDubaiContent td .dn,#pkDubaiContent .ad-tile .dn,#pkDubaiContent li .dn{display:inline-flex;align-items:center;min-height:44px}
+  #pkDubaiContent .ad-tile .dn{min-height:0}
+}
+/* Hair Colour Packages Performance (Kate, 26 Nov 2026): the Not counted list has no slide image, so a small labelled box stands in for it */
+#pkDubaiContent .ad-th.ad-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:56px;height:56px;box-sizing:border-box;border:1px dashed var(--line);border-radius:6px;line-height:1.15;text-align:center;font-size:13px;color:var(--muted)}
+#pkDubaiContent .ad-th.ad-ph em{font-style:normal}
+
+/* Dubai Daily Deals Performance (Kate, 26 Nov 2026): the slide picture beside each offer (the August 2026 design, thumbnails in assets/dubai-deals). */
+#pkDubaiContent .dub-th{flex:0 0 64px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:51px;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--sand);overflow:hidden;line-height:1.15;text-decoration:none;padding:0;vertical-align:middle}
+#pkDubaiContent .dub-th img{display:block;width:64px;height:51px;object-fit:cover}
+#pkDubaiContent .dub-th.dub-ph{border-style:dashed;color:var(--muted);font-size:12px;text-align:center}
+#pkDubaiContent .dub-th.dub-ph em{font-style:normal;font-size:11px}
+#pkDubaiContent li.ad-of{gap:14px}
+@media(max-width:760px){#pkDubaiContent .dub-th.dub-ph,#pkDubaiContent .dub-th.dub-ph em{font-size:13px}}
+@media(max-width:760px){
+  #pkDubaiContent .ad-status{font-size:13px}
+  #pkDubaiContent details>summary{display:flex;align-items:center;min-height:44px}
+}
+#pkDubaiContent #pppk td:nth-child(2){min-width:200px}
+@media(max-width:760px){#pkDubaiContent #pppk td:nth-child(2){min-width:0}}
+#pkDubaiContent .dub-gal{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+#pkDubaiContent .dub-gi{display:flex;flex-direction:column;align-items:center;gap:4px;width:96px;color:var(--muted);font-size:12px;text-decoration:none}
+#pkDubaiContent .dub-gi img{display:block;width:96px;height:77px;object-fit:cover;border:1px solid var(--line);border-radius:8px}
+@media(max-width:760px){#pkDubaiContent .dub-gi{font-size:13px}}

@@ -102,6 +102,7 @@ OWN = {
     'dealsperf': ['js/active-deals.js', 'css/active-deals.css'],
     'pkkeratin': ['js/pk-keratin.js', 'css/pk-keratin.css'],
     'pkpamper': ['js/pk-pamper.js', 'css/pk-pamper.css'],
+    'pkdubai': ['js/pk-dubai.js', 'css/pk-dubai.css'],
     'pkads499': ['js/pk-ads499.js', 'css/pk-ads499.css'],
     'pkhaircolour': ['js/pk-hair-colour.js', 'css/pk-hair-colour.css'],
     'pkdir': ['js/pk-directory.js', 'css/pk-directory.css'],
