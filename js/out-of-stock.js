@@ -51,30 +51,24 @@
   const isoD = s => new Date(s + 'T00:00:00');
   const fd = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? (+m[3]) + ' ' + MON[+m[2] - 1] + ' ' + m[1] : ''; };   // 23 Nov 2026
   const daysBetween = (a, b) => Math.round((isoD(b) - isoD(a)) / 864e5);
-  // Supplier by brand (Kate, 26 Nov 2026: "kulang ng supplier list"). The Weekly Product Plan only names DBD, Eideal and Madi, and every product with no supplier of its own
-  // counted as DBD, so Kevin Murphy, Beauty Works, Olaplex, Evo and the rest all showed under DBD. The map is the 13 Nov 2026 stock meeting with ate Tine and Mette (DBD = Schwarzkopf,
-  // ABC, Caviar; Madi = Kevin Murphy, K18, Orly, styling tools; Eideal = Olaplex, Amazon, keratin; Neu Cosmetics = Evo Fab Pro; BS Pro = Beauty Works; Colours & Treatment Co = ViArt;
-  // Vivandi = Malibu; BSI = Gel Bottle; Blissology = Nouveau Lashes; Oxitronix = facials) plus the brand links the spend page already has (Matis, Bellami, Sawaya, EMI, Rapunzel).
-  // A brand not in the map shows as "Not linked yet", never as DBD, until ate Tine confirms its supplier. A supplier the plan names itself (Eideal, Madi) is kept.
+  // Supplier by brand, from the Orders and Receipts page (Kate, 26 Nov 2026: "magbase na sa orders and receipts dashboard"). The Weekly Product Plan only names DBD, Eideal and Madi, and
+  // every product with no supplier of its own counted as DBD. The names here are the suppliers of the Orders and Receipts page, spelled the same (DBD, MADI, EIDEAL, NEU, BS PRO, VIVANDI,
+  // APOTHECA, H2O). Which brand goes to which was read off that page's own mail on 26 Nov 2026 (mail_documents, Jan 2024 to Nov 2026): item lines of DBD orders and invoices (Schwarzkopf, ABC,
+  // Caviar, Fibre Clinix, STMNT), BS PRO invoices (Beauty Works, Celebrity Choice); the orders, statements and messages of NEU (Evo Fab Pro), EIDEAL (Olaplex), VIVANDI (Vivandi, Malibu),
+  // APOTHECA (Philip B) and H2O (Pure Blue). MADI and its brands (Kevin Murphy, K18, Orly, Cloud Nine) come from the 13 Nov stock meeting: MADI sends statements with no item list. Bellami and Matis
+  // are named in DBD's mail only (no item lines), so they are the weakest links. A brand with no supplier on that page shows as "Not linked yet", never as DBD. A supplier the plan names itself is kept.
   const SUPPLIERS = [
-    ['Madi', /kevin murphy|\bk-?18\b|\borly\b|reflectosil|\bmadi\b|cloud ?nine|styling tool/i],
-    ['Eideal', /eideal|olaplex|amazon|^keratin$/i],
-    ['Neu Cosmetics', /\bevo\b|fabuloso|fab pro|stmnt|staino/i],
-    ['BS Pro', /beauty ?works/i],
-    ['Colours & Treatment Co', /viart/i],
-    ['Vivandi', /vivandi|malibu/i],
-    ['BSI', /gel bottle/i],
-    ['Blissology', /nouveau|lash/i],
-    ['Oxitronix', /x?oxitronix|xitronix/i],
-    ['Matis', /^matis/i],
-    ['Bellami', /bellami/i],
-    ['Sawaya', /sawaya/i],
-    ['EMI', /^emi\b/i],
-    ['I Am Rapunzel', /rapunzel/i],
-    ['DBD', /schwar[sz]k|authentic beauty|\babc\b|caviar|alterna/i]];
+    ['MADI', /kevin murphy|\bk-?18\b|\borly\b|reflectosil|\bmadi\b|cloud ?nine|styling tool/i],
+    ['EIDEAL', /eideal|olaplex|amazon|^keratin$/i],
+    ['NEU', /\bevo\b|fabuloso|fab pro/i],
+    ['BS PRO', /beauty ?works|celebrity choice/i],
+    ['VIVANDI', /vivandi|malibu/i],
+    ['APOTHECA', /philip b\b/i],
+    ['H2O', /pure blue/i],
+    ['DBD', /schwar[sz]k|authentic beauty|\babc\b|caviar|alterna|fibre clinix|stmnt|bellami|^matis/i]];
   const NOSUP = 'Not linked yet';
   function supplierOf(planSup, brand, name) {
-    if (planSup && !/^dbd$/i.test(planSup)) return planSup;   // the plan named one itself (Eideal, Madi)
+    if (planSup && !/^dbd$/i.test(planSup)) return String(planSup).toUpperCase();   // the plan named one itself (Eideal, Madi): spelled as the Orders and Receipts page spells it
     const b = String(brand || '');
     for (const [n, re] of SUPPLIERS) if (re.test(b)) return n;
     if (planSup) {   // the plan says DBD only because that is its default: look at the product name too
@@ -275,7 +269,7 @@
     <details class="oos-sec oos-det" id="oos-3" data-jn="3 Order by supplier">
       <summary><h3>3 Order by supplier</h3></summary>
       <div class="oos-learn">
-        <p><b>What is this?</b> The same order split by supplier. The plan only names DBD, Eideal and Madi, so the other suppliers come from the brand: Kevin Murphy to Madi, Beauty Works to BS Pro, and so on.</p>
+        <p><b>What is this?</b> The same order split by supplier, with the supplier names of the Orders and Receipts page. The plan only names DBD, Eideal and Madi, so the others come from the brand: Beauty Works to BS PRO, Evo Fab Pro to NEU, and so on.</p>
         <p><b>Why it matters.</b> Each supplier is ordered separately.</p>
         <p class="watch"><b>What to watch.</b> <span id="oosW3"></span></p>
       </div>
@@ -420,7 +414,7 @@
     mov: ['Which products', 'Priority A by default. A and B is a switch at the top. Products with Min 0 never show here.', 'Only the four UAE salons: Bahrain is not in these numbers.'],
     min: ['Min and Max', 'Min is one week of use. Max is Min plus 3, unless the plan sets its own number.', 'Edit them in the Weekly Product Plan, not here.'],
     fresh: ['How fresh', 'Shelf counts come from the Phorest Stock List. The date is under the answer at the top.', 'Run the daily reports to refresh it. On order counts the last 60 days.'],
-    sup: ['Suppliers', 'DBD, Eideal and Madi come from the plan. The others come from the brand, using the map from the 13 Nov stock meeting. A brand not in the map shows as Not linked yet.', 'Tell Kate when a supplier is wrong and it is changed here.'],
+    sup: ['Suppliers', 'The names are the suppliers of the Orders and Receipts page. The plan names DBD, Eideal and Madi; the others come from the brand, read off the orders and receipts there. A brand with no supplier on that page shows as Not linked yet.', 'Tell Kate when a supplier is wrong and it is changed here.'],
     who: ['Who sees it', 'Level 4 and up, and anyone the Weekly Product Plan lets in. It reads the same plan.', 'The database refuses everyone else, whatever this page does.']
   };
   function paintAbout() {
