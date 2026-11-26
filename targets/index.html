@@ -333,6 +333,8 @@ table.t th.bd .thl,table.t th.nm .thl,table.t th:first-child .thl{text-align:lef
 .tg-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);text-decoration:none;font-size:14px;font-weight:500;line-height:1.3}
 .tg-btn:hover{background:var(--surface2)}
 .tg-btn.go{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+.tg-btn[hidden]{display:none}
+button.tg-btn{font-family:inherit;cursor:pointer}
 .tg-note{margin:6px 0 14px;font-size:13px;color:var(--muted)}
 .tg-note b{color:var(--text);font-weight:600;margin-right:6px}
 .tg-load>*:not(#tgMsg){display:none!important}
@@ -342,12 +344,89 @@ html.tg-embed .kb-head,html.tg-embed .kb-foot,html.tg-embed .tg-nav a[href="/hub
 html.tg-embed body{background:transparent;min-height:0}
 html.tg-embed .wrap{max-width:none;padding:6px 4px 24px}
 html.tg-embed .tg-nav{margin-top:6px}
+/* Kate, 26 Nov 2026: Enter targets, moved here from the Upload Portal's Targets tab (Level 5 only). The grid code is /upload/targets.js, unchanged, so its class names
+   are kept; everything is scoped under #enterTargets and the portal's colour names are mapped onto this page's. */
+#enterTargets{--good:#2f9e7e;--bad:#d9534f;--warn:#c98a1b;--good-bg:color-mix(in srgb,var(--good) 16%,transparent);--bad-bg:color-mix(in srgb,var(--bad) 16%,transparent);--warn-bg:color-mix(in srgb,var(--warn) 18%,transparent);
+  --border2:var(--rule);--muted2:var(--muted);--col-header:var(--surface2);--accent:var(--text);margin:18px 0 8px;border:1px solid var(--rule);border-radius:var(--r-md);background:var(--surface)}
+#enterTargets[hidden]{display:none}
+#enterTargets>summary{list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:500}
+#enterTargets>summary::-webkit-details-marker{display:none}
+#enterTargets>summary .et-hint{font-size:13px;font-weight:300;color:var(--muted)}
+#enterTargets>summary::after{content:"Open";font-size:12.5px;border:1px solid var(--rule);border-radius:var(--r-pill);padding:4px 14px}
+#enterTargets[open]>summary::after{content:"Hide"}
+#enterTargets .et-body{padding:0 20px 18px}
+#enterTargets .et-step{display:flex;gap:10px;align-items:baseline;margin:20px 0 6px}
+#enterTargets .et-step b{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--text);color:var(--bg);font-size:13px;flex:none}
+#enterTargets .et-step span{font-size:17px;font-weight:500}
+#enterTargets .card-sub{font-size:13.5px;font-weight:300;color:var(--muted);margin:0 0 12px;line-height:1.55}
+#enterTargets .field{display:flex;flex-direction:column;gap:5px}
+#enterTargets .field-label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+#enterTargets select,#enterTargets .field input{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--rule);border-radius:10px;background:var(--field);color:var(--text)}
+#enterTargets .btn{background:var(--text);color:var(--bg);border:none;border-radius:var(--r-pill);padding:10px 22px;font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+#enterTargets .btn:disabled{opacity:.4;cursor:not-allowed}
+#enterTargets .btn-outline{background:transparent;border:1px solid var(--rule);color:var(--text);border-radius:var(--r-pill);padding:9px 18px;font:inherit;font-size:14px;cursor:pointer}
+#enterTargets .btn-outline:hover{background:var(--surface2)}
+#enterTargets .btn-danger{background:transparent;border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+#enterTargets .sp-branch-box-msg{font-size:13.5px;line-height:1.55}
+#enterTargets .sp-table-wrap{overflow:auto;margin-top:10px;border:1px solid var(--rule);border-radius:10px;max-height:62vh}
+#enterTargets .sp-table{width:100%;border-collapse:collapse;font-size:13px}
+#enterTargets .sp-table th,#enterTargets .sp-table td{padding:6px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule)}
+#enterTargets .sp-table th{position:sticky;top:0;background:var(--surface2);color:var(--muted);font-weight:600;text-transform:uppercase;font-size:11.5px;letter-spacing:.04em}
+#enterTargets .sp-table td:first-child,#enterTargets .sp-table td:nth-child(2),#enterTargets .sp-table td:nth-child(3),#enterTargets .sp-table th:first-child,#enterTargets .sp-table th:nth-child(2),#enterTargets .sp-table th:nth-child(3){text-align:left}
+#enterTargets .sp-table tr.sp-group-spacer td{border:none;padding:5px 0;background:transparent}
+#enterTargets .tg-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+#enterTargets .tg-pcts{display:flex;gap:10px;flex-wrap:wrap;padding-left:14px;border-left:1px solid var(--rule)}
+#enterTargets .tg-pcts .field{max-width:120px}
+#enterTargets .tg-pcts .field-label{white-space:nowrap}
+#enterTargets .tg-paste{width:100%;min-height:170px;background:var(--surface2);color:var(--text);border:1px solid var(--rule);border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:13px;resize:vertical;line-height:1.5;box-sizing:border-box}
+#enterTargets .tg-paste:focus{outline:none;border-color:var(--text)}
+#enterTargets .tg-btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+#enterTargets .tg-table td{padding:3px 6px}
+#enterTargets .tg-table td.tg-l{text-align:left}
+#enterTargets .tg-table input,#enterTargets .tg-table select{width:100%;padding:5px 7px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--text);font-size:13px;box-sizing:border-box}
+#enterTargets .tg-table input.tg-n{text-align:right;font-variant-numeric:tabular-nums}
+@media(hover:hover){#enterTargets .tg-table input:hover,#enterTargets .tg-table select:hover{border-color:var(--rule);background:var(--surface2)}}
+#enterTargets .tg-table input:focus,#enterTargets .tg-table select:focus{border-color:var(--text);background:var(--surface2);outline:none}
+#enterTargets .tg-table input.tg-latched{color:var(--warn);font-weight:600}
+#enterTargets .tg-table tr.tg-warn td{background:var(--warn-bg)}
+#enterTargets .tg-table tr.tg-bad td{background:var(--bad-bg)}
+#enterTargets .tg-table td.tg-note{white-space:normal;min-width:190px;max-width:300px}
+#enterTargets .tg-flag{display:inline-block;font-size:11.5px;line-height:1.5;padding:1px 7px;border-radius:10px;margin:1px 2px 1px 0}
+#enterTargets .tg-flag.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+#enterTargets .tg-flag.bad{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+#enterTargets .tg-table td.tg-acts{white-space:nowrap}
+#enterTargets .tg-mini{padding:3px 8px;font-size:11px}
+#enterTargets .tg-summary{margin-top:16px}
+#enterTargets .tg-totals{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+#enterTargets .tg-tot{flex:1;min-width:150px;background:var(--surface2);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+#enterTargets .tg-tot span{display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#enterTargets .tg-tot b{display:block;font-size:21px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+#enterTargets .tg-tot i{display:block;font-size:12px;color:var(--muted);font-style:normal;margin-top:2px}
+#enterTargets .tg-stated-hd{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 7px}
+#enterTargets .tg-salon{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+#enterTargets .tg-salon .field{max-width:190px}
+#enterTargets .tg-line{font-size:13.5px;line-height:1.6;padding:7px 11px;border-radius:8px;margin-bottom:6px;background:var(--surface2);color:var(--muted);border-left:3px solid var(--rule)}
+#enterTargets .tg-line.ok{border-left-color:var(--good);color:var(--text)}
+#enterTargets .tg-line.warn{border-left-color:var(--warn);color:var(--text)}
+#enterTargets .tg-line.note{border-left-color:var(--accent-lavender);color:var(--text)}
+#enterTargets .tg-warns{margin:8px 0 0 18px;font-size:13.5px;line-height:1.65;color:var(--muted)}
+#enterTargets .tg-warns li{margin-bottom:4px}
+#enterTargets .et-strip{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 4px}
+#enterTargets .today-date{font-weight:500;white-space:nowrap}
+#enterTargets .today-date span{display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:400}
+#enterTargets .today-pills{display:flex;gap:8px;flex-wrap:wrap;flex:1;min-width:200px}
+#enterTargets .today-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:13.5px}
+#enterTargets .today-pill.in{background:var(--good-bg)}
+#enterTargets .today-pill.out{background:var(--warn-bg)}
+#enterTargets .today-note{font-size:13px;color:var(--muted);white-space:nowrap}
+#enterTargets .et-strip .btn{display:none}
+@media(max-width:700px){#enterTargets .tg-pcts{padding-left:0;border-left:none}#enterTargets .et-body{padding:0 14px 16px}}
 </style>
 </head>
 <body class="kb-wait">
 <div class="wrap">
   <header class="kb-head" id="kbHead" data-title="Target Calculator"></header>
-  <div class="tg-nav"><a class="tg-btn" href="/hub/">&larr; Back to Team Home</a><a class="tg-btn" href="/targets/how/">How a target is made</a></div>
+  <div class="tg-nav"><a class="tg-btn" href="/hub/">&larr; Back to Team Home</a><a class="tg-btn" href="/targets/how/">How a target is made</a><button class="tg-btn go" id="tgEnterBtn" type="button" hidden>Enter targets</button></div>
   <main id="tgCol" class="tg-load">
   <p class="kb-msg" id="tgMsg">Loading…</p>
   <div class="bar" id="bar">
@@ -364,7 +443,7 @@ html.tg-embed .tg-nav{margin-top:6px}
     </div>
   </div>
 
-  <p class="tg-note"><b>Draft</b>Real numbers, Jul to 20 Oct 2026. For Level 4 only. This page changes nothing: the targets in use are in the ledgers.</p>
+  <p class="tg-note"><b>Draft</b>Real numbers, Jul to 20 Oct 2026. For Level 4 only. The plan on this page changes nothing. The targets in use are the ones saved under Enter targets, further down (Level 5).</p>
   <p class="deck">One month, person by person. Each person has three plans: <b>low</b> (the leave we have now), <b>full team</b> (nobody on leave) and the <b>target</b>, the middle of the two. The target splits into service, treatment and retail, and the clients to match, held to what her hours can fit. Then it adds up to the branch and the group. Each branch also has a reception retail line, because the front desk sells retail that belongs to no stylist.</p>
 
   <details class="why-wall" id="whyWall" open>
@@ -407,6 +486,51 @@ html.tg-embed .tg-nav{margin-top:6px}
   </section>
 
   
+
+  <!-- Kate, 26 Nov 2026: "add na lang sa target calc yung pag-enter". The Upload Portal's Targets tab is gone; this is where the coordinators' tables go in now.
+       Level 5 only (the same people the database lets write staff_targets). Same code as the old tab: /upload/targets.js, loaded when this opens. -->
+  <details id="enterTargets" hidden>
+    <summary><span>Enter the month's targets <span class="et-hint">The coordinators' tables go in here. What you save is what every page scores against.</span></span></summary>
+    <div class="et-body">
+      <div class="et-strip" id="tgMonthStrip"></div>
+
+      <div class="et-step"><b>1</b><span>Pick the branch and the month</span></div>
+      <div class="tg-controls">
+        <div class="field" style="max-width:190px"><label class="field-label" for="tgBranch">Branch</label>
+          <select id="tgBranch" onchange="tgBranchChanged()"></select></div>
+        <div class="field" style="max-width:190px"><label class="field-label" for="tgMonth">Month</label>
+          <select id="tgMonth"></select></div>
+        <div class="tg-pcts">
+          <div class="field"><label class="field-label" for="tgPctActual">Actual %</label>
+            <input type="number" id="tgPctActual" step="0.1" onchange="tgPctChanged()"></div>
+          <div class="field"><label class="field-label" for="tgPctRetail">Retail %</label>
+            <input type="number" id="tgPctRetail" step="0.1" onchange="tgPctChanged()"></div>
+          <div class="field"><label class="field-label" for="tgPctTreatment">Treatment %</label>
+            <input type="number" id="tgPctTreatment" step="0.1" onchange="tgPctChanged()"></div>
+        </div>
+      </div>
+      <p class="card-sub">Retail and treatment are percentages of the <b>actual</b> figure, not of the salon target. A 10,000 salon target at 80% gives an 8,000 actual, and 12% and 20% of that same 8,000 give 960 retail and 1,600 treatment. Change a percentage and every unedited row follows it.</p>
+
+      <div class="et-step"><b>2</b><span>Paste the coordinator's table</span></div>
+      <p class="card-sub">Straight out of Sheets or Excel, header row included. Layouts differ per branch and that is fine: columns are found by their headings, not by position.</p>
+      <textarea id="tgPasteBox" class="tg-paste" aria-label="Paste the coordinator's target table here" placeholder="STYLIST&#9;DESIGNATION&#9;TARGET GIVEN BY SALON&#9;ACTUAL by 80%&#9;RETAIL by 12%&#9;TREATMENT by 20%&#10;RUTH&#9;Style Director&#9;75000&#9;60000&#9;7200&#9;12000&#10;..."></textarea>
+      <div class="tg-btn-row">
+        <button class="btn" type="button" onclick="tgParseClicked()">Parse into grid</button>
+        <button class="btn-outline" type="button" onclick="tgLoadSaved()" title="Pull the month that is already saved into the grid, to correct it">Load saved month</button>
+        <button class="btn-outline" type="button" onclick="tgAddRow()">Add row</button>
+        <button class="btn-outline" type="button" onclick="tgClearGrid()">Clear</button>
+      </div>
+      <div id="tgPasteMsg" class="sp-branch-box-msg" style="margin-top:10px"></div>
+
+      <div id="tgGridCard">
+        <div class="et-step"><b>3</b><span>Check, then save</span></div>
+        <p class="card-sub">Every cell is editable. Amber is worth a look, red has to be fixed. Saving replaces that branch's whole month, so a re-paste is a correction rather than a second copy.</p>
+        <div id="tgGrid"></div>
+        <div id="tgSummary" class="tg-summary"></div>
+        <div class="tg-btn-row"><button class="btn" id="tgSaveBtn" type="button" onclick="tgSave()" disabled>Save targets</button></div>
+      </div>
+    </div>
+  </details>
 
   <details id="sources">
     <summary>Where these numbers come from</summary>
@@ -1256,6 +1380,37 @@ loadDays();
 </script>
 <!-- Kate, 20 Nov 2026: embedded, the explainer opens in its own tab, so the dashboard frame is not replaced by a page with no sidebar. -->
 <script>if(document.documentElement.classList.contains('tg-embed'))document.querySelectorAll('a[href^="/targets/how"]').forEach(function(a){a.target='_blank';a.rel='noopener';});</script>
+<!-- Kate, 26 Nov 2026: Enter targets (moved from the Upload Portal). Level 5 only: the button and the section stay hidden for anyone else, and the database lets only the owner write
+     staff_targets and branch_targets anyway. The old tab's script is loaded the first time the section opens, with the three things it expects from the portal supplied here. -->
+<script>
+(function(){
+  var det=document.getElementById('enterTargets'),btn=document.getElementById('tgEnterBtn'),loaded=null;
+  if(!det||!btn||!window.KB||!KB.ready)return;
+  function load(){
+    if(loaded)return loaded;
+    window.sb=KB.client;
+    window.showToast=function(m){var p=document.getElementById('tgPasteMsg');if(p)p.textContent=m;};
+    window.measureStickyChrome=function(){};
+    window.switchSegTo=function(){};
+    window.BRANCHES={SAA:{name:'Saadiyat'},KCA:{name:'Khalifa City A'},MC:{name:'Motor City'},AQ:{name:'Al Quoz'},BAH:{name:'Bahrain'}};
+    window.BRANCH_DETECT={KCA:['kca','khalifa'],SAA:['saa','saadiyat'],MC:['mc','motor'],AQ:['aq','ladies','quoz'],BAH:['bah','bahrain']};
+    window.TR_NUM_FMT={0:new Intl.NumberFormat(undefined,{minimumFractionDigits:0,maximumFractionDigits:0}),2:new Intl.NumberFormat(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})};
+    window.trIsoDate=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+    loaded=new Promise(function(ok,bad){
+      var s=document.createElement('script');s.src='/upload/targets.js?v=0bab250a';
+      s.onload=function(){try{initTargetsTab();ok();}catch(e){bad(e);}};
+      s.onerror=function(){bad(new Error('targets.js did not load'));};
+      document.head.appendChild(s);
+    }).catch(function(e){loaded=null;var p=document.getElementById('tgPasteMsg');if(p)p.innerHTML='<span style="color:#d9534f">Could not open Enter targets: '+(e&&e.message||e)+'. Refresh and try again.</span>';});
+    return loaded;
+  }
+  det.addEventListener('toggle',function(){if(det.open)load();});
+  btn.addEventListener('click',function(){det.open=true;load();det.scrollIntoView({behavior:'smooth',block:'start'});});
+  KB.ready.then(function(){
+    if(KB.level===5){det.hidden=false;btn.hidden=false;}
+  }).catch(function(){});
+})();
+</script>
 <!-- Kate, 20 Nov 2026: "This page was updated, Refresh" on the standalone page too (js/standalone-refresh.js; not shown when framed in the dashboard, which has its own). -->
 <script src="/js/standalone-refresh.js?v=11cfef89"></script>
 <!-- Kate, 20 Nov 2026 (component 42): the answer card for the bars. Hover or focus on a computer, a tap on a phone (closes after 5 seconds or on the next tap). The i buttons and the figures keep their own click. -->
