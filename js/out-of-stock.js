@@ -328,11 +328,38 @@
   }
   const gTitle = (f, sal, sup) => { const L = sal ? BN[sal] : scope(); return f === 'out' ? 'Out now, ' + L : f === 'u1' ? 'Under 1 week left, ' + L : f === 'sup' ? sup + ' order, ' + L : 'Products to order, ' + L; };
   // a figure that opens the products behind it; plain when the list is empty
-  const fig = (txt, f, sal, sup) => { const rs = groupRows(f, sal, sup); return rs.length ? num(txt, rowsSpec(gTitle(f, sal, sup), rs, slug('oos-' + f + (sal ? '-' + sal : '') + (sup ? '-' + sup : '')), f === 'sup', f === 'sup' ? all().filter(r => (sal ? r.b === sal : inSel(r.b)) && r.sup === sup && lowOf(r)) : null)) : txt; };
+  const fig = (txt, f, sal, sup) => { const rs = groupRows(f, sal, sup); return rs.length ? num(txt, rowsSpec(gTitle(f, sal, sup), rs, slug('oos-' + f + (sal ? '-' + sal : '') + (sup ? '-' + sup : '')), f === 'sup', f === 'sup' ? all().filter(r => (sal ? r.b === sal : inSel(r.b)) && r.sup === sup && lowOf(r)) : null, f === 'sup' ? sup : '')) : txt; };
+  // Email the order to the supplier (Kate, 26 Nov 2026: "lagyan mo ng email to dbd beh hanapin mo na lang emails ng dbd"). The addresses are the ones the Tara Rose info@ mailbox really sent the DBD orders to in
+  // Nov 2026 (ORDER FOR SAADIYAT / MOTORCITY / KHALIFA CITY A BRANCH, Al Quoz Branch - Order Forms): Margie Jala (invoicing since Reina left, 3 Jun 2026), Mohamed Abassi, Bassam Moujalli and Jonnah Rodilla;
+  // ate Tine (Cristine) copied as she was on the Saadiyat orders. Mandy Loewigt (account manager) and Asmaa are on some threads only, so they are not in the default. The button OPENS a Gmail draft
+  // from info@ for the person to read and send; the page never sends anything. The order is read from the page at the click, so typed quantities and ticked-off products are in it.
+  const SUP_MAIL = { DBD: { from: 'info@tararosesalon.com', to: ['margie.j@dbdholding.com', 'mohamed.a@dbdholding.com', 'bassam.m@dbdholding.com', 'jonnah.r@dbdholding.com'], cc: ['cristine.tararose@gmail.com'] } };
+  function orderMail(sup, keys) {
+    const rs = all().filter(r => keys[r.key] && r.o > 0).sort((a, b) => SALORD[a.b] - SALORD[b.b] || (a.type === b.type ? 0 : a.type === 'Retail' ? -1 : 1) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    const sals = B.filter(c => rs.some(r => r.b === c)), pc = n => nu(n) + (n === 1 ? 'PC' : 'PCS');
+    const parts = sals.map(c => {
+      const mine = rs.filter(r => r.b === c), kind = t => { const g = mine.filter(r => r.type === t); return g.length ? t.toUpperCase() + ' ORDERS:\n' + g.map(r => r.name.toUpperCase() + ' - ' + pc(r.o)).join('\n') : ''; };
+      return (sals.length > 1 ? BN[c].toUpperCase() + ' BRANCH\n\n' : '') + [kind('Retail'), kind('Professional')].filter(Boolean).join('\n\n');
+    });
+    const where = sals.length === 1 ? 'our order for the ' + BN[sals[0]].toUpperCase() + ' branch' : 'our orders';
+    const text = 'Hello,\n\nGood day! Please see ' + where + ' below. Kindly let us know if any items on this order are OUT OF STOCK.\n\n' + parts.join('\n\n----\n\n') + '\n\nThank you,\nTara Rose Salon';
+    const subject = sals.length === 1 ? 'ORDER FOR ' + BN[sals[0]].toUpperCase() + ' BRANCH' : 'ORDER FOR TARA ROSE BRANCHES';
+    return { n: rs.length, text, subject };
+  }
+  async function emailOrder(sup, keys) {
+    const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
+    const o = orderMail(sup, keys); if (!o.n) return 'Nothing to order in this list: every Quantity is 0.';
+    const q = (b) => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(m.to.join(',')) + '&cc=' + encodeURIComponent(m.cc.join(',')) + '&su=' + encodeURIComponent(o.subject) + '&body=' + encodeURIComponent(b);
+    let url = q(o.text), long = url.length > 6500, copied = false;
+    try { await navigator.clipboard.writeText(o.text); copied = true; } catch (e) { /* no clipboard */ }
+    if (long) url = q('Hello,\n\nPlease see our order below. Kindly let us know if any items are OUT OF STOCK.\n\n[paste the order here]\n\nThank you,\nTara Rose Salon');
+    window.open(url, '_blank', 'noopener');
+    return long ? (copied ? 'The order is copied: paste it into the email.' : 'The order is long: use Save as xlsx and attach it.') : 'Gmail is open with the order of ' + plural(o.n, 'product') + '. Read it and press Send.';
+  }
   // A list of products. Every product, number and the product name open the product's own window. The Total row adds up the rows listed.
   // sheet = a supplier's order (Kate, 26 Nov 2026, from Phorest's Create Order screen: "similar da sa ganito, per supplier daw mas madaling mag order"): the first tab lists the products the way Phorest's
   // Create Order does (brand, category, name, cost, status, stock, min, max, Quantity), with the Quantity box and a tick to take a product out, so the order can be keyed in line by line.
-  function rowsSpec(title, rows, sk, sheet, extra) {
+  function rowsSpec(title, rows, sk, sheet, extra, supName) {
     const C = cover(), byKey = {}, loaded = [];
     rows.concat(extra || []).forEach(r => { byKey[r.key] = r; });
     const fresh = key => all().filter(x => x.key === key)[0] || byKey[key];
@@ -378,7 +405,8 @@
       });
     } };
     return { title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
-      views: sheet ? [sheetView, prodView] : [prodView] };
+      views: sheet ? [sheetView, prodView] : [prodView],
+      actions: sheet && supName && SUP_MAIL[supName] ? [{ label: 'Email to ' + supName, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys); } }] : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
   // "x 1.22 + x 1.15 + ..." for the weeks a colour product counts, with where it comes from
