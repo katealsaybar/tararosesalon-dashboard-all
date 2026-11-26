@@ -51,6 +51,37 @@
   const isoD = s => new Date(s + 'T00:00:00');
   const fd = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? (+m[3]) + ' ' + MON[+m[2] - 1] + ' ' + m[1] : ''; };   // 23 Nov 2026
   const daysBetween = (a, b) => Math.round((isoD(b) - isoD(a)) / 864e5);
+  // Supplier by brand (Kate, 26 Nov 2026: "kulang ng supplier list"). The Weekly Product Plan only names DBD, Eideal and Madi, and every product with no supplier of its own
+  // counted as DBD, so Kevin Murphy, Beauty Works, Olaplex, Evo and the rest all showed under DBD. The map is the 13 Nov 2026 stock meeting with ate Tine and Mette (DBD = Schwarzkopf,
+  // ABC, Caviar; Madi = Kevin Murphy, K18, Orly, styling tools; Eideal = Olaplex, Amazon, keratin; Neu Cosmetics = Evo Fab Pro; BS Pro = Beauty Works; Colours & Treatment Co = ViArt;
+  // Vivandi = Malibu; BSI = Gel Bottle; Blissology = Nouveau Lashes; Oxitronix = facials) plus the brand links the spend page already has (Matis, Bellami, Sawaya, EMI, Rapunzel).
+  // A brand not in the map shows as "Not linked yet", never as DBD, until ate Tine confirms its supplier. A supplier the plan names itself (Eideal, Madi) is kept.
+  const SUPPLIERS = [
+    ['Madi', /kevin murphy|\bk-?18\b|\borly\b|reflectosil|\bmadi\b|cloud ?nine|styling tool/i],
+    ['Eideal', /eideal|olaplex|amazon|^keratin$/i],
+    ['Neu Cosmetics', /\bevo\b|fabuloso|fab pro|stmnt|staino/i],
+    ['BS Pro', /beauty ?works/i],
+    ['Colours & Treatment Co', /viart/i],
+    ['Vivandi', /vivandi|malibu/i],
+    ['BSI', /gel bottle/i],
+    ['Blissology', /nouveau|lash/i],
+    ['Oxitronix', /x?oxitronix|xitronix/i],
+    ['Matis', /^matis/i],
+    ['Bellami', /bellami/i],
+    ['Sawaya', /sawaya/i],
+    ['EMI', /^emi\b/i],
+    ['I Am Rapunzel', /rapunzel/i],
+    ['DBD', /schwar[sz]k|authentic beauty|\babc\b|caviar|alterna/i]];
+  const NOSUP = 'Not linked yet';
+  function supplierOf(planSup, brand, name) {
+    if (planSup && !/^dbd$/i.test(planSup)) return planSup;   // the plan named one itself (Eideal, Madi)
+    const b = String(brand || '');
+    for (const [n, re] of SUPPLIERS) if (re.test(b)) return n;
+    if (planSup) {   // the plan says DBD only because that is its default: look at the product name too
+      for (const [n, re] of SUPPLIERS) if (re.test(name || '')) return n;
+    }
+    return NOSUP;
+  }
   const brandOf = b => /^schwarzkopf/i.test(b) ? 'Schwarzkopf' : /authentic beauty/i.test(b) ? 'ABC' : String(b || '');
   const num = (html, spec) => (typeof TRSD !== 'undefined' && spec) ? TRSD.num(html, spec) : html;
   // Kate, 23 Nov 2026: 1 week of cover as a rule, 2 weeks from 15 Nov to 31 Dec (the busy weeks). Read from today's date (Dubai), never typed in.
@@ -104,7 +135,7 @@
       const stk = r[STK];
       rows.push({ id: rows.length, key, b, brand: brandOf(r[BRAND] || ''), name: String(r[NAME] || '').replace(/\s+/g, ' ').trim(), type: r[TYPE] === 'r' ? 'Retail' : 'Professional',
         s: Math.max(+stk || 0, 0), neg: stk != null && +stk < 0, noshelf: stk == null, mn, mx: +r[MAX] > 0 ? +r[MAX] : mn, c: +r[COST] || 0, nocost: r[COST] == null,
-        sup: r[SUP] || 'DBD', cat: r[CAT] || '', prio: r[PRIO] || 'B', flag: r[FLAG] || 0, lines: ls, i: ls.reduce((a, l) => a + l.u, 0) });
+        sup: supplierOf(r[SUP], r[BRAND], r[NAME]), cat: r[CAT] || '', prio: r[PRIO] || 'B', flag: r[FLAG] || 0, lines: ls, i: ls.reduce((a, l) => a + l.u, 0) });
     });
     S.rows = rows;
   }
@@ -244,7 +275,7 @@
     <details class="oos-sec oos-det" id="oos-3" data-jn="3 Order by supplier">
       <summary><h3>3 Order by supplier</h3></summary>
       <div class="oos-learn">
-        <p><b>What is this?</b> The same order split by supplier, as the plan has it.</p>
+        <p><b>What is this?</b> The same order split by supplier. The plan only names DBD, Eideal and Madi, so the other suppliers come from the brand: Kevin Murphy to Madi, Beauty Works to BS Pro, and so on.</p>
         <p><b>Why it matters.</b> Each supplier is ordered separately.</p>
         <p class="watch"><b>What to watch.</b> <span id="oosW3"></span></p>
       </div>
@@ -358,9 +389,9 @@
     return Object.keys(m).map(k => m[k]).sort((a, b) => b.aed - a.aed || a.sup.localeCompare(b.sup));
   }
   function paintW3() {
-    const rs = supRows(), tot = sum(rs, 'aed');
+    const rs = supRows(), tot = sum(rs, 'aed'), nl = rs.filter(x => x.sup === NOSUP)[0];
     if (!rs.length) { $('oosW3').textContent = 'Nothing to order for the salons picked.'; return; }
-    $('oosW3').innerHTML = esc(rs[0].sup) + ' is ' + Math.round(100 * rs[0].aed / (tot || 1)) + '% of the maximum order (AED ' + fig(n0(rs[0].aed), 'sup', '', rs[0].sup) + ' maximum, ' + fig(n0(rs[0].am), 'sup', '', rs[0].sup) + ' minimum). Send that order first.';
+    const top = rs.filter(x => x.sup !== NOSUP)[0] || rs[0]; $('oosW3').innerHTML = esc(top.sup) + ' is ' + Math.round(100 * top.aed / (tot || 1)) + '% of the maximum order (AED ' + fig(n0(top.aed), 'sup', '', top.sup) + ' maximum, ' + fig(n0(top.am), 'sup', '', top.sup) + ' minimum). Send that order first.' + (nl ? ' ' + fig(n0(nl.n), 'sup', '', NOSUP) + (nl.n === 1 ? ' product (AED ' : ' products (AED ') + fig(n0(nl.aed), 'sup', '', NOSUP) + ')' + (nl.n === 1 ? ' has' : ' have') + ' no supplier linked yet. Ask ate Tine which supplier they come from.' : '');
   }
 
   // ── HOW IT IS WORKED OUT, ABOUT: one card at a time ──────────────────────────────────
@@ -385,6 +416,7 @@
     mov: ['Which products', 'Priority A by default. A and B is a switch at the top. Products with Min 0 never show here.', 'Only the four UAE salons: Bahrain is not in these numbers.'],
     min: ['Min and Max', 'Min is one week of use. Max is Min plus 3, unless the plan sets its own number.', 'Edit them in the Weekly Product Plan, not here.'],
     fresh: ['How fresh', 'Shelf counts come from the Phorest Stock List. The date is under the answer at the top.', 'Run the daily reports to refresh it. On order counts the last 60 days.'],
+    sup: ['Suppliers', 'DBD, Eideal and Madi come from the plan. The others come from the brand, using the map from the 13 Nov stock meeting. A brand not in the map shows as Not linked yet.', 'Tell Kate when a supplier is wrong and it is changed here.'],
     who: ['Who sees it', 'Level 4 and up, and anyone the Weekly Product Plan lets in. It reads the same plan.', 'The database refuses everyone else, whatever this page does.']
   };
   function paintAbout() {
