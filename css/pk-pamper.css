@@ -1,0 +1,125 @@
+/* Hair Colour Packages Performance (Kate, 26 Nov 2026): the same rules as css/active-deals.css, scoped to its own page. */
+/* Active Deals Performance (Kate, 23 Oct 2026). The Wellness Voucher Performance page's own look (wellness-voucher-approvals/performance/index.html),
+   scoped to #pkPamperContent and mapped onto the dashboard's tokens so it follows the light and dark theme. Phone: the page keeps the dashboard's own
+   side margin (nothing is added here), tiles go two a row, and every table scrolls inside its card with its first column pinned. */
+#pkPamperContent{--paper:var(--surface);--ink:var(--text);--ink2:var(--text);--line:var(--border);--grid:var(--border2);--sand:var(--surface2);
+  --series:#0F8A72;--c1:#0F8A72;--c2:#7C5CD4;--c3:#B87A1E;--serif:'Playfair Display',Georgia,serif;
+  --good-bg:#E4F1EA;--warn-bg:#FBF3E2;--warn-fg:#B4823A;
+  position:relative;font-size:14px;line-height:1.5;padding:10px 0 48px}
+:root[data-theme="dark"] #pkPamperContent{--series:#99F6E4;--c1:#2FA58B;--c2:#8C74DE;--c3:#BD852D;--good-bg:rgba(153,246,228,.12);--warn-bg:rgba(238,243,199,.12);--warn-fg:#EEF3C7}
+#pkPamperContent *{box-sizing:border-box}
+#pkPamperContent h1.ad-t{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+#pkPamperContent h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
+#pkPamperContent .ad-sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+#pkPamperContent .ad-subh{margin:20px 0 6px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#pkPamperContent [id^="ad-"]{scroll-margin-top:150px}
+#pkPamperContent .ad-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+#pkPamperContent .ad-toplinks{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){
+  #pkPamperContent .ad-toplinks{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}
+  #pkPamperContent .ad-toplinks .ad-btn{padding:9px 8px;font-size:13px;line-height:1.25;text-align:center}
+}
+#pkPamperContent .ad-btn{border:1px solid var(--line);background:var(--paper);color:var(--muted);font:600 13px 'Inter',system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block;min-height:34px}
+#pkPamperContent .ad-btn:hover{color:var(--ink)}
+#pkPamperContent .ad-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:16px;min-width:0}
+#pkPamperContent .ad-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+#pkPamperContent .ad-grid2 .ad-card{margin-bottom:0}
+#pkPamperContent .ad-grid2>*{min-width:0}
+@media(max-width:760px){#pkPamperContent .ad-grid2{grid-template-columns:1fr}#pkPamperContent .ad-card{padding-left:12px;padding-right:12px}}
+#pkPamperContent details.more{margin:6px 0 0}
+#pkPamperContent details.more>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:4px 0}
+#pkPamperContent details.more>p.ad-sub{margin:4px 0 0}
+#pkPamperContent details{margin-top:10px}
+#pkPamperContent summary{cursor:pointer;color:var(--muted);font-size:12px}
+#pkPamperContent div:has(> table){overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#pkPamperContent div:has(> table) > table tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--paper)}
+#pkPamperContent .ad-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
+@media(max-width:760px){#pkPamperContent .ad-hero{grid-template-columns:1fr}}
+#pkPamperContent .ad-big{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+#pkPamperContent .ad-big small{font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+#pkPamperContent .ad-track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
+#pkPamperContent .ad-fill{height:100%;background:var(--series);border-radius:999px}
+#pkPamperContent .ad-cap{color:var(--muted);font-size:13px}
+#pkPamperContent .ad-zero{color:var(--muted);opacity:.4}
+#pkPamperContent .ad-pace{border-left:1px solid var(--line);padding-left:24px}
+@media(max-width:760px){#pkPamperContent .ad-pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+#pkPamperContent .ad-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
+#pkPamperContent .ad-row b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+#pkPamperContent .ad-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;margin-bottom:6px}
+#pkPamperContent .ad-status.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#pkPamperContent .ad-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:560px){#pkPamperContent .ad-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#pkPamperContent .ad-tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+#pkPamperContent .ad-tile .l{color:var(--muted);font-size:12px;font-weight:500}
+#pkPamperContent .ad-tile .v{font-family:var(--serif);font-size:clamp(17px,2.3vw,24px);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#pkPamperContent .ad-tile .v.txt{font-size:clamp(15px,1.7vw,18px);line-height:1.25;padding:3px 0}
+#pkPamperContent .ad-tile .h{color:var(--muted);font-size:12px}
+@media(max-width:900px) and (min-width:561px){#pkPamperContent .ad-tile .l,#pkPamperContent .ad-tile .h{font-size:11.5px}}
+#pkPamperContent .ad-chart{position:relative;margin-top:10px}
+#pkPamperContent .ad-chart svg{display:block;width:100%;height:auto;overflow:visible}
+#pkPamperContent .ax{fill:var(--muted);font-size:11px;font-family:'Inter',system-ui,sans-serif}
+#pkPamperContent .gl{stroke:var(--grid);stroke-width:1}
+#pkPamperContent .ad-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px}
+#pkPamperContent .ad-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#pkPamperContent .ad-tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;border-radius:8px;padding:7px 10px;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:5}
+#pkPamperContent table{width:100%;border-collapse:collapse;font-size:13px}
+#pkPamperContent th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+#pkPamperContent td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;vertical-align:top}
+#pkPamperContent td.n,#pkPamperContent th.n{text-align:right}
+#pkPamperContent tr.tot td{font-weight:600;border-bottom:0}
+#pkPamperContent td small{display:block;color:var(--muted);font-size:11.5px}
+#pkPamperContent .ad-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+#pkPamperContent .ad-mini{display:inline-block;width:60px;height:6px;background:var(--sand);border-radius:999px;overflow:hidden;vertical-align:middle;margin-right:8px}
+#pkPamperContent .ad-mini i{display:block;height:100%;background:var(--series);border-radius:999px}
+#pkPamperContent .ad-tag{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap;background:var(--sand);color:var(--muted)}
+#pkPamperContent .ad-tag.ok{background:var(--good-bg);color:var(--good)}
+#pkPamperContent .ad-tag.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#pkPamperContent .ad-list{margin:8px 0 0;padding:0;list-style:none}
+#pkPamperContent .ad-list li{padding:9px 0;border-top:1px solid var(--grid);font-size:13px;color:var(--ink2)}
+#pkPamperContent .ad-list li:first-child{border-top:0}
+#pkPamperContent .ad-list li b{color:var(--ink);display:block;font-weight:600}
+#pkPamperContent .ad-ask{margin:6px 0 0 18px;padding:0;font-size:13px;color:var(--ink2)}
+#pkPamperContent .ad-ask li{margin:6px 0}
+#pkPamperContent .ad-state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
+#pkPamperContent .ad-empty{color:var(--muted);font-size:13px;padding:8px 0}
+
+/* Brochure slide thumbnails beside each offer (Kate, 25 Nov 2026) */
+#pkPamperContent .ad-of{display:flex;gap:10px;align-items:flex-start}
+#pkPamperContent .ad-of>div{min-width:0}
+#pkPamperContent .ad-pic{width:56px;padding-right:0}
+#pkPamperContent td.ad-nm{min-width:170px}
+#pkPamperContent .ad-th{flex:0 0 44px;display:block;line-height:0}
+#pkPamperContent .ad-th img{width:44px;height:78px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+#pkPamperContent li.ad-of .ad-th{flex-basis:52px}
+#pkPamperContent li.ad-of .ad-th img{width:52px;height:92px}
+
+/* Sheets tables (sheet-table.js) on this page, 25 Nov 2026 */
+#pkPamperContent .ad-phone{display:none}
+#pkPamperContent tr.ad-off{opacity:.45}
+#pkPamperContent .sx-t td small{display:block;color:var(--muted);font-size:11.5px}
+@media(max-width:760px){#pkPamperContent .ad-phone{display:inline-flex;align-items:center;min-height:44px;margin-bottom:8px}}
+/* Phone (375px): text 13px or more, and a figure is a 44px tap (Kate, 25 Nov 2026) */
+@media(max-width:760px){
+  #pkPamperContent .ad-tile .l,#pkPamperContent .ad-tile .h,#pkPamperContent .ad-subh,#pkPamperContent .ad-tag,#pkPamperContent .ad-cap,#pkPamperContent summary,#pkPamperContent .sx-t td small{font-size:13px}
+  #pkPamperContent .ad-pace span,#pkPamperContent .ad-status span{font-size:13px}
+  #pkPamperContent svg text{font-size:13px!important}
+  #pkPamperContent td .dn,#pkPamperContent .ad-tile .dn,#pkPamperContent li .dn{display:inline-flex;align-items:center;min-height:44px}
+  #pkPamperContent .ad-tile .dn{min-height:0}
+}
+/* Hair Colour Packages Performance (Kate, 26 Nov 2026): the Not counted list has no slide image, so a small labelled box stands in for it */
+#pkPamperContent .ad-th.ad-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:56px;height:56px;box-sizing:border-box;border:1px dashed var(--line);border-radius:6px;line-height:1.15;text-align:center;font-size:13px;color:var(--muted)}
+#pkPamperContent .ad-th.ad-ph em{font-style:normal}
+
+/* Pamper Packages Performance 2025 (Kate, 26 Nov 2026): the slide picture beside each package (slide 1 cropped from the Facebook post; slide 2 not saved yet) */
+#pkPamperContent .pp-th{flex:0 0 64px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:51px;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--sand);overflow:hidden;line-height:1.15;text-decoration:none;padding:0;vertical-align:middle}
+#pkPamperContent .pp-th img{display:block;width:64px;height:51px;object-fit:cover}
+#pkPamperContent .pp-th.pp-ph{border-style:dashed;color:var(--muted);font-size:12px;text-align:center}
+#pkPamperContent .pp-th.pp-ph em{font-style:normal;font-size:11px}
+#pkPamperContent li.ad-of{gap:14px}
+@media(max-width:760px){#pkPamperContent .pp-th.pp-ph,#pkPamperContent .pp-th.pp-ph em{font-size:13px}}
+@media(max-width:760px){
+  #pkPamperContent .ad-status{font-size:13px}
+  #pkPamperContent details>summary{display:flex;align-items:center;min-height:44px}
+}
+#pkPamperContent #pppk td:nth-child(2){min-width:200px}
+@media(max-width:760px){#pkPamperContent #pppk td:nth-child(2){min-width:0}}
