@@ -12,7 +12,9 @@
 //   on order   units on stock orders not yet arrived (the last 60 days)
 //   Min        one week of use (the plan's Min); Max is the plan's Max; cost is the plan's unit cost
 //   cover      2 weeks from 15 Nov to 31 Dec (the busy weeks), otherwise 1 week; worked out from today's date, and the reader can change it at the top
-//   order when shelf + on order is under Min x cover; order up to the bigger of Max and Min x cover; AED = units to order x cost
+//   order when shelf + on order is under Min x cover; two orders (Kate, 26 Nov 2026: "dapat meron din minimum orders minimum amount"):
+//     MINIMUM order = up to Min x cover (the order point), the least that gets the product back to cover; MAXIMUM order = up to the bigger of Max and Min x cover
+//     AED = units to order x cost, for each of the two
 //   status     out (nothing on the shelf), under 1 week (shelf + on order under Min), under N weeks (under the order point)
 //
 // The masthead's Branch drives the page (sel). Period does not apply: a shelf count has no period, so the masthead dims it and the page says so.
@@ -106,10 +108,10 @@
     });
     S.rows = rows;
   }
-  // trig = Min x cover, target = the bigger of Max and trig, have = shelf + on order, to order = target - have when have is under trig
+  // trig = Min x cover, target = the bigger of Max and trig, have = shelf + on order. When have is under trig: maximum order q = target - have, minimum order qm = trig - have.
   function enrich(r, C) {
-    const trig = r.mn * C, tgt = Math.max(r.mx, trig), have = r.s + r.i, q = have < trig ? tgt - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
-    return Object.assign({}, r, { C, trig, tgt, have, q, aed: q * r.c, cov: have / r.mn, st });
+    const trig = r.mn * C, tgt = Math.max(r.mx, trig), have = r.s + r.i, q = have < trig ? tgt - have : 0, qm = have < trig ? trig - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
+    return Object.assign({}, r, { C, trig, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st });
   }
   function all() {
     const C = cover(), k = S.ver + '|' + S.prio + '|' + C;
@@ -124,7 +126,7 @@
   const stTxt = r => r.st === 'out' ? (r.i > 0 ? 'Out, ' + nu(r.i) + ' on order' : 'Out now') : r.st === 'u1' ? 'Under 1 week' : 'Under ' + wk(r.C);
   function salTot(c) {
     const rs = all().filter(r => r.b === c), o = rs.filter(r => r.q > 0);
-    return { n: o.length, out: rs.filter(r => r.s <= 0).length, u1: o.filter(r => r.s > 0 && r.have < r.mn).length, aed: sum(o, 'aed'), units: sum(o, 'q') };
+    return { n: o.length, out: rs.filter(r => r.s <= 0).length, u1: o.filter(r => r.s > 0 && r.have < r.mn).length, aed: sum(o, 'aed'), units: sum(o, 'q'), aedm: sum(o, 'am'), unitsm: sum(o, 'qm') };
   }
   // How fresh the shelf data is, from stock_asof (a date per salon): the oldest one picked decides.
   function fresh() {
@@ -152,14 +154,14 @@
   // A list of products. Every product, number and the product name open the product's own window. The Total row adds up the rows listed.
   function rowsSpec(title, rows, sk) {
     const C = cover();
-    return { title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'aed')) + ' to order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
+    return { title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
       views: [{ id: 'products', label: 'Products', load: async () => ({
         cols: [{ k: 'p', l: 'Product' }, { k: 'br', l: 'Brand' }, { k: 's', l: 'Salon' }, { k: 'ty', l: 'Type' }, { k: 'pr', l: 'Priority' }, { k: 'st', l: 'Status' },
-          { k: 'in', l: 'In stock', t: 'num' }, { k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'q', l: 'To order', t: 'num' }, { k: 'a', l: 'AED', t: 'aed' }],
+          { k: 'in', l: 'In stock', t: 'num' }, { k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'am', l: 'Min AED', t: 'aed' }, { k: 'q', l: 'Max order', t: 'num' }, { k: 'a', l: 'Max AED', t: 'aed' }],
         rows: rows.map(r => { const d = prodSpec(r, 'how'), o = prodSpec(r, 'orders');
-          return { p: r.name, br: r.brand, s: BN[r.b], ty: r.type, pr: r.prio, st: stTxt(r), in: r.s, on: r.i, mn: r.mn, q: r.q, a: Math.round(r.aed * 100) / 100,
-            _dn: Object.assign({ p: d, in: d, mn: d, q: d, a: d }, r.lines.length ? { on: o } : {}) }; }),
-        foot: { p: 'Total: ' + plural(rows.length, 'product'), q: sum(rows, 'q'), a: Math.round(sum(rows, 'aed') * 100) / 100 },
+          return { p: r.name, br: r.brand, s: BN[r.b], ty: r.type, pr: r.prio, st: stTxt(r), in: r.s, on: r.i, mn: r.mn, qm: r.qm, am: Math.round(r.am * 100) / 100, q: r.q, a: Math.round(r.aed * 100) / 100,
+            _dn: Object.assign({ p: d, in: d, mn: d, qm: d, am: d, q: d, a: d }, r.lines.length ? { on: o } : {}) }; }),
+        foot: { p: 'Total: ' + plural(rows.length, 'product'), qm: sum(rows, 'qm'), am: Math.round(sum(rows, 'am') * 100) / 100, q: sum(rows, 'q'), a: Math.round(sum(rows, 'aed') * 100) / 100 },
         note: 'Every product is listed with its real counts. Tap a number or a product to see how its order is worked out; On order opens the order lines.' + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.')
       }) }] };
   }
@@ -176,11 +178,12 @@
         ['Weeks left at that rate', r1(r.cov).toFixed(1)],
         ['Order when shelf and on order are under', nu(r.trig) + ' (Min x ' + r.C + ')'],
         ['Order up to', nu(r.tgt) + (r.tgt > r.mx ? ' (Min x ' + r.C + ', higher than Max)' : ' (Max)')],
-        ['To order', nu(r.q) + ' units'],
+        ['Minimum order', nu(r.qm) + ' units, up to ' + nu(r.trig) + ' (Min x ' + r.C + ')'],
+        ['Maximum order', nu(r.q) + ' units, up to ' + nu(r.tgt)],
         ['Cost a unit, Stock List', r.nocost ? 'No cost on the plan yet, counted as 0' : 'AED ' + r.c.toFixed(2)]];
       return { cols: [{ k: 'step', l: 'Step' }, { k: 'fig', l: 'Figure' }],
         rows: steps.map((x, i) => ({ step: x[0], fig: x[1], _dn: i === 1 && ordSpec ? { fig: ordSpec } : null })),
-        foot: { step: 'AED to order', fig: A(r.aed) },
+        foot: { step: 'AED to order', fig: A(r.am) + ' minimum, ' + A(r.aed) + ' maximum' },
         note: 'This is the last step for these figures: one product at one salon has nothing behind it, except the order lines on the second tab. Which clients bought a retail product at the till is not on this page yet. Phorest does not record which client a professional product was used on.' };
     } };
     const orders = { id: 'orders', label: 'On order (' + r.lines.length + ')', load: async () => {
@@ -210,7 +213,7 @@
     <section class="oos-sec" id="oos-1" data-jn="1 This week's order">
       <h3>1 This week's order</h3>
       <div class="oos-learn">
-        <p><b>What is this?</b> For each salon, the products that are short, Priority A to start with, and what it costs to top them up.</p>
+        <p><b>What is this?</b> For each salon, the products that are short, Priority A to start with, and what it costs to top them up: a minimum order (back to cover) and a maximum order (up to Max).</p>
         <p><b>Why it matters.</b> A colour that is out on a Thursday means a client is told no.</p>
         <p class="ex" id="oosEx"></p>
         <p class="watch"><b>What to watch.</b> <span id="oosW1"></span></p>
@@ -272,12 +275,12 @@
     $('oosCoverT').textContent = 'Order when under Min x weeks. ' + (C === usual ? 'The usual for today.' : 'Not the usual for today.') + ' 15 Nov to 31 Dec: 2 weeks. Rest of the year: 1 week.';
   }
   function paintAnswer() {
-    const cs = S.br, T = cs.map(salTot), aed = sum(T, 'aed'), out = sum(T, 'out'), n = sum(T, 'n'), f = fresh();
+    const cs = S.br, T = cs.map(salTot), aed = sum(T, 'aed'), aedm = sum(T, 'aedm'), out = sum(T, 'out'), n = sum(T, 'n'), f = fresh();
     const a = $('oosAns'), a2 = $('oosAns2');
     if (!n) { a.textContent = 'Nothing to order for ' + scope() + ' on Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + '.'; a2.innerHTML = fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now.'; }
     else {
-      a.innerHTML = 'Order about ' + fig(A(aed), 'all') + ' this week (Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ') to keep ' + (cs.length === 1 ? BN[cs[0]] : 'every salon') + ' covered for ' + wk(cover()) + '.';
-      a2.innerHTML = cs.map((c, i) => BN[c] + ' ' + fig(A(T[i].aed), 'all', c)).join(', ') + '. ' + fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now.';
+      a.innerHTML = 'Order between ' + fig(A(aedm), 'all') + ' (minimum) and ' + fig(A(aed), 'all') + ' (maximum) this week (Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ') to keep ' + (cs.length === 1 ? BN[cs[0]] : 'every salon') + ' covered for ' + wk(cover()) + '.';
+      a2.innerHTML = cs.map((c, i) => BN[c] + ' ' + fig(A(T[i].aedm), 'all', c) + ' to ' + fig(A(T[i].aed), 'all', c)).join(', ') + '. ' + fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now.';
     }
     $('oosAns3').textContent = f.text + ' The Period at the top does not apply to this page.';
     const w = $('oosAns4'); w.hidden = S.ordersOk; w.textContent = S.ordersOk ? '' : 'On-order counts are not loaded yet. On order shows 0 for every product, so something that is already on its way can still show as short.';
@@ -290,18 +293,18 @@
   function paintBars() {
     const cs = S.br, T = cs.map(salTot), mx = Math.max.apply(null, T.map(t => t.aed).concat([1])), total = sum(T, 'aed');
     $('oosBars').innerHTML = cs.map((c, i) => {
-      const t = T[i], tip = BN[c] + ': ' + plural(t.n, 'product') + ' to order, ' + A(t.aed) + (total ? ' (' + Math.round(100 * t.aed / total) + '% of the order)' : '') + '. ' + n0(t.out) + ' out on the shelf now and ' + n0(t.u1) + ' more with under a week left. Tap a number to see the products.';
+      const t = T[i], tip = BN[c] + ': ' + plural(t.n, 'product') + ' to order, ' + A(t.aedm) + ' minimum and ' + A(t.aed) + ' maximum' + (total ? ' (' + Math.round(100 * t.aed / total) + '% of the maximum order)' : '') + '. ' + n0(t.out) + ' out on the shelf now and ' + n0(t.u1) + ' more with under a week left. Tap a number to see the products.';
       return `<div class="oos-step" data-bh tabindex="0" data-tip="${esc(tip)}"><div class="oos-nm">${BN[c]}<small>${n0(t.n)} to order</small></div><div class="oos-fbar"><i data-bh-fill style="width:${(100 * t.aed / mx).toFixed(1)}%"></i></div>` +
-        `<div class="oos-num"><b>${fig(A(t.aed), 'all', c)}</b><span>·</span><span>${fig(n0(t.n), 'all', c)} products</span><span>·</span><span>${fig(n0(t.out), 'out', c)} out now</span><span>·</span><span>${fig(n0(t.u1), 'u1', c)} under 1 week</span></div></div>`;
+        `<div class="oos-num"><b>${fig(A(t.aed), 'all', c)}</b> <span>maximum</span><span>·</span><span>${fig(A(t.aedm), 'all', c)} minimum</span><span>·</span><span>${fig(n0(t.n), 'all', c)} products</span><span>·</span><span>${fig(n0(t.out), 'out', c)} out now</span><span>·</span><span>${fig(n0(t.u1), 'u1', c)} under 1 week</span></div></div>`;
     }).join('');
     let hi = 0, lo = 0; T.forEach((t, i) => { if (t.aed > T[hi].aed) hi = i; if (t.aed < T[lo].aed) lo = i; });
     const w = $('oosW1');
     if (cs.length < 2) w.textContent = 'One salon is picked. Add the others in the header to compare them.';
-    else w.innerHTML = BN[cs[hi]] + ' has the biggest order (' + fig(A(T[hi].aed), 'all', cs[hi]) + ') and ' + BN[cs[lo]] + ' the smallest (' + fig(A(T[lo].aed), 'all', cs[lo]) + '). ' +
+    else w.innerHTML = BN[cs[hi]] + ' has the biggest maximum order (' + fig(A(T[hi].aed), 'all', cs[hi]) + ') and ' + BN[cs[lo]] + ' the smallest (' + fig(A(T[lo].aed), 'all', cs[lo]) + '). ' +
       (T[lo].out === 0 ? BN[cs[lo]] + ' has nothing out on the shelf: that is the shelf to copy.' : 'Look at what ' + BN[cs[lo]] + ' does differently.');
     const e = exRow(), ex = $('oosEx');
     ex.hidden = !e;
-    if (e) ex.innerHTML = '<b>Example.</b> At ' + esc(BN[e.b]) + ' the ' + esc(e.name) + ' has ' + nu(e.s) + ' on the shelf and ' + (e.i ? nu(e.i) : 'none') + ' on order. The plan says Min ' + nu(e.mn) + ' and Max ' + nu(e.mx) + '. We order when under ' + nu(e.trig) + ' and go up to ' + nu(e.tgt) + ', which is ' + num(A(e.aed), prodSpec(e, 'how')) + '.';
+    if (e) ex.innerHTML = '<b>Example.</b> At ' + esc(BN[e.b]) + ' the ' + esc(e.name) + ' has ' + nu(e.s) + ' on the shelf and ' + (e.i ? nu(e.i) : 'none') + ' on order. The plan says Min ' + nu(e.mn) + ' and Max ' + nu(e.mx) + '. We order when under ' + nu(e.trig) + '. The minimum order goes up to ' + nu(e.trig) + ', which is ' + num(A(e.am), prodSpec(e, 'how')) + '. The maximum order goes up to ' + nu(e.tgt) + ', which is ' + num(A(e.aed), prodSpec(e, 'how')) + '.';
   }
 
   // ── 2 THE ORDER LIST ─────────────────────────────────────────────────────────────────
@@ -319,13 +322,15 @@
         tc('p', 'Product', r => r.name, 0, r => num('<b>' + esc(r.name) + '</b>', prodSpec(r, 'how')) + '<span class="oos-sub">' + esc(r.brand) + '</span>'),
         tc('s', 'Salon', r => BN[r.b]), tc('ty', 'Type', r => r.type), tc('pr', 'Priority', r => r.prio),
         tc('st', 'Status', stTxt, 0, r => '<span class="oos-st ' + r.st + '">' + esc(stTxt(r)) + '</span>'),
-        nc('in', 'In stock', r => r.s), nc('q', 'To order', r => r.q),
-        { k: 'a', l: 'AED', t: 'num', raw: r => r.aed, disp: r => n0(r.aed), cell: r => num(n0(r.aed), prodSpec(r, 'how')) },
+        nc('in', 'In stock', r => r.s), nc('qm', 'Min order', r => r.qm),
+        { k: 'am', l: 'Min AED', t: 'num', raw: r => r.am, disp: r => n0(r.am), cell: r => num(n0(r.am), prodSpec(r, 'how')) },
+        nc('q', 'Max order', r => r.q),
+        { k: 'a', l: 'Max AED', t: 'num', raw: r => r.aed, disp: r => n0(r.aed), cell: r => num(n0(r.aed), prodSpec(r, 'how')) },
         nc('on', 'On order', r => r.i, 1, 'orders'), nc('mn', 'Min', r => r.mn, 1), nc('mx', 'Max', r => r.mx, 1), nc('tg', 'Order up to', r => r.tgt, 1),
         { k: 'cv', l: 'Weeks left', t: 'num', x: 1, raw: r => r1(r.cov), disp: r => r1(r.cov).toFixed(1), cell: r => num(r1(r.cov).toFixed(1), prodSpec(r, 'how')) },
         tc('su', 'Supplier', r => r.sup, 1), tc('ca', 'Category', r => r.cat, 1)],
       total: rs => { const sal = {}; rs.forEach(r => { sal[r.b] = 1; }); const ns = Object.keys(sal).length, sp = rowsSpec('Products in the list, ' + scope(), rs, 'oos-list');
-        return { p: '<b>' + num('Total: ' + plural(rs.length, 'product'), sp) + '</b>', s: ns + ' salon' + (ns === 1 ? '' : 's'), q: num(nu(sum(rs, 'q')), sp), a: num(n0(sum(rs, 'aed')), sp) }; },
+        return { p: '<b>' + num('Total: ' + plural(rs.length, 'product'), sp) + '</b>', s: ns + ' salon' + (ns === 1 ? '' : 's'), qm: num(nu(sum(rs, 'qm')), sp), am: num(n0(sum(rs, 'am')), sp), q: num(nu(sum(rs, 'q')), sp), a: num(n0(sum(rs, 'aed')), sp) }; },
       after: (T, rows) => {
         const c = $('oosClear'); if (c) c.hidden = !T.active();
         const n = rows.length, pages = T.pages(n), from = n ? T.page * T.shown + 1 : 0, to = Math.min(n, (T.page + 1) * T.shown);
@@ -336,9 +341,10 @@
       cols: [
         { k: 'su', l: 'Supplier', t: 'txt', raw: r => r.sup, disp: r => r.sup, cell: r => '<b>' + esc(r.sup) + '</b>' },
         { k: 'n', l: 'Products', t: 'num', raw: r => r.n, disp: r => String(r.n), cell: r => fig(n0(r.n), 'sup', '', r.sup) },
-        { k: 'a', l: 'AED', t: 'num', raw: r => r.aed, disp: r => n0(r.aed), cell: r => fig(n0(r.aed), 'sup', '', r.sup) }
-      ].concat(B.map(c => ({ k: 'c' + c, l: BN[c], t: 'num', x: 1, hide: () => !inSel(c), raw: r => r.by[c] ? r.by[c].aed : 0, disp: r => n0(r.by[c] ? r.by[c].aed : 0), cell: r => r.by[c] ? fig(n0(r.by[c].aed), 'sup', c, r.sup) : '0' }))),
-      total: rs => { const o = { su: '<b>Total</b>', n: fig(n0(sum(rs, 'n')), 'all'), a: n0(sum(rs, 'aed')) }; B.forEach(c => { o['c' + c] = n0(rs.reduce((a, r) => a + (r.by[c] ? r.by[c].aed : 0), 0)); }); return o; } });
+        { k: 'am', l: 'Min AED', t: 'num', raw: r => r.am, disp: r => n0(r.am), cell: r => fig(n0(r.am), 'sup', '', r.sup) },
+        { k: 'a', l: 'Max AED', t: 'num', raw: r => r.aed, disp: r => n0(r.aed), cell: r => fig(n0(r.aed), 'sup', '', r.sup) }
+      ].concat(B.map(c => ({ k: 'c' + c, l: BN[c] + ' max', t: 'num', x: 1, hide: () => !inSel(c), raw: r => r.by[c] ? r.by[c].aed : 0, disp: r => n0(r.by[c] ? r.by[c].aed : 0), cell: r => r.by[c] ? fig(n0(r.by[c].aed), 'sup', c, r.sup) : '0' }))),
+      total: rs => { const o = { su: '<b>Total</b>', n: fig(n0(sum(rs, 'n')), 'all'), am: n0(sum(rs, 'am')), a: n0(sum(rs, 'aed')) }; B.forEach(c => { o['c' + c] = n0(rs.reduce((a, r) => a + (r.by[c] ? r.by[c].aed : 0), 0)); }); return o; } });
   }
   function paintW2() {
     const rs = selRows().filter(r => r.s <= 0), none = rs.filter(r => r.i === 0);
@@ -348,21 +354,22 @@
   // ── 3 BY SUPPLIER ────────────────────────────────────────────────────────────────────
   function supRows() {
     const rs = selRows().filter(r => r.q > 0), m = {};
-    rs.forEach(r => { const o = m[r.sup] || (m[r.sup] = { sup: r.sup, n: 0, aed: 0, by: {} }); o.n++; o.aed += r.aed; const b = o.by[r.b] || (o.by[r.b] = { n: 0, aed: 0 }); b.n++; b.aed += r.aed; });
+    rs.forEach(r => { const o = m[r.sup] || (m[r.sup] = { sup: r.sup, n: 0, aed: 0, am: 0, by: {} }); o.n++; o.aed += r.aed; o.am += r.am; const b = o.by[r.b] || (o.by[r.b] = { n: 0, aed: 0 }); b.n++; b.aed += r.aed; });
     return Object.keys(m).map(k => m[k]).sort((a, b) => b.aed - a.aed || a.sup.localeCompare(b.sup));
   }
   function paintW3() {
     const rs = supRows(), tot = sum(rs, 'aed');
     if (!rs.length) { $('oosW3').textContent = 'Nothing to order for the salons picked.'; return; }
-    $('oosW3').innerHTML = esc(rs[0].sup) + ' is ' + Math.round(100 * rs[0].aed / (tot || 1)) + '% of the order (AED ' + fig(n0(rs[0].aed), 'sup', '', rs[0].sup) + '). Send that order first.';
+    $('oosW3').innerHTML = esc(rs[0].sup) + ' is ' + Math.round(100 * rs[0].aed / (tot || 1)) + '% of the maximum order (AED ' + fig(n0(rs[0].aed), 'sup', '', rs[0].sup) + ' maximum, ' + fig(n0(rs[0].am), 'sup', '', rs[0].sup) + ' minimum). Send that order first.';
   }
 
   // ── HOW IT IS WORKED OUT, ABOUT: one card at a time ──────────────────────────────────
   const HOW = {
-    qty: ['To order', 'Up to Max (or Min x weeks if that is more), less the shelf and what is on order. Only when under Min x weeks.', e => num(nu(e.q), prodSpec(e, 'how')) + ' = ' + nu(e.tgt) + ' − ' + nu(e.s) + ' − ' + nu(e.i), e => esc(e.name) + ', ' + BN[e.b] + '. Min ' + nu(e.mn) + ', Max ' + nu(e.mx) + ', weeks ' + e.C + '.'],
+    qmin: ['Minimum order', 'Up to Min x weeks, less the shelf and what is on order. Only when under Min x weeks. The least that gets the product back to cover.', e => num(nu(e.qm), prodSpec(e, 'how')) + ' = ' + nu(e.trig) + ' − ' + nu(e.s) + ' − ' + nu(e.i), e => esc(e.name) + ', ' + BN[e.b] + '. Min ' + nu(e.mn) + ', weeks ' + e.C + '.'],
+    qty: ['Maximum order', 'Up to Max (or Min x weeks if that is more), less the shelf and what is on order. Only when under Min x weeks.', e => num(nu(e.q), prodSpec(e, 'how')) + ' = ' + nu(e.tgt) + ' − ' + nu(e.s) + ' − ' + nu(e.i), e => esc(e.name) + ', ' + BN[e.b] + '. Min ' + nu(e.mn) + ', Max ' + nu(e.mx) + ', weeks ' + e.C + '.'],
     use: ['Min and Max', 'Min is one week of use. Max is Min plus 3, or the number set in the plan.', e => 'Min ' + num(nu(e.mn), prodSpec(e, 'how')) + ' · Max ' + num(nu(e.mx), prodSpec(e, 'how')), e => esc(e.name) + ', ' + BN[e.b] + '. The order starts under Min x weeks.'],
     cover: ['Weeks left', 'Shelf and on order together, divided by the Min.', e => '(' + nu(e.s) + ' + ' + nu(e.i) + ') ÷ ' + nu(e.mn) + ' = ' + num(r1(e.cov).toFixed(1), prodSpec(e, 'how')), e => esc(e.name) + ', ' + BN[e.b] + '. Under 1 week means urgent.'],
-    aed: ['AED', 'Units to order times the cost a unit on the Stock List.', e => nu(e.q) + ' × AED ' + e.c.toFixed(2) + ' = ' + num(n0(e.aed), prodSpec(e, 'how')), () => 'Prices change: check the supplier list before sending.']
+    aed: ['AED', 'Units to order times the cost a unit on the Stock List, for the minimum and for the maximum order.', e => nu(e.qm) + ' × AED ' + e.c.toFixed(2) + ' = ' + num(n0(e.am), prodSpec(e, 'how')) + ' minimum · ' + nu(e.q) + ' × AED ' + e.c.toFixed(2) + ' = ' + num(n0(e.aed), prodSpec(e, 'how')) + ' maximum', () => 'Prices change: check the supplier list before sending.']
   };
   function paintHow() {
     const e = exRow(), pick = $('oosHpick'), card = $('oosHcard');
@@ -372,7 +379,7 @@
     card.innerHTML = `<div class="oos-hc-t">${h[0]}</div><div class="oos-hc-m">${h[1]}</div><div class="oos-hc-big">${h[2](e)}</div><div class="oos-hc-cv">${h[3](e)}</div>`;
   }
   const ABOUT = {
-    rule: ['The order rule', 'Order when shelf and on order are under Min x weeks. Order up to Max.', 'If Min x weeks is higher than Max, it goes up to Min x weeks.'],
+    rule: ['The order rule', 'Order when shelf and on order are under Min x weeks. The minimum order goes up to Min x weeks. The maximum order goes up to Max.', 'If Min x weeks is higher than Max, the maximum goes up to Min x weeks too, so the two orders are the same.'],
     plan: ['Priority and type', 'Both come from the Weekly Product Plan, read live. Change them there, not here.', 'A is the first 80% of spend, or what the plan marks A.'],
     cover: ['Weeks of cover', '1 week as a rule. 2 weeks from 15 Nov to 31 Dec, for the busy weeks.', 'It moves the order point: Min x weeks. Change it with the picker at the top.'],
     mov: ['Which products', 'Priority A by default. A and B is a switch at the top. Products with Min 0 never show here.', 'Only the four UAE salons: Bahrain is not in these numbers.'],
@@ -424,7 +431,7 @@
     if (!$('oosMsg')) {
       host.innerHTML = '<div class="oos-msg" id="oosMsg"></div><div id="oosBody"></div>';
       const intro = $('outofstockIntro');
-      if (intro) intro.innerHTML = `<section class="slv-intro"><h2>Out of stock: what to order this week</h2><p>The products each salon is short of, and what it costs to top them up for the Monday order. Priority A to start with. The Branch at the top picks the salons. The Period does not apply here: the shelf is counted as it is now.</p></section>`;
+      if (intro) intro.innerHTML = `<section class="slv-intro"><h2>Out of stock: what to order this week</h2><p>The products each salon is short of, and what it costs to top them up for the Monday order, as a minimum and a maximum order. Priority A to start with. The Branch at the top picks the salons. The Period does not apply here: the shelf is counted as it is now.</p></section>`;
     }
     const seq = ++S.seq;
     if (!S.rows) msg('Loading the order list…');
@@ -451,17 +458,17 @@
     const rows = TO.rows(); if (!rows.length) return null;
     const cols = [{ key: 'b', label: 'Salon', fmt: 'text' }, { key: 'sup', label: 'Supplier', fmt: 'text' }, { key: 'brand', label: 'Brand', fmt: 'text' }, { key: 'p', label: 'Product', fmt: 'text' }, { key: 'ty', label: 'Stock type', fmt: 'text' },
       { key: 'cat', label: 'Category', fmt: 'text' }, { key: 'pr', label: 'Priority', fmt: 'text' }, { key: 'st', label: 'Status', fmt: 'text' }, { key: 'in', label: 'In stock', fmt: 'num' }, { key: 'on', label: 'On order', fmt: 'num' },
-      { key: 'mn', label: 'Min', fmt: 'num' }, { key: 'mx', label: 'Max', fmt: 'num' }, { key: 'tg', label: 'Order up to', fmt: 'num' }, { key: 'cv', label: 'Weeks left', fmt: 'num' }, { key: 'q', label: 'To order', fmt: 'num' },
-      { key: 'c', label: 'Cost a unit (AED)', fmt: 'aed' }, { key: 'a', label: 'AED to order', fmt: 'aed' }];
-    const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, r.tgt, r1(r.cov), r.q, r2(r.c), r2(r.aed)] }));
+      { key: 'mn', label: 'Min', fmt: 'num' }, { key: 'mx', label: 'Max', fmt: 'num' }, { key: 'tg', label: 'Order up to (max)', fmt: 'num' }, { key: 'cv', label: 'Weeks left', fmt: 'num' }, { key: 'qm', label: 'Min order', fmt: 'num' }, { key: 'q', label: 'Max order', fmt: 'num' },
+      { key: 'c', label: 'Cost a unit (AED)', fmt: 'aed' }, { key: 'am', label: 'Min AED', fmt: 'aed' }, { key: 'a', label: 'Max AED', fmt: 'aed' }];
+    const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, r.tgt, r1(r.cov), r.qm, r.q, r2(r.c), r2(r.am), r2(r.aed)] }));
     return { name: 'Order list', title: 'Out of Stock: the order list', subtitle: subtitle() + '.', blocks: [{ cols, rows: lines }],
-      legend: [['To order', 'Up to Max (or Min x weeks, if that is more), less the shelf and what is on order. Only when shelf and on order are under Min x weeks.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
+      legend: [['Min order', 'Up to Min x weeks, less the shelf and what is on order. Only when shelf and on order are under Min x weeks.'], ['Max order', 'Up to Max (or Min x weeks, if that is more), less the shelf and what is on order. Only when shelf and on order are under Min x weeks.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
   }
   function supSheet() {
     if (!S.rows || !TS) return null;
     const rows = TS.rows(); if (!rows.length) return null;
-    const cols = [{ key: 'su', label: 'Supplier', fmt: 'text' }, { key: 'n', label: 'Products', fmt: 'num' }, { key: 'a', label: 'AED to order', fmt: 'aed' }].concat(B.filter(inSel).map(c => ({ key: 'c' + c, label: BN[c] + ' (AED)', fmt: 'aed' })));
-    const lines = rows.map(r => ({ cells: [r.sup, r.n, r2(r.aed)].concat(B.filter(inSel).map(c => r2(r.by[c] ? r.by[c].aed : 0))) }));
+    const cols = [{ key: 'su', label: 'Supplier', fmt: 'text' }, { key: 'n', label: 'Products', fmt: 'num' }, { key: 'am', label: 'Min AED', fmt: 'aed' }, { key: 'a', label: 'Max AED', fmt: 'aed' }].concat(B.filter(inSel).map(c => ({ key: 'c' + c, label: BN[c] + ' (max AED)', fmt: 'aed' })));
+    const lines = rows.map(r => ({ cells: [r.sup, r.n, r2(r.am), r2(r.aed)].concat(B.filter(inSel).map(c => r2(r.by[c] ? r.by[c].aed : 0))) }));
     return { name: 'By supplier', title: 'Out of Stock: by supplier', subtitle: subtitle() + '.', blocks: [{ cols, rows: lines }] };
   }
   window.oosExportOrder = () => { const s = orderSheet(); return s ? { name: fileName('order-list'), csv: 0, sheets: [s] } : null; };
