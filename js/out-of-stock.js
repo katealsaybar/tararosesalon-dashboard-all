@@ -369,7 +369,7 @@
   async function loadPO() { setPO(await fetchPO()); }
   const openOrders = (sup, sals) => S.po.filter(o => o.supplier === sup && o.status !== 'cancelled' && o.day === S.editDay && sals.indexOf(o.branch) >= 0);
   const PO_ST = { confirmed: 'confirmed', sent: 'sent to DBD', oos_reply: 'DBD replied', oos_confirmed: 'out of stock confirmed with DBD', on_the_way: 'on the way', invoiced: 'invoiced' };
-  const poFmt = o => o.order_no + ' (' + BN[o.branch] + ', ' + plural(o.n_lines, 'product') + ', ' + (PO_ST[o.status] || o.status) + (o.status === 'oos_reply' ? ': <b>' + plural(o.oos_items || 0, 'item') + ' out of stock' + (o.oos_decided ? ', decision saved' : ', needs a decision') + '</b>' : '') + ')';
+  const poFmt = o => o.order_no + ' (' + BN[o.branch] + ', ' + plural(o.n_lines, 'product') + ', ' + (PO_ST[o.status] || o.status) + (o.status === 'invoiced' && o.invoice_amount ? ', invoice ' + A(o.invoice_amount) : '') + (o.status === 'oos_reply' ? ': <b>' + plural(o.oos_items || 0, 'item') + ' out of stock' + (o.oos_decided ? ', decision saved' : ', needs a decision') + '</b>' : '') + ')';
   const poOff = e => /oos_order|schema cache|does not exist|Could not find/i.test(String(e && (e.message || e)) + String(e && e.code || '')) ? 'Confirm order is not switched on yet: the database step (out_of_stock_supplier_orders.sql) is waiting to be applied.' : 'That did not work: ' + String(e && e.message || e);
   async function confirmOrder(sup, keys) {
     if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can confirm an order.';
@@ -573,6 +573,19 @@
     draftedOos[o.order_no] = 1; await loadPO();
     return 'Decision saved. Gmail is open with the confirmation for ' + o.order_no + ' ' + BN[o.branch] + '. Press Send, then press Mark as sent.';
   }
+
+  // Step 5: "on the way" is normally found by the database from DBD's mail (oos_replies_scan) and the invoice the same way, and the coordinator and accounts are told on WhatsApp once their templates are
+  // approved. DBD has never sent a plain "on the way" mail, so a person can mark it by hand when DBD says so another way (a call, a WhatsApp). Nobody is messaged for that.
+  async function markOnTheWay(sup, sals) {
+    if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can mark an order as on the way.';
+    const mine = openOrders(sup, sals).filter(o => ['sent', 'oos_reply', 'oos_confirmed'].indexOf(o.status) >= 0);
+    if (!mine.length) return 'No order here is waiting for ' + sup + ' to deliver (it has to be sent first, and one already on the way or invoiced is left as it is).';
+    if (!window.confirm('Mark ' + mine.map(o => o.order_no + ' ' + BN[o.branch]).join(', ') + ' as on the way?\n\nDo this only when ' + sup + ' has told you. Nobody is messaged.')) return 'Not marked.';
+    const out = [];
+    for (const o of mine) { let res; try { res = await sb.rpc('oos_order_mark_on_the_way', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return /oos_order_mark_on_the_way|schema cache|Could not find/i.test(String(res.error.message || res.error)) ? 'Mark as on the way is not switched on yet.' : 'That did not work: ' + String(res.error.message || res.error); out.push(o.order_no); }
+    await loadPO();
+    return 'Marked as on the way: ' + out.join(', ') + '.';
+  }
   async function orderFormWindow(sup, sals) {
     const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
     if (typeof TRSD === 'undefined') return 'The window is not ready. Try again.';
@@ -645,6 +658,7 @@
         SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
                              { label: 'Test email to me', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
         S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+        S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as on the way', alt: 1, run: () => markOnTheWay(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as sent', run: () => markSent(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : []) : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
