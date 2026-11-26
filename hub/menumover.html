@@ -27,6 +27,13 @@
 .mm{max-width:720px;margin:0 auto;padding-bottom:calc(var(--mm-dockh,92px) + 40px)}
 .mm button{font:inherit;color:inherit}
 .mm .kids{font-size:13px;color:var(--muted2);margin-left:6px;white-space:nowrap}
+.mm .row{flex-wrap:wrap}
+.mm .row .pk{flex:1 1 0}
+.mm ul.inside{flex:0 0 100%;list-style:none;margin:0 0 8px;padding:0 10px 0 38px;display:flex;flex-direction:column;gap:2px}
+.mm ul.inside li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted);padding:5px 0 5px 12px;border-left:2px solid var(--border);cursor:default}
+.mm ul.inside li.in2{margin-left:14px}.mm ul.inside li.in3{margin-left:28px}
+.mm ul.inside li.innote{font-size:12.5px;color:var(--muted2);border-left-color:transparent;font-style:italic}
+.mm ul.inside .inopen{color:var(--muted);text-decoration:none;padding:2px 8px;font-size:13px}
 .mm .msg.err{color:#B3402A;font-weight:600}
 .mm :focus-visible{outline:2px solid var(--mm-pick-ring);outline-offset:2px}
 .mm .tb{position:sticky;top:var(--mm-top);z-index:15;background:var(--bg);box-shadow:0 -14px 0 var(--bg);padding:8px 0 4px}
@@ -253,7 +260,17 @@
       '<button type="button" class="pk" role="checkbox" aria-checked="false" data-act="pick" data-k="' + esc(k) + '"><span class="dot" aria-hidden="true">\u2713</span><span class="nm">' + esc(nm) + (kids ? ' <span class="kids">+' + kids + ' inside</span>' : '') + '</span></button>' +
       (mv ? '<span class="tag">was ' + esc(where(PLACE[k] || '')) + '</span>' : '') +
       '<span class="nudge"><button type="button" class="ib" data-act="first" data-k="' + esc(k) + '" aria-label="Put ' + esc(nm) + ' first" title="Put first">Top</button><button type="button" class="ib" data-act="up" data-k="' + esc(k) + '" aria-label="Move ' + esc(nm) + ' up">\u25B2</button><button type="button" class="ib" data-act="dn" data-k="' + esc(k) + '" aria-label="Move ' + esc(nm) + ' down">\u25BC</button></span>' +
-      (h ? '<a class="ib open" href="' + esc(h) + '" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open ' + esc(nm) + ' in a new tab" draggable="false">\u2197</a>' : '') + '</li>';
+      (h ? '<a class="ib open" href="' + esc(h) + '" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open ' + esc(nm) + ' in a new tab" draggable="false">\u2197</a>' : '') +
+      insideHtml(k) + '</li>';
+  }
+  /* Kate, 26 Nov 2026: a heading that holds pages (Stock & Supplier Spend) shows the pages inside it, by name, so she can see what moves with it. They are not moved one by one: they stay in the heading's order. */
+  function insideHtml(k) {
+    var els = UNITS[k] ? UNITS[k].els.slice(1) : [];
+    if (!els.length) return '';
+    return '<ul class="inside" aria-label="Pages inside ' + esc(label(k)) + '">' + els.map(function (el) {
+      var lv = el.classList.contains('lvl4') ? 3 : el.classList.contains('lvl3') ? 2 : 1, name = (el.textContent || '').replace(/\s+/g, ' ').trim(), href = el.getAttribute('href');
+      return '<li class="in' + lv + '">' + esc(name) + (href ? '<a class="inopen" href="' + esc(href) + '" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open ' + esc(name) + ' in a new tab" draggable="false">\u2197</a>' : '') + '</li>';
+    }).join('') + '<li class="innote">These move together with ' + esc(label(k)) + '.</li></ul>';
   }
   function listHtml(arr, g, s, name) {
     var here = g + '|' + (s || '');
