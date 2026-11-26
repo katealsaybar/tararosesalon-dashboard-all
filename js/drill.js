@@ -154,10 +154,10 @@
       const sorted = st.sort && st.sort.k === c.k, on = sorted || !!st.f[c.k];
       return `<th class="${cls(c)}"><span class="dr-th"><span class="dr-tl">${esc(c.l)}${sorted ? (st.sort.dir > 0 ? ' ↑' : ' ↓') : ''}</span><button type="button" class="dr-fb${on ? ' on' : ''}" data-fc="${esc(c.k)}" aria-label="Filter ${esc(c.l)}" aria-haspopup="true"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button></span></th>`;
     }).join('');
-    // a figure that is 0 is faded in the rows (Kate, 26 Nov 2026: "yung mga naka 0, faded color dapat para ndi nakakalito"); the total row is never faded
+    // a figure that is 0 is faded in the rows, ONLY in a window that asks for it with spec.fadeZero (Out of Stock; Kate, 26 Nov 2026: "i-confine mo sa Out of Stock lang yung fade"); the total row is never faded
     const zero = (c, r) => NUMT(c) && r[c.k] !== '' && r[c.k] != null && +r[c.k] === 0;
     const line = (r, tag, fade) => `<tr class="${r._cls || ''}">${cols.map(c => `<${tag} class="${cls(c)}${fade && zero(c, r) ? (cls(c) ? ' ' : '') + 'dr-z' : ''}">${cell(c, r)}</${tag}>`).join('')}</tr>`;
-    const rowsHtml = vw.rows.length ? shownRows.map(r => line(r, 'td', 1)).join('') : `<tr><td colspan="${cols.length}" class="dr-empty">No rows match these filters.</td></tr>`;
+    const rowsHtml = vw.rows.length ? shownRows.map(r => line(r, 'td', spec && spec.fadeZero)).join('') : `<tr><td colspan="${cols.length}" class="dr-empty">No rows match these filters.</td></tr>`;
     body.innerHTML = `<div class="dr-scroll"><table class="dr-tbl"><thead><tr>${head}</tr></thead><tbody>${rowsHtml}</tbody>${vw.foot ? `<tfoot>${line(vw.foot, 'td')}</tfoot>` : ''}</table></div>${vw.rows.length > PG_SIZES[0] ? `<div class="dr-pg"><span class="dr-pgn">${(from0 + 1).toLocaleString('en-GB')} to ${Math.min(from0 + pgSize, vw.rows.length).toLocaleString('en-GB')} of ${vw.rows.length.toLocaleString('en-GB')}</span><label class="dr-pgs">Rows <select data-pgs aria-label="Rows per page">${PG_SIZES.map(n => `<option value="${n}"${n === pgSize ? ' selected' : ''}>${n}</option>`).join('')}</select></label><button type="button" data-pgn="-1"${st.pg === 0 ? ' disabled' : ''}>‹ Previous</button><button type="button" data-pgn="1"${st.pg >= pages - 1 ? ' disabled' : ''}>Next ›</button></div>` : ''}${res.note ? `<p class="dr-note">${res.note}</p>` : ''}`;
     body.scrollTop = top; body.scrollLeft = left;
     const fb = box.querySelector('.dr-fbar');

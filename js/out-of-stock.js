@@ -471,7 +471,7 @@
         note: 'Every product is listed with its real counts. Tap a number or a product to see how its order is worked out; On order opens the order lines.' + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.')
       });
     } };
-    return { title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
+    return { fadeZero: 1, title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
       views: sheet ? [sheetView, prodView] : [prodView],
       actions: sheet && supName ? [].concat(
         S.canEdit ? [{ label: 'Confirm order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
@@ -514,7 +514,7 @@
         foot: r.lines.length ? { no: plural(r.lines.length, 'order line'), od: '', s: '', u: r.i } : null, empty: 'Nothing on order for this product.',
         note: 'This is the last step: a single order line has nothing behind it. Orders from the last 60 days that have not arrived, from Phorest\'s Stock Orders report' + (S.ordersAt ? ', read ' + fdt(S.ordersAt) : '') + '.' };
     } };
-    return { title: r.name, cur: 'AED', sk: slug('oos-p-' + r.b + '-' + r.name),
+    return { fadeZero: 1, title: r.name, cur: 'AED', sk: slug('oos-p-' + r.b + '-' + r.name),
       sub: r.brand + ' · ' + r.type.toLowerCase() + ' · ' + BN[r.b] + ' · Priority ' + r.prio + ' from the plan · supplier ' + r.sup,
       views: first === 'orders' ? [orders, how] : [how, orders] };
   }
@@ -613,7 +613,7 @@
   }
   function bkSpec(c, k) {
     const d = demFor(c), ws = wksOf(k).filter(j => d.wk[j - 1]), tot = ws.reduce((a, j) => a + d.wk[j - 1].now, 0), one = ws.length === 1, ncl = clTotal(c, ws);
-    return { title: (one ? 'Colour services booked for ' + rangeTxt(ws[0]) : 'Colour services booked, ' + ws.length + ' weeks counted') + ', ' + lbl(c), sub: n0(tot) + ' colour services booked so far for ' + n0(ncl) + ' clients · ' + lbl(c) + ' · read ' + (S.demInfo && S.demInfo.synced ? fdt(S.demInfo.synced) : 'today'), cur: 'AED', sk: slug('oos-bk-' + c + '-' + (k || 0)),
+    return { fadeZero: 1, title: (one ? 'Colour services booked for ' + rangeTxt(ws[0]) : 'Colour services booked, ' + ws.length + ' weeks counted') + ', ' + lbl(c), sub: n0(tot) + ' colour services booked so far for ' + n0(ncl) + ' clients · ' + lbl(c) + ' · read ' + (S.demInfo && S.demInfo.synced ? fdt(S.demInfo.synced) : 'today'), cur: 'AED', sk: slug('oos-bk-' + c + '-' + (k || 0)),
       views: [{ id: 'bk', label: 'Booked', load: async () => {
         const kinds = []; ws.forEach(j => d.wk[j - 1].grp.forEach(x => { if (kinds.indexOf(x[0]) < 0) kinds.push(x[0]); }));
         const g = (j, kd) => { const x = d.wk[j - 1].grp.filter(y => y[0] === kd)[0]; return x ? x[1] : 0; };
@@ -638,7 +638,7 @@
         rows, foot: { w: one ? 'Colour order factor' : 'Colour weeks counted (' + ws.length + ' weeks)', now: ws.reduce((a, j) => a + d.wk[j - 1].now, 0), cl: clTotal(c, ws), pace: rows.reduce((a, r) => a + r.pace, 0), ty: rows.reduce((a, r) => a + r.ty, 0), ex: rows.reduce((a, r) => a + r.ex, 0), f: one ? 'x ' + d.wk[ws[0] - 1].f.toFixed(2) : fs.toFixed(2) },
         note: '<b>Estimate.</b><br>Pace = what is booked now x how many services weeks like it end at per one booked by then.<br>Expected = ' + ws.map(j => 'week ' + j + ': ' + Math.round(100 * WTS[j - 1]) + '% pace + ' + (100 - Math.round(100 * WTS[j - 1])) + '% a normal week').join(' · ') + '.<br>Further weeks are less booked, so they lean more on a normal week.<br><b>Capped</b> = a week cannot go above the busiest of the last 12 weeks + 20%, the chairs are limited.<br>Tried on 11 weeks leaving one out: a normal week alone missed 16%, this 7% (week 1), 8% (week 2), 10% (week 3), 11% (week 4).<br>Cancellations, walk-ins and holidays are not modelled. Only about 12 weeks of bookings are held, so December is the first time it meets the busy weeks.' };
     } };
-    return { title: (one ? 'How ' + rangeTxt(ws[0]) + ' is expected' : 'How the weeks counted are expected') + ', ' + lbl(c), sub: 'Colour services, ' + lbl(c) + ' · ' + (one ? rangeTxt(ws[0]) : ws.length + ' weeks of cover'), cur: 'AED', sk: slug('oos-bh-' + c + '-' + (k || 0)), views: [steps, weeks, prodView(c, k), planView(c)] };
+    return { fadeZero: 1, title: (one ? 'How ' + rangeTxt(ws[0]) + ' is expected' : 'How the weeks counted are expected') + ', ' + lbl(c), sub: 'Colour services, ' + lbl(c) + ' · ' + (one ? rangeTxt(ws[0]) : ws.length + ' weeks of cover'), cur: 'AED', sk: slug('oos-bh-' + c + '-' + (k || 0)), views: [steps, weeks, prodView(c, k), planView(c)] };
   }
 
   // ── THE PAGE (built once, then redrawn from the data) ────────────────────────────────
