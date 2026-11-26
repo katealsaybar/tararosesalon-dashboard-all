@@ -354,7 +354,7 @@
         <p><b>Measured</b> <span class="oos-sub">counted from Phorest</span>
           <span class="oos-ln">The colour services booked</span>
           <span class="oos-ln">The weeks before them</span>
-          <span class="oos-ln">The shelf and the orders on the way</span></p>
+          <span class="oos-ln">The shelf and the supplier orders not yet delivered</span></p>
         <p><b>Estimated</b> <span class="oos-sub">a good guess</span>
           <span class="oos-ln">Only 1 in 3 colour services is booked by the Thursday before</span>
           <span class="oos-ln">Services done = half of what is booked now + half of a normal week</span>
@@ -449,7 +449,7 @@
         ln(fig(n0(t.n), 'all', c) + (t.n === 1 ? ' product' : ' products') + ' to order') + ln(fig(n0(t.out), 'out', c) + ' out now') + ln(fig(n0(t.u1), 'u1', c) + ' under 1 week') + '</div>'; }).join('');
     a5.innerHTML = ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now (all salons picked).') + dem;
     const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
-    const ord = S.ordersOk && S.ordersAt ? ln('<b>Orders on the way:</b> ' + fdt(S.ordersAt)) : '';
+    const ord = S.ordersOk && S.ordersAt ? ln('<b>Supplier orders not yet delivered:</b> ' + fdt(S.ordersAt)) : '';
     $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.');
     const w = $('oosAns4'); w.hidden = S.ordersOk; w.textContent = S.ordersOk ? '' : 'On-order counts are not loaded yet. On order shows 0 for every product, so something that is already on its way can still show as short.';
   }

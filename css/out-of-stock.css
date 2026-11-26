@@ -67,7 +67,7 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 .oos-hc-cv{font-size:13px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
 .oos-again{margin-top:14px}
 /* 1 next week's bookings: the table and its notes */
-.oos-bkn{margin-top:14px}
+.oos-bkn{margin-top:14px;max-width:none}
 .oos-in{display:inline;font-size:12.5px}
 .oos-dm{font-variant-numeric:tabular-nums;white-space:nowrap}
 #oosBookTbl thead th,#oosBookTbl tr.sx-tot td,#oosBookTbl tfoot td{position:static!important}
@@ -107,3 +107,10 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 .oos-c .oos-ln:first-of-type{color:var(--text)}
 .oos-cards+.oos-ans-s{margin-top:12px}
 @media(max-width:560px){.oos-big{font-size:20px}}
+
+/* Measured, Estimated and Not known are three containers side by side (Kate, 26 Nov 2026: "make 3 containers"), one under the other on a narrow screen. */
+.oos-bkn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
+.oos-bkn p{margin:0;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface,var(--bg))}
+.oos-bkn p>b{display:block;margin-bottom:2px;font-size:15px}
+.oos-bkn p>.oos-sub{display:block;margin-bottom:4px}
+@media(max-width:900px){.oos-bkn{grid-template-columns:1fr}}
