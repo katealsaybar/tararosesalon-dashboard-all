@@ -120,3 +120,4 @@ body.dr-open{overflow:hidden}
 .dr-save button.dr-act{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:700}
 .dr-save button.dr-act:hover:not(:disabled){opacity:.85}
 .dr-tbl td.dr-z{opacity:.35}
+.dr-save button.dr-act.dr-alt{background:transparent;color:var(--text);border-color:var(--border);font-weight:600}

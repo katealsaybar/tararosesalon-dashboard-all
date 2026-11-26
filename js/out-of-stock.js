@@ -374,15 +374,23 @@
     const subject = sals.length === 1 ? 'ORDER FOR ' + BN[sals[0]].toUpperCase() + ' BRANCH' : 'ORDER FOR TARA ROSE BRANCHES';
     return { n: rs.length, text, subject };
   }
-  async function emailOrder(sup, keys) {
+  // test = Kate, 26 Nov 2026 ("gawin mo yung Test email to me button"): the same draft, but the To is only the person signed in, no Cc, the subject says TEST ONLY and the top of the body says nothing goes to the supplier.
+  async function emailOrder(sup, keys, test) {
     const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
     const o = orderMail(sup, keys); if (!o.n) return 'Nothing to order in this list: every Quantity is 0.';
-    const q = (b) => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(m.to.join(',')) + '&cc=' + encodeURIComponent(m.cc.join(',')) + '&su=' + encodeURIComponent(o.subject) + '&body=' + encodeURIComponent(b);
+    let me = '';
+    if (test) {
+      try { me = ((await sb.auth.getUser()).data.user || {}).email || ''; } catch (e) { /* not known */ }
+      if (!me) return 'Your own email address is not known here, so no test email was opened. Sign in again.';
+      o.subject = 'TEST ONLY, NOT FOR ' + sup + ': ' + o.subject;
+      o.text = 'THIS IS A TEST of the Email to ' + sup + ' flow. It goes only to you. Nothing is sent to ' + sup + '.\n\n----\n\n' + o.text;
+    }
+    const q = (b) => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(test ? me : m.to.join(',')) + '&cc=' + encodeURIComponent(test ? '' : m.cc.join(',')) + '&su=' + encodeURIComponent(o.subject) + '&body=' + encodeURIComponent(b);
     let url = q(o.text), long = url.length > 6500, copied = false;
     try { await navigator.clipboard.writeText(o.text); copied = true; } catch (e) { /* no clipboard */ }
     if (long) url = q('Hello,\n\nPlease see our order below. Kindly let us know if any items are OUT OF STOCK.\n\n[paste the order here]\n\nThank you,\nTara Rose Salon');
     window.open(url, '_blank', 'noopener');
-    return long ? (copied ? 'The order is copied: paste it into the email.' : 'The order is long: use Save as xlsx and attach it.') : 'Gmail is open with the order of ' + plural(o.n, 'product') + '. Read it and press Send.';
+    return long ? (copied ? 'The order is copied: paste it into the email.' : 'The order is long: use Save as xlsx and attach it.') : test ? 'Gmail is open with a TEST email to ' + me + ' only. Press Send to get it in your inbox.' : 'Gmail is open with the order of ' + plural(o.n, 'product') + '. Read it and press Send.';
   }
 
   // Confirm order (Kate, 26 Nov 2026: "put confirm order button ... we must have our own internal order number"; step 1 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md).
@@ -535,7 +543,8 @@
         supName === 'DBD' ? [{ label: 'Order form', run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         S.canEdit ? [{ label: 'Confirm order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
                      { label: 'Cancel confirmed order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        SUP_MAIL[supName] ? [{ label: 'Email to ' + supName, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys); } }] : []) : undefined };
+        SUP_MAIL[supName] ? [{ label: 'Email to ' + supName, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys); } },
+                             { label: 'Test email to me', alt: 1, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys, true); } }] : []) : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
   // "x 1.22 + x 1.15 + ..." for the weeks a colour product counts, with where it comes from
