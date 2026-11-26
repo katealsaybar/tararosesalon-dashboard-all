@@ -3658,6 +3658,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/pk-hair-colour.css?v=92b31369">
 <link rel="stylesheet" href="css/pk-back-to-school.css?v=9470d555">
 <link rel="stylesheet" href="css/pk-directory.css?v=d385d16d">
+<link rel="stylesheet" href="css/qr-scans.css?v=0">
 <link rel="stylesheet" href="css/discounts-vouchers.css?v=ef15eb90">
 <link rel="stylesheet" href="css/tool-spend.css?v=d72f64aa">
 <link rel="stylesheet" href="css/marketing-spend.css?v=3af355da">
@@ -3748,6 +3749,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       pkdd: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-dubai.js?v=30a46622'],
       pka4: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-ads499.js?v=2296d7eb'],
       pkhc: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-hair-colour.js?v=56a82bcf'],
+      qrs: [LGX, 'js/sheet-table.js?v=12348511', 'js/qr-scans.js?v=0'],
       pkbs: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-back-to-school.js?v=ddba0ddb'],
       pkdir: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-directory.js?v=5e300abd'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -4040,6 +4042,8 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub" data-tool-link data-nav-key="l:location.href='/targets/'" href="/?view=targetcalc" onclick="if(trsPlain(event)){event.preventDefault();showView('targetcalc', this)}">Target Calculator</a>
     <!-- Kate, 25 Nov 2026: QR Code Maker in Tools. The page (qr/) is shown in a frame with ?embed=1 (view-qrmaker) so the main sidebar stays. Opens for Levels 3 and 5 like the Target Calculator; Page Access can give it to others. -->
     <a class="nav-sub" href="/?view=qrmaker" onclick="if(trsPlain(event)){event.preventDefault();showView('qrmaker', this)}">QR Code Maker</a>
+    <!-- Kate, 26 Nov 2026: QR Scans in Tools, next to the QR Code Maker. How many times each short code was scanned, and a way to keep our own scans out of the client numbers. Reads the masthead (pages.js filtered + nopulse). Same Levels as the Maker. -->
+    <a class="nav-sub" href="/?view=qrscans" onclick="if(trsPlain(event)){event.preventDefault();showView('qrscans', this)}">QR Scans</a>
     <!-- Kate, 12 Nov 2026: the Post Approvals row is gone. The Review Tool and the Upload Tool are hidden from its landing page for now, so it only led to the calendar; the Content Calendar row below is the way in. -->
     <!-- Kate, 12 Nov 2026: Content Calendar, every post on a calendar with how it did and next month's plan. The calendar itself lives in the Post Approvals app (calendar/, no login),
          and this page shows it in a frame (view-contentcalendar) so the main sidebar stays. data-nav-key is the key this row had as a link out, kept so the layout she saved still finds it;
@@ -4831,6 +4835,15 @@ table.tp-cmp td.bad{color:var(--bad)}
     <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="a4Shell">
       <aside class="lg-side" id="a4Side"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
       <div class="lg-doc rv-doc" id="a4Doc"><main id="pkAds499Content"></main></div>
+    </div>
+  </div>
+
+  <!-- QR SCANS (Kate, 26 Nov 2026): the saved short codes and how often each is scanned, with Test mode, Count from and That was me to keep our own scans out. Reads the masthead's Branch and Period
+       (pages.js filtered + nopulse, dashboard.js NOPULSE_REDRAW). Level 2 and above. qr_scans_list() (migrations/qr_scans_page.sql); qr-scans.js draws it. Tools, next to the QR Code Maker. -->
+  <div id="view-qrscans" style="display:none">
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="qsShell">
+      <aside class="lg-side" id="qsSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="qsDoc"><main id="qrScansContent"></main></div>
     </div>
   </div>
 
@@ -5971,6 +5984,7 @@ function showView(view, el){
   if (view === 'pkdubai') renderDubai();
   if (view === 'pkads499') renderAds499();
   if (view === 'pkhaircolour') renderHairColour();
+  if (view === 'qrscans') renderQrScans();
   if (view === 'pkdir') renderCampaignsDirectory();
   if (view === 'pkschool') renderBackToSchool();
   if (view === 'discountsvouchers') renderDiscountsVouchers();

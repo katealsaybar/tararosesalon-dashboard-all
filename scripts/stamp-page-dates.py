@@ -106,6 +106,7 @@ OWN = {
     'pkdubai': ['js/pk-dubai.js', 'css/pk-dubai.css'],
     'pkads499': ['js/pk-ads499.js', 'css/pk-ads499.css'],
     'pkhaircolour': ['js/pk-hair-colour.js', 'css/pk-hair-colour.css'],
+    'qrscans': ['js/qr-scans.js', 'css/qr-scans.css'],
     'pkdir': ['js/pk-directory.js', 'css/pk-directory.css'],
     'pkschool': ['js/pk-back-to-school.js', 'css/pk-back-to-school.css'],
     'discountsvouchers': ['js/discounts-vouchers.js', 'css/discounts-vouchers.css'],
