@@ -496,7 +496,7 @@ function sgSchedInner(net, cols) {
   const miss = stMiss ? ' The stories’ views and reach could not be read just now, so they are left out. Refresh to try again.' : '';
   const said = met === 'n'
     ? (!showP ? `<b>${sgN(sto.length)} stories (posted live in the app, so by hand).</b> This is the Content Calendar's own record. Click a bar to see the stories.`
-      : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S, 'v')} scheduled, ${avg(M, 'v')} by hand. This is the Content Calendar's own record. Click a bar${showS ? ' or a point' : ''} to see which ${showS ? 'posts and stories' : 'posts'} they are.${showS ? ' Stories are the bars (left scale), posts the line (right scale).' : ''}`)
+      : `<b>${S.length} scheduled in Metricool, ${M.length} posted by hand${showS ? `, ${sgN(sto.length)} stories (posted live in the app, so by hand)` : ''}.</b> Average views a post: ${avg(S, 'v')} scheduled, ${avg(M, 'v')} by hand. This is the Content Calendar's own record. Click a bar${showS ? ' or a point' : ''} to see which ${showS ? 'posts and stories' : 'posts'} they are.${showS ? ' Posts are the bars (left scale), stories the line (right scale).' : ''}`)
     : (!showP ? `<b>Average ${what} a story: ${avg(stSh, mk)}</b> across ${sgN(stSh.length)} stories (posted live in the app, so by hand).${grow} Click a bar to see the stories.`
       : `<b>Average ${what} a post: ${avg(S, mk)} scheduled in Metricool, ${avg(M, mk)} posted by hand${showS ? `, ${avg(stSh, mk)} a story` : ''}.</b> Each bar is the average of what went out that ${mode === 'week' ? 'week' : 'day'}, so one big post lifts its own bar only.${grow} Click a bar to see which ${showS ? 'posts and stories' : 'posts'} they are.${miss}`);
   const tail = (showP && U.length ? ` ${U.length} ${U.length === 1 ? 'post' : 'posts'} before 12 Aug 2026 ${U.length === 1 ? 'has' : 'have'} no record, so ${U.length === 1 ? 'it is' : 'they are'} not in the bars.` : '')
@@ -505,7 +505,7 @@ function sgSchedInner(net, cols) {
   const title = showP ? `${word[0]} scheduled or by hand ${by}` : `${word[1]}, posted live, ${by}`;
   const nm2 = ['Stories ' + per, 'Posts ' + per], C = sgSchedC();
   const key = met !== 'n' ? `${showP ? `<span><i style="background:${C.s}"></i>Scheduled in Metricool</span><span><i style="background:${C.h}"></i>Posted by hand</span>` : ''}${showS ? `<span><i style="background:${C.t}"></i>Stories, posted live</span>` : ''}`
-    : showP && showS ? `<span><i style="background:${C.t}"></i>${nm2[0]} (bars, left)</span><span><i style="background:${C.p};width:16px;height:3px;border-radius:2px"></i>${nm2[1]} (line, right)</span>`
+    : showP && showS ? `<span><i style="background:${C.p}"></i>${nm2[1]} (bars, left)</span><span><i style="background:${C.t};width:16px;height:3px;border-radius:2px"></i>${nm2[0]} (line, right)</span>`
     : showP ? `<span><i style="background:${C.s}"></i>Scheduled in Metricool</span><span><i style="background:${C.h}"></i>Posted by hand</span>`
     : `<span><i style="background:${C.t}"></i>Stories, posted live</span>`;
   return `${sgSchedCards(net, R)}
@@ -555,8 +555,8 @@ function sgSchedDraw(net) {
   if (avgMet) rows.forEach(r => { ['sched', 'hand', 'story'].forEach(g => { r[g] = r[g + 'N'] ? Math.round(r[g + 'S'] / r[g + 'N']) : 0; }); });
   const both = !avgMet && showP && showS, C = sgSchedC();
   const datasets = both ? [
-    { sk: 'story', label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t },
-    { sk: 'post', type: 'line', yAxisID: 'y1', label: 'Posts', data: rows.map(r => (r.sched || 0) + (r.hand || 0)), borderColor: C.p, backgroundColor: C.p, borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: C.p, tension: .25 },
+    { sk: 'post', label: 'Posts', data: rows.map(r => (r.sched || 0) + (r.hand || 0)), backgroundColor: C.p },
+    { sk: 'story', type: 'line', yAxisID: 'y1', label: 'Stories, posted live', data: rows.map(r => r.story), borderColor: C.t, backgroundColor: C.t, borderWidth: 3, pointRadius: rows.length > 45 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: C.t, tension: .25 },
   ] : [
     ...(showP ? [{ sk: 'sched', label: 'Scheduled in Metricool', data: rows.map(r => r.sched), backgroundColor: C.s, stack: avgMet ? undefined : 's' }, { sk: 'hand', label: 'Posted by hand', data: rows.map(r => r.hand), backgroundColor: C.h, stack: avgMet ? undefined : 's' }] : []),
     ...(showS ? [{ sk: 'story', label: 'Stories, posted live', data: rows.map(r => r.story), backgroundColor: C.t, stack: avgMet ? undefined : 's' }] : []),
@@ -564,9 +564,9 @@ function sgSchedDraw(net) {
   // an average is not stacked: the bars stand side by side so the two ways of posting can be compared on the same scale
   const c = socCharts.sched = socBarChart(cv, rows, datasets, !avgMet && !both, both);
   if (c && both) {
-    // two scales, so a few posts a day are not lost beside many stories: stories on the left (pink), posts on the right (blue)
-    const y1 = c.options.scales.y1; y1.beginAtZero = true; y1.grace = 0; y1.ticks.precision = 0; y1.ticks.color = C.p;   // set one by one: spreading a ticks object twice throws in Chart.js
-    c.options.scales.y.ticks.color = C.t;
+    // two scales, so a few posts a day are not lost beside many stories: posts on the left (green bars), stories on the right (pink line)
+    const y1 = c.options.scales.y1; y1.beginAtZero = true; y1.grace = 0; y1.ticks.precision = 0; y1.ticks.color = C.t;   // set one by one: spreading a ticks object twice throws in Chart.js
+    c.options.scales.y.ticks.color = C.p;
     const lab = c.options.plugins.tooltip.callbacks.label;
     c.options.plugins.tooltip.callbacks.label = x => x.dataset.label === 'Posts' ? `Posts: ${socNum(x.raw)} (scheduled ${socNum(rows[x.dataIndex].sched || 0)}, by hand ${socNum(rows[x.dataIndex].hand || 0)})` : lab(x);
   } else if (c && avgMet) {
