@@ -26,6 +26,8 @@ body.oos-chrome #periodRow{opacity:.5}
 .oos-nm small{display:block;font-weight:400;color:var(--muted2);font-size:12.5px}
 .oos-fbar{height:30px;background:var(--surface2,var(--border2));border-radius:8px;overflow:hidden}
 .oos-fbar i{display:block;height:100%;background:var(--text);border-radius:8px;opacity:.88}
+.oos-tot{border-top:2px solid var(--text);border-radius:0;margin-top:6px;padding-top:12px}
+.oos-tot .oos-nm{font-size:16px}
 .oos-num{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
 .oos-num b{font-size:16px;color:var(--text);font-weight:600}
 /* the toolbar of the order list: pinned under the masthead (and the chips) while that section is on screen */
@@ -64,7 +66,7 @@ body.oos-chrome #periodRow{opacity:.5}
 .oos-again{margin-top:14px}
 @media(max-width:760px){
   #oosShell{padding-left:0!important;padding-right:0!important}
-  .oos-step{grid-template-columns:1fr;gap:4px}
+  .oos-step{grid-template-columns:1fr;gap:4px}.oos-tbar{display:none}
   .oos-ans-t{font-size:20px}
   .oos-bar:not(.oos-bar-plain){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   .oos-bar::-webkit-scrollbar{display:none}

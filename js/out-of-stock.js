@@ -327,7 +327,11 @@
       const t = T[i], tip = BN[c] + ': ' + plural(t.n, 'product') + ' to order, ' + A(t.aedm) + ' minimum and ' + A(t.aed) + ' maximum' + (total ? ' (' + Math.round(100 * t.aed / total) + '% of the maximum order)' : '') + '. ' + n0(t.out) + ' out on the shelf now and ' + n0(t.u1) + ' more with under a week left. Tap a number to see the products.';
       return `<div class="oos-step" data-bh tabindex="0" data-tip="${esc(tip)}"><div class="oos-nm">${BN[c]}<small>${n0(t.n)} to order</small></div><div class="oos-fbar"><i data-bh-fill style="width:${(100 * t.aed / mx).toFixed(1)}%"></i></div>` +
         `<div class="oos-num"><b>${fig(A(t.aed), 'all', c)}</b> <span>maximum</span><span>·</span><span>${fig(A(t.aedm), 'all', c)} minimum</span><span>·</span><span>${fig(n0(t.n), 'all', c)} products</span><span>·</span><span>${fig(n0(t.out), 'out', c)} out now</span><span>·</span><span>${fig(n0(t.u1), 'u1', c)} under 1 week</span></div></div>`;
-    }).join('');
+    }).join('') + (cs.length > 1 ? (() => {   // the Total of the salons picked (Kate, 26 Nov 2026: "dpat may totals eh")
+      const tn = sum(T, 'n'), to = sum(T, 'out'), tu = sum(T, 'u1'), ta = sum(T, 'aed'), tm = sum(T, 'aedm');
+      return `<div class="oos-step oos-tot"><div class="oos-nm">Total<small>${n0(tn)} to order</small></div><div class="oos-tbar"></div>` +
+        `<div class="oos-num"><b>${fig(A(ta), 'all')}</b> <span>maximum</span><span>·</span><span>${fig(A(tm), 'all')} minimum</span><span>·</span><span>${fig(n0(tn), 'all')} products</span><span>·</span><span>${fig(n0(to), 'out')} out now</span><span>·</span><span>${fig(n0(tu), 'u1')} under 1 week</span></div></div>`;
+    })() : '');
     let hi = 0, lo = 0; T.forEach((t, i) => { if (t.aed > T[hi].aed) hi = i; if (t.aed < T[lo].aed) lo = i; });
     const w = $('oosW1');
     if (cs.length < 2) w.textContent = 'One salon is picked. Add the others in the header to compare them.';
