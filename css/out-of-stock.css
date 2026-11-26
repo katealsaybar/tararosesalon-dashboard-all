@@ -115,3 +115,10 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 .oos-bkn p>b{display:block;margin-bottom:2px;font-size:15px}
 .oos-bkn p>.oos-sub{display:block;margin-bottom:4px}
 @media(max-width:900px){.oos-bkn{grid-template-columns:1fr}}
+/* the amount to order, typed in the order list */
+.oos-ed{width:78px;min-height:36px;box-sizing:border-box;text-align:right;font:inherit;font-variant-numeric:tabular-nums;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px 8px}
+.oos-ed.on{border-color:var(--accent);font-weight:700}
+.oos-ed:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+.oos-ck{width:20px;height:20px;accent-color:var(--text);cursor:pointer}
+tr.oos-skip td{color:var(--muted2,var(--muted))}
+tr.oos-skip .oos-ed{opacity:.55;text-decoration:line-through}

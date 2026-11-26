@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=370ed108"></script>
-<script src="js/page-dates.js?v=d4e515f3"></script>
+<script src="js/page-dates.js?v=fa281293"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3630,7 +3630,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/reviews.css?v=b3b503c6">
 <link rel="stylesheet" href="css/product-spend.css?v=48cbeb24">   <!-- Products, Top products by spend (product-spend.js) -->
 <link rel="stylesheet" href="css/orders.css?v=70067120">   <!-- Orders and Receipts (orders.js) -->
-<link rel="stylesheet" href="css/out-of-stock.css?v=4277bbd1">   <!-- Out of Stock (out-of-stock.js) -->
+<link rel="stylesheet" href="css/out-of-stock.css?v=7dfc216a">   <!-- Out of Stock (out-of-stock.js) -->
 <link rel="stylesheet" href="css/lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="css/lost-queue.css?v=113b6d23">
 <link rel="stylesheet" href="css/send-schedule.css?v=88a70391">
@@ -3665,7 +3665,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/mobile-late.css?v=fd95ed84">   <!-- phone rules for the pages whose sheets load after mobile.css -->
 <link rel="stylesheet" href="css/nav-style.css?v=f8fdb6b8">
 <link rel="stylesheet" href="css/account-menu.css?v=47fdee74">
-<link rel="stylesheet" href="css/drill.css?v=fea50728">   <!-- the figure that opens the list behind it (drill.js) -->
+<link rel="stylesheet" href="css/drill.css?v=a7f6293d">   <!-- the figure that opens the list behind it (drill.js) -->
 <!-- Kate, 3 Oct 2026: every dropdown drawn as the site's pill menu. -->
 <script src="/assets/theme-fade.js"></script>
 <script src="/assets/pill-select.js?v=759948a4"></script>
@@ -3762,7 +3762,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       pr:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'js/products.js?v=06fd2cb9', 'js/product-spend.js?v=095cef82'],
       sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=c4e7c627'],
       // Out of Stock (23 Nov 2026): what to order this week from the Weekly Product Plan's shelf counts; one file, the Sheets table and the report export (drill.js is already on the page). Reads spend_plan and oos_on_order.
-      oos: ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'js/out-of-stock.js?v=4699e54f'],
+      oos: ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'js/out-of-stock.js?v=3e38edf6'],
       // Supplier Spend (13 Nov 2026): who we buy from, what Accounts paid beside what Phorest received; reads spend_report.
       ss:  ['js/report-export.js?v=d7b73ae8', 'js/supplier-spend.js?v=aab0d891'],
       // Orders and Receipts (18 Nov 2026): one file, the Google Sheets table (sheet-table.js) and the report export; reads orders_get.
@@ -4552,7 +4552,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=5b3acc63&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=30fefdc8&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -5154,7 +5154,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/bar-hover.js?v=ea0f3135"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
-<script src="js/drill.js?v=a2cc9fc3"></script>
+<script src="js/drill.js?v=7958a3af"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
 <script src="js/dashboard.js?v=03b12f0c"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->

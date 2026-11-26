@@ -21,6 +21,7 @@
   // Each open list has its own address (Kate, 27 Oct 2026: "specific url slug per reports"): ?r=clients-by-staff, or a list opened from inside another one,
   // ?r=net-take.clients-handled-april-miraflor. Back goes up one list and then closes; a link or a reload reopens it once the page has drawn its figures.
   let under = [];   // windows underneath a client window: it opens on top of the list instead of replacing it (Kate, 27 Oct 2026), so the list keeps its place and filters
+  let stash = [];   // a list that another list replaced (not a window on top): its rows, filters, sort, page and tab, so Back brings it back as it was (Kate, 26 Nov 2026: the filter was lost after opening a number and going Back)
   let chain = [], pushed = 0, origin = null, ignorePop = 0;   // ignorePop: the one popstate our own Close causes, which must not close whatever opens next
   const rUrl = list => { const u = new URL(location.href); if (list && list.length) u.searchParams.set('r', list.map(x => slug(x.sk || x.title)).join('.')); else u.searchParams.delete('r'); return u.pathname + u.search + u.hash; };
 
@@ -33,10 +34,17 @@
     aed: (v, c) => v == null || v === '' ? '' : (c || 'AED') + ' ' + n0(v),
     date: v => { const f = day(v), m = /^(\d+ \w+) \d{4}$/.exec(f); return m ? `<span class="dt-l">${f}</span><span class="dt-s">${m[1]}</span>` : f; },   // the year is left off on a phone, where the window says it
     pct: v => v == null || v === '' || !isFinite(v) ? '–' : (Math.round(+v * 10) / 10) + '%',
+    yn: v => v == null || v === '' ? '' : (+v ? 'Yes' : 'No'),
   };
   function cell(col, row, foot) {
     const v = row[col.k];
     if (col.t === 'html') return v == null ? '' : v;
+    // A column the reader can type in (col.edit, and row._ek = the row's key): an input, saved by the list's own res.onEdit (Out of Stock: the amount to order). Sorting, filtering and the total row still use the number.
+    if (col.edit && !foot && row._ek != null) {
+      const lab = esc(col.l) + ', ' + esc(row.p || ''), tip = row._tip ? ` title="${esc(row._tip)}"` : '';
+      if (col.check) return `<input type="checkbox" class="dr-ck" data-ek="${esc(row._ek)}" data-ec="${esc(col.k)}"${+v ? ' checked' : ''} aria-label="${lab}">`;
+      return `<input type="number" min="0" step="1" inputmode="numeric" class="dr-ed${row._oe ? ' on' : ''}" data-ek="${esc(row._ek)}" data-ec="${esc(col.k)}" value="${v == null ? '' : esc(v)}" aria-label="${lab}"${tip}>`;
+    }
     const f = FMT[col.t];
     const txt = f ? f(v, spec && spec.cur) : esc(v).replace(/ ([A-Za-z])(?=,|$)/g, '&nbsp;$1');
     // A row can send one of its figures to another website: row._ext = { column key: url } (the stars on a Reputation row open that review on Google, to read the replies). The ↗ says it is a link.
@@ -66,7 +74,7 @@
   }
   function close() {
     const n = pushed, f = origin || from;
-    under.forEach(w => { if (w.box) w.box.remove(); }); under = [];
+    under.forEach(w => { if (w.box) w.box.remove(); }); under = []; stash = [];
     hide(); MREG.clear(); chain = []; pushed = 0; origin = null; from = null;
     if (f && document.contains(f)) f.focus();
     try {
@@ -129,7 +137,7 @@
     let foot = res.foot;
     if (filtered && res.foot) {
       foot = {};
-      res.cols.forEach(c => { foot[c.k] = (NUMT(c) && !/avg|average|rate|%|per |requested/i.test(c.l)) ? rows.reduce((a, r) => a + (+r[c.k] || 0), 0) : ''; });
+      res.cols.forEach(c => { foot[c.k] = c.sum ? rows.reduce((a, r) => a + c.sum(r), 0) : (NUMT(c) && !/avg|average|rate|%|per |requested/i.test(c.l)) ? rows.reduce((a, r) => a + (+r[c.k] || 0), 0) : ''; });
       const fc = res.cols.find(c => !NUMT(c) && c.t !== 'date') || res.cols[0];
       foot[fc.k] = 'Filtered: ' + rows.length.toLocaleString('en-GB') + ' of ' + res.rows.length.toLocaleString('en-GB') + ' rows';
     }
@@ -254,7 +262,7 @@
     } catch (e) { console.error(e); note('The file could not be made. Try again.'); return; }
     if (typeof lgxBuild !== 'function') { note('The file could not be made. Try again.'); return; }
     const cols = res.cols;
-    const val = (c, r) => { const v = r[c.k]; if (c.t === 'date') return v ? day(v) : ''; if (c.t === 'html') return plain(v); if (FILEFMT[c.t]) return v === '' || v == null || !isFinite(v) ? null : +v; return v == null ? '' : String(v); };
+    const val = (c, r) => { const v = r[c.k]; if (c.t === 'yn') return v == null || v === '' ? '' : (+v ? 'Yes' : 'No'); if (c.t === 'date') return v ? day(v) : ''; if (c.t === 'html') return plain(v); if (FILEFMT[c.t]) return v === '' || v == null || !isFinite(v) ? null : +v; return v == null ? '' : String(v); };
     const vw = viewOf(res);   // what is on screen: the filtered and sorted rows, and the total row that goes with them
     const rows = vw.rows.map(r => ({ cells: cols.map(c => val(c, r)) }));
     if (vw.foot) rows.push({ total: true, cells: cols.map(c => val(c, vw.foot)) });
@@ -294,8 +302,8 @@
   function open(sp, el, replay) {
     const nested = !!box;
     if (nested && sp.panel) { closePop(); under.push({ box, spec, cache, cur, fst }); box = null; }   // a window on top: the list underneath stays as it is
-    else if (nested) hide();
-    else { chain = []; pushed = 0; under = []; origin = el || document.activeElement; }
+    else if (nested) { const bd = box.querySelector('.dr-body'); stash[chain.length - 1] = { cache, cur, fst, sx: bd ? bd.scrollLeft : 0, sy: bd ? bd.scrollTop : 0 }; hide(); }
+    else { chain = []; pushed = 0; under = []; stash = []; origin = el || document.activeElement; }
     chain.push(sp);
     try {
       if (replay && !nested) history.replaceState(history.state, '', rUrl(chain));   // the address already carries it
@@ -303,15 +311,29 @@
     } catch (e) {}
     show(sp);
   }
-  function show(sp) {
-    spec = sp; cache = []; cur = 0; fst = []; pop = null;
+  function show(sp, keep) {
+    spec = sp; cache = keep ? keep.cache : []; cur = keep ? keep.cur : 0; fst = keep ? keep.fst : []; pop = null;
     box = document.createElement('div');
     box.className = 'dr-modal' + (sp.panel ? ' dr-win' : ''); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', sp.title);
     const tabs = sp.views.length > 1 ? `<div class="dr-tabs" role="group" aria-label="View">${sp.views.map((v, i) => `<button type="button" data-dv="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`).join('')}</div>` : '<div></div>';
     box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><div class="dr-hx">${sp.panel ? `<a class="dr-nt" href="${esc(location.origin + rUrl(chain))}" target="_blank" rel="noopener" title="Open this window on its own page">Open in new tab</a>` : ''}<button type="button" class="dr-x" data-dx>Close</button></div></div><div class="dr-bar">${tabs}<div class="dr-fbar" hidden><span class="dr-fcount"></span><button type="button" class="dr-fclear" data-fclear>Clear filters</button></div><div class="dr-save"><span class="dr-saved" role="status"></span><button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div><div class="dr-body"></div></div>`;
     // The note under the table, the page bar and the empty line stay in view when the table is scrolled sideways (Kate, 26 Nov 2026: the note was cut off on the left)
     { const bd0 = box.querySelector('.dr-body'); if (bd0) bd0.addEventListener('scroll', () => { bd0.style.setProperty('--sx', bd0.scrollLeft + 'px'); }, { passive: true }); }
+    let efk = null;   // the input the reader is in, so the table can give the focus back after it is drawn again
+    box.addEventListener('focusin', e => { const i = e.target.closest && e.target.closest('[data-ek]'); efk = i ? i.dataset.ek + '' + i.dataset.ec : null; });
     box.addEventListener('change', e => {
+      const ei = e.target.closest && e.target.closest('[data-ek]');
+      if (ei) {
+        const res = cache && cache[cur], row = res && res.rows.find(r => String(r._ek) === ei.dataset.ek);
+        if (!res || !res.onEdit || !row) return;
+        const sp0 = spec;
+        Promise.resolve().then(() => res.onEdit(row, ei.dataset.ec, ei.type === 'checkbox' ? (ei.checked ? '1' : '0') : ei.value)).then(() => note(''), x => { console.error(x); note('Not saved. Try again.'); }).then(() => setTimeout(() => {
+          if (!box || spec !== sp0 || cache[cur] !== res) return;
+          drawTable(res);
+          if (efk) { const [k, c] = efk.split(''), t = Array.from(box.querySelectorAll('[data-ek]')).find(x => x.dataset.ek === k && x.dataset.ec === c); if (t) { t.focus(); try { t.select(); } catch (z) {} } }
+        }, 60));
+        return;
+      }
       const sz = e.target.closest && e.target.closest('[data-pgs]'); if (!sz) return;
       pgSize = +sz.value; try { localStorage.setItem('trsd.pgsize', String(pgSize)); } catch (x) {}
       const sx = fst[cur] || (fst[cur] = { f: {}, sort: null }); sx.pg = 0;
@@ -332,7 +354,7 @@
     });
     document.body.appendChild(box); document.body.classList.add('dr-open');
     const b = box.querySelector('[data-dx]'); if (b) b.focus();
-    pick(0);
+    pick(cur).then(() => { if (keep && box) { const bd = box.querySelector('.dr-body'); if (bd) { bd.scrollLeft = keep.sx || 0; bd.scrollTop = keep.sy || 0; } } });
   }
   function stepUp() {
     const gone = chain.pop();
@@ -340,7 +362,7 @@
       if (box) box.remove();
       const w = under.pop(); box = w.box; spec = w.spec; cache = w.cache; cur = w.cur; fst = w.fst; pop = null;
       document.body.classList.add('dr-open');
-    } else { hide(); show(chain[chain.length - 1]); }
+    } else { hide(); const k = stash[chain.length - 1]; stash.length = chain.length - 1; show(chain[chain.length - 1], k); }
   }
   function goBack() {
     if (chain.length < 2) return;
@@ -352,7 +374,7 @@
     if (!box) return;
     if (pushed > 0) pushed--;
     if (chain.length > 1) stepUp();
-    else { under.forEach(w => { if (w.box) w.box.remove(); }); under = []; hide(); chain = []; pushed = 0; if (origin && document.contains(origin)) origin.focus(); origin = null; }
+    else { under.forEach(w => { if (w.box) w.box.remove(); }); under = []; stash = []; hide(); chain = []; pushed = 0; if (origin && document.contains(origin)) origin.focus(); origin = null; }
   });
   // A link with ?r=... : open that list as soon as the page has drawn the figure that holds it (and, for a list inside a list, the one inside).
   (function restore() {
