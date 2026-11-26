@@ -66,7 +66,20 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 .oos-hc-big{font-family:'Playfair Display',Georgia,serif;font-size:30px;line-height:1.15;margin:4px 0;font-variant-numeric:tabular-nums}
 .oos-hc-cv{font-size:13px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
 .oos-again{margin-top:14px}
+/* 1 next week's bookings: the weeks before, then next week (striped, solid = booked so far) */
+.oos-bkh{display:grid;gap:10px;margin:14px 0 6px}
+.oos-bk-r{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:end;padding:6px 8px;margin:0 -8px;border-radius:12px}
+.oos-bk-c{display:flex;align-items:flex-end;gap:4px;height:64px}
+.oos-bk-c i{flex:1;min-width:0;background:var(--muted2);opacity:.38;border-radius:4px 4px 0 0;position:relative;display:block;box-sizing:border-box}
+.oos-bk-c i.nx{background:repeating-linear-gradient(135deg,var(--text) 0 6px,transparent 6px 10px);border:1px solid var(--text);opacity:1}
+.oos-bk-c i.nx b{position:absolute;left:0;right:0;bottom:0;background:var(--text);display:block}
+.oos-bk-l{font-size:12.5px;color:var(--muted2);margin:2px 0 0 162px}
+.oos-bkn{margin-top:14px}
+.oos-in{display:inline;font-size:12.5px}
+.oos-dm{font-variant-numeric:tabular-nums;white-space:nowrap}
+#oosBookTbl thead th,#oosBookTbl tr.sx-tot td,#oosBookTbl tfoot td{position:static!important}
 @media(max-width:760px){
+  .oos-bk-r{grid-template-columns:1fr}.oos-bk-l{margin-left:0}
   #oosShell{padding-left:0!important;padding-right:0!important}
   .oos-step{grid-template-columns:1fr;gap:4px}.oos-tbar{display:none}
   .oos-ans-t{font-size:20px}
