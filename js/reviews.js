@@ -602,7 +602,7 @@ function drawBr() {
 }
 function drawSty() {
   const R = styRows();
-  R.forEach((x, i) => { x.rk = i && R[i - 1].o.pr === x.o.pr && R[i - 1].o.n === x.o.n ? R[i - 1].rk : i + 1; });
+  R.forEach((x, i) => { x.rk = i + 1; });   // Kate, 26 Nov 2026: 1, 2, 3, 4 in the order shown; tied stylists no longer share a number (it read 4, 5, 5, 7, 7, 9)
   const sd = (x, extra, t) => D('sty', t || ('Reviews naming ' + x.s.label), mg({ sf: x.s.key, ty: tyStr(S.tyS), sty: 1 }, extra || {}));
   const tipOf = x => '#' + x.rk + ' ' + x.s.label + (x.s.branch ? ' (' + BR[x.s.branch] + ')' : '') + ': named in ' + plural(x.o.n, 'review') + ', ' + x.o.pr + ' of them with 4 or 5 stars, average ' + avg(x.o) + ' stars.' + (x.o.c ? ' ' + x.o.c + ' with 1 to 3 stars.' : ' No complaints.');
   const bar = x => [1, 2, 3, 4, 5].map(k => segBtn(x.o, k, k2 => spec(sd(x, { s: k2 }, x.s.label + ', ' + k2 + (k2 === 1 ? ' star' : ' stars'))))).join('');
@@ -756,9 +756,22 @@ function syncControls() {
   const m8 = $('#rvB8 [data-rv-more]', root); if (m8 && T.rev) { m8.classList.toggle('on', !!T.rev.more); m8.setAttribute('aria-pressed', !!T.rev.more); }
   $$('details[data-rv-det]', root).forEach(d => { d.open = !!S.open[d.dataset.rvDet]; });
 }
+// The "On this page" rail (Kate, 26 Nov 2026): one entry per data-jn section, in the gutter from 1100px and a row of chips below it.
+function rvRail(on) {
+  const shell = $('#rvShell'), side = $('#rvSide'); if (!shell || !side) return;
+  const items = on ? $$('#reviewsContent [data-jn]').filter(e => e.id) : [];
+  shell.classList.toggle('rv-norail', items.length < 2);
+  const nav = side.querySelector('.side-nav'), sig = items.map(e => e.id + '|' + e.dataset.jn).join(';');
+  if (nav && nav.dataset.sig !== sig) {
+    nav.dataset.sig = sig;
+    nav.innerHTML = '<div class="side-k">On this page</div>' + items.map(e => `<a href="#${e.id}" onclick="lgJump(event,'${e.id}')">${esc(e.dataset.jn)}</a>`).join('');
+  }
+  if (typeof spy === 'function') spy();
+}
 function offsets() {   // the table's sticky offsets (under the masthead and the "On this page" chips), read from the page, never guessed
-  const jn = $('#view-reviews .jn-rail'), root = document.documentElement.style;
-  const top = jn ? parseFloat(getComputedStyle(jn).top) || 0 : 0;
+  const nav = $('#rvSide .side-nav'), chips = nav && nav.offsetParent && getComputedStyle(nav).display === 'flex' ? $('#rvSide') : null;   // the row of chips under 1100px; in the gutter nothing sits under the masthead
+  const jn = $('#view-reviews .jn-rail') || chips, root = document.documentElement.style;
+  const top = jn ? parseFloat(getComputedStyle(jn).top) || 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--topbar-cond-h'), 10) || 104);
   root.setProperty('--sx-top', (top + (jn ? jn.offsetHeight : 0)) + 'px');
   $$('#reviewsContent .rv-sec').forEach(s => s.style.setProperty('--bh', '0px'));
 }
@@ -829,6 +842,7 @@ async function start(force) {
   const el = document.getElementById('reviewsContent'); if (!el) return;
   const seq = ++SEQ;
   el.innerHTML = shell();
+  rvRail(false);
   if (RV && !force && Date.now() - LOADED_AT < 10 * 60 * 1000) { paint(); return; }
   try {
     ERR = null; await loadAll();
@@ -849,6 +863,7 @@ function paint() {
   Object.keys(T).forEach(k => delete T[k]);
   buildTables(); bind();
   draw();
+  rvRail(true);
 }
 window.renderReviews = function (force) { return start(!!force); };   // force = read the tables again (Refresh now)
 

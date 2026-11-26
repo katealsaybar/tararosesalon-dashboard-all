@@ -3621,7 +3621,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/team-performance.css?v=c23a9f7a">
 <link rel="stylesheet" href="css/nav-collapse.css?v=7809b314">
 <!-- Phones (≤ 760px) only; see its header. Last, so it wins ties. -->
-<link rel="stylesheet" href="css/mobile.css?v=fffb1af4">
+<link rel="stylesheet" href="css/mobile.css?v=246bf989">
 <link rel="stylesheet" href="css/search.css?v=ad896c51">
 <link rel="stylesheet" href="css/client-mix.css?v=1dc5b877">
 <link rel="stylesheet" href="css/sheet-table.css?v=f092f371">   <!-- the table with Google Sheets heading menus (sheet-table.js) -->
@@ -3779,7 +3779,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       // The XLSX and CSV buttons on the Organisation Pulse.
       px:  ['js/report-export.js?v=d7b73ae8', 'js/pulse-export.js?v=02084377'],
       // Google Reviews (native since 24 Nov 2026): the page, its tables and downloads, and the table of review ids that turns an older seed row into its own Google link.
-      rv:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'add%20ons/google-reviews/review-links.js', 'js/reviews.js?v=d163ad86']
+      rv:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'add%20ons/google-reviews/review-links.js', 'js/reviews.js?v=2526294e']
     };
     var V = {};   // view -> group, from pages.js (lazy)
     TRS_PAGES.forEach(function(p){ if (p.lazy) V[p.id] = p.lazy; });
@@ -5050,7 +5050,12 @@ table.tp-cmp td.bad{color:var(--bad)}
   <!-- REVIEWS (Kate, 24 Nov 2026): a native page, no longer a frame. The masthead's Branch and Period drive it (pages.js filtered + nopulse, NOPULSE_REDRAW), Bahrain is its own view,
        and reviews.js draws it from google_reviews, staff_name_variants and google_review_client_credit. The old frame (add ons/google-reviews) stays in the repo, unused. -->
   <div id="view-reviews" style="display:none">
-    <main id="reviewsContent" style="max-width:1100px;margin:0 auto;padding:10px 28px 48px"></main>
+    <!-- Kate, 26 Nov 2026: the mini side nav (On this page) is back. The native page of 24 Nov dropped the rail shell the frame used to have; this is the same shell as Google Ads
+         (rail in the gutter from 1100px, a row of chips below), 1368px wide so the page itself keeps its 1100px. reviews.js fills it (rvRail). -->
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="rvShell" style="max-width:1368px;margin:0 auto;padding:10px 28px 48px">
+      <aside class="lg-side" id="rvSide"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="rvDoc" style="min-width:0"><main id="reviewsContent"></main></div>
+    </div>
   </div>
 
   <!-- Kate, 12 Nov 2026: Content Calendar. The page is in the Post Approvals app (smm_board_approvals/content-approval-tool/calendar/, no login, reads the posts through content_calendar_posts());
