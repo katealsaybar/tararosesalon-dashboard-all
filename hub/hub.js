@@ -329,6 +329,10 @@
     'page-status': '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/>',
     // Kate, 9 Nov 2026: a bell, for Notices.
     notices: '<path d="M6 9a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9"/><path d="M10 19a2 2 0 0 0 4 0"/>',
+    // Kate, 26 Nov 2026: a calendar with a clock hand, for Service Calendar (it showed the initials SC).
+    servicecal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M12 13v3l2 1.5"/>',
+    // Kate, 26 Nov 2026: a calendar with a tick, for the Leave & Holiday Calendar (a tool with no Team Home card, so the shortcuts on /search/ need an icon of its own).
+    leavecal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="m9.5 15.5 1.8 1.8 3.4-3.6"/>',
     // Kate, 9 Nov 2026: a short list with an arrow, for Rearrange Menu.
     'menu-mover': '<path d="M4 6h9M4 12h6M4 18h9"/><path d="M18 7v10"/><path d="m15.5 14.5 2.5 2.5 2.5-2.5"/>',
     'hair-induction': CAP, 'beauty-induction': CAP, 'front-desk-induction': CAP, 'call-centre-induction': CAP,

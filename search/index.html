@@ -298,7 +298,7 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
 <script src="/js/pages.js?v=370ed108"></script>
 <!-- Team Home's own script: the sign-in check, the icons and the stars. It draws no header here (no #kbHead). -->
 <script src="/js/voice-mic.js?v=62fac83a"></script>
-<script src="/hub/hub.js?v=b106ff0c"></script>
+<script src="/hub/hub.js?v=c36d4dea"></script>
 <script>
 (async function () {
   // Signed in and on a list, as Team Home checks it; anyone else is sent to the sign-in card
@@ -360,7 +360,7 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
       doc: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
       find: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
       note: '<path d="M5 19l1-4L16 5l3 3L9 18zM14 7l3 3"/>',
-      coin: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c0-1 1-1.5 2.5-1.5s2.5.6 2.5 1.6S13 12 12 12s-2.5.4-2.5 1.5S10.5 15 12 15s2.5-.5 2.5-1.5"/>',
+      aed: '<path d="M6 4h5.5a8 8 0 0 1 0 16H6z"/><path d="M3 10h13M3 14h13"/>',
       clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
       tag: '<path d="M3 12V4h8l10 10-8 8z"/><path d="M7.5 8h.01"/>',
       phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
@@ -381,7 +381,7 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
       ideas:   { t: 'Suggestions Box', d: 'Send an idea to the team.', i: 'note', c: 'butter', go: function () { return '/hub/suggestions'; } },
       find:    { t: 'Find a stylist', d: 'Who does which service.', i: 'find', c: 'lavender', k: 'client-matching' },
       complaint: { t: 'Log a complaint', d: 'Write it down in one minute.', i: 'note', c: 'coral', k: 'log-complaint' },
-      deposits:  { t: 'Check deposits', d: 'Which deposits to chase.', i: 'coin', c: 'mint', k: 'deposit-check' },
+      deposits:  { t: 'Check deposits', d: 'Which deposits to chase.', i: 'aed', c: 'mint', k: 'deposit-check' },
       targettoday: { t: 'Today’s target', d: 'Each salon against today’s aim.', i: 'target', c: 'coral', k: 'today-targets' },
       prices:  { t: 'Price list', d: 'Every service and price.', i: 'tag', c: 'butter', k: 'price-list' },
       desk:    { t: 'Front desk manual', d: 'Booking, deposits and cancellations.', i: 'book', c: 'butter', k: 'front-desk' },
@@ -396,9 +396,9 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
       recruit: { t: 'Recruitment', d: 'Who applied this week.', i: 'users', c: 'lavender', k: 'recruitment' },
       payslips: { t: 'Payslips', d: 'Upload and send this month’s.', i: 'doc', c: 'mint', k: 'payslips' },
       uploads: { t: 'Upload Portal', d: 'Ledgers and Phorest reports.', i: 'upload', c: 'mint', k: 'uploads' },
-      fin:     { t: 'Financial totals', d: 'Takings by branch.', i: 'coin', c: 'lavender', k: 'numbers-financials' },
+      fin:     { t: 'Financial totals', d: 'Takings by branch.', i: 'aed', c: 'lavender', k: 'numbers-financials' },
       prods:   { t: 'Products', d: 'Stock orders and spend.', i: 'tag', c: 'lavender', k: 'numbers-products' },
-      stripe:  { t: 'Stripe vs Phorest', d: 'Check the deposits paid.', i: 'coin', c: 'mint', k: 'stripe-deposits' },
+      stripe:  { t: 'Stripe vs Phorest', d: 'Check the deposits paid.', i: 'aed', c: 'mint', k: 'stripe-deposits' },
       dailyrep: { t: 'Daily reports', d: 'Phorest sync and checks.', i: 'upload', c: 'mint', k: 'daily-reports' },
       menu:    { t: 'Rearrange menu', d: 'Change what staff see.', i: 'grid', c: 'lavender', k: 'menu-mover' }
     };
@@ -541,7 +541,13 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
         if (p && sec) { var i = KB.pageIcon(p, sec.key, sec.rule); if (i) return i; }
         return '<span class="kb-ic" style="--c:var(--accent-mint)" aria-hidden="true">' + esc(initials(e.t)) + '</span>';
       }
-      var s = shown.filter(function (x) { return secHref(x) === e.h || e.h.indexOf(secHref(x) + '?') === 0 || e.h === secHref(x) + '.html'; })[0];
+      var same = function (x) { return secHref(x) === e.h || e.h.indexOf(secHref(x) + '?') === 0 || e.h === secHref(x) + '.html'; };
+      var s = shown.filter(same)[0];
+      // Kate, 26 Nov 2026: Staff Roster & Access, Staff Card Links and Service Playbooks showed their initials (SR, SC, SP) in Frequently visited. The icon was only looked
+      // for among the cards this person can open now, so a page opened from a link or by another level got letters. The icon is decoration (the link is the visit's own address),
+      // so look through every Team Home section before falling back to initials.
+      if (!s) s = KB.SECTIONS.filter(same)[0];
+      if (!s && e.h.indexOf('/hub/leavecal') === 0) return KB.icon('leavecal', 'var(--accent-lavender)');   // a tool with no Team Home card
       if (!s) { var sm = e.h.match(/[?&]s=([\w-]+)/); s = sm && secBy[sm[1]]; }
       return s ? secIcon(s) : '<span class="kb-ic" style="--c:var(--accent-mint)" aria-hidden="true">' + esc(initials(e.t)) + '</span>';
     }
