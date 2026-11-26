@@ -1,0 +1,115 @@
+/* Back to School Offer Performance (Kate, 26 Nov 2026): the same rules as css/active-deals.css, scoped to its own page. */
+/* Active Deals Performance (Kate, 23 Oct 2026). The Wellness Voucher Performance page's own look (wellness-voucher-approvals/performance/index.html),
+   scoped to #pkBackToSchoolContent and mapped onto the dashboard's tokens so it follows the light and dark theme. Phone: the page keeps the dashboard's own
+   side margin (nothing is added here), tiles go two a row, and every table scrolls inside its card with its first column pinned. */
+#pkBackToSchoolContent{--paper:var(--surface);--ink:var(--text);--ink2:var(--text);--line:var(--border);--grid:var(--border2);--sand:var(--surface2);
+  --series:#0F8A72;--c1:#0F8A72;--c2:#7C5CD4;--c3:#B87A1E;--serif:'Playfair Display',Georgia,serif;
+  --good-bg:#E4F1EA;--warn-bg:#FBF3E2;--warn-fg:#B4823A;
+  position:relative;font-size:14px;line-height:1.5;padding:10px 0 48px}
+:root[data-theme="dark"] #pkBackToSchoolContent{--series:#99F6E4;--c1:#2FA58B;--c2:#8C74DE;--c3:#BD852D;--good-bg:rgba(153,246,228,.12);--warn-bg:rgba(238,243,199,.12);--warn-fg:#EEF3C7}
+#pkBackToSchoolContent *{box-sizing:border-box}
+#pkBackToSchoolContent h1.ad-t{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+#pkBackToSchoolContent h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
+#pkBackToSchoolContent .ad-sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+#pkBackToSchoolContent .ad-subh{margin:20px 0 6px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#pkBackToSchoolContent [id^="ad-"]{scroll-margin-top:150px}
+#pkBackToSchoolContent .ad-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+#pkBackToSchoolContent .ad-toplinks{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){
+  #pkBackToSchoolContent .ad-toplinks{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}
+  #pkBackToSchoolContent .ad-toplinks .ad-btn{padding:9px 8px;font-size:13px;line-height:1.25;text-align:center}
+}
+#pkBackToSchoolContent .ad-btn{border:1px solid var(--line);background:var(--paper);color:var(--muted);font:600 13px 'Inter',system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block;min-height:34px}
+#pkBackToSchoolContent .ad-btn:hover{color:var(--ink)}
+#pkBackToSchoolContent .ad-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:16px;min-width:0}
+#pkBackToSchoolContent .ad-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+#pkBackToSchoolContent .ad-grid2 .ad-card{margin-bottom:0}
+#pkBackToSchoolContent .ad-grid2>*{min-width:0}
+@media(max-width:760px){#pkBackToSchoolContent .ad-grid2{grid-template-columns:1fr}#pkBackToSchoolContent .ad-card{padding-left:12px;padding-right:12px}}
+#pkBackToSchoolContent details.more{margin:6px 0 0}
+#pkBackToSchoolContent details.more>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:4px 0}
+#pkBackToSchoolContent details.more>p.ad-sub{margin:4px 0 0}
+#pkBackToSchoolContent details{margin-top:10px}
+#pkBackToSchoolContent summary{cursor:pointer;color:var(--muted);font-size:12px}
+#pkBackToSchoolContent div:has(> table){overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#pkBackToSchoolContent div:has(> table) > table tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--paper)}
+#pkBackToSchoolContent .ad-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
+@media(max-width:760px){#pkBackToSchoolContent .ad-hero{grid-template-columns:1fr}}
+#pkBackToSchoolContent .ad-big{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+#pkBackToSchoolContent .ad-big small{font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+#pkBackToSchoolContent .ad-track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
+#pkBackToSchoolContent .ad-fill{height:100%;background:var(--series);border-radius:999px}
+#pkBackToSchoolContent .ad-cap{color:var(--muted);font-size:13px}
+#pkBackToSchoolContent .ad-zero{color:var(--muted);opacity:.4}
+#pkBackToSchoolContent .ad-pace{border-left:1px solid var(--line);padding-left:24px}
+@media(max-width:760px){#pkBackToSchoolContent .ad-pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+#pkBackToSchoolContent .ad-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
+#pkBackToSchoolContent .ad-row b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+#pkBackToSchoolContent .ad-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;margin-bottom:6px}
+#pkBackToSchoolContent .ad-status.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#pkBackToSchoolContent .ad-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:560px){#pkBackToSchoolContent .ad-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#pkBackToSchoolContent .ad-tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+#pkBackToSchoolContent .ad-tile .l{color:var(--muted);font-size:12px;font-weight:500}
+#pkBackToSchoolContent .ad-tile .v{font-family:var(--serif);font-size:clamp(17px,2.3vw,24px);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#pkBackToSchoolContent .ad-tile .v.txt{font-size:clamp(15px,1.7vw,18px);line-height:1.25;padding:3px 0}
+#pkBackToSchoolContent .ad-tile .h{color:var(--muted);font-size:12px}
+@media(max-width:900px) and (min-width:561px){#pkBackToSchoolContent .ad-tile .l,#pkBackToSchoolContent .ad-tile .h{font-size:11.5px}}
+#pkBackToSchoolContent .ad-chart{position:relative;margin-top:10px}
+#pkBackToSchoolContent .ad-chart svg{display:block;width:100%;height:auto;overflow:visible}
+#pkBackToSchoolContent .ax{fill:var(--muted);font-size:11px;font-family:'Inter',system-ui,sans-serif}
+#pkBackToSchoolContent .gl{stroke:var(--grid);stroke-width:1}
+#pkBackToSchoolContent .ad-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px}
+#pkBackToSchoolContent .ad-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#pkBackToSchoolContent .ad-tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;border-radius:8px;padding:7px 10px;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:5}
+#pkBackToSchoolContent table{width:100%;border-collapse:collapse;font-size:13px}
+#pkBackToSchoolContent th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+#pkBackToSchoolContent td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;vertical-align:top}
+#pkBackToSchoolContent td.n,#pkBackToSchoolContent th.n{text-align:right}
+#pkBackToSchoolContent tr.tot td{font-weight:600;border-bottom:0}
+#pkBackToSchoolContent td small{display:block;color:var(--muted);font-size:11.5px}
+#pkBackToSchoolContent .ad-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+#pkBackToSchoolContent .ad-mini{display:inline-block;width:60px;height:6px;background:var(--sand);border-radius:999px;overflow:hidden;vertical-align:middle;margin-right:8px}
+#pkBackToSchoolContent .ad-mini i{display:block;height:100%;background:var(--series);border-radius:999px}
+#pkBackToSchoolContent .ad-tag{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap;background:var(--sand);color:var(--muted)}
+#pkBackToSchoolContent .ad-tag.ok{background:var(--good-bg);color:var(--good)}
+#pkBackToSchoolContent .ad-tag.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#pkBackToSchoolContent .ad-list{margin:8px 0 0;padding:0;list-style:none}
+#pkBackToSchoolContent .ad-list li{padding:9px 0;border-top:1px solid var(--grid);font-size:13px;color:var(--ink2)}
+#pkBackToSchoolContent .ad-list li:first-child{border-top:0}
+#pkBackToSchoolContent .ad-list li b{color:var(--ink);display:block;font-weight:600}
+#pkBackToSchoolContent .ad-ask{margin:6px 0 0 18px;padding:0;font-size:13px;color:var(--ink2)}
+#pkBackToSchoolContent .ad-ask li{margin:6px 0}
+#pkBackToSchoolContent .ad-state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
+#pkBackToSchoolContent .ad-empty{color:var(--muted);font-size:13px;padding:8px 0}
+
+/* Brochure slide thumbnails beside each offer (Kate, 25 Nov 2026) */
+#pkBackToSchoolContent .ad-of{display:flex;gap:10px;align-items:flex-start}
+#pkBackToSchoolContent .ad-of>div{min-width:0}
+#pkBackToSchoolContent .ad-pic{width:56px;padding-right:0}
+#pkBackToSchoolContent td.ad-nm{min-width:170px}
+#pkBackToSchoolContent .ad-th{flex:0 0 44px;display:block;line-height:0}
+#pkBackToSchoolContent .ad-th img{width:44px;height:78px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+#pkBackToSchoolContent li.ad-of .ad-th{flex-basis:52px}
+#pkBackToSchoolContent li.ad-of .ad-th img{width:52px;height:92px}
+
+/* Sheets tables (sheet-table.js) on this page, 25 Nov 2026 */
+#pkBackToSchoolContent .ad-phone{display:none}
+#pkBackToSchoolContent tr.ad-off{opacity:.45}
+#pkBackToSchoolContent .sx-t td small{display:block;color:var(--muted);font-size:11.5px}
+@media(max-width:760px){#pkBackToSchoolContent .ad-phone{display:inline-flex;align-items:center;min-height:44px;margin-bottom:8px}}
+/* Phone (375px): text 13px or more, and a figure is a 44px tap (Kate, 25 Nov 2026) */
+@media(max-width:760px){
+  #pkBackToSchoolContent .ad-tile .l,#pkBackToSchoolContent .ad-tile .h,#pkBackToSchoolContent .ad-subh,#pkBackToSchoolContent .ad-tag,#pkBackToSchoolContent .ad-cap,#pkBackToSchoolContent summary,#pkBackToSchoolContent .sx-t td small{font-size:13px}
+  #pkBackToSchoolContent .ad-pace span,#pkBackToSchoolContent .ad-status span{font-size:13px}
+  #pkBackToSchoolContent svg text{font-size:13px!important}
+  #pkBackToSchoolContent td .dn,#pkBackToSchoolContent .ad-tile .dn,#pkBackToSchoolContent li .dn{display:inline-flex;align-items:center;min-height:44px}
+  #pkBackToSchoolContent .ad-tile .dn{min-height:0}
+}
+/* Back to School Offer Performance (Kate, 26 Nov 2026): the Not traced list has no slide image, so a small labelled box stands in for it */
+#pkBackToSchoolContent .ad-th.ad-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:56px;height:56px;box-sizing:border-box;border:1px dashed var(--line);border-radius:6px;line-height:1.15;text-align:center;font-size:13px;color:var(--muted)}
+#pkBackToSchoolContent .ad-th.ad-ph em{font-style:normal}
+
+/* Back to School Offer Performance (Kate, 26 Nov 2026): the Offer name keeps a readable width in the 12 column By offer table */
+#pkBackToSchoolContent #bspk td:nth-child(2){min-width:170px}
+@media(max-width:760px){#pkBackToSchoolContent .ad-status,#pkBackToSchoolContent .why-wall-t{font-size:13px}}

@@ -101,6 +101,7 @@ OWN = {
     'glowclub': ['js/glow-club.js', 'css/glow-club.css'],
     'dealsperf': ['js/active-deals.js', 'css/active-deals.css'],
     'pkhaircolour': ['js/pk-hair-colour.js', 'css/pk-hair-colour.css'],
+    'pkschool': ['js/pk-back-to-school.js', 'css/pk-back-to-school.css'],
     'discountsvouchers': ['js/discounts-vouchers.js', 'css/discounts-vouchers.css'],
     'stylists': ['js/stylist-cards.js'],
     'orgchart': ['js/org-chart.js'],
