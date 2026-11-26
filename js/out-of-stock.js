@@ -407,7 +407,7 @@
   // and the total at the price list price. A line DBD's list does not have yet gets no code and says CODE NEEDED: nothing is dropped. One Excel file per order, one tab per list.
   const FCOLS = [{ k: 'cat', l: 'Category', t: 'txt' }, { k: 'sub', l: 'Sub-category', t: 'txt' }, { k: 'code', l: 'Code', t: 'txt' }, { k: 'd', l: 'Description', t: 'txt' }, { k: 'size', l: 'Size', t: 'txt' },
                  { k: 'wsp', l: 'WSP (AED)', t: 'txt' }, { k: 'q', l: 'Order Qty.', t: 'num' }, { k: 'tot', l: 'Total (AED)', t: 'txt' }, { k: 'ean', l: 'EAN', t: 'txt' }, { k: 'how', l: 'Matched by', t: 'txt' }];
-  const HOW = { ean: 'barcode', code: 'item code', name: 'name' };
+  const DBD_HOW = { ean: 'barcode', code: 'item code', name: 'name' };
   const f2 = v => v == null || v === '' ? '' : (+v).toFixed(2);
   async function loadForms(sup, sals) {
     const mine = openOrders(sup, sals); if (!mine.length) return { err: 'Confirm the order first: the order form is made from the confirmed order.' };
@@ -426,7 +426,7 @@
     fm.lines.forEach(l => { const k = (l.fam || String(l.brand || '').toUpperCase()) + ' ' + (l.type === 'Retail' ? 'Retail' : 'Professional'); if (!g[k]) { g[k] = []; order.push(k); } g[k].push(l); });
     order.sort((a, b) => a.localeCompare(b));
     return order.map(k => {
-      const rows = g[k].map(l => ({ cat: l.cat || '', sub: l.sub || '', code: l.code || '', d: l.code ? l.desc : l.name, size: l.size || '', wsp: f2(l.wsp), q: +l.q || 0, tot: l.wsp != null ? f2(l.wsp * l.q) : '', ean: l.ean || '', how: l.code ? HOW[l.how] || '' : 'CODE NEEDED', _need: !l.code, _cls: l.code ? '' : 'oos-skip' }));
+      const rows = g[k].map(l => ({ cat: l.cat || '', sub: l.sub || '', code: l.code || '', d: l.code ? l.desc : l.name, size: l.size || '', wsp: f2(l.wsp), q: +l.q || 0, tot: l.wsp != null ? f2(l.wsp * l.q) : '', ean: l.ean || '', how: l.code ? DBD_HOW[l.how] || '' : 'CODE NEEDED', _need: !l.code, _cls: l.code ? '' : 'oos-skip' }));
       rows.sort((a, b) => (a._need - b._need) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.sub.localeCompare(b.sub, undefined, { sensitivity: 'base' }) || a.d.localeCompare(b.d, undefined, { sensitivity: 'base' }));
       return { label: k, rows, need: rows.filter(r => r._need).length, units: rows.reduce((a, r) => a + r.q, 0), aed: rows.reduce((a, r) => a + (r.tot === '' ? 0 : +r.tot), 0) };
     });
