@@ -126,7 +126,7 @@
     const callOrd = Promise.resolve(sb.rpc('oos_on_order')).then(r => r, e => ({ error: e }));   // the migration may not be applied yet
     const callDem = Promise.resolve(sb.rpc('oos_demand')).then(r => r, e => ({ error: e }));
     const callEd = Promise.resolve(sb.rpc('oos_order_edits_get')).then(r => r, e => ({ error: e }));   // the migration may not be applied yet: then the Order column cannot be typed in
-    const callPO = Promise.resolve(sb.rpc('oos_orders_get')).then(r => r, e => ({ error: e }));   // confirmed supplier orders; the migration may not be applied yet
+    const callPO = fetchPO();   // confirmed supplier orders (after a look for new DBD replies); the migration may not be applied yet
     const pr = await callPlan;
     if (pr.error) throw pr.error;
     const d = pr.data || {};
@@ -364,9 +364,12 @@
   // One confirm = one order per salon, numbered TRS-PO-<YY>-<0001..> by the database (oos_order_confirm). The lines are copied in as they are now (typed quantities and ticked-off products included).
   // Nothing is sent to the supplier by this: Email to DBD is still a Gmail draft a person sends. Needs out_of_stock_supplier_orders.sql applied; until then the button says so.
   const setPO = r => { const d = r && !r.error ? r.data : null; S.poOn = !!(d && !d.denied && Array.isArray(d.orders)); S.po = S.poOn ? d.orders : []; };
-  async function loadPO() { setPO(await Promise.resolve(sb.rpc('oos_orders_get')).then(r => r, e => ({ error: e }))); }
+  // DBD's out-of-stock replies are looked for first (oos_replies_scan, safe to repeat), then the orders are read
+  async function fetchPO() { try { await sb.rpc('oos_replies_scan'); } catch (e) { /* not applied yet, or no access: the orders are still read */ } return Promise.resolve(sb.rpc('oos_orders_get')).then(r => r, e => ({ error: e })); }
+  async function loadPO() { setPO(await fetchPO()); }
   const openOrders = (sup, sals) => S.po.filter(o => o.supplier === sup && o.status !== 'cancelled' && o.day === S.editDay && sals.indexOf(o.branch) >= 0);
-  const poFmt = o => o.order_no + ' (' + BN[o.branch] + ', ' + plural(o.n_lines, 'product') + (o.status === 'confirmed' ? '' : ', ' + String(o.status).replace(/_/g, ' ')) + ')';
+  const PO_ST = { confirmed: 'confirmed', sent: 'sent to DBD', oos_reply: 'DBD replied', oos_confirmed: 'out of stock confirmed with DBD', on_the_way: 'on the way', invoiced: 'invoiced' };
+  const poFmt = o => o.order_no + ' (' + BN[o.branch] + ', ' + plural(o.n_lines, 'product') + ', ' + (PO_ST[o.status] || o.status) + (o.status === 'oos_reply' ? ': <b>' + plural(o.oos_items || 0, 'item') + ' out of stock' + (o.oos_decided ? ', decision saved' : ', needs a decision') + '</b>' : '') + ')';
   const poOff = e => /oos_order|schema cache|does not exist|Could not find/i.test(String(e && (e.message || e)) + String(e && e.code || '')) ? 'Confirm order is not switched on yet: the database step (out_of_stock_supplier_orders.sql) is waiting to be applied.' : 'That did not work: ' + String(e && e.message || e);
   async function confirmOrder(sup, keys) {
     if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can confirm an order.';
@@ -494,13 +497,81 @@
   }
   async function markSent(sup, sals) {
     if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can mark an order as sent.';
-    const mine = openOrders(sup, sals).filter(o => o.status === 'confirmed' && drafted[o.order_no]);
-    if (!mine.length) return 'Press Email order to ' + sup + ' first, send it in Gmail, then press this.';
-    if (!window.confirm('Mark ' + mine.map(o => o.order_no + ' ' + BN[o.branch]).join(', ') + ' as sent to ' + sup + '?\n\nDo this only after you pressed Send in Gmail. A sent order cannot be cancelled here.')) return 'Not marked.';
-    const out = [];
-    for (const o of mine) { let res; try { res = await sb.rpc('oos_order_mark_sent', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return /oos_order_mark_sent|schema cache|Could not find/i.test(String(res.error.message || res.error)) ? 'Mark as sent is not switched on yet (out_of_stock_order_sent.sql).' : 'That did not work: ' + String(res.error.message || res.error); out.push(o.order_no); }
+    const all_ = openOrders(sup, sals), a = all_.filter(o => o.status === 'confirmed' && drafted[o.order_no]), b = all_.filter(o => o.status === 'oos_reply' && draftedOos[o.order_no]);
+    if (!a.length && !b.length) return 'Press Email order to ' + sup + ' (or Confirm order with ' + sup + ' OOS) first, send it in Gmail, then press this.';
+    if (!window.confirm('Mark as sent to ' + sup + ':\n' + a.map(o => o.order_no + ' ' + BN[o.branch] + ' (the order)').concat(b.map(o => o.order_no + ' ' + BN[o.branch] + ' (the out-of-stock confirmation)')).join('\n') + '\n\nDo this only after you pressed Send in Gmail.')) return 'Not marked.';
+    const out = [], bad = e => /oos_order_mark_sent|oos_oos_mark_sent|schema cache|Could not find/i.test(String(e.message || e)) ? 'Mark as sent is not switched on yet.' : 'That did not work: ' + String(e.message || e);
+    for (const o of a) { let res; try { res = await sb.rpc('oos_order_mark_sent', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return bad(res.error); out.push(o.order_no); }
+    for (const o of b) { let res; try { res = await sb.rpc('oos_oos_mark_sent', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return bad(res.error); if (res.data && res.data.refused) return 'Not marked: ' + (res.data.why || res.data.status) + '.'; out.push(o.order_no + ' (out of stock)'); }
     await loadPO();
     return 'Marked as sent: ' + out.join(', ') + '.';
+  }
+  // DBD's out-of-stock reply and our confirmation of it (Kate, 26 Nov 2026, step 4 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md: "they then proceed to click confirm orders with dbd oos button,
+  // follow standardised format, dbd gets notified"). The reply is found by the database (oos_replies_scan: DBD keeps our subject, the order number is in it). The person decides every item
+  // (cancel it, wait for stock, or take another product), the page opens the standard confirmation as a Gmail draft, and Mark as sent turns the order to "out of stock confirmed".
+  const draftedOos = {};
+  function askDecisions(o, rp) {
+    return new Promise(done => {
+      const prev = {}; (rp.decisions || []).forEach(d => { prev[d.code] = d; });
+      const ov = document.createElement('div'); ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Out of stock items');
+      ov.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(20,16,14,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+      const sel = 'font:inherit;font-size:15px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);min-height:40px';
+      ov.innerHTML = '<div style="background:var(--bg);color:var(--text);border:1px solid var(--text);border-radius:14px;width:min(980px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:18px 20px;box-shadow:0 26px 90px rgba(0,0,0,.6)">' +
+        '<h3 style="font-family:\'Playfair Display\',serif;font-size:22px;margin:0 0 4px">DBD says these are out of stock</h3>' +
+        '<p style="margin:0 0 12px;color:var(--muted);font-size:14px">' + esc(o.order_no) + ' · ' + esc(BN[o.branch]) + ' · DBD replied ' + esc(dFmt(rp.at)) + '. Choose what happens to each item. Everything not listed stays on the order.</p>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:15px"><thead><tr><th style="text-align:left;padding:6px 8px">Item</th><th style="text-align:right;padding:6px 8px">Qty</th><th style="text-align:left;padding:6px 8px">What do we do?</th></tr></thead><tbody>' +
+        rp.items.map((it, i) => '<tr style="border-top:1px solid var(--border)"><td style="padding:8px"><b>' + esc(it.name) + '</b><br><span style="color:var(--muted);font-size:13px">' + esc(it.code) + '</span></td><td style="padding:8px;text-align:right">' + esc(it.qty) + '</td>' +
+          '<td style="padding:8px"><select data-i="' + i + '" style="' + sel + '"><option value="">Choose…</option><option value="cancel">Cancel this item</option><option value="wait">Keep it, we wait for stock</option><option value="replace">Take another product instead</option></select> ' +
+          '<input data-r="' + i + '" type="text" placeholder="Which product instead?" style="' + sel + ';min-width:240px" hidden></td></tr>').join('') +
+        '</tbody></table><p data-m style="margin:10px 0 0;color:#c62828;font-weight:700;min-height:1.4em"></p>' +
+        '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px"><button type="button" data-no style="font:inherit;font-size:16px;padding:12px 22px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--text);cursor:pointer">Close</button>' +
+        '<button type="button" data-ok style="font:inherit;font-size:16px;font-weight:700;padding:12px 22px;border-radius:12px;border:0;background:var(--text);color:var(--bg);cursor:pointer">Save and open the email to DBD</button></div></div>';
+      const fin = v => { document.removeEventListener('keydown', esc_); ov.remove(); done(v); };
+      const esc_ = e => { if (e.key === 'Escape') { e.stopPropagation(); fin(null); } };
+      document.addEventListener('keydown', esc_);
+      document.body.appendChild(ov);
+      rp.items.forEach((it, i) => { const sl = ov.querySelector('[data-i="' + i + '"]'), tx = ov.querySelector('[data-r="' + i + '"]'), pv = prev[it.code]; if (pv) { sl.value = pv.action; tx.value = pv.replace_with || ''; tx.hidden = pv.action !== 'replace'; } });
+      ov.addEventListener('change', e => { const sl = e.target.closest('[data-i]'); if (sl) { const tx = ov.querySelector('[data-r="' + sl.dataset.i + '"]'); tx.hidden = sl.value !== 'replace'; if (!tx.hidden) tx.focus(); } });
+      ov.querySelector('[data-no]').addEventListener('click', () => fin(null));
+      ov.querySelector('[data-ok]').addEventListener('click', () => {
+        const out = [], msg = ov.querySelector('[data-m]');
+        for (let i = 0; i < rp.items.length; i++) {
+          const a = ov.querySelector('[data-i="' + i + '"]').value, t = ov.querySelector('[data-r="' + i + '"]').value.trim();
+          if (!a) { msg.textContent = 'Choose what happens to ' + rp.items[i].name + '.'; return; }
+          if (a === 'replace' && !t) { msg.textContent = 'Write which product we take instead of ' + rp.items[i].name + '.'; return; }
+          out.push({ code: rp.items[i].code, action: a, replace_with: a === 'replace' ? t : null });
+        }
+        fin(out);
+      });
+      const first = ov.querySelector('select'); if (first) first.focus();
+    });
+  }
+  function oosMail(o, rp, decisions) {
+    const sal = BN[o.branch], SAL = sal.toUpperCase(), by = {}; decisions.forEach(d => { by[d.code] = d; });
+    const sec = (title, act) => { const ls = rp.items.filter(it => by[it.code].action === act).map(it => it.code + ' | ' + it.name + ' | ' + pcs(it.qty) + (act === 'replace' ? ' | TAKE INSTEAD: ' + by[it.code].replace_with : '')); return ls.length ? title + '\n' + ls.join('\n') : ''; };
+    const body = [sec('CANCEL (please remove from the order)', 'cancel'), sec('KEEP ON THE ORDER (we will wait for stock)', 'wait'), sec('REPLACE (please send the other product)', 'replace')].filter(Boolean).join('\n\n');
+    const text = 'Hello DBD Team,\n\nThank you for your out-of-stock list for our order ' + o.order_no + ' (' + SAL + ' branch). Please see our decision for each item below.\n\nORDER NUMBER: ' + o.order_no + '\nSALON: ' + sal +
+      '\n\n' + body + '\n\nEverything else on the order stays as ordered. Kindly reply to confirm.' + '\n\nThank you,\nTara Rose Ladies Salon\nPurchasing | info@tararosesalon.com';
+    return { subject: o.order_no + ' | OOS CONFIRMATION | ' + SAL + ' | ' + dFmt(o.day), text };
+  }
+  async function confirmOos(sup, sals) {
+    if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can confirm the out-of-stock list with ' + sup + '.';
+    const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
+    const mine = openOrders(sup, sals).filter(o => o.status === 'oos_reply');
+    if (!mine.length) return sup + ' has not sent an out-of-stock list for an order here (or it has been confirmed already).';
+    const o = mine.filter(x => !draftedOos[x.order_no])[0] || mine[0];
+    let r; try { r = await sb.rpc('oos_order_replies_get', { p_order_no: o.order_no }); } catch (e) { r = { error: e }; }
+    if (r.error || !r.data || r.data.denied) return 'The reply could not be read. Try again.';
+    const rp = (r.data.replies || []).filter(x => !x.confirm_sent_at)[0];
+    if (!rp) return 'The latest ' + sup + ' list of ' + o.order_no + ' is already confirmed.';
+    const dec = await askDecisions(o, rp); if (!dec) return 'Nothing saved.';
+    let sv; try { sv = await sb.rpc('oos_reply_decide', { p_reply_id: rp.id, p_decisions: dec }); } catch (e) { sv = { error: e }; }
+    if (sv.error) return 'That did not save: ' + String(sv.error.message || sv.error);
+    if (sv.data && (sv.data.denied || sv.data.refused)) return 'That did not save (' + (sv.data.why || 'no access') + ').';
+    const mail = oosMail(o, rp, dec);
+    window.open('https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(m.to.join(',')) + '&cc=' + encodeURIComponent(m.cc.join(',')) + '&su=' + encodeURIComponent(mail.subject) + '&body=' + encodeURIComponent(mail.text), '_blank', 'noopener');
+    draftedOos[o.order_no] = 1; await loadPO();
+    return 'Decision saved. Gmail is open with the confirmation for ' + o.order_no + ' ' + BN[o.branch] + '. Press Send, then press Mark as sent.';
   }
   async function orderFormWindow(sup, sals) {
     const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
@@ -553,7 +624,7 @@
       return mk({ cols: (multi ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'br', l: 'Brand' }, { k: 'ca', l: 'Category' }, { k: 'p', l: 'Name' }], colsQ, [{ k: 'oa', l: 'Quantity AED', t: 'aed' }],
           [{ k: 'c', l: 'Cost (AED)', t: 'num' }, { k: 'st', l: 'Status' }, { k: 'in', l: 'Stock', t: 'num' }], colsC, [{ k: 'on', l: 'On order', t: 'num' }, { k: 'mn', l: 'Min', t: 'num' }, { k: 'mx', l: 'Max', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' }]),
         rows: dr, foot: { p: 'Total: ' + plural(rs.length, 'product') + (extra && extra.length ? ' (' + n0(extra.length) + ' low stock, not due by the rule)' : '') },
-        note: (poNow.length ? '<b>Confirmed:</b> ' + poNow.map(o => esc(poFmt(o)) + ' by ' + esc(String(o.by || '').split('@')[0])).join('; ') + '. ' : (supName && S.poOn ? '<b>Not confirmed yet.</b> ' : '')) + 'The products of this order, A to Z by category and then name.' + (extra && extra.length ? ' <b>Low stock</b> lines are at or under Min but not ordered by the rule: type a Quantity to add one to the order.' : '') + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.') });
+        note: (poNow.length ? '<b>Orders:</b> ' + poNow.map(o => poFmt(o).replace(/^[^ ]+/, m => esc(m)) + ' confirmed by ' + esc(String(o.by || '').split('@')[0])).join('; ') + '. ' : (supName && S.poOn ? '<b>Not confirmed yet.</b> ' : '')) + 'The products of this order, A to Z by category and then name.' + (extra && extra.length ? ' <b>Low stock</b> lines are at or under Min but not ordered by the rule: type a Quantity to add one to the order.' : '') + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.') });
     } };
     const prodView = { id: 'products', label: sheet ? 'Counts and AED' : 'Products', load: async () => {
       const dr = rows.map(r => { const row = { p: r.name, br: r.brand, s: BN[r.b], ty: r.type, pr: r.prio, mn: r.mn, _ek: r.key }; fill(row, r); return row; });
@@ -573,6 +644,7 @@
                      { label: 'Cancel confirmed order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
                              { label: 'Test email to me', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
+        S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as sent', run: () => markSent(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : []) : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
