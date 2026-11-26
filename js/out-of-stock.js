@@ -717,7 +717,7 @@
       <p class="oos-hint" id="oosEdMsg" role="status" hidden></p>
     </section>
 
-    <details class="oos-sec oos-det" id="oos-4" data-jn="4 Order by supplier">
+    <details class="oos-sec oos-det" id="oos-4" data-jn="4 Order by supplier" open>
       <summary><h3>4 Order by supplier</h3></summary>
       <div class="oos-learn">
         <p><b>What is this?</b> The same order, split by supplier. Names are from the Orders and Receipts page.</p>

@@ -12,6 +12,8 @@
 //
 // WHO CAN CALL IT
 //   Anyone oos_access() lets in (old Level 2 and up, or a spend viewer), checked with the caller's own token. Everyone else gets 403.
+//   Or the schedule: pg_cron job oos-stock-refresh (every 30 minutes, 8 am to 9:30 pm Dubai) sends the header x-cron-secret, which must equal the
+//   row oos_stock_refresh_cron of internal_secrets (service role only), the same pattern as appointments-sync. No salons in the body = all four.
 //   Writing happens with the service role, only through oos_stock_apply (revoked from every other role).
 //
 // LIMITS (so a click cannot hammer Phorest)
@@ -85,19 +87,27 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "POST only" }, CORS, 405);
   if (!USER || !PASS || !BID) return json({ error: "Phorest is not set up on this project. Tell Kate." }, CORS, 500);
 
-  let body: { salons?: unknown };
+  let body: { salons?: unknown; auto?: unknown };
   try { body = await req.json(); } catch { return json({ error: "invalid JSON body" }, CORS, 400); }
-  const want = Array.isArray(body.salons) ? body.salons.map((s) => String(s).toUpperCase()) : [];
-  const salons = [...new Set(want)].filter((s) => s in BRANCHES);
-  if (!salons.length) return json({ error: "salons must be KCA, SAA, MC or AQ" }, CORS, 400);
-
-  const auth = req.headers.get("authorization") || "";
-  if (!/^Bearer\s+\S+/i.test(auth)) return json({ error: "Sign in first." }, CORS, 401);
-  const user = createClient(SUPA_URL, ANON, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
-  const acc = await user.rpc("oos_access");
-  if (acc.error || !acc.data || acc.data.view !== true) return json({ error: "This is for coordinators and above." }, CORS, 403);
 
   const sb = createClient(SUPA_URL, SERVICE, { auth: { persistSession: false } });
+  const cronHdr = req.headers.get("x-cron-secret") || "";
+  let isCron = false;
+  if (cronHdr) {
+    const sec = await sb.from("internal_secrets").select("value").eq("name", "oos_stock_refresh_cron").maybeSingle();
+    isCron = !!sec.data && sec.data.value === cronHdr;
+    if (!isCron) return json({ error: "Not allowed." }, CORS, 401);
+  } else {
+    const auth = req.headers.get("authorization") || "";
+    if (!/^Bearer\s+\S+/i.test(auth)) return json({ error: "Sign in first." }, CORS, 401);
+    const user = createClient(SUPA_URL, ANON, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
+    const acc = await user.rpc("oos_access");
+    if (acc.error || !acc.data || acc.data.view !== true) return json({ error: "This is for coordinators and above." }, CORS, 403);
+  }
+
+  const want = Array.isArray(body.salons) ? body.salons.map((s) => String(s).toUpperCase()) : (isCron ? Object.keys(BRANCHES) : []);
+  const salons = [...new Set(want)].filter((s) => s in BRANCHES);
+  if (!salons.length) return json({ error: "salons must be KCA, SAA, MC or AQ" }, CORS, 400);
   const t0 = Date.now();
 
   const one = async (code: string) => {
@@ -114,7 +124,7 @@ Deno.serve(async (req: Request) => {
       const res = await sb.rpc("oos_stock_apply", { p_branch: code, p_items: items, p_dry: false });
       if (res.error) { console.error("[oos-stock-refresh] apply failed", code, res.error.message); return { salon: code, ok: false, error: "The figures could not be saved. Nothing was changed." }; }
       const r = res.data || {};
-      console.log("[oos-stock-refresh]", code, "phorest", r.phorest_products, "matched", r.matched, "changed", r.changed, "not matched", r.not_matched);
+      console.log("[oos-stock-refresh]", isCron ? "auto" : "click", code, "phorest", r.phorest_products, "matched", r.matched, "changed", r.changed, "not matched", r.not_matched);
       return { salon: code, ok: true, phorest_products: r.phorest_products, matched: r.matched, changed: r.changed, not_matched: r.not_matched, at: new Date().toISOString() };
     } catch (e) {
       console.error("[oos-stock-refresh]", code, String((e as Error)?.message || e));
