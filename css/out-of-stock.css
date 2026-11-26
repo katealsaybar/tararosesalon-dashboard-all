@@ -97,3 +97,13 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 .oos-learn p .oos-ln:first-of-type{margin-top:4px}
 .oos-ans-n .oos-ln{margin-top:2px}
 .oos-ans-n>b:first-child{display:block;margin-bottom:2px}
+
+/* One container per salon in the answer (Kate, 26 Nov 2026: "make 4 containers, per branch"). Two by two on a tablet, one under the other on a phone. */
+.oos-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+.oos-c{min-width:0;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--bg);font-size:14px}
+.oos-ct{font-size:14px;font-weight:600;margin-bottom:6px}
+.oos-big{display:inline-block;font-family:'Playfair Display',Georgia,serif;font-size:24px;font-weight:500;line-height:1.25}
+.oos-c .oos-ln{color:var(--muted)}
+.oos-c .oos-ln:first-of-type{color:var(--text)}
+.oos-cards+.oos-ans-s{margin-top:12px}
+@media(max-width:560px){.oos-big{font-size:20px}}

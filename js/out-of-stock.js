@@ -313,7 +313,7 @@
       <select id="oosCover" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
       <span class="oos-ctl-t" id="oosCoverT"></span>
     </div>
-    <section class="oos-ans" aria-label="The answer in one line"><div class="oos-ans-k">The answer in one line</div><div class="oos-ans-t" id="oosAns"></div><div class="oos-ans-s" id="oosAns2"></div><div class="oos-ans-n" id="oosAns3"></div><div class="oos-ans-n" id="oosAns4" hidden></div></section>
+    <section class="oos-ans" aria-label="The answer in one line"><div class="oos-ans-k">The answer in one line</div><div class="oos-ans-t" id="oosAns"></div><div class="oos-ans-s" id="oosAns0"></div><div class="oos-cards" id="oosAns2"></div><div class="oos-ans-s" id="oosAns5"></div><div class="oos-ans-n" id="oosAns3"></div><div class="oos-ans-n" id="oosAns4" hidden></div></section>
 
     <section class="oos-sec" id="oos-1" data-jn="1 Next week's bookings">
       <h3>1 Next week's bookings</h3>
@@ -409,16 +409,20 @@
   }
   function paintAnswer() {
     const cs = S.br, T = cs.map(salTot), aed = sum(T, 'aed'), aedm = sum(T, 'aedm'), out = sum(T, 'out'), n = sum(T, 'n'), f = fresh();
-    const a = $('oosAns'), a2 = $('oosAns2');
+    const a = $('oosAns'), a0 = $('oosAns0'), a2 = $('oosAns2'), a5 = $('oosAns5');
     const bs = all('typ').filter(r => inSel(r.b)), base = sum(bs, 'aed'), basem = sum(bs, 'am');
     const dem = !S.dem ? ln('Next week\'s bookings are not loaded, so this is a normal week.') : S.dm === 'book' ? ln('Next week\'s bookings add <b>' + A(aedm - basem) + '</b> (min) and <b>' + A(aed - base) + '</b> (max) to a normal week. All colour.') : ln('A normal week: bookings are not counted (change <b>Order for</b> at the top).');
-    if (!n) { a.textContent = 'Nothing to order for ' + scope() + ' on Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + '.'; a2.innerHTML = fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now.'; }
+    if (!n) { a.textContent = 'Nothing to order for ' + scope() + ' on Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + '.'; a0.textContent = ''; }
     else {
       a.innerHTML = 'Order between ' + fig(A(aedm), 'all') + ' (minimum) and ' + fig(A(aed), 'all') + ' (maximum) for next week.';
-      a2.innerHTML = ln('Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ' · ' + (cs.length === 1 ? BN[cs[0]] : 'every salon') + ' · ' + wk(cover()) + ' of cover') +
-        cs.map((c, i) => ln('<b>' + BN[c] + '</b> ' + fig(A(T[i].aedm), 'all', c) + ' to ' + fig(A(T[i].aed), 'all', c))).join('') +
-        ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now.') + dem;
+      a0.textContent = 'Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ' · ' + (cs.length === 1 ? BN[cs[0]] : 'every salon') + ' · ' + wk(cover()) + ' of cover';
     }
+    // one container per salon picked (Kate, 26 Nov 2026: "make 4 containers, per branch"): the order, then what is short
+    a2.innerHTML = cs.map((c, i) => { const t = T[i];
+      return '<div class="oos-c"><div class="oos-ct">' + BN[c] + '</div>' +
+        ln('<b class="oos-big">' + fig(A(t.aed), 'all', c) + '</b>') + ln('<b>maximum</b>') + ln(fig(A(t.aedm), 'all', c) + ' minimum') +
+        ln(fig(n0(t.n), 'all', c) + (t.n === 1 ? ' product' : ' products') + ' to order') + ln(fig(n0(t.out), 'out', c) + ' out now') + ln(fig(n0(t.u1), 'u1', c) + ' under 1 week') + '</div>'; }).join('');
+    a5.innerHTML = ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now (all salons picked).') + dem;
     const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
     const ord = S.ordersOk && S.ordersAt ? ln('<b>Orders on the way:</b> ' + fdt(S.ordersAt)) : '';
     $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.');
