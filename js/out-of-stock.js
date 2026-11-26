@@ -68,7 +68,10 @@
     ['DBD', /schwar[sz]k|authentic beauty|\babc\b|caviar|alterna|fibre clinix|stmnt|bellami|^matis/i]];
   const NOSUP = 'Not linked yet';
   function supplierOf(planSup, brand, name) {
-    if (planSup && !/^dbd$/i.test(planSup)) return String(planSup).toUpperCase();   // the plan named one itself (Eideal, Madi): spelled as the Orders and Receipts page spells it
+    // Since 26 Nov 2026 the Weekly Product Plan carries this same map itself (plan_scope, migrations/plan_scope_suppliers.sql), so what it names is used as it is. A plan that still says DBD
+    // only because DBD was its default goes through the brand map below, so this page is right before and after that change reaches the database.
+    if (planSup && /^not linked yet$/i.test(planSup)) return NOSUP;
+    if (planSup && !/^dbd$/i.test(planSup)) return String(planSup).toUpperCase();   // the plan named one itself: spelled as the Orders and Receipts page spells it
     const b = String(brand || '');
     for (const [n, re] of SUPPLIERS) if (re.test(b)) return n;
     if (planSup) {   // the plan says DBD only because that is its default: look at the product name too
