@@ -73,6 +73,10 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
 .qr-sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 6px}
 .qr-sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
 .qr-bulkbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px}
+.qr-chk{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.45;cursor:pointer;max-width:56ch}
+.qr-chk input{margin-top:3px;flex:none}
+.qr-pill{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--accent-mint);border-radius:100px;padding:1px 9px;margin-right:6px;color:var(--text)}
+.qr-scan{font-size:12.5px;font-weight:600}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -150,6 +154,10 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
           <option value="AQ">Al Quoz</option>
           <option value="BAH">Bahrain</option>
         </select>
+      </div>
+
+      <div class="qr-row">
+        <label class="qr-chk"><input type="checkbox" id="qrShort"><span><b>Short code</b>: counts every scan, and you can change where it goes later without printing again. It only works once saved, so download it from Saved codes.</span></label>
       </div>
 
       <div class="qr-btns" id="qrOneBtns">
@@ -231,6 +239,30 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   var BR_NAME = {}; BRANCHES.forEach(function (b) { BR_NAME[b[0]] = b[1]; });
   var BR_ORDER = BRANCHES.map(function (b) { return b[0]; });
   var libQ = '', libSortV = 'new', libBr = '';
+  // Kate, 26 Nov 2026: short codes. The picture holds https://go.trk-salon-os.com/<slug>, not the link. A phone scans it, Cloudflare sends it to the qr-go function, which counts the scan and forwards it to the saved link
+  // (migrations/qr_short_links.sql). The link can then be changed from Saved codes without reprinting. A short code only works once it is saved, so its picture is downloaded from Saved codes, never from the maker.
+  var SHORT_BASE = 'https://go.trk-salon-os.com/', SLUG_ABC = 'abcdefghjkmnpqrstuvwxyz23456789', shortBox = $('qrShort'), oneSlug = '', slugs_ = {};
+  function shortOn() { return !!shortBox.checked; }
+  function isWeb(v) { return /^https?:\/\/\S+$/i.test(v) && v.length <= 1000; }
+  function shortUrl(slug) { return SHORT_BASE + slug; }
+  function usedSlugs() {
+    var u = {}; lib.codes.forEach(function (c) { if (c.slug) u[c.slug] = 1; });
+    Object.keys(slugs_).forEach(function (k) { u[slugs_[k]] = 1; }); if (oneSlug) u[oneSlug] = 1;
+    return u;
+  }
+  function newSlug() {
+    var used = usedSlugs(), s = '', i, n;
+    for (n = 0; n < 50; n++) {
+      s = ''; for (i = 0; i < 6; i++) s += SLUG_ABC.charAt(Math.floor(Math.random() * SLUG_ABC.length));
+      if (!used[s]) return s;
+    }
+    return s;
+  }
+  function scansText(c) {
+    var n = c.scans || 0, n7 = c.scans_7d || 0, last = '';
+    if (c.last_scan) { try { last = ', last ' + new Date(c.last_scan).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); } catch (e) {} }
+    return n + (n === 1 ? ' scan' : ' scans') + ' · ' + n7 + ' in the last 7 days' + last;
+  }
 
   function flash(el, t, bad) { el.textContent = t || ''; el.style.color = bad ? '#B3261E' : 'var(--text)'; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -343,16 +375,22 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     return { name: left, link: right };
   }
   function renderOne() {
-    var sp = splitOne(txt.value), v = clean(sp.link), q = build(v), st = settings();
+    var sp = splitOne(txt.value), v = clean(sp.link), asShort = shortOn() && isWeb(v), q, st = settings();
+    // A short code keeps the same address while the link is edited, so the picture does not change with every letter typed.
+    if (asShort) { if (!oneSlug) oneSlug = newSlug(); q = build(shortUrl(oneSlug)); } else { oneSlug = ''; q = build(v); }
     cur = null; oneBtns.forEach(function (b) { b.disabled = true; }); flash(msg, '');
     if (!v) { stage.innerHTML = '<div class="qr-empty">Your QR code shows here.</div>'; info.textContent = ''; return; }
     if (!q) { stage.innerHTML = '<div class="qr-empty">That is too long for one QR code. Use a shorter link.</div>'; info.textContent = ''; return; }
-    cur = { q: q, value: v, centre: st.centre, colour: st.colour, name: nameIn.value.trim() || sp.name, auto: sp.name };
+    cur = { q: q, value: v, centre: st.centre, colour: st.colour, name: nameIn.value.trim() || sp.name, auto: sp.name, short: asShort, slug: asShort ? oneSlug : '' };
     stage.innerHTML = ''; stage.appendChild(draw(cur, 760));
-    info.textContent = v;
+    info.textContent = asShort ? shortUrl(oneSlug) + '  →  ' + v : v;
     oneBtns.forEach(function (b) { b.disabled = false; });
     $('qrSave').disabled = lib.state !== 'ok';
-    if (cur.centre !== 'none' && q.getModuleCount() > 57) flash(msg, 'This one is long, so the code is dense. Scan it with a phone before printing, or use a shorter link.');
+    if (asShort) {
+      [$('qrPng'), $('qrSvg'), $('qrCopy')].forEach(function (b) { b.disabled = true; });   // not until it is saved: a short code nobody saved goes nowhere
+      flash(msg, lib.state === 'ok' ? 'Short code: save it first, then download it from Saved codes below. It only works once it is saved.' : 'A short code has to be saved. Sign in to the dashboard first.');
+    } else if (shortOn() && v) flash(msg, 'A short code needs a web link that starts with http or https, so this one is a plain code.');
+    else if (cur.centre !== 'none' && q.getModuleCount() > 57) flash(msg, 'This one is long, so the code is dense. Scan it with a phone before printing, or use a shorter link.');
   }
   $('qrPng').addEventListener('click', function () { if (!cur) return; pngBlob(cur, px()).then(function (b) { save(b, fileOf({ name: cur.name, value: cur.value }, 'png')); flash(msg, 'PNG downloaded.'); }); });
   $('qrSvg').addEventListener('click', function () { if (!cur) return; save(new Blob([svg(cur)], { type: 'image/svg+xml' }), fileOf({ name: cur.name, value: cur.value }, 'svg')); flash(msg, 'SVG downloaded.'); });
@@ -383,12 +421,14 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       var it = getItem(); if (it) doCopy(box, it);
     });
   }
-  clickCopy(stage, function () { return cur; });
+  clickCopy(stage, function () { return cur && !cur.short ? cur : null; });
   $('qrSave').addEventListener('click', function () {
     if (!cur) return;
+    var wasShort = cur.short;
     $('qrSave').disabled = true; flash(msg, 'Saving…');
-    saveCode(cur.name || cur.value, cur.value, cur.centre, cur.colour, false, branchSel.value).then(function (ok) {
-      flash(msg, ok ? 'Saved. It is in Saved codes below.' : 'Could not save. Sign in to the dashboard and try again.', !ok); $('qrSave').disabled = false;
+    saveCode(cur.name || cur.value, cur.value, cur.centre, cur.colour, false, branchSel.value, cur.slug).then(function (ok) {
+      if (ok && wasShort) { oneSlug = ''; renderOne(); }   // the next short code gets its own new address
+      flash(msg, ok ? (wasShort ? 'Saved as a short code. Download it from Saved codes below. It counts every scan.' : 'Saved. It is in Saved codes below.') : 'Could not save. Sign in to the dashboard and try again.', !ok); $('qrSave').disabled = false;
     });
   });
 
@@ -423,9 +463,10 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       var st = settings(), rows = parseBulk(bulk.value), over = rows.length > MAX_BULK, bad = 0;
       if (over) rows = rows.slice(0, MAX_BULK);
       items = rows.map(function (r) {
-        var q = build(r.value); if (!q) bad++;
-        var key = r.name + ' | ' + r.value, ov = over_[key] || {};
-        return { name: r.name, value: r.value, q: q, key: key, centre: ov.centre || st.centre, colour: ov.colour || st.colour, size: ov.size || 0, branch: ov.branch || st.branch };
+        var key = r.name + ' | ' + r.value, ov = over_[key] || {}, asShort = shortOn() && isWeb(r.value), slug = '';
+        if (asShort) slug = slugs_[key] || (slugs_[key] = newSlug());   // each short code keeps its address while more lines are typed
+        var q = build(asShort ? shortUrl(slug) : r.value); if (!q) bad++;
+        return { name: r.name, value: r.value, q: q, key: key, short: asShort, slug: slug, centre: ov.centre || st.centre, colour: ov.colour || st.colour, size: ov.size || 0, branch: ov.branch || st.branch };
       });
       var ok = items.filter(function (i) { return i.q; });
       tiles.innerHTML = '';
@@ -433,8 +474,8 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       items.forEach(function (it, i) {
         var t = document.createElement('div'); t.className = 'qr-tile' + (it.q ? '' : ' qr-bad');
         var th = null;
-        if (it.q) { th = document.createElement('div'); th.className = 'qr-thumb'; th.appendChild(draw(it, 300)); t.appendChild(th); clickCopy(th, function () { return it; }); }
-        t.insertAdjacentHTML('beforeend', '<div class="qr-tn">' + esc(it.name) + '</div><div class="qr-tv">' + esc(it.q ? it.value : 'Too long for one QR code, so it is skipped.') + '</div>');
+        if (it.q) { th = document.createElement('div'); th.className = 'qr-thumb'; th.appendChild(draw(it, 300)); t.appendChild(th); clickCopy(th, function () { return it.short ? null : it; }); }
+        t.insertAdjacentHTML('beforeend', '<div class="qr-tn">' + esc(it.name) + '</div><div class="qr-tv">' + esc(!it.q ? 'Too long for one QR code, so it is skipped.' : it.short ? shortUrl(it.slug).replace(/^https:\/\//, '') + '  →  ' + it.value : it.value) + '</div>');
         if (it.q) {
           // This code's own colour, middle and picture size: each starts as what is chosen on the left and stays what you pick here.
           function pick(field, v) { it[field] = v; (over_[it.key] = over_[it.key] || {})[field] = v; th.replaceChild(draw(it, 300), th.querySelector('canvas')); }
@@ -442,17 +483,25 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
           t.appendChild(mini('Middle', MID_OPTS, it.centre, function (v) { pick('centre', v); }));
           t.appendChild(mini('Branch', BRANCHES, it.branch, function (v) { it.branch = v; (over_[it.key] = over_[it.key] || {}).branch = v; }));
           t.appendChild(mini('Size', Object.keys(SIZE_NAME).map(function (k) { return [k, SIZE_NAME[k]]; }), pxOf(it), function (v) { it.size = parseInt(v, 10); (over_[it.key] = over_[it.key] || {}).size = it.size; }));
-          var a = document.createElement('div'); a.className = 'qr-ta'; var b = document.createElement('button'); b.className = 'qr-btn ghost sm'; b.textContent = 'PNG';
-          b.addEventListener('click', function () { pngBlob(it, pxOf(it)).then(function (bl) { save(bl, uniqueName(it, 'png')); }); }); a.appendChild(b);
-          var b2 = document.createElement('button'); b2.className = 'qr-btn ghost sm'; b2.textContent = 'SVG';
-          b2.addEventListener('click', function () { save(new Blob([svg(it)], { type: 'image/svg+xml' }), uniqueName(it, 'svg')); }); a.appendChild(b2); t.appendChild(a);
+          if (it.short) t.insertAdjacentHTML('beforeend', '<div class="qr-tm"><span class="qr-pill">Short code</span>Save it, then download it from Saved codes.</div>');
+          else {
+            var a = document.createElement('div'); a.className = 'qr-ta'; var b = document.createElement('button'); b.className = 'qr-btn ghost sm'; b.textContent = 'PNG';
+            b.addEventListener('click', function () { pngBlob(it, pxOf(it)).then(function (bl) { save(bl, uniqueName(it, 'png')); }); }); a.appendChild(b);
+            var b2 = document.createElement('button'); b2.className = 'qr-btn ghost sm'; b2.textContent = 'SVG';
+            b2.addEventListener('click', function () { save(new Blob([svg(it)], { type: 'image/svg+xml' }), uniqueName(it, 'svg')); }); a.appendChild(b2); t.appendChild(a);
+          }
         }
         tiles.appendChild(t);
       });
-      manyBtns.forEach(function (b) { b.disabled = !ok.length; });
-      $('qrSaveAll').disabled = !ok.length || lib.state !== 'ok';
-      flash(bmsg, !items.length ? '' : ok.length + (ok.length === 1 ? ' code' : ' codes') + (bad ? ', ' + bad + ' skipped (too long)' : '') + (over ? '. Only the first ' + MAX_BULK + ' lines are used.' : '.'), over || bad);
+      manyState();
+      flash(bmsg, !items.length ? '' : ok.length + (ok.length === 1 ? ' code' : ' codes') + (bad ? ', ' + bad + ' skipped (too long)' : '') + (over ? '. Only the first ' + MAX_BULK + ' lines are used.' : '.') + (items.some(function (i) { return i.short; }) ? ' Short codes only work once saved: use Save all to library, then download them from Saved codes.' : ''), over || bad);
     }, 220);
+  }
+  // The bulk buttons: a zip would carry short codes nobody has saved yet, so it waits until none of the codes on screen is a short one.
+  function manyState() {
+    var ok = items.filter(function (i) { return i.q; }), anyShort = items.some(function (i) { return i.short; });
+    $('qrZipPng').disabled = $('qrZipSvg').disabled = !ok.length || anyShort;
+    $('qrSaveAll').disabled = !ok.length || lib.state !== 'ok';
   }
   // File names inside a zip: the name, with -2, -3 added when two codes would share one.
   function uniqueNames(list, ext) {
@@ -489,9 +538,9 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     var ok = items.filter(function (i) { return i.q; }), n = 0;
     manyBtns.forEach(function (b) { b.disabled = true; });
     (function next() {
-      if (n >= ok.length) { flash(bmsg, ok.length + ' codes saved. They are in Saved codes below.'); manyBtns.forEach(function (b) { b.disabled = false; }); loadLib(); return; }
+      if (n >= ok.length) { flash(bmsg, ok.length + ' codes saved. They are in Saved codes below.' + (ok.some(function (i) { return i.short; }) ? ' Download the short codes from there.' : '')); slugs_ = {}; manyState(); loadLib(); return; }
       flash(bmsg, 'Saving ' + (n + 1) + ' of ' + ok.length + '…');
-      saveCode(ok[n].name, ok[n].value, ok[n].centre, ok[n].colour, true, ok[n].branch).then(function (r) { if (!r) { flash(bmsg, 'Could not save. Sign in to the dashboard and try again.', true); manyBtns.forEach(function (b) { b.disabled = false; }); return; } n++; next(); });
+      saveCode(ok[n].name, ok[n].value, ok[n].centre, ok[n].colour, true, ok[n].branch, ok[n].slug).then(function (r) { if (!r) { flash(bmsg, 'Could not save. Sign in to the dashboard and try again.', true); manyState(); return; } n++; next(); });
     })();
   });
 
@@ -515,6 +564,8 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
   logoSel.addEventListener('change', function () { clearOver('centre'); refresh(); });
   borderSel.addEventListener('change', function () { try { localStorage.setItem('qr-border', borderSel.value); } catch (e) {} refresh(); });
   try { var sb0 = localStorage.getItem('qr-border'); if (sb0 === '0' || sb0 === '1' || sb0 === '4') borderSel.value = sb0; } catch (e) {}
+  shortBox.addEventListener('change', function () { try { localStorage.setItem('qr-short', shortBox.checked ? '1' : '0'); } catch (e) {} oneSlug = ''; slugs_ = {}; refresh(); });
+  try { if (localStorage.getItem('qr-short') === '1') shortBox.checked = true; } catch (e) {}
   sizeSel.addEventListener('change', function () { clearOver('size'); refresh(); });
   branchSel.addEventListener('change', function () { clearOver('branch'); if (mode === 'many') refresh(); });
   colourSel.addEventListener('change', function () { clearOver('colour'); refresh(); });   // the left colour is for all codes: it clears the ones picked one by one
@@ -534,10 +585,14 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
       });
     }).catch(function () { lib = { state: 'error', codes: [] }; renderLib(); });
   }
-  function saveCode(name, value, centre, colour, quiet, branch) {
+  // slug: the address already drawn in the picture. With one, the code is saved as a short code under that address (if it is taken, a new one is tried, which is safe because nothing is downloaded before it is saved).
+  function saveCode(name, value, centre, colour, quiet, branch, slug, tries) {
     var c = sbc(); if (!c) return Promise.resolve(false);
-    return c.rpc('qr_code_save', { p_name: name, p_value: value, p_centre: centre, p_colour: colour, p_branch: branch || 'all' }).then(function (x) {
-      if (x.error || !x.data || x.data.denied) return false;
+    var args = { p_name: name, p_value: value, p_centre: centre, p_colour: colour, p_branch: branch || 'all' };
+    if (slug) { args.p_short = true; args.p_slug = slug; }
+    return c.rpc('qr_code_save', args).then(function (x) {
+      if (slug && x.data && x.data.error === 'slug' && (tries || 0) < 3) return saveCode(name, value, centre, colour, quiet, branch, newSlug(), (tries || 0) + 1);
+      if (x.error || !x.data || x.data.denied || x.data.error) return false;
       if (!quiet) loadLib();
       return true;
     }).catch(function () { return false; });
@@ -547,7 +602,7 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     var words = libQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
     var list = lib.codes.filter(function (c) {
       if (libBr && c.branch !== libBr) return false;
-      var hay = [c.name, c.value, BR_NAME[c.branch] || '', c.by].join(' ').toLowerCase();
+      var hay = [c.name, c.value, BR_NAME[c.branch] || '', c.by, c.short ? 'short ' + (c.slug || '') : ''].join(' ').toLowerCase();
       return words.every(function (w) { return hay.indexOf(w) > -1; });
     });
     var cmp = function (a, b) { return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base', numeric: true }); };
@@ -570,13 +625,17 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
     $('qrLibZipPng').textContent = (filtered ? 'Bulk download these ' + view.length : 'Bulk download all saved') + ' (PNG, zip)';
     $('qrLibZipSvg').textContent = (filtered ? 'Bulk download these ' + view.length : 'Bulk download all saved') + ' (SVG, zip)';
     view.forEach(function (c) {
-      var it = { name: c.name, value: c.value, centre: c.centre, colour: String(c.colour).toUpperCase(), q: build(c.value) };
+      var isShort = !!(c.short && c.slug);   // a short code's picture holds its short address; a direct code's holds the link itself
+      var it = { name: c.name, value: c.value, centre: c.centre, colour: String(c.colour).toUpperCase(), q: build(isShort ? shortUrl(c.slug) : c.value) };
       if (!it.q) return;
       libItems.push(it);
       var t = document.createElement('div'); t.className = 'qr-tile';
       var th = document.createElement('div'); th.className = 'qr-thumb'; th.appendChild(draw(it, 300)); t.appendChild(th); clickCopy(th, function () { return it; });
       var when = ''; try { when = new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) {}
-      t.insertAdjacentHTML('beforeend', '<div class="qr-tn">' + esc(c.name) + '</div><div class="qr-tv">' + esc(c.value) + '</div>' +
+      t.insertAdjacentHTML('beforeend', '<div class="qr-tn">' + esc(c.name) + '</div>' +
+        (isShort
+          ? '<div class="qr-tv"><span class="qr-pill">Short code</span>' + esc(shortUrl(c.slug).replace(/^https:\/\//, '')) + '</div><div class="qr-tv qr-goes">Goes to: ' + esc(c.value) + '</div><div class="qr-scan">' + esc(scansText(c)) + '</div>'
+          : '<div class="qr-tv">' + esc(c.value) + '</div><div class="qr-tm">Direct code: not counted, and its link cannot change.</div>') +
         '<div class="qr-tm">' + (c.can_delete ? '' : esc(BR_NAME[c.branch] || '') + ' · ') + esc(CENTRE_NAME[c.centre] || '') + ' · ' + esc(COLOUR_NAME[String(c.colour).toUpperCase()] || c.colour) + '<br>' + esc(c.by) + (when ? ', ' + esc(when) : '') + '</div>');
       if (c.can_delete) t.appendChild(mini('Branch', BRANCHES, c.branch || 'all', function (v) { sbc().rpc('qr_code_set_branch', { p_id: c.id, p_branch: v }).then(function (x) { if (x.error || !x.data || !x.data.updated) flash($('qrLibMsg'), 'Could not change the branch.', true); loadLib(); }); }));
       var a = document.createElement('div'); a.className = 'qr-ta';
@@ -599,6 +658,26 @@ select{font:inherit;font-size:14px;color:var(--text);background:var(--surface);b
           sbc().rpc('qr_code_rename', { p_id: c.id, p_name: v }).then(function (x) {
             if (x.error || !x.data || x.data.denied || !x.data.renamed) { inp.replaceWith(nm); flash($('qrLibMsg'), 'Could not rename. Sign in to the dashboard and try again.', true); }
             else loadLib();
+          });
+        }
+        inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { finish(false); } });
+        inp.addEventListener('blur', function () { finish(true); });
+      });
+      // Change link (short codes only): the printed picture stays the same, the next scan goes to the new link. Whoever saved the code, or Level 5.
+      if (isShort && c.can_delete) btn('Change link', function () {
+        var cell = t.querySelector('.qr-goes');
+        var inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 1000; inp.value = c.value; inp.setAttribute('aria-label', 'New link for ' + c.name);
+        cell.replaceWith(inp); inp.focus(); inp.select();
+        var done = false;
+        function finish(go) {
+          if (done) return; done = true;
+          var v = clean(inp.value);
+          if (!go || !v || v === c.value) { inp.replaceWith(cell); return; }
+          if (!isWeb(v)) { inp.replaceWith(cell); flash($('qrLibMsg'), 'A short code needs a web link that starts with http or https.', true); return; }
+          inp.disabled = true;
+          sbc().rpc('qr_code_set_value', { p_id: c.id, p_value: v }).then(function (x) {
+            if (x.error || !x.data || x.data.denied || x.data.error || !x.data.updated) { inp.replaceWith(cell); flash($('qrLibMsg'), 'Could not change the link. Sign in to the dashboard and try again.', true); }
+            else loadLib().then(function () { flash($('qrLibMsg'), 'Link changed. The next scan of "' + c.name + '" goes to the new link.'); });
           });
         }
         inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { finish(false); } });
