@@ -69,6 +69,7 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 /* 1 next week's bookings: the table and its notes */
 .oos-bkn{margin-top:14px;max-width:none}
 .oos-in{display:inline;font-size:12.5px}
+.oos-wks{margin:4px 0 10px;max-width:78ch}.oos-wks .oos-ln{display:block;margin:2px 0}
 .oos-dm{font-variant-numeric:tabular-nums;white-space:nowrap}
 #oosBookTbl thead th,#oosBookTbl tr.sx-tot td,#oosBookTbl tfoot td{position:static!important}
 @media(max-width:760px){

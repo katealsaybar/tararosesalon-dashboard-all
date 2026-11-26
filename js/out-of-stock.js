@@ -26,6 +26,10 @@
 //   - the factor applies to COLOUR products only (the plan categories IGORA Vibrance, Royal, Zero Amm, Color 10, BLONDME, Vario, Color Expert); everything else stays on Min of a normal week.
 //   - order point = Min x (factor + cover - 1): next week at its expected size, the weeks after it (when cover is 2 or more) at a normal week. Min order and Max order work from that order point as before.
 //   - the picker "Order for" turns it off (a normal week).
+//   - WEEKS AFTER NEXT WEEK (Kate, 26 Nov 2026: "if naka x4 ibase mo pa rin sa succeeding next weeks"): cover of N weeks counts weeks 1 to N ahead, each with its own expected size. oos_demand() gives the four weeks
+//     ahead, each with the history cut at that week's own lead (week 2 is 8 to 14 days away, week 3 15 to 21, week 4 22 to 28). Backtested 26 Nov 2026 on 11 weeks, leaving one out, per salon: a normal week alone
+//     missed 16.1%; weeks 1 to 4 with a share w on the booking pace: w 0.5 missed 7.1% (week 1), w 0.5 8.2% (week 2), w 0.5 10.1% (week 3), w 0.25 10.6% (week 4; 0.5 was 11.4%). WTS below are those weights.
+//     Colour order point = Min x (f1 + f2 + ... + fN), fk = expected colour services in week k / a normal week. Before this it was Min x (f1 + (N - 1)): the weeks after next week at a normal week.
 // The masthead's Branch drives the page (sel). Period does not apply: a shelf count has no period, so the masthead dims it and the page says so.
 // Tables are the shared Sheets table (sheet-table.js), every figure opens what is behind it (drill.js, down to a single order line), the bars lift and answer (bar-hover.js),
 // XLSX and CSV on every table and for the whole page (report-export.js, page-export.js), Why wall, On this page rail, first-time guide (page-guide.js reads this page by itself).
@@ -131,7 +135,7 @@
     S.asof = d.stock_asof || {};
     S.stockAt = d.stock_loaded || {};
     const dr = await callDem, dd = dr && !dr.error ? dr.data : null;
-    if (dd && !dd.denied && dd.salons) { S.dem = demandOf(dd); S.demInfo = { from: dd.week_from, to: dd.week_to, lead: dd.lead, synced: dd.synced }; } else { S.dem = null; S.demInfo = null; }
+    if (dd && !dd.denied && dd.salons) { S.dem = demandOf(dd); S.demInfo = { from: dd.week_from, to: dd.week_to, lead: dd.lead, synced: dd.synced, weeks: dd.weeks || [] }; } else { S.dem = null; S.demInfo = null; }
     const sr = await callStamp, sd = sr && !sr.error ? sr.data : null;
     S.stamp = sd && !sd.denied ? JSON.stringify(sd) : ''; S.planAt = sd && !sd.denied ? sd.plan || null : null;
     memoM = {};
@@ -168,32 +172,44 @@
   const isCol = cat => COLC.indexOf(norm(cat)) >= 0;
   const r2f = x => Math.round(x * 100) / 100;
   const pctUp = f => (f >= 1 ? '+' : '') + Math.round((f - 1) * 100) + '%';
-  // d = the oos_demand() answer: per salon now (booked for next week), hist [[week, done, booked by then]] (last 12 finished weeks), grp [[kind, n]]
+  // d = the oos_demand() answer: per salon now_k (booked for each of the four weeks ahead), hist [[week, done, booked by the lead of week 1, 2, 3, 4]] (last 12 finished weeks), grp_k [[kind, n]] per week.
+  // The old answer (now, hist as [week, done, booked], grp) is read too, as week 1 only.
+  const CAPX = 1.2;   // a week cannot be more than 20% above the busiest of the last 12 weeks (the chairs are limited; December booking far ahead made weeks 2 and 3 double a normal week)
+  const WTS = [0.5, 0.5, 0.5, 0.25];   // the share put on the booking pace for week 1 to 4 ahead (backtest above); the rest goes on a normal week
   function demandOf(d) {
-    const out = {};
+    const out = {}, wi = (d.weeks && d.weeks.length) ? d.weeks : [{ k: 1, from: d.week_from, to: d.week_to, lead: d.lead }];
     B.forEach(c => {
-      const x = (d.salons || {})[c] || {}, h = x.hist || [], n = h.length, now = +x.now || 0;
-      const sc = h.reduce((a, y) => a + (+y[1] || 0), 0), sbk = h.reduce((a, y) => a + (+y[2] || 0), 0);
-      const typ = n ? sc / n : 0, pick = sbk > 0 ? sc / sbk : 0, usual = n ? sbk / n : 0, pace = pick * now;
-      const ok = n >= 4 && typ > 0 && pick > 0, exp = ok ? Math.round((typ + pace) / 2) : 0, f = ok ? r2f(exp / typ) : 1;
-      out[c] = { now, hist: h, grp: x.grp || [], n, typ, pick, usual, pace, exp, f, ok };
+      const x = (d.salons || {})[c] || {}, h = x.hist || [], n = h.length, nk = x.now_k || [+x.now || 0];
+      const sc = h.reduce((a, y) => a + (+y[1] || 0), 0), typ = n ? sc / n : 0, cap = Math.round(CAPX * h.reduce((a, y) => Math.max(a, +y[1] || 0), 0));
+      const wk = wi.map((w, i) => {
+        const has = n > 0 && h.every(y => y.length > 2 + i), sbk = has ? h.reduce((a, y) => a + (+y[2 + i] || 0), 0) : 0, pick = sbk > 0 ? sc / sbk : 0, usual = has && n ? sbk / n : 0, now = +nk[i] || 0, pace = pick * now;
+        const ok = has && n >= 4 && typ > 0 && pick > 0 && i < WTS.length, g = ok ? WTS[i] : 0, exp0 = ok ? Math.round(g * pace + (1 - g) * typ) : Math.round(typ), capped = ok && cap > 0 && exp0 > cap, exp = capped ? cap : exp0, f = ok ? r2f(exp / typ) : 1;
+        return { k: i + 1, from: w.from, to: w.to, lead: w.lead, now, usual, pick, pace, exp, f, ok, g, capped, cap, grp: (x.grp_k && x.grp_k[i]) || (i === 0 ? (x.grp || []) : []) };
+      });
+      const w1 = wk[0] || { now: 0, usual: 0, pick: 0, pace: 0, exp: 0, f: 1, ok: false, grp: [] };
+      out[c] = { hist: h, n, typ, wk, now: w1.now, usual: w1.usual, pick: w1.pick, pace: w1.pace, exp: w1.exp, f: w1.f, ok: w1.ok, grp: w1.grp };
     });
     return out;
   }
+  // the colour weeks counted for a cover of C weeks: f1 + f2 + ... + fC (a week with no figure counts as a normal week, 1)
+  const fSum = (bk, C) => { let t = 0; for (let k = 0; k < C; k++) t += (bk.wk[k] && bk.wk[k].ok) ? bk.wk[k].f : 1; return t; };
   const demOn = () => !!(S.dem && S.dm === 'book');
-  function rangeTxt() {
-    const i = S.demInfo; if (!i) return 'next week';
-    const a = String(i.from).slice(0, 10), z = String(i.to).slice(0, 10);
+  function rangeOf(w) {
+    const a = String(w.from).slice(0, 10), z = String(w.to).slice(0, 10);
     return (+a.slice(8)) + (a.slice(5, 7) === z.slice(5, 7) ? '' : ' ' + MON[+a.slice(5, 7) - 1]) + ' to ' + fd(z).replace(/ \d{4}$/, '') + ' ' + z.slice(0, 4);
   }
-  const demTxt = r => (r.col && S.dm === 'book') ? 'x ' + r.f.toFixed(2) + ' booked' : 'Normal week';
-  // trig = Min x (factor + cover - 1): next week at its expected size (factor 1 for everything that is not colour, or when bookings are off), the weeks after it at a normal week.
-  // Orders are whole units: when the colour factor makes the order point fractional it is rounded to the nearest whole unit (so a Min of 1 does not jump to 3).
+  function rangeTxt(k) {
+    const i = S.demInfo; if (!i) return 'next week';
+    return rangeOf((i.weeks && i.weeks[(k || 1) - 1]) || { from: i.from, to: i.to });
+  }
+  const demTxt = r => (r.col && S.dm === 'book') ? 'x ' + (r.fw / r.C).toFixed(2) + ' booked' : 'Normal week';
+  // trig = the order point. Colour: Min x (f1 + f2 + ... + fC), each week ahead at its own expected size. Everything else, and colour when bookings are off: Min x C.
+  // Orders are whole units: when the colour weeks make the order point fractional it is rounded to the nearest whole unit (so a Min of 1 does not jump to 3).
   // target = the bigger of Max and trig, have = shelf + on order. When have is under trig: maximum order q = target - have, minimum order qm = trig - have.
   function enrich(r, C, dm) {
-    const bk = S.dem && S.dem[r.b], col = !!(bk && bk.ok && isCol(r.cat)), f = (dm === 'book' && col) ? bk.f : 1;
-    const raw = r.mn * (f + C - 1), trig = f === 1 ? raw : Math.round(raw), tgt = Math.max(r.mx, trig), have = r.s + r.i, q = have < trig ? tgt - have : 0, qm = have < trig ? trig - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
-    return Object.assign({}, r, { C, col, f, trig, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st });
+    const bk = S.dem && S.dem[r.b], col = !!(bk && bk.ok && isCol(r.cat)), on = dm === 'book' && col, f = on ? bk.f : 1, fw = on ? fSum(bk, C) : C;
+    const raw = r.mn * fw, trig = on ? Math.round(raw) : raw, tgt = Math.max(r.mx, trig), have = r.s + r.i, q = have < trig ? tgt - have : 0, qm = have < trig ? trig - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
+    return Object.assign({}, r, { C, col, f, fw, trig, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st });
   }
   function all(dm) {
     dm = dm || S.dm;
@@ -231,9 +247,10 @@
     if (f === 'out') return rs.filter(r => r.s <= 0);
     if (f === 'u1') return rs.filter(r => r.q > 0 && r.s > 0 && r.have < r.mn);
     if (f === 'sup') return rs.filter(r => r.q > 0 && r.sup === sup);
+    if (f === 'same') return rs.filter(r => r.q > 0 && r.trig > r.mx);
     return rs.filter(r => r.q > 0);
   }
-  const gTitle = (f, sal, sup) => { const L = sal ? BN[sal] : scope(); return f === 'out' ? 'Out now, ' + L : f === 'u1' ? 'Under 1 week left, ' + L : f === 'sup' ? sup + ' order, ' + L : 'Products to order, ' + L; };
+  const gTitle = (f, sal, sup) => { const L = sal ? BN[sal] : scope(); return f === 'out' ? 'Out now, ' + L : f === 'u1' ? 'Under 1 week left, ' + L : f === 'sup' ? sup + ' order, ' + L : f === 'same' ? 'Min and max order the same, ' + L : 'Products to order, ' + L; };
   // a figure that opens the products behind it; plain when the list is empty
   const fig = (txt, f, sal, sup) => { const rs = groupRows(f, sal, sup); return rs.length ? num(txt, rowsSpec(gTitle(f, sal, sup), rs, slug('oos-' + f + (sal ? '-' + sal : '') + (sup ? '-' + sup : '')))) : txt; };
   // A list of products. Every product, number and the product name open the product's own window. The Total row adds up the rows listed.
@@ -251,6 +268,11 @@
       }) }] };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
+  // "x 1.22 + x 1.15 + ..." for the weeks a colour product counts, with where it comes from
+  function colWeeksTxt(r) {
+    const bk = S.dem[r.b], ws = bk.wk.slice(0, r.C);
+    return ws.map(w => 'week ' + w.k + ' x ' + (w.ok ? w.f : 1).toFixed(2)).join(' + ') + ' = ' + r.fw.toFixed(2) + ' colour weeks (' + BN[r.b] + ': ' + n0(ws.reduce((a, w) => a + w.exp, 0)) + ' colour services expected, ' + n0(bk.typ * r.C) + ' in ' + wk(r.C) + ' of a normal week)';
+  }
   function prodSpec(r, first) {
     const how = { id: 'how', label: 'How the order is worked out', load: async () => {
       const ordSpec = r.lines.length ? prodSpec(r, 'orders') : null;
@@ -260,11 +282,11 @@
         ['Shelf and on order together', nu(r.have)],
         ['Min in the Weekly Product Plan (one week of use)', nu(r.mn)],
         ['Max in the Weekly Product Plan', nu(r.mx)],
-        ['Next week\'s colour demand', r.col && S.dm === 'book' ? 'x ' + r.f.toFixed(2) + ' (' + BN[r.b] + ': ' + n0(S.dem[r.b].exp) + ' colour services expected for ' + rangeTxt() + ', ' + n0(S.dem[r.b].typ) + ' in a normal week)' : (r.col ? 'Not counted: Order for is a normal week' : 'None: this product is not tied to bookings, so a normal week'), r.col && S.dm === 'book' ? histSpec(r.b) : null],
+        [r.C > 1 ? 'Colour demand, the weeks counted' : 'Next week\'s colour demand', r.col && S.dm === 'book' ? colWeeksTxt(r) : (r.col ? 'Not counted: Order for is a normal week' : 'None: this product is not tied to bookings, so a normal week'), r.col && S.dm === 'book' ? histSpec(r.b) : null],
         ['Weeks left at that rate', r1(r.cov).toFixed(1)],
-        ['Order when shelf and on order are under', nu(r.trig) + (r.f !== 1 ? ' (Min x (' + r.f.toFixed(2) + ' + ' + (r.C - 1) + ') = ' + nu(r.mn * (r.f + r.C - 1)) + ', in whole units: next week at its expected size, the rest at a normal week)' : ' (Min x ' + r.C + ')')],
+        ['Order when shelf and on order are under', nu(r.trig) + (r.col && S.dm === 'book' ? ' (Min x ' + nu(r.fw) + ' colour weeks = ' + nu(r.mn * r.fw) + ', in whole units)' : ' (Min x ' + r.C + ')')],
         ['Order up to', nu(r.tgt) + (r.tgt > r.mx ? ' (the order point, higher than Max)' : ' (Max)')],
-        ['Minimum order', nu(r.qm) + ' units, to reach ' + nu(r.trig) + (r.f !== 1 ? ' (the order point, in whole units)' : ' (Min x ' + r.C + ')')],
+        ['Minimum order', nu(r.qm) + ' units, to reach ' + nu(r.trig) + (r.col && S.dm === 'book' ? ' (the order point, in whole units)' : ' (Min x ' + r.C + ')')],
         ['Maximum order', nu(r.q) + ' units, up to ' + nu(r.tgt)],
         ['Cost a unit, Stock List', r.nocost ? 'No cost on the plan yet, counted as 0' : 'AED ' + r.c.toFixed(2)]];
       return { cols: [{ k: 'step', l: 'Step' }, { k: 'fig', l: 'Figure' }],
@@ -289,11 +311,21 @@
   const lbl = c => c === 'ALL' ? scope() : BN[c];
   function demFor(c) {
     if (c !== 'ALL') return S.dem[c];
-    const ds = S.br.filter(x => S.dem[x]).map(x => S.dem[x]), s = k => ds.reduce((a, d) => a + d[k], 0), wkm = {}, gm = {};
-    ds.forEach(d => { d.hist.forEach(h => { const w = wkm[h[0]] || (wkm[h[0]] = [h[0], 0, 0]); w[1] += +h[1] || 0; w[2] += +h[2] || 0; }); d.grp.forEach(x => { gm[x[0]] = (gm[x[0]] || 0) + x[1]; }); });
-    const hist = Object.keys(wkm).sort().map(k => wkm[k]), sc = hist.reduce((a, h) => a + h[1], 0), sbk = hist.reduce((a, h) => a + h[2], 0), typ = s('typ'), exp = s('exp'), ok = ds.length > 0 && ds.every(d => d.ok);
-    return { now: s('now'), grp: Object.keys(gm).map(k => [k, gm[k]]).sort((x, y) => y[1] - x[1]), hist, typ, usual: s('usual'), pace: s('pace'), exp, pick: sbk ? sc / sbk : 0, f: ok && typ ? r2f(exp / typ) : 1, ok };
+    const ds = S.br.filter(x => S.dem[x]).map(x => S.dem[x]), s = k => ds.reduce((a, d) => a + d[k], 0), hm = {};
+    ds.forEach(d => d.hist.forEach(h => { const w = hm[h[0]] || (hm[h[0]] = h.map((v, i) => i ? 0 : v)); for (let i = 1; i < h.length; i++) w[i] += +h[i] || 0; }));
+    const hist = Object.keys(hm).sort().map(k => hm[k]), n = hist.length, sc = hist.reduce((a, h) => a + h[1], 0), typ = s('typ'), nw = ds.length ? ds[0].wk.length : 0;
+    const wk = [];
+    for (let i = 0; i < nw; i++) {
+      const ws = ds.map(d => d.wk[i]), t = k => ws.reduce((a, w) => a + w[k], 0), gm = {}, sbk = hist.reduce((a, h) => a + (+h[2 + i] || 0), 0), ok = ws.every(w => w.ok), exp = t('exp');
+      ws.forEach(w => w.grp.forEach(x => { gm[x[0]] = (gm[x[0]] || 0) + x[1]; }));
+      wk.push({ k: i + 1, from: ws[0].from, to: ws[0].to, lead: ws[0].lead, now: t('now'), usual: t('usual'), pick: sbk ? sc / sbk : 0, pace: t('pace'), exp, f: ok && typ ? r2f(exp / typ) : 1, ok, g: ws[0].g, capped: ws.some(w => w.capped), grp: Object.keys(gm).map(x => [x, gm[x]]).sort((x, y) => y[1] - x[1]) });
+    }
+    const w1 = wk[0] || { now: 0, usual: 0, pick: 0, pace: 0, exp: 0, f: 1, ok: false, grp: [] };
+    return { hist, n, typ, wk, now: w1.now, usual: w1.usual, pick: w1.pick, pace: w1.pace, exp: w1.exp, f: w1.f, ok: w1.ok, grp: w1.grp };
   }
+  // the weeks a window shows: one week (k), or every week counted for the cover picked (k = 0)
+  const wksOf = k => { const C = cover(), a = []; for (let j = 1; j <= (k ? 1 : C); j++) a.push(k || j); return a; };
+  const wkLbl = (c, j) => 'Week ' + j + ' · ' + rangeTxt(j);
   // The colour products of the plan that the page scales by the colour factor, for one salon or the salons picked, worked out for next week. Ranked by Min (one week of use, from Phorest Product Usage).
   function colourRows(c) {
     return all('book').filter(r => r.col && (c === 'ALL' ? inSel(r.b) : r.b === c)).sort((x, y) => y.mn - x.mn || SALORD[x.b] - SALORD[y.b] || x.name.localeCompare(y.name));
@@ -301,34 +333,43 @@
   function prodView(c) {
     return { id: 'prod', label: 'Possible products', load: async () => {
       const rs = colourRows(c), many = c === 'ALL' && S.br.length > 1;
-      return { cols: [{ k: 'p', l: 'Product' }].concat(many ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'mn', l: 'Min', t: 'num' }, { k: 'need', l: 'Next week', t: 'num' }, { k: 'in', l: 'In stock', t: 'num' }, { k: 'on', l: 'On order', t: 'num' },
+      return { cols: [{ k: 'p', l: 'Product' }].concat(many ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'mn', l: 'Min', t: 'num' }, { k: 'need', l: 'Needed', t: 'num' }, { k: 'in', l: 'In stock', t: 'num' }, { k: 'on', l: 'On order', t: 'num' },
           { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' }, { k: 'a', l: 'Max AED', t: 'aed' }]),
         rows: rs.map(r => { const h = prodSpec(r, 'how'), o = prodSpec(r, 'orders');
-          return { p: r.name, s: BN[r.b], mn: r.mn, need: r2f(r.mn * r.f), in: r.s, on: r.i, qm: r.qm, q: r.q, a: Math.round(r.aed * 100) / 100, _dn: Object.assign({ p: h, mn: h, need: h, in: h, qm: h, q: h, a: h }, r.lines.length ? { on: o } : {}) }; }),
+          return { p: r.name, s: BN[r.b], mn: r.mn, need: r2f(r.mn * r.fw), in: r.s, on: r.i, qm: r.qm, q: r.q, a: Math.round(r.aed * 100) / 100, _dn: Object.assign({ p: h, mn: h, need: h, in: h, qm: h, q: h, a: h }, r.lines.length ? { on: o } : {}) }; }),
         foot: { p: 'Total: ' + plural(rs.length, 'product'), qm: sum(rs, 'qm'), q: sum(rs, 'q'), a: Math.round(sum(rs, 'aed') * 100) / 100 },
         empty: 'No colour product in the plan for the salons and Priority picked.',
-        note: '<b>Not a recipe per service.</b><br>Phorest does not record which client a tube was used on.<br>These are the colour products the plan scales by how busy colour is.<br><b>Min</b> = one week of use, from Phorest Product Usage. The list is ranked by it.<br><b>Next week</b> = what the product needs next week = Min x the colour factor.<br>Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ': change it at the top.<br>Tap a product to see how its order is worked out.' };
+        note: '<b>Not a recipe per service.</b><br>Phorest does not record which client a tube was used on.<br>These are the colour products the plan scales by how busy colour is.<br><b>Min</b> = one week of use, from Phorest Product Usage. The list is ranked by it.<br><b>Needed</b> = what the product needs over the weeks counted = Min x the colour weeks (' + wk(cover()) + ' of cover).<br>Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ': change it at the top.<br>Tap a product to see how its order is worked out.' };
     } };
   }
-  function bkSpec(c) {
-    const d = demFor(c), tot = d.grp.reduce((a, x) => a + x[1], 0);
-    return { title: 'Colour services booked for ' + rangeTxt() + ', ' + lbl(c), sub: n0(tot) + ' colour services booked so far · ' + lbl(c) + ' · read ' + (S.demInfo && S.demInfo.synced ? fdt(S.demInfo.synced) : 'today'), cur: 'AED', sk: slug('oos-bk-' + c),
-      views: [{ id: 'bk', label: 'Booked', load: async () => ({ cols: [{ k: 'g', l: 'Kind of colour service' }, { k: 'n', l: 'Booked', t: 'num' }], rows: d.grp.map(x => ({ g: x[0], n: x[1] })), foot: { g: 'Total', n: tot }, empty: 'Nothing colour is booked yet.',
-        note: 'Toners and gloss, roots, foils, balayage, ombre, all over colour and bleach count. Colour lock treatments, polish, brows and tints do not. Each is one booked service in Phorest Staff Appointments; cancelled appointments are not in it.' }) }, prodView(c)] };
+  function bkSpec(c, k) {
+    const d = demFor(c), ws = wksOf(k).filter(j => d.wk[j - 1]), tot = ws.reduce((a, j) => a + d.wk[j - 1].now, 0), one = ws.length === 1;
+    return { title: (one ? 'Colour services booked for ' + rangeTxt(ws[0]) : 'Colour services booked, ' + ws.length + ' weeks counted') + ', ' + lbl(c), sub: n0(tot) + ' colour services booked so far · ' + lbl(c) + ' · read ' + (S.demInfo && S.demInfo.synced ? fdt(S.demInfo.synced) : 'today'), cur: 'AED', sk: slug('oos-bk-' + c + '-' + (k || 0)),
+      views: [{ id: 'bk', label: 'Booked', load: async () => {
+        const kinds = []; ws.forEach(j => d.wk[j - 1].grp.forEach(x => { if (kinds.indexOf(x[0]) < 0) kinds.push(x[0]); }));
+        const g = (j, kd) => { const x = d.wk[j - 1].grp.filter(y => y[0] === kd)[0]; return x ? x[1] : 0; };
+        const kt = kd => ws.reduce((a, j) => a + g(j, kd), 0); kinds.sort((x, y) => kt(y) - kt(x));
+        const cols = [{ k: 'g', l: 'Kind of colour service' }].concat(ws.map(j => ({ k: 'w' + j, l: one ? 'Booked' : 'Week ' + j, t: 'num' }))).concat(one ? [] : [{ k: 'n', l: 'Total', t: 'num' }]);
+        const rows = kinds.map(kd => { const o = { g: kd, n: kt(kd) }; ws.forEach(j => { o['w' + j] = g(j, kd); }); return o; });
+        const foot = { g: 'Total', n: tot }; ws.forEach(j => { foot['w' + j] = d.wk[j - 1].now; });
+        return { cols, rows, foot, empty: 'Nothing colour is booked yet.',
+          note: (one ? '' : ws.map(j => '<b>Week ' + j + '</b> ' + rangeTxt(j)).join('<br>') + '<br>') + 'Toners and gloss, roots, foils, balayage, ombre, all over colour and bleach count.<br>Colour lock treatments, polish, brows and tints do not.<br>Each is one booked service in Phorest Staff Appointments. Cancelled ones are not in it.' };
+      } }, prodView(c)] };
   }
-  function histSpec(c) {
-    const d = demFor(c);
-    const weeks = { id: 'weeks', label: 'The weeks before', load: async () => ({ cols: [{ k: 'w', l: 'Week starting', t: 'date' }, { k: 'done', l: 'Done in the week', t: 'num' }, { k: 'bk', l: 'Booked by the same day the week before', t: 'num' }, { k: 'sh', l: 'Booked share' }],
-      rows: d.hist.map(h => ({ w: h[0], done: h[1], bk: h[2], sh: h[2] && h[1] ? Math.round(100 * h[2] / h[1]) + '%' : '' })),
-      foot: { w: 'Normal week (average)', done: Math.round(d.typ), bk: Math.round(d.usual), sh: d.pick ? Math.round(100 / d.pick) + '%' : '' }, empty: 'No finished weeks of bookings are held yet.',
-      note: 'Colour services per finished week, from Phorest Staff Appointments, and how many of them were booked by the same day of the week before. Phorest drops cancelled appointments, so these are the appointments that were kept.' }) };
-    const steps = { id: 'steps', label: 'Next week', load: async () => {
-      const rows = [['Booked so far (measured)', d.now], ['Weeks like it end at ' + d.pick.toFixed(2) + ' times what is booked by now, so by booking pace', Math.round(d.pace)], ['A normal week', Math.round(d.typ)],
-        ['Expected: half booking pace, half a normal week (estimate)', d.exp]];
-      return { cols: [{ k: 'step', l: rangeTxt() }, { k: 'n', l: 'Colour services' }], rows: rows.map(x => ({ step: x[0], n: n0(x[1]) })), foot: { step: 'Colour order factor (expected ÷ normal week)', n: 'x ' + d.f.toFixed(2) },
-        note: 'An estimate. Tried on 11 weeks, leaving each out in turn, this missed the real week by 5 to 11% at each salon, a normal week alone by 9 to 27%. Cancellations, walk-ins and holidays are not modelled, and only about 12 weeks of bookings are held, so December is the first time it meets the busy weeks.' };
+  function histSpec(c, k) {
+    const d = demFor(c), ws = wksOf(k).filter(j => d.wk[j - 1]), one = ws.length === 1;
+    const weeks = { id: 'weeks', label: 'The weeks before', load: async () => ({ cols: [{ k: 'w', l: 'Week starting', t: 'date' }, { k: 'done', l: 'Done in the week', t: 'num' }].concat(ws.map(j => ({ k: 'b' + j, l: one ? 'Booked by the same day the week before' : 'Booked ' + (d.wk[j - 1].lead) + ' days ahead (week ' + j + ')', t: 'num' }))),
+      rows: d.hist.map(h => { const o = { w: h[0], done: h[1] }; ws.forEach(j => { o['b' + j] = h[1 + j]; }); return o; }),
+      foot: (() => { const o = { w: 'Normal week (average)', done: Math.round(d.typ) }; ws.forEach(j => { o['b' + j] = Math.round(d.wk[j - 1].usual); }); return o; })(), empty: 'No finished weeks of bookings are held yet.',
+      note: 'Colour services per finished week, from Phorest Staff Appointments, and how many of them were booked by the same day of the week before' + (one ? '' : ' (each week at its own distance: week ' + ws[0] + ' is ' + d.wk[ws[0] - 1].lead + ' days away, and so on)') + '.<br>Phorest drops cancelled appointments, so these are the appointments that were kept.' }) };
+    const steps = { id: 'steps', label: one ? 'Next week' : 'The weeks counted', load: async () => {
+      const rows = ws.map(j => { const w = d.wk[j - 1]; return { w: wkLbl(c, j), now: w.now, pace: Math.round(w.pace), ty: Math.round(d.typ), ex: w.exp, f: w.ok ? 'x ' + w.f.toFixed(2) + (w.capped ? ' (capped)' : '') : 'normal week' }; });
+      const fs = ws.reduce((a, j) => a + (d.wk[j - 1].ok ? d.wk[j - 1].f : 1), 0);
+      return { cols: [{ k: 'w', l: 'Week' }, { k: 'now', l: 'Booked so far', t: 'num' }, { k: 'pace', l: 'By booking pace', t: 'num' }, { k: 'ty', l: 'A normal week', t: 'num' }, { k: 'ex', l: 'Expected', t: 'num' }, { k: 'f', l: 'Colour factor' }],
+        rows, foot: { w: one ? 'Colour order factor' : 'Colour weeks counted (' + ws.length + ' weeks)', now: ws.reduce((a, j) => a + d.wk[j - 1].now, 0), pace: rows.reduce((a, r) => a + r.pace, 0), ty: rows.reduce((a, r) => a + r.ty, 0), ex: rows.reduce((a, r) => a + r.ex, 0), f: one ? 'x ' + d.wk[ws[0] - 1].f.toFixed(2) : fs.toFixed(2) },
+        note: '<b>Estimate.</b><br>Pace = what is booked now x how many services weeks like it end at per one booked by then.<br>Expected = ' + ws.map(j => 'week ' + j + ': ' + Math.round(100 * WTS[j - 1]) + '% pace + ' + (100 - Math.round(100 * WTS[j - 1])) + '% a normal week').join(' · ') + '.<br>Further weeks are less booked, so they lean more on a normal week.<br><b>Capped</b> = a week cannot go above the busiest of the last 12 weeks + 20%, the chairs are limited.<br>Tried on 11 weeks leaving one out: a normal week alone missed 16%, this 7% (week 1), 8% (week 2), 10% (week 3), 11% (week 4).<br>Cancellations, walk-ins and holidays are not modelled. Only about 12 weeks of bookings are held, so December is the first time it meets the busy weeks.' };
     } };
-    return { title: 'How next week is expected, ' + lbl(c), sub: 'Colour services, ' + lbl(c) + ' · ' + rangeTxt(), cur: 'AED', sk: slug('oos-bh-' + c), views: [steps, weeks, prodView(c)] };
+    return { title: (one ? 'How ' + rangeTxt(ws[0]) + ' is expected' : 'How the weeks counted are expected') + ', ' + lbl(c), sub: 'Colour services, ' + lbl(c) + ' · ' + (one ? rangeTxt(ws[0]) : ws.length + ' weeks of cover'), cur: 'AED', sk: slug('oos-bh-' + c + '-' + (k || 0)), views: [steps, weeks, prodView(c)] };
   }
 
   // ── THE PAGE (built once, then redrawn from the data) ────────────────────────────────
@@ -353,6 +394,7 @@
         <p class="ex" id="oosExB"></p>
         <p class="watch"><b>What to watch.</b> <span id="oosWB"></span></p>
       </div>
+      <div class="oos-learn oos-wks" id="oosWks"></div>
       <div class="oos-bar oos-bar-plain">${typeof rexButtons === 'function' ? '<span class="oos-sp"></span>' + rexButtons('oosExportBook') : ''}</div>
       <div class="oos-card oos-tcell"><table id="oosBookTbl"></table></div>
       <div class="oos-learn oos-bkn">
@@ -363,7 +405,8 @@
         <p><b>Estimated</b> <span class="oos-sub">a good guess</span>
           <span class="oos-ln">Only 1 in 3 colour services is booked by the Thursday before</span>
           <span class="oos-ln">Services done = half of what is booked now + half of a normal week</span>
-          <span class="oos-ln">Tried on the last 11 weeks: a normal week missed by <b>16%</b>, this one by <b>7%</b></span></p>
+          <span class="oos-ln">Weeks further ahead lean more on a normal week (week 4: a quarter booked)</span>
+          <span class="oos-ln">Tried on the last 11 weeks: a normal week missed by <b>16%</b>, this one by <b>7%</b> (week 1) to <b>11%</b> (week 4)</span></p>
         <p><b>Not known</b>
           <span class="oos-ln">Phorest does not say which client a tube was used on</span>
           <span class="oos-ln">So colour products go up or down with how busy colour is</span>
@@ -435,16 +478,16 @@
     const C = cover(), usual = seasonCover(dubaiToday());
     $('oosCover').value = String(C); $('oosPrio').value = S.prio;
     $('oosDemand').value = S.dm;
-    $('oosCoverT').textContent = 'Order when under Min x weeks. ' + (C === usual ? 'This is the usual for today.' : 'Not the usual for today.') + ' Usual: 2 weeks from 15 Nov to 31 Dec, 1 week the rest of the year.';
+    $('oosCoverT').textContent = 'Order when under the order point (Min x weeks; colour counts each week ahead at its own expected size). ' + (C === usual ? 'This is the usual for today.' : 'Not the usual for today.') + ' Usual: 2 weeks from 15 Nov to 31 Dec, 1 week the rest of the year.';
   }
   function paintAnswer() {
     const cs = S.br, T = cs.map(salTot), aed = sum(T, 'aed'), aedm = sum(T, 'aedm'), out = sum(T, 'out'), n = sum(T, 'n'), f = fresh();
     const a = $('oosAns'), a0 = $('oosAns0'), a2 = $('oosAns2'), a5 = $('oosAns5');
     const bs = all('typ').filter(r => inSel(r.b)), base = sum(bs, 'aed'), basem = sum(bs, 'am');
-    const dem = !S.dem ? ln('Next week\'s bookings are not loaded, so this is a normal week.') : S.dm === 'book' ? ln('Next week\'s bookings add <b>' + A(aedm - basem) + '</b> (min) and <b>' + A(aed - base) + '</b> (max) to a normal week. All colour.') : ln('A normal week: bookings are not counted (change <b>Order for</b> at the top).');
+    const dem = !S.dem ? ln('Next week\'s bookings are not loaded, so this is a normal week.') : S.dm === 'book' ? ln((cover() === 1 ? 'Next week\'s bookings' : 'The bookings of the ' + cover() + ' weeks') + ' add <b>' + A(aedm - basem) + '</b> (min) and <b>' + A(aed - base) + '</b> (max) to a normal week. All colour.') : ln('A normal week: bookings are not counted (change <b>Order for</b> at the top).');
     if (!n) { a.textContent = 'Nothing to order for ' + scope() + ' on Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + '.'; a0.textContent = ''; }
     else {
-      a.innerHTML = 'Order between ' + fig(A(aedm), 'all') + ' (minimum) and ' + fig(A(aed), 'all') + ' (maximum) for next week.';
+      a.innerHTML = 'Order between ' + fig(A(aedm), 'all') + ' (minimum) and ' + fig(A(aed), 'all') + ' (maximum) for ' + (cover() === 1 ? 'next week' : 'the next ' + cover() + ' weeks') + '.';
       a0.textContent = 'Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ' · ' + (cs.length === 1 ? BN[cs[0]] : 'every salon') + ' · ' + wk(cover()) + ' of cover';
     }
     // one container per salon picked (Kate, 26 Nov 2026: "make 4 containers, per branch"): the order, then what is short
@@ -452,7 +495,9 @@
       return '<div class="oos-c"><div class="oos-ct">' + BN[c] + '</div>' +
         ln('<b class="oos-big">' + fig(A(t.aed), 'all', c) + '</b>') + ln('<b>maximum</b>') + ln(fig(A(t.aedm), 'all', c) + ' minimum') +
         ln(fig(n0(t.n), 'all', c) + (t.n === 1 ? ' product' : ' products') + ' to order') + ln(fig(n0(t.out), 'out', c) + ' out now') + ln(fig(n0(t.u1), 'u1', c) + ' under 1 week') + '</div>'; }).join('');
-    a5.innerHTML = ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now (all salons picked).') + dem;
+    const same = selRows().filter(r => r.q > 0 && r.trig > r.mx).length;
+    const sameLn = same ? ln('<b>Min and max are the same</b> for ' + fig(n0(same), 'same') + (same === 1 ? ' product' : ' products') + '.') + ln('Min x ' + cover() + ' weeks is above Max, so both orders go up to Min x weeks.') : '';
+    a5.innerHTML = ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now (all salons picked).') + dem + sameLn;
     const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
     const ord = S.ordersOk && S.ordersAt ? ln('<b>Supplier orders not yet delivered:</b> ' + fdt(S.ordersAt)) : '';
     const plc = (S.planAt ? ln('<b>Weekly Product Plan last changed:</b> ' + fdt(S.planAt)) : '') + (S.refreshedAt ? ln('<b>This page refreshed itself:</b> ' + fdt(S.refreshedAt)) : '');
@@ -487,31 +532,41 @@
   }
 
   // ── 1 NEXT WEEK'S BOOKINGS ───────────────────────────────────────────────────────────
-  const bkRows = () => S.dem ? S.br.map(c => ({ b: c, d: S.dem[c] })) : [];
+  const bkRows = () => { if (!S.dem) return []; const C = cover(), r = []; S.br.forEach(c => { const bk = S.dem[c]; for (let j = 1; j <= C; j++) { const w = bk.wk[j - 1]; if (w) r.push({ b: c, k: j, d: Object.assign({}, w, { typ: bk.typ }) }); } }); return r; };
   function bkTotal(rs) { const s = k => rs.reduce((a, r) => a + r.d[k], 0); return { now: s('now'), usual: s('usual'), exp: s('exp'), typ: s('typ'), ok: rs.every(r => r.d.ok) }; }
   function buildBook() {
     const nm = (k, l, get, spec, bold) => ({ k, l, t: 'num', raw: r => Math.round(get(r)), disp: r => String(Math.round(get(r))), cell: r => num(bold ? '<b>' + n0(get(r)) + '</b>' : n0(get(r)), spec(r)) });
     TB = TRSheet.table({ id: 'oosBook', el: '#oosBookTbl', rows: bkRows,
       cols: [
         { k: 's', l: 'Salon', t: 'txt', raw: r => BN[r.b], disp: r => BN[r.b], cell: r => esc(BN[r.b]) },
-        nm('now', 'Booked so far', r => r.d.now, r => bkSpec(r.b)),
-        nm('us', 'Usual by now', r => r.d.usual, r => histSpec(r.b)),
-        { k: 'ex', l: 'Expected next week', t: 'num', raw: r => r.d.exp, disp: r => r.d.ok ? String(r.d.exp) : 'n/a', cell: r => r.d.ok ? num('<b>' + n0(r.d.exp) + '</b>', histSpec(r.b)) : 'n/a' },
-        nm('ty', 'A normal week', r => r.d.typ, r => histSpec(r.b)),
-        { k: 'fa', l: 'Busier', t: 'num', raw: r => r.d.f, disp: r => r.d.ok ? pctUp(r.d.f) : 'n/a', cell: r => r.d.ok ? num('<b>' + pctUp(r.d.f) + '</b> <span class="oos-sub oos-in">x ' + r.d.f.toFixed(2) + '</span>', histSpec(r.b)) : 'n/a' }],
-      total: rs => { const t0 = bkTotal(rs); return { s: '<b>All salons</b>', now: num(n0(t0.now), bkSpec('ALL')), us: num(n0(t0.usual), histSpec('ALL')), ex: t0.ok ? num('<b>' + n0(t0.exp) + '</b>', histSpec('ALL')) : '', ty: num(n0(t0.typ), histSpec('ALL')), fa: t0.ok && t0.typ ? num('<b>' + pctUp(t0.exp / t0.typ) + '</b>', histSpec('ALL')) : '' }; } });
+        { k: 'wk', l: 'Week', t: 'txt', raw: r => 'Week ' + r.k, disp: r => 'Week ' + r.k + ' · ' + rangeTxt(r.k), cell: r => num('Week ' + r.k + ' <span class="oos-sub oos-in">' + esc(rangeTxt(r.k)) + '</span>', histSpec(r.b, r.k)) },
+        nm('now', 'Booked so far', r => r.d.now, r => bkSpec(r.b, r.k)),
+        nm('us', 'Usual by now', r => r.d.usual, r => histSpec(r.b, r.k)),
+        { k: 'ex', l: 'Expected', t: 'num', raw: r => r.d.exp, disp: r => r.d.ok ? String(r.d.exp) : 'n/a', cell: r => r.d.ok ? num('<b>' + n0(r.d.exp) + '</b>', histSpec(r.b, r.k)) : 'n/a' },
+        nm('ty', 'A normal week', r => r.d.typ, r => histSpec(r.b, r.k)),
+        { k: 'fa', l: 'Busier', t: 'num', raw: r => r.d.f, disp: r => r.d.ok ? pctUp(r.d.f) : 'n/a', cell: r => r.d.ok ? num('<b>' + pctUp(r.d.f) + '</b> <span class="oos-sub oos-in">x ' + r.d.f.toFixed(2) + '</span>', histSpec(r.b, r.k)) : 'n/a' }],
+      total: rs => { const t0 = bkTotal(rs); return { s: '<b>All salons</b>', wk: wk(cover()), now: num(n0(t0.now), bkSpec('ALL', 0)), us: num(n0(t0.usual), histSpec('ALL', 0)), ex: t0.ok ? num('<b>' + n0(t0.exp) + '</b>', histSpec('ALL', 0)) : '', ty: num(n0(t0.typ), histSpec('ALL', 0)), fa: t0.ok && t0.typ ? num('<b>' + pctUp(t0.exp / t0.typ) + '</b>', histSpec('ALL', 0)) : '' }; } });
+  }
+  // which weeks are counted, with what is booked and expected in each (all salons picked)
+  function paintWeeks() {
+    const C = cover(), el = $('oosWks'); if (!el) return;
+    const ws = []; for (let j = 1; j <= C; j++) ws.push(j);
+    const rowsW = ws.map(j => { const rs = S.br.map(c => S.dem[c].wk[j - 1]).filter(Boolean); return { j, now: rs.reduce((a, w) => a + w.now, 0), exp: rs.reduce((a, w) => a + w.exp, 0), ok: rs.every(w => w.ok) }; });
+    el.innerHTML = ln('<b>' + (C === 1 ? 'Week counted' : 'Weeks counted (' + wk(C) + ' of cover)') + '</b>') + rowsW.map(w => ln('<b>Week ' + w.j + '</b> ' + esc(rangeTxt(w.j)) + ' · booked ' + num(n0(w.now), bkSpec('ALL', w.j)) + ' · expected ' + (w.ok ? num(n0(w.exp), histSpec('ALL', w.j)) : 'n/a'))).join('') +
+      (C > 1 ? ln('Later weeks are less booked, so they lean more on a normal week.') : '');
   }
   const exCol = () => selRows().filter(r => r.col && r.mn >= 3).sort((a, b) => b.q - a.q).filter(r => r.mn <= 8)[0] || selRows().filter(r => r.col && r.mn >= 3).sort((a, b) => b.q - a.q)[0] || null;
   function paintBook() {
     const sec = $('oos-1'); if (!sec) return;
-    if (!S.dem) { $('oosWB').textContent = 'Next week\'s bookings are not loaded, so every product is worked out on a normal week.'; $('oosExB').hidden = true; TB.draw(); return; }
+    if (!S.dem) { $('oosWB').textContent = 'Next week\'s bookings are not loaded, so every product is worked out on a normal week.'; $('oosExB').hidden = true; $('oosWks').innerHTML = ''; TB.draw(); return; }
     TB.draw();
+    paintWeeks();
     const cs = S.br.filter(c => S.dem[c].ok);
     if (!cs.length) { $('oosWB').textContent = 'Not enough weeks of bookings are held yet to work out a factor for the salons picked.'; $('oosExB').hidden = true; return; }
     const hi = cs.reduce((a, c) => S.dem[c].f > S.dem[a].f ? c : a, cs[0]), d = S.dem[hi], tn = S.br.reduce((a, c) => a + S.dem[c].now, 0);
     $('oosWB').innerHTML = ln('<b>' + BN[hi] + '</b> is furthest ahead for ' + esc(rangeTxt())) + ln('Booked: ' + num(n0(d.now), bkSpec(hi)) + ' (usually ' + n0(d.usual) + ' by now)') + ln('Colour is counted <b>' + pctUp(d.f) + '</b> on a normal week') + ln('All salons picked: ' + n0(tn) + ' booked');
     const e = exCol(), ex = $('oosExB'); ex.hidden = !e;
-    if (e) { const x = S.dem[e.b]; ex.innerHTML = '<b>Example.</b> ' + esc(BN[e.b]) + ', ' + esc(e.name) + ln('Min: ' + nu(e.mn)) + ln('Booked: ' + n0(x.now) + ' colour services') + ln('Expected: ' + n0(x.exp) + ' (a normal week: ' + n0(x.typ) + ')') + ln('Next week needs about <b>' + num(nu(e.mn * e.f), histSpec(e.b)) + '</b> (Min x ' + e.f.toFixed(2) + '), not ' + nu(e.mn)); }
+    if (e) { const x = S.dem[e.b]; ex.innerHTML = '<b>Example.</b> ' + esc(BN[e.b]) + ', ' + esc(e.name) + ln('Min: ' + nu(e.mn)) + ln('Booked: ' + n0(x.now) + ' colour services') + ln('Expected: ' + n0(x.exp) + ' (a normal week: ' + n0(x.typ) + ')') + ln((cover() === 1 ? 'Next week needs' : wk(cover()) + ' need') + ' about <b>' + num(nu(e.mn * e.fw), histSpec(e.b, 0)) + '</b> (Min x ' + e.fw.toFixed(2) + (cover() === 1 ? '' : ' colour weeks') + '), not ' + nu(e.mn * e.C)); }
   }
 
   // ── 2 THE ORDER LIST ─────────────────────────────────────────────────────────────────
@@ -588,7 +643,7 @@
     card.innerHTML = `<div class="oos-hc-t">${h[0]}</div><div class="oos-hc-m">${h[1]}</div><div class="oos-hc-big">${h[2](e)}</div><div class="oos-hc-cv">${h[3](e)}</div>`;
   }
   const ABOUT = {
-    rule: ['The order rule', 'Order when shelf and on order are under the order point. The minimum order goes up to the order point. The maximum order goes up to Max.', 'The order point is Min x weeks. For colour, the first week is Min x the factor for next week\'s bookings. If the order point is higher than Max, the maximum goes up to it too, so the two orders are the same.'],
+    rule: ['The order rule', 'Order when shelf and on order are under the order point. The minimum order goes up to the order point. The maximum order goes up to Max.', 'The order point is Min x weeks. For colour, each week ahead counts at its own expected size: Min x (week 1 + week 2 + ...). If the order point is higher than Max, the maximum goes up to it too, so the two orders are the same.'],
     demand: ['Next week\'s bookings', 'Colour products (IGORA Vibrance, Royal, Zero, Color 10, BLONDME, Vario, Color Expert) are scaled by how busy the salon\'s colour is next week.', 'Measured: the colour services booked. Estimated: how many will be done in all. Not tied to bookings: everything else, retail included. Order for A normal week turns it off.'],
     plan: ['Priority and type', 'Both come from the Weekly Product Plan, read live. Change them there, not here.', 'A is the first 80% of spend, or what the plan marks A.'],
     cover: ['Weeks of cover', '1 week as a rule. 2 weeks from 15 Nov to 31 Dec, for the busy weeks.', 'It moves the order point: Min x weeks. Change it with the picker at the top.'],
@@ -689,9 +744,9 @@
     const rows = TO.rows(); if (!rows.length) return null;
     const cols = [{ key: 'b', label: 'Salon', fmt: 'text' }, { key: 'sup', label: 'Supplier', fmt: 'text' }, { key: 'brand', label: 'Brand', fmt: 'text' }, { key: 'p', label: 'Product', fmt: 'text' }, { key: 'ty', label: 'Stock type', fmt: 'text' },
       { key: 'cat', label: 'Category', fmt: 'text' }, { key: 'pr', label: 'Priority', fmt: 'text' }, { key: 'st', label: 'Status', fmt: 'text' }, { key: 'in', label: 'In stock', fmt: 'num' }, { key: 'on', label: 'On order', fmt: 'num' },
-      { key: 'mn', label: 'Min', fmt: 'num' }, { key: 'mx', label: 'Max', fmt: 'num' }, { key: 'fa', label: 'Colour factor (next week)', fmt: 'num' }, { key: 'tg', label: 'Order up to (max)', fmt: 'num' }, { key: 'cv', label: 'Weeks left', fmt: 'num' }, { key: 'qm', label: 'Min order', fmt: 'num' }, { key: 'q', label: 'Max order', fmt: 'num' },
+      { key: 'mn', label: 'Min', fmt: 'num' }, { key: 'mx', label: 'Max', fmt: 'num' }, { key: 'fa', label: 'Colour weeks counted (cover)', fmt: 'num' }, { key: 'tg', label: 'Order up to (max)', fmt: 'num' }, { key: 'cv', label: 'Weeks left', fmt: 'num' }, { key: 'qm', label: 'Min order', fmt: 'num' }, { key: 'q', label: 'Max order', fmt: 'num' },
       { key: 'c', label: 'Cost a unit (AED)', fmt: 'aed' }, { key: 'am', label: 'Min AED', fmt: 'aed' }, { key: 'a', label: 'Max AED', fmt: 'aed' }];
-    const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, (r.col && S.dm === 'book' ? r.f : 1), r.tgt, r1(r.cov), r.qm, r.q, r2(r.c), r2(r.am), r2(r.aed)] }));
+    const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, (r.col && S.dm === 'book' ? r2(r.fw) : r.C), r.tgt, r1(r.cov), r.qm, r.q, r2(r.c), r2(r.am), r2(r.aed)] }));
     return { name: 'Order list', title: 'Out of Stock: the order list', subtitle: subtitle() + '.', blocks: [{ cols, rows: lines }],
       legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to Max (or the order point, if that is more), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
   }
@@ -705,8 +760,8 @@
   function bookSheet() {
     if (!S.dem || !TB) return null;
     const rows = TB.rows(); if (!rows.length) return null;
-    const cols = [{ key: 's', label: 'Salon', fmt: 'text' }, { key: 'now', label: 'Colour services booked so far', fmt: 'num' }, { key: 'us', label: 'Usually booked by now', fmt: 'num' }, { key: 'ex', label: 'Expected next week (estimate)', fmt: 'num' }, { key: 'ty', label: 'A normal week', fmt: 'num' }, { key: 'f', label: 'Colour factor', fmt: 'num' }];
-    return { name: 'Next week', title: 'Out of Stock: next week\'s bookings', subtitle: 'Colour services ' + rangeTxt() + '.', blocks: [{ cols, rows: rows.map(r => ({ cells: [BN[r.b], r.d.now, Math.round(r.d.usual), r.d.ok ? r.d.exp : null, Math.round(r.d.typ), r.d.ok ? r.d.f : null] })) }] };
+    const cols = [{ key: 's', label: 'Salon', fmt: 'text' }, { key: 'wk', label: 'Week', fmt: 'text' }, { key: 'now', label: 'Colour services booked so far', fmt: 'num' }, { key: 'us', label: 'Usually booked by now', fmt: 'num' }, { key: 'ex', label: 'Expected (estimate)', fmt: 'num' }, { key: 'ty', label: 'A normal week', fmt: 'num' }, { key: 'f', label: 'Colour factor', fmt: 'num' }];
+    return { name: 'Next weeks', title: 'Out of Stock: next weeks\' bookings', subtitle: 'Colour services, ' + wk(cover()) + ' of cover from ' + rangeTxt(1) + '.', blocks: [{ cols, rows: rows.map(r => ({ cells: [BN[r.b], 'Week ' + r.k + ' ' + rangeTxt(r.k), r.d.now, Math.round(r.d.usual), r.d.ok ? r.d.exp : null, Math.round(r.d.typ), r.d.ok ? r.d.f : null] })) }] };
   }
   window.oosExportBook = () => { const s = bookSheet(); return s ? { name: fileName('next-week-bookings'), csv: 0, sheets: [s] } : null; };
   window.oosExportOrder = () => { const s = orderSheet(); return s ? { name: fileName('order-list'), csv: 0, sheets: [s] } : null; };
