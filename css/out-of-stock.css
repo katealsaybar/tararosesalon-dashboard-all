@@ -91,3 +91,9 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
   .oos-det>summary h3{font-size:21px}
 }
 @media(prefers-reduced-motion:reduce){.oos-det>summary::after{transition:none}}
+
+/* One idea a line (Kate, 26 Nov 2026: "not adhd friendly"): the explainers, the answer and the sync times are short lines, not paragraphs. */
+.oos-ln{display:block;margin-top:3px;line-height:1.45}
+.oos-learn p .oos-ln:first-of-type{margin-top:4px}
+.oos-ans-n .oos-ln{margin-top:2px}
+.oos-ans-n>b:first-child{display:block;margin-bottom:2px}

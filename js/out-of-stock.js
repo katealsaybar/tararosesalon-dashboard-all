@@ -40,7 +40,7 @@
   const K = 0, BR = 1, CAT = 2, NAME = 3, TYPE = 4, FLAG = 5, PRIO = 7, MIN = 8, MAX = 9, COST = 10, STK = 13, BRAND = 16, SUP = 17;
   const SALORD = { KCA: 0, SAA: 1, MC: 2, AQ: 3 }, STORD = { out: 0, u1: 1, ok: 2 };
   const PRIOS = { A: ['A'], AB: ['A', 'B'] };
-  const S = { rows: null, lines: [], ordersOk: false, ordersAt: null, asof: {}, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
+  const S = { rows: null, lines: [], ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
     prio: 'A', cover: 0, filt: 'all', hk: 'qty', ak: 'rule', built: false, ro: null, dem: null, demInfo: null, dm: 'book' };
   let TO = null, TS = null, TB = null, memoM = {};
 
@@ -59,6 +59,14 @@
   const dubaiToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });   // 2026-11-23
   const isoD = s => new Date(s + 'T00:00:00');
   const fd = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ''); return m ? (+m[3]) + ' ' + MON[+m[2] - 1] + ' ' + m[1] : ''; };   // 23 Nov 2026
+  // Exact date and time in Dubai, for "last sync" (Kate, 26 Nov 2026: "put exact date and time for last sync"): 26 Nov 2026, 10:07 am
+  const fdt = ts => {
+    if (!ts) return '';
+    const d = new Date(ts); if (isNaN(d)) return '';
+    const day = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }), t = d.toLocaleTimeString('en-GB', { timeZone: 'Asia/Dubai', hour: 'numeric', minute: '2-digit', hour12: true });
+    return fd(day) + ', ' + t.replace(/\s?([ap])m/i, (m, x) => ' ' + x.toLowerCase() + 'm');
+  };
+  const ln = h => '<span class="oos-ln">' + h + '</span>';   // one idea a line
   const daysBetween = (a, b) => Math.round((isoD(b) - isoD(a)) / 864e5);
   // Supplier by brand, from the Orders and Receipts page (Kate, 26 Nov 2026: "magbase na sa orders and receipts dashboard"). The Weekly Product Plan only names DBD, Eideal and Madi, and
   // every product with no supplier of its own counted as DBD. The names here are the suppliers of the Orders and Receipts page, spelled the same (DBD, MADI, EIDEAL, NEU, BS PRO, VIVANDI,
@@ -118,6 +126,7 @@
     S.lines = S.ordersOk ? od.rows : [];
     S.ordersAt = S.ordersOk ? od.loaded || null : null;
     S.asof = d.stock_asof || {};
+    S.stockAt = d.stock_loaded || {};
     const dr = await callDem, dd = dr && !dr.error ? dr.data : null;
     if (dd && !dd.denied && dd.salons) { S.dem = demandOf(dd); S.demInfo = { from: dd.week_from, to: dd.week_to, lead: dd.lead, synced: dd.synced }; } else { S.dem = null; S.demInfo = null; }
     memoM = {};
@@ -199,12 +208,14 @@
   }
   // How fresh the shelf data is, from stock_asof (a date per salon): the oldest one picked decides.
   function fresh() {
-    const known = S.br.filter(c => S.asof[c]).map(c => ({ c, d: String(S.asof[c]).slice(0, 10) }));
-    if (!known.length) return { text: 'The date of the shelf lists is not known. Run the daily reports before the order goes out.', stale: true, days: null };
+    const known = S.br.filter(c => S.asof[c]).map(c => ({ c, d: String(S.asof[c]).slice(0, 10), t: S.stockAt[c] || null }));
+    if (!known.length) return { text: ln('<b>Shelf counts:</b> date not known. Run the daily reports before the order goes out.'), stale: true, days: null };
     const old = known.reduce((a, x) => x.d < a.d ? x : a), days = daysBetween(old.d, dubaiToday()), same = known.every(x => x.d === old.d);
-    const when = same ? 'The shelf lists were read on ' + fd(old.d) : 'The oldest shelf list (' + BN[old.c] + ') was read on ' + fd(old.d);
     const ago = days <= 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago';
-    return { days, stale: days > 1, date: fd(old.d), text: when + ', ' + ago + '. Anything ordered or delivered since is not in these counts' + (days > 1 ? ', so run the daily reports before the order goes out.' : '.') };
+    const oldT = known.filter(x => x.t).reduce((a, x) => !a || x.t < a ? x.t : a, null);   // the oldest salon decides
+    const when = oldT ? fdt(oldT) : fd(old.d);
+    const who = same ? '' : ' (oldest: ' + BN[old.c] + ')';
+    return { days, stale: days > 1, date: fd(old.d), at: oldT ? fdt(oldT) : '', text: ln('<b>Shelf counts:</b> ' + when + who + ', ' + ago) + (days > 1 ? ln('<b>Old.</b> Run the daily reports before the order goes out.') : '') };
   }
   const shelfDate = () => { const f = fresh(); return f.date || 'an unknown date'; };
 
@@ -261,7 +272,7 @@
       return { cols: [{ k: 'no', l: 'Order no' }, { k: 'od', l: 'Ordered', t: 'date' }, { k: 's', l: 'Salon' }, { k: 'u', l: 'Units', t: 'num' }],
         rows: r.lines.map(l => ({ no: l.no, od: l.od, s: BN[l.b] || l.b, u: l.u })),
         foot: r.lines.length ? { no: plural(r.lines.length, 'order line'), od: '', s: '', u: r.i } : null, empty: 'Nothing on order for this product.',
-        note: 'This is the last step: a single order line has nothing behind it. Orders from the last 60 days that have not arrived, from Phorest\'s Stock Orders report' + (S.ordersAt ? ', read ' + fd(String(S.ordersAt).slice(0, 10)) : '') + '.' };
+        note: 'This is the last step: a single order line has nothing behind it. Orders from the last 60 days that have not arrived, from Phorest\'s Stock Orders report' + (S.ordersAt ? ', read ' + fdt(S.ordersAt) : '') + '.' };
     } };
     return { title: r.name, cur: 'AED', sk: slug('oos-p-' + r.b + '-' + r.name),
       sub: r.brand + ' · ' + r.type.toLowerCase() + ' · ' + BN[r.b] + ' · Priority ' + r.prio + ' from the plan · supplier ' + r.sup,
@@ -271,7 +282,7 @@
   // The colour services booked for next week, by kind; and how next week is expected (the weeks behind it, then the steps). The last step: nothing lies behind a count of services.
   function bkSpec(c) {
     const d = S.dem[c], tot = d.grp.reduce((a, x) => a + x[1], 0);
-    return { title: 'Colour services booked for ' + rangeTxt() + ', ' + BN[c], sub: n0(tot) + ' colour services booked so far · ' + BN[c] + ' · read ' + (S.demInfo && S.demInfo.synced ? fd(String(S.demInfo.synced).slice(0, 10)) : 'today'), cur: 'AED', sk: slug('oos-bk-' + c),
+    return { title: 'Colour services booked for ' + rangeTxt() + ', ' + BN[c], sub: n0(tot) + ' colour services booked so far · ' + BN[c] + ' · read ' + (S.demInfo && S.demInfo.synced ? fdt(S.demInfo.synced) : 'today'), cur: 'AED', sk: slug('oos-bk-' + c),
       views: [{ id: 'bk', label: 'Booked', load: async () => ({ cols: [{ k: 'g', l: 'Kind of colour service' }, { k: 'n', l: 'Booked', t: 'num' }], rows: d.grp.map(x => ({ g: x[0], n: x[1] })), foot: { g: 'Total', n: tot }, empty: 'Nothing colour is booked yet.',
         note: 'Toners and gloss, roots, foils, balayage, ombre, all over colour and bleach count. Colour lock treatments, polish, brows and tints do not. Each is one booked service in Phorest Staff Appointments; cancelled appointments are not in it.' }) }] };
   }
@@ -307,24 +318,34 @@
     <section class="oos-sec" id="oos-1" data-jn="1 Next week's bookings">
       <h3>1 Next week's bookings</h3>
       <div class="oos-learn">
-        <p><b>What is this?</b> The colour services already booked for next week at each salon, and how busy that week is likely to be against a normal one.</p>
-        <p><b>Why it matters.</b> Colour (tubes, developer, lightener) is about 7 in 10 of the product the salons use by AED, and its use follows the colour services done. A busier week needs more than the Min says.</p>
+        <p><b>What is this?</b> Colour services already booked for next week, per salon.</p>
+        <p><b>Why it matters.</b> Colour is about 7 in 10 of our product spend. More bookings means more tubes.</p>
         <p class="ex" id="oosExB"></p>
         <p class="watch"><b>What to watch.</b> <span id="oosWB"></span></p>
       </div>
       <div class="oos-bar oos-bar-plain">${typeof rexButtons === 'function' ? '<span class="oos-sp"></span>' + rexButtons('oosExportBook') : ''}</div>
       <div class="oos-card oos-tcell"><table id="oosBookTbl"></table></div>
       <div class="oos-learn oos-bkn">
-        <p><b>Measured.</b> The colour services booked (Phorest Staff Appointments), the finished weeks before them (the same report), the shelf and the orders on the way.</p>
-        <p><b>Estimated.</b> Only about 1 in 3 of a week's colour services is booked by the Thursday before. How many will be done is worked out from how much is booked now, and from a normal week, half and half. Tried on the last 11 weeks: a normal week alone missed by 16% on average, this missed by 7%.</p>
-        <p><b>Not known.</b> Phorest does not record which client a tube was used on, and the product usage report is a storeroom list, not a recipe per service, so the page does not guess one. It scales the colour products of the plan by how busy the colour is. Shampoo, treatments, nails, beauty and retail are not tied to bookings (their weekly use is too small and uneven), they stay on the Min of a normal week. Holidays are not in it.</p>
+        <p><b>Measured</b> <span class="oos-sub">counted from Phorest</span>
+          <span class="oos-ln">The colour services booked</span>
+          <span class="oos-ln">The weeks before them</span>
+          <span class="oos-ln">The shelf and the orders on the way</span></p>
+        <p><b>Estimated</b> <span class="oos-sub">a good guess</span>
+          <span class="oos-ln">Only 1 in 3 colour services is booked by the Thursday before</span>
+          <span class="oos-ln">Services done = half of what is booked now + half of a normal week</span>
+          <span class="oos-ln">Tried on the last 11 weeks: a normal week missed by <b>16%</b>, this one by <b>7%</b></span></p>
+        <p><b>Not known</b>
+          <span class="oos-ln">Phorest does not say which client a tube was used on</span>
+          <span class="oos-ln">So colour products go up or down with how busy colour is</span>
+          <span class="oos-ln">Shampoo, treatments, nails, beauty and retail stay on a normal week's Min</span>
+          <span class="oos-ln">Holidays are not counted</span></p>
       </div>
     </section>
 
     <section class="oos-sec" id="oos-2" data-jn="2 What to order">
       <h3>2 What to order, salon by salon</h3>
       <div class="oos-learn">
-        <p><b>What is this?</b> For each salon, the products that are short for next week, Priority A to start with, and what it costs to top them up: a minimum order (back to cover) and a maximum order (up to Max). Colour is counted at next week's expected size.</p>
+        <p><b>What is this?</b> Per salon: what is short for next week, and what it costs.</p>
         <p><b>Why it matters.</b> A colour that is out on a Thursday means a client is told no.</p>
         <p class="ex" id="oosEx"></p>
         <p class="watch"><b>What to watch.</b> <span id="oosW1"></span></p>
@@ -335,8 +356,8 @@
     <section class="oos-sec" id="oos-3" data-jn="3 The order list">
       <h3>3 The order list</h3>
       <div class="oos-learn">
-        <p><b>What is this?</b> Every product to order, one line each, salon by salon.</p>
-        <p><b>Why it matters.</b> One list for the Monday order, so nothing is ordered twice or missed.</p>
+        <p><b>What is this?</b> Every product to order, one line each.</p>
+        <p><b>Why it matters.</b> One list for the Monday order. Nothing ordered twice or missed.</p>
         <p class="watch"><b>What to watch.</b> <span id="oosW2"></span></p>
       </div>
       <div class="oos-bar" id="oosBar">
@@ -355,7 +376,7 @@
     <details class="oos-sec oos-det" id="oos-4" data-jn="4 Order by supplier">
       <summary><h3>4 Order by supplier</h3></summary>
       <div class="oos-learn">
-        <p><b>What is this?</b> The same order split by supplier, with the supplier names of the Orders and Receipts page. The plan only names DBD, Eideal and Madi, so the others come from the brand: Beauty Works to BS PRO, Evo Fab Pro to NEU, and so on.</p>
+        <p><b>What is this?</b> The same order, split by supplier. Names are from the Orders and Receipts page.</p>
         <p><b>Why it matters.</b> Each supplier is ordered separately.</p>
         <p class="watch"><b>What to watch.</b> <span id="oosW3"></span></p>
       </div>
@@ -384,20 +405,23 @@
     const C = cover(), usual = seasonCover(dubaiToday());
     $('oosCover').value = String(C); $('oosPrio').value = S.prio;
     $('oosDemand').value = S.dm;
-    $('oosCoverT').textContent = 'Order when under the order point (Min x weeks, colour counted at next week\'s size). ' + (C === usual ? 'The usual for today.' : 'Not the usual for today.') + ' 15 Nov to 31 Dec: 2 weeks. Rest of the year: 1 week.';
+    $('oosCoverT').textContent = 'Order when under Min x weeks. ' + (C === usual ? 'This is the usual for today.' : 'Not the usual for today.') + ' Usual: 2 weeks from 15 Nov to 31 Dec, 1 week the rest of the year.';
   }
   function paintAnswer() {
     const cs = S.br, T = cs.map(salTot), aed = sum(T, 'aed'), aedm = sum(T, 'aedm'), out = sum(T, 'out'), n = sum(T, 'n'), f = fresh();
     const a = $('oosAns'), a2 = $('oosAns2');
     const bs = all('typ').filter(r => inSel(r.b)), base = sum(bs, 'aed'), basem = sum(bs, 'am');
-    const dem = !S.dem ? ' Next week\'s bookings are not loaded, so this is a normal week.' : S.dm === 'book' ? ' Counting next week\'s bookings adds ' + A(aedm - basem) + ' to the minimum and ' + A(aed - base) + ' to the maximum of a normal week, all of it colour.' : ' This is a normal week: bookings are not counted (change Order for at the top).';
+    const dem = !S.dem ? ln('Next week\'s bookings are not loaded, so this is a normal week.') : S.dm === 'book' ? ln('Next week\'s bookings add <b>' + A(aedm - basem) + '</b> (min) and <b>' + A(aed - base) + '</b> (max) to a normal week. All colour.') : ln('A normal week: bookings are not counted (change <b>Order for</b> at the top).');
     if (!n) { a.textContent = 'Nothing to order for ' + scope() + ' on Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + '.'; a2.innerHTML = fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now.'; }
     else {
-      a.innerHTML = 'Order between ' + fig(A(aedm), 'all') + ' (minimum) and ' + fig(A(aed), 'all') + ' (maximum) for next week (Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ') to keep ' + (cs.length === 1 ? BN[cs[0]] : 'every salon') + ' covered for ' + wk(cover()) + '.';
-      a2.innerHTML = cs.map((c, i) => BN[c] + ' ' + fig(A(T[i].aedm), 'all', c) + ' to ' + fig(A(T[i].aed), 'all', c)).join(', ') + '. ' + fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now.' + dem;
+      a.innerHTML = 'Order between ' + fig(A(aedm), 'all') + ' (minimum) and ' + fig(A(aed), 'all') + ' (maximum) for next week.';
+      a2.innerHTML = ln('Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ' · ' + (cs.length === 1 ? BN[cs[0]] : 'every salon') + ' · ' + wk(cover()) + ' of cover') +
+        cs.map((c, i) => ln('<b>' + BN[c] + '</b> ' + fig(A(T[i].aedm), 'all', c) + ' to ' + fig(A(T[i].aed), 'all', c))).join('') +
+        ln(fig(n0(out), 'out') + (out === 1 ? ' product is' : ' products are') + ' out on the shelf now.') + dem;
     }
-    const bkd = S.demInfo && S.demInfo.synced ? ' Bookings were read on ' + fd(String(S.demInfo.synced).slice(0, 10)) + '.' : '';
-    $('oosAns3').textContent = f.text + bkd + ' The Period at the top does not apply to this page.';
+    const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
+    const ord = S.ordersOk && S.ordersAt ? ln('<b>Orders on the way:</b> ' + fdt(S.ordersAt)) : '';
+    $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.');
     const w = $('oosAns4'); w.hidden = S.ordersOk; w.textContent = S.ordersOk ? '' : 'On-order counts are not loaded yet. On order shows 0 for every product, so something that is already on its way can still show as short.';
   }
   // the best example for the page: a product with something on the shelf and something to order, biggest AED first (a real row, never typed in)
@@ -419,11 +443,12 @@
     let hi = 0, lo = 0; T.forEach((t, i) => { if (t.aed > T[hi].aed) hi = i; if (t.aed < T[lo].aed) lo = i; });
     const w = $('oosW1');
     if (cs.length < 2) w.textContent = 'One salon is picked. Add the others in the header to compare them.';
-    else w.innerHTML = BN[cs[hi]] + ' has the biggest maximum order (' + fig(A(T[hi].aed), 'all', cs[hi]) + ') and ' + BN[cs[lo]] + ' the smallest (' + fig(A(T[lo].aed), 'all', cs[lo]) + '). ' +
-      (T[lo].out === 0 ? BN[cs[lo]] + ' has nothing out on the shelf: that is the shelf to copy.' : 'Look at what ' + BN[cs[lo]] + ' does differently.');
+    else w.innerHTML = ln('Biggest maximum order: <b>' + BN[cs[hi]] + '</b> ' + fig(A(T[hi].aed), 'all', cs[hi])) + ln('Smallest: <b>' + BN[cs[lo]] + '</b> ' + fig(A(T[lo].aed), 'all', cs[lo])) +
+      ln(T[lo].out === 0 ? BN[cs[lo]] + ' has nothing out on the shelf. Copy that shelf.' : 'Look at what ' + BN[cs[lo]] + ' does differently.');
     const e = exRow(), ex = $('oosEx');
     ex.hidden = !e;
-    if (e) ex.innerHTML = '<b>Example.</b> At ' + esc(BN[e.b]) + ' the ' + esc(e.name) + ' has ' + nu(e.s) + ' on the shelf and ' + (e.i ? nu(e.i) : 'none') + ' on order. The plan says Min ' + nu(e.mn) + ' and Max ' + nu(e.mx) + (e.col && S.dm === 'book' ? ', and next week is counted at x ' + e.f.toFixed(2) : '') + '. We order when under ' + nu(e.trig) + '. The minimum order goes up to ' + nu(e.trig) + ', which is ' + num(A(e.am), prodSpec(e, 'how')) + '. The maximum order goes up to ' + nu(e.tgt) + ', which is ' + num(A(e.aed), prodSpec(e, 'how')) + '.';
+    if (e) ex.innerHTML = '<b>Example.</b> ' + esc(BN[e.b]) + ', ' + esc(e.name) + ln('Shelf: ' + nu(e.s) + ' · on order: ' + (e.i ? nu(e.i) : 'none')) + ln('Plan: Min ' + nu(e.mn) + ', Max ' + nu(e.mx) + (e.col && S.dm === 'book' ? ' (colour counted x ' + e.f.toFixed(2) + ')' : '')) + ln('We order when under <b>' + nu(e.trig) + '</b>') +
+      ln('<b>Minimum</b> order: up to ' + nu(e.trig) + ' = ' + num(A(e.am), prodSpec(e, 'how'))) + ln('<b>Maximum</b> order: up to ' + nu(e.tgt) + ' = ' + num(A(e.aed), prodSpec(e, 'how')));
   }
 
   // ── 1 NEXT WEEK'S BOOKINGS ───────────────────────────────────────────────────────────
@@ -449,9 +474,9 @@
     const cs = S.br.filter(c => S.dem[c].ok);
     if (!cs.length) { $('oosWB').textContent = 'Not enough weeks of bookings are held yet to work out a factor for the salons picked.'; $('oosExB').hidden = true; return; }
     const hi = cs.reduce((a, c) => S.dem[c].f > S.dem[a].f ? c : a, cs[0]), d = S.dem[hi], tn = S.br.reduce((a, c) => a + S.dem[c].now, 0);
-    $('oosWB').innerHTML = BN[hi] + ' is the furthest ahead: ' + num(n0(d.now), bkSpec(hi)) + ' colour services booked for ' + esc(rangeTxt()) + ' against ' + n0(d.usual) + ' usually by now, so colour is counted ' + pctUp(d.f) + ' on a normal week. The salons picked have ' + n0(tn) + ' booked together.';
+    $('oosWB').innerHTML = ln('<b>' + BN[hi] + '</b> is furthest ahead for ' + esc(rangeTxt())) + ln('Booked: ' + num(n0(d.now), bkSpec(hi)) + ' (usually ' + n0(d.usual) + ' by now)') + ln('Colour is counted <b>' + pctUp(d.f) + '</b> on a normal week') + ln('All salons picked: ' + n0(tn) + ' booked');
     const e = exCol(), ex = $('oosExB'); ex.hidden = !e;
-    if (e) { const x = S.dem[e.b]; ex.innerHTML = '<b>Example.</b> ' + esc(BN[e.b]) + ', ' + esc(e.name) + ': Min ' + nu(e.mn) + '. ' + n0(x.now) + ' colour services are booked, ' + n0(x.exp) + ' are expected against ' + n0(x.typ) + ' in a normal week, so next week needs about ' + num(nu(e.mn * e.f), histSpec(e.b)) + ' (Min x ' + e.f.toFixed(2) + '), not ' + nu(e.mn) + '.'; }
+    if (e) { const x = S.dem[e.b]; ex.innerHTML = '<b>Example.</b> ' + esc(BN[e.b]) + ', ' + esc(e.name) + ln('Min: ' + nu(e.mn)) + ln('Booked: ' + n0(x.now) + ' colour services') + ln('Expected: ' + n0(x.exp) + ' (a normal week: ' + n0(x.typ) + ')') + ln('Next week needs about <b>' + num(nu(e.mn * e.f), histSpec(e.b)) + '</b> (Min x ' + e.f.toFixed(2) + '), not ' + nu(e.mn)); }
   }
 
   // ── 2 THE ORDER LIST ─────────────────────────────────────────────────────────────────
@@ -497,7 +522,7 @@
   }
   function paintW2() {
     const rs = selRows().filter(r => r.s <= 0), none = rs.filter(r => r.i === 0);
-    $('oosW2').innerHTML = fig(n0(rs.length), 'out') + (rs.length === 1 ? ' product has' : ' products have') + ' nothing on the shelf, and ' + (none.length === rs.length && rs.length ? 'none of them has anything' : n0(none.length) + ' of them have nothing') + ' on order either. Start the order with those.' + (S.ordersOk ? '' : ' (On order is not loaded yet, so this count is not reliable.)');
+    $('oosW2').innerHTML = ln(fig(n0(rs.length), 'out') + (rs.length === 1 ? ' product has' : ' products have') + ' nothing on the shelf') + ln(none.length === rs.length && rs.length ? 'None of them has anything on order either' : n0(none.length) + ' of them have nothing on order either') + ln('<b>Start the order with those.</b>') + (S.ordersOk ? '' : ln('On order is not loaded yet, so this count is not reliable.'));
   }
 
   // ── 3 BY SUPPLIER ────────────────────────────────────────────────────────────────────
@@ -509,7 +534,7 @@
   function paintW3() {
     const rs = supRows(), tot = sum(rs, 'aed'), nl = rs.filter(x => x.sup === NOSUP)[0];
     if (!rs.length) { $('oosW3').textContent = 'Nothing to order for the salons picked.'; return; }
-    const top = rs.filter(x => x.sup !== NOSUP)[0] || rs[0]; $('oosW3').innerHTML = esc(top.sup) + ' is ' + Math.round(100 * top.aed / (tot || 1)) + '% of the maximum order (AED ' + fig(n0(top.aed), 'sup', '', top.sup) + ' maximum, ' + fig(n0(top.am), 'sup', '', top.sup) + ' minimum). Send that order first.' + (nl ? ' ' + fig(n0(nl.n), 'sup', '', NOSUP) + (nl.n === 1 ? ' product (AED ' : ' products (AED ') + fig(n0(nl.aed), 'sup', '', NOSUP) + ')' + (nl.n === 1 ? ' has' : ' have') + ' no supplier linked yet. Ask ate Tine which supplier they come from.' : '');
+    const top = rs.filter(x => x.sup !== NOSUP)[0] || rs[0]; $('oosW3').innerHTML = ln('<b>' + esc(top.sup) + '</b> is ' + Math.round(100 * top.aed / (tot || 1)) + '% of the maximum order') + ln('AED ' + fig(n0(top.aed), 'sup', '', top.sup) + ' maximum · ' + fig(n0(top.am), 'sup', '', top.sup) + ' minimum') + ln('<b>Send that order first.</b>') + (nl ? ln(fig(n0(nl.n), 'sup', '', NOSUP) + (nl.n === 1 ? ' product (AED ' : ' products (AED ') + fig(n0(nl.aed), 'sup', '', NOSUP) + ')' + ' with no supplier yet. Ask ate Tine.') : '');
   }
 
   // ── HOW IT IS WORKED OUT, ABOUT: one card at a time ──────────────────────────────────
@@ -583,7 +608,7 @@
     if (!$('oosMsg')) {
       host.innerHTML = '<div class="oos-msg" id="oosMsg"></div><div id="oosBody"></div>';
       const intro = $('outofstockIntro');
-      if (intro) intro.innerHTML = `<section class="slv-intro"><h2>Out of stock: what to order for next week</h2><p>The products each salon is short of, and what it costs to top them up for the Monday order, as a minimum and a maximum order. Colour is counted against the colour services already booked for next week. Priority A to start with. The Branch at the top picks the salons. The Period does not apply here: the shelf is counted as it is now.</p></section>`;
+      if (intro) intro.innerHTML = `<section class="slv-intro"><h2>Out of stock: what to order for next week</h2><p><span class="oos-ln">What each salon is short of, and what it costs, for the <b>Monday order</b>.</span><span class="oos-ln">A <b>minimum</b> order and a <b>maximum</b> order.</span><span class="oos-ln">Colour follows the colour services already booked for next week.</span><span class="oos-ln">The <b>Branch</b> at the top picks the salons. The <b>Period</b> does not apply here.</span></p></section>`;
     }
     const seq = ++S.seq;
     if (!S.rows) msg('Loading the order list…');
