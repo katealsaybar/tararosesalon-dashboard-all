@@ -1,6 +1,7 @@
 -- Out of Stock: Confirm order, with our own internal order number (Kate, 26 Nov 2026: "put confirm order button ... we must have our own internal order number").
--- Step 1 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md (in the cowork repo). NOT APPLIED yet: Kate applies it. Until then the page shows the Confirm order button
--- but says it is not switched on (it reads oos_orders_get() and treats an error as "not applied yet").
+-- Step 1 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md (in the cowork repo). APPLIED 26 Nov 2026 to project gvijxenafoowajqktqvd (migration out_of_stock_supplier_orders). Checked in a rolled-back run:
+-- confirm gives TRS-PO-26-0001, a second confirm returns the same order, cancel works, a new confirm gets the next number. Tables were left empty.
+-- (Before it was applied the page said Confirm order is not switched on: it reads oos_orders_get() and treats an error as "not applied yet".)
 --
 -- One confirm = one order for one supplier and ONE salon (a window that lists several salons confirms one order per salon). Order number: TRS-PO-<YY>-<0001..>, counted per year
 -- across all suppliers. It goes into the subject and body of the email to the supplier (step 3), so the supplier's reply, the out-of-stock list and the invoice can be matched back.
