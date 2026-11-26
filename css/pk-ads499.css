@@ -1,0 +1,115 @@
+/* ADS 499 Packages Performance (Kate, 26 Nov 2026): the same rules as css/active-deals.css, scoped to its own page. */
+/* Active Deals Performance (Kate, 23 Oct 2026). The Wellness Voucher Performance page's own look (wellness-voucher-approvals/performance/index.html),
+   scoped to #pkAds499Content and mapped onto the dashboard's tokens so it follows the light and dark theme. Phone: the page keeps the dashboard's own
+   side margin (nothing is added here), tiles go two a row, and every table scrolls inside its card with its first column pinned. */
+#pkAds499Content{--paper:var(--surface);--ink:var(--text);--ink2:var(--text);--line:var(--border);--grid:var(--border2);--sand:var(--surface2);
+  --series:#0F8A72;--c1:#0F8A72;--c2:#7C5CD4;--c3:#B87A1E;--serif:'Playfair Display',Georgia,serif;
+  --good-bg:#E4F1EA;--warn-bg:#FBF3E2;--warn-fg:#B4823A;
+  position:relative;font-size:14px;line-height:1.5;padding:10px 0 48px}
+:root[data-theme="dark"] #pkAds499Content{--series:#99F6E4;--c1:#2FA58B;--c2:#8C74DE;--c3:#BD852D;--good-bg:rgba(153,246,228,.12);--warn-bg:rgba(238,243,199,.12);--warn-fg:#EEF3C7}
+#pkAds499Content *{box-sizing:border-box}
+#pkAds499Content h1.ad-t{font-family:var(--serif);font-weight:600;font-size:28px;margin:0;letter-spacing:-.01em}
+#pkAds499Content h2{font-family:var(--serif);font-weight:600;font-size:19px;margin:0 0 2px}
+#pkAds499Content .ad-sub{color:var(--muted);font-size:13px;margin:2px 0 0}
+#pkAds499Content .ad-subh{margin:20px 0 6px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+#pkAds499Content [id^="ad-"]{scroll-margin-top:150px}
+#pkAds499Content .ad-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+#pkAds499Content .ad-toplinks{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){
+  #pkAds499Content .ad-toplinks{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}
+  #pkAds499Content .ad-toplinks .ad-btn{padding:9px 8px;font-size:13px;line-height:1.25;text-align:center}
+}
+#pkAds499Content .ad-btn{border:1px solid var(--line);background:var(--paper);color:var(--muted);font:600 13px 'Inter',system-ui,sans-serif;padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-block;min-height:34px}
+#pkAds499Content .ad-btn:hover{color:var(--ink)}
+#pkAds499Content .ad-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px 18px 16px;margin-bottom:16px;min-width:0}
+#pkAds499Content .ad-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+#pkAds499Content .ad-grid2 .ad-card{margin-bottom:0}
+#pkAds499Content .ad-grid2>*{min-width:0}
+@media(max-width:760px){#pkAds499Content .ad-grid2{grid-template-columns:1fr}#pkAds499Content .ad-card{padding-left:12px;padding-right:12px}}
+#pkAds499Content details.more{margin:6px 0 0}
+#pkAds499Content details.more>summary{cursor:pointer;color:var(--muted);font-size:13px;padding:4px 0}
+#pkAds499Content details.more>p.ad-sub{margin:4px 0 0}
+#pkAds499Content details{margin-top:10px}
+#pkAds499Content summary{cursor:pointer;color:var(--muted);font-size:12px}
+#pkAds499Content div:has(> table){overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#pkAds499Content div:has(> table) > table tr > :first-child:not([colspan]){position:sticky;left:0;z-index:2;background-color:var(--paper)}
+#pkAds499Content .ad-hero{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center}
+@media(max-width:760px){#pkAds499Content .ad-hero{grid-template-columns:1fr}}
+#pkAds499Content .ad-big{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1.05;letter-spacing:-.02em}
+#pkAds499Content .ad-big small{font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0}
+#pkAds499Content .ad-track{height:12px;background:var(--sand);border-radius:999px;overflow:hidden;margin:12px 0 6px}
+#pkAds499Content .ad-fill{height:100%;background:var(--series);border-radius:999px}
+#pkAds499Content .ad-cap{color:var(--muted);font-size:13px}
+#pkAds499Content .ad-zero{color:var(--muted);opacity:.4}
+#pkAds499Content .ad-pace{border-left:1px solid var(--line);padding-left:24px}
+@media(max-width:760px){#pkAds499Content .ad-pace{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+#pkAds499Content .ad-row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;color:var(--ink2)}
+#pkAds499Content .ad-row b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right}
+#pkAds499Content .ad-status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;margin-bottom:6px}
+#pkAds499Content .ad-status.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#pkAds499Content .ad-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:560px){#pkAds499Content .ad-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#pkAds499Content .ad-tile{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+#pkAds499Content .ad-tile .l{color:var(--muted);font-size:12px;font-weight:500}
+#pkAds499Content .ad-tile .v{font-family:var(--serif);font-size:clamp(17px,2.3vw,24px);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#pkAds499Content .ad-tile .v.txt{font-size:clamp(15px,1.7vw,18px);line-height:1.25;padding:3px 0}
+#pkAds499Content .ad-tile .h{color:var(--muted);font-size:12px}
+@media(max-width:900px) and (min-width:561px){#pkAds499Content .ad-tile .l,#pkAds499Content .ad-tile .h{font-size:11.5px}}
+#pkAds499Content .ad-chart{position:relative;margin-top:10px}
+#pkAds499Content .ad-chart svg{display:block;width:100%;height:auto;overflow:visible}
+#pkAds499Content .ax{fill:var(--muted);font-size:11px;font-family:'Inter',system-ui,sans-serif}
+#pkAds499Content .gl{stroke:var(--grid);stroke-width:1}
+#pkAds499Content .ad-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink2);margin-top:8px}
+#pkAds499Content .ad-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+#pkAds499Content .ad-tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;border-radius:8px;padding:7px 10px;white-space:nowrap;opacity:0;transition:opacity .1s;z-index:5}
+#pkAds499Content table{width:100%;border-collapse:collapse;font-size:13px}
+#pkAds499Content th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+#pkAds499Content td{padding:7px 8px;border-bottom:1px solid var(--grid);font-variant-numeric:tabular-nums;vertical-align:top}
+#pkAds499Content td.n,#pkAds499Content th.n{text-align:right}
+#pkAds499Content tr.tot td{font-weight:600;border-bottom:0}
+#pkAds499Content td small{display:block;color:var(--muted);font-size:11.5px}
+#pkAds499Content .ad-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+#pkAds499Content .ad-mini{display:inline-block;width:60px;height:6px;background:var(--sand);border-radius:999px;overflow:hidden;vertical-align:middle;margin-right:8px}
+#pkAds499Content .ad-mini i{display:block;height:100%;background:var(--series);border-radius:999px}
+#pkAds499Content .ad-tag{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap;background:var(--sand);color:var(--muted)}
+#pkAds499Content .ad-tag.ok{background:var(--good-bg);color:var(--good)}
+#pkAds499Content .ad-tag.warn{background:var(--warn-bg);color:var(--warn-fg)}
+#pkAds499Content .ad-list{margin:8px 0 0;padding:0;list-style:none}
+#pkAds499Content .ad-list li{padding:9px 0;border-top:1px solid var(--grid);font-size:13px;color:var(--ink2)}
+#pkAds499Content .ad-list li:first-child{border-top:0}
+#pkAds499Content .ad-list li b{color:var(--ink);display:block;font-weight:600}
+#pkAds499Content .ad-ask{margin:6px 0 0 18px;padding:0;font-size:13px;color:var(--ink2)}
+#pkAds499Content .ad-ask li{margin:6px 0}
+#pkAds499Content .ad-state{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--muted)}
+#pkAds499Content .ad-empty{color:var(--muted);font-size:13px;padding:8px 0}
+
+/* Brochure slide thumbnails beside each offer (Kate, 25 Nov 2026) */
+#pkAds499Content .ad-of{display:flex;gap:10px;align-items:flex-start}
+#pkAds499Content .ad-of>div{min-width:0}
+#pkAds499Content .ad-pic{width:56px;padding-right:0}
+#pkAds499Content td.ad-nm{min-width:170px}
+#pkAds499Content .ad-th{flex:0 0 44px;display:block;line-height:0}
+#pkAds499Content .ad-th img{width:44px;height:78px;object-fit:cover;border-radius:6px;border:1px solid var(--line);display:block}
+#pkAds499Content li.ad-of .ad-th{flex-basis:52px}
+#pkAds499Content li.ad-of .ad-th img{width:52px;height:92px}
+
+/* Sheets tables (sheet-table.js) on this page, 25 Nov 2026 */
+#pkAds499Content .ad-phone{display:none}
+#pkAds499Content tr.ad-off{opacity:.45}
+#pkAds499Content .sx-t td small{display:block;color:var(--muted);font-size:11.5px}
+@media(max-width:760px){#pkAds499Content .ad-phone{display:inline-flex;align-items:center;min-height:44px;margin-bottom:8px}}
+/* Phone (375px): text 13px or more, and a figure is a 44px tap (Kate, 25 Nov 2026) */
+@media(max-width:760px){
+  #pkAds499Content .ad-tile .l,#pkAds499Content .ad-tile .h,#pkAds499Content .ad-subh,#pkAds499Content .ad-tag,#pkAds499Content .ad-cap,#pkAds499Content summary,#pkAds499Content .sx-t td small{font-size:13px}
+  #pkAds499Content .ad-pace span,#pkAds499Content .ad-status span{font-size:13px}
+  #pkAds499Content svg text{font-size:13px!important}
+  #pkAds499Content td .dn,#pkAds499Content .ad-tile .dn,#pkAds499Content li .dn{display:inline-flex;align-items:center;min-height:44px}
+  #pkAds499Content .ad-tile .dn{min-height:0}
+}
+/* ADS 499 Packages Performance (Kate, 26 Nov 2026): the Not counted list has no slide image, so a small labelled box stands in for it */
+#pkAds499Content .ad-th.ad-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:56px;height:56px;box-sizing:border-box;border:1px dashed var(--line);border-radius:6px;line-height:1.15;text-align:center;font-size:13px;color:var(--muted)}
+#pkAds499Content .ad-th.ad-ph em{font-style:normal}
+
+/* ADS 499 additions: the price-test row sits greyed beside the total; phone taps and text meet 44px and 13px. */
+#pkAds499Content tr.ad-pt td{background:var(--surface2)!important;color:var(--muted)}
+@media(max-width:760px){#pkAds499Content summary{min-height:44px;display:flex;align-items:center}#pkAds499Content .ad-status{font-size:13px}}

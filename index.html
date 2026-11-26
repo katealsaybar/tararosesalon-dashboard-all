@@ -21,13 +21,13 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=b9f88b76"></script>
-<script src="js/page-dates.js?v=2125b099"></script>
+<script src="js/pages.js?v=cce0a529"></script>
+<script src="js/page-dates.js?v=7c6f23ed"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
 <!-- Kate, 18 Nov 2026: the XLSX and CSV buttons for the WHOLE page, drawn in the masthead (js/page-export.js; showView calls TRSExport.sync). -->
-<script src="js/page-export.js?v=13ba4d37"></script>
+<script src="js/page-export.js?v=7f841bdb"></script>
 <!-- Kate, 12 Nov 2026: the account menu that replaces Sign out for Level 6 (js/account-menu.js, css/account-menu.css; called from enterDashboard). -->
 <script src="js/account-menu.js?v=701fb982"></script>
 <!-- Read before supabase-js tidies the address: a reset link's #type=recovery, or an auth error. -->
@@ -3650,6 +3650,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/recruitment.css?v=80ca2a6a">
 <link rel="stylesheet" href="css/nov-blasts.css?v=23dbdf6b">
 <link rel="stylesheet" href="css/active-deals.css?v=5cfe18df">
+<link rel="stylesheet" href="css/pk-ads499.css?v=53c0a1ee">
 <link rel="stylesheet" href="css/pk-hair-colour.css?v=a23b23e5">
 <link rel="stylesheet" href="css/pk-back-to-school.css?v=9470d555">
 <link rel="stylesheet" href="css/discounts-vouchers.css?v=ef15eb90">
@@ -3736,6 +3737,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       svc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'js/service-cal.js?v=0656bc6b'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'js/sheet-table.js?v=12348511', 'js/active-deals.js?v=2b14256f'],
+      pka4: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-ads499.js?v=b1c415d7'],
       pkhc: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-hair-colour.js?v=6905c3c7'],
       pkbs: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-back-to-school.js?v=404b3bc4'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
@@ -4775,6 +4777,15 @@ table.tp-cmp td.bad{color:var(--bad)}
     </div>
   </div>
 
+  <!-- ADS 499 PACKAGES PERFORMANCE (Kate, 26 Nov 2026): the three AED 499 Meta-ads beauty packages (ADS - PACKAGE), in Active Deals Performance's format. Reads the masthead's Branch and Period (pages.js filtered + nopulse, dashboard.js
+       NOPULSE_REDRAW). Level 2 and above, no client names. pk_ads499() (migrations/pk_ads499.sql); pk-ads499.js draws it. Reached from the Campaigns Directory. -->
+  <div id="view-pkads499" style="display:none">
+    <div class="lg-shell lg-shell-wide rv-shell rv-norail" id="a4Shell">
+      <aside class="lg-side" id="a4Side"><nav class="side-nav" aria-label="On this page"><div class="side-k">On this page</div></nav></aside>
+      <div class="lg-doc rv-doc" id="a4Doc"><main id="pkAds499Content"></main></div>
+    </div>
+  </div>
+
   <!-- HAIR COLOUR PACKAGES PERFORMANCE (Kate, 26 Nov 2026): the archived 1HAIR COLOR packages, in Active Deals Performance's format. Reads the masthead's Branch and Period (pages.js filtered + nopulse, dashboard.js
        NOPULSE_REDRAW). Level 2 and above, no client names. pk_hair_colour() (migrations/pk_hair_colour.sql); pk-hair-colour.js draws it. Reached from the Campaigns Directory. -->
   <div id="view-pkhaircolour" style="display:none">
@@ -5084,7 +5095,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/target-links.js?v=72e70df1"></script>
 <script src="js/drill.js?v=459d4a99"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
-<script src="js/dashboard.js?v=2820f423"></script>
+<script src="js/dashboard.js?v=dfc1f4aa"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
 <script src="js/auth.js?v=3823f956"></script>
 <!-- Who is on the site now (29 Oct 2026): joins the Realtime Presence channel and says it is open, for the green dot in the complaint pickers. -->
@@ -5893,6 +5904,7 @@ function showView(view, el){
   if (view === 'leavecal') renderLeaveCal();
   if (view === 'servicecal') renderServiceCal();
   if (view === 'dealsperf') renderDealsPerf();
+  if (view === 'pkads499') renderAds499();
   if (view === 'pkhaircolour') renderHairColour();
   if (view === 'pkschool') renderBackToSchool();
   if (view === 'discountsvouchers') renderDiscountsVouchers();
