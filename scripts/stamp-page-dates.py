@@ -100,6 +100,7 @@ OWN = {
     'stripedeposits': ['js/stripe-phorest.js'],
     'glowclub': ['js/glow-club.js', 'css/glow-club.css'],
     'dealsperf': ['js/active-deals.js', 'css/active-deals.css'],
+    'coursesperf': ['js/courses-perf.js', 'css/courses-perf.css'],
     'pkkeratin': ['js/pk-keratin.js', 'css/pk-keratin.css'],
     'pkpamper': ['js/pk-pamper.js', 'css/pk-pamper.css'],
     'pkdubai': ['js/pk-dubai.js', 'css/pk-dubai.css'],

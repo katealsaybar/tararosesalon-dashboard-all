@@ -54,6 +54,11 @@
   "fp": "5d48bf89ca4c",
   "modified": "2026-11-18"
  },
+ "coursesperf": {
+  "created": "2026-11-26",
+  "fp": "d989b9b7964f",
+  "modified": "2026-11-26"
+ },
  "dailyperf": {
   "created": "2026-10-13",
   "fp": "e4241bc958d5",
@@ -71,7 +76,7 @@
  },
  "dealsperf": {
   "created": "2026-10-23",
-  "fp": "30b251fc37ff",
+  "fp": "df16f964a802",
   "modified": "2026-11-25"
  },
  "depositcheck": {
