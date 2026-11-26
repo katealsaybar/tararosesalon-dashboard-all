@@ -45,7 +45,7 @@
   const SALORD = { KCA: 0, SAA: 1, MC: 2, AQ: 3 }, STORD = { out: 0, u1: 1, ok: 2 };
   const PRIOS = { A: ['A'], AB: ['A', 'B'] };
   const S = { rows: null, lines: [], ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, stamp: '', planAt: null, refreshedAt: null, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
-    prio: 'A', cover: 0, filt: 'all', hk: 'qty', ak: 'rule', built: false, ro: null, dem: null, demInfo: null, dm: 'book' };
+    prio: 'A', cover: 0, filt: 'all', hk: 'qty', ak: 'rule', built: false, ro: null, dem: null, demInfo: null, dm: 'book', ai: {} };
   let TO = null, TS = null, TB = null, memoM = {};
 
   // ── small helpers ────────────────────────────────────────────────────────────────────
@@ -330,8 +330,8 @@
   function colourRows(c) {
     return all('book').filter(r => r.col && (c === 'ALL' ? inSel(r.b) : r.b === c)).sort((x, y) => y.mn - x.mn || SALORD[x.b] - SALORD[y.b] || x.name.localeCompare(y.name));
   }
-  function prodView(c) {
-    return { id: 'prod', label: 'Possible products', load: async () => {
+  function planView(c) {
+    return { id: 'plan', label: 'The plan\'s colour products', load: async () => {
       const rs = colourRows(c), many = c === 'ALL' && S.br.length > 1;
       return { cols: [{ k: 'p', l: 'Product' }].concat(many ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'mn', l: 'Min', t: 'num' }, { k: 'need', l: 'Needed', t: 'num' }, { k: 'in', l: 'In stock', t: 'num' }, { k: 'on', l: 'On order', t: 'num' },
           { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' }, { k: 'a', l: 'Max AED', t: 'aed' }]),
@@ -340,6 +340,46 @@
         foot: { p: 'Total: ' + plural(rs.length, 'product'), qm: sum(rs, 'qm'), q: sum(rs, 'q'), a: Math.round(sum(rs, 'aed') * 100) / 100 },
         empty: 'No colour product in the plan for the salons and Priority picked.',
         note: '<b>Not a recipe per service.</b><br>Phorest does not record which client a tube was used on.<br>These are the colour products the plan scales by how busy colour is.<br><b>Min</b> = one week of use, from Phorest Product Usage. The list is ranked by it.<br><b>Needed</b> = what the product needs over the weeks counted = Min x the colour weeks (' + wk(cover()) + ' of cover).<br>Priority ' + (S.prio === 'A' ? 'A' : 'A and B') + ': change it at the top.<br>Tap a product to see how its order is worked out.' };
+    } };
+  }
+  // Claude's picks (Kate, 26 Nov 2026: "gamitan nga natin to ng API anthropic para makapag decide sya which possible products shall be used"):
+  // the edge function oos-products (supabase/functions/oos-products) reads the salon's colour products from the plan with the caller's own sign-in and decides, for each KIND of colour service,
+  // which of them will possibly be used, with a rough share and a one-line reason. It sees only the kinds and the product names, never a client. The answer is kept per salon and product list
+  // (oos_product_ai), so opening this window is not a call unless the list changed. It is Claude's estimate from names, NOT a measured recipe. If it cannot answer the tab says why and shows the plan's list.
+  async function aiGet(c) {
+    const a = S.ai[c]; if (a && a.ok) return a;
+    try {
+      const r = await sb.functions.invoke('oos-products', { body: { salon: c } });
+      if (r.error) { let m = ''; try { m = (await r.error.context.json()).error; } catch (e) { /* no body */ } throw new Error(m || 'Claude could not answer just now.'); }
+      const d = r.data || {}; if (d.error) throw new Error(d.error);
+      return (S.ai[c] = { ok: true, kinds: d.kinds || [], model: d.model || '', cached: !!d.cached, at: d.generated_at || '' });
+    } catch (e) { return { ok: false, err: (e && e.message) || 'Claude could not answer just now.' }; }
+  }
+  function prodView(c, k) {
+    const plan = planView(c);
+    return { id: 'pick', label: 'Possible products', load: async () => {
+      const cs = c === 'ALL' ? S.br.slice() : [c], res = await Promise.all(cs.map(aiGet)), good = res.filter(x => x.ok);
+      if (!good.length) {
+        const base = await plan.load();
+        return Object.assign({}, base, { note: '<b>Claude did not answer.</b><br>' + esc(res[0].err) + '<br>Below are the colour products of the plan.<br>' + base.note });
+      }
+      const ws = wksOf(k), many = cs.length > 1, byKey = {};
+      colourRows(c).forEach(r => { byKey[r.key] = r; });
+      const bookedOf = (sc, kd) => ws.reduce((t, j) => { const w = S.dem[sc].wk[j - 1], g = w && w.grp.filter(x => x[0] === kd)[0]; return t + (g ? g[1] : 0); }, 0);
+      const kindTot = {}, rows = [];
+      cs.forEach((sc, i) => { const a = res[i]; if (!a.ok) return; a.kinds.forEach(kd => { const b = bookedOf(sc, kd.kind); kindTot[kd.kind] = (kindTot[kd.kind] || 0) + b;
+        kd.products.forEach((p, rank) => { const r = byKey[p.key]; if (!r || !b) return; rows.push({ sc, kind: kd.kind, booked: b, rank, share: p.share, why: p.why, r }); }); }); });
+      rows.sort((x, y) => (kindTot[y.kind] - kindTot[x.kind]) || (SALORD[x.sc] - SALORD[y.sc]) || (x.rank - y.rank));
+      const out = rows.map(x => { const r = x.r, h = prodSpec(r, 'how'), o = prodSpec(r, 'orders'), bk = bkSpec(x.sc, k);
+        return { kind: x.kind + ' · ' + n0(x.booked) + ' booked', p: r.name, s: BN[r.b], sh: x.share, why: x.why, need: r2f(r.mn * r.fw), in: r.s, qm: r.qm, q: r.q,
+          _dn: { kind: bk, p: h, sh: h, need: h, in: h, qm: h, q: h } }; });
+      const when = good.filter(x => x.at).map(x => fdt(x.at))[0];
+      return { cols: [{ k: 'kind', l: 'Service' }, { k: 'p', l: 'Product' }].concat(many ? [{ k: 's', l: 'Salon' }] : []).concat([{ k: 'sh', l: 'Share %', t: 'num' }, { k: 'need', l: 'Needed', t: 'num' }, { k: 'in', l: 'In stock', t: 'num' }, { k: 'qm', l: 'Min order', t: 'num' }, { k: 'q', l: 'Max order', t: 'num' },
+          { k: 'why', l: 'Why Claude picked it' }]),
+        rows: out, empty: 'Nothing colour is booked for the weeks counted, so there is nothing to pick products for.',
+        sub: 'Claude\'s estimate from product names, not a measured recipe',
+        note: '<b>Claude\'s estimate, not a measured recipe.</b><br>Phorest does not record which client a tube was used on.<br>Claude read the kind of colour service and the product names. Nothing else: no clients.<br><b>Share %</b> = Claude\'s rough share of that kind\'s colour use.<br><b>Needed</b> = Min x the colour weeks.<br>' +
+          (res.length > good.length ? '<b>' + (res.length - good.length) + ' salon did not answer</b> and is left out.<br>' : '') + (when ? 'Made ' + esc(when) + (good.every(x => x.cached) ? ', kept so Claude is not asked again until the plan\'s product list changes.' : '.') + '<br>' : '') + 'Tap a product to see how its order is worked out.' };
     } };
   }
   function bkSpec(c, k) {
@@ -354,7 +394,7 @@
         const foot = { g: 'Total', n: tot }; ws.forEach(j => { foot['w' + j] = d.wk[j - 1].now; });
         return { cols, rows, foot, empty: 'Nothing colour is booked yet.',
           note: (one ? '' : ws.map(j => '<b>Week ' + j + '</b> ' + rangeTxt(j)).join('<br>') + '<br>') + 'Toners and gloss, roots, foils, balayage, ombre, all over colour and bleach count.<br>Colour lock treatments, polish, brows and tints do not.<br>Each is one booked service in Phorest Staff Appointments. Cancelled ones are not in it.' };
-      } }, prodView(c)] };
+      } }, prodView(c, k), planView(c)] };
   }
   function histSpec(c, k) {
     const d = demFor(c), ws = wksOf(k).filter(j => d.wk[j - 1]), one = ws.length === 1;
@@ -369,7 +409,7 @@
         rows, foot: { w: one ? 'Colour order factor' : 'Colour weeks counted (' + ws.length + ' weeks)', now: ws.reduce((a, j) => a + d.wk[j - 1].now, 0), pace: rows.reduce((a, r) => a + r.pace, 0), ty: rows.reduce((a, r) => a + r.ty, 0), ex: rows.reduce((a, r) => a + r.ex, 0), f: one ? 'x ' + d.wk[ws[0] - 1].f.toFixed(2) : fs.toFixed(2) },
         note: '<b>Estimate.</b><br>Pace = what is booked now x how many services weeks like it end at per one booked by then.<br>Expected = ' + ws.map(j => 'week ' + j + ': ' + Math.round(100 * WTS[j - 1]) + '% pace + ' + (100 - Math.round(100 * WTS[j - 1])) + '% a normal week').join(' · ') + '.<br>Further weeks are less booked, so they lean more on a normal week.<br><b>Capped</b> = a week cannot go above the busiest of the last 12 weeks + 20%, the chairs are limited.<br>Tried on 11 weeks leaving one out: a normal week alone missed 16%, this 7% (week 1), 8% (week 2), 10% (week 3), 11% (week 4).<br>Cancellations, walk-ins and holidays are not modelled. Only about 12 weeks of bookings are held, so December is the first time it meets the busy weeks.' };
     } };
-    return { title: (one ? 'How ' + rangeTxt(ws[0]) + ' is expected' : 'How the weeks counted are expected') + ', ' + lbl(c), sub: 'Colour services, ' + lbl(c) + ' · ' + (one ? rangeTxt(ws[0]) : ws.length + ' weeks of cover'), cur: 'AED', sk: slug('oos-bh-' + c + '-' + (k || 0)), views: [steps, weeks, prodView(c)] };
+    return { title: (one ? 'How ' + rangeTxt(ws[0]) + ' is expected' : 'How the weeks counted are expected') + ', ' + lbl(c), sub: 'Colour services, ' + lbl(c) + ' · ' + (one ? rangeTxt(ws[0]) : ws.length + ' weeks of cover'), cur: 'AED', sk: slug('oos-bh-' + c + '-' + (k || 0)), views: [steps, weeks, prodView(c, k), planView(c)] };
   }
 
   // ── THE PAGE (built once, then redrawn from the data) ────────────────────────────────
