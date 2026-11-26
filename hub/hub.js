@@ -655,7 +655,7 @@
     var needPages = typeof TRS_PAGES === 'undefined';
     function js(src) { return new Promise(function (ok) { var sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = ok; document.head.appendChild(sc); }); }
     var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/css/account-menu.css?v=47fdee74'; document.head.appendChild(css);
-    KB._acct = (needPages ? js('/js/pages.js?v=b031a114') : Promise.resolve())
+    KB._acct = (needPages ? js('/js/pages.js?v=8c21a88c') : Promise.resolve())
       .then(function () { return js('/js/account-menu.js?v=701fb982'); })
       .then(function () { if (needPages && typeof trsAccessLoad === 'function') return trsAccessLoad(c); });
     return KB._acct;

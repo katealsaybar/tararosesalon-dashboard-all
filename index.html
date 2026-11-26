@@ -21,8 +21,8 @@
 <link rel="shortcut icon" href="assets/favicon.ico">
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
-<script src="js/pages.js?v=b031a114"></script>
-<script src="js/page-dates.js?v=90dae4b8"></script>
+<script src="js/pages.js?v=8c21a88c"></script>
+<script src="js/page-dates.js?v=f1097bf4"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3740,12 +3740,12 @@ table.tp-cmp td.bad{color:var(--bad)}
       svc: [LGX, 'js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'js/service-cal.js?v=0656bc6b'],
       // Active Deals Performance (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       ad:  [LGX, 'js/sheet-table.js?v=12348511', 'js/active-deals.js?v=2b14256f'],
-      pkkr: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-keratin.js?v=df564e3d'],
-      pkpp: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-pamper.js?v=a2541eae'],
-      pka4: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-ads499.js?v=b1c415d7'],
-      pkhc: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-hair-colour.js?v=6905c3c7'],
-      pkbs: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-back-to-school.js?v=404b3bc4'],
-      pkdir: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-directory.js?v=f35e73db'],
+      pkkr: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-keratin.js?v=e80ccecd'],
+      pkpp: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-pamper.js?v=6d127e75'],
+      pka4: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-ads499.js?v=5d2e4361'],
+      pkhc: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-hair-colour.js?v=57daacab'],
+      pkbs: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-back-to-school.js?v=3982a745'],
+      pkdir: [LGX, 'js/sheet-table.js?v=12348511', 'js/pk-directory.js?v=02d14d92'],
       // Discounts and Vouchers (23 Oct 2026): one file, and the spreadsheet export its Save as xlsx button uses.
       dv:  [LGX, 'js/discounts-vouchers.js?v=10c65973'],
       o2:  ['js/one2ones.js?v=f764e8cc'],
@@ -3986,7 +3986,7 @@ table.tp-cmp td.bad{color:var(--bad)}
     <a class="nav-sub lvl2" data-wvb="b1" href="/?view=wvblast#wvB1" onclick="if(trsPlain(event)){event.preventDefault();wvGoBlast('b1', this)}">Blast 1</a>
     <a class="nav-sub" href="/?view=dealsperf" onclick="if(trsPlain(event)){event.preventDefault();showView('dealsperf', this)}">Active Deals Performance</a>
     <a class="nav-sub" href="/?view=discountsvouchers" onclick="if(trsPlain(event)){event.preventDefault();showView('discountsvouchers', this)}">Discounts and Vouchers</a>
-    <div class="nav-subhead">Archived packages</div>
+    <div class="nav-subhead">Packages</div>
     <a class="nav-sub" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', this)}">Campaigns Directory</a>
   </div>
 

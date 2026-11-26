@@ -1,4 +1,4 @@
-// Campaigns Directory (Kate, 26 Nov 2026): a table of contents of the archived package pages (Keratin, Pamper 2025, ADS 499, Hair Colour, Back to School and, once its page
+// Campaigns Directory (Kate, 26 Nov 2026): a table of contents of the package pages (Keratin, Pamper 2025, ADS 499, Hair Colour, Back to School and, once its page
 // is on the dashboard, Dubai Daily Deals). One row per package group: when it launched, when it last sold, what it sold, and a link to its own page. Sorted oldest launch first
 // by default; A to Z, most sales and most AED are one tap away in "Sort by", and every table heading has the Google Sheets menus.
 // Each group's figures are the ones its own page shows in All time, read with the group's own function in summary mode (pk_keratin(true), pk_pamper_2025(true), pk_ads499(true),
@@ -102,17 +102,17 @@ function pkdTable() {
 
 function pkdPaint() {
   const el = document.getElementById('pkDirContent'); if (!el) return;
-  const head = `<div class="ad-top"><div><h1 class="ad-t">Campaigns Directory</h1><p class="ad-sub">${pkdAt ? 'As of ' + pkdEsc(pkdWhen(pkdAt)) + '. ' : ''}Every archived package page, in one list.</p></div>
+  const head = `<div class="ad-top"><div><h1 class="ad-t">Campaigns Directory</h1><p class="ad-sub">${pkdAt ? 'As of ' + pkdEsc(pkdWhen(pkdAt)) + '. ' : ''}Every package page, in one list.</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderCampaignsDirectory(true)">Refresh</button></div></div>`;
   if (!pkdRows.length) { el.innerHTML = head + `<div class="ad-state">The directory did not load. Press Refresh to try again.</div>`; return; }
   const G = pkdRows, big = G.slice().sort((a, b) => b.sales - a.sales)[0], one = G.slice().sort((a, b) => a.sales - b.sales)[0];
   const first = G.map(g => g.first).filter(Boolean).sort()[0], last = G.map(g => g.last).filter(Boolean).sort().slice(-1)[0];
   let h = head + whyWall([
-    ['Why this page', 'Each archived package group has its own page. This is the one list that points to all of them, oldest launch first, so nobody has to remember they exist.'],
+    ['Why this page', 'Each package group has its own page. This is the one list that points to all of them, oldest launch first, so nobody has to remember they exist.'],
     ['Why now', 'Active Deals Performance covers only the 2026 brochure. The older package groups were archived in Phorest, so their results sit on separate pages that are easy to lose.'],
     ['If we do nothing', 'Nobody finds the old results, and the next package is priced without knowing what the last ones sold.']]);
   h += `<section class="ad-card" id="pd-directory"><h2>Directory</h2>
-    <p class="ad-sub">${G.length} archived package groups, from ${pkdEsc(pkdDay(first))} to ${pkdEsc(pkdDay(last))}. Tap a group name to open its page, or a number to see that group's packages.</p>
+    <p class="ad-sub">${G.length} package groups, from ${pkdEsc(pkdDay(first))} to ${pkdEsc(pkdDay(last))}. Tap a group name to open its page, or a number to see that group's packages.</p>
     <p class="ad-sub"><b>What to watch.</b> ${pkdEsc(big.name)} has ${pkdOpen(big, pkdN(big.sales) + ' sales', big.sales)}, and ${pkdEsc(one.name)} has only ${pkdOpen(one, pkdN(one.sales) + ' sale' + (one.sales === 1 ? '' : 's'), one.sales)}. Groups are not added up: two of them can share an offer.</p>
     ${pkdFailed.length ? `<p class="ad-sub"><span class="ad-status warn"><span aria-hidden="true">!</span>${pkdEsc(pkdFailed.join(', '))} did not load, so ${pkdFailed.length === 1 ? 'it is' : 'they are'} not listed. Press Refresh.</span></p>` : ''}
     <div class="pd-bar"><div class="pd-sort"><label for="pkdSort">Sort by</label><select id="pkdSort" aria-label="Sort by">${PKD_SORTS.map(s => `<option value="${s[0]}">${s[1]}</option>`).join('')}</select></div>

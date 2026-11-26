@@ -203,7 +203,7 @@ function bsPaint() {
   if (!el) return;
   const head = `<div class="ad-top"><div><h1 class="ad-t">Back to School Offer Performance</h1><p class="ad-sub">${bsData ? 'As of ' + bsEsc(bsWhen(bsData.at)) + '. Phorest sales, the archived package Back to School Offer (AED 399).' : ''}</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderBackToSchool(true)">Refresh</button>
-    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">All archived package pages</a></div></div>`;
+    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">All package pages</a></div></div>`;
   if (bsErr || !bsData) { el.innerHTML = head + `<div class="ad-state">${bsEsc(bsErr || 'No report yet.')}</div>`; bsRail(false); return; }
 
   const rs = bsWr({}), n = rs.length, aed = bsSum(rs, s => s.aed), nc = bsCli(rs);

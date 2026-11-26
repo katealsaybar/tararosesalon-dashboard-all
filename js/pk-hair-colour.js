@@ -191,7 +191,7 @@ function hcPaint() {
   if (!el) return;
   const head = `<div class="ad-top"><div><h1 class="ad-t">Hair Colour Packages Performance</h1><p class="ad-sub">${hcData ? 'As of ' + hcEsc(hcWhen(hcData.at)) + '. Phorest sales, the archived packages of the 1HAIR COLOR category.' : ''}</p></div>
     <div class="ad-toplinks"><button class="ad-btn" type="button" onclick="renderHairColour(true)">Refresh</button>
-    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">All archived package pages</a></div></div>`;
+    <a class="ad-btn" href="/?view=pkdir" onclick="if(trsPlain(event)){event.preventDefault();showView('pkdir', null)}">All package pages</a></div></div>`;
   if (hcErr || !hcData) { el.innerHTML = head + `<div class="ad-state">${hcEsc(hcErr || 'No report yet.')}</div>`; hcRail(false); return; }
 
   const rs = hcWr({}), n = rs.length, aed = hcSum(rs, s => s.aed), nc = hcCli(rs);

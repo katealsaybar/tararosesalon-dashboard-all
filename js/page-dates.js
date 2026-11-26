@@ -122,7 +122,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "depositcheck": "4e5d5fae16",
   "glowclub": "2f30491eac",
   "dealsperf": "30b251fc37",
-  "pkdir": "2061fb1f85",
+  "pkdir": "c1251ca9d2",
   "discountsvouchers": "1cb3abf82b",
   "stylists": "c56becb713",
   "orgchart": "573d65256c"
