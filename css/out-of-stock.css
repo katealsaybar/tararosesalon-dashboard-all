@@ -122,3 +122,5 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 .oos-ck{width:20px;height:20px;accent-color:var(--text);cursor:pointer}
 tr.oos-skip td{color:var(--muted2,var(--muted))}
 tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
+.oos-ref4{margin:8px 0 12px}
+.oos-ref4 .oos-ln{display:block;margin:3px 0}

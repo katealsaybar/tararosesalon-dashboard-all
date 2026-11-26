@@ -676,6 +676,15 @@
         <p><b>Why it matters.</b> Each supplier is ordered separately.</p>
         <p class="watch"><b>What to watch.</b> <span id="oosW3"></span></p>
       </div>
+      <div class="oos-ctl oos-ctl4">
+        <label for="oosDemand4">Order for</label>
+        <select id="oosDemand4" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
+        <label for="oosPrio4">Priority</label>
+        <select id="oosPrio4" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
+        <label for="oosCover4">Weeks of cover</label>
+        <select id="oosCover4" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
+      </div>
+      <div class="oos-ref4" id="oosRef4"></div>
       <div class="oos-bar oos-bar-plain"><button type="button" class="cm-pill" id="oosMore3" aria-pressed="false">All columns</button><button type="button" class="cm-pill oos-phone" data-sxcm="oosSup">Sort and filter</button><span class="oos-sp"></span>${typeof rexButtons === 'function' ? rexButtons('oosExportSup') : ''}</div>
       <div class="oos-card"><table id="oosSupTbl"></table></div>
     </details>
@@ -701,8 +710,11 @@
     const C = cover(), usual = seasonCover(dubaiToday());
     $('oosCover').value = String(C); $('oosPrio').value = S.prio;
     $('oosDemand').value = S.dm;
+    if ($('oosCover4')) { $('oosCover4').value = String(C); $('oosPrio4').value = S.prio; $('oosDemand4').value = S.dm; }   // the same pickers in section 4
     $('oosCoverT').textContent = 'Order when under the order point (Min x weeks; colour counts each week ahead at its own expected size). ' + (C === usual ? 'This is the usual for today.' : 'Not the usual for today.') + ' Usual: 2 weeks from 15 Nov to 31 Dec, 1 week the rest of the year.';
   }
+  // The Refresh stock now button and what it last said: in the Last sync block and again in section 4 (Kate, 26 Nov 2026: "make also available" in Order by supplier). sfx '' = the top one, '4' = section 4.
+  const refHtml = sfx => (sfx ? fresh().text : '') + '<span class="oos-ln"><button type="button" class="cm-pill" id="oosRefresh' + sfx + '"' + (S.refreshing ? ' disabled' : '') + '>' + (S.refreshing ? 'Reading Phorest…' : 'Refresh stock now') + '</button></span>' + (S.refMsg ? '<span class="oos-ln" role="status">' + esc(S.refMsg) + '</span>' : '');
   function paintAnswer() {
     const cs = S.br, T = cs.map(salTot), aed = sum(T, 'aed'), aedm = sum(T, 'aedm'), out = sum(T, 'out'), n = sum(T, 'n'), f = fresh();
     const a = $('oosAns'), a0 = $('oosAns0'), a2 = $('oosAns2'), a5 = $('oosAns5');
@@ -722,9 +734,8 @@
     const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
     const ord = S.ordersOk && S.ordersAt ? ln('<b>Supplier orders not yet delivered:</b> ' + fdt(S.ordersAt)) : '';
     const plc = (S.planAt ? ln('<b>Weekly Product Plan last changed:</b> ' + fdt(S.planAt)) : '') + (S.refreshedAt ? ln('<b>This page refreshed itself:</b> ' + fdt(S.refreshedAt)) : '');
-    $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + plc + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.') +
-      '<span class="oos-ln"><button type="button" class="cm-pill" id="oosRefresh"' + (S.refreshing ? ' disabled' : '') + '>' + (S.refreshing ? 'Reading Phorest…' : 'Refresh stock now') + '</button></span>' +
-      (S.refMsg ? '<span class="oos-ln" id="oosRefMsg" role="status">' + esc(S.refMsg) + '</span>' : '');
+    $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + plc + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.') + refHtml('');
+    const r4 = $('oosRef4'); if (r4) r4.innerHTML = refHtml('4');   // the same button and answer in section 4, beside the shelf date
     const w = $('oosAns4'); w.hidden = S.ordersOk; w.textContent = S.ordersOk ? '' : 'On-order counts are not loaded yet. On order shows 0 for every product, so something that is already on its way can still show as short.';
   }
   // the best example for the page: a product with something on the shelf and something to order, biggest AED first (a real row, never typed in)
@@ -910,7 +921,7 @@
       if (v) { S.filt = v.dataset.of; host.querySelectorAll('[data-of]').forEach(b => { b.classList.toggle('on', b === v); b.setAttribute('aria-pressed', b === v); }); TO.page = 0; TO.draw(); paintW2(); offsets(); return; }
       if (e.target.closest('#oosMore')) { TO.toggleMore(); e.target.closest('#oosMore').classList.toggle('on', TO.more); e.target.closest('#oosMore').setAttribute('aria-pressed', TO.more); offsets(); return; }
       if (e.target.closest('#oosMore3')) { TS.toggleMore(); e.target.closest('#oosMore3').classList.toggle('on', TS.more); e.target.closest('#oosMore3').setAttribute('aria-pressed', TS.more); return; }
-      if (e.target.closest('#oosRefresh')) { refreshStock(); return; }
+      if (e.target.closest('#oosRefresh, #oosRefresh4')) { refreshStock(); return; }
       if (e.target.closest('#oosClear')) { TO.clear(); TO.draw(); return; }
       if (e.target.closest('#oosPrev')) { if (TO.page > 0) { TO.page--; TO.draw(); } return; }
       if (e.target.closest('#oosNext')) { TO.page++; TO.draw(); return; }
@@ -933,7 +944,7 @@
         setTimeout(() => { refreshLists(); offsets(); const t = fkey && Array.from(host.querySelectorAll('input.oos-ed, input.oos-ct')).find(y => fkOf(y) === fkey); if (t) { t.focus(); try { t.select(); } catch (z) {} } }, 60);
         return;
       }
-      const id = e.target.id;
+      const id = /^(oosDemand|oosPrio|oosCover)4$/.test(e.target.id) ? e.target.id.slice(0, -1) : e.target.id;   // the pickers in section 4 do the same as the top ones
       if (id === 'oosDemand') { S.dm = e.target.value === 'typ' ? 'typ' : 'book'; TO.clear(); TS.clear(); TO.page = 0; draw(); }
       else if (id === 'oosPrio') { S.prio = e.target.value; TO.clear(); TS.clear(); TO.page = 0; draw(); }
       else if (id === 'oosCover') { S.cover = +e.target.value; TO.clear(); TS.clear(); TO.page = 0; draw(); }
