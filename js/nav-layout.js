@@ -49,7 +49,10 @@
         while (j < kids.length && isKid(kids[j])) { els.push(kids[j]); j++; }
         i = j - 1;
         var k = keyOf(el);
-        units[k] = { els: els, label: txt(el) };
+        // Kate, 26 Nov 2026: the pages inside a heading (Stock & Supplier Spend) can be put in her own order. kids = [{ key, el }] in the original order; null when two of them share a key (then they stay as built).
+        var kk = els.slice(1).map(function (x) { return { key: keyOf(x), el: x, name: txt(x) }; }), seen = {};
+        if (kk.some(function (x) { if (seen[x.key]) return true; seen[x.key] = 1; return false; })) kk = [];
+        units[k] = { els: els, label: txt(el), kids: kk };
         if (el.getAttribute('data-nav-sub')) HINT[k] = el.getAttribute('data-nav-sub');
         (cur ? cur.p : grp.loose).push(k);
       }
@@ -83,6 +86,17 @@
         (ls.p || []).forEach(function (k) { if (known[k] && !used[k]) { used[k] = 1; s.p.push(k); } });
       });
     });
+    // Kate, 26 Nov 2026: g.k = { headingKey: [pageKey, ...] }, the order of the pages inside that heading. It follows the heading to the group the heading ended up in.
+    layout.groups.forEach(function (lg) {
+      if (!lg.k || typeof lg.k !== 'object') return;
+      Object.keys(lg.k).forEach(function (pk) {
+        if (!Array.isArray(lg.k[pk])) return;
+        out.forEach(function (g) {
+          var here = g.loose.indexOf(pk) > -1 || g.subs.some(function (s) { return s.p.indexOf(pk) > -1; });
+          if (here) { g.k = g.k || {}; g.k[pk] = lg.k[pk].filter(function (x) { return typeof x === 'string'; }); }
+        });
+      });
+    });
     def.forEach(function (dg) {
       var g = grp(dg.n);
       dg.loose.forEach(function (k) {
@@ -100,6 +114,22 @@
     return out;
   }
 
+  // The rows of one unit (the row, then the pages inside it) with the inside pages in the order g.k gives. A page the order does not mention keeps its place after the ones it does.
+  function unitKids(u, order) {
+    var kids = u.kids || [];
+    if (!order || !order.length || !kids.length) return kids;
+    var by = {}, out = [];
+    kids.forEach(function (x) { by[x.key] = x; });
+    order.forEach(function (key) { if (by[key]) { out.push(by[key]); delete by[key]; } });
+    kids.forEach(function (x) { if (by[x.key]) out.push(x); });
+    return out;
+  }
+  function unitEls(g, k, units) {
+    var u = units[k]; if (!u) return [];
+    if (!u.kids || !u.kids.length) return u.els;
+    return [u.els[0]].concat(unitKids(u, g.k && g.k[k]).map(function (x) { return x.el; }));
+  }
+
   // Put the live sidebar's rows in the order of `tree`. Everything is worked out first; the page is touched only once that has not thrown.
   function apply(aside, ext, tree) {
     var plan = [];
@@ -107,13 +137,13 @@
       var ge = ext.groupEls[g.n];
       if (!ge && !g.c) return;
       var seq = [], heads = [];
-      g.loose.forEach(function (k) { if (ext.units[k]) seq.push.apply(seq, ext.units[k].els); });
+      g.loose.forEach(function (k) { seq.push.apply(seq, unitEls(g, k, ext.units)); });
       g.subs.forEach(function (s) {
         var h = ext.heads[g.n + '|' + s.n];
         if (!h) { h = document.createElement('div'); h.className = 'nav-subhead'; h.textContent = s.n; }
         seq.push(h);
         heads.push({ h: h, key: s.n, text: s.l || s.n });
-        s.p.forEach(function (k) { if (ext.units[k]) seq.push.apply(seq, ext.units[k].els); });
+        s.p.forEach(function (k) { seq.push.apply(seq, unitEls(g, k, ext.units)); });
       });
       if (!ge) {
         // A section of her own: drawn only when it holds a page (a sub-section heading on its own is not a page).
@@ -144,12 +174,20 @@
       o.loose = (g.loose || []).slice();
       o.subs = (g.subs || []).map(function (s) { var so = { n: s.n }; if (s.l) so.l = s.l; so.p = (s.p || []).slice(); return so; });
       if (g.c) o.c = 1;
+      var kk = kidsOf(g); if (kk) o.k = kk;
       return o;
     }) });
   }
-  function treeToLayout(tree) { return { v: 1, groups: tree.map(function (g) { var o = { n: g.n, loose: g.loose.slice(), subs: g.subs.map(function (s) { var so = { n: s.n, p: s.p.slice() }; if (s.l) so.l = s.l; return so; }) }; if (g.l) o.l = g.l; if (g.c) o.c = 1; return o; }) }; }
+  // g.k as a plain object with its keys in one order, or null when the group has none.
+  function kidsOf(g) {
+    if (!g.k) return null;
+    var ks = Object.keys(g.k).filter(function (x) { return Array.isArray(g.k[x]) && g.k[x].length; }).sort();
+    if (!ks.length) return null;
+    var o = {}; ks.forEach(function (x) { o[x] = g.k[x].slice(); }); return o;
+  }
+  function treeToLayout(tree) { return { v: 1, groups: tree.map(function (g) { var o = { n: g.n, loose: g.loose.slice(), subs: g.subs.map(function (s) { var so = { n: s.n, p: s.p.slice() }; if (s.l) so.l = s.l; return so; }) }; if (g.l) o.l = g.l; if (g.c) o.c = 1; var kk = kidsOf(g); if (kk) o.k = kk; return o; }) }; }
 
-  window.trsNav = { extract: extract, merge: merge, apply: apply, canon: canon, treeToLayout: treeToLayout, CACHE: CACHE };
+  window.trsNav = { extract: extract, merge: merge, apply: apply, canon: canon, treeToLayout: treeToLayout, unitKids: unitKids, CACHE: CACHE };
 
   // 1. At load, from this browser's copy.
   var aside = document.querySelector('aside.sidebar');

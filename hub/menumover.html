@@ -30,10 +30,11 @@
 .mm .row{flex-wrap:wrap}
 .mm .row .pk{flex:1 1 0}
 .mm ul.inside{flex:0 0 100%;list-style:none;margin:0 0 8px;padding:0 10px 0 38px;display:flex;flex-direction:column;gap:2px}
-.mm ul.inside li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted);padding:5px 0 5px 12px;border-left:2px solid var(--border);cursor:default}
+.mm ul.inside li{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted);padding:3px 0 3px 12px;border-left:2px solid var(--border);cursor:default}
 .mm ul.inside li.in2{margin-left:14px}.mm ul.inside li.in3{margin-left:28px}
 .mm ul.inside li.innote{font-size:12.5px;color:var(--muted2);border-left-color:transparent;font-style:italic}
-.mm ul.inside .inopen{color:var(--muted);text-decoration:none;padding:2px 8px;font-size:13px}
+.mm ul.inside .inn{flex:1;min-width:0;overflow-wrap:anywhere}
+.mm ul.inside .inb{display:inline-flex;gap:4px;flex:none}
 .mm .msg.err{color:#B3402A;font-weight:600}
 .mm :focus-visible{outline:2px solid var(--mm-pick-ring);outline-offset:2px}
 .mm .tb{position:sticky;top:var(--mm-top);z-index:15;background:var(--bg);box-shadow:0 -14px 0 var(--bg);padding:8px 0 4px}
@@ -200,7 +201,7 @@
 <script src="/js/auth.js?v=3823f956"></script>
 <script src="/assets/theme-fade.js"></script>
 <script src="/js/pages.js?v=370ed108"></script>
-<script src="/js/nav-layout.js?v=14cd1d3a"></script>
+<script src="/js/nav-layout.js?v=550bd48c"></script>
 <script src="/hub/hub.js?v=b106ff0c"></script>
 <script src="/js/visits.js?v=e33b3a0d"></script>
 <script>
@@ -261,16 +262,32 @@
       (mv ? '<span class="tag">was ' + esc(where(PLACE[k] || '')) + '</span>' : '') +
       '<span class="nudge"><button type="button" class="ib" data-act="first" data-k="' + esc(k) + '" aria-label="Put ' + esc(nm) + ' first" title="Put first">Top</button><button type="button" class="ib" data-act="up" data-k="' + esc(k) + '" aria-label="Move ' + esc(nm) + ' up">\u25B2</button><button type="button" class="ib" data-act="dn" data-k="' + esc(k) + '" aria-label="Move ' + esc(nm) + ' down">\u25BC</button></span>' +
       (h ? '<a class="ib open" href="' + esc(h) + '" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open ' + esc(nm) + ' in a new tab" draggable="false">\u2197</a>' : '') +
-      insideHtml(k) + '</li>';
+      insideHtml(k, here.split('|')[0]) + '</li>';
   }
   /* Kate, 26 Nov 2026: a heading that holds pages (Stock & Supplier Spend) shows the pages inside it, by name, so she can see what moves with it. They are not moved one by one: they stay in the heading's order. */
-  function insideHtml(k) {
-    var els = UNITS[k] ? UNITS[k].els.slice(1) : [];
-    if (!els.length) return '';
-    return '<ul class="inside" aria-label="Pages inside ' + esc(label(k)) + '">' + els.map(function (el) {
-      var lv = el.classList.contains('lvl4') ? 3 : el.classList.contains('lvl3') ? 2 : 1, name = (el.textContent || '').replace(/\s+/g, ' ').trim(), href = el.getAttribute('href');
-      return '<li class="in' + lv + '">' + esc(name) + (href ? '<a class="inopen" href="' + esc(href) + '" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open ' + esc(name) + ' in a new tab" draggable="false">\u2197</a>' : '') + '</li>';
-    }).join('') + '<li class="innote">These move together with ' + esc(label(k)) + '.</li></ul>';
+  function kidsIn(k, gn) { var g = group(gn); return UNITS[k] ? trsNav.unitKids(UNITS[k], g && g.k && g.k[k]) : []; }
+  function insideHtml(k, gn) {
+    var kids = kidsIn(k, gn);
+    if (!kids.length) return '';
+    return '<ul class="inside" aria-label="Pages inside ' + esc(label(k)) + '">' + kids.map(function (x, i) {
+      var el = x.el, lv = el.classList.contains('lvl4') ? 3 : el.classList.contains('lvl3') ? 2 : 1, name = x.name, href = el.getAttribute('href');
+      return '<li class="in' + lv + '"><span class="inn">' + esc(name) + '</span><span class="inb">' +
+        '<button type="button" class="ib" data-act="kup" data-k="' + esc(k) + '" data-g="' + esc(gn) + '" data-kk="' + esc(x.key) + '" aria-label="Move ' + esc(name) + ' up"' + (i === 0 ? ' disabled' : '') + '>\u25b2</button>' +
+        '<button type="button" class="ib" data-act="kdn" data-k="' + esc(k) + '" data-g="' + esc(gn) + '" data-kk="' + esc(x.key) + '" aria-label="Move ' + esc(name) + ' down"' + (i === kids.length - 1 ? ' disabled' : '') + '>\u25bc</button>' +
+        (href ? '<a class="ib" href="' + esc(href) + '" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open ' + esc(name) + ' in a new tab" draggable="false">\u2197</a>' : '') + '</span></li>';
+    }).join('') + '<li class="innote">Move these up or down here. They stay under ' + esc(label(k)) + '.</li></ul>';
+  }
+  function nudgeKid(gn, pk, kk, dir) {
+    var g = group(gn); if (!g) return;
+    var order = kidsIn(pk, gn).map(function (x) { return x.key; }), i = order.indexOf(kk), j = i + dir;
+    if (i < 0 || j < 0 || j >= order.length) return;
+    snap();
+    var t = order[i]; order[i] = order[j]; order[j] = t;
+    var orig = UNITS[pk].kids.map(function (x) { return x.key; });
+    g.k = g.k || {};
+    if (order.join('\n') === orig.join('\n')) delete g.k[pk]; else g.k[pk] = order;
+    if (!Object.keys(g.k).length) delete g.k;
+    draw();
   }
   function listHtml(arr, g, s, name) {
     var here = g + '|' + (s || '');
@@ -332,10 +349,13 @@
   function move(keys, gn, sn, idx) {
     var arr = listOf(gn, sn); if (!arr || !keys.length) return;
     snap();
-    var at = idx == null ? arr.length : idx, adj = 0;
+    var at = idx == null ? arr.length : idx, adj = 0, carry = {};
     keys.forEach(function (k) { var p = arr.indexOf(k); if (p > -1 && p < at) adj++; });
+    // the order of the pages inside a heading goes with the heading
+    CUR.forEach(function (g) { keys.forEach(function (k) { if (g.k && g.k[k]) { carry[k] = g.k[k]; delete g.k[k]; } }); if (g.k && !Object.keys(g.k).length) delete g.k; });
     CUR.forEach(function (g) { g.loose = g.loose.filter(function (x) { return keys.indexOf(x) < 0; }); g.subs.forEach(function (s) { s.p = s.p.filter(function (x) { return x !== undefined && keys.indexOf(x) < 0; }); }); });
     var dest = listOf(gn, sn); dest.splice.apply(dest, [at - adj, 0].concat(keys));
+    if (Object.keys(carry).length) { var dg = group(gn); dg.k = dg.k || {}; Object.keys(carry).forEach(function (k) { dg.k[k] = carry[k]; }); }
     cur = gn; flashKeys = keys.slice(); picked = []; closeSend();
     var g = group(gn), name = sn ? sl(g.subs.filter(function (x) { return x.n === sn; })[0]) : (g.subs.length ? 'Other pages' : gl(g));
     draw();
@@ -498,6 +518,8 @@
     else if (a === 'first') nudge(b.dataset.k, 'first');
     else if (a === 'up') nudge(b.dataset.k, -1);
     else if (a === 'dn') nudge(b.dataset.k, 1);
+    else if (a === 'kup') nudgeKid(b.dataset.g, b.dataset.k, b.dataset.kk, -1);
+    else if (a === 'kdn') nudgeKid(b.dataset.g, b.dataset.k, b.dataset.kk, 1);
     else if (a === 'tab') setTab(b.dataset.g);
     else if (a === 'smenu') smenu(b, b.dataset.g, +b.dataset.i);
     else if (a === 'gadd') addSection();
