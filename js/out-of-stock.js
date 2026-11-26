@@ -358,41 +358,8 @@
   // Nov 2026 (ORDER FOR SAADIYAT / MOTORCITY / KHALIFA CITY A BRANCH, Al Quoz Branch - Order Forms): Margie Jala (invoicing since Reina left, 3 Jun 2026), Mohamed Abassi, Bassam Moujalli and Jonnah Rodilla;
   // ate Tine (Cristine) copied as she was on the Saadiyat orders. Mandy Loewigt (account manager) was added after the 26 Nov meeting with ate Tine, who sends every order to Bassam, Mandy, Mohamed (Abasi), Margie (Marcy) and Jonnah (Jona) and copies her own work Gmail so she sees the replies away from the salon; Asmaa she adds only sometimes, so she is not in the default. The button OPENS a Gmail draft
   // from info@ for the person to read and send; the page never sends anything. The order is read from the page at the click, so typed quantities and ticked-off products are in it.
+  // (the old free-form Email to DBD is gone, replaced by the standard email below, 26 Nov 2026)
   const SUP_MAIL = { DBD: { from: 'info@tararosesalon.com', to: ['bassam.m@dbdholding.com', 'mandy.l@dbdholding.com', 'mohamed.a@dbdholding.com', 'margie.j@dbdholding.com', 'jonnah.r@dbdholding.com'], cc: ['cristine.tararose@gmail.com'] } };
-  function orderMail(sup, keys) {
-    const fam = r => r.brand === 'Schwarzkopf' ? 'SKP' : String(r.brand).toUpperCase();   // DBD's order forms are one per family and stock type: ABC, Caviar, SKP, each retail and professional
-    const rs = all().filter(r => keys[r.key] && r.o > 0).sort((a, b) => SALORD[a.b] - SALORD[b.b] || fam(a).localeCompare(fam(b)) || (a.type === b.type ? 0 : a.type === 'Retail' ? -1 : 1) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-    const sals = B.filter(c => rs.some(r => r.b === c)), pc = n => nu(n) + (n === 1 ? 'PC' : 'PCS');
-    const parts = sals.map(c => {
-      const mine = rs.filter(r => r.b === c), heads = [];
-      mine.forEach(r => { const h = fam(r) + ' ' + r.type.toUpperCase() + ' ORDERS'; if (heads.indexOf(h) < 0) heads.push(h); });
-      const body = heads.map(h => h + ':\n' + mine.filter(r => fam(r) + ' ' + r.type.toUpperCase() + ' ORDERS' === h).map(r => r.name.toUpperCase() + ' - ' + pc(r.o)).join('\n')).join('\n\n');
-      return (sals.length > 1 ? BN[c].toUpperCase() + ' BRANCH\n\n' : '') + body;
-    });
-    const where = sals.length === 1 ? 'our order for the ' + BN[sals[0]].toUpperCase() + ' branch' : 'our orders';
-    const text = 'Hello,\n\nGood day! Please see ' + where + ' below. Kindly let us know if any items on this order are OUT OF STOCK.\n\n' + parts.join('\n\n----\n\n') + '\n\nThank you,\nTara Rose Salon';
-    const subject = sals.length === 1 ? 'ORDER FOR ' + BN[sals[0]].toUpperCase() + ' BRANCH' : 'ORDER FOR TARA ROSE BRANCHES';
-    return { n: rs.length, text, subject };
-  }
-  // test = Kate, 26 Nov 2026 ("gawin mo yung Test email to me button"): the same draft, but the To is only the person signed in, no Cc, the subject says TEST ONLY and the top of the body says nothing goes to the supplier.
-  async function emailOrder(sup, keys, test) {
-    const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
-    const o = orderMail(sup, keys); if (!o.n) return 'Nothing to order in this list: every Quantity is 0.';
-    let me = '';
-    if (test) {
-      try { me = ((await sb.auth.getUser()).data.user || {}).email || ''; } catch (e) { /* not known */ }
-      if (!me) return 'Your own email address is not known here, so no test email was opened. Sign in again.';
-      o.subject = 'TEST ONLY, NOT FOR ' + sup + ': ' + o.subject;
-      o.text = 'THIS IS A TEST of the Email to ' + sup + ' flow. It goes only to you. Nothing is sent to ' + sup + '.\n\n----\n\n' + o.text;
-    }
-    const q = (b) => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(test ? me : m.to.join(',')) + '&cc=' + encodeURIComponent(test ? '' : m.cc.join(',')) + '&su=' + encodeURIComponent(o.subject) + '&body=' + encodeURIComponent(b);
-    let url = q(o.text), long = url.length > 6500, copied = false;
-    try { await navigator.clipboard.writeText(o.text); copied = true; } catch (e) { /* no clipboard */ }
-    if (long) url = q('Hello,\n\nPlease see our order below. Kindly let us know if any items are OUT OF STOCK.\n\n[paste the order here]\n\nThank you,\nTara Rose Salon');
-    window.open(url, '_blank', 'noopener');
-    return long ? (copied ? 'The order is copied: paste it into the email.' : 'The order is long: use Save as xlsx and attach it.') : test ? 'Gmail is open with a TEST email to ' + me + ' only. Press Send to get it in your inbox.' : 'Gmail is open with the order of ' + plural(o.n, 'product') + '. Read it and press Send.';
-  }
-
   // Confirm order (Kate, 26 Nov 2026: "put confirm order button ... we must have our own internal order number"; step 1 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md).
   // One confirm = one order per salon, numbered TRS-PO-<YY>-<0001..> by the database (oos_order_confirm). The lines are copied in as they are now (typed quantities and ticked-off products included).
   // Nothing is sent to the supplier by this: Email to DBD is still a Gmail draft a person sends. Needs out_of_stock_supplier_orders.sql applied; until then the button says so.
@@ -474,6 +441,67 @@
     });
     return n ? 'Saved ' + plural(n, 'file') + ' (one per order, one tab per list).' : 'Nothing to save.';
   }
+
+  // The standard email to DBD (Kate, 26 Nov 2026, step 3 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md: "email must be standardised, we must have our own internal order number: subject, body, sign off").
+  // One email per order (one salon): subject "TRS-PO-26-0001 | ORDER | SAADIYAT | 30 Nov 2026", the same body every time, the same sign-off whoever sends it. DBD keeps the subject when it replies,
+  // so the order number is how its out-of-stock list and its invoice are matched back (steps 4 and 5). It OPENS a Gmail draft from info@ and saves the order form file to attach: the page never sends.
+  // Mark as sent is pressed by the person after Send; it turns the order to "sent" (it can no longer be cancelled here).
+  const drafted = {};
+  const dFmt = d => { const t = new Date(String(d || '').slice(0, 10) + 'T00:00:00'); return isNaN(t) ? String(d || '') : t.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
+  const pcs = n => nu(n) + (n === 1 ? ' PC' : ' PCS');
+  function stdMail(fm, o) {
+    const sal = BN[fm.branch], SAL = sal.toUpperCase(), lists = listsOf(fm), units = lists.reduce((a, L) => a + L.units, 0);
+    const subject = fm.order_no + ' | ORDER | ' + SAL + ' | ' + dFmt(o.day);
+    const head = 'Hello DBD Team,\n\nPlease find our order for the ' + SAL + ' branch below. The order form is attached.\n\nORDER NUMBER: ' + fm.order_no + '\nORDER DATE: ' + dFmt(o.day) + '\nSALON: ' + sal +
+      '\nTOTAL: ' + plural(fm.lines.length, 'product') + ', ' + n0(units) + ' pcs\n\nKindly reply to this email, keeping the order number in the subject, with any items that are OUT OF STOCK.';
+    const tail = '\n\nThank you,\nTara Rose Ladies Salon\nPurchasing | info@tararosesalon.com';
+    const secs = [], need = [];
+    lists.forEach(L => {
+      const ok = L.rows.filter(r => !r._need); L.rows.filter(r => r._need).forEach(r => need.push(r.d + ' | ' + pcs(r.q)));
+      if (ok.length) secs.push(L.label.toUpperCase() + '\n' + ok.map(r => r.code + ' | ' + r.d + ' | ' + pcs(r.q)).join('\n'));
+    });
+    if (need.length) secs.push('ITEMS WITHOUT A DBD CODE (please match by name)\n' + need.join('\n'));
+    const full = head + '\n\n' + secs.join('\n\n') + tail;
+    const short = head + '\n\n' + lists.map(L => L.label.toUpperCase() + ': ' + plural(L.rows.length, 'product') + ', ' + pcs(L.units)).join('\n') + '\n\nThe full list is in the attached order form.' + tail;
+    return { subject, full, short, need: need.length };
+  }
+  // test = the same draft, but the To is only the person signed in, no Cc, the subject says TEST ONLY and the top of the body says nothing goes to the supplier; it does not count as drafted.
+  async function emailToDbd(sup, sals, test) {
+    const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
+    const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
+    const open = lf.forms.filter(f => f.status === 'confirmed' || (test && f.status === 'sent'));
+    if (!open.length) return 'Every confirmed order here has been sent already.';
+    const fm = open.filter(f => !drafted[f.order_no])[0] || open[0], o = S.po.filter(x => x.order_no === fm.order_no)[0] || { day: S.editDay };
+    const mail = stdMail(fm, o);
+    let me = '';
+    if (test) {
+      try { me = ((await sb.auth.getUser()).data.user || {}).email || ''; } catch (e) { /* not known */ }
+      if (!me) return 'Your own email address is not known here, so no test email was opened. Sign in again.';
+      mail.subject = 'TEST ONLY, NOT FOR ' + sup + ': ' + mail.subject;
+      const note = 'THIS IS A TEST of the Email to ' + sup + ' flow. It goes only to you. Nothing is sent to ' + sup + '.\n\n----\n\n';
+      mail.full = note + mail.full; mail.short = note + mail.short;
+    }
+    if (!test && mail.need && !window.confirm(plural(mail.need, 'line') + ' of ' + fm.order_no + ' have no DBD code yet (they are listed by name). Open the email anyway?')) return 'Not opened.';
+    const q = b => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(test ? me : m.to.join(',')) + '&cc=' + encodeURIComponent(test ? '' : m.cc.join(',')) + '&su=' + encodeURIComponent(mail.subject) + '&body=' + encodeURIComponent(b);
+    let url = q(mail.full), long = url.length > 6500;
+    if (long) { url = q(mail.short); try { await navigator.clipboard.writeText(mail.full); } catch (e) { /* no clipboard */ } }
+    window.open(url, '_blank', 'noopener');
+    if (!test) drafted[fm.order_no] = 1;
+    const saved = await saveForms([fm]);
+    const more = test ? 0 : open.filter(f => f.order_no !== fm.order_no && !drafted[f.order_no]).length;
+    if (test) return 'Gmail is open with a TEST email to ' + me + ' only, for ' + fm.order_no + ' ' + BN[fm.branch] + '. ' + saved + ' Press Send to get it in your inbox; nothing goes to ' + sup + '.';
+    return 'Gmail is open for ' + fm.order_no + ' ' + BN[fm.branch] + (long ? ' (long order: the full list is copied, paste it if you want it in the body)' : '') + '. ' + saved + ' Attach it, press Send, then press Mark as sent.' + (more ? ' ' + plural(more, 'order') + ' more: press Email order to ' + sup + ' again after.' : '');
+  }
+  async function markSent(sup, sals) {
+    if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can mark an order as sent.';
+    const mine = openOrders(sup, sals).filter(o => o.status === 'confirmed' && drafted[o.order_no]);
+    if (!mine.length) return 'Press Email order to ' + sup + ' first, send it in Gmail, then press this.';
+    if (!window.confirm('Mark ' + mine.map(o => o.order_no + ' ' + BN[o.branch]).join(', ') + ' as sent to ' + sup + '?\n\nDo this only after you pressed Send in Gmail. A sent order cannot be cancelled here.')) return 'Not marked.';
+    const out = [];
+    for (const o of mine) { let res; try { res = await sb.rpc('oos_order_mark_sent', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return /oos_order_mark_sent|schema cache|Could not find/i.test(String(res.error.message || res.error)) ? 'Mark as sent is not switched on yet (out_of_stock_order_sent.sql).' : 'That did not work: ' + String(res.error.message || res.error); out.push(o.order_no); }
+    await loadPO();
+    return 'Marked as sent: ' + out.join(', ') + '.';
+  }
   async function orderFormWindow(sup, sals) {
     const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
     if (typeof TRSD === 'undefined') return 'The window is not ready. Try again.';
@@ -543,8 +571,9 @@
         supName === 'DBD' ? [{ label: 'Order form', run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         S.canEdit ? [{ label: 'Confirm order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
                      { label: 'Cancel confirmed order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        SUP_MAIL[supName] ? [{ label: 'Email to ' + supName, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys); } },
-                             { label: 'Test email to me', alt: 1, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys, true); } }] : []) : undefined };
+        SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
+                             { label: 'Test email to me', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
+        S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as sent', run: () => markSent(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : []) : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
   // "x 1.22 + x 1.15 + ..." for the weeks a colour product counts, with where it comes from
