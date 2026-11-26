@@ -422,6 +422,64 @@
     await loadPO();
     return 'Cancelled ' + out.join(', ') + '.';
   }
+
+  // The DBD order form of a confirmed order (Kate, 26 Nov 2026, step 2 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md: "create order form for dbd (see email for formats for different brands)").
+  // DBD's own forms are Excel price lists, one per brand family and stock type, columns Category | Sub-category | Code | Description | Size | WSP (AED) | Suggested RSP | Order Qty. | Total | EAN | Status.
+  // This makes the same thing from the confirmed order: one list per brand family and stock type, the DBD Code and EAN found from the product (oos_order_form_get: barcode, then name), the quantity
+  // and the total at the price list price. A line DBD's list does not have yet gets no code and says CODE NEEDED: nothing is dropped. One Excel file per order, one tab per list.
+  const FCOLS = [{ k: 'cat', l: 'Category', t: 'txt' }, { k: 'sub', l: 'Sub-category', t: 'txt' }, { k: 'code', l: 'Code', t: 'txt' }, { k: 'd', l: 'Description', t: 'txt' }, { k: 'size', l: 'Size', t: 'txt' },
+                 { k: 'wsp', l: 'WSP (AED)', t: 'txt' }, { k: 'q', l: 'Order Qty.', t: 'num' }, { k: 'tot', l: 'Total (AED)', t: 'txt' }, { k: 'ean', l: 'EAN', t: 'txt' }, { k: 'how', l: 'Matched by', t: 'txt' }];
+  const HOW = { ean: 'barcode', code: 'item code', name: 'name' };
+  const f2 = v => v == null || v === '' ? '' : (+v).toFixed(2);
+  async function loadForms(sup, sals) {
+    const mine = openOrders(sup, sals); if (!mine.length) return { err: 'Confirm the order first: the order form is made from the confirmed order.' };
+    const forms = [];
+    for (const o of mine) {
+      let r; try { r = await sb.rpc('oos_order_form_get', { p_order_no: o.order_no }); } catch (e) { r = { error: e }; }
+      if (r.error) return { err: /oos_order_form|schema cache|Could not find/i.test(String(r.error.message || r.error)) ? 'The order form is not switched on yet (out_of_stock_order_form.sql).' : 'That did not work: ' + String(r.error.message || r.error) };
+      if (!r.data || r.data.denied || r.data.missing || !Array.isArray(r.data.lines)) return { err: 'The order form could not be read.' };
+      forms.push(r.data);
+    }
+    return { forms };
+  }
+  // the lists of one order: one per brand family and stock type, matched lines A to Z by category then name, lines needing a code last
+  function listsOf(fm) {
+    const g = {}, order = [];
+    fm.lines.forEach(l => { const k = (l.fam || String(l.brand || '').toUpperCase()) + ' ' + (l.type === 'Retail' ? 'Retail' : 'Professional'); if (!g[k]) { g[k] = []; order.push(k); } g[k].push(l); });
+    order.sort((a, b) => a.localeCompare(b));
+    return order.map(k => {
+      const rows = g[k].map(l => ({ cat: l.cat || '', sub: l.sub || '', code: l.code || '', d: l.code ? l.desc : l.name, size: l.size || '', wsp: f2(l.wsp), q: +l.q || 0, tot: l.wsp != null ? f2(l.wsp * l.q) : '', ean: l.ean || '', how: l.code ? HOW[l.how] || '' : 'CODE NEEDED', _need: !l.code, _cls: l.code ? '' : 'oos-skip' }));
+      rows.sort((a, b) => (a._need - b._need) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.sub.localeCompare(b.sub, undefined, { sensitivity: 'base' }) || a.d.localeCompare(b.d, undefined, { sensitivity: 'base' }));
+      return { label: k, rows, need: rows.filter(r => r._need).length, units: rows.reduce((a, r) => a + r.q, 0), aed: rows.reduce((a, r) => a + (r.tot === '' ? 0 : +r.tot), 0) };
+    });
+  }
+  async function saveForms(forms) {
+    try { if (typeof lgxBuild !== 'function') await window.trsLazy('lgx'); } catch (e) { return 'The file could not be made. Try again.'; }
+    if (typeof lgxBuild !== 'function') return 'The file could not be made. Try again.';
+    let n = 0;
+    forms.forEach(fm => {
+      const ls = listsOf(fm); if (!ls.length) return;
+      const cols = FCOLS.slice(0, 9).concat([{ k: 'st', l: 'Status', t: 'txt' }]);
+      const built = lgxBuild({ sheets: ls.map(L => ({ name: L.label, blocks: [{ cols: cols.map(c => ({ label: c.l, fmt: c.k === 'q' ? 'num' : c.k === 'wsp' || c.k === 'tot' ? 'aed2' : 'text' })),
+        rows: L.rows.map(r => ({ cells: cols.map(c => c.k === 'st' ? (r._need ? 'CODE NEEDED' : '') : c.k === 'wsp' || c.k === 'tot' ? (r[c.k] === '' ? '' : +r[c.k]) : r[c.k]) })).concat([{ total: true, cells: cols.map(c => c.k === 'd' ? 'Total' : c.k === 'q' ? L.units : c.k === 'tot' ? L.aed : '') }]) }] })) });
+      lgxSave(lgxXlsxBlob(built), fm.order_no + ' ' + BN[fm.branch] + '.xlsx'); n++;
+    });
+    return n ? 'Saved ' + plural(n, 'file') + ' (one per order, one tab per list).' : 'Nothing to save.';
+  }
+  async function orderFormWindow(sup, sals) {
+    const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
+    if (typeof TRSD === 'undefined') return 'The window is not ready. Try again.';
+    const views = [];
+    lf.forms.forEach(fm => listsOf(fm).forEach(L => views.push({ id: fm.order_no + L.label, label: (lf.forms.length > 1 ? BN[fm.branch] + ' ' : '') + L.label.replace('Professional', 'Pro'), load: async () => ({
+      cols: FCOLS, rows: L.rows, foot: { d: 'Total', q: L.units, tot: f2(L.aed) },
+      note: (L.need ? '<b>' + plural(L.need, 'line') + ' need a code</b>: DBD\'s list has no product with that barcode or name yet, so the Code is blank. Add it by hand before the form goes to DBD. ' : 'Every line has its DBD code. ') +
+            'Quantity is the confirmed order; Total is the price list price (WSP) x quantity, DBD\'s discount is on their invoice. <b>Matched by</b> says how the code was found: barcode, item code or name.' }) })));
+    if (!views.length) return 'The order has no lines.';
+    const need = lf.forms.reduce((a, fm) => a + listsOf(fm).reduce((b, L) => b + L.need, 0), 0), tot = lf.forms.reduce((a, fm) => a + fm.lines.length, 0);
+    TRSD.open({ title: 'DBD order form, ' + lf.forms.map(fm => fm.order_no + ' ' + BN[fm.branch]).join(', '), sub: plural(tot, 'line') + ' · ' + (need ? plural(need, 'line') + ' need a DBD code' : 'every line has its DBD code') + ' · the same columns as DBD\'s own forms', views,
+      actions: [{ label: 'Save DBD forms (xlsx)', run: () => saveForms(lf.forms) }] });
+    return '';
+  }
   // A list of products. Every product, number and the product name open the product's own window. The Total row adds up the rows listed.
   // sheet = a supplier's order (Kate, 26 Nov 2026, from Phorest's Create Order screen: "similar da sa ganito, per supplier daw mas madaling mag order"): the first tab lists the products the way Phorest's
   // Create Order does (brand, category, name, cost, status, stock, min, max, Quantity), with the Quantity box and a tick to take a product out, so the order can be keyed in line by line.
@@ -474,6 +532,7 @@
     return { fadeZero: 1, title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
       views: sheet ? [sheetView, prodView] : [prodView],
       actions: sheet && supName ? [].concat(
+        supName === 'DBD' ? [{ label: 'Order form', run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         S.canEdit ? [{ label: 'Confirm order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
                      { label: 'Cancel confirmed order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         SUP_MAIL[supName] ? [{ label: 'Email to ' + supName, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return emailOrder(supName, keys); } }] : []) : undefined };
