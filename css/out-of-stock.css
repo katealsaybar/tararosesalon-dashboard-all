@@ -2,7 +2,9 @@
    Every class of its own carries the oos- prefix, so no shared class is reused. The tables are the shared Sheets table (sheet-table.css), the windows are drill.js, the bars
    are lifted and answered by bar-hover.js (data-bh, data-bh-fill and data-tip on the row). */
 /* the Period row does not apply here (a shelf count has no period), so the masthead dims it */
-body.oos-chrome #periodRow{opacity:.5}
+body.oos-chrome #periodRow{opacity:.6}
+/* and it is struck through in red, the same line the Bahrain chip gets where Bahrain is not in the numbers (Kate, 26 Nov 2026) */
+body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-through;text-decoration-color:#E5484D;text-decoration-thickness:2px}
 #view-outofstock .oos-doc{min-width:0}
 .oos-sec{margin-top:34px;scroll-margin-top:calc(var(--sx-top,104px) + 10px)}
 .oos-sec>h3,.oos-how>h3,.oos-det>summary h3{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:500;margin:0 0 4px;line-height:1.2}
