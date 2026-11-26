@@ -150,7 +150,9 @@
   /* No page found: say so, ask, and point at the Suggestions Box (audit finding 1). */
   .sr-sug .sr-none{padding:12px 14px;font-size:14px;line-height:1.45;color:var(--text)}
   .sr-sug .sr-none a{display:inline-block;margin-top:4px;color:var(--text);font-weight:500;text-decoration:underline}
-  .sr-top{position:fixed;top:14px;right:16px;z-index:5;display:flex;gap:8px}
+  /* Kate, 26 Nov 2026: the bell sat on top of the account chip ("fix this overlapping part"). The bell floated at the top right because this row was not one of the places
+     js/notifications.js looks for (HOSTS). The row now has the class it looks for (top-acts), so the bell joins it as the first button and nothing can overlap, on a laptop or a phone. */
+  .sr-top{position:fixed;top:14px;right:16px;z-index:5;display:flex;align-items:center;gap:8px}
   /* Narrow, the buttons would sit over the logo: they take a row of their own above it instead. */
   @media (max-width:760px){.sr-top{position:static;align-self:flex-end;padding:14px 16px 0}}
   .sr-theme{appearance:none;cursor:pointer;border:1px solid var(--border);background:var(--surface);
@@ -222,7 +224,7 @@
 <script src="/assets/theme-fade.js"></script>
 </head>
 <body class="sr-wait">
-<div class="sr-top"><button type="button" class="sr-theme" id="srTheme"></button><button type="button" class="sr-theme" id="srOut">Sign out</button></div>
+<div class="sr-top top-acts"><button type="button" class="sr-theme" id="srTheme"></button><button type="button" class="sr-theme" id="srOut">Sign out</button></div>
 <main class="sr-main">
   <div class="sr-hero">
   <a class="kb-brand" href="/hub/" aria-label="Tara Rose Salons, Team Home">
