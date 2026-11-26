@@ -47,7 +47,7 @@
   const PRIOS = { A: ['A'], AB: ['A', 'B'] };
   const S = { rows: null, lines: [], ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, stamp: '', planAt: null, refreshedAt: null, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
     prio: 'A', cover: 0, filt: 'all', hk: 'qty', ak: 'rule', built: false, ro: null, dem: null, demInfo: null, dm: 'book', ai: {}, demAll: null,
-    edits: {}, skips: {}, counts: {}, verified: {}, editWho: {}, canEdit: false, editDay: '', eds: 0, edSig: '', dirty: false };   // edits / skips: what was typed in or ticked off for this order day, by plan row key (oos_order_edits_get)
+    refreshing: false, refMsg: '', edits: {}, skips: {}, counts: {}, verified: {}, editWho: {}, canEdit: false, editDay: '', eds: 0, edSig: '', dirty: false };   // edits / skips: what was typed in or ticked off for this order day, by plan row key (oos_order_edits_get)
   let TO = null, TS = null, TB = null, memoM = {};
 
   // ── small helpers ────────────────────────────────────────────────────────────────────
@@ -209,6 +209,25 @@
     return true;
   }
   const vfLine = () => { const lr = orderRows(), nv = lr.filter(r => r.vf).length; return '<b>Shelf figures verified:</b> ' + n0(nv) + ' of ' + n0(lr.length) + ' on this list. The rest are the Stock List as it was read: check them before the order goes out.'; };
+  // Refresh stock now (Kate, 26 Nov 2026, after ate Tine found the shelf figure can be hours old: "bantayan lang tlga na tama"). The edge function oos-stock-refresh reads the salons picked straight from
+  // Phorest's API (about 15 seconds a salon) and updates today's shelf figures in place (migrations/out_of_stock_stock_apply.sql); then the page reads everything again. Counted and Verified are kept.
+  async function refreshStock() {
+    if (S.refreshing || !S.br.length) return;
+    S.refreshing = true; S.refMsg = 'Reading ' + S.br.map(c => BN[c]).join(', ') + ' from Phorest. About 15 seconds.'; paintAnswer();
+    try {
+      const r = await sb.functions.invoke('oos-stock-refresh', { body: { salons: S.br } });
+      if (r.error) { let m = ''; try { m = (await r.error.context.json()).error; } catch (e) { /* no body */ } throw new Error(m || 'Phorest could not be read just now.'); }
+      const d = r.data || {}; if (d.error) throw new Error(d.error);
+      const rs = d.results || [], bad = rs.filter(x => !x.ok), skip = rs.filter(x => x.ok && x.skipped), good = rs.filter(x => x.ok && !x.skipped);
+      await load(true); S.refreshedAt = new Date().toISOString(); draw();
+      const parts = [];
+      if (good.length) parts.push('Read from Phorest at ' + fdt(S.refreshedAt).replace(/^.*, /, '') + ': ' + good.map(x => BN[x.salon] + ' ' + n0(x.changed) + ' changed').join(', ') + '.');
+      if (skip.length) parts.push(skip.map(x => BN[x.salon]).join(', ') + ' was read less than 30 seconds ago.');
+      if (bad.length) parts.push(bad.map(x => BN[x.salon] + ': ' + x.error).join(' '));
+      S.refMsg = parts.join(' ') || 'Nothing to read.';
+    } catch (e) { console.error(e); S.refMsg = (e && e.message) || 'Phorest could not be read just now.'; }
+    S.refreshing = false; paintAnswer();
+  }
   function refreshLists() { S.dirty = false; if (!TO || !S.built) return; TO.draw(); paintW2(); TS.draw(); paintW3(); }
   const edMsg = t => { const m = $('oosEdMsg'); if (m) { m.textContent = t || ''; m.hidden = !t; } };
   const tipOf = (r, f) => f.sk ? 'Taken out of the order. Tick it to put it back.' : f.oe ? 'Typed in' + (whoTxt(r.key) ? ' by ' + whoTxt(r.key) : '') + '. The minimum order is ' + nu(r.qm) + '. Clear it to go back.' : 'Starts as the minimum order. Type the amount you will order (up to the maximum if you want more).';
@@ -703,7 +722,9 @@
     const bkd = S.demInfo && S.demInfo.synced ? ln('<b>Bookings:</b> ' + fdt(S.demInfo.synced)) : '';
     const ord = S.ordersOk && S.ordersAt ? ln('<b>Supplier orders not yet delivered:</b> ' + fdt(S.ordersAt)) : '';
     const plc = (S.planAt ? ln('<b>Weekly Product Plan last changed:</b> ' + fdt(S.planAt)) : '') + (S.refreshedAt ? ln('<b>This page refreshed itself:</b> ' + fdt(S.refreshedAt)) : '');
-    $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + plc + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.');
+    $('oosAns3').innerHTML = '<b>Last sync</b>' + f.text + ord + bkd + plc + ln('Anything ordered or delivered after that is not counted.') + ln('The Period at the top does not apply here.') +
+      '<span class="oos-ln"><button type="button" class="cm-pill" id="oosRefresh"' + (S.refreshing ? ' disabled' : '') + '>' + (S.refreshing ? 'Reading Phorest…' : 'Refresh stock now') + '</button></span>' +
+      (S.refMsg ? '<span class="oos-ln" id="oosRefMsg" role="status">' + esc(S.refMsg) + '</span>' : '');
     const w = $('oosAns4'); w.hidden = S.ordersOk; w.textContent = S.ordersOk ? '' : 'On-order counts are not loaded yet. On order shows 0 for every product, so something that is already on its way can still show as short.';
   }
   // the best example for the page: a product with something on the shelf and something to order, biggest AED first (a real row, never typed in)
@@ -889,6 +910,7 @@
       if (v) { S.filt = v.dataset.of; host.querySelectorAll('[data-of]').forEach(b => { b.classList.toggle('on', b === v); b.setAttribute('aria-pressed', b === v); }); TO.page = 0; TO.draw(); paintW2(); offsets(); return; }
       if (e.target.closest('#oosMore')) { TO.toggleMore(); e.target.closest('#oosMore').classList.toggle('on', TO.more); e.target.closest('#oosMore').setAttribute('aria-pressed', TO.more); offsets(); return; }
       if (e.target.closest('#oosMore3')) { TS.toggleMore(); e.target.closest('#oosMore3').classList.toggle('on', TS.more); e.target.closest('#oosMore3').setAttribute('aria-pressed', TS.more); return; }
+      if (e.target.closest('#oosRefresh')) { refreshStock(); return; }
       if (e.target.closest('#oosClear')) { TO.clear(); TO.draw(); return; }
       if (e.target.closest('#oosPrev')) { if (TO.page > 0) { TO.page--; TO.draw(); } return; }
       if (e.target.closest('#oosNext')) { TO.page++; TO.draw(); return; }
