@@ -94,7 +94,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "services": "decf2e378f",
   "products": "29ac203487",
   "supplierspend": "c59ae68117",
-  "outofstock": "778ac82924",
+  "outofstock": "fabdde86cb",
   "supplierpay": "ebdd917609",
   "orders": "387c56b29b",
   "stockcost": "a65fe2934b",

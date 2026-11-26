@@ -314,7 +314,6 @@
       </div>
       <div class="oos-bar oos-bar-plain">${typeof rexButtons === 'function' ? '<span class="oos-sp"></span>' + rexButtons('oosExportBook') : ''}</div>
       <div class="oos-card oos-tcell"><table id="oosBookTbl"></table></div>
-      <div class="oos-bkh" id="oosBkh"></div>
       <div class="oos-learn oos-bkn">
         <p><b>Measured.</b> The colour services booked (Phorest Staff Appointments), the finished weeks before them (the same report), the shelf and the orders on the way.</p>
         <p><b>Estimated.</b> Only about 1 in 3 of a week's colour services is booked by the Thursday before. How many will be done is worked out from how much is booked now, and from a normal week, half and half. Tried on the last 11 weeks: a normal week alone missed by 16% on average, this missed by 7%.</p>
@@ -445,21 +444,14 @@
   const exCol = () => selRows().filter(r => r.col && r.mn >= 3).sort((a, b) => b.q - a.q).filter(r => r.mn <= 8)[0] || selRows().filter(r => r.col && r.mn >= 3).sort((a, b) => b.q - a.q)[0] || null;
   function paintBook() {
     const sec = $('oos-1'); if (!sec) return;
-    if (!S.dem) { $('oosWB').textContent = 'Next week\'s bookings are not loaded, so every product is worked out on a normal week.'; $('oosExB').hidden = true; $('oosBkh').innerHTML = ''; TB.draw(); return; }
+    if (!S.dem) { $('oosWB').textContent = 'Next week\'s bookings are not loaded, so every product is worked out on a normal week.'; $('oosExB').hidden = true; TB.draw(); return; }
     TB.draw();
     const cs = S.br.filter(c => S.dem[c].ok);
-    if (!cs.length) { $('oosWB').textContent = 'Not enough weeks of bookings are held yet to work out a factor for the salons picked.'; $('oosExB').hidden = true; $('oosBkh').innerHTML = ''; return; }
+    if (!cs.length) { $('oosWB').textContent = 'Not enough weeks of bookings are held yet to work out a factor for the salons picked.'; $('oosExB').hidden = true; return; }
     const hi = cs.reduce((a, c) => S.dem[c].f > S.dem[a].f ? c : a, cs[0]), d = S.dem[hi], tn = S.br.reduce((a, c) => a + S.dem[c].now, 0);
     $('oosWB').innerHTML = BN[hi] + ' is the furthest ahead: ' + num(n0(d.now), bkSpec(hi)) + ' colour services booked for ' + esc(rangeTxt()) + ' against ' + n0(d.usual) + ' usually by now, so colour is counted ' + pctUp(d.f) + ' on a normal week. The salons picked have ' + n0(tn) + ' booked together.';
     const e = exCol(), ex = $('oosExB'); ex.hidden = !e;
     if (e) { const x = S.dem[e.b]; ex.innerHTML = '<b>Example.</b> ' + esc(BN[e.b]) + ', ' + esc(e.name) + ': Min ' + nu(e.mn) + '. ' + n0(x.now) + ' colour services are booked, ' + n0(x.exp) + ' are expected against ' + n0(x.typ) + ' in a normal week, so next week needs about ' + num(nu(e.mn * e.f), histSpec(e.b)) + ' (Min x ' + e.f.toFixed(2) + '), not ' + nu(e.mn) + '.'; }
-    // the last finished weeks beside next week: grey = colour services done, striped = next week (solid = booked so far)
-    let mx = 1; cs.forEach(c => { S.dem[c].hist.forEach(h => { mx = Math.max(mx, h[1]); }); mx = Math.max(mx, S.dem[c].exp); });
-    $('oosBkh').innerHTML = cs.map(c => {
-      const x = S.dem[c], bars = x.hist.map(h => `<i style="height:${(100 * h[1] / mx).toFixed(1)}%"></i>`).join('') + `<i class="nx" style="height:${(100 * x.exp / mx).toFixed(1)}%"><b style="height:${(100 * Math.min(1, x.now / (x.exp || 1))).toFixed(1)}%"></b></i>`;
-      const tip = BN[c] + ': colour services done each week (grey), then next week (striped): ' + n0(x.now) + ' booked so far (solid), about ' + n0(x.exp) + ' expected. A normal week is ' + n0(x.typ) + '.';
-      return `<div class="oos-bk-r" data-bh tabindex="0" data-tip="${esc(tip)}"><div class="oos-nm">${BN[c]}<small>${num(n0(x.exp), histSpec(c))} expected</small></div><div class="oos-bk-c">${bars}</div></div>`;
-    }).join('') + `<div class="oos-bk-l">Each bar is a week of colour services, then next week (striped, the solid part is booked so far).</div>`;
   }
 
   // ── 2 THE ORDER LIST ─────────────────────────────────────────────────────────────────
