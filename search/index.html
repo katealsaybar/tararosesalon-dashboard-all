@@ -26,7 +26,7 @@
   body{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
   /* Kate, 30 Oct 2026 (audit ALAD-1, finding 9): on a slow connection the page was a blank screen. The logo, the bar and Search now show at once;
      only what is personal (greeting, doors, shortcuts, cards, the top buttons) waits for sign-in, keeping its space so nothing jumps. */
-  body.sr-wait .sr-hello,body.sr-wait .sr-doors,body.sr-wait .sr-hint,body.sr-wait .sr-key,body.sr-wait .sr-tiles,body.sr-wait .sr-fold,body.sr-wait .sr-top{visibility:hidden}
+  body.sr-wait .sr-hello,body.sr-wait .sr-doors,body.sr-wait .sr-day,body.sr-wait .sr-allrow,body.sr-wait .sr-hint,body.sr-wait .sr-key,body.sr-wait .sr-tiles,body.sr-wait .sr-fold,body.sr-wait .sr-top{visibility:hidden}
   /* Muted small text, a step stronger so it reads on a phone in glare (audit finding 8): about 5.4:1 on the cream page, about 5.2:1 on the dark cards. */
   body{--muted2:#6B645E}
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body{--muted2:rgba(250,248,243,.62)}}
@@ -85,6 +85,15 @@
   .sr-door:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(153,246,228,.6)}
   @media (prefers-reduced-motion:reduce){.sr-door:hover{transform:none}}
   @media (max-width:560px){.sr-doors{gap:10px}.sr-door{flex:1 1 calc(50% - 10px);max-width:none;padding:14px}}
+  /* Kate, 26 Nov 2026: "My day", option C of docs/mockups/front-door-a-or-b.html. Up to six big tiles named by the job this person came to do,
+     replacing the four doors. Each tile is only drawn when the same rule Team Home uses (KB.opens, trsPageOpen) says they may open it, so there is no dead tile.
+     Same look as a door, three across on a laptop and two on a phone; an odd one out sits in the middle. ?doors=1 brings the four doors back. */
+  .sr-day{display:none;flex-wrap:wrap;justify-content:center;gap:12px;width:100%;max-width:600px;margin:26px auto 0}
+  .sr-day.on{display:flex}
+  .sr-day .sr-door{flex:none;width:calc((100% - 24px) / 3);max-width:none;min-height:128px}
+  .sr-allrow{display:flex;justify-content:center;margin:18px 0 0}
+  .sr-allrow .sr-btn{border-radius:999px;padding:10px 24px}
+  @media (max-width:560px){.sr-day{gap:10px;margin-top:20px}.sr-day .sr-door{width:calc((100% - 10px) / 2);min-height:120px}}
   .sr-hint{margin:22px 0 0;font-size:14px;color:var(--muted2)}
   .sr-key{margin:6px 0 0;font-size:13px;color:var(--muted2)}
   .sr-key kbd{font:inherit;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:1px 6px;background:var(--surface)}
@@ -235,6 +244,8 @@
       <button type="submit" class="sr-btn">Search</button>
     </div>
   </form>
+  <nav class="sr-day" id="srDay" aria-label="Your day"></nav>
+  <div class="sr-allrow hide" id="srAll"><a class="sr-btn" href="/hub/">All pages</a></div>
   <nav class="sr-doors" id="srDoors" aria-label="Where to go">
     <a class="sr-door hide" data-d="dash" href="/?view=dashboard"><span class="sr-di" style="--c:var(--accent-lavender)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><b>Dashboard</b><span class="sr-dt">Read the numbers</span></a>
     <a class="sr-door hide" data-d="kb" href="/hub/"><span class="sr-di" style="--c:var(--accent-butter)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 8h7"/></svg></span><b>Knowledge Base</b><span class="sr-dt">Read and learn</span></a>
@@ -334,6 +345,87 @@ document.getElementById('srForm').addEventListener('submit', function (e) { e.pr
     if (d === 'kb') a.href = '/hub/?door=kb';
     if (d === 'tools') a.href = '/hub/?door=tools';
   });
+  // Kate, 26 Nov 2026: "My day" (option C of docs/mockups/front-door-a-or-b.html). Up to six tiles named by the job this person came to do, in place of the four doors.
+  // Each person has a wish list; a tile is drawn only if the rule Team Home uses says they may open it (KB.opens for a section, trsPageOpen for a dashboard page), so a
+  // tile is never a dead end and Page Access changes follow by themselves. The first six that open are shown. Fewer than three: the four doors stay. ?doors=1 shows the doors too.
+  (function () {
+    var day = document.getElementById('srDay');
+    if (!day || /[?&]doors=1(&|$)/.test(location.search)) return;
+    var P = {
+      chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+      book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 8h7"/>',
+      form: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+      doc: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+      find: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+      note: '<path d="M5 19l1-4L16 5l3 3L9 18zM14 7l3 3"/>',
+      coin: '<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10.5c0-1 1-1.5 2.5-1.5s2.5.6 2.5 1.6S13 12 12 12s-2.5.4-2.5 1.5S10.5 15 12 15s2.5-.5 2.5-1.5"/>',
+      clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+      tag: '<path d="M3 12V4h8l10 10-8 8z"/><path d="M7.5 8h.01"/>',
+      phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+      target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/>',
+      mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+      users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
+      back: '<path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/>',
+      grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+      upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+      trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H4v1a3 3 0 0 0 4 3M16 6h4v1a3 3 0 0 1-4 3M12 13v4M8 20h8"/>'
+    };
+    // t = the job, d = one short line, i = icon, c = tint, then how it opens: k = a Team Home section key, v = a dashboard page id, go = a function that gives the address or nothing.
+    var T = {
+      mynum:   { t: 'My numbers', d: 'Your month, and your payslip.', i: 'chart', c: 'lavender', go: function () { return KB.myLink || null; } },
+      learn:   { t: 'Learn', d: 'SOPs, scripts and inductions.', i: 'book', c: 'butter', go: function () { return (hasDept('Learn') || hasDept('The Tara Rose Way')) ? '/hub/?door=kb' : null; } },
+      forms:   { t: 'HR forms', d: 'Leave, waivers and requests.', i: 'form', c: 'coral', k: 'hr-forms' },
+      voucher: { t: 'Wellness Voucher', d: 'How the campaign is going.', i: 'tag', c: 'mint', k: 'campaigns' },
+      ideas:   { t: 'Suggestions Box', d: 'Send an idea to the team.', i: 'note', c: 'butter', go: function () { return '/hub/suggestions'; } },
+      find:    { t: 'Find a stylist', d: 'Who does which service.', i: 'find', c: 'lavender', k: 'client-matching' },
+      complaint: { t: 'Log a complaint', d: 'Write it down in one minute.', i: 'note', c: 'coral', k: 'log-complaint' },
+      deposits:  { t: 'Check deposits', d: 'Which deposits to chase.', i: 'coin', c: 'mint', k: 'deposit-check' },
+      targettoday: { t: 'Today’s target', d: 'Each salon against today’s aim.', i: 'target', c: 'coral', k: 'today-targets' },
+      prices:  { t: 'Price list', d: 'Every service and price.', i: 'tag', c: 'butter', k: 'price-list' },
+      desk:    { t: 'Front desk manual', d: 'Booking, deposits and cancellations.', i: 'book', c: 'butter', k: 'front-desk' },
+      calls:   { t: 'Call scripts', d: 'What to say on a call or WhatsApp.', i: 'phone', c: 'lavender', k: 'call-centre' },
+      today:   { t: 'Today’s numbers', d: 'How is the day going?', i: 'clock', c: 'butter', v: 'dailyperf' },
+      actuals: { t: 'Targets', d: 'Are we on target this month?', i: 'target', c: 'lavender', k: 'today-actuals' },
+      complaints: { t: 'Complaints', d: 'What still needs a reply.', i: 'note', c: 'coral', k: 'clients-complaints' },
+      lost:    { t: 'Lost clients', d: 'Who to win back.', i: 'back', c: 'mint', v: 'lostclients' },
+      team:    { t: 'Team performance', d: 'Podium race and staff pages.', i: 'trophy', c: 'butter', k: 'numbers-team' },
+      pulse:   { t: 'Organisation Pulse', d: 'How the group is doing.', i: 'chart', c: 'lavender', k: 'dashboards' },
+      blasts:  { t: 'Campaign Blasts', d: 'See each blast before it goes.', i: 'mail', c: 'butter', k: 'campaign-blasts' },
+      recruit: { t: 'Recruitment', d: 'Who applied this week.', i: 'users', c: 'lavender', k: 'recruitment' },
+      payslips: { t: 'Payslips', d: 'Upload and send this month’s.', i: 'doc', c: 'mint', k: 'payslips' },
+      uploads: { t: 'Upload Portal', d: 'Ledgers and Phorest reports.', i: 'upload', c: 'mint', k: 'uploads' },
+      fin:     { t: 'Financial totals', d: 'Takings by branch.', i: 'coin', c: 'lavender', k: 'numbers-financials' },
+      prods:   { t: 'Products', d: 'Stock orders and spend.', i: 'tag', c: 'lavender', k: 'numbers-products' },
+      stripe:  { t: 'Stripe vs Phorest', d: 'Check the deposits paid.', i: 'coin', c: 'mint', k: 'stripe-deposits' },
+      dailyrep: { t: 'Daily reports', d: 'Phorest sync and checks.', i: 'upload', c: 'mint', k: 'daily-reports' },
+      menu:    { t: 'Rearrange menu', d: 'Change what staff see.', i: 'grid', c: 'lavender', k: 'menu-mover' }
+    };
+    // Who gets which wish list. Level numbers here are the old ones (1 staff, 2 leadership, 3 executives, 4 accounts, 5 Kate); View as changes them, so Kate can preview each.
+    var WISH = KB.level === 1 ? (window.TRS_STAFF_FD
+        ? ['find', 'complaint', 'deposits', 'targettoday', 'prices', 'desk', 'calls', 'learn', 'ideas']
+        : ['mynum', 'learn', 'forms', 'voucher', 'ideas'])
+      : KB.level === 2 ? ['today', 'actuals', 'complaints', 'complaint', 'team', 'lost', 'find']
+      : KB.level === 3 ? ['pulse', 'today', 'actuals', 'complaints', 'blasts', 'recruit', 'lost']
+      : KB.level === 4 ? ['payslips', 'uploads', 'fin', 'prods', 'stripe', 'deposits']
+      : ['today', 'actuals', 'complaints', 'dailyrep', 'blasts', 'menu'];
+    function where(x) {
+      if (x.go) return x.go();
+      if (x.v) return (KB.allowed.indexOf('dashboards') >= 0 && trsPageOpen(x.v, KB.level, KB.extra)) ? '/?view=' + x.v : null;
+      var s = KB.SECTIONS.filter(function (y) { return y.key === x.k; })[0];
+      return (s && KB.opens(s)) ? (s.href || '/hub/kb.html?s=' + s.key) : null;
+    }
+    var shown = [];
+    WISH.forEach(function (id) { var x = T[id], h = x && where(x); if (h && shown.length < 6) shown.push({ x: x, h: h }); });
+    if (shown.length < 3) return;
+    day.innerHTML = shown.map(function (s) {
+      return '<a class="sr-door" href="' + KB.esc(s.h) + '"><span class="sr-di" style="--c:var(--accent-' + s.x.c + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[s.x.i] + '</svg></span><b>' + KB.esc(s.x.t) + '</b><span class="sr-dt">' + KB.esc(s.x.d) + '</span></a>';
+    }).join('');
+    day.classList.add('on');
+    document.getElementById('srAll').classList.remove('hide');
+    document.getElementById('srDoors').classList.add('hide');
+    document.getElementById('srHint').classList.add('hide');
+    document.getElementById('srHello').textContent = first ? 'Hi ' + first + '. What do you need?' : 'What do you need?';
+  })();
   document.body.classList.remove('sr-wait');
   input.focus();
 
