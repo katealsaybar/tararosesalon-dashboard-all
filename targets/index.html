@@ -742,7 +742,9 @@ function build(){
     r.dLow=pastOn()?wd(r):(days[r.i]!=null?days[r.i]:(leave!=null?leave:r.planned));
     if(r.joiner)return;
     r.low=r100(r.adj*r.dLow);
-    r.high=Math.max(r.low,r100(r.adj*Math.max(r.best,r.planned,r.dLow)));
+    /* Kate, 27 Nov 2026: Alan (Motor City) did not go through with resigning and was back from 13 Nov. His November is the days he really duty'd, so low and full team are the same (rules.onlyLow, {"11": ["BRANCH|Name"]}); other months and people keep the middle of low and full team. */
+    r.fixedDays=!!(((RULES.onlyLow||{})[S.month]||[]).indexOf(r.key)>=0);
+    r.high=r.fixedDays?r.low:Math.max(r.low,r100(r.adj*Math.max(r.best,r.planned,r.dLow)));
   });
   rows.forEach(r=>{
     if(!r.joiner)return;
@@ -1056,7 +1058,7 @@ function detail(r){
   if(r.joiner){
     first=`<div><b class="h">Joiner, first 3 months of employment</b>${S.join}% of the median plan of ${r.nPool} regular${r.nPool===1?'':'s'} (${r.medBasis}). The median is ${fmt(r.med0)}, so ${fmt(r.planJoin)}. Her own pace gives ${fmt(r.own)}${r.capped?', and the plan is capped at that':''}. Low, target and full team are the same for a joiner. Visa status is not an exemption.<br><br>${mos(r)}</div>`;
   }else{
-    const hd=r.grp?r.grp.hd:Math.max(r.best,r.planned,r.dLow);
+    const hd=r.grp?r.grp.hd:(r.fixedDays?r.dLow:Math.max(r.best,r.planned,r.dLow));
     const mo=r.grp?r.grp.months.map(x=>`${MN[x.m-1]}: ${x.d} ${x.d===1?'day':'days'}, ${fmt(x.r)}${x.d?` (${fmt(x.r/x.d)} a day)`:''}`).join('<br>'):mos(r);
     first=`<div><b class="h">1. Average day</b>${r.grp?'Both branches added together.<br>':''}${mo}<br><b>Average ${fmt(r.avgDay)}</b></div>`+
      `<div><b class="h">2. Season</b>The months used ran at ${r.used.map(x=>S.fac[x.m-1].toFixed(2)).join(', ')} (average ${mean(r.used.map(x=>S.fac[x.m-1])).toFixed(2)}). ${MN[S.month-1]} runs at ${S.fac[S.month-1].toFixed(2)}. That is x ${r.ratio.toFixed(3)}, so the day becomes ${fmt(r.adj)}.</div>`+
