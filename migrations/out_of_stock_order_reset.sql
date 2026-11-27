@@ -6,7 +6,7 @@
 -- Whoever may edit the Weekly Product Plan (spend_access edit), the same gate as the amounts and ticks themselves. A row key starts with the salon code in lower case: saa|brand|product|barcode.
 -- Returns { ok, day, cleared } so the page can say how many were put back.
 --
--- Not applied until Kate says so.
+-- APPLIED 27 Nov 2026 (Kate said yes).
 
 create or replace function public.oos_order_reset(p_branch text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
