@@ -48,17 +48,33 @@ language sql stable security definer set search_path = public set statement_time
     where not j.dry and not j.is_test and j.status = 'sent' and j.retried_at is null
       and j.blast_id in ('R_A', 'R_B', 'R_E3', 'R_C1', 'R_D1') and j.delivery in ('delivered', 'read') and not coalesce(j.stop, false)
     order by j.phone, j.sent_at
+  ), main as (
+    select distinct on (t.tid, f.k) t.tid::text as tid, f.k, initcap(coalesce(nullif(r2.client_name, ''), f.client_key)) as nm, r2.branch as br
+    from r2
+    cross join lateral (select case r2.rid when 'R_A' then 'T_A' when 'R_B' then 'T_B' when 'R_E3' then 'T_E3' when 'R_C1' then 'T_C1' else 'T_D1' end as tid,
+                               case r2.rid when 'R_A' then 'A' when 'R_B' then 'B' when 'R_E3' then 'E3' when 'R_C1' then 'F' else 'F2' end as b1) t
+    join nov_client_facts f on f.phone = r2.phone and f.blast_id = t.b1
+    left join lost_wa_status w on w.phone = r2.phone
+    where not coalesce(f.stop, false) and not coalesce(f.ahead, false) and not coalesce(f.came_in, false) and not coalesce(f.late, false) and not coalesce(f.booked_since, false)
+      and not coalesce(w.last_in > r2.sent_at, false)
+      and not coalesce(w.opted_out, false) and not coalesce(w.is_blocked, false)
+      and (r2.branch <> 'MC' or r2.rid = 'R_C1')     -- Motor City has no beauty team: hair Due only
+  ), aq as (
+    -- Al Quoz Hair to beauty (Kate, 27 Nov: keep Al Quoz): their Blast 2 went out outside the page (17 Nov), so there are no R_A jobs for them. They are taken from Blast 1
+    -- (A, reached), and "has not written back" is counted from the first Blast 2 send (16 Nov 12:45 Dubai, 08:45 UTC)
+    select 'T_A'::text as tid, f.k, initcap(coalesce(nullif(j.client_name, ''), f.client_key)) as nm, f.branch as br
+    from nov_client_facts f
+    join nov_send_jobs j on j.id = f.id
+    left join lost_wa_status w on w.phone = f.phone
+    where f.blast_id = 'A' and f.branch = 'AQ' and f.delivery in ('delivered', 'read')
+      and not coalesce(f.stop, false) and not coalesce(f.ahead, false) and not coalesce(f.came_in, false) and not coalesce(f.late, false) and not coalesce(f.booked_since, false)
+      and not coalesce(w.last_in > timestamptz '2026-11-16 08:45:00+00', false)
+      and not coalesce(w.opted_out, false) and not coalesce(w.is_blocked, false)
+      and not exists (select 1 from nov_send_jobs x where x.phone = f.phone and x.blast_id = 'R_A' and not x.dry and not x.is_test)
   )
-  select distinct on (t.tid, f.k) t.tid::text, f.k, initcap(coalesce(nullif(r2.client_name, ''), f.client_key)), r2.branch, null::date, null::numeric, 'std'::text, false, false, false, 'found'::text
-  from r2
-  cross join lateral (select case r2.rid when 'R_A' then 'T_A' when 'R_B' then 'T_B' when 'R_E3' then 'T_E3' when 'R_C1' then 'T_C1' else 'T_D1' end as tid,
-                             case r2.rid when 'R_A' then 'A' when 'R_B' then 'B' when 'R_E3' then 'E3' when 'R_C1' then 'F' else 'F2' end as b1) t
-  join nov_client_facts f on f.phone = r2.phone and f.blast_id = t.b1
-  left join lost_wa_status w on w.phone = r2.phone
-  where not coalesce(f.stop, false) and not coalesce(f.ahead, false) and not coalesce(f.came_in, false) and not coalesce(f.late, false) and not coalesce(f.booked_since, false)
-    and not coalesce(w.last_in > r2.sent_at, false)                           -- she has not written back since the Blast 2 message
-    and not coalesce(w.opted_out, false) and not coalesce(w.is_blocked, false)
-    and (r2.branch <> 'MC' or r2.rid = 'R_C1')                                 -- Motor City has no beauty team: hair Due only
+  select m.tid, m.k, m.nm, m.br, null::date, null::numeric, 'std'::text, false, false, false, 'found'::text from main m
+  union all
+  select a.tid, a.k, a.nm, a.br, null::date, null::numeric, 'std'::text, false, false, false, 'found'::text from aq a
 $$;
 revoke all on function public.nov_blast3_members() from public, anon, authenticated;
 
