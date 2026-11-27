@@ -493,16 +493,18 @@
     // the sign-off of the orders that really go out of info@ (read from info@ Sent, 26 Nov 2026, Kate: "ibase mo kung ano yung nandon tlga sa info email"): Thank you, then the salon coordinator's first name.
     // The info@ signature itself (logo, links) is added as HTML by the draft function (oos-dbd-draft) and by Gmail in a compose window, never typed here.
     const tail = '\n\n\nThank you,\n' + (COORD[fm.branch] || '');
-    // Kate, 27 Nov 2026, from the salon coordinators: lines with no barcode / DBD code are NOT written into the email body ("doesn't matter that much", what matters is that everything is in the xlsx).
-    // They are only counted (need) so the preview and the confirm step can still say how many are left out.
-    const secs = [], need = [];
+    // Kate, 27 Nov 2026, from the salon coordinators: lines WITHOUT A BARCODE are not written into the email body ("doesn't matter that much", what matters is that everything is in the xlsx).
+    // A line has its barcode when it was matched to DBD's list by the barcode (how = 'ean'); a line matched by item code, by name or by a code typed in by hand has none, so it stays out of the body
+    // (it is still on the DBD forms, which are filled by DBD code). A line with no DBD code at all is on neither: need counts those, nob counts the ones left out of the body only.
+    const secs = [], need = []; let nob = 0;
     lists.forEach(L => {
-      const ok = L.rows.filter(r => !r._need); L.rows.filter(r => r._need).forEach(r => need.push(r.d));
-      if (ok.length) secs.push(L.label.toUpperCase() + '\n' + ok.map(r => r.code + ' | ' + r.d + ' | ' + pcs(r.q)).join('\n'));
+      const ok = L.rows.filter(r => !r._need), bc = ok.filter(r => r._l && r._l.how === 'ean');
+      L.rows.filter(r => r._need).forEach(r => need.push(r.d)); nob += ok.length - bc.length;
+      if (bc.length) secs.push(L.label.toUpperCase() + '\n' + bc.map(r => r.code + ' | ' + r.d + ' | ' + pcs(r.q)).join('\n'));
     });
     const full = head + '\n\n' + secs.join('\n\n') + tail;
     const short = head + '\n\n' + lists.map(L => L.label.toUpperCase() + ': ' + plural(L.rows.length, 'product') + ', ' + pcs(L.units)).join('\n') + '\n\nThe full list is in the attached order form.' + tail;
-    return { subject, full, short, need: need.length };
+    return { subject, full, short, need: need.length, nob };
   }
   // test = the same draft, but the To is only the person signed in, no Cc, the subject says TEST ONLY and the top of the body says nothing goes to the supplier; it does not count as drafted.
   // DBD's OWN order forms, filled by the system (Kate, 26 Nov 2026: "autofill dapat haha. gamitin mo order form pa rin nila tho", "no need downloading not unless needed"). The edge function oos-dbd-draft fills them
@@ -585,6 +587,7 @@
     const body = '<textarea class="pvm-ta" spellcheck="true" aria-label="Email message, you can edit it">' + esc(cur) + '</textarea>' + SIG_HTML;
     w.ov.innerHTML = '<div class="pvm-box"><div class="pvm-hd"><div><h3>Email preview, ' + esc(fm.order_no) + ' ' + esc(BN[fm.branch]) + '</h3><p>This is what ' + esc(sup) + ' will receive. Nothing is sent from here.</p></div><button type="button" class="pvm-x" data-c>Close</button></div>' +
       '<div class="pvm-body"><div class="pvm-chips"><span class="pvm-chip ok">Order confirmed</span><span class="pvm-chip">' + plural(fm.lines.length, 'line') + ' · ' + n0(units) + ' pcs</span>' +
+      (mail.nob ? '<span class="pvm-chip">' + plural(mail.nob, 'line') + ' with no barcode ' + (mail.nob === 1 ? 'is' : 'are') + ' left out of the message, ' + (mail.nob === 1 ? 'it is' : 'they are') + ' on the order forms</span>' : '') +
       (mail.need ? '<span class="pvm-chip warn">' + plural(mail.need, 'line') + (mail.need === 1 ? ' has' : ' have') + ' no DBD code: not in the email or on the forms, order by hand</span>' : '') + '</div>' +
       '<div class="pvm-cols"><div class="pvm-left"><div class="pvm-f1"><div class="pvm-fld"><span class="k">From</span><span class="v">' + esc(m.from) + '</span></div>' +
       '<div class="pvm-fld"><span class="k">To</span><span class="v">' + m.to.map(addr).join('') + '</span></div>' +
@@ -620,7 +623,7 @@
       att.innerHTML = d.files.map((f, i) => { const v = f.view || {}; tp += f.products || 0; tq += v.totQ || 0; ta += v.totA || 0;
         return '<button type="button" class="pvm-fl" data-i="' + i + '"><span class="n">' + esc(f.name) + '</span><span class="m"><span>' + plural(f.products || 0, 'product') + '</span><span>' + n0(v.totQ || 0) + ' pcs</span><span>AED ' + pvF2(v.totA) + '</span></span><span class="vw">View</span></button>'; }).join('') +
         '<div class="pvm-sum"><span>' + plural(d.files.length, 'form') + '</span><span>' + plural(tp, 'product') + '</span><span>' + n0(tq) + ' pcs</span><span>AED ' + pvF2(ta) + '</span></div>' +
-        (d.notFound && d.notFound.length ? '<div class="pvm-nf">' + plural(d.notFound.length, 'product') + (d.notFound.length === 1 ? ' is' : ' are') + ' not on the forms (' + esc(d.notFound.slice(0, 3).map(x => x.name).join(', ')) + (d.notFound.length > 3 ? ', ...' : '') + '): they are in the email.</div>' : '');
+        (d.notFound && d.notFound.length ? '<div class="pvm-nf">' + plural(d.notFound.length, 'product') + (d.notFound.length === 1 ? ' is' : ' are') + ' not on the forms (' + esc(d.notFound.slice(0, 3).map(x => x.name).join(', ')) + (d.notFound.length > 3 ? ', ...' : '') + '): add ' + (d.notFound.length === 1 ? 'it' : 'them') + ' by hand.</div>' : '');
       att.querySelectorAll('.pvm-fl').forEach(b => b.addEventListener('click', () => openFormView(d.files[+b.dataset.i])));
     })();
     return '';
@@ -762,7 +765,7 @@
         '<div class="pvm-body"><div class="oos-bk-list">' + rows + '</div></div>' +
         '<div class="oos-bk-msg" role="status" aria-live="polite">' + esc(note) + '</div>' +
         '<div class="oos-bk-acts"><div class="oos-bk-g"><span class="oos-bk-gl">Order</span><div class="oos-bk-gb"><button type="button" class="pvm-b' + (toC.length ? ' pvm-main' : '') + '" data-bk="confirm"' + (toC.length && !busy ? '' : ' disabled') + '>' + (toC.length ? 'Confirm ' + plural(toC.length, 'order') : 'Confirm orders') + '</button><button type="button" class="pvm-b" data-bk="cancel"' + (hasC && !busy ? '' : ' disabled') + '>Cancel confirmed</button></div></div>' +
-        '<div class="oos-bk-g"><span class="oos-bk-gl">Send</span><div class="oos-bk-gb"><button type="button" class="pvm-b" data-bk="preview-all"' + (toE.length && !busy ? '' : ' disabled') + '>Preview emails</button><button type="button" class="pvm-b' + (!toC.length && toE.length ? ' pvm-main' : '') + '" data-bk="send"' + (toE.length && !busy ? '' : ' disabled') + '>' + (toE.length ? 'Email ' + plural(toE.length, 'order') : 'Email orders') + '</button></div></div>' +
+        '<div class="oos-bk-g"><span class="oos-bk-gl">Send</span><div class="oos-bk-gb"><button type="button" class="pvm-b' + (!toC.length && toE.length ? ' pvm-main' : '') + '" data-bk="preview-all"' + (toE.length && !busy ? '' : ' disabled') + '>Preview emails</button><button type="button" class="pvm-b" data-bk="send" disabled title="Barred so it is not pressed by accident. Press Preview emails, read it, and send it from there.">' + (toE.length ? 'Email ' + plural(toE.length, 'order') : 'Email orders') + '</button></div></div>' +
         (S.bulk ? '<div class="oos-bk-g"><span class="oos-bk-gl">Numbers</span><div class="oos-bk-gb"><span class="oos-bk-how" style="align-self:center">' + (lockOk ? 'Locked at ' + esc(bkClock(S.bulk.locked_at)) : 'Not locked for these settings') + '</span><button type="button" class="pvm-b" data-bk="refresh"' + (busy ? ' disabled' : '') + '>Refresh numbers</button></div></div>' : '') + '</div></div>';
       w.ov.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', w.close));
     };
@@ -1062,8 +1065,8 @@
         S.canEdit ? [{ label: 'Confirm order', grp: 'Order', main: !openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } }] : [],
         supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', alt: 1, run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         S.canEdit ? [{ label: 'Cancel confirmed order', grp: 'Order', alt: 1, run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        SUP_MAIL[supName] ? [{ label: 'Preview email', grp: 'Send', alt: 1, run: () => previewEmail(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
-                             { label: 'Email order to ' + supName, grp: 'Send', main: openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length > 0, run: async () => { const sl = B.filter(c => rows.concat(extra || []).some(r => r.b === c)); return (await guardSend([{ sup: supName, sals: sl }])) ? emailToDbd(supName, sl) : 'Not emailed.'; } },
+        SUP_MAIL[supName] ? [{ label: 'Preview email', grp: 'Send', main: openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length > 0, run: () => previewEmail(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
+                             { label: 'Email order to ' + supName, grp: 'Send', locked: 'Barred so it is not pressed by accident. Press Preview email, read it, and send it from there.', run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
                              { label: 'Test email to me', grp: 'Send', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
         S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'DBD reply', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
       ) : undefined };

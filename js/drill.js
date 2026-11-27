@@ -328,7 +328,8 @@
     box.className = 'dr-modal' + (sp.panel ? ' dr-win' : ''); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', sp.title);
     // Window buttons (Out of Stock, the supplier order). Grouped when the spec gives each action a grp: a small label over each group, one thickness, one filled main button (Kate, 27 Nov 2026: "magulo tingnan yung buttons").
     const grouped = (sp.actions || []).some(a => a.grp);
-    const btnOf = (a, i) => `<button type="button" class="dr-act${a.alt ? ' dr-alt' : ''}${a.main ? ' dr-main' : ''}" data-da="${i}">${esc(a.label)}</button>`;
+    // a.locked = a reason: the button is shown but cannot be pressed, and the reason is its tooltip (Kate, 27 Nov 2026: "barred from clicking email to supplier")
+    const btnOf = (a, i) => `<button type="button" class="dr-act${a.alt ? ' dr-alt' : ''}${a.main ? ' dr-main' : ''}" data-da="${i}"${a.locked ? ` disabled aria-disabled="true" title="${esc(a.locked)}"` : ''}>${esc(a.label)}</button>`;
     const actBtn = (sp.actions || []).map(btnOf).join('');
     const gnames = []; (sp.actions || []).forEach(a => { if (gnames.indexOf(a.grp) < 0) gnames.push(a.grp); });
     const acts = grouped ? `<div class="dr-acts" role="group" aria-label="Order steps">${gnames.map(g => `<div class="dr-ag"><span class="dr-agl">${esc(g || '')}</span><div class="dr-agb">${(sp.actions || []).map((a, i) => a.grp === g ? btnOf(a, i) : '').join('')}</div></div>`).join('')}<span class="dr-saved" role="status"></span></div>` : '';

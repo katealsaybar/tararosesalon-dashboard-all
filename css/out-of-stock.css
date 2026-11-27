@@ -160,6 +160,8 @@ tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
 .pvm-chip.ok{background:var(--good-bg,rgba(153,246,228,.12));color:var(--good,#3E7A5E)}
 .pvm-chip.warn{background:var(--warn-bg,rgba(255,178,122,.12));color:var(--warn,#8A5F12)}
 .pvm-cols{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:4px 24px;align-items:start}
+/* the attached forms stay in view while the long message scrolls (Kate, 27 Nov 2026: "this should also move as i scroll down"); on the phone the columns stack, so nothing sticks there */
+.pvm-right{position:sticky;top:0;align-self:start;max-height:calc(100vh - 230px);overflow:auto}
 .pvm-fld{display:grid;grid-template-columns:78px 1fr;gap:4px 12px;padding:9px 0;border-bottom:1px solid var(--border2,var(--border));font-size:14px;align-items:baseline}
 .pvm-fld .k,.pvm-sec{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2,var(--muted))}
 .pvm-fld .v{min-width:0;overflow-wrap:anywhere}
@@ -224,7 +226,7 @@ tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
   .pvm-ov{padding:0;align-items:flex-end}
   .pvm-box,.pvm-vbox{width:100%;max-height:94vh;border-radius:14px 14px 0 0}
   .pvm-hd{padding:14px 10px 8px}.pvm-body{padding:0 10px 8px}.pvm-ft{padding:12px 10px 16px}.pvm-ft .pvm-b{flex:1 1 100%;min-height:44px}.pvm-x{min-height:44px}
-  .pvm-cols{display:flex;flex-direction:column}.pvm-left,.pvm-right{display:contents}
+  .pvm-cols{display:flex;flex-direction:column}.pvm-left,.pvm-right{display:contents;position:static;max-height:none;overflow:visible}
   .pvm-f1{order:2}.pvm-f2{order:3}.pvm-f3{order:4}
   .pvm-fld{grid-template-columns:1fr}.pvm-att{padding:4px 10px}.pvm-xlwrap{margin:0 10px 10px}
 }
