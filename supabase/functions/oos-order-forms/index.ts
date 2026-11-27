@@ -133,6 +133,34 @@ function setCell(rowXml: string, rowNo: number, col: string, value: number | nul
   return rowXml.replace(/<\/row>$/, cell + "</row>");
 }
 
+// put a text in one cell of a row's XML (an inline string), keeping the cell's style, or the style given when the cell is missing; a missing cell is added in column order
+function setText(rowXml: string, rowNo: number, col: string, text: string, style: string): string {
+  const ref = col + rowNo;
+  const re = new RegExp(`<c\\b[^>]*\\br="${ref}"[^>]*?(?:/>|>[\\s\\S]*?</c>)`);
+  const m = re.exec(rowXml);
+  if (m) {
+    const attrs = /<c\b([^>]*?)\/?>/.exec(m[0])![1].replace(/\s*\bt="[^"]*"/, "");
+    return rowXml.replace(m[0], () => `<c${attrs} t="inlineStr"><is><t>${text}</t></is></c>`);
+  }
+  const cell = `<c r="${ref}"${style ? ` s="${style}"` : ""} t="inlineStr"><is><t>${text}</t></is></c>`;
+  const n = colNum(col);
+  for (const c of rowXml.matchAll(/<c\b[^>]*\br="([A-Z]+)\d+"/g)) { if (colNum(c[1]) > n) { const at = rowXml.indexOf(c[0]); return rowXml.slice(0, at) + cell + rowXml.slice(at); } }
+  return rowXml.replace(/<\/row>$/, () => cell + "</row>");
+}
+
+// a whole row (a label in one column, a number in another), put in the sheet at row n: it replaces a blank row that is already there, or is added in row order
+function putRow(xml: string, n: number, cells: { col: string; text?: string; value?: number; style: string }[]): string {
+  const body = cells.slice().sort((x, y) => colNum(x.col) - colNum(y.col)).map((c) => {
+    const st = c.style ? ` s="${c.style}"` : "";
+    return c.text !== undefined ? `<c r="${c.col}${n}"${st} t="inlineStr"><is><t>${c.text}</t></is></c>` : `<c r="${c.col}${n}"${st}><v>${c.value}</v></c>`;
+  }).join("");
+  const rowXml = `<row r="${n}">${body}</row>`;
+  const m = new RegExp(`<row\\b[^>]*\\br="${n}"[^>]*?(?:/>|>[\\s\\S]*?</row>)`).exec(xml);
+  if (m) return xml.replace(m[0], () => rowXml);
+  for (const x of xml.matchAll(/<row\b[^>]*\br="(\d+)"/g)) { if (parseInt(x[1]) > n) { const at = xml.indexOf(x[0]); return xml.slice(0, at) + rowXml + xml.slice(at); } }
+  return xml.replace("</sheetData>", () => rowXml + "</sheetData>");
+}
+
 Deno.serve(async (req: Request) => {
   const CORS = cors(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -229,6 +257,15 @@ Deno.serve(async (req: Request) => {
         }
         xml = xml.replace(r.xml, () => rowXml);
       }
+      // Kate, 27 Nov 2026: the Order column has no heading in some of DBD's forms (so it is named), and the form had no total quantity or total AED (so two lines are added under the last product, at the price list price)
+      const hdrR = f.rows.find((r) => r.r === f.hdrRow), hdrStyle = hdrR?.cells.find((c) => c.col === f.cols.desc)?.s ?? "";
+      const hq = hdrR?.cells.find((c) => c.col === f.cols.qty);
+      if (hdrR && (!hq || !hq.v.trim())) xml = xml.replace(hdrR.xml, () => setText(hdrR.xml, hdrR.r, f.cols.qty, "Order Qty.", hdrStyle));
+      let totQ = 0, totA = 0, lastR = f.hdrRow;
+      for (const h of hits) { totQ += items[h.i].q; totA += items[h.i].q * num(h.row.cells.find((c) => c.col === f.cols.wsp)?.v ?? ""); }
+      for (const r of f.rows) { if (r.r > f.hdrRow && (r.cells.find((c) => c.col === f.cols.desc)?.v || "").trim()) lastR = Math.max(lastR, r.r); }
+      xml = putRow(xml, lastR + 2, [{ col: f.cols.desc, text: "TOTAL QTY", style: hdrStyle }, { col: f.cols.qty, value: totQ, style: hdrStyle }]);
+      xml = putRow(xml, lastR + 3, [{ col: f.cols.desc, text: "TOTAL (AED, at WSP)", style: hdrStyle }, { col: f.cols.qty, value: Math.round(totA * 100) / 100, style: hdrStyle }]);
       zip.file(f.sheetPath, xml);
       const wbPath = "xl/workbook.xml";
       let wb = await zip.file(wbPath)?.async("string");
