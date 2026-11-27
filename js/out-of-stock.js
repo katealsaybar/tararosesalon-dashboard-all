@@ -696,6 +696,7 @@
     const dbdSals = B.filter(c => rows.concat(extra || []).some(r => r.b === c));
     const dbdView = c => ({ id: 'dbd-' + c, label: BN[c], load: async () => {
       const mine = rows.concat(extra || []).filter(r => r.b === c);
+      const inRows = new Set(rows.map(r => r.key));   // the products the rule orders (the low-stock extras are not counted in the Min / Max totals)
       const lineOf = r => ({ key: r.key, brand: r.brand, fam: r.brand === 'Schwarzkopf' ? 'SKP' : String(r.brand).toUpperCase(), type: r.type, cat: r.cat, name: r.name, q: ordOf(r.key, r.qm).o, c: Math.round(r.c * 100) / 100 });
       const matchAll = async () => {
         let r; try { r = await sb.rpc('oos_dbd_match', { p_lines: mine.map(lineOf) }); } catch (e) { r = { error: e }; }
@@ -707,13 +708,13 @@
       let cat = [];
       if (S.canEdit && lines.some(l => !l.code)) { try { const r = await sb.rpc('dbd_catalog_get'); if (r && r.data && Array.isArray(r.data.products)) cat = r.data.products; } catch (e) { /* no suggestions */ } }
       const listOf = l => (l.fam || String(l.brand || '').toUpperCase()) + ' ' + (l.type === 'Retail' ? 'Retail' : 'Professional');
-      const mk1 = l => { const x = byKey[l.key], q = x ? ordOf(l.key, x.qm).o : (+l.q || 0), row = rowOf(Object.assign({}, l, { q })); row.ls = listOf(l); row._opts = row._need ? suggest(cat, l) : null; return row; };
+      const mk1 = l => { const x = byKey[l.key], q = x ? ordOf(l.key, x.qm).o : (+l.q || 0), row = rowOf(Object.assign({}, l, { q })); row.ls = listOf(l); row.qm = x ? x.qm : 0; row.qx = x ? x.q : 0; row.am = x ? Math.round(x.am * 100) / 100 : 0; row.ax = x ? Math.round(x.aed * 100) / 100 : 0; row._pl = x && inRows.has(x.key) ? 1 : 0; row._opts = row._need ? suggest(cat, l) : null; return row; };
       const sortRows = rs => rs.sort((a, b) => (b._need - a._need) || a.ls.localeCompare(b.ls) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.sub.localeCompare(b.sub, undefined, { sensitivity: 'base' }) || a.d.localeCompare(b.d, undefined, { sensitivity: 'base' }));
       const dr = sortRows(lines.map(mk1));
       const res = { rows: dr };
-      const sums = () => { const on = res.rows.filter(r => r.q > 0), t = on.reduce((a, r) => a + (r.tot === '' ? 0 : +r.tot), 0), need = on.filter(r => r._need).length; res.foot = { ls: 'Total: ' + plural(on.length, 'line'), q: on.reduce((a, r) => a + r.q, 0), tot: f2(t) }; res.sub = plural(on.length, 'line') + ' in the order · ' + (need ? plural(need, 'line') + ' need a DBD code' : 'every line has its DBD code') + ' · DBD\'s own columns'; };
+      const sums = () => { const on = res.rows.filter(r => r.q > 0), t = on.reduce((a, r) => a + (r.tot === '' ? 0 : +r.tot), 0), need = on.filter(r => r._need).length; const pl = k => Math.round(res.rows.reduce((a, r) => a + (r._pl ? (+r[k] || 0) : 0), 0) * 100) / 100; res.foot = { ls: 'Total: ' + plural(on.length, 'line'), q: on.reduce((a, r) => a + r.q, 0), tot: f2(t), qm: pl('qm'), qx: pl('qx'), am: pl('am'), ax: pl('ax') }; res.sub = plural(on.length, 'line') + ' in the order · ' + (need ? plural(need, 'line') + ' need a DBD code' : 'every line has its DBD code') + ' · DBD\'s own columns'; };
       const say = m => Object.assign(new Error(m), { say: m });
-      res.cols = [{ k: 'ls', l: 'List', cx: 'nw' }].concat(FCOLS.slice(0, 9).map(f => f.k === 'code' ? Object.assign({}, f, { edit: S.canEdit ? 'text' : false, ph: 'Type code' }) : f.k === 'q' ? Object.assign({}, f, { edit: S.canEdit }) : f), [{ k: 'st', l: 'Status', t: 'txt' }]);
+      res.cols = [{ k: 'ls', l: 'List', cx: 'nw' }].concat(FCOLS.slice(0, 9).map(f => f.k === 'code' ? Object.assign({}, f, { edit: S.canEdit ? 'text' : false, ph: 'Type code' }) : f.k === 'q' ? Object.assign({}, f, { edit: S.canEdit }) : f), [{ k: 'st', l: 'Status', t: 'txt' }], [{ k: 'qm', l: 'Min qty', t: 'num', cx: 'dr-ref dr-sep' }, { k: 'qx', l: 'Max qty', t: 'num', cx: 'dr-ref' }, { k: 'am', l: 'Min AED', t: 'aed', cx: 'dr-ref' }, { k: 'ax', l: 'Max AED', t: 'aed', cx: 'dr-ref' }]);
       res.onEdit = async (row, k, val) => {
         if (k === 'q') {
           const v = parseQty(val); if (v !== v) throw say('Type a whole number, 0 or more.');
@@ -732,18 +733,20 @@
       };
       sums();
       const poNow = openOrders(supName, [c]);
-      res.note = (poNow.length ? '<b>Orders:</b> ' + poNow.map(o => poFmt(o).replace(/^[^ ]+/, m => esc(m)) + ' confirmed by ' + esc(String(o.by || '').split('@')[0])).join('; ') + '. ' : (S.poOn ? '<b>Not confirmed yet.</b> ' : '')) + 'The same columns as DBD\'s own forms, A to Z by list, category and name. <b>Order Qty.</b> is the Qty to Order'
+      res.note = (poNow.length ? '<b>Orders:</b> ' + poNow.map(o => poFmt(o).replace(/^[^ ]+/, m => esc(m)) + ' confirmed by ' + esc(String(o.by || '').split('@')[0])).join('; ') + '. ' : (S.poOn ? '<b>Not confirmed yet.</b> ' : '')) + 'The columns up to Status are DBD\'s own form, A to Z by list, category and name. The four grey columns after it (Min qty, Max qty, Min AED, Max AED) are our own planning figures and are not on DBD\'s form. <b>Order Qty.</b> is the Qty to Order'
         + (S.canEdit ? ': type the amount you will really order, 0 takes a product out, and clearing the box goes back to the calculated amount. Lines with no DBD code come first: type the 6 to 8 digit code, it is saved for that product.' : '.')
         + (S.ordersOk ? '' : ' On-order counts are not loaded yet.');
       return res;
     } });
     return { fadeZero: 1, title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
       views: sheet && supName === 'DBD' && dbdSals.length ? dbdSals.map(dbdView) : sheet ? [sheetView, prodView] : [prodView],
+      // Order of the buttons (Kate, 27 Nov 2026: "then it shouldnt be the first button, yes?" about Order form, which is made from the CONFIRMED order): Confirm order comes first and is the filled one
+      // until an order is confirmed; once one is, Email order to DBD is the filled one. Order form and Cancel only matter once an order is confirmed, so they follow Confirm order.
       actions: sheet && supName ? [].concat(
-        supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        S.canEdit ? [{ label: 'Confirm order', grp: 'Order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
-                     { label: 'Cancel confirmed order', grp: 'Order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, grp: 'Send', main: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
+        S.canEdit ? [{ label: 'Confirm order', grp: 'Order', main: !openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } }] : [],
+        supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', alt: 1, run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+        S.canEdit ? [{ label: 'Cancel confirmed order', grp: 'Order', alt: 1, run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+        SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, grp: 'Send', main: openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length > 0, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
                              { label: 'Test email to me', grp: 'Send', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
         S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'DBD reply', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
       ) : undefined };

@@ -157,3 +157,9 @@ body.dr-open{overflow:hidden}
   .dr-tbl tfoot td.nw{white-space:nowrap}
 }
 @media(min-width:761px){.dr-tbl:has(.dr-nm) td,.dr-tbl:has(.dr-nm) th{padding-left:7px;padding-right:7px}.dr-tbl:has(.dr-nm) td.dr-nm,.dr-tbl:has(.dr-nm) th.dr-nm{min-width:230px}}
+
+/* the supplier order window in DBD's format: the columns after Status are our own planning figures (Min and Max quantity and AED), set apart from DBD's form by a line and a grey tint (Kate, 27 Nov 2026) */
+.dr-tbl td.dr-ref{background:var(--surface2,rgba(127,127,127,.12));color:var(--muted)}
+.dr-tbl th.dr-ref{background:var(--surface2,rgba(127,127,127,.12));font-style:italic}
+.dr-tbl tfoot td.dr-ref{background:var(--surface2,rgba(127,127,127,.12))}
+.dr-tbl td.dr-sep,.dr-tbl th.dr-sep{border-left:2px solid var(--text)}
