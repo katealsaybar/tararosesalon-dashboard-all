@@ -113,7 +113,7 @@ window.TRS_PAGE_VERS = /*VERS*/{
   "contentcalendar": "2d16901d5c",
   "landingreview": "b7f467e267",
   "recruitment": "a090c2d074",
-  "novblasts": "2c487a943f",
+  "novblasts": "20174211f6",
   "stripedeposits": "9b4ed277c7",
   "sitetraffic": "b1e0fb3c71",
   "dailyreports": "30ae6dd73c",
