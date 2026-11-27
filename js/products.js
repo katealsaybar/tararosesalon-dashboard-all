@@ -156,6 +156,8 @@ function prdPaint(el) {
       ['Why now', 'Spend is counted the day an order arrives, so a heavy week shows up as soon as the stock is in.'],
       ['If we do nothing', 'Over-ordering shows only later, when the month looks expensive and the money is already spent.']],
       'Kate picks the week with the highest spend and asks the salon coordinator what was ordered, before the next order goes in.')}
+    ${typeof pcgTabsHtml === 'function' ? pcgTabsHtml() : ''}
+    <div id="prdTabSpend">
     ${olderYears}
     <div class="sc-bar w13-bar">
       <div class="sc-seg" role="group" aria-label="Team">
@@ -187,9 +189,12 @@ function prdPaint(el) {
       </table></div>` : '<p class="slv-muted">No stock arrived in these dates.</p>'}
       ${unmatched}
     </section>
-    <div id="psRoot"></div>`;
+    <div id="psRoot"></div>
+    </div><div id="prdTabProd" hidden></div><div id="prdTabSup" hidden></div>`;
   // Kate, 18 Nov 2026: Top products by spend is drawn by product-spend.js (the mockup docs/mockups/top-products-by-spend.html), with About this page in place of the footer note
   if (typeof psMount === 'function') psMount(d);
+  // Kate, 27 Nov 2026: the All products and Order by supplier tabs (products-catalog.js)
+  if (typeof pcgMount === 'function') pcgMount();
   prdDraw(weeks, byWeek);
 }
 

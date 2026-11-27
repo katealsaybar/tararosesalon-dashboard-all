@@ -79,7 +79,7 @@ OWN = {
     'qrmaker': ['qr/index.html', 'vendor/qrcode/qrcode.js', 'assets/qr-logo-tara-rose.png'],
     'findstylist': ['hub/find-stylist.html', 'hub/matching.js', 'hub/matching.css'],
     'leavecal': ['js/leave-cal.js'],
-    'products': ['js/products.js', 'js/product-spend.js', 'css/product-spend.css'],
+    'products': ['js/products.js', 'js/product-spend.js', 'css/product-spend.css', 'js/products-catalog.js', 'css/products-catalog.css'],
     'supplierspend': ['js/spend.js'],
     'outofstock': ['js/out-of-stock.js', 'css/out-of-stock.css'],
     'supplierpay': ['js/supplier-spend.js'],

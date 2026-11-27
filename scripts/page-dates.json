@@ -192,8 +192,8 @@
  },
  "products": {
   "created": "2026-09-28",
-  "fp": "29ac2034870d",
-  "modified": "2026-11-20"
+  "fp": "36fe4896a73d",
+  "modified": "2026-11-27"
  },
  "qrmaker": {
   "created": "2026-11-25",
@@ -232,13 +232,13 @@
  },
  "services": {
   "created": "2026-06-01",
-  "fp": "decf2e378f3c",
-  "modified": "2026-11-25"
+  "fp": "7eb70f98655f",
+  "modified": "2026-11-27"
  },
  "sitetraffic": {
   "created": "2026-11-25",
-  "fp": "ecb41b471434",
-  "modified": "2026-11-25"
+  "fp": "b1e0fb3c71e8",
+  "modified": "2026-11-27"
  },
  "social": {
   "bump": 3,

@@ -50,3 +50,7 @@
   .sx-v{min-height:44px}.sx-v input{width:22px;height:22px}
   .sx-pop select,.sx-pop input[type=text],.sx-pop input[type=search]{min-height:44px}
 }
+/* a heading row that opens each group while the list is sorted by the group's column (cfg.group; Products, All products by supplier) */
+.sx-t tr.sx-grp td{background:var(--surface2);padding:0;border-top:1px solid var(--border)}
+.sx-grpin{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;padding:10px 14px;font-size:14.5px}
+.sx-t tr.sx-grp td::before{content:none!important}

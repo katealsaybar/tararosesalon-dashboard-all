@@ -85,7 +85,8 @@
         return `<th class="${c.t === 'num' ? 'r ' : ''}${i === fi ? 'fc' : ''}"><span class="sx-th"><span class="sx-tl">${esc(lab)}${T.sort && T.sort.k === c.k ? (T.sort.dir > 0 ? ' ↑' : ' ↓') : ''}${sub ? `<small>${esc(sub)}</small>` : ''}</span><button type="button" class="sx-fb${on ? ' on' : ''}" data-sxf="${c.k}" data-sxt="${cfg.id}" aria-label="Sort and filter ${esc(lab)}"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button></span></th>`;
       }).join('');
       const lab = c => esc(typeof c.l === 'function' ? c.l() : c.l);
-      const body = shown.map(r => `<tr${cfg.rowCls ? ` class="${cfg.rowCls(r)}"` : ''}>${cols.map((c, i) => `<td data-l="${lab(c)}" class="${c.t === 'num' ? 'r ' : ''}${i === fi ? 'fc' : ''}">${c.cell(r)}</td>`).join('')}</tr>`).join('')
+      let lastG;   // cfg.group = { k, key(r), head(g, r, n) }: while the list is sorted by column k, a heading row opens each group (Products, All products by supplier)
+      const body = shown.map(r => { let gh = ''; const G = cfg.group; if (G && T.sort && T.sort.k === G.k) { const g = G.key(r); if (g !== lastG) { lastG = g; gh = `<tr class="sx-grp"><td colspan="${cols.length}"><div class="sx-grpin">${G.head(g, r, rows.filter(x => G.key(x) === g).length)}</div></td></tr>`; } } return gh + `<tr${cfg.rowCls ? ` class="${cfg.rowCls(r)}"` : ''}>${cols.map((c, i) => `<td data-l="${lab(c)}" class="${c.t === 'num' ? 'r ' : ''}${i === fi ? 'fc' : ''}">${c.cell(r)}</td>`).join('')}</tr>`; }).join('')
         || `<tr><td colspan="${cols.length}" class="sx-none">Nothing matches.</td></tr>`;
       let foot = '';
       if (cfg.total && rows.length) {

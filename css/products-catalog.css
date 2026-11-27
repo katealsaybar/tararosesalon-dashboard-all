@@ -1,0 +1,17 @@
+/* Products > All products and Order by supplier (js/products-catalog.js), Kate, 27 Nov 2026. The tables, the answer line, the toolbar, How it is worked out and
+   About this page reuse the .ps-* and .sx-* rules of product-spend.css and sheet-table.css; this file only adds what those do not have. */
+.pcg-tabs{margin:22px 0 16px}
+.pcg-tabs button{min-height:38px;padding:8px 20px;font-size:14.5px}
+.pcg-find{display:inline-flex;align-items:center;flex:1 1 240px;max-width:420px;min-width:180px;height:34px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted2)}
+.pcg-find input{flex:1;min-width:0;border:0;background:none;color:var(--text);font:inherit;font-size:13.5px;outline:0}
+.pcg-none{color:var(--muted2);font-size:13px}
+.pcg-also,.pcg-also .fig{font-size:13px}
+.pcg-gn{font-size:13px;color:var(--muted2);font-weight:400}
+.pcg-ord{min-height:32px;padding:4px 16px}
+.pcg-ord[disabled]{opacity:.45;cursor:default}
+@media (max-width:760px){
+  .pcg-tabs{display:flex}
+  .pcg-tabs button{flex:1;min-height:44px}
+  .pcg-find{flex:1 1 100%;max-width:none;height:44px}
+  .pcg-ord{min-height:44px}
+}
