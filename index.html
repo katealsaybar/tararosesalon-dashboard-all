@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=f2675660"></script>
-<script src="js/page-dates.js?v=5eabc905"></script>
+<script src="js/page-dates.js?v=dd872e1c"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3631,7 +3631,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <link rel="stylesheet" href="css/product-spend.css?v=48cbeb24">   <!-- Products, Top products by spend (product-spend.js) -->
 <link rel="stylesheet" href="css/products-catalog.css?v=efd68d7c">   <!-- Products, All products and Order by supplier (products-catalog.js) -->
 <link rel="stylesheet" href="css/orders.css?v=70067120">   <!-- Orders and Receipts (orders.js) -->
-<link rel="stylesheet" href="css/out-of-stock.css?v=79095bf9">   <!-- Out of Stock (out-of-stock.js) -->
+<link rel="stylesheet" href="css/out-of-stock.css?v=98785c88">   <!-- Out of Stock (out-of-stock.js) -->
 <link rel="stylesheet" href="css/lost-lists.css?v=5021aa8e">
 <link rel="stylesheet" href="css/lost-queue.css?v=113b6d23">
 <link rel="stylesheet" href="css/send-schedule.css?v=88a70391">
@@ -3765,7 +3765,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       pr:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=fd3b3acc', 'js/products.js?v=4e27009d', 'js/product-spend.js?v=095cef82', 'js/products-catalog.js?v=6bdd2473'],
       sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=c4e7c627'],
       // Out of Stock (23 Nov 2026): what to order this week from the Weekly Product Plan's shelf counts; one file, the Sheets table and the report export (drill.js is already on the page). Reads spend_plan and oos_on_order.
-      oos: ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=fd3b3acc', 'js/out-of-stock.js?v=d65745cb'],
+      oos: ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=fd3b3acc', 'js/out-of-stock.js?v=056ccb42'],
       // Supplier Spend (13 Nov 2026): who we buy from, what Accounts paid beside what Phorest received; reads spend_report.
       ss:  ['js/report-export.js?v=d7b73ae8', 'js/supplier-spend.js?v=aab0d891'],
       // Orders and Receipts (18 Nov 2026): one file, the Google Sheets table (sheet-table.js) and the report export; reads orders_get.
@@ -4557,7 +4557,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=b255e738&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=40b147f8&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -5168,7 +5168,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/bar-hover.js?v=ea0f3135"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
-<script src="js/drill.js?v=1cc88f74"></script>
+<script src="js/drill.js?v=e7355c06"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
 <script src="js/dashboard.js?v=f4507c60"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->
