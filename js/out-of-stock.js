@@ -258,7 +258,7 @@
     const rows = [];
     plan.forEach(r => {
       const b = r[BR]; if (B.indexOf(b) < 0) return;
-      const mn = +r[MIN]; if (!(mn > 0)) return;
+      const mn = +r[MIN] > 0 ? +r[MIN] : 0;   // 27 Nov 2026 (Kate, ate Tine: "dapat nandyan pa rin lahat"): a plan row with no Min is kept too, so a quantity can still be typed for it; it stays out of every count and the order list until it is typed or ticked (see all())
       const key = String(r[K] || ''), parts = key.split('|');
       const bc = parts.length >= 4 ? parts[parts.length - 1].replace(/\D/g, '').slice(0, 12) : '';
       const orig = parts.length >= 4 ? parts.slice(2, -1).join('|') : '';
@@ -267,7 +267,7 @@
       ls = ls.filter(l => !l.used); ls.forEach(l => { l.used = true; });
       const stk = r[STK];
       rows.push({ id: rows.length, key, b, brand: brandOf(r[BRAND] || ''), name: String(r[NAME] || '').replace(/\s+/g, ' ').trim(), type: r[TYPE] === 'r' ? 'Retail' : 'Professional',
-        s: Math.max(+stk || 0, 0), neg: stk != null && +stk < 0, noshelf: stk == null, mn, mx: +r[MAX] > 0 ? +r[MAX] : mn, c: +r[COST] || 0, nocost: r[COST] == null,
+        s: Math.max(+stk || 0, 0), neg: stk != null && +stk < 0, noshelf: stk == null, mn, nomin: !(mn > 0), mx: +r[MAX] > 0 ? +r[MAX] : mn, c: +r[COST] || 0, nocost: r[COST] == null,
         sup: supplierOf(r[SUP], r[BRAND], r[NAME]), cat: r[CAT] || '', prio: r[PRIO] || 'B', flag: r[FLAG] || 0, lines: ls, i: ls.reduce((a, l) => a + l.u, 0) });
     });
     S.rows = rows;
@@ -318,23 +318,31 @@
     const bk = S.dem && S.dem[r.b], col = !!(bk && bk.ok && isCol(r.cat)), on = dm === 'book' && col, f = on ? bk.f : 1, fw = on ? fSum(bk, C) : C;
     const raw = r.mn * fw, trig = on ? Math.round(raw) : raw, cush = Math.max(r.mx - r.mn, 0), tgt = trig + cush, have = r.s + r.i, q = have < trig ? tgt - have : 0, qm = have < trig ? trig - have : 0, st = r.s <= 0 ? 'out' : (have < r.mn ? 'u1' : 'ok');
     const od = ordOf(r.key, qm);   // Quantity: the amount typed in, else the maximum order; 0 when the product is ticked off
-    return Object.assign({}, r, { C, col, f, fw, trig, cush, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: have / r.mn, st, ov: od.ov, o: od.o, oa: od.o * r.c, oe: od.oe, sk: od.sk, cn: cn != null, s0: cn != null ? r.s0 : r.s, vf: !!S.verified[r.key] });
+    return Object.assign({}, r, { C, col, f, fw, trig, cush, tgt, have, q, aed: q * r.c, qm, am: qm * r.c, cov: r.mn > 0 ? have / r.mn : (have > 0 ? 99 : 0), st, ov: od.ov, o: od.o, oa: od.o * r.c, oe: od.oe, sk: od.sk, cn: cn != null, s0: cn != null ? r.s0 : r.s, vf: !!S.verified[r.key] });
   }
-  function all(dm) {
+  // allX = every plan row (Min or not); all = the rows that count: with a Min, or a quantity typed in, or ticked off. The "Every product" view of the order list reads allX.
+  function allX(dm) {
     dm = dm || S.dm;
     const C = cover(), k = S.ver + '|' + S.eds + '|' + S.prio + '|' + C + '|' + dm;
     if (!memoM[k]) {
-      if (Object.keys(memoM).length > 12) memoM = {};
+      if (Object.keys(memoM).length > 24) memoM = {};
       memoM[k] = (S.rows || []).filter(r => PRIOS[S.prio].indexOf(r.prio) >= 0).map(r => enrich(r, C, dm))
         .sort((a, b) => SALORD[a.b] - SALORD[b.b] || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));   // Kate, 26 Nov 2026: the default order is A to Z by category (ate Tine found the old order, urgent first, mixed up)
     }
     return memoM[k];
   }
+  function all(dm) {
+    dm = dm || S.dm;
+    const k = S.ver + '|' + S.eds + '|' + S.prio + '|' + cover() + '|' + dm + '|v';
+    if (!memoM[k]) memoM[k] = allX(dm).filter(r => !r.nomin || r.oe || r.sk);
+    return memoM[k];
+  }
   const selRows = () => all().filter(r => inSel(r.b));
+  const selRowsX = () => allX().filter(r => inSel(r.b));
   const listed = r => r.q > 0 || r.oe || r.sk;   // in the order list: it needs one, or an amount was typed in for it, or it was ticked off (so it can be put back)
-  const stX = r => (r.q > 0 || r.s <= 0) ? stTxt(r) : (r.s <= r.mn ? 'Low stock' : 'Not due');   // Low stock = the shelf is at or under Min but the rule does not order it
+  const stX = r => (r.q > 0 || r.s <= 0) ? stTxt(r) : r.nomin ? 'No Min in the plan' : (r.s <= r.mn ? 'Low stock' : 'Not due');   // Low stock = the shelf is at or under Min but the rule does not order it
   const lowOf = r => r.s > 0 && r.s <= r.mn && !listed(r);
-  const stTxt = r => r.st === 'out' ? (r.noshelf ? 'Not on Stock List, check shelf' : r.neg ? 'Minus on the list, check shelf' : r.i > 0 ? 'Out, ' + nu(r.i) + ' on order' : 'Out now') : r.st === 'u1' ? 'Under 1 week' : 'Under ' + wk(r.C);
+  const stTxt = r => r.st === 'out' ? (r.noshelf ? 'Not on Stock List, check shelf' : r.neg ? 'Minus on the list, check shelf' : r.i > 0 ? 'Out, ' + nu(r.i) + ' on order' : 'Out now') : r.st === 'u1' ? 'Under 1 week' : r.nomin ? 'No Min in the plan' : 'Under ' + wk(r.C);
   function salTot(c) {
     const rs = all().filter(r => r.b === c), o = rs.filter(r => r.q > 0);
     return { n: o.length, out: rs.filter(r => r.s <= 0).length, u1: o.filter(r => r.s > 0 && r.have < r.mn).length, aed: sum(o, 'aed'), units: sum(o, 'q'), aedm: sum(o, 'am'), unitsm: sum(o, 'qm') };
@@ -1218,7 +1226,7 @@
         <p class="watch"><b>What to watch.</b> <span id="oosW2"></span></p>
       </div>
       <div class="oos-bar" id="oosBar">
-        <div class="sc-seg oos-seg" role="group" aria-label="Show"><button type="button" class="on" data-of="all" aria-pressed="true">All to order</button><button type="button" data-of="out" aria-pressed="false">Out now</button><button type="button" data-of="u1" aria-pressed="false">Under 1 week</button><button type="button" data-of="low" aria-pressed="false">Low stock</button></div>
+        <div class="sc-seg oos-seg" role="group" aria-label="Show"><button type="button" class="on" data-of="all" aria-pressed="true">All to order</button><button type="button" data-of="out" aria-pressed="false">Out now</button><button type="button" data-of="u1" aria-pressed="false">Under 1 week</button><button type="button" data-of="low" aria-pressed="false">Low stock</button><button type="button" data-of="every" aria-pressed="false">Every product</button></div>
         <button type="button" class="cm-pill" id="oosMore" aria-pressed="false">All columns</button>
         <button type="button" class="cm-pill oos-phone" data-sxcm="oosOrder">Sort and filter</button>
         <span class="oos-sp"></span>
@@ -1371,6 +1379,7 @@
   // ── 2 THE ORDER LIST ─────────────────────────────────────────────────────────────────
   function orderRows() {
     const rs = selRows();
+    if (S.filt === 'every') return selRowsX();   // every product of the plan, with or without a Min: a Quantity can be typed for any of them, and then it is in the order
     if (S.filt === 'out') return rs.filter(r => r.s <= 0);
     if (S.filt === 'u1') return rs.filter(r => r.q > 0 && r.s > 0 && r.have < r.mn);
     if (S.filt === 'low') return rs.filter(r => r.s <= r.mn);   // everything at or under Min, ordered by the rule or not: a Quantity can be typed for any of them
