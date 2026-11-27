@@ -742,7 +742,7 @@ function build(){
     r.dLow=pastOn()?wd(r):(days[r.i]!=null?days[r.i]:(leave!=null?leave:r.planned));
     if(r.joiner)return;
     r.low=r100(r.adj*r.dLow);
-    /* Kate, 27 Nov 2026: Alan (Motor City) did not go through with resigning and was back from 13 Nov. His November is the days he really duty'd, so low and full team are the same (rules.onlyLow, {"11": ["BRANCH|Name"]}); other months and people keep the middle of low and full team. */
+    /* Kate, 27 Nov 2026: Alan (Motor City) did not go through with resigning and was back from 13 Nov. His November is the days he really duty'd, so low and full team are the same (rules.onlyLow, {"11": ["BRANCH|Name"]}); other months and people keep the middle of low and full team. Kate, 27 Nov 2026: Tegan Skinner (KCA) went on leave this week, so her days are locked too: a person in onlyLow has no days box, only the figure from rules.leave. */
     r.fixedDays=!!(((RULES.onlyLow||{})[S.month]||[]).indexOf(r.key)>=0);
     r.high=r.fixedDays?r.low:Math.max(r.low,r100(r.adj*Math.max(r.best,r.planned,r.dLow)));
   });
@@ -1031,7 +1031,7 @@ function personRow(r){
   const has=r.med!=null&&!r.cover, open=st.open.has(r.i);
   const ch=days[r.i]!=null;
   let h=`<tr class="p">${nameCell(r)}`+
-   `<td data-l="${pastOn()?'Days worked':'Planned days'}">${has?(pastOn()?`<span class="dw">${r.dLow}</span>`:`<input class="days${ch?' changed':''}" type="number" min="0" max="26" value="${r.dLow!=null?r.dLow:r.planned}" data-i="${r.i}" aria-label="Planned days for ${r.p[1]}">`):'n/a'}</td>`+
+   `<td data-l="${pastOn()?'Days worked':'Planned days'}">${has?(pastOn()||r.fixedDays?`<span class="dw" title="${r.fixedDays?'Fixed in the rules, the days she really worked or will work this month':'Counted from Phorest'}">${r.dLow}</span>`:`<input class="days${ch?' changed':''}" type="number" min="0" max="26" value="${r.dLow!=null?r.dLow:r.planned}" data-i="${r.i}" aria-label="Planned days for ${r.p[1]}">`):'n/a'}</td>`+
    `<td data-l="Adjustment %">${has?`<input class="days bu${r.bu?' changed':''}" type="number" min="-50" max="100" step="0.1" value="${r.bu}" data-i="${r.i}" aria-label="Adjustment in percent for ${r.p[1]}">`:'n/a'}</td>`+
    `<td data-l="Low">${has?fmt(r.low):(r.cover?'0':'n/a')}</td>`+
    `<td data-l="Target" class="plan">${has?fmt(r.med):(r.cover?'0':'No plan')}</td>`+
