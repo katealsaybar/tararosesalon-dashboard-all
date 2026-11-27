@@ -47,7 +47,7 @@
   const PRIOS = { A: ['A'], AB: ['A', 'B'] };
   const S = { rows: null, lines: [], po: [], poOn: false, ordersOk: false, ordersAt: null, asof: {}, stockAt: {}, stamp: '', planAt: null, refreshedAt: null, state: 'loading', loadedAt: 0, ver: 0, seq: 0, br: B.slice(),
     prio: 'A', cover: 0, filt: 'all', hk: 'qty', ak: 'rule', built: false, ro: null, dem: null, demInfo: null, dm: 'book', ai: {}, demAll: null,
-    refreshing: false, refMsg: '', edits: {}, skips: {}, counts: {}, verified: {}, editWho: {}, canEdit: false, editDay: '', eds: 0, edSig: '', dirty: false };   // edits / skips: what was typed in or ticked off for this order day, by plan row key (oos_order_edits_get)
+    refreshing: false, refMsg: '', edits: {}, skips: {}, counts: {}, verified: {}, editWho: {}, canEdit: false, editDay: '', eds: 0, edSig: '', dirty: false, bulk: null, bulkOff: false, bulkSig: '', edFail: false };   // edits / skips: what was typed in or ticked off for this order day, by plan row key (oos_order_edits_get)
   let TO = null, TS = null, TB = null, memoM = {};
 
   // ── small helpers ────────────────────────────────────────────────────────────────────
@@ -126,6 +126,7 @@
     const callOrd = Promise.resolve(sb.rpc('oos_on_order')).then(r => r, e => ({ error: e }));   // the migration may not be applied yet
     const callDem = Promise.resolve(sb.rpc('oos_demand')).then(r => r, e => ({ error: e }));
     const callEd = Promise.resolve(sb.rpc('oos_order_edits_get')).then(r => r, e => ({ error: e }));   // the migration may not be applied yet: then the Order column cannot be typed in
+    const callBulk = Promise.resolve(sb.rpc('oos_bulk_get')).then(r => r, e => ({ error: e }));   // the open bulk order (BO number), its ticks and locked numbers; the migration may not be applied yet
     const callPO = fetchPO();   // confirmed supplier orders (after a look for new DBD replies); the migration may not be applied yet
     const pr = await callPlan;
     if (pr.error) throw pr.error;
@@ -142,7 +143,11 @@
     if (dd && !dd.denied && dd.salons) { S.dem = demandOf(dd); S.demAll = dd.all || null; S.demInfo = { from: dd.week_from, to: dd.week_to, lead: dd.lead, synced: dd.synced, weeks: dd.weeks || [] }; } else { S.dem = null; S.demAll = null; S.demInfo = null; }
     const sr = await callStamp, sd = sr && !sr.error ? sr.data : null;
     S.stamp = sd && !sd.denied ? JSON.stringify(sd) : ''; S.planAt = sd && !sd.denied ? sd.plan || null : null;
-    const er = await callEd; applyEdits(er && !er.error ? er.data : null);
+    const er = await callEd, bkr = await callBulk;
+    applyBulk(bkr);
+    // 27 Nov 2026 (Kate: "everytime na eexit nawawala", ticks and amounts back to the defaults): a read that failed (the database was slow) used to be treated as "nothing saved" and drew the defaults.
+    // Now a failed read keeps what was on screen and says so; the 45 second check reads again and puts the saved ticks and amounts back by itself.
+    if (er && !er.error) { applyEdits(er.data); S.edFail = false; } else { S.edFail = true; if (!S.edSig) applyEdits(null); }
     setPO(await callPO);
     memoM = {};
     build(d.rows || []);
@@ -158,7 +163,12 @@
   }
   const whoTxt = k => { const w = S.editWho[k]; return !w ? '' : w === 'you' ? 'you' : String(w).split('@')[0]; };
   // ov = the amount in the box, sk = ticked off, o = what counts in the order
-  function ordOf(key, q) { const ed = S.edits[key], oe = ed != null, sk = !!S.skips[key], ov = oe ? +ed : q; return { oe, sk, ov, o: sk ? 0 : ov }; }
+  // lockQ: while a bulk order (BO number) is open, a quantity nobody typed stays at the figure it had when the numbers were locked, so a stock refresh does not move it. It only applies for the
+  // Priority, weeks of cover and Order for the numbers were locked with (a different setting is a different order: the live figure shows).
+  const lockSig = () => S.prio + '|' + cover() + '|' + S.dm;
+  const NOLOCK = {};
+  const lockQ = () => { const b = S.bulk; return b && b.lock && b.lock.q && b.lock.sig === lockSig() ? b.lock.q : NOLOCK; };
+  function ordOf(key, q) { const ed = S.edits[key], lk = lockQ()[key], oe = ed != null, sk = !!S.skips[key], ov = oe ? +ed : (lk != null ? +lk : q); return { oe, sk, ov, o: sk ? 0 : ov }; }
   // a whole number, 0 or more; '' = put the calculated amount back (null); NaN = not a number
   function parseQty(t) { t = String(t == null ? '' : t).trim(); if (t === '') return null; const n = Math.round(+t); return (isFinite(n) && n >= 0 && n <= 100000) ? n : NaN; }
   const sigNow = () => { S.edSig = JSON.stringify([S.editDay, S.edits, S.skips, S.counts, S.verified]); };
@@ -177,7 +187,7 @@
     if (cur) {
       if (v == null && !cur.oe) return false;
       if (v != null && cur.oe && v === cur.ov) return false;
-      if (v != null && !cur.oe && v === cur.qm) return false;   // the same as the minimum order: nothing to keep
+      if (v != null && !cur.oe && v === (lockQ()[key] != null ? +lockQ()[key] : cur.qm)) return false;   // the same as the minimum order (or the locked figure): nothing to keep
     }
     const r = await sb.rpc('oos_order_edit_set', { p_key: key, p_qty: v });
     if (r.error) throw r.error;
@@ -380,13 +390,13 @@
   const PO_ST = { confirmed: 'confirmed', sent: 'sent to DBD', oos_reply: 'DBD replied', oos_confirmed: 'out of stock confirmed with DBD', on_the_way: 'on the way', invoiced: 'invoiced' };
   const poFmt = o => o.order_no + ' (' + BN[o.branch] + ', ' + plural(o.n_lines, 'product') + ', ' + (PO_ST[o.status] || o.status) + (o.status === 'invoiced' && o.invoice_amount ? ', invoice ' + A(o.invoice_amount) : '') + (o.status === 'oos_reply' ? ': <b>' + plural(o.oos_items || 0, 'item') + ' out of stock' + (o.oos_decided ? ', decision saved' : ', needs a decision') + '</b>' : '') + ')';
   const poOff = e => /oos_order|schema cache|does not exist|Could not find/i.test(String(e && (e.message || e)) + String(e && e.code || '')) ? 'Confirm order is not switched on yet: the database step (out_of_stock_supplier_orders.sql) is waiting to be applied.' : 'That did not work: ' + String(e && e.message || e);
-  async function confirmOrder(sup, keys) {
+  async function confirmOrder(sup, keys, quiet) {
     if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can confirm an order.';
     const rs = all().filter(r => keys[r.key] && r.o > 0); if (!rs.length) return 'Nothing to confirm: every Quantity is 0.';
     const by = {}; rs.forEach(r => { (by[r.b] = by[r.b] || []).push(r); });
     const sals = B.filter(c => by[c]);
     const sum = c => by[c].reduce((a, r) => a + r.o * r.c, 0);
-    if (!window.confirm('Confirm the ' + sup + ' order?\n\n' + sals.map(c => BN[c] + ': ' + plural(by[c].length, 'product') + ', ' + A(sum(c))).join('\n') + '\n\nEach salon gets its own order number. Nothing is sent to ' + sup + ' yet.')) return 'Not confirmed.';
+    if (!quiet && !window.confirm('Confirm the ' + sup + ' order?\n\n' + sals.map(c => BN[c] + ': ' + plural(by[c].length, 'product') + ', ' + A(sum(c))).join('\n') + '\n\nEach salon gets its own order number. Nothing is sent to ' + sup + ' yet.')) return 'Not confirmed.';
     const done = [], was = [];
     for (const c of sals) {
       const lines = by[c].map(r => ({ key: r.key, brand: r.brand, fam: r.brand === 'Schwarzkopf' ? 'SKP' : String(r.brand).toUpperCase(), type: r.type, cat: r.cat, name: r.name, q: r.o, c: Math.round(r.c * 100) / 100 }));
@@ -397,7 +407,7 @@
       if (d.exists) was.push(BN[c] + ' was already confirmed as ' + d.order_no); else done.push(d.order_no + ' ' + BN[c]);
     }
     await loadPO();
-    return (done.length ? 'Confirmed: ' + done.join(', ') + '. ' : '') + (was.length ? was.join('; ') + '. ' : '') + 'Close and open this window to see it on the sheet.';
+    return (done.length ? 'Confirmed: ' + done.join(', ') + '. ' : '') + (was.length ? was.join('; ') + '. ' : '') + (quiet ? '' : 'Close and open this window to see it on the sheet.');
   }
   async function cancelOrders(sup, sals) {
     if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can cancel an order.';
@@ -597,6 +607,131 @@
     return '';
   }
   // ===== PVM:END =====
+  // ===== BULK:BEGIN  Order all suppliers (Kate, 27 Nov 2026: "i-build mo na sa live"; mockup docs/mockups/out-of-stock.html in the cowork repo) =====
+  // One window with a row per supplier: tick, Confirm (each supplier and salon its own TRS-PO number), Preview email and Email (each its own email). The place is kept under a BO number in the
+  // database (oos_bulk_get / oos_bulk_save, migrations/out_of_stock_bulk_batches.sql), so closing the window, reloading or someone else opening the page carries on where it was left. Whether a
+  // supplier is Confirmed or Sent is read from the supplier orders (oos_orders_get), never kept twice. Only DBD has its email and forms set up; the others are confirmed here and sent by hand.
+  function applyBulk(r) {
+    const off = /oos_bulk|schema cache|does not exist|Could not find/i;
+    if (r && r.error) { S.bulkOff = off.test(String(r.error.message || r.error) + String(r.error.code || '')); return; }   // a failed read keeps what is on screen
+    S.bulkOff = false;
+    const d = r && r.data && !r.data.denied ? r.data : null, b = d ? d.batch : null;
+    S.bulk = b || null;
+    S.bulkSig = JSON.stringify(b ? [b.ref, b.ticks, b.locked_at, b.updated_at] : null);
+  }
+  const bkKeys = sup => { const k = {}; groupRows('sup', '', sup).concat(all().filter(r => inSel(r.b) && r.sup === sup && lowOf(r))).forEach(r => { k[r.key] = 1; }); return k; };
+  const bkOn = sup => { const t = (S.bulk && S.bulk.ticks) || {}; return sup in t ? !!t[sup] : sup !== NOSUP; };
+  const bkClock = t => t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }) : '';
+  function bkLines() {
+    return supRows().map(r => {
+      const keys = bkKeys(r.sup), rows = all().filter(x => keys[x.key] && x.o > 0), sals = B.filter(c => rows.some(x => x.b === c)), mine = openOrders(r.sup, sals);
+      const sentAll = mine.length > 0 && mine.length >= sals.length && mine.every(o => o.status !== 'confirmed');
+      const st = !mine.length ? 'new' : sentAll ? 'sent' : 'confirmed';
+      const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+      const chip = st === 'new' ? 'Not confirmed' : st === 'sent' ? cap(PO_ST[mine[0].status] || mine[0].status) + ' ' + mine.map(o => o.order_no).join(', ') : 'Confirmed ' + mine.map(o => o.order_no).join(', ') + (mine.length < sals.length ? ' (' + mine.length + ' of ' + sals.length + ' salons)' : '');
+      return { r, sup: r.sup, keys, rows, sals, mine, st, chip, link: r.sup !== NOSUP, mail: !!SUP_MAIL[r.sup], none: !rows.length };
+    });
+  }
+  const bkLockNow = () => { const q = {}; all().forEach(r => { if (r.qm > 0) q[r.key] = r.qm; }); return { sig: lockSig(), q }; };
+  // opts: ticks (the new ticks), relock (read the numbers again), fresh (close this batch and start another)
+  async function bkSave(opts) {
+    opts = opts || {};
+    const ticks = opts.ticks || (S.bulk && S.bulk.ticks) || {};
+    const lock = opts.relock || opts.fresh || !S.bulk || !S.bulk.lock || !S.bulk.lock.sig ? bkLockNow() : null;
+    let r; try { r = await sb.rpc('oos_bulk_save', { p_ticks: ticks, p_lock: lock, p_new: !!opts.fresh, p_done: false }); } catch (e) { r = { error: e }; }
+    if (r.error) { applyBulk({ error: r.error }); throw r.error; }
+    if (r.data && r.data.denied) throw new Error('not allowed');
+    applyBulk({ data: r.data }); S.eds++; memoM = {}; S.dirty = true;
+  }
+  function paintBulkCard() {
+    const c = $('oosBulkCard'), btn = $('oosBulk'); if (!c) return;
+    const can = !!(S.canEdit && S.poOn && S.rows);
+    if (btn) btn.hidden = !can;
+    if (!can || !S.bulk) { c.hidden = true; return; }
+    const L = bkLines().filter(x => x.link && bkOn(x.sup)), conf = L.filter(x => x.st !== 'new').length, sent = L.filter(x => x.st === 'sent').length;
+    if (L.length && sent >= L.length) { c.hidden = true; return; }
+    c.hidden = false;
+    c.innerHTML = '<div class="oos-bk-t"><div class="oos-bk-k">Continue where you left off</div><div class="oos-bk-l"><b>' + esc(S.bulk.ref) + '</b> · ' + conf + ' of ' + L.length + ' suppliers confirmed' + (sent ? ', ' + sent + ' sent' : '') + ' · saved ' + esc(bkClock(S.bulk.updated_at)) + (S.bulk.updated_by ? ' by ' + esc(String(S.bulk.updated_by).split('@')[0]) : '') + '</div></div>' +
+      '<div class="oos-bk-b"><button type="button" class="pvm-b pvm-main" data-bkc="open">Continue</button><button type="button" class="pvm-b" data-bkc="fresh">Start a new one</button></div>';
+  }
+  async function bkFresh() {
+    if (!window.confirm('Start a new bulk order?\n\n' + (S.bulk ? S.bulk.ref + ' is closed. Its confirmed and sent orders stay as they are.' : ''))) return;
+    try { await bkSave({ fresh: true, ticks: {} }); } catch (e) { return; }
+    paintBulkCard(); openBulk();
+  }
+  let bkW = null;
+  async function openBulk() {
+    if (!S.canEdit || !S.poOn) return;
+    if (bkW && bkW.ov.isConnected) return;
+    let err = '';
+    if (!S.bulk && !S.bulkOff) { try { await bkSave({ ticks: {} }); } catch (e) { err = ''; } }
+    const w = bkW = pvOverlay('Order all suppliers');
+    // a supplier window (Open order, or a figure in this one) opens over the page: this window steps aside while one is open and comes back, redrawn, when it closes
+    const mo = new MutationObserver(() => { const dr = document.body.classList.contains('dr-open'); w.ov.style.display = dr ? 'none' : ''; if (!dr && w.ov.isConnected) paint(); });
+    mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    const baseClose = w.close; w.close = () => { mo.disconnect(); baseClose(); bkW = null; draw(); };
+    let busy = false, note = err;
+    const paint = () => {
+      const L = bkLines(), on = L.filter(x => x.link && bkOn(x.sup)), toC = on.filter(x => x.st !== 'sent' && !x.none && (x.st === 'new' || x.mine.length < x.sals.length)), toE = on.filter(x => x.st === 'confirmed' && x.mail);
+      const hasC = on.some(x => x.st === 'confirmed'), np = L.reduce((a, x) => a + x.rows.length, 0), tot = L.reduce((a, x) => a + x.rows.reduce((b, r) => b + r.o * r.c, 0), 0);
+      const lockOk = S.bulk && S.bulk.lock && S.bulk.lock.sig === lockSig();
+      const rows = L.map(x => {
+        const how = !x.link ? '<b>Not linked to a supplier yet.</b> Link these products first.' : x.none ? '<b>Nothing to order.</b> Every Quantity is 0.' : x.mail ? '<b>Email</b> to the ' + esc(x.sup) + ' order team with their own order forms filled' : '<b>No email address yet.</b> Confirm it here, send it yourself.';
+        const chip = '<span class="oos-bk-chip' + (x.st === 'sent' ? ' s' : x.st === 'confirmed' ? ' c' : '') + '">' + esc(x.chip) + '</span>';
+        return '<div class="oos-bk-row' + (x.link ? '' : ' off') + '"><label class="oos-bk-tick"><input type="checkbox" data-bk="tick" data-s="' + esc(x.sup) + '" aria-label="Include ' + esc(x.sup) + '"' + (bkOn(x.sup) && x.link ? ' checked' : '') + (x.link ? '' : ' disabled') + '></label>' +
+          '<div><span class="oos-bk-name">' + esc(x.sup) + '</span><span class="oos-bk-sub">' + fig(n0(x.rows.length), 'sup', '', x.sup) + (x.rows.length === 1 ? ' product' : ' products') + ' · AED ' + n0(x.rows.reduce((b, r) => b + r.o * r.c, 0)) + '</span></div><div>' + chip + '</div><div class="oos-bk-how">' + how + '</div>' +
+          '<div class="oos-bk-gb">' + (x.mail && x.st !== 'new' ? '<button type="button" class="pvm-b" data-bk="preview" data-s="' + esc(x.sup) + '">Preview email</button>' : '') + '<button type="button" class="pvm-b" data-bk="open" data-s="' + esc(x.sup) + '">Open order</button></div></div>';
+      }).join('');
+      const saved = S.bulkOff ? 'Not saved yet: the database step (out_of_stock_bulk_batches.sql) is waiting to be applied.' : S.bulk ? '<b>Saved ' + esc(bkClock(S.bulk.updated_at)) + '.</b> You can close this and come back to ' + esc(S.bulk.ref) + '.' : '';
+      w.ov.innerHTML = '<div class="pvm-box"><div class="pvm-hd"><div><h3>Order all suppliers, ' + esc(scope()) + (S.bulk ? '<span class="oos-bk-ref">' + esc(S.bulk.ref) + '</span>' : '') + '</h3><p>' + plural(L.length, 'supplier') + ' · ' + plural(np, 'product') + ' · ' + A(tot) + ' · each supplier gets its own order and its own email</p></div><button type="button" class="pvm-x" data-c>Close</button></div>' +
+        '<div class="oos-bk-steps"><span><b>1</b> Tick the suppliers</span><span><b>2</b> Confirm</span><span><b>3</b> Email</span></div>' +
+        '<div class="oos-bk-saved" role="status" aria-live="polite">' + saved + '</div>' +
+        '<div class="pvm-body"><div class="oos-bk-list">' + rows + '</div></div>' +
+        '<div class="oos-bk-msg" role="status" aria-live="polite">' + esc(note) + '</div>' +
+        '<div class="oos-bk-acts"><div class="oos-bk-g"><span class="oos-bk-gl">Order</span><div class="oos-bk-gb"><button type="button" class="pvm-b' + (toC.length ? ' pvm-main' : '') + '" data-bk="confirm"' + (toC.length && !busy ? '' : ' disabled') + '>' + (toC.length ? 'Confirm ' + plural(toC.length, 'order') : 'Confirm orders') + '</button><button type="button" class="pvm-b" data-bk="cancel"' + (hasC && !busy ? '' : ' disabled') + '>Cancel confirmed</button></div></div>' +
+        '<div class="oos-bk-g"><span class="oos-bk-gl">Send</span><div class="oos-bk-gb"><button type="button" class="pvm-b" data-bk="preview-all"' + (toE.length && !busy ? '' : ' disabled') + '>Preview emails</button><button type="button" class="pvm-b' + (!toC.length && toE.length ? ' pvm-main' : '') + '" data-bk="send"' + (toE.length && !busy ? '' : ' disabled') + '>' + (toE.length ? 'Email ' + plural(toE.length, 'order') : 'Email orders') + '</button></div></div>' +
+        (S.bulk ? '<div class="oos-bk-g"><span class="oos-bk-gl">Numbers</span><div class="oos-bk-gb"><span class="oos-bk-how" style="align-self:center">' + (lockOk ? 'Locked at ' + esc(bkClock(S.bulk.locked_at)) : 'Not locked for these settings') + '</span><button type="button" class="pvm-b" data-bk="refresh"' + (busy ? ' disabled' : '') + '>Refresh numbers</button></div></div>' : '') + '</div></div>';
+      w.ov.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', w.close));
+    };
+    const run = async fn => { if (busy) return; busy = true; paint(); try { note = (await fn()) || ''; } catch (e) { console.error(e); note = e && e.message === 'not allowed' ? 'Only people who may edit the Weekly Product Plan can do this.' : 'That did not work. Try again.'; } busy = false; paint(); };
+    w.ov.addEventListener('change', e => {
+      const t = e.target.closest('[data-bk="tick"]'); if (!t) return;
+      const ticks = Object.assign({}, (S.bulk && S.bulk.ticks) || {}); ticks[t.dataset.s] = t.checked;
+      run(async () => { if (!S.bulkOff) await bkSave({ ticks }); else S.bulk = Object.assign({}, S.bulk || {}, { ticks }); return ''; });
+    });
+    w.ov.addEventListener('click', e => {
+      const b = e.target.closest('[data-bk]'); if (!b || b.disabled || b.dataset.bk === 'tick') return;
+      const k = b.dataset.bk, sup = b.dataset.s, L = bkLines(), tk = L.filter(x => x.link && bkOn(x.sup));
+      if (k === 'open') {
+        const line = L.filter(x => x.sup === sup)[0], sp = line && supSpec(sup, ''); if (!sp) return;
+        TRSD.open(sp, b);
+        return;
+      }
+      if (k === 'preview' || k === 'preview-all') {
+        const line = k === 'preview' ? L.filter(x => x.sup === sup)[0] : tk.filter(x => x.st === 'confirmed' && x.mail)[0]; if (!line) return;
+        run(async () => await previewEmail(line.sup, line.sals));
+        return;
+      }
+      if (k === 'refresh') { run(async () => { await bkSave({ relock: true }); return 'Numbers read again from the shelf lists. Your ticks and typed amounts are kept.'; }); return; }
+      if (k === 'confirm') {
+        const go = tk.filter(x => x.st !== 'sent' && !x.none && (x.st === 'new' || x.mine.length < x.sals.length)); if (!go.length) return;
+        if (!window.confirm('Confirm ' + plural(go.length, 'supplier order') + '?\n\n' + go.map(x => x.sup + ': ' + plural(x.rows.length, 'product') + ', ' + A(x.rows.reduce((a, r) => a + r.o * r.c, 0)) + ' (' + x.sals.map(c => BN[c]).join(', ') + ')').join('\n') + '\n\nEach salon gets its own order number. Nothing is sent to the suppliers yet.')) { note = 'Not confirmed.'; paint(); return; }
+        run(async () => { const out = []; for (const x of go) out.push(x.sup + ': ' + await confirmOrder(x.sup, x.keys, true)); return out.join(' ') + ' Next: email them.'; });
+        return;
+      }
+      if (k === 'cancel') {
+        run(async () => { const out = []; for (const x of tk) if (x.mine.some(o => o.status === 'confirmed')) out.push(await cancelOrders(x.sup, x.sals)); return out.join(' ') || 'No confirmed order to cancel here.'; });
+        return;
+      }
+      if (k === 'send') {
+        const go = tk.filter(x => x.st === 'confirmed' && x.mail), hand = tk.filter(x => x.st === 'confirmed' && !x.mail); if (!go.length) return;
+        run(async () => { const out = []; for (const x of go) out.push(await emailToDbd(x.sup, x.sals)); if (hand.length) out.push(hand.map(x => x.sup).join(', ') + ' has no email address yet: send it yourself.'); return out.join(' '); });
+        return;
+      }
+    });
+    paint();
+  }
+  // ===== BULK:END =====
   async function emailToDbd(sup, sals, test) {
     const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
     const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
@@ -1031,6 +1166,7 @@
       <select id="oosCover" style="width:108px" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
       <span class="oos-ctl-t" id="oosCoverT"></span>
     </div>
+    <section class="oos-bkcard" id="oosBulkCard" aria-label="Continue where you left off" hidden></section>
     <section class="oos-ans" aria-label="The answer in one line"><div class="oos-ans-k">The answer in one line</div><div class="oos-ans-t" id="oosAns"></div><div class="oos-ans-s" id="oosAns0"></div><div class="oos-cards" id="oosAns2"></div><div class="oos-ans-s" id="oosAns5"></div><div class="oos-ans-n" id="oosAns3"></div><div class="oos-ans-n" id="oosAns4" hidden></div></section>
 
     <section class="oos-sec" id="oos-1" data-jn="1 Next week's bookings">
@@ -1099,7 +1235,7 @@
       <summary><h3>4 Order by supplier</h3></summary>
       <div class="oos-learn">
         <p><b>What is this?</b> The same order, split by supplier. Names are from the Orders and Receipts page.</p>
-        <p><b>Why it matters.</b> Each supplier is ordered separately.</p>
+        <p><b>Why it matters.</b> Each supplier is ordered separately. Order all suppliers does it in one go: one order and one email each.</p>
         <p class="watch"><b>What to watch.</b> <span id="oosW3"></span></p>
       </div>
       <div class="oos-ctl oos-ctl4">
@@ -1112,7 +1248,7 @@
         <span class="oos-ref4" id="oosRef4"></span>
       </div>
       <div class="oos-refmsg4" id="oosRefMsg4" role="status" hidden></div>
-      <div class="oos-bar oos-bar-plain"><button type="button" class="cm-pill" id="oosMore3" aria-pressed="false">All columns</button><button type="button" class="cm-pill oos-phone" data-sxcm="oosSup">Sort and filter</button><span class="oos-sp"></span>${typeof rexButtons === 'function' ? rexButtons('oosExportSup') : ''}</div>
+      <div class="oos-bar oos-bar-plain"><button type="button" class="cm-pill oos-bkgo" id="oosBulk" hidden>Order all suppliers</button><button type="button" class="cm-pill" id="oosMore3" aria-pressed="false">All columns</button><button type="button" class="cm-pill oos-phone" data-sxcm="oosSup">Sort and filter</button><span class="oos-sp"></span>${typeof rexButtons === 'function' ? rexButtons('oosExportSup') : ''}</div>
       <div class="oos-card"><table id="oosSupTbl"></table></div>
     </details>
 
@@ -1342,7 +1478,8 @@
       if (window.ResizeObserver && $('topbar')) { S.ro = new ResizeObserver(() => offsets()); S.ro.observe($('topbar')); }
     }
     msg('');
-    paintNote(); paintAnswer(); paintBook(); paintBars(); TO.draw(); paintW2(); TS.draw(); paintW3(); paintHow(); paintAbout();
+    paintNote(); paintAnswer(); paintBook(); paintBars(); TO.draw(); paintW2(); TS.draw(); paintW3(); paintHow(); paintAbout(); paintBulkCard();
+    if (S.edFail) edMsg('Your saved amounts and ticks did not load just now (the database was slow). They are safe. This page asks again by itself; do not type amounts until they are back.');
     offsets();
   }
   function wire() {
@@ -1352,6 +1489,8 @@
       if (v) { S.filt = v.dataset.of; host.querySelectorAll('[data-of]').forEach(b => { b.classList.toggle('on', b === v); b.setAttribute('aria-pressed', b === v); }); TO.page = 0; TO.draw(); paintW2(); offsets(); return; }
       if (e.target.closest('#oosMore')) { TO.toggleMore(); e.target.closest('#oosMore').classList.toggle('on', TO.more); e.target.closest('#oosMore').setAttribute('aria-pressed', TO.more); offsets(); return; }
       if (e.target.closest('#oosMore3')) { TS.toggleMore(); e.target.closest('#oosMore3').classList.toggle('on', TS.more); e.target.closest('#oosMore3').setAttribute('aria-pressed', TS.more); return; }
+      if (e.target.closest('#oosBulk')) { openBulk(); return; }
+      const bc = e.target.closest('[data-bkc]'); if (bc) { if (bc.dataset.bkc === 'open') openBulk(); else bkFresh(); return; }
       if (e.target.closest('#oosRefresh, #oosRefresh4')) { refreshStock(); return; }
       if (e.target.closest('#oosClear')) { TO.clear(); TO.draw(); return; }
       if (e.target.closest('#oosPrev')) { if (TO.page > 0) { TO.page--; TO.draw(); } return; }
@@ -1412,7 +1551,11 @@
     try {
       if (document.activeElement && document.activeElement.classList && (document.activeElement.classList.contains('oos-ed') || document.activeElement.classList.contains('oos-ct'))) return;   // someone is typing a quantity: not now
       const er = await Promise.resolve(sb.rpc('oos_order_edits_get')).then(x => x, e => ({ error: e }));   // quantities typed in or products ticked off by someone else
-      if (er && !er.error && er.data && !er.data.denied && JSON.stringify([er.data.day || '', er.data.edits || {}, er.data.skips || {}, er.data.counts || {}, er.data.verified || {}]) !== S.edSig) { applyEdits(er.data); S.eds++; memoM = {}; draw(); }
+      if (er && !er.error && er.data && !er.data.denied) {
+        const wasFail = S.edFail, sig0 = S.bulkSig; S.edFail = false;
+        applyBulk(await Promise.resolve(sb.rpc('oos_bulk_get')).then(x => x, e => ({ error: e })));
+        if (wasFail || S.bulkSig !== sig0 || JSON.stringify([er.data.day || '', er.data.edits || {}, er.data.skips || {}, er.data.counts || {}, er.data.verified || {}]) !== S.edSig) { applyEdits(er.data); S.eds++; memoM = {}; draw(); }
+      }
       const r = await sb.rpc('oos_plan_stamp'), d = r && !r.error ? r.data : null;
       if (!d || d.denied || !S.stamp || JSON.stringify(d) === S.stamp) return;
       await load(true); S.refreshedAt = new Date().toISOString(); draw();
