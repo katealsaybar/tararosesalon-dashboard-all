@@ -143,3 +143,11 @@ body.dr-open{overflow:hidden}
 }
 .dr-modal:has(.dr-acts) .dr-tabs button,.dr-modal:has(.dr-acts) .dr-save button{height:36px;box-sizing:border-box;padding:0 16px;font-weight:600}
 @media(max-width:760px){.dr-modal:has(.dr-acts) .dr-tabs button,.dr-modal:has(.dr-acts) .dr-save button{height:44px}}
+
+/* the supplier order sheet (Kate, 27 Nov 2026): the name stays on one or two lines, the salon, brand and status never wrap, the category wraps only when it must, and the Total sits under the first column on one line */
+@media(min-width:761px){
+  .dr-tbl td.dr-nm,.dr-tbl th.dr-nm{min-width:250px;max-width:340px}
+  .dr-tbl td.dr-cat,.dr-tbl th.dr-cat{min-width:110px}
+  .dr-tbl tfoot td.nw{white-space:nowrap}
+}
+@media(min-width:761px){.dr-tbl:has(.dr-nm) td,.dr-tbl:has(.dr-nm) th{padding-left:7px;padding-right:7px}.dr-tbl:has(.dr-nm) td.dr-nm,.dr-tbl:has(.dr-nm) th.dr-nm{min-width:230px}}

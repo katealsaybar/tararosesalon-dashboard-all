@@ -149,7 +149,9 @@
     const pages = Math.max(1, Math.ceil(vw.rows.length / pgSize));
     st.pg = Math.min(Math.max(0, st.pg || 0), pages - 1);
     const from0 = st.pg * pgSize, shownRows = vw.rows.length > PG_SIZES[0] ? vw.rows.slice(from0, from0 + pgSize) : vw.rows;
-    const cls = c => c.al === 'l' ? 'nw' : NUMT(c) ? 'r' : c.t === 'date' ? 'nw' : /^branch$/i.test(c.l) ? 'br' : '';   // al: 'l' keeps a number column on the left (Reputation stars)
+    const cls0 = c => c.al === 'l' ? 'nw' : NUMT(c) ? 'r' : c.t === 'date' ? 'nw' : /^branch$/i.test(c.l) ? 'br' : '';
+    const cls = c => (cls0(c) + (c.cx ? ' ' + c.cx : '')).trim();   // cx: extra class for one column (nw = never wraps, dr-nm = a name column that keeps a readable width)
+      // al: 'l' keeps a number column on the left (Reputation stars)
     const head = cols.map(c => {
       const sorted = st.sort && st.sort.k === c.k, on = sorted || !!st.f[c.k];
       return `<th class="${cls(c)}"><span class="dr-th"><span class="dr-tl">${esc(c.l)}${sorted ? (st.sort.dir > 0 ? ' ↑' : ' ↓') : ''}</span><button type="button" class="dr-fb${on ? ' on' : ''}" data-fc="${esc(c.k)}" aria-label="Filter ${esc(c.l)}" aria-haspopup="true"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M1 2h10L7 6.5V10L5 9V6.5z" fill="currentColor"/></svg></button></span></th>`;
