@@ -690,8 +690,55 @@
         note: 'Every product is listed with its real counts. Tap a number or a product to see how its order is worked out; On order opens the order lines.' + ordNote + (S.ordersOk ? '' : ' On-order counts are not loaded yet, so On order shows 0.')
       });
     } };
+    // DBD supplier: the window opens in DBD's own format, one tab per salon, no Order sheet or Counts tab (Kate, 27 Nov 2026: "pag DBD supplier, default DBD format na lang so easy to navigate for salon coordss").
+    // It works before the order is confirmed: oos_dbd_match finds each line's DBD code, size, price and EAN the way the confirmed order form does. Order Qty. is the same amount as Qty to Order (typing here saves
+    // it, 0 takes the product out, clearing the box goes back to the calculated amount) and a line with no DBD code comes first, its Code box open to type in.
+    const dbdSals = B.filter(c => rows.concat(extra || []).some(r => r.b === c));
+    const dbdView = c => ({ id: 'dbd-' + c, label: BN[c], load: async () => {
+      const mine = rows.concat(extra || []).filter(r => r.b === c);
+      const lineOf = r => ({ key: r.key, brand: r.brand, fam: r.brand === 'Schwarzkopf' ? 'SKP' : String(r.brand).toUpperCase(), type: r.type, cat: r.cat, name: r.name, q: ordOf(r.key, r.qm).o, c: Math.round(r.c * 100) / 100 });
+      const matchAll = async () => {
+        let r; try { r = await sb.rpc('oos_dbd_match', { p_lines: mine.map(lineOf) }); } catch (e) { r = { error: e }; }
+        if (r.error) throw new Error(/oos_dbd_match|schema cache|Could not find/i.test(String(r.error.message || r.error)) ? 'The DBD format is not switched on yet (out_of_stock_dbd_match.sql).' : 'That did not work: ' + String(r.error.message || r.error));
+        if (!Array.isArray(r.data)) throw new Error('The DBD format could not be read.');
+        return r.data;
+      };
+      let lines; try { lines = await matchAll(); } catch (e) { return { cols: [{ k: 'n', l: 'DBD format' }], rows: [], empty: e.message }; }
+      let cat = [];
+      if (S.canEdit && lines.some(l => !l.code)) { try { const r = await sb.rpc('dbd_catalog_get'); if (r && r.data && Array.isArray(r.data.products)) cat = r.data.products; } catch (e) { /* no suggestions */ } }
+      const listOf = l => (l.fam || String(l.brand || '').toUpperCase()) + ' ' + (l.type === 'Retail' ? 'Retail' : 'Professional');
+      const mk1 = l => { const x = byKey[l.key], q = x ? ordOf(l.key, x.qm).o : (+l.q || 0), row = rowOf(Object.assign({}, l, { q })); row.ls = listOf(l); row._opts = row._need ? suggest(cat, l) : null; return row; };
+      const sortRows = rs => rs.sort((a, b) => (b._need - a._need) || a.ls.localeCompare(b.ls) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.sub.localeCompare(b.sub, undefined, { sensitivity: 'base' }) || a.d.localeCompare(b.d, undefined, { sensitivity: 'base' }));
+      const dr = sortRows(lines.map(mk1));
+      const res = { rows: dr };
+      const sums = () => { const on = res.rows.filter(r => r.q > 0), t = on.reduce((a, r) => a + (r.tot === '' ? 0 : +r.tot), 0), need = on.filter(r => r._need).length; res.foot = { ls: 'Total: ' + plural(on.length, 'line'), q: on.reduce((a, r) => a + r.q, 0), tot: f2(t) }; res.sub = plural(on.length, 'line') + ' in the order · ' + (need ? plural(need, 'line') + ' need a DBD code' : 'every line has its DBD code') + ' · DBD\'s own columns'; };
+      const say = m => Object.assign(new Error(m), { say: m });
+      res.cols = [{ k: 'ls', l: 'List', cx: 'nw' }].concat(FCOLS.slice(0, 9).map(f => f.k === 'code' ? Object.assign({}, f, { edit: S.canEdit ? 'text' : false, ph: 'Type code' }) : f.k === 'q' ? Object.assign({}, f, { edit: S.canEdit }) : f), [{ k: 'st', l: 'Status', t: 'txt' }]);
+      res.onEdit = async (row, k, val) => {
+        if (k === 'q') {
+          const v = parseQty(val); if (v !== v) throw say('Type a whole number, 0 or more.');
+          await commitEdit(row._ek, v);
+          const x = byKey[row._ek]; row.q = x ? ordOf(row._ek, x.qm).o : 0; row.tot = row._l.wsp != null ? f2(row._l.wsp * row.q) : ''; sums(); return;
+        }
+        if (k !== 'code') return;
+        const v = String(val || '').replace(/\s+/g, ''), l = row._l;
+        if (v && !/^\d{6,8}$/.test(v)) throw say('A DBD code is 6 to 8 digits.');
+        if ((l.code || '') === v) return;
+        let r; try { r = await sb.rpc('oos_dbd_code_set', { p_key: l.key, p_name: l.name, p_code: v }); } catch (e) { r = { error: e }; }
+        if (r.error) throw say(/oos_dbd_code_set|schema cache|Could not find/i.test(String(r.error.message || r.error)) ? 'Saving a code is not switched on yet (out_of_stock_dbd_code_links.sql).' : 'Not saved: ' + String(r.error.message || r.error));
+        if (r.data && r.data.denied) throw say('Only people who may edit the Weekly Product Plan can save a code.');
+        let nl; try { nl = await matchAll(); } catch (e) { throw say(e.message); }
+        const fresh1 = sortRows(nl.map(mk1)); res.rows.length = 0; fresh1.forEach(x => res.rows.push(x)); sums();
+      };
+      sums();
+      const poNow = openOrders(supName, [c]);
+      res.note = (poNow.length ? '<b>Orders:</b> ' + poNow.map(o => poFmt(o).replace(/^[^ ]+/, m => esc(m)) + ' confirmed by ' + esc(String(o.by || '').split('@')[0])).join('; ') + '. ' : (S.poOn ? '<b>Not confirmed yet.</b> ' : '')) + 'The same columns as DBD\'s own forms, A to Z by list, category and name. <b>Order Qty.</b> is the Qty to Order'
+        + (S.canEdit ? ': type the amount you will really order, 0 takes a product out, and clearing the box goes back to the calculated amount. Lines with no DBD code come first: type the 6 to 8 digit code, it is saved for that product.' : '.')
+        + (S.ordersOk ? '' : ' On-order counts are not loaded yet.');
+      return res;
+    } });
     return { fadeZero: 1, title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
-      views: sheet ? [sheetView, prodView] : [prodView],
+      views: sheet && supName === 'DBD' && dbdSals.length ? dbdSals.map(dbdView) : sheet ? [sheetView, prodView] : [prodView],
       actions: sheet && supName ? [].concat(
         supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         S.canEdit ? [{ label: 'Confirm order', grp: 'Order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
