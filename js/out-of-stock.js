@@ -462,9 +462,9 @@
     const subject = fm.order_no + ' | ORDER | ' + SAL + ' | ' + dFmt(o.day);
     const head = 'Hello DBD Team,\n\nPlease find our order for the ' + SAL + ' branch below. The order form is attached.\n\nORDER NUMBER: ' + fm.order_no + '\nORDER DATE: ' + dFmt(o.day) + '\nSALON: ' + sal +
       '\nTOTAL: ' + plural(fm.lines.length, 'product') + ', ' + n0(units) + ' pcs\n\nKindly reply to this email, keeping the order number in the subject, with any items that are OUT OF STOCK.';
-    // the sign-off of the orders that really go out of info@ (read from info@ Sent, 26 Nov 2026, Kate: "ibase mo kung ano yung nandon tlga sa info email"): Thank you, the salon coordinator's first name,
-    // then the info@ signature. A draft made through the Gmail API does not get the signature by itself, so it is written out here.
-    const tail = '\n\n\nThank you,\n' + (COORD[fm.branch] || '') + '\n\n\ntararosesalon.com/en/ae/\n\nTara Rose Ladies Salon\n\nKhalifa City A | Saadiyat | Motor City | Al Quoz\n\nClick here to book your appointment: https://wa.me/971524960903\n\nWe\'re hiring across Dubai & Abu Dhabi \u2192 tararosesalon.com/careers';
+    // the sign-off of the orders that really go out of info@ (read from info@ Sent, 26 Nov 2026, Kate: "ibase mo kung ano yung nandon tlga sa info email"): Thank you, then the salon coordinator's first name.
+    // The info@ signature itself (logo, links) is added as HTML by the draft function (oos-dbd-draft) and by Gmail in a compose window, never typed here.
+    const tail = '\n\n\nThank you,\n' + (COORD[fm.branch] || '');
     const secs = [], need = [];
     lists.forEach(L => {
       const ok = L.rows.filter(r => !r._need); L.rows.filter(r => r._need).forEach(r => need.push(r.d + ' | ' + pcs(r.q)));

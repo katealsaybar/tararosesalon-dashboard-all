@@ -6,7 +6,7 @@
 //
 // WHAT IT DOES
 //   1. asks the function oos-order-forms (same caller, same sign-in) to fill DBD's own order forms with the order's lines
-//   2. builds the email (To, Cc, subject, body as the page worked them out) with those xlsx files attached
+//   2. builds the email (To, Cc, subject, body as the page worked them out, then the exact info@ signature as HTML and text) with those xlsx files attached
 //   3. saves it as a DRAFT in the info@ mailbox through the Gmail API (users.drafts.create) and returns the link that opens that draft
 //   It never sends: a person reads the draft and presses Send. If something cannot be done it says so and the page falls back to the old way.
 //
@@ -47,6 +47,13 @@ const env = (...names: string[]) => { for (const n of names) { const v = Deno.en
 const b64url = (s: string) => btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const utf8b64 = (s: string) => { const b = new TextEncoder().encode(s); let bin = ""; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(bin); };
 const wrap76 = (s: string) => s.replace(/(.{76})/g, "$1\r\n");
+// The info@ signature, copied exactly from a real order that went out of info@ (info@ Sent, 26 Nov 2026, read with the Gmail API: the block Gmail puts in after the name).
+// A draft made through the API does not get the Gmail signature by itself, so it is added here. If the signature is ever changed in Gmail, copy it again from a sent message.
+const SIG_HTML = "<div><div dir=\"ltr\" class=\"gmail_signature\" data-smartmail=\"gmail_signature\"><div dir=\"ltr\"><div><p dir=\"ltr\" style=\"line-height:1.656;margin-top:0pt;margin-bottom:0pt\"><br></p></div><div><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:8.5pt;font-family:Arial;color:rgb(28,27,22);vertical-align:baseline\">\u00a0 \u00a0 \u00a0 \u00a0 \u00a0\u00a0<img width=\"96\" height=\"29\" src=\"https://ci3.googleusercontent.com/mail-sig/AIorK4zhEXVm7PLalJEhVf4JDo46bG3tFjok7Lu6O64jyuldvDv4UmhWpe9Yw1Hslvi-0SYOjO9V-hmRjlNx\" style=\"color:rgb(3,3,3);font-family:arial,sans-serif;font-size:12.96px\"></span></p><table cellpadding=\"0\" cellspacing=\"0\" style=\"font-stretch:normal;line-height:normal;font-size:initial;color:rgb(3,3,3)\"><tbody><tr><td style=\"vertical-align:top\"><table cellpadding=\"0\" cellspacing=\"0\" style=\"font-stretch:normal;font-size:14.4px;line-height:normal\"><tbody><tr><td><table cellpadding=\"0\" cellspacing=\"0\" style=\"font-stretch:normal;font-size:12.96px;line-height:normal\"><tbody><tr><td style=\"padding:0px 5px 0px 0px\"><font face=\"arial, sans-serif\"><img src=\"https://img.newoldstamp.com/t/8/w.png\" style=\"display:inline-block;vertical-align:middle\">\u00a0<a href=\"http://tararosesalon.com/en/ae/\" style=\"font-size:1em;color:rgb(3,3,3)\" target=\"_blank\">tararosesalon.com/en/ae/</a><span style=\"font-size:14.4px;white-space:nowrap\"><b><br></b></span></font></td><td><font face=\"arial, sans-serif\">\u00a0</font></td></tr></tbody></table></td></tr><tr><td style=\"font-stretch:normal;font-size:12.96px;line-height:normal;border-bottom:2px solid rgb(3,3,3);padding:0px 0px 3px\"></td></tr><tr><td style=\"font-stretch:normal;line-height:normal;padding:3px 0px 0px\"><font face=\"arial, sans-serif\" style=\"font-size:12.96px\"><span style=\"color:rgb(28,27,22);font-size:11.3333px\">Tara Rose Ladies Salon</span></font></td></tr></tbody></table></td></tr></tbody></table><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt\"><span style=\"color:rgb(28,27,22);font-family:Arial;font-size:8.5pt\">Khalifa City A | Saadiyat | Motor City | Al Quoz</span></p><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11.3333px;color:rgb(28,27,22);font-family:Arial\">\ud83d\udcbb\u00a0\u00a0<i>Click</i></span><i><b style=\"font-size:11.3333px;color:rgb(28,27,22);font-family:Arial\">\u00a0<a href=\"https://wa.me/971524960903\" target=\"_blank\">here</a></b><span style=\"font-size:11.3333px;color:rgb(28,27,22);font-family:Arial\">\u00a0to book your appointment</span></i></p><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt\"><font size=\"1\" style=\"color:rgb(3,3,3)\">We&#39;re hiring across Dubai &amp; Abu Dhabi \u2192\u00a0<a href=\"http://tararosesalon.com/careers\" target=\"_blank\">tararosesalon.com/careers</a></font></p></div></div></div></div>";
+const SIG_TEXT = "\r\n\r\n\r\n tararosesalon.com/en/ae/\r\n\r\nTara Rose Ladies Salon\r\n\r\nKhalifa City A | Saadiyat | Motor City | Al Quoz\r\n\r\n\ud83d\udcbb  *Click** here <https://wa.me/971524960903> to book your appointment*\r\n\r\nWe're hiring across Dubai & Abu Dhabi \u2192 tararosesalon.com/careers";
+const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// the body the way Gmail writes one: a div per line, an empty line is <div><br></div>, the signature after the last line
+const htmlOf = (text: string) => '<div dir="ltr">' + text.split(/\r?\n/).map((l) => l === "" ? "<div><br></div>" : `<div>${escHtml(l)}</div>`).join("") + SIG_HTML + "</div>";
 const hdrWord = (s: string) => /^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${utf8b64(s)}?=`;
 
 Deno.serve(async (req: Request) => {
@@ -82,17 +89,21 @@ Deno.serve(async (req: Request) => {
 
   // 2. the email
   const bnd = "=_trs_" + crypto.randomUUID().replace(/-/g, "");
+  const alt = "=_trs_alt_" + crypto.randomUUID().replace(/-/g, "");
   const parts: string[] = [
     `From: Tara Rose Salon <${FROM}>`, `To: ${to.join(", ")}`, ...(cc.length ? [`Cc: ${cc.join(", ")}`] : []), `Subject: ${hdrWord(subject)}`,
     "MIME-Version: 1.0", `Content-Type: multipart/mixed; boundary="${bnd}"`, "",
-    `--${bnd}`, 'Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64", "", wrap76(utf8b64(text)),
+    `--${bnd}`, `Content-Type: multipart/alternative; boundary="${alt}"`, "",
+    `--${alt}`, 'Content-Type: text/plain; charset="UTF-8"', "Content-Transfer-Encoding: base64", "", wrap76(utf8b64(text + SIG_TEXT)),
+    `--${alt}`, 'Content-Type: text/html; charset="UTF-8"', "Content-Transfer-Encoding: base64", "", wrap76(utf8b64(htmlOf(text))),
+    `--${alt}--`,
   ];
   for (const f of fj.files) {
     const nm = String(f.name).replace(/[^\x20-\x7e]/g, "-").replace(/"/g, "'");
     parts.push(`--${bnd}`, `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; name="${nm}"`, `Content-Disposition: attachment; filename="${nm}"`, "Content-Transfer-Encoding: base64", "", wrap76(String(f.b64)));
   }
   parts.push(`--${bnd}--`, "");
-  const raw = b64url(parts.join("\r\n").replace(/[Ā-￿]/g, "?"));   // the body and the names are already base64 or ASCII; this only guards stray characters in the headers
+  const raw = b64url(parts.join("\r\n").replace(/[\u0100-\uffff]/g, "?"));   // the body and the names are already base64 or ASCII; this only guards stray characters in the headers
 
   // 3. a draft in info@
   const tk = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
