@@ -1017,7 +1017,7 @@
     { name: 'Hair and beauty, occasional', offer: 'Buy one get one beauty, to 30 Nov 2026', b1: 'E3', b2: 'R_E3', b3: 'T_E3' },
     { name: 'Due, hair', offer: 'A reminder, no offer', b1: 'F', b2: 'R_C1', b3: 'T_C1' },
     { name: 'Due, beauty', offer: 'A reminder, no offer', b1: 'F2', b2: 'R_D1', b3: 'T_D1' },
-    { name: 'Newly due, hair', offer: 'A reminder, no offer. Phorest overdue list, not in Blast 1', b1: null, b2: 'R_C2' }
+    { name: 'Newly due, hair', offer: 'A reminder, no offer. Phorest overdue list, not in Blast 1', b1: null, b2: 'R_C2', b3: 'T_C2' }
   ];
   function dmy(iso) { var d = dubaiDay(iso); return d && d.length === 10 ? d.slice(8, 10) + ' ' + MN[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4) : ''; }
   function hm(iso) { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso)); } catch (e) { return ''; } }
