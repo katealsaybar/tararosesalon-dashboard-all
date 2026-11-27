@@ -25,7 +25,11 @@
     { slug: 'hair-rhythm', name: 'Hair Rhythm (junior campaign)', tag: 'Draft for review, Revision 4', hue: 'd',
       who: 'For clients on a regular trim, blow-dry and colour-care rhythm.',
       img: '/campaigns/hair-rhythm/assets/img/hero-junior.jpg',
-      earlier: '/campaigns/hair-rhythm-r3/' }
+      earlier: '/campaigns/hair-rhythm-r3/' },
+    /* Kate, 27 Nov 2026: Tara's own website (tararosekiddofficial.com), the mockup. Not a TRS campaign page, so no WordPress import file (wp: false). */
+    { slug: 'tara-rose-kidd-site', name: 'Tara Rose Kidd website', tag: 'Mockup for review', hue: 'c', wp: false,
+      who: 'Tara’s own website: her story, what she teaches and where she has been featured. A mockup of tararosekiddofficial.com.',
+      img: '/campaigns/tara-rose-kidd-site/assets/tara-portrait.jpg' }
   ];
 
   var KEY = 'trs-lpr-layout';
@@ -88,7 +92,7 @@
         '<div class="lpr-mid"><span class="lpr-status lpr-s-' + s.k + '">' + esc(s.t) + '</span>' +
           '<div class="lpr-ghost"><span>' + esc(meta) + '</span>' + (p.earlier ? '<a href="' + esc(p.earlier) + '" target="_blank" rel="noopener">Earlier version</a>' : '') + '</div></div>' +
         '<a class="lpr-btn" href="' + esc(openUrl(p)) + '" target="_blank" rel="noopener">Open and comment</a>' +
-        '<a class="lpr-wp" href="/campaigns/wordpress/#' + esc(p.slug) + '" target="_blank" rel="noopener">For WordPress</a>' +
+        (p.wp === false ? '' : '<a class="lpr-wp" href="/campaigns/wordpress/#' + esc(p.slug) + '" target="_blank" rel="noopener">For WordPress</a>') +
         '<details><summary>What has been said' + (C ? ' (' + (st.open.length + st.done.length) + ')' : '') + '</summary>' + said + '</details>' +
       '</div></article>';
   }
@@ -108,7 +112,7 @@
       '<p class="lpr-lead">The campaign landing pages, as clients will see them. All of them are still drafts. Open one, drop a comment on the exact spot you want changed, and Kate, Hanneh, and Coach Emma see it straight away.</p>' +
       whyWall([
         ['Why this page', 'These pages are where a client decides to book. A comment pinned on the exact spot gives one clean list of changes instead of a chat to decode.'],
-        ['Why now', C ? (unreviewed ? unreviewed + ' of ' + PAGES.length + ' pages have no comment yet, and the move to WordPress has started.' : 'Every page has had a comment. The next step is the move to WordPress.') : 'The four drafts are up for review and the move to WordPress has started.'],
+        ['Why now', C ? (unreviewed ? unreviewed + ' of ' + PAGES.length + ' pages have no comment yet, and the move to WordPress has started.' : 'Every page has had a comment. The next step is the move to WordPress.') : 'The drafts are up for review and the move to WordPress has started.'],
         ['If we do nothing', 'The pages reach WordPress with questions still open, and the fixes happen on the live page.']
       ], 'Open each page marked Not reviewed yet and pin every change you want. Kate, before the pages go to WordPress.') +
       '<div class="lpr-how"><div><b>1</b><span>Tap <strong>Open and comment</strong> on a page.</span></div><div><b>2</b><span>On the page, tap <strong>+ Add a comment</strong>.</span></div><div><b>3</b><span>Tap the spot, write what to change, post.</span></div></div>' +
