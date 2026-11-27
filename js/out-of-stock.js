@@ -1173,7 +1173,9 @@
         { k: 'n', l: 'Products', t: 'num', raw: r => r.n, disp: r => String(r.n), cell: r => fig(n0(r.n), 'sup', '', r.sup) },
         { k: 'am', l: 'Min AED', t: 'num', raw: r => r.am, disp: r => n0(r.am), cell: r => fig(n0(r.am), 'sup', '', r.sup) },
         { k: 'a', l: 'Max AED', t: 'num', raw: r => r.aed, disp: r => n0(r.aed), cell: r => fig(n0(r.aed), 'sup', '', r.sup) },
-        { k: 'oa', l: 'Quantity AED', t: 'num', raw: r => r.oa, disp: r => n0(r.oa), cell: r => fig(n0(r.oa), 'sup', '', r.sup) }
+        { k: 'oa', l: 'Quantity AED', t: 'num', raw: r => r.oa, disp: r => n0(r.oa), cell: r => fig(n0(r.oa), 'sup', '', r.sup) },
+        // Order now (Kate, 27 Nov 2026): opens the supplier's order window. DBD only for now; the other suppliers' button is shown but cannot be clicked yet.
+        { k: 'od', l: '', t: 'txt', raw: r => r.sup === 'DBD' ? 1 : 0, disp: r => r.sup === 'DBD' ? 'Order now' : '', cell: r => r.sup === 'DBD' ? fig('<span class="oos-ordnow">Order now</span>', 'sup', '', r.sup) : '<span class="oos-ordnow" aria-disabled="true" title="Not switched on yet: DBD first">Order now</span>' }
       ].concat(B.map(c => ({ k: 'c' + c, l: BN[c] + ' max', t: 'num', x: 1, hide: () => !inSel(c), raw: r => r.by[c] ? r.by[c].aed : 0, disp: r => n0(r.by[c] ? r.by[c].aed : 0), cell: r => r.by[c] ? fig(n0(r.by[c].aed), 'sup', c, r.sup) : '0' }))),
       total: rs => { const o = { su: '<b>Total</b>', n: fig(n0(sum(rs, 'n')), 'all'), am: n0(sum(rs, 'am')), a: n0(sum(rs, 'aed')), oa: n0(sum(rs, 'oa')) }; B.forEach(c => { o['c' + c] = n0(rs.reduce((a, r) => a + (r.by[c] ? r.by[c].aed : 0), 0)); }); return o; } });
   }

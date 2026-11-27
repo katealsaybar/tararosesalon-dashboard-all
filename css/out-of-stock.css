@@ -139,3 +139,9 @@ tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
 .oos-refmsg4{font-size:14.5px;color:var(--muted);margin:4px 0 10px}
 /* a figure that is 0 is faded (Kate, 26 Nov 2026) */
 #oosTbl td.oos-zero,#oosSupTbl td.oos-zero{opacity:.35}
+
+/* the Order now button at the end of each supplier row (Kate, 27 Nov 2026); the ones that are not switched on yet are shown but cannot be clicked */
+.oos-ordnow{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 16px;border:1px solid var(--text);border-radius:20px;background:var(--text);color:var(--bg);font:inherit;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer}
+.dn:has(>.oos-ordnow){border-bottom:0!important}
+.oos-ordnow[aria-disabled="true"]{background:transparent;color:var(--muted);border-color:var(--border);opacity:.55;cursor:not-allowed;font-weight:600}
+#oosSupTbl td:has(.oos-ordnow){white-space:nowrap;padding-left:22px}
