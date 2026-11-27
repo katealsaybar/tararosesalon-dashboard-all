@@ -858,11 +858,11 @@
     return `
     <div class="oos-ctl">
       <label for="oosDemand">Order for</label>
-      <select id="oosDemand" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
+      <select id="oosDemand" style="width:272px" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
       <label for="oosPrio">Priority</label>
-      <select id="oosPrio" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
+      <select id="oosPrio" style="width:132px" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
       <label for="oosCover">Weeks of cover</label>
-      <select id="oosCover" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
+      <select id="oosCover" style="width:132px" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
       <span class="oos-ctl-t" id="oosCoverT"></span>
     </div>
     <section class="oos-ans" aria-label="The answer in one line"><div class="oos-ans-k">The answer in one line</div><div class="oos-ans-t" id="oosAns"></div><div class="oos-ans-s" id="oosAns0"></div><div class="oos-cards" id="oosAns2"></div><div class="oos-ans-s" id="oosAns5"></div><div class="oos-ans-n" id="oosAns3"></div><div class="oos-ans-n" id="oosAns4" hidden></div></section>
@@ -938,11 +938,11 @@
       </div>
       <div class="oos-ctl oos-ctl4">
         <label for="oosDemand4">Order for</label>
-        <select id="oosDemand4" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
+        <select id="oosDemand4" style="width:272px" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
         <label for="oosPrio4">Priority</label>
-        <select id="oosPrio4" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
+        <select id="oosPrio4" style="width:132px" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
         <label for="oosCover4">Weeks of cover</label>
-        <select id="oosCover4" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
+        <select id="oosCover4" style="width:132px" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
         <span class="oos-ref4" id="oosRef4"></span>
       </div>
       <div class="oos-refmsg4" id="oosRefMsg4" role="status" hidden></div>
