@@ -367,7 +367,16 @@
       const sb = e.target.closest('.dr-sub'); if (sb) { sb.classList.toggle('open'); return; }   // phone: the note is two lines until tapped
       const t = e.target.closest('[data-dv]'); if (t) { pick(+t.dataset.dv); return; }
       const ac = e.target.closest('[data-da]');   // a button the window brings itself (Out of Stock: Email to DBD); what it returns is shown beside the buttons
-      if (ac && spec && spec.actions) { const a = spec.actions[+ac.dataset.da]; if (a) Promise.resolve().then(() => a.run()).then(m => note(m || ''), x => { console.error(x); note('That did not work. Try again.'); }); return; }
+      if (ac && spec && spec.actions) {
+        const a = spec.actions[+ac.dataset.da];
+        if (a && !ac.disabled) {
+          // one press runs it once: the button says it is working and cannot be pressed again until it is done (a slow action was pressed twice and ran twice)
+          const lab = ac.textContent; ac.disabled = true; ac.textContent = 'Working…'; note('Working, this can take a few seconds.');
+          const back = () => { if (ac.isConnected) { ac.disabled = false; ac.textContent = lab; } };
+          Promise.resolve().then(() => a.run()).then(m => { back(); note(m || ''); }, x => { console.error(x); back(); note('That did not work. Try again.'); });
+        }
+        return;
+      }
       const d = e.target.closest('[data-ds]'); if (d && !d.disabled) save(d.dataset.ds);
     });
     document.body.appendChild(box); document.body.classList.add('dr-open');

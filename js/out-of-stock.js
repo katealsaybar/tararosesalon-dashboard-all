@@ -476,12 +476,12 @@
   // DBD's OWN order forms, filled by the system (Kate, 26 Nov 2026: "autofill dapat haha. gamitin mo order form pa rin nila tho", "no need downloading not unless needed"). The edge function oos-dbd-draft fills them
   // (oos-order-forms) and attaches them to a DRAFT it makes in info@, so nobody downloads or attaches anything. It needs the one-time info@ permission (scripts/get-info-gmail-token.py);
   // until that is done, or if it fails, the old way runs: a Gmail compose link, and the filled DBD forms are downloaded to attach by hand.
-  const dbdItems = fm => (fm.lines || []).filter(l => l.code).map(l => ({ bc: String(l.key || '').split('|').pop(), nm: l.name, brand: l.brand, type: l.type, q: l.q, code: l.how === 'saved' ? l.code : '' }));   // code: only a code someone saved by hand, so DBD's own form is searched by its Code column first
+  const dbdItems = fm => (fm.lines || []).filter(l => l.code).map(l => ({ bc: String(l.key || '').split('|').pop(), nm: l.name, brand: l.brand, type: l.type, q: l.q, code: l.code }));   // the DBD code: the filler searches DBD's own form by its Code column first and reads only the forms that hold these codes
   const saveBlob = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); };
   const b64Blob = (b64, type) => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); };
   // a line with no DBD code is on no DBD form (the codes come from the forms), so it is not sent to the form filler: it would only make it read all 40 forms every time (about 20 seconds, and it ran out of resources on the first real order); the email body lists it by name
   const noCodeNote = fm => { const n = (fm.lines || []).filter(l => !l.code).length; return n ? ' ' + plural(n, 'line') + ' with no DBD code ' + (n === 1 ? 'is' : 'are') + ' listed by name in the email, not on the forms.' : ''; };
-  const notIn = nf => nf && nf.length ? ' ' + plural(nf.length, 'product') + ' ' + (nf.length === 1 ? 'is' : 'are') + ' in no DBD form (' + nf.slice(0, 3).map(x => x.name).join(', ') + (nf.length > 3 ? ', ...' : '') + '): add ' + (nf.length === 1 ? 'it' : 'them') + ' by hand.' : '';
+  const notIn = nf => nf && nf.length ? ' ' + plural(nf.length, 'product') + ' ' + (nf.length === 1 ? 'is' : 'are') + ' not on the filled forms (' + nf.slice(0, 3).map(x => x.name).join(', ') + (nf.length > 3 ? ', ...' : '') + '): add ' + (nf.length === 1 ? 'it' : 'them') + ' by hand.' : '';
   async function downloadDbdForms(fm) {
     try {
       const r = await sb.functions.invoke('oos-order-forms', { body: { salon: fm.branch, items: dbdItems(fm) } });

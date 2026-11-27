@@ -158,7 +158,16 @@ Deno.serve(async (req: Request) => {
   const seen = new Set<string>();
   const cand = (docs.data || []).filter((d: any) => d.file_path && /\.xlsx$/i.test(d.file_path) && !seen.has(d.file_path) && seen.add(d.file_path))
     .map((d: any) => ({ ...d, salon: salonOf(String(d.subject || "")) }));
-  const order = cand.filter((d: any) => d.salon === salon).concat(cand.filter((d: any) => d.salon !== salon));
+  // Speed (27 Nov 2026): when every product has its DBD code, only the forms whose text holds one of these codes are worth opening (the page keeps the text of every form it
+  // read, mail_documents.file_text). Reading all of them took 6 to 19 seconds and once ran out of resources. Any problem with this look-up and every form is read, as before.
+  let cands = cand;
+  const wanted = [...new Set(items.map((x) => x.code).filter(Boolean))];
+  if (wanted.length && items.every((x) => x.code)) {
+    const hit = await sb.from("mail_documents").select("file_path").ilike("supplier", "dbd%").eq("kind", "order").eq("has_file", true).gte("doc_date", since)
+      .or(wanted.map((c) => `file_text.ilike.%${c}%`).join(",")).limit(400);
+    if (!hit.error && hit.data) { const keep = new Set(hit.data.map((r: any) => r.file_path)); cands = cand.filter((d: any) => keep.has(d.file_path)); }
+  }
+  const order = cands.filter((d: any) => d.salon === salon).concat(cands.filter((d: any) => d.salon !== salon));
 
   // go through the forms, newest first (this salon's first), until every product has a home
   const todo = new Set(items.map((_, i) => i));
@@ -189,11 +198,22 @@ Deno.serve(async (req: Request) => {
   const SALON_NAME: Record<string, string> = { KCA: "KHALIFA CITY A", SAA: "SAADIYAT", MC: "MOTOR CITY", AQ: "AL QUOZ" };
   const files: any[] = [];
   const names = new Set<string>();
+  const leftover: { name: string; q: number }[] = [];
   for (const u of used) {
     for (const type of ["RETAIL", "PROFESSIONAL"]) {
       const hits = u.hits.filter((h) => items[h.i].type === type);
       if (!hits.length) continue;
-      const zip = await JSZip.loadAsync(u.form.bytes), f = u.form, want = new Map<number, number>();
+      const f = u.form;
+      // the family of the form, from what its rows are: the stored file name is not always the form's own (a Motor City "BM" file can hold ABC rows)
+      const cnt: Record<string, number> = {}; for (const k of f.keys) cnt[k.fam] = (cnt[k.fam] || 0) + 1;
+      const fam = Object.keys(cnt).sort((x, y) => cnt[y] - cnt[x])[0] || "skp";
+      const label = fam === "abc" ? "ABC" : fam === "alt" ? "ALTERNA" : /\bBM\b|blond/i.test(String(u.cand.file_name)) ? "BM" : "SKP";
+      // ONE form per family and stock type, the newest (27 Nov 2026, Kate: "bakit may duplicates?"): a product only an older price list holds (often one DBD no longer lists) used to make a second
+      // file, "(2)". It now stays out of the form and comes back in notFound; the email body lists every line anyway.
+      const name = `${SALON_NAME[salon]} - ${label} Order Form - ${type}.xlsx`;
+      if (names.has(name)) { for (const h of hits) leftover.push({ name: items[h.i].name, q: items[h.i].q }); continue; }
+      names.add(name);
+      const zip = await JSZip.loadAsync(u.form.bytes), want = new Map<number, number>();
       for (const h of hits) want.set(h.row.r, (want.get(h.row.r) || 0) + items[h.i].q);
       let xml = f.sheetXml;
       for (const r of f.rows) {
@@ -218,17 +238,10 @@ Deno.serve(async (req: Request) => {
       }
       const out = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
       let bin = ""; for (let i = 0; i < out.length; i += 0x8000) bin += String.fromCharCode(...out.subarray(i, i + 0x8000));
-      // the family of the form, from what its rows are: the stored file name is not always the form's own (a Motor City "BM" file can hold ABC rows)
-      const cnt: Record<string, number> = {}; for (const k of f.keys) cnt[k.fam] = (cnt[k.fam] || 0) + 1;
-      const fam = Object.keys(cnt).sort((x, y) => cnt[y] - cnt[x])[0] || "skp";
-      const label = fam === "abc" ? "ABC" : fam === "alt" ? "ALTERNA" : /\bBM\b|blond/i.test(String(u.cand.file_name)) ? "BM" : "SKP";
-      let name = `${SALON_NAME[salon]} - ${label} Order Form - ${type}.xlsx`;
-      if (names.has(name)) { const base = name.replace(/\.xlsx$/i, ""); let k = 2; while (names.has(`${base} (${k}).xlsx`)) k++; name = `${base} (${k}).xlsx`; }   // a second form of the same family and type (a product the first form does not hold)
-      names.add(name);
       files.push({ name, b64: btoa(bin), products: hits.length, template: { file: u.cand.file_name, date: u.cand.doc_date, subject: u.cand.subject } });
     }
   }
-  const notFound = [...todo].map((i) => ({ name: items[i].name, q: items[i].q }));
+  const notFound = [...todo].map((i) => ({ name: items[i].name, q: items[i].q })).concat(leftover);
   console.log("[oos-order-forms]", salon, "items", items.length, "forms read", opened, "forms filled", files.length, "not found", notFound.length, "ms", Date.now() - t0);
   return json({ files, notFound, formsRead: opened, took_ms: Date.now() - t0 }, CORS);
 });
