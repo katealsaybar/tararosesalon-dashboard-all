@@ -644,6 +644,52 @@
     });
   }
   // ===== PVM:END =====
+  // ===== OX:BEGIN  The DBD order window as DBD's own Excel sheet (Kate, 27 Nov 2026: "make order form kamukha ng sa excel sheet para madali for them", "pwede rin i toggle if original brand colors or excel view"; mockup docs/mockups/dbd-order-sheet.html) =====
+  // The window's Dashboard view | Excel view switch is in drill.js (a view with xl: true). This draws the Excel side for ONE salon: a tab for each list at the bottom (like the sheets of DBD's workbook), grey letters and
+  // row numbers, the DBD banner and the brand logo, DBD's heading row, SKP's category bands, Order Qty. typed in its cell, and TOTAL QTY / TOTAL (AED) under each list. The cells carry data-ek / data-ec like the table's
+  // boxes, so a typed amount or code is saved by the same onEdit as in the Dashboard view. A line with no DBD code is yellow, like a highlighted cell, and its Code cell is the one to type in.
+  const OX_LETTERS = 'ABCDEFGHIJ';
+  function oxSheet(rows, tab0) {
+    const lists = []; rows.forEach(r => { if (lists.indexOf(r.ls) < 0) lists.push(r.ls); });
+    const tab = lists.indexOf(tab0) >= 0 ? tab0 : lists[0], mine = rows.filter(r => r.ls === tab), up = String(tab || '').toUpperCase();
+    const f = /^SKP/.test(up) ? 'SKP' : /^ABC/.test(up) ? 'ABC' : /ALTERNA/.test(up) ? 'ALTERNA' : '';
+    const ed = !!S.canEdit, nm = v => (+v || 0);
+    let g = '<div class="lt rn"></div>' + OX_LETTERS.split('').map(c => '<div class="lt">' + c + '</div>').join('');
+    g += '<div class="rn rn8"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>';
+    g += '<div class="bn">' + (f === 'SKP' || f === 'ABC' ? '<div class="bl" style="background-image:url(assets/dbd/dbd-banner.jpg)"></div>' : '') + (PV_LOGO[f] ? '<img class="br" alt="" src="' + PV_LOGO[f] + '">' : '') + '</div>';
+    g += '<div class="rn">9</div>' + ['Category', 'Sub-category', 'Code', 'Description', 'Size', 'WSP (AED)'].map(t => '<div class="hh">' + t + '</div>').join('') + '<div class="hh brh">Order Qty.</div><div class="hh">EAN</div><div class="hh">Status</div><div class="hh brh">Total (AED)</div>';
+    let n = 9, last = null, q = 0, a = 0;
+    mine.forEach(r => {
+      if (f === 'SKP' && !r._need && r.cat !== last) { n++; g += '<div class="rn">' + n + '</div><div class="dc"></div><div class="dc"></div><div class="dc"></div><div class="band">' + esc(r.cat) + '</div>' + '<div class="dc"></div>'.repeat(6); last = r.cat; }
+      n++; q += nm(r.q); a += r.tot === '' ? 0 : nm(r.tot);
+      const hl = r._need ? ' hl' : '', lab = esc(r.d);
+      const codeC = r._ro || !ed ? '<div class="' + hl.trim() + '">' + esc(r.code) + '</div>'
+        : '<div class="ce' + hl + '" data-c="C' + n + '"><input type="text" inputmode="numeric" maxlength="8" autocomplete="off" class="ox-in" data-ek="' + esc(r._ek) + '" data-ec="code" value="' + esc(r.code) + '" placeholder="type code" aria-label="DBD code, ' + lab + '"></div>';
+      const qtyC = ed ? '<div class="brq" data-c="G' + n + '"><input type="number" min="0" step="1" inputmode="numeric" class="ox-in" data-ek="' + esc(r._ek) + '" data-ec="q" value="' + esc(r.q) + '" aria-label="Order Qty., ' + lab + '"></div>' : '<div class="brq">' + esc(r.q) + '</div>';
+      g += '<div class="rn">' + n + '</div><div class="' + hl.trim() + '">' + esc(r.cat) + '</div><div class="' + hl.trim() + '">' + esc(r.sub) + '</div>' + codeC + '<div class="l' + hl + '">' + lab + '</div><div class="' + hl.trim() + '">' + esc(r.size) + '</div><div class="' + hl.trim() + '">' + esc(r.wsp) + '</div>' + qtyC + '<div class="' + hl.trim() + '">' + esc(r.ean) + '</div><div class="' + hl.trim() + '">' + (r._need ? 'CODE NEEDED' : esc(r.st)) + '</div><div class="brc">' + esc(r.tot) + '</div>';
+    });
+    n += 2; g += '<div class="rn">' + n + '</div><div></div><div></div><div></div><div class="brt">TOTAL QTY</div><div></div><div></div><div class="brt">' + q + '</div><div></div><div></div><div></div>';
+    n++; g += '<div class="rn">' + n + '</div><div></div><div></div><div></div><div class="brt">TOTAL (AED, at WSP)</div><div></div><div></div><div></div><div></div><div></div><div class="brt">' + f2(a) + '</div>';
+    const tabs = lists.map(l => { const k = rows.filter(r => r.ls === l && r._need).length; return '<button type="button" class="ox-tab' + (l === tab ? ' on' : '') + '" data-xt="' + esc(l) + '">' + esc(l) + (k ? '<i>' + k + ' need a code</i>' : '') + '</button>'; }).join('');
+    const all = rows.filter(r => nm(r.q) > 0), aq = all.reduce((x, r) => x + nm(r.q), 0), aa = all.reduce((x, r) => x + (r.tot === '' ? 0 : nm(r.tot)), 0);
+    return { tab, html: '<div class="ox"><div class="ox-fx"><span class="ox-nm">Sheet</span><span class="ox-fxi">fx</span><span class="ox-fv"></span></div><div class="ox-xs"><div class="pvm-xl ox-grid">' + g + '</div></div><div class="ox-tabs" role="tablist" aria-label="Lists of this order">' + tabs + '</div>' +
+      '<div class="ox-sum"><b>All lists</b> ' + plural(all.length, 'line') + ' · ' + n0(aq) + ' pcs · AED ' + f2(aa) + ' at WSP</div></div>' };
+  }
+  // Excel habits: Enter goes down to the next cell of the same column, Tab goes across, and the cell's name and value show in the bar above the sheet
+  document.addEventListener('keydown', e => {
+    const el = e.target; if (e.key !== 'Enter' || !el.matches || !el.matches('.ox .ox-in')) return;
+    e.preventDefault();
+    const col = el.dataset.ec, all = Array.prototype.slice.call(el.closest('.ox').querySelectorAll('.ox-in[data-ec="' + col + '"]')), i = all.indexOf(el), nx = all[i + (e.shiftKey ? -1 : 1)];
+    if (nx) nx.focus(); else el.blur();
+  });
+  document.addEventListener('focusin', e => {
+    const el = e.target; if (!el.matches || !el.matches('.ox .ox-in')) return;
+    try { el.select(); } catch (x) { /* a number box may refuse */ }
+    const ox = el.closest('.ox'), c = el.parentNode.getAttribute('data-c'), nmEl = ox.querySelector('.ox-nm'), fv = ox.querySelector('.ox-fv');
+    if (nmEl && c) nmEl.textContent = c; if (fv) fv.textContent = el.value;
+  });
+  document.addEventListener('input', e => { const el = e.target; if (el.matches && el.matches('.ox .ox-in')) { const fv = el.closest('.ox').querySelector('.ox-fv'); if (fv) fv.textContent = el.value; } });
+  // ===== OX:END =====
   // ===== RESET:BEGIN  Reset one salon's order (Kate, 27 Nov 2026: "walang reset ng order per branch?", "kasama lang ang qty at ticks") =====
   // Puts the quantities typed in and the products ticked off of ONE salon back to the calculated order, for this order day (oos_order_reset, migrations/out_of_stock_order_reset.sql).
   // Shelf counts and Verified stay, the other salons stay, confirmed supplier orders stay (cancel them on their own).
@@ -1009,7 +1055,7 @@
     // It works before the order is confirmed: oos_dbd_match finds each line's DBD code, size, price and EAN the way the confirmed order form does. Order Qty. is the same amount as Qty to Order (typing here saves
     // it, 0 takes the product out, clearing the box goes back to the calculated amount) and a line with no DBD code comes first, its Code box open to type in.
     const dbdSals = B.filter(c => rows.concat(extra || []).some(r => r.b === c));
-    const dbdView = c => ({ id: 'dbd-' + c, label: BN[c], load: async () => {
+    const dbdView = c => ({ id: 'dbd-' + c, label: BN[c], xl: true, load: async () => {
       const mine = rows.concat(extra || []).filter(r => r.b === c);
       const inRows = new Set(rows.map(r => r.key));   // the products the rule orders (the low-stock extras are not counted in the Min / Max totals)
       const lineOf = r => ({ key: r.key, brand: r.brand, fam: r.brand === 'Schwarzkopf' ? 'SKP' : String(r.brand).toUpperCase(), type: r.type, cat: r.cat, name: r.name, q: ordOf(r.key, r.qm).o, c: Math.round(r.c * 100) / 100 });
@@ -1026,7 +1072,7 @@
       const mk1 = l => { const x = byKey[l.key], q = x ? ordOf(l.key, x.qm).o : (+l.q || 0), row = rowOf(Object.assign({}, l, { q })); row.ls = listOf(l); row.qm = x ? x.qm : 0; row.qx = x ? x.q : 0; row.am = x ? Math.round(x.am * 100) / 100 : 0; row.ax = x ? Math.round(x.aed * 100) / 100 : 0; row._pl = x && inRows.has(x.key) ? 1 : 0; row._opts = row._need ? suggest(cat, l) : null; return row; };
       const sortRows = rs => rs.sort((a, b) => (b._need - a._need) || a.ls.localeCompare(b.ls) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.sub.localeCompare(b.sub, undefined, { sensitivity: 'base' }) || a.d.localeCompare(b.d, undefined, { sensitivity: 'base' }));
       const dr = sortRows(lines.map(mk1));
-      const res = { rows: dr };
+      const res = { rows: dr, xl: oxSheet };
       const sums = () => { const on = res.rows.filter(r => r.q > 0), t = on.reduce((a, r) => a + (r.tot === '' ? 0 : +r.tot), 0), need = on.filter(r => r._need).length; const pl = k => Math.round(res.rows.reduce((a, r) => a + (r._pl ? (+r[k] || 0) : 0), 0) * 100) / 100; res.foot = { ls: 'Total: ' + plural(on.length, 'line'), q: on.reduce((a, r) => a + r.q, 0), tot: f2(t), qm: pl('qm'), qx: pl('qx'), am: pl('am'), ax: pl('ax') }; res.sub = plural(on.length, 'line') + ' in the order · ' + (need ? plural(need, 'line') + ' need a DBD code' : 'every line has its DBD code') + ' · DBD\'s own columns'; };
       const say = m => Object.assign(new Error(m), { say: m });
       res.cols = [{ k: 'ls', l: 'List', cx: 'nw' }].concat(FCOLS.slice(0, 9).map(f => f.k === 'code' ? Object.assign({}, f, { edit: S.canEdit ? 'text' : false, ph: 'Type code' }) : f.k === 'q' ? Object.assign({}, f, { edit: S.canEdit }) : f), [{ k: 'st', l: 'Status', t: 'txt' }], [{ k: 'qm', l: 'Min qty', t: 'num', cx: 'dr-ref dr-sep' }, { k: 'qx', l: 'Max qty', t: 'num', cx: 'dr-ref' }, { k: 'am', l: 'Min AED', t: 'aed', cx: 'dr-ref' }, { k: 'ax', l: 'Max AED', t: 'aed', cx: 'dr-ref' }]);

@@ -28,7 +28,7 @@ body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-famil
 // Save as xlsx / csv loads the spreadsheet writer the first time it is pressed.
 (function () { var p = null; window.trsLazy = function (n) { return n !== 'lgx' ? Promise.resolve() : p || (p = new Promise(function (ok, no) { var s = document.createElement('script'); s.src = '/js/ledger-export.js?v=67737bd9'; s.onload = ok; s.onerror = function () { p = null; no(new Error('export')); }; document.head.appendChild(s); })); }; })();
 </script>
-<script src="/js/drill.js?v=1cc88f74"></script>
+<script src="/js/drill.js?v=e7355c06"></script>
 <script>
 (function () {
   var msg = document.getElementById('msg'), id = new URLSearchParams(location.search).get('h'), key = 'mydrill:' + id, tries = 0, back = '/performance/';

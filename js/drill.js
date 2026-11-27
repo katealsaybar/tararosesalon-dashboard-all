@@ -18,6 +18,9 @@
   const REG = new Map(), MREG = new Map();   // REG: figures on the page; MREG: figures inside the list that is open, forgotten when it closes
   const lookup = id => REG.get(id) || MREG.get(id);
   let seq = 0, box = null, from = null, spec = null, cache = null, cur = 0;
+  // A list can also be drawn as the Excel sheet it stands for (Kate, 27 Nov 2026: "make order form kamukha ng sa excel sheet", "pwede rin i toggle if original brand colors or excel view"): a view that brings
+  // xl: true and a result with res.xl(rows, tab) -> { html, tab } gets a Dashboard view | Excel view switch. The choice is remembered. The cells still carry data-ek / data-ec, so typing in them saves through res.onEdit as before.
+  let xlMode = 'xl'; try { if (localStorage.getItem('trsd.xlmode') === 'dash') xlMode = 'dash'; } catch (e) {}
   // Each open list has its own address (Kate, 27 Oct 2026: "specific url slug per reports"): ?r=clients-by-staff, or a list opened from inside another one,
   // ?r=net-take.clients-handled-april-miraflor. Back goes up one list and then closes; a link or a reload reopens it once the page has drawn its figures.
   let under = [];   // windows underneath a client window: it opens on top of the list instead of replacing it (Kate, 27 Oct 2026), so the list keeps its place and filters
@@ -150,7 +153,16 @@
     }
     return { rows, foot, filtered, active: filtered || !!st.sort, total: res.rows.length };
   }
+  function drawXl(res) {
+    const body = box.querySelector('.dr-body'), st = fst[cur] || (fst[cur] = { f: {}, sort: null });
+    const xs = body.querySelector('.ox-xs'), top = xs ? xs.scrollTop : 0, left = xs ? xs.scrollLeft : 0, tab0 = st.xt;
+    const out = res.xl(res.rows, st.xt); st.xt = out.tab;
+    body.innerHTML = out.html;
+    const xs2 = body.querySelector('.ox-xs'); if (xs2 && st.xt === tab0) { xs2.scrollTop = top; xs2.scrollLeft = left; }
+    const fb = box.querySelector('.dr-fbar'); if (fb) fb.hidden = true;
+  }
   function drawTable(res) {
+    if (res.xl && xlMode === 'xl') { drawXl(res); return; }
     const body = box.querySelector('.dr-body'), st = fst[cur] || (fst[cur] = { f: {}, sort: null }), cols = res.cols, vw = viewOf(res);
     const top = body.scrollTop, left = body.scrollLeft;
     const pages = Math.max(1, Math.ceil(vw.rows.length / pgSize));
@@ -289,7 +301,7 @@
     if (!box) return;
     cur = i; closePop();
     const sp = spec, v = sp.views[i];
-    box.querySelectorAll('.dr-tabs button').forEach((b, j) => b.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
+    box.querySelectorAll('.dr-tabs:not(.dr-vm) button').forEach((b, j) => b.setAttribute('aria-pressed', j === i ? 'true' : 'false'));
     const sub = box.querySelector('.dr-sub'), body = box.querySelector('.dr-body');
     if (cache[i]) { paint(cache[i], v); return; }
     sub.textContent = 'Loading…'; body.innerHTML = '';
@@ -334,7 +346,7 @@
     const gnames = []; (sp.actions || []).forEach(a => { if (gnames.indexOf(a.grp) < 0) gnames.push(a.grp); });
     const acts = grouped ? `<div class="dr-acts" role="group" aria-label="Order steps">${gnames.map(g => `<div class="dr-ag"><span class="dr-agl">${esc(g || '')}</span><div class="dr-agb">${(sp.actions || []).map((a, i) => a.grp === g ? btnOf(a, i) : '').join('')}</div></div>`).join('')}<span class="dr-saved" role="status"></span></div>` : '';
     const tabs = sp.views.length > 1 ? `<div class="dr-tabs" role="group" aria-label="View">${sp.views.map((v, i) => `<button type="button" data-dv="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`).join('')}</div>` : '<div></div>';
-    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${sp.titleSwitch ? `<select class="dr-ts" data-ts aria-label="${esc(sp.titleSwitch.label || 'Change')}">${sp.titleSwitch.options.map(o => `<option value="${esc(o.value)}"${o.value === sp.titleSwitch.value ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select>${esc(sp.titleSwitch.suffix || '')}` : esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><div class="dr-hx">${sp.panel ? `<a class="dr-nt" href="${esc(location.origin + rUrl(chain))}" target="_blank" rel="noopener" title="Open this window on its own page">Open in new tab</a>` : ''}<button type="button" class="dr-x" data-dx>Close</button></div></div><div class="dr-bar">${tabs}<div class="dr-fbar" hidden><span class="dr-fcount"></span><button type="button" class="dr-fclear" data-fclear>Clear filters</button></div><div class="dr-save">${grouped ? '' : '<span class="dr-saved" role="status"></span>'}${grouped ? '' : actBtn}<button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div>${acts}<div class="dr-body"></div></div>`;
+    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${sp.titleSwitch ? `<select class="dr-ts" data-ts aria-label="${esc(sp.titleSwitch.label || 'Change')}">${sp.titleSwitch.options.map(o => `<option value="${esc(o.value)}"${o.value === sp.titleSwitch.value ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select>${esc(sp.titleSwitch.suffix || '')}` : esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><div class="dr-hx">${sp.panel ? `<a class="dr-nt" href="${esc(location.origin + rUrl(chain))}" target="_blank" rel="noopener" title="Open this window on its own page">Open in new tab</a>` : ''}<button type="button" class="dr-x" data-dx>Close</button></div></div><div class="dr-bar">${tabs}<div class="dr-fbar" hidden><span class="dr-fcount"></span><button type="button" class="dr-fclear" data-fclear>Clear filters</button></div>${sp.views.some(v => v.xl) ? `<div class="dr-tabs dr-vm" role="group" aria-label="How the list looks"><button type="button" data-vm="dash" aria-pressed="${xlMode === 'dash'}">Dashboard view</button><button type="button" data-vm="xl" aria-pressed="${xlMode === 'xl'}">Excel view</button></div>` : ''}<div class="dr-save">${grouped ? '' : '<span class="dr-saved" role="status"></span>'}${grouped ? '' : actBtn}<button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div>${acts}<div class="dr-body"></div></div>`;
     // The note under the table, the page bar and the empty line stay in view when the table is scrolled sideways (Kate, 26 Nov 2026: the note was cut off on the left)
     { const bd0 = box.querySelector('.dr-body'); if (bd0) bd0.addEventListener('scroll', () => { bd0.style.setProperty('--sx', bd0.scrollLeft + 'px'); }, { passive: true }); }
     let efk = null;   // the input the reader is in, so the table can give the focus back after it is drawn again
@@ -371,6 +383,15 @@
       if (e.target.closest('[data-db]')) { goBack(); return; }   // Kate, 27 Oct 2026: a way back up when a list was opened from another list
       const sb = e.target.closest('.dr-sub'); if (sb) { sb.classList.toggle('open'); return; }   // phone: the note is two lines until tapped
       const t = e.target.closest('[data-dv]'); if (t) { pick(+t.dataset.dv); return; }
+      const vmb = e.target.closest('[data-vm]');
+      if (vmb) {
+        xlMode = vmb.dataset.vm === 'dash' ? 'dash' : 'xl'; try { localStorage.setItem('trsd.xlmode', xlMode); } catch (x) {}
+        box.querySelectorAll('[data-vm]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vm === xlMode)));
+        if (cache && cache[cur] && cache[cur].rows && cache[cur].rows.length) { closePop(); drawTable(cache[cur]); const bd = box.querySelector('.dr-body'); if (bd) bd.scrollTop = 0; }
+        return;
+      }
+      const xt = e.target.closest('[data-xt]');
+      if (xt) { const stx = fst[cur] || (fst[cur] = { f: {}, sort: null }); stx.xt = xt.dataset.xt; if (cache && cache[cur]) drawTable(cache[cur]); return; }
       const ac = e.target.closest('[data-da]');   // a button the window brings itself (Out of Stock: Email to DBD); what it returns is shown beside the buttons
       if (ac && spec && spec.actions) {
         const a = spec.actions[+ac.dataset.da];

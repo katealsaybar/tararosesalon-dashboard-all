@@ -276,3 +276,30 @@ tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
 .oos-resets small{font-size:12.5px;color:var(--muted);margin-left:4px}
 .oos-rs-m{color:var(--muted)}
 @media(max-width:760px){.oos-rs-k{flex:1 1 100%;font-size:13px}.oos-resets .cm-pill{min-height:44px}.oos-resets small,.oos-rs-m{font-size:13px}}
+
+/* The DBD order window drawn as DBD's own Excel sheet (Kate, 27 Nov 2026), the Excel view of the Dashboard view | Excel view switch. The grid reuses the .pvm-xl look of the email preview's forms; this is its own column set, the cells you type in, the yellow lines that need a code and the sheet tabs at the bottom. */
+.ox{border:1px solid #c6c6c6;border-radius:8px;overflow:hidden;background:#fff;color:#1a1a1a;margin:0 0 12px;text-align:left}
+.ox-fx{display:flex;align-items:center;gap:10px;background:#f3f3f3;border-bottom:1px solid #d4d4d4;padding:4px 10px;font:12px Calibri,'Segoe UI',Arial,sans-serif;color:#444}
+.ox-nm{min-width:54px;background:#fff;border:1px solid #c6c6c6;padding:2px 8px;text-align:center}
+.ox-fxi{font-style:italic;font-weight:700;color:#217346}
+.ox-fv{flex:1;min-height:20px;background:#fff;border:1px solid #c6c6c6;padding:2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ox-xs{overflow:auto;max-height:calc(100vh - 470px);min-height:240px}
+.pvm-xl.ox-grid{min-width:1010px;grid-template-columns:34px 118px 128px 76px minmax(220px,1fr) 66px 74px 92px 108px 96px 92px}
+.ox-grid .bn{grid-column:2 / span 10}
+.ox-grid .l{justify-content:flex-start;text-align:left}
+.ox-grid .hl{background:#FFF2A8}
+.ox-grid .hl.l{font-weight:600}
+.ox-grid>div{position:relative}
+.ox-grid .ce,.ox-grid .brq{padding:0}
+.ox-in{width:100%;height:100%;min-height:22px;border:0;background:transparent;font:inherit;color:inherit;text-align:center;padding:2px 4px;outline:0;-moz-appearance:textfield}
+.ox-in::-webkit-outer-spin-button,.ox-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.ox-grid .brq .ox-in{font-weight:700;color:#0B3D36}
+.ox-grid .ce:focus-within,.ox-grid .brq:focus-within{outline:2px solid #217346;outline-offset:-2px;z-index:4}
+.ox-grid .hl .ox-in::placeholder{color:#9a7b00;font-style:italic}
+.ox-tabs{display:flex;align-items:flex-end;background:#f3f3f3;border-top:1px solid #c6c6c6;padding:0 10px;min-height:36px;overflow-x:auto;gap:2px}
+.ox-tab{background:#e6e6e6;border:1px solid #c6c6c6;border-top:0;padding:6px 16px;font:600 13px Calibri,'Segoe UI',Arial,sans-serif;color:#444;cursor:pointer;white-space:nowrap;border-radius:0 0 6px 6px}
+.ox-tab.on{background:#fff;border-bottom:3px solid #217346;color:#217346}
+.ox-tab i{font-style:normal;background:#FFD84D;color:#5a4500;border-radius:999px;padding:0 6px;font-size:11px;margin-left:6px}
+.ox-sum{padding:8px 12px;font-size:13px;border-top:1px solid #d4d4d4;background:#fafafa;font-variant-numeric:tabular-nums}
+.dr-vm{margin-left:auto}
+.dr-vm+.dr-save{margin-left:0}
