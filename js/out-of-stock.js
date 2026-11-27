@@ -1061,15 +1061,21 @@
       views: sheet && supName === 'DBD' && dbdSals.length ? dbdSals.map(dbdView) : sheet ? [sheetView, prodView] : [prodView],
       // Order of the buttons (Kate, 27 Nov 2026: "then it shouldnt be the first button, yes?" about Order form, which is made from the CONFIRMED order): Confirm order comes first and is the filled one
       // until an order is confirmed; once one is, Email order to DBD is the filled one. Order form and Cancel only matter once an order is confirmed, so they follow Confirm order.
-      actions: sheet && supName ? [].concat(
-        S.canEdit ? [{ label: 'Confirm order', grp: 'Order', main: !openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } }] : [],
-        supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', alt: 1, run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        S.canEdit ? [{ label: 'Cancel confirmed order', grp: 'Order', alt: 1, run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        SUP_MAIL[supName] ? [{ label: 'Preview email', grp: 'Send', main: openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length > 0, run: () => previewEmail(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
-                             { label: 'Email order to ' + supName, grp: 'Send', locked: 'Barred so it is not pressed by accident. Press Preview email, read it, and send it from there.', run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
-                             { label: 'Test email to me', grp: 'Send', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
-        S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'DBD reply', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-      ) : undefined };
+      // The DBD window has one tab per salon: the buttons act on the OPEN salon only (Kate, 27 Nov 2026: "confirm lang for khalifa bakit kasama lahat"). The window tells each action which tab is open (vid);
+      // the other suppliers' windows have no salon tabs, so their buttons still act on every salon in the window.
+      actions: sheet && supName ? (() => {
+        const allS = B.filter(c => rows.concat(extra || []).some(r => r.b === c));
+        const SL = vid => { const m = /^dbd-(.+)$/.exec(vid || ''); return m && allS.indexOf(m[1]) >= 0 ? [m[1]] : allS; };
+        return [].concat(
+        S.canEdit ? [{ label: 'Confirm order', grp: 'Order', main: !openOrders(supName, allS).length, run: vid => { const sl = SL(vid), keys = {}; rows.concat(extra || []).filter(r => sl.indexOf(r.b) >= 0).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } }] : [],
+        supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', alt: 1, run: vid => orderFormWindow(supName, SL(vid)) }] : [],
+        S.canEdit ? [{ label: 'Cancel confirmed order', grp: 'Order', alt: 1, run: vid => cancelOrders(supName, SL(vid)) }] : [],
+        SUP_MAIL[supName] ? [{ label: 'Preview email', grp: 'Send', main: openOrders(supName, allS).length > 0, run: vid => previewEmail(supName, SL(vid)) },
+                             { label: 'Email order to ' + supName, grp: 'Send', locked: 'Barred so it is not pressed by accident. Press Preview email, read it, and send it from there.', run: vid => emailToDbd(supName, SL(vid)) },
+                             { label: 'Test email to me', grp: 'Send', alt: 1, run: vid => emailToDbd(supName, SL(vid), true) }] : [],
+        S.canEdit && SUP_MAIL[supName] && openOrders(supName, allS).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'DBD reply', run: vid => confirmOos(supName, SL(vid)) }] : [],
+        );
+      })() : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
   // "x 1.22 + x 1.15 + ..." for the weeks a colour product counts, with where it comes from

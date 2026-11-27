@@ -378,7 +378,8 @@
           // one press runs it once: the button says it is working and cannot be pressed again until it is done (a slow action was pressed twice and ran twice)
           const lab = ac.textContent; ac.disabled = true; ac.textContent = 'Working…'; note('Working, this can take a few seconds.');
           const back = () => { if (ac.isConnected) { ac.disabled = false; ac.textContent = lab; } };
-          Promise.resolve().then(() => a.run()).then(m => { back(); note(m || ''); }, x => { console.error(x); back(); note('That did not work. Try again.'); });
+          const vid = spec.views && spec.views[cur] ? spec.views[cur].id : undefined;   // an action is told which tab is open (Out of Stock: Confirm order is for the open salon only)
+          Promise.resolve().then(() => a.run(vid)).then(m => { back(); note(m || ''); }, x => { console.error(x); back(); note('That did not work. Try again.'); });
         }
         return;
       }
