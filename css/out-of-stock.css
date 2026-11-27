@@ -128,7 +128,7 @@ tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
 .oos-ctl .ps{flex:none}
 .oos-ctl .ps-btn{height:40px;min-height:40px;padding-top:0;padding-bottom:0;box-sizing:border-box;white-space:nowrap;font-size:13px}
 .oos-ctl .cm-pill{height:40px;min-height:40px;padding-top:0;padding-bottom:0;box-sizing:border-box;white-space:nowrap;flex:none;width:140px;font-size:13px;text-align:center}
-.oos-ctl-t{white-space:nowrap}
+.oos-ctl-t{flex:1 1 100%;min-width:0;white-space:normal}   /* the sentence under the pills wraps on its own line (a nowrap here ran it off the page, Kate 27 Nov 2026: "lol fix") */
 .oos-ctl4 .oos-ref4{flex:0 0 auto;flex-wrap:nowrap;white-space:nowrap;margin-left:16px}
 @media(max-width:760px){
   .oos-ctl .ps-btn,.oos-ctl .cm-pill{height:44px;min-height:44px}
