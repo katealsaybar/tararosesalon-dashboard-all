@@ -5,13 +5,16 @@
 // ============================================================
 //
 // WHAT IT DOES
-//   Given one salon and the products to order (barcode, name, quantity), it finds DBD's own order forms in the Orders and Receipts store
-//   (the xlsx files this mailbox sent to DBD, bucket order-files, listed in mail_documents), puts each product's quantity into the Order Qty. column of
-//   the form that holds it, clears every other quantity in that form, and returns the filled forms as xlsx files.
-//   A product is looked for by EAN (the Stock List barcode), else by its name, in the newest form this salon sent, then in the newest forms of the other salons
-//   (the forms are the same layout; only the file differs). A product no form holds is returned in notFound, never dropped silently.
-//   The form is edited in place (the sheet XML), so DBD's layout, formulas, logos and styles stay exactly as they were. The Total column's stored
-//   figures are recalculated and the workbook is set to recalculate when opened.
+//   Given one salon and the products to order (barcode, name, brand, stock type, quantity), it finds DBD's own order forms in the Orders and Receipts store
+//   (the xlsx files this mailbox sent to DBD, bucket order-files, listed in mail_documents, the last 120 days), puts each product's quantity into the
+//   Order Qty. column of the form that holds it, clears every other quantity in that form, and returns the filled forms as xlsx files: one per form and
+//   stock type ("SAADIYAT - ABC Order Form - RETAIL.xlsx"), because DBD wants a retail form and a professional form of each family.
+//   A product is looked for by its DBD code when someone saved one by hand on the page (27 Nov 2026, dbd_code_links: the Code column of the form), else by EAN (the Stock List
+//   barcode), else by its name (a name-only match must be a row of the product's own family: ABC, Alterna or Caviar, SKP), in the newest form this salon sent, then in the
+//   newest forms of the other salons (same layout, different file). A product no form holds is returned in notFound, never dropped silently.
+//   The form is edited in place (the sheet XML), so DBD's layout, formulas, logos and styles stay as they were. Forms differ a little: the Order column's
+//   heading is blank in some (it is then the empty-headed column after Suggested RSP). The Total column's stored figures are recalculated and the workbook
+//   is set to recalculate when opened.
 //
 // WHO CAN CALL IT
 //   Anyone oos_access() lets in, checked with the caller's own token. Files are read with the service role, only the form files of DBD orders.
@@ -47,9 +50,8 @@ const unesc = (s: string) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").repla
 const norm = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
 const compact = (s: unknown) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const digits = (s: unknown) => String(s ?? "").replace(/\D/g, "").replace(/^0+/, "");
-// the family of a product (from its brand) and of a form row (from its description): a product found only by NAME must be in a row of its own family (an ABC Hydrate Shampoo is not the Fibre Clinix one); EAN matches are exact and need no family
 const famOfBrand = (b: string) => /abc|authentic/i.test(b) ? "abc" : /caviar|alterna/i.test(b) ? "alt" : /schwarzkopf|skp|igora|blond/i.test(b) ? "skp" : "";
-const famOfDesc = (d: string) => /^abc/i.test(d.trim()) ? "abc" : /^(caviar|alterna)/i.test(d.trim()) ? "alt" : "skp";
+const famOfDesc = (d: string) => /^abc\b/i.test(d.trim()) ? "abc" : /^(caviar|alterna)/i.test(d.trim()) ? "alt" : "skp";
 const colLetter = (n: number) => { let s = ""; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
 const colNum = (letters: string) => { let n = 0; for (const ch of letters) n = n * 26 + ch.charCodeAt(0) - 64; return n; };
 const salonOf = (subject: string) => /saadiyat/i.test(subject) ? "SAA" : /khalifa/i.test(subject) ? "KCA" : /motor/i.test(subject) ? "MC" : /quoz/i.test(subject) ? "AQ" : "";
@@ -57,7 +59,7 @@ const num = (s: string) => { const m = /-?\d+(\.\d+)?/.exec(String(s).replace(/,
 
 type Cell = { ref: string; col: string; colN: number; t: string; s: string; v: string };
 type Row = { r: number; xml: string; cells: Cell[] };
-type Form = { bytes: ArrayBuffer; zip: any; sheetPath: string; sheetXml: string; rows: Row[]; cols: { ean: string; desc: string; qty: string; total: string; wsp: string; size: string }; byEan: Map<string, Row>; byName: Map<string, Row>; keys: { k: string; row: Row; fam: string }[]; hdrRow: number };
+type Form = { bytes: ArrayBuffer; zip: any; sheetPath: string; sheetXml: string; rows: Row[]; cols: { ean: string; desc: string; qty: string; total: string; wsp: string; size: string; code: string }; byEan: Map<string, Row>; byName: Map<string, Row>; byCode: Map<string, Row>; keys: { k: string; row: Row; fam: string }[]; hdrRow: number };
 
 function parseSheet(xml: string, sst: string[]): Row[] {
   const rows: Row[] = [];
@@ -87,28 +89,27 @@ async function openForm(bytes: ArrayBuffer): Promise<Form | null> {
   for (const sheetPath of sheetPaths) {
     const sheetXml = await zip.file(sheetPath)!.async("string");
     const rows = parseSheet(sheetXml, sst);
-    // the header row: has EAN and Description (and an Order column)
     const hdr = rows.find((r) => r.cells.some((c) => /^ean$/i.test(c.v.trim())) && r.cells.some((c) => /^description/i.test(c.v.trim())));
     if (!hdr) continue;
     const find = (re: RegExp) => (hdr.cells.find((c) => re.test(c.v.trim())) || { col: "" }).col;
-    const cols: any = { ean: find(/^ean$/i), desc: find(/^description/i), qty: find(/^order/i), total: find(/^total/i), wsp: find(/^wsp/i), size: find(/^size/i) };
-    // some forms (the Saadiyat SKP and ABC ones) leave the Order column's heading blank: it is then the empty-headed column right after Suggested RSP (or WSP), before the EAN
+    const cols: any = { ean: find(/^ean$/i), desc: find(/^description/i), qty: find(/^order/i), total: find(/^total/i), wsp: find(/^wsp/i), size: find(/^size/i), code: find(/^code$/i) };
     if (!cols.qty && cols.ean) {
       const anchor = hdr.cells.find((c) => /^suggested/i.test(c.v.trim())) || hdr.cells.find((c) => /^wsp/i.test(c.v.trim()));
       if (anchor && anchor.colN + 1 < colNum(cols.ean)) { const nx = colLetter(anchor.colN + 1), nc = hdr.cells.find((c) => c.col === nx); if (!nc || !nc.v.trim()) cols.qty = nx; }
     }
     if (!cols.ean || !cols.qty) continue;
-    const byEan = new Map<string, Row>(), byName = new Map<string, Row>(), keys: { k: string; row: Row; fam: string }[] = [];
+    const byEan = new Map<string, Row>(), byName = new Map<string, Row>(), byCode = new Map<string, Row>(), keys: { k: string; row: Row; fam: string }[] = [];
     for (const r of rows) {
       if (r.r <= hdr.r) continue;
       const ean = digits(r.cells.find((c) => c.col === cols.ean)?.v), nm = norm(r.cells.find((c) => c.col === cols.desc)?.v);
+      const code = cols.code ? digits(r.cells.find((c) => c.col === cols.code)?.v) : "";
       if (ean && !byEan.has(ean)) byEan.set(ean, r);
       if (nm && !byName.has(nm)) byName.set(nm, r);
-      // the form's Description often has no size ("IR 6-0" with Size "60 ml") and our Stock List name often has no brand ("Glow Mask 500ml" for "ABC Glow Mask 500ml"): compare squashed text, with and without the size
+      if (code && !byCode.has(code)) byCode.set(code, r);
       const d = r.cells.find((c) => c.col === cols.desc)?.v, sz = cols.size ? r.cells.find((c) => c.col === cols.size)?.v : "";
       if (d) { const fam = famOfDesc(d); keys.push({ k: compact(d), row: r, fam }); if (sz) keys.push({ k: compact(d) + compact(sz), row: r, fam }); }
     }
-    return { bytes, zip, sheetPath, sheetXml, rows, cols, byEan, byName, keys, hdrRow: hdr.r };
+    return { bytes, zip, sheetPath, sheetXml, rows, cols, byEan, byName, byCode, keys, hdrRow: hdr.r };
   }
   return null;
 }
@@ -136,11 +137,11 @@ Deno.serve(async (req: Request) => {
   const CORS = cors(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return json({ error: "POST only" }, CORS, 405);
-  let body: { salon?: string; items?: { bc?: string; nm?: string; q?: number; brand?: string; type?: string }[] };
+  let body: { salon?: string; items?: { bc?: string; nm?: string; q?: number; brand?: string; type?: string; code?: string }[] };
   try { body = await req.json(); } catch { return json({ error: "invalid JSON body" }, CORS, 400); }
   const salon = String(body.salon ?? "").toUpperCase();
   if (!SALONS.includes(salon)) return json({ error: "salon must be KCA, SAA, MC or AQ" }, CORS, 400);
-  const items = (Array.isArray(body.items) ? body.items : []).map((x) => ({ bc: digits(x.bc), nm: norm(x.nm), name: String(x.nm ?? ""), fam: famOfBrand(String(x.brand ?? "")), type: /prof/i.test(String(x.type ?? "")) ? "PROFESSIONAL" : "RETAIL", q: Math.round(Number(x.q) || 0) })).filter((x) => x.q > 0).slice(0, 600);
+  const items = (Array.isArray(body.items) ? body.items : []).map((x) => ({ bc: digits(x.bc), code: digits(x.code), nm: norm(x.nm), name: String(x.nm ?? ""), fam: famOfBrand(String(x.brand ?? "")), type: /prof/i.test(String(x.type ?? "")) ? "PROFESSIONAL" : "RETAIL", q: Math.round(Number(x.q) || 0) })).filter((x) => x.q > 0).slice(0, 600);
   if (!items.length) return json({ error: "Nothing to order for this salon." }, CORS, 400);
 
   const auth = req.headers.get("authorization") || "";
@@ -177,19 +178,18 @@ Deno.serve(async (req: Request) => {
         const ik = compact(it.name);
         const pool = it.fam ? form.keys.filter((x) => x.fam === it.fam) : [];
         const fuzzy = ik.length >= 8 && pool.length ? (pool.find((x) => x.k === ik) || pool.find((x) => x.k.length > ik.length && x.k.endsWith(ik)) || pool.find((x) => ik.length > x.k.length + 2 && x.k.length >= 5 && ik.startsWith(x.k)))?.row : undefined;
-        const row = (it.bc && form.byEan.get(it.bc)) || (it.nm && form.byName.get(it.nm)) || fuzzy || null;
+        const row = (it.code && form.byCode.get(it.code)) || (it.bc && form.byEan.get(it.bc)) || (it.nm && form.byName.get(it.nm)) || fuzzy || null;
         if (row) { hits.push({ i, row }); todo.delete(i); }
       }
       if (hits.length) used.push({ cand: d, form, hits });
     } catch (e) { console.error("[oos-order-forms] form skipped", String((e as Error)?.message || e)); }
   }
 
-  // fill each form that holds products: every Order Qty. cleared, then the quantities put in
+  // fill each form that holds products: one file per form and stock type, every Order Qty. cleared, then the quantities put in
   const SALON_NAME: Record<string, string> = { KCA: "KHALIFA CITY A", SAA: "SAADIYAT", MC: "MOTOR CITY", AQ: "AL QUOZ" };
   const files: any[] = [];
   const names = new Set<string>();
   for (const u of used) {
-    // DBD wants a retail form and a professional form of each family (same form, named for what it orders): one file per template and stock type
     for (const type of ["RETAIL", "PROFESSIONAL"]) {
       const hits = u.hits.filter((h) => items[h.i].type === type);
       if (!hits.length) continue;
