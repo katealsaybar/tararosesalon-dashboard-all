@@ -129,17 +129,17 @@ body.dr-open{overflow:hidden}
 .dr-save button.dr-act.dr-alt{background:transparent;color:var(--text);border-color:var(--border);font-weight:600}
 
 /* the supplier order window's buttons, in labelled groups (Kate, 27 Nov 2026): one thickness, the main step filled, the rest outlined */
-.dr-acts{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 24px;padding:14px 18px 12px}
+.dr-acts{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding:14px 18px 12px}
 .dr-ag{display:flex;flex-direction:column;gap:6px}
-.dr-ag+.dr-ag{border-left:1px solid var(--border);padding-left:24px}
+.dr-ag+.dr-ag{padding-left:0}   /* Order sits at the far left and Send at the far right (Kate, 27 Nov 2026), so no rule between them */
 .dr-agl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2,var(--muted));font-weight:600}
 .dr-agb{display:flex;gap:6px;flex-wrap:wrap}
-.dr-acts button{height:36px;box-sizing:border-box;padding:0 16px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
+.dr-acts button{height:32px;box-sizing:border-box;padding:0 14px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
 .dr-acts button:hover:not(:disabled){border-color:var(--text)}
 .dr-acts button:disabled{opacity:.4;cursor:default}
 .dr-acts button.dr-main{background:var(--text);color:var(--bg);border-color:var(--text)}
 .dr-acts button.dr-main:hover:not(:disabled){opacity:.85}
-.dr-acts .dr-saved{margin-left:auto;align-self:center;max-width:100%}
+.dr-acts .dr-saved{flex:1 0 100%;align-self:center;max-width:100%}   /* what a button says sits under the buttons, on its own line */
 @media(max-width:760px){
   .dr-acts{padding:12px 14px 8px;gap:12px}
   .dr-ag{flex:1 1 100%}
@@ -147,7 +147,7 @@ body.dr-open{overflow:hidden}
   .dr-acts button{height:44px}
   .dr-acts .dr-saved{margin-left:0}
 }
-.dr-modal:has(.dr-acts) .dr-tabs button,.dr-modal:has(.dr-acts) .dr-save button{height:36px;box-sizing:border-box;padding:0 16px;font-weight:600}
+.dr-modal:has(.dr-acts) .dr-tabs button,.dr-modal:has(.dr-acts) .dr-save button{height:32px;box-sizing:border-box;padding:0 14px;font-weight:600}
 @media(max-width:760px){.dr-modal:has(.dr-acts) .dr-tabs button,.dr-modal:has(.dr-acts) .dr-save button{height:44px}}
 
 /* the supplier order sheet (Kate, 27 Nov 2026): the name stays on one or two lines, the salon, brand and status never wrap, the category wraps only when it must, and the Total sits under the first column on one line */

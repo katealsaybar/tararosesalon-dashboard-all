@@ -498,6 +498,96 @@
       return 'Saved ' + plural(d.files.length, 'DBD form') + '.' + notIn(d.notFound) + noCodeNote(fm);
     } catch (e) { return await saveForms([fm]); }
   }
+  // ===== PVM:BEGIN  The email preview (Kate, 27 Nov 2026: "preview of the email to be sent to DBD before I confirm it is sent", inside the dashboard, mockup docs/mockups/dbd-email-preview.html) =====
+  // A button in the Send group of the DBD order window opens a window over it: From, To, Cc, Subject, the whole message with the exact info@ signature, and the DBD forms that will be attached
+  // (each opens right here as the xlsx looks, with Download xlsx as a choice, never automatic). Nothing is sent from it. The forms are filled by the same function the draft uses (oos-order-forms).
+  const SIG_HTML = "<div><div dir=\"ltr\" class=\"gmail_signature\" data-smartmail=\"gmail_signature\"><div dir=\"ltr\"><div><p dir=\"ltr\" style=\"line-height:1.656;margin-top:0pt;margin-bottom:0pt\"><br></p></div><div><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:8.5pt;font-family:Arial;color:rgb(28,27,22);vertical-align:baseline\">\u00a0 \u00a0 \u00a0 \u00a0 \u00a0\u00a0<img width=\"96\" height=\"29\" src=\"https://ci3.googleusercontent.com/mail-sig/AIorK4zhEXVm7PLalJEhVf4JDo46bG3tFjok7Lu6O64jyuldvDv4UmhWpe9Yw1Hslvi-0SYOjO9V-hmRjlNx\" style=\"color:rgb(3,3,3);font-family:arial,sans-serif;font-size:12.96px\"></span></p><table cellpadding=\"0\" cellspacing=\"0\" style=\"font-stretch:normal;line-height:normal;font-size:initial;color:rgb(3,3,3)\"><tbody><tr><td style=\"vertical-align:top\"><table cellpadding=\"0\" cellspacing=\"0\" style=\"font-stretch:normal;font-size:14.4px;line-height:normal\"><tbody><tr><td><table cellpadding=\"0\" cellspacing=\"0\" style=\"font-stretch:normal;font-size:12.96px;line-height:normal\"><tbody><tr><td style=\"padding:0px 5px 0px 0px\"><font face=\"arial, sans-serif\"><img src=\"https://img.newoldstamp.com/t/8/w.png\" style=\"display:inline-block;vertical-align:middle\">\u00a0<a href=\"http://tararosesalon.com/en/ae/\" style=\"font-size:1em;color:rgb(3,3,3)\" target=\"_blank\">tararosesalon.com/en/ae/</a><span style=\"font-size:14.4px;white-space:nowrap\"><b><br></b></span></font></td><td><font face=\"arial, sans-serif\">\u00a0</font></td></tr></tbody></table></td></tr><tr><td style=\"font-stretch:normal;font-size:12.96px;line-height:normal;border-bottom:2px solid rgb(3,3,3);padding:0px 0px 3px\"></td></tr><tr><td style=\"font-stretch:normal;line-height:normal;padding:3px 0px 0px\"><font face=\"arial, sans-serif\" style=\"font-size:12.96px\"><span style=\"color:rgb(28,27,22);font-size:11.3333px\">Tara Rose Ladies Salon</span></font></td></tr></tbody></table></td></tr></tbody></table><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt\"><span style=\"color:rgb(28,27,22);font-family:Arial;font-size:8.5pt\">Khalifa City A | Saadiyat | Motor City | Al Quoz</span></p><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt\"><span style=\"font-size:11.3333px;color:rgb(28,27,22);font-family:Arial\">💻\u00a0\u00a0<i>Click</i></span><i><b style=\"font-size:11.3333px;color:rgb(28,27,22);font-family:Arial\">\u00a0<a href=\"https://wa.me/971524960903\" target=\"_blank\">here</a></b><span style=\"font-size:11.3333px;color:rgb(28,27,22);font-family:Arial\">\u00a0to book your appointment</span></i></p><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt\"><font size=\"1\" style=\"color:rgb(3,3,3)\">We&#39;re hiring across Dubai &amp; Abu Dhabi \u2192\u00a0<a href=\"http://tararosesalon.com/careers\" target=\"_blank\">tararosesalon.com/careers</a></font></p></div></div></div></div>";   // the info@ signature, copied exactly from a real order in info@ Sent (the same block as in the function oos-dbd-draft)
+  const PV_LOGO = { SKP: 'assets/dbd/brand-skp.png', ABC: 'assets/dbd/brand-abc.jpg', ALTERNA: 'assets/dbd/brand-alterna.png' };
+  const pvTop = [];   // the preview windows that are open, the last one on top
+  function pvOverlay(label) {
+    const ov = document.createElement('div'); ov.className = 'pvm-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', label);
+    document.body.appendChild(ov);
+    const w = { ov, close: () => { const i = pvTop.indexOf(w); if (i >= 0) pvTop.splice(i, 1); ov.remove(); } };
+    pvTop.push(w);
+    ov.addEventListener('click', e => { if (e.target === ov) w.close(); });
+    if (!window._pvmEsc) { window._pvmEsc = 1; document.addEventListener('keydown', e => { if (e.key === 'Escape' && pvTop.length) { e.stopImmediatePropagation(); e.preventDefault(); pvTop[pvTop.length - 1].close(); } }, true); }
+    return w;
+  }
+  const pvNum = t => { const m = /[0-9]+(\.[0-9]+)?/.exec(String(t).replace(/,/g, '')); return m ? parseFloat(m[0]) : 0; };
+  const pvF2 = n => (+n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // one filled form opened in the dashboard: DBD's own columns look like the xlsx, what we add (Order Qty., Total (AED), the total lines) is in our brand colours
+  function openFormView(file) {
+    const v = file.view || {}, rows = v.rows || [], fam = v.family || '', own = !!v.hadTotal;
+    const w = pvOverlay(file.name);
+    const HEAD = ['Category', 'Sub-category', 'Code', 'Description', 'Size', 'WSP (AED)', 'Suggested RSP (AED)'];
+    let g = '<div class="lt rn"></div>' + 'ABCDEFGHIJK'.split('').map(c => '<div class="lt">' + c + '</div>').join('');
+    g += '<div class="rn rn8"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>';
+    g += '<div class="bn">' + (fam === 'SKP' || fam === 'ABC' ? '<div class="bl"></div>' : '') + (PV_LOGO[fam] ? '<img class="br" alt="" src="' + PV_LOGO[fam] + '">' : '') + '</div>';
+    g += '<div class="rn">9</div>' + HEAD.map(t => '<div class="hh">' + t + '</div>').join('') + '<div class="hh brh">Order Qty.</div><div class="hh">EAN</div><div class="hh">Status</div><div class="hh' + (own ? '' : ' brh') + '">Total (AED)</div>';
+    let n = 9, last = '', q = 0, a = 0;
+    rows.forEach(r => {
+      const tot = r[7] * pvNum(r[5]); q += r[7]; a += tot;
+      if (fam === 'SKP' && r[0] !== last) { n++; g += '<div class="rn">' + n + '</div><div></div><div></div><div></div><div class="band">' + esc(r[0]) + '</div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>'; last = r[0]; }
+      n++;
+      g += '<div class="rn">' + n + '</div>' + [r[0], r[1], r[2], r[3], r[4], r[5], r[6]].map(t => '<div>' + esc(t) + '</div>').join('') + '<div class="brq">' + r[7] + '</div><div>' + esc(r[8]) + '</div><div>' + esc(r[9]) + '</div><div class="' + (own ? '' : 'brc') + '">' + pvF2(tot) + '</div>';
+    });
+    n += 2;
+    g += '<div class="rn">' + n + '</div><div></div><div></div><div></div><div class="brt">TOTAL QTY</div><div></div><div></div><div></div><div class="brt">' + q + '</div><div></div><div></div><div></div>';
+    n++;
+    g += '<div class="rn">' + n + '</div><div></div><div></div><div></div><div class="brt">TOTAL (AED, at WSP)</div><div></div><div></div><div></div><div></div><div></div><div></div><div class="brt">' + pvF2(a) + '</div>';
+    w.ov.innerHTML = '<div class="pvm-box pvm-vbox"><div class="pvm-hd"><div><h3>' + esc(file.name) + '</h3><p>Opened here, nothing is downloaded. DBD’s own form with the quantities filled in.</p></div><button type="button" class="pvm-x" data-c>Close</button></div>' +
+      '<div class="pvm-xlwrap"><div class="pvm-xlscroll"><div class="pvm-xl">' + g + '</div></div><div class="pvm-tabs"><span class="pvm-tab">' + esc(v.sheet || 'Sheet1') + '</span></div></div>' +
+      '<div class="pvm-ft"><button type="button" class="pvm-b" data-c>Close</button><button type="button" class="pvm-b pvm-main" data-dl>Download xlsx</button></div></div>';
+    w.ov.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', w.close));
+    w.ov.querySelector('[data-dl]').addEventListener('click', () => saveBlob(b64Blob(file.b64), file.name));
+    const bl = w.ov.querySelector('.bl'); if (bl) bl.style.backgroundImage = 'url(assets/dbd/dbd-banner.jpg)';
+  }
+  async function previewEmail(sup, sals) {
+    const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
+    const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
+    const open = lf.forms.filter(f => f.status === 'confirmed');
+    if (!open.length) return 'Every confirmed order here has been sent already.';
+    const fm = open.filter(f => !drafted[f.order_no])[0] || open[0], o = S.po.filter(x => x.order_no === fm.order_no)[0] || { day: S.editDay };
+    const mail = stdMail(fm, o), units = fm.lines.reduce((a, l) => a + (+l.q || 0), 0);
+    const w = pvOverlay('Email preview');
+    const addr = a => '<span class="pvm-addr">' + esc(a) + '</span>';
+    const body = '<div class="pvm-mb">' + mail.full.split('\n').map(l => l === '' ? '<div><br></div>' : '<div>' + esc(l) + '</div>').join('') + '</div>' + SIG_HTML;
+    w.ov.innerHTML = '<div class="pvm-box"><div class="pvm-hd"><div><h3>Email preview, ' + esc(fm.order_no) + ' ' + esc(BN[fm.branch]) + '</h3><p>This is what ' + esc(sup) + ' will receive. Nothing is sent from here.</p></div><button type="button" class="pvm-x" data-c>Close</button></div>' +
+      '<div class="pvm-body"><div class="pvm-chips"><span class="pvm-chip ok">Order confirmed</span><span class="pvm-chip">' + plural(fm.lines.length, 'line') + ' · ' + n0(units) + ' pcs</span>' +
+      (mail.need ? '<span class="pvm-chip warn">' + plural(mail.need, 'line') + (mail.need === 1 ? ' has' : ' have') + ' no DBD code: listed by name in the email, not on the forms</span>' : '') + '</div>' +
+      '<div class="pvm-cols"><div class="pvm-left"><div class="pvm-f1"><div class="pvm-fld"><span class="k">From</span><span class="v">' + esc(m.from) + '</span></div>' +
+      '<div class="pvm-fld"><span class="k">To</span><span class="v">' + m.to.map(addr).join('') + '</span></div>' +
+      (m.cc.length ? '<div class="pvm-fld"><span class="k">Cc</span><span class="v">' + m.cc.map(addr).join('') + '</span></div>' : '') +
+      '<div class="pvm-fld"><span class="k">Subject</span><span class="v"><b>' + esc(mail.subject) + '</b></span></div></div>' +
+      '<div class="pvm-f3"><div class="pvm-sec">Message</div><div class="pvm-mail" tabindex="0" aria-label="Email body">' + body + '</div></div></div>' +
+      '<div class="pvm-right pvm-f2"><div class="pvm-sec">Attached DBD order forms</div><div class="pvm-att"><div class="pvm-wait">Preparing the DBD forms, a few seconds…</div></div></div></div></div>' +
+      '<div class="pvm-ft"><span class="pvm-msg" role="status"></span><button type="button" class="pvm-b" data-c>Back to the order</button><button type="button" class="pvm-b" data-send="test">Test email to me</button><button type="button" class="pvm-b pvm-main" data-send="real">Email order to ' + esc(sup) + '</button></div></div>';
+    w.ov.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', w.close));
+    const msg = w.ov.querySelector('.pvm-msg'), btns = w.ov.querySelectorAll('.pvm-ft button');
+    w.ov.querySelectorAll('[data-send]').forEach(b => b.addEventListener('click', async () => {
+      if (b.disabled) return;
+      btns.forEach(x => { x.disabled = true; });
+      const lab = b.textContent; b.textContent = 'Working…'; msg.textContent = 'Working, this can take a few seconds.';
+      let r = ''; try { r = await emailToDbd(sup, sals, b.dataset.send === 'test'); } catch (e) { r = 'That did not work. Try again.'; }
+      btns.forEach(x => { x.disabled = false; }); b.textContent = lab; msg.textContent = r || '';
+    }));
+    // the forms: filled by the function (a few seconds), shown as a list when ready; the window is already open and usable meanwhile, a press on a form opens it here
+    (async () => {
+      const att = w.ov.querySelector('.pvm-att');
+      let d = null, err = '';
+      try { const r = await sb.functions.invoke('oos-order-forms', { body: { salon: fm.branch, items: dbdItems(fm) } }); d = r.data; if (r.error || !d || !Array.isArray(d.files)) err = (d && d.error) || 'The DBD forms could not be prepared.'; else if (!d.files.length) err = 'No DBD order form holds these products.'; } catch (e) { err = 'The DBD forms could not be prepared.'; }
+      if (!w.ov.isConnected) return;
+      if (err) { att.innerHTML = '<div class="pvm-wait">' + esc(err) + '</div>'; return; }
+      let tp = 0, tq = 0, ta = 0;
+      att.innerHTML = d.files.map((f, i) => { const v = f.view || {}; tp += f.products || 0; tq += v.totQ || 0; ta += v.totA || 0;
+        return '<button type="button" class="pvm-fl" data-i="' + i + '"><span class="n">' + esc(f.name) + '</span><span class="m"><span>' + plural(f.products || 0, 'product') + '</span><span>' + n0(v.totQ || 0) + ' pcs</span><span>AED ' + pvF2(v.totA) + '</span></span><span class="vw">View</span></button>'; }).join('') +
+        '<div class="pvm-sum"><span>' + plural(d.files.length, 'form') + '</span><span>' + plural(tp, 'product') + '</span><span>' + n0(tq) + ' pcs</span><span>AED ' + pvF2(ta) + '</span></div>' +
+        (d.notFound && d.notFound.length ? '<div class="pvm-nf">' + plural(d.notFound.length, 'product') + (d.notFound.length === 1 ? ' is' : ' are') + ' not on the forms (' + esc(d.notFound.slice(0, 3).map(x => x.name).join(', ')) + (d.notFound.length > 3 ? ', ...' : '') + '): they are in the email.</div>' : '');
+      att.querySelectorAll('.pvm-fl').forEach(b => b.addEventListener('click', () => openFormView(d.files[+b.dataset.i])));
+    })();
+    return '';
+  }
+  // ===== PVM:END =====
   async function emailToDbd(sup, sals, test) {
     const m = SUP_MAIL[sup]; if (!m) return 'No email address for ' + sup + ' yet.';
     const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
@@ -751,7 +841,8 @@
         S.canEdit ? [{ label: 'Confirm order', grp: 'Order', main: !openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length, run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } }] : [],
         supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', alt: 1, run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         S.canEdit ? [{ label: 'Cancel confirmed order', grp: 'Order', alt: 1, run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, grp: 'Send', main: openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length > 0, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
+        SUP_MAIL[supName] ? [{ label: 'Preview email', grp: 'Send', alt: 1, run: () => previewEmail(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
+                             { label: 'Email order to ' + supName, grp: 'Send', main: openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).length > 0, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
                              { label: 'Test email to me', grp: 'Send', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
         S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'DBD reply', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
       ) : undefined };

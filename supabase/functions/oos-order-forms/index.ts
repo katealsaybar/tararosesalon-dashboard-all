@@ -59,7 +59,7 @@ const num = (s: string) => { const m = /-?\d+(\.\d+)?/.exec(String(s).replace(/,
 
 type Cell = { ref: string; col: string; colN: number; t: string; s: string; v: string };
 type Row = { r: number; xml: string; cells: Cell[] };
-type Form = { bytes: ArrayBuffer; zip: any; sheetPath: string; sheetXml: string; rows: Row[]; cols: { ean: string; desc: string; qty: string; total: string; wsp: string; size: string; code: string }; byEan: Map<string, Row>; byName: Map<string, Row>; byCode: Map<string, Row>; keys: { k: string; row: Row; fam: string }[]; hdrRow: number };
+type Form = { bytes: ArrayBuffer; zip: any; sheetPath: string; sheetXml: string; rows: Row[]; cols: { ean: string; desc: string; qty: string; total: string; wsp: string; size: string; code: string; cat: string; sub: string; rsp: string; status: string }; byEan: Map<string, Row>; byName: Map<string, Row>; byCode: Map<string, Row>; keys: { k: string; row: Row; fam: string }[]; hdrRow: number };
 
 function parseSheet(xml: string, sst: string[]): Row[] {
   const rows: Row[] = [];
@@ -92,7 +92,7 @@ async function openForm(bytes: ArrayBuffer): Promise<Form | null> {
     const hdr = rows.find((r) => r.cells.some((c) => /^ean$/i.test(c.v.trim())) && r.cells.some((c) => /^description/i.test(c.v.trim())));
     if (!hdr) continue;
     const find = (re: RegExp) => (hdr.cells.find((c) => re.test(c.v.trim())) || { col: "" }).col;
-    const cols: any = { ean: find(/^ean$/i), desc: find(/^description/i), qty: find(/^order/i), total: find(/^total/i), wsp: find(/^wsp/i), size: find(/^size/i), code: find(/^code$/i) };
+    const cols: any = { ean: find(/^ean$/i), desc: find(/^description/i), qty: find(/^order/i), total: find(/^total/i), wsp: find(/^wsp/i), size: find(/^size/i), code: find(/^code$/i), cat: find(/^category/i), sub: find(/^sub/i), rsp: find(/^suggested/i), status: find(/^status/i) };
     if (!cols.qty && cols.ean) {
       const anchor = hdr.cells.find((c) => /^suggested/i.test(c.v.trim())) || hdr.cells.find((c) => /^wsp/i.test(c.v.trim()));
       if (anchor && anchor.colN + 1 < colNum(cols.ean)) { const nx = colLetter(anchor.colN + 1), nc = hdr.cells.find((c) => c.col === nx); if (!nc || !nc.v.trim()) cols.qty = nx; }
@@ -342,7 +342,17 @@ Deno.serve(async (req: Request) => {
       }
       const out = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
       let bin = ""; for (let i = 0; i < out.length; i += 0x8000) bin += String.fromCharCode(...out.subarray(i, i + 0x8000));
-      files.push({ name, b64: btoa(bin), products: hits.length, template: { file: u.cand.file_name, date: u.cand.doc_date, subject: u.cand.subject } });
+      // what the page shows when a form is opened there (Kate, 27 Nov 2026: the preview opens the form in the dashboard, nothing is downloaded): the ordered lines as DBD's own form has them
+      const byRow = new Map<number, { row: Row; q: number }>();
+      for (const h of hits) { const e = byRow.get(h.row.r); if (e) e.q += items[h.i].q; else byRow.set(h.row.r, { row: h.row, q: items[h.i].q }); }
+      const cellOf = (r: Row, col: string) => (col ? (r.cells.find((c) => c.col === col)?.v || "").trim() : "");
+      const sheetNames = wb ? [...wb.matchAll(/<sheet\b[^>]*\bname="([^"]*)"/g)].map((m) => unesc(m[1])) : [];
+      const sheetNo = parseInt((/sheet(\d+)\.xml$/.exec(f.sheetPath) || [, "1"])[1] as string);
+      const view = {
+        family: label, type, sheet: sheetNames[sheetNo - 1] || sheetNames[0] || "", totQ, totA: Math.round(totA * 100) / 100, hadTotal: !addTotal,
+        rows: [...byRow.values()].sort((x, y) => x.row.r - y.row.r).map((e) => [cellOf(e.row, f.cols.cat), cellOf(e.row, f.cols.sub), cellOf(e.row, f.cols.code), cellOf(e.row, f.cols.desc), cellOf(e.row, f.cols.size), cellOf(e.row, f.cols.wsp), cellOf(e.row, f.cols.rsp), e.q, cellOf(e.row, f.cols.ean), cellOf(e.row, f.cols.status)]),
+      };
+      files.push({ name, b64: btoa(bin), products: hits.length, view, template: { file: u.cand.file_name, date: u.cand.doc_date, subject: u.cand.subject } });
     }
   }
   const notFound = [...todo].map((i) => ({ name: items[i].name, q: items[i].q })).concat(leftover);

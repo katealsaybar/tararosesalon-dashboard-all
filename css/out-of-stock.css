@@ -145,3 +145,73 @@ tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
 .dn:has(>.oos-ordnow){border-bottom:0!important}
 .oos-ordnow[aria-disabled="true"]{background:transparent;color:var(--muted);border-color:var(--border);opacity:.55;cursor:not-allowed;font-weight:600}
 #oosSupTbl td:has(.oos-ordnow){white-space:nowrap;padding-left:22px}
+
+/* ===== The DBD email preview and a form opened in the dashboard (js/out-of-stock.js: previewEmail, openFormView). Kate, 27 Nov 2026 ===== */
+.pvm-ov{position:fixed;inset:0;z-index:720;background:rgba(20,16,14,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.pvm-box{background:var(--bg);color:var(--text);border:1px solid var(--text);border-radius:14px;box-shadow:0 26px 90px rgba(0,0,0,.55);width:min(1000px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;text-align:left}
+.pvm-vbox{width:min(1180px,100%)}
+.pvm-hd{display:flex;align-items:flex-start;gap:14px;padding:18px 20px 12px}
+.pvm-hd h3{margin:0;font-family:'Playfair Display',Georgia,serif;font-weight:500;font-size:21px;line-height:1.15}
+.pvm-hd p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.pvm-x{margin-left:auto;background:#C0392B;color:#fff;border:0;border-radius:999px;padding:0 16px;min-height:32px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+.pvm-body{overflow:auto;padding:0 20px 8px}
+.pvm-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.pvm-chip{display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--surface2,var(--border2))}
+.pvm-chip.ok{background:var(--good-bg,rgba(153,246,228,.12));color:var(--good,#3E7A5E)}
+.pvm-chip.warn{background:var(--warn-bg,rgba(255,178,122,.12));color:var(--warn,#8A5F12)}
+.pvm-cols{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:4px 24px;align-items:start}
+.pvm-fld{display:grid;grid-template-columns:78px 1fr;gap:4px 12px;padding:9px 0;border-bottom:1px solid var(--border2,var(--border));font-size:14px;align-items:baseline}
+.pvm-fld .k,.pvm-sec{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted2,var(--muted))}
+.pvm-fld .v{min-width:0;overflow-wrap:anywhere}
+.pvm-addr{display:inline-block;background:var(--surface2,var(--border2));border-radius:999px;padding:2px 10px;margin:2px 6px 2px 0;font-size:13px}
+.pvm-sec{margin:18px 0 8px}
+.pvm-cols .pvm-sec:first-child{margin-top:14px}
+.pvm-mail{background:#fff;color:#1A1A1A;border:1px solid var(--border);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.55;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.pvm-mail .pvm-mb{white-space:pre-wrap}
+.pvm-mail img{max-width:100%}
+.pvm-att{background:var(--surface,var(--bg));border:1px solid var(--border);border-radius:12px;padding:4px 14px}
+.pvm-wait{padding:14px 0;color:var(--muted);font-size:13.5px}
+.pvm-fl{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--border2,var(--border));padding:10px 0;position:relative;min-height:40px;color:inherit;font:inherit;cursor:pointer}
+.pvm-fl:hover .n{text-decoration:underline}
+.pvm-fl .n{display:block;font-weight:600;font-size:14px;overflow-wrap:anywhere;padding-right:48px}
+.pvm-fl .m{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:2px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pvm-fl .m span:last-child{margin-left:auto;color:var(--text);font-weight:600}
+.pvm-fl .vw{position:absolute;right:0;top:10px;font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.04em}
+.pvm-sum{display:flex;flex-wrap:wrap;gap:2px 14px;padding:10px 0 8px;border-top:2px solid var(--text);font-weight:700;font-size:13.5px;font-variant-numeric:tabular-nums}
+.pvm-sum span:last-child{margin-left:auto;text-align:right}
+.pvm-nf{padding:0 0 10px;color:var(--warn,#8A5F12);font-size:13px}
+.pvm-ft{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:flex-end;padding:14px 20px 18px;border-top:1px solid var(--border)}
+.pvm-msg{margin-right:auto;max-width:100%;font-size:13px;color:var(--muted)}
+.pvm-b{border:1px solid var(--border);background:var(--surface,var(--bg));color:var(--text);border-radius:999px;padding:0 14px;min-height:32px;font:inherit;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer}
+.pvm-b:hover:not(:disabled){border-color:var(--text)}
+.pvm-b:disabled{opacity:.45;cursor:default}
+.pvm-b.pvm-main{background:var(--text);color:var(--bg);border-color:var(--text)}
+/* a form opened here looks like the xlsx: grid, DBD header with its logos, grey heading row, sheet tab; what we add is in our brand colours */
+.pvm-xlwrap{margin:0 20px 10px;border:1px solid #c6c6c6;border-radius:8px;overflow:hidden;background:#fff;color:#1a1a1a;display:flex;flex-direction:column;min-height:0;flex:1}
+.pvm-xlscroll{overflow:auto;flex:1;min-height:0}
+.pvm-xl{display:grid;min-width:1110px;font:13px/1.25 Calibri,'Segoe UI',Arial,sans-serif;grid-template-columns:34px 118px 128px 76px minmax(220px,1fr) 66px 74px 92px 76px 108px 96px 92px}
+.pvm-xl>div{border-right:1px solid #d4d4d4;border-bottom:1px solid #d4d4d4;padding:3px 6px;display:flex;align-items:center;justify-content:center;text-align:center;min-height:23px;font-variant-numeric:tabular-nums}
+.pvm-xl .lt{background:#f3f3f3;color:#444;font-size:12px;position:sticky;top:0;z-index:3}
+.pvm-xl .rn{background:#f3f3f3;color:#444;font-size:12px;position:sticky;left:0;z-index:2}
+.pvm-xl .bn{grid-column:2 / span 11;position:relative;height:132px;padding:0;justify-content:flex-start;align-items:stretch;border-bottom:0}
+.pvm-xl .bn .bl{height:118px;width:396px;margin:6px 0 0 8px;background-repeat:no-repeat;background-size:auto 118px;background-position:left top}
+.pvm-xl .bn .br{position:absolute;right:24px;top:8px;height:104px}
+.pvm-xl .rn8{height:132px;align-items:flex-start;padding-top:6px;flex-direction:column;gap:14px;font-size:11px}
+.pvm-xl .hh{background:#d9d9d9;font-weight:700;border:1px solid #555;position:relative;min-height:46px;padding:4px 18px 4px 6px}
+.pvm-xl .hh::after{content:'';position:absolute;right:4px;bottom:4px;width:9px;height:9px;border:1px solid #888;background:#f5f5f5}
+.pvm-xl .hh::before{content:'';position:absolute;right:7px;bottom:8px;border:3px solid transparent;border-top:4px solid #333;z-index:1}
+.pvm-xl .band{background:#d9d9d9;text-decoration:underline;font-weight:600}
+.pvm-xl .brh{background:#99F6E4;color:#1A1A1A;font-family:Georgia,'Times New Roman',serif}
+.pvm-xl .brq{background:#E6FCF8;color:#0B3D36;font-weight:700}
+.pvm-xl .brc{background:#F3FEFB;color:#0B3D36;font-weight:600}
+.pvm-xl .brt{background:#99F6E4;color:#1A1A1A;font-weight:700;font-family:Georgia,'Times New Roman',serif;border-bottom:1px solid #555}
+.pvm-tabs{display:flex;align-items:flex-end;background:#f3f3f3;border-top:1px solid #c6c6c6;padding:0 10px;height:34px}
+.pvm-tab{background:#fff;border:1px solid #c6c6c6;border-top:0;border-bottom:3px solid #217346;padding:5px 18px;font:600 13px Calibri,'Segoe UI',Arial,sans-serif;color:#217346}
+@media(max-width:760px){
+  .pvm-ov{padding:0;align-items:flex-end}
+  .pvm-box,.pvm-vbox{width:100%;max-height:94vh;border-radius:14px 14px 0 0}
+  .pvm-hd{padding:14px 10px 8px}.pvm-body{padding:0 10px 8px}.pvm-ft{padding:12px 10px 16px}.pvm-ft .pvm-b{flex:1 1 100%;min-height:44px}.pvm-x{min-height:44px}
+  .pvm-cols{display:flex;flex-direction:column}.pvm-left,.pvm-right{display:contents}
+  .pvm-f1{order:2}.pvm-f2{order:3}.pvm-f3{order:4}
+  .pvm-fld{grid-template-columns:1fr}.pvm-att{padding:4px 10px}.pvm-xlwrap{margin:0 10px 10px}
+}
