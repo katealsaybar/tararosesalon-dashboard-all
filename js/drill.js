@@ -8,7 +8,7 @@
 //
 // spec = { title, sub?, cur?, views: [{ id, label, load: async () => result }] }
 //   result = { cols: [{ k, l, t }], rows: [{ ...cells, _cls? }], foot?: { ...cells }, sub?, note? }
-//   col type t: 'text' (default), 'num', 'aed' (spec.cur prefix), 'date' (ISO to 17 Oct 2026), 'pct', 'html' (already safe html)
+//   col type t: 'text' (default), 'num', 'aed' (spec.cur prefix), 'aed2' (2 decimals, no prefix), 'date' (ISO to 17 Oct 2026), 'pct', 'html' (already safe html)
 // Every window has Save as xlsx and Save as csv (Kate, 27 Oct 2026: "sa lahat"): the view on screen, its total row last, built with the same spreadsheet writer as the Lost
 // Client Blasts log (ledger-export.js, loaded the first time a button is pressed).
 // The window shows one view at a time (tabs when there are two or more), loads it when first picked and keeps it.
@@ -32,6 +32,7 @@
   const FMT = {
     num: v => v == null || v === '' ? '' : (Math.round(+v * 100) / 100).toLocaleString('en-GB'),
     aed: (v, c) => v == null || v === '' ? '' : (c || 'AED') + ' ' + n0(v),
+    aed2: v => v == null || v === '' || !isFinite(v) ? '' : (+v).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),   // an amount with its 2 decimals, no AED prefix (the column heading says AED); a number, so it sorts, filters and adds up in the Total row
     date: v => { const f = day(v), m = /^(\d+ \w+) \d{4}$/.exec(f); return m ? `<span class="dt-l">${f}</span><span class="dt-s">${m[1]}</span>` : f; },   // the year is left off on a phone, where the window says it
     pct: v => v == null || v === '' || !isFinite(v) ? '–' : (Math.round(+v * 10) / 10) + '%',
     yn: v => v == null || v === '' ? '' : (+v ? 'Yes' : 'No'),
@@ -107,7 +108,7 @@
   const PG_SIZES = [10, 20, 50, 100];
   let pgSize = 10;
   try { const v = +localStorage.getItem('trsd.pgsize'); if (PG_SIZES.indexOf(v) >= 0) pgSize = v; } catch (e) {}
-  const NUMT = c => c.t === 'num' || c.t === 'aed' || c.t === 'pct';
+  const NUMT = c => c.t === 'num' || c.t === 'aed' || c.t === 'aed2' || c.t === 'pct';
   const rawOf = (c, r) => { const v = r[c.k]; if (c.t === 'html') return plain(v); if (NUMT(c)) return v === '' || v == null || !isFinite(v) ? null : +v; if (c.t === 'date') return v || ''; return v == null ? '' : String(v); };
   const dispOf = (c, r) => { const v = r[c.k]; if (c.t === 'html') return plain(v); const f = FMT[c.t]; return f ? plain(f(v, spec && spec.cur)) : (v == null ? '' : plain(v)); };
   const isMuted = r => String(r._cls || '').indexOf('dr-muted') >= 0;
@@ -260,7 +261,7 @@
 
 
   const slug = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  const FILEFMT = { aed: 'aed', num: 'num', pct: 'pct' };
+  const FILEFMT = { aed: 'aed', aed2: 'aed2', num: 'num', pct: 'pct' };
   function plain(h) { return String(h == null ? '' : h).replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim(); }
   function note(t) { const el = box && box.querySelector('.dr-saved'); if (el) el.textContent = t; }
   async function save(kind) {

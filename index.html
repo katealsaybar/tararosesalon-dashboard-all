@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="assets/favicon-96x96.png">
 <!-- The list of dashboard pages (names, levels, address slugs, flags): read by the address handling just below and by everything after. -->
 <script src="js/pages.js?v=72b99785"></script>
-<script src="js/page-dates.js?v=6c5112db"></script>
+<script src="js/page-dates.js?v=26872884"></script>
 <script src="js/page-status.js?v=ef748096"></script>
 <!-- Kate, 19 Nov 2026: offers a refresh when the page someone is on was edited and pushed while it was open (js/page-refresh.js, page-versions.json). -->
 <script src="js/page-refresh.js?v=449920b0"></script>
@@ -3764,7 +3764,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       pr:  ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'js/products.js?v=06fd2cb9', 'js/product-spend.js?v=095cef82'],
       sp:  ['js/report-export.js?v=d7b73ae8', 'js/spend.js?v=c4e7c627'],
       // Out of Stock (23 Nov 2026): what to order this week from the Weekly Product Plan's shelf counts; one file, the Sheets table and the report export (drill.js is already on the page). Reads spend_plan and oos_on_order.
-      oos: ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'js/out-of-stock.js?v=013495f5'],
+      oos: ['js/report-export.js?v=d7b73ae8', 'js/sheet-table.js?v=12348511', 'js/out-of-stock.js?v=b1ae4685'],
       // Supplier Spend (13 Nov 2026): who we buy from, what Accounts paid beside what Phorest received; reads spend_report.
       ss:  ['js/report-export.js?v=d7b73ae8', 'js/supplier-spend.js?v=aab0d891'],
       // Orders and Receipts (18 Nov 2026): one file, the Google Sheets table (sheet-table.js) and the report export; reads orders_get.
@@ -4556,7 +4556,7 @@ table.tp-cmp td.bad{color:var(--bad)}
       frame.onload = () => { if (typeof postReviewsTheme === 'function') postReviewsTheme(); };
       const slug = window.spfWantStaff || new URLSearchParams(location.search).get('staff');
       window.spfWantStaff = null;   // one-shot, set by the staff hover menu (staff-links.js whoGoDash)
-      frame.src = 'performance/index.html?v=64a1ec13&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
+      frame.src = 'performance/index.html?v=202297b0&admin=' + encodeURIComponent(key) + '&embed=1&dept=' + spfDept() + '&m=' + document.getElementById('spfMonth').value + (slug ? '&staff=' + encodeURIComponent(slug) : '');
       frame.dataset.loaded = '1';
       frame.dataset.key = key;
     }
@@ -5167,7 +5167,7 @@ table.tp-cmp td.bad{color:var(--bad)}
 <script src="js/bar-hover.js?v=ea0f3135"></script>
 <!-- The line that opens How a Target Is Made and the Target Calculator beside every target on the dashboard; Level 3 and 5 only (Kate, 23 Oct 2026). -->
 <script src="js/target-links.js?v=72e70df1"></script>
-<script src="js/drill.js?v=383bf356"></script>
+<script src="js/drill.js?v=44498e7e"></script>
 <script src="js/pulse-drill.js?v=d67ecf2e"></script>
 <script src="js/dashboard.js?v=f4507c60"></script>
 <!-- After dashboard.js: signs in on its `sb` client, so every query carries the session. -->

@@ -406,7 +406,7 @@
   // This makes the same thing from the confirmed order: one list per brand family and stock type, the DBD Code and EAN found from the product (oos_order_form_get: barcode, then name), the quantity
   // and the total at the price list price. A line DBD's list does not have yet gets no code and says CODE NEEDED: nothing is dropped. One Excel file per order, one tab per list.
   const FCOLS = [{ k: 'cat', l: 'Category', t: 'txt' }, { k: 'sub', l: 'Sub-category', t: 'txt' }, { k: 'code', l: 'Code', t: 'txt' }, { k: 'd', l: 'Description', t: 'txt' }, { k: 'size', l: 'Size', t: 'txt' },
-                 { k: 'wsp', l: 'WSP (AED)', t: 'txt' }, { k: 'q', l: 'Order Qty.', t: 'num' }, { k: 'tot', l: 'Total (AED)', t: 'txt' }, { k: 'ean', l: 'EAN', t: 'txt' }, { k: 'how', l: 'Matched by', t: 'txt' }];
+                 { k: 'wsp', l: 'WSP (AED)', t: 'txt' }, { k: 'q', l: 'Order Qty.', t: 'num' }, { k: 'tot', l: 'Total (AED)', t: 'aed2' }, { k: 'ean', l: 'EAN', t: 'txt' }, { k: 'how', l: 'Matched by', t: 'txt' }];
   const DBD_HOW = { ean: 'barcode', code: 'item code', name: 'name', saved: 'saved by hand' };
   const f2 = v => v == null || v === '' ? '' : (+v).toFixed(2);
   async function loadForms(sup, sals) {
