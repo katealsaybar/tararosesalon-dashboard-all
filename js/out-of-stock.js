@@ -365,7 +365,7 @@
   // Nothing is sent to the supplier by this: Email to DBD is still a Gmail draft a person sends. Needs out_of_stock_supplier_orders.sql applied; until then the button says so.
   const setPO = r => { const d = r && !r.error ? r.data : null; S.poOn = !!(d && !d.denied && Array.isArray(d.orders)); S.po = S.poOn ? d.orders : []; };
   // DBD's out-of-stock replies are looked for first (oos_replies_scan, safe to repeat), then the orders are read
-  async function fetchPO() { try { await sb.rpc('oos_replies_scan'); } catch (e) { /* not applied yet, or no access: the orders are still read */ } return Promise.resolve(sb.rpc('oos_orders_get')).then(r => r, e => ({ error: e })); }
+  async function fetchPO() { try { await sb.rpc('oos_sent_scan'); await sb.rpc('oos_replies_scan'); } catch (e) { /* not applied yet, or no access: the orders are still read */ } return Promise.resolve(sb.rpc('oos_orders_get')).then(r => r, e => ({ error: e })); }
   async function loadPO() { setPO(await fetchPO()); }
   const openOrders = (sup, sals) => S.po.filter(o => o.supplier === sup && o.status !== 'cancelled' && o.day === S.editDay && sals.indexOf(o.branch) >= 0);
   const PO_ST = { confirmed: 'confirmed', sent: 'sent to DBD', oos_reply: 'DBD replied', oos_confirmed: 'out of stock confirmed with DBD', on_the_way: 'on the way', invoiced: 'invoiced' };
@@ -452,7 +452,7 @@
   // The standard email to DBD (Kate, 26 Nov 2026, step 3 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md: "email must be standardised, we must have our own internal order number: subject, body, sign off").
   // One email per order (one salon): subject "TRS-PO-26-0001 | ORDER | SAADIYAT | 30 Nov 2026", the same body every time, the same sign-off whoever sends it. DBD keeps the subject when it replies,
   // so the order number is how its out-of-stock list and its invoice are matched back (steps 4 and 5). It OPENS a Gmail draft from info@ and saves the order form file to attach: the page never sends.
-  // Mark as sent is pressed by the person after Send; it turns the order to "sent" (it can no longer be cancelled here).
+  // There is no Mark as sent button (Kate, 27 Nov 2026: "dapat autodetect to eh"): once the mail is sent from info@ the hourly mail read stores it, and the database (oos_sent_scan, every 10 minutes) turns the order to "sent" (it can no longer be cancelled here).
   const drafted = {};
   const dFmt = d => { const t = new Date(String(d || '').slice(0, 10) + 'T00:00:00'); return isNaN(t) ? String(d || '') : t.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
   const pcs = n => nu(n) + (n === 1 ? ' PC' : ' PCS');
@@ -515,7 +515,7 @@
       window.open(dr.url, '_blank', 'noopener');
       if (!test) drafted[fm.order_no] = 1;
       const more0 = test ? 0 : open.filter(f => f.order_no !== fm.order_no && !drafted[f.order_no]).length;
-      return (test ? 'A TEST draft to ' + me + ' only is ready in info@' : 'The draft is ready in info@') + ' for ' + fm.order_no + ' ' + BN[fm.branch] + ', with ' + plural(dr.forms.length, 'DBD order form') + ' filled and attached (' + dr.forms.map(f => f.name).join(', ') + ').' + notIn(dr.notFound) + (test ? ' Read it and press Send to get it in your inbox; nothing goes to ' + sup + '.' : ' Read it, press Send, then press Mark as sent.') + (more0 ? ' ' + plural(more0, 'order') + ' more: press Email order to ' + sup + ' again after.' : '');
+      return (test ? 'A TEST draft to ' + me + ' only is ready in info@' : 'The draft is ready in info@') + ' for ' + fm.order_no + ' ' + BN[fm.branch] + ', with ' + plural(dr.forms.length, 'DBD order form') + ' filled and attached (' + dr.forms.map(f => f.name).join(', ') + ').' + notIn(dr.notFound) + (test ? ' Read it and press Send to get it in your inbox; nothing goes to ' + sup + '.' : ' Read it and press Send. The order turns to Sent by itself within the hour.') + (more0 ? ' ' + plural(more0, 'order') + ' more: press Email order to ' + sup + ' again after.' : '');
     }
     const whyNot = dr.notSetUp ? ' (DBD forms are not attached by themselves yet: the one-time info@ permission is not done.)' : dr.error ? ' (' + dr.error + ')' : '';
     const q = b => 'https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(test ? me : m.to.join(',')) + '&cc=' + encodeURIComponent(test ? '' : m.cc.join(',')) + '&su=' + encodeURIComponent(mail.subject) + '&body=' + encodeURIComponent(b);
@@ -526,22 +526,11 @@
     const saved = await downloadDbdForms(fm) + whyNot;
     const more = test ? 0 : open.filter(f => f.order_no !== fm.order_no && !drafted[f.order_no]).length;
     if (test) return 'Gmail is open with a TEST email to ' + me + ' only, for ' + fm.order_no + ' ' + BN[fm.branch] + '. ' + saved + ' Press Send to get it in your inbox; nothing goes to ' + sup + '.';
-    return 'Gmail is open for ' + fm.order_no + ' ' + BN[fm.branch] + (long ? ' (long order: the full list is copied, paste it if you want it in the body)' : '') + '. ' + saved + ' Attach it, press Send, then press Mark as sent.' + (more ? ' ' + plural(more, 'order') + ' more: press Email order to ' + sup + ' again after.' : '');
-  }
-  async function markSent(sup, sals) {
-    if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can mark an order as sent.';
-    const all_ = openOrders(sup, sals), a = all_.filter(o => o.status === 'confirmed' && drafted[o.order_no]), b = all_.filter(o => o.status === 'oos_reply' && draftedOos[o.order_no]);
-    if (!a.length && !b.length) return 'Press Email order to ' + sup + ' (or Confirm order with ' + sup + ' OOS) first, send it in Gmail, then press this.';
-    if (!window.confirm('Mark as sent to ' + sup + ':\n' + a.map(o => o.order_no + ' ' + BN[o.branch] + ' (the order)').concat(b.map(o => o.order_no + ' ' + BN[o.branch] + ' (the out-of-stock confirmation)')).join('\n') + '\n\nDo this only after you pressed Send in Gmail.')) return 'Not marked.';
-    const out = [], bad = e => /oos_order_mark_sent|oos_oos_mark_sent|schema cache|Could not find/i.test(String(e.message || e)) ? 'Mark as sent is not switched on yet.' : 'That did not work: ' + String(e.message || e);
-    for (const o of a) { let res; try { res = await sb.rpc('oos_order_mark_sent', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return bad(res.error); out.push(o.order_no); }
-    for (const o of b) { let res; try { res = await sb.rpc('oos_oos_mark_sent', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return bad(res.error); if (res.data && res.data.refused) return 'Not marked: ' + (res.data.why || res.data.status) + '.'; out.push(o.order_no + ' (out of stock)'); }
-    await loadPO();
-    return 'Marked as sent: ' + out.join(', ') + '.';
+    return 'Gmail is open for ' + fm.order_no + ' ' + BN[fm.branch] + (long ? ' (long order: the full list is copied, paste it if you want it in the body)' : '') + '. ' + saved + ' Attach it and press Send. The order turns to Sent by itself within the hour.' + (more ? ' ' + plural(more, 'order') + ' more: press Email order to ' + sup + ' again after.' : '');
   }
   // DBD's out-of-stock reply and our confirmation of it (Kate, 26 Nov 2026, step 4 of docs/OOS-DBD-ORDER-WORKFLOW-SPEC-26NOV-2026.md: "they then proceed to click confirm orders with dbd oos button,
   // follow standardised format, dbd gets notified"). The reply is found by the database (oos_replies_scan: DBD keeps our subject, the order number is in it). The person decides every item
-  // (cancel it, wait for stock, or take another product), the page opens the standard confirmation as a Gmail draft, and Mark as sent turns the order to "out of stock confirmed".
+  // (cancel it, wait for stock, or take another product), the page opens the standard confirmation as a Gmail draft, and the database turns the order to "out of stock confirmed" by itself once that mail is in info@ Sent (oos_sent_scan).
   const draftedOos = {};
   function askDecisions(o, rp) {
     return new Promise(done => {
@@ -604,21 +593,11 @@
     const mail = oosMail(o, rp, dec);
     window.open('https://mail.google.com/mail/?authuser=' + encodeURIComponent(m.from) + '&view=cm&fs=1&tf=1&to=' + encodeURIComponent(m.to.join(',')) + '&cc=' + encodeURIComponent(m.cc.join(',')) + '&su=' + encodeURIComponent(mail.subject) + '&body=' + encodeURIComponent(mail.text), '_blank', 'noopener');
     draftedOos[o.order_no] = 1; await loadPO();
-    return 'Decision saved. Gmail is open with the confirmation for ' + o.order_no + ' ' + BN[o.branch] + '. Press Send, then press Mark as sent.';
+    return 'Decision saved. Gmail is open with the confirmation for ' + o.order_no + ' ' + BN[o.branch] + '. Press Send. The order turns to out of stock confirmed by itself within the hour.';
   }
 
-  // Step 5: "on the way" is normally found by the database from DBD's mail (oos_replies_scan) and the invoice the same way, and the coordinator and accounts are told on WhatsApp once their templates are
-  // approved. DBD has never sent a plain "on the way" mail, so a person can mark it by hand when DBD says so another way (a call, a WhatsApp). Nobody is messaged for that.
-  async function markOnTheWay(sup, sals) {
-    if (!S.canEdit) return 'Only people who may edit the Weekly Product Plan can mark an order as on the way.';
-    const mine = openOrders(sup, sals).filter(o => ['sent', 'oos_reply', 'oos_confirmed'].indexOf(o.status) >= 0);
-    if (!mine.length) return 'No order here is waiting for ' + sup + ' to deliver (it has to be sent first, and one already on the way or invoiced is left as it is).';
-    if (!window.confirm('Mark ' + mine.map(o => o.order_no + ' ' + BN[o.branch]).join(', ') + ' as on the way?\n\nDo this only when ' + sup + ' has told you. Nobody is messaged.')) return 'Not marked.';
-    const out = [];
-    for (const o of mine) { let res; try { res = await sb.rpc('oos_order_mark_on_the_way', { p_order_no: o.order_no }); } catch (e) { res = { error: e }; } if (res.error) return /oos_order_mark_on_the_way|schema cache|Could not find/i.test(String(res.error.message || res.error)) ? 'Mark as on the way is not switched on yet.' : 'That did not work: ' + String(res.error.message || res.error); out.push(o.order_no); }
-    await loadPO();
-    return 'Marked as on the way: ' + out.join(', ') + '.';
-  }
+  // Step 5: "on the way" and the invoice are found by the database from DBD's mail (oos_replies_scan), and the coordinator and accounts are told on WhatsApp once their templates are approved.
+  // There is no Mark as on the way button: DBD has never sent a plain "on the way" mail, so the order goes from sent to invoiced when the invoice mail arrives.
   // The order form window (Kate, 27 Nov 2026: it "looks like a mess", it should be "easy to use, seamless", and should copy DBD's own form). One tab per list, DBD's own columns (Category, Sub-category,
   // Code, Description, Size, WSP, Order Qty., Total, EAN, Status), the lines with no DBD code first and tinted, their Code box open to type in. A 6 to 8 digit code typed in, or one of the closest DBD
   // products picked from the box's list, is saved for that product (oos_dbd_code_set) and every later order of every salon shows it; clearing the box goes back to the automatic match.
@@ -688,8 +667,8 @@
       loaded.forEach(res => { res.rows.forEach(x => { if (x._ek === key) fill(x, r); }); footOf(res); });
     };
     const mk = res => { res.onEdit = onEdit; loaded.push(res); footOf(res); return res; };
-    const ordNote = (S.canEdit ? ' <b>Quantity</b> starts as the minimum order: type the amount you will really order (clear the box to go back), and untick <b>In order</b> to take a product out. The totals, the supplier table and the downloads follow.' : ' <b>Quantity</b> is the amount that will be ordered: the minimum order, unless someone typed another amount or took the product out.');
-    const colsQ = [{ k: 'o', l: 'Quantity', t: 'num', edit: S.canEdit, sum: sumO }, { k: 'ix', l: 'In order', t: 'yn', check: S.canEdit, edit: S.canEdit }];
+    const ordNote = (S.canEdit ? ' <b>Qty to Order</b> starts as the minimum order: type the amount you will really order (clear the box to go back), and untick <b>In order</b> to take a product out. The totals, the supplier table and the downloads follow.' : ' <b>Qty to Order</b> is the amount that will be ordered: the minimum order, unless someone typed another amount or took the product out.');
+    const colsQ = [{ k: 'o', l: 'Qty to Order', t: 'num', edit: S.canEdit, sum: sumO }, { k: 'ix', l: 'In order', t: 'yn', check: S.canEdit, edit: S.canEdit }];
     const colsC = [];   // Kate, 26 Nov 2026: Counted and Verified taken out of this window (they stay on the page's own table)
     const sheetView = { id: 'sheet', label: 'Order sheet', load: async () => {
       const allr = rows.concat(extra || []), multi = new Set(allr.map(r => r.b)).size > 1;
@@ -719,9 +698,8 @@
                      { label: 'Cancel confirmed order', grp: 'Order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
         SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, grp: 'Send', main: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
                              { label: 'Test email to me', grp: 'Send', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
-        S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'After sending', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as on the way', grp: 'After sending', alt: 1, run: () => markOnTheWay(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as sent', grp: 'After sending', run: () => markSent(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : []) : undefined };
+        S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'DBD reply', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+      ) : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
   // "x 1.22 + x 1.15 + ..." for the weeks a colour product counts, with where it comes from
@@ -891,11 +869,11 @@
     return `
     <div class="oos-ctl">
       <label for="oosDemand">Order for</label>
-      <select id="oosDemand" style="width:272px" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
+      <select id="oosDemand" style="width:196px" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
       <label for="oosPrio">Priority</label>
-      <select id="oosPrio" style="width:132px" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
+      <select id="oosPrio" style="width:108px" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
       <label for="oosCover">Weeks of cover</label>
-      <select id="oosCover" style="width:132px" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
+      <select id="oosCover" style="width:108px" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
       <span class="oos-ctl-t" id="oosCoverT"></span>
     </div>
     <section class="oos-ans" aria-label="The answer in one line"><div class="oos-ans-k">The answer in one line</div><div class="oos-ans-t" id="oosAns"></div><div class="oos-ans-s" id="oosAns0"></div><div class="oos-cards" id="oosAns2"></div><div class="oos-ans-s" id="oosAns5"></div><div class="oos-ans-n" id="oosAns3"></div><div class="oos-ans-n" id="oosAns4" hidden></div></section>
@@ -958,7 +936,7 @@
       <div class="oos-card oos-tcell"><table id="oosTbl"></table></div>
       <div class="oos-pager"><span id="oosPgTxt"></span><span class="oos-sp"></span><span class="slv-eyebrow">Rows</span><select id="oosRows" aria-label="Rows per page"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select>
         <button type="button" class="cm-pill" id="oosPrev">‹ Previous</button><span class="oos-pgn" id="oosPgN"></span><button type="button" class="cm-pill" id="oosNext">Next ›</button></div>
-      <p class="oos-hint">The page shows 10 rows to start with; pick 20, 50 or 100. Every column has a heading menu: sort, filter by condition or tick the values you want.${S.canEdit ? ' <b>Quantity</b> starts as the minimum order: type the amount you will really order and untick <b>In order</b> to take a product out. <b>Low stock</b> shows the products at or under Min that the rule does not order: type a Quantity to add one. The totals, the supplier table and the downloads follow. It is the same for everyone until the order goes out on Monday. <b>Counted</b> is the number really on the shelf: it replaces the Stock List figure for this order and ticks <b>Verified</b>; tick <b>Verified</b> alone when the Stock List figure is right. In <b>4 Order by supplier</b>, a supplier opens its order the way Phorest lists it.' : ' <b>Quantity</b> is the amount that will be ordered: the minimum order, unless someone typed another amount or took the product out.'}</p>
+      <p class="oos-hint">The page shows 10 rows to start with; pick 20, 50 or 100. Every column has a heading menu: sort, filter by condition or tick the values you want.${S.canEdit ? ' <b>Qty to Order</b> starts as the minimum order: type the amount you will really order and untick <b>In order</b> to take a product out. <b>Low stock</b> shows the products at or under Min that the rule does not order: type a Qty to Order to add one. The totals, the supplier table and the downloads follow. It is the same for everyone until the order goes out on Monday. <b>Counted</b> is the number really on the shelf: it replaces the Stock List figure for this order and ticks <b>Verified</b>; tick <b>Verified</b> alone when the Stock List figure is right. In <b>4 Order by supplier</b>, a supplier opens its order the way Phorest lists it.' : ' <b>Qty to Order</b> is the amount that will be ordered: the minimum order, unless someone typed another amount or took the product out.'}</p>
       <p class="oos-hint" id="oosEdMsg" role="status" hidden></p>
     </section>
 
@@ -971,11 +949,11 @@
       </div>
       <div class="oos-ctl oos-ctl4">
         <label for="oosDemand4">Order for</label>
-        <select id="oosDemand4" style="width:272px" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
+        <select id="oosDemand4" style="width:196px" aria-label="What the colour order is worked out from"><option value="book">Next week's bookings</option><option value="typ">A normal week</option></select>
         <label for="oosPrio4">Priority</label>
-        <select id="oosPrio4" style="width:132px" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
+        <select id="oosPrio4" style="width:108px" aria-label="Which priority to show"><option value="A">A only</option><option value="AB">A and B</option></select>
         <label for="oosCover4">Weeks of cover</label>
-        <select id="oosCover4" style="width:132px" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
+        <select id="oosCover4" style="width:108px" aria-label="Weeks of usual use to order up to"><option value="1">1 week</option><option value="2">2 weeks</option><option value="3">3 weeks</option><option value="4">4 weeks</option></select>
         <span class="oos-ref4" id="oosRef4"></span>
       </div>
       <div class="oos-refmsg4" id="oosRefMsg4" role="status" hidden></div>
@@ -1114,7 +1092,7 @@
     TO = TRSheet.table({ id: 'oosOrder', el: '#oosTbl', limit: 10, rows: orderRows, rowCls: r => r.sk ? 'oos-skip' : '',
       cols: [
         tc('p', 'Product', r => r.name, 0, r => num('<b>' + esc(r.name) + '</b>', prodSpec(r, 'how')) + '<span class="oos-sub">' + esc(r.brand) + '</span>'),
-        { k: 'o', l: 'Quantity', t: 'num', raw: r => r.o, disp: r => nu(r.o), cell: r => S.canEdit ? `<input type="number" min="0" step="1" inputmode="numeric" class="oos-ed${r.oe ? ' on' : ''}" data-ed="${esc(r.key)}" value="${r.ov}" aria-label="Quantity to order, ${esc(r.name)}, ${esc(BN[r.b])}" title="${esc(tipOf(r, r))}">` : (r.oe ? '<b>' + nu(r.o) + '</b>' : nu(r.o)) },
+        { k: 'o', l: 'Qty to Order', t: 'num', raw: r => r.o, disp: r => nu(r.o), cell: r => S.canEdit ? `<input type="number" min="0" step="1" inputmode="numeric" class="oos-ed${r.oe ? ' on' : ''}" data-ed="${esc(r.key)}" value="${r.ov}" aria-label="Quantity to order, ${esc(r.name)}, ${esc(BN[r.b])}" title="${esc(tipOf(r, r))}">` : (r.oe ? '<b>' + nu(r.o) + '</b>' : nu(r.o)) },
         { k: 'ix', l: 'In order', t: 'txt', raw: r => r.sk ? 'No' : 'Yes', disp: r => r.sk ? 'No' : 'Yes', cell: r => S.canEdit ? `<input type="checkbox" class="oos-ck" data-ck="${esc(r.key)}"${r.sk ? '' : ' checked'} aria-label="In the order: ${esc(r.name)}, ${esc(BN[r.b])}">` : (r.sk ? 'No' : 'Yes') },
         { k: 'oa', l: 'Quantity AED', t: 'num', raw: r => r.oa, disp: r => n0(r.oa), cell: r => num(n0(r.oa), prodSpec(r, 'how')) },
         tc('s', 'Salon', r => BN[r.b]), tc('ty', 'Type', r => r.type), tc('pr', 'Priority', r => r.prio),
@@ -1308,7 +1286,7 @@
       { key: 'ct', label: 'Counted on the shelf', fmt: 'num' }, { key: 'vf', label: 'Shelf figure verified', fmt: 'text' }];
     const lines = rows.map(r => ({ cells: [BN[r.b], r.sup, r.brand, r.name, r.type, r.cat, r.prio, stTxt(r), r.s, r.i, r.mn, r.mx, (r.col && S.dm === 'book' ? r2(r.fw) : r.C), r.tgt, r1(r.cov), r.qm, r.q, r2(r.c), r2(r.am), r2(r.aed), r.sk ? 'No' : 'Yes', r.o, r.oe ? 'Yes' : '', r2(r.oa), r.cn ? r.s : null, r.vf ? 'Yes' : 'No'] }));
     return { name: 'Order list', title: 'Out of Stock: the order list', subtitle: subtitle() + '.', blocks: [{ cols, rows: lines }],
-      legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to the order point + the plan\'s cushion (Max - Min), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Quantity', 'The amount that will be ordered: the minimum order, unless an amount was typed in for the product on the page (Quantity typed in = Yes). 0 when the product was taken out (In the order = No).'], ['Counted on the shelf', 'A shelf count typed by hand. When there is one, the order is worked out from it and the In stock column holds it. Shelf figure verified = Yes when someone ticked it or typed a count.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
+      legend: [['Min order', 'Up to the order point, less the shelf and what is on order. Only when shelf and on order are under the order point (Min x weeks; for colour, next week counts Min x the colour factor).'], ['Max order', 'Up to the order point + the plan\'s cushion (Max - Min), less the shelf and what is on order. Only when shelf and on order are under the order point.'], ['Colour factor', 'Expected colour services next week divided by a normal week, for colour products. 1 for everything else.'], ['Qty to Order', 'The amount that will be ordered: the minimum order, unless an amount was typed in for the product on the page (Quantity typed in = Yes). 0 when the product was taken out (In the order = No).'], ['Counted on the shelf', 'A shelf count typed by hand. When there is one, the order is worked out from it and the In stock column holds it. Shelf figure verified = Yes when someone ticked it or typed a count.'], ['Min', 'One week of use, from the Weekly Product Plan.'], ['Weeks left', 'Shelf and on order together, divided by Min.'], ['On order', 'Units on stock orders from the last 60 days that have not arrived.']] };
   }
   function supSheet() {
     if (!S.rows || !TS) return null;

@@ -122,25 +122,20 @@ body.oos-chrome #periodRow,body.oos-chrome #periodRow *{text-decoration:line-thr
 .oos-ck{width:20px;height:20px;accent-color:var(--text);cursor:pointer}
 tr.oos-skip td{color:var(--muted2,var(--muted))}
 tr.oos-skip .oos-ed,.oos-ct{opacity:.55;text-decoration:line-through}
-.oos-ctl4 .oos-ref4{margin-left:24px;display:flex;align-items:center;gap:6px 12px;flex-wrap:nowrap;min-width:0;flex:1 1 0}
-/* Kate, 27 Nov 2026: the Order for / Priority / Weeks of cover row stays ONE row whatever the pills say, and the three dropdowns and the Refresh button are one thickness (40px; 44px on a phone). The dropdowns have fixed widths, the Refresh button a fixed minimum so "Reading Phorest…" does not move it, and the shelf-counts text shrinks with an ellipsis before anything wraps. */
-.oos-ctl{flex-wrap:nowrap}
-.oos-ctl label{flex:none;white-space:nowrap}
+.oos-ctl4 .oos-ref4{display:flex;align-items:center;gap:6px 12px}
+/* Kate, 27 Nov 2026: the Order for / Priority / Weeks of cover row stays ONE row whatever the pills say, and the three dropdowns and the Refresh button are one thickness (40px; 44px on a phone). Nothing in it changes width: the dropdowns have fixed widths, the Refresh button a fixed width, and the text is a little smaller so it all fits without cutting a word (Kate, 27 Nov 2026: "ano to bakit putol? liitan mo na lang ng text"). Only when the page is too narrow for all of it does the shelf-counts part move down whole. */
+.oos-ctl label{flex:none;white-space:nowrap;font-size:12.5px}
 .oos-ctl .ps{flex:none}
-.oos-ctl .ps-btn{height:40px;min-height:40px;padding-top:0;padding-bottom:0;box-sizing:border-box;white-space:nowrap}
-.oos-ctl .cm-pill{height:40px;min-height:40px;padding-top:0;padding-bottom:0;box-sizing:border-box;white-space:nowrap;flex:none;min-width:172px;text-align:center}
-.oos-ctl-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.oos-ref4 .oos-ln{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.oos-ref4 .oos-ln:last-child{flex:none;overflow:visible}
-@media(max-width:1100px){
-  .oos-ctl{flex-wrap:wrap}
-  .oos-ctl4 .oos-ref4{flex-wrap:wrap;flex:1 1 100%;margin-left:0}
-  .oos-ref4 .oos-ln{white-space:normal}
-}
+.oos-ctl .ps-btn{height:40px;min-height:40px;padding-top:0;padding-bottom:0;box-sizing:border-box;white-space:nowrap;font-size:13px}
+.oos-ctl .cm-pill{height:40px;min-height:40px;padding-top:0;padding-bottom:0;box-sizing:border-box;white-space:nowrap;flex:none;width:140px;font-size:13px;text-align:center}
+.oos-ctl-t{white-space:nowrap}
+.oos-ctl4 .oos-ref4{flex:0 0 auto;flex-wrap:nowrap;white-space:nowrap;margin-left:16px}
 @media(max-width:760px){
   .oos-ctl .ps-btn,.oos-ctl .cm-pill{height:44px;min-height:44px}
+  .oos-ctl4 .oos-ref4{flex-wrap:wrap;white-space:normal;margin-left:0}
 }
-.oos-ref4 .oos-ln{display:inline;margin:0;font-size:14.5px}
+.oos-ref4 .oos-ln{display:block;margin:0;font-size:12.5px}
+.oos-ref4 .oos-ln:last-child{display:flex;align-items:center}
 .oos-refmsg4{font-size:14.5px;color:var(--muted);margin:4px 0 10px}
 /* a figure that is 0 is faded (Kate, 26 Nov 2026) */
 #oosTbl td.oos-zero,#oosSupTbl td.oos-zero{opacity:.35}
