@@ -14,7 +14,7 @@
 -- 3. oos_bulk_save()    whoever may edit the Weekly Product Plan (spend_access edit): creates the day's open batch when there is none, saves the ticks and, when a lock is given, the lock;
 --                       p_new closes the open batch and starts another; p_done closes it (every supplier sent).
 --
--- LEVELS in the database are the OLD numbers (see out_of_stock_access.sql). Nothing else is changed. Not applied until Kate says so.
+-- LEVELS in the database are the OLD numbers (see out_of_stock_access.sql). Nothing else is changed. APPLIED 27 Nov 2026 (Kate said yes), 0 batches at the time.
 
 create sequence if not exists public.oos_bulk_seq;
 
