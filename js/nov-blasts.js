@@ -1012,11 +1012,11 @@
      kept for Blast 3. Replaces the two wide By blast tables and Cost by blast. The reminders are the R_ blasts in RES.blasts; their bookings need migrations/nov_results_blast2_money.sql
      (until it is applied they show "Not readable yet" for bookings and keep every delivery figure). Numbers open the clients behind them (nn, nov_drill). Ratios stay plain. */
   var BB_GROUPS = [
-    { name: 'Hair to beauty', offer: 'Buy one get one beauty, to 30 Nov 2026', b1: 'A', b2: 'R_A' },
-    { name: 'Beauty to hair', offer: '25% off the new-client hair visit, to 30 Nov 2026', b1: 'B', b2: 'R_B' },
-    { name: 'Hair and beauty, occasional', offer: 'Buy one get one beauty, to 30 Nov 2026', b1: 'E3', b2: 'R_E3' },
-    { name: 'Due, hair', offer: 'A reminder, no offer', b1: 'F', b2: 'R_C1' },
-    { name: 'Due, beauty', offer: 'A reminder, no offer', b1: 'F2', b2: 'R_D1' },
+    { name: 'Hair to beauty', offer: 'Buy one get one beauty, to 30 Nov 2026', b1: 'A', b2: 'R_A', b3: 'T_A' },
+    { name: 'Beauty to hair', offer: '25% off the new-client hair visit, to 30 Nov 2026', b1: 'B', b2: 'R_B', b3: 'T_B' },
+    { name: 'Hair and beauty, occasional', offer: 'Buy one get one beauty, to 30 Nov 2026', b1: 'E3', b2: 'R_E3', b3: 'T_E3' },
+    { name: 'Due, hair', offer: 'A reminder, no offer', b1: 'F', b2: 'R_C1', b3: 'T_C1' },
+    { name: 'Due, beauty', offer: 'A reminder, no offer', b1: 'F2', b2: 'R_D1', b3: 'T_D1' },
     { name: 'Newly due, hair', offer: 'A reminder, no offer. Phorest overdue list, not in Blast 1', b1: null, b2: 'R_C2' }
   ];
   function dmy(iso) { var d = dubaiDay(iso); return d && d.length === 10 ? d.slice(8, 10) + ' ' + MN[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4) : ''; }
@@ -1027,18 +1027,18 @@
     return { reached: reached, boc: boc, can: can, per: can && r.sent ? boc * 100 / r.sent : 0, cpb: can && boc > 0 ? reached * r2 / boc : null, m: m };
   }
   function bbCol(id, byId, st, ok, r2) {
-    var w = id && id.indexOf('R_') === 0 ? 2 : 1, r = id ? byId[id] : null, head = '<div class="nvb-bb-wv">' + (id ? (w === 2 ? 'Blast 2, reminder' : 'Blast 1') : 'Blast 1') + '</div>';
+    var w = id && id.indexOf('T_') === 0 ? 3 : id && id.indexOf('R_') === 0 ? 2 : 1, r = id ? byId[id] : null, head = '<div class="nvb-bb-wv">' + (id ? (w === 3 ? 'Blast 3, last note' : w === 2 ? 'Blast 2, reminder' : 'Blast 1') : 'Blast 1') + '</div>';
     if (!id) return '<div class="nvb-bb-col">' + head + '<div class="nvb-bb-when">Not in Blast 1</div><div class="nvb-bb-slot"><b>No first message</b>These clients had no Blast 1. Their first text was the reminder.</div></div>';
     if (!r || !r.sent) return '<div class="nvb-bb-col">' + head + '<div class="nvb-bb-when">Not sent</div><div class="nvb-bb-slot"><b>Nothing sent</b>No message of this audience has gone out.</div></div>';
     var cx = { b: id }, f = bbFig(r, id, ok, r2), pct = r.sent ? Math.round(f.reached * 100 / r.sent) : 0;
     var days = RES && RES.today && r.first ? Math.round((new Date(RES.today) - new Date(dubaiDay(r.first))) / 864e5) : null;
-    var tag = w === 2 && days != null && days < 4 ? '<span class="nvb-bb-pill">' + (days < 1 ? 'Sent today' : days + (days === 1 ? ' day in' : ' days in')) + '</span>' : (r.sent < 30 ? '<span class="nvb-bb-pill">Too few to compare</span>' : '');
+    var tag = w >= 2 && days != null && days < 4 ? '<span class="nvb-bb-pill">' + (days < 1 ? 'Sent today' : days + (days === 1 ? ' day in' : ' days in')) + '</span>' : (r.sent < 30 ? '<span class="nvb-bb-pill">Too few to compare</span>' : '');
     var hero = f.can ? '<span class="n">' + (Math.round(f.per * 10) / 10).toFixed(1) + '</span><span class="u">per 100</span>' : '<span class="n">&ndash;</span><span class="u">not readable yet</span>';
     var ofn = f.can ? nn(f.boc, 'since', cx) + ' of ' + nn(r.sent, 'sent', cx) + ' clients booked or came in' : (ok ? 'Bookings for this message are not counted yet' : 'Bookings and sales are not up to date');
     var key = '<span>Reached <b>' + pct + '%</b></span><span>' + (f.cpb ? '<b>AED ' + money2(f.cpb) + '</b> a booking' : '<b>' + (f.can ? 'No booking yet' : '&ndash;') + '</b>') + '</span>';
     var row = function (l, v) { return '<div><span>' + l + '</span>' + v + '</div>'; };
     var more = row('Messaged', nn(r.sent, 'sent', cx)) + row('Reached', nn(f.reached, 'reached', cx)) + row('Failed', nn(r.failed, 'failed', cx)) + row('STOP', nn(r.stop, 'stop', cx)) +
-      row('Wrote back', st.replies === 'no' ? '<b>not readable yet</b>' : nn(r.replied, 'replied', cx)) + row('Paid at the till since', w === 1 && f.m ? '<b>AED ' + money0(f.m.paid_aed) + '</b>' : '<b>' + (w === 2 ? 'not worked out' : '&ndash;') + '</b>');
+      row('Wrote back', st.replies === 'no' ? '<b>not readable yet</b>' : nn(r.replied, 'replied', cx)) + row('Paid at the till since', w === 1 && f.m ? '<b>AED ' + money0(f.m.paid_aed) + '</b>' : '<b>' + (w >= 2 ? 'not worked out' : '&ndash;') + '</b>');
     return '<div class="nvb-bb-col">' + head + '<div class="nvb-bb-when">Sent ' + dmy(r.first) + ', ' + hm(r.first) + '</div><div class="nvb-bb-tags">' + tag + '</div>' +
       '<div class="nvb-bb-hero">' + hero + '</div><div class="nvb-bb-ofn">' + ofn + '</div>' + (f.can ? bbDots(f.per) : '<div class="nvb-bb-dots ph"></div>') +
       '<div class="nvb-bb-key">' + key + '</div><details class="nvb-bb-more"><summary>More</summary><div class="nvb-bb-ml">' + more + '</div></details></div>';
@@ -1050,24 +1050,23 @@
     if (!tbl) {
       body = BB_GROUPS.map(function (g) {
         return '<div class="nvb-bb-grp"><div class="nvb-bb-gh"><h4>' + esc(g.name) + '</h4><span>' + esc(g.offer) + '</span></div><div class="nvb-bb-pair">' + bbCol(g.b1, byId, st, ok, r2) + bbCol(g.b2, byId, st, ok, r2) +
-          '<div class="nvb-bb-col nvb-bb-b3"><div class="nvb-bb-wv">Blast 3, last reminder</div><div class="nvb-bb-when">Not sent yet</div><div class="nvb-bb-slot"><b>Space kept for Blast 3</b>It fills in here, next to the first message and the reminder, once it has gone out.</div></div></div></div>';
+          (g.b3 ? bbCol(g.b3, byId, st, ok, r2) : '<div class="nvb-bb-col nvb-bb-b3"><div class="nvb-bb-wv">Blast 3, last note</div><div class="nvb-bb-when">Not in Blast 3</div><div class="nvb-bb-slot"><b>No Blast 3</b>This audience was not part of Blast 3.</div></div>') + '</div></div>';
       }).join('');
     } else {
       var heads = [['Blast', ''], ['Wave', ''], ['Sent', ''], ['Messaged', 'n'], ['Reached', 'n'], ['STOP', 'n'], ['Booked or came in', 'n'], ['Per 100 messaged', 'n'], ['Cost per booking', 'n'], ['Paid since, AED', 'n']], rows = [];
       BB_GROUPS.forEach(function (g) {
-        [g.b1, g.b2].forEach(function (id) {
+        [g.b1, g.b2, g.b3].forEach(function (id) {
           var r = id ? byId[id] : null; if (!r || !r.sent) return;
-          var w = id.indexOf('R_') === 0 ? 2 : 1, f = bbFig(r, id, ok, r2), cx = { b: id };
-          rows.push({ c: [esc(g.name + (w === 2 ? ', reminder' : '')), w === 2 ? 'Blast 2' : 'Blast 1', dmy(r.first) + ', ' + hm(r.first), nn(r.sent, 'sent', cx), nn(f.reached, 'reached', cx), nn(r.stop, 'stop', cx),
+          var w = id.indexOf('T_') === 0 ? 3 : id.indexOf('R_') === 0 ? 2 : 1, f = bbFig(r, id, ok, r2), cx = { b: id };
+          rows.push({ c: [esc(g.name + (w === 3 ? ', last note' : w === 2 ? ', reminder' : '')), w === 3 ? 'Blast 3' : w === 2 ? 'Blast 2' : 'Blast 1', dmy(r.first) + ', ' + hm(r.first), nn(r.sent, 'sent', cx), nn(f.reached, 'reached', cx), nn(r.stop, 'stop', cx),
             f.can ? nn(f.boc, 'since', cx) : 'Not yet', f.can ? (Math.round(f.per * 10) / 10).toFixed(1) : 'Not yet', f.cpb ? 'AED ' + money2(f.cpb) : (f.can ? 'none yet' : 'Not yet'), w === 1 && f.m ? money0(f.m.paid_aed) : 'Not yet'] });
         });
       });
-      rows.push({ t: true, c: ['Blast 3', '', 'Not sent yet', '', '', '', '', '', '', ''] });
       body = rsTable(heads, rows) + '<p class="nvb-small nvb-rs-note">There is no grand total on purpose. A client who booked after the reminder is counted in her Blast 1 row and in her reminder row, so adding the two would count her twice.</p>';
     }
-    return rsSec('5. By blast', 'Which blast did the most? One message per client, so clients and messages are the same number. Failed is shown on its own, never counted as delivered. Left is the first message, then the reminder, then a space kept for Blast 3. Every figure with a dotted underline opens the clients behind it.',
+    return rsSec('5. By blast', 'Which blast did the most? One message per client, so clients and messages are the same number. Failed is shown on its own, never counted as delivered. Left is the first message, then the reminder, then the last note (Blast 3). Every figure with a dotted underline opens the clients behind it.',
       toggle + body,
-      'Booked or came in is a ceiling, not proof the message caused it. Per 100 messaged and cost per booking are worked-out figures, so they stay plain. Cost is an estimate at AED ' + r2 + ' a delivered message. A client who booked after the reminder sits in her first-message card and in her reminder card.');
+      'Booked or came in is a ceiling, not proof the message caused it. Per 100 messaged and cost per booking are worked-out figures, so they stay plain. Cost is an estimate at AED ' + r2 + ' a delivered message. A client who booked after the reminder sits in her first-message card, her reminder card and her last-note card.');
   }
   function resultsMain() {
     if (!RES) return '<div class="cbl-head"><div><div class="cbl-eyebrow">Database blasts, November 2026</div><h2>Results</h2></div></div><p class="slv-muted">' + (resErr ? 'The results could not be read just now. Open the page again in a minute.' : 'Loading…') + '</p>';
