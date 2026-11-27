@@ -481,6 +481,9 @@
   // so the order number is how its out-of-stock list and its invoice are matched back (steps 4 and 5). It OPENS a Gmail draft from info@ and saves the order form file to attach: the page never sends.
   // There is no Mark as sent button (Kate, 27 Nov 2026: "dapat autodetect to eh"): once the mail is sent from info@ the hourly mail read stores it, and the database (oos_sent_scan, every 10 minutes) turns the order to "sent" (it can no longer be cancelled here).
   const drafted = {};
+  // The real Email order to <supplier> buttons are BARRED (Kate, 27 Nov 2026: "barred nga dapat at baka maindot"): shown, greyed, not clickable, in the supplier window, in the preview and in Order all
+  // suppliers. Test email to me still works. To switch them on one day, set this to false (the preview then asks Not yet / Yes, email it).
+  const SEND_BARRED = true, BARRED_WHY = 'Barred so it is not pressed by accident.';
   const mailEdits = {};   // order number -> the email body as edited in the preview window (Kate, 27 Nov 2026: "make the email editable"); kept until the page is reloaded
   const dFmt = d => { const t = new Date(String(d || '').slice(0, 10) + 'T00:00:00'); return isNaN(t) ? String(d || '') : t.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
   const pcs = n => nu(n) + (n === 1 ? ' PC' : ' PCS');
@@ -488,23 +491,17 @@
   function stdMail(fm, o) {
     const sal = BN[fm.branch], SAL = sal.toUpperCase(), lists = listsOf(fm), units = lists.reduce((a, L) => a + L.units, 0);
     const subject = fm.order_no + ' | ORDER | ' + SAL + ' | ' + dFmt(o.day);
-    const head = 'Hello DBD Team,\n\nPlease find our order for the ' + SAL + ' branch below. The order form is attached.\n\nORDER NUMBER: ' + fm.order_no + '\nORDER DATE: ' + dFmt(o.day) + '\nSALON: ' + sal +
+    const head = 'Hello DBD Team,\n\nPlease find our order for the ' + SAL + ' branch attached (the order forms).\n\nORDER NUMBER:' + fm.order_no + '\nORDER DATE: ' + dFmt(o.day) + '\nSALON: ' + sal +
       '\nTOTAL: ' + plural(fm.lines.length, 'product') + ', ' + n0(units) + ' pcs\n\nKindly reply to this email, keeping the order number in the subject, with any items that are OUT OF STOCK.';
     // the sign-off of the orders that really go out of info@ (read from info@ Sent, 26 Nov 2026, Kate: "ibase mo kung ano yung nandon tlga sa info email"): Thank you, then the salon coordinator's first name.
     // The info@ signature itself (logo, links) is added as HTML by the draft function (oos-dbd-draft) and by Gmail in a compose window, never typed here.
     const tail = '\n\n\nThank you,\n' + (COORD[fm.branch] || '');
-    // Kate, 27 Nov 2026, from the salon coordinators: lines WITHOUT A BARCODE are not written into the email body ("doesn't matter that much", what matters is that everything is in the xlsx).
-    // A line has its barcode when it was matched to DBD's list by the barcode (how = 'ean'); a line matched by item code, by name or by a code typed in by hand has none, so it stays out of the body
-    // (it is still on the DBD forms, which are filled by DBD code). A line with no DBD code at all is on neither: need counts those, nob counts the ones left out of the body only.
-    const secs = [], need = []; let nob = 0;
-    lists.forEach(L => {
-      const ok = L.rows.filter(r => !r._need), bc = ok.filter(r => r._l && r._l.how === 'ean');
-      L.rows.filter(r => r._need).forEach(r => need.push(r.d)); nob += ok.length - bc.length;
-      if (bc.length) secs.push(L.label.toUpperCase() + '\n' + bc.map(r => r.code + ' | ' + r.d + ' | ' + pcs(r.q)).join('\n'));
-    });
-    const full = head + '\n\n' + secs.join('\n\n') + tail;
-    const short = head + '\n\n' + lists.map(L => L.label.toUpperCase() + ': ' + plural(L.rows.length, 'product') + ', ' + pcs(L.units)).join('\n') + '\n\nThe full list is in the attached order form.' + tail;
-    return { subject, full, short, need: need.length, nob };
+    // Kate, 27 Nov 2026, from the salon coordinators: the product list is NOT written into the email body at all ("ndi na dapat yan sinasama", everything is in the attached xlsx forms). The body is the
+    // standard header and the sign-off only, and it is editable in the preview because the coordinators add a line when they send something along with the order (bags). need still counts the lines with
+    // no DBD code: those are on no form either, so the preview and the confirm step say so.
+    const need = []; lists.forEach(L => { L.rows.filter(r => r._need).forEach(r => need.push(r.d)); });
+    const full = head + tail, short = full;
+    return { subject, full, short, need: need.length };
   }
   // test = the same draft, but the To is only the person signed in, no Cc, the subject says TEST ONLY and the top of the body says nothing goes to the supplier; it does not count as drafted.
   // DBD's OWN order forms, filled by the system (Kate, 26 Nov 2026: "autofill dapat haha. gamitin mo order form pa rin nila tho", "no need downloading not unless needed"). The edge function oos-dbd-draft fills them
@@ -514,7 +511,7 @@
   const saveBlob = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); };
   const b64Blob = (b64, type) => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); };
   // a line with no DBD code is on no DBD form (the codes come from the forms), so it is not sent to the form filler: it would only make it read all 40 forms every time (about 20 seconds, and it ran out of resources on the first real order); the email body lists it by name
-  const noCodeNote = fm => { const n = (fm.lines || []).filter(l => !l.code).length; return n ? ' ' + plural(n, 'line') + ' with no DBD code ' + (n === 1 ? 'is' : 'are') + ' not in the email or on the forms: order ' + (n === 1 ? 'it' : 'them') + ' by hand or add the code.' : ''; };
+  const noCodeNote = fm => { const n = (fm.lines || []).filter(l => !l.code).length; return n ? ' ' + plural(n, 'line') + ' with no DBD code ' + (n === 1 ? 'is' : 'are') + ' not on the forms: order ' + (n === 1 ? 'it' : 'them') + ' by hand or add the code.' : ''; };
   const notIn = nf => nf && nf.length ? ' ' + plural(nf.length, 'product') + ' ' + (nf.length === 1 ? 'is' : 'are') + ' not on the filled forms (' + nf.slice(0, 3).map(x => x.name).join(', ') + (nf.length > 3 ? ', ...' : '') + '): add ' + (nf.length === 1 ? 'it' : 'them') + ' by hand.' : '';
   async function downloadDbdForms(fm) {
     try {
@@ -587,15 +584,14 @@
     const body = '<textarea class="pvm-ta" spellcheck="true" aria-label="Email message, you can edit it">' + esc(cur) + '</textarea>' + SIG_HTML;
     w.ov.innerHTML = '<div class="pvm-box"><div class="pvm-hd"><div><h3>Email preview, ' + esc(fm.order_no) + ' ' + esc(BN[fm.branch]) + '</h3><p>This is what ' + esc(sup) + ' will receive. Nothing is sent from here.</p></div><button type="button" class="pvm-x" data-c>Close</button></div>' +
       '<div class="pvm-body"><div class="pvm-chips"><span class="pvm-chip ok">Order confirmed</span><span class="pvm-chip">' + plural(fm.lines.length, 'line') + ' · ' + n0(units) + ' pcs</span>' +
-      (mail.nob ? '<span class="pvm-chip">' + plural(mail.nob, 'line') + ' with no barcode ' + (mail.nob === 1 ? 'is' : 'are') + ' left out of the message, ' + (mail.nob === 1 ? 'it is' : 'they are') + ' on the order forms</span>' : '') +
-      (mail.need ? '<span class="pvm-chip warn">' + plural(mail.need, 'line') + (mail.need === 1 ? ' has' : ' have') + ' no DBD code: not in the email or on the forms, order by hand</span>' : '') + '</div>' +
+      (mail.need ? '<span class="pvm-chip warn">' + plural(mail.need, 'line') + (mail.need === 1 ? ' has' : ' have') + ' no DBD code: not on the forms, order by hand</span>' : '') + '</div>' +
       '<div class="pvm-cols"><div class="pvm-left"><div class="pvm-f1"><div class="pvm-fld"><span class="k">From</span><span class="v">' + esc(m.from) + '</span></div>' +
       '<div class="pvm-fld"><span class="k">To</span><span class="v">' + m.to.map(addr).join('') + '</span></div>' +
       (m.cc.length ? '<div class="pvm-fld"><span class="k">Cc</span><span class="v">' + m.cc.map(addr).join('') + '</span></div>' : '') +
       '<div class="pvm-fld"><span class="k">Subject</span><span class="v"><b>' + esc(mail.subject) + '</b> <span class="pvm-hint">Kept as it is: ' + esc(sup) + '’s reply is matched by the order number in it.</span></span></div></div>' +
       '<div class="pvm-f3"><div class="pvm-sec pvm-sech">Message <span class="pvm-hint">Click in the text to edit it</span><span class="pvm-edited" hidden>Edited</span><button type="button" class="pvm-b pvm-rst" data-rst hidden>Back to the standard text</button></div><div class="pvm-mail" aria-label="Email body">' + body + '</div></div></div>' +
       '<div class="pvm-right pvm-f2"><div class="pvm-sec">Attached DBD order forms</div><div class="pvm-att"><div class="pvm-wait">Preparing the DBD forms, a few seconds…</div></div></div></div></div>' +
-      '<div class="pvm-ft"><span class="pvm-msg" role="status"></span><button type="button" class="pvm-b" data-c>Back to the order</button><button type="button" class="pvm-b" data-send="test">Test email to me</button><button type="button" class="pvm-b pvm-main" data-send="real">Email order to ' + esc(sup) + '</button></div></div>';
+      '<div class="pvm-ft"><span class="pvm-msg" role="status"></span><button type="button" class="pvm-b" data-c>Back to the order</button><button type="button" class="pvm-b" data-send="test">Test email to me</button><button type="button" class="pvm-b pvm-main" data-send="real"' + (SEND_BARRED ? ' disabled aria-disabled="true" title="' + BARRED_WHY + '"' : '') + '>Email order to ' + esc(sup) + '</button></div></div>';
     w.ov.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', w.close));
     const msg = w.ov.querySelector('.pvm-msg'), btns = w.ov.querySelectorAll('.pvm-ft button');
     const ta = w.ov.querySelector('.pvm-ta'), edTag = w.ov.querySelector('.pvm-edited'), rst = w.ov.querySelector('[data-rst]');
@@ -610,7 +606,7 @@
       btns.forEach(x => { x.disabled = true; });
       const lab = b.textContent; b.textContent = 'Working…'; msg.textContent = 'Working, this can take a few seconds.';
       let r = ''; try { r = await emailToDbd(sup, sals, b.dataset.send === 'test'); } catch (e) { r = 'That did not work. Try again.'; }
-      btns.forEach(x => { x.disabled = false; }); b.textContent = lab; msg.textContent = r || '';
+      btns.forEach(x => { x.disabled = SEND_BARRED && x.dataset.send === 'real'; }); b.textContent = lab; msg.textContent = r || '';
     }));
     // the forms: filled by the function (a few seconds), shown as a list when ready; the window is already open and usable meanwhile, a press on a form opens it here
     (async () => {
@@ -765,7 +761,7 @@
         '<div class="pvm-body"><div class="oos-bk-list">' + rows + '</div></div>' +
         '<div class="oos-bk-msg" role="status" aria-live="polite">' + esc(note) + '</div>' +
         '<div class="oos-bk-acts"><div class="oos-bk-g"><span class="oos-bk-gl">Order</span><div class="oos-bk-gb"><button type="button" class="pvm-b' + (toC.length ? ' pvm-main' : '') + '" data-bk="confirm"' + (toC.length && !busy ? '' : ' disabled') + '>' + (toC.length ? 'Confirm ' + plural(toC.length, 'order') : 'Confirm orders') + '</button><button type="button" class="pvm-b" data-bk="cancel"' + (hasC && !busy ? '' : ' disabled') + '>Cancel confirmed</button></div></div>' +
-        '<div class="oos-bk-g"><span class="oos-bk-gl">Send</span><div class="oos-bk-gb"><button type="button" class="pvm-b' + (!toC.length && toE.length ? ' pvm-main' : '') + '" data-bk="preview-all"' + (toE.length && !busy ? '' : ' disabled') + '>Preview emails</button><button type="button" class="pvm-b" data-bk="send" disabled title="Barred so it is not pressed by accident. Press Preview emails, read it, and send it from there.">' + (toE.length ? 'Email ' + plural(toE.length, 'order') : 'Email orders') + '</button></div></div>' +
+        '<div class="oos-bk-g"><span class="oos-bk-gl">Send</span><div class="oos-bk-gb"><button type="button" class="pvm-b' + (!toC.length && toE.length ? ' pvm-main' : '') + '" data-bk="preview-all"' + (toE.length && !busy ? '' : ' disabled') + '>Preview emails</button><button type="button" class="pvm-b" data-bk="send"' + (SEND_BARRED ? ' disabled title="' + BARRED_WHY + '"' : (toE.length && !busy ? '' : ' disabled')) + '>' + (toE.length ? 'Email ' + plural(toE.length, 'order') : 'Email orders') + '</button></div></div>' +
         (S.bulk ? '<div class="oos-bk-g"><span class="oos-bk-gl">Numbers</span><div class="oos-bk-gb"><span class="oos-bk-how" style="align-self:center">' + (lockOk ? 'Locked at ' + esc(bkClock(S.bulk.locked_at)) : 'Not locked for these settings') + '</span><button type="button" class="pvm-b" data-bk="refresh"' + (busy ? ' disabled' : '') + '>Refresh numbers</button></div></div>' : '') + '</div></div>';
       w.ov.querySelectorAll('[data-c]').forEach(b => b.addEventListener('click', w.close));
     };
@@ -827,7 +823,7 @@
       const note = 'THIS IS A TEST of the Email to ' + sup + ' flow. It goes only to you. Nothing is sent to ' + sup + '.\n\n----\n\n';
       mail.full = note + mail.full; mail.short = note + mail.short;
     }
-    if (!test && mail.need && !window.confirm(plural(mail.need, 'line') + ' of ' + fm.order_no + ' have no DBD code yet, so ' + (mail.need === 1 ? 'it is' : 'they are') + ' not in the email or on the forms. Open the email anyway?')) return 'Not opened.';
+    if (!test && mail.need && !window.confirm(plural(mail.need, 'line') + ' of ' + fm.order_no + ' have no DBD code yet, so ' + (mail.need === 1 ? 'it is' : 'they are') + ' not on the forms. Open the email anyway?')) return 'Not opened.';
     let dr = null;
     try { const r = await sb.functions.invoke('oos-dbd-draft', { body: { salon: fm.branch, items: dbdItems(fm), to: test ? [me] : m.to, cc: test ? [] : m.cc, subject: mail.subject, body: mail.full } }); dr = r.error ? { ok: false } : (r.data || { ok: false }); } catch (e) { dr = { ok: false }; }
     if (dr.ok) {
@@ -1071,7 +1067,7 @@
         supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', alt: 1, run: vid => orderFormWindow(supName, SL(vid)) }] : [],
         S.canEdit ? [{ label: 'Cancel confirmed order', grp: 'Order', alt: 1, run: vid => cancelOrders(supName, SL(vid)) }] : [],
         SUP_MAIL[supName] ? [{ label: 'Preview email', grp: 'Send', main: openOrders(supName, allS).length > 0, run: vid => previewEmail(supName, SL(vid)) },
-                             { label: 'Email order to ' + supName, grp: 'Send', locked: 'Barred so it is not pressed by accident. Press Preview email, read it, and send it from there.', run: vid => emailToDbd(supName, SL(vid)) },
+                             { label: 'Email order to ' + supName, grp: 'Send', locked: SEND_BARRED ? BARRED_WHY : '', run: vid => emailToDbd(supName, SL(vid)) },
                              { label: 'Test email to me', grp: 'Send', alt: 1, run: vid => emailToDbd(supName, SL(vid), true) }] : [],
         S.canEdit && SUP_MAIL[supName] && openOrders(supName, allS).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'DBD reply', run: vid => confirmOos(supName, SL(vid)) }] : [],
         );
