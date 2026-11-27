@@ -108,11 +108,17 @@ body.dr-open{overflow:hidden}
 
 .dr-pg{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 2px 14px;font-size:12.5px;color:var(--muted)}
 .dr-pg .dr-pgn{margin-right:auto}
+/* The page bar is slid sideways with a transform, which makes it a layer of its own: without a z-index the sticky Total row (z-index 2 to 4) was painted over the Rows menu and hid its 50 and 100 (Kate, 27 Nov 2026) */
+.dr-pg{position:relative;z-index:6}
 .dr-pg select{margin-left:6px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:5px 8px;font:inherit}
 .dr-pg button{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font:inherit;min-height:34px}
 .dr-pg button:disabled{opacity:.4;cursor:default}
 .dr-ed{width:78px;min-height:36px;box-sizing:border-box;text-align:right;font:inherit;font-variant-numeric:tabular-nums;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px 8px}
 .dr-ed.on{border-color:var(--accent);font-weight:700}
+.dr-ed.dr-tx{width:116px;text-align:left;letter-spacing:.02em}
+.dr-ed.dr-tx.need{border-color:var(--warn,#BA7517);border-style:dashed}
+.dr-ed.dr-tx::placeholder{color:var(--muted);opacity:.8}
+.dr-tbl tr.oos-need td{background:color-mix(in srgb,var(--warn,#BA7517) 9%,var(--bg))}
 .dr-ed:focus-visible{outline:2px solid var(--text);outline-offset:1px}
 .dr-ck,.oos-ck{width:20px;height:20px;accent-color:var(--text);cursor:pointer}
 .dr-tbl tr.oos-skip td{color:var(--muted2,var(--muted))}

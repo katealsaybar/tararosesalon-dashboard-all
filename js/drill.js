@@ -40,9 +40,15 @@
     const v = row[col.k];
     if (col.t === 'html') return v == null ? '' : v;
     // A column the reader can type in (col.edit, and row._ek = the row's key): an input, saved by the list's own res.onEdit (Out of Stock: the amount to order). Sorting, filtering and the total row still use the number.
-    if (col.edit && !foot && row._ek != null) {
+    if (col.edit && !foot && row._ek != null && !(col.edit === 'text' && row._ro)) {   // row._ro: a code box row that is only read (a code DBD's list already has)
       const lab = esc(col.l) + ', ' + esc(row.p || ''), tip = row._tip ? ` title="${esc(row._tip)}"` : '';
       if (col.check) return `<input type="checkbox" class="dr-ck" data-ek="${esc(row._ek)}" data-ec="${esc(col.k)}"${+v ? ' checked' : ''} aria-label="${lab}">`;
+      // col.edit = 'text': a box for a short code (the DBD code on the Out of Stock order form), with row._opts = [{ v: the code, l: what it is }] as the list of suggestions it can pick from
+      if (col.edit === 'text') {
+        const dl = row._opts && row._opts.length ? 'dl' + (++seq) : '';
+        return `<input type="text" inputmode="numeric" maxlength="8" autocomplete="off" class="dr-ed dr-tx${row._need ? ' need' : ''}" data-ek="${esc(row._ek)}" data-ec="${esc(col.k)}" value="${v == null ? '' : esc(v)}" placeholder="${esc(col.ph || '')}" aria-label="${lab}"${tip}${dl ? ` list="${dl}"` : ''}>` +
+          (dl ? `<datalist id="${dl}">${row._opts.map(o => `<option value="${esc(o.v)}" label="${esc(o.l)}"></option>`).join('')}</datalist>` : '');
+      }
       return `<input type="number" min="0" step="1" inputmode="numeric" class="dr-ed${row._oe ? ' on' : ''}" data-ek="${esc(row._ek)}" data-ec="${esc(col.k)}" value="${v == null ? '' : esc(v)}" aria-label="${lab}"${tip}>`;
     }
     const f = FMT[col.t];
@@ -337,7 +343,7 @@
         const res = cache && cache[cur], row = res && res.rows.find(r => String(r._ek) === ei.dataset.ek);
         if (!res || !res.onEdit || !row) return;
         const sp0 = spec;
-        Promise.resolve().then(() => res.onEdit(row, ei.dataset.ec, ei.type === 'checkbox' ? (ei.checked ? '1' : '0') : ei.value)).then(() => note(''), x => { console.error(x); note('Not saved. Try again.'); }).then(() => setTimeout(() => {
+        Promise.resolve().then(() => res.onEdit(row, ei.dataset.ec, ei.type === 'checkbox' ? (ei.checked ? '1' : '0') : ei.value)).then(() => note(''), x => { console.error(x); note(x && x.say ? x.say : 'Not saved. Try again.'); }).then(() => setTimeout(() => {
           if (!box || spec !== sp0 || cache[cur] !== res) return;
           drawTable(res);
           if (efk) { const [k, c] = efk.split(''), t = Array.from(box.querySelectorAll('[data-ek]')).find(x => x.dataset.ek === k && x.dataset.ec === c); if (t) { t.focus(); try { t.select(); } catch (z) {} } }

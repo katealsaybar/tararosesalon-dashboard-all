@@ -407,7 +407,7 @@
   // and the total at the price list price. A line DBD's list does not have yet gets no code and says CODE NEEDED: nothing is dropped. One Excel file per order, one tab per list.
   const FCOLS = [{ k: 'cat', l: 'Category', t: 'txt' }, { k: 'sub', l: 'Sub-category', t: 'txt' }, { k: 'code', l: 'Code', t: 'txt' }, { k: 'd', l: 'Description', t: 'txt' }, { k: 'size', l: 'Size', t: 'txt' },
                  { k: 'wsp', l: 'WSP (AED)', t: 'txt' }, { k: 'q', l: 'Order Qty.', t: 'num' }, { k: 'tot', l: 'Total (AED)', t: 'txt' }, { k: 'ean', l: 'EAN', t: 'txt' }, { k: 'how', l: 'Matched by', t: 'txt' }];
-  const DBD_HOW = { ean: 'barcode', code: 'item code', name: 'name' };
+  const DBD_HOW = { ean: 'barcode', code: 'item code', name: 'name', saved: 'saved by hand' };
   const f2 = v => v == null || v === '' ? '' : (+v).toFixed(2);
   async function loadForms(sup, sals) {
     const mine = openOrders(sup, sals); if (!mine.length) return { err: 'Confirm the order first: the order form is made from the confirmed order.' };
@@ -420,13 +420,17 @@
     }
     return { forms };
   }
+  // one line of the form as a row: DBD's own columns, Status Active (found), Saved (a code typed in by hand) or Needs code. A product with no code yet shows our own name.
+  const rowOf = l => ({ cat: l.cat || '', sub: l.sub || '', code: l.code || '', d: l.desc || l.name, size: l.size || '', wsp: f2(l.wsp), q: +l.q || 0, tot: l.wsp != null ? f2(l.wsp * l.q) : '', ean: l.ean || '',
+    how: l.code ? DBD_HOW[l.how] || '' : '', st: !l.code ? 'Needs code' : l.how === 'saved' ? 'Saved' : 'Active', p: l.desc || l.name, _need: !l.code, _ro: !!l.code && l.how !== 'saved', _cls: l.code ? '' : 'oos-need', _ek: l.key, _l: l,
+    _tip: l.code ? (l.how === 'saved' ? 'Saved by hand. Clear the box to go back to the automatic match.' : 'Found by ' + (DBD_HOW[l.how] || 'name') + '.') : 'Type the DBD code, or pick one from the list.' });
   // the lists of one order: one per brand family and stock type, matched lines A to Z by category then name, lines needing a code last
   function listsOf(fm) {
     const g = {}, order = [];
     fm.lines.forEach(l => { const k = (l.fam || String(l.brand || '').toUpperCase()) + ' ' + (l.type === 'Retail' ? 'Retail' : 'Professional'); if (!g[k]) { g[k] = []; order.push(k); } g[k].push(l); });
     order.sort((a, b) => a.localeCompare(b));
     return order.map(k => {
-      const rows = g[k].map(l => ({ cat: l.cat || '', sub: l.sub || '', code: l.code || '', d: l.code ? l.desc : l.name, size: l.size || '', wsp: f2(l.wsp), q: +l.q || 0, tot: l.wsp != null ? f2(l.wsp * l.q) : '', ean: l.ean || '', how: l.code ? DBD_HOW[l.how] || '' : 'CODE NEEDED', _need: !l.code, _cls: l.code ? '' : 'oos-skip' }));
+      const rows = g[k].map(rowOf);
       rows.sort((a, b) => (a._need - b._need) || a.cat.localeCompare(b.cat, undefined, { sensitivity: 'base' }) || a.sub.localeCompare(b.sub, undefined, { sensitivity: 'base' }) || a.d.localeCompare(b.d, undefined, { sensitivity: 'base' }));
       return { label: k, rows, need: rows.filter(r => r._need).length, units: rows.reduce((a, r) => a + r.q, 0), aed: rows.reduce((a, r) => a + (r.tot === '' ? 0 : +r.tot), 0) };
     });
@@ -615,17 +619,46 @@
     await loadPO();
     return 'Marked as on the way: ' + out.join(', ') + '.';
   }
+  // The order form window (Kate, 27 Nov 2026: it "looks like a mess", it should be "easy to use, seamless", and should copy DBD's own form). One tab per list, DBD's own columns (Category, Sub-category,
+  // Code, Description, Size, WSP, Order Qty., Total, EAN, Status), the lines with no DBD code first and tinted, their Code box open to type in. A 6 to 8 digit code typed in, or one of the closest DBD
+  // products picked from the box's list, is saved for that product (oos_dbd_code_set) and every later order of every salon shows it; clearing the box goes back to the automatic match.
+  const toks = x => String(x || '').toLowerCase().split(/[^a-z0-9]+/).filter(t => t && !/^(ml|g|gm|pcs|pc)$/.test(t) && (t.length > 1 || /[0-9]/.test(t)));
+  function suggest(cat, l) {
+    const w = toks(l.name); if (!w.length) return [];
+    return cat.map(p => { const t = new Set(toks(p.desc + ' ' + (p.size || ''))); let sc = 0; w.forEach(x => { if (t.has(x)) sc += /[0-9]/.test(x) ? 2 : 1; }); return { p, s: sc / Math.sqrt(t.size || 1) }; })
+      .filter(x => x.s >= 0.4).sort((a, b) => b.s - a.s).slice(0, 8).map(x => ({ v: x.p.code, l: x.p.desc + (x.p.size ? ' · ' + x.p.size : '') }));
+  }
   async function orderFormWindow(sup, sals) {
     const lf = await loadForms(sup, sals); if (lf.err) return lf.err;
     if (typeof TRSD === 'undefined') return 'The window is not ready. Try again.';
+    let cat = [];
+    if (S.canEdit && lf.forms.some(fm => fm.lines.some(l => !l.code))) { try { const r = await sb.rpc('dbd_catalog_get'); if (r && r.data && Array.isArray(r.data.products)) cat = r.data.products; } catch (e) {} }
+    const cols = FCOLS.slice(0, 9).map(c => c.k === 'code' ? Object.assign({}, c, { edit: S.canEdit ? 'text' : false, ph: 'Type code' }) : c).concat([{ k: 'st', l: 'Status', t: 'txt' }]);
+    const nLines = () => lf.forms.reduce((a, fm) => a + fm.lines.length, 0), nNeed = () => lf.forms.reduce((a, fm) => a + fm.lines.filter(l => !l.code).length, 0);
+    const subAll = () => plural(nLines(), 'line') + ' · ' + (nNeed() ? plural(nNeed(), 'line') + ' need a DBD code' : 'every line has its DBD code') + ' · the same columns as DBD\'s own forms';
+    const loaded = [], tint = r => { r._opts = r._need ? suggest(cat, r._l) : null; return r; };
+    const sums = res => { const u = res.rows.reduce((a, r) => a + r.q, 0), t = res.rows.reduce((a, r) => a + (r.tot === '' ? 0 : +r.tot), 0); res.foot = { d: 'Total', q: u, tot: f2(t) }; res.sub = subAll(); };
+    const say = m => Object.assign(new Error(m), { say: m });
+    const onEdit = async (row, k, val) => {
+      if (k !== 'code') return;
+      const v = String(val || '').replace(/\s+/g, ''), l = row._l;
+      if (v && !/^\d{6,8}$/.test(v)) throw say('A DBD code is 6 to 8 digits.');
+      if ((l.code || '') === v) return;
+      let r; try { r = await sb.rpc('oos_dbd_code_set', { p_key: l.key, p_name: l.name, p_code: v }); } catch (e) { r = { error: e }; }
+      if (r.error) throw say(/oos_dbd_code_set|schema cache|Could not find/i.test(String(r.error.message || r.error)) ? 'Saving a code is not switched on yet (out_of_stock_dbd_code_links.sql).' : 'Not saved: ' + String(r.error.message || r.error));
+      if (r.data && r.data.denied) throw say('Only people who may edit the Weekly Product Plan can save a code.');
+      // read the order again so the row shows exactly what the database now gives (description, size, price, EAN), and the same product in the other salons' lists follows
+      const nf = await loadForms(sup, sals); if (nf.err) throw say(nf.err);
+      nf.forms.forEach((f, i) => { const o = lf.forms[i]; if (o && o.order_no === f.order_no) f.lines.forEach((nl, j) => { if (o.lines[j]) Object.assign(o.lines[j], nl); }); });
+      loaded.forEach(res => { res.rows.forEach(x => { Object.assign(x, tint(rowOf(x._l))); }); sums(res); });
+    };
     const views = [];
-    lf.forms.forEach(fm => listsOf(fm).forEach(L => views.push({ id: fm.order_no + L.label, label: (lf.forms.length > 1 ? BN[fm.branch] + ' ' : '') + L.label.replace('Professional', 'Pro'), load: async () => ({
-      cols: FCOLS, rows: L.rows, foot: { d: 'Total', q: L.units, tot: f2(L.aed) },
-      note: (L.need ? '<b>' + plural(L.need, 'line') + ' need a code</b>: DBD\'s list has no product with that barcode or name yet, so the Code is blank. Add it by hand before the form goes to DBD. ' : 'Every line has its DBD code. ') +
-            'Quantity is the confirmed order; Total is the price list price (WSP) x quantity, DBD\'s discount is on their invoice. <b>Matched by</b> says how the code was found: barcode, item code or name.' }) })));
+    lf.forms.forEach(fm => listsOf(fm).forEach(L => views.push({ id: fm.order_no + L.label, label: (lf.forms.length > 1 ? BN[fm.branch] + ' ' : '') + L.label.replace('Professional', 'Pro'), load: async () => {
+      L.rows.forEach(tint);
+      const res = { cols, rows: L.rows, onEdit }; sums(res); loaded.push(res); return res;
+    } })));
     if (!views.length) return 'The order has no lines.';
-    const need = lf.forms.reduce((a, fm) => a + listsOf(fm).reduce((b, L) => b + L.need, 0), 0), tot = lf.forms.reduce((a, fm) => a + fm.lines.length, 0);
-    TRSD.open({ title: 'DBD order form, ' + lf.forms.map(fm => fm.order_no + ' ' + BN[fm.branch]).join(', '), sub: plural(tot, 'line') + ' · ' + (need ? plural(need, 'line') + ' need a DBD code' : 'every line has its DBD code') + ' · the same columns as DBD\'s own forms', views,
+    TRSD.open({ title: 'DBD order form, ' + lf.forms.map(fm => fm.order_no + ' ' + BN[fm.branch]).join(', '), sub: subAll(), views,
       actions: [{ label: 'Save DBD forms (xlsx)', run: () => saveForms(lf.forms) }] });
     return '';
   }
