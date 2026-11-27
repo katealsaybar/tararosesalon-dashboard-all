@@ -615,6 +615,41 @@
     return '';
   }
   // ===== PVM:END =====
+  // ===== RESET:BEGIN  Reset one salon's order (Kate, 27 Nov 2026: "walang reset ng order per branch?", "kasama lang ang qty at ticks") =====
+  // Puts the quantities typed in and the products ticked off of ONE salon back to the calculated order, for this order day (oos_order_reset, migrations/out_of_stock_order_reset.sql).
+  // Shelf counts and Verified stay, the other salons stay, confirmed supplier orders stay (cancel them on their own).
+  let rsMsg = '';
+  const rsKeys = (c, o) => Object.keys(o).filter(k => k.indexOf(c.toLowerCase() + '|') === 0);
+  function paintResets() {
+    const el = $('oosResets'); if (!el) return;
+    const bs = S.canEdit ? S.br.map(c => ({ c, q: rsKeys(c, S.edits).length, t: rsKeys(c, S.skips).length })).filter(x => x.q || x.t) : [];
+    if (!bs.length && !rsMsg) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.innerHTML = (bs.length ? '<span class="oos-rs-k">Back to the calculated order</span>' + bs.map(x => '<button type="button" class="cm-pill" data-reset="' + x.c + '">Reset ' + esc(BN[x.c]) + ' <small>' + (x.q ? plural(x.q, 'amount') : '') + (x.q && x.t ? ', ' : '') + (x.t ? plural(x.t, 'untick') : '') + '</small></button>').join('') : '') + (rsMsg ? '<span class="oos-rs-m" role="status">' + esc(rsMsg) + '</span>' : '');
+  }
+  async function resetSalon(c) {
+    if (!S.canEdit) return;
+    const q = rsKeys(c, S.edits), t = rsKeys(c, S.skips); if (!q.length && !t.length) return;
+    const open = S.po.filter(o => o.branch === c && o.status !== 'cancelled' && o.day === S.editDay).length;
+    if (!window.confirm('Reset the ' + BN[c] + ' order?\n\n' + (q.length ? plural(q.length, 'typed amount') : '') + (q.length && t.length ? ' and ' : '') + (t.length ? plural(t.length, 'untick') : '') + ' go back to the calculated order. Shelf counts and Verified stay, and so do the other salons.' + (open ? '\n\n' + plural(open, 'confirmed order') + ' for ' + BN[c] + (open === 1 ? ' stays' : ' stay') + ' as ' + (open === 1 ? 'it is' : 'they are') + ': cancel ' + (open === 1 ? 'it' : 'them') + ' separately.' : ''))) return;
+    let r; try { r = await sb.rpc('oos_order_reset', { p_branch: c }); } catch (e) { r = { error: e }; }
+    if (r.error) { rsMsg = /oos_order_reset|schema cache|does not exist|Could not find/i.test(String(r.error.message || r.error)) ? 'The reset is not switched on yet: the database step (out_of_stock_order_reset.sql) is waiting to be applied.' : 'That did not work. Try again.'; paintResets(); return; }
+    if (r.data && r.data.denied) { rsMsg = 'Only people who may edit the Weekly Product Plan can reset an order.'; paintResets(); return; }
+    q.forEach(k => { delete S.edits[k]; delete S.editWho[k]; }); t.forEach(k => { delete S.skips[k]; delete S.editWho[k]; });
+    S.eds++; memoM = {}; sigNow(); S.dirty = true;
+    // the numbers locked for a bulk order: this salon's untyped quantities go back to the live figures too, the other salons' stay locked
+    if (S.bulk && S.bulk.lock && S.bulk.lock.sig === lockSig() && !S.bulkOff) {
+      try {
+        const lq = Object.assign({}, S.bulk.lock.q); Object.keys(lq).forEach(k => { if (k.indexOf(c.toLowerCase() + '|') === 0) delete lq[k]; });
+        all().filter(x => x.b === c && x.qm > 0).forEach(x => { lq[x.key] = x.qm; });
+        const sv = await sb.rpc('oos_bulk_save', { p_ticks: (S.bulk && S.bulk.ticks) || {}, p_lock: { sig: lockSig(), q: lq }, p_new: false, p_done: false });
+        if (!sv.error && sv.data && !sv.data.denied) applyBulk({ data: sv.data });
+      } catch (e) { console.error(e); }
+    }
+    rsMsg = BN[c] + ' is back to the calculated order (' + n0(r.data && r.data.cleared != null ? r.data.cleared : q.length + t.length) + ' changed).';
+    draw();
+  }
+  // ===== RESET:END =====
   // ===== BULK:BEGIN  Order all suppliers (Kate, 27 Nov 2026: "i-build mo na sa live"; mockup docs/mockups/out-of-stock.html in the cowork repo) =====
   // One window with a row per supplier: tick, Confirm (each supplier and salon its own TRS-PO number), Preview email and Email (each its own email). The place is kept under a BO number in the
   // database (oos_bulk_get / oos_bulk_save, migrations/out_of_stock_bulk_batches.sql), so closing the window, reloading or someone else opening the page carries on where it was left. Whether a
@@ -1216,6 +1251,7 @@
         <p class="watch"><b>What to watch.</b> <span id="oosW1"></span></p>
       </div>
       <div class="oos-fun" id="oosBars"></div>
+      <div class="oos-resets" id="oosResets" hidden></div>
     </section>
 
     <section class="oos-sec" id="oos-3" data-jn="3 The order list">
@@ -1487,7 +1523,7 @@
       if (window.ResizeObserver && $('topbar')) { S.ro = new ResizeObserver(() => offsets()); S.ro.observe($('topbar')); }
     }
     msg('');
-    paintNote(); paintAnswer(); paintBook(); paintBars(); TO.draw(); paintW2(); TS.draw(); paintW3(); paintHow(); paintAbout(); paintBulkCard();
+    paintNote(); paintAnswer(); paintBook(); paintBars(); TO.draw(); paintW2(); TS.draw(); paintW3(); paintHow(); paintAbout(); paintBulkCard(); paintResets();
     if (S.edFail) edMsg('Your saved amounts and ticks did not load just now (the database was slow). They are safe. This page asks again by itself; do not type amounts until they are back.');
     offsets();
   }
@@ -1498,6 +1534,7 @@
       if (v) { S.filt = v.dataset.of; host.querySelectorAll('[data-of]').forEach(b => { b.classList.toggle('on', b === v); b.setAttribute('aria-pressed', b === v); }); TO.page = 0; TO.draw(); paintW2(); offsets(); return; }
       if (e.target.closest('#oosMore')) { TO.toggleMore(); e.target.closest('#oosMore').classList.toggle('on', TO.more); e.target.closest('#oosMore').setAttribute('aria-pressed', TO.more); offsets(); return; }
       if (e.target.closest('#oosMore3')) { TS.toggleMore(); e.target.closest('#oosMore3').classList.toggle('on', TS.more); e.target.closest('#oosMore3').setAttribute('aria-pressed', TS.more); return; }
+      const rs = e.target.closest('[data-reset]'); if (rs) { resetSalon(rs.dataset.reset); return; }
       if (e.target.closest('#oosBulk')) { openBulk(); return; }
       const bc = e.target.closest('[data-bkc]'); if (bc) { if (bc.dataset.bkc === 'open') openBulk(); else bkFresh(); return; }
       if (e.target.closest('#oosRefresh, #oosRefresh4')) { refreshStock(); return; }
