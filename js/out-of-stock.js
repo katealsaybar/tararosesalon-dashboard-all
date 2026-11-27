@@ -681,14 +681,14 @@
     return { fadeZero: 1, title, sub: plural(rows.length, 'product') + ' · ' + A(sum(rows, 'am')) + ' minimum to ' + A(sum(rows, 'aed')) + ' maximum order · ' + wk(C) + ' of cover · shelf of ' + shelfDate(), cur: 'AED', sk,
       views: sheet ? [sheetView, prodView] : [prodView],
       actions: sheet && supName ? [].concat(
-        supName === 'DBD' ? [{ label: 'Order form', run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        S.canEdit ? [{ label: 'Confirm order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
-                     { label: 'Cancel confirmed order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
-                             { label: 'Test email to me', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
-        S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as on the way', alt: 1, run: () => markOnTheWay(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
-        S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as sent', run: () => markSent(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : []) : undefined };
+        supName === 'DBD' ? [{ label: 'Order form', grp: 'Order', run: () => orderFormWindow(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+        S.canEdit ? [{ label: 'Confirm order', grp: 'Order', run: () => { const keys = {}; rows.concat(extra || []).forEach(r => { keys[r.key] = 1; }); return confirmOrder(supName, keys); } },
+                     { label: 'Cancel confirmed order', grp: 'Order', run: () => cancelOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+        SUP_MAIL[supName] ? [{ label: 'Email order to ' + supName, grp: 'Send', main: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) },
+                             { label: 'Test email to me', grp: 'Send', alt: 1, run: () => emailToDbd(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c)), true) }] : [],
+        S.canEdit && SUP_MAIL[supName] && openOrders(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))).some(o => o.status === 'oos_reply') ? [{ label: 'Confirm order with ' + supName + ' OOS', grp: 'After sending', run: () => confirmOos(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+        S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as on the way', grp: 'After sending', alt: 1, run: () => markOnTheWay(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : [],
+        S.canEdit && SUP_MAIL[supName] ? [{ label: 'Mark as sent', grp: 'After sending', run: () => markSent(supName, B.filter(c => rows.concat(extra || []).some(r => r.b === c))) }] : []) : undefined };
   }
   // One product at one salon: how its order is worked out, and the order lines behind On order (the last step: a single order line has nothing behind it).
   // "x 1.22 + x 1.15 + ..." for the weeks a colour product counts, with where it comes from
