@@ -161,6 +161,60 @@ function putRow(xml: string, n: number, cells: { col: string; text?: string; val
   return xml.replace("</sheetData>", () => rowXml + "</sheetData>");
 }
 
+// Our own look inside DBD's form (Kate, 27 Nov 2026: "qty and cost should be in our brand format if it is not in the xlsx originally"): what DBD's form already has keeps DBD's look;
+// what we add (the Order Qty. heading and figures, a Total (AED) column when the form has none, the two total lines) is mint, like the dashboard. The styles are added to the workbook's own styles.xml.
+async function brandStyles(zip: any): Promise<{ head: string; qty: string; tot: string; totAed: string }> {
+  const path = "xl/styles.xml";
+  let x: string | undefined = await zip.file(path)?.async("string");
+  const none = { head: "", qty: "", tot: "", totAed: "" };
+  if (!x) return none;
+  const add = (tag: string, items: string[]): number => {   // adds items to the end of the list <tag count="n">, returns the index of the first one added
+    const re = new RegExp(`<${tag}\\b([^>]*?)count="(\\d+)"([^>]*)>`);
+    const m = re.exec(x!); if (!m || !x!.includes(`</${tag}>`)) return -1;
+    const first = parseInt(m[2]);
+    x = x!.replace(re, `<${tag}$1count="${first + items.length}"$3>`).replace(`</${tag}>`, () => items.join("") + `</${tag}>`);
+    return first;
+  };
+  const fo = add("fonts", ['<font><b/><sz val="11"/><color rgb="FF1A1A1A"/><name val="Georgia"/><family val="1"/></font>', '<font><b/><sz val="11"/><color rgb="FF0B3D36"/><name val="Calibri"/><family val="2"/></font>']);
+  const fi = add("fills", ["99F6E4", "E6FCF8", "F3FEFB"].map((c) => `<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/><bgColor indexed="64"/></patternFill></fill>`));
+  const bo = add("borders", ['<border><left style="thin"><color rgb="FF555555"/></left><right style="thin"><color rgb="FF555555"/></right><top style="thin"><color rgb="FF555555"/></top><bottom style="thin"><color rgb="FF555555"/></bottom><diagonal/></border>']);
+  const xf = (nf: number, f: number, fl: number) => `<xf numFmtId="${nf}" fontId="${f}" fillId="${fl}" borderId="${bo}" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>`;
+  const xs = add("cellXfs", [xf(0, fo, fi), xf(0, fo + 1, fi + 1), xf(4, fo + 1, fi + 2), xf(4, fo, fi)]);
+  if (fo < 0 || fi < 0 || bo < 0 || xs < 0) return none;
+  zip.file(path, x);
+  return { head: String(xs), qty: String(xs + 1), tot: String(xs + 2), totAed: String(xs + 3) };
+}
+
+// a cell put in a row's XML in column order (the row may have no cells at all)
+function insertCell(rowXml: string, col: string, cell: string): string {
+  const n = colNum(col);
+  let out = "";
+  const at = (() => { for (const c of rowXml.matchAll(/<c\b[^>]*\br="([A-Z]+)\d+"/g)) { if (colNum(c[1]) > n) return rowXml.indexOf(c[0]); } return -1; })();
+  if (at >= 0) out = rowXml.slice(0, at) + cell + rowXml.slice(at);
+  else if (/<\/row>$/.test(rowXml)) out = rowXml.replace(/<\/row>$/, () => cell + "</row>");
+  else out = rowXml.replace(/\s*\/>$/, () => `>${cell}</row>`);
+  return out.replace(/(<row\b[^>]*?)\sspans="[^"]*"/, "$1");   // the spans hint no longer fits once a cell is added
+}
+
+// a cell with a number or a text and a style, replacing the cell that is there
+function putCell(rowXml: string, rowNo: number, col: string, value: number | undefined, text: string | undefined, style: string): string {
+  const ref = col + rowNo, st = style ? ` s="${style}"` : "";
+  const cell = text !== undefined ? `<c r="${ref}"${st} t="inlineStr"><is><t>${text}</t></is></c>` : `<c r="${ref}"${st}><v>${value}</v></c>`;
+  const m = new RegExp(`<c\\b[^>]*\\br="${ref}"[^>]*?(?:/>|>[\\s\\S]*?</c>)`).exec(rowXml);
+  return m ? rowXml.replace(m[0], () => cell) : insertCell(rowXml, col, cell);
+}
+
+// only the style of a cell changed, its content kept (an empty styled cell is made when there is none)
+function styleCell(rowXml: string, rowNo: number, col: string, style: string): string {
+  if (!style) return rowXml;
+  const ref = col + rowNo;
+  const m = new RegExp(`<c\\b[^>]*\\br="${ref}"[^>]*?(?:/>|>[\\s\\S]*?</c>)`).exec(rowXml);
+  if (!m) return insertCell(rowXml, col, `<c r="${ref}" s="${style}"/>`);
+  const open = /<c\b([^>]*?)(\/?)>/.exec(m[0])!;
+  const attrs = /\bs="[^"]*"/.test(open[1]) ? open[1].replace(/\bs="[^"]*"/, `s="${style}"`) : `${open[1]} s="${style}"`;
+  return rowXml.replace(m[0], () => m[0].replace(open[0], `<c${attrs}${open[2]}>`));
+}
+
 Deno.serve(async (req: Request) => {
   const CORS = cors(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -242,6 +296,10 @@ Deno.serve(async (req: Request) => {
       if (names.has(name)) { for (const h of hits) leftover.push({ name: items[h.i].name, q: items[h.i].q }); continue; }
       names.add(name);
       const zip = await JSZip.loadAsync(u.form.bytes), want = new Map<number, number>();
+      const st = await brandStyles(zip);
+      const hdrR = f.rows.find((r) => r.r === f.hdrRow);
+      const statusCol = hdrR?.cells.find((c) => /^status/i.test(c.v.trim()))?.col || f.cols.ean;
+      const addTotal = !f.cols.total, totCol = f.cols.total || colLetter(colNum(statusCol) + 1);   // a form with no Total column gets one after Status
       for (const h of hits) want.set(h.row.r, (want.get(h.row.r) || 0) + items[h.i].q);
       let xml = f.sheetXml;
       for (const r of f.rows) {
@@ -250,6 +308,8 @@ Deno.serve(async (req: Request) => {
         const had = r.cells.find((c) => c.col === f.cols.qty)?.v;
         if (q == null && (had === undefined || had === "")) continue;
         let rowXml = setCell(r.xml, r.r, f.cols.qty, q, false);
+        if (q != null) rowXml = styleCell(rowXml, r.r, f.cols.qty, st.qty);
+        if (addTotal && q != null) rowXml = putCell(rowXml, r.r, totCol, Math.round(q * num(r.cells.find((c) => c.col === f.cols.wsp)?.v ?? "") * 100) / 100, undefined, st.tot);
         if (f.cols.total) {
           const wsp = num(r.cells.find((c) => c.col === f.cols.wsp)?.v ?? "");
           const tc = r.cells.find((c) => c.col === f.cols.total);
@@ -257,15 +317,22 @@ Deno.serve(async (req: Request) => {
         }
         xml = xml.replace(r.xml, () => rowXml);
       }
-      // Kate, 27 Nov 2026: the Order column has no heading in some of DBD's forms (so it is named), and the form had no total quantity or total AED (so two lines are added under the last product, at the price list price)
-      const hdrR = f.rows.find((r) => r.r === f.hdrRow), hdrStyle = hdrR?.cells.find((c) => c.col === f.cols.desc)?.s ?? "";
-      const hq = hdrR?.cells.find((c) => c.col === f.cols.qty);
-      if (hdrR && (!hq || !hq.v.trim())) xml = xml.replace(hdrR.xml, () => setText(hdrR.xml, hdrR.r, f.cols.qty, "Order Qty.", hdrStyle));
+      // heading: the Order column is named and branded (some of DBD's forms leave it blank); a form with no Total column gets "Total (AED)"
+      if (hdrR) {
+        const hq = hdrR.cells.find((c) => c.col === f.cols.qty);
+        let hx = hdrR.xml;
+        if (!hq || !hq.v.trim()) hx = setText(hx, hdrR.r, f.cols.qty, "Order Qty.", st.head);
+        hx = styleCell(hx, hdrR.r, f.cols.qty, st.head);
+        if (addTotal) hx = putCell(hx, hdrR.r, totCol, undefined, "Total (AED)", st.head);
+        xml = xml.replace(hdrR.xml, () => hx);
+      }
+      // the two total lines under the last product, in our colours: the quantity under Order Qty., the AED (at the price list price) under Total
       let totQ = 0, totA = 0, lastR = f.hdrRow;
       for (const h of hits) { totQ += items[h.i].q; totA += items[h.i].q * num(h.row.cells.find((c) => c.col === f.cols.wsp)?.v ?? ""); }
       for (const r of f.rows) { if (r.r > f.hdrRow && (r.cells.find((c) => c.col === f.cols.desc)?.v || "").trim()) lastR = Math.max(lastR, r.r); }
-      xml = putRow(xml, lastR + 2, [{ col: f.cols.desc, text: "TOTAL QTY", style: hdrStyle }, { col: f.cols.qty, value: totQ, style: hdrStyle }]);
-      xml = putRow(xml, lastR + 3, [{ col: f.cols.desc, text: "TOTAL (AED, at WSP)", style: hdrStyle }, { col: f.cols.qty, value: Math.round(totA * 100) / 100, style: hdrStyle }]);
+      xml = putRow(xml, lastR + 2, [{ col: f.cols.desc, text: "TOTAL QTY", style: st.head }, { col: f.cols.qty, value: totQ, style: st.head }]);
+      xml = putRow(xml, lastR + 3, [{ col: f.cols.desc, text: "TOTAL (AED, at WSP)", style: st.head }, { col: totCol, value: Math.round(totA * 100) / 100, style: st.totAed }]);
+      xml = xml.replace(/<dimension ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"\/>/, (_m: string, c1: string, r1: string, c2: string, r2: string) => `<dimension ref="${c1}${r1}:${colLetter(Math.max(colNum(c2), colNum(totCol)))}${Math.max(parseInt(r2), lastR + 3)}"/>`);
       zip.file(f.sheetPath, xml);
       const wbPath = "xl/workbook.xml";
       let wb = await zip.file(wbPath)?.async("string");
