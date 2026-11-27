@@ -15,6 +15,9 @@
 //   The form is edited in place (the sheet XML), so DBD's layout, formulas, logos and styles stay as they were. Forms differ a little: the Order column's
 //   heading is blank in some (it is then the empty-headed column after Suggested RSP). The Total column's stored figures are recalculated and the workbook
 //   is set to recalculate when opened.
+//   What we add is in our own colours (27 Nov 2026, Kate): the Order Qty. heading and figures, a Total (AED) column when the form has none, and two total lines.
+//   Each file also carries `view`: the ordered lines as DBD's form has them (category, sub-category, code, description, size, WSP, RSP, quantity, EAN, status), so the page can show the form
+//   in the dashboard without anything being downloaded.
 //
 // WHO CAN CALL IT
 //   Anyone oos_access() lets in, checked with the caller's own token. Files are read with the service role, only the form files of DBD orders.
@@ -31,6 +34,7 @@ const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SALONS = ["KCA", "SAA", "MC", "AQ"];
 const MAX_FILES = 40;
 const BUDGET_MS = 100_000;
+const BYTES = new Map<string, ArrayBuffer>();   // downloaded forms kept for the next call on this instance
 
 const ALLOWED_ORIGINS = ["https://trk-salon-os.com", "https://www.trk-salon-os.com", "https://katealsaybar.github.io"];
 const LOCAL = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
@@ -254,15 +258,33 @@ Deno.serve(async (req: Request) => {
   // go through the forms, newest first (this salon's first), until every product has a home
   const todo = new Set(items.map((_, i) => i));
   const used: { cand: any; form: Form; hits: { i: number; row: Row }[] }[] = [];
-  let opened = 0;
-  for (const d of order) {
-    if (!todo.size || opened >= MAX_FILES || Date.now() - t0 > BUDGET_MS) break;
-    try {
-      const dl = await sb.storage.from("order-files").download(d.file_path);
-      if (dl.error || !dl.data) continue;
+  let opened = 0, dry = 0;
+  // Speed (27 Nov 2026, Kate: "matagal syang mag prep"): the forms were read one after another, all 40 every time (17 to 20 s), because a product no form holds keeps the loop going.
+  // Now: (1) forms are downloaded and opened 8 at a time, then applied in the same newest-first order, so the result is the same; (2) a downloaded form is kept in memory for the next
+  // call (the preview and the draft ask for the same forms); (3) once something is found, 12 forms in a row that add nothing end the search (those products go to notFound, which the email lists by name).
+  const BATCH = 8, STALE = 12;
+  const pool0 = order.slice(0, MAX_FILES);
+  batches: for (let b = 0; b < pool0.length; b += BATCH) {
+    if (!todo.size || Date.now() - t0 > BUDGET_MS) break;
+    const chunk = pool0.slice(b, b + BATCH);
+    const got = await Promise.all(chunk.map(async (d: any) => {
+      try {
+        let bytes = BYTES.get(d.file_path);
+        if (!bytes) {
+          const dl = await sb.storage.from("order-files").download(d.file_path);
+          if (dl.error || !dl.data) return null;
+          bytes = await dl.data.arrayBuffer();
+          if (BYTES.size >= 80) BYTES.delete(BYTES.keys().next().value as string);
+          BYTES.set(d.file_path, bytes);
+        }
+        return await openForm(bytes);
+      } catch (e) { console.error("[oos-order-forms] form skipped", String((e as Error)?.message || e)); return null; }
+    }));
+    for (let gi = 0; gi < chunk.length; gi++) {
+      if (!todo.size) break batches;
+      const d = chunk[gi], form = got[gi];
       opened++;
-      const form = await openForm(await dl.data.arrayBuffer());
-      if (!form) continue;
+      if (!form) { dry++; continue; }
       const hits: { i: number; row: Row }[] = [];
       for (const i of [...todo]) {
         const it = items[i];
@@ -272,8 +294,9 @@ Deno.serve(async (req: Request) => {
         const row = (it.code && form.byCode.get(it.code)) || (it.bc && form.byEan.get(it.bc)) || (it.nm && form.byName.get(it.nm)) || fuzzy || null;
         if (row) { hits.push({ i, row }); todo.delete(i); }
       }
-      if (hits.length) used.push({ cand: d, form, hits });
-    } catch (e) { console.error("[oos-order-forms] form skipped", String((e as Error)?.message || e)); }
+      if (hits.length) { used.push({ cand: d, form, hits }); dry = 0; } else dry++;
+      if (used.length && dry >= STALE) break batches;
+    }
   }
 
   // fill each form that holds products: one file per form and stock type, every Order Qty. cleared, then the quantities put in

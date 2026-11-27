@@ -333,12 +333,15 @@
     const gnames = []; (sp.actions || []).forEach(a => { if (gnames.indexOf(a.grp) < 0) gnames.push(a.grp); });
     const acts = grouped ? `<div class="dr-acts" role="group" aria-label="Order steps">${gnames.map(g => `<div class="dr-ag"><span class="dr-agl">${esc(g || '')}</span><div class="dr-agb">${(sp.actions || []).map((a, i) => a.grp === g ? btnOf(a, i) : '').join('')}</div></div>`).join('')}<span class="dr-saved" role="status"></span></div>` : '';
     const tabs = sp.views.length > 1 ? `<div class="dr-tabs" role="group" aria-label="View">${sp.views.map((v, i) => `<button type="button" data-dv="${i}" aria-pressed="${i === 0}">${esc(v.label)}</button>`).join('')}</div>` : '<div></div>';
-    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><div class="dr-hx">${sp.panel ? `<a class="dr-nt" href="${esc(location.origin + rUrl(chain))}" target="_blank" rel="noopener" title="Open this window on its own page">Open in new tab</a>` : ''}<button type="button" class="dr-x" data-dx>Close</button></div></div><div class="dr-bar">${tabs}<div class="dr-fbar" hidden><span class="dr-fcount"></span><button type="button" class="dr-fclear" data-fclear>Clear filters</button></div><div class="dr-save">${grouped ? '' : '<span class="dr-saved" role="status"></span>'}${grouped ? '' : actBtn}<button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div>${acts}<div class="dr-body"></div></div>`;
+    box.innerHTML = `<div class="dr-box"><div class="dr-hd"><div>${chain.length > 1 ? `<button type="button" class="dr-back" data-db title="Back to the list you came from">‹ Back to ${esc(chain[chain.length - 2].title)}</button>` : ''}<h3>${sp.titleSwitch ? `<select class="dr-ts" data-ts aria-label="${esc(sp.titleSwitch.label || 'Change')}">${sp.titleSwitch.options.map(o => `<option value="${esc(o.value)}"${o.value === sp.titleSwitch.value ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select>${esc(sp.titleSwitch.suffix || '')}` : esc(sp.title)}</h3><p class="dr-sub">Loading…</p></div><div class="dr-hx">${sp.panel ? `<a class="dr-nt" href="${esc(location.origin + rUrl(chain))}" target="_blank" rel="noopener" title="Open this window on its own page">Open in new tab</a>` : ''}<button type="button" class="dr-x" data-dx>Close</button></div></div><div class="dr-bar">${tabs}<div class="dr-fbar" hidden><span class="dr-fcount"></span><button type="button" class="dr-fclear" data-fclear>Clear filters</button></div><div class="dr-save">${grouped ? '' : '<span class="dr-saved" role="status"></span>'}${grouped ? '' : actBtn}<button type="button" data-ds="xlsx" disabled>Save as xlsx</button><button type="button" data-ds="csv" disabled>Save as csv</button></div></div>${acts}<div class="dr-body"></div></div>`;
     // The note under the table, the page bar and the empty line stay in view when the table is scrolled sideways (Kate, 26 Nov 2026: the note was cut off on the left)
     { const bd0 = box.querySelector('.dr-body'); if (bd0) bd0.addEventListener('scroll', () => { bd0.style.setProperty('--sx', bd0.scrollLeft + 'px'); }, { passive: true }); }
     let efk = null;   // the input the reader is in, so the table can give the focus back after it is drawn again
     box.addEventListener('focusin', e => { const i = e.target.closest && e.target.closest('[data-ek]'); efk = i ? i.dataset.ek + '' + i.dataset.ec : null; });
     box.addEventListener('change', e => {
+      // The window's title can be a dropdown (Out of Stock: DBD order, EIDEAL order, ... for the same salons): the window is swapped in place for the one picked (Kate, 27 Nov 2026).
+      const ts = e.target.closest && e.target.closest('[data-ts]');
+      if (ts) { const sw = spec && spec.titleSwitch, ns = sw && sw.pick ? sw.pick(ts.value) : null; if (ns) swapTop(ns); else if (sw) ts.value = sw.value; return; }
       const ei = e.target.closest && e.target.closest('[data-ek]');
       if (ei) {
         const res = cache && cache[cur], row = res && res.rows.find(r => String(r._ek) === ei.dataset.ek);
@@ -383,6 +386,12 @@
     document.body.appendChild(box); document.body.classList.add('dr-open');
     const b = box.querySelector('[data-dx]'); if (b) b.focus();
     pick(cur).then(() => { if (keep && box) { const bd = box.querySelector('.dr-body'); if (bd) { bd.scrollLeft = keep.sx || 0; bd.scrollTop = keep.sy || 0; } } });
+  }
+  function swapTop(ns) {
+    if (!box || !chain.length) return;
+    box.remove(); chain[chain.length - 1] = ns;
+    try { history.replaceState(history.state, '', rUrl(chain)); } catch (e) {}
+    show(ns);
   }
   function stepUp() {
     const gone = chain.pop();

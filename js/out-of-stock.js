@@ -353,7 +353,16 @@
   }
   const gTitle = (f, sal, sup) => { const L = sal ? BN[sal] : scope(); return f === 'out' ? 'Out now, ' + L : f === 'u1' ? 'Under 1 week left, ' + L : f === 'sup' ? sup + ' order, ' + L : 'Products to order, ' + L; };
   // a figure that opens the products behind it; plain when the list is empty
-  const fig = (txt, f, sal, sup) => { const rs = groupRows(f, sal, sup); return rs.length ? num(txt, rowsSpec(gTitle(f, sal, sup), rs, slug('oos-' + f + (sal ? '-' + sal : '') + (sup ? '-' + sup : '')), f === 'sup', f === 'sup' ? all().filter(r => (sal ? r.b === sal : inSel(r.b)) && r.sup === sup && lowOf(r)) : null, f === 'sup' ? sup : '')) : txt; };
+  // One supplier's order window. Its title is a dropdown of every supplier with products to order for the same salons, so the person can move between suppliers without closing it (Kate, 27 Nov 2026).
+  function supSpec(sup, sal) {
+    const rs = groupRows('sup', sal, sup); if (!rs.length) return null;
+    const sp = rowsSpec(gTitle('sup', sal, sup), rs, slug('oos-sup' + (sal ? '-' + sal : '') + '-' + sup), true, all().filter(r => (sal ? r.b === sal : inSel(r.b)) && r.sup === sup && lowOf(r)), sup);
+    const tot = {}; all().filter(r => (sal ? r.b === sal : inSel(r.b)) && listed(r)).forEach(r => { tot[r.sup] = (tot[r.sup] || 0) + (+r.aed || 0); });
+    const names = Object.keys(tot).sort((a, b) => tot[b] - tot[a]);
+    if (names.length > 1) sp.titleSwitch = { label: 'Supplier', value: sup, options: names.map(n => ({ value: n, label: n + ' order' })), suffix: ', ' + (sal ? BN[sal] : scope()), pick: v => supSpec(v, sal) };
+    return sp;
+  }
+  const fig = (txt, f, sal, sup) => { if (f === 'sup') { const sp = supSpec(sup, sal); return sp ? num(txt, sp) : txt; } const rs = groupRows(f, sal, sup); return rs.length ? num(txt, rowsSpec(gTitle(f, sal, sup), rs, slug('oos-' + f + (sal ? '-' + sal : '')), false, null, '')) : txt; };
   // Email the order to the supplier (Kate, 26 Nov 2026: "lagyan mo ng email to dbd beh hanapin mo na lang emails ng dbd"). The addresses are the ones the Tara Rose info@ mailbox really sent the DBD orders to in
   // Nov 2026 (ORDER FOR SAADIYAT / MOTORCITY / KHALIFA CITY A BRANCH, Al Quoz Branch - Order Forms): Margie Jala (invoicing since Reina left, 3 Jun 2026), Mohamed Abassi, Bassam Moujalli and Jonnah Rodilla;
   // ate Tine (Cristine) copied as she was on the Saadiyat orders. Mandy Loewigt (account manager) was added after the 26 Nov meeting with ate Tine, who sends every order to Bassam, Mandy, Mohamed (Abasi), Margie (Marcy) and Jonnah (Jona) and copies her own work Gmail so she sees the replies away from the salon; Asmaa she adds only sometimes, so she is not in the default. The button OPENS a Gmail draft
