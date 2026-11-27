@@ -19,8 +19,8 @@
   var BR = { SAA: 'Saadiyat', KCA: 'Khalifa City A', MC: 'Motor City', AQ: 'Al Quoz' }, BKEYS = ['SAA', 'KCA', 'MC', 'AQ'];
   /* Calendar and All blasts fold into pills (Kate, 4 Nov 2026: "calendar and all blasts, minimise to pills", "expandable, hideable when clicked"). Closed by default so the Blasts
      list sits high; what she opens is remembered in this browser only (localStorage, in try/catch: the page works with storage blocked). Front end only, no data touched. */
-  var PILL_KEY = 'nvb-pills-v1', pills = { cal: false, all: false, bl: false, w2: false };   // bl = the Blasts list (Kate, 4 Nov 2026: "minimise na tong BLASTS"), closed by default; w2 = the Blast 2 list (13 Nov 2026)
-  try { var ps0 = JSON.parse(localStorage.getItem(PILL_KEY) || '{}'); pills.cal = ps0.cal === true; pills.all = ps0.all === true; pills.bl = ps0.bl === true; pills.w2 = ps0.w2 === true; } catch (e) {}
+  var PILL_KEY = 'nvb-pills-v1', pills = { cal: false, all: false, bl: false, w2: false, w3: false };   // bl = the Blasts list (Kate, 4 Nov 2026: "minimise na tong BLASTS"), closed by default; w2 = the Blast 2 list (13 Nov 2026)
+  try { var ps0 = JSON.parse(localStorage.getItem(PILL_KEY) || '{}'); pills.cal = ps0.cal === true; pills.all = ps0.all === true; pills.bl = ps0.bl === true; pills.w2 = ps0.w2 === true; pills.w3 = ps0.w3 === true; } catch (e) {}
   function savePills() { try { localStorage.setItem(PILL_KEY, JSON.stringify(pills)); } catch (e) {} }
   var CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
   /* Sending progress (Kate, 4 Nov 2026: "overall percentage sent", "999/1001"): read only, from the same nov_send_info the Send card uses (SND, Level 5 only). Sent = status sent and
@@ -75,8 +75,10 @@
   /* Two waves (Kate, 13 Nov 2026, Blast 2 = the reminders): ids that start R_ are the Blast 2 blasts. Blast 1 keeps every total, the All blasts card and the left out card exactly as they
      were (blasts() is Blast 1 only), because a client is in both waves and a total over both would count her twice. Blast 2 has its own pill (wave2Side) and is picked like any blast. */
   function isR(i) { return String(i && i.id).indexOf('R_') === 0; }
-  function blasts() { return D.items.filter(function (i) { return isBlast(i) && !isR(i); }); }
+  function isT(i) { return String(i && i.id).indexOf('T_') === 0; }   // Blast 3, the last note (Kate, 27 Nov 2026): ids that start T_, its own pill (wave3Side), same rules as Blast 2
+  function blasts() { return D.items.filter(function (i) { return isBlast(i) && !isR(i) && !isT(i); }); }
   function blasts2() { return D.items.filter(function (i) { return isBlast(i) && isR(i); }); }
+  function blasts3() { return D.items.filter(function (i) { return isBlast(i) && isT(i); }); }
   function allBlasts() { return D.items.filter(isBlast); }
   function decs() { return D.items.filter(function (i) { return i.id.indexOf('dec') === 0; }); }
   function item(id) { return D.items.filter(function (i) { return i.id === id; })[0]; }
@@ -222,6 +224,7 @@
   function byDate(a, b) { return a.data.date < b.data.date ? -1 : a.data.date > b.data.date ? 1 : (a.data.time < b.data.time ? -1 : a.data.time > b.data.time ? 1 : 0); }
   function sorted() { return blasts().slice().sort(byDate); }
   function sorted2() { return blasts2().slice().sort(byDate); }
+  function sorted3() { return blasts3().slice().sort(byDate); }
   function allSorted() { return allBlasts().slice().sort(byDate); }   // the calendars show both waves
   function lab(k) { return k === 'ok' ? 'Approved' : k === 'changes' ? 'Needs changes' : 'Waiting for review'; }
   function rcls(k) { return k === 'ok' || k === 'changes' ? k : ''; }
@@ -316,9 +319,9 @@
   function moneyHeadRaw(kind, listed, rev, n, bs) {
     var spent = null, earned = null;
     if (kind === 1 && MON && MON.by_blast) {
-      var sn = 0, ea = 0; MON.by_blast.forEach(function (x) { if (!/^R_/.test(x.k)) { sn += x.sent || 0; ea += x.actual || 0; } });
+      var sn = 0, ea = 0; MON.by_blast.forEach(function (x) { if (!/^[RT]_/.test(x.k)) { sn += x.sent || 0; ea += x.actual || 0; } });
       spent = sn * RATE_AED; earned = ea;
-    } else if (kind === 2 && SND && SND.blasts) {
+    } else if ((kind === 2 || kind === 3) && SND && SND.blasts) {
       var sent2 = 0, any2 = false; bs.forEach(function (b) { var p = progOf(b); if (p) { any2 = true; sent2 += p.sent; } });
       if (any2) spent = sent2 * RATE_AED;
     }
@@ -333,7 +336,7 @@
         '<span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
     }).join('') + '</div></div>';
     if (o) moneyOnce();
-    return '<div class="nvb-pwrap">' + pillBtn('bl', 'Blast 1', r1 ? fmtN(t1) + ' clients listed' : (liveErr ? '?' : '…'), o, '', (cur === ALLID || (blast(cur) && !isR(blast(cur)) && cur !== RESID)) && !o) + (o ? card : '') + '</div>';
+    return '<div class="nvb-pwrap">' + pillBtn('bl', 'Blast 1', r1 ? fmtN(t1) + ' clients listed' : (liveErr ? '?' : '…'), o, '', (cur === ALLID || (blast(cur) && !isR(blast(cur)) && !isT(blast(cur)) && cur !== RESID)) && !o) + (o ? card : '') + '</div>';
   }
   // Blast 2, the reminders (Kate, 13 Nov 2026): its own pill under Blasts, one row per blast with the clients still to send, and the day it goes. Each row opens the blast like any other.
   function wave2Side() { try { return wave2Pill(); } catch (e) { console.error(e); return ''; } }   // a fault in this extra pill must never take the page down
@@ -349,6 +352,21 @@
     }).join('') + '</div><p class="cbl-hint">The reminders to clients who got Blast 1 and have not booked, come in, written back or said STOP. About <b>' + (ready ? fmtN(tot) : '…') + '</b> messages, one per client, at most <b>AED ' +
       (ready ? fmtN(Math.round(tot * RATE_AED)) : '…') + '</b>.</p></div>';
     return '<div class="nvb-pwrap">' + pillBtn('w2', 'Blast 2', ready ? fmtN(tot) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && isR(blast(cur)) && cur !== ALLID && cur !== RESID && !o) + (o ? card : '') + '</div>';
+  }
+  // Blast 3, the last note (Kate, 27 Nov 2026): its own pill under Blast 2, the same shape. The clients are the ones the Blast 2 message reached who are still not booked, and it goes on Sat 28 Nov.
+  function wave3Side() { try { return wave3Pill(); } catch (e) { console.error(e); return ''; } }   // a fault in this extra pill must never take the page down
+  function wave3Pill() {
+    var bs = sorted3(); if (!bs.length) return '';
+    var o = pills.w3, tot = 0, ready = !!(LIVE && LIVE.blasts);
+    bs.forEach(function (b) { var c = lv(b.id); if (c && c.n) tot += c.n; });
+    var rev3 = bs.filter(function (x) { return x.review === 'ok' || x.review === 'changes'; }).length;
+    var card = '<div class="cbl-tabs cbl-card">' + (o ? moneyHead(3, ready ? tot : null, rev3, bs.length, bs) : '') + '<div>' + bs.map(function (b) {
+      var c = lv(b.id);
+      return '<div class="cbl-tab' + (cur === b.id ? ' on' : '') + '"><a href="?view=novblasts&blast=' + esc(b.id) + '" data-nvb="sel:' + esc(b.id) + '" style="padding-left:12px"><span>' + esc(b.data.short || b.data.title) + '</span><small>' +
+        (c ? fmtN(c.n || 0) + ' clients, ' : '') + esc(fdate(b.data.date)) + ', ' + esc(fmtClock(clockMins(b))) + '</small></a><span class="cbl-dot ' + rcls(b.review) + '" title="' + lab(b.review) + '"></span></div>';
+    }).join('') + '</div><p class="cbl-hint">The last note to clients the Blast 2 message reached who have not booked, come in, written back or said STOP, and are not in a conversation with us today. About <b>' + (ready ? fmtN(tot) : '…') + '</b> messages, one per client, at most <b>AED ' +
+      (ready ? fmtN(Math.round(tot * RATE_AED)) : '…') + '</b>.</p></div>';
+    return '<div class="nvb-pwrap">' + pillBtn('w3', 'Blast 3', ready ? fmtN(tot) + ' clients listed' : (liveErr ? '?' : '…'), o, '', blast(cur) && isT(blast(cur)) && cur !== ALLID && cur !== RESID && !o) + (o ? card : '') + '</div>';
   }
   var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
   function resultsSide() {   // the Results pill sits under Blasts (the last pill) and opens the report in the main panel, like All blasts
@@ -520,7 +538,7 @@
     return '<div class="nvb-kvs">' + rows.map(function (r) { return '<div><small>' + esc(r[0]) + '</small><span>' + r[1] + '</span></div>'; }).join('') + '</div>' + (isL5() && SND ? (lockedNow() ? lockDisable(paceHtml()) : paceHtml()) : '');
   }
   function blastMain(b) {
-    var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = (isR(b) ? sorted2() : sorted()).map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
+    var d = b.data, c = lv(b.id), rv = b.review, ed = canEdit(), tl = d.title, ids = (isT(b) ? sorted3() : isR(b) ? sorted2() : sorted()).map(function (x) { return x.id; }), i = ids.indexOf(b.id), pv = ids[i - 1], nx = ids[i + 1];
     var ln = lanesOf(b, c);
     var who = (d.who_b && d.who_b.length ? whoHtml(d) : '<p>' + esc(d.who) + '</p>') +
       (b.id === 'E' && c ? '<p>Had colour in the last 12 months: <b>' + num(c.colour, tl + ', had colour', { p_blast: b.id, p_flag: 'colour' }) + '</b> · The rest: <b>' + fmtN(c.n - c.colour) + '</b></p>' : '') +
@@ -1144,7 +1162,7 @@
     var b = blast(cur); if (!b) return '<div class="nvb-pane"><h2>Messages</h2><p class="lead">No blasts are set up.</p></div>';
     if (cur === RESID) return '<div class="cbl"><div class="lg-shell nvb-lgs">' + railHtml(false) + '<div class="cbl-main" id="nvbMain">' + resultsMain() + '</div></div></div>';
     return '<div class="cbl"><div class="cbl-shell"><aside class="cbl-side' + (sideOpen ? ' open' : '') + '" id="nvbSide"><button type="button" class="cbl-side-toggle" data-nvb="side" aria-expanded="' + (sideOpen ? 'true' : 'false') + '"><span>Calendar and blasts</span><span>+</span></button>' +
-      '<div class="cbl-side-body">' + calSide() + progSum() + listSide() + wave2Side() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
+      '<div class="cbl-side-body">' + calSide() + progSum() + listSide() + wave2Side() + wave3Side() + '</div></aside><div class="cbl-main" id="nvbMain">' + (cur === ALLID ? sendBarHtml() : '') + (cur === ALLID ? allMain() : blastMain(b)) + '</div></div></div>';
   }
   function clockMins(b) { var t = (b.data.time || '11:30').split(':'); return +t[0] * 60 + +t[1]; }
   function dayWord(iso) { var g = parts(iso).getDay(); return g === 0 ? 'Sundays' : g === 1 ? 'Mondays' : DN[g] + 's'; }
